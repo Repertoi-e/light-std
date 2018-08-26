@@ -1,0 +1,6 @@
+- Write more tests for basic functionality so that in case something breaks we know right away... 
+- THREAD LOCAL STORAGE FOR THE CONTEXT
+- Which reminds me.. We should do threads 
+- More string stuff (parsing from string to types)
+
+- File stuff 

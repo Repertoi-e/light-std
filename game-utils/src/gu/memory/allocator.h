@@ -1,0 +1,32 @@
+#pragma once
+
+#include "../common.h"
+
+GU_BEGIN_NAMESPACE
+
+enum class Allocator_Mode { ALLOCATE = 0, RESIZE, FREE, FREE_ALL };
+
+// This specifies what the signature of each allocation function should look
+// like. _mode_ is what we are doing currently, allocating, resizing, freeing a
+// block or freeing everything _allocatorData_ is a pointer to the allocator
+// that is being used _size_ is the size of the allocation _oldMemory_ is used
+// only when resizing _oldSize_ is the old size of memory block, used only when
+// resizing _options_ is reserved for user data
+typedef void *(*Allocator_Func)(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
+                                s32 options);
+
+struct Allocator_Closure {
+    Allocator_Func Function = 0;
+    void *Data = 0;
+
+    operator bool() const { return Function; }
+};
+
+// The default allocator. Think of malloc, realloc, free
+// Implementation in *platform*.cpp
+extern Allocator_Func __default_allocator;
+
+#define MALLOC \
+    Allocator_Closure { __default_allocator, 0 }
+
+GU_END_NAMESPACE

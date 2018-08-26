@@ -1,0 +1,13 @@
+clear && printf '\e[3J'
+
+COMPILER_FLAGS="-Wall -Wno-unused-variable -fno-exceptions -fno-cxx-exceptions -fno-unwind-tables"
+LINKER_FLAGS="-std=c++17 -m64"
+
+LIB_OUT_DIR="./bin/x64/game-utils.a"
+
+zapcc -O0 -g -c $COMPILER_FLAGS -o ./bin/x64/game-utils.o ./game-utils/src/gu/linux_platform.cpp $LINKER_FLAGS
+llvm-ar rc $LIB_OUT_DIR ./bin/x64/game-utils.o
+
+zapcc -O0 -g $COMPILER_FLAGS -o ./bin/x64/game-utils-test -I./game-utils/src ./game-utils-test/src/main.cpp \
+    $LINKER_FLAGS -nodefaultlibs /usr/lib/x86_64-linux-gnu/libc_nonshared.a /lib/x86_64-linux-gnu/libc.so.6 $LIB_OUT_DIR
+     
