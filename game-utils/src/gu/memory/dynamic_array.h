@@ -7,6 +7,8 @@ GU_BEGIN_NAMESPACE
 
 template <typename T>
 struct Dynamic_Array {
+    using Type = T;
+
     T *Data = 0;
     size_t Count = 0, Reserved = 0;
 
@@ -15,7 +17,7 @@ struct Dynamic_Array {
     // one automatically.
     Allocator_Closure Allocator;
 
-    Dynamic_Array() {}
+    Dynamic_Array() { Allocator = CONTEXT_ALLOC; }
     Dynamic_Array(Dynamic_Array const &other);
     Dynamic_Array(Dynamic_Array &&other);
     ~Dynamic_Array();
@@ -43,13 +45,14 @@ void reserve(Dynamic_Array<T> &array, size_t reserve) {
     T *newMemory = New<T>(reserve, array.Allocator);
 
     CopyMemory(newMemory, array.Data, array.Count * sizeof(T));
+    Delete(array.Data, array.Reserved, array.Allocator);
 
     array.Data = newMemory;
     array.Reserved = reserve;
 }
 
 template <typename T>
-void insert(Dynamic_Array<T> &array, T *where, T const &item) {
+void insert(Dynamic_Array<T> &array, T *where, typename Dynamic_Array<T>::Type const &item) {
     assert(where >= begin(array) && where <= end(array));
 
     ptr_t offset = where - begin(array);
@@ -68,7 +71,10 @@ void insert(Dynamic_Array<T> &array, T *where, T const &item) {
     if (offset < array.Count) {
         MoveMemory(where + 1, where, ((size_t) array.Count - (size_t) offset) * sizeof(T));
     }
-    CopyMemory(where, &item, sizeof(T));
+    // Just copying the memory doesn't work here because if T (or one of its members) has a copy constructor it won't
+    // get called and may lead to unwanted behaviour.
+    // CopyMemory(where, &item, sizeof(T));
+    *where = item;
     array.Count++;
 }
 
@@ -87,7 +93,7 @@ void remove(Dynamic_Array<T> &array, T *where) {
 }
 
 template <typename T>
-void add(Dynamic_Array<T> &array, T const &item) {
+void add(Dynamic_Array<T> &array, typename Dynamic_Array<T>::Type const &item) {
     if (array.Count == 0) {
         reserve(array, 8);
         array.Data[array.Count++] = item;
@@ -97,7 +103,7 @@ void add(Dynamic_Array<T> &array, T const &item) {
 }
 
 template <typename T>
-void add_front(Dynamic_Array<T> &array, T const &item) {
+void add_front(Dynamic_Array<T> &array, typename Dynamic_Array<T>::Type const &item) {
     if (array.Count == 0) {
         add(array, item);
     } else {
@@ -139,7 +145,7 @@ Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T> const &other) {
     Reserved = other.Reserved;
     Count = other.Count;
 
-    Data = New<T>(other.Reserved, Allocator);
+    Data = New<T>(Reserved, Allocator);
     CopyMemory(Data, other.Data, Reserved * sizeof(T));
 }
 

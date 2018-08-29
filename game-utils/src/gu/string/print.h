@@ -7,8 +7,6 @@
 #include <tuple>
 #include <type_traits>
 
-void print_string_to_console(string const &str);
-
 namespace private_print {
 inline const char g_NumberBaseCharacters[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
 
@@ -118,10 +116,15 @@ inline void print_f64_with_format_to_builder(String_Builder &builder, f64 value,
     }
 
     // Do whole part
-    while (whole) {
+    if (!whole) {
         p--;
-        *p = (char) ('0' + (whole % 10));
-        whole /= 10;
+        *p = '0';
+    } else {
+        while (whole) {
+            p--;
+            *p = (char) ('0' + (whole % 10));
+            whole /= 10;
+        }
     }
 
     // TODO: More formatting options
@@ -186,7 +189,10 @@ inline typename std::enable_if_t<std::is_integral_v<T>, string> to_string(T v, B
     return to_string(builder);
 }
 
-inline string to_string(bool v) { return v ? "true" : "false"; }
+template <typename T>
+inline typename std::enable_if_t<std::is_same_v<T, bool>, string> to_string(T v) {
+    return v ? "true" : "false";
+}
 
 // Width means the length of the formatted string.
 // If the input is larger than the width, it gets cut with an ellipsis:
@@ -200,7 +206,7 @@ inline string to_string(bool v) { return v ? "true" : "false"; }
 //
 //           Hello, world!\0
 //      ^^^^^^^^^^^^^^^^^^
-inline string to_string(string &&v, s32 width = 0) {
+inline string to_string(string const &v, s32 width = 0) {
     String_Builder builder;
 
     s32 positiveWidth = width > 0 ? width : -width;
@@ -348,8 +354,8 @@ template <typename... Args>
 inline string tprint(string const &format, Args &&... argsPack) {
     Allocator_Closure oldAllocator;
     if (__temporary_allocator_data) {
-        oldAllocator = __context->Allocator;
-        __context->Allocator = {__temporary_allocator, __temporary_allocator_data};
+        oldAllocator = __context.Allocator;
+        __context.Allocator = {__temporary_allocator, __temporary_allocator_data};
     }
 
     String_Builder builder;
@@ -357,13 +363,13 @@ inline string tprint(string const &format, Args &&... argsPack) {
     return to_string(builder);
 
     if (__temporary_allocator_data) {
-        __context->Allocator = oldAllocator;
+        __context.Allocator = oldAllocator;
     }
 }
 
 // Prints formatted string to console
 template <typename... Args>
 inline void print(string const &format, Args &&... argsPack) {
-    assert(__context->Log);
-    __context->Log((tprint(format, std::forward<Args>(argsPack)...)));
+    assert(__context.Log);
+    __context.Log((tprint(format, std::forward<Args>(argsPack)...)));
 }

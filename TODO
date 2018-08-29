@@ -1,6 +1,8 @@
-- Write more tests for basic functionality so that in case something breaks we know right away... 
+- Use sconstruct for a build system, because I like it and it's getting pretty cumbersome with just a build.sh
+- Write more tests for basic functionality so that in case something breaks we know right away...
 - THREAD LOCAL STORAGE FOR THE CONTEXT
-- Which reminds me.. We should do threads 
+- Which reminds me.. We should do threads
 - More string stuff (parsing from string to types)
 
-- File stuff 
+- File stuff
+- Go to windows and implement everything platform specific there

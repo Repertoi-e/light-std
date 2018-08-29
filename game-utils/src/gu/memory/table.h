@@ -5,6 +5,7 @@
 
 #include "hash.h"
 
+#include <iterator>
 #include <tuple>
 
 GU_BEGIN_NAMESPACE
@@ -56,16 +57,64 @@ struct Table {
 };
 
 template <typename Key, typename Value>
+struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tuple<Key const &, Value &>> {
+    Table<Key, Value> const &Table;
+    s64 SlotIndex = -1;
+
+    explicit Table_Iterator(::Table<Key, Value> const &table, s64 index = -1) : Table(table), SlotIndex(index) {
+        // Find the first pair
+        ++(*this);
+    }
+
+    Table_Iterator &operator++() {
+        while (SlotIndex < (s64) Table.Slots.Size) {
+            SlotIndex++;
+            if (Table.Slots.OccupancyMask[SlotIndex]) {
+                break;
+            }
+        }
+        return *this;
+    }
+
+    Table_Iterator operator++(int) {
+        Table_Iterator pre = *this;
+        ++(*this);
+        return pre;
+    }
+
+    bool operator==(Table_Iterator other) const { return SlotIndex == other.SlotIndex; }
+    bool operator!=(Table_Iterator other) const { return !(*this == other); }
+    std::tuple<Key, Value> operator*() const {
+        auto &slots = Table.Slots;
+        return std::make_tuple(slots.Keys[SlotIndex], slots.Values[SlotIndex]);
+    }
+};
+
+template <typename Key, typename Value>
+inline Table_Iterator<Key, Value> begin(Table<Key, Value> const &table) {
+    return Table_Iterator<Key, Value>(table);
+}
+
+template <typename Key, typename Value>
+inline Table_Iterator<Key, Value> end(Table<Key, Value> const &table) {
+    return Table_Iterator<Key, Value>(table, table.Slots.Size);
+}
+
+template <typename Key, typename Value>
 void reserve(Table<Key, Value> &table, size_t size) {
     table.Reserved = size;
-    table.Allocator = table.Allocator;
 
-    auto newContext = *__context;
+    auto newContext = __context;
     if (table.Allocator.Function) newContext.Allocator = table.Allocator;
     {
         PUSH_CONTEXT(newContext);
 
-        table.Slots = Table_Slots<typename Table<Key, Value>::Key_Type, typename Table<Key, Value>::Value_Type>(size);
+        // In order to avoid calling Table_Slots destructor on copy which would free the pointers and shallow copy them
+        // to table.Slots and in order to avoid having to write copy move assign rvalue gvalue constructors which would
+        // take 100000000 lines of code, we use placement new to initialize our slots struct.
+        using SlotsType = Table_Slots<typename Table<Key, Value>::Key_Type, typename Table<Key, Value>::Value_Type>;
+
+        new (&table.Slots) SlotsType(size);
     }
 }
 
@@ -126,10 +175,10 @@ void put(Table<Key, Value> &table, typename Table<Key, Value>::Key_Type const &k
 }
 
 template <typename Key, typename Value>
-std::tuple<typename Table<Key, Value>::Value_Type, bool> find(Table<Key, Value> table,
+std::tuple<typename Table<Key, Value>::Value_Type, bool> find(Table<Key, Value> const &table,
                                                               typename Table<Key, Value>::Key_Type const &key) {
     u32 hash = Hash<typename Table<Key, Value>::Key_Type>::get(key);
-    ;
+
     s32 index = find_index(table, key, hash);
     if (index == -1) {
         return {table.UnfoundValue, false};
@@ -140,7 +189,7 @@ std::tuple<typename Table<Key, Value>::Value_Type, bool> find(Table<Key, Value> 
 
 template <typename Key, typename Value>
 void expand(Table<Key, Value> &table) {
-    auto newContext = *__context;
+    auto newContext = __context;
     if (table.Allocator.Function) newContext.Allocator = table.Allocator;
     {
         PUSH_CONTEXT(newContext);

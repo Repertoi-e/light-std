@@ -208,4 +208,45 @@ inline b32 is_alphanumeric(char x) { return is_alpha(x) || is_digit(x); }
 
 inline b32 is_print(int x) { return x > 31 && x != 127; }
 
+constexpr const char *find_cstring(const char *haystack, const char *needle) {
+    if (!haystack || !needle) {
+        return 0;
+    }
+
+    while (*haystack) {
+        const char *h = haystack;
+        const char *n = needle;
+
+        while (*h && *n && (*h == *n)) {
+            h++;
+            n++;
+        }
+
+        if (*n == '\0') {
+            return haystack;
+        }
+        // Didn't match here. Try again further along haystack.
+        haystack++;
+    }
+    return 0;
+}
+
+constexpr const char *find_cstring_last(const char *haystack, const char *needle) {
+    if (*needle == '\0') {
+        return haystack;
+    }
+
+    const char *result = 0;
+    while (true) {
+        const char *candidate = find_cstring(haystack, needle);
+        if (!candidate) {
+            break;
+        }
+        result = candidate;
+        haystack = candidate + 1;
+    }
+
+    return result;
+}
+
 GU_END_NAMESPACE

@@ -25,7 +25,7 @@ inline T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
 
     T *result = (T *) allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, count * sizeof(T), 0, 0, 0);
     for (size_t i = 0; i < count; i++) {
-        new ((void *) (result + i * sizeof(T))) T;
+        new (result + i) T;
     }
     return result;
 }
@@ -47,7 +47,7 @@ inline void Delete(T *memory, size_t count, Allocator_Closure allocator = {0, 0}
     }
 
     for (size_t i = 0; i < count; i++) {
-        (memory + i * sizeof(T))->~T();
+        (memory + i)->~T();
     }
     allocator.Function(Allocator_Mode::FREE, allocator.Data, 0, memory, count * sizeof(T), 0);
 }
@@ -81,7 +81,7 @@ inline void *CopyMemory(void *dest, void const *src, size_t num) {
 
     if ((uptr_t) dest % sizeof(u32) == 0 && (uptr_t) src % sizeof(u32) == 0 && num % sizeof(u32) == 0) {
         for (size_t i = 0; i < num / sizeof(u32); i++) {
-            d[i] = s[i];
+            ((u32 *) d)[i] = ((u32 *) s)[i];
         }
     } else {
         for (size_t i = 0; i < num; i++) {
