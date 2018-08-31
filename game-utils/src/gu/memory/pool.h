@@ -25,7 +25,7 @@ struct Pool {
 
 // Functions that are not meant to be used publicly
 namespace pool_private {
-void resize_blocks(Pool &pool, size_t blockSize) {
+inline void resize_blocks(Pool &pool, size_t blockSize) {
     pool.BlockSize = blockSize;
 
     if (pool.CurrentMemblock) {
@@ -40,7 +40,7 @@ void resize_blocks(Pool &pool, size_t blockSize) {
     pool.UsedMemblocks.Count = 0;
 }
 
-void cycle_new_block(Pool &pool) {
+inline void cycle_new_block(Pool &pool) {
     if (pool.CurrentMemblock) {
         add(pool.UsedMemblocks, pool.CurrentMemblock);
     }
@@ -62,7 +62,7 @@ void cycle_new_block(Pool &pool) {
     pool.CurrentMemblock = newBlock;
 }
 
-void ensure_memory_exists(Pool &pool, size_t size) {
+inline void ensure_memory_exists(Pool &pool, size_t size) {
     size_t bs = pool.BlockSize;
 
     while (bs < size) {
@@ -76,7 +76,7 @@ void ensure_memory_exists(Pool &pool, size_t size) {
 }
 }  // namespace pool_private
 
-void *get(Pool &pool, size_t size) {
+inline void *get(Pool &pool, size_t size) {
     size_t extra = pool.Alignment - (size % pool.Alignment);
     size += extra;
 
@@ -90,7 +90,7 @@ void *get(Pool &pool, size_t size) {
     return ret;
 }
 
-void reset(Pool &pool) {
+inline void reset(Pool &pool) {
     if (pool.CurrentMemblock) {
         add(pool.UnusedMemblocks, pool.CurrentMemblock);
         pool.CurrentMemblock = 0;
@@ -109,7 +109,7 @@ void reset(Pool &pool) {
     pool_private::cycle_new_block(pool);
 }
 
-void release(Pool &pool) {
+inline void release(Pool &pool) {
     reset(pool);
 
     for (u8 *it : pool.UnusedMemblocks) {
@@ -117,8 +117,8 @@ void release(Pool &pool) {
     }
 }
 
-void *__pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
-                       s32 options) {
+inline void *__pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
+                              s32 options) {
     Pool &pool = *((Pool *) allocatorData);
 
     switch (mode) {

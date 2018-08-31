@@ -1,0 +1,21 @@
+import os
+import fnmatch
+
+Import('env', 'project', 'build_dir')
+local_env = env.Clone()
+
+build_dir   = '../' + build_dir + '/' + project  # Holds the build directory for this project
+target_path = build_dir + '/' + project          # Holds the path to the executable in the build directory
+
+# Add include dir to global env so other programs can include files
+env.Append(CPPPATH = [build_dir + '/src/'])
+
+local_env.VariantDir(build_dir, '.', duplicate = 0)
+
+source_files = []
+for root, dirnames, filenames in os.walk('src'):
+    for filename in fnmatch.filter(filenames, '*.c*'):
+        source_files.append(build_dir + '/' + os.path.join(root, filename))
+
+game_utils_lib = local_env.StaticLibrary(target = target_path, source = source_files)
+Return('game_utils_lib')

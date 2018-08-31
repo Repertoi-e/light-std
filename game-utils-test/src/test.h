@@ -17,7 +17,8 @@ constexpr const char *file_name_relative_to_src(const char *str) {
     const char *result = find_cstring_last(str, src);
     if (!result) {
         result = find_cstring_last(str, "/");
-        result++;  // Skip the slash
+        // Skip the slash
+        result++;
     } else {
         // Skip the src directory
         while (*src++) {
@@ -35,7 +36,7 @@ struct Test {
     Test_Func Function;
 };
 
-static Table<string, Dynamic_Array<Test> *> g_TestTable;
+inline Table<string, Dynamic_Array<Test> *> g_TestTable;
 
 #define TEST(name)                                                     \
     struct Test_Struct_##name {                                        \

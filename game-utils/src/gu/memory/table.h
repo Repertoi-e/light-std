@@ -69,7 +69,8 @@ struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tup
     Table_Iterator &operator++() {
         while (SlotIndex < (s64) Table.Slots.Size) {
             SlotIndex++;
-            if (Table.Slots.OccupancyMask[SlotIndex]) {
+            bool *occupancyMask = Table.Slots.OccupancyMask;
+            if (occupancyMask && occupancyMask[SlotIndex]) {
                 break;
             }
         }

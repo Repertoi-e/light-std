@@ -78,8 +78,19 @@ void insert(Dynamic_Array<T> &array, T *where, typename Dynamic_Array<T>::Type c
     array.Count++;
 }
 
+// Returns the index of item in the array, -1 if it's not found
 template <typename T>
-void remove(Dynamic_Array<T> &array, T *where) {
+s32 find(Dynamic_Array<T> &array, typename Dynamic_Array<T>::Type const &item) {
+    for (size_t i = 0; i < array.Count; i++) {
+        if (array[i] == item) {
+            return (s32) i;
+        }
+    }
+    return -1;
+}
+
+template <typename T>
+void remove(Dynamic_Array<T> &array, typename Dynamic_Array<T>::Type *where) {
     assert(where >= begin(array) && where < end(array));
 
     where->~T();
