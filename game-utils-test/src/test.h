@@ -4,7 +4,7 @@
 #include <gu/memory/table.h>
 
 // This is a helper function to shorten the name of test files.
-// We attempt to find if the files is in (or in subdirectory) of src and use the path after that.
+// We attempt to find the file in (or in subdirectory) of src and use the path after that.
 // Otherwise we just take the file name. Possible results are:
 //
 //      .../home/user/dev/sandbox-tests/src/tests/string.cpp ---> tests/string.cpp
