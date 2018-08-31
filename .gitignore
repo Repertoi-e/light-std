@@ -33,3 +33,4 @@
 
 bin/
 .vscode/
+.sconsign.dblite
