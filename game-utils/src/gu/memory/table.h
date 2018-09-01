@@ -146,6 +146,7 @@ s32 find_index(Table<Key, Value> const &table, typename Table<Key, Value>::Key_T
     return -1;
 }
 
+// Copies the key and the value into the table.
 template <typename Key, typename Value>
 void put(Table<Key, Value> &table, typename Table<Key, Value>::Key_Type const &key,
          typename Table<Key, Value>::Value_Type const &value) {
@@ -175,6 +176,8 @@ void put(Table<Key, Value> &table, typename Table<Key, Value>::Key_Type const &k
     slots.Hashes[index] = hash;
 }
 
+// Returns a tuple of the value and true if found (false if not found). Doesn't return the value by reference so
+// modifying it doesn't update it in the table, use pointers to get around that.
 template <typename Key, typename Value>
 std::tuple<typename Table<Key, Value>::Value_Type, bool> find(Table<Key, Value> const &table,
                                                               typename Table<Key, Value>::Key_Type const &key) {

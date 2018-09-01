@@ -118,3 +118,26 @@ TEST(table) {
         print(">> !!! This shouldn't be printed !!! <<\n");
     }
 }
+
+TEST(table_reference_to_value) {
+    Table<string, Dynamic_Array<int>*> table;
+
+    Dynamic_Array<int> array;
+    add(array, 0);
+    add(array, 1);
+    add(array, 2);
+
+    put(table, "1", &array);
+
+    {
+        auto [found, wasFound] = find(table, "1");
+        assert(wasFound);
+        add(*found, 3);
+        add(*found, 4);
+    }
+    {
+        auto [found, wasFound] = find(table, "1");
+        assert(wasFound);
+        assert(found->Count == 5);
+    }
+}

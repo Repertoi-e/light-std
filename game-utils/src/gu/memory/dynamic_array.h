@@ -23,6 +23,7 @@ struct Dynamic_Array {
     ~Dynamic_Array();
 
     T &operator[](size_t index) { return Data[index]; }
+    Dynamic_Array &operator=(Dynamic_Array const &other);
     Dynamic_Array &operator=(Dynamic_Array &&other);
 };
 
@@ -162,14 +163,23 @@ Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T> const &other) {
 
 template <typename T>
 inline Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T> &&other) {
+    *this = std::move(other);
+}
+
+template <typename T>
+inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> const &other) {
+    if (Data) {
+        Delete(Data, Allocator);
+    }
+
     Allocator = other.Allocator;
-    Data = other.Data;
     Reserved = other.Reserved;
     Count = other.Count;
 
-    other.Data = 0;
-    other.Reserved = 0;
-    other.Count = 0;
+    Data = New<T>(Reserved, Allocator);
+    CopyMemory(Data, other.Data, Reserved * sizeof(T));
+
+    return *this;
 }
 
 template <typename T>
