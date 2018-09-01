@@ -10,8 +10,8 @@
 //      .../home/user/dev/sandbox-tests/src/tests/string.cpp ---> tests/string.cpp
 //      .../home/user/dev/sandbox-tests/string.cpp           ---> string.cpp
 //
-constexpr const char *file_name_relative_to_src(const char *str) {
-    // Note: / won't work on Windows
+constexpr const char *get_file_path_relative_to_src_or_just_file_name(const char *str) {
+    // #Platform: / won't work on Windows
     char *src = (char *) "src/";
 
     const char *result = find_cstring_last(str, src);
@@ -38,20 +38,20 @@ struct Test {
 
 inline Table<string, Dynamic_Array<Test> *> g_TestTable;
 
-#define TEST(name)                                                     \
-    struct Test_Struct_##name {                                        \
-        Test_Struct_##name() {                                         \
-            const char *file = file_name_relative_to_src(__FILE__);    \
-                                                                       \
-            auto [testsArray, fileKeyFound] = find(g_TestTable, file); \
-            if (!fileKeyFound) {                                       \
-                testsArray = New<Dynamic_Array<Test>>();               \
-                put(g_TestTable, file, testsArray);                    \
-            }                                                          \
-                                                                       \
-            add(*testsArray, {#name, &run});                           \
-        }                                                              \
-        static void run();                                             \
-    };                                                                 \
-    static Test_Struct_##name g_TestStruct_##name;                     \
+#define TEST(name)                                                                        \
+    struct Test_Struct_##name {                                                           \
+        Test_Struct_##name() {                                                            \
+            const char *file = get_file_path_relative_to_src_or_just_file_name(__FILE__); \
+                                                                                          \
+            auto [testsArray, fileKeyFound] = find(g_TestTable, file);                    \
+            if (!fileKeyFound) {                                                          \
+                testsArray = New<Dynamic_Array<Test>>();                                  \
+                put(g_TestTable, file, testsArray);                                       \
+            }                                                                             \
+                                                                                          \
+            add(*testsArray, {#name, &run});                                              \
+        }                                                                                 \
+        static void run();                                                                \
+    };                                                                                    \
+    static Test_Struct_##name g_TestStruct_##name;                                        \
     void Test_Struct_##name::run()

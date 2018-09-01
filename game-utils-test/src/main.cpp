@@ -19,7 +19,7 @@ void run_tests() {
 
     // Add our own assert handler so we can save some stats and logs
     testContext.AssertHandler = [](bool failed, const char *file, int line, const char *failedCondition) {
-        string shortFileName = file_name_relative_to_src(file);
+        string shortFileName = get_file_path_relative_to_src_or_just_file_name(file);
 
         // Avoid counting assert calls from other sources (like print.h, etc.)
         if (g_CurrentTestFile == shortFileName) {

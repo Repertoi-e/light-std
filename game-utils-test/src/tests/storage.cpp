@@ -67,14 +67,14 @@ TEST(dynamic_array) {
         }
     }
     {
-        remove(integers, last(integers));
+        remove(integers, end(integers) - 1);
         Array<s32, 9> expected = {9, 8, 7, 6, 5, 4, 3, 2, 1};
         for (size_t i = 0; i < integers.Count; i++) {
             assert(integers[i] == expected[i]);
         }
     }
     {
-        remove(integers, first(integers));
+        remove(integers, end(integers) - 1);
         Array<s32, 8> expected = {8, 7, 6, 5, 4, 3, 2, 1};
         for (size_t i = 0; i < integers.Count; i++) {
             assert(integers[i] == expected[i]);

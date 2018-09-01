@@ -19,8 +19,6 @@ struct Pool {
     // The allocator used for reserving the initial memory block
     // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
     Allocator_Closure BlockAllocator;
-
-    Pool() { BlockAllocator = CONTEXT_ALLOC; }
 };
 
 // Functions that are not meant to be used publicly
@@ -47,13 +45,9 @@ inline void cycle_new_block(Pool &pool) {
 
     u8 *newBlock;
     if (pool.UnusedMemblocks.Count) {
-        newBlock = *last(pool.UnusedMemblocks);
+        newBlock = *(end(pool.UnusedMemblocks) - 1);
         pop(pool.UnusedMemblocks);
     } else {
-        if (!pool.BlockAllocator.Function) {
-            pool.BlockAllocator = CONTEXT_ALLOC;
-        }
-
         newBlock = New<u8>(pool.BlockSize, pool.BlockAllocator);
     }
 

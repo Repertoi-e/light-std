@@ -129,16 +129,6 @@ void pop(Dynamic_Array<T> &array) {
     array.Data[array.Count--].~T();
 }
 
-template <typename T>
-T *first(Dynamic_Array<T> &array) {
-    return begin(array);
-}
-
-template <typename T>
-T *last(Dynamic_Array<T> &array) {
-    return end(array) - 1;
-}
-
 // Clears the array and deallocates memory
 template <typename T>
 void release(Dynamic_Array<T> &array) {
