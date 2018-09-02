@@ -39,9 +39,7 @@ inline T *end(Dynamic_Array<T> &array) {
 
 template <typename T>
 void reserve(Dynamic_Array<T> &array, size_t reserve) {
-    if (reserve <= array.Reserved) {
-        return;
-    }
+    if (reserve <= array.Reserved) return;
 
     T *newMemory = New<T>(reserve, array.Allocator);
 
@@ -59,9 +57,7 @@ void insert(Dynamic_Array<T> &array, T *where, typename Dynamic_Array<T>::Type c
     ptr_t offset = where - begin(array);
     if (array.Count >= array.Reserved) {
         size_t required = 2 * array.Reserved;
-        if (required < 8) {
-            required = 8;
-        }
+        if (required < 8) required = 8;
 
         reserve(array, required);
     }
@@ -132,9 +128,8 @@ void pop(Dynamic_Array<T> &array) {
 // Clears the array and deallocates memory
 template <typename T>
 void release(Dynamic_Array<T> &array) {
-    if (array.Data) {
-        Delete(array.Data, array.Reserved, array.Allocator);
-    }
+    if (array.Data) Delete(array.Data, array.Reserved, array.Allocator);
+
     array.Data = 0;
 
     array.Count = 0;
@@ -158,9 +153,7 @@ inline Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T> &&other) {
 
 template <typename T>
 inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> const &other) {
-    if (Data) {
-        Delete(Data, Allocator);
-    }
+    if (Data) Delete(Data, Allocator);
 
     Allocator = other.Allocator;
     Reserved = other.Reserved;
@@ -175,9 +168,7 @@ inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> const &oth
 template <typename T>
 inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> &&other) {
     if (this != &other) {
-        if (Data) {
-            Delete(Data, Allocator);
-        }
+        if (Data) Delete(Data, Allocator);
 
         Allocator = other.Allocator;
         Data = other.Data;

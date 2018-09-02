@@ -40,9 +40,7 @@ struct string {
     string &operator=(string &&other);
 
     ~string() {
-        if (Data) {
-            Delete(Data, Allocator);
-        }
+        if (Data) Delete(Data, Allocator);
     }
 };
 
@@ -54,13 +52,8 @@ inline string::string(const char *str, size_t size) {
 
     Data = New<char>(size + 1, Allocator);
 
-    if (!str) {
-        ZeroMemory(Data, size);
-    }
-
-    if (size && str) {
-        utf8cpy(Data, str);
-    }
+    if (!str) ZeroMemory(Data, size);
+    if (size && str) utf8cpy(Data, str);
 
     Size = size - 1;  // Exclude the null terminator
     Capacity = size;
@@ -75,13 +68,8 @@ inline string::string(string const &other) {
 
     Data = New<char>(Capacity, Allocator);
 
-    if (!other.Data) {
-        ZeroMemory(Data, Capacity);
-    }
-
-    if (Capacity && other.Data) {
-        utf8cpy(Data, other.Data);
-    }
+    if (!other.Data) ZeroMemory(Data, Capacity);
+    if (Capacity && other.Data) utf8cpy(Data, other.Data);
 
     Data[Size] = '\0';
 }
@@ -89,9 +77,7 @@ inline string::string(string const &other) {
 inline string::string(string &&other) { *this = std::move(other); }
 
 inline string &string::operator=(string const &other) {
-    if (Data) {
-        Delete(Data, Allocator);
-    }
+    if (Data) Delete(Data, Allocator);
 
     Allocator = other.Allocator;
     Size = other.Size;
@@ -99,13 +85,8 @@ inline string &string::operator=(string const &other) {
 
     Data = New<char>(Capacity, Allocator);
 
-    if (!other.Data) {
-        ZeroMemory(Data, Capacity);
-    }
-
-    if (Capacity && other.Data) {
-        utf8cpy(Data, other.Data);
-    }
+    if (!other.Data) ZeroMemory(Data, Capacity);
+    if (Capacity && other.Data) utf8cpy(Data, other.Data);
 
     Data[Size] = '\0';
 
@@ -114,9 +95,8 @@ inline string &string::operator=(string const &other) {
 
 inline string &string::operator=(string &&other) {
     if (this != &other) {
-        if (Data) {
-            Delete(Data, Allocator);
-        }
+        if (Data) Delete(Data, Allocator);
+
         Allocator = other.Allocator;
         Size = other.Size;
         Capacity = other.Capacity;
@@ -132,9 +112,7 @@ inline string &string::operator=(string &&other) {
 // Reserve bytes in string
 inline void reserve(string &str, size_t size) {
     // Return if there is enough space
-    if (str.Capacity > size) {
-        return;
-    }
+    if (str.Capacity > size) return;
 
     size_t oldSize = utf8size(str.Data);
     size_t newSize = size + 1;
@@ -209,9 +187,7 @@ inline b32 is_alphanumeric(char x) { return is_alpha(x) || is_digit(x); }
 inline b32 is_print(int x) { return x > 31 && x != 127; }
 
 constexpr const char *find_cstring(const char *haystack, const char *needle) {
-    if (!haystack || !needle) {
-        return 0;
-    }
+    if (!haystack || !needle) return 0;
 
     while (*haystack) {
         const char *h = haystack;
@@ -222,31 +198,38 @@ constexpr const char *find_cstring(const char *haystack, const char *needle) {
             n++;
         }
 
-        if (*n == '\0') {
-            return haystack;
-        }
+        if (*n == '\0') return haystack;
         // Didn't match here. Try again further along haystack.
         haystack++;
     }
     return 0;
 }
 
+constexpr const char *find_cstring(const char *haystack, char needle) {
+    char data[2] = {};
+    data[1] = needle;
+    return find_cstring(haystack, data);
+}
+
 constexpr const char *find_cstring_last(const char *haystack, const char *needle) {
-    if (*needle == '\0') {
-        return haystack;
-    }
+    if (*needle == '\0') return haystack;
 
     const char *result = 0;
     while (true) {
         const char *candidate = find_cstring(haystack, needle);
-        if (!candidate) {
-            break;
-        }
+        if (!candidate) break;
+
         result = candidate;
         haystack = candidate + 1;
     }
 
     return result;
+}
+
+constexpr const char *find_cstring_last(const char *haystack, char needle) {
+    char data[2] = {};
+    data[1] = needle;
+    return find_cstring_last(haystack, data);
 }
 
 GU_END_NAMESPACE

@@ -1,4 +1,8 @@
-- File system
+- File system permissions, copy, move, create links
+- Remove append_cstring*/append_string functions (in string and String_Builder)
+    in favor of a general append function (because it's proven to be more annoying than anything else)
+
+- Move non-template functions' implementation to .cpp files to reduce redundant compiling on the user's side
 
 - THREAD LOCAL STORAGE FOR THE CONTEXT
 - Which reminds me.. We should do threads

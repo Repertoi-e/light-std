@@ -15,6 +15,8 @@
 #endif
 #endif
 
+#define null 0
+
 #include <stddef.h>
 
 using s8 = char;
@@ -133,7 +135,7 @@ inline constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
 #undef assert
 
 #ifdef NDEBUG
-#define assert(condition) ((void) 0)
+#define assert(condition) ((void) null)
 #else
 #define assert(condition) __context.AssertHandler(!(condition), __FILE__, __LINE__, #condition)
 #endif

@@ -8,6 +8,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+GU_BEGIN_NAMESPACE
+
 void *linux_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
                       s32 options) {
     switch (mode) {
@@ -16,20 +18,20 @@ void *linux_allocator(Allocator_Mode mode, void *allocatorData, size_t size, voi
         case Allocator_Mode::RESIZE:
             void *result;
             if (mode == Allocator_Mode::ALLOCATE) {
-                result = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+                result = mmap(null, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
             } else {
                 result = mremap(oldMemory, oldSize, size, MREMAP_MAYMOVE);
             }
             return result;
         case Allocator_Mode::FREE:
             munmap(oldMemory, oldSize);
-            return 0;
+            return null;
         case Allocator_Mode::FREE_ALL:
-            return 0;
+            return null;
         default:
             assert(false);  // We shouldn't get here
     }
-    return 0;
+    return null;
 }
 
 Allocator_Func __default_allocator = linux_allocator;
@@ -46,9 +48,7 @@ void default_assert_handler(bool failed, const char *file, int line, const char 
 void print_string_to_console(string const &str) { write(STDOUT_FILENO, str.Data, str.Size); }
 
 void wait_for_input(b32 message) {
-    if (message) {
-        print("Press ENTER to continue...\n");
-    }
+    if (message) print("Press ENTER to continue...\n");
     getchar();
 }
 
@@ -57,3 +57,5 @@ f64 get_wallclock_in_seconds() {
     assert(!gettimeofday(&time, 0));
     return (f64) time.tv_sec + (f64) time.tv_usec * 0.000001;
 }
+
+GU_END_NAMESPACE

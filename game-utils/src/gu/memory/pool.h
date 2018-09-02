@@ -26,22 +26,16 @@ namespace pool_private {
 inline void resize_blocks(Pool &pool, size_t blockSize) {
     pool.BlockSize = blockSize;
 
-    if (pool.CurrentMemblock) {
-        add(pool.ObsoletedMemblocks, pool.CurrentMemblock);
-    }
+    if (pool.CurrentMemblock) add(pool.ObsoletedMemblocks, pool.CurrentMemblock);
 
-    for (u8 *it : pool.UsedMemblocks) {
-        add(pool.ObsoletedMemblocks, it);
-    }
+    for (u8 *it : pool.UsedMemblocks) add(pool.ObsoletedMemblocks, it);
 
     pool.CurrentMemblock = 0;
     pool.UsedMemblocks.Count = 0;
 }
 
 inline void cycle_new_block(Pool &pool) {
-    if (pool.CurrentMemblock) {
-        add(pool.UsedMemblocks, pool.CurrentMemblock);
-    }
+    if (pool.CurrentMemblock) add(pool.UsedMemblocks, pool.CurrentMemblock);
 
     u8 *newBlock;
     if (pool.UnusedMemblocks.Count) {
@@ -63,9 +57,7 @@ inline void ensure_memory_exists(Pool &pool, size_t size) {
         bs *= 2;
     }
 
-    if (bs > pool.BlockSize) {
-        resize_blocks(pool, bs);
-    }
+    if (bs > pool.BlockSize) resize_blocks(pool, bs);
     cycle_new_block(pool);
 }
 }  // namespace pool_private
@@ -74,9 +66,7 @@ inline void *get(Pool &pool, size_t size) {
     size_t extra = pool.Alignment - (size % pool.Alignment);
     size += extra;
 
-    if (pool.BytesLeft < size) {
-        pool_private::ensure_memory_exists(pool, size);
-    }
+    if (pool.BytesLeft < size) pool_private::ensure_memory_exists(pool, size);
 
     void *ret = pool.CurrentPosition;
     pool.CurrentPosition += size;

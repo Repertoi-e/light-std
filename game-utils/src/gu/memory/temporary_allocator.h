@@ -46,9 +46,7 @@ inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, siz
                 print("!!! Warning !!!\n");
                 print(">> Temporary allocator ran out of space, using malloc for allocation...\n");
                 print(">> Invalidating pointer to __temporary_allocator_data...\n");
-                if (switched) {
-                    print(">> Context detected with temporary allocator, switching it to malloc...\n");
-                }
+                if (switched) print(">> Context detected with temporary allocator, switching it to malloc...\n");
 
                 return __default_allocator(mode, allocatorData, size, oldMemory, oldSize, options);
             }

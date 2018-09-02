@@ -11,8 +11,8 @@ inline constexpr size_t STRING_BUILDER_BUFFER_SIZE = 4_KiB;
 struct String_Builder {
     struct Buffer {
         char Data[STRING_BUILDER_BUFFER_SIZE];
-        size_t Occupied = 0;
-        Buffer *Next = 0;
+        size_t Occupied = null;
+        Buffer *Next = null;
     };
 
     Buffer BaseBuffer;

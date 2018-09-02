@@ -25,9 +25,7 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 //
 // For more information, please refer to <http://unlicense.org/>
-
-#ifndef SHEREDOM_UTF8_H_INCLUDED
-#define SHEREDOM_UTF8_H_INCLUDED
+#pragma once
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -1382,5 +1380,3 @@ utf8_int32_t utf8uprcodepoint(utf8_int32_t cp) {
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
-
-#endif  // SHEREDOM_UTF8_H_INCLUDED
