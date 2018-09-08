@@ -20,6 +20,9 @@
 *.mod
 *.smod
 
+# Preprocessed files
+*.i
+
 # Compiled Static libraries
 *.lai
 *.la
@@ -34,3 +37,9 @@
 bin/
 .vscode/
 .sconsign.dblite
+/.vs
+*.props
+*.sln
+*.vcxproj
+*.filters
+*.user

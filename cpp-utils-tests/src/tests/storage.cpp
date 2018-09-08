@@ -34,20 +34,13 @@ TEST(dynamic_array) {
         insert(integers, begin(integers) + 3, -3);
 
         Array<s32, 11> expected = {0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9};
-        size_t j = 0;
-        for (s32 i : integers) {
-            assert(i == expected[j++]);
-        }
+		assert(integers == expected);
     }
     {
         remove(integers, begin(integers) + 4);
 
         Array<s32, 10> expected = {0, 1, 2, -3, 4, 5, 6, 7, 8, 9};
-
-        String_Builder builder;
-        for (size_t i = 0; i < expected.Count; i++) {
-            assert(integers[i] == expected[i]);
-        }
+		assert(integers == expected);
     }
     {
         size_t count = integers.Count;
@@ -62,23 +55,17 @@ TEST(dynamic_array) {
             add_front(integers, i);
         }
         Array<s32, 10> expected = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
-        for (size_t i = 0; i < integers.Count; i++) {
-            assert(integers[i] == expected[i]);
-        }
+		assert(integers == expected);
     }
     {
         remove(integers, end(integers) - 1);
         Array<s32, 9> expected = {9, 8, 7, 6, 5, 4, 3, 2, 1};
-        for (size_t i = 0; i < integers.Count; i++) {
-            assert(integers[i] == expected[i]);
-        }
+		assert(integers == expected);
     }
     {
-        remove(integers, end(integers) - 1);
+        remove(integers, begin(integers));
         Array<s32, 8> expected = {8, 7, 6, 5, 4, 3, 2, 1};
-        for (size_t i = 0; i < integers.Count; i++) {
-            assert(integers[i] == expected[i]);
-        }
+		assert(integers == expected);
     }
     {
         s32 findResult = find(integers, 9);
@@ -120,7 +107,7 @@ TEST(table) {
 }
 
 TEST(table_reference_to_value) {
-    Table<string, Dynamic_Array<int>*> table;
+    Table<string, Dynamic_Array<int> *> table;
 
     Dynamic_Array<int> array;
     add(array, 0);

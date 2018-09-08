@@ -3,6 +3,8 @@
 #include <gu/memory/dynamic_array.h>
 #include <gu/memory/table.h>
 
+#include <gu/file/file_path.h>
+
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.
 // Otherwise we just take the file name. Possible results are:
@@ -11,12 +13,12 @@
 //      .../home/user/dev/sandbox-tests/string.cpp           ---> string.cpp
 //
 constexpr const char *get_file_path_relative_to_src_or_just_file_name(const char *str) {
-    // #Platform: / won't work on Windows
-    char *src = (char *) "src/";
+	char srcData[] = { 's', 'r', 'c', PLATFORM_PATH_SEPARATOR, '\0' };
+	char *src = srcData;
 
     const char *result = find_cstring_last(str, src);
     if (!result) {
-        result = find_cstring_last(str, "/");
+        result = find_cstring_last(str, PLATFORM_PATH_SEPARATOR);
         // Skip the slash
         result++;
     } else {
@@ -36,7 +38,7 @@ struct Test {
     Test_Func Function;
 };
 
-inline Table<string, Dynamic_Array<Test> *> g_TestTable;
+extern Table<string, Dynamic_Array<Test> *> g_TestTable;
 
 #define TEST(name)                                                                        \
     struct Test_Struct_##name {                                                           \

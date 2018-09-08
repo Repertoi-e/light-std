@@ -1,3 +1,7 @@
+#include "common.h"
+
+#if defined OS_LINUX || defined OS_MAC
+
 #include "file/local_file_path.h"
 
 #include <dirent.h>
@@ -125,3 +129,5 @@ bool rename(Local_File_Path const &path, string const &name) {
 }
 
 GU_END_NAMESPACE
+
+#endif // defined OS_LINUX || defined OS_MAC

@@ -1,4 +1,7 @@
 #include "common.h"
+
+#if defined OS_LINUX || defined OS_MAC
+
 #include "memory/allocator.h"
 #include "string/print.h"
 
@@ -22,6 +25,7 @@ void *linux_allocator(Allocator_Mode mode, void *allocatorData, size_t size, voi
             } else {
                 result = mremap(oldMemory, oldSize, size, MREMAP_MAYMOVE);
             }
+			if (result == (void *) -1) return 0;
             return result;
         case Allocator_Mode::FREE:
             munmap(oldMemory, oldSize);
@@ -40,7 +44,7 @@ void exit_program(int code) { _exit(code); }
 
 void default_assert_handler(bool failed, const char *file, int line, const char *failedCondition) {
     if (failed) {
-        print("\e[31m>>> %:%, Assert failed: %\e[0m\n", file, line, failedCondition);
+        print("\x1b[31m>>> %:%, Assert failed: %\x1b[0m\n", file, line, failedCondition);
         exit_program(-1);
     }
 }
@@ -59,3 +63,5 @@ f64 get_wallclock_in_seconds() {
 }
 
 GU_END_NAMESPACE
+
+#endif // defined OS_LINUX || defined OS_MAC
