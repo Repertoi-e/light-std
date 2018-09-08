@@ -106,7 +106,24 @@ TEST(table) {
     }
 }
 
-TEST(table_reference_to_value) {
+TEST(table_copy) {
+	Table<string, int> table;
+	put(table, "1", 1);
+	put(table, "4", 4);
+	put(table, "9", 9);
+
+	Table<string, int> tableCopy = table;
+	put(tableCopy, "11", 20);
+
+	for (auto[key, value] : table) {
+		assert(key == to_string(value));
+	}
+
+	assert(table.Count == 3);
+	assert(tableCopy.Count == 4);
+}
+
+TEST(table_pointer_to_value) {
     Table<string, Dynamic_Array<int> *> table;
 
     Dynamic_Array<int> array;

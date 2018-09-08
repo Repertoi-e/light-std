@@ -8,7 +8,14 @@
 
 #include "test.h"
 
+// !!! WORKAORUND
+// Look in test.h
+//
+// Visual Studio has a bug (suprise surpise) with inline variables getting initialized multiple times.
+// So a workaround for now is to extern it instead.
+//
 Table<string, Dynamic_Array<Test> *> g_TestTable;
+
 
 string g_CurrentTestFile;
 u32 g_TotalAsserts = 0, g_TotalFailedAsserts = 0;

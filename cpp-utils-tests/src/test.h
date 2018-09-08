@@ -38,6 +38,12 @@ struct Test {
     Test_Func Function;
 };
 
+// !!! WORKAORUND
+// Visual Studio has a bug (suprise surpise) with inline variables getting initialized multiple times.
+// So a workaround for now is to extern it instead.
+// inline Table<string, Dynamic_Array<Test> *> g_TestTable;
+//
+// Also this in main.cpp
 extern Table<string, Dynamic_Array<Test> *> g_TestTable;
 
 #define TEST(name)                                                                        \

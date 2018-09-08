@@ -16,7 +16,8 @@ struct Table {
     using Value_Type = Value;
 
     static const size_t MINIMUM_SIZE = 32;
-    size_t Count = 0, Reserved = 0;
+	size_t Count = 0;
+	size_t Reserved = 0;
 
     // By default, the value that gets returned is a default constructed Value_Type
     // This value can be changed if special behaviour is desired.
@@ -44,7 +45,8 @@ struct Table {
 
 template <typename Key, typename Value>
 Table<Key, Value>::Table(Table<Key, Value> const &other) {
-    Reserved = other.Reserved;
+	Count = other.Count;
+	Reserved = other.Reserved;
     Allocator = other.Allocator;
     UnfoundValue = other.UnfoundValue;
 
@@ -84,6 +86,7 @@ template <typename Key, typename Value>
 Table<Key, Value> &Table<Key, Value>::operator=(Table<Key, Value> const &other) {
     release(*this);
 
+	Count = other.Count;
     Reserved = other.Reserved;
     Allocator = other.Allocator;
     UnfoundValue = other.UnfoundValue;
@@ -106,6 +109,7 @@ Table<Key, Value> &Table<Key, Value>::operator=(Table<Key, Value> &&other) {
     if (this != &other) {
         release(*this);
 
+		Count = other.Count;
         Reserved = other.Reserved;
         Allocator = other.Allocator;
         UnfoundValue = other.UnfoundValue;
@@ -166,8 +170,6 @@ inline Table_Iterator<Key, Value> end(Table<Key, Value> const &table) {
 
 template <typename Key, typename Value>
 void reserve(Table<Key, Value> &table, size_t size) {
-    if (size < table.Reserved) return;
-
     table.Reserved = size;
 
     table.OccupancyMask = New<bool>(size, table.Allocator);
