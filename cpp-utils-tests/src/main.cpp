@@ -10,10 +10,6 @@
 
 // !!! WORKAORUND
 // Look in test.h
-//
-// Visual Studio has a bug (suprise surpise) with inline variables getting initialized multiple times.
-// So a workaround for now is to extern it instead.
-//
 Table<string, Dynamic_Array<Test> *> g_TestTable;
 
 
@@ -65,14 +61,14 @@ void run_tests() {
                 test.Function();
 
                 if (g_CurrentTestFailedAsserts.Count != 0) {
-                    print("\x1b[38;5;160mFAILED\x1b[0m\n");
+                    print("\033[38;5;160mFAILED\033[0m\n");
                     for (string &fail : g_CurrentTestFailedAsserts) {
-                        print("          \x1b[38;5;246m>>> %\x1b[0m\n", fail);
+                        print("          \033[38;5;246m>>> %\033[0m\n", fail);
                     }
                     print("\n");
                     failedProcs++;
                 } else {
-                    print("\x1b[38;5;28mOK\x1b[0m\n");
+                    print("\033[38;5;28mOK\033[0m\n");
                 }
 
                 // Add the failed asserts to the array of all faile asserts
@@ -82,7 +78,7 @@ void run_tests() {
                 }
                 release(g_CurrentTestFailedAsserts);
             }
-            print("\x1b[38;5;246m%1%% success (% out of % procs)\n\x1b[0m\n",
+            print("\033[38;5;246m%1%% success (% out of % procs)\n\033[0m\n",
                   to_string(100.0f * (f32)(tests->Count - failedProcs) / (f32) tests->Count, 0, 1),
                   tests->Count - failedProcs, tests->Count);
         }
@@ -104,9 +100,9 @@ void run_tests() {
         print("[Test Suite] Failed asserts:\n");
         String_Builder failedAssertsLog;
         for (string &fail : g_AllFailedAsserts) {
-            append_cstring(failedAssertsLog, "        >>> \x1b[38;5;160mFAILED:\x1b[38;5;246m ");
-            append_string(failedAssertsLog, fail);
-            append_cstring(failedAssertsLog, "\x1b[0m\n");
+            append_cstring(failedAssertsLog, "        >>> \033[38;5;160mFAILED:\033[38;5;246m ");
+            append(failedAssertsLog, fail);
+            append_cstring(failedAssertsLog, "\033[0m\n");
         }
         print(to_string(failedAssertsLog));
     }

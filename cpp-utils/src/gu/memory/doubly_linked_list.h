@@ -8,20 +8,20 @@ struct DoublyLinkedList {
         Node *Next;
     };
 
-    Node *Head = 0;
+    Node *Head = null;
 
     template <typename T>
     inline void insert(Node *previousNode, Node *newNode) {
-        if (previousNode == 0) {
+        if (!previousNode) {
             if (head) {
                 // The list has more elements
                 newNode->Next = Head;
                 newNode->Next->Previous = newNode;
             } else {
-                newNode->Next = 0;
+                newNode->Next = null;
             }
             Head = newNode;
-            Head->Previous = 0;
+            Head->Previous = null;
         } else {
             if (previousNode->Next) {
                 // Middle node
@@ -34,7 +34,7 @@ struct DoublyLinkedList {
             } else {
                 // Last node
                 previousNode->Next = newNode;
-                newNode->Next = 0;
+                newNode->Next = null;
             }
         }
     }

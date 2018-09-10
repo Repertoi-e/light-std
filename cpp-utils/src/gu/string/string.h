@@ -6,145 +6,112 @@
 
 GU_BEGIN_NAMESPACE
 
+// This class is a wrapper around a pointer
+// to an encoded utf-8 code point.
+struct Code_Point_Ref {
+    char *Data;
+
+    Code_Point_Ref &operator=(char32_t other) {}
+
+	b32 &operator==(char32_t other) {
+		
+	}
+
+    b32 &operator!=(char32_t other) { return !(*this == other); }
+};
+
 // UTF-8 string
-// #Design: This class' API is not final. Functions and operators may and WILL
-// change.
-//                              (And should change because it's not very
-//                              practical atm)
+// This string doesn't guarantee a null termination at the end.
+// It stores a data pointer and a length.
+//
+// * Usually structures in this library are named Like_This, but this
+// is an exception since I consider it as a fundamental data type.
 struct string {
-    char *Data = 0;
-    // The size of the string in bytes, doesn't include the null terminator
-    size_t Size = 0;
-    // The capacity in bytes, includes the null terminator
-    size_t Capacity = 1;
+    static constexpr size_t SMALL_STRING_BUFFER_SIZE = 8;
+    // This implementation uses a small stack allocated buffer
+    // for small strings instead of dynamically allocating memory.
+    // When the string begins to use more than SMALL_STRING_BUFFER_SIZE
+    // bytes of memory, it allocates a buffer on the heap.
+    //
+    // Note that the "Data" member points to this buffer or the dynamically allocated one.
+    char _StackData[SMALL_STRING_BUFFER_SIZE];
+
+    // This member points to a valid utf-8 string in memory.
+    // Each 'char' means one byte, which doesn't guarantee a valid utf-8 code point
+    // since they can be multiple bytes. You almost never would want
+    // to modify or access characters from this member unless you want
+    // something very specific.
+    char *Data = _StackData;
+
+    // The number of reserved bytes in the string. This is used only
+    // if the string is using a dynamically allocated buffer.
+    size_t _Reserved = 0;
+
+    // The number of bytes used in the string, >= the number of utf-8 code points
+    // that the string represents
+    // In order to get the length of the string in utf-8 code points, use
+    // the length() function.
+    size_t CountBytes = 0;
 
     // The allocator used for expanding the string.
-    // If we pass a null allocator to a New/Delete wrapper it uses the context's
-    // one automatically.
+    // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
     Allocator_Closure Allocator;
 
-    string() {
-        Allocator = CONTEXT_ALLOC;
-        Data = New<char>(1, Allocator);
-    }
-
+    string() {}
+    // Construct a string from a null-terminated c-style string.
     string(const char *str);
-    // Construct from a cstring pointer and a size (in bytes, not code points!)
-    string(const char *str, size_t size);
+    // Construct from a c-style string and a length (in bytes, not utf-8 code points)
+    string(const char *str, size_t length);
     string(string const &other);
     string(string &&other);
+    ~string();
 
-    // Returns the byte at that index, not necessarily the code point!
-    char operator[](size_t index) const { return Data[index]; }
     string &operator=(string const &other);
     string &operator=(string &&other);
 
-    ~string() {
-        if (Data) Delete(Data, Allocator);
-    }
+    // Returns a reference to the the code point at that index
+    const char32_t operator[](size_t index) const;
 };
+int REMOVE_ME_REMOVE_ME_REMOVE_ME_REMOVE_ME_REMOVE_ME_REMOVE_ME_REMOVE_ME = sizeof(string);
 
-inline string::string(const char *str) : string(str, str ? utf8size(str) : 0) {}
+// Retrieve the length of a standard cstyle string.
+// Doesn't care about encoding.
+// Note that this calculation does not include the null byte.
+// This function can also be used to determine the size in
+// bytes of a null terminated utf-8 string.
+size_t cstyle_strlen(const char *str);
 
-// Construct from a cstring pointer and a size (in bytes, not code points!)
-inline string::string(const char *str, size_t size) {
-    Allocator = CONTEXT_ALLOC;
+// Releases the memory allocated by this string.
+void release(string &str);
 
-    Data = New<char>(size + 1, Allocator);
+// Return sthe number of code points in the string.
+size_t length(string const &str);
 
-    if (!str) ZeroMemory(Data, size);
-    if (size && str) utf8cpy(Data, str);
-
-    Size = size - 1;  // Exclude the null terminator
-    Capacity = size;
-
-    Data[size] = '\0';
-}
-
-inline string::string(string const &other) {
-    Allocator = other.Allocator;
-    Size = other.Size;
-    Capacity = other.Capacity;
-
-    Data = New<char>(Capacity, Allocator);
-
-    if (!other.Data) ZeroMemory(Data, Capacity);
-    if (Capacity && other.Data) utf8cpy(Data, other.Data);
-
-    Data[Size] = '\0';
-}
-
-inline string::string(string &&other) { *this = std::move(other); }
-
-inline string &string::operator=(string const &other) {
-    if (Data) Delete(Data, Allocator);
-
-    Allocator = other.Allocator;
-    Size = other.Size;
-    Capacity = other.Capacity;
-
-    Data = New<char>(Capacity, Allocator);
-
-    if (!other.Data) ZeroMemory(Data, Capacity);
-    if (Capacity && other.Data) utf8cpy(Data, other.Data);
-
-    Data[Size] = '\0';
-
-    return *this;
-}
-
-inline string &string::operator=(string &&other) {
-    if (this != &other) {
-        if (Data) Delete(Data, Allocator);
-
-        Allocator = other.Allocator;
-        Size = other.Size;
-        Capacity = other.Capacity;
-        Data = other.Data;
-
-        other.Data = 0;
-        other.Size = 0;
-        other.Capacity = 0;
-    }
-    return *this;
-}
+// Clears all characters from the string
+// (Sets CountBytes to 0)
+inline void clear_string(string &str) { str.CountBytes = 0; }
 
 // Reserve bytes in string
-inline void reserve(string &str, size_t size) {
-    // Return if there is enough space
-    if (str.Capacity > size) return;
+void reserve(string &str, size_t size);
 
-    size_t oldSize = utf8size(str.Data);
-    size_t newSize = size + 1;
+// Check two strings for equality
+b32 equal(string const &str, string const &other);
+inline b32 operator==(string const &str, string const &other) { return equal(str, other); }
+inline b32 operator!=(string const &str, string const &other) { return !(str == other); }
 
-    void *newData = str.Allocator.Function(Allocator_Mode::RESIZE, str.Allocator.Data, newSize, str.Data, oldSize, 0);
+// Append one string to another
+void append(string &str, string const &other);
 
-    str.Data = (char *) newData;
-    str.Capacity = size + 1;
-}
+// Append a null terminated utf-8 c-style string to a string.
+// If the cstyle string is not a valid utf-8 string the
+// modified string is will also not be valid.
+void append_cstring(string &str, const char *other);
 
-inline void clear_string(string &str) {
-    str.Size = 0;
-    str.Data[0] = '\0';
-}
-
-// The size in bytes, not including the null terminator
-inline void append_cstring_and_size(string &str, const char *other, size_t size) {
-    size_t neededCapacity = str.Size + size;
-
-    reserve(str, neededCapacity);
-    CopyMemory(str.Data + str.Size, other, size);
-
-    str.Data[neededCapacity] = 0;
-    str.Size = neededCapacity;
-}
-
-inline void append_cstring(string &str, const char *other) { append_cstring_and_size(str, other, utf8size(other) - 1); }
-
-inline void append_string(string &str, string const &other) { append_cstring_and_size(str, other.Data, other.Size); }
+// Append _size_ bytes of string contained in _data_
+void append_pointer_and_size(string &str, const char *data, size_t size);
 
 inline string operator+(string str, string const &other) {
-    append_string(str, other);
+    append(str, other);
     return str;
 }
 
@@ -154,7 +121,7 @@ inline string operator+(string str, const char *other) {
 }
 
 inline string &operator+=(string &str, string const &other) {
-    append_string(str, other);
+    append(str, other);
     return str;
 }
 
@@ -163,29 +130,28 @@ inline string &operator+=(string &str, const char *other) {
     return str;
 }
 
-inline size_t length(string const &str) { return utf8len(str.Data); }
-
-inline b32 equal(string const &str, string const &other) { return utf8cmp(str.Data, other.Data) == 0; }
-
-inline b32 operator==(string const &str, string const &other) { return equal(str, other); }
-
-inline b32 operator!=(string const &str, string const &other) { return !(str == other); }
-
-// gbString gb_set_string(gbString str, char const *cstr);
-// gbUsize gb_string_allocation_size(gbString const str);
+// #TODO: More string utility functions
 // gbString gb_trim_string(gbString str, char const *cut_set);
 
+// These functions only work for ascii
 inline b32 is_digit(char x) { return x >= '0' && x <= '9'; }
+// These functions only work for ascii
 inline b32 is_hexadecimal_digit(char x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
 
+// These functions only work for ascii
 inline b32 is_space(char x) { return (x >= 9 && x <= 13) || x == 32; }
+// These functions only work for ascii
 inline b32 is_blank(char x) { return x == 9 || x == 32; }
 
+// These functions only work for ascii
 inline b32 is_alpha(char x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
+// These functions only work for ascii
 inline b32 is_alphanumeric(char x) { return is_alpha(x) || is_digit(x); }
 
+// These functions only work for ascii
 inline b32 is_print(int x) { return x > 31 && x != 127; }
 
+// This is a constexpr function for working with cstyle strings at compile time
 constexpr const char *find_cstring(const char *haystack, const char *needle) {
     if (!haystack || !needle) return 0;
 
@@ -205,16 +171,18 @@ constexpr const char *find_cstring(const char *haystack, const char *needle) {
     return 0;
 }
 
+// This is a constexpr function for working with cstyle strings at compile time
 constexpr const char *find_cstring(const char *haystack, char needle) {
     char data[2] = {};
     data[1] = needle;
     return find_cstring(haystack, data);
 }
 
+// This is a constexpr function for working with cstyle strings at compile time
 constexpr const char *find_cstring_last(const char *haystack, const char *needle) {
     if (*needle == '\0') return haystack;
 
-    const char *result = 0;
+    const char *result = null;
     while (true) {
         const char *candidate = find_cstring(haystack, needle);
         if (!candidate) break;
@@ -226,6 +194,7 @@ constexpr const char *find_cstring_last(const char *haystack, const char *needle
     return result;
 }
 
+// This is a constexpr function for working with cstyle strings at compile time
 constexpr const char *find_cstring_last(const char *haystack, char needle) {
     char data[2] = {};
     data[1] = needle;

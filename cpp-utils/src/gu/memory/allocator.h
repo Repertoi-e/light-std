@@ -16,8 +16,8 @@ typedef void *(*Allocator_Func)(Allocator_Mode mode, void *allocatorData, size_t
                                 s32 options);
 
 struct Allocator_Closure {
-    Allocator_Func Function = 0;
-    void *Data = 0;
+    Allocator_Func Function = null;
+    void *Data = null;
 
     operator bool() const { return Function; }
 };
@@ -27,6 +27,6 @@ struct Allocator_Closure {
 extern Allocator_Func __default_allocator;
 
 #define MALLOC \
-    Allocator_Closure { __default_allocator, 0 }
+    Allocator_Closure { __default_allocator, null }
 
 GU_END_NAMESPACE

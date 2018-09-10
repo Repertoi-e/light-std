@@ -21,107 +21,22 @@ struct Pool {
     Allocator_Closure BlockAllocator;
 };
 
-// Functions that are not meant to be used publicly
-namespace pool_private {
-inline void resize_blocks(Pool &pool, size_t blockSize) {
-    pool.BlockSize = blockSize;
+// Gets _size_ bytes of memory from the pool.
+// Handles running out of memory in the current block.
+void *get(Pool &pool, size_t size);
 
-    if (pool.CurrentMemblock) add(pool.ObsoletedMemblocks, pool.CurrentMemblock);
+// Resets the pool without releasing the allocated memory.
+void reset(Pool &pool);
 
-    for (u8 *it : pool.UsedMemblocks) add(pool.ObsoletedMemblocks, it);
+// Resets and frees the pool
+void release(Pool &pool);
 
-    pool.CurrentMemblock = 0;
-    pool.UsedMemblocks.Count = 0;
-}
-
-inline void cycle_new_block(Pool &pool) {
-    if (pool.CurrentMemblock) add(pool.UsedMemblocks, pool.CurrentMemblock);
-
-    u8 *newBlock;
-    if (pool.UnusedMemblocks.Count) {
-        newBlock = *(end(pool.UnusedMemblocks) - 1);
-        pop(pool.UnusedMemblocks);
-    } else {
-        newBlock = New<u8>(pool.BlockSize, pool.BlockAllocator);
-    }
-
-    pool.BytesLeft = pool.BlockSize;
-    pool.CurrentPosition = newBlock;
-    pool.CurrentMemblock = newBlock;
-}
-
-inline void ensure_memory_exists(Pool &pool, size_t size) {
-    size_t bs = pool.BlockSize;
-
-    while (bs < size) {
-        bs *= 2;
-    }
-
-    if (bs > pool.BlockSize) resize_blocks(pool, bs);
-    cycle_new_block(pool);
-}
-}  // namespace pool_private
-
-inline void *get(Pool &pool, size_t size) {
-    size_t extra = pool.Alignment - (size % pool.Alignment);
-    size += extra;
-
-    if (pool.BytesLeft < size) pool_private::ensure_memory_exists(pool, size);
-
-    void *ret = pool.CurrentPosition;
-    pool.CurrentPosition += size;
-    pool.BytesLeft -= size;
-    return ret;
-}
-
-inline void reset(Pool &pool) {
-    if (pool.CurrentMemblock) {
-        add(pool.UnusedMemblocks, pool.CurrentMemblock);
-        pool.CurrentMemblock = 0;
-    }
-
-    for (u8 *it : pool.UsedMemblocks) {
-        add(pool.UnusedMemblocks, it);
-    }
-    pool.UsedMemblocks.Count = 0;
-
-    for (u8 *it : pool.ObsoletedMemblocks) {
-        Delete(it, pool.BlockAllocator);
-    }
-    pool.ObsoletedMemblocks.Count = 0;
-
-    pool_private::cycle_new_block(pool);
-}
-
-inline void release(Pool &pool) {
-    reset(pool);
-
-    for (u8 *it : pool.UnusedMemblocks) {
-        Delete(it, pool.BlockAllocator);
-    }
-}
-
-inline void *__pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
-                              s32 options) {
-    Pool &pool = *((Pool *) allocatorData);
-
-    switch (mode) {
-        case Allocator_Mode::ALLOCATE:
-            return get(pool, size);
-        case Allocator_Mode::RESIZE: {
-            // Don't bother with resizing, get a new block and copy the memory to it.
-            void *newMemory = get(pool, size);
-            CopyMemory(oldMemory, newMemory, oldSize);
-            return newMemory;
-        }
-        case Allocator_Mode::FREE:
-            // This allocator only supports FREE_ALL
-            return 0;
-        case Allocator_Mode::FREE_ALL:
-            reset(pool);
-            return 0;
-    }
-    return 0;
-}
+// The allocator function that works with a pool.
+// As you can see, there is no "free" function defined above,
+// that's because Pool doesn't manage freeing of invidual pieces
+// of memory. So calling __pool_allocator with Allocator_Mode::FREE,
+// doesn't do anything. Allocator_Mode::FREE_ALL does tho.
+void *__pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
+                       s32 options);
 
 GU_END_NAMESPACE

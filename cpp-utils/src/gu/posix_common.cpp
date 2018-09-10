@@ -44,7 +44,7 @@ void exit_program(int code) { _exit(code); }
 
 void default_assert_handler(bool failed, const char *file, int line, const char *failedCondition) {
     if (failed) {
-        print("\x1b[31m>>> %:%, Assert failed: %\x1b[0m\n", file, line, failedCondition);
+        print("\033[31m>>> %:%, Assert failed: %\033[0m\n", file, line, failedCondition);
         exit_program(-1);
     }
 }

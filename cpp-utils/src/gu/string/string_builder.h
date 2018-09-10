@@ -11,7 +11,7 @@ inline constexpr size_t STRING_BUILDER_BUFFER_SIZE = 4_KiB;
 struct String_Builder {
     struct Buffer {
         char Data[STRING_BUILDER_BUFFER_SIZE];
-        size_t Occupied = null;
+        size_t Occupied = 0;
         Buffer *Next = null;
     };
 
@@ -31,76 +31,21 @@ struct String_Builder {
     ~String_Builder();
 };
 
-namespace private_string_builder {
-inline void allocate_next_buffer(String_Builder &builder) {
-    String_Builder::Buffer *buffer = New<String_Builder::Buffer>(builder.Allocator);
+// Append a string to the builder
+void append(String_Builder &builder, string const &str);
 
-    builder.CurrentBuffer->Next = buffer;
-    builder.CurrentBuffer = buffer;
-}
-}  // namespace private_string_builder
+// Append a null terminated utf-8 cstyle string.
+void append_cstring(String_Builder &builder, const char *str);
 
-inline void append_cstring_and_size(String_Builder &builder, const char *str, size_t size) {
-    String_Builder::Buffer *currentBuffer = builder.CurrentBuffer;
+// Append _size_ bytes of string contained in _data_
+void append_pointer_and_size(String_Builder &builder, const char *str, size_t size);
 
-    size_t availableSpace = STRING_BUILDER_BUFFER_SIZE - currentBuffer->Occupied;
-    if (availableSpace >= size) {
-        CopyMemory(currentBuffer->Data + currentBuffer->Occupied, str, size);
-        currentBuffer->Occupied += size;
-    } else {
-        CopyMemory(currentBuffer->Data + currentBuffer->Occupied, str, availableSpace);
-        currentBuffer->Occupied += availableSpace;
-
-        // If the entire string doesn't fit inside the available space,
-        // allocate the next buffer and continue appending.
-        private_string_builder::allocate_next_buffer(builder);
-        append_cstring_and_size(builder, str + availableSpace, size - availableSpace);
-    }
-}
-
-inline void append_cstring(String_Builder &builder, const char *str) {
-    append_cstring_and_size(builder, str, utf8size(str) - 1);
-}
-
-inline void append_string(String_Builder &builder, string const &str) {
-    append_cstring_and_size(builder, str.Data, str.Size);
-}
-
-inline string to_string(String_Builder &builder) {
-    string result;
-
-    String_Builder::Buffer *buffer = &builder.BaseBuffer;
-    while (buffer) {
-        append_cstring_and_size(result, buffer->Data, buffer->Occupied);
-        buffer = buffer->Next;
-    }
-    return result;
-}
+string to_string(String_Builder &builder);
 
 // Don't deallocate, just move cursor to 0
-inline void reset(String_Builder &builder) {
-    String_Builder::Buffer *buffer = &builder.BaseBuffer;
-    builder.CurrentBuffer = buffer;
-
-    while (buffer) {
-        buffer->Occupied = 0;
-        buffer = buffer->Next;
-    }
-}
+void reset(String_Builder &builder);
 
 // Free the entire builder
-inline void release(String_Builder &builder) {
-    // We don't need to free the base buffer, it is allocated on the stack
-    String_Builder::Buffer *buffer = builder.BaseBuffer.Next;
-    while (buffer) {
-        String_Builder::Buffer *toDelete = buffer;
-        buffer = buffer->Next;
-        Delete(toDelete, builder.Allocator);
-    }
-    builder.CurrentBuffer = &builder.BaseBuffer;
-    builder.BaseBuffer.Occupied = 0;
-}
-
-inline String_Builder::~String_Builder() { release(*this); }
+void release(String_Builder &builder);
 
 GU_END_NAMESPACE

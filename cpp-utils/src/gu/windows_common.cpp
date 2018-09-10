@@ -34,7 +34,7 @@ void exit_program(int code) { _exit(code); }
 
 void default_assert_handler(bool failed, const char *file, int line, const char *failedCondition) {
     if (failed) {
-        print("\x1b[31m>>> %:%, Assert failed: %\x1b[0m\n", file, line, failedCondition);
+        print("\033[31m>>> %:%, Assert failed: %\033[0m\n", file, line, failedCondition);
         exit_program(-1);
     }
 }
@@ -47,9 +47,12 @@ void print_string_to_console(string const &str) {
 		if (!SetConsoleOutputCP(CP_UTF8)) {
 			print(">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.");
 		}
+		DWORD dw = 0;
+		GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &dw);
+		SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 	}
 	DWORD ignored;
-	WriteFile(g_StdOut, str.Data, (DWORD) str.Size, &ignored, null);
+	WriteFile(g_StdOut, str.Data, (DWORD) str.CountBytes, &ignored, null);
 }
 
 void wait_for_input(b32 message) {

@@ -38,7 +38,7 @@ inline void print_u64_with_format_to_builder(String_Builder &builder, u64 v, u64
 
     assert(p >= output);
 
-    append_cstring_and_size(builder, p, end - p);
+    append_pointer_and_size(builder, p, end - p);
 }
 
 inline const f64 g_PowersOf10[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
@@ -136,10 +136,10 @@ inline void print_f64_with_format_to_builder(String_Builder &builder, f64 value,
     // Pad spaces up to given width
     // TODO: More formatting options
     for (size_t i = end - p; i < width; i++) {
-        append_cstring_and_size(builder, " ", 1);
+        append_pointer_and_size(builder, " ", 1);
     }
 
-    append_cstring_and_size(builder, p, end - p);
+    append_pointer_and_size(builder, p, end - p);
 }
 }  // namespace private_print
 
@@ -212,7 +212,7 @@ inline string to_string(string const &v, s32 width = 0) {
     s32 positiveWidth = width > 0 ? width : -width;
 
     const char *stringStart = v.Data;
-    size_t stringSize = v.Size;
+    size_t stringSize = v.CountBytes;
     size_t len = length(v);
 
     // If the width is 1 or 2, adding 3 dots exceeds it,
@@ -256,7 +256,7 @@ inline string to_string(string const &v, s32 width = 0) {
             appendSpacesAfter = (s32) (width - len);
         }
     }
-    append_cstring_and_size(builder, stringStart, stringSize);
+    append_pointer_and_size(builder, stringStart, stringSize);
     while (appendEllipsisAfter--) {
         append_cstring(builder, ".");
     }
@@ -301,14 +301,14 @@ inline void print_to_builder(String_Builder &builder, string const &format, Args
 		size_t implicitArgIndex = 0;
 		size_t cursor = 0, printed = 0;
 
-		while (cursor < format.Size) {
-			char c = format[cursor];
+		while (cursor < length(format)) {
+			char32_t c = format[cursor];
 			if (c != '%') {
 				cursor++;
 				continue;
 			}
 
-			append_cstring_and_size(builder, format.Data + printed, cursor - printed);
+			append_pointer_and_size(builder, format.Data + printed, cursor - printed);
 			cursor++;  // Skip the %
 
 			const char next = format[cursor];
@@ -330,7 +330,7 @@ inline void print_to_builder(String_Builder &builder, string const &format, Args
 			}
 
 			if (argIndex < args.Count) {
-				append_string(builder, args[argIndex]);
+				append(builder, args[argIndex]);
 				implicitArgIndex = argIndex + 1;
 			} else {
 				append_cstring(builder, "{Invalid format argument}");
@@ -339,9 +339,9 @@ inline void print_to_builder(String_Builder &builder, string const &format, Args
 			printed = cursor;
 		}
 
-		append_cstring_and_size(builder, format.Data + printed, cursor - printed);
+		append_pointer_and_size(builder, format.Data + printed, cursor - printed);
 	} else {
-		append_string(builder, format);
+		append(builder, format);
 	}
 }
 

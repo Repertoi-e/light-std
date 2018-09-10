@@ -9,13 +9,13 @@
 
 GU_BEGIN_NAMESPACE
 
-struct Local_File_Path : public File_Path<Local_File_Path> {
+struct Local_File_Path {
     // Platform dependend, don't use unless you know what you are doing
     mutable void *FileInfo;
     // Platform dependend, don't use unless you know what you are doing
     mutable void *LinkInfo;
 
-    Local_File_Path(string const &path) : File_Path(path) {}
+    Local_File_Path(string const &path) {}
     ~Local_File_Path();
 };
 

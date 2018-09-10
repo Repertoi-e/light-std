@@ -74,7 +74,7 @@ template <>
 struct Hash<string> {
     static constexpr uptr_t get(string const& str) {
         uptr_t hash = 5381;
-        for (size_t i = 0; i < str.Size; i++) {
+        for (size_t i = 0; i < length(str); i++) {
             hash = ((hash << 5) + hash) + str[i];
         }
         return hash;

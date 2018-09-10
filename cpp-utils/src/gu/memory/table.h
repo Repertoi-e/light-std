@@ -10,25 +10,26 @@
 
 GU_BEGIN_NAMESPACE
 
+// Table means hash-map/undordered_map etc.
 template <typename Key, typename Value>
 struct Table {
     using Key_Type = Key;
     using Value_Type = Value;
 
     static const size_t MINIMUM_SIZE = 32;
-	size_t Count = 0;
-	size_t Reserved = 0;
+    size_t Count = 0;
+    size_t _Reserved = 0;
 
-    // By default, the value that gets returned is a default constructed Value_Type
-    // This value can be changed if special behaviour is desired.
+    // By default, the value that gets returned if a value is not found
+    // is a default constructed Value_Type. This value can be changed if
+    // special behaviour is desired.
     Value_Type UnfoundValue = Value_Type();
 
     // The allocator used for expanding the table.
-    // If we pass a null allocator to a New/Delete wrapper it uses the context's
-    // one automatically.
+    // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
     Allocator_Closure Allocator;
 
-    // Slots
+    // We store slots as SOA to minimize cache misses.
     bool *OccupancyMask = null;
     Key_Type *Keys = null;
     Value_Type *Values = null;
@@ -45,20 +46,20 @@ struct Table {
 
 template <typename Key, typename Value>
 Table<Key, Value>::Table(Table<Key, Value> const &other) {
-	Count = other.Count;
-	Reserved = other.Reserved;
+    Count = other.Count;
+    _Reserved = other._Reserved;
     Allocator = other.Allocator;
     UnfoundValue = other.UnfoundValue;
 
-    OccupancyMask = New<bool>(Reserved, Allocator);
-    Keys = New<Key_Type>(Reserved, Allocator);
-    Values = New<Value_Type>(Reserved, Allocator);
-    Hashes = New<uptr_t>(Reserved, Allocator);
+    OccupancyMask = New<bool>(_Reserved, Allocator);
+    Keys = New<Key_Type>(_Reserved, Allocator);
+    Values = New<Value_Type>(_Reserved, Allocator);
+    Hashes = New<uptr_t>(_Reserved, Allocator);
 
-    CopyElements(OccupancyMask, other.OccupancyMask, Reserved);
-    CopyElements(Keys, other.Keys, Reserved);
-    CopyElements(Values, other.Values, Reserved);
-    CopyElements(Hashes, other.Hashes, Reserved);
+    CopyElements(OccupancyMask, other.OccupancyMask, _Reserved);
+    CopyElements(Keys, other.Keys, _Reserved);
+    CopyElements(Values, other.Values, _Reserved);
+    CopyElements(Hashes, other.Hashes, _Reserved);
 }
 
 template <typename Key, typename Value>
@@ -68,12 +69,17 @@ Table<Key, Value>::Table(Table<Key, Value> &&other) {
 
 template <typename Key, typename Value>
 void release(Table<Key, Value> &table) {
-    if (table.Reserved) {
-        table.Reserved = 0;
-        Delete(table.OccupancyMask, table.Allocator);
-        Delete(table.Keys, table.Allocator);
-        Delete(table.Values, table.Allocator);
-        Delete(table.Hashes, table.Allocator);
+    if (table._Reserved) {
+        Delete(table.OccupancyMask, table._Reserved, table.Allocator);
+        Delete(table.Keys, table._Reserved, table.Allocator);
+        Delete(table.Values, table._Reserved, table.Allocator);
+        Delete(table.Hashes, table._Reserved, table.Allocator);
+        table.OccupancyMask = null;
+        table.Keys = null;
+        table.Values = null;
+        table.Hashes = null;
+		table._Reserved = 0;
+		table.Count = 0;
     }
 }
 
@@ -86,20 +92,20 @@ template <typename Key, typename Value>
 Table<Key, Value> &Table<Key, Value>::operator=(Table<Key, Value> const &other) {
     release(*this);
 
-	Count = other.Count;
-    Reserved = other.Reserved;
+    Count = other.Count;
+    _Reserved = other._Reserved;
     Allocator = other.Allocator;
     UnfoundValue = other.UnfoundValue;
 
-    OccupancyMask = New<bool>(Reserved, Allocator);
-    Keys = New<Key_Type>(Reserved, Allocator);
-    Values = New<Value_Type>(Reserved, Allocator);
-    Hashes = New<uptr_t>(Reserved, Allocator);
+    OccupancyMask = New<bool>(_Reserved, Allocator);
+    Keys = New<Key_Type>(_Reserved, Allocator);
+    Values = New<Value_Type>(_Reserved, Allocator);
+    Hashes = New<uptr_t>(_Reserved, Allocator);
 
-    CopyElements(OccupancyMask, other.OccupancyMask, Reserved);
-    CopyElements(Keys, other.Keys, Reserved);
-    CopyElements(Values, other.Values, Reserved);
-    CopyElements(Hashes, other.Hashes, Reserved);
+    CopyElements(OccupancyMask, other.OccupancyMask, _Reserved);
+    CopyElements(Keys, other.Keys, _Reserved);
+    CopyElements(Values, other.Values, _Reserved);
+    CopyElements(Hashes, other.Hashes, _Reserved);
 
     return *this;
 }
@@ -109,8 +115,8 @@ Table<Key, Value> &Table<Key, Value>::operator=(Table<Key, Value> &&other) {
     if (this != &other) {
         release(*this);
 
-		Count = other.Count;
-        Reserved = other.Reserved;
+        Count = other.Count;
+        _Reserved = other._Reserved;
         Allocator = other.Allocator;
         UnfoundValue = other.UnfoundValue;
 
@@ -119,7 +125,7 @@ Table<Key, Value> &Table<Key, Value>::operator=(Table<Key, Value> &&other) {
         Values = other.Values;
         Hashes = other.Hashes;
 
-        other.Reserved = 0;
+        other._Reserved = 0;
         other.OccupancyMask = null;
         other.Keys = null;
         other.Values = null;
@@ -138,7 +144,7 @@ struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tup
     }
 
     Table_Iterator &operator++() {
-        while (SlotIndex < (s64) Table.Reserved) {
+        while (SlotIndex < (s64) Table._Reserved) {
             SlotIndex++;
             if (Table.OccupancyMask && Table.OccupancyMask[SlotIndex]) {
                 break;
@@ -165,12 +171,18 @@ inline Table_Iterator<Key, Value> begin(Table<Key, Value> const &table) {
 
 template <typename Key, typename Value>
 inline Table_Iterator<Key, Value> end(Table<Key, Value> const &table) {
-    return Table_Iterator<Key, Value>(table, table.Reserved);
+    return Table_Iterator<Key, Value>(table, table._Reserved);
 }
 
+namespace private_table {
+// This is a very internal function. Basically don't call this unless
+// you absolutely know what you are doing. This doesn't free the old memory
+// before allocating new, so that's up to the caller to do. Trust me
+// there is a reason why this function does what it does, it makes expand()
+// much much simpler.
 template <typename Key, typename Value>
 void reserve(Table<Key, Value> &table, size_t size) {
-    table.Reserved = size;
+    table._Reserved = size;
 
     table.OccupancyMask = New<bool>(size, table.Allocator);
     table.Keys = New<Key>(size, table.Allocator);
@@ -178,14 +190,13 @@ void reserve(Table<Key, Value> &table, size_t size) {
     table.Hashes = New<uptr_t>(size, table.Allocator);
 }
 
-// Returns -1 if not found
 template <typename Key, typename Value>
 s32 find_index(Table<Key, Value> const &table, typename Table<Key, Value>::Key_Type const &key, uptr_t hash) {
-    if (!table.Reserved) {
+    if (!table._Reserved) {
         return -1;
     }
 
-	size_t index = hash % table.Reserved;
+    size_t index = hash % table._Reserved;
     while (table.OccupancyMask[index]) {
         if (table.Hashes[index] == hash) {
             if (table.Keys[index] == key) {
@@ -194,7 +205,7 @@ s32 find_index(Table<Key, Value> const &table, typename Table<Key, Value>::Key_T
         }
 
         index++;
-        if (index >= table.Reserved) {
+        if (index >= table._Reserved) {
             index = 0;
         }
     }
@@ -202,63 +213,19 @@ s32 find_index(Table<Key, Value> const &table, typename Table<Key, Value>::Key_T
     return -1;
 }
 
-// Copies the key and the value into the table.
-template <typename Key, typename Value>
-void put(Table<Key, Value> &table, typename Table<Key, Value>::Key_Type const &key,
-         typename Table<Key, Value>::Value_Type const &value) {
-    uptr_t hash = Hash<typename Table<Key, Value>::Key_Type>::get(key);
-    s32 index = find_index(table, key, hash);
-    if (index == -1) {
-        if (table.Count >= table.Reserved) {
-            expand(table);
-        }
-        assert(table.Count <= table.Reserved);
-
-		index = (s32) (hash % table.Reserved);
-		while (table.OccupancyMask[index]) {
-			// Resolve collision
-			index++;
-			if (index >= table.Reserved) {
-				index = 0;
-			}
-		}
-
-        table.Count++;
-    }
-
-    table.OccupancyMask[index] = true;
-    table.Keys[index] = key;
-    table.Values[index] = value;
-    table.Hashes[index] = hash;
-}
-
-// Returns a tuple of the value and true if found (false if not found). Doesn't return the value by reference so
-// modifying it doesn't update it in the table, use pointers to get around that.
-template <typename Key, typename Value>
-std::tuple<typename Table<Key, Value>::Value_Type, bool> find(Table<Key, Value> const &table,
-                                                              typename Table<Key, Value>::Key_Type const &key) {
-    uptr_t hash = Hash<typename Table<Key, Value>::Key_Type>::get(key);
-
-    s32 index = find_index(table, key, hash);
-    if (index == -1) {
-        return {table.UnfoundValue, false};
-    }
-
-    return {table.Values[index], true};
-}
-
+// Double's the size of the table and copies the elements to their new location.
 template <typename Key, typename Value>
 void expand(Table<Key, Value> &table) {
     // I love C++
     // I love C++
     // I love C++
-    size_t oldReserved = table.Reserved;
+    size_t oldReserved = table._Reserved;
     auto oldOccupancyMask = table.OccupancyMask;
     auto oldKeys = table.Keys;
     auto oldValues = table.Values;
     auto oldHashes = table.Hashes;
 
-    size_t newSize = table.Reserved * 2;
+    size_t newSize = table._Reserved * 2;
     if (newSize < table.MINIMUM_SIZE) {
         newSize = table.MINIMUM_SIZE;
     }
@@ -272,11 +239,57 @@ void expand(Table<Key, Value> &table) {
     }
 
     if (oldReserved) {
-        Delete(oldOccupancyMask, table.Allocator);
-        Delete(oldKeys, table.Allocator);
-        Delete(oldValues, table.Allocator);
-        Delete(oldHashes, table.Allocator);
+        Delete(oldOccupancyMask, oldReserved, table.Allocator);
+        Delete(oldKeys, oldReserved, table.Allocator);
+        Delete(oldValues, oldReserved, table.Allocator);
+        Delete(oldHashes, oldReserved, table.Allocator);
     }
+}
+}  // namespace private_table
+
+// Copies the key and the value into the table.
+template <typename Key, typename Value>
+void put(Table<Key, Value> &table, typename Table<Key, Value>::Key_Type const &key,
+         typename Table<Key, Value>::Value_Type const &value) {
+    uptr_t hash = Hash<typename Table<Key, Value>::Key_Type>::get(key);
+    s32 index = private_table::find_index(table, key, hash);
+    if (index == -1) {
+        if (table.Count >= table._Reserved) {
+            private_table::expand(table);
+        }
+        assert(table.Count <= table._Reserved);
+
+        index = (s32)(hash % table._Reserved);
+        while (table.OccupancyMask[index]) {
+            // Resolve collision
+            index++;
+            if (index >= table._Reserved) {
+                index = 0;
+            }
+        }
+
+        table.Count++;
+    }
+
+    table.OccupancyMask[index] = true;
+    table.Keys[index] = key;
+    table.Values[index] = value;
+    table.Hashes[index] = hash;
+}
+
+// Returns a tuple of the value and a bool (true if found). Doesn't return the value by reference so
+// modifying it doesn't update it in the table, use pointers if you want that kind of behaviour.
+template <typename Key, typename Value>
+std::tuple<typename Table<Key, Value>::Value_Type, bool> find(Table<Key, Value> const &table,
+                                                              typename Table<Key, Value>::Key_Type const &key) {
+    uptr_t hash = Hash<typename Table<Key, Value>::Key_Type>::get(key);
+
+    s32 index = private_table::find_index(table, key, hash);
+    if (index == -1) {
+        return {table.UnfoundValue, false};
+    }
+
+    return {table.Values[index], true};
 }
 
 GU_END_NAMESPACE

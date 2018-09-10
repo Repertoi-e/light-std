@@ -15,7 +15,7 @@
 #endif
 #endif
 
-#define null 0
+#define null nullptr
 
 #include <stddef.h>
 

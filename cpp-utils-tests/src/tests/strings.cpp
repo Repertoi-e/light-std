@@ -9,7 +9,7 @@
 TEST(string_concat) {
     {
         string a = "Hello";
-        append_cstring_and_size(a, ",THIS IS GARBAGE", 1);
+        append_pointer_and_size(a, ",THIS IS GARBAGE", 1);
         append_cstring(a, " world!");
 
         assert(a == "Hello, world!");
@@ -27,8 +27,8 @@ TEST(string_concat) {
 TEST(string_builder) {
     String_Builder builder;
     append_cstring(builder, "Hello");
-    append_cstring_and_size(builder, ",THIS IS GARBAGE", 1);
-    append_string(builder, string(" world!"));
+    append_pointer_and_size(builder, ",THIS IS GARBAGE", 1);
+    append(builder, string(" world!"));
 
     string result = to_string(builder);
     assert(result == "Hello, world!");
