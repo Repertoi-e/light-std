@@ -6,23 +6,7 @@
 
 GU_BEGIN_NAMESPACE
 
-// This class is a wrapper around a pointer
-// to an encoded utf-8 code point.
-struct Code_Point_Ref {
-    char *Data;
-
-    Code_Point_Ref &operator=(char32_t other) {
-		
-		
-		return *this;
-	}
-
-	b32 operator==(char32_t other) {
-		
-	}
-
-    b32 operator!=(char32_t other) { return !(*this == other); }
-};
+struct Code_Point_Ref;
 
 // UTF-8 string
 // This string doesn't guarantee a null termination at the end.
@@ -51,11 +35,11 @@ struct string {
     // if the string is using a dynamically allocated buffer.
     size_t _Reserved = 0;
 
-    // The number of bytes used in the string, >= the number of utf-8 code points
-    // that the string represents
-    // In order to get the length of the string in utf-8 code points, use
-    // the length() function.
-    size_t CountBytes = 0;
+    // The number of code units in the string, >= the number of code points
+    size_t BytesUsed = 0;
+
+    // The number of code points in the string.
+    size_t Length = 0;
 
     // The allocator used for expanding the string.
     // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
@@ -64,7 +48,7 @@ struct string {
     string() {}
     // Construct a string from a null-terminated c-style string.
     string(const char *str);
-    // Construct from a c-style string and a length (in bytes, not utf-8 code points)
+    // Construct from a c-style string and a length (in code units, not code points)
     string(const char *str, size_t length);
     string(string const &other);
     string(string &&other);
@@ -73,41 +57,54 @@ struct string {
     string &operator=(string const &other);
     string &operator=(string &&other);
 
-    // Returns a reference to the the code point at that index
-	// so it can be accessed and modified
+    // Read-only [] operator
+    Code_Point_Ref operator[](size_t index);
     const char32_t operator[](size_t index) const;
 };
 
-// Retrieve the length of a standard cstyle string.
-// Doesn't care about encoding.
-// Note that this calculation does not include the null byte.
-// This function can also be used to determine the size in
-// bytes of a null terminated utf-8 string.
-size_t cstyle_strlen(const char *str);
+struct Code_Point_Ref {
+    string &Parent;
+    char32_t CodePoint;
+    size_t Index;
+
+    Code_Point_Ref(string &parent, char32_t codePoint, size_t index)
+        : Parent(parent), CodePoint(codePoint), Index(index) {}
+
+    Code_Point_Ref &operator=(char32_t other);
+
+    operator char32_t const &() { return CodePoint; }
+};
 
 // Releases the memory allocated by this string.
 void release(string &str);
 
-// Return sthe number of code points in the string.
-size_t length(string const &str);
-
 // Clears all characters from the string
-// (Sets CountBytes to 0)
-inline void clear_string(string &str) { str.CountBytes = 0; }
+// (Sets BytesUsed to 0)
+inline void clear_string(string &str) { str.BytesUsed = 0; }
 
 // Reserve bytes in string
 void reserve(string &str, size_t size);
 
-// Sets the _index_'th code point of the string 
+// Gets the _index_'th code point in the string
+char32_t get(string const &str, size_t index);
+
+// Sets the _index_'th code point in the string
 void set(string &str, size_t index, char32_t codePoint);
 
 // Returns a pointer to the _index_th code point in the string.
 char *get_pointer_to_index(string &str, size_t index);
 
+// Returns 0 if strings are equal, -1 if str is lexicographically < other,
+// and +1 if str is lexicographically > other.
+b32 compare(string const &str, string const &other);
+
 // Check two strings for equality
-b32 equal(string const &str, string const &other);
-inline b32 operator==(string const &str, string const &other) { return equal(str, other); }
+inline b32 operator==(string const &str, string const &other) { return compare(str, other) == 0; }
 inline b32 operator!=(string const &str, string const &other) { return !(str == other); }
+inline b32 operator<(string const &str, string const &other) { return compare(str, other) == -1; }
+inline b32 operator>(string const &str, string const &other) { return compare(str, other) == 1; }
+inline b32 operator<=(string const &str, string const &other) { return !(str > other); }
+inline b32 operator>=(string const &str, string const &other) { return !(str < other); }
 
 // Append one string to another
 void append(string &str, string const &other);
@@ -123,7 +120,6 @@ void append_cstring(string &str, const char *other);
 // Append _size_ bytes of string contained in _data_
 void append_pointer_and_size(string &str, const char *data, size_t size);
 
-
 inline string operator+(string str, string const &other) {
     append(str, other);
     return str;
@@ -135,8 +131,8 @@ inline string operator+(string str, const char *other) {
 }
 
 inline string operator+(string str, char32_t codePoint) {
-	append(str, codePoint);
-	return str;
+    append(str, codePoint);
+    return str;
 }
 
 inline string &operator+=(string &str, string const &other) {
@@ -149,9 +145,9 @@ inline string &operator+=(string &str, const char *other) {
     return str;
 }
 
-inline string operator+=(string str, char32_t codePoint) {
-	append(str, codePoint);
-	return str;
+inline string &operator+=(string &str, char32_t codePoint) {
+    append(str, codePoint);
+    return str;
 }
 
 // #TODO: More string utility functions
@@ -175,6 +171,13 @@ inline b32 is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
 // These functions only work for ascii
 inline b32 is_print(char32_t x) { return x > 31 && x != 127; }
 
+// Retrieve the length of a standard cstyle string.
+// Doesn't care about encoding.
+// Note that this calculation does not include the null byte.
+// This function can also be used to determine the size in
+// bytes of a null terminated utf-8 string.
+size_t cstyle_strlen(const char *str);
+
 //
 // Utility utf-8 functions:
 //
@@ -190,6 +193,8 @@ size_t get_size_of_code_point(char32_t codePoint);
 // Encodes code point at _str_, assumes there is enough space.
 void encode_code_point(char *str, char32_t codePoint);
 
+// Decodes a code point from a data pointer
+char32_t decode_code_point(const char *str);
 
 // This is a constexpr function for working with cstyle strings at compile time
 constexpr const char *find_cstring(const char *haystack, const char *needle) {

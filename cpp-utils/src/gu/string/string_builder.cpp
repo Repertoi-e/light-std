@@ -26,7 +26,14 @@ void reset(String_Builder &builder) {
     }
 }
 
-void append(String_Builder &builder, string const &str) { append_pointer_and_size(builder, str.Data, str.CountBytes); }
+void append(String_Builder &builder, string const &str) { append_pointer_and_size(builder, str.Data, str.BytesUsed); }
+
+void append(String_Builder &builder, char32_t codePoint) {
+    char encoded[4];
+    encode_code_point(encoded, codePoint);
+    append_pointer_and_size(builder, encoded, get_size_of_code_point(codePoint));
+}
+
 void append_cstring(String_Builder &builder, const char *str) {
     append_pointer_and_size(builder, str, cstyle_strlen(str));
 }

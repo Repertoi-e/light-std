@@ -1,4 +1,4 @@
-#include <gu/memory/pool.h>
+﻿#include <gu/memory/pool.h>
 #include <gu/memory/stack.h>
 #include <gu/memory/table.h>
 
@@ -6,13 +6,57 @@
 
 #include "../test.h"
 
+TEST(code_point_size) {
+    string ascii = "abc";
+    assert(ascii.BytesUsed == 3 && ascii.Length == 3);
+
+    string cyrillic = u8"\u0410\u0431\u0432";
+    assert(cyrillic.BytesUsed == 6 && cyrillic.Length == 3);
+
+    string devanagari = u8"\u0904\u0905\u0906";
+    assert(devanagari.BytesUsed == 9 && devanagari.Length == 3);
+
+    string supplementary = u8"\U0002070E\U00020731\U00020779";
+    assert(supplementary.BytesUsed == 12 && supplementary.Length == 3);
+
+    string mixed = ascii + cyrillic + devanagari + supplementary;
+    assert(mixed.BytesUsed == 12 + 9 + 6 + 3 && mixed.Length == 3 + 3 + 3 + 3);
+}
+
+TEST(string_modify_and_index) {
+	string sample = u8"aДc";
+	
+	string a = "aDc";
+    set(a, 1, 'b');
+    assert(a == "abc");
+    set(a, 1, U'Д');
+    assert(a == sample);
+    set(a, 1, 'b');
+    assert(a == "abc");
+	assert(get(a, 0) == 'a' && get(a, 1) == 'b' && get(a, 2) == 'c');
+
+    a = "aDc";
+    a[1] = 'b';
+    assert(a == "abc");
+    a[1] =  U'Д';
+    assert(a == sample);
+    a[1] = 'b';
+    assert(a == "abc");
+    assert(a[0] == 'a' && a[1] == 'b' && a[2] == 'c');
+
+	a[0] = U'\U0002070E';
+	a[1] = U'\U00020731';
+	a[2] = U'\U00020779';
+	assert(a == u8"\U0002070E\U00020731\U00020779");
+}
+
 TEST(string_concat) {
     {
-        string a = "Hello";
-        append_pointer_and_size(a, ",THIS IS GARBAGE", 1);
-        append_cstring(a, " world!");
+        string result = "Hello";
+        append_pointer_and_size(result, ",THIS IS GARBAGE", 1);
+        append_cstring(result, " world!");
 
-        assert(a == "Hello, world!");
+        assert(result == "Hello, world!");
     }
     {
         string a = "Hello";
@@ -22,13 +66,25 @@ TEST(string_concat) {
 
         assert(result == "Hello, world!");
     }
+
+    string result;
+    for (s32 i = 0; i < 10; i++) {
+        result += 'i';
+        assert(result.BytesUsed == i + 1 && result.Length == i + 1);
+    }
+    release(result);
+    for (s32 i = 0; i < 10; i++) {
+        result += u8"\u0434";
+        assert(result.BytesUsed == 2 * (i + 1) && result.Length == i + 1);
+    }
 }
 
 TEST(string_builder) {
     String_Builder builder;
     append_cstring(builder, "Hello");
     append_pointer_and_size(builder, ",THIS IS GARBAGE", 1);
-    append(builder, string(" world!"));
+    append(builder, string(" world"));
+    append(builder, '!');
 
     string result = to_string(builder);
     assert(result == "Hello, world!");

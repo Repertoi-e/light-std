@@ -157,14 +157,15 @@ Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T> const &other) {
 }
 
 template <typename T>
-inline Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T> &&other) {
+Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T> &&other) {
     *this = std::move(other);
 }
 
 template <typename T>
-inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> const &other) {
+Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> const &other) {
     if (Data) Delete(Data, _Reserved, Allocator);
 
+    Allocator = other.Allocator;
     _Reserved = other._Reserved;
     Count = other.Count;
 
@@ -175,7 +176,7 @@ inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> const &oth
 }
 
 template <typename T>
-inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> &&other) {
+Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> &&other) {
     if (this != &other) {
         if (Data) Delete(Data, _Reserved, Allocator);
 

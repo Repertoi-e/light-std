@@ -212,8 +212,8 @@ inline string to_string(string const &v, s32 width = 0) {
     s32 positiveWidth = width > 0 ? width : -width;
 
     const char *stringStart = v.Data;
-    size_t stringSize = v.CountBytes;
-    size_t len = length(v);
+    size_t stringSize = v.BytesUsed;
+    size_t len = v.Length;
 
     // If the width is 1 or 2, adding 3 dots exceeds it,
     // so we add as much as needed without exceeding it.
@@ -253,7 +253,7 @@ inline string to_string(string const &v, s32 width = 0) {
                 stringSize -= utf8codepointsize(eatCodePoint);
             }
         } else {
-            appendSpacesAfter = (s32) (width - len);
+            appendSpacesAfter = (s32)(width - len);
         }
     }
     append_pointer_and_size(builder, stringStart, stringSize);
@@ -295,54 +295,54 @@ inline std::tuple<s64, size_t> parse_number(const char *str) {
 // Print formatted string to String Builder
 template <typename... Args>
 inline void print_to_builder(String_Builder &builder, string const &format, Args &&... argsPack) {
-	if constexpr (sizeof...(argsPack) > 0) {
-		Array<string, sizeof...(argsPack)> args = { {to_string(std::forward<Args>(argsPack))...} };
+    if constexpr (sizeof...(argsPack) > 0) {
+        Array<string, sizeof...(argsPack)> args = {{to_string(std::forward<Args>(argsPack))...}};
 
-		size_t implicitArgIndex = 0;
-		size_t cursor = 0, printed = 0;
+        size_t implicitArgIndex = 0;
+        size_t cursor = 0, printed = 0;
 
-		while (cursor < length(format)) {
-			char32_t c = format[cursor];
-			if (c != '%') {
-				cursor++;
-				continue;
-			}
+        while (cursor < format.Length) {
+            char32_t c = format[cursor];
+            if (c != '%') {
+                cursor++;
+                continue;
+            }
 
-			append_pointer_and_size(builder, format.Data + printed, cursor - printed);
-			cursor++;  // Skip the %
+            append_pointer_and_size(builder, format.Data + printed, cursor - printed);
+            cursor++;  // Skip the %
 
-			char32_t next = format[cursor];
-			if (next == '%') {
-				// Double-percent means to actually output a percent.
-				append_cstring(builder, "%");
-				cursor++;
-				printed = cursor;
-				continue;
-			}
+            char32_t next = format[cursor];
+            if (next == '%') {
+                // Double-percent means to actually output a percent.
+                append_cstring(builder, "%");
+                cursor++;
+                printed = cursor;
+                continue;
+            }
 
-			size_t argIndex = 0;
-			if (!is_digit(next)) {
-				argIndex = implicitArgIndex;
-			} else {
-				auto[number, length] = parse_number(format.Data + cursor);
-				argIndex = number - 1;
-				cursor += length;
-			}
+            size_t argIndex = 0;
+            if (!is_digit(next)) {
+                argIndex = implicitArgIndex;
+            } else {
+                auto [number, length] = parse_number(format.Data + cursor);
+                argIndex = number - 1;
+                cursor += length;
+            }
 
-			if (argIndex < args.Count) {
-				append(builder, args[argIndex]);
-				implicitArgIndex = argIndex + 1;
-			} else {
-				append_cstring(builder, "{Invalid format argument}");
-			}
+            if (argIndex < args.Count) {
+                append(builder, args[argIndex]);
+                implicitArgIndex = argIndex + 1;
+            } else {
+                append_cstring(builder, "{Invalid format argument}");
+            }
 
-			printed = cursor;
-		}
+            printed = cursor;
+        }
 
-		append_pointer_and_size(builder, format.Data + printed, cursor - printed);
-	} else {
-		append(builder, format);
-	}
+        append_pointer_and_size(builder, format.Data + printed, cursor - printed);
+    } else {
+        append(builder, format);
+    }
 }
 
 // Format a string

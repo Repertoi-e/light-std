@@ -130,4 +130,4 @@ bool rename(Local_File_Path const &path, string const &name) {
 
 GU_END_NAMESPACE
 
-#endif // defined OS_LINUX || defined OS_MAC
+#endif  // defined OS_LINUX || defined OS_MAC

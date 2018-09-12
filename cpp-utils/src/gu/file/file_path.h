@@ -21,29 +21,29 @@ constexpr char OS_PATH_SEPARATOR = '/';
 
 // This function converts any \ characters in the path to /.
 inline void convert_to_forward_slashes(File_Path &path) {
-    for (size_t i = 0; i < length(path.Path); i++) {
+    for (size_t i = 0; i < path.Path.Length; i++) {
         if (path.Path[i] == '\\') {
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-			// path.Path[i] = '/';
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            // path.Path[i] = '/';
         }
     }
 }
 
 // True if the path has a trailing separator
 inline bool is_pointing_to_content(File_Path const &path) {
-    return path.Path[length(path.Path) - 1] == OS_PATH_SEPARATOR;
+    return path.Path[path.Path.Length - 1] == OS_PATH_SEPARATOR;
 }
 
 // Returns the drive letter on Windows, if the path is not

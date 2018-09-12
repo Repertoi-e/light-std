@@ -25,7 +25,7 @@ void *linux_allocator(Allocator_Mode mode, void *allocatorData, size_t size, voi
             } else {
                 result = mremap(oldMemory, oldSize, size, MREMAP_MAYMOVE);
             }
-			if (result == (void *) -1) return 0;
+            if (result == (void *) -1) return 0;
             return result;
         case Allocator_Mode::FREE:
             munmap(oldMemory, oldSize);
@@ -64,4 +64,4 @@ f64 get_wallclock_in_seconds() {
 
 GU_END_NAMESPACE
 
-#endif // defined OS_LINUX || defined OS_MAC
+#endif  // defined OS_LINUX || defined OS_MAC

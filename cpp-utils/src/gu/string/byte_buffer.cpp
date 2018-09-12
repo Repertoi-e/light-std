@@ -5,9 +5,9 @@ GU_BEGIN_NAMESPACE
 void release(Byte_Buffer &buffer) {
     if (buffer.Data) {
         Delete(buffer.Data, buffer._Reserved, buffer.Allocator);
-		buffer.Data = null;
-		buffer._Reserved = 0;
-		buffer.Used = 0;
+        buffer.Data = null;
+        buffer._Reserved = 0;
+        buffer.Used = 0;
     }
 }
 
@@ -32,22 +32,23 @@ Byte_Buffer &Byte_Buffer::operator=(Byte_Buffer const &other) {
     Data = New<byte>(_Reserved, Allocator);
     CopyElements(Data, other.Data, Used);
 
-	return *this;
+    return *this;
 }
 
 Byte_Buffer &Byte_Buffer::operator=(Byte_Buffer &&other) {
-	if (this != &other) {
-		if (Data) release(*this);
+    if (this != &other) {
+        if (Data) release(*this);
 
-		Data = other.Data;
-		Used = other.Used;
-		_Reserved = other._Reserved;
+        Data = other.Data;
+        Used = other.Used;
+        Allocator = other.Allocator;
+        _Reserved = other._Reserved;
 
-		other.Data = null;
-		other.Used = 0;
-		other._Reserved = 0;
-	}
-	return *this;
+        other.Data = null;
+        other.Used = 0;
+        other._Reserved = 0;
+    }
+    return *this;
 }
 
 void reserve(Byte_Buffer &buffer, size_t size) {

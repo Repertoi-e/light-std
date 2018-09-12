@@ -77,8 +77,8 @@ void release(Table<Key, Value> &table) {
         table.Keys = null;
         table.Values = null;
         table.Hashes = null;
-		table._Reserved = 0;
-		table.Count = 0;
+        table._Reserved = 0;
+        table.Count = 0;
     }
 }
 
@@ -114,6 +114,7 @@ Table<Key, Value> &Table<Key, Value>::operator=(Table<Key, Value> &&other) {
         release(*this);
 
         Count = other.Count;
+        Allocator = other.Allocator;
         _Reserved = other._Reserved;
         UnfoundValue = other.UnfoundValue;
 

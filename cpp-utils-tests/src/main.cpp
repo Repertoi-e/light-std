@@ -49,7 +49,7 @@ void run_tests() {
 
             print("%:\n", fileName);
             for (Test &test : *tests) {
-                size_t numberOfDots = 35 - length(test.Name);
+                size_t numberOfDots = 35 - test.Name.Length;
 
                 string dots;
                 reserve(dots, numberOfDots);
