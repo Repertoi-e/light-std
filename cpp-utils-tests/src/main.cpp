@@ -112,10 +112,12 @@ void run_tests() {
 int main() {
     temporary_storage_init(4_MiB);
 
-	// Any global variables that may need allocation and
-	// are used inside temporary allocator context need to
-	// get their allocator set to the context one since
-	// they don't get freed until the end of the program.
+	// These variables are used in run_tests, which uses another
+	// allocator than the one these use when getting freed at the 
+	// end of the program (which causes a crash because you can't
+	// mix and match allocator functions) so we override that by
+	// setting their internal allocator to the one that is used at
+	// the end of the program to free them (malloc).
 	g_CurrentTestFile.Allocator = CONTEXT_ALLOC;
 	g_CurrentTestFailedAsserts.Allocator = CONTEXT_ALLOC;
 	g_AllFailedAsserts.Allocator = CONTEXT_ALLOC;
