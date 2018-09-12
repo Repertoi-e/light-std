@@ -28,7 +28,7 @@ void reset(String_Builder &builder) {
 
 void append(String_Builder &builder, string const &str) { append_pointer_and_size(builder, str.Data, str.CountBytes); }
 void append_cstring(String_Builder &builder, const char *str) {
-    append_pointer_and_size(builder, str, cstyle_strlen(str) - 1);
+    append_pointer_and_size(builder, str, cstyle_strlen(str));
 }
 
 void append_pointer_and_size(String_Builder &builder, const char *str, size_t size) {

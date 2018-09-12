@@ -112,6 +112,14 @@ void run_tests() {
 int main() {
     temporary_storage_init(4_MiB);
 
+	// Any global variables that may need allocation and
+	// are used inside temporary allocator context need to
+	// get their allocator set to the context one since
+	// they don't get freed until the end of the program.
+	g_CurrentTestFile.Allocator = CONTEXT_ALLOC;
+	g_CurrentTestFailedAsserts.Allocator = CONTEXT_ALLOC;
+	g_AllFailedAsserts.Allocator = CONTEXT_ALLOC;
+
     auto tempContext = __context;
     tempContext.Allocator = TEMPORARY_ALLOC;
     {

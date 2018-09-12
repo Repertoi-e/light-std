@@ -11,13 +11,17 @@ GU_BEGIN_NAMESPACE
 struct Code_Point_Ref {
     char *Data;
 
-    Code_Point_Ref &operator=(char32_t other) {}
+    Code_Point_Ref &operator=(char32_t other) {
+		
+		
+		return *this;
+	}
 
-	b32 &operator==(char32_t other) {
+	b32 operator==(char32_t other) {
 		
 	}
 
-    b32 &operator!=(char32_t other) { return !(*this == other); }
+    b32 operator!=(char32_t other) { return !(*this == other); }
 };
 
 // UTF-8 string
@@ -70,9 +74,9 @@ struct string {
     string &operator=(string &&other);
 
     // Returns a reference to the the code point at that index
+	// so it can be accessed and modified
     const char32_t operator[](size_t index) const;
 };
-int REMOVE_ME_REMOVE_ME_REMOVE_ME_REMOVE_ME_REMOVE_ME_REMOVE_ME_REMOVE_ME = sizeof(string);
 
 // Retrieve the length of a standard cstyle string.
 // Doesn't care about encoding.
@@ -94,6 +98,12 @@ inline void clear_string(string &str) { str.CountBytes = 0; }
 // Reserve bytes in string
 void reserve(string &str, size_t size);
 
+// Sets the _index_'th code point of the string 
+void set(string &str, size_t index, char32_t codePoint);
+
+// Returns a pointer to the _index_th code point in the string.
+char *get_pointer_to_index(string &str, size_t index);
+
 // Check two strings for equality
 b32 equal(string const &str, string const &other);
 inline b32 operator==(string const &str, string const &other) { return equal(str, other); }
@@ -101,6 +111,9 @@ inline b32 operator!=(string const &str, string const &other) { return !(str == 
 
 // Append one string to another
 void append(string &str, string const &other);
+
+// Append a non encoded character to a string
+void append(string &str, char32_t codePoint);
 
 // Append a null terminated utf-8 c-style string to a string.
 // If the cstyle string is not a valid utf-8 string the
@@ -110,6 +123,7 @@ void append_cstring(string &str, const char *other);
 // Append _size_ bytes of string contained in _data_
 void append_pointer_and_size(string &str, const char *data, size_t size);
 
+
 inline string operator+(string str, string const &other) {
     append(str, other);
     return str;
@@ -118,6 +132,11 @@ inline string operator+(string str, string const &other) {
 inline string operator+(string str, const char *other) {
     append_cstring(str, other);
     return str;
+}
+
+inline string operator+(string str, char32_t codePoint) {
+	append(str, codePoint);
+	return str;
 }
 
 inline string &operator+=(string &str, string const &other) {
@@ -130,26 +149,47 @@ inline string &operator+=(string &str, const char *other) {
     return str;
 }
 
+inline string operator+=(string str, char32_t codePoint) {
+	append(str, codePoint);
+	return str;
+}
+
 // #TODO: More string utility functions
 // gbString gb_trim_string(gbString str, char const *cut_set);
 
 // These functions only work for ascii
-inline b32 is_digit(char x) { return x >= '0' && x <= '9'; }
+inline b32 is_digit(char32_t x) { return x >= '0' && x <= '9'; }
 // These functions only work for ascii
-inline b32 is_hexadecimal_digit(char x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
+inline b32 is_hexadecimal_digit(char32_t x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
 
 // These functions only work for ascii
-inline b32 is_space(char x) { return (x >= 9 && x <= 13) || x == 32; }
+inline b32 is_space(char32_t x) { return (x >= 9 && x <= 13) || x == 32; }
 // These functions only work for ascii
-inline b32 is_blank(char x) { return x == 9 || x == 32; }
+inline b32 is_blank(char32_t x) { return x == 9 || x == 32; }
 
 // These functions only work for ascii
-inline b32 is_alpha(char x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
+inline b32 is_alpha(char32_t x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
 // These functions only work for ascii
-inline b32 is_alphanumeric(char x) { return is_alpha(x) || is_digit(x); }
+inline b32 is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
 
 // These functions only work for ascii
-inline b32 is_print(int x) { return x > 31 && x != 127; }
+inline b32 is_print(char32_t x) { return x > 31 && x != 127; }
+
+//
+// Utility utf-8 functions:
+//
+
+// Returns the size in bytes of the code point that _str_ points to.
+// This function reads the first byte and returns that result.
+// Doesn't guarantee that an actual code point is there.
+size_t get_size_of_code_point(const char *str);
+
+// Returns the size that the code point would be if it were encoded.
+size_t get_size_of_code_point(char32_t codePoint);
+
+// Encodes code point at _str_, assumes there is enough space.
+void encode_code_point(char *str, char32_t codePoint);
+
 
 // This is a constexpr function for working with cstyle strings at compile time
 constexpr const char *find_cstring(const char *haystack, const char *needle) {

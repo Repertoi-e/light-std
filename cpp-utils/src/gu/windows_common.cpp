@@ -10,7 +10,7 @@
 
 GU_BEGIN_NAMESPACE
 
-void *linux_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
+void *windows_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
                       s32 options) {
     switch (mode) {
         case Allocator_Mode::ALLOCATE:
@@ -28,7 +28,7 @@ void *linux_allocator(Allocator_Mode mode, void *allocatorData, size_t size, voi
     return null;
 }
 
-Allocator_Func __default_allocator = linux_allocator;
+Allocator_Func __default_allocator = windows_allocator;
 
 void exit_program(int code) { _exit(code); }
 

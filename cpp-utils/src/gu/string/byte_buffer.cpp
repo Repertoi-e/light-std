@@ -16,7 +16,6 @@ Byte_Buffer::~Byte_Buffer() { release(*this); }
 Byte_Buffer::Byte_Buffer(Byte_Buffer const &other) {
     Used = other.Used;
     _Reserved = other._Reserved;
-    Allocator = other.Allocator;
 
     Data = New<byte>(_Reserved, Allocator);
     CopyElements(Data, other.Data, Used);
@@ -29,7 +28,6 @@ Byte_Buffer &Byte_Buffer::operator=(Byte_Buffer const &other) {
 
     Used = other.Used;
     _Reserved = other._Reserved;
-    Allocator = other.Allocator;
 
     Data = New<byte>(_Reserved, Allocator);
     CopyElements(Data, other.Data, Used);
@@ -44,7 +42,6 @@ Byte_Buffer &Byte_Buffer::operator=(Byte_Buffer &&other) {
 		Data = other.Data;
 		Used = other.Used;
 		_Reserved = other._Reserved;
-		Allocator = other.Allocator;
 
 		other.Data = null;
 		other.Used = 0;

@@ -311,7 +311,7 @@ inline void print_to_builder(String_Builder &builder, string const &format, Args
 			append_pointer_and_size(builder, format.Data + printed, cursor - printed);
 			cursor++;  // Skip the %
 
-			const char next = format[cursor];
+			char32_t next = format[cursor];
 			if (next == '%') {
 				// Double-percent means to actually output a percent.
 				append_cstring(builder, "%");

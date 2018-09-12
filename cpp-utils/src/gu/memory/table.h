@@ -48,7 +48,6 @@ template <typename Key, typename Value>
 Table<Key, Value>::Table(Table<Key, Value> const &other) {
     Count = other.Count;
     _Reserved = other._Reserved;
-    Allocator = other.Allocator;
     UnfoundValue = other.UnfoundValue;
 
     OccupancyMask = New<bool>(_Reserved, Allocator);
@@ -94,7 +93,6 @@ Table<Key, Value> &Table<Key, Value>::operator=(Table<Key, Value> const &other) 
 
     Count = other.Count;
     _Reserved = other._Reserved;
-    Allocator = other.Allocator;
     UnfoundValue = other.UnfoundValue;
 
     OccupancyMask = New<bool>(_Reserved, Allocator);
@@ -117,7 +115,6 @@ Table<Key, Value> &Table<Key, Value>::operator=(Table<Key, Value> &&other) {
 
         Count = other.Count;
         _Reserved = other._Reserved;
-        Allocator = other.Allocator;
         UnfoundValue = other.UnfoundValue;
 
         OccupancyMask = other.OccupancyMask;

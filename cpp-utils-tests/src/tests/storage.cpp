@@ -7,7 +7,21 @@
 
 #include <array>
 
-TEST(static_array) {
+struct Test_Struct_static_array {
+	Test_Struct_static_array() {
+		const char *file = get_file_path_relative_to_src_or_just_file_name(
+			"d:\\c++\\cpp-utils\\cpp-utils-tests\\src\\tests\\storage.cpp");
+		auto[testsArray, fileKeyFound] = find(g_TestTable, file);
+		if (!fileKeyFound) {
+			testsArray = New<Dynamic_Array<Test>>();
+			put(g_TestTable, file, testsArray);
+		}
+		add(*testsArray, { "static_array", &run });
+	}
+	static void run();
+};
+static Test_Struct_static_array g_TestStruct_static_array;
+void Test_Struct_static_array::run() {
     Array<s32, 5> ints = {0, 1, 2, 3, 4};
 
     for (s32 i = 0; i < ints.Count; i++) {

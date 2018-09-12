@@ -23,14 +23,27 @@ constexpr char OS_PATH_SEPARATOR = '/';
 inline void convert_to_forward_slashes(File_Path &path) {
     for (size_t i = 0; i < length(path.Path); i++) {
         if (path.Path[i] == '\\') {
-			path.Path[i] = '/';
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+			// path.Path[i] = '/';
         }
     }
 }
 
 // True if the path has a trailing separator
 inline bool is_pointing_to_content(File_Path const &path) {
-    return path.Path[path.Path.Size - 1] == OS_PATH_SEPARATOR;
+    return path.Path[length(path.Path) - 1] == OS_PATH_SEPARATOR;
 }
 
 // Returns the drive letter on Windows, if the path is not

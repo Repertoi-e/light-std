@@ -9,13 +9,13 @@ GU_BEGIN_NAMESPACE
 
 template <typename T>
 inline T *New(Allocator_Closure allocator = {0, 0}) {
-    if (!allocator.Function) allocator = CONTEXT_ALLOC;
+    if (!allocator) allocator = CONTEXT_ALLOC;
     return new (allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, sizeof(T), 0, 0, 0)) T;
 }
 
 template <typename T>
 inline T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
-    if (!allocator.Function) allocator = CONTEXT_ALLOC;
+    if (!allocator) allocator = CONTEXT_ALLOC;
 
     T *result = (T *) allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, count * sizeof(T), 0, 0, 0);
     for (size_t i = 0; i < count; i++) new (result + i) T;
@@ -24,7 +24,7 @@ inline T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
 
 template <typename T>
 inline void Delete(T *memory, Allocator_Closure allocator = {0, 0}) {
-    if (!allocator.Function) allocator = CONTEXT_ALLOC;
+    if (!allocator) allocator = CONTEXT_ALLOC;
 
     memory->~T();
     allocator.Function(Allocator_Mode::FREE, allocator.Data, 0, memory, sizeof(T), 0);
@@ -32,10 +32,22 @@ inline void Delete(T *memory, Allocator_Closure allocator = {0, 0}) {
 
 template <typename T>
 inline void Delete(T *memory, size_t count, Allocator_Closure allocator = {0, 0}) {
-    if (!allocator.Function) allocator = CONTEXT_ALLOC;
+    if (!allocator) allocator = CONTEXT_ALLOC;
 
     for (size_t i = 0; i < count; i++) (memory + i)->~T();
     allocator.Function(Allocator_Mode::FREE, allocator.Data, 0, memory, count * sizeof(T), 0);
+}
+
+// Generally used for arrays, _oldSize_ and _newSize_
+// are automatically multiplied by sizeof(T).
+template <typename T>
+inline T *Resize(T *memory, size_t oldSize, size_t newSize, Allocator_Closure allocator = {0, 0}) {
+    if (!allocator) allocator = CONTEXT_ALLOC;
+
+    oldSize *= sizeof(T);
+    newSize *= sizeof(T);
+
+    return (T *) allocator.Function(Allocator_Mode::RESIZE, allocator.Data, newSize, memory, oldSize, 0);
 }
 
 // Windows.h defines CopyMemory as memcpy, our version is compatible so it's safe to undefine it

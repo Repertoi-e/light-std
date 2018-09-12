@@ -149,7 +149,6 @@ void release(Dynamic_Array<T> &array) {
 
 template <typename T>
 Dynamic_Array<T>::Dynamic_Array(Dynamic_Array<T> const &other) {
-    Allocator = other.Allocator;
     _Reserved = other._Reserved;
     Count = other.Count;
 
@@ -166,7 +165,6 @@ template <typename T>
 inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> const &other) {
     if (Data) Delete(Data, _Reserved, Allocator);
 
-    Allocator = other.Allocator;
     _Reserved = other._Reserved;
     Count = other.Count;
 
@@ -181,7 +179,6 @@ inline Dynamic_Array<T> &Dynamic_Array<T>::operator=(Dynamic_Array<T> &&other) {
     if (this != &other) {
         if (Data) Delete(Data, _Reserved, Allocator);
 
-        Allocator = other.Allocator;
         Data = other.Data;
         _Reserved = other._Reserved;
         Count = other.Count;
