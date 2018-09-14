@@ -15,6 +15,10 @@ struct Code_Point_Ref;
 // * Usually structures in this library are named Like_This, but this
 // is an exception since I consider it as a fundamental data type.
 struct string {
+	// This is exactly like std::string::npos. It's used to represent
+	// an invalid index (like the result of find() for example)
+	static constexpr size_t NPOS = (size_t) -1;
+
     static constexpr size_t SMALL_STRING_BUFFER_SIZE = 8;
     // This implementation uses a small stack allocated buffer
     // for small strings instead of dynamically allocating memory.
@@ -58,8 +62,10 @@ struct string {
     string &operator=(string &&other);
 
     // Read-only [] operator
-    Code_Point_Ref operator[](size_t index);
-    const char32_t operator[](size_t index) const;
+    Code_Point_Ref operator[](s64 index);
+    const char32_t operator[](s64 index) const;
+
+	string operator()(s64 begin, s64 end) const;
 };
 
 struct Code_Point_Ref {
@@ -79,20 +85,39 @@ struct Code_Point_Ref {
 void release(string &str);
 
 // Clears all characters from the string
-// (Sets BytesUsed to 0)
-inline void clear_string(string &str) { str.BytesUsed = 0; }
+// (Sets BytesUsed and Length to 0)
+inline void clear(string &str) {
+    str.BytesUsed = 0;
+    str.Length = 0;
+}
 
 // Reserve bytes in string
 void reserve(string &str, size_t size);
 
 // Gets the _index_'th code point in the string
-char32_t get(string const &str, size_t index);
+// Allows negative reversed indexing which begins at
+// the end of the string, so -1 is the last character
+// -2 the one before that, etc. (Python-style)
+char32_t get(string const &str, s64 index);
 
 // Sets the _index_'th code point in the string
-void set(string &str, size_t index, char32_t codePoint);
+// Allows negative reversed indexing which begins at
+// the end of the string, so -1 is the last character
+// -2 the one before that, etc. (Python-style)
+void set(string &str, s64 index, char32_t codePoint);
+
+// Gets [begin, end) range of characters
+// Allows negative reversed indexing which begins at
+// the end of the string, so -1 is the last character
+// -2 the one before that, etc. (Python-style)
+// Note that the string returned is a view into _str_.
+//    It's not actually an allocated string, so it _str_ gets
+//    destroyed, then the returned string will be pointing to 
+//	  invalid memory. Copy the returned string to bypass that.
+string substring(string const &str, s64 begin, s64 end);
 
 // Returns a pointer to the _index_th code point in the string.
-char *get_pointer_to_index(string &str, size_t index);
+char *get_pointer_to_index(string const &str, s64 index);
 
 // Returns 0 if strings are equal, -1 if str is lexicographically < other,
 // and +1 if str is lexicographically > other.
@@ -150,8 +175,19 @@ inline string &operator+=(string &str, char32_t codePoint) {
     return str;
 }
 
-// #TODO: More string utility functions
-// gbString gb_trim_string(gbString str, char const *cut_set);
+//
+// String utility functions:
+//
+
+// Copy string and convert it in uppercase characters
+string to_upper(string str);
+
+// Copy string and convert it to lowercase characters
+string to_lower(string str);
+
+b32 begins_with(string const &str, string const &other);
+b32 ends_with(string const &str, string const &other);
+
 
 // These functions only work for ascii
 inline b32 is_digit(char32_t x) { return x >= '0' && x <= '9'; }
@@ -181,6 +217,12 @@ size_t cstyle_strlen(const char *str);
 //
 // Utility utf-8 functions:
 //
+
+// Convert code point to uppercase
+char32_t to_upper(char32_t codePoint);
+
+// Convert code point to lowercase
+char32_t to_lower(char32_t codePoint);
 
 // Returns the size in bytes of the code point that _str_ points to.
 // This function reads the first byte and returns that result.

@@ -23,31 +23,55 @@ TEST(code_point_size) {
     assert(mixed.BytesUsed == 12 + 9 + 6 + 3 && mixed.Length == 3 + 3 + 3 + 3);
 }
 
+TEST(substring) {
+    string a = "Hello, world!";
+    string b = substring(a, 2, 5);
+    assert(b == "llo");
+    b = substring(a, 7, a.Length);
+    assert(b == "world!");
+    b = substring(a, 0, -1);
+    assert(b == "Hello, world");
+    b = substring(a, -6, -1);
+    assert(b == "world");
+}
+
+TEST(substring_operator) {
+    string a = "Hello, world!";
+    string b = a(2, 5);
+    assert(b == "llo");
+    b = a(7, a.Length);
+    assert(b == "world!");
+    b = a(0, -1);
+    assert(b == "Hello, world");
+    b = a(-6, -1);
+    assert(b == "world");
+}
+
 TEST(string_modify_and_index) {
-	string sample = u8"aДc";
-	
-	string a = "aDc";
+    string sample = u8"a\u0431c";
+
+    string a = "aDc";
     set(a, 1, 'b');
     assert(a == "abc");
-    set(a, 1, U'Д');
+    set(a, 1, U'\u0431');
     assert(a == sample);
     set(a, 1, 'b');
     assert(a == "abc");
-	assert(get(a, 0) == 'a' && get(a, 1) == 'b' && get(a, 2) == 'c');
+    assert(get(a, 0) == 'a' && get(a, 1) == 'b' && get(a, 2) == 'c');
 
     a = "aDc";
-    a[1] = 'b';
+    a[-2] = 'b';
     assert(a == "abc");
-    a[1] =  U'Д';
+    a[1] = U'\u0431';
     assert(a == sample);
     a[1] = 'b';
     assert(a == "abc");
     assert(a[0] == 'a' && a[1] == 'b' && a[2] == 'c');
 
-	a[0] = U'\U0002070E';
-	a[1] = U'\U00020731';
-	a[2] = U'\U00020779';
-	assert(a == u8"\U0002070E\U00020731\U00020779");
+    a[-3] = U'\U0002070E';
+    a[-2] = U'\U00020731';
+    a[-1] = U'\U00020779';
+    assert(a == u8"\U0002070E\U00020731\U00020779");
 }
 
 TEST(string_concat) {

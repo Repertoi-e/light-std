@@ -3,14 +3,12 @@
 GU_BEGIN_NAMESPACE
 
 size_t cstyle_strlen(const char *str) {
-    size_t length = 0;
-    while ('\0' != str[length]) {
-        length++;
-    }
-    return length;
+	size_t length = 0;
+	while ('\0' != str[length]) {
+		length++;
+	}
+	return length;
 }
-
-string::string(const char *str) : string(str, str ? cstyle_strlen(str) : 0) {}
 
 string::string(const char *str, size_t size) {
     BytesUsed = size;
@@ -34,6 +32,8 @@ string::string(const char *str, size_t size) {
         Length++;
     }
 }
+
+string::string(const char *str) : string(str, str ? cstyle_strlen(str) : 0) {}
 
 string::string(string const &other) {
     BytesUsed = other.BytesUsed;
@@ -107,7 +107,7 @@ string &string::operator=(string &&other) {
 string::~string() { release(*this); }
 
 void release(string &str) {
-    if (str.Data != str._StackData && str.Data) {
+    if (str.Data != str._StackData && str.Data && str._Reserved) {
         Delete(str.Data, str._Reserved, str.Allocator);
         str.Data = null;
 
@@ -123,9 +123,11 @@ Code_Point_Ref &Code_Point_Ref::operator=(char32_t other) {
     return *this;
 }
 
-Code_Point_Ref string::operator[](size_t index) { return Code_Point_Ref(*this, get(*this, index), index); }
+Code_Point_Ref string::operator[](s64 index) { return Code_Point_Ref(*this, get(*this, index), index); }
 
-const char32_t string::operator[](size_t index) const { return get(*this, index); }
+const char32_t string::operator[](s64 index) const { return get(*this, index); }
+
+string string::operator()(s64 begin, s64 end) const { return substring(*this, begin, end); }
 
 void reserve(string &str, size_t size) {
     if (str.Data == str._StackData) {
@@ -146,16 +148,10 @@ void reserve(string &str, size_t size) {
     }
 }
 
-char32_t get(string const &str, size_t index) {
-    const char *s = str.Data;
-    for (size_t i = 0; i < index; i++) {
-        s += get_size_of_code_point(s);
-    }
-    return decode_code_point(s);
-}
+char32_t get(string const &str, s64 index) { return decode_code_point(get_pointer_to_index(str, index)); }
 
-void set(string &str, size_t index, char32_t codePoint) {
-    assert(index < str.Length);
+void set(string &str, s64 index, char32_t codePoint) {
+    assert(index < (s64) str.Length);
 
     char *target = get_pointer_to_index(str, index);
 
@@ -184,9 +180,44 @@ void set(string &str, size_t index, char32_t codePoint) {
     encode_code_point(target, codePoint);
 }
 
-char *get_pointer_to_index(string &str, size_t index) {
+// If negative, converts index to a positive number
+// depending on the _Length_ of the string.
+static size_t translate_index(string const &str, s64 index) {
+    if (index < 0) {
+        s64 actual = str.Length + index;
+        assert(actual >= 0);
+        return (size_t) actual;
+    }
+    return (size_t) index;
+}
+
+string substring(string const &str, s64 begin, s64 end) {
+    size_t beginIndex = translate_index(str, begin);
+    size_t endIndex = translate_index(str, end);
+
+	assert(beginIndex < str.Length);
+	assert(endIndex <= str.Length);
+
+    assert(endIndex > beginIndex);
+
+    char *beginPtr = str.Data;
+    for (size_t i = 0; i < beginIndex; i++) beginPtr += get_size_of_code_point(beginPtr);
+    char *endPtr = beginPtr;
+    for (size_t i = beginIndex; i < endIndex; i++) endPtr += get_size_of_code_point(endPtr);
+
+    string result;
+    result.Data = beginPtr;
+    result.BytesUsed = (uptr_t)(endPtr - beginPtr);
+    result.Length = endIndex - beginIndex;
+	return result;
+}
+
+char *get_pointer_to_index(string const &str, s64 index) {
+    size_t actualIndex = translate_index(str, index);
+	assert(actualIndex < str.Length);
+
     char *s = str.Data;
-    for (size_t i = 0; i < index; i++) s += get_size_of_code_point(s);
+    for (size_t i = 0; i < actualIndex; i++) s += get_size_of_code_point(s);
     return s;
 }
 
@@ -245,6 +276,157 @@ void append_pointer_and_size(string &str, const char *data, size_t size) {
         data += get_size_of_code_point(data);
         str.Length++;
     }
+}
+
+string to_upper(string str) {
+    for (size_t i = 0; i < str.Length; i++) {
+        str[i] = to_upper(str[i]);
+    }
+    return str;
+}
+
+string to_lower(string str) {
+    for (size_t i = 0; i < str.Length; i++) {
+        str[i] = to_lower(str[i]);
+    }
+    return str;
+}
+
+b32 begins_with(string const &str, string const &other) {
+    return CompareMemory(str.Data, other.Data, other.BytesUsed) == 0;
+}
+
+b32 ends_with(string const &str, string const &other) {
+    return CompareMemory(str.Data + str.BytesUsed - other.BytesUsed, other.Data, other.BytesUsed) == 0;
+}
+
+char32_t to_upper(char32_t cp) {
+    if (((0x0061 <= cp) && (0x007a >= cp)) || ((0x00e0 <= cp) && (0x00f6 >= cp)) ||
+        ((0x00f8 <= cp) && (0x00fe >= cp)) || ((0x03b1 <= cp) && (0x03c1 >= cp)) ||
+        ((0x03c3 <= cp) && (0x03cb >= cp))) {
+        return cp - 32;
+    }
+    if (((0x0100 <= cp) && (0x012f >= cp)) || ((0x0132 <= cp) && (0x0137 >= cp)) ||
+        ((0x014a <= cp) && (0x0177 >= cp)) || ((0x0182 <= cp) && (0x0185 >= cp)) ||
+        ((0x01a0 <= cp) && (0x01a5 >= cp)) || ((0x01de <= cp) && (0x01ef >= cp)) ||
+        ((0x01f8 <= cp) && (0x021f >= cp)) || ((0x0222 <= cp) && (0x0233 >= cp)) ||
+        ((0x0246 <= cp) && (0x024f >= cp)) || ((0x03d8 <= cp) && (0x03ef >= cp))) {
+        return cp & ~0x1;
+    }
+    if (((0x0139 <= cp) && (0x0148 >= cp)) || ((0x0179 <= cp) && (0x017e >= cp)) ||
+        ((0x01af <= cp) && (0x01b0 >= cp)) || ((0x01b3 <= cp) && (0x01b6 >= cp)) ||
+        ((0x01cd <= cp) && (0x01dc >= cp))) {
+        return (cp - 1) | 0x1;
+    }
+    if (cp == 0x00ff) return 0x0178;
+    if (cp == 0x0180) return 0x0243;
+    if (cp == 0x01dd) return 0x018e;
+    if (cp == 0x019a) return 0x023d;
+    if (cp == 0x019e) return 0x0220;
+    if (cp == 0x0292) return 0x01b7;
+    if (cp == 0x01c6) return 0x01c4;
+    if (cp == 0x01c9) return 0x01c7;
+    if (cp == 0x01cc) return 0x01ca;
+    if (cp == 0x01f3) return 0x01f1;
+    if (cp == 0x01bf) return 0x01f7;
+    if (cp == 0x0188) return 0x0187;
+    if (cp == 0x018c) return 0x018b;
+    if (cp == 0x0192) return 0x0191;
+    if (cp == 0x0199) return 0x0198;
+    if (cp == 0x01a8) return 0x01a7;
+    if (cp == 0x01ad) return 0x01ac;
+    if (cp == 0x01b0) return 0x01af;
+    if (cp == 0x01b9) return 0x01b8;
+    if (cp == 0x01bd) return 0x01bc;
+    if (cp == 0x01f5) return 0x01f4;
+    if (cp == 0x023c) return 0x023b;
+    if (cp == 0x0242) return 0x0241;
+    if (cp == 0x037b) return 0x03fd;
+    if (cp == 0x037c) return 0x03fe;
+    if (cp == 0x037d) return 0x03ff;
+    if (cp == 0x03f3) return 0x037f;
+    if (cp == 0x03ac) return 0x0386;
+    if (cp == 0x03ad) return 0x0388;
+    if (cp == 0x03ae) return 0x0389;
+    if (cp == 0x03af) return 0x038a;
+    if (cp == 0x03cc) return 0x038c;
+    if (cp == 0x03cd) return 0x038e;
+    if (cp == 0x03ce) return 0x038f;
+    if (cp == 0x0371) return 0x0370;
+    if (cp == 0x0373) return 0x0372;
+    if (cp == 0x0377) return 0x0376;
+    if (cp == 0x03d1) return 0x03f4;
+    if (cp == 0x03d7) return 0x03cf;
+    if (cp == 0x03f2) return 0x03f9;
+    if (cp == 0x03f8) return 0x03f7;
+    if (cp == 0x03fb) return 0x03fa;
+    // No upper case!
+    return cp;
+}
+
+char32_t to_lower(char32_t cp) {
+    if (((0x0041 <= cp) && (0x005a >= cp)) || ((0x00c0 <= cp) && (0x00d6 >= cp)) ||
+        ((0x00d8 <= cp) && (0x00de >= cp)) || ((0x0391 <= cp) && (0x03a1 >= cp)) ||
+        ((0x03a3 <= cp) && (0x03ab >= cp))) {
+        return cp + 32;
+    }
+    if (((0x0100 <= cp) && (0x012f >= cp)) || ((0x0132 <= cp) && (0x0137 >= cp)) ||
+        ((0x014a <= cp) && (0x0177 >= cp)) || ((0x0182 <= cp) && (0x0185 >= cp)) ||
+        ((0x01a0 <= cp) && (0x01a5 >= cp)) || ((0x01de <= cp) && (0x01ef >= cp)) ||
+        ((0x01f8 <= cp) && (0x021f >= cp)) || ((0x0222 <= cp) && (0x0233 >= cp)) ||
+        ((0x0246 <= cp) && (0x024f >= cp)) || ((0x03d8 <= cp) && (0x03ef >= cp))) {
+        return cp | 0x1;
+    }
+    if (((0x0139 <= cp) && (0x0148 >= cp)) || ((0x0179 <= cp) && (0x017e >= cp)) ||
+        ((0x01af <= cp) && (0x01b0 >= cp)) || ((0x01b3 <= cp) && (0x01b6 >= cp)) ||
+        ((0x01cd <= cp) && (0x01dc >= cp))) {
+        return (cp + 1) & ~0x1;
+    }
+    if (cp == 0x0178) return 0x00ff;
+    if (cp == 0x0178) return 0x00ff;
+    if (cp == 0x0243) return 0x0180;
+    if (cp == 0x018e) return 0x01dd;
+    if (cp == 0x023d) return 0x019a;
+    if (cp == 0x0220) return 0x019e;
+    if (cp == 0x01b7) return 0x0292;
+    if (cp == 0x01c4) return 0x01c6;
+    if (cp == 0x01c7) return 0x01c9;
+    if (cp == 0x01ca) return 0x01cc;
+    if (cp == 0x01f1) return 0x01f3;
+    if (cp == 0x01f7) return 0x01bf;
+    if (cp == 0x0187) return 0x0188;
+    if (cp == 0x018b) return 0x018c;
+    if (cp == 0x0191) return 0x0192;
+    if (cp == 0x0198) return 0x0199;
+    if (cp == 0x01a7) return 0x01a8;
+    if (cp == 0x01ac) return 0x01ad;
+    if (cp == 0x01af) return 0x01b0;
+    if (cp == 0x01b8) return 0x01b9;
+    if (cp == 0x01bc) return 0x01bd;
+    if (cp == 0x01f4) return 0x01f5;
+    if (cp == 0x023b) return 0x023c;
+    if (cp == 0x0241) return 0x0242;
+    if (cp == 0x03fd) return 0x037b;
+    if (cp == 0x03fe) return 0x037c;
+    if (cp == 0x03ff) return 0x037d;
+    if (cp == 0x037f) return 0x03f3;
+    if (cp == 0x0386) return 0x03ac;
+    if (cp == 0x0388) return 0x03ad;
+    if (cp == 0x0389) return 0x03ae;
+    if (cp == 0x038a) return 0x03af;
+    if (cp == 0x038c) return 0x03cc;
+    if (cp == 0x038e) return 0x03cd;
+    if (cp == 0x038f) return 0x03ce;
+    if (cp == 0x0370) return 0x0371;
+    if (cp == 0x0372) return 0x0373;
+    if (cp == 0x0376) return 0x0377;
+    if (cp == 0x03f4) return 0x03d1;
+    if (cp == 0x03cf) return 0x03d7;
+    if (cp == 0x03f9) return 0x03f2;
+    if (cp == 0x03f7) return 0x03f8;
+    if (cp == 0x03fa) return 0x03fb;
+    // No lower case!
+    return cp;
 }
 
 size_t get_size_of_code_point(const char *str) {

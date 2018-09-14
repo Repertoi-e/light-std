@@ -168,8 +168,8 @@ struct Base {
 template <typename T>
 inline typename std::enable_if_t<std::is_integral_v<T>, string> to_string(T v, Base base = Base(10),
                                                                           s32 minimumDigits = -1) {
-    assert(base.Radix >= 2 && "Invalid base");
-    assert(base.Radix <= 64 && "Invalid base");
+    assert(base.Radix >= 2);
+    assert(base.Radix <= 64);
 
     String_Builder builder;
 
@@ -311,22 +311,24 @@ inline void print_to_builder(String_Builder &builder, string const &format, Args
             append_pointer_and_size(builder, format.Data + printed, cursor - printed);
             cursor++;  // Skip the %
 
-            char32_t next = format[cursor];
-            if (next == '%') {
-                // Double-percent means to actually output a percent.
-                append_cstring(builder, "%");
-                cursor++;
-                printed = cursor;
-                continue;
+            size_t argIndex = -1;
+            if (cursor < format.Length) {
+                char32_t next = format[cursor];
+                if (next == '%') {
+                    // Double-percent means to actually output a percent.
+                    append_cstring(builder, "%");
+                    cursor++;
+                    printed = cursor;
+                    continue;
+                } else if (is_digit(next)) {
+                    auto [number, length] = parse_number(format.Data + cursor);
+                    argIndex = number - 1;
+                    cursor += length;
+                }
             }
 
-            size_t argIndex = 0;
-            if (!is_digit(next)) {
+            if (argIndex == (size_t) -1) {
                 argIndex = implicitArgIndex;
-            } else {
-                auto [number, length] = parse_number(format.Data + cursor);
-                argIndex = number - 1;
-                cursor += length;
             }
 
             if (argIndex < args.Count) {

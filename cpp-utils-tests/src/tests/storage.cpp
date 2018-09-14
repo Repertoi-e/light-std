@@ -7,21 +7,7 @@
 
 #include <array>
 
-struct Test_Struct_static_array {
-	Test_Struct_static_array() {
-		const char *file = get_file_path_relative_to_src_or_just_file_name(
-			"d:\\c++\\cpp-utils\\cpp-utils-tests\\src\\tests\\storage.cpp");
-		auto[testsArray, fileKeyFound] = find(g_TestTable, file);
-		if (!fileKeyFound) {
-			testsArray = New<Dynamic_Array<Test>>();
-			put(g_TestTable, file, testsArray);
-		}
-		add(*testsArray, { "static_array", &run });
-	}
-	static void run();
-};
-static Test_Struct_static_array g_TestStruct_static_array;
-void Test_Struct_static_array::run() {
+TEST(static_array) {
     Array<s32, 5> ints = {0, 1, 2, 3, 4};
 
     for (s32 i = 0; i < ints.Count; i++) {
@@ -44,55 +30,39 @@ TEST(dynamic_array) {
         assert(integers[i] == i);
     }
 
-    {
-        insert(integers, begin(integers) + 3, -3);
+    insert(integers, begin(integers) + 3, -3);
+    assert(integers == (Array<s32, 11>{0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9}));
 
-        Array<s32, 11> expected = {0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9};
-		assert(integers == expected);
-    }
-    {
-        remove(integers, begin(integers) + 4);
+    remove(integers, begin(integers) + 4);
+    assert(integers == (Array<s32, 10>{0, 1, 2, -3, 4, 5, 6, 7, 8, 9}));
 
-        Array<s32, 10> expected = {0, 1, 2, -3, 4, 5, 6, 7, 8, 9};
-		assert(integers == expected);
+    size_t count = integers.Count;
+    for (size_t i = 0; i < count; i++) {
+        pop(integers);
     }
-    {
-        size_t count = integers.Count;
-        for (size_t i = 0; i < count; i++) {
-            pop(integers);
-        }
+    assert(integers.Count == 0);
 
-        assert(integers.Count == 0);
+    for (s32 i = 0; i < 10; i++) {
+        add_front(integers, i);
     }
-    {
-        for (s32 i = 0; i < 10; i++) {
-            add_front(integers, i);
-        }
-        Array<s32, 10> expected = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
-		assert(integers == expected);
-    }
-    {
-        remove(integers, end(integers) - 1);
-        Array<s32, 9> expected = {9, 8, 7, 6, 5, 4, 3, 2, 1};
-		assert(integers == expected);
-    }
-    {
-        remove(integers, begin(integers));
-        Array<s32, 8> expected = {8, 7, 6, 5, 4, 3, 2, 1};
-		assert(integers == expected);
-    }
-    {
-        s32 findResult = find(integers, 9);
-        assert(findResult == -1);
-        findResult = find(integers, 8);
-        assert(findResult == 0);
-        findResult = find(integers, 1);
-        assert(findResult == 7);
-        findResult = find(integers, 3);
-        assert(findResult == 5);
-        findResult = find(integers, 5);
-        assert(findResult == 3);
-    }
+    assert(integers == (Array<s32, 10>{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}));
+
+    remove(integers, end(integers) - 1);
+    assert(integers == (Array<s32, 9>{9, 8, 7, 6, 5, 4, 3, 2, 1}));
+
+    remove(integers, begin(integers));
+    assert(integers == (Array<s32, 8>{8, 7, 6, 5, 4, 3, 2, 1}));
+
+    s32 findResult = find(integers, 9);
+    assert(findResult == -1);
+    findResult = find(integers, 8);
+    assert(findResult == 0);
+    findResult = find(integers, 1);
+    assert(findResult == 7);
+    findResult = find(integers, 3);
+    assert(findResult == 5);
+    findResult = find(integers, 5);
+    assert(findResult == 3);
 }
 
 TEST(table) {
@@ -121,20 +91,20 @@ TEST(table) {
 }
 
 TEST(table_copy) {
-	Table<string, int> table;
-	put(table, "1", 1);
-	put(table, "4", 4);
-	put(table, "9", 9);
+    Table<string, int> table;
+    put(table, "1", 1);
+    put(table, "4", 4);
+    put(table, "9", 9);
 
-	Table<string, int> tableCopy = table;
-	put(tableCopy, "11", 20);
+    Table<string, int> tableCopy = table;
+    put(tableCopy, "11", 20);
 
-	for (auto[key, value] : table) {
-		assert(key == to_string(value));
-	}
+    for (auto [key, value] : table) {
+        assert(key == to_string(value));
+    }
 
-	assert(table.Count == 3);
-	assert(tableCopy.Count == 4);
+    assert(table.Count == 3);
+    assert(tableCopy.Count == 4);
 }
 
 TEST(table_pointer_to_value) {

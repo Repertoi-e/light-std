@@ -47,6 +47,18 @@ void *FillMemory(void *dest, int value, size_t num) {
     }
     return dest;
 }
+
+s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num) {
+    for (; num--; ptr1++, ptr2++) {
+        byte u1 = *(byte *) s1;
+        byte u2 = *(byte *) s2;
+        if (u1 != u2) {
+            return (u1 - u2);
+        }
+    }
+	// Memory is the same
+    return 0;
+}
 #endif
 
 GU_END_NAMESPACE

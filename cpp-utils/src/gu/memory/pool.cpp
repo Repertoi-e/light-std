@@ -5,28 +5,28 @@ GU_BEGIN_NAMESPACE
 static void resize_blocks(Pool &pool, size_t blockSize) {
     pool.BlockSize = blockSize;
 
-    if (pool.CurrentMemblock) add(pool.ObsoletedMemblocks, pool.CurrentMemblock);
+    if (pool._CurrentMemblock) add(pool._ObsoletedMemblocks, pool._CurrentMemblock);
 
-    for (u8 *it : pool.UsedMemblocks) add(pool.ObsoletedMemblocks, it);
+    for (u8 *it : pool._UsedMemblocks) add(pool._ObsoletedMemblocks, it);
 
-    pool.CurrentMemblock = 0;
-    pool.UsedMemblocks.Count = 0;
+    pool._CurrentMemblock = 0;
+    pool._UsedMemblocks.Count = 0;
 }
 
 static void cycle_new_block(Pool &pool) {
-    if (pool.CurrentMemblock) add(pool.UsedMemblocks, pool.CurrentMemblock);
+    if (pool._CurrentMemblock) add(pool._UsedMemblocks, pool._CurrentMemblock);
 
     u8 *newBlock;
-    if (pool.UnusedMemblocks.Count) {
-        newBlock = *(end(pool.UnusedMemblocks) - 1);
-        pop(pool.UnusedMemblocks);
+    if (pool._UnusedMemblocks.Count) {
+        newBlock = *(end(pool._UnusedMemblocks) - 1);
+        pop(pool._UnusedMemblocks);
     } else {
         newBlock = New<u8>(pool.BlockSize, pool.BlockAllocator);
     }
 
-    pool.BytesLeft = pool.BlockSize;
-    pool.CurrentPosition = newBlock;
-    pool.CurrentMemblock = newBlock;
+    pool._BytesLeft = pool.BlockSize;
+    pool._CurrentPosition = newBlock;
+    pool._CurrentMemblock = newBlock;
 }
 
 static void ensure_memory_exists(Pool &pool, size_t size) {
@@ -44,29 +44,29 @@ void *get(Pool &pool, size_t size) {
     size_t extra = pool.Alignment - (size % pool.Alignment);
     size += extra;
 
-    if (pool.BytesLeft < size) ensure_memory_exists(pool, size);
+    if (pool._BytesLeft < size) ensure_memory_exists(pool, size);
 
-    void *ret = pool.CurrentPosition;
-    pool.CurrentPosition += size;
-    pool.BytesLeft -= size;
+    void *ret = pool._CurrentPosition;
+    pool._CurrentPosition += size;
+    pool._BytesLeft -= size;
     return ret;
 }
 
 void reset(Pool &pool) {
-    if (pool.CurrentMemblock) {
-        add(pool.UnusedMemblocks, pool.CurrentMemblock);
-        pool.CurrentMemblock = 0;
+    if (pool._CurrentMemblock) {
+        add(pool._UnusedMemblocks, pool._CurrentMemblock);
+        pool._CurrentMemblock = 0;
     }
 
-    for (u8 *it : pool.UsedMemblocks) {
-        add(pool.UnusedMemblocks, it);
+    for (u8 *it : pool._UsedMemblocks) {
+        add(pool._UnusedMemblocks, it);
     }
-    pool.UsedMemblocks.Count = 0;
+    pool._UsedMemblocks.Count = 0;
 
-    for (u8 *it : pool.ObsoletedMemblocks) {
+    for (u8 *it : pool._ObsoletedMemblocks) {
         Delete(it, pool.BlockAllocator);
     }
-    pool.ObsoletedMemblocks.Count = 0;
+    pool._ObsoletedMemblocks.Count = 0;
 
     cycle_new_block(pool);
 }
@@ -74,7 +74,7 @@ void reset(Pool &pool) {
 void release(Pool &pool) {
     reset(pool);
 
-    for (u8 *it : pool.UnusedMemblocks) {
+    for (u8 *it : pool._UnusedMemblocks) {
         Delete(it, pool.BlockAllocator);
     }
 }

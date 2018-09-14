@@ -15,8 +15,8 @@ struct String_Builder {
         Buffer *Next = null;
     };
 
-    Buffer BaseBuffer;
-    Buffer *CurrentBuffer = &BaseBuffer;
+    Buffer _BaseBuffer;
+    Buffer *CurrentBuffer = &_BaseBuffer;
 
     // The allocator used for allocating new buffers past the first one (which is stack allocated).
     // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
@@ -35,7 +35,7 @@ void append(String_Builder &builder, char32_t codePoint);
 void append_cstring(String_Builder &builder, const char *str);
 
 // Append _size_ bytes of string contained in _data_
-void append_pointer_and_size(String_Builder &builder, const char *str, size_t size);
+void append_pointer_and_size(String_Builder &builder, const char *data, size_t size);
 
 string to_string(String_Builder &builder);
 

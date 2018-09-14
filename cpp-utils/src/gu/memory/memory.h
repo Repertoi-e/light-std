@@ -70,17 +70,20 @@ inline T *Resize(T *memory, size_t oldSize, size_t newSize, Allocator_Closure al
 inline void *CopyMemory(void *dest, void const *src, size_t num) { return memcpy(dest, src, num); }
 inline void *MoveMemory(void *dest, void const *src, size_t num) { return memmove(dest, src, num); }
 inline void *FillMemory(void *dest, int value, size_t num) { return memset(dest, value, num); }
+inline s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num) { return memcmp(ptr1, ptr2, num); }
 
 #else
 // Defined in memory.cpp
 void *CopyMemory(void *dest, void const *src, size_t num);
 void *MoveMemory(void *dest, void const *src, size_t num);
 void *FillMemory(void *dest, int value, size_t num);
+s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num);
 extern "C" {
-// Defining intrinsic functions that the compiler may use to optimize even though we aren't linking with CRT :thunk:
+// Defining intrinsic functions that the compiler may use to optimize.
 inline void *memcpy(void *dest, void const *src, size_t num) { return CopyMemory(dest, src, num); }
 inline void *memmove(void *dest, void const *src, size_t num) { return MoveMemory(dest, src, num); }
 inline void *memset(void *dest, int value, size_t num) { return FillMemory(dest, value, num); }
+inline s32 memcmp(const void *ptr1, const void *ptr2, size_t num) { return CompareMemory(ptr1, ptr2, num); }
 }
 #endif
 
@@ -92,8 +95,21 @@ template <typename T>
 inline T *CopyElements(T *dest, T *src, size_t numberOfElements) {
     static_assert(!std::is_same_v<T, void>);
 
-    CopyMemory(dest, src, sizeof(T) * numberOfElements);
+	for (size_t i = 0; i < numberOfElements; i++) {
+		dest[i] = T(src[i]);
+	}
     return dest;
+}
+
+// Helper template function for moving contents of arrays of the same type
+template <typename T>
+inline T *MoveElements(T *dest, T *src, size_t numberOfElements) {
+	static_assert(!std::is_same_v<T, void>);
+
+	for (size_t i = 0; i < numberOfElements; i++) {
+		dest[i] = std::move(src[i]);
+	}
+	return dest;
 }
 
 GU_END_NAMESPACE

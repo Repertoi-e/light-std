@@ -8,13 +8,13 @@ struct Pool {
     size_t BlockSize = 65536;
     size_t Alignment = 8;
 
-    Dynamic_Array<u8 *> UnusedMemblocks;
-    Dynamic_Array<u8 *> UsedMemblocks;
-    Dynamic_Array<u8 *> ObsoletedMemblocks;
+    Dynamic_Array<u8 *> _UnusedMemblocks;
+    Dynamic_Array<u8 *> _UsedMemblocks;
+    Dynamic_Array<u8 *> _ObsoletedMemblocks;
 
-    u8 *CurrentMemblock = 0;
-    u8 *CurrentPosition = 0;
-    size_t BytesLeft = 0;
+    u8 *_CurrentMemblock = 0;
+    u8 *_CurrentPosition = 0;
+    size_t _BytesLeft = 0;
 
     // The allocator used for reserving the initial memory block
     // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.

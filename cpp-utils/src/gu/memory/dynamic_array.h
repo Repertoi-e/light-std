@@ -16,7 +16,7 @@ struct Dynamic_Array {
     // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
     Allocator_Closure Allocator;
 
-    Dynamic_Array() { Allocator = CONTEXT_ALLOC; }
+	Dynamic_Array() {}
     Dynamic_Array(Dynamic_Array const &other);
     Dynamic_Array(Dynamic_Array &&other);
     ~Dynamic_Array();
@@ -54,7 +54,7 @@ void reserve(Dynamic_Array<T> &array, size_t reserve) {
 
     T *newMemory = New<T>(reserve, array.Allocator);
 
-    CopyElements(newMemory, array.Data, array.Count);
+	MoveElements(newMemory, array.Data, array.Count);
     Delete(array.Data, array._Reserved, array.Allocator);
 
     array.Data = newMemory;
