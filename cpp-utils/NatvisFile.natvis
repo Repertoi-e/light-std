@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="string">
+    <DisplayString>{{ Data={(char *)Data,[BytesUsed]s8}, Length={Length}, BytesUsed={BytesUsed}, Small={Data==_StackData}}</DisplayString>
+    <Expand>
+      <Item Name="StackAllocated">Data==_StackData</Item>
+      <Item Name="_Reserved" Condition="Data!=_StackData">_Reserved</Item>
+      <Item Name="Data">(char *)Data,[BytesUsed]s8</Item>
+      <Item Name="_StackData">(char *)_StackData,[BytesUsed]s8</Item>
+      <Item Name="BytesUsed">BytesUsed</Item>
+      <Item Name="Length">Length</Item>
+      <Item Name="Allocator">Allocator</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

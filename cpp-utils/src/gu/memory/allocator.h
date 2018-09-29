@@ -11,15 +11,14 @@ enum class Allocator_Mode { ALLOCATE = 0, RESIZE, FREE, FREE_ALL };
 // block or freeing everything _allocatorData_ is a pointer to the allocator
 // that is being used _size_ is the size of the allocation _oldMemory_ is used
 // only when resizing _oldSize_ is the old size of memory block, used only when
-// resizing _options_ is reserved for user data
-typedef void *(*Allocator_Func)(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
-                                s32 options);
+// resizing and the last integer is reserved for user data.
+typedef void *(*Allocator_Func)(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32);
 
 struct Allocator_Closure {
     Allocator_Func Function = null;
     void *Data = null;
 
-    operator bool() const { return Function; }
+    operator bool() const { return Function != null; }
 };
 
 // The default allocator. Think of malloc, realloc, free

@@ -6,16 +6,13 @@
 
 // By default everything is outside namespace, but if that's a problem for the
 // user, provide a way to specify a namespace in which everything gets wrapped.
-#if !defined GU_BEGIN_NAMESPACE
+#if !defined GU_NAMESPACE_NAME
 #define GU_BEGIN_NAMESPACE
 #define GU_END_NAMESPACE
 #else
-#if !defined GU_END_NAMESPACE
-#warning GU_BEGIN_NAMESPACE defined, but GU_END_NAMESPACE is not
+#define GU_BEGIN_NAMESPACE namespace GU_NAMESPACE_NAME {
+#define GU_END_NAMESPACE }
 #endif
-#endif
-
-#define null nullptr
 
 #include <stddef.h>
 
@@ -36,16 +33,21 @@ using f64 = double;
 
 using b32 = s32;
 
+constexpr auto null = nullptr;
+
+
+constexpr s32 _X64 = 1;
+constexpr s32 _X86 = 2;
+
 // Determine x86 or x64 architecture
 #if defined _WIN64 || defined __x86_64__ || defined __ppc64__
-constexpr b32 PROCESSOR_x64 = true;
-constexpr b32 PROCESSOR_x86 = false;
+constexpr s32 PROCESSOR = _X64;
+#define PROCESSOR_X64
 
 using ptr_t = s64;
 using uptr_t = u64;
 #else
-constexpr b32 PROCESSOR_x64 = false;
-constexpr b32 PROCESSOR_x86 = true;
+constexpr s32 PROCESSOR = _X86;
 
 using ptr_t = s32;
 using uptr_t = u32;
@@ -53,39 +55,36 @@ using uptr_t = u32;
 
 #include <limits>
 
+constexpr s32 _MSVC = 1;
+constexpr s32 _CLANG = 2;
+constexpr s32 _GCC = 3;
+
 // Determine compiler, at the moment only MSVC, Clang or GCC are detected
 #if defined(__clang__)
-constexpr b32 COMPILER_MSVC = false;
-constexpr b32 COMPILER_CLANG = true;
-constexpr b32 COMPILER_GCC = false;
+constexpr s32 COMPILER = _CLANG;
 #define COMPILER_CLANG
 #elif defined(__GNUC__) || defined(__GNUG__)
-constexpr b32 COMPILER_MSVC = false;
-constexpr b32 COMPILER_CLANG = false constexpr b32 COMPILER_GCC = true;
+constexpr s32 COMPILER = _GCC;
 #define COMPILER_GCC
 #elif defined(_MSC_VER)
-constexpr b32 COMPILER_MSVC = true;
-constexpr b32 COMPILER_CLANG = false;
-constexpr b32 COMPILER_GCC = false;
+constexpr s32 COMPILER = _MSVC;
 #define COMPILER_MSVC
 #else
 #warning Compiler not detected
 #endif
 
+constexpr s32 _WINDOWS = 1;
+constexpr s32 _LINUX = 2;
+constexpr s32 _MAC = 3;
+
 #if defined __linux__
-constexpr b32 OS_LINUX = true;
-constexpr b32 OS_MAC = false;
-constexpr b32 OS_WINDOWS = false;
+constexpr s32 OS = _LINUX;
 #define OS_LINUX
 #elif defined __APPLE__
-constexpr b32 OS_LINUX = false;
-constexpr b32 OS_MAC = true;
-constexpr b32 OS_WINDOWS = false;
+constexpr s32 OS = _MAC;
 #define OS_MAC
 #elif defined _WIN32 || defined _WIN64
-constexpr b32 OS_LINUX = false;
-constexpr b32 OS_MAC = false;
-constexpr b32 OS_WINDOWS = true;
+constexpr s32 OS = _WINDOWS;
 #define OS_WINDOWS
 #endif
 
@@ -101,44 +100,18 @@ constexpr size_t array_count(const T (&)[n]) {
 }
 GU_END_NAMESPACE
 
-#if defined COMPILER_GCC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wno-literal-suffix"
-#elif defined COMPILER_CLANG
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wuser-defined-literals"
-#else
-#pragma warning(push)
-#pragma warning(disable : 4455)
-#endif
-
 // Convenience storage literal operators, allows for specifying sizes like this:
+//
 //    size_t mySize = 10MiB;
+//    mySize = 10GiB;
+//
 inline constexpr size_t operator"" _B(u64 i) {
     return (size_t)(i);  // For completeness
 }
 
 inline constexpr size_t operator"" _KiB(u64 i) { return (size_t)(i) << 10; }
-
 inline constexpr size_t operator"" _MiB(u64 i) { return (size_t)(i) << 20; }
-
 inline constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
-
-#if COMPILER_GCC
-#pragma GCC diagnostic pop
-#elif defined COMPILER_CLANG
-#pragma clang diagnostic pop
-#else
-#pragma warning(pop)
-#endif
-
-#undef assert
-
-#ifdef NDEBUG
-#define assert(condition) ((void) null)
-#else
-#define assert(condition) __context.AssertHandler(!(condition), __FILE__, __LINE__, #condition)
-#endif
 
 #if defined COMPILER_MSVC && defined GU_NO_CRT && !defined GU_FLTUSED_DEF
 #define GU_FLTUSED_DEF
@@ -167,18 +140,26 @@ template <class F>
 Deferrer<F> operator*(Defer_Dummy, F func) {
     return {func};
 }
-#define DEFER_(LINE) __game_utils_defer_lambda_##LINE
-#define DEFER(LINE) DEFER_(LINE)
-#define defer auto DEFER(__LINE__) = Defer_Dummy{} *[&]()
+#define DEFER_INTERNAL_(LINE) __game_utils_defer_lambda_##LINE
+#define DEFER_INTERNAL(LINE) DEFER_INTERNAL_(LINE)
+#define defer auto DEFER_INTERNAL(__LINE__) = Defer_Dummy{} *[&]()
+#endif
+
+#undef assert
+
+#ifdef NDEBUG
+#define assert(condition) ((void) null)
+#else
+#define assert(condition) __context.AssertHandler(!(condition), __FILE__, __LINE__, u8 ## #condition)
 #endif
 
 template <typename T>
-inline T const &Min(T const &a, T const &b) {
+inline const T &Min(const T &a, const T &b) {
     return (b < a) ? b : a;
 }
 
 template <typename T>
-inline T const &Max(T const &a, T const &b) {
+inline const T &Max(const T &a, const T &b) {
     return (a < b) ? b : a;
 }
 
@@ -197,6 +178,6 @@ extern void exit_program(int code);
 void default_assert_handler(bool failed, const char *file, int line, const char *failedCondition);
 
 struct string;
-void print_string_to_console(string const &str);
+void print_string_to_console(const string &str);
 
 GU_END_NAMESPACE

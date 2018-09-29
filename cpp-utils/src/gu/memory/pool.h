@@ -17,19 +17,29 @@ struct Pool {
     size_t _BytesLeft = 0;
 
     // The allocator used for reserving the initial memory block
-    // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
+	// This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure BlockAllocator;
+
+    Pool() {}
+    Pool(const Pool &other) = delete;
+    Pool(Pool &&other) = delete;
+    Pool &operator=(const Pool &other) = delete;
+    Pool &operator=(Pool &&other) = delete;
+
+    // Resets and frees the pool
+    void release();
+
+    // Resets the pool without releasing the allocated memory.
+    void reset();
+
+    // Gets _size_ bytes of memory from the pool.
+    // Handles running out of memory in the current block.
+    void *get(size_t size);
+
+    void _resize_blocks(size_t blockSize);
+    void _cycle_new_block();
+    void _ensure_memory_exists(size_t size);
 };
-
-// Gets _size_ bytes of memory from the pool.
-// Handles running out of memory in the current block.
-void *get(Pool &pool, size_t size);
-
-// Resets the pool without releasing the allocated memory.
-void reset(Pool &pool);
-
-// Resets and frees the pool
-void release(Pool &pool);
 
 // The allocator function that works with a pool.
 // As you can see, there is no "free" function defined above,

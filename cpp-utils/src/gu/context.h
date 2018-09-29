@@ -3,6 +3,8 @@
 #include "common.h"
 #include "memory/allocator.h"
 
+#include <functional>
+
 GU_BEGIN_NAMESPACE
 
 // Note that this function isn't meant for
@@ -16,7 +18,7 @@ GU_BEGIN_NAMESPACE
 // console to print the message.
 
 struct string;
-typedef void (*Log_Function)(string const &str);
+using Log_Function = std::function<void(const string &str)>;
 
 // A function that gets called when an assert in the program is called.
 // If you don't specify one in the context a default one is provided,
@@ -27,7 +29,7 @@ typedef void (*Log_Function)(string const &str);
 //
 //      assert(index < size && "Index out of bounds.");
 //
-typedef void (*Assert_Function)(bool failed, const char *file, int line, const char *message);
+using Assert_Function = std::function<void(bool failed, const char *file, int line, const char *message)>;
 
 // When allocating you should use the context's allocator
 // This makes it so when users call your functions, they

@@ -1,5 +1,4 @@
 ﻿#include <gu/memory/pool.h>
-#include <gu/memory/stack.h>
 #include <gu/memory/table.h>
 
 #include <gu/string/print.h>
@@ -10,7 +9,7 @@ TEST(code_point_size) {
     string ascii = "abc";
     assert(ascii.BytesUsed == 3 && ascii.Length == 3);
 
-    string cyrillic = u8"\u0410\u0431\u0432";
+    string cyrillic = u8"абв";
     assert(cyrillic.BytesUsed == 6 && cyrillic.Length == 3);
 
     string devanagari = u8"\u0904\u0905\u0906";
@@ -25,13 +24,13 @@ TEST(code_point_size) {
 
 TEST(substring) {
     string a = "Hello, world!";
-    string b = substring(a, 2, 5);
+    string b = a.substring(2, 5);
     assert(b == "llo");
-    b = substring(a, 7, a.Length);
+    b = a.substring(7, a.Length);
     assert(b == "world!");
-    b = substring(a, 0, -1);
+    b = a.substring(0, -1);
     assert(b == "Hello, world");
-    b = substring(a, -6, -1);
+    b = a.substring(-6, -1);
     assert(b == "world");
 }
 
@@ -47,23 +46,49 @@ TEST(substring_operator) {
     assert(b == "world");
 }
 
-TEST(string_modify_and_index) {
-    string sample = u8"a\u0431c";
+TEST(substring_mixed_sizes) {
+    string a = u8"Хеllo, уоrлd!";
+    string b = a.substring(2, 5);
+    assert(b == "llo");
+    b = a.substring(7, a.Length);
+    assert(b == u8"уоrлd!");
+    b = a.substring(0, -1);
+    assert(b == u8"Хеllo, уоrлd");
+    b = a.substring(-6, -1);
+    assert(b == u8"уоrлd");
+}
 
+TEST(utility_functions) {
+    string a = "\t\t    Hello, everyone!   \t\t   \n";
+    assert(a.trim_start() == "Hello, everyone!   \t\t   \n");
+    assert(a.trim_end() == "\t\t    Hello, everyone!");
+    assert(a.trim() == "Hello, everyone!");
+
+	string b = "Hello, world!";
+	assert(b.begins_with("Hello"));
+	assert(!b.begins_with("Xello"));
+	assert(!b.begins_with("Hellol"));
+
+	assert(b.ends_with("world!"));
+	assert(!b.ends_with("!world!"));
+	assert(!b.ends_with("world!!"));
+}
+
+TEST(modify_and_index) {
     string a = "aDc";
-    set(a, 1, 'b');
+    a.set(1, 'b');
     assert(a == "abc");
-    set(a, 1, U'\u0431');
-    assert(a == sample);
-    set(a, 1, 'b');
+    a.set(1, U'Д');
+    assert(a == u8"aДc");
+    a.set(1, 'b');
     assert(a == "abc");
-    assert(get(a, 0) == 'a' && get(a, 1) == 'b' && get(a, 2) == 'c');
+    assert(a.get(0) == 'a' && a.get(1) == 'b' && a.get(2) == 'c');
 
     a = "aDc";
     a[-2] = 'b';
     assert(a == "abc");
-    a[1] = U'\u0431';
-    assert(a == sample);
+    a[1] = U'Д';
+    assert(a == u8"aДc");
     a[1] = 'b';
     assert(a == "abc");
     assert(a[0] == 'a' && a[1] == 'b' && a[2] == 'c');
@@ -74,11 +99,42 @@ TEST(string_modify_and_index) {
     assert(a == u8"\U0002070E\U00020731\U00020779");
 }
 
-TEST(string_concat) {
+/*
+TEST(iterator) {
+	const string a = "Hello";
+	string result = "";
+	for (char32_t ch : a) {
+		result += ch;
+	}
+	assert(result == a);
+	result.clear();
+
+	string b = "Hello";
+	// In order to modify a character, use a Code_Point_Ref variable
+	// This will be same as writing "for (auto ch : b)", since b is non-const.
+	for (Code_Point_Ref ch : b) {
+		ch = to_lower(ch);
+	}
+	assert(b == "hello");
+
+	// You can also do this with the non-const b
+	// when you don't plan on modifying ch:
+	// for (char32_t ch : b) { .. }
+	// 
+	// But this doesn't work:
+	// for (char32_t &ch : b) { .. }
+
+	//for (Code_Point_Ref ch : b) {
+	//	ch = U'Д';
+	//}
+	assert(b == u8"ДДДДД");
+}*/
+
+TEST(concat) {
     {
         string result = "Hello";
-        append_pointer_and_size(result, ",THIS IS GARBAGE", 1);
-        append_cstring(result, " world!");
+		result.append_pointer_and_size(",THIS IS GARBAGE", 1);
+        result.append_cstring(" world!");
 
         assert(result == "Hello, world!");
     }
@@ -96,9 +152,9 @@ TEST(string_concat) {
         result += 'i';
         assert(result.BytesUsed == i + 1 && result.Length == i + 1);
     }
-    release(result);
+	result.release();
     for (s32 i = 0; i < 10; i++) {
-        result += u8"\u0434";
+        result += u8"Д";
         assert(result.BytesUsed == 2 * (i + 1) && result.Length == i + 1);
     }
 }
@@ -119,14 +175,9 @@ TEST(format_string) {
     assert(to_string("Hello, world!", 20) == "Hello, world!       ");
     assert(to_string("Hello, world!", 13) == "Hello, world!");
     assert(to_string("Hello, world!", 12) == "Hello, wo...");
-    assert(to_string("Hello, world!", 4) == "H...");
     assert(to_string("Hello, world!", 3) == "...");
     assert(to_string("Hello, world!", 2) == "..");
     assert(to_string("Hello, world!", 1) == ".");
-    assert(to_string("Hello, world!", -1) == ".");
-    assert(to_string("Hello, world!", -2) == "..");
-    assert(to_string("Hello, world!", -3) == "...");
-    assert(to_string("Hello, world!", -4) == "...!");
     assert(to_string("Hello, world!", -12) == "...o, world!");
     assert(to_string("Hello, world!", -13) == "Hello, world!");
     assert(to_string("Hello, world!", -20) == "       Hello, world!");

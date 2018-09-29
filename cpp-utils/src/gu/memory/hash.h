@@ -1,6 +1,20 @@
 #pragma once
 
-#include "../string/string.h"
+//
+// This header provides a way to hash basic types.
+// If you have a custom type you want to implement a hash for
+// (for example if you want to use it as a key in a Table)
+// implement like this:
+//
+// GU_BEGIN_NAMESPACE
+// template <>
+// struct Hash<my_type> {
+// 		static constexpr uptr_t get(...my_type... value) { return ...; }
+// }
+// GU_END_NAMESPACE
+//
+
+GU_BEGIN_NAMESPACE
 
 template <typename T>
 struct Hash {
@@ -70,9 +84,10 @@ struct Hash<f64> {
 };
 
 // Hash for strings
+#include "../string/string.h"
 template <>
 struct Hash<string> {
-    static constexpr uptr_t get(string const& str) {
+    static constexpr uptr_t get(const string& str) {
         uptr_t hash = 5381;
         for (size_t i = 0; i < str.Length; i++) {
             hash = ((hash << 5) + hash) + str[i];
@@ -80,3 +95,5 @@ struct Hash<string> {
         return hash;
     }
 };
+
+GU_END_NAMESPACE

@@ -10,15 +10,14 @@
 
 GU_BEGIN_NAMESPACE
 
-void *windows_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
-                        s32 options) {
+void *windows_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32) {
     switch (mode) {
         case Allocator_Mode::ALLOCATE:
             return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
         case Allocator_Mode::RESIZE:
             return HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, oldMemory, size);
         case Allocator_Mode::FREE:
-            assert(HeapFree(GetProcessHeap(), 0, oldMemory));
+            HeapFree(GetProcessHeap(), 0, oldMemory);
             return null;
         case Allocator_Mode::FREE_ALL:
             return null;
@@ -41,7 +40,7 @@ void default_assert_handler(bool failed, const char *file, int line, const char 
 
 static HANDLE g_StdOut = 0;
 
-void print_string_to_console(string const &str) {
+void print_string_to_console(const string &str) {
     if (!g_StdOut) {
         g_StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {

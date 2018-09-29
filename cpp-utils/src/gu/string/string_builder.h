@@ -19,7 +19,7 @@ struct String_Builder {
     Buffer *CurrentBuffer = &_BaseBuffer;
 
     // The allocator used for allocating new buffers past the first one (which is stack allocated).
-    // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
+	// This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure Allocator;
 
     ~String_Builder();

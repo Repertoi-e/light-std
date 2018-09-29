@@ -207,6 +207,8 @@ inline typename std::enable_if_t<std::is_same_v<T, bool>, string> to_string(T v)
 //           Hello, world!\0
 //      ^^^^^^^^^^^^^^^^^^
 inline string to_string(string const &v, s32 width = 0) {
+	if (width == 0) return v;
+
     String_Builder builder;
 
     s32 positiveWidth = width > 0 ? width : -width;
@@ -228,10 +230,7 @@ inline string to_string(string const &v, s32 width = 0) {
                 append_cstring(builder, ".");
             }
             while (positiveWidth - ellipsis != len--) {
-                s32 eatCodePoint;
-                utf8codepoint(stringStart, &eatCodePoint);
-
-                size_t codePointSize = utf8codepointsize(eatCodePoint);
+                size_t codePointSize = get_size_of_code_point(stringStart);
                 stringStart += codePointSize;
                 stringSize -= codePointSize;
             }
@@ -248,9 +247,9 @@ inline string to_string(string const &v, s32 width = 0) {
         if (len > width) {
             appendEllipsisAfter = ellipsis;
             while (width - ellipsis != len--) {
-                s32 eatCodePoint;
-                utf8codepoint(stringStart, &eatCodePoint);
-                stringSize -= utf8codepointsize(eatCodePoint);
+				const char *target = stringStart + stringSize - 1;
+				while (!get_size_of_code_point(target)) --target;
+                stringSize -= get_size_of_code_point(target);
             }
         } else {
             appendSpacesAfter = (s32)(width - len);

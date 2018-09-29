@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../memory/memory.h"
+#include "../memory/_alloc_wrapper.h"
 
 GU_BEGIN_NAMESPACE
 
@@ -11,7 +11,7 @@ struct Byte_Buffer {
     static const size_t MINIMUM_SIZE = 32;
 
     // The allocator used for expanding the buffer.
-    // If we pass a null allocator to a New/Delete wrapper it uses the context's one automatically.
+	// This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure Allocator;
 
     Byte_Buffer() {}

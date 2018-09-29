@@ -9,9 +9,14 @@ struct Array {
     T Data[size];
     static constexpr size_t Count = size;
 
+    constexpr T *begin() { return Data; }
+    constexpr T *end() { return Data + Count; }
+	constexpr const T *begin() const { return Data; }
+	constexpr const T *end() const { return Data + Count; }
+
     constexpr T &operator[](size_t index) { return Data[index]; }
 
-    constexpr bool operator==(Array const &other) {
+    constexpr bool operator==(const Array &other) {
         if (Count != other.Count) return false;
         for (size_t i = 0; i < Count; i++) {
             if (Data[i] != other.Data[i]) {
@@ -21,17 +26,7 @@ struct Array {
         return true;
     }
 
-    constexpr bool operator!=(Array const &other) { return !(*this == other); }
+    constexpr bool operator!=(const Array &other) { return !(*this == other); }
 };
-
-template <typename T, size_t size>
-inline constexpr T *begin(Array<T, size> &array) {
-    return array.Data;
-}
-
-template <typename T, size_t size>
-inline constexpr T *end(Array<T, size> &array) {
-    return array.Data + array.Count;
-}
 
 GU_END_NAMESPACE

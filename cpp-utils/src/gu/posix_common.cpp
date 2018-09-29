@@ -13,8 +13,7 @@
 
 GU_BEGIN_NAMESPACE
 
-void *linux_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
-                      s32 options) {
+void *linux_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32) {
     switch (mode) {
         case Allocator_Mode::ALLOCATE:
             [[fallthrough]];
@@ -49,7 +48,7 @@ void default_assert_handler(bool failed, const char *file, int line, const char 
     }
 }
 
-void print_string_to_console(string const &str) { write(STDOUT_FILENO, str.Data, str.Size); }
+void print_string_to_console(const string &str) { write(STDOUT_FILENO, str.Data, str.Size); }
 
 void wait_for_input(b32 message) {
     if (message) print("Press ENTER to continue...\n");

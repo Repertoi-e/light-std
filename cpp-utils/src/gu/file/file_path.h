@@ -55,7 +55,7 @@ inline string get_drive_letter(File_Path const &path) {
 
     if (pathStr - pos == 1) {
         string result;
-        append_pointer_and_size(result, pathStr, pathStr - pos + 1);
+		result.append_pointer_and_size(pathStr, pathStr - pos + 1);
         return result;
     }
     return "";

@@ -51,7 +51,7 @@ void append_pointer_and_size(String_Builder &builder, const char *data, size_t s
 
         // If the entire string doesn't fit inside the available space,
         // allocate the next buffer and continue appending.
-        String_Builder::Buffer *buffer = New<String_Builder::Buffer>(builder.Allocator);
+        String_Builder::Buffer *buffer = New_And_Set_Allocator<String_Builder::Buffer>(builder.Allocator);
 
         builder.CurrentBuffer->Next = buffer;
         builder.CurrentBuffer = buffer;
@@ -65,7 +65,7 @@ string to_string(String_Builder &builder) {
 
     String_Builder::Buffer *buffer = &builder._BaseBuffer;
     while (buffer) {
-        append_pointer_and_size(result, buffer->Data, buffer->Occupied);
+		result.append_pointer_and_size(buffer->Data, buffer->Occupied);
         buffer = buffer->Next;
     }
     return result;

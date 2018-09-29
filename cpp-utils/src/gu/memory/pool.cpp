@@ -2,93 +2,92 @@
 
 GU_BEGIN_NAMESPACE
 
-static void resize_blocks(Pool &pool, size_t blockSize) {
-    pool.BlockSize = blockSize;
+void Pool::_resize_blocks(size_t blockSize) {
+    BlockSize = blockSize;
 
-    if (pool._CurrentMemblock) add(pool._ObsoletedMemblocks, pool._CurrentMemblock);
+    if (_CurrentMemblock) _ObsoletedMemblocks.add(_CurrentMemblock);
 
-    for (u8 *it : pool._UsedMemblocks) add(pool._ObsoletedMemblocks, it);
+    for (u8 *it : _UsedMemblocks) _ObsoletedMemblocks.add(it);
 
-    pool._CurrentMemblock = 0;
-    pool._UsedMemblocks.Count = 0;
+    _CurrentMemblock = 0;
+    _UsedMemblocks.Count = 0;
 }
 
-static void cycle_new_block(Pool &pool) {
-    if (pool._CurrentMemblock) add(pool._UsedMemblocks, pool._CurrentMemblock);
+void Pool::_cycle_new_block() {
+    if (_CurrentMemblock) _UsedMemblocks.add(_CurrentMemblock);
 
     u8 *newBlock;
-    if (pool._UnusedMemblocks.Count) {
-        newBlock = *(end(pool._UnusedMemblocks) - 1);
-        pop(pool._UnusedMemblocks);
+    if (_UnusedMemblocks.Count) {
+        newBlock = *(_UnusedMemblocks.end() - 1);
+        _UnusedMemblocks.pop();
     } else {
-        newBlock = New<u8>(pool.BlockSize, pool.BlockAllocator);
+        newBlock = New_And_Set_Allocator<u8>(BlockSize, BlockAllocator);
     }
 
-    pool._BytesLeft = pool.BlockSize;
-    pool._CurrentPosition = newBlock;
-    pool._CurrentMemblock = newBlock;
+    _BytesLeft = BlockSize;
+    _CurrentPosition = newBlock;
+    _CurrentMemblock = newBlock;
 }
 
-static void ensure_memory_exists(Pool &pool, size_t size) {
-    size_t bs = pool.BlockSize;
+void Pool::_ensure_memory_exists(size_t size) {
+    size_t bs = BlockSize;
 
     while (bs < size) {
         bs *= 2;
     }
 
-    if (bs > pool.BlockSize) resize_blocks(pool, bs);
-    cycle_new_block(pool);
+    if (bs > BlockSize) _resize_blocks(bs);
+    _cycle_new_block();
 }
 
-void *get(Pool &pool, size_t size) {
-    size_t extra = pool.Alignment - (size % pool.Alignment);
+void Pool::reset() {
+    if (_CurrentMemblock) {
+        _UnusedMemblocks.add(_CurrentMemblock);
+        _CurrentMemblock = 0;
+    }
+
+    for (u8 *it : _UsedMemblocks) {
+        _UnusedMemblocks.add(it);
+    }
+    _UsedMemblocks.Count = 0;
+
+    for (u8 *it : _ObsoletedMemblocks) {
+        Delete(it, BlockAllocator);
+    }
+    _ObsoletedMemblocks.Count = 0;
+
+    _cycle_new_block();
+}
+
+void Pool::release() {
+    reset();
+
+    for (u8 *it : _UnusedMemblocks) {
+        Delete(it, BlockAllocator);
+    }
+}
+
+void *Pool::get(size_t size) {
+    size_t extra = Alignment - (size % Alignment);
     size += extra;
 
-    if (pool._BytesLeft < size) ensure_memory_exists(pool, size);
+    if (_BytesLeft < size) _ensure_memory_exists(size);
 
-    void *ret = pool._CurrentPosition;
-    pool._CurrentPosition += size;
-    pool._BytesLeft -= size;
+    void *ret = _CurrentPosition;
+    _CurrentPosition += size;
+    _BytesLeft -= size;
     return ret;
 }
 
-void reset(Pool &pool) {
-    if (pool._CurrentMemblock) {
-        add(pool._UnusedMemblocks, pool._CurrentMemblock);
-        pool._CurrentMemblock = 0;
-    }
-
-    for (u8 *it : pool._UsedMemblocks) {
-        add(pool._UnusedMemblocks, it);
-    }
-    pool._UsedMemblocks.Count = 0;
-
-    for (u8 *it : pool._ObsoletedMemblocks) {
-        Delete(it, pool.BlockAllocator);
-    }
-    pool._ObsoletedMemblocks.Count = 0;
-
-    cycle_new_block(pool);
-}
-
-void release(Pool &pool) {
-    reset(pool);
-
-    for (u8 *it : pool._UnusedMemblocks) {
-        Delete(it, pool.BlockAllocator);
-    }
-}
-
-void *__pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
-                       s32 options) {
-    Pool &pool = *((Pool *) allocatorData);
+void *__pool_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32 options) {
+    Pool *pool = (Pool *) data;
 
     switch (mode) {
         case Allocator_Mode::ALLOCATE:
-            return get(pool, size);
+            return pool->get(size);
         case Allocator_Mode::RESIZE: {
             // Don't bother with resizing, get a new block and copy the memory to it.
-            void *newMemory = get(pool, size);
+            void *newMemory = pool->get(size);
             CopyMemory(oldMemory, newMemory, oldSize);
             return newMemory;
         }
@@ -96,7 +95,7 @@ void *__pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, vo
             // This allocator only supports FREE_ALL
             return 0;
         case Allocator_Mode::FREE_ALL:
-            reset(pool);
+            pool->reset();
             return 0;
     }
     return 0;

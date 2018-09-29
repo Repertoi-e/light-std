@@ -18,12 +18,19 @@ GU_BEGIN_NAMESPACE
 struct Temporary_Storage {
     void *Data = 0;
     size_t Size = 0, Occupied = 0, HighestUsed = 0;
+
+    Temporary_Storage() {}
+    Temporary_Storage(const Temporary_Storage &other) = delete;
+    Temporary_Storage(Temporary_Storage &&other) = delete;
+    Temporary_Storage &operator=(const Temporary_Storage &other) = delete;
+    Temporary_Storage &operator=(Temporary_Storage &&other) = delete;
+    ~Temporary_Storage() { Delete((byte *) Data, Size, MALLOC); }
 };
 
 inline Temporary_Storage *__temporary_allocator_data;
 
 template <typename... Args>
-void print(string const &format, Args &&... argsPack);
+void print(const string &format, Args &&... argsPack);
 
 inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory,
                                    size_t oldSize, s32 options) {
@@ -38,8 +45,8 @@ inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, siz
 
                 if (__context.Allocator.Function == __temporary_allocator ||
                     __context.Allocator.Data == __temporary_allocator_data) {
-                    switched = true;
                     __context.Allocator = MALLOC;
+                    switched = true;
                 }
                 __temporary_allocator_data = 0;
 
