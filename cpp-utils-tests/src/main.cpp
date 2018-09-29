@@ -15,14 +15,14 @@ void run_tests() {
     // Copy the current context
     auto testContext = __context;
 
-	string currentTestFile;
-	u32 totalAssertsCount = 0, totalFailedAssertsCount = 0;
-	Dynamic_Array<string> currentTestFailedAsserts, allFailedAsserts;
+    string currentTestFile;
+    u32 totalAssertsCount = 0, totalFailedAssertsCount = 0;
+    Dynamic_Array<string> currentTestFailedAsserts, allFailedAsserts;
 
     // Add our own assert handler so we can save some stats and logs
-	testContext.AssertHandler = [&](bool failed, const char *file, int line, const char *failedCondition) {
+    testContext.AssertHandler = [&](bool failed, const char *file, int line, const char *failedCondition) {
         string shortFileName = get_file_path_relative_to_src_or_just_file_name(file);
-	
+
         // Avoid counting assert calls from other sources (like print.h, etc.)
         if (currentTestFile == shortFileName) {
             if (failed) {
@@ -34,9 +34,7 @@ void run_tests() {
             default_assert_handler(failed, file, line, failedCondition);
         }
     };
-    {
-        PUSH_CONTEXT(testContext);
-
+    PUSH_CONTEXT(testContext) {
         print("\n");
 
         for (auto [fileName, tests] : g_TestTable) {
@@ -97,9 +95,9 @@ void run_tests() {
         print("[Test Suite] Failed asserts:\n");
         String_Builder failedAssertsLog;
         for (string &fail : allFailedAsserts) {
-            append_cstring(failedAssertsLog, "        >>> \033[38;5;160mFAILED:\033[38;5;246m ");
-            append(failedAssertsLog, fail);
-            append_cstring(failedAssertsLog, "\033[0m\n");
+			failedAssertsLog.append_cstring("        >>> \033[38;5;160mFAILED:\033[38;5;246m ");
+			failedAssertsLog.append(fail);
+			failedAssertsLog.append_cstring("\033[0m\n");
         }
         print(to_string(failedAssertsLog));
     }
@@ -111,10 +109,8 @@ int main() {
 
     auto tempContext = __context;
     tempContext.Allocator = TEMPORARY_ALLOC;
-    {
-        PUSH_CONTEXT(tempContext);
+    PUSH_CONTEXT(tempContext) {
         TEMPORARY_STORAGE_MARK_SCOPE;
-		run_tests();
-	}
-    run_tests();
+        run_tests();
+    }
 }

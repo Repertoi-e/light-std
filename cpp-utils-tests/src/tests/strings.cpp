@@ -161,10 +161,10 @@ TEST(concat) {
 
 TEST(string_builder) {
     String_Builder builder;
-    append_cstring(builder, "Hello");
-    append_pointer_and_size(builder, ",THIS IS GARBAGE", 1);
-    append(builder, string(" world"));
-    append(builder, '!');
+	builder.append_cstring("Hello");
+    builder.append_pointer_and_size(",THIS IS GARBAGE", 1);
+    builder.append(string(" world"));
+    builder.append('!');
 
     string result = to_string(builder);
     assert(result == "Hello, world!");

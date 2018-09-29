@@ -38,7 +38,7 @@ inline void print_u64_with_format_to_builder(String_Builder &builder, u64 v, u64
 
     assert(p >= output);
 
-    append_pointer_and_size(builder, p, end - p);
+	builder.append_pointer_and_size(p, end - p);
 }
 
 inline const f64 g_PowersOf10[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
@@ -63,7 +63,7 @@ inline void print_f64_with_format_to_builder(String_Builder &builder, f64 value,
     // If input is larger than 0x7FFFFFFF, fail
     // TODO: We need to do exponential here
     if (value > 0x7FFFFFFF) {
-        append_cstring(builder, "{Float too big}");
+		builder.append_cstring("{Float too big}");
         return;
     }
 
@@ -136,10 +136,10 @@ inline void print_f64_with_format_to_builder(String_Builder &builder, f64 value,
     // Pad spaces up to given width
     // TODO: More formatting options
     for (size_t i = end - p; i < width; i++) {
-        append_pointer_and_size(builder, " ", 1);
+		builder.append_pointer_and_size(" ", 1);
     }
 
-    append_pointer_and_size(builder, p, end - p);
+	builder.append_pointer_and_size(p, end - p);
 }
 }  // namespace private_print
 
@@ -176,7 +176,7 @@ inline typename std::enable_if_t<std::is_integral_v<T>, string> to_string(T v, B
     u64 value = v;
     if constexpr (std::is_signed_v<T>) {
         if (v < 0) {
-            append_cstring(builder, "-");
+			builder.append_cstring("-");
             value = (u64)(-v);
         } else {
             value = (u64) v;
@@ -227,7 +227,7 @@ inline string to_string(string const &v, s32 width = 0) {
     if (width < 0) {
         if (len > positiveWidth) {
             for (s32 i = 0; i < ellipsis; i++) {
-                append_cstring(builder, ".");
+				builder.append_cstring(".");
             }
             while (positiveWidth - ellipsis != len--) {
                 size_t codePointSize = get_size_of_code_point(stringStart);
@@ -237,7 +237,7 @@ inline string to_string(string const &v, s32 width = 0) {
         } else {
             // Add needed spaces
             while (positiveWidth != len++) {
-                append_cstring(builder, " ");
+				builder.append_cstring(" ");
             }
         }
     }
@@ -255,12 +255,12 @@ inline string to_string(string const &v, s32 width = 0) {
             appendSpacesAfter = (s32)(width - len);
         }
     }
-    append_pointer_and_size(builder, stringStart, stringSize);
+	builder.append_pointer_and_size(stringStart, stringSize);
     while (appendEllipsisAfter--) {
-        append_cstring(builder, ".");
+		builder.append_cstring(".");
     }
     while (appendSpacesAfter--) {
-        append_cstring(builder, " ");
+		builder.append_cstring(" ");
     }
 
     return to_string(builder);
@@ -307,7 +307,7 @@ inline void print_to_builder(String_Builder &builder, string const &format, Args
                 continue;
             }
 
-            append_pointer_and_size(builder, format.Data + printed, cursor - printed);
+			builder.append_pointer_and_size(format.Data + printed, cursor - printed);
             cursor++;  // Skip the %
 
             size_t argIndex = -1;
@@ -315,7 +315,7 @@ inline void print_to_builder(String_Builder &builder, string const &format, Args
                 char32_t next = format[cursor];
                 if (next == '%') {
                     // Double-percent means to actually output a percent.
-                    append_cstring(builder, "%");
+					builder.append_cstring("%");
                     cursor++;
                     printed = cursor;
                     continue;
@@ -331,18 +331,18 @@ inline void print_to_builder(String_Builder &builder, string const &format, Args
             }
 
             if (argIndex < args.Count) {
-                append(builder, args[argIndex]);
+				builder.append(args[argIndex]);
                 implicitArgIndex = argIndex + 1;
             } else {
-                append_cstring(builder, "{Invalid format argument}");
+				builder.append_cstring("{Invalid format argument}");
             }
 
             printed = cursor;
         }
 
-        append_pointer_and_size(builder, format.Data + printed, cursor - printed);
+		builder.append_pointer_and_size(format.Data + printed, cursor - printed);
     } else {
-        append(builder, format);
+		builder.append(format);
     }
 }
 

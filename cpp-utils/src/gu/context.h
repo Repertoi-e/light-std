@@ -52,15 +52,21 @@ inline Implicit_Context __context;
 #define OLD_CONTEXT_VAR_GEN(LINE) OLD_CONTEXT_VAR_GEN_(LINE)
 
 // This is a helper macro to safely modify the implicit context in a block of code.
-// Uses defer to restore the old context which is stored as a pointer in a local variable.
-// The old context is restored whenever the program exits the current block of code.
-// (Returns in functions also count!)
-// Don't pass a pointer to as parameter.
+// Uses _defer_ to restore the old context.
+// Don't pass a pointer to as parameter!
 #define PUSH_CONTEXT(newContext)                                \
     Implicit_Context OLD_CONTEXT_VAR_GEN(__LINE__) = __context; \
-    __context = newContext;                                     \
-    defer { __context = OLD_CONTEXT_VAR_GEN(__LINE__); }
+    if (true) {                                                 \
+        __context = newContext;                                 \
+        goto body;                                              \
+    } else                                                      \
+        while (true)                                            \
+            if (true) {                                         \
+                __context = OLD_CONTEXT_VAR_GEN(__LINE__);      \
+                break;                                          \
+            } else                                              \
+            body:
 
-#define CONTEXT_ALLOC __context.Allocator  //__context ? __context.Allocator : MALLOC
+#define CONTEXT_ALLOC __context.Allocator 
 
 GU_END_NAMESPACE
