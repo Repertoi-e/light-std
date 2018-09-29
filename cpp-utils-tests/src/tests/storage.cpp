@@ -80,10 +80,7 @@ TEST(table) {
     table.put("9", 9);
 
     for (auto [key, value] : table) {
-		if (key != to_string(value)) {
-			int a = 2;
-		}
-        //assert();
+        assert(key == to_string(value));
     }
 
     Table<string, int> emptyTable;
@@ -113,23 +110,21 @@ TEST(table_copy) {
 TEST(table_pointer_to_value) {
     Table<string, Dynamic_Array<int> *> table;
 
-	// FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-    //Dynamic_Array<int> array;
-    //array.add(0);
-    //array.add(1);
-    //array.add(2);
-	//
-    //table.put("1", &array);
-	//
-    //{
-    //    auto [found, wasFound] = table.find("1");
-    //    assert(wasFound);
-	//	found->add(3);
-	//	found->add(4);
-    //}
-    //{
-    //    auto [found, wasFound] = table.find("1");
-    //    assert(wasFound);
-    //    assert(found->Count == 5);
-    //}
+    Dynamic_Array<int> array;
+    array.add(0);
+    array.add(1);
+    array.add(2);
+	
+    table.put("1", &array);
+    {
+        auto [found, wasFound] = table.find("1");
+        assert(wasFound);
+		found->add(3);
+		found->add(4);
+    }
+    {
+        auto [found, wasFound] = table.find("1");
+        assert(wasFound);
+        assert(found->Count == 5);
+    }
 }
