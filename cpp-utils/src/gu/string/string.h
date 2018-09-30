@@ -163,11 +163,26 @@ struct string {
         return *this;
     }
 
+	string operator*(size_t n) {
+		string result = *this;
+		result.repeat(n);
+		return result;
+	}
+
+	string &operator*=(size_t n) {
+		repeat(n);
+		return *this;
+	}
+
     //
     // String utility functions:
     //
+	
+	// Copy this string and repeat it _n_ times.
+	// repeat(1) does nothing to the string.
+	void repeat(size_t n);
 
-    // Copy string and convert it to uppercase characters
+	// Copy string and convert it to uppercase characters
     string get_upper() const;
 
     // Copy string and convert it to lowercase characters

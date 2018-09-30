@@ -72,6 +72,30 @@ struct Dynamic_Array {
         Count++;
     }
 
+	// Insert a range of items (begin, end].
+	void insert(Data_Type *where, Data_Type *begin, Data_Type *end) {
+		assert(where >= this->begin() && where <= this->end());
+		
+		size_t elementsCount = end - begin;
+		uptr_t offset = where - this->begin();
+
+		size_t required = _Reserved;
+		while (Count + elementsCount >= required) {
+			required = 2 * _Reserved;
+			if (required < 8) required = 8;
+		}
+		_reserve(required);
+
+		// The reserve above might have invalidated the old pointer
+		where = this->begin() + offset;
+
+		if (offset < Count) {
+			MoveElements(where + elementsCount, where, Count - offset);
+		}
+		CopyElements(where, begin, elementsCount);
+		Count += elementsCount;
+	}
+
     // Returns the index of item in the array, -1 if it's not found
     s64 find(const Data_Type &item) const {
         Data_Type *index = Data;

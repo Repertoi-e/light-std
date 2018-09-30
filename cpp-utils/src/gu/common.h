@@ -175,7 +175,7 @@ void wait_for_input(b32 message = true);
 extern void exit_program(int code);
 
 // A default failed assert callback that logs a message and stops the program
-void default_assert_handler(bool failed, const char *file, int line, const char *failedCondition);
+void default_assert_handler(bool failed, const char *file, int line, const char *condition);
 
 struct string;
 void print_string_to_console(const string &str);

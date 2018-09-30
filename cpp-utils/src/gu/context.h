@@ -29,7 +29,7 @@ using Log_Function = std::function<void(const string &str)>;
 //
 //      assert(index < size && "Index out of bounds.");
 //
-using Assert_Function = std::function<void(bool failed, const char *file, int line, const char *message)>;
+using Assert_Function = std::function<void(bool failed, const char *file, int line, const char *condition)>;
 
 // When allocating you should use the context's allocator
 // This makes it so when users call your functions, they

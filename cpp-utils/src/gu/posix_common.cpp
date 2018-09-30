@@ -41,9 +41,9 @@ Allocator_Func __default_allocator = linux_allocator;
 
 void exit_program(int code) { _exit(code); }
 
-void default_assert_handler(bool failed, const char *file, int line, const char *failedCondition) {
+void default_assert_handler(bool failed, const char *file, int line, const char *condition) {
     if (failed) {
-        print("\033[31m>>> %:%, Assert failed: %\033[0m\n", file, line, failedCondition);
+        print("\033[31m>>> %:%, Assert failed: %\033[0m\n", file, line, condition);
         exit_program(-1);
     }
 }

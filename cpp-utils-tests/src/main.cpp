@@ -11,95 +11,81 @@
 // Look in test.h
 Table<string, Dynamic_Array<Test> *> g_TestTable;
 
-void run_tests() {
-    // Copy the current context
-    auto testContext = __context;
+// Returns an array of failed assert messages for this file.
+std::pair<size_t, Dynamic_Array<string>> run_tests_in_file(const string &fileName, const Dynamic_Array<Test> &tests) {
+    size_t assertsCalledCount = 0;
+    Dynamic_Array<string> allFailedAsserts;
 
-    string currentTestFile;
-    u32 totalAssertsCount = 0, totalFailedAssertsCount = 0;
-    Dynamic_Array<string> currentTestFailedAsserts, allFailedAsserts;
+    print("%:\n", fileName);
 
-    // Add our own assert handler so we can save some stats and logs
-    testContext.AssertHandler = [&](bool failed, const char *file, int line, const char *failedCondition) {
-        string shortFileName = get_file_path_relative_to_src_or_just_file_name(file);
+    size_t sucessfulProcs = tests.Count;
+    for (const Test &test : tests) {
+        // 1. Print the test's name.
+        s32 length = Min(30, (s32) test.Name.Length);
+        print("        % % ", to_string(test.Name, (s32) length), string(".") * (35 - length));
 
-        // Avoid counting assert calls from other sources (like print.h, etc.)
-        if (currentTestFile == shortFileName) {
-            if (failed) {
-                currentTestFailedAsserts.add(sprint("%:% Assert failed: %", shortFileName, line, failedCondition));
-                totalFailedAssertsCount++;
+        // 2. Run the actual test function
+        Dynamic_Array<string> failedAsserts;
+
+        auto testContext = __context;
+        Assert_Function defaultAssert = testContext.AssertHandler;
+        testContext.AssertHandler = [&](bool failed, const char *file, int line, const char *condition) {
+            if (fileName == get_file_path_relative_to_src_or_just_file_name(file)) {
+                if (failed) failedAsserts.add(sprint("%:% Assert failed: %", fileName, line, condition));
+                assertsCalledCount++;
+            } else {
+                defaultAssert(failed, file, line, condition);
             }
-            totalAssertsCount++;
+        };
+        PUSH_CONTEXT(testContext)
+        test.Function();
+
+        // 3. Print information about the failed asserts
+        if (failedAsserts.Count) {
+            // TODO: We should have a console text formatting library...
+            print("\033[38;5;160mFAILED\033[0m\n");
+            for (string &message : failedAsserts) print("          \033[38;5;246m>>> %\033[0m\n", message);
+            print("\n");
+            sucessfulProcs--;
         } else {
-            default_assert_handler(failed, file, line, failedCondition);
+            // TODO: We should have a console text formatting library...
+            print("\033[38;5;28mOK\033[0m\n");
         }
-    };
-    PUSH_CONTEXT(testContext) {
-        print("\n");
-
-        for (auto [fileName, tests] : g_TestTable) {
-            currentTestFile = fileName;
-
-            u32 failedProcs = 0;
-
-            print("%:\n", fileName);
-            for (Test &test : *tests) {
-                size_t numberOfDots = 35 - test.Name.Length;
-
-                string dots;
-                dots.reserve(numberOfDots);
-                while (numberOfDots--) {
-                    dots.append_cstring(".");
-                }
-                print("        % % ", test.Name, dots);
-
-                test.Function();
-
-                if (currentTestFailedAsserts.Count != 0) {
-                    print("\033[38;5;160mFAILED\033[0m\n");
-                    for (string &fail : currentTestFailedAsserts) {
-                        print("          \033[38;5;246m>>> %\033[0m\n", fail);
-                    }
-                    print("\n");
-                    failedProcs++;
-                } else {
-                    print("\033[38;5;28mOK\033[0m\n");
-                }
-
-                // Add the failed asserts to the array of all faile asserts
-                // that gets printed at the end of the test suite.
-                for (string &fail : currentTestFailedAsserts) {
-                    allFailedAsserts.add(fail);
-                }
-                currentTestFailedAsserts.release();
-            }
-            print("\033[38;5;246m%1%% success (% out of % procs)\n\033[0m\n",
-                  to_string(100.0f * (f32)(tests->Count - failedProcs) / (f32) tests->Count, 0, 1),
-                  tests->Count - failedProcs, tests->Count);
-        }
-    }  // testContext
-    print("\n\n");
-
-    u32 successfulAsserts = totalAssertsCount - totalFailedAssertsCount;
-
-    f32 percentage = 0.0f;
-    // Avoid dividing zero by zero o_O
-    if (totalAssertsCount) {
-        percentage = 100.0f * (f32) successfulAsserts / (f32) totalAssertsCount;
+        allFailedAsserts.insert(allFailedAsserts.end(), failedAsserts.begin(), failedAsserts.end());
     }
 
-    print("[Test Suite] %1%% success (%/% test asserts)\n", to_string(percentage, 0, 3), successfulAsserts,
-          totalAssertsCount);
+    string percentage = to_string(100.0f * (f32) sucessfulProcs / (f32) tests.Count, 0, 1);
+    // TODO: We should have a console text formatting library...
+    print("\033[38;5;246m%1%% success (% out of % procs)\n\033[0m\n", percentage, sucessfulProcs, tests.Count);
+
+    return {assertsCalledCount, allFailedAsserts};
+}
+
+void run_tests() {
+    size_t totalAssertsCount = 0;
+    Dynamic_Array<string> allFailedAsserts;
+
+    print("\n");
+    for (auto [fileName, tests] : g_TestTable) {
+        auto [assertsCalled, failedAsserts] = run_tests_in_file(fileName, *tests);
+        allFailedAsserts.insert(allFailedAsserts.end(), failedAsserts.begin(), failedAsserts.end());
+        totalAssertsCount += assertsCalled;
+    }
+    print("\n\n");
+
+    size_t successfulAsserts = totalAssertsCount - allFailedAsserts.Count;
+
+    string percentage = "0.000";
+    if (totalAssertsCount) {
+        percentage = to_string(100.0f * (f32) successfulAsserts / (f32) totalAssertsCount, 0, 3);
+    }
+    print("[Test Suite] %1%% success (%/% test asserts)\n", percentage, successfulAsserts, totalAssertsCount);
 
     if (allFailedAsserts.Count) {
         print("[Test Suite] Failed asserts:\n");
-        String_Builder failedAssertsLog;
-        for (string &fail : allFailedAsserts) {
-			failedAssertsLog.append_cstring("        >>> \033[38;5;160mFAILED:\033[38;5;246m ");
-			failedAssertsLog.append(fail);
-			failedAssertsLog.append_cstring("\033[0m\n");
+        for (string &message : allFailedAsserts) {
+            print("        >>> \033[38;5;160mFAILED:\033[38;5;246m %\033[0m\n", message);
         }
-        print(to_string(failedAssertsLog));
     }
     print("\n");
 }

@@ -1,5 +1,5 @@
+- Console colors and text formatting utilites 
 - More string stuff
-    Extend the string class and add utility functions
     Parsing from strings to types
     Make parameters in to_string functions less cryptic
 

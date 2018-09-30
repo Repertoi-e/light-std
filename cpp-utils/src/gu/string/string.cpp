@@ -267,6 +267,15 @@ b32 string::compare(const string &other) const {
     return 0;
 }
 
+void string::repeat(size_t n) {
+	assert(n > 0);
+	reserve(n * BytesUsed);
+	string pattern = *this;
+	for (size_t i = 1; i < n; i++) {
+		append(pattern);
+	}
+}
+
 string string::get_upper() const {
     string result = *this;
     for (size_t i = 0; i < result.Length; i++) {
