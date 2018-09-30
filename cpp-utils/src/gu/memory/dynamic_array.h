@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../context.h"
-#include "_alloc_wrapper.h"
+#include "memory.h"
 
 GU_BEGIN_NAMESPACE
 
@@ -21,7 +21,7 @@ struct Dynamic_Array {
         _Reserved = other._Reserved;
         Count = other.Count;
 
-        Data = New_And_Set_Allocator<Data_Type>(_Reserved, Allocator);
+        Data = New_And_Ensure_Allocator<Data_Type>(_Reserved, Allocator);
         CopyElements(Data, other.Data, _Reserved);
     }
 
@@ -171,7 +171,7 @@ struct Dynamic_Array {
     void _reserve(size_t reserve) {
         if (reserve <= _Reserved) return;
 
-        Data_Type *newMemory = New_And_Set_Allocator<Data_Type>(reserve, Allocator);
+        Data_Type *newMemory = New_And_Ensure_Allocator<Data_Type>(reserve, Allocator);
 
         MoveElements(newMemory, Data, Count);
         Delete(Data, _Reserved, Allocator);

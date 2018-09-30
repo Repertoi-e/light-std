@@ -13,7 +13,7 @@ size_t cstyle_strlen(const char *str) {
 string::string(const char *str, size_t size) {
     BytesUsed = size;
     if (BytesUsed > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_And_Set_Allocator<char>(BytesUsed, Allocator);
+        Data = New_And_Ensure_Allocator<char>(BytesUsed, Allocator);
         _Reserved = BytesUsed;
     }
     if (str && BytesUsed) {
@@ -35,7 +35,7 @@ string::string(const string &other) {
     Allocator = other.Allocator;
 
     if (BytesUsed > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_And_Set_Allocator<char>(BytesUsed, Allocator);
+        Data = New_And_Ensure_Allocator<char>(BytesUsed, Allocator);
         _Reserved = BytesUsed;
     }
     if (other.Data && BytesUsed) {
@@ -120,14 +120,14 @@ void string::reserve(size_t size) {
 
         // If we are small but we need more size, it's time to convert
         // to a dynamically allocated memory.
-        Data = New_And_Set_Allocator<char>(size, Allocator);
+        Data = New_And_Ensure_Allocator<char>(size, Allocator);
         CopyMemory(Data, _StackData, BytesUsed);
         _Reserved = size;
     } else {
         // Return if there is enough space
         if (size <= _Reserved) return;
 
-        Data = Resize_And_Set_Allocator(Data, _Reserved, size, Allocator);
+        Data = Resize_And_Ensure_Allocator(Data, _Reserved, size, Allocator);
         _Reserved = size;
     }
 }

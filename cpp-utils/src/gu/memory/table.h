@@ -44,7 +44,7 @@ struct Table {
         _Reserved = other._Reserved;
         UnfoundValue = other.UnfoundValue;
 
-        _OccupancyMask = New_And_Set_Allocator<bool>(_Reserved, Allocator);
+        _OccupancyMask = New_And_Ensure_Allocator<bool>(_Reserved, Allocator);
         _Keys = New<Key_Type>(_Reserved, Allocator);
         _Values = New<Value_Type>(_Reserved, Allocator);
         _Hashes = New<uptr_t>(_Reserved, Allocator);
@@ -154,7 +154,7 @@ struct Table {
     void _reserve(size_t size) {
         _Reserved = size;
 
-        _OccupancyMask = New_And_Set_Allocator<bool>(size, Allocator);
+        _OccupancyMask = New_And_Ensure_Allocator<bool>(size, Allocator);
         _Keys = New<Key>(size, Allocator);
         _Values = New<Value>(size, Allocator);
         _Hashes = New<uptr_t>(size, Allocator);

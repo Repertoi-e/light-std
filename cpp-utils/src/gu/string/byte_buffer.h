@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../memory/_alloc_wrapper.h"
+#include "../memory/memory.h"
 
 GU_BEGIN_NAMESPACE
 

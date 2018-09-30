@@ -105,6 +105,28 @@ T *New(size_t count, Allocator_Closure allocator = { 0, 0 }) {
 	return result;
 }
 
+// This function is a wrapper around New<T>(allocator), but if the passed reference to allocator
+// is null, it sets it to the context allocator and uses that one. This is different from the
+// default New, because the default new just silently uses the context allocator. If you plan
+// to use the memory allocated for longer time than just simple scopes (for example storage in
+// data structures) and be robust to changes in the context allocator, you must save it in a
+// variable that either the user can specify or just for your own internal purposes, 
+// and save it for later when you Delete the allocated storage. If you don't use the same allocator
+// when you New and Delete something, you most probably will crash because there is little guarantee
+// that the two allocators are compatible.
+template <typename T>
+T *New_And_Ensure_Allocator(Allocator_Closure &allocator) {
+	if (!allocator) allocator = CONTEXT_ALLOC;
+	return New<T>(allocator);
+}
+
+// See comment above this function. Actually important as to how this works!
+template <typename T>
+T *New_And_Ensure_Allocator(size_t count, Allocator_Closure &allocator) {
+	if (!allocator) allocator = CONTEXT_ALLOC;
+	return New<T>(count, allocator);
+}
+
 template <typename T>
 void Delete(T *memory, Allocator_Closure allocator = { 0, 0 }) {
 	if (!allocator) allocator = CONTEXT_ALLOC;
@@ -131,6 +153,13 @@ T *Resize(T *memory, size_t oldSize, size_t newSize, Allocator_Closure allocator
 	newSize *= sizeof(T);
 
 	return (T *) allocator.Function(Allocator_Mode::RESIZE, allocator.Data, newSize, memory, oldSize, 0);
+}
+
+// See comment at New_And_Ensure_Allocator above this function. Actually important as to how this works!
+template <typename T>
+inline T *Resize_And_Ensure_Allocator(T *memory, size_t oldSize, size_t newSize, Allocator_Closure &allocator) {
+	if (!allocator) allocator = CONTEXT_ALLOC;
+	return Resize(memory, oldSize, newSize, allocator);
 }
 
 GU_END_NAMESPACE
