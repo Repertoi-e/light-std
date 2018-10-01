@@ -1,7 +1,7 @@
-- Console colors and text formatting utilites 
 - More string stuff
     Parsing from strings to types
-    Make parameters in to_string functions less cryptic
+    Better formatting library in general
+- Console colors and text formatting utilites 
 
 - File system permissions, copy, move, create links
 
