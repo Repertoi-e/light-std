@@ -333,12 +333,6 @@ inline b32 is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
 // These functions only work for ascii
 inline b32 is_print(char32_t x) { return x > 31 && x != 127; }
 
-// Retrieve the length of a standard cstyle string.
-// Doesn't care about encoding.
-// Note that this calculation does not include the null byte.
-// This function can also be used to determine the size in
-// bytes of a null terminated utf-8 string.
-size_t cstyle_strlen(const char *str);
 
 //
 // Utility utf-8 functions:
@@ -364,6 +358,19 @@ void encode_code_point(char *str, char32_t codePoint);
 
 // Decodes a code point from a data pointer
 char32_t decode_code_point(const char *str);
+
+
+// This is a constexpr function for working with cstyle strings at compile time
+// Retrieve the length of a standard cstyle string (==strlen)
+// Doesn't care about encoding.
+// Note that this calculation does not include the null byte.
+// This function can also be used to determine the size in
+// bytes of a null terminated utf-8 string.
+constexpr size_t cstyle_strlen(const char *str) {
+	size_t length = 0;
+	while (*str++) length++;
+	return length;
+}
 
 // This is a constexpr function for working with cstyle strings at compile time
 constexpr const char *find_cstring(const char *haystack, const char *needle) {

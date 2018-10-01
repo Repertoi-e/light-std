@@ -4,11 +4,7 @@
 
 GU_BEGIN_NAMESPACE
 
-size_t cstyle_strlen(const char *str) {
-    size_t length = 0;
-    while (*str++) length++;
-    return length;
-}
+string::string(const char *str) : string(str, str ? cstyle_strlen(str) : 0) {}
 
 string::string(const char *str, size_t size) {
     BytesUsed = size;
@@ -26,8 +22,6 @@ string::string(const char *str, size_t size) {
         }
     }
 }
-
-string::string(const char *str) : string(str, str ? cstyle_strlen(str) : 0) {}
 
 string::string(const string &other) {
     BytesUsed = other.BytesUsed;
