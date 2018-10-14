@@ -52,8 +52,6 @@ struct Dynamic_Array {
     }
 
     void insert(Data_Type *where, const Data_Type &item) {
-        assert(where >= begin() && where <= end());
-
         uptr_t offset = where - begin();
         if (Count >= _Reserved) {
             size_t required = 2 * _Reserved;
@@ -64,6 +62,7 @@ struct Dynamic_Array {
 
         // The reserve above might have invalidated the old pointer
         where = begin() + offset;
+		assert(where >= begin() && where <= end());
 
         if (offset < Count) {
             MoveElements(where + 1, where, Count - offset);
@@ -74,8 +73,6 @@ struct Dynamic_Array {
 
 	// Insert a range of items (begin, end].
 	void insert(Data_Type *where, Data_Type *begin, Data_Type *end) {
-		assert(where >= this->begin() && where <= this->end());
-		
 		size_t elementsCount = end - begin;
 		uptr_t offset = where - this->begin();
 
@@ -88,6 +85,7 @@ struct Dynamic_Array {
 
 		// The reserve above might have invalidated the old pointer
 		where = this->begin() + offset;
+		assert(where >= this->begin() && where <= this->end());
 
 		if (offset < Count) {
 			MoveElements(where + elementsCount, where, Count - offset);

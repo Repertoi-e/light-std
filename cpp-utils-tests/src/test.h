@@ -12,29 +12,30 @@
 //      .../home/user/dev/sandbox-tests/src/tests/string.cpp ---> tests/string.cpp
 //      .../home/user/dev/sandbox-tests/string.cpp           ---> string.cpp
 //
-constexpr const char *get_file_path_relative_to_src_or_just_file_name(const char *str) {
+constexpr string_view get_file_path_relative_to_src_or_just_file_name(string_view str) {
     char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
-    char *src = srcData;
+    string_view src = srcData;
 
-    const char *result = find_cstring_last(str, src);
-    if (!result) {
-        result = find_cstring_last(str, OS_PATH_SEPARATOR);
+    size_t findResult = str.find_last(src);
+    if (findResult == string_view::NPOS) {
+        findResult = str.find_last(OS_PATH_SEPARATOR);
+        assert(findResult != str.Length - 1);
         // Skip the slash
-        result++;
+        findResult++;
     } else {
         // Skip the src directory
-        while (*src++) {
-            result++;
+        for (auto ch : src) {
+            findResult++;
         }
     }
-
-    return result;
+    str.remove_prefix(findResult);
+    return str;
 }
 
 typedef void (*Test_Func)();
 
 struct Test {
-    string Name;
+    string_view Name;
     Test_Func Function;
 };
 
@@ -44,12 +45,12 @@ struct Test {
 // inline Table<string, Dynamic_Array<Test> *> g_TestTable;
 //
 // Definition of this in main.cpp
-extern Table<string, Dynamic_Array<Test> *> g_TestTable;
+extern Table<string_view, Dynamic_Array<Test> *> g_TestTable;
 
 #define TEST(name)                                                                        \
     struct Test_Struct_##name {                                                           \
         Test_Struct_##name() {                                                            \
-            const char *file = get_file_path_relative_to_src_or_just_file_name(__FILE__); \
+            string_view file = get_file_path_relative_to_src_or_just_file_name(__FILE__); \
                                                                                           \
             auto [testsArray, fileKeyFound] = g_TestTable.find(file);                     \
             if (!fileKeyFound) {                                                          \

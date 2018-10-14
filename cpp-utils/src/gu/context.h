@@ -29,7 +29,7 @@ using Log_Function = std::function<void(const string &str)>;
 //
 //      assert(index < size && "Index out of bounds.");
 //
-using Assert_Function = std::function<void(bool failed, const char *file, int line, const char *condition)>;
+using Assert_Function = std::function<void(const char *file, int line, const char *condition)>;
 
 // When allocating you should use the context's allocator
 // This makes it so when users call your functions, they
@@ -41,7 +41,7 @@ struct Implicit_Context {
     Allocator_Closure Allocator = MALLOC;
 
     Log_Function Log = print_string_to_console;
-    Assert_Function AssertHandler = default_assert_handler;
+    Assert_Function AssertFailed = default_assert_failed;
 };
 
 // Immutable context available everywhere
@@ -52,8 +52,13 @@ inline Implicit_Context __context;
 #define OLD_CONTEXT_VAR_GEN(LINE) OLD_CONTEXT_VAR_GEN_(LINE)
 
 // This is a helper macro to safely modify the implicit context in a block of code.
-// Uses _defer_ to restore the old context.
-// Don't pass a pointer to as parameter!
+// Usage:
+//	PUSH_CONTEXT { 
+//		... code with new context ... 
+//	}
+//	... old context is restored ...
+//
+// Don't pass a pointer as a parameter!
 #define PUSH_CONTEXT(newContext)                                \
     Implicit_Context OLD_CONTEXT_VAR_GEN(__LINE__) = __context; \
     if (true) {                                                 \

@@ -37,7 +37,7 @@ void String_Builder::append(char32_t codePoint) {
 }
 
 void String_Builder::append_cstring(const char *str) {
-    append_pointer_and_size(str, cstyle_strlen(str));
+    append_pointer_and_size(str, cstring_strlen(str));
 }
 
 void String_Builder::append_pointer_and_size(const char *data, size_t size) {

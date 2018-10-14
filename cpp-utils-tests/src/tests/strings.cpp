@@ -5,7 +5,22 @@
 
 #include "../test.h"
 
-TEST(code_point_size) {
+struct Test_Struct_code_point_size {
+    Test_Struct_code_point_size() {
+        string_view file = get_file_path_relative_to_src_or_just_file_name(__FILE__);
+
+        auto [testsArray, fileKeyFound] = g_TestTable.find(file);
+        if (!fileKeyFound) {
+            testsArray = New<Dynamic_Array<Test>>();
+            g_TestTable.put(file, testsArray);
+        }
+
+        testsArray->add({"code_point_size", &run});
+    }
+    static void run();
+};
+static Test_Struct_code_point_size g_TestStruct_code_point_size;
+void Test_Struct_code_point_size::run() {
     string ascii = "abc";
     assert(ascii.BytesUsed == 3 && ascii.Length == 3);
 
@@ -22,9 +37,24 @@ TEST(code_point_size) {
     assert(mixed.BytesUsed == 12 + 9 + 6 + 3 && mixed.Length == 3 + 3 + 3 + 3);
 }
 
-TEST(substring) {
+struct Test_Struct_substring {
+    Test_Struct_substring() {
+        string_view file = get_file_path_relative_to_src_or_just_file_name(__FILE__);
+
+        auto [testsArray, fileKeyFound] = g_TestTable.find(file);
+        if (!fileKeyFound) {
+            testsArray = New<Dynamic_Array<Test>>();
+            g_TestTable.put(file, testsArray);
+        }
+
+        testsArray->add({"substring", &run});
+    }
+    static void run();
+};
+static Test_Struct_substring g_TestStruct_substring;
+void Test_Struct_substring::run() {
     string a = "Hello, world!";
-    string b = a.substring(2, 5);
+    string_view b = a.substring(2, 5);
     assert(b == "llo");
     b = a.substring(7, a.Length);
     assert(b == "world!");
@@ -36,7 +66,7 @@ TEST(substring) {
 
 TEST(substring_operator) {
     string a = "Hello, world!";
-    string b = a(2, 5);
+    string_view b = a(2, 5);
     assert(b == "llo");
     b = a(7, a.Length);
     assert(b == "world!");
@@ -48,7 +78,7 @@ TEST(substring_operator) {
 
 TEST(substring_mixed_sizes) {
     string a = u8"Хеllo, уоrлd!";
-    string b = a.substring(2, 5);
+    string_view b = a.substring(2, 5);
     assert(b == "llo");
     b = a.substring(7, a.Length);
     assert(b == u8"уоrлd!");
@@ -64,14 +94,14 @@ TEST(utility_functions) {
     assert(a.trim_end() == "\t\t    Hello, everyone!");
     assert(a.trim() == "Hello, everyone!");
 
-	string b = "Hello, world!";
-	assert(b.begins_with("Hello"));
-	assert(!b.begins_with("Xello"));
-	assert(!b.begins_with("Hellol"));
+    string b = "Hello, world!";
+    assert(b.begins_with("Hello"));
+    assert(!b.begins_with("Xello"));
+    assert(!b.begins_with("Hellol"));
 
-	assert(b.ends_with("world!"));
-	assert(!b.ends_with("!world!"));
-	assert(!b.ends_with("world!!"));
+    assert(b.ends_with("world!"));
+    assert(!b.ends_with("!world!"));
+    assert(!b.ends_with("world!!"));
 }
 
 TEST(modify_and_index) {
@@ -101,39 +131,39 @@ TEST(modify_and_index) {
 
 /*
 TEST(iterator) {
-	const string a = "Hello";
-	string result = "";
-	for (char32_t ch : a) {
-		result += ch;
-	}
-	assert(result == a);
-	result.clear();
+    const string a = "Hello";
+    string result = "";
+    for (char32_t ch : a) {
+        result += ch;
+    }
+    assert(result == a);
+    result.clear();
 
-	string b = "Hello";
-	// In order to modify a character, use a Code_Point_Ref variable
-	// This will be same as writing "for (auto ch : b)", since b is non-const.
-	for (Code_Point_Ref ch : b) {
-		ch = to_lower(ch);
-	}
-	assert(b == "hello");
+    string b = "Hello";
+    // In order to modify a character, use a Code_Point_Ref variable
+    // This will be same as writing "for (auto ch : b)", since b is non-const.
+    for (Code_Point_Ref ch : b) {
+        ch = to_lower(ch);
+    }
+    assert(b == "hello");
 
-	// You can also do this with the non-const b
-	// when you don't plan on modifying ch:
-	// for (char32_t ch : b) { .. }
-	// 
-	// But this doesn't work:
-	// for (char32_t &ch : b) { .. }
+    // You can also do this with the non-const b
+    // when you don't plan on modifying ch:
+    // for (char32_t ch : b) { .. }
+    //
+    // But this doesn't work:
+    // for (char32_t &ch : b) { .. }
 
-	//for (Code_Point_Ref ch : b) {
-	//	ch = U'Д';
-	//}
-	assert(b == u8"ДДДДД");
+    //for (Code_Point_Ref ch : b) {
+    //	ch = U'Д';
+    //}
+    assert(b == u8"ДДДДД");
 }*/
 
 TEST(concat) {
     {
         string result = "Hello";
-		result.append_pointer_and_size(",THIS IS GARBAGE", 1);
+        result.append_pointer_and_size(",THIS IS GARBAGE", 1);
         result.append_cstring(" world!");
 
         assert(result == "Hello, world!");
@@ -152,7 +182,7 @@ TEST(concat) {
         result += 'i';
         assert(result.BytesUsed == i + 1 && result.Length == i + 1);
     }
-	result.release();
+    result.release();
     for (s32 i = 0; i < 10; i++) {
         result += u8"Д";
         assert(result.BytesUsed == 2 * (i + 1) && result.Length == i + 1);
@@ -161,7 +191,7 @@ TEST(concat) {
 
 TEST(string_builder) {
     String_Builder builder;
-	builder.append_cstring("Hello");
+    builder.append_cstring("Hello");
     builder.append_pointer_and_size(",THIS IS GARBAGE", 1);
     builder.append(string(" world"));
     builder.append('!');

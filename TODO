@@ -1,3 +1,5 @@
+- Write string tests for find/remove_prefix/..suffix functions
+
 - More string stuff
     Parsing from strings to types
     Better formatting library in general

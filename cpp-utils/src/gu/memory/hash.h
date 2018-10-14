@@ -96,4 +96,15 @@ struct Hash<string> {
     }
 };
 
+template <>
+struct Hash<string_view> {
+	static constexpr uptr_t get(const string_view& str) {
+		uptr_t hash = 5381;
+		for (size_t i = 0; i < str.Length; i++) {
+			hash = ((hash << 5) + hash) + str[i];
+		}
+		return hash;
+	}
+};
+
 GU_END_NAMESPACE

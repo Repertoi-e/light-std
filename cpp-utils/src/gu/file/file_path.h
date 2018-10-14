@@ -49,16 +49,16 @@ inline bool is_pointing_to_content(File_Path const &path) {
 // Returns the drive letter on Windows, if the path is not
 // absolute or the path doesn't have a drive letter returns
 // an empty string.
-inline string get_drive_letter(File_Path const &path) {
-    const char *pathStr = path.Path.Data;
-    const char *pos = find_cstring(pathStr, ":");
-
-    if (pathStr - pos == 1) {
-        string result;
-		result.append_pointer_and_size(pathStr, pathStr - pos + 1);
-        return result;
-    }
-    return "";
+inline string get_drive_letter(const File_Path &path) {
+    // const char *pathStr = path.Path.Data;
+    // const char *pos = find_cstring(pathStr, ":");
+	// 
+    // if (pathStr - pos == 1) {
+    //     string result;
+	// 	result.append_pointer_and_size(pathStr, pathStr - pos + 1);
+    //     return result;
+    // }
+    // return "";
 }
 
 GU_END_NAMESPACE

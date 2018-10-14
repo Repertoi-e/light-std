@@ -148,18 +148,18 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #undef assert
 
 #ifdef NDEBUG
-#define assert(condition) ((void) null)
+#define assert(condition) ((void) 0)
 #else
-#define assert(condition) __context.AssertHandler(!(condition), __FILE__, __LINE__, u8 ## #condition)
+#define assert(condition) (!!(condition)) ? (void) 0 : __context.AssertFailed(__FILE__, __LINE__, u8 ## #condition)
 #endif
 
 template <typename T>
-inline const T &Min(const T &a, const T &b) {
+constexpr const T &Min(const T &a, const T &b) {
     return (b < a) ? b : a;
 }
 
 template <typename T>
-inline const T &Max(const T &a, const T &b) {
+constexpr const T &Max(const T &a, const T &b) {
     return (a < b) ? b : a;
 }
 
@@ -175,7 +175,7 @@ void wait_for_input(b32 message = true);
 extern void exit_program(int code);
 
 // A default failed assert callback that logs a message and stops the program
-void default_assert_handler(bool failed, const char *file, int line, const char *condition);
+void default_assert_failed(const char *file, int line, const char *condition);
 
 struct string;
 void print_string_to_console(const string &str);

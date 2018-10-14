@@ -9,36 +9,36 @@
 
 // !!! WORKAORUND
 // Look in test.h
-Table<string, Dynamic_Array<Test> *> g_TestTable;
+Table<string_view, Dynamic_Array<Test> *> g_TestTable;
 
 // Returns an array of failed assert messages for this file.
-std::pair<size_t, Dynamic_Array<string>> run_tests_in_file(const string &fileName, const Dynamic_Array<Test> &tests) {
+std::pair<size_t, Dynamic_Array<string>> run_tests_in_file(const string_view &fileName,
+                                                           const Dynamic_Array<Test> &tests) {
     size_t assertsCalledCount = 0;
     Dynamic_Array<string> allFailedAsserts;
 
-    print("%:\n", fileName);
+    print("%:\n", string(fileName));
 
     size_t sucessfulProcs = tests.Count;
     for (const Test &test : tests) {
         // 1. Print the test's name.
         s32 length = Min(30, (s32) test.Name.Length);
-        print("        % % ", to_string(test.Name, (s32) length), string(".") * (35 - length));
+        print("        % % ", to_string(string(test.Name), (s32) length), string(".") * (35 - length));
 
         // 2. Run the actual test function
         Dynamic_Array<string> failedAsserts;
 
         auto testContext = __context;
-        Assert_Function defaultAssert = testContext.AssertHandler;
-        testContext.AssertHandler = [&](bool failed, const char *file, int line, const char *condition) {
+        Assert_Function defaultAssert = testContext.AssertFailed;
+        testContext.AssertFailed = [&](const char *file, int line, const char *condition) {
             if (fileName == get_file_path_relative_to_src_or_just_file_name(file)) {
-                if (failed) failedAsserts.add(sprint("%:% Assert failed: %", fileName, line, condition));
+                failedAsserts.add(sprint("%:% Assert failed: %", string(fileName), line, condition));
                 assertsCalledCount++;
             } else {
-                defaultAssert(failed, file, line, condition);
+                defaultAssert(file, line, condition);
             }
         };
-        PUSH_CONTEXT(testContext)
-        test.Function();
+        PUSH_CONTEXT(testContext) { test.Function(); }
 
         // 3. Print information about the failed asserts
         if (failedAsserts.Count) {
@@ -47,11 +47,11 @@ std::pair<size_t, Dynamic_Array<string>> run_tests_in_file(const string &fileNam
             for (string &message : failedAsserts) print("          \033[38;5;246m>>> %\033[0m\n", message);
             print("\n");
             sucessfulProcs--;
+            allFailedAsserts.insert(allFailedAsserts.end(), failedAsserts.begin(), failedAsserts.end());
         } else {
             // TODO: We should have a console text formatting library...
             print("\033[38;5;28mOK\033[0m\n");
         }
-        allFailedAsserts.insert(allFailedAsserts.end(), failedAsserts.begin(), failedAsserts.end());
     }
 
     string percentage = to_string(100.0f * (f32) sucessfulProcs / (f32) tests.Count, 0, 1);

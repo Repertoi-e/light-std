@@ -206,7 +206,7 @@ inline typename std::enable_if_t<std::is_same_v<T, bool>, string> to_string(T v)
 //
 //           Hello, world!\0
 //      ^^^^^^^^^^^^^^^^^^
-inline string to_string(string const &v, s32 width = 0) {
+inline string to_string(const string &v, s32 width = 0) {
 	if (width == 0) return v;
 
     String_Builder builder;
