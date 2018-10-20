@@ -5,22 +5,7 @@
 
 #include "../test.h"
 
-struct Test_Struct_code_point_size {
-    Test_Struct_code_point_size() {
-        string_view file = get_file_path_relative_to_src_or_just_file_name(__FILE__);
-
-        auto [testsArray, fileKeyFound] = g_TestTable.find(file);
-        if (!fileKeyFound) {
-            testsArray = New<Dynamic_Array<Test>>();
-            g_TestTable.put(file, testsArray);
-        }
-
-        testsArray->add({"code_point_size", &run});
-    }
-    static void run();
-};
-static Test_Struct_code_point_size g_TestStruct_code_point_size;
-void Test_Struct_code_point_size::run() {
+TEST(code_point_size) {
     string ascii = "abc";
     assert(ascii.BytesUsed == 3 && ascii.Length == 3);
 
@@ -37,22 +22,7 @@ void Test_Struct_code_point_size::run() {
     assert(mixed.BytesUsed == 12 + 9 + 6 + 3 && mixed.Length == 3 + 3 + 3 + 3);
 }
 
-struct Test_Struct_substring {
-    Test_Struct_substring() {
-        string_view file = get_file_path_relative_to_src_or_just_file_name(__FILE__);
-
-        auto [testsArray, fileKeyFound] = g_TestTable.find(file);
-        if (!fileKeyFound) {
-            testsArray = New<Dynamic_Array<Test>>();
-            g_TestTable.put(file, testsArray);
-        }
-
-        testsArray->add({"substring", &run});
-    }
-    static void run();
-};
-static Test_Struct_substring g_TestStruct_substring;
-void Test_Struct_substring::run() {
+TEST(substring) {
     string a = "Hello, world!";
     string_view b = a.substring(2, 5);
     assert(b == "llo");
@@ -129,7 +99,6 @@ TEST(modify_and_index) {
     assert(a == u8"\U0002070E\U00020731\U00020779");
 }
 
-/*
 TEST(iterator) {
     const string a = "Hello";
     string result = "";
@@ -140,25 +109,27 @@ TEST(iterator) {
     result.clear();
 
     string b = "Hello";
-    // In order to modify a character, use a Code_Point_Ref variable
+    // In order to modify a character, use a string::Code_Point_Ref variable
     // This will be same as writing "for (auto ch : b)", since b is non-const.
-    for (Code_Point_Ref ch : b) {
+    for (string::Code_Point_Ref ch : b) {
         ch = to_lower(ch);
     }
     assert(b == "hello");
 
-    // You can also do this with the non-const b
-    // when you don't plan on modifying ch:
+    // You can also do this type of loop with 
+	// the non-const b when you don't plan on
+	// modifying the character:
     // for (char32_t ch : b) { .. }
     //
-    // But this doesn't work:
+    // But this doesn't work since string isn't
+	// actually an array of char32_t's
     // for (char32_t &ch : b) { .. }
-
-    //for (Code_Point_Ref ch : b) {
-    //	ch = U'Д';
-    //}
+    
+	for (string::Code_Point_Ref ch : b) {
+		ch = U'Д';
+    }
     assert(b == u8"ДДДДД");
-}*/
+}
 
 TEST(concat) {
     {
@@ -187,6 +158,19 @@ TEST(concat) {
         result += u8"Д";
         assert(result.BytesUsed == 2 * (i + 1) && result.Length == i + 1);
     }
+}
+
+TEST(string_find) {
+	string a = "Hello";
+	assert(a.find('e') == 1);
+	assert(a.find('l') == 2);
+	assert(a.find_last('l') == 3);
+
+	a = u8"Здрello";
+	assert(a.find('e') == 3);
+	assert(a.find('l') == 4);
+	assert(a.find_last('l') == 5);
+	assert(a.find_last('o') == 6);
 }
 
 TEST(string_builder) {

@@ -146,15 +146,14 @@ void string::set(s64 index, char32_t codePoint) {
         // If we get here, the size of the codepoint we want to encode
         // is larger than the code point already there, so we need to move
         // the data to make enough space.
-        size_t oldBytes = BytesUsed;
         reserve(BytesUsed - difference);
         // We need to recalculate target, because the reserve call above
         // might have moved the Data to a new memory location.
         target = (char *) string_view(*this)._get_pointer_to_index(index);
 
-        MoveMemory(target + codePointSize, target + sizeAtTarget, (Data + oldBytes) - target - (sizeAtTarget - 1));
+        MoveMemory(target + codePointSize, target + sizeAtTarget, BytesUsed - (target - Data) - sizeAtTarget);
     } else if (difference > 0) {
-        MoveMemory(target + codePointSize, target + sizeAtTarget, (Data + BytesUsed) - target - (sizeAtTarget - 1));
+        MoveMemory(target + codePointSize, target + sizeAtTarget, BytesUsed - (target - Data) - sizeAtTarget);
     }
     BytesUsed -= difference;
 

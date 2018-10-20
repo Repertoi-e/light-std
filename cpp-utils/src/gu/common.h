@@ -131,12 +131,12 @@ GU_BEGIN_NAMESPACE
 
 #ifndef defer
 struct Defer_Dummy {};
-template <class F>
+template <typename F>
 struct Deferrer {
     F func;
     ~Deferrer() { func(); }
 };
-template <class F>
+template <typename F>
 Deferrer<F> operator*(Defer_Dummy, F func) {
     return {func};
 }
