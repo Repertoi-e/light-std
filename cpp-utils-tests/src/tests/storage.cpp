@@ -3,7 +3,7 @@
 #include <gu/memory/array.h>
 #include <gu/memory/dynamic_array.h>
 
-#include <gu/string/print.h>
+#include <gu/format/fmt.h>
 
 #include <array>
 
@@ -66,7 +66,7 @@ TEST(dynamic_array) {
 }
 
 TEST(table) {
-    Table<string, int> table;
+    Table<string, s32> table;
     table.put("1", 1);
     table.put("4", 4);
     table.put("9", 10101);
@@ -80,27 +80,27 @@ TEST(table) {
     table.put("9", 9);
 
     for (auto [key, value] : table) {
-        assert(key == to_string(value));
+        assert(key == fmt::to_string(value));
     }
 
-    Table<string, int> emptyTable;
+    Table<string, s32> emptyTable;
     for (auto [key, value] : emptyTable) {
         // Just to make sure this even compiles
-        print(">> !!! This shouldn't be printed !!! <<\n");
+        fmt::print(">> !!! This shouldn't be printed !!! <<\n");
     }
 }
 
 TEST(table_copy) {
-    Table<string, int> table;
+    Table<string, s32> table;
     table.put("1", 1);
     table.put("4", 4);
     table.put("9", 9);
 
-    Table<string, int> tableCopy = table;
+    Table<string, s32> tableCopy = table;
 	tableCopy.put("11", 20);
 
     for (auto [key, value] : table) {
-        assert(key == to_string(value));
+        assert(key == fmt::to_string(value));
     }
 
     assert(table.Count == 3);
@@ -108,9 +108,9 @@ TEST(table_copy) {
 }
 
 TEST(table_pointer_to_value) {
-    Table<string, Dynamic_Array<int> *> table;
+    Table<string, Dynamic_Array<s32> *> table;
 
-    Dynamic_Array<int> array;
+    Dynamic_Array<s32> array;
     array.add(0);
     array.add(1);
     array.add(2);

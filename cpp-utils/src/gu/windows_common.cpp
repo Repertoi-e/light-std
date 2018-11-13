@@ -3,7 +3,7 @@
 #if defined OS_WINDOWS
 
 #include "memory/allocator.h"
-#include "string/print.h"
+#include "format/fmt.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -32,7 +32,7 @@ Allocator_Func __default_allocator = windows_allocator;
 void exit_program(int code) { _exit(code); }
 
 void default_assert_failed(const char *file, int line, const char *condition) {
-    print("\033[31m>>> %:%, Assert failed: %\033[0m\n", file, line, condition);
+    fmt::print("\033[31m>>> {}:{}, Assert failed: {}\033[0m\n", file, line, condition);
     exit_program(-1);
 }
 
@@ -42,7 +42,7 @@ void print_string_to_console(const string &str) {
     if (!g_StdOut) {
         g_StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {
-            print(">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.");
+			fmt::print(">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.");
         }
         DWORD dw = 0;
         GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &dw);
@@ -53,7 +53,7 @@ void print_string_to_console(const string &str) {
 }
 
 void wait_for_input(b32 message) {
-    if (message) print("Press ENTER to continue...\n");
+    if (message) fmt::print("Press ENTER to continue...\n");
     getchar();
 }
 

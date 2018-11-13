@@ -34,7 +34,9 @@ using f64 = double;
 using b32 = s32;
 
 constexpr auto null = nullptr;
-
+// This constant is used to represent an invalid index
+// (e.g. the result of a search)
+static constexpr size_t npos = (size_t) -1;
 
 constexpr s32 _X64 = 1;
 constexpr s32 _X86 = 2;

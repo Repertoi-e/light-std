@@ -26,9 +26,11 @@ void String_Builder::reset() {
     }
 }
 
-void String_Builder::append(const string &str) {
-    append_pointer_and_size(str.Data, str.BytesUsed);
-}
+void String_Builder::append(const char *str) { append(string_view(str)); }
+
+void String_Builder::append(const string_view &str) { append_pointer_and_size(str.Data, str.BytesUsed); }
+
+void String_Builder::append(const string &str) { append_pointer_and_size(str.Data, str.BytesUsed); }
 
 void String_Builder::append(char32_t codePoint) {
     char encoded[4];
@@ -36,14 +38,12 @@ void String_Builder::append(char32_t codePoint) {
     append_pointer_and_size(encoded, get_size_of_code_point(codePoint));
 }
 
-void String_Builder::append_cstring(const char *str) {
-    append_pointer_and_size(str, cstring_strlen(str));
-}
+void String_Builder::append_cstring(const char *str) { append_pointer_and_size(str, cstring_strlen(str)); }
 
 void String_Builder::append_pointer_and_size(const char *data, size_t size) {
     String_Builder::Buffer *currentBuffer = CurrentBuffer;
 
-    size_t availableSpace = STRING_BUILDER_BUFFER_SIZE - currentBuffer->Occupied;
+    size_t availableSpace = BUFFER_SIZE - currentBuffer->Occupied;
     if (availableSpace >= size) {
         CopyMemory(currentBuffer->Data + currentBuffer->Occupied, data, size);
         currentBuffer->Occupied += size;
@@ -58,19 +58,24 @@ void String_Builder::append_pointer_and_size(const char *data, size_t size) {
         CurrentBuffer->Next = buffer;
         CurrentBuffer = buffer;
 
+        IndirectionCount++;
+
         append_pointer_and_size(data + availableSpace, size - availableSpace);
     }
 }
 
-string to_string(String_Builder &builder) {
+namespace fmt {
+string to_string(const String_Builder &builder) {
     string result;
+    result.reserve((builder.IndirectionCount + 1) * builder.BUFFER_SIZE);
 
-    String_Builder::Buffer *buffer = &builder._BaseBuffer;
+    const String_Builder::Buffer *buffer = &builder._BaseBuffer;
     while (buffer) {
         result.append_pointer_and_size(buffer->Data, buffer->Occupied);
         buffer = buffer->Next;
     }
     return result;
 }
+}  // namespace fmt
 
 GU_END_NAMESPACE

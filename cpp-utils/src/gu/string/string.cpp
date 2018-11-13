@@ -103,9 +103,9 @@ void string::release() {
 }
 
 string::Iterator_Mut string::begin() { return Iterator_Mut(*this, 0); }
-string::Iterator_Mut string::end() { return Iterator_Mut(*this, string::NPOS); }
+string::Iterator_Mut string::end() { return Iterator_Mut(*this, npos); }
 string::Iterator_Const string::begin() const { return Iterator_Const(*this, 0); }
-string::Iterator_Const string::end() const { return Iterator_Const(*this, string::NPOS); }
+string::Iterator_Const string::end() const { return Iterator_Const(*this, npos); }
 
 string::Code_Point_Ref string::operator[](s64 index) { return Code_Point_Ref(*this, get(index), index); }
 const char32_t string::operator[](s64 index) const { return get(index); }

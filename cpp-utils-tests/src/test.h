@@ -17,7 +17,7 @@ constexpr string_view get_file_path_relative_to_src_or_just_file_name(string_vie
     string_view src = srcData;
 
     size_t findResult = str.find_last(src);
-    if (findResult == string_view::NPOS) {
+    if (findResult == npos) {
         findResult = str.find_last(OS_PATH_SEPARATOR);
         assert(findResult != str.Length - 1);
         // Skip the slash

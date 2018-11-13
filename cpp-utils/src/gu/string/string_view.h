@@ -17,22 +17,24 @@ constexpr size_t cstring_strlen(const char *str) {
 }
 
 // These functions only work for ascii
-inline b32 is_digit(char32_t x) { return x >= '0' && x <= '9'; }
+constexpr b32 is_digit(char32_t x) { return x >= '0' && x <= '9'; }
 // These functions only work for ascii
-inline b32 is_hexadecimal_digit(char32_t x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
+constexpr b32 is_hexadecimal_digit(char32_t x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
 
 // These functions only work for ascii
-inline b32 is_space(char32_t x) { return (x >= 9 && x <= 13) || x == 32; }
+constexpr b32 is_space(char32_t x) { return (x >= 9 && x <= 13) || x == 32; }
 // These functions only work for ascii
-inline b32 is_blank(char32_t x) { return x == 9 || x == 32; }
+constexpr b32 is_blank(char32_t x) { return x == 9 || x == 32; }
 
 // These functions only work for ascii
-inline b32 is_alpha(char32_t x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
+constexpr b32 is_alpha(char32_t x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
 // These functions only work for ascii
-inline b32 is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
+constexpr b32 is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
+
+constexpr b32 is_identifier_start(char32_t x) { return is_alpha(x) || x == '_'; }
 
 // These functions only work for ascii
-inline b32 is_print(char32_t x) { return x > 31 && x != 127; }
+constexpr b32 is_print(char32_t x) { return x > 31 && x != 127; }
 
 //
 // Utility utf-8 functions:
@@ -264,37 +266,82 @@ struct string_view {
             if (index < (s64) str.Length && index >= 0) {
                 Index = index;
             } else {
-                Index = string_view::NPOS;
+                Index = npos;
             }
+        }
+
+        constexpr Iterator(const Iterator &other) : Parent(other.Parent), Index(other.Index) {}
+        constexpr Iterator(Iterator &&other) : Parent(other.Parent), Index(other.Index) {}
+
+        constexpr Iterator &operator=(const Iterator &other) {
+            assert(Parent == other.Parent);
+            Index = other.Index;
+            return *this;
+        }
+
+        constexpr Iterator &operator=(Iterator &&other) {
+            assert(Parent == other.Parent);
+            Index = other.Index;
+            return *this;
         }
 
         constexpr Iterator &operator+=(s64 amount) {
             if ((amount < 0 && (s64) Index + amount < 0) || Index + amount >= Parent.Length) {
-                Index = string_view::NPOS;
+                Index = npos;
             } else {
                 Index += amount;
             }
             return *this;
         }
-        constexpr Iterator &operator-=(s64 amount) { return *this += -amount; }
-        constexpr Iterator &operator++() { return *this += 1; }
-        constexpr Iterator &operator--() { return *this -= 1; }
+        constexpr Iterator &operator-=(s64 amount) {
+            assert(Index != npos);
+            return *this += -amount;
+        }
+        constexpr Iterator &operator++() {
+            assert(Index != npos);
+            return *this += 1;
+        }
+        constexpr Iterator &operator--() {
+            assert(Index != npos);
+            return *this -= 1;
+        }
         constexpr Iterator operator++(s32) {
+            assert(Index != npos);
             Iterator tmp(*this);
             ++(*this);
             return tmp;
         }
         constexpr Iterator operator--(s32) {
+            assert(Index != npos);
             Iterator tmp(*this);
             --(*this);
             return tmp;
         }
 
-        constexpr s64 operator-(const Iterator &other) const { return (s64) Index - (s64) other.Index; }
-        constexpr Iterator operator+(s64 amount) const { return Iterator(Parent, Index + amount); }
-        constexpr Iterator operator-(s64 amount) const { return Iterator(Parent, Index - amount); }
-        constexpr friend inline Iterator operator+(s64 amount, const Iterator &it) { return it + amount; }
-        constexpr friend inline Iterator operator-(s64 amount, const Iterator &it) { return it - amount; }
+        constexpr s64 operator-(const Iterator &other) const {
+            size_t index = Index;
+            if (index == npos) index = Parent.Length;
+            size_t otherIndex = other.Index;
+            if (otherIndex == npos) otherIndex = other.Parent.Length;
+
+            return (s64) index - (s64) otherIndex;
+        }
+        constexpr Iterator operator+(s64 amount) const {
+            assert(Index != npos);
+            return Iterator(Parent, Index + amount);
+        }
+        constexpr Iterator operator-(s64 amount) const {
+            assert(Index != npos);
+            return Iterator(Parent, Index - amount);
+        }
+        constexpr friend inline Iterator operator+(s64 amount, const Iterator &it) {
+            assert(it.Index != npos);
+            return it + amount;
+        }
+        constexpr friend inline Iterator operator-(s64 amount, const Iterator &it) {
+            assert(it.Index != npos);
+            return it - amount;
+        }
 
         constexpr b32 operator==(const Iterator &other) const { return Index == other.Index; }
         constexpr b32 operator!=(const Iterator &other) const { return Index != other.Index; }
@@ -304,13 +351,12 @@ struct string_view {
         constexpr b32 operator<=(const Iterator &other) const { return Index <= other.Index; }
 
         constexpr char32_t operator*() const { return Parent[Index]; }
-
         constexpr char32_t operator[](s64 index) const { return Parent[Index + index]; }
-    };
 
-    // This constant is used to represent an invalid index
-    // (e.g. the result of a search)
-    static constexpr size_t NPOS = (size_t) -1;
+        // Returns whether this iterator contains a valid index.
+        constexpr b32 valid() const { return Index != npos; }
+        constexpr const char *to_pointer() const { return Parent._get_pointer_to_index((s64) Index); }
+    };
 
     const char *Data = null;
     size_t BytesUsed = 0;
@@ -374,7 +420,7 @@ struct string_view {
         assert(Data);
         for (size_t i = 0; i < Length; ++i)
             if (get(i) == ch) return i;
-        return NPOS;
+        return npos;
     }
 
     // Find the first occurence of _other_
@@ -393,7 +439,7 @@ struct string_view {
                 return haystack;
             }
         }
-        return NPOS;
+        return npos;
     }
 
     // Find the last occurence of _ch_
@@ -401,7 +447,7 @@ struct string_view {
         assert(Data);
         for (size_t i = Length - 1; i >= 0; --i)
             if (get(i) == ch) return i;
-        return NPOS;
+        return npos;
     }
 
     // Find the last occurence of _other_
@@ -420,8 +466,11 @@ struct string_view {
                 return haystack;
             }
         }
-        return NPOS;
+        return npos;
     }
+
+    constexpr b32 has(char32_t ch) const { return find(ch) != npos; }
+    constexpr b32 has(const string_view &other) const { return find(other) != npos; }
 
     // Moves the beginning forwards by n characters.
     constexpr void remove_prefix(size_t n) {
@@ -507,12 +556,13 @@ struct string_view {
     }
 
     constexpr Iterator begin() const { return Iterator(*this, 0); }
-    constexpr Iterator end() const { return Iterator(*this, string_view::NPOS); }
+    constexpr Iterator end() const { return Iterator(*this, npos); }
 
     // Compares the string view to _other_ lexicographically.
     // The result is less than 0 if this string_view sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
     constexpr s32 compare(const string_view &other) const {
+        if (Data == other.Data && BytesUsed == other.BytesUsed && Length == other.Length) return 0;
         if (Length == 0 && other.Length == 0) return 0;
         if (Length == 0) return -((s32) other.get(0));
         if (other.Length == 0) return get(0);

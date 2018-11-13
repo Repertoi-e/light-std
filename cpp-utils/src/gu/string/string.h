@@ -49,13 +49,13 @@ struct string {
             if (index < (s64) str.Length && index >= 0) {
                 Index = index;
             } else {
-                Index = string::NPOS;
+                Index = npos;
             }
         }
 
         Iterator &operator+=(s64 amount) {
             if ((amount < 0 && (s64) Index + amount < 0) || Index + amount >= Parent.Length) {
-                Index = string::NPOS;
+                Index = npos;
             } else {
                 Index += amount;
             }
@@ -90,37 +90,35 @@ struct string {
 
         template <bool _Const = Const>
         std::enable_if_t<_Const, char32_t> operator*() const {
-            assert(Index != string::NPOS);
+            assert(Index != npos);
             return Parent[Index];
         }
 
         template <bool _Const = Const>
         std::enable_if_t<!_Const, Code_Point_Ref> operator*() const {
-            assert(Index != string::NPOS);
+            assert(Index != npos);
             return Parent[Index];
         }
 
         template <bool _Const = Const>
         std::enable_if_t<_Const, char32_t> operator[](s64 index) const {
-            assert(Index != string::NPOS);
+            assert(Index != npos);
             assert(Index + index < Parent.Length);
             return Parent[Index + index];
         }
 
         template <bool _Const = Const>
         std::enable_if_t<!_Const, Code_Point_Ref> operator[](s64 index) const {
-            assert(Index != string::NPOS);
+            assert(Index != npos);
             assert(Index + index < Parent.Length);
             return Parent[Index + index];
         }
+
+		const char *to_pointer() { return string_view(Parent)._get_pointer_to_index((s64) Index); }
     };
 
     using Iterator_Mut = Iterator<false>;
     using Iterator_Const = const Iterator<true>;
-
-    // This constant is used to represent an invalid index
-    // (e.g. the result of a search)
-    static constexpr size_t NPOS = (size_t) -1;
 
     static constexpr size_t SMALL_STRING_BUFFER_SIZE = 8;
     // This implementation uses a small stack allocated buffer
@@ -202,6 +200,9 @@ struct string {
 
     // Find the last occurence of _other_
     size_t find_last(const string_view &other) const { return string_view(*this).find_last(other); }
+
+	b32 has(char32_t ch) const { return find(ch) != npos; }
+	b32 has(const string_view &other) const { return find(other) != npos; }
 
     // Append one string to another
     void append(const string &other);

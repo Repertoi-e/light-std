@@ -6,14 +6,17 @@
 
 GU_BEGIN_NAMESPACE
 
-inline constexpr size_t STRING_BUILDER_BUFFER_SIZE = 4_KiB;
-
 struct String_Builder {
+	static constexpr size_t BUFFER_SIZE = 4_KiB;
+
     struct Buffer {
-        char Data[STRING_BUILDER_BUFFER_SIZE];
+        char Data[BUFFER_SIZE];
         size_t Occupied = 0;
         Buffer *Next = null;
     };
+
+	// Counts how many extra buffers have been dynamically allocated.
+	size_t IndirectionCount = 0;
 
     Buffer _BaseBuffer;
     Buffer *CurrentBuffer = &_BaseBuffer;
@@ -23,6 +26,8 @@ struct String_Builder {
     Allocator_Closure Allocator;
 
 	// Append a string to the builder
+	void append(const char *str);
+	void append(const string_view &str);
 	void append(const string &str);
 
 	// Append a non encoded character to a string
@@ -40,10 +45,14 @@ struct String_Builder {
 	// Free the entire builder
 	void release();
 
-    ~String_Builder();
+	~String_Builder();
 };
 
-// This needs to be in global scope because all other to_string functions are global.
-string to_string(String_Builder &builder);
+
+// Returns a string containing all buffers appended
+namespace fmt {
+	string to_string(const String_Builder &builder);
+}
+
 
 GU_END_NAMESPACE

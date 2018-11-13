@@ -29,8 +29,10 @@ struct Temporary_Storage {
 
 inline Temporary_Storage *__temporary_allocator_data;
 
+namespace fmt {
 template <typename... Args>
-void print(const string &format, Args &&... argsPack);
+void print(const string_view &formatString, Args &&... args);
+}
 
 inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory,
                                    size_t oldSize, s32 options) {
@@ -50,10 +52,10 @@ inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, siz
                 }
                 __temporary_allocator_data = 0;
 
-                print("!!! Warning !!!\n");
-                print(">> Temporary allocator ran out of space, using malloc for allocation...\n");
-                print(">> Invalidating pointer to __temporary_allocator_data...\n");
-                if (switched) print(">> Context detected with temporary allocator, switching it to malloc...\n");
+                fmt::print("!!! Warning !!!\n");
+                fmt::print(">> Temporary allocator ran out of space, using malloc for allocation...\n");
+                fmt::print(">> Invalidating pointer to __temporary_allocator_data...\n");
+                if (switched) fmt::print(">> Context detected with temporary allocator, switching it to malloc...\n");
 
                 return __default_allocator(mode, allocatorData, size, oldMemory, oldSize, options);
             }
