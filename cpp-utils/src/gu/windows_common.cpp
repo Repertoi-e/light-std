@@ -2,8 +2,8 @@
 
 #if defined OS_WINDOWS
 
-#include "memory/allocator.h"
 #include "format/fmt.h"
+#include "memory/allocator.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -42,7 +42,7 @@ void print_string_to_console(const string &str) {
     if (!g_StdOut) {
         g_StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {
-			fmt::print(">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.");
+            fmt::print(">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.");
         }
         DWORD dw = 0;
         GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &dw);

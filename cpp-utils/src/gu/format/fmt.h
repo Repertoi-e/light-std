@@ -267,9 +267,9 @@ constexpr std::pair<string_view::Iterator, Parsing_Error_Code> parse_arg_id(stri
 
 // TODO: Remove the iterator return.
 inline std::pair<string_view::Iterator, Parsing_Error_Code> parse_and_validate_specifiers(Format_Type type,
-                                                                                   Parse_Context &parseContext,
-                                                                                   Dynamic_Format_Specs &specs) {
-	auto it = parseContext.It;
+                                                                                          Parse_Context &parseContext,
+                                                                                          Dynamic_Format_Specs &specs) {
+    auto it = parseContext.It;
 
     char32_t c = *it;
     if (!it.valid() || c == '}') {
@@ -951,12 +951,12 @@ string sprint(const string_view &formatString, Args &&... args) {
                     }
                     if (*p != '}') {
                         context.Out.append("{Unknown format specifier}");
-						return to_string(context.Out);
+                        return to_string(context.Out);
                     }
                     context.ParseContext.advance_to(p);
                 } else {
                     context.Out.append("{Missing \"}\" in format string}");
-					return to_string(context.Out);
+                    return to_string(context.Out);
                 }
             }
         }
@@ -990,9 +990,9 @@ inline string tprint(const string &formatString, Args &&... args) {
 }
 
 template <typename T>
-inline string to_string(const T& value) {
-	// TODO: Speed...
-	return sprint("{}", value);
+inline string to_string(const T &value) {
+    // TODO: Speed...
+    return sprint("{}", value);
 }
 
 }  // namespace fmt

@@ -13,7 +13,7 @@ struct Dynamic_Array {
     size_t Count = 0, _Reserved = 0;
 
     // The allocator used for expanding the array.
-	// This value is null until this object allocates memory or the user sets it manually.
+    // This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure Allocator;
 
     Dynamic_Array() {}
@@ -62,7 +62,7 @@ struct Dynamic_Array {
 
         // The reserve above might have invalidated the old pointer
         where = begin() + offset;
-		assert(where >= begin() && where <= end());
+        assert(where >= begin() && where <= end());
 
         if (offset < Count) {
             MoveElements(where + 1, where, Count - offset);
@@ -71,28 +71,28 @@ struct Dynamic_Array {
         Count++;
     }
 
-	// Insert a range of items (begin, end].
-	void insert(Data_Type *where, Data_Type *begin, Data_Type *end) {
-		size_t elementsCount = end - begin;
-		uptr_t offset = where - this->begin();
+    // Insert a range of items (begin, end].
+    void insert(Data_Type *where, Data_Type *begin, Data_Type *end) {
+        size_t elementsCount = end - begin;
+        uptr_t offset = where - this->begin();
 
-		size_t required = _Reserved;
-		while (Count + elementsCount >= required) {
-			required = 2 * _Reserved;
-			if (required < 8) required = 8;
-		}
-		_reserve(required);
+        size_t required = _Reserved;
+        while (Count + elementsCount >= required) {
+            required = 2 * _Reserved;
+            if (required < 8) required = 8;
+        }
+        _reserve(required);
 
-		// The reserve above might have invalidated the old pointer
-		where = this->begin() + offset;
-		assert(where >= this->begin() && where <= this->end());
+        // The reserve above might have invalidated the old pointer
+        where = this->begin() + offset;
+        assert(where >= this->begin() && where <= this->end());
 
-		if (offset < Count) {
-			MoveElements(where + elementsCount, where, Count - offset);
-		}
-		CopyElements(where, begin, elementsCount);
-		Count += elementsCount;
-	}
+        if (offset < Count) {
+            MoveElements(where + elementsCount, where, Count - offset);
+        }
+        CopyElements(where, begin, elementsCount);
+        Count += elementsCount;
+    }
 
     // Returns the index of item in the array, -1 if it's not found
     s64 find(const Data_Type &item) const {
@@ -180,7 +180,7 @@ struct Dynamic_Array {
 };
 
 //
-//	== and != for static and dynamic arrays
+//    == and != for static and dynamic arrays
 //
 #include "array.h"
 

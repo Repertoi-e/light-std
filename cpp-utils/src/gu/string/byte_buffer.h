@@ -11,7 +11,7 @@ struct Byte_Buffer {
     static const size_t MINIMUM_SIZE = 32;
 
     // The allocator used for expanding the buffer.
-	// This value is null until this object allocates memory or the user sets it manually.
+    // This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure Allocator;
 
     Byte_Buffer() {}

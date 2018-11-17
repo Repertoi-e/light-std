@@ -11,8 +11,8 @@ struct Array {
 
     constexpr T *begin() { return Data; }
     constexpr T *end() { return Data + Count; }
-	constexpr const T *begin() const { return Data; }
-	constexpr const T *end() const { return Data + Count; }
+    constexpr const T *begin() const { return Data; }
+    constexpr const T *end() const { return Data + Count; }
 
     constexpr T &operator[](size_t index) { return Data[index]; }
 

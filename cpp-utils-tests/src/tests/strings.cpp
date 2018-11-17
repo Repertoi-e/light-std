@@ -117,16 +117,16 @@ TEST(iterator) {
     assert(b == "hello");
 
     // You can also do this type of loop with 
-	// the non-const b when you don't plan on
-	// modifying the character:
+    // the non-const b when you don't plan on
+    // modifying the character:
     // for (char32_t ch : b) { .. }
     //
     // But this doesn't work since string isn't
-	// actually an array of char32_t's
+    // actually an array of char32_t's
     // for (char32_t &ch : b) { .. }
     
-	for (string::Code_Point_Ref ch : b) {
-		ch = U'Д';
+    for (string::Code_Point_Ref ch : b) {
+        ch = U'Д';
     }
     assert(b == u8"ДДДДД");
 }
@@ -161,16 +161,16 @@ TEST(concat) {
 }
 
 TEST(string_find) {
-	string a = "Hello";
-	assert(a.find('e') == 1);
-	assert(a.find('l') == 2);
-	assert(a.find_last('l') == 3);
+    string a = "Hello";
+    assert(a.find('e') == 1);
+    assert(a.find('l') == 2);
+    assert(a.find_last('l') == 3);
 
-	a = u8"Здрello";
-	assert(a.find('e') == 3);
-	assert(a.find('l') == 4);
-	assert(a.find_last('l') == 5);
-	assert(a.find_last('o') == 6);
+    a = u8"Здрello";
+    assert(a.find('e') == 3);
+    assert(a.find('l') == 4);
+    assert(a.find_last('l') == 5);
+    assert(a.find_last('o') == 6);
 }
 
 TEST(string_builder) {

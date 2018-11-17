@@ -29,7 +29,7 @@ struct Table {
     Value_Type UnfoundValue = Value_Type();
 
     // The allocator used for expanding the table.
-	// This value is null until this object allocates memory or the user sets it manually.
+    // This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure Allocator;
 
     // We store slots as SOA to minimize cache misses.
@@ -65,10 +65,10 @@ struct Table {
             Delete(_Values, _Reserved, Allocator);
             Delete(_Hashes, _Reserved, Allocator);
 
-			_OccupancyMask = null; 
-			_Keys = null;
-			_Values = null;
-			_Hashes = null;
+            _OccupancyMask = null;
+            _Keys = null;
+            _Values = null;
+            _Hashes = null;
             _Reserved = 0;
             Count = 0;
         }
@@ -198,11 +198,11 @@ struct Table {
             newSize = MINIMUM_SIZE;
         }
 
-		_reserve(newSize);
+        _reserve(newSize);
 
         for (size_t i = 0; i < oldReserved; i++) {
             if (oldOccupancyMask[i]) {
-				put(oldKeys[i], oldValues[i]);
+                put(oldKeys[i], oldValues[i]);
             }
         }
 

@@ -52,10 +52,10 @@ inline bool is_pointing_to_content(File_Path const &path) {
 inline string get_drive_letter(const File_Path &path) {
     // const char *pathStr = path.Path.Data;
     // const char *pos = find_cstring(pathStr, ":");
-	// 
+    //
     // if (pathStr - pos == 1) {
     //     string result;
-	// 	result.append_pointer_and_size(pathStr, pathStr - pos + 1);
+    //     result.append_pointer_and_size(pathStr, pathStr - pos + 1);
     //     return result;
     // }
     // return "";

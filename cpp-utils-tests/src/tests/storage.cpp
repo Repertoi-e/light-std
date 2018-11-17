@@ -23,34 +23,34 @@ TEST(static_array) {
 TEST(dynamic_array) {
     Dynamic_Array<s32> integers;
     for (s32 i = 0; i < 10; i++) {
-		integers.add(i);
+        integers.add(i);
     }
 
     for (s32 i = 0; i < 10; i++) {
         assert(integers[i] == i);
     }
 
-	integers.insert(integers.begin() + 3, -3);
+    integers.insert(integers.begin() + 3, -3);
     assert(integers == (Array<s32, 11>{0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9}));
 
-	integers.remove(integers.begin() + 4);
+    integers.remove(integers.begin() + 4);
     assert(integers == (Array<s32, 10>{0, 1, 2, -3, 4, 5, 6, 7, 8, 9}));
 
     size_t count = integers.Count;
     for (size_t i = 0; i < count; i++) {
-		integers.pop();
+        integers.pop();
     }
     assert(integers.Count == 0);
 
     for (s32 i = 0; i < 10; i++) {
-		integers.add_front(i);
+        integers.add_front(i);
     }
     assert(integers == (Array<s32, 10>{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}));
 
-	integers.remove(integers.end() - 1);
+    integers.remove(integers.end() - 1);
     assert(integers == (Array<s32, 9>{9, 8, 7, 6, 5, 4, 3, 2, 1}));
 
-	integers.remove(integers.begin());
+    integers.remove(integers.begin());
     assert(integers == (Array<s32, 8>{8, 7, 6, 5, 4, 3, 2, 1}));
 
     s64 findResult = integers.find(9);
@@ -97,7 +97,7 @@ TEST(table_copy) {
     table.put("9", 9);
 
     Table<string, s32> tableCopy = table;
-	tableCopy.put("11", 20);
+    tableCopy.put("11", 20);
 
     for (auto [key, value] : table) {
         assert(key == fmt::to_string(value));
@@ -114,13 +114,13 @@ TEST(table_pointer_to_value) {
     array.add(0);
     array.add(1);
     array.add(2);
-	
+    
     table.put("1", &array);
     {
         auto [found, wasFound] = table.find("1");
         assert(wasFound);
-		found->add(3);
-		found->add(4);
+        found->add(3);
+        found->add(4);
     }
     {
         auto [found, wasFound] = table.find("1");

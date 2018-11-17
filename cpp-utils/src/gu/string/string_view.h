@@ -396,8 +396,8 @@ struct string_view {
     // Note that the string returned is a view into _str_.
     //    It's not actually an allocated string, so it _str_ gets
     //    destroyed, then the returned string will be pointing to
-    //	  invalid memory. Copy the returned string explicitly if
-    //	  you intend to use it longer than this string.
+    //      invalid memory. Copy the returned string explicitly if
+    //      you intend to use it longer than this string.
     constexpr string_view substring(s64 begin, s64 end) const {
         // Convert to absolute [begin, end)
         size_t beginIndex = _translate_index(begin);

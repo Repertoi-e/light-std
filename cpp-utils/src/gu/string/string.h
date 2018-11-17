@@ -10,9 +10,9 @@ GU_BEGIN_NAMESPACE
 //
 // You can think of this structure as an extension to string_view,
 // providing:
-//	- Own allocated data pointer
-//	- Mutability
-//	- Dynamic reallocation when out of space
+//    - Own allocated data pointer
+//    - Mutability
+//    - Dynamic reallocation when out of space
 //
 // There is also a small optimization implemented for small strings.
 // Instead of dynamically allocating a block of memory we use a small
@@ -114,7 +114,7 @@ struct string {
             return Parent[Index + index];
         }
 
-		const char *to_pointer() { return string_view(Parent)._get_pointer_to_index((s64) Index); }
+        const char *to_pointer() { return string_view(Parent)._get_pointer_to_index((s64) Index); }
     };
 
     using Iterator_Mut = Iterator<false>;
@@ -201,8 +201,8 @@ struct string {
     // Find the last occurence of _other_
     size_t find_last(const string_view &other) const { return string_view(*this).find_last(other); }
 
-	b32 has(char32_t ch) const { return find(ch) != npos; }
-	b32 has(const string_view &other) const { return find(other) != npos; }
+    b32 has(char32_t ch) const { return find(ch) != npos; }
+    b32 has(const string_view &other) const { return find(other) != npos; }
 
     // Append one string to another
     void append(const string &other);

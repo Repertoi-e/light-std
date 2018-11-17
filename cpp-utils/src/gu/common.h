@@ -152,7 +152,7 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #ifdef NDEBUG
 #define assert(condition) ((void) 0)
 #else
-#define assert(condition) (!!(condition)) ? (void) 0 : __context.AssertFailed(__FILE__, __LINE__, u8 ## #condition)
+#define assert(condition) (!!(condition)) ? (void) 0 : __context.AssertFailed(__FILE__, __LINE__, u8## #condition)
 #endif
 
 template <typename T>

@@ -56,7 +56,7 @@ s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num) {
             return (u1 - u2);
         }
     }
-	// Memory is the same
+    // Memory is the same
     return 0;
 }
 #endif

@@ -17,7 +17,7 @@ struct Pool {
     size_t _BytesLeft = 0;
 
     // The allocator used for reserving the initial memory block
-	// This value is null until this object allocates memory or the user sets it manually.
+    // This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure BlockAllocator;
 
     Pool() {}

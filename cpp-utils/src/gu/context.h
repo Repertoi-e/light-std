@@ -53,10 +53,10 @@ inline Implicit_Context __context;
 
 // This is a helper macro to safely modify the implicit context in a block of code.
 // Usage:
-//	PUSH_CONTEXT { 
-//		... code with new context ... 
-//	}
-//	... old context is restored ...
+//    PUSH_CONTEXT {
+//        ... code with new context ...
+//    }
+//    ... old context is restored ...
 //
 // Don't pass a pointer as a parameter!
 #define PUSH_CONTEXT(newContext)                                \
@@ -72,6 +72,6 @@ inline Implicit_Context __context;
             } else                                              \
             body:
 
-#define CONTEXT_ALLOC __context.Allocator 
+#define CONTEXT_ALLOC __context.Allocator
 
 GU_END_NAMESPACE

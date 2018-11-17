@@ -60,25 +60,23 @@ constexpr char RESET_COLOR[] = "\x1b[0m";
 // A wrapper around std::locale used to reduce compile times since <locale>
 // is very heavy.
 struct Locale {
-	std::locale _Locale;
-	
-	explicit Locale(std::locale loc = std::locale()) : _Locale(loc) {}
+    std::locale _Locale;
+
+    explicit Locale(std::locale loc = std::locale()) : _Locale(loc) {}
 };
 
 class locale_provider {
-public:
-	virtual ~locale_provider() {}
-	virtual Locale locale();
+   public:
+    virtual ~locale_provider() {}
+    virtual Locale locale();
 };
 
 inline char32_t thousands_separator(locale_provider *lp) {
-	std::locale loc = lp ? lp->locale()._Locale : std::locale();
-	return (char32_t) std::use_facet<std::numpunct<wchar_t>>(loc).thousands_sep();
+    std::locale loc = lp ? lp->locale()._Locale : std::locale();
+    return (char32_t) std::use_facet<std::numpunct<wchar_t>>(loc).thousands_sep();
 }
 #else
-inline char32_t thousands_separator(locale_provider *lp) {
-	return GU_FMT_THOUSANDS_SEPARATOR;
-}
+inline char32_t thousands_separator(locale_provider *lp) { return GU_FMT_THOUSANDS_SEPARATOR; }
 #endif
 
 #undef POWERS_OF_10
