@@ -489,7 +489,7 @@ struct string_view {
         assert(Data);
         assert(n <= Length);
 
-        BytesUsed = _get_pointer_to_index(n) - Data;
+        BytesUsed = _get_pointer_to_index(-((s64)n)) - Data;
         Length -= n;
     }
 

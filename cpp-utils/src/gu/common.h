@@ -9,6 +9,7 @@
 #if !defined GU_NAMESPACE_NAME
 #define GU_BEGIN_NAMESPACE
 #define GU_END_NAMESPACE
+#define GU_NAMESPACE_NAME
 #else
 #define GU_BEGIN_NAMESPACE namespace GU_NAMESPACE_NAME {
 #define GU_END_NAMESPACE }
@@ -114,13 +115,6 @@ inline constexpr size_t operator"" _B(u64 i) {
 inline constexpr size_t operator"" _KiB(u64 i) { return (size_t)(i) << 10; }
 inline constexpr size_t operator"" _MiB(u64 i) { return (size_t)(i) << 20; }
 inline constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
-
-#if defined COMPILER_MSVC && defined GU_NO_CRT && !defined GU_FLTUSED_DEF
-#define GU_FLTUSED_DEF
-extern "C" {
-int _fltused;
-}
-#endif
 
 // Go-style defer macro
 // Use:

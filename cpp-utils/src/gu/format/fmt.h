@@ -207,7 +207,7 @@ struct Precision_Adapter {
     explicit constexpr Precision_Adapter(Dynamic_Format_Specs &specs, Parse_Context &parseContext)
         : Specs(specs), ParseContext(parseContext) {}
 
-    constexpr void operator()() { Specs.WidthRef = Argument_Ref(ParseContext.next_arg_id()); }
+    constexpr void operator()() { Specs.PrecisionRef = Argument_Ref(ParseContext.next_arg_id()); }
     constexpr void operator()(u32 id) { Specs.PrecisionRef = Argument_Ref(id); }
     constexpr void operator()(const string_view &id) { Specs.PrecisionRef = Argument_Ref(id); }
 };
@@ -261,7 +261,7 @@ constexpr std::pair<string_view::Iterator, Parsing_Error_Code> parse_arg_id(stri
     do {
         c = *++it;
     } while (is_identifier_start(c) || is_digit(c));
-    handler(string_view(it.to_pointer(), (size_t)(it - start)));
+    handler(string_view(start.to_pointer(), (size_t)(it - start)));
     return {it, Parsing_Error_Code::NONE};
 }
 
@@ -396,8 +396,7 @@ inline std::pair<string_view::Iterator, Parsing_Error_Code> parse_and_validate_s
     switch (type) {
         case Format_Type::NONE:
         case Format_Type::NAMED_ARGUMENT:
-            // Error: Invalid argument type
-            assert(false);
+            assert(false && "Invalid argument type");
             break;
         case Format_Type::S32:
         case Format_Type::U32:
@@ -442,12 +441,46 @@ inline std::pair<string_view::Iterator, Parsing_Error_Code> parse_and_validate_s
             }
             break;
         case Format_Type::CUSTOM:
-            // Custom format specifiers do not belong in this Formatter specialization
-            assert(false);
+            assert(false && "Custom format specifiers do not belong in this Formatter specialization");
             break;
     }
 
     return {it, Parsing_Error_Code::NONE};
+}
+
+template <typename T, typename U>
+b32 handle_dynamic_field(Format_Context &f, T &var, U &ref) {
+    if (ref.Kind != Argument_Ref::Kind::NONE) {
+        auto arg = ref.Kind == Argument_Ref::Kind::INDEX ? f.do_get_arg(ref.Index) : f.get_arg(ref.Name);
+
+        s64 value = 0;
+        switch (arg._Type) {
+            case Format_Type::S32:
+                value = (s64) arg._Value.S32_Value;
+                break;
+            case Format_Type::U32:
+                value = (s64) arg._Value.U32_Value;
+                break;
+            case Format_Type::S64:
+                value = (s64) arg._Value.S64_Value;
+                break;
+            case Format_Type::U64:
+                value = (s64) arg._Value.U64_Value;
+                break;
+            case Format_Type::BOOL:
+                value = (s64) arg._Value.S32_Value != 0;
+                break;
+            case Format_Type::CHAR:
+                value = (s64)(char32_t) arg._Value.S32_Value;
+                break;
+            default:
+                f.Out.append("{Dynamic width/precision type is not an integer}");
+                return false;
+        }
+        assert(value >= 0 && "Negative value for width/precision");
+        var = (u32) value;
+    }
+    return true;
 }
 
 // A functor that doesn't add a thousands separator.
@@ -648,7 +681,7 @@ void format_int_to_builder(String_Builder &builder, T value, const Format_Specs 
         } break;
         case 'n': {
             u32 numDigits = internal::count_digits(absValue);
-            char32_t sep = internal::thousands_separator(null);
+            char32_t sep = internal::thousands_separator();
             char sepEncoded[4];
             encode_code_point(sepEncoded, sep);
             string_view sepView(sepEncoded, get_size_of_code_point(sepEncoded));
@@ -688,47 +721,10 @@ struct Formatter<T, typename std::enable_if_t<Is_Format_Type<T>::value>> {
             return;
         }
 
-        bool failedMiserably = false;
-
         // If the arguments for width or precision were not constant but instead another argument,
         // check them and set Width/Precision fields in Specs.
-        auto handle = [&](auto &var, auto &ref) {
-            if (ref.Kind != Argument_Ref::Kind::NONE) {
-                auto arg = ref.Kind == Argument_Ref::Kind::INDEX ? f.get_arg(ref.Index) : f.get_arg(ref.Name);
-
-                s64 value = 0;
-                switch (arg._Type) {
-                    case Format_Type::S32:
-                        value = (s64) arg._Value.S32_Value;
-                        break;
-                    case Format_Type::U32:
-                        value = (s64) arg._Value.U32_Value;
-                        break;
-                    case Format_Type::S64:
-                        value = (s64) arg._Value.S64_Value;
-                        break;
-                    case Format_Type::U64:
-                        value = (s64) arg._Value.U64_Value;
-                        break;
-                    case Format_Type::BOOL:
-                        value = (s64) arg._Value.S32_Value != 0;
-                        break;
-                    case Format_Type::CHAR:
-                        value = (s64)(char32_t) arg._Value.S32_Value;
-                        break;
-                    default:
-                        f.Out.append("{Dynamic width/precision type is not an integer}");
-                        failedMiserably = true;
-                }
-                // Error: Negative value for width/precision
-                assert(value >= 0);
-                var = (u32) value;
-            }
-        };
-        if (failedMiserably) return;
-
-        handle(Specs.Width, Specs.WidthRef);
-        handle(Specs.Precision, Specs.PrecisionRef);
+        if (!internal::handle_dynamic_field(f, Specs.Width, Specs.WidthRef)) return;
+        if (!internal::handle_dynamic_field(f, Specs.Precision, Specs.PrecisionRef)) return;
 
         Format_Argument arg = make_argument(value);
         format_argument(f, arg, Specs);
@@ -765,8 +761,7 @@ inline void report_spec_parsing_error(String_Builder &out, internal::Parsing_Err
             out.append("{Invalid fill character \"{\"}");
             break;
         default:
-            // Oops! Not handling every error!
-            assert(false);
+            assert(false && "Not handling every error");
     }
 }
 
@@ -845,8 +840,7 @@ inline void format_argument(Format_Context &f, const Format_Argument &arg, const
             handle.format(f);
         } break;
         default:
-            // Error: Invalid argument type
-            assert(false);
+            assert(false && "Invalid argument type");
     }
 }
 
@@ -874,9 +868,8 @@ inline void helper_write(String_Builder &builder, string_view::Iterator begin, c
 template <typename... Args>
 string sprint(const string_view &formatString, Args &&... args) {
     fmt::Format_Arguments_Store<Args...> store = {args...};
-    auto args = fmt::Format_Arguments(store);
 
-    fmt::Format_Context context(formatString, args);
+    fmt::Format_Context context(formatString, fmt::Format_Arguments(store));
     fmt::Format_Argument arg;
 
     auto &it = context.ParseContext.It;
@@ -891,8 +884,7 @@ string sprint(const string_view &formatString, Args &&... args) {
         internal::helper_write(context.Out, it, p);
         ++p;
         if (p == end) {
-            // Error: Invalid format string
-            assert(false);
+            assert(false && "Invalid format string");
             return to_string(context.Out);
         }
 
@@ -941,6 +933,14 @@ string sprint(const string_view &formatString, Args &&... args) {
                         auto [end_it, error] =
                             fmt::internal::parse_and_validate_specifiers(arg._Type, context.ParseContext, specs);
                         p = end_it;
+
+                        // If the arguments for width or precision were not constant but instead another argument,
+                        // check them and set Width/Precision fields in specs.
+                        if (!internal::handle_dynamic_field(context, specs.Width, specs.WidthRef))
+                            return to_string(context.Out);
+                        if (!internal::handle_dynamic_field(context, specs.Precision, specs.PrecisionRef))
+                            return to_string(context.Out);
+
                         if (error != fmt::internal::Parsing_Error_Code::NONE) {
                             fmt::report_spec_parsing_error(context.Out, error);
                             return to_string(context.Out);

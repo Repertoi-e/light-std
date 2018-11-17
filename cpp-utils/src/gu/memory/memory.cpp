@@ -49,14 +49,14 @@ void *FillMemory(void *dest, int value, size_t num) {
 }
 
 s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num) {
-    for (; num--; ptr1++, ptr2++) {
-        byte u1 = *(byte *) s1;
-        byte u2 = *(byte *) s2;
-        if (u1 != u2) {
-            return (u1 - u2);
-        }
+    const byte *s1 = (const byte *) ptr1;
+    const byte *s2 = (const byte *) ptr2;
+
+    while (num-- > 0) {
+        if (*s1++ != *s2++) return s1[-1] < s2[-1] ? -1 : 1;
     }
-    // Memory is the same
+
+    // The memory regions match
     return 0;
 }
 #endif

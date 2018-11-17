@@ -45,7 +45,7 @@ struct Implicit_Context {
 };
 
 // Immutable context available everywhere
-// TODO: Make it thread local
+// TODO: This should be thread local
 inline Implicit_Context __context;
 
 #define OLD_CONTEXT_VAR_GEN_(LINE) __game_utils_old_context_var##LINE

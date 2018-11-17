@@ -2,6 +2,12 @@
 
 #if defined OS_WINDOWS
 
+#if defined COMPILER_MSVC && defined GU_NO_CRT
+extern "C" {
+int _fltused;
+}
+#endif
+
 #include "format/fmt.h"
 #include "memory/allocator.h"
 
@@ -33,7 +39,11 @@ void exit_program(int code) { _exit(code); }
 
 void default_assert_failed(const char *file, int line, const char *condition) {
     fmt::print("\033[31m>>> {}:{}, Assert failed: {}\033[0m\n", file, line, condition);
+#if defined COMPILER_MSVC
+    __debugbreak();
+#else
     exit_program(-1);
+#endif
 }
 
 static HANDLE g_StdOut = 0;

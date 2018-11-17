@@ -31,15 +31,13 @@ struct Parse_Context {
     // Returns the next argument index.
     constexpr u32 next_arg_id() {
         if (_NextArgId >= 0) return (u32) _NextArgId++;
-        // Error: "Cannot switch from manual to automatic argument indexing"
-        assert(false);
+        assert(false && "Cannot switch from manual to automatic argument indexing");
         return 0;
     }
 
     constexpr bool check_arg_id(u32) {
         if (_NextArgId > 0) {
-            // Error: "Cannot switch from manual to automatic argument indexing"
-            assert(false);
+            assert(false && "Cannot switch from manual to automatic argument indexing");
             return false;
         }
         _NextArgId = -1;
@@ -285,17 +283,19 @@ struct Named_Argument : Named_Argument_Base {
 };
 
 template <typename T>
-Init_Value<const void *, Format_Type::NAMED_ARGUMENT> make_value(const Named_Argument<T> &value) {
-    Format_Argument arg = make_argument(value.Value);
-    CopyMemory(value.Data, &arg, sizeof(Format_Argument));
-    return (const void *) (&value);
-}
-
-template <typename T>
 struct Get_Type {
     using value_type = decltype(make_value(std::declval<typename std::decay_t<T> &>()));
     static const Format_Type value = value_type::type_tag;
 };
+
+template <typename T>
+Init_Value<const void *, Format_Type::NAMED_ARGUMENT> make_value(const Named_Argument<T> &value) {
+    Format_Argument arg;
+    arg._Type = Get_Type<decltype(value.Value)>::value;
+    arg._Value = make_value(value.Value);
+    CopyMemory(value.Data, &arg, sizeof(Format_Argument));
+    return (const void *) (&value);
+}
 
 template <typename... Args>
 struct Format_Arguments_Store {
@@ -413,9 +413,7 @@ struct Argument_Map {
                     return;
                 } else if (type == Format_Type::NAMED_ARGUMENT) {
                     add(args._Values[i]);
-                    break;
                 }
-                break;
             }
         }
         for (u32 i = 0; true; ++i) {
@@ -424,9 +422,7 @@ struct Argument_Map {
                 return;
             } else if (type == Format_Type::NAMED_ARGUMENT) {
                 add(args._Args[i]._Value);
-                break;
             }
-            break;
         }
     }
 
@@ -452,7 +448,7 @@ struct Argument_Map {
 template <typename T>
 constexpr Format_Argument make_argument(const T &value) {
     Format_Argument arg;
-    arg._Type = Format_Arguments_Store::Get_Type<T>::value;
+    arg._Type = Get_Type<T>::value;
     arg._Value = make_value(value);
     return arg;
 }
@@ -469,8 +465,7 @@ struct Format_Context {
     Format_Argument do_get_arg(u32 argId) {
         auto result = Args.get(argId);
         if (!result) {
-            // Error: Argument index out of range
-            assert(false);
+            assert(false && "Argument index out of range");
         }
         return result;
     }
@@ -487,8 +482,7 @@ struct Format_Context {
         }
         auto result = ArgMap.find(name);
         if (result._Type == Format_Type::NONE) {
-            // Error: Argument with this name not found
-            assert(false);
+            assert(false && "Argument with this name not found");
         }
         return result;
     }
@@ -507,6 +501,17 @@ void Value::_format_custom_arg(const void *arg, Format_Context &f) {
     formatter.format(*static_cast<const T *>(arg), f);
 }
 
+struct Named_Argument_Helper {
+    string_view Name;
+
+    template <typename T>
+    Named_Argument<T> operator=(T &&value) const {
+        return {Name, std::forward<T>(value)};
+    }
+};
+
 }  // namespace fmt
+
+inline constexpr fmt::Named_Argument_Helper operator"" _arg(const char *str, size_t size) { return {{str, size}}; }
 
 GU_END_NAMESPACE

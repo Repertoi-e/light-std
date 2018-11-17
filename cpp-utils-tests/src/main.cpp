@@ -22,7 +22,7 @@ std::pair<size_t, Dynamic_Array<string>> run_tests_in_file(const string_view &fi
     for (const Test &test : tests) {
         // 1. Print the test's name.
         s32 length = Min(30, (s32) test.Name.Length);
-        fmt::print("        {:.{}} {} ", test.Name, length, string(".") * (35 - length));
+        fmt::print("        {:.{}} {:.{}} ", test.Name, length, "...................................", 35 - length);
 
         // 2. Run the actual test function
         Dynamic_Array<string> failedAsserts;
@@ -100,14 +100,4 @@ int main() {
         TEMPORARY_STORAGE_MARK_SCOPE;
         run_tests();
     }
-
-    string result = fmt::sprint("{}, {}, {}", 1, 2, 6);
-    assert(result == "1, 2, 6");
-    result = fmt::sprint("{2}, {0}, {1}", 1, 2, 6);
-    assert(result == "6, 1, 2");
-
-    result = fmt::sprint("int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}", 42);
-    assert(result == "int: 42;  hex: 2a;  oct: 52; bin: 101010");
-    result = fmt::sprint("int: {0:d};  hex: {0:#x};  oct: {0:#o};  bin: {0:#b}", 42);
-    assert(result == "int: 42;  hex: 0x2a;  oct: 052;  bin: 0b101010");
 }

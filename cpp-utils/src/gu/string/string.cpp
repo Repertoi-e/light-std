@@ -47,7 +47,12 @@ void string::swap(string &other) {
     if (Data != _StackData && other.Data != other._StackData) {
         std::swap(Data, other.Data);
     } else {
-        std::swap_ranges(_StackData, _StackData + SMALL_STRING_BUFFER_SIZE, other._StackData);
+        for (size_t i = 0; i < SMALL_STRING_BUFFER_SIZE; i++) {
+            auto temp = _StackData[i];
+            _StackData[i] = other._StackData[i];
+            other._StackData[i] = temp;
+        }
+
         b32 isOtherSmall = other.Data == other._StackData;
         if (Data != _StackData || !isOtherSmall) {
             if (Data == _StackData) {

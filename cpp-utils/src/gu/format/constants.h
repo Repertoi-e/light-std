@@ -2,8 +2,10 @@
 
 #include "../common.h"
 
+#if !defined GU_NO_CRT
 #if !defined GU_FMT_THOUSANDS_SEPARATOR
 #include <locale>
+#endif
 #endif
 
 GU_BEGIN_NAMESPACE
@@ -57,26 +59,16 @@ constexpr s16 POW10_EXPONENTS[] = {
 constexpr char RESET_COLOR[] = "\x1b[0m";
 
 #if !defined GU_FMT_THOUSANDS_SEPARATOR
-// A wrapper around std::locale used to reduce compile times since <locale>
-// is very heavy.
-struct Locale {
-    std::locale _Locale;
-
-    explicit Locale(std::locale loc = std::locale()) : _Locale(loc) {}
-};
-
-class locale_provider {
-   public:
-    virtual ~locale_provider() {}
-    virtual Locale locale();
-};
-
-inline char32_t thousands_separator(locale_provider *lp) {
-    std::locale loc = lp ? lp->locale()._Locale : std::locale();
+#if !defined GU_NO_CRT
+inline char32_t thousands_separator() {
+    std::locale loc = std::locale();
     return (char32_t) std::use_facet<std::numpunct<wchar_t>>(loc).thousands_sep();
 }
 #else
-inline char32_t thousands_separator(locale_provider *lp) { return GU_FMT_THOUSANDS_SEPARATOR; }
+inline char32_t thousands_separator() { return ','; }
+#endif
+#else
+inline char32_t thousands_separator() { return GU_FMT_THOUSANDS_SEPARATOR; }
 #endif
 
 #undef POWERS_OF_10
