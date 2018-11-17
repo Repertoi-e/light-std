@@ -1,6 +1,8 @@
+- Add "has" functions to containers to allow for more expressive python-like syntax
+	(e.g. if (str.has('C')) {...})
+
 - More string stuff
     Parsing from strings to types
-    Better formatting library in general
 - Console colors and text formatting utilites 
 
 - File system permissions, copy, move, create links

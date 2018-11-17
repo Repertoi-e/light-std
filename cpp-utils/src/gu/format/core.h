@@ -16,15 +16,16 @@ struct Named_Argument_Base;
 
 struct Parse_Context {
     string_view FormatString;
-	string_view::Iterator It;
+    string_view::Iterator It;
     s32 _NextArgId = 0;
 
-    explicit constexpr Parse_Context(const string_view &formatString) : FormatString(formatString), It(FormatString.begin()) {}
+    explicit constexpr Parse_Context(const string_view &formatString)
+        : FormatString(formatString), It(FormatString.begin()) {}
 
     constexpr void advance_to(string_view::Iterator it) {
-		s64 diff = it - FormatString.begin();
-		assert(diff >= 0);
-		It += (size_t) diff;
+        s64 diff = it - It;
+        assert(diff >= 0);
+        It += (size_t) diff;
     }
 
     // Returns the next argument index.
@@ -52,18 +53,12 @@ struct Format_Context;
 
 template <typename T, typename Enable = void>
 struct Formatter {
-    // static_assert(false, "There's no Formatter<T> specialization for this type.");
-
     // Parses format specifiers. Stops either at the end of the range or at the
     // terminating '}' and returns iterator pointing to that.
-    string_view::Iterator parse(const Parse_Context &);
+    string_view::Iterator parse(const Parse_Context &) { static_assert(false, "Formatter<T> not specialized"); }
 
-    void format(const T &, Format_Context &);
+    void format(const T &, Format_Context &) { static_assert(false, "Formatter<T> not specialized"); }
 };
-
-// template <typename T, typename Char, typename Enable = void>
-// struct Is_Convertible_To_Int : std::integral_constant<b32, !std::is_arithmetic_v<T> && std::is_convertible_v<T, s32>>
-// {};
 
 enum class Format_Type {
     NONE = 0,
@@ -88,13 +83,13 @@ enum class Format_Type {
     CUSTOM
 };
 inline Format_Type operator|(Format_Type lhs, Format_Type rhs) {
-	using T = std::underlying_type_t<Format_Type>;
-	return (Format_Type) ((T) lhs | (T) rhs);
+    using T = std::underlying_type_t<Format_Type>;
+    return (Format_Type)((T) lhs | (T) rhs);
 }
 inline Format_Type &operator|=(Format_Type &lhs, Format_Type rhs) {
-	using T = std::underlying_type_t<Format_Type>;
-	lhs = (Format_Type) ((T) lhs | (T) rhs);
-	return lhs;
+    using T = std::underlying_type_t<Format_Type>;
+    lhs = (Format_Type)((T) lhs | (T) rhs);
+    return lhs;
 }
 
 constexpr b32 is_type_integral(Format_Type type) {
@@ -154,7 +149,7 @@ struct Value {
     const Named_Argument_Base &as_named_arg() { return *static_cast<const Named_Argument_Base *>(Pointer_Value); }
 
     template <typename T>
-	static void _format_custom_arg(const void *arg, Format_Context &f);
+    static void _format_custom_arg(const void *arg, Format_Context &f);
 };
 
 // Value initializer used to delay conversion to value and reduce memory churn.
@@ -313,17 +308,21 @@ struct Format_Arguments_Store {
     static constexpr size_t DATA_SIZE = NUM_ARGS + (IS_PACKED && NUM_ARGS != 0 ? 0 : 1);
     value_type _Data[DATA_SIZE];
 
-	// This dummy template is required because
-	// otherwise you can't call the non-templated
-	// "_get_types_internal" from the templated one.
-	template <typename dummy>
-    static constexpr u64 _get_types_internal() { return 0ull; }
+    // This dummy template is required because
+    // otherwise you can't call the non-templated
+    // "_get_types_internal" from the templated one.
+    template <typename dummy>
+    static constexpr u64 _get_types_internal() {
+        return 0ull;
+    }
 
     template <typename dummy, typename Arg, typename... Args>
     static constexpr u64 _get_types_internal() {
         return ((u64) Get_Type<Arg>::value) | (_get_types_internal<dummy, Args...>() << 4);
     }
-    static constexpr s64 _get_types() { return IS_PACKED ? (s64)(_get_types_internal<s32, Args...>()) : -(s64)(NUM_ARGS); }
+    static constexpr s64 _get_types() {
+        return IS_PACKED ? (s64)(_get_types_internal<s32, Args...>()) : -(s64)(NUM_ARGS);
+    }
 
     static constexpr s64 TYPES = _get_types();
 
@@ -337,7 +336,7 @@ struct Format_Arguments {
     union {
         const Value *_Values;
         const Format_Argument *_Args;
-		const void *_DummyInitter;
+        const void *_DummyInitter;
     };
 
     Format_Type type(u32 index) const {
@@ -369,7 +368,8 @@ struct Format_Arguments {
     }
 
     template <typename... Args>
-    Format_Arguments(const Format_Arguments_Store<Args...> &store) : _Types((u64) store.TYPES), _DummyInitter(store._Data) {}
+    Format_Arguments(const Format_Arguments_Store<Args...> &store)
+        : _Types((u64) store.TYPES), _DummyInitter(store._Data) {}
 
     Format_Arguments(const Format_Argument *args, u32 count) : _Types(-((s64) count)) { _Args = args; }
 
@@ -502,9 +502,9 @@ struct Format_Context {
 
 template <typename T>
 void Value::_format_custom_arg(const void *arg, Format_Context &f) {
-	Formatter<T> formatter;
-	f.ParseContext.advance_to(formatter.parse(f.ParseContext));
-	formatter.format(*static_cast<const T *>(arg), f);
+    Formatter<T> formatter;
+    f.ParseContext.advance_to(formatter.parse(f.ParseContext));
+    formatter.format(*static_cast<const T *>(arg), f);
 }
 
 }  // namespace fmt
