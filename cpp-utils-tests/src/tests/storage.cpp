@@ -1,9 +1,9 @@
 #include "../test.h"
 
-#include <gu/memory/array.h>
-#include <gu/memory/dynamic_array.h>
+#include <cppu/memory/array.h>
+#include <cppu/memory/dynamic_array.h>
 
-#include <gu/format/fmt.h>
+#include <cppu/format/fmt.h>
 
 #include <array>
 

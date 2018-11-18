@@ -1,9 +1,9 @@
 #pragma once
 
-#include <gu/memory/dynamic_array.h>
-#include <gu/memory/table.h>
+#include <cppu/memory/dynamic_array.h>
+#include <cppu/memory/table.h>
 
-#include <gu/file/file_path.h>
+#include <cppu/file/file_path.h>
 
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.

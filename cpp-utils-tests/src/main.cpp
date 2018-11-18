@@ -1,8 +1,8 @@
 
-#include <gu/memory/pool.h>
-#include <gu/memory/table.h>
+#include <cppu/memory/pool.h>
+#include <cppu/memory/table.h>
 
-#include <gu/format/fmt.h>
+#include <cppu/format/fmt.h>
 
 #include "test.h"
 

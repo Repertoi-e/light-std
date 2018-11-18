@@ -35,6 +35,7 @@
 *.app
 
 bin/
+bin-int/
 .vscode/
 .sconsign.dblite
 /.vs
