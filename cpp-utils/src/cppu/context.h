@@ -46,7 +46,7 @@ struct Implicit_Context {
 
 // Immutable context available everywhere
 // TODO: This should be thread local
-inline Implicit_Context __context;
+inline const Implicit_Context __context;
 
 #define OLD_CONTEXT_VAR_GEN_(LINE) __game_utils_old_context_var##LINE
 #define OLD_CONTEXT_VAR_GEN(LINE) OLD_CONTEXT_VAR_GEN_(LINE)
@@ -59,17 +59,17 @@ inline Implicit_Context __context;
 //    ... old context is restored ...
 //
 // Don't pass a pointer as a parameter!
-#define PUSH_CONTEXT(newContext)                                \
-    Implicit_Context OLD_CONTEXT_VAR_GEN(__LINE__) = __context; \
-    if (true) {                                                 \
-        __context = newContext;                                 \
-        goto body;                                              \
-    } else                                                      \
-        while (true)                                            \
-            if (true) {                                         \
-                __context = OLD_CONTEXT_VAR_GEN(__LINE__);      \
-                break;                                          \
-            } else                                              \
+#define PUSH_CONTEXT(newContext)                                                             \
+    Implicit_Context OLD_CONTEXT_VAR_GEN(__LINE__) = __context;                              \
+    if (true) {                                                                              \
+        *const_cast<Implicit_Context *>(&__context) = newContext;                            \
+        goto body;                                                                           \
+    } else                                                                                   \
+        while (true)                                                                         \
+            if (true) {                                                                      \
+                *const_cast<Implicit_Context *>(&__context) = OLD_CONTEXT_VAR_GEN(__LINE__); \
+                break;                                                                       \
+            } else                                                                           \
             body:
 
 #define CONTEXT_ALLOC __context.Allocator

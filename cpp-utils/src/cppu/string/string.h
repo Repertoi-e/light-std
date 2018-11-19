@@ -53,6 +53,21 @@ struct string {
             }
         }
 
+        Iterator(const Iterator &other) : Parent(other.Parent), Index(other.Index) {}
+        Iterator(Iterator &&other) : Parent(other.Parent), Index(other.Index) {}
+
+        Iterator &operator=(const Iterator &other) {
+            assert(Parent == other.Parent);
+            Index = other.Index;
+            return *this;
+        }
+
+        Iterator &operator=(Iterator &&other) {
+            assert(Parent == other.Parent);
+            Index = other.Index;
+            return *this;
+        }
+
         Iterator &operator+=(s64 amount) {
             if ((amount < 0 && (s64) Index + amount < 0) || Index + amount >= Parent.Length) {
                 Index = npos;
@@ -114,7 +129,9 @@ struct string {
             return Parent[Index + index];
         }
 
-        const char *to_pointer() { return string_view(Parent)._get_pointer_to_index((s64) Index); }
+        // Returns whether this iterator contains a valid index.
+        constexpr b32 valid() const { return Index != npos; }
+        constexpr const char *to_pointer() const { return Parent._get_pointer_to_index((s64) Index); }
     };
 
     using Iterator_Mut = Iterator<false>;
@@ -324,6 +341,8 @@ struct string {
     Code_Point_Ref operator[](s64 index);
     // Read-only [] operator
     const char32_t operator[](s64 index) const;
+
+    operator bool() const { return Length != 0; }
 
     // Substring operator
     string_view operator()(s64 begin, s64 end) const;

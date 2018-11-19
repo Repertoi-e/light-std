@@ -153,6 +153,7 @@ struct Dynamic_Array {
     const T *end() const { return Data + Count; }
 
     Data_Type &operator[](size_t index) { return Data[index]; }
+    const Data_Type &operator[](size_t index) const { return Data[index]; }
 
     bool operator==(const Dynamic_Array &other) {
         if (Count != other.Count) return false;
@@ -214,5 +215,25 @@ template <typename T, typename U, size_t N>
 bool operator!=(const Array<U, N> &left, const Dynamic_Array<T> &right) {
     return right != left;
 }
+
+#include "../format/fmt.h"
+template <typename T>
+struct fmt::Formatter<Dynamic_Array<T>> {
+    string_view::Iterator parse(const Parse_Context &parseContext) { return parseContext.It; }
+
+    void format(const Dynamic_Array<T> &value, Format_Context &f) {
+        f.Out.append("{ { ");
+        if (value.Count > 0) {
+            f.Out.append(fmt::to_string(value[0]));
+            for (s32 i : range(1, value.Count)) {
+                f.Out.append(", ");
+                f.Out.append(fmt::to_string(value[i]));
+            }
+        }
+        f.Out.append(" }, Count: ");
+        f.Out.append(fmt::to_string(value.Count));
+        f.Out.append(" }");
+    }
+};
 
 CPPU_END_NAMESPACE

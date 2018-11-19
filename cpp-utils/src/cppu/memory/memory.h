@@ -38,8 +38,12 @@ s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num);
 CPPU_END_NAMESPACE
 extern "C" {
 // Defining intrinsic functions that the compiler may use to optimize.
-inline void *memcpy(void *dest, void const *src, size_t num) { return CPPU_NAMESPACE_NAME ::CopyMemory(dest, src, num); }
-inline void *memmove(void *dest, void const *src, size_t num) { return CPPU_NAMESPACE_NAME ::MoveMemory(dest, src, num); }
+inline void *memcpy(void *dest, void const *src, size_t num) {
+    return CPPU_NAMESPACE_NAME ::CopyMemory(dest, src, num);
+}
+inline void *memmove(void *dest, void const *src, size_t num) {
+    return CPPU_NAMESPACE_NAME ::MoveMemory(dest, src, num);
+}
 inline void *memset(void *dest, int value, size_t num) { return CPPU_NAMESPACE_NAME ::FillMemory(dest, value, num); }
 inline s32 memcmp(const void *ptr1, const void *ptr2, size_t num) {
     return CPPU_NAMESPACE_NAME ::CompareMemory(ptr1, ptr2, num);
@@ -112,9 +116,9 @@ T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
 // to use the memory allocated for longer time than just simple scopes (for example storage in
 // data structures) and be robust to changes in the context allocator, you must save it in a
 // variable that either the user can specify or just for your own internal purposes,
-// and save it for later when you Delete the allocated storage. 
+// and save it for later when you Delete the allocated storage.
 //
-// If you don't use the same allocator when you New and Delete something, you most probably 
+// If you don't use the same allocator when you New and Delete something, you most probably
 // will crash, because there is little guarantee that the two allocators are compatible.
 template <typename T>
 T *New_And_Ensure_Allocator(Allocator_Closure &allocator) {

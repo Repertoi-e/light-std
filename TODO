@@ -2,6 +2,9 @@
 	(e.g. if (str.has('C')) {...})
 - Unify APIs for containers (naming and usage is very inconsistent atm)
 
+- Re-do test framework assert functionality 
+- Re-do string and string_view iterators (too messy with little value atm)
+
 - Parsing from strings to types
 - Make fmt module better (cleaner, less code, etc.)
 	Also write tests that stress features thoroughly 

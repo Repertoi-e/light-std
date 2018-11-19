@@ -489,7 +489,7 @@ struct string_view {
         assert(Data);
         assert(n <= Length);
 
-        BytesUsed = _get_pointer_to_index(-((s64)n)) - Data;
+        BytesUsed = _get_pointer_to_index(-((s64) n)) - Data;
         Length -= n;
     }
 
@@ -592,6 +592,8 @@ struct string_view {
 
     // Read-only [] operator
     constexpr const char32_t operator[](s64 index) const { return get(index); }
+
+    operator bool() const { return Length != 0; }
 
     // Substring operator
     constexpr string_view operator()(s64 begin, s64 end) const { return substring(begin, end); }

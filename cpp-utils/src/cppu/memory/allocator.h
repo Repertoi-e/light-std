@@ -2,6 +2,8 @@
 
 #include "../common.h"
 
+#include "range.h"
+
 CPPU_BEGIN_NAMESPACE
 
 enum class Allocator_Mode { ALLOCATE = 0, RESIZE, FREE, FREE_ALL };

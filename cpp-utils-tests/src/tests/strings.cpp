@@ -108,24 +108,23 @@ TEST(iterator) {
     assert(result == a);
     result.clear();
 
-    string b = "Hello";
+    string b = "HeLLo";
     // In order to modify a character, use a string::Code_Point_Ref variable
-    // This will be same as writing "for (auto ch : b)", since b is non-const.
-    for (string::Code_Point_Ref ch : b) {
+    // This will be same as writing "for (string::Code_Point_Ref ch : b)", since b is non-const.
+    for (auto ch : b) {
         ch = to_lower(ch);
     }
     assert(b == "hello");
 
-    // You can also do this type of loop with 
-    // the non-const b when you don't plan on
-    // modifying the character:
+    // You can also write this loop
+    // when you don't plan on modifying the character:
     // for (char32_t ch : b) { .. }
     //
-    // But this doesn't work since string isn't
-    // actually an array of char32_t's
+    // But:
     // for (char32_t &ch : b) { .. }
-    
-    for (string::Code_Point_Ref ch : b) {
+    // doesn't work since string isn't
+    // actually an array of chars
+    for (auto ch : b) {
         ch = U'Д';
     }
     assert(b == u8"ДДДДД");

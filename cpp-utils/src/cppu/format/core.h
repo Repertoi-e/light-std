@@ -512,6 +512,6 @@ struct Named_Argument_Helper {
 
 }  // namespace fmt
 
-inline constexpr fmt::Named_Argument_Helper operator"" _arg(const char *str, size_t size) { return {{str, size}}; }
+inline constexpr fmt::Named_Argument_Helper operator"" _a(const char *str, size_t size) { return {{str, size}}; }
 
 CPPU_END_NAMESPACE

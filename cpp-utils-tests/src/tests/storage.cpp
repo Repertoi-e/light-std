@@ -31,10 +31,10 @@ TEST(dynamic_array) {
     }
 
     integers.insert(integers.begin() + 3, -3);
-    assert(integers == (Array<s32, 11>{0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9}));
+    assert(integers == to_array<s32>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
 
     integers.remove(integers.begin() + 4);
-    assert(integers == (Array<s32, 10>{0, 1, 2, -3, 4, 5, 6, 7, 8, 9}));
+    assert(integers == to_array<s32>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
     size_t count = integers.Count;
     for (size_t i = 0; i < count; i++) {
@@ -45,13 +45,13 @@ TEST(dynamic_array) {
     for (s32 i = 0; i < 10; i++) {
         integers.add_front(i);
     }
-    assert(integers == (Array<s32, 10>{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}));
+    assert(integers == to_array<s32>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 
     integers.remove(integers.end() - 1);
-    assert(integers == (Array<s32, 9>{9, 8, 7, 6, 5, 4, 3, 2, 1}));
+    assert(integers == to_array<s32>(9, 8, 7, 6, 5, 4, 3, 2, 1));
 
     integers.remove(integers.begin());
-    assert(integers == (Array<s32, 8>{8, 7, 6, 5, 4, 3, 2, 1}));
+    assert(integers == to_array<s32>(8, 7, 6, 5, 4, 3, 2, 1));
 
     s64 findResult = integers.find(9);
     assert(findResult == -1);
@@ -114,7 +114,7 @@ TEST(table_pointer_to_value) {
     array.add(0);
     array.add(1);
     array.add(2);
-    
+
     table.put("1", &array);
     {
         auto [found, wasFound] = table.find("1");

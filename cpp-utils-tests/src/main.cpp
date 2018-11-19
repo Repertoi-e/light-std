@@ -31,7 +31,7 @@ std::pair<size_t, Dynamic_Array<string>> run_tests_in_file(const string_view &fi
         Assert_Function defaultAssert = testContext.AssertFailed;
         testContext.AssertFailed = [&](const char *file, int line, const char *condition) {
             if (fileName == get_file_path_relative_to_src_or_just_file_name(file)) {
-                failedAsserts.add(fmt::sprint("{}:{} Assert failed: %", fileName, line, condition));
+                failedAsserts.add(fmt::sprint("{}:{} Assert failed: {}", fileName, line, condition));
                 assertsCalledCount++;
             } else {
                 defaultAssert(file, line, condition);

@@ -47,7 +47,8 @@ inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, siz
 
                 if (__context.Allocator.Function == __temporary_allocator ||
                     __context.Allocator.Data == __temporary_allocator_data) {
-                    __context.Allocator = MALLOC;
+                    // We know what we are doing...
+                    const_cast<Implicit_Context *>(&__context)->Allocator = MALLOC;
                     switched = true;
                 }
                 __temporary_allocator_data = 0;

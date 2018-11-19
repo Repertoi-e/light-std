@@ -32,7 +32,9 @@ TEST(positional_arguments) {
 }
 
 TEST(named_arguments) {
-    assert(fmt::sprint("{first}, {second}, {third}", "first"_arg = 1, "second"_arg = 2, "third"_arg = 6) == "1, 2, 6");
+    assert(fmt::sprint("{first}, {second}, {third}", "first"_a = 1, "second"_a = 2, "third"_a = 6) == "1, 2, 6");
+    assert(fmt::sprint("{second}, {first}, {third}", "first"_a = 1, "second"_a = 2, "third"_a = 6) == "2, 1, 6");
+    assert(fmt::sprint("{third}, {second}, {first}", "first"_a = 1, "second"_a = 2, "third"_a = 6) == "6, 2, 1");
 }
 
 TEST(numeric) {
