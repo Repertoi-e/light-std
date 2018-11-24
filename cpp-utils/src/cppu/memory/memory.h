@@ -21,7 +21,7 @@ CPPU_BEGIN_NAMESPACE
 #undef ZeroMemory
 #endif
 
-#if !defined GU_NO_CRT
+#if !defined CPPU_NO_CRT
 #include <cstring>
 
 inline void *CopyMemory(void *dest, void const *src, size_t num) { return memcpy(dest, src, num); }

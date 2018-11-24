@@ -2,7 +2,7 @@
 
 #if defined OS_WINDOWS
 
-#if defined COMPILER_MSVC && defined GU_NO_CRT
+#if defined COMPILER_MSVC && defined CPPU_NO_CRT
 extern "C" {
 int _fltused;
 }
@@ -59,7 +59,7 @@ void print_string_to_console(const string &str) {
         SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     }
     DWORD ignored;
-    WriteFile(g_StdOut, str.Data, (DWORD) str.BytesUsed, &ignored, null);
+    WriteFile(g_StdOut, str.Data, (DWORD) str.ByteLength, &ignored, null);
 }
 
 void wait_for_input(b32 message) {

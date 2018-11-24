@@ -1,13 +1,12 @@
 - Add "has" functions to containers to allow for more expressive python-like syntax
 	(e.g. if (str.has('C')) {...})
 - Unify APIs for containers (naming and usage is very inconsistent atm)
+- Write iterators for all containers
 
 - Re-do test framework assert functionality 
-- Re-do string and string_view iterators (too messy with little value atm)
 
 - Parsing from strings to types
-- Make fmt module better (cleaner, less code, etc.)
-	Also write tests that stress features thoroughly 
+- Write more fmt tests
 - Console colors and text formatting utilites 
 
 - File system permissions, copy, move, create links

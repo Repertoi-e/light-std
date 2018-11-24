@@ -37,14 +37,16 @@ using f64 = double;
 using b32 = s32;
 
 constexpr auto null = nullptr;
-// This constant is used to represent an invalid index
-// (e.g. the result of a search)
-static constexpr size_t npos = (size_t) -1;
 
 // Note that we assume we are on x64 architecture.
 // For now we don't support 32 bit.
 using ptr_t = s64;
 using uptr_t = u64;
+using size_t = uptr_t;
+
+// This constant is used to represent an invalid index
+// (e.g. the result of a search)
+static constexpr size_t npos = (size_t) -1;
 
 constexpr s32 MSVC = 1;
 constexpr s32 CLANG = 2;

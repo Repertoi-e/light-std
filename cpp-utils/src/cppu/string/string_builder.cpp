@@ -28,9 +28,9 @@ void String_Builder::reset() {
 
 void String_Builder::append(const char *str) { append(string_view(str)); }
 
-void String_Builder::append(const string_view &str) { append_pointer_and_size(str.Data, str.BytesUsed); }
+void String_Builder::append(const string_view &str) { append_pointer_and_size(str.Data, str.ByteLength); }
 
-void String_Builder::append(const string &str) { append_pointer_and_size(str.Data, str.BytesUsed); }
+void String_Builder::append(const string &str) { append_pointer_and_size(str.Data, str.ByteLength); }
 
 void String_Builder::append(char32_t codePoint) {
     char encoded[4];

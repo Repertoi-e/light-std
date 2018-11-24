@@ -187,7 +187,7 @@ template <class ConversionTraits, class Iter1, class Iter2>
 void encode(Iter1 start, Iter1 end, Iter2 out) {
     Iter1 iter = start;
     int start_bit = 0;
-    bool has_backlog = false;
+    b32 has_backlog = false;
     char backlog = 0;
 
     while (has_backlog || iter != end) {

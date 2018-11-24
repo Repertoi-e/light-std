@@ -2,7 +2,7 @@
 
 CPPU_BEGIN_NAMESPACE
 
-#if defined GU_NO_CRT
+#if defined CPPU_NO_CRT
 void *CopyMemory(void *dest, void const *src, size_t num) {
     byte *d = (byte *) dest;
     byte const *s = (byte const *) src;

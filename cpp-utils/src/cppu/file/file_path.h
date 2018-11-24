@@ -42,7 +42,7 @@ inline void convert_to_forward_slashes(File_Path &path) {
 }
 
 // True if the path has a trailing separator
-inline bool is_pointing_to_content(File_Path const &path) {
+inline b32 is_pointing_to_content(File_Path const &path) {
     return path.Path[path.Path.Length - 1] == OS_PATH_SEPARATOR;
 }
 

@@ -6,16 +6,23 @@
 
 CPPU_BEGIN_NAMESPACE
 
+string::Code_Point &string::Code_Point::operator=(char32_t other) {
+    Parent.set((s64) Index, other);
+    return *this;
+}
+
+string::Code_Point::operator char32_t() { return ((const string &) Parent).get((s64) Index); }
+
 string::string(const char *str) : string(str, str ? cstring_strlen(str) : 0) {}
 
 string::string(const char *str, size_t size) {
-    BytesUsed = size;
-    if (BytesUsed > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_And_Ensure_Allocator<char>(BytesUsed, Allocator);
-        _Reserved = BytesUsed;
+    ByteLength = size;
+    if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
+        Data = New_And_Ensure_Allocator<char>(ByteLength, Allocator);
+        _Reserved = ByteLength;
     }
-    if (str && BytesUsed) {
-        CopyMemory(Data, str, BytesUsed);
+    if (str && ByteLength) {
+        CopyMemory(Data, str, ByteLength);
 
         const char *end = str + size;
         while (str < end) {
@@ -25,19 +32,19 @@ string::string(const char *str, size_t size) {
     }
 }
 
-string::string(const string_view &view) : string(view.Data, view.BytesUsed) {}
+string::string(const string_view &view) : string(view.Data, view.ByteLength) {}
 
 string::string(const string &other) {
-    BytesUsed = other.BytesUsed;
+    ByteLength = other.ByteLength;
     Length = other.Length;
     Allocator = other.Allocator;
 
-    if (BytesUsed > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_And_Ensure_Allocator<char>(BytesUsed, Allocator);
-        _Reserved = BytesUsed;
+    if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
+        Data = New_And_Ensure_Allocator<char>(ByteLength, Allocator);
+        _Reserved = ByteLength;
     }
-    if (other.Data && BytesUsed) {
-        CopyMemory(Data, other.Data, BytesUsed);
+    if (other.Data && ByteLength) {
+        CopyMemory(Data, other.Data, ByteLength);
     }
 }
 
@@ -70,7 +77,7 @@ void string::swap(string &other) {
     std::swap(Allocator, other.Allocator);
 
     std::swap(_Reserved, other._Reserved);
-    std::swap(BytesUsed, other.BytesUsed);
+    std::swap(ByteLength, other.ByteLength);
     std::swap(Length, other.Length);
 }
 
@@ -107,13 +114,13 @@ void string::release() {
     clear();
 }
 
-string::Iterator_Mut string::begin() { return Iterator_Mut(*this, 0); }
-string::Iterator_Mut string::end() { return Iterator_Mut(*this, npos); }
-string::Iterator_Const string::begin() const { return Iterator_Const(*this, 0); }
-string::Iterator_Const string::end() const { return Iterator_Const(*this, npos); }
+string::iterator string::begin() { return iterator(*this, 0); }
+string::iterator string::end() { return iterator(*this, Length); }
+string::const_iterator string::begin() const { return const_iterator(*this, 0); }
+string::const_iterator string::end() const { return const_iterator(*this, Length); }
 
-string::Code_Point_Ref string::operator[](s64 index) { return Code_Point_Ref(*this, get(index), index); }
-const char32_t string::operator[](s64 index) const { return get(index); }
+string::code_point string::operator[](s64 index) { return get(index); }
+char32_t string::operator[](s64 index) const { return get(index); }
 
 string_view string::operator()(s64 begin, s64 end) const { return substring(begin, end); }
 
@@ -125,7 +132,7 @@ void string::reserve(size_t size) {
         // If we are small but we need more size, it's time to convert
         // to a dynamically allocated memory.
         Data = New_And_Ensure_Allocator<char>(size, Allocator);
-        CopyMemory(Data, _StackData, BytesUsed);
+        CopyMemory(Data, _StackData, ByteLength);
         _Reserved = size;
     } else {
         // Return if there is enough space
@@ -137,11 +144,14 @@ void string::reserve(size_t size) {
 }
 
 void string::set(s64 index, char32_t codePoint) {
-    assert(index < (s64) Length);
+    const char *target = get_pointer_to_code_point_at(Data, Length, index);
 
-    char *target = (char *) string_view(*this)._get_pointer_to_index(index);
+    uptr_t offset = (uptr_t)(target - Data);
+    assert(offset < ByteLength);
 
-    size_t sizeAtTarget = get_size_of_code_point(target);
+    char *at = Data + offset;
+
+    size_t sizeAtTarget = get_size_of_code_point(at);
     assert(sizeAtTarget);
 
     size_t codePointSize = get_size_of_code_point(codePoint);
@@ -151,52 +161,53 @@ void string::set(s64 index, char32_t codePoint) {
         // If we get here, the size of the codepoint we want to encode
         // is larger than the code point already there, so we need to move
         // the data to make enough space.
-        reserve(BytesUsed - difference);
-        // We need to recalculate target, because the reserve call above
+        reserve(ByteLength - difference);
+
+        // We need to recalculate _at_, because the reserve call above
         // might have moved the Data to a new memory location.
-        target = (char *) string_view(*this)._get_pointer_to_index(index);
+        at = Data + offset;
 
-        MoveMemory(target + codePointSize, target + sizeAtTarget, BytesUsed - (target - Data) - sizeAtTarget);
+        MoveMemory(at + codePointSize, at + sizeAtTarget, ByteLength - (at - Data) - sizeAtTarget);
     } else if (difference > 0) {
-        MoveMemory(target + codePointSize, target + sizeAtTarget, BytesUsed - (target - Data) - sizeAtTarget);
+        MoveMemory(at + codePointSize, at + sizeAtTarget, ByteLength - (at - Data) - sizeAtTarget);
     }
-    BytesUsed -= difference;
+    ByteLength -= difference;
 
-    encode_code_point(target, codePoint);
+    encode_code_point(at, codePoint);
 }
 
 void string::append(const string &other) {
-    size_t neededCapacity = BytesUsed + other.BytesUsed;
+    size_t neededCapacity = ByteLength + other.ByteLength;
     reserve(neededCapacity);
 
-    CopyMemory(Data + BytesUsed, other.Data, other.BytesUsed);
+    CopyMemory(Data + ByteLength, other.Data, other.ByteLength);
 
-    BytesUsed += other.BytesUsed;
+    ByteLength += other.ByteLength;
     Length += other.Length;
 }
 
 void string::append(char32_t codePoint) {
     size_t codePointSize = get_size_of_code_point(codePoint);
-    size_t neededCapacity = BytesUsed + codePointSize;
+    size_t neededCapacity = ByteLength + codePointSize;
     reserve(neededCapacity);
 
-    char *s = Data + BytesUsed;
+    char *s = Data + ByteLength;
 
     encode_code_point(s, codePoint);
 
-    BytesUsed += codePointSize;
+    ByteLength += codePointSize;
     Length++;
 }
 
 void string::append_cstring(const char *other) { append_pointer_and_size(other, cstring_strlen(other)); }
 
 void string::append_pointer_and_size(const char *data, size_t size) {
-    size_t neededCapacity = BytesUsed + size;
+    size_t neededCapacity = ByteLength + size;
     reserve(neededCapacity);
 
-    CopyMemory(Data + BytesUsed, data, size);
+    CopyMemory(Data + ByteLength, data, size);
 
-    BytesUsed = neededCapacity;
+    ByteLength = neededCapacity;
 
     const char *end = data + size;
     while (data < end) {
@@ -207,7 +218,7 @@ void string::append_pointer_and_size(const char *data, size_t size) {
 
 void string::repeat(size_t n) {
     assert(n > 0);
-    reserve(n * BytesUsed);
+    reserve(n * ByteLength);
     string pattern = *this;
     for (size_t i = 1; i < n; i++) {
         append(pattern);

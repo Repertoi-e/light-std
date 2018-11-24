@@ -43,7 +43,7 @@ inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, siz
             [[fallthrough]];
         case Allocator_Mode::RESIZE: {
             if (storage->Occupied + size > storage->Size) {
-                bool switched = false;
+                b32 switched = false;
 
                 if (__context.Allocator.Function == __temporary_allocator ||
                     __context.Allocator.Data == __temporary_allocator_data) {

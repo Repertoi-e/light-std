@@ -7,55 +7,52 @@
 
 TEST(code_point_size) {
     string ascii = "abc";
-    assert(ascii.BytesUsed == 3 && ascii.Length == 3);
+    assert(ascii.ByteLength == 3 && ascii.Length == 3);
 
     string cyrillic = u8"абв";
-    assert(cyrillic.BytesUsed == 6 && cyrillic.Length == 3);
+    assert(cyrillic.ByteLength == 6 && cyrillic.Length == 3);
 
     string devanagari = u8"\u0904\u0905\u0906";
-    assert(devanagari.BytesUsed == 9 && devanagari.Length == 3);
+    assert(devanagari.ByteLength == 9 && devanagari.Length == 3);
 
     string supplementary = u8"\U0002070E\U00020731\U00020779";
-    assert(supplementary.BytesUsed == 12 && supplementary.Length == 3);
+    assert(supplementary.ByteLength == 12 && supplementary.Length == 3);
 
     string mixed = ascii + cyrillic + devanagari + supplementary;
-    assert(mixed.BytesUsed == 12 + 9 + 6 + 3 && mixed.Length == 3 + 3 + 3 + 3);
+    assert(mixed.ByteLength == 12 + 9 + 6 + 3 && mixed.Length == 3 + 3 + 3 + 3);
 }
 
 TEST(substring) {
     string a = "Hello, world!";
-    string_view b = a.substring(2, 5);
-    assert(b == "llo");
-    b = a.substring(7, a.Length);
-    assert(b == "world!");
-    b = a.substring(0, -1);
-    assert(b == "Hello, world");
-    b = a.substring(-6, -1);
-    assert(b == "world");
-}
+    assert(a.substring(2, 5) == "llo");
+    assert(a.substring(7, a.Length) == "world!");
+    assert(a.substring(0, -1) == "Hello, world");
+    assert(a.substring(-6, -1) == "world");
 
-TEST(substring_operator) {
-    string a = "Hello, world!";
-    string_view b = a(2, 5);
-    assert(b == "llo");
-    b = a(7, a.Length);
-    assert(b == "world!");
-    b = a(0, -1);
-    assert(b == "Hello, world");
-    b = a(-6, -1);
-    assert(b == "world");
+    assert(a(2, 5) == "llo");
+    assert(a(7, a.Length) == "world!");
+    assert(a(0, -1) == "Hello, world");
+    assert(a(-6, -1) == "world");
 }
 
 TEST(substring_mixed_sizes) {
     string a = u8"Хеllo, уоrлd!";
-    string_view b = a.substring(2, 5);
-    assert(b == "llo");
-    b = a.substring(7, a.Length);
-    assert(b == u8"уоrлd!");
-    b = a.substring(0, -1);
-    assert(b == u8"Хеllo, уоrлd");
-    b = a.substring(-6, -1);
-    assert(b == u8"уоrлd");
+    assert(a.substring(2, 5) == "llo");
+    assert(a.substring(7, a.Length) == u8"уоrлd!");
+    assert(a.substring(0, -1) == u8"Хеllo, уоrлd");
+    assert(a.substring(-6, -1) == u8"уоrлd");
+}
+
+TEST(index) {
+    string a = "Hello";
+    assert(a[0] == 'H');
+    assert(a[1] == 'e');
+    assert(a[2] == 'l');
+    assert(a[3] == 'l');
+    assert(a[4] == 'o');
+
+    a[0] = 'X';
+    assert(a[0] == 'X');
 }
 
 TEST(utility_functions) {
@@ -74,7 +71,7 @@ TEST(utility_functions) {
     assert(!b.ends_with("world!!"));
 }
 
-TEST(modify_and_index) {
+TEST(modify) {
     string a = "aDc";
     a.set(1, 'b');
     assert(a == "abc");
@@ -100,34 +97,30 @@ TEST(modify_and_index) {
 }
 
 TEST(iterator) {
-    const string a = "Hello";
+    string a = "Hello";
+
     string result = "";
-    for (char32_t ch : a) {
+    for (auto ch : a) {
         result += ch;
     }
     assert(result == a);
-    result.clear();
 
     string b = "HeLLo";
-    // In order to modify a character, use a string::Code_Point_Ref variable
-    // This will be same as writing "for (string::Code_Point_Ref ch : b)", since b is non-const.
+    // In order to modify a character, use a string::code_point
+    // This will be same as writing "for (string::code_point ch : b)", since b is non-const.
+    // Note that when b is const, the type of ch is just char32_t (you can't take a code point reference)
     for (auto ch : b) {
         ch = to_lower(ch);
     }
     assert(b == "hello");
-
-    // You can also write this loop
-    // when you don't plan on modifying the character:
-    // for (char32_t ch : b) { .. }
-    //
-    // But:
-    // for (char32_t &ch : b) { .. }
-    // doesn't work since string isn't
-    // actually an array of chars
     for (auto ch : b) {
         ch = U'Д';
     }
     assert(b == u8"ДДДДД");
+
+    // for (char32_t &ch : b) { .. }
+    // doesn't work since string isn't
+    // actually an array of char32_t
 }
 
 TEST(concat) {
@@ -150,12 +143,12 @@ TEST(concat) {
     string result;
     for (s32 i = 0; i < 10; i++) {
         result += 'i';
-        assert(result.BytesUsed == i + 1 && result.Length == i + 1);
+        assert(result.ByteLength == i + 1 && result.Length == i + 1);
     }
     result.release();
     for (s32 i = 0; i < 10; i++) {
         result += u8"Д";
-        assert(result.BytesUsed == 2 * (i + 1) && result.Length == i + 1);
+        assert(result.ByteLength == 2 * (i + 1) && result.Length == i + 1);
     }
 }
 
@@ -182,50 +175,3 @@ TEST(string_builder) {
     string result = fmt::to_string(builder);
     assert(result == "Hello, world!");
 }
-
-/*
-TEST(format_string) {
-    assert(to_string("Hello, world!", 0) == "Hello, world!");
-    assert(to_string("Hello, world!", 20) == "Hello, world!       ");
-    assert(to_string("Hello, world!", 13) == "Hello, world!");
-    assert(to_string("Hello, world!", 12) == "Hello, wo...");
-    assert(to_string("Hello, world!", 3) == "...");
-    assert(to_string("Hello, world!", 2) == "..");
-    assert(to_string("Hello, world!", 1) == ".");
-    assert(to_string("Hello, world!", -12) == "...o, world!");
-    assert(to_string("Hello, world!", -13) == "Hello, world!");
-    assert(to_string("Hello, world!", -20) == "       Hello, world!");
-}
-
-TEST(format_float) {
-    assert(to_string(2.40) == "2.400000");
-    assert(to_string(2.12359012385, 0, 3) == "2.124");
-    assert(to_string(123512.1241242222222222, 8, 9) == "123512.124124222");
-    assert(to_string(22135.42350, 20, 1) == "             22135.4");
-    assert(to_string(2.40, 21, 2) == "                 2.40");
-    assert(to_string(2.40, 10, 0) == "         2");
-    assert(to_string(2.40, 10, 1) == "       2.4");
-}
-
-TEST(format_integer) {
-    assert(to_string(1024, Base(2)) == "10000000000");
-    assert(to_string(std::numeric_limits<u8>::max(), Base(10), 30) == "000000000000000000000000000255");
-    assert(to_string(std::numeric_limits<u8>::max(), Base(2)) == "11111111");
-
-    assert(to_string(std::numeric_limits<s64>::min(), Base(10)) == "-9223372036854775808");
-    assert(to_string(std::numeric_limits<s64>::min(), Base(2), 30) ==
-           "-1000000000000000000000000000000000000000000000000000000000000000");
-
-    assert(to_string(std::numeric_limits<u64>::max(), Base(10)) == "18446744073709551615");
-    assert(to_string(std::numeric_limits<u64>::max(), Base(2), 30) ==
-           "1111111111111111111111111111111111111111111111111111111111111111");
-}
-
-TEST(sprint) {
-    string print1 = tprint("My name is %2 and my bank interest is %1%%.", to_string(152.29385, 0, 2), "Dotra");
-    string print2 = tprint("My name is % and my bank interest is %2%%.", "Dotra", to_string(152.29385, 0, 2));
-
-    assert(print1 == "My name is Dotra and my bank interest is 152.29%.");
-    assert(print2 == "My name is Dotra and my bank interest is 152.29%.");
-}
-*/

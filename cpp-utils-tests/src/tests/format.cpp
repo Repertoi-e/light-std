@@ -6,8 +6,6 @@ struct Custom_Type {};
 
 template <>
 struct fmt::Formatter<Custom_Type> {
-    string_view::Iterator parse(const Parse_Context &parseContext) { return parseContext.It; }
-
     void format(Custom_Type, Format_Context &f) { f.Out.append("foo"); }
 };
 

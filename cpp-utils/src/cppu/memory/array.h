@@ -19,7 +19,7 @@ struct Array {
     constexpr T &operator[](size_t index) { return Data[index]; }
     constexpr const T &operator[](size_t index) const { return Data[index]; }
 
-    constexpr bool operator==(const Array &other) {
+    constexpr b32 operator==(const Array &other) {
         if (Count != other.Count) return false;
         for (size_t i = 0; i < Count; i++) {
             if (Data[i] != other.Data[i]) {
@@ -29,7 +29,7 @@ struct Array {
         return true;
     }
 
-    constexpr bool operator!=(const Array &other) { return !(*this == other); }
+    constexpr b32 operator!=(const Array &other) { return !(*this == other); }
 };
 
 template <typename... T>
@@ -42,21 +42,19 @@ constexpr auto to_array(T &&... values)
 
 template <typename T, size_t Size>
 struct fmt::Formatter<Array<T, Size>> {
-    string_view::Iterator parse(const Parse_Context &parseContext) { return parseContext.It; }
-
     void format(const Array<T, Size> &value, Format_Context &f) {
-        f.Out.append("{ { ");
+        f.write("{ [");
         if (Size > 0) {
-            f.Out.append(fmt::to_string(value[0]));
+            f.write_argument(fmt::make_argument(value[0]));
             for (s32 i : range(1, Size)) {
-                f.Out.append(", ");
-                f.Out.append(fmt::to_string(value[i]));
+                f.write(", ");
+                f.write_argument(fmt::make_argument(value[i]));
             }
         }
-        f.Out.append(" }, Size: ");
-        f.Out.append(fmt::to_string(Size));
-        f.Out.append(" }");
-        }
+        f.write("], ");
+        f.write_fmt("Size: {} ", Size);
+        f.write("}");
+    }
 };
 
 CPPU_END_NAMESPACE

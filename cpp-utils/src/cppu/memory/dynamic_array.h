@@ -155,7 +155,7 @@ struct Dynamic_Array {
     Data_Type &operator[](size_t index) { return Data[index]; }
     const Data_Type &operator[](size_t index) const { return Data[index]; }
 
-    bool operator==(const Dynamic_Array &other) {
+    b32 operator==(const Dynamic_Array &other) {
         if (Count != other.Count) return false;
         for (size_t i = 0; i < Count; i++) {
             if (Data[i] != other.Data[i]) {
@@ -165,7 +165,7 @@ struct Dynamic_Array {
         return true;
     }
 
-    bool operator!=(const Dynamic_Array &other) { return !(*this == other); }
+    b32 operator!=(const Dynamic_Array &other) { return !(*this == other); }
 
     void _reserve(size_t reserve) {
         if (reserve <= _Reserved) return;
@@ -186,7 +186,7 @@ struct Dynamic_Array {
 #include "array.h"
 
 template <typename T, typename U, size_t N>
-bool operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {
+b32 operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {
     if constexpr (!std::is_same_v<T, U>) {
         return false;
     } else {
@@ -202,37 +202,35 @@ bool operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {
 }
 
 template <typename T, typename U, size_t N>
-bool operator==(const Array<U, N> &left, const Dynamic_Array<T> &right) {
+b32 operator==(const Array<U, N> &left, const Dynamic_Array<T> &right) {
     return right == left;
 }
 
 template <typename T, typename U, size_t N>
-bool operator!=(const Dynamic_Array<T> &left, const Array<U, N> &right) {
+b32 operator!=(const Dynamic_Array<T> &left, const Array<U, N> &right) {
     return !(left == right);
 }
 
 template <typename T, typename U, size_t N>
-bool operator!=(const Array<U, N> &left, const Dynamic_Array<T> &right) {
+b32 operator!=(const Array<U, N> &left, const Dynamic_Array<T> &right) {
     return right != left;
 }
 
 #include "../format/fmt.h"
 template <typename T>
 struct fmt::Formatter<Dynamic_Array<T>> {
-    string_view::Iterator parse(const Parse_Context &parseContext) { return parseContext.It; }
-
     void format(const Dynamic_Array<T> &value, Format_Context &f) {
-        f.Out.append("{ { ");
+        f.write("{ [");
         if (value.Count > 0) {
-            f.Out.append(fmt::to_string(value[0]));
+            f.write_argument(fmt::make_argument(value[0]));
             for (s32 i : range(1, value.Count)) {
-                f.Out.append(", ");
-                f.Out.append(fmt::to_string(value[i]));
+                f.write(", ");
+                f.write_argument(fmt::make_argument(value[i]));
             }
         }
-        f.Out.append(" }, Count: ");
-        f.Out.append(fmt::to_string(value.Count));
-        f.Out.append(" }");
+        f.write("], ");
+        f.write_fmt("Count: {} ", value.Count);
+        f.write("}");
     }
 };
 

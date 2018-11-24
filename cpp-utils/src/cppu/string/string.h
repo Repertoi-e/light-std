@@ -21,78 +21,61 @@ CPPU_BEGIN_NAMESPACE
 // * Usually structures in this library are named Like_This, but this
 // is an exception since I consider it as a fundamental data type.
 struct string {
-    struct Code_Point_Ref {
-        string &_Parent;
-        char32_t _CodePoint;
-        size_t _Index;
+   private:
+    struct Code_Point {
+        string &Parent;
+        size_t Index;
 
-        Code_Point_Ref(string &parent, char32_t codePoint, size_t index)
-            : _Parent(parent), _CodePoint(codePoint), _Index(index) {}
+        Code_Point(string &parent, size_t index) : Parent(parent), Index(index) {}
 
-        Code_Point_Ref &operator=(char32_t other) {
-            _Parent.set(_Index, other);
-            _CodePoint = other;
-            return *this;
-        }
-
-        operator char32_t const &() { return _CodePoint; }
+        Code_Point &operator=(char32_t other);
+        operator char32_t();
     };
 
-    template <bool Const>
+    template <b32 Mutable>
     struct Iterator : public std::iterator<std::random_access_iterator_tag, char32_t> {
        private:
-        std::conditional_t<Const, const string &, string &> Parent;
+        using parent_type = typename std::conditional_t<Mutable, string, const string>;
+        parent_type &Parent;
         size_t Index;
 
        public:
-        Iterator(typename std::conditional_t<Const, const string &, string &> str, s64 index = 0) : Parent(str) {
-            if (index < (s64) str.Length && index >= 0) {
-                Index = index;
-            } else {
-                Index = npos;
-            }
-        }
-
-        Iterator(const Iterator &other) : Parent(other.Parent), Index(other.Index) {}
-        Iterator(Iterator &&other) : Parent(other.Parent), Index(other.Index) {}
-
-        Iterator &operator=(const Iterator &other) {
-            assert(Parent == other.Parent);
-            Index = other.Index;
-            return *this;
-        }
-
-        Iterator &operator=(Iterator &&other) {
-            assert(Parent == other.Parent);
-            Index = other.Index;
-            return *this;
-        }
+        Iterator(parent_type &parent, size_t index) : Parent(parent), Index(index) {}
 
         Iterator &operator+=(s64 amount) {
-            if ((amount < 0 && (s64) Index + amount < 0) || Index + amount >= Parent.Length) {
-                Index = npos;
-            } else {
-                Index += amount;
-            }
+            Index += amount;
             return *this;
         }
-        Iterator &operator-=(s64 amount) { return *this += -amount; }
+        Iterator &operator-=(s64 amount) {
+            Index -= amount;
+            return *this += -amount;
+        }
         Iterator &operator++() { return *this += 1; }
         Iterator &operator--() { return *this -= 1; }
-        Iterator operator++(s32) {
-            Iterator tmp(*this);
+        constexpr Iterator operator++(s32) {
+            Iterator temp = *this;
             ++(*this);
-            return tmp;
+            return temp;
         }
-        Iterator operator--(s32) {
-            Iterator tmp(*this);
+        constexpr Iterator operator--(s32) {
+            Iterator temp = *this;
             --(*this);
-            return tmp;
+            return temp;
         }
 
-        s64 operator-(const Iterator &other) const { return (s64) Index - (s64) other.Index; }
-        Iterator operator+(s64 amount) const { return Iterator(Parent, Index + amount); }
-        Iterator operator-(s64 amount) const { return Iterator(Parent, Index - amount); }
+        s64 operator-(const Iterator &other) const {
+            size_t lesser = Index, greater = other.Index;
+            if (lesser > greater) {
+                lesser = other.Index;
+                greater = Index;
+            }
+            s64 difference = greater - lesser;
+            return Current <= other.Current ? difference : -difference;
+        }
+
+        Iterator operator+(s64 amount) const { return Iterator(Parent, index + amount); }
+        Iterator operator-(s64 amount) const { return Iterator(Parent, index - amount); }
+
         friend inline Iterator operator+(s64 amount, const Iterator &it) { return it + amount; }
         friend inline Iterator operator-(s64 amount, const Iterator &it) { return it - amount; }
 
@@ -103,39 +86,24 @@ struct string {
         b32 operator>=(const Iterator &other) const { return Index >= other.Index; }
         b32 operator<=(const Iterator &other) const { return Index <= other.Index; }
 
-        template <bool _Const = Const>
-        std::enable_if_t<_Const, char32_t> operator*() const {
-            assert(Index != npos);
-            return Parent[Index];
+        template <b32 Const = !Mutable>
+        std::enable_if_t<!Const, Code_Point> operator*() {
+            return Parent.get(Index);
         }
 
-        template <bool _Const = Const>
-        std::enable_if_t<!_Const, Code_Point_Ref> operator*() const {
-            assert(Index != npos);
-            return Parent[Index];
+        template <b32 Const = !Mutable>
+        std::enable_if_t<Const, char32_t> operator*() const {
+            return Parent.get(Index);
         }
 
-        template <bool _Const = Const>
-        std::enable_if_t<_Const, char32_t> operator[](s64 index) const {
-            assert(Index != npos);
-            assert(Index + index < Parent.Length);
-            return Parent[Index + index];
-        }
-
-        template <bool _Const = Const>
-        std::enable_if_t<!_Const, Code_Point_Ref> operator[](s64 index) const {
-            assert(Index != npos);
-            assert(Index + index < Parent.Length);
-            return Parent[Index + index];
-        }
-
-        // Returns whether this iterator contains a valid index.
-        constexpr b32 valid() const { return Index != npos; }
-        constexpr const char *to_pointer() const { return Parent._get_pointer_to_index((s64) Index); }
+        const char *to_pointer() const { return get_pointer_to_code_point_at(Parent.Data, Parent.Length, (s64) Index); }
     };
 
-    using Iterator_Mut = Iterator<false>;
-    using Iterator_Const = const Iterator<true>;
+   public:
+    using code_point = Code_Point;
+
+    using iterator = Iterator<true>;
+    using const_iterator = Iterator<false>;
 
     static constexpr size_t SMALL_STRING_BUFFER_SIZE = 8;
     // This implementation uses a small stack allocated buffer
@@ -158,7 +126,7 @@ struct string {
     size_t _Reserved = 0;
 
     // The number of code units in the string, >= the number of code points
-    size_t BytesUsed = 0;
+    size_t ByteLength = 0;
 
     // The number of code points in the string.
     size_t Length = 0;
@@ -181,8 +149,8 @@ struct string {
     void release();
 
     // Clears all characters from the string
-    // (Sets BytesUsed and Length to 0)
-    void clear() { BytesUsed = Length = 0; }
+    // (Sets ByteLength and Length to 0)
+    void clear() { ByteLength = Length = 0; }
 
     // Reserve bytes in string
     void reserve(size_t size);
@@ -192,6 +160,7 @@ struct string {
     // the end of the string, so -1 is the last character
     // -2 the one before that, etc. (Python-style)
     char32_t get(s64 index) const { return string_view(*this).get(index); }
+    code_point get(s64 index) { return code_point(*this, translate_index(index, Length)); }
 
     // Sets the _index_'th code point in the string
     // Allows negative reversed indexing which begins at
@@ -242,10 +211,10 @@ struct string {
 
     void swap(string &other);
 
-    Iterator_Mut begin();
-    Iterator_Mut end();
-    Iterator_Const begin() const;
-    Iterator_Const end() const;
+    iterator begin();
+    iterator end();
+    const_iterator begin() const;
+    const_iterator end() const;
 
     // Check two strings for equality
     b32 operator==(const string &other) const { return compare(other) == 0; }
@@ -338,9 +307,9 @@ struct string {
     explicit operator string_view() const { return string_view(*this); }
 
     // Read/write [] operator
-    Code_Point_Ref operator[](s64 index);
+    code_point operator[](s64 index);
     // Read-only [] operator
-    const char32_t operator[](s64 index) const;
+    char32_t operator[](s64 index) const;
 
     operator bool() const { return Length != 0; }
 
