@@ -330,3 +330,10 @@ struct string_view {
     // Substring operator
     constexpr string_view operator()(s64 begin, s64 end) const { return substring(begin, end); }
 };
+
+constexpr b32 operator==(const char *one, const string_view &other) { return other.compare(other) == 0; }
+constexpr b32 operator!=(const char *one, const string_view &other) { return !(one == other); }
+constexpr b32 operator<(const char *one, const string_view &other) { return other.compare(one) > 0; }
+constexpr b32 operator>(const char *one, const string_view &other) { return other.compare(one) < 0; }
+constexpr b32 operator<=(const char *one, const string_view &other) { return !(one > other); }
+constexpr b32 operator>=(const char *one, const string_view &other) { return !(one < other); }

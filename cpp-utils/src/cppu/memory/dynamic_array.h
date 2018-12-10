@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../context.h"
+
 #include "memory.h"
 
 CPPU_BEGIN_NAMESPACE
@@ -215,23 +216,5 @@ template <typename T, typename U, size_t N>
 b32 operator!=(const Array<U, N> &left, const Dynamic_Array<T> &right) {
     return right != left;
 }
-
-#include "../format/fmt.h"
-template <typename T>
-struct fmt::Formatter<Dynamic_Array<T>> {
-    void format(const Dynamic_Array<T> &value, Format_Context &f) {
-        f.write("{ [");
-        if (value.Count > 0) {
-            f.write_argument(fmt::make_argument(value[0]));
-            for (s32 i : range(1, value.Count)) {
-                f.write(", ");
-                f.write_argument(fmt::make_argument(value[i]));
-            }
-        }
-        f.write("], ");
-        f.write_fmt("Count: {} ", value.Count);
-        f.write("}");
-    }
-};
 
 CPPU_END_NAMESPACE

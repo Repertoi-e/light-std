@@ -216,13 +216,13 @@ void string::append_pointer_and_size(const char *data, size_t size) {
     }
 }
 
-void string::repeat(size_t n) {
-    assert(n > 0);
-    reserve(n * ByteLength);
-    string pattern = *this;
+string string::repeated(size_t n) {
+    string result = *this;
+    result.reserve(n * ByteLength);
     for (size_t i = 1; i < n; i++) {
-        append(pattern);
+        result.append(*this);
     }
+    return result;
 }
 
 string string::get_upper() const {

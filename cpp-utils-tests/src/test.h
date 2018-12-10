@@ -3,6 +3,8 @@
 #include <cppu/memory/dynamic_array.h>
 #include <cppu/memory/table.h>
 
+#include <cppu/format/fmt.h>
+
 #include <cppu/file/file_path.h>
 
 // This is a helper function to shorten the name of test files.
@@ -12,7 +14,7 @@
 //      .../home/user/dev/sandbox-tests/src/tests/string.cpp ---> tests/string.cpp
 //      .../home/user/dev/sandbox-tests/string.cpp           ---> string.cpp
 //
-constexpr string_view get_file_path_relative_to_src_or_just_file_name(string_view str) {
+constexpr string_view get_file_path_relative_to_src_or_just_file_name(const string_view &str) {
     char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
     string_view src = srcData;
 
@@ -24,12 +26,12 @@ constexpr string_view get_file_path_relative_to_src_or_just_file_name(string_vie
         findResult++;
     } else {
         // Skip the src directory
-        for (auto ch : src) {
-            findResult++;
-        }
+        findResult += src.Length;
     }
-    str.remove_prefix(findResult);
-    return str;
+
+    string_view result = str;
+    result.remove_prefix(findResult);
+    return result;
 }
 
 typedef void (*Test_Func)();
@@ -46,6 +48,11 @@ struct Test {
 //
 // Definition of this in main.cpp
 extern Table<string_view, Dynamic_Array<Test> *> g_TestTable;
+
+struct Asserts {
+    static u32 GlobalCalledCount;
+    static Dynamic_Array<string> GlobalFailed;
+};
 
 #define TEST(name)                                                                        \
     struct Test_Struct_##name {                                                           \
@@ -64,3 +71,102 @@ extern Table<string_view, Dynamic_Array<Test> *> g_TestTable;
     };                                                                                    \
     static Test_Struct_##name g_TestStruct_##name;                                        \
     void Test_Struct_##name::run()
+
+inline void test_assert_helper(const char *fileName, u32 line, const char *condition, bool eval, bool expected) {
+    auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
+    ++Asserts::GlobalCalledCount;
+    if (expected && !eval) {
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} Expected \"true\": {}", shortFile, line, condition));
+    }
+    if (!expected && eval) {
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} Expected \"false\": {}", shortFile, line, condition));
+    }
+}
+
+// Define helper assert macros
+
+// We redefine the default context `assert` macro.
+// Note that this is a rare case.
+#undef assert
+#define assert(x) test_assert_helper(__FILE__, __LINE__, u8## #x, !!(x), true)
+
+// Prefer these to just assert(x)
+#define assert_true(x) assert(x)
+#define assert_false(x) test_assert_helper(__FILE__, __LINE__, u8## #x, !!(x), false)
+
+template <typename T, typename U>
+inline void test_assert_eq_helper(const char *fileName, u32 line, const char *a, const char *b, const T &aValue,
+                                  const U &bValue, bool expected) {
+    auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
+    ++Asserts::GlobalCalledCount;
+    if (expected && !(aValue == bValue)) {
+        Asserts::GlobalFailed.add(
+            fmt::sprint("{}:{} {} == {}, expected \"{}\", but got \"{}\"", shortFile, line, a, b, bValue, aValue));
+    }
+    if (!expected && !(aValue != bValue)) {
+        Asserts::GlobalFailed.add(
+            fmt::sprint("{}:{} {} != {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+    }
+}
+
+// x == y
+#define assert_eq(x, y) test_assert_eq_helper(__FILE__, __LINE__, u8## #x, u8## #y, x, y, true)
+
+// x != y
+#define assert_nq(x, y) test_assert_eq_helper(__FILE__, __LINE__, u8## #x, u8## #y, x, y, false)
+
+template <typename T, typename U>
+inline void test_assert_lt_helper(const char *fileName, u32 line, const char *a, const char *b, const T &aValue,
+                                  const U &bValue) {
+    auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
+    ++Asserts::GlobalCalledCount;
+    if (!(aValue < bValue)) {
+        Asserts::GlobalFailed.add(
+            fmt::sprint("{}:{} {} < {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+    }
+}
+
+// x < y
+#define assert_lt(x, y) test_assert_lt_helper(__FILE__, __LINE__, u8## #x, u8## #y, x, y)
+
+template <typename T, typename U>
+inline void test_assert_le_helper(const char *fileName, u32 line, const char *a, const char *b, const T &aValue,
+                                  const U &bValue) {
+    auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
+    ++Asserts::GlobalCalledCount;
+    if (!(aValue <= bValue)) {
+        Asserts::GlobalFailed.add(
+            fmt::sprint("{}:{} {} <= {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+    }
+}
+
+// x <= y
+#define assert_le(x, y) test_assert_le_helper(__FILE__, __LINE__, u8## #x, u8## #y, x, y)
+
+template <typename T, typename U>
+inline void test_assert_gt_helper(const char *fileName, u32 line, const char *a, const char *b, const T &aValue,
+                                  const U &bValue) {
+    auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
+    ++Asserts::GlobalCalledCount;
+    if (!(aValue > bValue)) {
+        Asserts::GlobalFailed.add(
+            fmt::sprint("{}:{} {} > {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+    }
+}
+
+// x > y
+#define assert_gt(x, y) test_assert_gt_helper(__FILE__, __LINE__, u8## #x, u8## #y, x, y)
+
+template <typename T, typename U>
+inline void test_assert_ge_helper(const char *fileName, u32 line, const char *a, const char *b, const T &aValue,
+                                  const U &bValue) {
+    auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
+    ++Asserts::GlobalCalledCount;
+    if (!(aValue >= bValue)) {
+        Asserts::GlobalFailed.add(
+            fmt::sprint("{}:{} {} >= {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+    }
+}
+
+// x >= y
+#define assert_ge(x, y) test_assert_ge_helper(__FILE__, __LINE__, u8## #x, u8## #y, x, y)

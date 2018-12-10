@@ -38,23 +38,4 @@ constexpr auto to_array(T &&... values)
     return Array<typename std::decay_t<typename std::common_type_t<T...>>, sizeof...(T)>{std::forward<T>(values)...};
 }
 
-#include "../format/fmt.h"
-
-template <typename T, size_t Size>
-struct fmt::Formatter<Array<T, Size>> {
-    void format(const Array<T, Size> &value, Format_Context &f) {
-        f.write("{ [");
-        if (Size > 0) {
-            f.write_argument(fmt::make_argument(value[0]));
-            for (s32 i : range(1, Size)) {
-                f.write(", ");
-                f.write_argument(fmt::make_argument(value[i]));
-            }
-        }
-        f.write("], ");
-        f.write_fmt("Size: {} ", Size);
-        f.write("}");
-    }
-};
-
 CPPU_END_NAMESPACE

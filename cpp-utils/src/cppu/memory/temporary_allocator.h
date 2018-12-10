@@ -97,11 +97,11 @@ inline void temporary_storage_reset() { __temporary_allocator_data->Occupied = 0
 inline size_t temporary_storage_get_mark() { return __temporary_allocator_data->Occupied; };
 inline void temporary_storage_set_mark(size_t mark) { __temporary_allocator_data->Occupied = mark; };
 
-#define TEMP_VAR_GEN_(LINE) __game_utils_temporary_storage_mark_##LINE
-#define TEMP_VAR_GEN(LINE) TEMP_VAR_GEN_(LINE)
+#define temp_var_gen_(LINE) __game_utils_temporary_storage_mark_##LINE
+#define temp_var_gen(LINE) temp_var_gen_(LINE)
 #define TEMPORARY_STORAGE_MARK_SCOPE                              \
-    size_t TEMP_VAR_GEN(__LINE__) = temporary_storage_get_mark(); \
-    defer { temporary_storage_set_mark(TEMP_VAR_GEN(__LINE__)); }
+    size_t temp_var_gen(__LINE__) = temporary_storage_get_mark(); \
+    defer { temporary_storage_set_mark(temp_var_gen(__LINE__)); }
 
 #define TEMPORARY_ALLOC \
     Allocator_Closure { __temporary_allocator, __temporary_allocator_data }

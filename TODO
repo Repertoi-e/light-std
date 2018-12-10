@@ -3,10 +3,8 @@
 - Unify APIs for containers (naming and usage is very inconsistent atm)
 - Write iterators for all containers
 
-- Re-do test framework assert functionality 
-
 - Parsing from strings to types
-- Write more fmt tests
+
 - Console colors and text formatting utilites 
 
 - File system permissions, copy, move, create links
@@ -14,3 +12,8 @@
 - Support for threads
 
 - Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
+
+- assert_eq((char32_t) a.get(0), 'a');
+  should be just
+  assert_eq(a.get(0), 'a');
+  but we get a weird type error...

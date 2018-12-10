@@ -2,7 +2,6 @@
 
 #include "../common.h"
 
-#include "../string/string.h"
 #include "../string/string_builder.h"
 
 CPPU_BEGIN_NAMESPACE
@@ -67,8 +66,9 @@ char *format_uint_to_buffer(char *buffer, UInt value, u32 numDigits, TS thousand
 
 template <typename UInt, typename TS = No_Thousands_Separator>
 void format_uint(String_Builder &builder, UInt value, u32 numDigits, TS thousandsSep = {}) {
-    // Buffer should be large enough to hold all digits (digits10 + 1) and null.
-    char buffer[std::numeric_limits<UInt>::digits10 + 2];
+    // Buffer should be large enough to hold all digits (<= digits10 + 1)
+    const size_t maxSize = std::numeric_limits<UInt>::digits10 + 1;
+    char buffer[maxSize + maxSize / 3];
     format_uint_to_buffer(buffer, value, numDigits, thousandsSep);
     builder.append_pointer_and_size(buffer, numDigits);
 }

@@ -126,9 +126,9 @@ template <typename F>
 Deferrer<F> operator*(Defer_Dummy, F func) {
     return {func};
 }
-#define DEFER_INTERNAL_(LINE) __game_utils_defer_lambda_##LINE
-#define DEFER_INTERNAL(LINE) DEFER_INTERNAL_(LINE)
-#define defer auto DEFER_INTERNAL(__LINE__) = Defer_Dummy{} *[&]()
+#define defer_internal_(LINE) __game_utils_defer_lambda_##LINE
+#define defer_internal(LINE) defer_internal_(LINE)
+#define defer auto defer_internal(__LINE__) = Defer_Dummy{} *[&]()
 #endif
 
 #undef assert

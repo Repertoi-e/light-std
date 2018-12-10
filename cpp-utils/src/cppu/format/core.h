@@ -3,6 +3,7 @@
 #include "../common.h"
 #include "../context.h"
 
+#include "format_float.h"
 #include "format_integer.h"
 
 #include "specs.h"
@@ -16,13 +17,13 @@ namespace fmt {
 struct Parse_Context;
 struct Format_Context;
 
-template <typename... Args>
-string sprint(const string_view &formatString, Args &&... args);
-
 template <typename T, typename Enable = void>
 struct Formatter {
     void format(const T &, Format_Context &) { static_assert(false, "Formatter<T> not specialized"); }
 };
+
+template <typename... Args>
+string sprint(const string_view &formatString, Args &&... args);
 
 struct Argument {
     Value Value;
@@ -309,6 +310,12 @@ struct Format_Context {
         format_padded([&](Format_Context &f) { f.Out.append(toWrite); }, align(), toWrite.Length);
     }
 
+    void write(char32_t ch) {
+        char encoded[4];
+        encode_code_point(encoded, ch);
+        write(string_view(encoded, get_size_of_code_point(ch)));
+    }
+
     // Format an integer according to the current argument's format specs.
     template <typename T>
     std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>> write_int(T value) {
@@ -369,17 +376,87 @@ struct Format_Context {
                 char32_t sep = internal::thousands_separator();
                 char sepEncoded[4];
                 encode_code_point(sepEncoded, sep);
-                string_view sepView(sepEncoded, get_size_of_code_point(sepEncoded));
+                string_view sepView(sepEncoded, get_size_of_code_point(sep));
 
                 u32 size = numDigits + 1 * ((numDigits - 1) / 3);
                 format_int(size, string_view(prefix, prefixSize), [&](Format_Context &f) {
-                    internal::format_uint(f.Out, absValue, numDigits, internal::Add_Thousands_Separator{sepView});
+                    internal::format_uint(f.Out, absValue, size, internal::Add_Thousands_Separator{sepView});
                 });
             } break;
             default:
                 // Shouldn't ever get here, since the specs have been checked in the parse stage.
                 assert(false);
         }
+    }
+
+    // Format an float according to the current argument's format specs.
+    template <typename T>
+    std::enable_if_t<std::is_floating_point_v<T>> write_float(T value) {
+        char t = (char) type();
+        b32 upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
+        if (t == 0 || t == 'G') t = 'f';
+#if !defined COMPILER_MSVC
+        // MSVC's printf doesn't support 'F'.
+        if (t == 'F') type = 'f';
+#endif
+
+        char sign = 0;
+        // Use signbit instead of value < 0 because the latter is always false for NaN.
+        if (std::signbit(value)) {
+            sign = '-';
+            value = -value;
+        } else if (ParseContext.Specs.has_flag(Flag::SIGN)) {
+            sign = sign_plus() ? '+' : ' ';
+        }
+
+        // Format NaN and ininity ourselves because sprintf's output is not consistent across platforms.
+        if (is_nan((f64) value)) {
+            format_padded(
+                [&](Format_Context &f) {
+                    if (sign) f.Out.append(sign);
+                    f.Out.append(upper ? "NAN" : "nan");
+                },
+                align(), 3 + (sign ? 1 : 0));
+            return;
+        }
+        if (is_infinity((f64) value)) {
+            format_padded(
+                [&](Format_Context &f) {
+                    if (sign) f.Out.append(sign);
+                    f.Out.append(upper ? "INF" : "inf");
+                },
+                align(), 3 + (sign ? 1 : 0));
+            return;
+        }
+
+        Dynamic_Array<char> buffer;
+        if (!(sizeof(T) <= sizeof(f64) && t != 'a' && t != 'A' &&
+            internal::grisu2_format((f64) value, buffer, ParseContext.Specs))) {
+            Format_Specs normalizedSpecs = ParseContext.Specs;
+            normalizedSpecs.Type = t;
+            internal::sprintf_format(value, buffer, normalizedSpecs);
+        }
+
+        size_t n = buffer.Count;
+        Alignment alignSpec = align();
+        if (alignSpec == Alignment::NUMERIC) {
+            if (sign) {
+                write(sign);
+                sign = 0;
+                if (width()) --ParseContext.Specs.Width;
+            }
+            alignSpec = Alignment::RIGHT;
+        } else {
+            if (alignSpec == Alignment::DEFAULT) alignSpec = Alignment::RIGHT;
+            if (sign) ++n;
+        }
+
+        format_padded(
+            [&](Format_Context &f) {
+                if (sign) f.Out.append(sign);
+                f.Out.append(string_view(buffer.Data, buffer.Count));
+            },
+            alignSpec, n);
     }
 
     void write_argument(const Argument &arg) {
@@ -412,10 +489,7 @@ struct Format_Context {
                 }
                 break;
             case Format_Type::F64:
-                // TODO: Floating point numbers!!!
-                // TODO: Floating point numbers!!!
-                // TODO: Floating point numbers!!!
-                assert(false);
+                write_float(arg.Value.F64_Value);
                 break;
             case Format_Type::CSTRING:
                 if (!type() || type() == 's') {

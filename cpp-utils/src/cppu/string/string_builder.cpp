@@ -64,18 +64,4 @@ void String_Builder::append_pointer_and_size(const char *data, size_t size) {
     }
 }
 
-namespace fmt {
-string to_string(const String_Builder &builder) {
-    string result;
-    result.reserve((builder.IndirectionCount + 1) * builder.BUFFER_SIZE);
-
-    const String_Builder::Buffer *buffer = &builder._BaseBuffer;
-    while (buffer) {
-        result.append_pointer_and_size(buffer->Data, buffer->Occupied);
-        buffer = buffer->Next;
-    }
-    return result;
-}
-}  // namespace fmt
-
 CPPU_END_NAMESPACE

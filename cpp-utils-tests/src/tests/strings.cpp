@@ -7,93 +7,102 @@
 
 TEST(code_point_size) {
     string ascii = "abc";
-    assert(ascii.ByteLength == 3 && ascii.Length == 3);
+    assert_eq(ascii.ByteLength, 3);
+    assert_eq(ascii.Length, 3);
 
     string cyrillic = u8"абв";
-    assert(cyrillic.ByteLength == 6 && cyrillic.Length == 3);
+    assert_eq(cyrillic.ByteLength, 6);
+    assert_eq(cyrillic.Length, 3);
 
     string devanagari = u8"\u0904\u0905\u0906";
-    assert(devanagari.ByteLength == 9 && devanagari.Length == 3);
+    assert_eq(devanagari.ByteLength, 9);
+    assert_eq(devanagari.Length, 3);
 
     string supplementary = u8"\U0002070E\U00020731\U00020779";
-    assert(supplementary.ByteLength == 12 && supplementary.Length == 3);
+    assert_eq(supplementary.ByteLength, 12);
+    assert_eq(supplementary.Length, 3);
 
     string mixed = ascii + cyrillic + devanagari + supplementary;
-    assert(mixed.ByteLength == 12 + 9 + 6 + 3 && mixed.Length == 3 + 3 + 3 + 3);
+    assert_eq(mixed.ByteLength, 12 + 9 + 6 + 3);
+    assert_eq(mixed.Length, 3 + 3 + 3 + 3);
 }
 
 TEST(substring) {
     string a = "Hello, world!";
-    assert(a.substring(2, 5) == "llo");
-    assert(a.substring(7, a.Length) == "world!");
-    assert(a.substring(0, -1) == "Hello, world");
-    assert(a.substring(-6, -1) == "world");
+    assert_eq(a.substring(2, 5), "llo");
+    assert_eq(a.substring(7, a.Length), "world!");
+    assert_eq(a.substring(0, -1), "Hello, world");
+    assert_eq(a.substring(-6, -1), "world");
 
-    assert(a(2, 5) == "llo");
-    assert(a(7, a.Length) == "world!");
-    assert(a(0, -1) == "Hello, world");
-    assert(a(-6, -1) == "world");
+    assert_eq(a(2, 5), "llo");
+    assert_eq(a(7, a.Length), "world!");
+    assert_eq(a(0, -1), "Hello, world");
+    assert_eq(a(-6, -1), "world");
 }
 
 TEST(substring_mixed_sizes) {
     string a = u8"Хеllo, уоrлd!";
-    assert(a.substring(2, 5) == "llo");
-    assert(a.substring(7, a.Length) == u8"уоrлd!");
-    assert(a.substring(0, -1) == u8"Хеllo, уоrлd");
-    assert(a.substring(-6, -1) == u8"уоrлd");
+    assert_eq(a.substring(2, 5), "llo");
+    assert_eq(a.substring(7, a.Length), u8"уоrлd!");
+    assert_eq(a.substring(0, -1), u8"Хеllo, уоrлd");
+    assert_eq(a.substring(-6, -1), u8"уоrлd");
 }
 
 TEST(index) {
     string a = "Hello";
-    assert(a[0] == 'H');
-    assert(a[1] == 'e');
-    assert(a[2] == 'l');
-    assert(a[3] == 'l');
-    assert(a[4] == 'o');
+    assert_eq((char32_t) a[0], 'H');
+    assert_eq((char32_t) a[1], 'e');
+    assert_eq((char32_t) a[2], 'l');
+    assert_eq((char32_t) a[3], 'l');
+    assert_eq((char32_t) a[4], 'o');
 
     a[0] = 'X';
-    assert(a[0] == 'X');
+    assert_eq((char32_t) a[0], 'X');
 }
 
 TEST(utility_functions) {
     string a = "\t\t    Hello, everyone!   \t\t   \n";
-    assert(a.trim_start() == "Hello, everyone!   \t\t   \n");
-    assert(a.trim_end() == "\t\t    Hello, everyone!");
-    assert(a.trim() == "Hello, everyone!");
+    assert_eq(a.trim_start(), "Hello, everyone!   \t\t   \n");
+    assert_eq(a.trim_end(), "\t\t    Hello, everyone!");
+    assert_eq(a.trim(), "Hello, everyone!");
 
     string b = "Hello, world!";
-    assert(b.begins_with("Hello"));
-    assert(!b.begins_with("Xello"));
-    assert(!b.begins_with("Hellol"));
+    assert_true(b.begins_with("Hello"));
+    assert_false(b.begins_with("Xello"));
+    assert_false(b.begins_with("Hellol"));
 
-    assert(b.ends_with("world!"));
-    assert(!b.ends_with("!world!"));
-    assert(!b.ends_with("world!!"));
+    assert_true(b.ends_with("world!"));
+    assert_false(b.ends_with("!world!"));
+    assert_false(b.ends_with("world!!"));
 }
 
 TEST(modify) {
     string a = "aDc";
     a.set(1, 'b');
-    assert(a == "abc");
+    assert_eq(a, "abc");
     a.set(1, U'Д');
-    assert(a == u8"aДc");
+    assert_eq(a, u8"aДc");
     a.set(1, 'b');
-    assert(a == "abc");
-    assert(a.get(0) == 'a' && a.get(1) == 'b' && a.get(2) == 'c');
+    assert_eq(a, "abc");
+    assert_eq((char32_t) a.get(0), 'a');
+    assert_eq((char32_t) a.get(1), 'b');
+    assert_eq((char32_t) a.get(2), 'c');
 
     a = "aDc";
     a[-2] = 'b';
-    assert(a == "abc");
+    assert_eq(a, "abc");
     a[1] = U'Д';
-    assert(a == u8"aДc");
+    assert_eq(a, u8"aДc");
     a[1] = 'b';
-    assert(a == "abc");
-    assert(a[0] == 'a' && a[1] == 'b' && a[2] == 'c');
+    assert_eq(a, "abc");
+    assert_eq((char32_t) a[0], 'a');
+    assert_eq((char32_t) a[1], 'b');
+    assert_eq((char32_t) a[2], 'c');
 
     a[-3] = U'\U0002070E';
     a[-2] = U'\U00020731';
     a[-1] = U'\U00020779';
-    assert(a == u8"\U0002070E\U00020731\U00020779");
+    assert_eq(a, u8"\U0002070E\U00020731\U00020779");
 }
 
 TEST(iterator) {
@@ -103,7 +112,7 @@ TEST(iterator) {
     for (auto ch : a) {
         result += ch;
     }
-    assert(result == a);
+    assert_eq(result, a);
 
     string b = "HeLLo";
     // In order to modify a character, use a string::code_point
@@ -112,11 +121,11 @@ TEST(iterator) {
     for (auto ch : b) {
         ch = to_lower(ch);
     }
-    assert(b == "hello");
+    assert_eq(b, "hello");
     for (auto ch : b) {
         ch = U'Д';
     }
-    assert(b == u8"ДДДДД");
+    assert_eq(b, u8"ДДДДД");
 
     // for (char32_t &ch : b) { .. }
     // doesn't work since string isn't
@@ -129,7 +138,7 @@ TEST(concat) {
         result.append_pointer_and_size(",THIS IS GARBAGE", 1);
         result.append_cstring(" world!");
 
-        assert(result == "Hello, world!");
+        assert_eq(result, "Hello, world!");
     }
     {
         string a = "Hello";
@@ -137,32 +146,34 @@ TEST(concat) {
         string c = " world!";
         string result = a + b + c;
 
-        assert(result == "Hello, world!");
+        assert_eq(result, "Hello, world!");
     }
 
     string result;
     for (s32 i = 0; i < 10; i++) {
         result += 'i';
-        assert(result.ByteLength == i + 1 && result.Length == i + 1);
+        assert_eq(result.ByteLength, i + 1);
+        assert_eq(result.Length, i + 1);
     }
     result.release();
     for (s32 i = 0; i < 10; i++) {
         result += u8"Д";
-        assert(result.ByteLength == 2 * (i + 1) && result.Length == i + 1);
+        assert_eq(result.ByteLength, 2 * (i + 1));
+        assert_eq(result.Length, i + 1);
     }
 }
 
 TEST(string_find) {
     string a = "Hello";
-    assert(a.find('e') == 1);
-    assert(a.find('l') == 2);
-    assert(a.find_last('l') == 3);
+    assert_eq(a.find('e'), 1);
+    assert_eq(a.find('l'), 2);
+    assert_eq(a.find_last('l'), 3);
 
     a = u8"Здрello";
-    assert(a.find('e') == 3);
-    assert(a.find('l') == 4);
-    assert(a.find_last('l') == 5);
-    assert(a.find_last('o') == 6);
+    assert_eq(a.find('e'), 3);
+    assert_eq(a.find('l'), 4);
+    assert_eq(a.find_last('l'), 5);
+    assert_eq(a.find_last('o'), 6);
 }
 
 TEST(string_builder) {
@@ -172,6 +183,6 @@ TEST(string_builder) {
     builder.append(string(" world"));
     builder.append('!');
 
-    string result = fmt::to_string(builder);
-    assert(result == "Hello, world!");
+    string result = builder.combine();
+    assert_eq(result, "Hello, world!");
 }

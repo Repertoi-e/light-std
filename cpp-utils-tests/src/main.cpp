@@ -2,90 +2,64 @@
 #include <cppu/memory/pool.h>
 #include <cppu/memory/table.h>
 
-#include <cppu/format/fmt.h>
-
 #include "test.h"
 
-// !!! WORKAORUND
-// Look in test.h
+// VS has a bug which prevents inline variables in headers constructing properly...
 Table<string_view, Dynamic_Array<Test> *> g_TestTable;
-
-// Returns an array of failed assert messages for this file.
-std::pair<size_t, Dynamic_Array<string>> run_tests_in_file(const string_view &fileName,
-                                                           const Dynamic_Array<Test> &tests) {
-    size_t assertsCalledCount = 0;
-    Dynamic_Array<string> allFailedAsserts;
-
-    fmt::print("{}:\n", string(fileName));
-
-    size_t sucessfulProcs = tests.Count;
-    for (const Test &test : tests) {
-        // 1. Print the test's name.
-        s32 length = Min(30, (s32) test.Name.Length);
-        fmt::print("        {:.{}} {:.{}} ", test.Name, length, "...................................", 35 - length);
-
-        // 2. Run the actual test function
-        Dynamic_Array<string> failedAsserts;
-
-        auto testContext = __context;
-        Assert_Function defaultAssert = testContext.AssertFailed;
-        testContext.AssertFailed = [&](const char *file, int line, const char *condition) {
-            if (fileName == get_file_path_relative_to_src_or_just_file_name(file)) {
-                failedAsserts.add(fmt::sprint("{}:{} Assert failed: {}", fileName, line, condition));
-                assertsCalledCount++;
-            } else {
-                defaultAssert(file, line, condition);
-            }
-        };
-        PUSH_CONTEXT(testContext) { test.Function(); }
-
-        // 3. Print information about the failed asserts
-        if (failedAsserts.Count) {
-            // TODO: We should have a console text formatting library...
-            fmt::print("\033[38;5;160mFAILED\033[0m\n");
-            for (string &message : failedAsserts) fmt::print("          \033[38;5;246m>>> {}\033[0m\n", message);
-            fmt::print("\n");
-            sucessfulProcs--;
-            allFailedAsserts.insert(allFailedAsserts.end(), failedAsserts.begin(), failedAsserts.end());
-        } else {
-            // TODO: We should have a console text formatting library...
-            fmt::print("\033[38;5;28mOK\033[0m\n");
-        }
-    }
-
-    // TODO: We don't have formatting for float numbers yet
-    string percentage = "0.0";  // fmt::to_string(100.0f * (f32) sucessfulProcs / (f32) tests.Count);
-                                // TODO: We should have a console text formatting library...
-    fmt::print("\033[38;5;246m{}% success ({} out of {} procs)\n\033[0m\n", percentage, sucessfulProcs, tests.Count);
-
-    return {assertsCalledCount, allFailedAsserts};
-}
+u32 Asserts::GlobalCalledCount = 0;
+Dynamic_Array<string> Asserts::GlobalFailed;
 
 void run_tests() {
-    size_t totalAssertsCount = 0;
-    Dynamic_Array<string> allFailedAsserts;
-
     fmt::print("\n");
     for (auto [fileName, tests] : g_TestTable) {
-        auto [assertsCalled, failedAsserts] = run_tests_in_file(fileName, *tests);
-        allFailedAsserts.insert(allFailedAsserts.end(), failedAsserts.begin(), failedAsserts.end());
-        totalAssertsCount += assertsCalled;
+        fmt::print("{}:\n", fileName);
+
+        u32 sucessfulProcs = 0;
+        for (const auto &test : *tests) {
+            s32 length = Min(30, (s32) test.Name.Length);
+            fmt::print("        {:.{}} {:.{}} ", test.Name, length, string(".").repeated(35), 35 - length);
+
+            size_t failedIndexStart = Asserts::GlobalFailed.Count;
+
+            // Run the test
+            test.Function();
+
+            // Check if test has failed asserts
+            if (failedIndexStart == Asserts::GlobalFailed.Count) {
+                // No failed asserts!
+                // TODO: We should have a console text formatting library...
+                fmt::print("\033[38;5;28mOK\033[0m\n");
+                sucessfulProcs++;
+            } else {
+                // TODO: We should have a console text formatting library...
+                fmt::print("\033[38;5;160mFAILED\033[0m\n");
+
+                auto it = Asserts::GlobalFailed.begin() + failedIndexStart;
+                for (; it != Asserts::GlobalFailed.end(); ++it) {
+                    fmt::print("          \033[38;5;246m>>> {}\033[0m\n", *it);
+                }
+                fmt::print("\n");
+            }
+        }
+
+        f32 successRate = (f32) sucessfulProcs / (f32) tests->Count * 100.0f;
+        // TODO: We should have a console text formatting library...
+        fmt::print("\033[38;5;246m{:.2}% success ({} out of {} procs)\n\033[0m\n", successRate, sucessfulProcs,
+                   tests->Count);
     }
     fmt::print("\n\n");
 
-    size_t successfulAsserts = totalAssertsCount - allFailedAsserts.Count;
+    u32 calledCount = Asserts::GlobalCalledCount;
+    size_t failedCount = Asserts::GlobalFailed.Count;
+    size_t successCount = calledCount - failedCount;
 
-    string percentage = "0.000";
-    if (totalAssertsCount) {
-        // TODO: We don't have formatting for float numbers yet
-        // percentage = fmt::to_string(100.0f * (f32) successfulAsserts / (f32) totalAssertsCount, 0, 3);
-    }
-    fmt::print("[Test Suite] {}% success ({}/{} test asserts)\n", percentage, successfulAsserts, totalAssertsCount);
+    fmt::print("[Test Suite] {:.3}% success ({}/{} test asserts)\n",
+               calledCount ? 100.0f * (f32) successCount / (f32) calledCount : 0.0f, successCount, calledCount);
 
-    if (allFailedAsserts.Count) {
+    if (failedCount) {
         fmt::print("[Test Suite] Failed asserts:\n");
-        for (string &message : allFailedAsserts) {
-            fmt::print("        >>> \033[38;5;160mFAILED:\033[38;5;246m {}\033[0m\n", message);
+        for (const string &message : Asserts::GlobalFailed) {
+            fmt::print("    >>> \033[38;5;160mFAILED:\033[38;5;246m {}\033[0m\n", message);
         }
     }
     fmt::print("\n");

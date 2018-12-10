@@ -39,6 +39,19 @@ struct String_Builder {
     // Append _size_ bytes of string contained in _data_
     void append_pointer_and_size(const char *data, size_t size);
 
+    // Merges all buffers and returns a single string.
+    inline string combine() const {
+        string result;
+        result.reserve((IndirectionCount + 1) * BUFFER_SIZE);
+
+        const String_Builder::Buffer *buffer = &_BaseBuffer;
+        while (buffer) {
+            result.append_pointer_and_size(buffer->Data, buffer->Occupied);
+            buffer = buffer->Next;
+        }
+        return result;
+    }
+
     // Don't deallocate, just move cursor to 0
     void reset();
 
@@ -47,10 +60,5 @@ struct String_Builder {
 
     ~String_Builder();
 };
-
-// Returns a string containing all buffers appended
-namespace fmt {
-string to_string(const String_Builder &builder);
-}
 
 CPPU_END_NAMESPACE

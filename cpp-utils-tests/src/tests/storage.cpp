@@ -11,12 +11,12 @@ TEST(static_array) {
     Array<s32, 5> ints = {0, 1, 2, 3, 4};
 
     for (s32 i = 0; i < ints.Count; i++) {
-        assert(ints[i] == i);
+        assert_eq(ints[i], i);
     }
 
     size_t j = 0;
     for (s32 i : ints) {
-        assert(i == j++);
+        assert_eq(i, j++);
     }
 }
 
@@ -27,42 +27,42 @@ TEST(dynamic_array) {
     }
 
     for (s32 i = 0; i < 10; i++) {
-        assert(integers[i] == i);
+        assert_eq(integers[i], i);
     }
 
     integers.insert(integers.begin() + 3, -3);
-    assert(integers == to_array<s32>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
+    assert_eq(integers, to_array<s32>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
 
     integers.remove(integers.begin() + 4);
-    assert(integers == to_array<s32>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
+    assert_eq(integers, to_array<s32>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
     size_t count = integers.Count;
     for (size_t i = 0; i < count; i++) {
         integers.pop();
     }
-    assert(integers.Count == 0);
+    assert_eq(integers.Count, 0);
 
     for (s32 i = 0; i < 10; i++) {
         integers.add_front(i);
     }
-    assert(integers == to_array<s32>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
+    assert_eq(integers, to_array<s32>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 
     integers.remove(integers.end() - 1);
-    assert(integers == to_array<s32>(9, 8, 7, 6, 5, 4, 3, 2, 1));
+    assert_eq(integers, to_array<s32>(9, 8, 7, 6, 5, 4, 3, 2, 1));
 
     integers.remove(integers.begin());
-    assert(integers == to_array<s32>(8, 7, 6, 5, 4, 3, 2, 1));
+    assert_eq(integers, to_array<s32>(8, 7, 6, 5, 4, 3, 2, 1));
 
     s64 findResult = integers.find(9);
-    assert(findResult == -1);
+    assert_eq(findResult, -1);
     findResult = integers.find(8);
-    assert(findResult == 0);
+    assert_eq(findResult, 0);
     findResult = integers.find(1);
-    assert(findResult == 7);
+    assert_eq(findResult, 7);
     findResult = integers.find(3);
-    assert(findResult == 5);
+    assert_eq(findResult, 5);
     findResult = integers.find(5);
-    assert(findResult == 3);
+    assert_eq(findResult, 3);
 }
 
 TEST(table) {
@@ -71,16 +71,16 @@ TEST(table) {
     table.put("4", 4);
     table.put("9", 10101);
 
-    assert(std::get<0>(table.find("1")) == 1);
-    assert(std::get<0>(table.find("4")) == 4);
-    assert(std::get<0>(table.find("9")) == 10101);
+    assert_eq(std::get<0>(table.find("1")), 1);
+    assert_eq(std::get<0>(table.find("4")), 4);
+    assert_eq(std::get<0>(table.find("9")), 10101);
 
     table.put("9", 20202);
-    assert(std::get<0>(table.find("9")) == 20202);
+    assert_eq(std::get<0>(table.find("9")), 20202);
     table.put("9", 9);
 
     for (auto [key, value] : table) {
-        assert(key == fmt::to_string(value));
+        assert_eq(key, fmt::to_string(value));
     }
 
     Table<string, s32> emptyTable;
@@ -100,11 +100,11 @@ TEST(table_copy) {
     tableCopy.put("11", 20);
 
     for (auto [key, value] : table) {
-        assert(key == fmt::to_string(value));
+        assert_eq(key, fmt::to_string(value));
     }
 
-    assert(table.Count == 3);
-    assert(tableCopy.Count == 4);
+    assert_eq(table.Count, 3);
+    assert_eq(tableCopy.Count, 4);
 }
 
 TEST(table_pointer_to_value) {
@@ -118,13 +118,13 @@ TEST(table_pointer_to_value) {
     table.put("1", &array);
     {
         auto [found, wasFound] = table.find("1");
-        assert(wasFound);
+        assert_true(wasFound);
         found->add(3);
         found->add(4);
     }
     {
         auto [found, wasFound] = table.find("1");
-        assert(wasFound);
-        assert(found->Count == 5);
+        assert_true(wasFound);
+        assert_eq(found->Count, 5);
     }
 }

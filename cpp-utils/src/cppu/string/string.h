@@ -257,14 +257,10 @@ struct string {
         return *this;
     }
 
-    string operator*(size_t n) {
-        string result = *this;
-        result.repeat(n);
-        return result;
-    }
+    string operator*(size_t n) { return repeated(n); }
 
     string &operator*=(size_t n) {
-        repeat(n);
+        *this = repeated(n);
         return *this;
     }
 
@@ -273,8 +269,8 @@ struct string {
     //
 
     // Copy this string and repeat it _n_ times.
-    // repeat(1) does nothing to the string.
-    void repeat(size_t n);
+    // repeated(1) returns the string.
+    string repeated(size_t n);
 
     // Copy string and convert it to uppercase characters
     string get_upper() const;
@@ -316,5 +312,15 @@ struct string {
     // Substring operator
     string_view operator()(s64 begin, s64 end) const;
 };
+
+inline string operator+(const char *one, const string &other) { return string(one) + other; }
+
+
+inline b32 operator==(const char *one, const string &other) { return other.compare(other) == 0; }
+inline b32 operator!=(const char *one, const string &other) { return !(one == other); }
+inline b32 operator<(const char *one, const string &other) { return other.compare(one) > 0; }
+inline b32 operator>(const char *one, const string &other) { return other.compare(one) < 0; }
+inline b32 operator<=(const char *one, const string &other) { return !(one > other); }
+inline b32 operator>=(const char *one, const string &other) { return !(one < other); }
 
 CPPU_END_NAMESPACE

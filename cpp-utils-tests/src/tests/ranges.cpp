@@ -2,7 +2,7 @@
 
 #include "../test.h"
 
-#include <cppu/memory/array.h>
+#include <cppu/format/fmt.h>
 
 template <size_t N>
 void test_expected(Array<s32, N> expected, s64 start, s64 stop, s64 step = 1) {
@@ -10,10 +10,7 @@ void test_expected(Array<s32, N> expected, s64 start, s64 stop, s64 step = 1) {
     for (s32 i : range(start, stop, step)) {
         result.add(i);
     }
-    assert(result == expected);
-    if (result != expected) {
-        fmt::print("\n    Got {}, expected {}\n", result, expected);
-    }
+    assert_eq(result, expected);
 }
 
 TEST(basic) {
@@ -26,7 +23,7 @@ TEST(variable_steps) {
     for (s32 i : range(2, -3, 2)) {
         result.add(i);
     }
-    assert(result.Count == 0);
+    assert_eq(result.Count, 0);
 
     test_expected(to_array<s32>(-3, -1, 1), -3, 2, 2);
     test_expected(to_array<s32>(10, 13), 10, 15, 3);
