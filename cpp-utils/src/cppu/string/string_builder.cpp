@@ -45,15 +45,15 @@ void String_Builder::append_pointer_and_size(const char *data, size_t size) {
 
     size_t availableSpace = BUFFER_SIZE - currentBuffer->Occupied;
     if (availableSpace >= size) {
-        CopyMemory(currentBuffer->Data + currentBuffer->Occupied, data, size);
+        copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, size);
         currentBuffer->Occupied += size;
     } else {
-        CopyMemory(currentBuffer->Data + currentBuffer->Occupied, data, availableSpace);
+        copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, availableSpace);
         currentBuffer->Occupied += availableSpace;
 
         // If the entire string doesn't fit inside the available space,
         // allocate the next buffer and continue appending.
-        String_Builder::Buffer *buffer = New_And_Ensure_Allocator<String_Builder::Buffer>(Allocator);
+        String_Builder::Buffer *buffer = New_and_ensure_allocator<String_Builder::Buffer>(Allocator);
 
         CurrentBuffer->Next = buffer;
         CurrentBuffer = buffer;

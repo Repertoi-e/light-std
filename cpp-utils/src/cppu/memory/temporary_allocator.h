@@ -64,7 +64,7 @@ inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, siz
             void *block = (byte *) storage->Data + storage->Occupied;
 
             if (mode == Allocator_Mode::RESIZE) {
-                CopyMemory(block, oldMemory, oldSize);
+                copy_memory(block, oldMemory, oldSize);
             }
 
             storage->Occupied += size;

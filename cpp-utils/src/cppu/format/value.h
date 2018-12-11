@@ -114,7 +114,7 @@ template <typename T, typename U>
 inline T bit_cast(const U &source) {
     static_assert(sizeof(T) == sizeof(U), "size mismatch");
     T result;
-    CopyMemory(&result, &source, sizeof(T));
+    copy_memory(&result, &source, sizeof(T));
     return result;
 }
 

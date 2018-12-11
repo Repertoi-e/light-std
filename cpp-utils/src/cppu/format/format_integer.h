@@ -33,7 +33,7 @@ struct Add_Thousands_Separator {
         if (++DigitIndex % 3 != 0) return;
         // TODO: "Danger danger, but who cares"
         buffer -= Separator.ByteLength;
-        CopyMemory(buffer, Separator.Data, Separator.ByteLength);
+        copy_memory(buffer, Separator.Data, Separator.ByteLength);
     }
 };
 

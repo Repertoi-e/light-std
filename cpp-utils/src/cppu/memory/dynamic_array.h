@@ -22,8 +22,8 @@ struct Dynamic_Array {
         _Reserved = other._Reserved;
         Count = other.Count;
 
-        Data = New_And_Ensure_Allocator<Data_Type>(_Reserved, Allocator);
-        CopyElements(Data, other.Data, _Reserved);
+        Data = New_and_ensure_allocator<Data_Type>(_Reserved, Allocator);
+        copy_elements(Data, other.Data, _Reserved);
     }
 
     Dynamic_Array(Dynamic_Array &&other) { other.swap(*this); }
@@ -66,7 +66,7 @@ struct Dynamic_Array {
         assert(where >= begin() && where <= end());
 
         if (offset < Count) {
-            MoveElements(where + 1, where, Count - offset);
+            move_elements(where + 1, where, Count - offset);
         }
         *where = item;
         Count++;
@@ -89,34 +89,18 @@ struct Dynamic_Array {
         assert(where >= this->begin() && where <= this->end());
 
         if (offset < Count) {
-            MoveElements(where + elementsCount, where, Count - offset);
+            move_elements(where + elementsCount, where, Count - offset);
         }
-        CopyElements(where, begin, elementsCount);
+        copy_elements(where, begin, elementsCount);
         Count += elementsCount;
     }
 
-    // Returns the index of item in the array, -1 if it's not found
-    s64 find(const Data_Type &item) const {
-        Data_Type *index = Data;
-        for (size_t i = 0; i < Count; i++) {
-            if (*index++ == item) {
-                return (s64) i;
-            }
+    void insert_front(const Data_Type &item) {
+        if (Count == 0) {
+            add(item);
+        } else {
+            insert(begin(), item);
         }
-        return -1;
-    }
-
-    void remove(Data_Type *where) {
-        assert(where >= begin() && where < end());
-
-        where->~Data_Type();
-
-        uptr_t offset = where - begin();
-        if (offset < Count) {
-            MoveElements(where, where + 1, Count - offset - 1);
-        }
-
-        Count--;
     }
 
     void add(const Data_Type &item) {
@@ -128,12 +112,48 @@ struct Dynamic_Array {
         }
     }
 
-    void add_front(const Data_Type &item) {
-        if (Count == 0) {
-            add(item);
-        } else {
-            insert(begin(), item);
+    // Find the index of the first occuring _item_ in the array, npos if it's not found
+    size_t find(const Data_Type &item) const {
+        Data_Type *index = Data;
+        for (auto i : range(Count)) {
+            if (*index++ == item) {
+                return i;
+            }
         }
+        return npos;
+    }
+
+    // Find the index of the last occuring _item_ in the array, npos if it's not found
+    size_t find_last(const Data_Type &item) const {
+        Data_Type *index = Data;
+        for (auto i : range(Count)) {
+            if (*index-- == item) {
+                return Count - i - 1;
+            }
+        }
+        return npos;
+    }
+
+    b32 has(const Data_Type &item) { return find(item) != npos; }
+
+    void sort() { std::sort(begin(), end()); }
+
+    template <typename Pred>
+    void sort(Pred &&predicate) {
+        std::sort(begin(), end(), predicate);
+    }
+
+    void remove(Data_Type *where) {
+        assert(where >= begin() && where < end());
+
+        where->~Data_Type();
+
+        uptr_t offset = where - begin();
+        if (offset < Count) {
+            move_elements(where, where + 1, Count - offset - 1);
+        }
+
+        Count--;
     }
 
     void pop() {
@@ -171,9 +191,9 @@ struct Dynamic_Array {
     void _reserve(size_t reserve) {
         if (reserve <= _Reserved) return;
 
-        Data_Type *newMemory = New_And_Ensure_Allocator<Data_Type>(reserve, Allocator);
+        Data_Type *newMemory = New_and_ensure_allocator<Data_Type>(reserve, Allocator);
 
-        MoveElements(newMemory, Data, Count);
+        move_elements(newMemory, Data, Count);
         Delete(Data, _Reserved, Allocator);
 
         Data = newMemory;

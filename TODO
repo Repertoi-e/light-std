@@ -1,8 +1,3 @@
-- Add "has" functions to containers to allow for more expressive python-like syntax
-	(e.g. if (str.has('C')) {...})
-- Unify APIs for containers (naming and usage is very inconsistent atm)
-- Write iterators for all containers
-
 - Parsing from strings to types
 
 - Console colors and text formatting utilites 
@@ -14,6 +9,6 @@
 - Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
 
 - assert_eq((char32_t) a.get(0), 'a');
-  should be just
+	should be just
   assert_eq(a.get(0), 'a');
-  but we get a weird type error...
+	but we get a weird type error...

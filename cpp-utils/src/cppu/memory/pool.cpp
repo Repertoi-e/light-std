@@ -21,7 +21,7 @@ void Pool::_cycle_new_block() {
         newBlock = *(_UnusedMemblocks.end() - 1);
         _UnusedMemblocks.pop();
     } else {
-        newBlock = New_And_Ensure_Allocator<u8>(BlockSize, BlockAllocator);
+        newBlock = New_and_ensure_allocator<u8>(BlockSize, BlockAllocator);
     }
 
     _BytesLeft = BlockSize;
@@ -88,7 +88,7 @@ void *__pool_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMe
         case Allocator_Mode::RESIZE: {
             // Don't bother with resizing, get a new block and copy the memory to it.
             void *newMemory = pool->get(size);
-            CopyMemory(oldMemory, newMemory, oldSize);
+            copy_memory(oldMemory, newMemory, oldSize);
             return newMemory;
         }
         case Allocator_Mode::FREE:

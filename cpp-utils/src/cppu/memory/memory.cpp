@@ -3,7 +3,7 @@
 CPPU_BEGIN_NAMESPACE
 
 #if defined CPPU_NO_CRT
-void *CopyMemory(void *dest, void const *src, size_t num) {
+void *copy_memory(void *dest, void const *src, size_t num) {
     byte *d = (byte *) dest;
     byte const *s = (byte const *) src;
 
@@ -19,7 +19,7 @@ void *CopyMemory(void *dest, void const *src, size_t num) {
     return dest;
 }
 
-void *MoveMemory(void *dest, void const *src, size_t num) {
+void *move_memory(void *dest, void const *src, size_t num) {
     byte *d = (byte *) dest;
     byte const *s = (byte const *) src;
 
@@ -40,7 +40,7 @@ void *MoveMemory(void *dest, void const *src, size_t num) {
     return dest;
 }
 
-void *FillMemory(void *dest, int value, size_t num) {
+void *fill_memory(void *dest, int value, size_t num) {
     byte *ptr = (byte *) dest;
     while (num-- > 0) {
         *ptr++ = value;
@@ -48,7 +48,7 @@ void *FillMemory(void *dest, int value, size_t num) {
     return dest;
 }
 
-s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num) {
+s32 compare_memory(const void *ptr1, const void *ptr2, size_t num) {
     const byte *s1 = (const byte *) ptr1;
     const byte *s2 = (const byte *) ptr2;
 

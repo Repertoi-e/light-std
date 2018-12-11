@@ -65,7 +65,7 @@ struct Named_Argument_Base {
 
     Argument deserialize() const {
         Argument result;
-        CopyMemory(&result, Data, sizeof(Argument));
+        copy_memory(&result, Data, sizeof(Argument));
         return result;
     }
 };
@@ -82,7 +82,7 @@ Init_Value<const void *, Format_Type::NAMED_ARGUMENT> make_value(const Named_Arg
     Argument arg;
     arg.Type = Get_Type<decltype(value.Value)>::Value;
     arg.Value = make_value(value.Value);
-    CopyMemory(value.Data, &arg, sizeof(Argument));
+    copy_memory(value.Data, &arg, sizeof(Argument));
     return (const void *) (&value);
 }
 
@@ -189,7 +189,7 @@ struct Argument_Map {
     void ensure_initted(const Arguments &args) {
         if (Entries) return;
 
-        Entries = New_And_Ensure_Allocator<Entry>(args.max_size(), Allocator);
+        Entries = New_and_ensure_allocator<Entry>(args.max_size(), Allocator);
 
         if (args.get_type_at(MAX_PACKED_ARGS - 1) == Format_Type::NONE) {
             u32 i = 0;

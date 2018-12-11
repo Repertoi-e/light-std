@@ -44,15 +44,15 @@ struct Table {
         _Reserved = other._Reserved;
         UnfoundValue = other.UnfoundValue;
 
-        _OccupancyMask = New_And_Ensure_Allocator<bool>(_Reserved, Allocator);
+        _OccupancyMask = New_and_ensure_allocator<bool>(_Reserved, Allocator);
         _Keys = New<Key_Type>(_Reserved, Allocator);
         _Values = New<Value_Type>(_Reserved, Allocator);
         _Hashes = New<uptr_t>(_Reserved, Allocator);
 
-        CopyElements(_OccupancyMask, other._OccupancyMask, _Reserved);
-        CopyElements(_Keys, other._Keys, _Reserved);
-        CopyElements(_Values, other._Values, _Reserved);
-        CopyElements(_Hashes, other._Hashes, _Reserved);
+        copy_elements(_OccupancyMask, other._OccupancyMask, _Reserved);
+        copy_elements(_Keys, other._Keys, _Reserved);
+        copy_elements(_Values, other._Values, _Reserved);
+        copy_elements(_Hashes, other._Hashes, _Reserved);
     }
 
     Table(Table &&other) { other.swap(*this); }
@@ -115,6 +115,11 @@ struct Table {
         return std::forward_as_tuple(_Values[index], true);
     }
 
+    b32 has(const Key_Type &key) {
+        auto [_, found] = find(key);
+        return found;
+    }
+
     Table_Iterator<Key, Value> begin() { return Table_Iterator<Key, Value>(*this); }
     Table_Iterator<Key, Value> end() { return Table_Iterator<Key, Value>(*this, _Reserved); }
     const Table_Iterator<Key, Value> begin() const { return Table_Iterator<Key, Value>(*this); }
@@ -154,7 +159,7 @@ struct Table {
     void _reserve(size_t size) {
         _Reserved = size;
 
-        _OccupancyMask = New_And_Ensure_Allocator<bool>(size, Allocator);
+        _OccupancyMask = New_and_ensure_allocator<bool>(size, Allocator);
         _Keys = New<Key>(size, Allocator);
         _Values = New<Value>(size, Allocator);
         _Hashes = New<uptr_t>(size, Allocator);

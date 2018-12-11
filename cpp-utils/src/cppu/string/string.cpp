@@ -18,11 +18,11 @@ string::string(const char *str) : string(str, str ? cstring_strlen(str) : 0) {}
 string::string(const char *str, size_t size) {
     ByteLength = size;
     if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_And_Ensure_Allocator<char>(ByteLength, Allocator);
+        Data = New_and_ensure_allocator<char>(ByteLength, Allocator);
         _Reserved = ByteLength;
     }
     if (str && ByteLength) {
-        CopyMemory(Data, str, ByteLength);
+        copy_memory(Data, str, ByteLength);
 
         const char *end = str + size;
         while (str < end) {
@@ -40,11 +40,11 @@ string::string(const string &other) {
     Allocator = other.Allocator;
 
     if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_And_Ensure_Allocator<char>(ByteLength, Allocator);
+        Data = New_and_ensure_allocator<char>(ByteLength, Allocator);
         _Reserved = ByteLength;
     }
     if (other.Data && ByteLength) {
-        CopyMemory(Data, other.Data, ByteLength);
+        copy_memory(Data, other.Data, ByteLength);
     }
 }
 
@@ -131,14 +131,14 @@ void string::reserve(size_t size) {
 
         // If we are small but we need more size, it's time to convert
         // to a dynamically allocated memory.
-        Data = New_And_Ensure_Allocator<char>(size, Allocator);
-        CopyMemory(Data, _StackData, ByteLength);
+        Data = New_and_ensure_allocator<char>(size, Allocator);
+        copy_memory(Data, _StackData, ByteLength);
         _Reserved = size;
     } else {
         // Return if there is enough space
         if (size <= _Reserved) return;
 
-        Data = Resize_And_Ensure_Allocator(Data, _Reserved, size, Allocator);
+        Data = Resize_and_ensure_allocator(Data, _Reserved, size, Allocator);
         _Reserved = size;
     }
 }
@@ -167,9 +167,9 @@ void string::set(s64 index, char32_t codePoint) {
         // might have moved the Data to a new memory location.
         at = Data + offset;
 
-        MoveMemory(at + codePointSize, at + sizeAtTarget, ByteLength - (at - Data) - sizeAtTarget);
+        move_memory(at + codePointSize, at + sizeAtTarget, ByteLength - (at - Data) - sizeAtTarget);
     } else if (difference > 0) {
-        MoveMemory(at + codePointSize, at + sizeAtTarget, ByteLength - (at - Data) - sizeAtTarget);
+        move_memory(at + codePointSize, at + sizeAtTarget, ByteLength - (at - Data) - sizeAtTarget);
     }
     ByteLength -= difference;
 
@@ -180,7 +180,7 @@ void string::append(const string &other) {
     size_t neededCapacity = ByteLength + other.ByteLength;
     reserve(neededCapacity);
 
-    CopyMemory(Data + ByteLength, other.Data, other.ByteLength);
+    copy_memory(Data + ByteLength, other.Data, other.ByteLength);
 
     ByteLength += other.ByteLength;
     Length += other.Length;
@@ -205,7 +205,7 @@ void string::append_pointer_and_size(const char *data, size_t size) {
     size_t neededCapacity = ByteLength + size;
     reserve(neededCapacity);
 
-    CopyMemory(Data + ByteLength, data, size);
+    copy_memory(Data + ByteLength, data, size);
 
     ByteLength = neededCapacity;
 

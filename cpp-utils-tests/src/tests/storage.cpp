@@ -18,6 +18,27 @@ TEST(static_array) {
     for (s32 i : ints) {
         assert_eq(i, j++);
     }
+
+    ints.sort(std::greater<s32>());
+    j = 4;
+    for (s32 i : ints) {
+        assert_eq(i, j--);
+    }
+    ints.sort(std::less<s32>());
+
+    assert_true(ints.has(3));
+    assert_true(ints.has(4));
+    assert_true(ints.has(0));
+
+    assert_false(ints.has(10));
+    assert_false(ints.has(20));
+
+    assert_eq(ints.find_last(3), 3);
+    assert_eq(ints.find_last(4), 4);
+    assert_eq(ints.find_last(0), 0);
+    assert_eq(ints.find(3), 3);
+    assert_eq(ints.find(4), 4);
+    assert_eq(ints.find(0), 0);
 }
 
 TEST(dynamic_array) {
@@ -43,7 +64,7 @@ TEST(dynamic_array) {
     assert_eq(integers.Count, 0);
 
     for (s32 i = 0; i < 10; i++) {
-        integers.add_front(i);
+        integers.insert_front(i);
     }
     assert_eq(integers, to_array<s32>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 

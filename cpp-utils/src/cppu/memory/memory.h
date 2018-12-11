@@ -7,58 +7,58 @@
 
 CPPU_BEGIN_NAMESPACE
 
-// Windows.h defines CopyMemory as memcpy, our version is compatible so it's safe to undefine it
-#if defined CopyMemory
-#undef CopyMemory
+// Windows.h defines copy_memory as memcpy, our version is compatible so it's safe to undefine it
+#if defined copy_memory
+#undef copy_memory
 #endif
-#if defined MoveMemory
-#undef MoveMemory
+#if defined move_memory
+#undef move_memory
 #endif
-#if defined FillMemory
-#undef FillMemory
+#if defined fill_memory
+#undef fill_memory
 #endif
-#if defined ZeroMemory
-#undef ZeroMemory
+#if defined zero_memory
+#undef zero_memory
 #endif
 
 #if !defined CPPU_NO_CRT
 #include <cstring>
 
-inline void *CopyMemory(void *dest, void const *src, size_t num) { return memcpy(dest, src, num); }
-inline void *MoveMemory(void *dest, void const *src, size_t num) { return memmove(dest, src, num); }
-inline void *FillMemory(void *dest, int value, size_t num) { return memset(dest, value, num); }
-inline s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num) { return memcmp(ptr1, ptr2, num); }
+inline void *copy_memory(void *dest, void const *src, size_t num) { return memcpy(dest, src, num); }
+inline void *move_memory(void *dest, void const *src, size_t num) { return memmove(dest, src, num); }
+inline void *fill_memory(void *dest, int value, size_t num) { return memset(dest, value, num); }
+inline s32 compare_memory(const void *ptr1, const void *ptr2, size_t num) { return memcmp(ptr1, ptr2, num); }
 
 #else
 // Defined in memory.cpp
-void *CopyMemory(void *dest, void const *src, size_t num);
-void *MoveMemory(void *dest, void const *src, size_t num);
-void *FillMemory(void *dest, int value, size_t num);
-s32 CompareMemory(const void *ptr1, const void *ptr2, size_t num);
+void *copy_memory(void *dest, void const *src, size_t num);
+void *move_memory(void *dest, void const *src, size_t num);
+void *fill_memory(void *dest, int value, size_t num);
+s32 compare_memory(const void *ptr1, const void *ptr2, size_t num);
 CPPU_END_NAMESPACE
 extern "C" {
 // Defining intrinsic functions that the compiler may use to optimize.
 inline void *memcpy(void *dest, void const *src, size_t num) {
-    return CPPU_NAMESPACE_NAME ::CopyMemory(dest, src, num);
+    return CPPU_NAMESPACE_NAME ::copy_memory(dest, src, num);
 }
 inline void *memmove(void *dest, void const *src, size_t num) {
-    return CPPU_NAMESPACE_NAME ::MoveMemory(dest, src, num);
+    return CPPU_NAMESPACE_NAME ::move_memory(dest, src, num);
 }
-inline void *memset(void *dest, int value, size_t num) { return CPPU_NAMESPACE_NAME ::FillMemory(dest, value, num); }
+inline void *memset(void *dest, int value, size_t num) { return CPPU_NAMESPACE_NAME ::fill_memory(dest, value, num); }
 inline s32 memcmp(const void *ptr1, const void *ptr2, size_t num) {
-    return CPPU_NAMESPACE_NAME ::CompareMemory(ptr1, ptr2, num);
+    return CPPU_NAMESPACE_NAME ::compare_memory(ptr1, ptr2, num);
 }
 }
 CPPU_BEGIN_NAMESPACE
 #endif
 
 // Helper function that fills memory with 0
-inline void *ZeroMemory(void *dest, size_t num) { return FillMemory(dest, 0, num); }
+inline void *zero_memory(void *dest, size_t num) { return fill_memory(dest, 0, num); }
 
 // Helper template function for copying contents of arrays of the same type.
-// This method does not handle overlapping arrays (for consistency with CopyMemory).
+// This method does not handle overlapping arrays (for consistency with copy_memory).
 template <typename T>
-T *CopyElements(T *dest, T *src, size_t numberOfElements) {
+T *copy_elements(T *dest, T *src, size_t numberOfElements) {
     static_assert(!std::is_same_v<T, void>);
 
     for (size_t i = 0; i < numberOfElements; i++) {
@@ -68,9 +68,9 @@ T *CopyElements(T *dest, T *src, size_t numberOfElements) {
 }
 
 // Helper template function for moving contents of one array to another,
-// this function handles overlapping arrays (like MoveMemory does).
+// this function handles overlapping arrays (like move_memory does).
 template <typename T>
-T *MoveElements(T *dest, T *src, size_t numberOfElements) {
+T *move_elements(T *dest, T *src, size_t numberOfElements) {
     static_assert(!std::is_same_v<T, void>);
 
     T *d = dest;
@@ -96,7 +96,7 @@ template <typename T>
 T *New(Allocator_Closure allocator = {0, 0}) {
     if (!allocator) allocator = CONTEXT_ALLOC;
     T *result = new (allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, sizeof(T), 0, 0, 0)) T;
-    ZeroMemory(result, sizeof(T));
+    zero_memory(result, sizeof(T));
     return result;
 }
 
@@ -105,7 +105,7 @@ T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
     if (!allocator) allocator = CONTEXT_ALLOC;
 
     T *result = (T *) allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, count * sizeof(T), 0, 0, 0);
-    ZeroMemory(result, count * sizeof(T));
+    zero_memory(result, count * sizeof(T));
     for (size_t i = 0; i < count; i++) new (result + i) T;
     return result;
 }
@@ -121,14 +121,14 @@ T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
 // If you don't use the same allocator when you New and Delete something, you most probably
 // will crash, because there is little guarantee that the two allocators are compatible.
 template <typename T>
-T *New_And_Ensure_Allocator(Allocator_Closure &allocator) {
+T *New_and_ensure_allocator(Allocator_Closure &allocator) {
     if (!allocator) allocator = CONTEXT_ALLOC;
     return New<T>(allocator);
 }
 
 // See comment above this function. Actually important as to how this works!
 template <typename T>
-T *New_And_Ensure_Allocator(size_t count, Allocator_Closure &allocator) {
+T *New_and_ensure_allocator(size_t count, Allocator_Closure &allocator) {
     if (!allocator) allocator = CONTEXT_ALLOC;
     return New<T>(count, allocator);
 }
@@ -161,9 +161,9 @@ T *Resize(T *memory, size_t oldSize, size_t newSize, Allocator_Closure allocator
     return (T *) allocator.Function(Allocator_Mode::RESIZE, allocator.Data, newSize, memory, oldSize, 0);
 }
 
-// See comment at New_And_Ensure_Allocator above this function. Actually important as to how this works!
+// See comment at New_and_ensure_allocator above this function. Actually important as to how this works!
 template <typename T>
-inline T *Resize_And_Ensure_Allocator(T *memory, size_t oldSize, size_t newSize, Allocator_Closure &allocator) {
+inline T *Resize_and_ensure_allocator(T *memory, size_t oldSize, size_t newSize, Allocator_Closure &allocator) {
     if (!allocator) allocator = CONTEXT_ALLOC;
     return Resize(memory, oldSize, newSize, allocator);
 }

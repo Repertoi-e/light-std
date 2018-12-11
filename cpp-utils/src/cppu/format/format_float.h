@@ -88,7 +88,7 @@ class fp {
         using limits = std::numeric_limits<Double>;
 
         u64 u;
-        CopyMemory(&u, &d, sizeof(u64));
+        copy_memory(&u, &d, sizeof(u64));
 
         u64 significandMask = IMPLICIT_BIT - 1;
         u64 exponentMask = (~0ull >> 1) & ~significandMask;
@@ -273,13 +273,13 @@ struct Prettify_Handler {
 
     template <typename F>
     void insert(size_t pos, size_t n, F f) {
-        MoveMemory(Data + pos + n, Data + pos, Size - pos);
+        move_memory(Data + pos + n, Data + pos, Size - pos);
         f(Data + pos);
         Size += n;
     }
 
     void insert(size_t pos, char c) {
-        MoveMemory(Data + pos + 1, Data + pos, Size - pos);
+        move_memory(Data + pos + 1, Data + pos, Size - pos);
         Data[pos] = c;
         ++Size;
     }

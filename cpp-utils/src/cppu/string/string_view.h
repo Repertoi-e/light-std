@@ -262,11 +262,11 @@ struct string_view {
     }
 
     b32 begins_with(char32_t ch) const { return get(0) == ch; }
-    b32 begins_with(const string_view &other) const { return CompareMemory(Data, other.Data, other.ByteLength) == 0; }
+    b32 begins_with(const string_view &other) const { return compare_memory(Data, other.Data, other.ByteLength) == 0; }
 
     b32 ends_with(char32_t ch) const { return get(-1) == ch; }
     b32 ends_with(const string_view &other) const {
-        return CompareMemory(Data + ByteLength - other.ByteLength, other.Data, other.ByteLength) == 0;
+        return compare_memory(Data + ByteLength - other.ByteLength, other.Data, other.ByteLength) == 0;
     }
 
     constexpr void swap(string_view &other) {
