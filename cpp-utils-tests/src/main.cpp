@@ -27,25 +27,22 @@ void run_tests() {
             // Check if test has failed asserts
             if (failedIndexStart == Asserts::GlobalFailed.Count) {
                 // No failed asserts!
-                // TODO: We should have a console text formatting library...
-                fmt::print("\033[38;5;28mOK\033[0m\n");
+                fmt::print("{}OK{}\n", fmt::FGB::Green, fmt::FG::Reset);
                 sucessfulProcs++;
             } else {
-                // TODO: We should have a console text formatting library...
-                fmt::print("\033[38;5;160mFAILED\033[0m\n");
+                fmt::print("{}FAILED{}\n", fmt::FGB::Red, fmt::FG::Reset);
 
                 auto it = Asserts::GlobalFailed.begin() + failedIndexStart;
                 for (; it != Asserts::GlobalFailed.end(); ++it) {
-                    fmt::print("          \033[38;5;246m>>> {}\033[0m\n", *it);
+                    fmt::print("          {}>>> {}{}\n", fmt::FGB::Gray, *it, fmt::FG::Reset);
                 }
                 fmt::print("\n");
             }
         }
 
         f32 successRate = (f32) sucessfulProcs / (f32) tests->Count * 100.0f;
-        // TODO: We should have a console text formatting library...
-        fmt::print("\033[38;5;246m{:.2}% success ({} out of {} procs)\n\033[0m\n", successRate, sucessfulProcs,
-                   tests->Count);
+        fmt::print("{}{:.2}% success ({} out of {} procs)\n{}\n", fmt::FG::Gray, successRate, sucessfulProcs,
+                   tests->Count, fmt::FG::Reset);
     }
     fmt::print("\n\n");
 
@@ -59,7 +56,7 @@ void run_tests() {
     if (failedCount) {
         fmt::print("[Test Suite] Failed asserts:\n");
         for (const string &message : Asserts::GlobalFailed) {
-            fmt::print("    >>> \033[38;5;160mFAILED:\033[38;5;246m {}\033[0m\n", message);
+            fmt::print("    >>> {}FAILED:{} {}{}\n", fmt::FG::Red, fmt::FGB::Gray, message, fmt::FG::Reset);
         }
     }
     fmt::print("\n");

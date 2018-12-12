@@ -38,7 +38,7 @@ Allocator_Func __default_allocator = windows_allocator;
 void exit_program(int code) { _exit(code); }
 
 void default_assert_failed(const char *file, int line, const char *condition) {
-    fmt::print("\033[31m>>> {}:{}, Assert failed: {}\033[0m\n", file, line, condition);
+    fmt::print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::FG::Red, file, line, condition, fmt::FG::Reset);
 #if defined COMPILER_MSVC
     __debugbreak();
 #else

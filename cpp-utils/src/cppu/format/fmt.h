@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "parse.h"
+#include "console_colors.h"
 
 CPPU_BEGIN_NAMESPACE
 

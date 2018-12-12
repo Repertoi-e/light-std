@@ -1,8 +1,6 @@
 - Parsing from strings to types
 
-- Console colors and text formatting utilites 
-
-- File system permissions, copy, move, create links
+- File system
 
 - Support for threads
 

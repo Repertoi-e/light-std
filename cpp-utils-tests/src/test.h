@@ -76,10 +76,12 @@ inline void test_assert_helper(const char *fileName, u32 line, const char *condi
     auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
     ++Asserts::GlobalCalledCount;
     if (expected && !eval) {
-        Asserts::GlobalFailed.add(fmt::sprint("{}:{} Expected \"true\": {}", shortFile, line, condition));
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} Expected {}true{}: {}{}{}", shortFile, line, fmt::FG::Yellow,
+                                              fmt::FGB::Gray, fmt::FG::Yellow, condition, fmt::FG::Reset));
     }
     if (!expected && eval) {
-        Asserts::GlobalFailed.add(fmt::sprint("{}:{} Expected \"false\": {}", shortFile, line, condition));
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} Expected {}false{}: {}{}{}", shortFile, line, fmt::FG::Yellow,
+                                              fmt::FGB::Gray, fmt::FG::Yellow, condition, fmt::FG::Reset));
     }
 }
 
@@ -100,12 +102,14 @@ inline void test_assert_eq_helper(const char *fileName, u32 line, const char *a,
     auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
     ++Asserts::GlobalCalledCount;
     if (expected && !(aValue == bValue)) {
-        Asserts::GlobalFailed.add(
-            fmt::sprint("{}:{} {} == {}, expected \"{}\", but got \"{}\"", shortFile, line, a, b, bValue, aValue));
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} == {}{}, expected {}\"{}\"{}, but got {}\"{}{}\"", shortFile,
+                                              line, fmt::FG::Yellow, a, b, fmt::FGB::Gray, fmt::FG::Yellow, bValue,
+                                              fmt::FGB::Gray, fmt::FG::Yellow, aValue, fmt::FG::Reset));
     }
     if (!expected && !(aValue != bValue)) {
-        Asserts::GlobalFailed.add(
-            fmt::sprint("{}:{} {} != {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} != {}{}, got: {}\"{}\"{} and {}\"{}\"{}", shortFile, line,
+                                              fmt::FG::Yellow, a, b, fmt::FGB::Gray, fmt::FG::Yellow, aValue,
+                                              fmt::FGB::Gray, fmt::FG::Yellow, bValue, fmt::FG::Reset));
     }
 }
 
@@ -121,8 +125,9 @@ inline void test_assert_lt_helper(const char *fileName, u32 line, const char *a,
     auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
     ++Asserts::GlobalCalledCount;
     if (!(aValue < bValue)) {
-        Asserts::GlobalFailed.add(
-            fmt::sprint("{}:{} {} < {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} < {}{}, got: {}\"{}\"{} and {}\"{}\"{}", shortFile, line,
+                                              fmt::FG::Yellow, a, b, fmt::FGB::Gray, fmt::FG::Yellow, aValue,
+                                              fmt::FGB::Gray, fmt::FG::Yellow, bValue, fmt::FG::Reset));
     }
 }
 
@@ -135,8 +140,9 @@ inline void test_assert_le_helper(const char *fileName, u32 line, const char *a,
     auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
     ++Asserts::GlobalCalledCount;
     if (!(aValue <= bValue)) {
-        Asserts::GlobalFailed.add(
-            fmt::sprint("{}:{} {} <= {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} <= {}{}, got: {}\"{}\"{} and {}\"{}\"{}", shortFile, line,
+                                              fmt::FG::Yellow, a, b, fmt::FGB::Gray, fmt::FG::Yellow, aValue,
+                                              fmt::FGB::Gray, fmt::FG::Yellow, bValue, fmt::FG::Reset));
     }
 }
 
@@ -149,8 +155,9 @@ inline void test_assert_gt_helper(const char *fileName, u32 line, const char *a,
     auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
     ++Asserts::GlobalCalledCount;
     if (!(aValue > bValue)) {
-        Asserts::GlobalFailed.add(
-            fmt::sprint("{}:{} {} > {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} > {}{}, got: {}\"{}\"{} and {}\"{}\"{}", shortFile, line,
+                                              fmt::FG::Yellow, a, b, fmt::FGB::Gray, fmt::FG::Yellow, aValue,
+                                              fmt::FGB::Gray, fmt::FG::Yellow, bValue, fmt::FG::Reset));
     }
 }
 
@@ -163,8 +170,9 @@ inline void test_assert_ge_helper(const char *fileName, u32 line, const char *a,
     auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
     ++Asserts::GlobalCalledCount;
     if (!(aValue >= bValue)) {
-        Asserts::GlobalFailed.add(
-            fmt::sprint("{}:{} {} >= {}, got: \"{}\" and \"{}\"", shortFile, line, a, b, aValue, bValue));
+        Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} >= {}{}, got: {}\"{}\"{} and {}\"{}\"{}", shortFile, line,
+                                              fmt::FG::Yellow, a, b, fmt::FGB::Gray, fmt::FG::Yellow, aValue,
+                                              fmt::FGB::Gray, fmt::FG::Yellow, bValue, fmt::FG::Reset));
     }
 }
 
