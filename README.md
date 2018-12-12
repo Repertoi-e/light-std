@@ -1,7 +1,25 @@
 # cpp-utils
 A performance-oriented C++17 library for general programming that attempts to mimic Jai's context and allocators and provides common data structures that work with them.
 
-The philosophy behind the API is: concise code, less typing, as/or more expresive, more Python-ish:
+```cpp
+// Fast arena allocator, supports only "free all"
+temporary_storage_init(4_MiB);
+
+byte *memory1 = New<byte>(200); // using default allocator (malloc)
+
+// Create a new context and push it 
+auto tempContext = __context; // Copy the current context
+tempContext.Allocator = TEMPORARY_ALLOC;
+PUSH_CONTEXT(tempContext) {
+    // Anything in this scope now has a new default allocator
+    byte *memory2 = New<byte>(200); // using the temporary allocator
+    // ... //
+}
+// Old context has been restored
+Delete(memory1);
+```
+
+The philosophy behind the containers' API is: concise code, less typing, as/or more expresive, more Python-ish:
 ```cpp
 string a = "ЗДРАСТИ";
 for (auto ch : a) {
@@ -11,7 +29,7 @@ for (auto ch : a) {
 ```
 ```cpp
 string a = "Hello, world!";
-// Negative indexs mean from end of string
+// Negative index' mean from end of string
 string_view b = a(-6, -1); // world
 // Also substrings don't cause allocations! 
 ```
