@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common.h"
-#include "memory/allocator.h"
+#include "common.hpp"
+#include "memory/allocator.hpp"
 
 #include <functional>
 

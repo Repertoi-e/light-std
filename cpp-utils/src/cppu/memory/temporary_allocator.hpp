@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../string/string.h"
-#include "memory.h"
+#include "../string/string.hpp"
+#include "memory.hpp"
 
 CPPU_BEGIN_NAMESPACE
 
@@ -13,7 +13,7 @@ CPPU_BEGIN_NAMESPACE
 //
 // A typical place to reset the allocator is at the start of every frame, if you are doing a game for example.
 //
-// Note that calling the allocator with Allocator_Mode::FREE (or the wrapper Delete from memory.h) does nothing.
+// Note that calling the allocator with Allocator_Mode::FREE (or the wrapper Delete from memory.hpp) does nothing.
 //
 struct Temporary_Storage {
     void *Data = 0;

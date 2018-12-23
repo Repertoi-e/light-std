@@ -20,7 +20,7 @@ project "cpp-utils"
 
     files
     {
-        "%{prj.name}/src/cppu/**.h",
+        "%{prj.name}/src/cppu/**.hpp",
         "%{prj.name}/src/cppu/**.cpp"
     }
 
@@ -68,7 +68,7 @@ project "cpp-utils-tests"
 
     files
     {
-        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.hpp",
         "%{prj.name}/src/**.cpp"
     }
 

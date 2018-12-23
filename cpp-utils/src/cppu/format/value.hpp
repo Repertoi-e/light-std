@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../common.h"
+#include "../common.hpp"
 
-#include "../string/string.h"
+#include "../string/string.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

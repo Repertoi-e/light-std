@@ -1,4 +1,4 @@
-#include "string_builder.h"
+#include "string_builder.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

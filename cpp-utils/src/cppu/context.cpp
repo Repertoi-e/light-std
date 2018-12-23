@@ -1,5 +1,5 @@
-#include "context.h"
+#include "context.hpp"
 
-#include "io/writer.h"
+#include "io/writer.hpp"
 
 Writer *internal::console_log = &__console;

@@ -1,4 +1,4 @@
-#include "memory.h"
+#include "memory.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../common.h"
-#include "../context.h"
+#include "../common.hpp"
+#include "../context.hpp"
 
-#include "format_float.h"
-#include "format_integer.h"
+#include "format_float.hpp"
+#include "format_integer.hpp"
 
-#include "../io/writer.h"
+#include "../io/writer.hpp"
 
-#include "specs.h"
-#include "value.h"
+#include "specs.hpp"
+#include "value.hpp"
 
 #include <type_traits>
 

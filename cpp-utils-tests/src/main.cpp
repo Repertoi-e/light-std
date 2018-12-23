@@ -1,8 +1,8 @@
 
-#include <cppu/memory/pool.h>
-#include <cppu/memory/table.h>
+#include <cppu/memory/pool.hpp>
+#include <cppu/memory/table.hpp>
 
-#include "test.h"
+#include "test.hpp"
 
 // VS has a bug which prevents inline variables in headers constructing properly...
 Table<string_view, Dynamic_Array<Test> *> g_TestTable;

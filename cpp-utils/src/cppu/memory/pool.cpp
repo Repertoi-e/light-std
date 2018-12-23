@@ -1,4 +1,4 @@
-#include "pool.h"
+#include "pool.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

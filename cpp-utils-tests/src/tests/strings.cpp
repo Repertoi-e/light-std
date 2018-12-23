@@ -1,9 +1,9 @@
-﻿#include <cppu/memory/pool.h>
-#include <cppu/memory/table.h>
+﻿#include <cppu/memory/pool.hpp>
+#include <cppu/memory/table.hpp>
 
-#include <cppu/format/fmt.h>
+#include <cppu/format/fmt.hpp>
 
-#include "../test.h"
+#include "../test.hpp"
 
 TEST(code_point_size) {
     string ascii = "abc";

@@ -84,7 +84,7 @@ struct Hash<f64> {
 };
 
 // Hash for strings
-#include "../string/string.h"
+#include "../string/string.hpp"
 template <>
 struct Hash<string> {
     static constexpr uptr_t get(const string& str) {

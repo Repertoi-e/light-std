@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core.h"
-#include "specs.h"
-#include "value.h"
+#include "core.hpp"
+#include "specs.hpp"
+#include "value.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

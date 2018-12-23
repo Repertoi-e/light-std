@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../common.h"
-#include "../context.h"
+#include "../common.hpp"
+#include "../context.hpp"
 
 #include <new>
 

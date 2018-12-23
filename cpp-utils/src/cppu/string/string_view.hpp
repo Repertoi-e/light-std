@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../memory/memory.h"
+#include "../memory/memory.hpp"
 
-#include "string_utils.h"
+#include "string_utils.hpp"
 
 struct string;
 

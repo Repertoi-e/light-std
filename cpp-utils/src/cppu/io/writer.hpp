@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../common.h"
+#include "../common.hpp"
 
-#include "../string/string_builder.h"
-#include "../string/string_view.h"
+#include "../string/string_builder.hpp"
+#include "../string/string_view.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

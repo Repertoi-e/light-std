@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dynamic_array.h"
+#include "dynamic_array.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

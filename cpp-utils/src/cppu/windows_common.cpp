@@ -1,4 +1,4 @@
-#include "common.h"
+#include "common.hpp"
 
 #if defined OS_WINDOWS
 
@@ -8,10 +8,10 @@ int _fltused;
 }
 #endif
 
-#include "io/writer.h"
+#include "io/writer.hpp"
 
-#include "format/fmt.h"
-#include "memory/allocator.h"
+#include "format/fmt.hpp"
+#include "memory/allocator.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>

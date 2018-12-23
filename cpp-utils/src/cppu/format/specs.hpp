@@ -1,6 +1,6 @@
 #pragma once
 
-#include "value.h"
+#include "value.hpp"
 
 #if !defined CPPU_NO_CRT
 #if !defined CPPU_FMT_THOUSANDS_SEPARATOR

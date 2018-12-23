@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../context.h"
-#include "memory.h"
+#include "../context.hpp"
+#include "memory.hpp"
 
-#include "hash.h"
+#include "hash.hpp"
 
 #include <iterator>
 #include <tuple>

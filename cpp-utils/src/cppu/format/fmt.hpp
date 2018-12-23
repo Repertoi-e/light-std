@@ -1,8 +1,8 @@
 #pragma once
 
-#include "console_colors.h"
-#include "core.h"
-#include "parse.h"
+#include "console_colors.hpp"
+#include "core.hpp"
+#include "parse.hpp"
 
 CPPU_BEGIN_NAMESPACE
 
@@ -175,7 +175,7 @@ inline string to_string(const T &value) {
 
 }  // namespace fmt
 
-#include "../memory/temporary_allocator.h"
+#include "../memory/temporary_allocator.hpp"
 
 namespace fmt {
 

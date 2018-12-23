@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../context.h"
+#include "../context.hpp"
 
-#include "memory.h"
+#include "memory.hpp"
 
 CPPU_BEGIN_NAMESPACE
 
@@ -204,7 +204,7 @@ struct Dynamic_Array {
 //
 //    == and != for static and dynamic arrays
 //
-#include "array.h"
+#include "array.hpp"
 
 template <typename T, typename U, size_t N>
 b32 operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cppu/memory/dynamic_array.h>
-#include <cppu/memory/table.h>
+#include <cppu/memory/dynamic_array.hpp>
+#include <cppu/memory/table.hpp>
 
-#include <cppu/format/fmt.h>
+#include <cppu/format/fmt.hpp>
 
-#include <cppu/file/file_path.h>
+#include <cppu/file/file_path.hpp>
 
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../string/string_builder.h"
+#include "../string/string_builder.hpp"
 
-#include "../memory/dynamic_array.h"
+#include "../memory/dynamic_array.hpp"
 
-#include "specs.h"
+#include "specs.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

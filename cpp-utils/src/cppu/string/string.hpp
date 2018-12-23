@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../memory/memory.h"
+#include "../memory/memory.hpp"
 
-#include "string_view.h"
+#include "string_view.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

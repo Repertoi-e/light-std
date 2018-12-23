@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../memory/dynamic_array.h"
-#include "../string/string.h"
+#include "../memory/dynamic_array.hpp"
+#include "../string/string.hpp"
 
 #include "file_path.h"
 

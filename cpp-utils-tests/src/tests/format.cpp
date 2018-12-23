@@ -1,6 +1,6 @@
-#include "../test.h"
+#include "../test.hpp"
 
-#include <cppu/format/fmt.h>
+#include <cppu/format/fmt.hpp>
 
 struct Custom_Type {};
 

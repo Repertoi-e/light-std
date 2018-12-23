@@ -1,9 +1,9 @@
-#include "../test.h"
+#include "../test.hpp"
 
-#include <cppu/memory/array.h>
-#include <cppu/memory/dynamic_array.h>
+#include <cppu/memory/array.hpp>
+#include <cppu/memory/dynamic_array.hpp>
 
-#include <cppu/format/fmt.h>
+#include <cppu/format/fmt.hpp>
 
 #include <array>
 
