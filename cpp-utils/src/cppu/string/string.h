@@ -29,7 +29,7 @@ struct string {
         Code_Point(string &parent, size_t index) : Parent(parent), Index(index) {}
 
         Code_Point &operator=(char32_t other);
-        operator char32_t();
+        operator char32_t() const;
     };
 
     template <b32 Mutable>
@@ -314,7 +314,6 @@ struct string {
 };
 
 inline string operator+(const char *one, const string &other) { return string(one) + other; }
-
 
 inline b32 operator==(const char *one, const string &other) { return other.compare(other) == 0; }
 inline b32 operator!=(const char *one, const string &other) { return !(one == other); }

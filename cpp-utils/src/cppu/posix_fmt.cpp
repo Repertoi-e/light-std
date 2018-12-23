@@ -12,7 +12,7 @@ b32 fmt::internal::does_terminal_support_color() {
     const char *env = getenv("TERM");
     if (!env) return false;
 
-    auto terms = to_array(string("ansi"), "color", "console", "cygwin", "gnome", "konsole", "kterm", "linux", "msys",
+    auto terms = to_array(string_view("ansi"), "color", "console", "cygwin", "gnome", "konsole", "kterm", "linux", "msys",
                           "putty", "rxvt", "screen", "vt100", "xterm");
     return terms.has(env);
 }

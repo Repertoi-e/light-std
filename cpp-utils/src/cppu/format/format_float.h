@@ -6,7 +6,6 @@
 
 #include "specs.h"
 
-
 CPPU_BEGIN_NAMESPACE
 
 // Note: this won't work if we want CPPU_NO_CRT...

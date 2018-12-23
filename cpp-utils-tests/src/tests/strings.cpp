@@ -50,14 +50,14 @@ TEST(substring_mixed_sizes) {
 
 TEST(index) {
     string a = "Hello";
-    assert_eq((char32_t) a[0], 'H');
-    assert_eq((char32_t) a[1], 'e');
-    assert_eq((char32_t) a[2], 'l');
-    assert_eq((char32_t) a[3], 'l');
-    assert_eq((char32_t) a[4], 'o');
+    assert_eq(a[0], 'H');
+    assert_eq(a[1], 'e');
+    assert_eq(a[2], 'l');
+    assert_eq(a[3], 'l');
+    assert_eq(a[4], 'o');
 
     a[0] = 'X';
-    assert_eq((char32_t) a[0], 'X');
+    assert_eq(a[0], 'X');
 }
 
 TEST(utility_functions) {
@@ -84,9 +84,9 @@ TEST(modify) {
     assert_eq(a, u8"aДc");
     a.set(1, 'b');
     assert_eq(a, "abc");
-    assert_eq((char32_t) a.get(0), 'a');
-    assert_eq((char32_t) a.get(1), 'b');
-    assert_eq((char32_t) a.get(2), 'c');
+    assert_eq(a.get(0), 'a');
+    assert_eq(a.get(1), 'b');
+    assert_eq(a.get(2), 'c');
 
     a = "aDc";
     a[-2] = 'b';
@@ -95,9 +95,9 @@ TEST(modify) {
     assert_eq(a, u8"aДc");
     a[1] = 'b';
     assert_eq(a, "abc");
-    assert_eq((char32_t) a[0], 'a');
-    assert_eq((char32_t) a[1], 'b');
-    assert_eq((char32_t) a[2], 'c');
+    assert_eq(a[0], 'a');
+    assert_eq(a[1], 'b');
+    assert_eq(a[2], 'c');
 
     a[-3] = U'\U0002070E';
     a[-2] = U'\U00020731';

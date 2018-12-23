@@ -431,7 +431,7 @@ struct Format_Context {
 
         Dynamic_Array<char> buffer;
         if (!(sizeof(T) <= sizeof(f64) && t != 'a' && t != 'A' &&
-            internal::grisu2_format((f64) value, buffer, ParseContext.Specs))) {
+              internal::grisu2_format((f64) value, buffer, ParseContext.Specs))) {
             Format_Specs normalizedSpecs = ParseContext.Specs;
             normalizedSpecs.Type = t;
             internal::sprintf_format(value, buffer, normalizedSpecs);

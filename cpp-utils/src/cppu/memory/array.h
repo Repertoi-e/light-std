@@ -45,7 +45,7 @@ struct Array {
 
     constexpr void sort() { std::sort(begin(), end()); }
     template <typename Pred>
-  
+
     constexpr void sort(Pred &&predicate) {
         std::sort(begin(), end(), predicate);
     }

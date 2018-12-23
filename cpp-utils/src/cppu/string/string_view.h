@@ -123,7 +123,9 @@ struct string_view {
     // Allows negative reversed indexing which begins at
     // the end of the string, so -1 is the last character
     // -2 the one before that, etc. (Python-style)
-    constexpr char32_t get(s64 index) const { return decode_code_point(get_pointer_to_code_point_at(Data, Length, index)); }
+    constexpr char32_t get(s64 index) const {
+        return decode_code_point(get_pointer_to_code_point_at(Data, Length, index));
+    }
 
     // Gets [begin, end) range of characters
     // Allows negative reversed indexing which begins at

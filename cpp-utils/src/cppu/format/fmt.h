@@ -1,8 +1,8 @@
 #pragma once
 
+#include "console_colors.h"
 #include "core.h"
 #include "parse.h"
-#include "console_colors.h"
 
 CPPU_BEGIN_NAMESPACE
 
@@ -141,6 +141,17 @@ string sprint(const string_view &formatString, Args &&... args) {
     }
 
     return context.Out.combine();
+}
+
+template <typename... Args>
+void tprint(const string_view &formatString, Args &&... args) {
+    auto tempContext = __context;
+    tempContext.Allocator = TEMPORARY_ALLOC;
+
+    string result;
+    result.Allocator = TEMPORARY_ALLOC;
+    PUSH_CONTEXT(tempContext) { result = sprint(formatString, std::forward<Args>(args)...); }
+    return result;
 }
 
 template <typename... Args>

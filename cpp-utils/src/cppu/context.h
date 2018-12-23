@@ -59,6 +59,7 @@ inline const Implicit_Context __context;
 //    ... old context is restored ...
 //
 // Don't pass a pointer as a parameter!
+// NOTE: returning from this doesn't restore the old context.
 #define PUSH_CONTEXT(newContext)                                                             \
     Implicit_Context OLD_CONTEXT_VAR_GEN(__LINE__) = __context;                              \
     if (true) {                                                                              \

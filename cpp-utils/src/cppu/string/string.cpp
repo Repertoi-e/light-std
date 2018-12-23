@@ -11,7 +11,7 @@ string::Code_Point &string::Code_Point::operator=(char32_t other) {
     return *this;
 }
 
-string::Code_Point::operator char32_t() { return ((const string &) Parent).get((s64) Index); }
+string::Code_Point::operator char32_t() const { return ((const string &) Parent).get((s64) Index); }
 
 string::string(const char *str) : string(str, str ? cstring_strlen(str) : 0) {}
 

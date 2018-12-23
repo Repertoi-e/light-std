@@ -1,12 +1,24 @@
-- Parsing from strings to types
-
 - File system
 
-- Support for threads
+- Parsing from strings to types
 
+- Figure out some sort of stream API and implement it in fmt
+  to allow faster writes to e.g. a console
+
+- Support for threads
 - Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
 
-- assert_eq((char32_t) a.get(0), 'a');
-	should be just
-  assert_eq(a.get(0), 'a');
-	but we get a weird type error...
+
+########## Bugs ##########
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FIXME FIXME FIXME
+// NOTE: returning from this doesn't restore the old context.
+#define PUSH_CONTEXT(newContext)
+// NOTE: returning from this doesn't restore the old context.
+#define PUSH_CONTEXT(newContext)        
+// NOTE: returning from this doesn't restore the old context.
+#define PUSH_CONTEXT(newContext)        
+// NOTE: returning from this doesn't restore the old context.
+#define PUSH_CONTEXT(newContext)        
+// NOTE: returning from this doesn't restore the old context.
+#define PUSH_CONTEXT(newContext)        
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
