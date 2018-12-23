@@ -50,7 +50,7 @@ struct Test {
 extern Table<string_view, Dynamic_Array<Test> *> g_TestTable;
 
 struct Asserts {
-    static u32 GlobalCalledCount;
+    static size_t GlobalCalledCount;
     static Dynamic_Array<string> GlobalFailed;
 };
 

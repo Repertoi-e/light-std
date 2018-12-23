@@ -6,6 +6,8 @@
 #include "format_float.h"
 #include "format_integer.h"
 
+#include "../io/writer.h"
+
 #include "specs.h"
 #include "value.h"
 
@@ -21,9 +23,6 @@ template <typename T, typename Enable = void>
 struct Formatter {
     void format(const T &, Format_Context &) { static_assert(false, "Formatter<T> not specialized"); }
 };
-
-template <typename... Args>
-string sprint(const string_view &formatString, Args &&... args);
 
 struct Argument {
     Value Value;
@@ -270,9 +269,10 @@ struct Format_Context {
 
    public:
     Parse_Context ParseContext;
-    String_Builder Out;
+    Writer &Out;
 
-    Format_Context(const string_view &formatString, Arguments args) : ParseContext(formatString), Args(args) {}
+    Format_Context(Writer &out, const string_view &formatString, Arguments args)
+        : Out(out), ParseContext(formatString), Args(args) {}
 
     // Returns the argument with specified index.
     Argument do_get_arg(u32 argId) {
@@ -307,7 +307,7 @@ struct Format_Context {
         if (precision() >= 0 && prec < toWrite.Length) {
             toWrite.remove_suffix(toWrite.Length - prec);
         }
-        format_padded([&](Format_Context &f) { f.Out.append(toWrite); }, align(), toWrite.Length);
+        format_padded([&](Format_Context &f) { f.Out.write(toWrite); }, align(), toWrite.Length);
     }
 
     void write(char32_t ch) {
@@ -413,8 +413,8 @@ struct Format_Context {
         if (is_nan((f64) value)) {
             format_padded(
                 [&](Format_Context &f) {
-                    if (sign) f.Out.append(sign);
-                    f.Out.append(upper ? "NAN" : "nan");
+                    if (sign) f.Out.write(sign);
+                    f.Out.write(upper ? "NAN" : "nan");
                 },
                 align(), 3 + (sign ? 1 : 0));
             return;
@@ -422,8 +422,8 @@ struct Format_Context {
         if (is_infinity((f64) value)) {
             format_padded(
                 [&](Format_Context &f) {
-                    if (sign) f.Out.append(sign);
-                    f.Out.append(upper ? "INF" : "inf");
+                    if (sign) f.Out.write(sign);
+                    f.Out.write(upper ? "INF" : "inf");
                 },
                 align(), 3 + (sign ? 1 : 0));
             return;
@@ -453,8 +453,8 @@ struct Format_Context {
 
         format_padded(
             [&](Format_Context &f) {
-                if (sign) f.Out.append(sign);
-                f.Out.append(string_view(buffer.Data, buffer.Count));
+                if (sign) f.Out.write(sign);
+                f.Out.write(string_view(buffer.Data, buffer.Count));
             },
             alignSpec, n);
     }
@@ -485,7 +485,7 @@ struct Format_Context {
                     // Int
                     write_int(arg.Value.S32_Value);
                 } else {
-                    format_padded([&](Format_Context &f) { f.Out.append(arg.Value.S32_Value); }, align(), 1);
+                    format_padded([&](Format_Context &f) { f.Out.write(arg.Value.S32_Value); }, align(), 1);
                 }
                 break;
             case Format_Type::F64:
@@ -495,7 +495,7 @@ struct Format_Context {
                 if (!type() || type() == 's') {
                     auto strValue = arg.Value.String_Value;
                     if (!strValue.Data) {
-                        Out.append("{String pointer is null}");
+                        Out.write("{String pointer is null}");
                         return;
                     }
 
@@ -515,7 +515,7 @@ struct Format_Context {
             case Format_Type::STRING: {
                 auto strValue = arg.Value.String_Value;
                 if (!strValue.Data) {
-                    Out.append("{String pointer is null}");
+                    Out.write("{String pointer is null}");
                     return;
                 }
 
@@ -545,8 +545,7 @@ struct Format_Context {
     // E.g. f.write_fmt("Data: {}, Length: {}", this.Data, this.Length);
     template <typename... Args>
     void write_fmt(const string_view &formatString, Args &&... args) {
-        // TODO: This is not as fast as it can be.
-        Out.append(sprint(formatString, std::forward<Args>(args)...));
+        Out.write_fmt(formatString, std::forward<Args>(args)...);
     }
 
     // Helper functions to acess format specs more directly
@@ -574,16 +573,16 @@ struct Format_Context {
 
         size_t padding = width() - length;
         if (align == Alignment::RIGHT) {
-            for (auto _ : range(padding)) Out.append(fill());
+            for (auto _ : range(padding)) Out.write(fill());
             func(*this);
         } else if (align == Alignment::CENTER) {
             size_t leftPadding = padding / 2;
-            for (auto _ : range(leftPadding)) Out.append(fill());
+            for (auto _ : range(leftPadding)) Out.write(fill());
             func(*this);
-            for (auto _ : range(padding - leftPadding)) Out.append(fill());
+            for (auto _ : range(padding - leftPadding)) Out.write(fill());
         } else {
             func(*this);
-            for (auto _ : range(padding)) Out.append(fill());
+            for (auto _ : range(padding)) Out.write(fill());
         }
     }
 
@@ -610,9 +609,9 @@ struct Format_Context {
         format_padded(
             [&](Format_Context &f) {
                 if (prefix) {
-                    f.Out.append(prefix);
+                    f.Out.write(prefix);
                 }
-                for (auto _ : range(padding)) f.Out.append(fillChar);
+                for (auto _ : range(padding)) f.Out.write(fillChar);
                 func(f);
             },
             align() == Alignment::DEFAULT ? Alignment::RIGHT : align(), size);

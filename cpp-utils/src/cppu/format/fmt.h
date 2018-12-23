@@ -54,12 +54,12 @@ struct Formatter<Dynamic_Array<T>> {
 };
 
 namespace internal {
-inline void helper_write(String_Builder &builder, string_view::iterator begin, const string_view::iterator &end) {
+inline void helper_write(Writer &out, string_view::iterator begin, const string_view::iterator &end) {
     if (begin == end) return;
     while (true) {
         size_t curly = string_view(begin.to_pointer(), end - begin).find('}');
         if (curly == npos) {
-            builder.append_pointer_and_size(begin.to_pointer(), end - begin);
+            out.write(begin.to_pointer(), end - begin);
             return;
         }
         auto p = begin + curly;
@@ -67,17 +67,12 @@ inline void helper_write(String_Builder &builder, string_view::iterator begin, c
             assert(false && "unmatched } in format string");
             return;
         }
-        builder.append_pointer_and_size(begin.to_pointer(), p - begin);
+        out.write(begin.to_pointer(), p - begin);
         begin = p + 1;
     }
 }
-}  // namespace internal
 
-template <typename... Args>
-string sprint(const string_view &formatString, Args &&... args) {
-    Arguments_Array<Args...> store = {args...};
-
-    Format_Context context(formatString, Arguments(store));
+inline void do_formatting(Format_Context &context) {
     Argument arg;
 
     auto &specs = context.ParseContext.Specs;
@@ -88,14 +83,14 @@ string sprint(const string_view &formatString, Args &&... args) {
         size_t curly = string_view(it.to_pointer(), end - it).find('{');
         if (*it != '{' && curly == npos) {
             internal::helper_write(context.Out, it, end);
-            return context.Out.combine();
+            return;
         }
         auto p = it + curly;
         internal::helper_write(context.Out, it, p);
         ++p;
         if (p == end) {
             assert(false && "Invalid format string");
-            return context.Out.combine();
+            return;
         }
 
         if (*p == '}') {
@@ -111,8 +106,8 @@ string sprint(const string_view &formatString, Args &&... args) {
 
             auto error = internal::parse_arg_id(p, internal::ID_Adapter(context, arg));
             if (error != Parsing_Error_Code::NONE) {
-                context.Out.append("{Invalid format string}");
-                return context.Out.combine();
+                context.Out.write("{Invalid format string}");
+                return;
             }
             it = p;
             char32_t c = p != end ? *p : 0;
@@ -122,25 +117,39 @@ string sprint(const string_view &formatString, Args &&... args) {
                 it = ++p;
                 auto error = parse_and_validate_specs(arg.Type, context);
                 if (error != Parsing_Error_Code::NONE) {
-                    context.Out.append(get_message_from_parsing_error_code(error));
-                    return context.Out.combine();
+                    context.Out.write(get_message_from_parsing_error_code(error));
+                    return;
                 }
                 p = it;
                 if (*it == '}') {
                     context.write_argument(arg);
                 } else {
-                    context.Out.append("{Unknown format specifier}");
-                    return context.Out.combine();
+                    context.Out.write("{Unknown format specifier}");
+                    return;
                 }
             } else {
-                context.Out.append("{Missing \"}\" in format string}");
-                return context.Out.combine();
+                context.Out.write("{Missing \"}\" in format string}");
+                return;
             }
         }
         it = p + 1;
     }
+}
 
-    return context.Out.combine();
+template <typename... Args>
+void to_writer(Writer &writer, const string_view &formatString, Args &&... args) {
+    Arguments_Array<Args...> store = {args...};
+    internal::do_formatting(Format_Context(writer, formatString, Arguments(store)));
+}
+}  // namespace internal
+
+template <typename... Args>
+string sprint(const string_view &formatString, Args &&... args) {
+    Arguments_Array<Args...> store = {args...};
+
+    String_Writer writer;
+    writer.write_fmt(formatString, std::forward<Args>(args)...);
+    return writer.Builder.combine();
 }
 
 template <typename... Args>
@@ -156,14 +165,11 @@ void tprint(const string_view &formatString, Args &&... args) {
 
 template <typename... Args>
 void print(const string_view &formatString, Args &&... args) {
-    // TODO: A way to optimize this would be by directly outputting text to
-    // the console instead of sprinting it to a buffer first and then outputting it.
-    print_string_to_console(string_view(sprint(formatString, std::forward<Args>(args)...)));
+    __context.Log->write_fmt(formatString, std::forward<Args>(args)...);
 }
 
 template <typename T>
 inline string to_string(const T &value) {
-    // TODO: Speed...
     return sprint("{}", value);
 }
 
@@ -178,15 +184,9 @@ template <typename... Args>
 inline string tprint(const string &formatString, Args &&... args) {
     assert(__temporary_allocator_data);
 
-    Allocator_Closure oldAllocator;
-    oldAllocator = __context.Allocator;
-    __context.Allocator = {__temporary_allocator, __temporary_allocator_data};
-
-    auto result = sprint(formatString, std::forward<Args>(args)...);
-
-    __context.Allocator = oldAllocator;
-
-    return result;
+    auto tempContext = __context;
+    tempContext.Allocator = TEMPORARY_ALLOC;
+    PUSH_CONTEXT(tempContext) { return sprint(formatString, std::forward<Args>(args)...); }
 }
 }  // namespace fmt
 

@@ -8,6 +8,8 @@ int _fltused;
 }
 #endif
 
+#include "io/writer.h"
+
 #include "format/fmt.h"
 #include "memory/allocator.h"
 
@@ -46,20 +48,20 @@ void default_assert_failed(const char *file, int line, const char *condition) {
 #endif
 }
 
-static HANDLE g_StdOut = 0;
-
-void print_string_to_console(const string_view &str) {
-    if (!g_StdOut) {
-        g_StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+Writer &Console_Writer::write(const string_view &str) {
+    if (!PlatformData) {
+        PlatformData = (size_t) GetStdHandle(STD_OUTPUT_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {
             fmt::print(">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.");
         }
         DWORD dw = 0;
-        GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &dw);
-        SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+        GetConsoleMode((HANDLE) PlatformData, &dw);
+        SetConsoleMode((HANDLE) PlatformData, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     }
     DWORD ignored;
-    WriteFile(g_StdOut, str.Data, (DWORD) str.ByteLength, &ignored, null);
+    WriteFile((HANDLE) PlatformData, str.Data, (DWORD) str.ByteLength, &ignored, null);
+
+    return *this;
 }
 
 void wait_for_input(b32 message) {

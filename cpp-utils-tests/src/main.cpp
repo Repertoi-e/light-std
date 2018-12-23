@@ -6,7 +6,7 @@
 
 // VS has a bug which prevents inline variables in headers constructing properly...
 Table<string_view, Dynamic_Array<Test> *> g_TestTable;
-u32 Asserts::GlobalCalledCount = 0;
+size_t Asserts::GlobalCalledCount = 0;
 Dynamic_Array<string> Asserts::GlobalFailed;
 
 void run_tests() {
@@ -46,7 +46,7 @@ void run_tests() {
     }
     fmt::print("\n\n");
 
-    u32 calledCount = Asserts::GlobalCalledCount;
+    size_t calledCount = Asserts::GlobalCalledCount;
     size_t failedCount = Asserts::GlobalFailed.Count;
     size_t successCount = calledCount - failedCount;
 

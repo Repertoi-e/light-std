@@ -6,7 +6,7 @@ struct Custom_Type {};
 
 template <>
 struct fmt::Formatter<Custom_Type> {
-    void format(Custom_Type, Format_Context &f) { f.Out.append("foo"); }
+    void format(Custom_Type, Format_Context &f) { f.write("foo"); }
 };
 
 TEST(custom_types_and_to_string) {

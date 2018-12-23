@@ -7,19 +7,6 @@
 
 CPPU_BEGIN_NAMESPACE
 
-// Note that this function isn't meant for
-// formatting (that would be print in string/print.h!) but just for
-// outputting any given text. This is useful for example when your game
-// has a custom in game console. So then you can have an easy way to
-// redirect all output to it (provided that the code that logs stuff uses
-// our context!).
-//
-// If you don't specify a default logger function, the program uses the
-// console to print the message.
-
-struct string;
-using Log_Function = std::function<void(const string_view &str)>;
-
 // A function that gets called when an assert in the program is called.
 // If you don't specify one in the context a default one is provided,
 // which on failure prints the information to the console and stops the program.
@@ -31,6 +18,12 @@ using Log_Function = std::function<void(const string_view &str)>;
 //
 using Assert_Function = std::function<void(const char *file, int line, const char *condition)>;
 
+class Writer;
+
+namespace internal {
+extern Writer *console_log;
+}
+
 // When allocating you should use the context's allocator
 // This makes it so when users call your functions, they
 // can specify an allocator beforehand by pushing a new context,
@@ -40,7 +33,11 @@ using Assert_Function = std::function<void(const char *file, int line, const cha
 struct Implicit_Context {
     Allocator_Closure Allocator = MALLOC;
 
-    Log_Function Log = print_string_to_console;
+    // This variable is useful when you redirect all logging output
+    // (provided that the code that logs stuff uses the context!).
+    // If you don't specify a default logger function, the program uses the
+    // console to print the message.
+    Writer *Log = internal::console_log;
     Assert_Function AssertFailed = default_assert_failed;
 };
 

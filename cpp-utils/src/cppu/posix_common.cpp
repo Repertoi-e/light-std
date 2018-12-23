@@ -2,6 +2,8 @@
 
 #if defined OS_LINUX || defined OS_MAC
 
+#include "io/writer.h"
+
 #include "memory/allocator.h"
 #include "string/print.h"
 
@@ -46,7 +48,10 @@ void default_assert_failed(const char *file, int line, const char *condition) {
     exit_program(-1);
 }
 
-void print_string_to_console(const string &str) { write(STDOUT_FILENO, str.Data, str.Size); }
+Writer &Console_Writer::write(const string_view &str) {
+    write(STDOUT_FILENO, str.Data, str.Size);
+    return *this;
+}
 
 void wait_for_input(b32 message) {
     if (message) print("Press ENTER to continue...\n");

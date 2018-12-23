@@ -1,7 +1,5 @@
 #include "string.h"
 
-#include "string_view.h"
-
 #include <algorithm>
 
 CPPU_BEGIN_NAMESPACE

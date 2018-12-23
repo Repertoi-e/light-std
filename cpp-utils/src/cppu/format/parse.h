@@ -146,10 +146,10 @@ struct Dynamic_Width_Handler {
         if (value >= 0) {
             WidthRef = (u32) value;
         } else {
-            f.Out.append("{Unexpected negative integer with dynamic width}");
+            f.Out.write("{Unexpected negative integer with dynamic width}");
         }
     }
-    void on_error(Format_Context &f) { f.Out.append("{Dynamic width is not an integer}"); }
+    void on_error(Format_Context &f) { f.Out.write("{Dynamic width is not an integer}"); }
 };
 
 struct Dynamic_Precision_Handler {
@@ -161,10 +161,10 @@ struct Dynamic_Precision_Handler {
         if (value >= 0) {
             PrecisionRef = (s32) value;
         } else {
-            f.Out.append("{Unexpected negative integer with dynamic precision}");
+            f.Out.write("{Unexpected negative integer with dynamic precision}");
         }
     }
-    void on_error(Format_Context &f) { f.Out.append("{Dynamic precision is not an integer}"); }
+    void on_error(Format_Context &f) { f.Out.write("{Dynamic precision is not an integer}"); }
 };
 
 template <typename Handler>

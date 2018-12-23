@@ -2,9 +2,6 @@
 
 - Parsing from strings to types
 
-- Figure out some sort of stream API and implement it in fmt
-  to allow faster writes to e.g. a console
-
 - Support for threads
 - Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
 
