@@ -18,7 +18,7 @@ CPPU_BEGIN_NAMESPACE
 // console to print the message.
 
 struct string;
-using Log_Function = std::function<void(const string &str)>;
+using Log_Function = std::function<void(const string_view &str)>;
 
 // A function that gets called when an assert in the program is called.
 // If you don't specify one in the context a default one is provided,
@@ -48,8 +48,8 @@ struct Implicit_Context {
 // TODO: This should be thread local
 inline const Implicit_Context __context;
 
-#define OLD_CONTEXT_VAR_GEN_(LINE) __game_utils_old_context_var##LINE
-#define OLD_CONTEXT_VAR_GEN(LINE) OLD_CONTEXT_VAR_GEN_(LINE)
+#define OLD_CONTEXT_VAR_GEN_(x, LINE) __game_utils_old_context_var##x##LINE
+#define OLD_CONTEXT_VAR_GEN(x, LINE) OLD_CONTEXT_VAR_GEN_(x, LINE)
 
 // This is a helper macro to safely modify the implicit context in a block of code.
 // Usage:
@@ -60,17 +60,24 @@ inline const Implicit_Context __context;
 //
 // Don't pass a pointer as a parameter!
 // NOTE: returning from this doesn't restore the old context.
-#define PUSH_CONTEXT(newContext)                                                             \
-    Implicit_Context OLD_CONTEXT_VAR_GEN(__LINE__) = __context;                              \
-    if (true) {                                                                              \
-        *const_cast<Implicit_Context *>(&__context) = newContext;                            \
-        goto body;                                                                           \
-    } else                                                                                   \
-        while (true)                                                                         \
-            if (true) {                                                                      \
-                *const_cast<Implicit_Context *>(&__context) = OLD_CONTEXT_VAR_GEN(__LINE__); \
-                break;                                                                       \
-            } else                                                                           \
+#define PUSH_CONTEXT(newContext)                                                                      \
+    Implicit_Context OLD_CONTEXT_VAR_GEN(context, __LINE__) = __context;                              \
+    bool OLD_CONTEXT_VAR_GEN(restored, __LINE__) = false;                                             \
+    defer {                                                                                           \
+        if (!OLD_CONTEXT_VAR_GEN(restored, __LINE__)) {                                               \
+            *const_cast<Implicit_Context *>(&__context) = OLD_CONTEXT_VAR_GEN(context, __LINE__);     \
+        }                                                                                             \
+    };                                                                                                \
+    if (true) {                                                                                       \
+        *const_cast<Implicit_Context *>(&__context) = newContext;                                     \
+        goto body;                                                                                    \
+    } else                                                                                            \
+        while (true)                                                                                  \
+            if (true) {                                                                               \
+                *const_cast<Implicit_Context *>(&__context) = OLD_CONTEXT_VAR_GEN(context, __LINE__); \
+                OLD_CONTEXT_VAR_GEN(restored, __LINE__) = true;                                       \
+                break;                                                                                \
+            } else                                                                                    \
             body:
 
 #define CONTEXT_ALLOC __context.Allocator

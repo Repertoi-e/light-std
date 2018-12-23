@@ -48,7 +48,7 @@ void default_assert_failed(const char *file, int line, const char *condition) {
 
 static HANDLE g_StdOut = 0;
 
-void print_string_to_console(const string &str) {
+void print_string_to_console(const string_view &str) {
     if (!g_StdOut) {
         g_StdOut = GetStdHandle(STD_OUTPUT_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {

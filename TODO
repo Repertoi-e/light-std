@@ -10,15 +10,3 @@
 
 
 ########## Bugs ##########
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FIXME FIXME FIXME
-// NOTE: returning from this doesn't restore the old context.
-#define PUSH_CONTEXT(newContext)
-// NOTE: returning from this doesn't restore the old context.
-#define PUSH_CONTEXT(newContext)        
-// NOTE: returning from this doesn't restore the old context.
-#define PUSH_CONTEXT(newContext)        
-// NOTE: returning from this doesn't restore the old context.
-#define PUSH_CONTEXT(newContext)        
-// NOTE: returning from this doesn't restore the old context.
-#define PUSH_CONTEXT(newContext)        
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -158,7 +158,7 @@ template <typename... Args>
 void print(const string_view &formatString, Args &&... args) {
     // TODO: A way to optimize this would be by directly outputting text to
     // the console instead of sprinting it to a buffer first and then outputting it.
-    print_string_to_console(sprint(formatString, std::forward<Args>(args)...));
+    print_string_to_console(string_view(sprint(formatString, std::forward<Args>(args)...)));
 }
 
 template <typename T>
