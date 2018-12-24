@@ -28,8 +28,8 @@ struct Range {
             return temp;
         }
 
-        constexpr b32 operator==(const Iterator &other) const { return Step < 0 ? (I <= other.I) : (I >= other.I); }
-        constexpr b32 operator!=(const Iterator &other) const { return Step < 0 ? (I > other.I) : (I < other.I); }
+        constexpr bool operator==(const Iterator &other) const { return Step < 0 ? (I <= other.I) : (I >= other.I); }
+        constexpr bool operator!=(const Iterator &other) const { return Step < 0 ? (I > other.I) : (I < other.I); }
     };
 
     Iterator Begin;

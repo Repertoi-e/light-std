@@ -50,7 +50,7 @@ struct Array {
         std::sort(begin(), end(), predicate);
     }
 
-    constexpr b32 has(const T &item) const { return find(item) != npos; }
+    constexpr bool has(const T &item) const { return find(item) != npos; }
 
     constexpr T &get(size_t index) { return Data[index]; }
     constexpr const T &get(size_t index) const { return Data[index]; }
@@ -58,7 +58,7 @@ struct Array {
     constexpr T &operator[](size_t index) { return get(index); }
     constexpr const T &operator[](size_t index) const { return get(index); }
 
-    constexpr b32 operator==(const Array &other) {
+    constexpr bool operator==(const Array &other) {
         if (Count != other.Count) return false;
         for (size_t i = 0; i < Count; i++) {
             if (Data[i] != other.Data[i]) {
@@ -68,7 +68,7 @@ struct Array {
         return true;
     }
 
-    constexpr b32 operator!=(const Array &other) { return !(*this == other); }
+    constexpr bool operator!=(const Array &other) { return !(*this == other); }
 };
 
 template <typename... T>

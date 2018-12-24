@@ -34,7 +34,7 @@ struct string {
         operator char32_t() const;
     };
 
-    template <b32 Mutable>
+    template <bool Mutable>
     struct Iterator : public std::iterator<std::random_access_iterator_tag, char32_t> {
        private:
         using parent_type = typename std::conditional_t<Mutable, string, const string>;
@@ -50,7 +50,7 @@ struct string {
         }
         Iterator &operator-=(s64 amount) {
             Index -= amount;
-            return *this += -amount;
+            return *this;
         }
         Iterator &operator++() { return *this += 1; }
         Iterator &operator--() { return *this -= 1; }
@@ -81,19 +81,19 @@ struct string {
         friend inline Iterator operator+(s64 amount, const Iterator &it) { return it + amount; }
         friend inline Iterator operator-(s64 amount, const Iterator &it) { return it - amount; }
 
-        b32 operator==(const Iterator &other) const { return Index == other.Index; }
-        b32 operator!=(const Iterator &other) const { return Index != other.Index; }
-        b32 operator>(const Iterator &other) const { return Index > other.Index; }
-        b32 operator<(const Iterator &other) const { return Index < other.Index; }
-        b32 operator>=(const Iterator &other) const { return Index >= other.Index; }
-        b32 operator<=(const Iterator &other) const { return Index <= other.Index; }
+        bool operator==(const Iterator &other) const { return Index == other.Index; }
+        bool operator!=(const Iterator &other) const { return Index != other.Index; }
+        bool operator>(const Iterator &other) const { return Index > other.Index; }
+        bool operator<(const Iterator &other) const { return Index < other.Index; }
+        bool operator>=(const Iterator &other) const { return Index >= other.Index; }
+        bool operator<=(const Iterator &other) const { return Index <= other.Index; }
 
-        template <b32 Const = !Mutable>
+        template <bool Const = !Mutable>
         std::enable_if_t<!Const, Code_Point> operator*() {
             return Parent.get(Index);
         }
 
-        template <b32 Const = !Mutable>
+        template <bool Const = !Mutable>
         std::enable_if_t<Const, char32_t> operator*() const {
             return Parent.get(Index);
         }
@@ -189,8 +189,8 @@ struct string {
     // Find the last occurence of _other_
     size_t find_last(const string_view &other) const { return string_view(*this).find_last(other); }
 
-    b32 has(char32_t ch) const { return find(ch) != npos; }
-    b32 has(const string_view &other) const { return find(other) != npos; }
+    bool has(char32_t ch) const { return find(ch) != npos; }
+    bool has(const string_view &other) const { return find(other) != npos; }
 
     // Append one string to another
     void append(const string &other);
@@ -219,12 +219,12 @@ struct string {
     const_iterator end() const;
 
     // Check two strings for equality
-    b32 operator==(const string &other) const { return compare(other) == 0; }
-    b32 operator!=(const string &other) const { return !(*this == other); }
-    b32 operator<(const string &other) const { return compare(other) < 0; }
-    b32 operator>(const string &other) const { return compare(other) > 0; }
-    b32 operator<=(const string &other) const { return !(*this > other); }
-    b32 operator>=(const string &other) const { return !(*this < other); }
+    bool operator==(const string &other) const { return compare(other) == 0; }
+    bool operator!=(const string &other) const { return !(*this == other); }
+    bool operator<(const string &other) const { return compare(other) < 0; }
+    bool operator>(const string &other) const { return compare(other) > 0; }
+    bool operator<=(const string &other) const { return !(*this > other); }
+    bool operator>=(const string &other) const { return !(*this < other); }
 
     string operator+(const string &other) {
         string result = *this;
@@ -292,11 +292,11 @@ struct string {
     // removed at the end.
     string_view trim_end() const { return string_view(*this).trim_end(); }
 
-    b32 begins_with(char32_t ch) const { return string_view(*this).begins_with(ch); }
-    b32 begins_with(const string_view &other) const { return string_view(*this).begins_with(other); }
+    bool begins_with(char32_t ch) const { return string_view(*this).begins_with(ch); }
+    bool begins_with(const string_view &other) const { return string_view(*this).begins_with(other); }
 
-    b32 ends_with(char32_t ch) const { return string_view(*this).ends_with(ch); }
-    b32 ends_with(const string_view &other) { return string_view(*this).ends_with(other); }
+    bool ends_with(char32_t ch) const { return string_view(*this).ends_with(ch); }
+    bool ends_with(const string_view &other) { return string_view(*this).ends_with(other); }
 
     string &operator=(const string_view &view);
     string &operator=(const string &other);
@@ -317,11 +317,11 @@ struct string {
 
 inline string operator+(const char *one, const string &other) { return string(one) + other; }
 
-inline b32 operator==(const char *one, const string &other) { return other.compare(other) == 0; }
-inline b32 operator!=(const char *one, const string &other) { return !(one == other); }
-inline b32 operator<(const char *one, const string &other) { return other.compare(one) > 0; }
-inline b32 operator>(const char *one, const string &other) { return other.compare(one) < 0; }
-inline b32 operator<=(const char *one, const string &other) { return !(one > other); }
-inline b32 operator>=(const char *one, const string &other) { return !(one < other); }
+inline bool operator==(const char *one, const string &other) { return other.compare(other) == 0; }
+inline bool operator!=(const char *one, const string &other) { return !(one == other); }
+inline bool operator<(const char *one, const string &other) { return other.compare(one) > 0; }
+inline bool operator>(const char *one, const string &other) { return other.compare(one) < 0; }
+inline bool operator<=(const char *one, const string &other) { return !(one > other); }
+inline bool operator>=(const char *one, const string &other) { return !(one < other); }
 
 CPPU_END_NAMESPACE

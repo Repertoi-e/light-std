@@ -34,8 +34,6 @@ using byte = u8;
 using f32 = float;
 using f64 = double;
 
-using b32 = s32;
-
 constexpr auto null = nullptr;
 
 // Note that we assume we are on x64 architecture.
@@ -126,7 +124,7 @@ template <typename F>
 Deferrer<F> operator*(Defer_Dummy, F func) {
     return {func};
 }
-#define defer_internal_(LINE) __game_utils_defer_lambda_##LINE
+#define defer_internal_(LINE) CPPU_NAMESPACE_NAME##_cppu_defer##LINE
 #define defer_internal(LINE) defer_internal_(LINE)
 #define defer auto defer_internal(__LINE__) = Defer_Dummy{} *[&]()
 #endif
@@ -136,7 +134,7 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #ifdef NDEBUG
 #define assert(condition) ((void) 0)
 #else
-#define assert(condition) (!!(condition)) ? (void) 0 : __context.AssertFailed(__FILE__, __LINE__, u8## #condition)
+#define assert(condition) (!!(condition)) ? (void) 0 : Context.AssertFailed(__FILE__, __LINE__, u8## #condition)
 #endif
 
 template <typename T>
@@ -156,7 +154,7 @@ constexpr const T &Max(const T &a, const T &b) {
 f64 get_wallclock_in_seconds();
 
 // Pauses the program and waits for a user key press.
-void wait_for_input(b32 message = true);
+void wait_for_input(bool message = true);
 
 extern void exit_program(int code);
 

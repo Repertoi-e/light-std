@@ -2,13 +2,13 @@
 A performance-oriented C++17 library for general programming that attempts to mimic Jai's context and allocators and provides common data structures that work with them.
 
 ```cpp
-// Fast arena allocator, supports only "free all"
+// Fast arena allocator that's available globally; supports only "free all"
 temporary_storage_init(4_MiB);
 
-byte *memory1 = New<byte>(200); // using default allocator (malloc)
+byte *memory1 = New<byte>(200); // using default allocator (MALLOC)
 
 // Create a new context and push it 
-auto tempContext = __context; // Copy the current context
+auto tempContext = Context; // Copy the current context
 tempContext.Allocator = TEMPORARY_ALLOC;
 PUSH_CONTEXT(tempContext) {
     // Anything in this scope now has a new default allocator

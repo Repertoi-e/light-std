@@ -2,4 +2,4 @@
 
 #include "io/writer.hpp"
 
-Writer *internal::console_log = &__console;
+io::Writer *internal::ConsoleLog = &io::cout;

@@ -1,11 +1,11 @@
-#include "common.h"
+#include "common.hpp"
 
 #if defined OS_LINUX || defined OS_MAC
 
-#include "io/writer.h"
+#include "io/writer.hpp"
 
-#include "memory/allocator.h"
-#include "string/print.h"
+#include "memory/allocator.hpp"
+#include "string/print.hpp"
 
 #include <sys/mman.h>
 #include <sys/time.h>

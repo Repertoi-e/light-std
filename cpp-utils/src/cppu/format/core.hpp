@@ -38,12 +38,12 @@ struct Argument {
     explicit operator bool() const { return Type != Format_Type::NONE; }
 };
 
-template <b32 IsPacked, typename T>
+template <bool IsPacked, typename T>
 inline typename std::enable_if_t<IsPacked, Value> make_argument(const T &value) {
     return make_value(value);
 }
 
-template <b32 IsPacked, typename T>
+template <bool IsPacked, typename T>
 inline typename std::enable_if_t<!IsPacked, Argument> make_argument(const T &value) {
     return make_argument(value);
 }
@@ -90,7 +90,7 @@ constexpr auto MAX_PACKED_ARGS = 15;
 template <typename... Args>
 struct Arguments_Array {
     static constexpr size_t NUM_ARGS = sizeof...(Args);
-    static constexpr b32 IS_PACKED = NUM_ARGS < MAX_PACKED_ARGS;
+    static constexpr bool IS_PACKED = NUM_ARGS < MAX_PACKED_ARGS;
 
     using value_type = typename std::conditional_t<IS_PACKED, Value, Argument>;
 
@@ -250,7 +250,7 @@ struct Parse_Context {
         return 0;
     }
 
-    constexpr b32 check_arg_id(u32) {
+    constexpr bool check_arg_id(u32) {
         if (NextArgId > 0) {
             assert(false && "Cannot switch from manual to automatic argument indexing");
             return false;
@@ -269,9 +269,9 @@ struct Format_Context {
 
    public:
     Parse_Context ParseContext;
-    Writer &Out;
+    io::Writer &Out;
 
-    Format_Context(Writer &out, const string_view &formatString, Arguments args)
+    Format_Context(io::Writer &out, const string_view &formatString, Arguments args)
         : Out(out), ParseContext(formatString), Args(args) {}
 
     // Returns the argument with specified index.
@@ -393,7 +393,7 @@ struct Format_Context {
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>> write_float(T value) {
         char t = (char) type();
-        b32 upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
+        bool upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
         if (t == 0 || t == 'G') t = 'f';
 #if !defined COMPILER_MSVC
         // MSVC's printf doesn't support 'F'.
@@ -555,10 +555,10 @@ struct Format_Context {
     inline s32 precision() { return ParseContext.Specs.Precision; }
     inline char32_t type() { return ParseContext.Specs.Type; }
 
-    inline b32 sign_plus() { return ParseContext.Specs.has_flag(Flag::PLUS) != 0; }
-    inline b32 sign_minus() { return ParseContext.Specs.has_flag(Flag::MINUS) != 0; }
-    inline b32 alternate() { return ParseContext.Specs.has_flag(Flag::HASH) != 0; }
-    inline b32 sign_aware_zero_pad() { return align() == Alignment::NUMERIC && fill() == '0'; }
+    inline bool sign_plus() { return ParseContext.Specs.has_flag(Flag::PLUS) != 0; }
+    inline bool sign_minus() { return ParseContext.Specs.has_flag(Flag::MINUS) != 0; }
+    inline bool alternate() { return ParseContext.Specs.has_flag(Flag::HASH) != 0; }
+    inline bool sign_aware_zero_pad() { return align() == Alignment::NUMERIC && fill() == '0'; }
 
    private:
     // Pad according to _spec_.

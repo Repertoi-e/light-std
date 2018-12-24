@@ -42,7 +42,7 @@ class Format_Specs : public Align_Spec {
 
     constexpr Format_Specs(u32 width = 0, char32_t type = 0, char32_t fill = ' ')
         : Align_Spec(width, fill), Type(type) {}
-    constexpr b32 has_flag(Flag flag) const { return ((u32) Flags & (u32) flag) != 0; }
+    constexpr bool has_flag(Flag flag) const { return ((u32) Flags & (u32) flag) != 0; }
 };
 
 struct Argument_Ref {

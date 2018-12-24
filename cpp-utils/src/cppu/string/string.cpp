@@ -58,7 +58,7 @@ void string::swap(string &other) {
             other._StackData[i] = temp;
         }
 
-        b32 isOtherSmall = other.Data == other._StackData;
+        bool isOtherSmall = other.Data == other._StackData;
         if (Data != _StackData || !isOtherSmall) {
             if (Data == _StackData) {
                 auto temp = other.Data;

@@ -65,7 +65,7 @@ char *format_uint_to_buffer(char *buffer, UInt value, u32 numDigits, TS thousand
 }
 
 template <typename UInt, typename TS = No_Thousands_Separator>
-void format_uint(Writer &out, UInt value, u32 numDigits, TS thousandsSep = {}) {
+void format_uint(io::Writer &out, UInt value, u32 numDigits, TS thousandsSep = {}) {
     // Buffer should be large enough to hold all digits (<= digits10 + 1)
     const size_t maxSize = std::numeric_limits<UInt>::digits10 + 1;
     char buffer[maxSize + maxSize / 3];
@@ -75,7 +75,7 @@ void format_uint(Writer &out, UInt value, u32 numDigits, TS thousandsSep = {}) {
 
 // Format with a base different from base 10
 template <u32 BaseBits, typename UInt>
-char *format_uint_to_buffer(char *buffer, UInt value, u32 numDigits, b32 upper = false) {
+char *format_uint_to_buffer(char *buffer, UInt value, u32 numDigits, bool upper = false) {
     buffer += numDigits;
     char *end = buffer;
     do {
@@ -88,7 +88,7 @@ char *format_uint_to_buffer(char *buffer, UInt value, u32 numDigits, b32 upper =
 
 // Format with a base different from base 10
 template <unsigned BaseBits, typename UInt>
-void format_uint(Writer &out, UInt value, u32 numDigits, b32 upper = false) {
+void format_uint(io::Writer &out, UInt value, u32 numDigits, bool upper = false) {
     // Buffer should be large enough to hold all digits (digits / BASE_BITS + 1) and null.
     char buffer[std::numeric_limits<UInt>::digits / BaseBits + 2];
     format_uint_to_buffer<BaseBits>(buffer, value, numDigits, upper);

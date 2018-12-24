@@ -134,7 +134,7 @@ struct Dynamic_Array {
         return npos;
     }
 
-    b32 has(const Data_Type &item) { return find(item) != npos; }
+    bool has(const Data_Type &item) { return find(item) != npos; }
 
     void sort() { std::sort(begin(), end()); }
 
@@ -176,7 +176,7 @@ struct Dynamic_Array {
     Data_Type &operator[](size_t index) { return Data[index]; }
     const Data_Type &operator[](size_t index) const { return Data[index]; }
 
-    b32 operator==(const Dynamic_Array &other) {
+    bool operator==(const Dynamic_Array &other) {
         if (Count != other.Count) return false;
         for (size_t i = 0; i < Count; i++) {
             if (Data[i] != other.Data[i]) {
@@ -186,7 +186,7 @@ struct Dynamic_Array {
         return true;
     }
 
-    b32 operator!=(const Dynamic_Array &other) { return !(*this == other); }
+    bool operator!=(const Dynamic_Array &other) { return !(*this == other); }
 
     void _reserve(size_t reserve) {
         if (reserve <= _Reserved) return;
@@ -207,7 +207,7 @@ struct Dynamic_Array {
 #include "array.hpp"
 
 template <typename T, typename U, size_t N>
-b32 operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {
+bool operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {
     if constexpr (!std::is_same_v<T, U>) {
         return false;
     } else {
@@ -223,17 +223,17 @@ b32 operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {
 }
 
 template <typename T, typename U, size_t N>
-b32 operator==(const Array<U, N> &left, const Dynamic_Array<T> &right) {
+bool operator==(const Array<U, N> &left, const Dynamic_Array<T> &right) {
     return right == left;
 }
 
 template <typename T, typename U, size_t N>
-b32 operator!=(const Dynamic_Array<T> &left, const Array<U, N> &right) {
+bool operator!=(const Dynamic_Array<T> &left, const Array<U, N> &right) {
     return !(left == right);
 }
 
 template <typename T, typename U, size_t N>
-b32 operator!=(const Array<U, N> &left, const Dynamic_Array<T> &right) {
+bool operator!=(const Array<U, N> &left, const Dynamic_Array<T> &right) {
     return right != left;
 }
 

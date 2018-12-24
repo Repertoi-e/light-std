@@ -117,7 +117,7 @@ inline void test_assert_helper(const char *fileName, u32 line, const char *condi
             Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} == {}{}, expected {}\"{}\"{}, got {}\"{}{}\"",           \
                                                   get_file_path_relative_to_src_or_just_file_name(__FILE__), __LINE__, \
                                                   fmt::FG::Yellow, u8## #x, u8## #y, fmt::FGB::Gray, fmt::FG::Yellow,  \
-                                                  b##__LINE__, fmt::FGB::Gray, fmt::FG::Yellow, a##__LINE__,           \
+                                                  a##__LINE__, fmt::FGB::Gray, fmt::FG::Yellow, b##__LINE__,           \
                                                   fmt::FG::Reset));                                                    \
         }                                                                                                              \
     }

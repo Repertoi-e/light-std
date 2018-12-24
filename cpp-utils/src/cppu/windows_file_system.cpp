@@ -77,12 +77,12 @@ static void read_link_info(Local_File_Path const &path) {
     }
 }
 
-b32 exists(Local_File_Path const &path) {
+bool exists(Local_File_Path const &path) {
     read_file_info(path);
     return path.FileInfo;
 }
 
-b32 is_file(Local_File_Path const &path) {
+bool is_file(Local_File_Path const &path) {
     read_file_info(path);
     if (path.FileInfo) {
         return S_ISREG(((struct stat *) path.FileInfo)->st_mode);
@@ -90,7 +90,7 @@ b32 is_file(Local_File_Path const &path) {
     return false;
 }
 
-b32 is_dir(Local_File_Path const &path) {
+bool is_dir(Local_File_Path const &path) {
     read_file_info(path);
     if (path.FileInfo) {
         return S_ISDIR(((struct stat *) path.FileInfo)->st_mode);
@@ -98,7 +98,7 @@ b32 is_dir(Local_File_Path const &path) {
     return false;
 }
 
-b32 is_symbolic_link(Local_File_Path const &path) {
+bool is_symbolic_link(Local_File_Path const &path) {
     read_link_info(path);
     if (path.FileInfo) {
         return S_ISLNK(((struct stat *) path.LinkInfo)->st_mode);
@@ -143,7 +143,7 @@ u32 last_write_time(Local_File_Path const &path) {
     return 0;
 }
 
-b32 remove(Local_File_Path const &path) {
+bool remove(Local_File_Path const &path) {
     if (!exists(path)) return false;
 
     if (::remove(path.Path.Data)) {
@@ -154,7 +154,7 @@ b32 remove(Local_File_Path const &path) {
     return true;
 }
 
-b32 rename(Local_File_Path const &path, string const &name) {
+bool rename(Local_File_Path const &path, string const &name) {
     if (!exists(path)) return false;
 
     // Not implemented

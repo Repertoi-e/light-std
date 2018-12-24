@@ -8,12 +8,16 @@
 CPPU_BEGIN_NAMESPACE
 
 struct string;
+namespace io {
 class Writer;
+}
 
 namespace fmt::internal {
 template <typename... Args>
-void to_writer(Writer &writer, const string_view &formatString, Args &&... args);
+void to_writer(io::Writer &writer, const string_view &formatString, Args &&... args);
 }
+
+namespace io {
 
 class Writer {
    public:
@@ -60,6 +64,7 @@ struct Console_Writer : Writer {
     Console_Writer &operator=(Console_Writer &&) = delete;
 };
 
-inline Console_Writer __console;
+inline Console_Writer cout;
+}  // namespace io
 
 CPPU_END_NAMESPACE

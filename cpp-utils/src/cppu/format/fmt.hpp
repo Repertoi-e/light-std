@@ -54,7 +54,7 @@ struct Formatter<Dynamic_Array<T>> {
 };
 
 namespace internal {
-inline void helper_write(Writer &out, string_view::iterator begin, const string_view::iterator &end) {
+inline void helper_write(io::Writer &out, string_view::iterator begin, const string_view::iterator &end) {
     if (begin == end) return;
     while (true) {
         size_t curly = string_view(begin.to_pointer(), end - begin).find('}');
@@ -137,7 +137,7 @@ inline void do_formatting(Format_Context &context) {
 }
 
 template <typename... Args>
-void to_writer(Writer &writer, const string_view &formatString, Args &&... args) {
+void to_writer(io::Writer &writer, const string_view &formatString, Args &&... args) {
     Arguments_Array<Args...> store = {args...};
     internal::do_formatting(Format_Context(writer, formatString, Arguments(store)));
 }
@@ -147,14 +147,14 @@ template <typename... Args>
 string sprint(const string_view &formatString, Args &&... args) {
     Arguments_Array<Args...> store = {args...};
 
-    String_Writer writer;
+    io::String_Writer writer;
     writer.write_fmt(formatString, std::forward<Args>(args)...);
     return writer.Builder.combine();
 }
 
 template <typename... Args>
 void tprint(const string_view &formatString, Args &&... args) {
-    auto tempContext = __context;
+    auto tempContext = Context;
     tempContext.Allocator = TEMPORARY_ALLOC;
 
     string result;
@@ -165,7 +165,7 @@ void tprint(const string_view &formatString, Args &&... args) {
 
 template <typename... Args>
 void print(const string_view &formatString, Args &&... args) {
-    __context.Log->write_fmt(formatString, std::forward<Args>(args)...);
+    Context.Log->write_fmt(formatString, std::forward<Args>(args)...);
 }
 
 template <typename T>
@@ -182,9 +182,9 @@ namespace fmt {
 // Format a string using the temporary allocator
 template <typename... Args>
 inline string tprint(const string &formatString, Args &&... args) {
-    assert(__temporary_allocator_data);
+    assert(TemporaryAllocatorData);
 
-    auto tempContext = __context;
+    auto tempContext = Context;
     tempContext.Allocator = TEMPORARY_ALLOC;
     PUSH_CONTEXT(tempContext) { return sprint(formatString, std::forward<Args>(args)...); }
 }

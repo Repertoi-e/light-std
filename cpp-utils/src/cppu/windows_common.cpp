@@ -35,7 +35,7 @@ void *windows_allocator(Allocator_Mode mode, void *data, size_t size, void *oldM
     return null;
 }
 
-Allocator_Func __default_allocator = windows_allocator;
+Allocator_Func DefaultAllocator = windows_allocator;
 
 void exit_program(int code) { _exit(code); }
 
@@ -48,7 +48,7 @@ void default_assert_failed(const char *file, int line, const char *condition) {
 #endif
 }
 
-Writer &Console_Writer::write(const string_view &str) {
+io::Writer &io::Console_Writer::write(const string_view &str) {
     if (!PlatformData) {
         PlatformData = (size_t) GetStdHandle(STD_OUTPUT_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {
@@ -64,7 +64,7 @@ Writer &Console_Writer::write(const string_view &str) {
     return *this;
 }
 
-void wait_for_input(b32 message) {
+void wait_for_input(bool message) {
     if (message) fmt::print("Press ENTER to continue...\n");
     getchar();
 }

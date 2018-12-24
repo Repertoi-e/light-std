@@ -44,7 +44,7 @@ struct string_view {
         }
         constexpr Iterator &operator-=(s64 amount) {
             Current = get_current_after(-amount);
-            return *this += -amount;
+            return *this;
         }
         constexpr Iterator &operator++() { return *this += 1; }
         constexpr Iterator &operator--() { return *this -= 1; }
@@ -79,12 +79,12 @@ struct string_view {
         constexpr friend inline Iterator operator+(s64 amount, const Iterator &it) { return it + amount; }
         constexpr friend inline Iterator operator-(s64 amount, const Iterator &it) { return it - amount; }
 
-        constexpr b32 operator==(const Iterator &other) const { return Current == other.Current; }
-        constexpr b32 operator!=(const Iterator &other) const { return Current != other.Current; }
-        constexpr b32 operator>(const Iterator &other) const { return Current > other.Current; }
-        constexpr b32 operator<(const Iterator &other) const { return Current < other.Current; }
-        constexpr b32 operator>=(const Iterator &other) const { return Current >= other.Current; }
-        constexpr b32 operator<=(const Iterator &other) const { return Current <= other.Current; }
+        constexpr bool operator==(const Iterator &other) const { return Current == other.Current; }
+        constexpr bool operator!=(const Iterator &other) const { return Current != other.Current; }
+        constexpr bool operator>(const Iterator &other) const { return Current > other.Current; }
+        constexpr bool operator<(const Iterator &other) const { return Current < other.Current; }
+        constexpr bool operator>=(const Iterator &other) const { return Current >= other.Current; }
+        constexpr bool operator<=(const Iterator &other) const { return Current <= other.Current; }
 
         constexpr char32_t operator*() const { return decode_code_point(Current); }
 
@@ -207,8 +207,8 @@ struct string_view {
         return npos;
     }
 
-    constexpr b32 has(char32_t ch) const { return find(ch) != npos; }
-    constexpr b32 has(const string_view &other) const { return find(other) != npos; }
+    constexpr bool has(char32_t ch) const { return find(ch) != npos; }
+    constexpr bool has(const string_view &other) const { return find(other) != npos; }
 
     // Moves the beginning forwards by n characters.
     constexpr void remove_prefix(size_t n) {
@@ -263,11 +263,11 @@ struct string_view {
         return result;
     }
 
-    b32 begins_with(char32_t ch) const { return get(0) == ch; }
-    b32 begins_with(const string_view &other) const { return compare_memory(Data, other.Data, other.ByteLength) == 0; }
+    bool begins_with(char32_t ch) const { return get(0) == ch; }
+    bool begins_with(const string_view &other) const { return compare_memory(Data, other.Data, other.ByteLength) == 0; }
 
-    b32 ends_with(char32_t ch) const { return get(-1) == ch; }
-    b32 ends_with(const string_view &other) const {
+    bool ends_with(char32_t ch) const { return get(-1) == ch; }
+    bool ends_with(const string_view &other) const {
         return compare_memory(Data + ByteLength - other.ByteLength, other.Data, other.ByteLength) == 0;
     }
 
@@ -314,12 +314,12 @@ struct string_view {
     }
 
     // Check two string views for equality
-    constexpr b32 operator==(const string_view &other) const { return compare(other) == 0; }
-    constexpr b32 operator!=(const string_view &other) const { return !(*this == other); }
-    constexpr b32 operator<(const string_view &other) const { return compare(other) < 0; }
-    constexpr b32 operator>(const string_view &other) const { return compare(other) > 0; }
-    constexpr b32 operator<=(const string_view &other) const { return !(*this > other); }
-    constexpr b32 operator>=(const string_view &other) const { return !(*this < other); }
+    constexpr bool operator==(const string_view &other) const { return compare(other) == 0; }
+    constexpr bool operator!=(const string_view &other) const { return !(*this == other); }
+    constexpr bool operator<(const string_view &other) const { return compare(other) < 0; }
+    constexpr bool operator>(const string_view &other) const { return compare(other) > 0; }
+    constexpr bool operator<=(const string_view &other) const { return !(*this > other); }
+    constexpr bool operator>=(const string_view &other) const { return !(*this < other); }
 
     constexpr string_view &operator=(const string_view &other) = default;
     constexpr string_view &operator=(string_view &&other) = default;
@@ -333,9 +333,9 @@ struct string_view {
     constexpr string_view operator()(s64 begin, s64 end) const { return substring(begin, end); }
 };
 
-constexpr b32 operator==(const char *one, const string_view &other) { return other.compare(other) == 0; }
-constexpr b32 operator!=(const char *one, const string_view &other) { return !(one == other); }
-constexpr b32 operator<(const char *one, const string_view &other) { return other.compare(one) > 0; }
-constexpr b32 operator>(const char *one, const string_view &other) { return other.compare(one) < 0; }
-constexpr b32 operator<=(const char *one, const string_view &other) { return !(one > other); }
-constexpr b32 operator>=(const char *one, const string_view &other) { return !(one < other); }
+constexpr bool operator==(const char *one, const string_view &other) { return other.compare(other) == 0; }
+constexpr bool operator!=(const char *one, const string_view &other) { return !(one == other); }
+constexpr bool operator<(const char *one, const string_view &other) { return other.compare(one) > 0; }
+constexpr bool operator>(const char *one, const string_view &other) { return other.compare(one) < 0; }
+constexpr bool operator<=(const char *one, const string_view &other) { return !(one > other); }
+constexpr bool operator>=(const char *one, const string_view &other) { return !(one < other); }

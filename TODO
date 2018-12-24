@@ -1,9 +1,10 @@
-- File system
+- Rename identifiers that start with _
 
 - Parsing from strings to types
 
+- File system
+
 - Support for threads
 - Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
-
 
 ########## Bugs ##########

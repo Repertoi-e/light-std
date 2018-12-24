@@ -1,8 +1,8 @@
-#include "common.h"
+#include "common.hpp"
 
 #if defined OS_LINUX || defined OS_MAC
 
-#include "file/local_file_path.h"
+#include "file/local_file_path.hpp"
 
 #include <dirent.h>
 #include <stdio.h>

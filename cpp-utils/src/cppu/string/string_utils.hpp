@@ -17,24 +17,24 @@ constexpr size_t cstring_strlen(const char *str) {
 }
 
 // These functions only work for ascii
-constexpr b32 is_digit(char32_t x) { return x >= '0' && x <= '9'; }
+constexpr bool is_digit(char32_t x) { return x >= '0' && x <= '9'; }
 // These functions only work for ascii
-constexpr b32 is_hexadecimal_digit(char32_t x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
+constexpr bool is_hexadecimal_digit(char32_t x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
 
 // These functions only work for ascii
-constexpr b32 is_space(char32_t x) { return (x >= 9 && x <= 13) || x == 32; }
+constexpr bool is_space(char32_t x) { return (x >= 9 && x <= 13) || x == 32; }
 // These functions only work for ascii
-constexpr b32 is_blank(char32_t x) { return x == 9 || x == 32; }
+constexpr bool is_blank(char32_t x) { return x == 9 || x == 32; }
 
 // These functions only work for ascii
-constexpr b32 is_alpha(char32_t x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
+constexpr bool is_alpha(char32_t x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
 // These functions only work for ascii
-constexpr b32 is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
+constexpr bool is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
 
-constexpr b32 is_identifier_start(char32_t x) { return is_alpha(x) || x == '_'; }
+constexpr bool is_identifier_start(char32_t x) { return is_alpha(x) || x == '_'; }
 
 // These functions only work for ascii
-constexpr b32 is_print(char32_t x) { return x > 31 && x != 127; }
+constexpr bool is_print(char32_t x) { return x > 31 && x != 127; }
 
 //
 // Utility utf-8 functions:

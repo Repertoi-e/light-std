@@ -8,6 +8,106 @@ CPPU_BEGIN_NAMESPACE
 
 namespace fmt {
 
+template <typename T>
+constexpr std::enable_if_t<std::is_unsigned_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it, u32 base = 0) {
+    // Skip white space
+    while (is_space(*it)) {
+        ++it;
+    }
+    if (*it == '+') {
+        ++it;
+    }
+
+    char32_t ch = *it++;
+    if ((base == 0 || base == 16) && ch == '0' && (*it == 'x' || *it == 'X')) {
+        ++it;
+        ch = *it++;
+        base = 16;
+    }
+    if (base == 0) {
+        base = ch == '0' ? 8 : 10;
+    }
+
+    T maxValue = (std::numeric_limits<T>::max)();
+    T cutoff = maxValue / base;
+    s32 cutlim = maxValue % (T) base;
+
+    T value = 0;
+    for (;; ch = *it++) {
+        if (is_digit(ch)) {
+            ch -= '0';
+        } else if (is_alpha(ch)) {
+            ch -= to_upper(ch) == ch ? 'A' - 10 : 'a' - 10;
+        } else {
+            break;
+        }
+
+        if (ch >= base) break;
+        if (value > cutoff || (value == cutoff && (s32) ch > cutlim)) {
+            --it;
+            return {maxValue, false};
+        } else {
+            value = value * base + ch;
+        }
+    }
+
+    --it;
+    return {value, true};
+}
+
+template <typename T>
+constexpr std::enable_if_t<std::is_signed_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it,
+                                                                                u32 base = 0) {
+    // Skip white space
+    while (is_space(*it)) {
+        ++it;
+    }
+    bool negative = false;
+    if (*it == '-') {
+        negative = true;
+        ++it;
+    }
+    if (*it == '+') {
+        ++it;
+    }
+
+    char32_t ch = *it++;
+    if ((base == 0 || base == 16) && ch == '0' && (*it == 'x' || *it == 'X')) {
+        ++it;
+        ch = *it++;
+        base = 16;
+    }
+    if (base == 0) {
+        base = ch == '0' ? 8 : 10;
+    }
+
+    T maxValue = negative ? -(std::numeric_limits<T>::min()) : std::numeric_limits<T>::max();
+    T cutoff = maxValue / base;
+    s32 cutlim = maxValue % (T) base;
+
+    T value = 0;
+    for (;; ch = *it++) {
+        if (is_digit(ch)) {
+            ch -= '0';
+        } else if (is_alpha(ch)) {
+            ch -= to_upper(ch) == ch ? 'A' - 10 : 'a' - 10;
+        } else {
+            break;
+        }
+
+        if (ch >= base) break;
+        if (value > cutoff || (value == cutoff && ch > cutlim)) {
+            --it;
+            return {maxValue * (negative ? -1 : 1), false};
+        } else {
+            value = value * base + ch;
+        }
+    }
+
+    --it;
+    return {value * (negative ? -1 : 1), true};
+}
+
 enum class Parsing_Error_Code {
     NONE = 0,
     SPEC_NEEDS_NUMERIC_ARG, /*Format specifier requires numeric argument*/
@@ -78,7 +178,9 @@ constexpr Parsing_Error_Code parse_arg_id(string_view::iterator &it, IDHandler &
         return Parsing_Error_Code::NONE;
     }
     if (is_digit(c)) {
-        u32 index = parse_nonnegative_int(it);
+        assert(is_digit(*it));
+        auto [index, success] = parse_int<u32>(it, 10);
+        assert(success);
         if (*it != '}' && *it != ':') {
             return Parsing_Error_Code::INVALID_FORMAT_STRING;
         }

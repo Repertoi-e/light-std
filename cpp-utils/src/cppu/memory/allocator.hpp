@@ -25,9 +25,9 @@ struct Allocator_Closure {
 
 // The default allocator. Think of malloc, realloc, free
 // Implementation in *platform*.cpp
-extern Allocator_Func __default_allocator;
+extern Allocator_Func DefaultAllocator;
 
 #define MALLOC \
-    Allocator_Closure { __default_allocator, null }
+    Allocator_Closure { DefaultAllocator, null }
 
 CPPU_END_NAMESPACE

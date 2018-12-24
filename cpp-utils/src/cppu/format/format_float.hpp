@@ -167,7 +167,7 @@ inline fp get_cached_power(s32 minExponent, s32 &pow10Exp) {
     return fp(POW10_SIGNIFICANDS[index], POW10_EXPONENTS[index]);
 }
 
-inline b32 grisu2_round(char *buffer, size_t &size, size_t maxDigits, u64 delta, u64 remainder, u64 exp, u64 diff,
+inline bool grisu2_round(char *buffer, size_t &size, size_t maxDigits, u64 delta, u64 remainder, u64 exp, u64 diff,
                         s32 &exp10) {
     while (remainder < diff && delta - remainder >= exp &&
            (remainder + exp < diff || diff - remainder > remainder + exp - diff)) {
@@ -183,7 +183,7 @@ inline b32 grisu2_round(char *buffer, size_t &size, size_t maxDigits, u64 delta,
 }
 
 // Generates output using Grisu2 digit-gen algorithm.
-inline b32 grisu2_gen_digits(char *buffer, size_t &size, u32 hi, u64 lo, s32 &exp, u64 delta, const fp &one,
+inline bool grisu2_gen_digits(char *buffer, size_t &size, u32 hi, u64 lo, s32 &exp, u64 delta, const fp &one,
                              const fp &diff, size_t maxDigits) {
     // Generate digits for the most significant part (hi).
     while (exp > 0) {
@@ -433,7 +433,7 @@ inline Gen_Digits_Params process_specs(const Format_Specs &specs, s32 exp, Dynam
 }
 
 template <typename Double>
-typename std::enable_if_t<sizeof(Double) == sizeof(u64), b32> grisu2_format(Double value, Dynamic_Array<char> &buffer,
+typename std::enable_if_t<sizeof(Double) == sizeof(u64), bool> grisu2_format(Double value, Dynamic_Array<char> &buffer,
                                                                             const Format_Specs &specs) {
     assert(value >= 0 && "Value is negative");
     if (value == 0) {

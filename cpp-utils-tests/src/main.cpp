@@ -65,7 +65,7 @@ void run_tests() {
 int main() {
     temporary_storage_init(4_MiB);
 
-    auto tempContext = __context;
+    auto tempContext = Context;
     tempContext.Allocator = TEMPORARY_ALLOC;
     PUSH_CONTEXT(tempContext) {
         TEMPORARY_STORAGE_MARK_SCOPE;

@@ -47,7 +47,7 @@ enum class FGB { Black = 90, Red = 91, Green = 92, Yellow = 93, Blue = 94, Magen
 enum class BGB { Black = 100, Red = 101, Green = 102, Yellow = 103, Blue = 104, Magenta = 105, Cyan = 106, Gray = 107 };
 
 namespace internal {
-b32 does_terminal_support_color();
+bool does_terminal_support_color();
 }
 
 template <typename T>

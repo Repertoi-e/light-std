@@ -104,7 +104,7 @@ struct Table {
 
     // Returns a tuple of the value and a bool (true if found). Doesn't return the value by reference so
     // modifying it doesn't update it in the table, use pointers if you want that kind of behaviour.
-    std::tuple<Value_Type &, b32> find(const Key_Type &key) {
+    std::tuple<Value_Type &, bool> find(const Key_Type &key) {
         uptr_t hash = Hash<Key_Type>::get(key);
 
         s32 index = _find_index(key, hash);
@@ -115,7 +115,7 @@ struct Table {
         return std::forward_as_tuple(_Values[index], true);
     }
 
-    b32 has(const Key_Type &key) {
+    bool has(const Key_Type &key) {
         auto [_, found] = find(key);
         return found;
     }
@@ -246,8 +246,8 @@ struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tup
         return pre;
     }
 
-    b32 operator==(Table_Iterator other) const { return SlotIndex == other.SlotIndex; }
-    b32 operator!=(Table_Iterator other) const { return !(*this == other); }
+    bool operator==(Table_Iterator other) const { return SlotIndex == other.SlotIndex; }
+    bool operator!=(Table_Iterator other) const { return !(*this == other); }
 
     std::tuple<Key &, Value &> operator*() const {
         return std::forward_as_tuple(Table._Keys[SlotIndex], Table._Values[SlotIndex]);

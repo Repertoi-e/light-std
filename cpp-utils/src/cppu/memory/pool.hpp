@@ -44,9 +44,9 @@ struct Pool {
 // The allocator function that works with a pool.
 // As you can see, there is no "free" function defined above,
 // that's because Pool doesn't manage freeing of invidual pieces
-// of memory. So calling __pool_allocator with Allocator_Mode::FREE,
+// of memory. So calling pool_allocator with Allocator_Mode::FREE,
 // doesn't do anything. Allocator_Mode::FREE_ALL does tho.
-void *__pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
+void *pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
                        s32 options);
 
 CPPU_END_NAMESPACE

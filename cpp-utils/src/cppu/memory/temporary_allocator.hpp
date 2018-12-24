@@ -27,15 +27,15 @@ struct Temporary_Storage {
     ~Temporary_Storage() { Delete((byte *) Data, Size, MALLOC); }
 };
 
-inline Temporary_Storage *__temporary_allocator_data;
+inline Temporary_Storage *TemporaryAllocatorData;
 
 namespace fmt {
 template <typename... Args>
 void print(const string_view &formatString, Args &&... args);
 }
 
-inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory,
-                                   size_t oldSize, s32 options) {
+inline void *temporary_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
+                                 s32 options) {
     Temporary_Storage *storage = (Temporary_Storage *) allocatorData;
 
     switch (mode) {
@@ -43,22 +43,22 @@ inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, siz
             [[fallthrough]];
         case Allocator_Mode::RESIZE: {
             if (storage->Occupied + size > storage->Size) {
-                b32 switched = false;
+                bool switched = false;
 
-                if (__context.Allocator.Function == __temporary_allocator ||
-                    __context.Allocator.Data == __temporary_allocator_data) {
+                if (Context.Allocator.Function == temporary_allocator ||
+                    Context.Allocator.Data == TemporaryAllocatorData) {
                     // We know what we are doing...
-                    const_cast<Implicit_Context *>(&__context)->Allocator = MALLOC;
+                    const_cast<Implicit_Context *>(&Context)->Allocator = MALLOC;
                     switched = true;
                 }
-                __temporary_allocator_data = 0;
+                TemporaryAllocatorData = 0;
 
                 fmt::print("!!! Warning !!!\n");
                 fmt::print(">> Temporary allocator ran out of space, using malloc for allocation...\n");
                 fmt::print(">> Invalidating pointer to __temporary_allocator_data...\n");
                 if (switched) fmt::print(">> Context detected with temporary allocator, switching it to malloc...\n");
 
-                return __default_allocator(mode, allocatorData, size, oldMemory, oldSize, options);
+                return DefaultAllocator(mode, allocatorData, size, oldMemory, oldSize, options);
             }
 
             void *block = (byte *) storage->Data + storage->Occupied;
@@ -83,27 +83,27 @@ inline void *__temporary_allocator(Allocator_Mode mode, void *allocatorData, siz
 }
 
 inline void temporary_storage_init(size_t allocatorSize) {
-    __temporary_allocator_data = New<Temporary_Storage>(MALLOC);
+    TemporaryAllocatorData = New<Temporary_Storage>(MALLOC);
 
-    __temporary_allocator_data->Data = New<byte>(allocatorSize, MALLOC);
-    __temporary_allocator_data->Size = allocatorSize;
+    TemporaryAllocatorData->Data = New<byte>(allocatorSize, MALLOC);
+    TemporaryAllocatorData->Size = allocatorSize;
 }
 
-inline void temporary_storage_reset() { __temporary_allocator_data->Occupied = 0; }
+inline void temporary_storage_reset() { TemporaryAllocatorData->Occupied = 0; }
 
 // Use for regions that use a lot of temporary memory but you don't need the memory outside of them.
 // This can be used as a "partial" free all of the temporary allocator which can be useful if there is
 // not enough temporary storage and you don't want to init it with a larger size.
-inline size_t temporary_storage_get_mark() { return __temporary_allocator_data->Occupied; };
-inline void temporary_storage_set_mark(size_t mark) { __temporary_allocator_data->Occupied = mark; };
+inline size_t temporary_storage_get_mark() { return TemporaryAllocatorData->Occupied; };
+inline void temporary_storage_set_mark(size_t mark) { TemporaryAllocatorData->Occupied = mark; };
 
-#define temp_var_gen_(LINE) __game_utils_temporary_storage_mark_##LINE
+#define temp_var_gen_(LINE) CPPU_NAMESPACE_NAME##cppu_temp_mark##LINE
 #define temp_var_gen(LINE) temp_var_gen_(LINE)
 #define TEMPORARY_STORAGE_MARK_SCOPE                              \
     size_t temp_var_gen(__LINE__) = temporary_storage_get_mark(); \
     defer { temporary_storage_set_mark(temp_var_gen(__LINE__)); }
 
 #define TEMPORARY_ALLOC \
-    Allocator_Closure { __temporary_allocator, __temporary_allocator_data }
+    Allocator_Closure { temporary_allocator, TemporaryAllocatorData }
 
 CPPU_END_NAMESPACE

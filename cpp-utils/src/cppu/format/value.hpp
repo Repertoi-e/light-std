@@ -72,12 +72,12 @@ inline char32_t thousands_separator() { return CPPU_FMT_THOUSANDS_SEPARATOR; }
 // Returns true if value is negative, false otherwise.
 // Same as (value < 0) but doesn't produce warnings if T is an unsigned type.
 template <typename T>
-constexpr typename std::enable_if_t<std::numeric_limits<T>::is_signed, b32> is_negative(T value) {
+constexpr typename std::enable_if_t<std::numeric_limits<T>::is_signed, bool> is_negative(T value) {
     return value < 0;
 }
 
 template <typename T>
-constexpr typename std::enable_if_t<!std::numeric_limits<T>::is_signed, b32> is_negative(T) {
+constexpr typename std::enable_if_t<!std::numeric_limits<T>::is_signed, bool> is_negative(T) {
     return false;
 }
 
@@ -88,7 +88,7 @@ constexpr typename std::make_unsigned_t<T> to_unsigned(T value) {
     return (typename std::make_unsigned_t<T>) value;
 }
 
-inline b32 is_infinity(f64 x) {
+inline bool is_infinity(f64 x) {
     union {
         u64 u;
         double f;
@@ -97,7 +97,7 @@ inline b32 is_infinity(f64 x) {
     return ((u32)(ieee754.u >> 32) & 0x7fffffff) == 0x7ff00000 && ((u32) ieee754.u == 0);
 }
 
-inline b32 is_nan(f64 x) {
+inline bool is_nan(f64 x) {
     union {
         u64 u;
         double f;
@@ -169,12 +169,12 @@ inline Format_Type &operator|=(Format_Type &lhs, Format_Type rhs) {
     return lhs;
 }
 
-constexpr b32 is_type_integral(Format_Type type) {
+constexpr bool is_type_integral(Format_Type type) {
     assert(type != Format_Type::NAMED_ARGUMENT);
     return type > Format_Type::NONE && type <= Format_Type::LAST_INTEGER_TYPE;
 }
 
-constexpr b32 is_type_arithmetic(Format_Type type) {
+constexpr bool is_type_arithmetic(Format_Type type) {
     assert(type != Format_Type::NAMED_ARGUMENT);
     return type > Format_Type::NONE && type <= Format_Type::LAST_NUMERIC_TYPE;
 }
