@@ -1,6 +1,6 @@
 #include "format/console_colors.hpp"
 
-#if defined OS_WINDOWS
+#if OS == WINDOWS
 
 CPPU_BEGIN_NAMESPACE
 

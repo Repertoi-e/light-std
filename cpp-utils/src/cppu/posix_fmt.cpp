@@ -1,6 +1,6 @@
 #include "common.h"
 
-#if defined OS_LINUX || defined OS_MAC
+#if OS == LINUX || OS == MAC
 
 #include "format/console_colors.hpp"
 #include "memory/array.hpp"

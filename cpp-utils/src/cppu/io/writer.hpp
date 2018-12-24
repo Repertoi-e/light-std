@@ -50,7 +50,7 @@ struct String_Writer : Writer {
 };
 
 struct Console_Writer : Writer {
-    Console_Writer() {}
+    Console_Writer();
     Writer &write(const string_view &str) override;
 
    private:

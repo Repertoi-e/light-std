@@ -1,6 +1,6 @@
 #include "common.hpp"
 
-#if defined OS_LINUX || defined OS_MAC
+#if OS == LINUX || OS == MAC
 
 #include "file/local_file_path.hpp"
 

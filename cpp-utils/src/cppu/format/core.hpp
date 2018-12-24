@@ -395,9 +395,9 @@ struct Format_Context {
         char t = (char) type();
         bool upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
         if (t == 0 || t == 'G') t = 'f';
-#if !defined COMPILER_MSVC
+#if COMPILER == MSVC
         // MSVC's printf doesn't support 'F'.
-        if (t == 'F') type = 'f';
+        if (t == 'F') t = 'f';
 #endif
 
         char sign = 0;

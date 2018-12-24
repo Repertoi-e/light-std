@@ -1,8 +1,8 @@
 #include "common.hpp"
 
-#if defined OS_WINDOWS
+#if OS == WINDOWS
 
-#if defined COMPILER_MSVC && defined CPPU_NO_CRT
+#if COMPILER == MSVC && defined CPPU_NO_CRT
 extern "C" {
 int _fltused;
 }
@@ -41,23 +41,31 @@ void exit_program(int code) { _exit(code); }
 
 void default_assert_failed(const char *file, int line, const char *condition) {
     fmt::print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::FG::Red, file, line, condition, fmt::FG::Reset);
-#if defined COMPILER_MSVC
+#if COMPILER == MSVC
     __debugbreak();
 #else
     exit_program(-1);
 #endif
 }
 
-io::Writer &io::Console_Writer::write(const string_view &str) {
-    if (!PlatformData) {
-        PlatformData = (size_t) GetStdHandle(STD_OUTPUT_HANDLE);
-        if (!SetConsoleOutputCP(CP_UTF8)) {
-            fmt::print(">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.");
-        }
-        DWORD dw = 0;
-        GetConsoleMode((HANDLE) PlatformData, &dw);
-        SetConsoleMode((HANDLE) PlatformData, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+io::Console_Writer::Console_Writer() {
+    PlatformData = (size_t) GetStdHandle(STD_OUTPUT_HANDLE);
+    if (!SetConsoleOutputCP(CP_UTF8)) {
+        string_view warning = ">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.\n";
+       
+        DWORD ignored;
+        WriteFile((HANDLE) PlatformData, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
     }
+
+    // Enable colors with escape sequences
+    DWORD dw = 0;
+    GetConsoleMode((HANDLE) PlatformData, &dw);
+    SetConsoleMode((HANDLE) PlatformData, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+}
+
+io::Writer &io::Console_Writer::write(const string_view &str) {
+    assert(PlatformData);
+    
     DWORD ignored;
     WriteFile((HANDLE) PlatformData, str.Data, (DWORD) str.ByteLength, &ignored, null);
 
@@ -85,4 +93,4 @@ f64 get_wallclock_in_seconds() {
 
 CPPU_END_NAMESPACE
 
-#endif  // defined OS_WINDOWS
+#endif  // OS == WINDOWS

@@ -16,7 +16,7 @@ void run_tests() {
 
         u32 sucessfulProcs = 0;
         for (const auto &test : *tests) {
-            s32 length = Min(30, (s32) test.Name.Length);
+            s32 length = min(30, (s32) test.Name.Length);
             fmt::print("        {:.{}} {:.{}} ", test.Name, length, string(".").repeated(35), 35 - length);
 
             size_t failedIndexStart = Asserts::GlobalFailed.Count;

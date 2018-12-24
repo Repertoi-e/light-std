@@ -16,6 +16,7 @@
 #endif
 
 #include <stddef.h>
+#include <algorithm>
 #include <limits>
 #include <utility>
 
@@ -46,37 +47,33 @@ using size_t = uptr_t;
 // (e.g. the result of a search)
 static constexpr size_t npos = (size_t) -1;
 
-constexpr s32 MSVC = 1;
-constexpr s32 CLANG = 2;
-constexpr s32 GCC = 3;
+#define MSVC 1
+#define CLANG 2
+#define GCC 3
 
 // Determine compiler, at the moment only MSVC, Clang or GCC are detected
 #if defined(__clang__)
-constexpr s32 COMPILER = CLANG;
-#define COMPILER_CLANG
+#define COMPILER CLANG
 #elif defined(__GNUC__) || defined(__GNUG__)
-constexpr s32 COMPILER = GCC;
-#define COMPILER_GCC
+#define COMPILER GCC
 #elif defined(_MSC_VER)
-constexpr s32 COMPILER = MSVC;
-#define COMPILER_MSVC
+#define COMPILER MSVC
 #else
 #warning Compiler not detected
 #endif
 
-constexpr s32 WINDOWS = 1;
-constexpr s32 LINUX = 2;
-constexpr s32 MAC = 3;
+#define WINDOWS 1
+#define LINUX 2
+#define MAC 3
 
 #if defined CPPU_PLATFORM_LINUX
-constexpr s32 OS = LINUX;
-#define OS_LINUX
+#define OS LINUX
 #elif defined CPPU_PLATFORM_MAC
-constexpr s32 OS = MAC;
-#define OS_MAC
+#define OS MAC
 #elif CPPU_PLATFORM_WINDOWS
-constexpr s32 OS = WINDOWS;
-#define OS_WINDOWS
+#define OS WINDOWS
+#else
+#error Platform not set
 #endif
 
 // A type-safe compile-time function that returns the number of elements in an array
@@ -124,9 +121,9 @@ template <typename F>
 Deferrer<F> operator*(Defer_Dummy, F func) {
     return {func};
 }
-#define defer_internal_(LINE) CPPU_NAMESPACE_NAME##_cppu_defer##LINE
-#define defer_internal(LINE) defer_internal_(LINE)
-#define defer auto defer_internal(__LINE__) = Defer_Dummy{} *[&]()
+#define DEFER_INTERNAL_(LINE) CPPU_NAMESPACE_NAME##_cppu_defer##LINE
+#define DEFER_INTERNAL(LINE) DEFER_INTERNAL_(LINE)
+#define defer auto DEFER_INTERNAL(__LINE__) = Defer_Dummy{} *[&]()
 #endif
 
 #undef assert
@@ -137,15 +134,8 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #define assert(condition) (!!(condition)) ? (void) 0 : Context.AssertFailed(__FILE__, __LINE__, u8## #condition)
 #endif
 
-template <typename T>
-constexpr const T &Min(const T &a, const T &b) {
-    return (b < a) ? b : a;
-}
-
-template <typename T>
-constexpr const T &Max(const T &a, const T &b) {
-    return (a < b) ? b : a;
-}
+using std::max;
+using std::min;
 
 // Platform specific utily functions:
 // Implementations in *platform*.cpp

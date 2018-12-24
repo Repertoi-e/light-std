@@ -6,12 +6,12 @@
 
 CPPU_BEGIN_NAMESPACE
 
-#if !defined COMPILER_MSVC
+#if COMPILER != MSVC
 #define CLZ(n) __builtin_clz(n)
 #define CLZLL(n) __builtin_clzll(n)
 #endif
 
-#if defined COMPILER_MSVC
+#if COMPILER == MSVC
 #include <intrin.h>
 CPPU_BEGIN_NAMESPACE
 namespace fmt::internal {

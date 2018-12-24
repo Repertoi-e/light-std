@@ -13,7 +13,7 @@ struct File_Path {
     File_Path(string const &str) : Path(str) {}
 };
 
-#if defined OS_WINDOWS
+#if OS == WINDOWS
 constexpr char OS_PATH_SEPARATOR = '\\';
 #else
 constexpr char OS_PATH_SEPARATOR = '/';

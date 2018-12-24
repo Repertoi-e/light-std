@@ -68,7 +68,7 @@ inline void *temporary_allocator(Allocator_Mode mode, void *allocatorData, size_
             }
 
             storage->Occupied += size;
-            storage->HighestUsed = Max(storage->HighestUsed, storage->Occupied);
+            storage->HighestUsed = max(storage->HighestUsed, storage->Occupied);
             return block;
         }
         case Allocator_Mode::FREE:

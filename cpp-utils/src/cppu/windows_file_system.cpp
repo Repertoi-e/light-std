@@ -11,7 +11,7 @@
 // #TODO: Not implemented
 // #TODO: Not implemented
 
-#if 0  // defined OS_WINDOWS
+#if 0  // OS == WINDOWS
 
 // #TODO: Not implemented
 // #TODO: Not implemented
@@ -163,4 +163,4 @@ bool rename(Local_File_Path const &path, string const &name) {
 
 CPPU_END_NAMESPACE
 
-#endif  // defined OS_WINDOWS
+#endif  // OS == WINDOWS
