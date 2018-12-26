@@ -62,9 +62,13 @@ void run_tests() {
     fmt::print("\n");
 }
 
-#include <iostream>
-
 int main() {
+    while (!io::cin.EOF) {
+        string str;
+        io::cin.read(str);
+        io::cout.write_fmt("Read: {}\n", str);
+    }
+
     temporary_storage_init(4_MiB);
 
     auto tempContext = Context;

@@ -39,7 +39,7 @@ struct Implicit_Context {
     // (provided that the code that logs stuff uses the context!).
     // By default the writer outputs to the console.
     io::Writer *Log = internal::ConsoleLog;
-    Assert_Function AssertFailed = default_assert_failed;
+    Assert_Function AssertFailed = os_assert_failed;
 };
 
 // Immutable context available everywhere

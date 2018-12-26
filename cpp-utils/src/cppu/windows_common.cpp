@@ -38,14 +38,14 @@ void *windows_allocator(Allocator_Mode mode, void *data, size_t size, void *oldM
 
 Allocator_Func DefaultAllocator = windows_allocator;
 
-void exit_program(int code) { _exit(code); }
+void os_exit_program(int code) { _exit(code); }
 
-void default_assert_failed(const char *file, int line, const char *condition) {
+void os_assert_failed(const char *file, int line, const char *condition) {
     fmt::print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::FG::Red, file, line, condition, fmt::FG::Reset);
 #if COMPILER == MSVC
     __debugbreak();
 #else
-    exit_program(-1);
+    os_exit_program(-1);
 #endif
 }
 
@@ -88,18 +88,18 @@ char io::Console_Reader::request_byte() {
 
     DWORD read;
     ReadFile((HANDLE) PlatformData, Buffer, (DWORD) 1_KiB, &read, null);
+
     Current = Buffer;
     Available = read;
+
+    if (read == 0) {
+        return io::eof;
+    }
 
     return *Current;
 }
 
-void wait_for_input(bool message) {
-    if (message) fmt::print("Press ENTER to continue...\n");
-    getchar();
-}
-
-f64 get_wallclock_in_seconds() {
+f64 os_get_wallclock_in_seconds() {
     // #TODO: Not implemented
     // #TODO: Not implemented
     // #TODO: Not implemented

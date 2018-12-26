@@ -84,7 +84,7 @@ class Reader {
             return *this;
         }
 
-        char32_t cp = read_codepoint();
+        char32_t cp = 0;
         while (true) {
             if (cp == eof) {
                 _ReachedEOF = true;
@@ -114,7 +114,7 @@ class Reader {
 
         char *bufferData = buffer.Data;
 
-        char32_t cp = read_codepoint();
+        char32_t cp = 0;
         while (true) {
             if (cp == eof) {
                 _ReachedEOF = true;
@@ -130,6 +130,7 @@ class Reader {
             }
             encode_code_point(bufferData, cp);
             bufferData += get_size_of_code_point(bufferData);
+            ++buffer.Count;
             if (cp == delim) break;
         }
         return *this;

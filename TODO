@@ -2,9 +2,15 @@
 
 - Parsing more types in Reader
 - Write tests for Reader
+- A way to add custom type parsers to Reader?!?
+
+- Make fmt::Format_Context a Writer for consistency
 
 - File I/O Reader and Writer
 - File system
+
+- Time?
+- Random?
 
 - Support for threads
 - Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)

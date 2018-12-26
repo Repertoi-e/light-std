@@ -141,14 +141,11 @@ using std::min;
 // Implementations in *platform*.cpp
 
 // Returns the elapsed real time in seconds, platform-specific implementation
-f64 get_wallclock_in_seconds();
+f64 os_get_wallclock_in_seconds();
 
-// Pauses the program and waits for a user key press.
-void wait_for_input(bool message = true);
-
-extern void exit_program(int code);
+extern void os_exit_program(int code);
 
 // A default failed assert callback that logs a message and stops the program
-void default_assert_failed(const char *file, int line, const char *condition);
+void os_assert_failed(const char *file, int line, const char *condition);
 
 CPPU_END_NAMESPACE
