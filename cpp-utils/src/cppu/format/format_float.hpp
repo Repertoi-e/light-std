@@ -428,7 +428,7 @@ inline Gen_Digits_Params process_specs(const Format_Specs &specs, s32 exp, Dynam
     params.NumDigits = to_unsigned(numDigits);
     Char_Counter counter{params.NumDigits};
     grisu2_prettify(params, params.NumDigits, exp - numDigits, counter);
-    buffer._reserve(counter.Size);
+    buffer.reserve(counter.Size);
     return params;
 }
 
@@ -488,7 +488,7 @@ void sprintf_format(Double value, Dynamic_Array<char> &buffer, const Format_Spec
     process_specs(specs, 1, buffer);
 
     // Buffer capacity must be non-zero, otherwise MSVC's vsnprintf_s will fail.
-    assert(buffer._Reserved != 0);
+    assert(buffer.Reserved != 0);
 
     // Build format string.
     char format[10];  // longest format: %#-*.*Lg
@@ -505,21 +505,21 @@ void sprintf_format(Double value, Dynamic_Array<char> &buffer, const Format_Spec
     // Format using snprintf.
     char *start = null;
     for (;;) {
-        size_t bufferSize = buffer._Reserved;
+        size_t bufferSize = buffer.Reserved;
         start = &buffer[0];
 
         s32 result = specs.Precision < 0 ? CPPU_FMT_SNPRINTF(start, bufferSize, format, value)
                                          : CPPU_FMT_SNPRINTF(start, bufferSize, format, specs.Precision, value);
         if (result >= 0) {
             u32 n = to_unsigned(result);
-            if (n < buffer._Reserved) {
+            if (n < buffer.Reserved) {
                 // The buffer was large enough
                 buffer.Count = n;
                 break;
             }
-            buffer._reserve(n + 1);
+            buffer.reserve(n + 1);
         } else {
-            buffer._reserve(buffer._Reserved + 1);
+            buffer.reserve(buffer.Reserved + 1);
         }
     }
 }

@@ -53,15 +53,15 @@ struct Console_Writer : Writer {
     Console_Writer();
     Writer &write(const string_view &str) override;
 
-   private:
-    // Needed for Windows to save the handle for cout
-    size_t PlatformData = 0;
-
     Console_Writer(const Console_Writer &) = delete;
     Console_Writer(Console_Writer &&) = delete;
 
     Console_Writer &operator=(const Console_Writer &) = delete;
     Console_Writer &operator=(Console_Writer &&) = delete;
+
+   private:
+    // Needed for Windows to save the handle for cout
+    size_t PlatformData = 0;
 };
 
 inline Console_Writer cout;

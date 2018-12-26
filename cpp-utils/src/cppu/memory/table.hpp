@@ -21,7 +21,7 @@ struct Table {
 
     static const size_t MINIMUM_SIZE = 32;
     size_t Count = 0;
-    size_t _Reserved = 0;
+    size_t Reserved = 0;
 
     // By default, the value that gets returned if a value is not found
     // is a default constructed Value_Type. This value can be changed if
@@ -41,35 +41,35 @@ struct Table {
     Table() {}
     Table(const Table &other) {
         Count = other.Count;
-        _Reserved = other._Reserved;
+        Reserved = other.Reserved;
         UnfoundValue = other.UnfoundValue;
 
-        _OccupancyMask = New_and_ensure_allocator<bool>(_Reserved, Allocator);
-        _Keys = New<Key_Type>(_Reserved, Allocator);
-        _Values = New<Value_Type>(_Reserved, Allocator);
-        _Hashes = New<uptr_t>(_Reserved, Allocator);
+        _OccupancyMask = New_and_ensure_allocator<bool>(Reserved, Allocator);
+        _Keys = New<Key_Type>(Reserved, Allocator);
+        _Values = New<Value_Type>(Reserved, Allocator);
+        _Hashes = New<uptr_t>(Reserved, Allocator);
 
-        copy_elements(_OccupancyMask, other._OccupancyMask, _Reserved);
-        copy_elements(_Keys, other._Keys, _Reserved);
-        copy_elements(_Values, other._Values, _Reserved);
-        copy_elements(_Hashes, other._Hashes, _Reserved);
+        copy_elements(_OccupancyMask, other._OccupancyMask, Reserved);
+        copy_elements(_Keys, other._Keys, Reserved);
+        copy_elements(_Values, other._Values, Reserved);
+        copy_elements(_Hashes, other._Hashes, Reserved);
     }
 
     Table(Table &&other) { other.swap(*this); }
     ~Table() { release(); }
 
     void release() {
-        if (_Reserved) {
-            Delete(_OccupancyMask, _Reserved, Allocator);
-            Delete(_Keys, _Reserved, Allocator);
-            Delete(_Values, _Reserved, Allocator);
-            Delete(_Hashes, _Reserved, Allocator);
+        if (Reserved) {
+            Delete(_OccupancyMask, Reserved, Allocator);
+            Delete(_Keys, Reserved, Allocator);
+            Delete(_Values, Reserved, Allocator);
+            Delete(_Hashes, Reserved, Allocator);
 
             _OccupancyMask = null;
             _Keys = null;
             _Values = null;
             _Hashes = null;
-            _Reserved = 0;
+            Reserved = 0;
             Count = 0;
         }
     }
@@ -79,16 +79,16 @@ struct Table {
         uptr_t hash = Hash<Key_Type>::get(key);
         s32 index = _find_index(key, hash);
         if (index == -1) {
-            if (Count >= _Reserved) {
+            if (Count >= Reserved) {
                 _expand();
             }
-            assert(Count <= _Reserved);
+            assert(Count <= Reserved);
 
-            index = (s32)(hash % _Reserved);
+            index = (s32)(hash % Reserved);
             while (_OccupancyMask[index]) {
                 // Resolve collision
                 index++;
-                if (index >= _Reserved) {
+                if (index >= Reserved) {
                     index = 0;
                 }
             }
@@ -121,14 +121,14 @@ struct Table {
     }
 
     Table_Iterator<Key, Value> begin() { return Table_Iterator<Key, Value>(*this); }
-    Table_Iterator<Key, Value> end() { return Table_Iterator<Key, Value>(*this, _Reserved); }
+    Table_Iterator<Key, Value> end() { return Table_Iterator<Key, Value>(*this, Reserved); }
     const Table_Iterator<Key, Value> begin() const { return Table_Iterator<Key, Value>(*this); }
-    const Table_Iterator<Key, Value> end() const { return Table_Iterator<Key, Value>(*this, _Reserved); }
+    const Table_Iterator<Key, Value> end() const { return Table_Iterator<Key, Value>(*this, Reserved); }
 
     void swap(Table &other) {
         std::swap(Count, other.Count);
         std::swap(Allocator, other.Allocator);
-        std::swap(_Reserved, other._Reserved);
+        std::swap(Reserved, other.Reserved);
         std::swap(UnfoundValue, other.UnfoundValue);
 
         std::swap(_OccupancyMask, other._OccupancyMask);
@@ -156,8 +156,8 @@ struct Table {
     // before allocating new, so that's up to the caller to do. Trust me
     // there is a reason why this function does what it does, it makes _expand()
     // much much simpler.
-    void _reserve(size_t size) {
-        _Reserved = size;
+    void _reverse(size_t size) {
+        Reserved = size;
 
         _OccupancyMask = New_and_ensure_allocator<bool>(size, Allocator);
         _Keys = New<Key>(size, Allocator);
@@ -166,11 +166,11 @@ struct Table {
     }
 
     s32 _find_index(const Key_Type &key, uptr_t hash) {
-        if (!_Reserved) {
+        if (!Reserved) {
             return -1;
         }
 
-        size_t index = hash % _Reserved;
+        size_t index = hash % Reserved;
         while (_OccupancyMask[index]) {
             if (_Hashes[index] == hash) {
                 if (_Keys[index] == key) {
@@ -179,7 +179,7 @@ struct Table {
             }
 
             index++;
-            if (index >= _Reserved) {
+            if (index >= Reserved) {
                 index = 0;
             }
         }
@@ -192,18 +192,18 @@ struct Table {
         // I love C++
         // I love C++
         // I love C++
-        size_t oldReserved = _Reserved;
+        size_t oldReserved = Reserved;
         auto oldOccupancyMask = _OccupancyMask;
         auto oldKeys = _Keys;
         auto oldValues = _Values;
         auto oldHashes = _Hashes;
 
-        size_t newSize = _Reserved * 2;
+        size_t newSize = Reserved * 2;
         if (newSize < MINIMUM_SIZE) {
             newSize = MINIMUM_SIZE;
         }
 
-        _reserve(newSize);
+        _reverse(newSize);
 
         for (size_t i = 0; i < oldReserved; i++) {
             if (oldOccupancyMask[i]) {
@@ -231,7 +231,7 @@ struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tup
     }
 
     Table_Iterator &operator++() {
-        while (SlotIndex < (s64) Table._Reserved) {
+        while (SlotIndex < (s64) Table.Reserved) {
             SlotIndex++;
             if (Table._OccupancyMask && Table._OccupancyMask[SlotIndex]) {
                 break;

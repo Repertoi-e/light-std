@@ -8,6 +8,7 @@ int _fltused;
 }
 #endif
 
+#include "io/reader.hpp"
 #include "io/writer.hpp"
 
 #include "format/fmt.hpp"
@@ -51,8 +52,9 @@ void default_assert_failed(const char *file, int line, const char *condition) {
 io::Console_Writer::Console_Writer() {
     PlatformData = (size_t) GetStdHandle(STD_OUTPUT_HANDLE);
     if (!SetConsoleOutputCP(CP_UTF8)) {
-        string_view warning = ">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.\n";
-       
+        string_view warning =
+            ">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.\n";
+
         DWORD ignored;
         WriteFile((HANDLE) PlatformData, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
     }
@@ -65,11 +67,31 @@ io::Console_Writer::Console_Writer() {
 
 io::Writer &io::Console_Writer::write(const string_view &str) {
     assert(PlatformData);
-    
+
     DWORD ignored;
     WriteFile((HANDLE) PlatformData, str.Data, (DWORD) str.ByteLength, &ignored, null);
 
     return *this;
+}
+
+io::Console_Reader::Console_Reader() {
+    PlatformData = (size_t) GetStdHandle(STD_INPUT_HANDLE);
+
+    Buffer = New<char>(1_KiB);
+    Current = Buffer;
+}
+
+char io::Console_Reader::request_byte() {
+    assert(PlatformData);
+
+    assert(Available == 0);
+
+    DWORD read;
+    ReadFile((HANDLE) PlatformData, Buffer, (DWORD) 1_KiB, &read, null);
+    Current = Buffer;
+    Available = read;
+
+    return *Current;
 }
 
 void wait_for_input(bool message) {

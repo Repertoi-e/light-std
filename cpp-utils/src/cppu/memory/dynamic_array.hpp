@@ -11,7 +11,7 @@ struct Dynamic_Array {
     using Data_Type = T;
 
     Data_Type *Data = 0;
-    size_t Count = 0, _Reserved = 0;
+    size_t Count = 0, Reserved = 0;
 
     // The allocator used for expanding the array.
     // This value is null until this object allocates memory or the user sets it manually.
@@ -19,11 +19,11 @@ struct Dynamic_Array {
 
     Dynamic_Array() {}
     Dynamic_Array(const Dynamic_Array &other) {
-        _Reserved = other._Reserved;
+        Reserved = other.Reserved;
         Count = other.Count;
 
-        Data = New_and_ensure_allocator<Data_Type>(_Reserved, Allocator);
-        copy_elements(Data, other.Data, _Reserved);
+        Data = New_and_ensure_allocator<Data_Type>(Reserved, Allocator);
+        copy_elements(Data, other.Data, Reserved);
     }
 
     Dynamic_Array(Dynamic_Array &&other) { other.swap(*this); }
@@ -45,20 +45,20 @@ struct Dynamic_Array {
 
     // Clears the array and deallocates memory
     void release() {
-        if (Data) Delete(Data, _Reserved, Allocator);
+        if (Data) Delete(Data, Reserved, Allocator);
 
         Data = null;
         Count = 0;
-        _Reserved = 0;
+        Reserved = 0;
     }
 
     void insert(Data_Type *where, const Data_Type &item) {
         uptr_t offset = where - begin();
-        if (Count >= _Reserved) {
-            size_t required = 2 * _Reserved;
+        if (Count >= Reserved) {
+            size_t required = 2 * Reserved;
             if (required < 8) required = 8;
 
-            _reserve(required);
+            reserve(required);
         }
 
         // The reserve above might have invalidated the old pointer
@@ -77,12 +77,12 @@ struct Dynamic_Array {
         size_t elementsCount = end - begin;
         uptr_t offset = where - this->begin();
 
-        size_t required = _Reserved;
+        size_t required = Reserved;
         while (Count + elementsCount >= required) {
-            required = 2 * _Reserved;
+            required = 2 * Reserved;
             if (required < 8) required = 8;
         }
-        _reserve(required);
+        reserve(required);
 
         // The reserve above might have invalidated the old pointer
         where = this->begin() + offset;
@@ -105,7 +105,7 @@ struct Dynamic_Array {
 
     void add(const Data_Type &item) {
         if (Count == 0) {
-            _reserve(8);
+            reserve(8);
             Data[Count++] = item;
         } else {
             insert(end(), item);
@@ -132,6 +132,14 @@ struct Dynamic_Array {
             }
         }
         return npos;
+    }
+
+    // Checks if there is enough reserved space for _count_ elements
+    bool has_space_for(size_t count) {
+        if (Count + count > Reserved) {
+            return false;
+        }
+        return true;
     }
 
     bool has(const Data_Type &item) { return find(item) != npos; }
@@ -164,7 +172,7 @@ struct Dynamic_Array {
     void swap(Dynamic_Array &other) {
         std::swap(Data, other.Data);
         std::swap(Count, other.Count);
-        std::swap(_Reserved, other._Reserved);
+        std::swap(Reserved, other.Reserved);
         std::swap(Allocator, other.Allocator);
     }
 
@@ -188,16 +196,16 @@ struct Dynamic_Array {
 
     bool operator!=(const Dynamic_Array &other) { return !(*this == other); }
 
-    void _reserve(size_t reserve) {
-        if (reserve <= _Reserved) return;
+    void reserve(size_t reserve) {
+        if (reserve <= Reserved) return;
 
         Data_Type *newMemory = New_and_ensure_allocator<Data_Type>(reserve, Allocator);
 
         move_elements(newMemory, Data, Count);
-        Delete(Data, _Reserved, Allocator);
+        Delete(Data, Reserved, Allocator);
 
         Data = newMemory;
-        _Reserved = reserve;
+        Reserved = reserve;
     }
 };
 

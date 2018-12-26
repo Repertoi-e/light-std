@@ -1,7 +1,7 @@
+#include <cppu/io/reader.hpp>
 
 #include <cppu/memory/pool.hpp>
 #include <cppu/memory/table.hpp>
-
 #include "test.hpp"
 
 // VS has a bug which prevents inline variables in headers constructing properly...
@@ -61,6 +61,8 @@ void run_tests() {
     }
     fmt::print("\n");
 }
+
+#include <iostream>
 
 int main() {
     temporary_storage_init(4_MiB);

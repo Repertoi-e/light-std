@@ -17,7 +17,7 @@ string::string(const char *str, size_t size) {
     ByteLength = size;
     if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
         Data = New_and_ensure_allocator<char>(ByteLength, Allocator);
-        _Reserved = ByteLength;
+        Reserved = ByteLength;
     }
     if (str && ByteLength) {
         copy_memory(Data, str, ByteLength);
@@ -39,7 +39,7 @@ string::string(const string &other) {
 
     if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
         Data = New_and_ensure_allocator<char>(ByteLength, Allocator);
-        _Reserved = ByteLength;
+        Reserved = ByteLength;
     }
     if (other.Data && ByteLength) {
         copy_memory(Data, other.Data, ByteLength);
@@ -74,7 +74,7 @@ void string::swap(string &other) {
     }
     std::swap(Allocator, other.Allocator);
 
-    std::swap(_Reserved, other._Reserved);
+    std::swap(Reserved, other.Reserved);
     std::swap(ByteLength, other.ByteLength);
     std::swap(Length, other.Length);
 }
@@ -103,11 +103,11 @@ string &string::operator=(string &&other) {
 string::~string() { release(); }
 
 void string::release() {
-    if (Data && Data != _StackData && _Reserved) {
-        Delete(Data, _Reserved, Allocator);
+    if (Data && Data != _StackData && Reserved) {
+        Delete(Data, Reserved, Allocator);
         Data = _StackData;
 
-        _Reserved = 0;
+        Reserved = 0;
     }
     clear();
 }
@@ -131,13 +131,13 @@ void string::reserve(size_t size) {
         // to a dynamically allocated memory.
         Data = New_and_ensure_allocator<char>(size, Allocator);
         copy_memory(Data, _StackData, ByteLength);
-        _Reserved = size;
+        Reserved = size;
     } else {
         // Return if there is enough space
-        if (size <= _Reserved) return;
+        if (size <= Reserved) return;
 
-        Data = Resize_and_ensure_allocator(Data, _Reserved, size, Allocator);
-        _Reserved = size;
+        Data = Resize_and_ensure_allocator(Data, Reserved, size, Allocator);
+        Reserved = size;
     }
 }
 

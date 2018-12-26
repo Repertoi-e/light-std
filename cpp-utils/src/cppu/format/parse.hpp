@@ -8,8 +8,10 @@ CPPU_BEGIN_NAMESPACE
 
 namespace fmt {
 
+    
 template <typename T>
-constexpr std::enable_if_t<std::is_unsigned_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it, u32 base = 0) {
+constexpr std::enable_if_t<std::is_unsigned_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it,
+                                                                                u32 base = 0) {
     // Skip white space
     while (is_space(*it)) {
         ++it;
@@ -56,8 +58,7 @@ constexpr std::enable_if_t<std::is_unsigned_v<T>, std::pair<T, bool>> parse_int(
 }
 
 template <typename T>
-constexpr std::enable_if_t<std::is_signed_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it,
-                                                                                u32 base = 0) {
+constexpr std::enable_if_t<std::is_signed_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it, u32 base = 0) {
     // Skip white space
     while (is_space(*it)) {
         ++it;

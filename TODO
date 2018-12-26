@@ -1,7 +1,9 @@
 - Rename identifiers that start with _
 
-- Parsing from strings to types
+- Parsing more types in Reader
+- Write tests for Reader
 
+- File I/O Reader and Writer
 - File system
 
 - Support for threads

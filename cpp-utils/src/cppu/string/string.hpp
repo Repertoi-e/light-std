@@ -125,7 +125,7 @@ struct string {
 
     // The number of reserved bytes in the string. This is used only
     // if the string is using a dynamically allocated buffer.
-    size_t _Reserved = 0;
+    size_t Reserved = 0;
 
     // The number of code units in the string, >= the number of code points
     size_t ByteLength = 0;
