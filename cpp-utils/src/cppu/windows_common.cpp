@@ -77,13 +77,13 @@ io::Writer &io::Console_Writer::write(const string_view &str) {
 io::Console_Reader::Console_Reader() {
     PlatformData = (size_t) GetStdHandle(STD_INPUT_HANDLE);
 
-    Buffer = New<char>(1_KiB);
+    // Leak, but doesn't matter since the object is global
+    Buffer = New<char>(1_KiB); 
     Current = Buffer;
 }
 
 char io::Console_Reader::request_byte() {
     assert(PlatformData);
-
     assert(Available == 0);
 
     DWORD read;

@@ -14,14 +14,18 @@ namespace io {
 constexpr char eof = -1;
 
 class Reader {
-   private:
-    bool _ReachedEOF = false, _ParseError = false;
-
    protected:
+    bool ReachedEOF = false, ParseError = false;
     char *Buffer = null, *Current = null;
     size_t Available = 0;
 
    public:
+    // Whether this reader has reached the end of file
+    const bool &EOF = ReachedEOF;
+
+    // If the last call to any parse function has resulted in an error
+    const bool &FailedParse = ParseError;
+
     virtual ~Reader() {}
 
     virtual char request_byte() = 0;
@@ -34,7 +38,7 @@ class Reader {
 
         char byte = peek_byte();
         if (byte == eof) {
-            _ReachedEOF = true;
+            ReachedEOF = true;
             return eof;
         }
 
@@ -42,7 +46,7 @@ class Reader {
         for (auto i : range(get_size_of_code_point(Current))) {
             byte = bump_byte();
             if (byte == eof) {
-                _ReachedEOF = true;
+                ReachedEOF = true;
                 return eof;
             }
             data[i] = byte;
@@ -59,7 +63,7 @@ class Reader {
     Reader &read(char *buffer, size_t n) {
         size_t read = read_bytes(buffer, n);
         if (read != n) {
-            _ReachedEOF = true;
+            ReachedEOF = true;
         }
         return *this;
     }
@@ -72,55 +76,38 @@ class Reader {
     }
 
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
+    // Assumes there is enough space in _buffer_
     Reader &read(char *buffer, char32_t delim) {
         if (!test_state_and_skip_ws()) {
-            _ReachedEOF = true;
-            return *this;
-        }
-
-        char byte = peek_byte();
-        if (byte == eof) {
-            _ReachedEOF = true;
+            ReachedEOF = true;
             return *this;
         }
 
         char32_t cp = 0;
-        while (true) {
-            if (cp == eof) {
-                _ReachedEOF = true;
-                break;
-            }
-            cp = read_codepoint(true);
+        for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
+            if (cp == delim) break;
+
             encode_code_point(buffer, cp);
             buffer += get_size_of_code_point(cp);
-            if (cp == delim) break;
         }
         return *this;
     }
 
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
+    // The encountered _delim_ is not going to be part of the buffer
     Reader &read(Dynamic_Array<char> &buffer, char32_t delim) {
         if (!test_state_and_skip_ws()) {
-            _ReachedEOF = true;
-            return *this;
-        }
-
-        char byte = peek_byte();
-        if (byte == eof) {
-            _ReachedEOF = true;
+            ReachedEOF = true;
             return *this;
         }
 
         char *bufferData = buffer.Data;
 
         char32_t cp = 0;
-        while (true) {
-            if (cp == eof) {
-                _ReachedEOF = true;
-                break;
-            }
-            cp = read_codepoint(true);
+        for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
+            if (cp == delim) break;
+
             size_t cpSize = get_size_of_code_point(cp);
 
             if (!buffer.has_space_for(cpSize)) {
@@ -131,7 +118,6 @@ class Reader {
             encode_code_point(bufferData, cp);
             bufferData += get_size_of_code_point(bufferData);
             ++buffer.Count;
-            if (cp == delim) break;
         }
         return *this;
     }
@@ -139,18 +125,14 @@ class Reader {
     // Reads a given number of codepoints and puts them in str
     Reader &read(string &str, size_t codepoints) {
         str.reserve(codepoints * 4);
-        for (char32_t cp = read_codepoint();; cp = read_codepoint(true)) {
-            if (cp == eof) {
-                _ReachedEOF = true;
-                break;
-            }
+        for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
             str.append(cp);
         }
         return *this;
     }
 
     // Reads codepoints until _delim_ is reached and puts them in str
-    // Includes _delim_ in string
+    // Doesn't include _delim_ in string
     Reader &read(string &str, char32_t delim) {
         Dynamic_Array<char> buffer;
         read(buffer, delim);
@@ -159,7 +141,7 @@ class Reader {
     }
 
     // Reads codepoints until a newline and puts them in str
-    // The newline is included in the string
+    // The newline is NOT included in the string
     Reader &read(string &str) { return read(str, U'\n'); }
 
     // Parse an integer from the stream
@@ -176,16 +158,16 @@ class Reader {
     template <typename T>
     std::enable_if_t<std::is_integral_v<T>, Reader &> read(T &value, s32 base = 0) {
         auto [parsed, success] = parse_int<T>(base);
-        _ParseError = !success;
+        ParseError = !success;
         value = parsed;
         return *this;
     }
 
-    // Whether this reader has reached the end of file
-    const bool &EOF = _ReachedEOF;
-
-    // If the last call to any parse function has resulted in an error
-    const bool &ParseError = _ParseError;
+#define check_eof(x)       \
+    if (x == eof) {        \
+        ReachedEOF = true; \
+        return {0, false}; \
+    }
 
    protected:
     template <typename T>
@@ -195,34 +177,29 @@ class Reader {
         }
 
         bool negative = false;
-        char32_t cp = read_codepoint(true);
-        if (cp == '+') {
-            cp = read_codepoint(true);
-        } else if (cp == '-') {
+        char ch = bump_byte();
+        check_eof(ch);
+
+        if (ch == '+') {
+            ch = bump_byte();
+        } else if (ch == '-') {
             negative = true;
-            cp = read_codepoint(true);
-        } else if (cp == eof) {
-            return {0, false};
+            ch = bump_byte();
         }
+        check_eof(ch);
 
-        bool revert = true;
-        char32_t next = read_codepoint(true);
-        if (next == eof) {
-            return {0, false};
-        }
+        char next = peek_byte();
+        check_eof(next);
 
-        if ((base == 0 || base == 16) && cp == '0' && (next == 'x' || next == 'X')) {
+        if ((base == 0 || base == 16) && ch == '0' && (next == 'x' || next == 'X')) {
             base = 16;
-            cp = read_codepoint(true);
-            revert = false;
+            bump_byte();
+            ch = bump_byte();
         }
         if (base == 0) {
-            base = cp == '0' ? 8 : 10;
+            base = ch == '0' ? 8 : 10;
         }
-
-        if (!is_alphanumeric(cp)) {
-            return {0, false};
-        }
+        check_eof(ch);
 
         T maxValue;
         if constexpr (std::is_unsigned_v<T>) {
@@ -234,35 +211,25 @@ class Reader {
         s32 cutlim = maxValue % (T) base;
 
         T value = 0;
-        while (true) {
-            if (is_digit(cp)) {
-                cp -= '0';
-            } else if (is_alpha(cp)) {
-                cp -= to_upper(cp) == cp ? 'A' - 10 : 'a' - 10;
+        for (;; ch = bump_byte()) {
+            if (is_digit(ch)) {
+                ch -= '0';
+            } else if (is_alpha(ch)) {
+                ch -= to_upper(ch) == ch ? 'A' - 10 : 'a' - 10;
             }
 
-            if ((s32) cp >= base) break;
-            if (value > cutoff || (value == cutoff && (s32) cp > cutlim)) {
+            if ((s32) ch >= base) break;
+            if (value > cutoff || (value == cutoff && (s32) ch > cutlim)) {
                 if constexpr (std::is_unsigned_v<T>) {
                     return {negative ? (0 - maxValue) : maxValue, false};
                 } else {
                     return {(negative ? -1 : 1) * maxValue, false};
                 }
             } else {
-                value = value * base + cp;
+                value = value * base + ch;
             }
 
-            if (revert) {
-                cp = next;
-                revert = false;
-                continue;
-            }
-
-            // We are only interested in one byte, because a valid integer only contains ascii chars...
-            char32_t byte = peek_byte();
-            if (!is_alphanumeric(byte)) break;
-
-            cp = read_codepoint(true);
+            if (!is_alphanumeric(peek_byte())) break;
         }
         if constexpr (std::is_unsigned_v<T>) {
             return {negative ? (0 - value) : value, true};
@@ -270,6 +237,8 @@ class Reader {
             return {(negative ? -1 : 1) * value, true};
         }
     }
+
+#undef check_eof
 
     size_t read_bytes(char *buffer, size_t n) {
         size_t copyN = n;
@@ -301,7 +270,7 @@ class Reader {
         if (!noSkip && SkipWhitespace) {
             for (char ch = peek_byte(); is_space(ch); ch = next_byte()) {
                 if (ch == eof) {
-                    _ReachedEOF = true;
+                    ReachedEOF = true;
                     return false;
                 }
             }
