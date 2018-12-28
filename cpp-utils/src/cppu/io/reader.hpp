@@ -163,6 +163,27 @@ class Reader {
         return *this;
     }
 
+    Reader &read(bool &value) {
+        auto [parsed, success] = parse_bool();
+        ParseError = !success;
+        value = parsed;
+        return *this;
+    }
+
+    // Read a byte
+    Reader &read(char &value, bool noSkipWs = false) {
+        if (!test_state_and_skip_ws(noSkipWs)) {
+            ParseError = true;
+            value = eof;
+            return *this;
+        }
+        value = bump_byte();
+        if (value == eof) {
+            ReachedEOF = true;
+        }
+        return *this;
+    }
+
 #define check_eof(x)       \
     if (x == eof) {        \
         ReachedEOF = true; \
@@ -171,7 +192,7 @@ class Reader {
 
    protected:
     template <typename T>
-    constexpr std::pair<T, bool> parse_int(s32 base = 0) {
+    std::pair<T, bool> parse_int(s32 base = 0) {
         if (!test_state_and_skip_ws()) {
             return {0, false};
         }
@@ -238,6 +259,41 @@ class Reader {
         }
     }
 
+    // Second bool is success
+    std::pair<bool, bool> parse_bool() {
+        if (!test_state_and_skip_ws()) {
+            return {false, false};
+        }
+
+        char ch = bump_byte();
+        check_eof(ch);
+        if (ch == '0') {
+            return {false, true};
+        }
+        if (ch == '1') {
+            return {true, true};
+        }
+
+        // "true", "false"
+        char trueData[] = {'t', 'r', 'u', 'e'};
+        if (Available >= 4) {
+            if (compare_memory(Current - 1, trueData, 4) == 0) {
+                for (auto _ : range(3)) bump_byte();
+                return {true, true};
+            }
+        }
+
+        char falseData[] = {'f', 'a', 'l', 's', 'e'};
+        if (Available >= 5) {
+            if (compare_memory(Current - 1, falseData, 5) == 0) {
+                for (auto _ : range(4)) bump_byte();
+                return {false, true};
+            }
+        }
+
+        // Not a bool
+        return {false, false};
+    }
 #undef check_eof
 
     size_t read_bytes(char *buffer, size_t n) {

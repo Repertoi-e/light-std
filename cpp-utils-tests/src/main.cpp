@@ -55,7 +55,7 @@ void run_tests() {
 
     if (failedCount) {
         fmt::print("[Test Suite] Failed asserts:\n");
-        for (const string &message : Asserts::GlobalFailed) {
+        for (auto &message : Asserts::GlobalFailed) {
             fmt::print("    >>> {}FAILED:{} {}{}\n", fmt::FG::Red, fmt::FGB::Gray, message, fmt::FG::Reset);
         }
     }
@@ -69,9 +69,13 @@ int main() {
         // string str;
         // io::cin.read(str);
         // io::cout.write_fmt("Read: {}\n", str);
-        int a;
+        char a;
         io::cin.read(a);
-        io::cout.write_fmt("Read: {}\n", a);
+        if (io::cin.FailedParse) {
+            io::cout.write_fmt("Failed to parse, got: {}\n", a);
+        } else {
+            io::cout.write_fmt("Read: {:c}\n", a);
+        }
     }
 
     temporary_storage_init(4_MiB);

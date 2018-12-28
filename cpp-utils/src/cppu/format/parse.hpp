@@ -8,7 +8,6 @@ CPPU_BEGIN_NAMESPACE
 
 namespace fmt {
 
-    
 template <typename T>
 constexpr std::enable_if_t<std::is_unsigned_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it,
                                                                                 u32 base = 0) {
@@ -451,7 +450,12 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
         case Format_Type::BOOL: {
             if (typeSpec != 'd' && typeSpec != 'x' && typeSpec != 'X' && typeSpec != 'b' && typeSpec != 'B' &&
                 typeSpec != 'o' && typeSpec != 'n') {
-                return Parsing_Error_Code::INVALID_TYPE_SPEC;
+                // Allow treating integers as chars (except S64, U64 and BOOL)
+                if (typeSpec != 'c') {
+                    return Parsing_Error_Code::INVALID_TYPE_SPEC;
+                } else if (type == Format_Type::S64 || type == Format_Type::U64 || type == Format_Type::BOOL) {
+                    return Parsing_Error_Code::INVALID_TYPE_SPEC;
+                }
             }
         } break;
         case Format_Type::CHAR:

@@ -117,7 +117,9 @@ inline void do_formatting(Format_Context &context) {
                 it = ++p;
                 auto error = parse_and_validate_specs(arg.Type, context);
                 if (error != Parsing_Error_Code::NONE) {
+                    context.Out.write('{');
                     context.Out.write(get_message_from_parsing_error_code(error));
+                    context.Out.write('}');
                     return;
                 }
                 p = it;

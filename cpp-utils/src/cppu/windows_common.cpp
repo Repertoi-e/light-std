@@ -78,13 +78,13 @@ io::Console_Reader::Console_Reader() {
     PlatformData = (size_t) GetStdHandle(STD_INPUT_HANDLE);
 
     // Leak, but doesn't matter since the object is global
-    Buffer = New<char>(1_KiB); 
+    Buffer = New<char>(1_KiB);
     Current = Buffer;
 }
 
 char io::Console_Reader::request_byte() {
     assert(PlatformData);
-    assert(Available == 0);
+    assert(Available == 0); // Sanity
 
     DWORD read;
     ReadFile((HANDLE) PlatformData, Buffer, (DWORD) 1_KiB, &read, null);
@@ -92,11 +92,7 @@ char io::Console_Reader::request_byte() {
     Current = Buffer;
     Available = read;
 
-    if (read == 0) {
-        return io::eof;
-    }
-
-    return *Current;
+    return (read == 0) ? eof : (*Current);
 }
 
 f64 os_get_wallclock_in_seconds() {

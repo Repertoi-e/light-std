@@ -459,13 +459,20 @@ struct Format_Context {
             alignSpec, n);
     }
 
+#define int_helper(x)                                                          \
+    if (type() != 'c') {                                                       \
+        write_int(x);                                                          \
+    } else {                                                                   \
+        format_padded([&](Format_Context &f) { f.Out.write(x); }, align(), 1); \
+    }
+
     void write_argument(const Argument &arg) {
         switch (arg.Type) {
             case Format_Type::S32:
-                write_int(arg.Value.S32_Value);
+                int_helper(arg.Value.S32_Value);
                 break;
             case Format_Type::U32:
-                write_int(arg.Value.U32_Value);
+                int_helper(arg.Value.U32_Value);
                 break;
             case Format_Type::S64:
                 write_int(arg.Value.S64_Value);
@@ -482,7 +489,6 @@ struct Format_Context {
             } break;
             case Format_Type::CHAR:
                 if (type() && type() != 'c') {
-                    // Int
                     write_int(arg.Value.S32_Value);
                 } else {
                     format_padded([&](Format_Context &f) { f.Out.write(arg.Value.S32_Value); }, align(), 1);
@@ -540,6 +546,8 @@ struct Format_Context {
                 assert(false && "Invalid argument type");
         }
     }
+
+#undef int_helper
 
     // Write a formatted string. Useful for custom formatters.
     // E.g. f.write_fmt("Data: {}, Length: {}", this.Data, this.Length);
