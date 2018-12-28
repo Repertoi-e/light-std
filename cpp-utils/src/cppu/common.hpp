@@ -148,4 +148,26 @@ extern void os_exit_program(int code);
 // A default failed assert callback that logs a message and stops the program
 void os_assert_failed(const char *file, int line, const char *condition);
 
+class NonCopyable {
+   protected:
+    NonCopyable() {}
+    ~NonCopyable() {}
+
+    NonCopyable(const NonCopyable &) = delete;
+    NonCopyable &operator=(const NonCopyable &) = delete;
+};
+
+class NonMovable {
+   protected:
+    NonMovable() {}
+    ~NonMovable() {}
+
+    NonMovable(NonMovable &&) = delete;
+    NonMovable &operator=(NonMovable &&) = delete;
+};
+
+// Shortcut macros for foreach loops (really up to personal style if you use this)
+#define For_as(x, in) for (const auto &x : in)
+#define For(in) For_as(it, in)
+
 CPPU_END_NAMESPACE

@@ -61,9 +61,7 @@ template <typename T>
 T *copy_elements(T *dest, T *src, size_t numberOfElements) {
     static_assert(!std::is_same_v<T, void>);
 
-    for (size_t i = 0; i < numberOfElements; i++) {
-        dest[i] = T(src[i]);
-    }
+    For(range(numberOfElements)) { dest[it] = T(src[it]); }
     return dest;
 }
 
@@ -106,7 +104,7 @@ T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
 
     T *result = (T *) allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, count * sizeof(T), 0, 0, 0);
     zero_memory(result, count * sizeof(T));
-    for (size_t i = 0; i < count; i++) new (result + i) T;
+    For(range(count)) new (result + it) T;
     return result;
 }
 
@@ -145,7 +143,7 @@ template <typename T>
 void Delete(T *memory, size_t count, Allocator_Closure allocator = {0, 0}) {
     if (!allocator) allocator = CONTEXT_ALLOC;
 
-    for (size_t i = 0; i < count; i++) (memory + i)->~T();
+    For(range(count))(memory + it)->~T();
     allocator.Function(Allocator_Mode::FREE, allocator.Data, 0, memory, count * sizeof(T), 0);
 }
 

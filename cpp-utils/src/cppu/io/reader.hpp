@@ -13,6 +13,9 @@ namespace io {
 
 constexpr char eof = -1;
 
+// Provides a way to parse types and any bytes with a simple extension API.
+// Any subclass needs to implement just _request_byte_. Every other function
+// in this class is implemented around that.
 class Reader {
    protected:
     bool ReachedEOF = false, ParseError = false;
@@ -28,6 +31,9 @@ class Reader {
 
     virtual ~Reader() {}
 
+    // This is the only method required to be implemented by subclasses, it is called only
+    // when there are no more characters available.
+    // If more than one byte is available, use _Buffer_, _Current_, and _Available_ member variables.
     virtual char request_byte() = 0;
 
     // Use the parameter if you don't want to skip whitespace
@@ -43,13 +49,13 @@ class Reader {
         }
 
         char data[4] = {0};
-        for (auto i : range(get_size_of_code_point(Current))) {
+        For(range(get_size_of_code_point(Current))) {
             byte = bump_byte();
             if (byte == eof) {
                 ReachedEOF = true;
                 return eof;
             }
-            data[i] = byte;
+            data[it] = byte;
         }
         return decode_code_point(data);
     }
@@ -71,7 +77,7 @@ class Reader {
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
     Reader &read(Dynamic_Array<char> &buffer, size_t n) {
-        buffer.reserve(n);
+        if (!buffer.has_space_for(n)) buffer.expand(n);
         return read(buffer.Data, n);
     }
 
@@ -93,10 +99,10 @@ class Reader {
         return *this;
     }
 
-    // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
+    // Reads codepoints until any of _delims_ is reached and appends them to buffer
     // This function automatically reserves space in the buffer
-    // The encountered _delim_ is not going to be part of the buffer
-    Reader &read(Dynamic_Array<char> &buffer, char32_t delim) {
+    // Doesn't include the delimeter in the buffer
+    Reader &read(Dynamic_Array<char> &buffer, const string_view &delims) {
         if (!test_state_and_skip_ws()) {
             ReachedEOF = true;
             return *this;
@@ -106,13 +112,13 @@ class Reader {
 
         char32_t cp = 0;
         for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
-            if (cp == delim) break;
+            if (delims.has(cp)) break;
 
             size_t cpSize = get_size_of_code_point(cp);
 
             if (!buffer.has_space_for(cpSize)) {
                 uptr_t diff = bufferData - buffer.Data;
-                buffer.reserve(buffer.Reserved + cpSize);
+                buffer.expand(cpSize);
                 bufferData = buffer.Data + diff;
             }
             encode_code_point(bufferData, cp);
@@ -122,8 +128,18 @@ class Reader {
         return *this;
     }
 
-    // Reads a given number of codepoints and puts them in str
+    // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
+    // This function automatically reserves space in the buffer
+    // The encountered _delim_ is not going to be part of the buffer
+    Reader &read(Dynamic_Array<char> &buffer, char32_t delim) {
+        char data[4];
+        encode_code_point(data, delim);
+        return read(buffer, string_view(data, get_size_of_code_point(delim)));
+    }
+
+    // Reads a given number of codepoints and overwrites _str_
     Reader &read(string &str, size_t codepoints) {
+        str = "";
         str.reserve(codepoints * 4);
         for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
             str.append(cp);
@@ -131,11 +147,20 @@ class Reader {
         return *this;
     }
 
-    // Reads codepoints until _delim_ is reached and puts them in str
+    // Reads codepoints until _delim_ is reached and overwrites _str_
     // Doesn't include _delim_ in string
     Reader &read(string &str, char32_t delim) {
         Dynamic_Array<char> buffer;
         read(buffer, delim);
+        str = string(buffer.Data, buffer.Count);
+        return *this;
+    }
+
+    // Reads codepoints until any of _delims_ is reached and overwrites _str_
+    // Doesn't include _delim_ in string
+    Reader &read(string &str, const string_view &delims) {
+        Dynamic_Array<char> buffer;
+        read(buffer, delims);
         str = string(buffer.Data, buffer.Count);
         return *this;
     }
@@ -163,12 +188,16 @@ class Reader {
         return *this;
     }
 
+    // Read a bool
+    // Valid strings are: "0" "1" "true" "false" (ignoring case)
     Reader &read(bool &value) {
         auto [parsed, success] = parse_bool();
         ParseError = !success;
         value = parsed;
         return *this;
     }
+
+    Reader &read(f32 &value) {}
 
     // Read a byte
     Reader &read(char &value, bool noSkipWs = false) {
@@ -179,6 +208,7 @@ class Reader {
         }
         value = bump_byte();
         if (value == eof) {
+            ParseError = true;
             ReachedEOF = true;
         }
         return *this;
@@ -232,7 +262,7 @@ class Reader {
         s32 cutlim = maxValue % (T) base;
 
         T value = 0;
-        for (;; ch = bump_byte()) {
+        while (true) {
             if (is_digit(ch)) {
                 ch -= '0';
             } else if (is_alpha(ch)) {
@@ -251,6 +281,7 @@ class Reader {
             }
 
             if (!is_alphanumeric(peek_byte())) break;
+            ch = bump_byte();
         }
         if constexpr (std::is_unsigned_v<T>) {
             return {negative ? (0 - value) : value, true};
@@ -275,19 +306,17 @@ class Reader {
         }
 
         // "true", "false"
-        char trueData[] = {'t', 'r', 'u', 'e'};
         if (Available >= 4) {
-            if (compare_memory(Current - 1, trueData, 4) == 0) {
-                for (auto _ : range(3)) bump_byte();
+            if (string_view(Current - 1, 4).compare_ignore_case("true")) {
+                For(range(3)) bump_byte();
                 return {true, true};
             }
         }
 
-        char falseData[] = {'f', 'a', 'l', 's', 'e'};
         if (Available >= 5) {
-            if (compare_memory(Current - 1, falseData, 5) == 0) {
-                for (auto _ : range(4)) bump_byte();
-                return {false, true};
+            if (string_view(Current - 1, 5).compare_ignore_case("false")) {
+                For(range(4)) bump_byte();
+                return {true, true};
             }
         }
 
@@ -370,15 +399,9 @@ class Reader {
     bool SkipWhitespace = true;
 };
 
-struct Console_Reader : Reader {
+struct Console_Reader : Reader, NonCopyable, NonMovable {
     Console_Reader();
     char request_byte() override;
-
-    Console_Reader(const Console_Reader &) = delete;
-    Console_Reader(Console_Reader &&) = delete;
-
-    Console_Reader &operator=(const Console_Reader &) = delete;
-    Console_Reader &operator=(Console_Reader &&) = delete;
 
    private:
     // Needed for Windows to save the handle for cin

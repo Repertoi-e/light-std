@@ -581,16 +581,16 @@ struct Format_Context {
 
         size_t padding = width() - length;
         if (align == Alignment::RIGHT) {
-            for (auto _ : range(padding)) Out.write(fill());
+            For(range(padding)) Out.write(fill());
             func(*this);
         } else if (align == Alignment::CENTER) {
             size_t leftPadding = padding / 2;
-            for (auto _ : range(leftPadding)) Out.write(fill());
+            For(range(leftPadding)) Out.write(fill());
             func(*this);
-            for (auto _ : range(padding - leftPadding)) Out.write(fill());
+            For(range(padding - leftPadding)) Out.write(fill());
         } else {
             func(*this);
-            for (auto _ : range(padding)) Out.write(fill());
+            For(range(padding)) Out.write(fill());
         }
     }
 
@@ -619,7 +619,7 @@ struct Format_Context {
                 if (prefix) {
                     f.Out.write(prefix);
                 }
-                for (auto _ : range(padding)) f.Out.write(fillChar);
+                For(range(padding)) f.Out.write(fillChar);
                 func(f);
             },
             align() == Alignment::DEFAULT ? Alignment::RIGHT : align(), size);

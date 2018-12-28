@@ -115,9 +115,9 @@ struct Dynamic_Array {
     // Find the index of the first occuring _item_ in the array, npos if it's not found
     size_t find(const Data_Type &item) const {
         Data_Type *index = Data;
-        for (auto i : range(Count)) {
+        For(range(Count)) {
             if (*index++ == item) {
-                return i;
+                return it;
             }
         }
         return npos;
@@ -126,7 +126,7 @@ struct Dynamic_Array {
     // Find the index of the last occuring _item_ in the array, npos if it's not found
     size_t find_last(const Data_Type &item) const {
         Data_Type *index = Data;
-        for (auto i : range(Count)) {
+        For(range(Count)) {
             if (*index-- == item) {
                 return Count - i - 1;
             }
@@ -186,8 +186,8 @@ struct Dynamic_Array {
 
     bool operator==(const Dynamic_Array &other) {
         if (Count != other.Count) return false;
-        for (size_t i = 0; i < Count; i++) {
-            if (Data[i] != other.Data[i]) {
+        For(range(Count)) {
+            if (Data[it] != other.Data[it]) {
                 return false;
             }
         }
@@ -207,6 +207,8 @@ struct Dynamic_Array {
         Data = newMemory;
         Reserved = reserve;
     }
+
+    void expand(size_t n) { reserve(Reserved + n); }
 };
 
 //
@@ -221,8 +223,8 @@ bool operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {
     } else {
         if (left.Count != right.Count) return false;
 
-        for (size_t i = 0; i < left.Count; i++) {
-            if (left.Data[i] != right.Data[i]) {
+        For(range(left.Count)) {
+            if (left.Data[it] != right.Data[it]) {
                 return false;
             }
         }

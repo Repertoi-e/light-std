@@ -171,6 +171,9 @@ constexpr char32_t to_lower(char32_t cp) {
     return cp;
 }
 
+constexpr bool is_upper(char32_t ch) { return ch != to_lower(ch); }
+constexpr bool is_lower(char32_t ch) { return ch != to_upper(ch); }
+
 // Returns the size in bytes of the code point that _str_ points to.
 // This function reads the first byte and returns that result.
 // If the byte pointed by _str_ is a countinuation utf-8 byte, this
@@ -265,8 +268,6 @@ constexpr size_t translate_index(s64 index, size_t length) {
 
 // This returns str advanced to point to the code point at a specified index in a string with a given length.
 constexpr const char *get_pointer_to_code_point_at(const char *str, size_t length, s64 index) {
-    for (s64 _ : range(translate_index(index, length))) {
-        str += get_size_of_code_point(str);
-    }
+    For(range(translate_index(index, length))) str += get_size_of_code_point(str);
     return str;
 }

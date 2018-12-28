@@ -87,11 +87,9 @@ struct Hash<f64> {
 #include "../string/string.hpp"
 template <>
 struct Hash<string> {
-    static constexpr uptr_t get(const string& str) {
+    static uptr_t get(const string& str) {
         uptr_t hash = 5381;
-        for (size_t i = 0; i < str.Length; i++) {
-            hash = ((hash << 5) + hash) + str[i];
-        }
+        For(str) hash = ((hash << 5) + hash) + it;
         return hash;
     }
 };
@@ -100,9 +98,7 @@ template <>
 struct Hash<string_view> {
     static constexpr uptr_t get(const string_view& str) {
         uptr_t hash = 5381;
-        for (size_t i = 0; i < str.Length; i++) {
-            hash = ((hash << 5) + hash) + str[i];
-        }
+        For(str) hash = ((hash << 5) + hash) + it;
         return hash;
     }
 };

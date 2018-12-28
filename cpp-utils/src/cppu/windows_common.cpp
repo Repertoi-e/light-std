@@ -84,7 +84,7 @@ io::Console_Reader::Console_Reader() {
 
 char io::Console_Reader::request_byte() {
     assert(PlatformData);
-    assert(Available == 0); // Sanity
+    assert(Available == 0);  // Sanity
 
     DWORD read;
     ReadFile((HANDLE) PlatformData, Buffer, (DWORD) 1_KiB, &read, null);

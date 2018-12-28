@@ -21,7 +21,7 @@ CPPU_BEGIN_NAMESPACE
 // stack allocated one.
 //
 // * Usually structures in this library are named Like_This, but this
-// is an exception since I consider it as a fundamental data type.
+// is an exception since I consider it a fundamental data type.
 struct string {
    private:
     struct Code_Point {

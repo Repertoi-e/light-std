@@ -193,9 +193,9 @@ struct Table {
 
         reverse(newSize);
 
-        for (size_t i = 0; i < oldReserved; i++) {
-            if (oldOccupancyMask[i]) {
-                put(oldKeys[i], oldValues[i]);
+        For(range(oldReserved)) {
+            if (oldOccupancyMask[it]) {
+                put(oldKeys[it], oldValues[it]);
             }
         }
 

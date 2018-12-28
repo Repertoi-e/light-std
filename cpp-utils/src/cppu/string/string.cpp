@@ -54,10 +54,10 @@ void string::swap(string &other) {
     if (Data != StackData && other.Data != other.StackData) {
         std::swap(Data, other.Data);
     } else {
-        for (size_t i = 0; i < SMALL_STRING_BUFFER_SIZE; i++) {
-            auto temp = StackData[i];
-            StackData[i] = other.StackData[i];
-            other.StackData[i] = temp;
+        For(range(SMALL_STRING_BUFFER_SIZE)) {
+            auto temp = StackData[it];
+            StackData[it] = other.StackData[it];
+            other.StackData[it] = temp;
         }
 
         bool isOtherSmall = other.Data == other.StackData;
@@ -219,25 +219,19 @@ void string::append_pointer_and_size(const char *data, size_t size) {
 string string::repeated(size_t n) {
     string result = *this;
     result.reserve(n * ByteLength);
-    for (size_t i = 1; i < n; i++) {
-        result.append(*this);
-    }
+    For(range(1, n)) result.append(*this);
     return result;
 }
 
 string string::get_upper() const {
     string result = *this;
-    for (size_t i = 0; i < result.Length; i++) {
-        result[i] = to_upper(result[i]);
-    }
+    For(range(Length)) result[it] = to_upper(result[it]);
     return result;
 }
 
 string string::get_lower() const {
     string result = *this;
-    for (size_t i = 0; i < result.Length; i++) {
-        result[i] = to_lower(result[i]);
-    }
+    For(range(Length)) result[it] = to_lower(result[it]);
     return result;
 }
 

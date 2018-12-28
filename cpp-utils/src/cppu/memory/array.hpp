@@ -24,9 +24,9 @@ struct Array {
     // Find the index of the first occuring _item_ in the array, npos if it's not found
     constexpr size_t find(const T &item) const {
         const T *index = Data;
-        for (auto i : range(Count)) {
+        For(range(Count)) {
             if (*index++ == item) {
-                return i;
+                return it;
             }
         }
         return npos;
@@ -35,9 +35,9 @@ struct Array {
     // Find the index of the last occuring _item_ in the array, npos if it's not found
     constexpr size_t find_last(const T &item) const {
         const T *index = Data + Count - 1;
-        for (auto i : range(Count)) {
+        For(range(Count)) {
             if (*index-- == item) {
-                return Count - i - 1;
+                return Count - it - 1;
             }
         }
         return npos;
@@ -60,8 +60,8 @@ struct Array {
 
     constexpr bool operator==(const Array &other) {
         if (Count != other.Count) return false;
-        for (size_t i = 0; i < Count; i++) {
-            if (Data[i] != other.Data[i]) {
+        For(range(Count)) {
+            if (Data[it] != other.Data[it]) {
                 return false;
             }
         }

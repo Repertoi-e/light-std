@@ -19,6 +19,9 @@ void to_writer(io::Writer &writer, const string_view &formatString, Args &&... a
 
 namespace io {
 
+// Provides a simple API to write stuff.
+// Any subclass needs to implement just _write(string_view)_
+// All other overloads are implemented around that function.
 class Writer {
    public:
     virtual ~Writer() {}
@@ -40,6 +43,7 @@ class Writer {
     }
 };
 
+// A Writer around String_Builder
 struct String_Writer : Writer {
     String_Builder Builder;
 
@@ -49,15 +53,9 @@ struct String_Writer : Writer {
     }
 };
 
-struct Console_Writer : Writer {
+struct Console_Writer : Writer, NonCopyable, NonMovable {
     Console_Writer();
     Writer &write(const string_view &str) override;
-
-    Console_Writer(const Console_Writer &) = delete;
-    Console_Writer(Console_Writer &&) = delete;
-
-    Console_Writer &operator=(const Console_Writer &) = delete;
-    Console_Writer &operator=(Console_Writer &&) = delete;
 
    private:
     // Needed for Windows to save the handle for cout

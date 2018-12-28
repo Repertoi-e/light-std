@@ -25,9 +25,9 @@ struct Formatter<Array<T, Size>> {
         f.write("{ [");
         if (value.Count > 0) {
             f.write_argument(make_argument(value[0]));
-            for (s32 i : range(1, value.Count)) {
+            For(range(1, value.Count)) {
                 f.write(", ");
-                f.write_argument(make_argument(value[i]));
+                f.write_argument(make_argument(value[it]));
             }
         }
         f.write("], ");
@@ -42,9 +42,9 @@ struct Formatter<Dynamic_Array<T>> {
         f.write("{ [");
         if (value.Count > 0) {
             f.write_argument(fmt::make_argument(value[0]));
-            for (s32 i : range(1, value.Count)) {
+            For(range(1, value.Count)) {
                 f.write(", ");
-                f.write_argument(fmt::make_argument(value[i]));
+                f.write_argument(fmt::make_argument(value[it]));
             }
         }
         f.write("], ");

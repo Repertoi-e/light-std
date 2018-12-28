@@ -9,55 +9,8 @@ CPPU_BEGIN_NAMESPACE
 namespace fmt {
 
 template <typename T>
-constexpr std::enable_if_t<std::is_unsigned_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it,
+constexpr std::enable_if_t<std::is_integral_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it,
                                                                                 u32 base = 0) {
-    // Skip white space
-    while (is_space(*it)) {
-        ++it;
-    }
-    if (*it == '+') {
-        ++it;
-    }
-
-    char32_t ch = *it++;
-    if ((base == 0 || base == 16) && ch == '0' && (*it == 'x' || *it == 'X')) {
-        ++it;
-        ch = *it++;
-        base = 16;
-    }
-    if (base == 0) {
-        base = ch == '0' ? 8 : 10;
-    }
-
-    T maxValue = (std::numeric_limits<T>::max)();
-    T cutoff = maxValue / base;
-    s32 cutlim = maxValue % (T) base;
-
-    T value = 0;
-    for (;; ch = *it++) {
-        if (is_digit(ch)) {
-            ch -= '0';
-        } else if (is_alpha(ch)) {
-            ch -= to_upper(ch) == ch ? 'A' - 10 : 'a' - 10;
-        } else {
-            break;
-        }
-
-        if (ch >= base) break;
-        if (value > cutoff || (value == cutoff && (s32) ch > cutlim)) {
-            --it;
-            return {maxValue, false};
-        } else {
-            value = value * base + ch;
-        }
-    }
-
-    --it;
-    return {value, true};
-}
-
-template <typename T>
-constexpr std::enable_if_t<std::is_signed_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it, u32 base = 0) {
     // Skip white space
     while (is_space(*it)) {
         ++it;
@@ -81,12 +34,19 @@ constexpr std::enable_if_t<std::is_signed_v<T>, std::pair<T, bool>> parse_int(st
         base = ch == '0' ? 8 : 10;
     }
 
-    T maxValue = negative ? -(std::numeric_limits<T>::min()) : std::numeric_limits<T>::max();
+    T maxValue;
+    if constexpr (std::is_signed_v<T>) {
+        maxValue = negative ? -(std::numeric_limits<T>::min()) : std::numeric_limits<T>::max();
+    } else {
+        maxValue = (std::numeric_limits<T>::max)();
+    }
     T cutoff = maxValue / base;
     s32 cutlim = maxValue % (T) base;
 
+    defer { --it; };
+
     T value = 0;
-    for (;; ch = *it++) {
+    while (true) {
         if (is_digit(ch)) {
             ch -= '0';
         } else if (is_alpha(ch)) {
@@ -96,16 +56,23 @@ constexpr std::enable_if_t<std::is_signed_v<T>, std::pair<T, bool>> parse_int(st
         }
 
         if (ch >= base) break;
-        if (value > cutoff || (value == cutoff && ch > cutlim)) {
-            --it;
-            return {maxValue * (negative ? -1 : 1), false};
+        if (value > cutoff || (value == cutoff && (s32) ch > cutlim)) {
+            if constexpr (std::is_unsigned_v<T>) {
+                return {negative ? (0 - maxValue) : maxValue, false};
+            } else {
+                return {(negative ? -1 : 1) * maxValue, false};
+            }
         } else {
             value = value * base + ch;
         }
+        ch = *it++;
     }
 
-    --it;
-    return {value * (negative ? -1 : 1), true};
+    if constexpr (std::is_unsigned_v<T>) {
+        return {negative ? (0 - value) : value, true};
+    } else {
+        return {(negative ? -1 : 1) * value, true};
+    }
 }
 
 enum class Parsing_Error_Code {

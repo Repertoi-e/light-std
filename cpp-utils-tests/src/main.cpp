@@ -15,14 +15,14 @@ void run_tests() {
         fmt::print("{}:\n", fileName);
 
         u32 sucessfulProcs = 0;
-        for (const auto &test : *tests) {
-            s32 length = min(30, (s32) test.Name.Length);
-            fmt::print("        {:.{}} {:.{}} ", test.Name, length, string(".").repeated(35), 35 - length);
+        For(*tests) {
+            s32 length = min(30, (s32) it.Name.Length);
+            fmt::print("        {:.{}} {:.{}} ", it.Name, length, string(".").repeated(35), 35 - length);
 
             size_t failedIndexStart = Asserts::GlobalFailed.Count;
 
             // Run the test
-            test.Function();
+            it.Function();
 
             // Check if test has failed asserts
             if (failedIndexStart == Asserts::GlobalFailed.Count) {
@@ -55,8 +55,8 @@ void run_tests() {
 
     if (failedCount) {
         fmt::print("[Test Suite] Failed asserts:\n");
-        for (auto &message : Asserts::GlobalFailed) {
-            fmt::print("    >>> {}FAILED:{} {}{}\n", fmt::FG::Red, fmt::FGB::Gray, message, fmt::FG::Reset);
+        For(Asserts::GlobalFailed) {
+            fmt::print("    >>> {}FAILED:{} {}{}\n", fmt::FG::Red, fmt::FGB::Gray, it, fmt::FG::Reset);
         }
     }
     fmt::print("\n");
@@ -66,13 +66,10 @@ void run_tests() {
 
 int main() {
     while (!io::cin.EOF) {
-        // string str;
-        // io::cin.read(str);
-        // io::cout.write_fmt("Read: {}\n", str);
         char a;
         io::cin.read(a);
         if (io::cin.FailedParse) {
-            io::cout.write_fmt("Failed to parse, got: {}\n", a);
+            io::cout.write_fmt("Failed to parse, got: {:c}\n", a);
         } else {
             io::cout.write_fmt("Read: {:c}\n", a);
         }

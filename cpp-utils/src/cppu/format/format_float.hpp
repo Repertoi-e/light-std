@@ -168,7 +168,7 @@ inline fp get_cached_power(s32 minExponent, s32 &pow10Exp) {
 }
 
 inline bool grisu2_round(char *buffer, size_t &size, size_t maxDigits, u64 delta, u64 remainder, u64 exp, u64 diff,
-                        s32 &exp10) {
+                         s32 &exp10) {
     while (remainder < diff && delta - remainder >= exp &&
            (remainder + exp < diff || diff - remainder > remainder + exp - diff)) {
         --buffer[size - 1];
@@ -184,7 +184,7 @@ inline bool grisu2_round(char *buffer, size_t &size, size_t maxDigits, u64 delta
 
 // Generates output using Grisu2 digit-gen algorithm.
 inline bool grisu2_gen_digits(char *buffer, size_t &size, u32 hi, u64 lo, s32 &exp, u64 delta, const fp &one,
-                             const fp &diff, size_t maxDigits) {
+                              const fp &diff, size_t maxDigits) {
     // Generate digits for the most significant part (hi).
     while (exp > 0) {
         u32 digit = 0;
@@ -244,7 +244,7 @@ inline bool grisu2_gen_digits(char *buffer, size_t &size, u32 hi, u64 lo, s32 &e
     }
 
     // Generate digits for the least significant part (lo).
-    for (;;) {
+    while (true) {
         lo *= 10;
         delta *= 10;
         char digit = (char) (lo >> -one.e);
@@ -285,9 +285,7 @@ struct Prettify_Handler {
 
     void append(size_t n, char c) {
         char *p = Data + Size;
-        for (auto _ : range(n)) {
-            *p++ = c;
-        }
+        For(range(n)) { *p++ = c; }
         Size += n;
     }
 
@@ -330,9 +328,7 @@ struct Fill {
         buffer[1] = '.';
 
         char *p = buffer + 2;
-        for (auto _ : range(n)) {
-            *p++ = '0';
-        }
+        For(range(n)) { *p++ = '0'; }
     }
 };
 
@@ -434,7 +430,7 @@ inline Gen_Digits_Params process_specs(const Format_Specs &specs, s32 exp, Dynam
 
 template <typename Double>
 typename std::enable_if_t<sizeof(Double) == sizeof(u64), bool> grisu2_format(Double value, Dynamic_Array<char> &buffer,
-                                                                            const Format_Specs &specs) {
+                                                                             const Format_Specs &specs) {
     assert(value >= 0 && "Value is negative");
     if (value == 0) {
         Gen_Digits_Params params = process_specs(specs, 1, buffer);
@@ -504,7 +500,7 @@ void sprintf_format(Double value, Dynamic_Array<char> &buffer, const Format_Spec
 
     // Format using snprintf.
     char *start = null;
-    for (;;) {
+    while (true) {
         size_t bufferSize = buffer.Reserved;
         start = &buffer[0];
 
@@ -519,7 +515,7 @@ void sprintf_format(Double value, Dynamic_Array<char> &buffer, const Format_Spec
             }
             buffer.reserve(n + 1);
         } else {
-            buffer.reserve(buffer.Reserved + 1);
+            buffer.expand(1);
         }
     }
 }

@@ -21,12 +21,10 @@ struct string_view {
         constexpr const char *get_current_after(s64 n) const {
             const char *result = Current;
             if (n > 0) {
-                for (s32 i : range(n)) {
-                    result += get_size_of_code_point(result);
-                }
+                For(range(n)) result += get_size_of_code_point(result);
             }
             if (n < 0) {
-                for (s32 i : range(n, 0)) {
+                For(range(n, 0)) {
                     do {
                         result--;
                     } while ((*result & 0xC0) == 0x80);
@@ -236,11 +234,10 @@ struct string_view {
         assert(Data);
 
         string_view result = *this;
-        for (size_t i = 0; i < Length; i++) {
-            char32_t ch = get(i);
-            if (!is_space(ch)) break;
+        For(*this) {
+            if (!is_space(it)) break;
 
-            size_t codePointSize = get_size_of_code_point(ch);
+            size_t codePointSize = get_size_of_code_point(it);
             result.Data += codePointSize;
             result.ByteLength -= codePointSize;
             result.Length--;
@@ -301,7 +298,7 @@ struct string_view {
         if (Length == 0) return -((s32) other.get(0));
         if (other.Length == 0) return get(0);
 
-        Iterator s1 = begin(), s2 = other.begin();
+        auto s1 = begin(), s2 = other.begin();
         while (*s1 == *s2) {
             ++s1, ++s2;
             if (s1 == end() && s2 == other.end()) return 0;
@@ -312,6 +309,31 @@ struct string_view {
 
         return ((s32) *s1 - (s32) *s2);
     }
+
+    constexpr s32 compare(const char *other) const { return compare(string_view(other)); }
+
+    // Compares the string view to _other_ lexicographically. Case insensitive.
+    // The result is less than 0 if this string_view sorts before the other,
+    // 0 if they are equal, and greater than 0 otherwise.
+    constexpr s32 compare_ignore_case(const string_view &other) const {
+        if (Data == other.Data && ByteLength == other.ByteLength && Length == other.Length) return 0;
+        if (Length == 0 && other.Length == 0) return 0;
+        if (Length == 0) return -((s32) to_lower(other.get(0)));
+        if (other.Length == 0) return to_lower(get(0));
+
+        auto s1 = begin(), s2 = other.begin();
+        while (to_lower(*s1) == to_lower(*s2)) {
+            ++s1, ++s2;
+            if (s1 == end() && s2 == other.end()) return 0;
+            if (s1 == end() || s2 == other.end()) break;
+        }
+        if (s1 == end()) return -((s32) to_lower(other.get(0)));
+        if (s2 == other.end()) return to_lower(get(0));
+
+        return ((s32) to_lower(*s1) - (s32) to_lower(*s2));
+    }
+
+    constexpr s32 compare_ignore_case(const char *other) const { return compare_ignore_case(string_view(other)); }
 
     // Check two string views for equality
     constexpr bool operator==(const string_view &other) const { return compare(other) == 0; }

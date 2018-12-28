@@ -150,16 +150,16 @@ TEST(concat) {
     }
 
     string result;
-    for (s32 i = 0; i < 10; i++) {
+    For(range(10)) {
         result += 'i';
-        assert_eq(result.ByteLength, i + 1);
-        assert_eq(result.Length, i + 1);
+        assert_eq(result.ByteLength, it + 1);
+        assert_eq(result.Length, it + 1);
     }
     result.release();
-    for (s32 i = 0; i < 10; i++) {
+    For(range(10)) {
         result += u8"Д";
-        assert_eq(result.ByteLength, 2 * (i + 1));
-        assert_eq(result.Length, i + 1);
+        assert_eq(result.ByteLength, 2 * (it + 1));
+        assert_eq(result.Length, it + 1);
     }
 }
 
