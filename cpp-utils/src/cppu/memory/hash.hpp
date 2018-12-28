@@ -27,7 +27,7 @@ struct Hash<T*> {
     static constexpr uptr_t get(T* pointer) { return (uptr_t) pointer; }
 };
 
-// _Hashes for integer types
+// Hashes for integer types
 #define TRIVIAL_HASH(T)                                                 \
     template <>                                                         \
     struct Hash<T> {                                                    \
@@ -50,7 +50,7 @@ TRIVIAL_HASH(bool);
 
 #undef TRIVIAL_HASH
 
-// _Hashes for floats.
+// Hashes for floats.
 // The output of these depends on the endianness of the machine
 // (Because we are reinterpreting the float's bits as unsinged numbers)
 template <>

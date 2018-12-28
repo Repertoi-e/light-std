@@ -8,6 +8,7 @@
 
 - Make fmt::Format_Context a Writer for consistency
 
+- Buffered Reader/Writer
 - File I/O Reader and Writer
 - File system
 
@@ -16,7 +17,5 @@
 
 - Support for threads
 - Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
-
-- Maybe make strings implictitly castable to string_view's but keep the explicit requirement the other way around
 
 ########## Bugs ##########

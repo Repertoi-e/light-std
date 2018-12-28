@@ -114,14 +114,14 @@ struct string {
     // bytes of memory, it allocates a buffer on the heap.
     //
     // Note that the "Data" member points to this buffer *or* the dynamically allocated one.
-    char _StackData[SMALL_STRING_BUFFER_SIZE];
+    char StackData[SMALL_STRING_BUFFER_SIZE];
 
     // This member points to a valid utf-8 string in memory.
     // Each 'char' means one byte, which doesn't guarantee a valid utf-8 code point
     // since they can be multiple bytes. You almost never would want
     // to modify or access characters from this member unless you want
     // something very specific.
-    char *Data = _StackData;
+    char *Data = StackData;
 
     // The number of reserved bytes in the string. This is used only
     // if the string is using a dynamically allocated buffer.
@@ -161,7 +161,7 @@ struct string {
     // Allows negative reversed indexing which begins at
     // the end of the string, so -1 is the last character
     // -2 the one before that, etc. (Python-style)
-    char32_t get(s64 index) const { return string_view(*this).get(index); }
+    char32_t get(s64 index) const { return get_view().get(index); }
     code_point get(s64 index) { return code_point(*this, translate_index(index, Length)); }
 
     // Sets the _index_'th code point in the string
@@ -175,19 +175,19 @@ struct string {
     // the end of the string, so -1 is the last character
     // -2 the one before that, etc. (Python-style)
     // The string returned is a string view.
-    const string_view substring(s64 begin, s64 end) const { return string_view(*this).substring(begin, end); }
+    const string_view substring(s64 begin, s64 end) const { return get_view().substring(begin, end); }
 
     // Find the first occurence of _ch_
-    size_t find(char32_t ch) const { return string_view(*this).find(ch); }
+    size_t find(char32_t ch) const { return get_view().find(ch); }
 
     // Find the first occurence of _other_
-    size_t find(const string_view &other) const { return string_view(*this).find(other); }
+    size_t find(const string_view &other) const { return get_view().find(other); }
 
     // Find the last occurence of _ch_
-    size_t find_last(char32_t ch) const { return string_view(*this).find_last(ch); }
+    size_t find_last(char32_t ch) const { return get_view().find_last(ch); }
 
     // Find the last occurence of _other_
-    size_t find_last(const string_view &other) const { return string_view(*this).find_last(other); }
+    size_t find_last(const string_view &other) const { return get_view().find_last(other); }
 
     bool has(char32_t ch) const { return find(ch) != npos; }
     bool has(const string_view &other) const { return find(other) != npos; }
@@ -209,7 +209,9 @@ struct string {
     // Compares the string to _other_ lexicographically.
     // The result is less than 0 if this string sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
-    s32 compare(const string &other) const { return string_view(*this).compare((string_view) other); }
+    s32 compare(const string &other) const { return get_view().compare((string_view) other); }
+
+    string_view get_view() const { return string_view(*this); }
 
     void swap(string &other);
 
@@ -286,23 +288,23 @@ struct string {
 
     // Returns a substring of _str_ with whitespace
     // removed at the start.
-    string_view trim_start() const { return string_view(*this).trim_start(); }
+    string_view trim_start() const { return get_view().trim_start(); }
 
     // Returns a substring of _str_ with whitespace
     // removed at the end.
-    string_view trim_end() const { return string_view(*this).trim_end(); }
+    string_view trim_end() const { return get_view().trim_end(); }
 
-    bool begins_with(char32_t ch) const { return string_view(*this).begins_with(ch); }
-    bool begins_with(const string_view &other) const { return string_view(*this).begins_with(other); }
+    bool begins_with(char32_t ch) const { return get_view().begins_with(ch); }
+    bool begins_with(const string_view &other) const { return get_view().begins_with(other); }
 
-    bool ends_with(char32_t ch) const { return string_view(*this).ends_with(ch); }
-    bool ends_with(const string_view &other) { return string_view(*this).ends_with(other); }
+    bool ends_with(char32_t ch) const { return get_view().ends_with(ch); }
+    bool ends_with(const string_view &other) { return get_view().ends_with(other); }
 
     string &operator=(const string_view &view);
     string &operator=(const string &other);
     string &operator=(string &&other);
 
-    explicit operator string_view() const { return string_view(*this); }
+    operator string_view() const { return get_view(); }
 
     // Read/write [] operator
     code_point operator[](s64 index);

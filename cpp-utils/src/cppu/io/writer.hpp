@@ -24,7 +24,7 @@ class Writer {
     virtual ~Writer() {}
 
     virtual Writer &write(const string_view &str) = 0;
-    Writer &write(const string &str) { return write(string_view(str)); }
+    Writer &write(const string &str) { return write(str.get_view()); }
     Writer &write(const char *data, size_t size) { return write(string_view(data, size)); }
     Writer &write(char32_t ch) {
         char data[4];

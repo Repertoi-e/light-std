@@ -108,16 +108,6 @@ inline bool is_nan(f64 x) {
 
 namespace internal {
 
-// An equivalent of `*(Dest*) (&source)` that doesn't produce
-// undefined behavior (e.g. due to type aliasing).
-template <typename T, typename U>
-inline T bit_cast(const U &source) {
-    static_assert(sizeof(T) == sizeof(U), "size mismatch");
-    T result;
-    copy_memory(&result, &source, sizeof(T));
-    return result;
-}
-
 // Returns the number of decimal digits in n. Leading zeros are not counted
 // except for n == 0 in which case count_digits returns 1.
 inline u32 count_digits(u64 n) {

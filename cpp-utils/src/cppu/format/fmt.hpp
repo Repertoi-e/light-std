@@ -16,7 +16,7 @@ struct Formatter<T, typename std::enable_if_t<Get_Type<T>::Value != Format_Type:
 
 template <>
 struct Formatter<String_Builder> {
-    void format(const String_Builder &value, Format_Context &f) { f.write(string_view(value.combine())); }
+    void format(const String_Builder &value, Format_Context &f) { f.write(value.combine().get_view()); }
 };
 
 template <typename T, size_t Size>

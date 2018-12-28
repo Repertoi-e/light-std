@@ -4,6 +4,8 @@
 
 CPPU_BEGIN_NAMESPACE
 
+string_view::string_view(const string &str) : Data(str.Data), ByteLength(str.ByteLength), Length(str.Length) {}
+
 string::Code_Point &string::Code_Point::operator=(char32_t other) {
     Parent.set((s64) Index, other);
     return *this;
@@ -49,25 +51,25 @@ string::string(const string &other) {
 string::string(string &&other) { other.swap(*this); }
 
 void string::swap(string &other) {
-    if (Data != _StackData && other.Data != other._StackData) {
+    if (Data != StackData && other.Data != other.StackData) {
         std::swap(Data, other.Data);
     } else {
         for (size_t i = 0; i < SMALL_STRING_BUFFER_SIZE; i++) {
-            auto temp = _StackData[i];
-            _StackData[i] = other._StackData[i];
-            other._StackData[i] = temp;
+            auto temp = StackData[i];
+            StackData[i] = other.StackData[i];
+            other.StackData[i] = temp;
         }
 
-        bool isOtherSmall = other.Data == other._StackData;
-        if (Data != _StackData || !isOtherSmall) {
-            if (Data == _StackData) {
+        bool isOtherSmall = other.Data == other.StackData;
+        if (Data != StackData || !isOtherSmall) {
+            if (Data == StackData) {
                 auto temp = other.Data;
-                other.Data = other._StackData;
+                other.Data = other.StackData;
                 Data = temp;
             }
             if (isOtherSmall) {
                 auto temp = Data;
-                Data = _StackData;
+                Data = StackData;
                 other.Data = temp;
             }
         }
@@ -103,9 +105,9 @@ string &string::operator=(string &&other) {
 string::~string() { release(); }
 
 void string::release() {
-    if (Data && Data != _StackData && Reserved) {
+    if (Data && Data != StackData && Reserved) {
         Delete(Data, Reserved, Allocator);
-        Data = _StackData;
+        Data = StackData;
 
         Reserved = 0;
     }
@@ -123,14 +125,14 @@ char32_t string::operator[](s64 index) const { return get(index); }
 string_view string::operator()(s64 begin, s64 end) const { return substring(begin, end); }
 
 void string::reserve(size_t size) {
-    if (Data == _StackData) {
+    if (Data == StackData) {
         // Return if there is enough space
         if (size <= string::SMALL_STRING_BUFFER_SIZE) return;
 
         // If we are small but we need more size, it's time to convert
         // to a dynamically allocated memory.
         Data = New_and_ensure_allocator<char>(size, Allocator);
-        copy_memory(Data, _StackData, ByteLength);
+        copy_memory(Data, StackData, ByteLength);
         Reserved = size;
     } else {
         // Return if there is enough space

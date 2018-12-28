@@ -32,27 +32,21 @@ struct Table {
     // This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure Allocator;
 
-    // We store slots as SOA to minimize cache misses.
-    bool *_OccupancyMask = null;
-    Key_Type *_Keys = null;
-    Value_Type *_Values = null;
-    uptr_t *_Hashes = null;
-
     Table() {}
     Table(const Table &other) {
         Count = other.Count;
         Reserved = other.Reserved;
         UnfoundValue = other.UnfoundValue;
 
-        _OccupancyMask = New_and_ensure_allocator<bool>(Reserved, Allocator);
-        _Keys = New<Key_Type>(Reserved, Allocator);
-        _Values = New<Value_Type>(Reserved, Allocator);
-        _Hashes = New<uptr_t>(Reserved, Allocator);
+        OccupancyMask = New_and_ensure_allocator<bool>(Reserved, Allocator);
+        Keys = New<Key_Type>(Reserved, Allocator);
+        Values = New<Value_Type>(Reserved, Allocator);
+        Hashes = New<uptr_t>(Reserved, Allocator);
 
-        copy_elements(_OccupancyMask, other._OccupancyMask, Reserved);
-        copy_elements(_Keys, other._Keys, Reserved);
-        copy_elements(_Values, other._Values, Reserved);
-        copy_elements(_Hashes, other._Hashes, Reserved);
+        copy_elements(OccupancyMask, other.OccupancyMask, Reserved);
+        copy_elements(Keys, other.Keys, Reserved);
+        copy_elements(Values, other.Values, Reserved);
+        copy_elements(Hashes, other.Hashes, Reserved);
     }
 
     Table(Table &&other) { other.swap(*this); }
@@ -60,15 +54,15 @@ struct Table {
 
     void release() {
         if (Reserved) {
-            Delete(_OccupancyMask, Reserved, Allocator);
-            Delete(_Keys, Reserved, Allocator);
-            Delete(_Values, Reserved, Allocator);
-            Delete(_Hashes, Reserved, Allocator);
+            Delete(OccupancyMask, Reserved, Allocator);
+            Delete(Keys, Reserved, Allocator);
+            Delete(Values, Reserved, Allocator);
+            Delete(Hashes, Reserved, Allocator);
 
-            _OccupancyMask = null;
-            _Keys = null;
-            _Values = null;
-            _Hashes = null;
+            OccupancyMask = null;
+            Keys = null;
+            Values = null;
+            Hashes = null;
             Reserved = 0;
             Count = 0;
         }
@@ -77,15 +71,15 @@ struct Table {
     // Copies the key and the value into the table.
     void put(const Key_Type &key, const Value_Type &value) {
         uptr_t hash = Hash<Key_Type>::get(key);
-        s32 index = _find_index(key, hash);
+        s32 index = find_index(key, hash);
         if (index == -1) {
             if (Count >= Reserved) {
-                _expand();
+                expand();
             }
             assert(Count <= Reserved);
 
             index = (s32)(hash % Reserved);
-            while (_OccupancyMask[index]) {
+            while (OccupancyMask[index]) {
                 // Resolve collision
                 index++;
                 if (index >= Reserved) {
@@ -96,10 +90,10 @@ struct Table {
             Count++;
         }
 
-        _OccupancyMask[index] = true;
-        _Keys[index] = key;
-        _Values[index] = value;
-        _Hashes[index] = hash;
+        OccupancyMask[index] = true;
+        Keys[index] = key;
+        Values[index] = value;
+        Hashes[index] = hash;
     }
 
     // Returns a tuple of the value and a bool (true if found). Doesn't return the value by reference so
@@ -107,12 +101,12 @@ struct Table {
     std::tuple<Value_Type &, bool> find(const Key_Type &key) {
         uptr_t hash = Hash<Key_Type>::get(key);
 
-        s32 index = _find_index(key, hash);
+        s32 index = find_index(key, hash);
         if (index == -1) {
             return {UnfoundValue, false};
         }
 
-        return std::forward_as_tuple(_Values[index], true);
+        return std::forward_as_tuple(Values[index], true);
     }
 
     bool has(const Key_Type &key) {
@@ -131,10 +125,10 @@ struct Table {
         std::swap(Reserved, other.Reserved);
         std::swap(UnfoundValue, other.UnfoundValue);
 
-        std::swap(_OccupancyMask, other._OccupancyMask);
-        std::swap(_Keys, other._Keys);
-        std::swap(_Values, other._Values);
-        std::swap(_Hashes, other._Hashes);
+        std::swap(OccupancyMask, other.OccupancyMask);
+        std::swap(Keys, other.Keys);
+        std::swap(Values, other.Values);
+        std::swap(Hashes, other.Hashes);
     }
 
     Table &operator=(const Table &other) {
@@ -151,29 +145,26 @@ struct Table {
         return *this;
     }
 
-    // This is a very internal function. Basically don't call this unless
-    // you absolutely know what you are doing. This doesn't free the old memory
-    // before allocating new, so that's up to the caller to do. Trust me
-    // there is a reason why this function does what it does, it makes _expand()
-    // much much simpler.
-    void _reverse(size_t size) {
+   private:
+    // This doesn't free the old memory before allocating new, so that's up to the caller to do.
+    void reverse(size_t size) {
         Reserved = size;
 
-        _OccupancyMask = New_and_ensure_allocator<bool>(size, Allocator);
-        _Keys = New<Key>(size, Allocator);
-        _Values = New<Value>(size, Allocator);
-        _Hashes = New<uptr_t>(size, Allocator);
+        OccupancyMask = New_and_ensure_allocator<bool>(size, Allocator);
+        Keys = New<Key>(size, Allocator);
+        Values = New<Value>(size, Allocator);
+        Hashes = New<uptr_t>(size, Allocator);
     }
 
-    s32 _find_index(const Key_Type &key, uptr_t hash) {
+    s32 find_index(const Key_Type &key, uptr_t hash) {
         if (!Reserved) {
             return -1;
         }
 
         size_t index = hash % Reserved;
-        while (_OccupancyMask[index]) {
-            if (_Hashes[index] == hash) {
-                if (_Keys[index] == key) {
+        while (OccupancyMask[index]) {
+            if (Hashes[index] == hash) {
+                if (Keys[index] == key) {
                     return (s32) index;
                 }
             }
@@ -188,22 +179,19 @@ struct Table {
     }
 
     // Double's the size of the table and copies the elements to their new location.
-    void _expand() {
-        // I love C++
-        // I love C++
-        // I love C++
+    void expand() {
         size_t oldReserved = Reserved;
-        auto oldOccupancyMask = _OccupancyMask;
-        auto oldKeys = _Keys;
-        auto oldValues = _Values;
-        auto oldHashes = _Hashes;
+        auto oldOccupancyMask = OccupancyMask;
+        auto oldKeys = Keys;
+        auto oldValues = Values;
+        auto oldHashes = Hashes;
 
         size_t newSize = Reserved * 2;
         if (newSize < MINIMUM_SIZE) {
             newSize = MINIMUM_SIZE;
         }
 
-        _reverse(newSize);
+        reverse(newSize);
 
         for (size_t i = 0; i < oldReserved; i++) {
             if (oldOccupancyMask[i]) {
@@ -218,6 +206,14 @@ struct Table {
             Delete(oldHashes, oldReserved, Allocator);
         }
     }
+
+    // We store slots as SOA to minimize cache misses.
+    bool *OccupancyMask = null;
+    Key_Type *Keys = null;
+    Value_Type *Values = null;
+    uptr_t *Hashes = null;
+
+    friend struct Table_Iterator<Key_Type, Value_Type>;
 };
 
 template <typename Key, typename Value>
@@ -233,7 +229,7 @@ struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tup
     Table_Iterator &operator++() {
         while (SlotIndex < (s64) Table.Reserved) {
             SlotIndex++;
-            if (Table._OccupancyMask && Table._OccupancyMask[SlotIndex]) {
+            if (Table.OccupancyMask && Table.OccupancyMask[SlotIndex]) {
                 break;
             }
         }
@@ -250,7 +246,7 @@ struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tup
     bool operator!=(Table_Iterator other) const { return !(*this == other); }
 
     std::tuple<Key &, Value &> operator*() const {
-        return std::forward_as_tuple(Table._Keys[SlotIndex], Table._Values[SlotIndex]);
+        return std::forward_as_tuple(Table.Keys[SlotIndex], Table.Values[SlotIndex]);
     }
 };
 

@@ -2,67 +2,67 @@
 
 CPPU_BEGIN_NAMESPACE
 
-void Pool::_resize_blocks(size_t blockSize) {
+void Pool::resize_blocks(size_t blockSize) {
     BlockSize = blockSize;
 
-    if (_CurrentMemblock) _ObsoletedMemblocks.add(_CurrentMemblock);
+    if (CurrentMemblock) ObsoletedMemblocks.add(CurrentMemblock);
 
-    for (u8 *it : _UsedMemblocks) _ObsoletedMemblocks.add(it);
+    for (u8 *it : UsedMemblocks) ObsoletedMemblocks.add(it);
 
-    _CurrentMemblock = 0;
-    _UsedMemblocks.Count = 0;
+    CurrentMemblock = 0;
+    UsedMemblocks.Count = 0;
 }
 
-void Pool::_cycle_new_block() {
-    if (_CurrentMemblock) _UsedMemblocks.add(_CurrentMemblock);
+void Pool::cycle_new_block() {
+    if (CurrentMemblock) UsedMemblocks.add(CurrentMemblock);
 
     u8 *newBlock;
-    if (_UnusedMemblocks.Count) {
-        newBlock = *(_UnusedMemblocks.end() - 1);
-        _UnusedMemblocks.pop();
+    if (UnusedMemblocks.Count) {
+        newBlock = *(UnusedMemblocks.end() - 1);
+        UnusedMemblocks.pop();
     } else {
         newBlock = New_and_ensure_allocator<u8>(BlockSize, BlockAllocator);
     }
 
     _BytesLeft = BlockSize;
-    _CurrentPosition = newBlock;
-    _CurrentMemblock = newBlock;
+    CurrentPosition = newBlock;
+    CurrentMemblock = newBlock;
 }
 
-void Pool::_ensure_memory_exists(size_t size) {
+void Pool::ensure_memory_exists(size_t size) {
     size_t bs = BlockSize;
 
     while (bs < size) {
         bs *= 2;
     }
 
-    if (bs > BlockSize) _resize_blocks(bs);
-    _cycle_new_block();
+    if (bs > BlockSize) resize_blocks(bs);
+    cycle_new_block();
 }
 
 void Pool::reset() {
-    if (_CurrentMemblock) {
-        _UnusedMemblocks.add(_CurrentMemblock);
-        _CurrentMemblock = 0;
+    if (CurrentMemblock) {
+        UnusedMemblocks.add(CurrentMemblock);
+        CurrentMemblock = 0;
     }
 
-    for (u8 *it : _UsedMemblocks) {
-        _UnusedMemblocks.add(it);
+    for (u8 *it : UsedMemblocks) {
+        UnusedMemblocks.add(it);
     }
-    _UsedMemblocks.Count = 0;
+    UsedMemblocks.Count = 0;
 
-    for (u8 *it : _ObsoletedMemblocks) {
+    for (u8 *it : ObsoletedMemblocks) {
         Delete(it, BlockAllocator);
     }
-    _ObsoletedMemblocks.Count = 0;
+    ObsoletedMemblocks.Count = 0;
 
-    _cycle_new_block();
+    cycle_new_block();
 }
 
 void Pool::release() {
     reset();
 
-    for (u8 *it : _UnusedMemblocks) {
+    for (u8 *it : UnusedMemblocks) {
         Delete(it, BlockAllocator);
     }
 }
@@ -71,10 +71,10 @@ void *Pool::get(size_t size) {
     size_t extra = Alignment - (size % Alignment);
     size += extra;
 
-    if (_BytesLeft < size) _ensure_memory_exists(size);
+    if (_BytesLeft < size) ensure_memory_exists(size);
 
-    void *ret = _CurrentPosition;
-    _CurrentPosition += size;
+    void *ret = CurrentPosition;
+    CurrentPosition += size;
     _BytesLeft -= size;
     return ret;
 }

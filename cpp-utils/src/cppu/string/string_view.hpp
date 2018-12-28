@@ -99,7 +99,7 @@ struct string_view {
     size_t Length = 0;
 
     constexpr string_view() {}
-    explicit string_view(const string &str);
+    string_view(const string &str);
     // Construct from a null-terminated c-style string.
     constexpr string_view(const char *str) : string_view(str, str ? cstring_strlen(str) : 0) {}
 
