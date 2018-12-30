@@ -26,13 +26,10 @@ struct Formatter<Array<T, Size>> {
         if (value.Count > 0) {
             f.write_argument(make_argument(value[0]));
             For(range(1, value.Count)) {
-                f.write(", ");
-                f.write_argument(make_argument(value[it]));
+                f.write(", ").write_argument(make_argument(value[it]));
             }
         }
-        f.write("], ");
-        f.write_fmt("Count: {} ", value.Count);
-        f.write("}");
+        f.write_fmt("], Count: {} ", value.Count).write("}");
     }
 };
 
@@ -43,13 +40,10 @@ struct Formatter<Dynamic_Array<T>> {
         if (value.Count > 0) {
             f.write_argument(fmt::make_argument(value[0]));
             For(range(1, value.Count)) {
-                f.write(", ");
-                f.write_argument(fmt::make_argument(value[it]));
+                f.write(", ").write_argument(fmt::make_argument(value[it]));
             }
         }
-        f.write("], ");
-        f.write_fmt("Count: {} ", value.Count);
-        f.write("}");
+        f.write_fmt("], Count: {} ", value.Count).write("}");
     }
 };
 
@@ -117,9 +111,7 @@ inline void do_formatting(Format_Context &context) {
                 it = ++p;
                 auto error = parse_and_validate_specs(arg.Type, context);
                 if (error != Parsing_Error_Code::NONE) {
-                    context.Out.write('{');
-                    context.Out.write(get_message_from_parsing_error_code(error));
-                    context.Out.write('}');
+                    context.Out.write_fmt("{{{}}}", get_message_from_parsing_error_code(error));
                     return;
                 }
                 p = it;

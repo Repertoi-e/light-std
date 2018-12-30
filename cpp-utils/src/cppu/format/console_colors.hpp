@@ -56,9 +56,7 @@ struct Formatter<T, typename std::enable_if_t<std::is_same_v<T, fmt::Style> || s
                                               std::is_same_v<T, fmt::BGB>>> {
     void format(const T &value, Format_Context &f) {
         if (internal::does_terminal_support_color()) {
-            f.write("\033[");
-            f.write_int((s32) value);
-            f.write('m');
+            f.write("\033[").write_int((s32) value).write("m");
         }
     }
 };

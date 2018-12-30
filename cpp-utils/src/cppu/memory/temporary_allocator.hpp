@@ -55,7 +55,7 @@ inline void *temporary_allocator(Allocator_Mode mode, void *allocatorData, size_
 
                 fmt::print("!!! Warning !!!\n");
                 fmt::print(">> Temporary allocator ran out of space, using malloc for allocation...\n");
-                fmt::print(">> Invalidating pointer to __temporary_allocator_data...\n");
+                fmt::print(">> Invalidating pointer to TemporaryAllocatorData...\n");
                 if (switched) fmt::print(">> Context detected with temporary allocator, switching it to malloc...\n");
 
                 return DefaultAllocator(mode, allocatorData, size, oldMemory, oldSize, options);

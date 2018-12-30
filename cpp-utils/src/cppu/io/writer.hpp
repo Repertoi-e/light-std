@@ -29,12 +29,13 @@ class Writer {
     virtual Writer &write(const string_view &str) = 0;
     Writer &write(const string &str) { return write(str.get_view()); }
     Writer &write(const char *data, size_t size) { return write(string_view(data, size)); }
-    Writer &write(char32_t ch) {
+    Writer &write(const char *data) { return write(string_view(data)); }
+
+    Writer &write_char(char32_t ch) {
         char data[4];
         encode_code_point(data, ch);
         return write(string_view(data, get_size_of_code_point(data)));
     }
-    Writer &write(const char *data) { return write(string_view(data)); }
 
     template <typename... Args>
     Writer &write_fmt(const string_view &formatString, Args &&... args) {

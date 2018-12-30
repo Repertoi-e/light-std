@@ -1,10 +1,8 @@
-- A way to add custom type parsers to Reader?!?
-
-- Make fmt::Format_Context a Writer for consistency
-
 - Buffered Reader/Writer
 - File I/O Reader and Writer
 - File system
+
+- Add ability for custom types in Reader (similar to fmt::Formatter>
 
 - Time?
 - Random?

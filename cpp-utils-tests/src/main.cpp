@@ -65,9 +65,9 @@ void run_tests() {
 #include <iostream>
 
 int main() {
-    temporary_storage_init(4_MiB);
+    temporary_storage_init(2_MiB);
 
     auto tempContext = Context;
     tempContext.Allocator = TEMPORARY_ALLOC;
-    PUSH_CONTEXT(tempContext) { run_tests(); }
+    PUSH_CONTEXT(tempContext) run_tests();
 }
