@@ -69,7 +69,7 @@ int main() {
         f32 a;
         io::cin.read(a);
         if (io::cin.FailedParse) {
-            io::cout.write_fmt("Failed to parse, got: {:c}\n", a);
+            io::cout.write_fmt("Failed to parse, got: {}\n", a);
         } else {
             io::cout.write_fmt("Read: {}\n", a);
         }

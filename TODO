@@ -1,8 +1,6 @@
 - Write tests for Reader
 - A way to add custom type parsers to Reader?!?
 
-- Remove Format_Type::CHAR (isn't any different from an integer)
-
 - Make fmt::Format_Context a Writer for consistency
 
 - Buffered Reader/Writer

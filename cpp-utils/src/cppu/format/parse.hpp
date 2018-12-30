@@ -83,7 +83,6 @@ enum class Parsing_Error_Code {
     MISSING_PRECISION_SPEC,
     PRECISION_NOT_ALLOWED, /*Precision not allowed for this argument type*/
     INVALID_TYPE_SPEC,
-    INVALID_FORMAT_SPEC_CHAR, /*Invalid format specifier for char*/
     INVALID_FILL_CHAR_CURLY   /*Invalid fill character '{' */
 };
 
@@ -103,8 +102,6 @@ constexpr string_view get_message_from_parsing_error_code(Parsing_Error_Code err
             return "Precision not allowed for this argument type";
         case Parsing_Error_Code::INVALID_TYPE_SPEC:
             return "Invalid type specifier";
-        case Parsing_Error_Code::INVALID_FORMAT_SPEC_CHAR:
-            return "Invalid format specifier for char";
         case Parsing_Error_Code::INVALID_FILL_CHAR_CURLY:
             return "Invalid fill character \"{\"";
             break;
@@ -258,9 +255,6 @@ void handle_dynamic_field(Format_Context &f, const Argument_Ref &ref, Handler &&
             case Format_Type::BOOL:
                 value = (s64) arg.Value.S32_Value != 0;
                 break;
-            case Format_Type::CHAR:
-                value = (s64)(char32_t) arg.Value.S32_Value;
-                break;
             default:
                 handler.on_error(f);
                 return;
@@ -321,8 +315,7 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
         if (!is_type_arithmetic(type)) {
             return Parsing_Error_Code::SPEC_NEEDS_NUMERIC_ARG;
         }
-        if (is_type_integral(type) && type != Format_Type::S32 && type != Format_Type::S64 &&
-            type != Format_Type::CHAR) {
+        if (is_type_integral(type) && type != Format_Type::S32 && type != Format_Type::S64) {
             return Parsing_Error_Code::SPEC_NEEDS_SIGNED_ARG;
         }
     }
@@ -388,12 +381,6 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
         specs.Type = *it++;
     }
 
-    if (type == Format_Type::CHAR) {
-        if (specs.Align == Alignment::NUMERIC || specs.has_flag((Flag) ~0u)) {
-            return Parsing_Error_Code::INVALID_FORMAT_SPEC_CHAR;
-        }
-    }
-
     // Handle dynamic fields
     internal::handle_dynamic_field(f, specs.WidthRef, internal::Dynamic_Width_Handler(specs.Width));
     internal::handle_dynamic_field(f, specs.PrecisionRef, internal::Dynamic_Precision_Handler(specs.Precision));
@@ -425,14 +412,6 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
                 }
             }
         } break;
-        case Format_Type::CHAR:
-            if (typeSpec != 'c') {
-                if (typeSpec != 'd' && typeSpec != 'x' && typeSpec != 'X' && typeSpec != 'b' && typeSpec != 'B' &&
-                    typeSpec != 'o' && typeSpec != 'n') {
-                    return Parsing_Error_Code::INVALID_TYPE_SPEC;
-                }
-            }
-            break;
         case Format_Type::F64:
             if (typeSpec != 'g' && typeSpec != 'G' && typeSpec != 'e' && typeSpec != 'E' && typeSpec != 'f' &&
                 typeSpec != 'F' && typeSpec != 'a' && typeSpec != 'A') {

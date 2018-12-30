@@ -137,8 +137,7 @@ enum class Format_Type {
     S64,
     U64,
     BOOL,
-    CHAR,
-    LAST_INTEGER_TYPE = CHAR,
+    LAST_INTEGER_TYPE = BOOL,
 
     // Floating-point
     F64,
@@ -258,7 +257,7 @@ MAKE_VALUE_SAME_HELPER(Format_Type::S64, s64)
 MAKE_VALUE_SAME_HELPER(Format_Type::U64, u64)
 MAKE_VALUE_HELPER(Format_Type::S32, s8, s32)
 MAKE_VALUE_HELPER(Format_Type::U32, u8, u32)
-MAKE_VALUE_HELPER(Format_Type::CHAR, char32_t, s32)
+MAKE_VALUE_HELPER(Format_Type::U32, char32_t, u32)
 
 MAKE_VALUE_HELPER(Format_Type::F64, f32, f64)
 MAKE_VALUE_SAME_HELPER(Format_Type::F64, f64)

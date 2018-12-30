@@ -322,6 +322,13 @@ class Reader {
         return result;
     }
 
+#undef check_eof
+#define check_eof(x)         \
+    if (x == eof) {          \
+        ReachedEOF = true;   \
+        return {0.0, false}; \
+    }
+
     std::pair<f64, bool> parse_float() {
         if (!test_state_and_skip_ws()) {
             return {0.0, false};
@@ -356,7 +363,7 @@ class Reader {
                 ch = bump_byte();
                 break;
             } else {
-                return {(negative ? -1 : 1) * integerPart, true};
+                return {(negative ? -1 : 1) * integerPart, false};
             }
 
             char byte = peek_byte();

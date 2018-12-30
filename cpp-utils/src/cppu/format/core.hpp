@@ -487,13 +487,6 @@ struct Format_Context {
                     write(arg.Value.S32_Value ? "true" : "false");
                 }
             } break;
-            case Format_Type::CHAR:
-                if (type() && type() != 'c') {
-                    write_int(arg.Value.S32_Value);
-                } else {
-                    format_padded([&](Format_Context &f) { f.Out.write(arg.Value.S32_Value); }, align(), 1);
-                }
-                break;
             case Format_Type::F64:
                 write_float(arg.Value.F64_Value);
                 break;
