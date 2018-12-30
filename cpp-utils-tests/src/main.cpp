@@ -66,12 +66,12 @@ void run_tests() {
 
 int main() {
     while (!io::cin.EOF) {
-        char a;
+        f32 a;
         io::cin.read(a);
         if (io::cin.FailedParse) {
             io::cout.write_fmt("Failed to parse, got: {:c}\n", a);
         } else {
-            io::cout.write_fmt("Read: {:c}\n", a);
+            io::cout.write_fmt("Read: {}\n", a);
         }
     }
 

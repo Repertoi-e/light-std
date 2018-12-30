@@ -1,4 +1,3 @@
-- Parsing more types in Reader
 - Write tests for Reader
 - A way to add custom type parsers to Reader?!?
 

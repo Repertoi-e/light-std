@@ -197,7 +197,23 @@ class Reader {
         return *this;
     }
 
-    Reader &read(f32 &value) {}
+    // Read a float
+    // If the parsing fails the ParseError flag is set to true (gets reset before any parsing operation)
+    Reader &read(f32 &value) {
+        auto [parsed, success] = parse_float();
+        ParseError = !success;
+        value = (f32) parsed;
+        return *this;
+    }
+
+    // Read a float
+    // If the parsing fails the ParseError flag is set to true (gets reset before any parsing operation)
+    Reader &read(f64 &value) {
+        auto [parsed, success] = parse_float();
+        ParseError = !success;
+        value = parsed;
+        return *this;
+    }
 
     // Read a byte
     Reader &read(char &value, bool noSkipWs = false) {
@@ -288,6 +304,110 @@ class Reader {
         } else {
             return {(negative ? -1 : 1) * value, true};
         }
+    }
+
+    f64 pow10(s32 n) {
+        f64 result = 1.0;
+        f64 r = 10.0;
+        if (n < 0) {
+            n = -n;
+            r = 0.1;
+        }
+
+        while (n) {
+            if (n & 1) result *= r;
+            r *= r;
+            n >>= 1;
+        }
+        return result;
+    }
+
+    std::pair<f64, bool> parse_float() {
+        if (!test_state_and_skip_ws()) {
+            return {0.0, false};
+        }
+
+        bool negative = false;
+        char ch = bump_byte();
+        check_eof(ch);
+
+        if (ch == '+') {
+            ch = bump_byte();
+        } else if (ch == '-') {
+            negative = true;
+            ch = bump_byte();
+        }
+        check_eof(ch);
+
+        f64 integerPart = 0.0;
+        f64 fractionPart = 0.0;
+        bool hasFraction = false;
+        bool hasExponent = false;
+
+        while (true) {
+            if (ch >= '0' && ch <= '9') {
+                integerPart = integerPart * 10 + (ch - '0');
+            } else if (ch == '.') {
+                hasFraction = true;
+                ch = bump_byte();
+                break;
+            } else if (ch == 'e') {
+                hasExponent = true;
+                ch = bump_byte();
+                break;
+            } else {
+                return {(negative ? -1 : 1) * integerPart, true};
+            }
+
+            char byte = peek_byte();
+            if (!is_alphanumeric(byte) && byte != '.' && byte != 'e') break;
+            ch = bump_byte();
+        }
+        check_eof(ch);
+
+        if (hasFraction) {
+            f64 fractionExponent = 0.1;
+
+            while (true) {
+                if (ch >= '0' && ch <= '9') {
+                    fractionPart += fractionExponent * (ch - '0');
+                    fractionExponent *= 0.1;
+                } else if (ch == 'e') {
+                    hasExponent = true;
+                    ch = bump_byte();
+                    break;
+                } else {
+                    return {(negative ? -1 : 1) * (integerPart + fractionPart), true};
+                }
+
+                char byte = peek_byte();
+                if (!is_digit(byte) && byte != '.' && byte != 'e') break;
+                ch = bump_byte();
+            }
+        }
+        check_eof(ch);
+
+        f64 exponentPart = 1.0;
+        if (hasExponent) {
+            s32 exponentSign = 1;
+            if (ch == '-') {
+                exponentSign = -1;
+                ch = bump_byte();
+            } else if (ch == '+') {
+                ch = bump_byte();
+            }
+            check_eof(ch);
+
+            s32 e = 0;
+            while (ch >= '0' && ch <= '9') {
+                e = e * 10 + ch - '0';
+                if (!is_digit(peek_byte())) break;
+                ch = bump_byte();
+            }
+            exponentPart = pow10(exponentSign * e);
+        }
+
+        return {(negative ? -1 : 1) * (integerPart + fractionPart) * exponentPart, true};
     }
 
     // Second bool is success
