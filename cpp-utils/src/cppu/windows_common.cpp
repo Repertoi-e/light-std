@@ -87,7 +87,7 @@ char io::Console_Reader::request_byte() {
     assert(Available == 0);  // Sanity
 
     DWORD read;
-    ReadFile((HANDLE) PlatformData, Buffer, (DWORD) 1_KiB, &read, null);
+    ReadFile((HANDLE) PlatformData, (char *) Buffer, (DWORD) 1_KiB, &read, null);
 
     Current = Buffer;
     Available = read;

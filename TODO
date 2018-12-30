@@ -1,4 +1,3 @@
-- Write tests for Reader
 - A way to add custom type parsers to Reader?!?
 
 - Make fmt::Format_Context a Writer for consistency

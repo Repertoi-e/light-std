@@ -209,7 +209,11 @@ struct string {
     // Compares the string to _other_ lexicographically.
     // The result is less than 0 if this string sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
-    s32 compare(const string &other) const { return get_view().compare((string_view) other); }
+    s32 compare(const string &other) const { return get_view().compare(other.get_view()); }
+    s32 compare(const char *other) const { return get_view().compare(other); }
+
+    s32 compare_ignore_case(const string &other) const { return get_view().compare_ignore_case(other.get_view()); }
+    s32 compare_ignore_case(const char *other) const { return get_view().compare_ignore_case(other); }
 
     string_view get_view() const { return string_view(*this); }
 

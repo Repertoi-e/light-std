@@ -65,16 +65,6 @@ void run_tests() {
 #include <iostream>
 
 int main() {
-    while (!io::cin.EOF) {
-        f32 a;
-        io::cin.read(a);
-        if (io::cin.FailedParse) {
-            io::cout.write_fmt("Failed to parse, got: {}\n", a);
-        } else {
-            io::cout.write_fmt("Read: {}\n", a);
-        }
-    }
-
     temporary_storage_init(4_MiB);
 
     auto tempContext = Context;

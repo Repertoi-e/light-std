@@ -19,7 +19,7 @@ constexpr char eof = -1;
 class Reader {
    protected:
     bool ReachedEOF = false, ParseError = false;
-    char *Buffer = null, *Current = null;
+    const char *Buffer = null, *Current = null;
     size_t Available = 0;
 
    public:
@@ -433,17 +433,17 @@ class Reader {
         }
 
         // "true", "false"
-        if (Available >= 4) {
-            if (string_view(Current - 1, 4).compare_ignore_case("true")) {
+        if (Available >= 3) {
+            if (string_view(Current - 1, 4).compare_ignore_case("true") == 0) {
                 For(range(3)) bump_byte();
                 return {true, true};
             }
         }
 
-        if (Available >= 5) {
-            if (string_view(Current - 1, 5).compare_ignore_case("false")) {
+        if (Available >= 4) {
+            if (string_view(Current - 1, 5).compare_ignore_case("false") == 0) {
                 For(range(4)) bump_byte();
-                return {true, true};
+                return {false, true};
             }
         }
 
@@ -490,8 +490,8 @@ class Reader {
         return true;
     }
 
-    char *incr() { return --Available, Current++; }
-    char *pre_incr() { return --Available, ++Current; }
+    const char *incr() { return --Available, Current++; }
+    const char *pre_incr() { return --Available, ++Current; }
 
     char peek_byte() {
         if (Available == 0) {
@@ -524,6 +524,32 @@ class Reader {
     // By default, when reading codepoints, integers, etc. any white space is disregarded.
     // If you don't want that, set this flag to false.
     bool SkipWhitespace = true;
+};
+
+struct String_Reader : Reader {
+    string_view View;
+    bool Exhausted = false;
+
+    String_Reader(const string_view &view) : View(view) {}
+    String_Reader(const String_Reader &other) : View(other.View) {}
+
+    String_Reader &operator=(const String_Reader &other) {
+        View = other.View;
+        Exhausted = other.Exhausted;
+    }
+    String_Reader &operator=(String_Reader &&other) {
+        View = other.View;
+        Exhausted = other.Exhausted;
+    }
+
+    char request_byte() override {
+        if (Exhausted) return eof;
+        Buffer = View.Data;
+        Current = Buffer;
+        Available = View.ByteLength;
+        Exhausted = true;
+        return *Current;
+    }
 };
 
 struct Console_Reader : Reader, NonCopyable, NonMovable {

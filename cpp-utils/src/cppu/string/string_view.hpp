@@ -7,10 +7,10 @@
 struct string;
 
 // This object represents a non-owning pointer to
-// to a utf-8 string and the amount of bytes stored there.
-// This is useful when working with literals or just views
-// into other _string_s in general (e.g. substrings) and
-// avoids having to allocate memory.
+// to a utf-8 string. It also contains the amount of bytes stored there,
+// as well as the amount of codepoints. (utf8 length != byte length)
+// string_view is useful when working with literal strings or when
+// you don't want to allocate memory for a new string (eg. a substring)
 struct string_view {
    private:
     struct Iterator : public std::iterator<std::random_access_iterator_tag, char32_t> {
