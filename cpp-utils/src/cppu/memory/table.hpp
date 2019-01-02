@@ -74,7 +74,7 @@ struct Table {
         s32 index = find_index(key, hash);
         if (index == -1) {
             if (Count >= Reserved) {
-                expand();
+                grow();
             }
             assert(Count <= Reserved);
 
@@ -179,7 +179,7 @@ struct Table {
     }
 
     // Double's the size of the table and copies the elements to their new location.
-    void expand() {
+    void grow() {
         size_t oldReserved = Reserved;
         auto oldOccupancyMask = OccupancyMask;
         auto oldKeys = Keys;
@@ -218,18 +218,18 @@ struct Table {
 
 template <typename Key, typename Value>
 struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tuple<Key &, Value &>> {
-    const Table<Key, Value> &Table;
+    const Table<Key, Value> &ParentTable;
     s64 SlotIndex = -1;
 
-    explicit Table_Iterator(const ::Table<Key, Value> &table, s64 index = -1) : Table(table), SlotIndex(index) {
+    explicit Table_Iterator(const Table<Key, Value> &table, s64 index = -1) : ParentTable(table), SlotIndex(index) {
         // Find the first pair
         ++(*this);
     }
 
     Table_Iterator &operator++() {
-        while (SlotIndex < (s64) Table.Reserved) {
+        while (SlotIndex < (s64) ParentTable.Reserved) {
             SlotIndex++;
-            if (Table.OccupancyMask && Table.OccupancyMask[SlotIndex]) {
+            if (ParentTable.OccupancyMask && ParentTable.OccupancyMask[SlotIndex]) {
                 break;
             }
         }
@@ -246,7 +246,7 @@ struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tup
     bool operator!=(Table_Iterator other) const { return !(*this == other); }
 
     std::tuple<Key &, Value &> operator*() const {
-        return std::forward_as_tuple(Table.Keys[SlotIndex], Table.Values[SlotIndex]);
+        return std::forward_as_tuple(ParentTable.Keys[SlotIndex], ParentTable.Values[SlotIndex]);
     }
 };
 

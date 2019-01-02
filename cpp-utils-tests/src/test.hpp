@@ -7,6 +7,8 @@
 
 #include <cppu/file/file_path.hpp>
 
+using namespace CPPU_NAMESPACE_NAME;
+
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.
 // Otherwise we just take the file name. Possible results are:

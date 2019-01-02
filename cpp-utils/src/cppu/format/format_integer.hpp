@@ -3,6 +3,7 @@
 #include "../common.hpp"
 
 #include "../io/writer.hpp"
+#include "../memory/Memory_Buffer.hpp"
 
 CPPU_BEGIN_NAMESPACE
 
@@ -64,13 +65,13 @@ char *format_uint_to_buffer(char *buffer, UInt value, u32 numDigits, TS thousand
     return end;
 }
 
-template <typename UInt, typename TS = No_Thousands_Separator>
-void format_uint(io::Writer &out, UInt value, u32 numDigits, TS thousandsSep = {}) {
+template <typename UInt, typename TS = No_Thousands_Separator, size_t S>
+void format_uint(Memory_Buffer<S> &out, UInt value, u32 numDigits, TS thousandsSep = {}) {
     // Buffer should be large enough to hold all digits (<= digits10 + 1)
     const size_t maxSize = std::numeric_limits<UInt>::digits10 + 1;
     char buffer[maxSize + maxSize / 3];
     format_uint_to_buffer(buffer, value, numDigits, thousandsSep);
-    out.write(buffer, numDigits);
+    out.append_pointer_and_size((byte *) buffer, numDigits);
 }
 
 // Format with a base different from base 10
@@ -87,12 +88,12 @@ char *format_uint_to_buffer(char *buffer, UInt value, u32 numDigits, bool upper 
 }
 
 // Format with a base different from base 10
-template <unsigned BaseBits, typename UInt>
-void format_uint(io::Writer &out, UInt value, u32 numDigits, bool upper = false) {
+template <unsigned BaseBits, typename UInt, size_t S>
+void format_uint(Memory_Buffer<S> &out, UInt value, u32 numDigits, bool upper = false) {
     // Buffer should be large enough to hold all digits (digits / BASE_BITS + 1) and null.
     char buffer[std::numeric_limits<UInt>::digits / BaseBits + 2];
     format_uint_to_buffer<BaseBits>(buffer, value, numDigits, upper);
-    out.write(buffer, numDigits);
+    out.append_pointer_and_size((byte *) buffer, numDigits);
 }
 }  // namespace fmt::internal
 

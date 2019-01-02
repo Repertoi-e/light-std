@@ -3,6 +3,7 @@
 #include "../context.hpp"
 
 #include "memory.hpp"
+#include "array.hpp"
 
 CPPU_BEGIN_NAMESPACE
 
@@ -208,13 +209,12 @@ struct Dynamic_Array {
         Reserved = reserve;
     }
 
-    void expand(size_t n) { reserve(Reserved + n); }
+    void grow(size_t n) { reserve(Reserved + n); }
 };
 
 //
 //    == and != for static and dynamic arrays
 //
-#include "array.hpp"
 
 template <typename T, typename U, size_t N>
 bool operator==(const Dynamic_Array<T> &left, const Array<U, N> &right) {

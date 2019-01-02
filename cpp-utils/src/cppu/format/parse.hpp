@@ -9,8 +9,7 @@ CPPU_BEGIN_NAMESPACE
 namespace fmt {
 
 template <typename T>
-constexpr std::enable_if_t<std::is_integral_v<T>, std::pair<T, bool>> parse_int(string_view::iterator &it,
-                                                                                u32 base = 0) {
+constexpr std::enable_if_t<std::is_integral_v<T>, std::pair<T, bool>> parse_int(const byte *&it, u32 base = 0) {
     // Skip white space
     while (is_space(*it)) {
         ++it;
@@ -24,7 +23,7 @@ constexpr std::enable_if_t<std::is_integral_v<T>, std::pair<T, bool>> parse_int(
         ++it;
     }
 
-    char32_t ch = *it++;
+    byte ch = *it++;
     if ((base == 0 || base == 16) && ch == '0' && (*it == 'x' || *it == 'X')) {
         ++it;
         ch = *it++;
@@ -83,7 +82,7 @@ enum class Parsing_Error_Code {
     MISSING_PRECISION_SPEC,
     PRECISION_NOT_ALLOWED, /*Precision not allowed for this argument type*/
     INVALID_TYPE_SPEC,
-    INVALID_FILL_CHAR_CURLY   /*Invalid fill character '{' */
+    INVALID_FILL_CHAR_CURLY /*Invalid fill character '{' */
 };
 
 constexpr string_view get_message_from_parsing_error_code(Parsing_Error_Code errorCode) {
@@ -112,7 +111,7 @@ constexpr string_view get_message_from_parsing_error_code(Parsing_Error_Code err
 }
 
 namespace internal {
-constexpr u32 parse_nonnegative_int(string_view::iterator &it) {
+constexpr u32 parse_nonnegative_int(const byte *&it) {
     assert(is_digit(*it));
 
     u32 value = 0;
@@ -135,8 +134,8 @@ constexpr u32 parse_nonnegative_int(string_view::iterator &it) {
 }
 
 template <typename IDHandler>
-constexpr Parsing_Error_Code parse_arg_id(string_view::iterator &it, IDHandler &&handler) {
-    char32_t c = *it;
+constexpr Parsing_Error_Code parse_arg_id(const byte *&it, IDHandler &&handler) {
+    byte c = *it;
     if (c == '}' || c == ':') {
         handler();
         return Parsing_Error_Code::NONE;
@@ -158,7 +157,7 @@ constexpr Parsing_Error_Code parse_arg_id(string_view::iterator &it, IDHandler &
     do {
         c = *++it;
     } while (is_identifier_start(c) || is_digit(c));
-    handler(string_view(start.to_pointer(), (size_t)(it - start)));
+    handler(string_view((const char *)start, (size_t)(it - start)));
     return Parsing_Error_Code::NONE;
 }
 
@@ -212,10 +211,10 @@ struct Dynamic_Width_Handler {
         if (value >= 0) {
             WidthRef = (u32) value;
         } else {
-            f.Out.write("{Unexpected negative integer with dynamic width}");
+            f.Out.append_cstring("{Unexpected negative integer with dynamic width}");
         }
     }
-    void on_error(Format_Context &f) { f.Out.write("{Dynamic width is not an integer}"); }
+    void on_error(Format_Context &f) { f.Out.append_cstring("{Dynamic width is not an integer}"); }
 };
 
 struct Dynamic_Precision_Handler {
@@ -227,10 +226,10 @@ struct Dynamic_Precision_Handler {
         if (value >= 0) {
             PrecisionRef = (s32) value;
         } else {
-            f.Out.write("{Unexpected negative integer with dynamic precision}");
+            f.Out.append_cstring("{Unexpected negative integer with dynamic precision}");
         }
     }
-    void on_error(Format_Context &f) { f.Out.write("{Dynamic precision is not an integer}"); }
+    void on_error(Format_Context &f) { f.Out.append_cstring("{Dynamic precision is not an integer}"); }
 };
 
 template <typename Handler>
@@ -271,7 +270,7 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
     auto &specs = f.ParseContext.Specs;
 
     char32_t c = *it;
-    if (it == f.ParseContext.FormatString.end() || c == '}') {
+    if (it == (byte *) f.ParseContext.FormatString.end().to_pointer() || c == '}') {
         return Parsing_Error_Code::NONE;
     }
 

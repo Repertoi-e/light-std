@@ -4,6 +4,8 @@
 
 #include <iterator>
 
+CPPU_BEGIN_NAMESPACE
+
 // This is a constexpr function for working with cstyle strings at compile time
 // Retrieve the length of a standard cstyle string (==strlen)
 // Doesn't care about encoding.
@@ -271,3 +273,5 @@ constexpr const char *get_pointer_to_code_point_at(const char *str, size_t lengt
     For(range(translate_index(index, length))) str += get_size_of_code_point(str);
     return str;
 }
+
+CPPU_END_NAMESPACE

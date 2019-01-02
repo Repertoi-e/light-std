@@ -310,7 +310,7 @@ TEST(floating_point) {
     assert_eq("392.650000", fmt::sprint("{:f}", 392.65));
     assert_eq("392.650000", fmt::sprint("{:F}", 392.65));
 
-    assert_eq(fmt::sprint(".{:0<1000}", ""), fmt::sprint("{:.1000f}", 0.0));
+    assert_eq(fmt::sprint("0.{:0<1000}", ""), fmt::sprint("{:.1000f}", 0.0));
 
     f64 nan = std::numeric_limits<f64>::quiet_NaN();
     assert_eq("nan", fmt::sprint("{}", nan));

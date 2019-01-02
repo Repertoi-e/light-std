@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../string/string.hpp"
+
 //
 // This header provides a way to hash basic types.
 // If you have a custom type you want to implement a hash for
@@ -84,7 +86,6 @@ struct Hash<f64> {
 };
 
 // Hash for strings
-#include "../string/string.hpp"
 template <>
 struct Hash<string> {
     static uptr_t get(const string& str) {

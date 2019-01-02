@@ -4,6 +4,9 @@
 // A header with common definitions and helper macros and functions
 //
 
+// @Temp
+#define CPPU_NAMESPACE_NAME cppu
+
 // By default everything is outside namespace, but if that's a problem for the
 // user, provide a way to specify a namespace in which everything gets wrapped.
 #if !defined CPPU_NAMESPACE_NAME
@@ -128,10 +131,10 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 
 #undef assert
 
-#ifdef NDEBUG
-#define assert(condition) ((void) 0)
-#else
+#ifdef CPPU_DEBUG
 #define assert(condition) (!!(condition)) ? (void) 0 : Context.AssertFailed(__FILE__, __LINE__, u8## #condition)
+#else
+#define assert(condition) ((void) 0)
 #endif
 
 using std::max;

@@ -2,10 +2,8 @@
 
 #include "value.hpp"
 
-#if !defined CPPU_NO_CRT
-#if !defined CPPU_FMT_THOUSANDS_SEPARATOR
+#if !defined CPPU_NO_CRT && !defined CPPU_FMT_THOUSANDS_SEPARATOR
 #include <locale>
-#endif
 #endif
 
 CPPU_BEGIN_NAMESPACE

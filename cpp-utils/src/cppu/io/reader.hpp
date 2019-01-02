@@ -5,6 +5,8 @@
 #include "../format/parse.hpp"
 #include "../string/string_view.hpp"
 
+#include "../memory/dynamic_array.hpp"
+
 CPPU_BEGIN_NAMESPACE
 
 #undef EOF
@@ -77,7 +79,7 @@ class Reader {
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
     Reader &read(Dynamic_Array<char> &buffer, size_t n) {
-        if (!buffer.has_space_for(n)) buffer.expand(n);
+        if (!buffer.has_space_for(n)) buffer.grow(n);
         return read(buffer.Data, n);
     }
 
@@ -118,7 +120,7 @@ class Reader {
 
             if (!buffer.has_space_for(cpSize)) {
                 uptr_t diff = bufferData - buffer.Data;
-                buffer.expand(cpSize);
+                buffer.grow(cpSize);
                 bufferData = buffer.Data + diff;
             }
             encode_code_point(bufferData, cp);

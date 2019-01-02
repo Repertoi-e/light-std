@@ -1,8 +1,11 @@
 #pragma once
 
 #include "../memory/memory.hpp"
+#include "../memory/memory_view.hpp"
 
 #include "string_utils.hpp"
+
+CPPU_BEGIN_NAMESPACE
 
 struct string;
 
@@ -106,13 +109,15 @@ struct string_view {
         Data = str;
         ByteLength = size;
         if (Data) {
-            const char *end = str + size;
-            while (str < end) {
-                str += get_size_of_code_point(str);
-                Length++;
+            while (size) {
+                do {
+                    --size, ++str;
+                } while ((*str & 0xC0) == 0x80);
+                ++Length;
             }
         }
     }
+    constexpr string_view(const Memory_View &memView) : string_view((char *) memView.Data, memView.ByteLength) {}
 
     constexpr string_view(const string_view &other) = default;
     constexpr string_view(string_view &&other) = default;
@@ -293,7 +298,9 @@ struct string_view {
     // The result is less than 0 if this string_view sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
     constexpr s32 compare(const string_view &other) const {
-        if (Data == other.Data && ByteLength == other.ByteLength && Length == other.Length) return 0;
+        // If the memory and the lengths are the same, the views are equal!
+        if (Data == other.Data && ByteLength == other.ByteLength) return 0;
+
         if (Length == 0 && other.Length == 0) return 0;
         if (Length == 0) return -((s32) other.get(0));
         if (other.Length == 0) return get(0);
@@ -302,11 +309,9 @@ struct string_view {
         while (*s1 == *s2) {
             ++s1, ++s2;
             if (s1 == end() && s2 == other.end()) return 0;
-            if (s1 == end() || s2 == other.end()) break;
+            if (s1 == end()) return -((s32) other.get(0));
+            if (s2 == other.end()) return get(0);
         }
-        if (s1 == end()) return -((s32) other.get(0));
-        if (s2 == other.end()) return get(0);
-
         return ((s32) *s1 - (s32) *s2);
     }
 
@@ -316,7 +321,8 @@ struct string_view {
     // The result is less than 0 if this string_view sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
     constexpr s32 compare_ignore_case(const string_view &other) const {
-        if (Data == other.Data && ByteLength == other.ByteLength && Length == other.Length) return 0;
+        // If the memory and the lengths are the same, the views are equal!
+        if (Data == other.Data && ByteLength == other.ByteLength) return 0;
         if (Length == 0 && other.Length == 0) return 0;
         if (Length == 0) return -((s32) to_lower(other.get(0)));
         if (other.Length == 0) return to_lower(get(0));
@@ -325,11 +331,9 @@ struct string_view {
         while (to_lower(*s1) == to_lower(*s2)) {
             ++s1, ++s2;
             if (s1 == end() && s2 == other.end()) return 0;
-            if (s1 == end() || s2 == other.end()) break;
+            if (s1 == end()) return -((s32) to_lower(other.get(0)));
+            if (s2 == other.end()) return to_lower(get(0));
         }
-        if (s1 == end()) return -((s32) to_lower(other.get(0)));
-        if (s2 == other.end()) return to_lower(get(0));
-
         return ((s32) to_lower(*s1) - (s32) to_lower(*s2));
     }
 
@@ -350,6 +354,7 @@ struct string_view {
     constexpr const char32_t operator[](s64 index) const { return get(index); }
 
     operator bool() const { return Length != 0; }
+    operator Memory_View() const { return Memory_View((const byte *) Data, ByteLength); }
 
     // Substring operator
     constexpr string_view operator()(s64 begin, s64 end) const { return substring(begin, end); }
@@ -361,3 +366,5 @@ constexpr bool operator<(const char *one, const string_view &other) { return oth
 constexpr bool operator>(const char *one, const string_view &other) { return other.compare(one) < 0; }
 constexpr bool operator<=(const char *one, const string_view &other) { return !(one > other); }
 constexpr bool operator>=(const char *one, const string_view &other) { return !(one < other); }
+
+CPPU_END_NAMESPACE

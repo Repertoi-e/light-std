@@ -49,6 +49,8 @@ void os_assert_failed(const char *file, int line, const char *condition) {
 #endif
 }
 
+#define CONSOLE_BUFFER_SIZE 1_KiB
+
 io::Console_Writer::Console_Writer() {
     PlatformData = (size_t) GetStdHandle(STD_OUTPUT_HANDLE);
     if (!SetConsoleOutputCP(CP_UTF8)) {
@@ -63,22 +65,41 @@ io::Console_Writer::Console_Writer() {
     DWORD dw = 0;
     GetConsoleMode((HANDLE) PlatformData, &dw);
     SetConsoleMode((HANDLE) PlatformData, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+    Buffer = New<char>(CONSOLE_BUFFER_SIZE);
+    Current = Buffer;
+    Available = CONSOLE_BUFFER_SIZE;
 }
 
-io::Writer &io::Console_Writer::write(const string_view &str) {
+io::Writer &io::Console_Writer::write(const Memory_View &str) {
+    if (str.ByteLength > Available) {
+        flush();
+    }
+
+    copy_memory(Current, str.Data, str.ByteLength);
+    Current += str.ByteLength;
+    Available -= str.ByteLength;
+
+    if (AlwaysFlush) flush();
+    return *this;
+}
+
+void io::Console_Writer::flush() {
     assert(PlatformData);
 
-    DWORD ignored;
-    WriteFile((HANDLE) PlatformData, str.Data, (DWORD) str.ByteLength, &ignored, null);
+    fwrite(Buffer, 1, CONSOLE_BUFFER_SIZE - Available, stdout);
+    // DWORD ignored;
+    // WriteFile((HANDLE) PlatformData, Buffer, (DWORD)(CONSOLE_BUFFER_SIZE - Available), &ignored, null);
 
-    return *this;
+    Current = Buffer;
+    Available = CONSOLE_BUFFER_SIZE;
 }
 
 io::Console_Reader::Console_Reader() {
     PlatformData = (size_t) GetStdHandle(STD_INPUT_HANDLE);
 
     // Leak, but doesn't matter since the object is global
-    Buffer = New<char>(1_KiB);
+    Buffer = New<char>(CONSOLE_BUFFER_SIZE);
     Current = Buffer;
 }
 
@@ -87,7 +108,7 @@ char io::Console_Reader::request_byte() {
     assert(Available == 0);  // Sanity
 
     DWORD read;
-    ReadFile((HANDLE) PlatformData, (char *) Buffer, (DWORD) 1_KiB, &read, null);
+    ReadFile((HANDLE) PlatformData, (char *) Buffer, (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
 
     Current = Buffer;
     Available = read;

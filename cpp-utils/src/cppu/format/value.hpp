@@ -4,8 +4,6 @@
 
 #include "../string/string.hpp"
 
-CPPU_BEGIN_NAMESPACE
-
 #if COMPILER != MSVC
 #define CLZ(n) __builtin_clz(n)
 #define CLZLL(n) __builtin_clzll(n)
@@ -38,6 +36,8 @@ inline u32 clzll(u64 x) {
 }  // namespace fmt::internal
 CPPU_END_NAMESPACE
 #endif
+
+CPPU_BEGIN_NAMESPACE
 
 namespace fmt {
 

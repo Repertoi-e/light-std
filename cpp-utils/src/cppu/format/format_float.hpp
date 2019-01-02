@@ -2,17 +2,17 @@
 
 #include "../string/string_builder.hpp"
 
-#include "../memory/dynamic_array.hpp"
+#include "../memory/memory_buffer.hpp"
 
 #include "specs.hpp"
+
+#include <stdio.h>
+#include <cstdarg>
 
 CPPU_BEGIN_NAMESPACE
 
 // Note: this won't work if we want CPPU_NO_CRT...
 // Figure out a way to replace these functions
-#include <stdio.h>
-#include <cstdarg>
-
 #if !defined COMPILER_MSVC
 #define CPPU_FMT_SNPRINTF snprintf
 #else
@@ -167,7 +167,7 @@ inline fp get_cached_power(s32 minExponent, s32 &pow10Exp) {
     return fp(POW10_SIGNIFICANDS[index], POW10_EXPONENTS[index]);
 }
 
-inline bool grisu2_round(char *buffer, size_t &size, size_t maxDigits, u64 delta, u64 remainder, u64 exp, u64 diff,
+inline bool grisu2_round(byte *buffer, size_t &size, size_t maxDigits, u64 delta, u64 remainder, u64 exp, u64 diff,
                          s32 &exp10) {
     while (remainder < diff && delta - remainder >= exp &&
            (remainder + exp < diff || diff - remainder > remainder + exp - diff)) {
@@ -183,7 +183,7 @@ inline bool grisu2_round(char *buffer, size_t &size, size_t maxDigits, u64 delta
 }
 
 // Generates output using Grisu2 digit-gen algorithm.
-inline bool grisu2_gen_digits(char *buffer, size_t &size, u32 hi, u64 lo, s32 &exp, u64 delta, const fp &one,
+inline bool grisu2_gen_digits(byte *buffer, size_t &size, u32 hi, u64 lo, s32 &exp, u64 delta, const fp &one,
                               const fp &diff, size_t maxDigits) {
     // Generate digits for the most significant part (hi).
     while (exp > 0) {
@@ -234,7 +234,7 @@ inline bool grisu2_gen_digits(char *buffer, size_t &size, u32 hi, u64 lo, s32 &e
             default:
                 assert(false && "Invalid number of digits");
         }
-        if (digit != 0 || size != 0) buffer[size++] = (char) ('0' + digit);
+        if (digit != 0 || size != 0) buffer[size++] = (byte) ('0' + digit);
         --exp;
         u64 remainder = ((u64) hi << -one.e) + lo;
         if (remainder <= delta || size > maxDigits) {
@@ -247,8 +247,8 @@ inline bool grisu2_gen_digits(char *buffer, size_t &size, u32 hi, u64 lo, s32 &e
     while (true) {
         lo *= 10;
         delta *= 10;
-        char digit = (char) (lo >> -one.e);
-        if (digit != 0 || size != 0) buffer[size++] = (char) ('0' + digit);
+        byte digit = (byte)(lo >> -one.e);
+        if (digit != 0 || size != 0) buffer[size++] = (byte)('0' + digit);
         lo &= one.f - 1;
         --exp;
         if (lo < delta || size > maxDigits) {
@@ -265,10 +265,10 @@ struct Gen_Digits_Params {
 };
 
 struct Prettify_Handler {
-    char *Data;
+    byte *Data;
     size_t &Size;
 
-    Prettify_Handler(char *data, size_t &size) : Data(data), Size(size) {}
+    Prettify_Handler(byte *data, size_t &size) : Data(data), Size(size) {}
 
     template <typename F>
     void insert(size_t pos, size_t n, F f) {
@@ -277,21 +277,21 @@ struct Prettify_Handler {
         Size += n;
     }
 
-    void insert(size_t pos, char c) {
+    void insert(size_t pos, byte c) {
         move_memory(Data + pos + 1, Data + pos, Size - pos);
         Data[pos] = c;
         ++Size;
     }
 
-    void append(size_t n, char c) {
-        char *p = Data + Size;
+    void append(size_t n, byte c) {
+        byte *p = Data + Size;
         For(range(n)) { *p++ = c; }
         Size += n;
     }
 
-    void append(char c) { Data[Size++] = c; }
+    void append(byte c) { Data[Size++] = c; }
 
-    void remove_trailing(char c) {
+    void remove_trailing(byte c) {
         while (Data[Size - 1] == c) --Size;
     }
 };
@@ -307,27 +307,27 @@ void write_exponent(s32 exp, Handler &&h) {
         h.append('+');
     }
     if (exp >= 100) {
-        h.append((char) ('0' + exp / 100));
+        h.append((byte)('0' + exp / 100));
         exp %= 100;
 
         const char *d = DIGITS + exp * 2;
-        h.append(d[0]);
-        h.append(d[1]);
+        h.append((byte) d[0]);
+        h.append((byte) d[1]);
     } else {
         const char *d = DIGITS + exp * 2;
-        h.append(d[0]);
-        h.append(d[1]);
+        h.append((byte) d[0]);
+        h.append((byte) d[1]);
     }
 }
 
 struct Fill {
     size_t n;
 
-    void operator()(char *buffer) const {
+    void operator()(byte *buffer) const {
         buffer[0] = '0';
         buffer[1] = '.';
 
-        char *p = buffer + 2;
+        byte *p = buffer + 2;
         For(range(n)) { *p++ = '0'; }
     }
 };
@@ -380,16 +380,17 @@ struct Char_Counter {
     void insert(size_t, size_t n, F) {
         Size += n;
     }
-    void insert(size_t, char) { ++Size; }
-    void append(size_t n, char) { Size += n; }
-    void append(char) { ++Size; }
-    void remove_trailing(char) {}
+    void insert(size_t, byte) { ++Size; }
+    void append(size_t n, byte) { Size += n; }
+    void append(byte) { ++Size; }
+    void remove_trailing(byte) {}
 };
 
 // Converts format specifiers into parameters for digit generation and computes
 // output buffer size for a number in the range [pow(10, exp - 1), pow(10, exp)
 // or 0 if exp == 1.
-inline Gen_Digits_Params process_specs(const Format_Specs &specs, s32 exp, Dynamic_Array<char> &buffer) {
+template <size_t S>
+inline Gen_Digits_Params process_specs(const Format_Specs &specs, s32 exp, Memory_Buffer<S> &buffer) {
     Gen_Digits_Params params;
     s32 numDigits = specs.Precision >= 0 ? specs.Precision : 6;
     switch (specs.Type) {
@@ -424,19 +425,20 @@ inline Gen_Digits_Params process_specs(const Format_Specs &specs, s32 exp, Dynam
     params.NumDigits = to_unsigned(numDigits);
     Char_Counter counter{params.NumDigits};
     grisu2_prettify(params, params.NumDigits, exp - numDigits, counter);
-    buffer.reserve(counter.Size);
+    buffer.grow(counter.Size);
     return params;
 }
 
-template <typename Double>
-typename std::enable_if_t<sizeof(Double) == sizeof(u64), bool> grisu2_format(Double value, Dynamic_Array<char> &buffer,
+template <typename Double, size_t S>
+typename std::enable_if_t<sizeof(Double) == sizeof(u64), bool> grisu2_format(Double value, Memory_Buffer<S> &buffer,
                                                                              const Format_Specs &specs) {
     assert(value >= 0 && "Value is negative");
     if (value == 0) {
         Gen_Digits_Params params = process_specs(specs, 1, buffer);
         size_t size = 1;
+        buffer.ByteLength = 1;
         buffer[0] = '0';
-        grisu2_prettify(params, size, 0, Prettify_Handler(buffer.Data, buffer.Count));
+        grisu2_prettify(params, size, 0, Prettify_Handler(buffer.Data, buffer.ByteLength));
         return true;
     }
 
@@ -470,21 +472,23 @@ typename std::enable_if_t<sizeof(Double) == sizeof(u64), bool> grisu2_format(Dou
     // lo (p2 in Grisu) contains the least significants digits of scaled_upper.
     // lo = supper % one.
     u64 lo = upper.f & (one.f - 1);
-    size_t &size = buffer.Count;
+    size_t &size = buffer.ByteLength;
+    size_t oldSize = buffer.ByteLength;
     if (!grisu2_gen_digits(buffer.Data, size, hi, lo, exp, delta, one, diff, params.NumDigits)) {
-        buffer.release();
+        // Restore buffer to original state
+        size = oldSize;
         return false;
     }
-    grisu2_prettify(params, size, cachedExp + exp, Prettify_Handler(buffer.Data, buffer.Count));
+    grisu2_prettify(params, size, cachedExp + exp, Prettify_Handler(buffer.Data, buffer.ByteLength));
     return true;
 }
 
-template <typename Double>
-void sprintf_format(Double value, Dynamic_Array<char> &buffer, const Format_Specs &specs) {
+template <typename Double, size_t S>
+void sprintf_format(Double value, Memory_Buffer<S> &buffer, const Format_Specs &specs) {
     process_specs(specs, 1, buffer);
 
     // Buffer capacity must be non-zero, otherwise MSVC's vsnprintf_s will fail.
-    assert(buffer.Reserved != 0);
+    assert(buffer.get_capacity() != 0);
 
     // Build format string.
     char format[10];  // longest format: %#-*.*Lg
@@ -499,23 +503,23 @@ void sprintf_format(Double value, Dynamic_Array<char> &buffer, const Format_Spec
     *formatPtr = '\0';
 
     // Format using snprintf.
-    char *start = null;
+    byte *start = null;
     while (true) {
-        size_t bufferSize = buffer.Reserved;
-        start = &buffer[0];
+        size_t bufferSize = buffer.get_capacity();
+        start = buffer.Data;
 
-        s32 result = specs.Precision < 0 ? CPPU_FMT_SNPRINTF(start, bufferSize, format, value)
-                                         : CPPU_FMT_SNPRINTF(start, bufferSize, format, specs.Precision, value);
+        s32 result = specs.Precision < 0 ? CPPU_FMT_SNPRINTF((char *) start, bufferSize, format, value)
+                                         : CPPU_FMT_SNPRINTF((char *) start, bufferSize, format, specs.Precision, value);
         if (result >= 0) {
             u32 n = to_unsigned(result);
-            if (n < buffer.Reserved) {
+            if (n < buffer.get_capacity()) {
                 // The buffer was large enough
-                buffer.Count = n;
+                buffer.ByteLength = n;
                 break;
             }
             buffer.reserve(n + 1);
         } else {
-            buffer.expand(1);
+            buffer.grow(1);
         }
     }
 }

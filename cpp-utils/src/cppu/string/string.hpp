@@ -161,8 +161,8 @@ struct string {
     // Allows negative reversed indexing which begins at
     // the end of the string, so -1 is the last character
     // -2 the one before that, etc. (Python-style)
-    char32_t get(s64 index) const { return get_view().get(index); }
     code_point get(s64 index) { return code_point(*this, translate_index(index, Length)); }
+    char32_t get(s64 index) const { return get_view().get(index); }
 
     // Sets the _index_'th code point in the string
     // Allows negative reversed indexing which begins at
@@ -320,6 +320,8 @@ struct string {
     // Substring operator
     string_view operator()(s64 begin, s64 end) const;
 };
+
+constexpr size_t a = sizeof(string);
 
 inline string operator+(const char *one, const string &other) { return string(one) + other; }
 

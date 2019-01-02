@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../memory/temporary_allocator.hpp"
 #include "console_colors.hpp"
 #include "core.hpp"
 #include "parse.hpp"
@@ -16,7 +17,9 @@ struct Formatter<T, typename std::enable_if_t<Get_Type<T>::Value != Format_Type:
 
 template <>
 struct Formatter<String_Builder> {
-    void format(const String_Builder &value, Format_Context &f) { f.write(value.combine().get_view()); }
+    void format(const String_Builder &value, Format_Context &f) {
+        value.traverse([&](const string_view &view) { f.write(view); });
+    }
 };
 
 template <typename T, size_t Size>
@@ -26,7 +29,8 @@ struct Formatter<Array<T, Size>> {
         if (value.Count > 0) {
             f.write_argument(make_argument(value[0]));
             For(range(1, value.Count)) {
-                f.write(", ").write_argument(make_argument(value[it]));
+                f.write(", ");
+                f.write_argument(make_argument(value[it]));
             }
         }
         f.write_fmt("], Count: {} ", value.Count).write("}");
@@ -40,7 +44,8 @@ struct Formatter<Dynamic_Array<T>> {
         if (value.Count > 0) {
             f.write_argument(fmt::make_argument(value[0]));
             For(range(1, value.Count)) {
-                f.write(", ").write_argument(fmt::make_argument(value[it]));
+                f.write(", ");
+                f.write_argument(make_argument(value[it]));
             }
         }
         f.write_fmt("], Count: {} ", value.Count).write("}");
@@ -48,12 +53,14 @@ struct Formatter<Dynamic_Array<T>> {
 };
 
 namespace internal {
-inline void helper_write(io::Writer &out, string_view::iterator begin, const string_view::iterator &end) {
+template <size_t S>
+inline void helper_write(Memory_Buffer<S> &out, const byte *begin, const byte *end) {
     if (begin == end) return;
     while (true) {
-        size_t curly = string_view(begin.to_pointer(), end - begin).find('}');
+        auto view = Memory_View(begin, end - begin);
+        size_t curly = view.find('}');
         if (curly == npos) {
-            out.write(begin.to_pointer(), end - begin);
+            out.append(view);
             return;
         }
         auto p = begin + curly;
@@ -61,20 +68,22 @@ inline void helper_write(io::Writer &out, string_view::iterator begin, const str
             assert(false && "unmatched } in format string");
             return;
         }
-        out.write(begin.to_pointer(), p - begin);
+        out.append(view);
         begin = p + 1;
     }
 }
 
 inline void do_formatting(Format_Context &context) {
+    defer { context.flush(); };
+
     Argument arg;
 
     auto &specs = context.ParseContext.Specs;
 
-    auto &it = context.ParseContext.It;
-    auto end = context.ParseContext.FormatString.end();
+    const byte *&it = context.ParseContext.It;
+    const byte *end = (const byte *) context.ParseContext.FormatString.end().to_pointer();
     while (it != end) {
-        size_t curly = string_view(it.to_pointer(), end - it).find('{');
+        size_t curly = Memory_View(it, end - it).find('{');
         if (*it != '{' && curly == npos) {
             internal::helper_write(context.Out, it, end);
             return;
@@ -100,7 +109,7 @@ inline void do_formatting(Format_Context &context) {
 
             auto error = internal::parse_arg_id(p, internal::ID_Adapter(context, arg));
             if (error != Parsing_Error_Code::NONE) {
-                context.Out.write("{Invalid format string}");
+                context.Out.append_cstring("{Invalid format string}");
                 return;
             }
             it = p;
@@ -111,18 +120,20 @@ inline void do_formatting(Format_Context &context) {
                 it = ++p;
                 auto error = parse_and_validate_specs(arg.Type, context);
                 if (error != Parsing_Error_Code::NONE) {
-                    context.Out.write_fmt("{{{}}}", get_message_from_parsing_error_code(error));
+                    context.Out.append_cstring("{");
+                    context.Out.append(get_message_from_parsing_error_code(error));
+                    context.Out.append_cstring("}");
                     return;
                 }
                 p = it;
                 if (*it == '}') {
                     context.write_argument(arg);
                 } else {
-                    context.Out.write("{Unknown format specifier}");
+                    context.Out.append_cstring("{Unknown format specifier}");
                     return;
                 }
             } else {
-                context.Out.write("{Missing \"}\" in format string}");
+                context.Out.append_cstring("{Missing \"}\" in format string}");
                 return;
             }
         }
@@ -159,7 +170,7 @@ void tprint(const string_view &formatString, Args &&... args) {
 
 template <typename... Args>
 void print(const string_view &formatString, Args &&... args) {
-    Context.Log->write_fmt(formatString, std::forward<Args>(args)...);
+    internal::to_writer(*Context.Log, formatString, std::forward<Args>(args)...);
 }
 
 template <typename T>
@@ -168,8 +179,6 @@ inline string to_string(const T &value) {
 }
 
 }  // namespace fmt
-
-#include "../memory/temporary_allocator.hpp"
 
 namespace fmt {
 

@@ -3,6 +3,10 @@
 #include "../common.hpp"
 #include "../context.hpp"
 
+#if !defined CPPU_NO_CRT
+#include <cstring>
+#endif
+
 #include <new>
 
 CPPU_BEGIN_NAMESPACE
@@ -22,7 +26,6 @@ CPPU_BEGIN_NAMESPACE
 #endif
 
 #if !defined CPPU_NO_CRT
-#include <cstring>
 
 inline void *copy_memory(void *dest, void const *src, size_t num) { return memcpy(dest, src, num); }
 inline void *move_memory(void *dest, void const *src, size_t num) { return memmove(dest, src, num); }

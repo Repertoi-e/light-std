@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../common.hpp"
+
 CPPU_BEGIN_NAMESPACE
 
 struct Range {

@@ -7,7 +7,7 @@
 CPPU_BEGIN_NAMESPACE
 
 struct String_Builder {
-    static constexpr size_t BUFFER_SIZE = 4_KiB;
+    static constexpr size_t BUFFER_SIZE = 1_KiB;
 
     struct Buffer {
         char Data[BUFFER_SIZE];
@@ -38,6 +38,16 @@ struct String_Builder {
 
     // Append _size_ bytes of string contained in _data_
     void append_pointer_and_size(const char *data, size_t size);
+
+    // Execute void f(string_view) on every buffer
+    template <typename Lambda>
+    inline void traverse(Lambda f) const {
+        const String_Builder::Buffer *buffer = &_BaseBuffer;
+        while (buffer) {
+            f(string_view(buffer->Data, buffer->Occupied));
+            buffer = buffer->Next;
+        }
+    }
 
     // Merges all buffers and returns a single string.
     inline string combine() const {

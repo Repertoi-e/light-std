@@ -7,6 +7,7 @@
 #include "format_integer.hpp"
 
 #include "../io/writer.hpp"
+#include "../memory/memory_buffer.hpp"
 
 #include "specs.hpp"
 #include "value.hpp"
@@ -238,11 +239,12 @@ struct Parse_Context {
 
    public:
     string_view FormatString;
-    string_view::iterator It;
+    const byte *It;
     Dynamic_Format_Specs Specs;
 
-    explicit constexpr Parse_Context(const string_view &formatString)
-        : FormatString(formatString), It(FormatString.begin()) {}
+    explicit Parse_Context(const string_view &formatString) : FormatString(formatString) {
+        It = (const byte *) FormatString.begin().to_pointer();
+    }
 
     constexpr u32 next_arg_id() {
         if (NextArgId >= 0) return (u32) NextArgId++;
@@ -269,14 +271,15 @@ struct Format_Context : io::Writer {
 
    public:
     Parse_Context ParseContext;
-    io::Writer &Out;
+    Memory_Buffer<500> Out;
+    io::Writer &FlushOutput;
 
-    // If you want to use this Writer to just output formatted types (without a format string, etc.) you can use this constructor. 
-    // If you want to control the format specifiers, modify ParseContext.Specs
-    Format_Context(io::Writer &out) : Out(out), Args(null, 0), ParseContext("") {}
+    // If you want to use this Writer to just output formatted types (without a format string, etc.) you can use this
+    // constructor. If you want to control the format specifiers, modify ParseContext.Specs
+    Format_Context(io::Writer &flushOutput) : FlushOutput(flushOutput), Args(null, 0), ParseContext("") {}
 
-    Format_Context(io::Writer &out, const string_view &formatString, Arguments args)
-        : Out(out), ParseContext(formatString), Args(args) {}
+    Format_Context(io::Writer &flushOutput, const string_view &formatString, Arguments args)
+        : FlushOutput(flushOutput), ParseContext(formatString), Args(args) {}
 
     // Returns the argument with specified index.
     Argument do_get_arg(u32 argId) {
@@ -303,22 +306,26 @@ struct Format_Context : io::Writer {
 
     Argument next_arg() { return do_get_arg(ParseContext.next_arg_id()); }
 
+    void flush() override { FlushOutput.write(Out.Data, Out.ByteLength); }
+
+    using io::Writer::write;
+
     // Write a string and pad it according to the current argument's format specs.
-    Format_Context &write(const string_view &view) override {
+    Format_Context &write(const Memory_View &view) override {
         string_view toWrite = view;
 
         size_t prec = (size_t) precision();
         if (precision() >= 0 && prec < toWrite.Length) {
             toWrite.remove_suffix(toWrite.Length - prec);
         }
-        format_padded([&](Format_Context &f) { f.Out.write(toWrite); }, align(), toWrite.Length);
+        format_padded([&](Format_Context &f) { f.Out.append(toWrite); }, align(), toWrite.Length);
         return *this;
     }
 
     // Format an integer according to the current argument's format specs.
     template <typename T>
     std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, Format_Context &> write_int(T value) {
-        char prefix[4] = {0};
+        byte prefix[4] = {0};
         size_t prefixSize = 0;
 
         using unsigned_type = typename std::make_unsigned_t<T>;
@@ -336,17 +343,17 @@ struct Format_Context : io::Writer {
             case 0:
             case 'd': {
                 u32 numDigits = internal::count_digits(absValue);
-                format_int(numDigits, string_view(prefix, prefixSize),
+                format_int(numDigits, Memory_View(prefix, prefixSize),
                            [&](Format_Context &f) { internal::format_uint(f.Out, absValue, numDigits); });
             } break;
             case 'x':
             case 'X': {
                 if (alternate()) {
                     prefix[prefixSize++] = '0';
-                    prefix[prefixSize++] = (char) type();
+                    prefix[prefixSize++] = (byte) type();
                 }
                 u32 numDigits = internal::count_digits<4>(absValue);
-                format_int(numDigits, string_view(prefix, prefixSize), [&](Format_Context &f) {
+                format_int(numDigits, Memory_View(prefix, prefixSize), [&](Format_Context &f) {
                     internal::format_uint<4>(f.Out, absValue, numDigits, type() != 'x');
                 });
             } break;
@@ -354,10 +361,10 @@ struct Format_Context : io::Writer {
             case 'B': {
                 if (alternate()) {
                     prefix[prefixSize++] = '0';
-                    prefix[prefixSize++] = (char) type();
+                    prefix[prefixSize++] = (byte) type();
                 }
                 u32 numDigits = internal::count_digits<1>(absValue);
-                format_int(numDigits, string_view(prefix, prefixSize),
+                format_int(numDigits, Memory_View(prefix, prefixSize),
                            [&](Format_Context &f) { internal::format_uint<1>(f.Out, absValue, numDigits); });
             } break;
             case 'o': {
@@ -367,7 +374,7 @@ struct Format_Context : io::Writer {
                     // is not greater than the number of digits.
                     prefix[prefixSize++] = '0';
                 }
-                format_int(numDigits, string_view(prefix, prefixSize),
+                format_int(numDigits, Memory_View(prefix, prefixSize),
                            [&](Format_Context &f) { internal::format_uint<3>(f.Out, absValue, numDigits); });
             } break;
             case 'n': {
@@ -378,7 +385,7 @@ struct Format_Context : io::Writer {
                 string_view sepView(sepEncoded, get_size_of_code_point(sep));
 
                 u32 size = numDigits + 1 * ((numDigits - 1) / 3);
-                format_int(size, string_view(prefix, prefixSize), [&](Format_Context &f) {
+                format_int(size, Memory_View(prefix, prefixSize), [&](Format_Context &f) {
                     internal::format_uint(f.Out, absValue, size, internal::Add_Thousands_Separator{sepView});
                 });
             } break;
@@ -400,7 +407,7 @@ struct Format_Context : io::Writer {
         if (t == 'F') t = 'f';
 #endif
 
-        char32_t sign = 0;
+        byte sign = 0;
         // Use signbit instead of value < 0 because the latter is always false for NaN.
         if (std::signbit(value)) {
             sign = '-';
@@ -413,8 +420,8 @@ struct Format_Context : io::Writer {
         if (is_nan((f64) value)) {
             format_padded(
                 [&](Format_Context &f) {
-                    if (sign) f.Out.write_char(sign);
-                    f.Out.write(upper ? "NAN" : "nan");
+                    if (sign) f.Out.append(sign);
+                    f.Out.append_cstring(upper ? "NAN" : "nan");
                 },
                 align(), 3 + (sign ? 1 : 0));
             return *this;
@@ -422,14 +429,14 @@ struct Format_Context : io::Writer {
         if (is_infinity((f64) value)) {
             format_padded(
                 [&](Format_Context &f) {
-                    if (sign) f.Out.write_char(sign);
-                    f.Out.write(upper ? "INF" : "inf");
+                    if (sign) f.Out.append(sign);
+                    f.Out.append_cstring(upper ? "INF" : "inf");
                 },
                 align(), 3 + (sign ? 1 : 0));
             return *this;
         }
 
-        Dynamic_Array<char> buffer;
+        Memory_Buffer<30> buffer;
         if (!(sizeof(T) <= sizeof(f64) && t != 'a' && t != 'A' &&
               internal::grisu2_format((f64) value, buffer, ParseContext.Specs))) {
             Format_Specs normalizedSpecs = ParseContext.Specs;
@@ -437,7 +444,7 @@ struct Format_Context : io::Writer {
             internal::sprintf_format(value, buffer, normalizedSpecs);
         }
 
-        size_t n = buffer.Count;
+        size_t n = buffer.ByteLength;
         Alignment alignSpec = align();
         if (alignSpec == Alignment::NUMERIC) {
             if (sign) {
@@ -453,18 +460,18 @@ struct Format_Context : io::Writer {
 
         format_padded(
             [&](Format_Context &f) {
-                if (sign) f.Out.write_char(sign);
-                f.Out.write(string_view(buffer.Data, buffer.Count));
+                if (sign) f.Out.append(sign);
+                f.Out.append(buffer);
             },
             alignSpec, n);
         return *this;
     }
 
-#define int_helper(x)                                                               \
-    if (type() != 'c') {                                                            \
-        write_int(x);                                                               \
-    } else {                                                                        \
-        format_padded([&](Format_Context &f) { f.Out.write_char(x); }, align(), 1); \
+#define int_helper(x)                                                           \
+    if (type() != 'c') {                                                        \
+        write_int(x);                                                           \
+    } else {                                                                    \
+        format_padded([&](Format_Context &f) { f.Out.append(x); }, align(), 1); \
     }
 
     Format_Context &write_argument(const Argument &arg) {
@@ -495,7 +502,7 @@ struct Format_Context : io::Writer {
                 if (!type() || type() == 's') {
                     auto strValue = arg.Value.String_Value;
                     if (!strValue.Data) {
-                        Out.write("{String pointer is null}");
+                        Out.append_cstring("{String pointer is null}");
                         return *this;
                     }
 
@@ -515,7 +522,7 @@ struct Format_Context : io::Writer {
             case Format_Type::STRING: {
                 auto strValue = arg.Value.String_Value;
                 if (!strValue.Data) {
-                    Out.write("{String pointer is null}");
+                    Out.append_cstring("{String pointer is null}");
                     return *this;
                 }
 
@@ -561,7 +568,7 @@ struct Format_Context : io::Writer {
     // This calls _func_ when it is time to print the padded content.
     // _length_ should be the expected length of the output from calling _func_
     template <typename F>
-    void format_padded(F &&func, Alignment align, size_t length) {
+    void format_padded(F func, Alignment align, size_t length) {
         if (width() <= length) {
             func(*this);
             return;
@@ -569,16 +576,16 @@ struct Format_Context : io::Writer {
 
         size_t padding = width() - length;
         if (align == Alignment::RIGHT) {
-            For(range(padding)) Out.write_char(fill());
+            For(range(padding)) Out.append_codepoint(fill());
             func(*this);
         } else if (align == Alignment::CENTER) {
             size_t leftPadding = padding / 2;
-            For(range(leftPadding)) Out.write_char(fill());
+            For(range(leftPadding)) Out.append_codepoint(fill());
             func(*this);
-            For(range(padding - leftPadding)) Out.write_char(fill());
+            For(range(padding - leftPadding)) Out.append_codepoint(fill());
         } else {
             func(*this);
-            For(range(padding)) Out.write_char(fill());
+            For(range(padding)) Out.append_codepoint(fill());
         }
     }
 
@@ -586,8 +593,8 @@ struct Format_Context : io::Writer {
     //   <left-padding><prefix><numeric-padding><digits><right-padding>
     // where <digits> are written by func((Format_Context &) *this).
     template <typename F>
-    void format_int(u32 numDigits, const string_view &prefix, F &&func) {
-        size_t size = prefix.Length + numDigits;
+    void format_int(u32 numDigits, const Memory_View &prefix, F func) {
+        size_t size = prefix.ByteLength + numDigits;
         char32_t fillChar = fill();
         size_t padding = 0;
         if (align() == Alignment::NUMERIC) {
@@ -596,7 +603,7 @@ struct Format_Context : io::Writer {
                 size = width();
             }
         } else if (precision() > (s32) numDigits) {
-            size = prefix.Length + (size_t) precision();
+            size = prefix.ByteLength + (size_t) precision();
             padding = (size_t) precision() - numDigits;
             fillChar = '0';
         }
@@ -605,9 +612,9 @@ struct Format_Context : io::Writer {
         format_padded(
             [&](Format_Context &f) {
                 if (prefix) {
-                    f.Out.write(prefix);
+                    f.Out.append(prefix);
                 }
-                For(range(padding)) f.Out.write_char(fillChar);
+                For(range(padding)) f.Out.append_codepoint(fillChar);
                 func(f);
             },
             align() == Alignment::DEFAULT ? Alignment::RIGHT : align(), size);
