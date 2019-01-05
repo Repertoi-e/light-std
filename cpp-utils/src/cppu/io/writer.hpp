@@ -20,7 +20,7 @@ void to_writer(io::Writer &writer, const string_view &formatString, Args &&... a
 namespace io {
 
 // Provides a simple API to write stuff.
-// Any subclass needs to implement just write(string_view) and flush()
+// Any subclass needs to implement just write(Memory_View) and flush()
 // All other overloads are implemented around those functions.
 class Writer {
    protected:
@@ -32,26 +32,24 @@ class Writer {
 
     virtual ~Writer() {}
 
-    virtual Writer &write(const Memory_View &str) = 0;
+    virtual void write(const Memory_View &str) = 0;
     virtual void flush() = 0;
 
-    Writer &write(const string_view &str) { return write(Memory_View((const byte *) str.Data, str.ByteLength)); }
+    void write(const string_view &str) { write(Memory_View((const byte *) str.Data, str.ByteLength)); }
+    void write(const string &str) { write(str.get_view()); }
+    void write(const byte *data, size_t size) { write(Memory_View(data, size)); }
+    void write(const char *data, size_t size) { write((const byte *) data, size); }
+    void write(const char *data) { write(string_view(data)); }
 
-    Writer &write(const string &str) { return write(str.get_view()); }
-    Writer &write(const byte *data, size_t size) { return write(Memory_View(data, size)); }
-    Writer &write(const char *data, size_t size) { return write((const byte *) data, size); }
-    Writer &write(const char *data) { return write(string_view(data)); }
-
-    Writer &write_char(char32_t ch) {
+    void write_codepoint(char32_t ch) {
         char data[4];
         encode_code_point(data, ch);
-        return write(string_view(data, get_size_of_code_point(data)));
+        write(string_view(data, get_size_of_code_point(data)));
     }
 
     template <typename... Args>
-    Writer &write_fmt(const string_view &formatString, Args &&... args) {
+    void write_fmt(const string_view &formatString, Args &&... args) {
         fmt::internal::to_writer(*this, formatString, std::forward<Args>(args)...);
-        return *this;
     }
 };
 
@@ -59,9 +57,8 @@ class Writer {
 struct String_Writer : Writer {
     String_Builder Builder;
 
-    Writer &write(const Memory_View &str) override {
+    void write(const Memory_View &str) override {
         Builder.append_pointer_and_size((const char *) str.Data, str.ByteLength);
-        return *this;
     }
 
     void flush() override {}
@@ -69,7 +66,7 @@ struct String_Writer : Writer {
 
 struct Console_Writer : Writer, NonCopyable, NonMovable {
     Console_Writer();
-    Writer &write(const Memory_View &str) override;
+    void write(const Memory_View &str) override;
     void flush() override;
 
    private:

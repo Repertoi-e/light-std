@@ -33,7 +33,8 @@ struct Formatter<Array<T, Size>> {
                 f.write_argument(make_argument(value[it]));
             }
         }
-        f.write_fmt("], Count: {} ", value.Count).write("}");
+        f.write_fmt("], Count: {} ", value.Count);
+        f.write("}");
     }
 };
 
@@ -48,7 +49,8 @@ struct Formatter<Dynamic_Array<T>> {
                 f.write_argument(make_argument(value[it]));
             }
         }
-        f.write_fmt("], Count: {} ", value.Count).write("}");
+        f.write_fmt("], Count: {} ", value.Count);
+        f.write("}");
     }
 };
 

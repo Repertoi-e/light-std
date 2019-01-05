@@ -311,7 +311,7 @@ struct Format_Context : io::Writer {
     using io::Writer::write;
 
     // Write a string and pad it according to the current argument's format specs.
-    Format_Context &write(const Memory_View &view) override {
+    void write(const Memory_View &view) override {
         string_view toWrite = view;
 
         size_t prec = (size_t) precision();
@@ -319,12 +319,11 @@ struct Format_Context : io::Writer {
             toWrite.remove_suffix(toWrite.Length - prec);
         }
         format_padded([&](Format_Context &f) { f.Out.append(toWrite); }, align(), toWrite.Length);
-        return *this;
     }
 
     // Format an integer according to the current argument's format specs.
     template <typename T>
-    std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, Format_Context &> write_int(T value) {
+    std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>> write_int(T value) {
         byte prefix[4] = {0};
         size_t prefixSize = 0;
 
@@ -393,12 +392,11 @@ struct Format_Context : io::Writer {
                 // Shouldn't ever get here, since the specs have been checked in the parse stage.
                 assert(false);
         }
-        return *this;
     }
 
     // Format an float according to the current argument's format specs.
     template <typename T>
-    std::enable_if_t<std::is_floating_point_v<T>, Format_Context &> write_float(T value) {
+    std::enable_if_t<std::is_floating_point_v<T>> write_float(T value) {
         char t = (char) type();
         bool upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
         if (t == 0 || t == 'G') t = 'f';
@@ -424,7 +422,7 @@ struct Format_Context : io::Writer {
                     f.Out.append_cstring(upper ? "NAN" : "nan");
                 },
                 align(), 3 + (sign ? 1 : 0));
-            return *this;
+            return;
         }
         if (is_infinity((f64) value)) {
             format_padded(
@@ -433,7 +431,7 @@ struct Format_Context : io::Writer {
                     f.Out.append_cstring(upper ? "INF" : "inf");
                 },
                 align(), 3 + (sign ? 1 : 0));
-            return *this;
+            return;
         }
 
         Memory_Buffer<30> buffer;
@@ -448,7 +446,7 @@ struct Format_Context : io::Writer {
         Alignment alignSpec = align();
         if (alignSpec == Alignment::NUMERIC) {
             if (sign) {
-                write_char(sign);
+                write_codepoint(sign);
                 sign = 0;
                 if (width()) --ParseContext.Specs.Width;
             }
@@ -464,7 +462,6 @@ struct Format_Context : io::Writer {
                 f.Out.append(buffer);
             },
             alignSpec, n);
-        return *this;
     }
 
 #define int_helper(x)                                                           \
@@ -474,7 +471,7 @@ struct Format_Context : io::Writer {
         format_padded([&](Format_Context &f) { f.Out.append(x); }, align(), 1); \
     }
 
-    Format_Context &write_argument(const Argument &arg) {
+    void write_argument(const Argument &arg) {
         switch (arg.Type) {
             case Format_Type::S32:
                 int_helper(arg.Value.S32_Value);
@@ -503,7 +500,7 @@ struct Format_Context : io::Writer {
                     auto strValue = arg.Value.String_Value;
                     if (!strValue.Data) {
                         Out.append_cstring("{String pointer is null}");
-                        return *this;
+                        return;
                     }
 
                     string_view view(strValue.Data, strValue.Size);
@@ -523,7 +520,7 @@ struct Format_Context : io::Writer {
                 auto strValue = arg.Value.String_Value;
                 if (!strValue.Data) {
                     Out.append_cstring("{String pointer is null}");
-                    return *this;
+                    return;
                 }
 
                 string_view view(strValue.Data, strValue.Size);
@@ -546,7 +543,6 @@ struct Format_Context : io::Writer {
             default:
                 assert(false && "Invalid argument type");
         }
-        return *this;
     }
 
 #undef int_helper

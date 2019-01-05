@@ -71,7 +71,7 @@ io::Console_Writer::Console_Writer() {
     Available = CONSOLE_BUFFER_SIZE;
 }
 
-io::Writer &io::Console_Writer::write(const Memory_View &str) {
+void io::Console_Writer::write(const Memory_View &str) {
     if (str.ByteLength > Available) {
         flush();
     }
@@ -81,7 +81,6 @@ io::Writer &io::Console_Writer::write(const Memory_View &str) {
     Available -= str.ByteLength;
 
     if (AlwaysFlush) flush();
-    return *this;
 }
 
 void io::Console_Writer::flush() {

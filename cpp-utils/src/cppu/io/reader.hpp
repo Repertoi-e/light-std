@@ -62,33 +62,29 @@ class Reader {
         return decode_code_point(data);
     }
 
-    Reader &read(char32_t &out) {
-        out = read_codepoint();
-        return *this;
-    }
+    void read(char32_t &out) { out = read_codepoint(); }
 
     // Reads _n_ bytes and put them in _buffer_
-    Reader &read(char *buffer, size_t n) {
+    void read(char *buffer, size_t n) {
         size_t read = read_bytes(buffer, n);
         if (read != n) {
             ReachedEOF = true;
         }
-        return *this;
     }
 
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
-    Reader &read(Dynamic_Array<char> &buffer, size_t n) {
+    void read(Dynamic_Array<char> &buffer, size_t n) {
         if (!buffer.has_space_for(n)) buffer.grow(n);
         return read(buffer.Data, n);
     }
 
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // Assumes there is enough space in _buffer_
-    Reader &read(char *buffer, char32_t delim) {
+    void read(char *buffer, char32_t delim) {
         if (!test_state_and_skip_ws()) {
             ReachedEOF = true;
-            return *this;
+            return;
         }
 
         char32_t cp = 0;
@@ -98,16 +94,15 @@ class Reader {
             encode_code_point(buffer, cp);
             buffer += get_size_of_code_point(cp);
         }
-        return *this;
     }
 
     // Reads codepoints until any of _delims_ is reached and appends them to buffer
     // This function automatically reserves space in the buffer
     // Doesn't include the delimeter in the buffer
-    Reader &read(Dynamic_Array<char> &buffer, const string_view &delims) {
+    void read(Dynamic_Array<char> &buffer, const string_view &delims) {
         if (!test_state_and_skip_ws()) {
             ReachedEOF = true;
-            return *this;
+            return;
         }
 
         char *bufferData = buffer.Data;
@@ -127,49 +122,45 @@ class Reader {
             bufferData += get_size_of_code_point(bufferData);
             ++buffer.Count;
         }
-        return *this;
     }
 
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
     // The encountered _delim_ is not going to be part of the buffer
-    Reader &read(Dynamic_Array<char> &buffer, char32_t delim) {
+    void read(Dynamic_Array<char> &buffer, char32_t delim) {
         char data[4];
         encode_code_point(data, delim);
         return read(buffer, string_view(data, get_size_of_code_point(delim)));
     }
 
     // Reads a given number of codepoints and overwrites _str_
-    Reader &read(string &str, size_t codepoints) {
+    void read(string &str, size_t codepoints) {
         str = "";
         str.reserve(codepoints * 4);
         for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
             str.append(cp);
         }
-        return *this;
     }
 
     // Reads codepoints until _delim_ is reached and overwrites _str_
     // Doesn't include _delim_ in string
-    Reader &read(string &str, char32_t delim) {
+    void read(string &str, char32_t delim) {
         Dynamic_Array<char> buffer;
         read(buffer, delim);
         str = string(buffer.Data, buffer.Count);
-        return *this;
     }
 
     // Reads codepoints until any of _delims_ is reached and overwrites _str_
     // Doesn't include _delim_ in string
-    Reader &read(string &str, const string_view &delims) {
+    void read(string &str, const string_view &delims) {
         Dynamic_Array<char> buffer;
         read(buffer, delims);
         str = string(buffer.Data, buffer.Count);
-        return *this;
     }
 
     // Reads codepoints until a newline and puts them in str
     // The newline is NOT included in the string
-    Reader &read(string &str) { return read(str, U'\n'); }
+    void read(string &str) { return read(str, U'\n'); }
 
     // Parse an integer from the stream
     // You can supply a custom base the integer is encoded in.
@@ -183,53 +174,48 @@ class Reader {
     // Note:
     // If value type is unsigned, but the buffer contains a '-', the value returned is underflowed
     template <typename T>
-    std::enable_if_t<std::is_integral_v<T>, Reader &> read(T &value, s32 base = 0) {
+    std::enable_if_t<std::is_integral_v<T>> read(T &value, s32 base = 0) {
         auto [parsed, success] = parse_int<T>(base);
         ParseError = !success;
         value = parsed;
-        return *this;
     }
 
     // Read a bool
     // Valid strings are: "0" "1" "true" "false" (ignoring case)
-    Reader &read(bool &value) {
+    void read(bool &value) {
         auto [parsed, success] = parse_bool();
         ParseError = !success;
         value = parsed;
-        return *this;
     }
 
     // Read a float
     // If the parsing fails the ParseError flag is set to true (gets reset before any parsing operation)
-    Reader &read(f32 &value) {
+    void read(f32 &value) {
         auto [parsed, success] = parse_float();
         ParseError = !success;
         value = (f32) parsed;
-        return *this;
     }
 
     // Read a float
     // If the parsing fails the ParseError flag is set to true (gets reset before any parsing operation)
-    Reader &read(f64 &value) {
+    void read(f64 &value) {
         auto [parsed, success] = parse_float();
         ParseError = !success;
         value = parsed;
-        return *this;
     }
 
     // Read a byte
-    Reader &read(char &value, bool noSkipWs = false) {
+    void read(char &value, bool noSkipWs = false) {
         if (!test_state_and_skip_ws(noSkipWs)) {
             ParseError = true;
             value = eof;
-            return *this;
+            return;
         }
         value = bump_byte();
         if (value == eof) {
             ParseError = true;
             ReachedEOF = true;
         }
-        return *this;
     }
 
 #define check_eof(x)       \
