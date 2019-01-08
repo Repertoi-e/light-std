@@ -234,7 +234,7 @@ inline bool grisu2_gen_digits(byte *buffer, size_t &size, u32 hi, u64 lo, s32 &e
             default:
                 assert(false && "Invalid number of digits");
         }
-        if (digit != 0 || size != 0) buffer[size++] = (byte) ('0' + digit);
+        if (digit != 0 || size != 0) buffer[size++] = (byte)('0' + digit);
         --exp;
         u64 remainder = ((u64) hi << -one.e) + lo;
         if (remainder <= delta || size > maxDigits) {
@@ -310,13 +310,13 @@ void write_exponent(s32 exp, Handler &&h) {
         h.append((byte)('0' + exp / 100));
         exp %= 100;
 
-        const char *d = DIGITS + exp * 2;
-        h.append((byte) d[0]);
-        h.append((byte) d[1]);
+        const byte *d = DIGITS + exp * 2;
+        h.append(d[0]);
+        h.append(d[1]);
     } else {
-        const char *d = DIGITS + exp * 2;
-        h.append((byte) d[0]);
-        h.append((byte) d[1]);
+        const byte *d = DIGITS + exp * 2;
+        h.append(d[0]);
+        h.append(d[1]);
     }
 }
 
@@ -491,15 +491,15 @@ void sprintf_format(Double value, Memory_Buffer<S> &buffer, const Format_Specs &
     assert(buffer.get_capacity() != 0);
 
     // Build format string.
-    char format[10];  // longest format: %#-*.*Lg
-    char *formatPtr = format;
+    byte format[10];  // longest format: %#-*.*Lg
+    byte *formatPtr = format;
     *formatPtr++ = '%';
     if (specs.has_flag(Flag::HASH)) *formatPtr++ = '#';
     if (specs.Precision >= 0) {
         *formatPtr++ = '.';
         *formatPtr++ = '*';
     }
-    *formatPtr++ = (char) specs.Type;
+    *formatPtr++ = (byte) specs.Type;
     *formatPtr = '\0';
 
     // Format using snprintf.
@@ -508,8 +508,9 @@ void sprintf_format(Double value, Memory_Buffer<S> &buffer, const Format_Specs &
         size_t bufferSize = buffer.get_capacity();
         start = buffer.Data;
 
-        s32 result = specs.Precision < 0 ? CPPU_FMT_SNPRINTF((char *) start, bufferSize, format, value)
-                                         : CPPU_FMT_SNPRINTF((char *) start, bufferSize, format, specs.Precision, value);
+        s32 result = specs.Precision < 0
+                         ? CPPU_FMT_SNPRINTF((char *) start, bufferSize, (char *) format, value)
+                         : CPPU_FMT_SNPRINTF((char *) start, bufferSize, (char *) format, specs.Precision, value);
         if (result >= 0) {
             u32 n = to_unsigned(result);
             if (n < buffer.get_capacity()) {

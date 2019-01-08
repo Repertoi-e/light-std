@@ -66,7 +66,7 @@ io::Console_Writer::Console_Writer() {
     GetConsoleMode((HANDLE) PlatformData, &dw);
     SetConsoleMode((HANDLE) PlatformData, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 
-    Buffer = New<char>(CONSOLE_BUFFER_SIZE);
+    Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
     Current = Buffer;
     Available = CONSOLE_BUFFER_SIZE;
 }
@@ -98,11 +98,11 @@ io::Console_Reader::Console_Reader() {
     PlatformData = (size_t) GetStdHandle(STD_INPUT_HANDLE);
 
     // Leak, but doesn't matter since the object is global
-    Buffer = New<char>(CONSOLE_BUFFER_SIZE);
+    Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
     Current = Buffer;
 }
 
-char io::Console_Reader::request_byte() {
+byte io::Console_Reader::request_byte() {
     assert(PlatformData);
     assert(Available == 0);  // Sanity
 

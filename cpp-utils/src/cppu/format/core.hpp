@@ -242,7 +242,7 @@ struct Parse_Context {
     const byte *It;
     Dynamic_Format_Specs Specs;
 
-    explicit Parse_Context(const string_view &formatString) : FormatString(formatString) {
+    Parse_Context(const string_view &formatString) : FormatString(formatString) {
         It = (const byte *) FormatString.begin().to_pointer();
     }
 
@@ -379,13 +379,14 @@ struct Format_Context : io::Writer {
             case 'n': {
                 u32 numDigits = internal::count_digits(absValue);
                 char32_t sep = internal::thousands_separator();
-                char sepEncoded[4];
+                byte sepEncoded[4];
                 encode_code_point(sepEncoded, sep);
-                string_view sepView(sepEncoded, get_size_of_code_point(sep));
 
                 u32 size = numDigits + 1 * ((numDigits - 1) / 3);
                 format_int(size, Memory_View(prefix, prefixSize), [&](Format_Context &f) {
-                    internal::format_uint(f.Out, absValue, size, internal::Add_Thousands_Separator{sepView});
+                    internal::format_uint(
+                        f.Out, absValue, size,
+                        internal::Add_Thousands_Separator{Memory_View(sepEncoded, get_size_of_code_point(sep))});
                 });
             } break;
             default:
@@ -446,7 +447,11 @@ struct Format_Context : io::Writer {
         Alignment alignSpec = align();
         if (alignSpec == Alignment::NUMERIC) {
             if (sign) {
+                auto old = ParseContext.Specs;
+                ParseContext.Specs = {};
                 write_codepoint(sign);
+                ParseContext.Specs = old;
+
                 sign = 0;
                 if (width()) --ParseContext.Specs.Width;
             }

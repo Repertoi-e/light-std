@@ -21,7 +21,7 @@ constexpr char eof = -1;
 class Reader {
    protected:
     bool ReachedEOF = false, ParseError = false;
-    const char *Buffer = null, *Current = null;
+    const byte *Buffer = null, *Current = null;
     size_t Available = 0;
 
    public:
@@ -36,7 +36,7 @@ class Reader {
     // This is the only method required to be implemented by subclasses, it is called only
     // when there are no more characters available.
     // If more than one byte is available, use _Buffer_, _Current_, and _Available_ member variables.
-    virtual char request_byte() = 0;
+    virtual byte request_byte() = 0;
 
     // Use the parameter if you don't want to skip whitespace
     char32_t read_codepoint(bool noSkipWS = false) {
@@ -44,20 +44,20 @@ class Reader {
             return eof;
         }
 
-        char byte = peek_byte();
-        if (byte == eof) {
+        char ch = peek_byte();
+        if (ch == eof) {
             ReachedEOF = true;
             return eof;
         }
 
-        char data[4] = {0};
+        byte data[4] = {0};
         For(range(get_size_of_code_point(Current))) {
-            byte = bump_byte();
-            if (byte == eof) {
+            ch = bump_byte();
+            if (ch == eof) {
                 ReachedEOF = true;
                 return eof;
             }
-            data[it] = byte;
+            data[it] = ch;
         }
         return decode_code_point(data);
     }
@@ -65,7 +65,7 @@ class Reader {
     void read(char32_t &out) { out = read_codepoint(); }
 
     // Reads _n_ bytes and put them in _buffer_
-    void read(char *buffer, size_t n) {
+    void read(byte *buffer, size_t n) {
         size_t read = read_bytes(buffer, n);
         if (read != n) {
             ReachedEOF = true;
@@ -74,14 +74,14 @@ class Reader {
 
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
-    void read(Dynamic_Array<char> &buffer, size_t n) {
+    void read(Dynamic_Array<byte> &buffer, size_t n) {
         if (!buffer.has_space_for(n)) buffer.grow(n);
         return read(buffer.Data, n);
     }
 
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // Assumes there is enough space in _buffer_
-    void read(char *buffer, char32_t delim) {
+    void read(byte *buffer, char32_t delim) {
         if (!test_state_and_skip_ws()) {
             ReachedEOF = true;
             return;
@@ -99,13 +99,13 @@ class Reader {
     // Reads codepoints until any of _delims_ is reached and appends them to buffer
     // This function automatically reserves space in the buffer
     // Doesn't include the delimeter in the buffer
-    void read(Dynamic_Array<char> &buffer, const string_view &delims) {
+    void read(Dynamic_Array<byte> &buffer, const string_view &delims) {
         if (!test_state_and_skip_ws()) {
             ReachedEOF = true;
             return;
         }
 
-        char *bufferData = buffer.Data;
+        byte *bufferData = buffer.Data;
 
         char32_t cp = 0;
         for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
@@ -127,8 +127,8 @@ class Reader {
     // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
     // The encountered _delim_ is not going to be part of the buffer
-    void read(Dynamic_Array<char> &buffer, char32_t delim) {
-        char data[4];
+    void read(Dynamic_Array<byte> &buffer, char32_t delim) {
+        byte data[4];
         encode_code_point(data, delim);
         return read(buffer, string_view(data, get_size_of_code_point(delim)));
     }
@@ -145,7 +145,7 @@ class Reader {
     // Reads codepoints until _delim_ is reached and overwrites _str_
     // Doesn't include _delim_ in string
     void read(string &str, char32_t delim) {
-        Dynamic_Array<char> buffer;
+        Dynamic_Array<byte> buffer;
         read(buffer, delim);
         str = string(buffer.Data, buffer.Count);
     }
@@ -153,7 +153,7 @@ class Reader {
     // Reads codepoints until any of _delims_ is reached and overwrites _str_
     // Doesn't include _delim_ in string
     void read(string &str, const string_view &delims) {
-        Dynamic_Array<char> buffer;
+        Dynamic_Array<byte> buffer;
         read(buffer, delims);
         str = string(buffer.Data, buffer.Count);
     }
@@ -440,7 +440,7 @@ class Reader {
     }
 #undef check_eof
 
-    size_t read_bytes(char *buffer, size_t n) {
+    size_t read_bytes(byte *buffer, size_t n) {
         size_t copyN = n;
         while (n > 0) {
             size_t size = Available;
@@ -468,39 +468,42 @@ class Reader {
         if (EOF) return false;
 
         if (!noSkip && SkipWhitespace) {
-            for (char ch = peek_byte(); is_space(ch); ch = next_byte()) {
+            for (char ch = peek_byte();; ch = next_byte()) {
                 if (ch == eof) {
                     ReachedEOF = true;
                     return false;
+                }
+                if (!is_space(ch)) {
+                    break;
                 }
             }
         }
         return true;
     }
 
-    const char *incr() { return --Available, Current++; }
-    const char *pre_incr() { return --Available, ++Current; }
+    const byte *incr() { return --Available, Current++; }
+    const byte *pre_incr() { return --Available, ++Current; }
 
-    char peek_byte() {
+    byte peek_byte() {
         if (Available == 0) {
             return request_byte();
         }
         return *Current;
     }
 
-    char request_byte_and_incr() {
+    byte request_byte_and_incr() {
         if (request_byte() == eof) return eof;
         return *incr();
     }
 
-    char bump_byte() {
+    byte bump_byte() {
         if (Available == 0) {
             return request_byte_and_incr();
         }
         return *incr();
     }
 
-    char next_byte() {
+    byte next_byte() {
         if (Available <= 1) {
             if (bump_byte() == eof) return eof;
             return peek_byte();
@@ -519,18 +522,8 @@ struct String_Reader : Reader {
     bool Exhausted = false;
 
     String_Reader(const string_view &view) : View(view) {}
-    String_Reader(const String_Reader &other) : View(other.View) {}
 
-    String_Reader &operator=(const String_Reader &other) {
-        View = other.View;
-        Exhausted = other.Exhausted;
-    }
-    String_Reader &operator=(String_Reader &&other) {
-        View = other.View;
-        Exhausted = other.Exhausted;
-    }
-
-    char request_byte() override {
+    byte request_byte() override {
         if (Exhausted) return eof;
         Buffer = View.Data;
         Current = Buffer;
@@ -542,7 +535,7 @@ struct String_Reader : Reader {
 
 struct Console_Reader : Reader, NonCopyable, NonMovable {
     Console_Reader();
-    char request_byte() override;
+    byte request_byte() override;
 
    private:
     // Needed for Windows to save the handle for cin

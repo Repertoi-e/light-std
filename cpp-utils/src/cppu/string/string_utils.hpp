@@ -12,7 +12,7 @@ CPPU_BEGIN_NAMESPACE
 // Note that this calculation does not include the null byte.
 // This function can also be used to determine the size in
 // bytes of a null terminated utf-8 string.
-constexpr size_t cstring_strlen(const char *str) {
+constexpr size_t cstring_strlen(const byte *str) {
     size_t length = 0;
     while (*str++) length++;
     return length;
@@ -180,7 +180,7 @@ constexpr bool is_lower(char32_t ch) { return ch != to_upper(ch); }
 // This function reads the first byte and returns that result.
 // If the byte pointed by _str_ is a countinuation utf-8 byte, this
 // function returns 0
-constexpr size_t get_size_of_code_point(const char *str) {
+constexpr size_t get_size_of_code_point(const byte *str) {
     if (!str) return 0;
     if ((*str & 0xc0) == 0x80) return 0;
 
@@ -209,35 +209,35 @@ constexpr size_t get_size_of_code_point(char32_t codePoint) {
 }
 
 // Encodes code point at _str_, assumes there is enough space.
-constexpr void encode_code_point(char *str, char32_t codePoint) {
+constexpr void encode_code_point(byte *str, char32_t codePoint) {
     size_t size = get_size_of_code_point(codePoint);
     if (size == 1) {
         // 1-byte/7-bit ascii
         // (0b0xxxxxxx)
-        str[0] = (char) codePoint;
+        str[0] = (byte) codePoint;
     } else if (size == 2) {
         // 2-byte/11-bit utf-8 code point
         // (0b110xxxxx 0b10xxxxxx)
-        str[0] = 0xc0 | (char) (codePoint >> 6);
-        str[1] = 0x80 | (char) (codePoint & 0x3f);
+        str[0] = 0xc0 | (byte)(codePoint >> 6);
+        str[1] = 0x80 | (byte)(codePoint & 0x3f);
     } else if (size == 3) {
         // 3-byte/16-bit utf-8 code point
         // (0b1110xxxx 0b10xxxxxx 0b10xxxxxx)
-        str[0] = 0xe0 | (char) (codePoint >> 12);
-        str[1] = 0x80 | (char) ((codePoint >> 6) & 0x3f);
-        str[2] = 0x80 | (char) (codePoint & 0x3f);
+        str[0] = 0xe0 | (byte)(codePoint >> 12);
+        str[1] = 0x80 | (byte)((codePoint >> 6) & 0x3f);
+        str[2] = 0x80 | (byte)(codePoint & 0x3f);
     } else {
         // 4-byte/21-bit utf-8 code point
         // (0b11110xxx 0b10xxxxxx 0b10xxxxxx 0b10xxxxxx)
-        str[0] = 0xf0 | (char) (codePoint >> 18);
-        str[1] = 0x80 | (char) ((codePoint >> 12) & 0x3f);
-        str[2] = 0x80 | (char) ((codePoint >> 6) & 0x3f);
-        str[3] = 0x80 | (char) (codePoint & 0x3f);
+        str[0] = 0xf0 | (byte)(codePoint >> 18);
+        str[1] = 0x80 | (byte)((codePoint >> 12) & 0x3f);
+        str[2] = 0x80 | (byte)((codePoint >> 6) & 0x3f);
+        str[3] = 0x80 | (byte)(codePoint & 0x3f);
     }
 }
 
 // Decodes a code point from a data pointer
-constexpr char32_t decode_code_point(const char *str) {
+constexpr char32_t decode_code_point(const byte *str) {
     if (0xf0 == (0xf8 & str[0])) {
         // 4 byte utf-8 code point
         return ((0x07 & str[0]) << 18) | ((0x3f & str[1]) << 12) | ((0x3f & str[2]) << 6) | (0x3f & str[3]);
@@ -269,7 +269,7 @@ constexpr size_t translate_index(s64 index, size_t length) {
 }
 
 // This returns str advanced to point to the code point at a specified index in a string with a given length.
-constexpr const char *get_pointer_to_code_point_at(const char *str, size_t length, s64 index) {
+constexpr const byte *get_pointer_to_code_point_at(const byte *str, size_t length, s64 index) {
     For(range(translate_index(index, length))) str += get_size_of_code_point(str);
     return str;
 }

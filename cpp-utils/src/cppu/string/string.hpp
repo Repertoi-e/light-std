@@ -98,7 +98,7 @@ struct string {
             return Parent.get(Index);
         }
 
-        const char *to_pointer() const { return get_pointer_to_code_point_at(Parent.Data, Parent.Length, (s64) Index); }
+        const byte *to_pointer() const { return get_pointer_to_code_point_at(Parent.Data, Parent.Length, (s64) Index); }
     };
 
    public:
@@ -114,14 +114,14 @@ struct string {
     // bytes of memory, it allocates a buffer on the heap.
     //
     // Note that the "Data" member points to this buffer *or* the dynamically allocated one.
-    char StackData[SMALL_STRING_BUFFER_SIZE];
+    byte StackData[SMALL_STRING_BUFFER_SIZE];
 
     // This member points to a valid utf-8 string in memory.
     // Each 'char' means one byte, which doesn't guarantee a valid utf-8 code point
     // since they can be multiple bytes. You almost never would want
     // to modify or access characters from this member unless you want
     // something very specific.
-    char *Data = StackData;
+    byte *Data = StackData;
 
     // The number of reserved bytes in the string. This is used only
     // if the string is using a dynamically allocated buffer.
@@ -139,9 +139,13 @@ struct string {
 
     string() {}
     // Construct from a null-terminated c-style string.
-    string(const char *str);
+    string(const byte *str);
     // Construct from a c-style string and a size (in code units, not code points)
-    string(const char *str, size_t size);
+    string(const byte *str, size_t size);
+    // Construct from a null-terminated c-style string.
+    string(const char *str) : string((const byte *) str) {}
+    // Construct from a c-style string and a size (in code units, not code points)
+    string(const char *str, size_t size) : string((const byte *) str, size) {}
     explicit string(const string_view &view);
     string(const string &other);
     string(string &&other);
@@ -201,18 +205,22 @@ struct string {
     // Append a null terminated utf-8 c-style string to a string.
     // If the cstyle string is not a valid utf-8 string the
     // modified string is will also not be valid.
-    void append_cstring(const char *other);
+    void append_cstring(const byte *other);
+    void append_cstring(const char *other) { append_cstring((const byte *) other); }
 
     // Append _size_ bytes of string contained in _data_
-    void append_pointer_and_size(const char *data, size_t size);
+    void append_pointer_and_size(const byte *data, size_t size);
+    void append_pointer_and_size(const char *data, size_t size) { append_pointer_and_size((const byte *) data, size); }
 
     // Compares the string to _other_ lexicographically.
     // The result is less than 0 if this string sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
     s32 compare(const string &other) const { return get_view().compare(other.get_view()); }
+    s32 compare(const byte *other) const { return get_view().compare(other); }
     s32 compare(const char *other) const { return get_view().compare(other); }
 
     s32 compare_ignore_case(const string &other) const { return get_view().compare_ignore_case(other.get_view()); }
+    s32 compare_ignore_case(const byte *other) const { return get_view().compare_ignore_case(other); }
     s32 compare_ignore_case(const char *other) const { return get_view().compare_ignore_case(other); }
 
     string_view get_view() const { return string_view(*this); }
@@ -238,7 +246,7 @@ struct string {
         return result;
     }
 
-    string operator+(const char *other) {
+    string operator+(const byte *other) {
         string result = *this;
         result.append_cstring(other);
         return result;
@@ -255,7 +263,7 @@ struct string {
         return *this;
     }
 
-    string &operator+=(const char *other) {
+    string &operator+=(const byte *other) {
         append_cstring(other);
         return *this;
     }
@@ -323,9 +331,17 @@ struct string {
 
 constexpr size_t a = sizeof(string);
 
+inline string operator+(const byte *one, const string &other) { return string(one) + other; }
 inline string operator+(const char *one, const string &other) { return string(one) + other; }
 
-inline bool operator==(const char *one, const string &other) { return other.compare(other) == 0; }
+inline bool operator==(const byte *one, const string &other) { return other.compare(one) == 0; }
+inline bool operator!=(const byte *one, const string &other) { return !(one == other); }
+inline bool operator<(const byte *one, const string &other) { return other.compare(one) > 0; }
+inline bool operator>(const byte *one, const string &other) { return other.compare(one) < 0; }
+inline bool operator<=(const byte *one, const string &other) { return !(one > other); }
+inline bool operator>=(const byte *one, const string &other) { return !(one < other); }
+
+inline bool operator==(const char *one, const string &other) { return other.compare(one) == 0; }
 inline bool operator!=(const char *one, const string &other) { return !(one == other); }
 inline bool operator<(const char *one, const string &other) { return other.compare(one) > 0; }
 inline bool operator>(const char *one, const string &other) { return other.compare(one) < 0; }

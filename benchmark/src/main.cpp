@@ -17,25 +17,19 @@ static void stl_cout(benchmark::State& state) {
 static void cpp_fmt(benchmark::State& state) {
     s32 a = 5000;
     f32 b = 1.622f;
-    For(state) {
-        fmt::print("Hello, world! {:.{}} {:x}\r", b, 2, a);
-    }
+    For(state) { fmt::print("Hello, world! {:.{}} {:x}\r", b, 2, a); }
 }
 
 static void c_printf(benchmark::State& state) {
     s32 a = 5000;
     f32 b = 1.622f;
-    For(state) {
-        printf("Hello, world! %.*f %x\r", 2, b, a);
-    }
+    For(state) { printf("Hello, world! %.*f %x\r", 2, b, a); }
 }
 
 static void cppu_cout(benchmark::State& state) {
     s32 a = 5000;
     f32 b = 1.622f;
-    For(state) {
-        cppu::fmt::print("Hello, world! {:.{}} {:x}\r", b, 2, a);
-    }
+    For(state) { cppu::fmt::print("Hello, world! {:.{}} {:x}\r", b, 2, a); }
 }
 // BENCHMARK(cppu_cout)->Iterations(10000000000);
 BENCHMARK(cppu_cout);

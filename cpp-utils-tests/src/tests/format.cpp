@@ -34,7 +34,7 @@ TEST(positional_arguments) {
 
 TEST(named_arguments) {
     assert_eq("abracadabra", fmt::sprint("{0}{1}{0}", "abra", "cad"));
-    assert_eq("1/a/A", fmt::sprint("{_1}/{a_}/{A_}", "a_"_a = 'a', "A_"_a = "A", "_1"_a = 1));
+    assert_eq("1/97/A", fmt::sprint("{_1}/{a_}/{A_}", "a_"_a = 'a', "A_"_a = "A", "_1"_a = 1));
     assert_eq("abracadabra", fmt::sprint("{0}{1}{0}", "abra", "cad"));
     assert_eq(" -42", fmt::sprint("{0:{width}}", -42, "width"_a = 4));
     assert_eq("abracadabra", fmt::sprint("{0}{1}{0}", "abra", "cad"));
@@ -48,8 +48,8 @@ TEST(named_arguments) {
 }
 
 TEST(automatic_argument_indexing) {
-    assert_eq("abc", fmt::sprint("{}{}{}", 'a', 'b', 'c'));
-    assert_eq("1.2", fmt::sprint("{:.{}}", 1.2345, 2));
+    assert_eq("abc", fmt::sprint("{:c}{:c}{:c}", 'a', 'b', 'c'));
+    assert_eq("1.23", fmt::sprint("{:.{}}", 1.2345, 2));
 }
 
 TEST(left_align) {
@@ -62,8 +62,8 @@ TEST(left_align) {
     assert_eq("42   ", fmt::sprint("{0:<5}", 42ul));
     assert_eq("-42  ", fmt::sprint("{0:<5}", -42ll));
     assert_eq("42   ", fmt::sprint("{0:<5}", 42ull));
-    assert_eq("-42  ", fmt::sprint("{0:<5}", -42.0));
-    assert_eq("c    ", fmt::sprint("{0:<5}", 'c'));
+    assert_eq("-42  ", fmt::sprint("{0:<5.0}", -42.0));
+    assert_eq("c    ", fmt::sprint("{0:<5c}", 'c'));
     assert_eq("abc  ", fmt::sprint("{0:<5}", "abc"));
     assert_eq("0xface  ", fmt::sprint("{0:<8}", (void *) 0xface));
 }
@@ -78,8 +78,8 @@ TEST(right_align) {
     assert_eq("   42", fmt::sprint("{0:>5}", 42ul));
     assert_eq("  -42", fmt::sprint("{0:>5}", -42ll));
     assert_eq("   42", fmt::sprint("{0:>5}", 42ull));
-    assert_eq("  -42", fmt::sprint("{0:>5}", -42.0));
-    assert_eq("    c", fmt::sprint("{0:>5}", 'c'));
+    assert_eq("  -42", fmt::sprint("{0:>5.0}", -42.0));
+    assert_eq("    c", fmt::sprint("{0:>5c}", 'c'));
     assert_eq("  abc", fmt::sprint("{0:>5}", "abc"));
     assert_eq("  0xface", fmt::sprint("{0:>8}", (void *) 0xface));
 }
@@ -97,8 +97,8 @@ TEST(numeric_align) {
     assert_eq("   42", fmt::sprint("{0:=5}", 42ul));
     assert_eq("-  42", fmt::sprint("{0:=5}", -42ll));
     assert_eq("   42", fmt::sprint("{0:=5}", 42ull));
-    assert_eq("-  42", fmt::sprint("{0:=5}", -42.0));
-    assert_eq(" 1", fmt::sprint("{:= }", 1.0));
+    assert_eq("-  42", fmt::sprint("{0:=5.0}", -42.0));
+    assert_eq(" 1", fmt::sprint("{:= .0}", 1.0));
 }
 
 TEST(center_align) {
@@ -111,8 +111,8 @@ TEST(center_align) {
     assert_eq(" 42  ", fmt::sprint("{0:^5}", 42ul));
     assert_eq(" -42 ", fmt::sprint("{0:^5}", -42ll));
     assert_eq(" 42  ", fmt::sprint("{0:^5}", 42ull));
-    assert_eq(" -42  ", fmt::sprint("{0:^6}", -42.0));
-    assert_eq("  c  ", fmt::sprint("{0:^5}", 'c'));
+    assert_eq(" -42  ", fmt::sprint("{0:^6.0}", -42.0));
+    assert_eq("  c  ", fmt::sprint("{0:^5c}", 'c'));
     assert_eq(" abc  ", fmt::sprint("{0:^6}", "abc"));
     assert_eq(" 0xface ", fmt::sprint("{0:^8}", (void *) 0xface));
 }
@@ -125,8 +125,8 @@ TEST(fill) {
     assert_eq("***42", fmt::sprint("{0:*>5}", 42ul));
     assert_eq("**-42", fmt::sprint("{0:*>5}", -42ll));
     assert_eq("***42", fmt::sprint("{0:*>5}", 42ull));
-    assert_eq("**-42", fmt::sprint("{0:*>5}", -42.0));
-    assert_eq("c****", fmt::sprint("{0:*<5}", 'c'));
+    assert_eq("**-42", fmt::sprint("{0:*>5.0}", -42.0));
+    assert_eq("c****", fmt::sprint("{0:*<5c}", 'c'));
     assert_eq("abc**", fmt::sprint("{0:*<5}", "abc"));
     assert_eq("**0xface", fmt::sprint("{0:*>8}", (void *) 0xface));
     assert_eq("foo=", fmt::sprint("{:}=", "foo"));
@@ -138,7 +138,7 @@ TEST(plus_sign) {
     assert_eq("+42", fmt::sprint("{0:+}", 42));
     assert_eq("+42", fmt::sprint("{0:+}", 42l));
     assert_eq("+42", fmt::sprint("{0:+}", 42ll));
-    assert_eq("+42", fmt::sprint("{0:+}", 42.0));
+    assert_eq("+42", fmt::sprint("{0:+.0}", 42.0));
 }
 
 TEST(minus_sign) {
@@ -147,7 +147,7 @@ TEST(minus_sign) {
     assert_eq("42", fmt::sprint("{0:-}", 42));
     assert_eq("42", fmt::sprint("{0:-}", 42l));
     assert_eq("42", fmt::sprint("{0:-}", 42ll));
-    assert_eq("42", fmt::sprint("{0:-}", 42.0));
+    assert_eq("42", fmt::sprint("{0:-.0}", 42.0));
 }
 
 TEST(space_sign) {
@@ -156,7 +156,7 @@ TEST(space_sign) {
     assert_eq(" 42", fmt::sprint("{0: }", 42));
     assert_eq(" 42", fmt::sprint("{0: }", 42l));
     assert_eq(" 42", fmt::sprint("{0: }", 42ll));
-    assert_eq(" 42", fmt::sprint("{0: }", 42.0));
+    assert_eq(" 42", fmt::sprint("{0: .0}", 42.0));
 }
 
 TEST(hash_flag) {
@@ -192,7 +192,7 @@ TEST(hash_flag) {
     assert_eq("0x42", fmt::sprint("{0:#x}", 0x42ull));
     assert_eq("042", fmt::sprint("{0:#o}", 042ull));
 
-    assert_eq("-42.0", fmt::sprint("{0:#}", -42.0));
+    assert_eq("-42.0", fmt::sprint("{0:#.1}", -42.0));
 }
 
 TEST(zero_flag) {
@@ -203,7 +203,7 @@ TEST(zero_flag) {
     assert_eq("00042", fmt::sprint("{0:05}", 42ul));
     assert_eq("-0042", fmt::sprint("{0:05}", -42ll));
     assert_eq("00042", fmt::sprint("{0:05}", 42ull));
-    assert_eq("-0042", fmt::sprint("{0:05}", -42.0));
+    assert_eq("-0042", fmt::sprint("{0:05.0}", -42.0));
 }
 
 TEST(width) {
@@ -213,9 +213,9 @@ TEST(width) {
     assert_eq("     42", fmt::sprint("{0:7}", 42ul));
     assert_eq("   -42", fmt::sprint("{0:6}", -42ll));
     assert_eq("     42", fmt::sprint("{0:7}", 42ull));
-    assert_eq("   -1.23", fmt::sprint("{0:8}", -1.23));
+    assert_eq("   -1.23", fmt::sprint("{0:8.2}", -1.23));
     assert_eq("    0xcafe", fmt::sprint("{0:10}", (void *) 0xcafe));
-    assert_eq("x          ", fmt::sprint("{0:11}", 'x'));
+    assert_eq("x          ", fmt::sprint("{0:11c}", 'x'));
     assert_eq("str         ", fmt::sprint("{0:12}", "str"));
 
     assert_eq(" -42", fmt::sprint("{0:{1}}", -42, 4));
@@ -224,17 +224,17 @@ TEST(width) {
     assert_eq("     42", fmt::sprint("{0:{1}}", 42ul, 7));
     assert_eq("   -42", fmt::sprint("{0:{1}}", -42ll, 6));
     assert_eq("     42", fmt::sprint("{0:{1}}", 42ull, 7));
-    assert_eq("   -1.23", fmt::sprint("{0:{1}}", -1.23, 8));
+    assert_eq("   -1.23", fmt::sprint("{0:{1}.2}", -1.23, 8));
     assert_eq("    0xcafe", fmt::sprint("{0:{1}}", (void *) 0xcafe, 10));
-    assert_eq("x          ", fmt::sprint("{0:{1}}", 'x', 11));
+    assert_eq("x          ", fmt::sprint("{0:{1}c}", 'x', 11));
     assert_eq("str         ", fmt::sprint("{0:{1}}", "str", 12));
 }
 
 TEST(precision) {
-    assert_eq("1.2", fmt::sprint("{0:.2}", 1.2345));
+    assert_eq("1.23", fmt::sprint("{0:.2}", 1.2345));
     assert_eq("st", fmt::sprint("{0:.2}", "str"));
 
-    assert_eq("1.2", fmt::sprint("{0:.{1}}", 1.2345, 2));
+    assert_eq("1.23", fmt::sprint("{0:.{1}}", 1.2345, 2));
     assert_eq("st", fmt::sprint("{0:.{1}}", "str", 2));
 }
 
@@ -301,10 +301,10 @@ TEST(int_locale) {
 TEST(floating_point) {
     assert_eq("392.500000", fmt::sprint("{0:f}", 392.5f));
 
-    assert_eq("0", fmt::sprint("{:}", 0.0));
+    assert_eq("0", fmt::sprint("{:.0}", 0.0));
     assert_eq("0.000000", fmt::sprint("{:f}", 0.0));
     assert_eq("0", fmt::sprint("{:g}", 0.0));
-    assert_eq("392.65", fmt::sprint("{:}", 392.65));
+    assert_eq("392.65", fmt::sprint("{:.2}", 392.65));
     assert_eq("392.65", fmt::sprint("{:g}", 392.65));
     assert_eq("392.65", fmt::sprint("{:G}", 392.65));
     assert_eq("392.650000", fmt::sprint("{:f}", 392.65));
@@ -333,7 +333,7 @@ TEST(floating_point) {
 }
 
 TEST(bytes_chars_and_strings) {
-    assert_eq("a", fmt::sprint("{0}", 'a'));
+    assert_eq("97", fmt::sprint("{0}", 'a'));
     assert_eq("z", fmt::sprint("{0:c}", 'z'));
 
     s32 n = 'x';

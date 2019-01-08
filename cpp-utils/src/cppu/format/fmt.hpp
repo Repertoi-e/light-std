@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../memory/temporary_allocator.hpp"
+#include "../memory/dynamic_array.hpp"
+
 #include "console_colors.hpp"
 #include "core.hpp"
 #include "parse.hpp"

@@ -10,6 +10,7 @@ struct Memory_View {
 
     constexpr Memory_View() {}
     constexpr Memory_View(const byte *data, size_t byteLength) : Data(data), ByteLength(byteLength) {}
+    constexpr Memory_View(const char *data, size_t byteLength) : Data((const byte *) data), ByteLength(byteLength) {}
 
     // A negative index mean from the end (Python-like)
     constexpr byte get(s64 index) const {

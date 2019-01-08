@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../memory/memory.hpp"
-
+#include "../memory/memory_buffer.hpp"
 #include "string.hpp"
 
 CPPU_BEGIN_NAMESPACE
@@ -10,7 +9,7 @@ struct String_Builder {
     static constexpr size_t BUFFER_SIZE = 1_KiB;
 
     struct Buffer {
-        char Data[BUFFER_SIZE];
+        byte Data[BUFFER_SIZE];
         size_t Occupied = 0;
         Buffer *Next = null;
     };
@@ -26,7 +25,6 @@ struct String_Builder {
     Allocator_Closure Allocator;
 
     // Append a string to the builder
-    void append(const char *str);
     void append(const string_view &str);
     void append(const string &str);
 
@@ -34,10 +32,18 @@ struct String_Builder {
     void append(char32_t codePoint);
 
     // Append a null terminated utf-8 cstyle string.
-    void append_cstring(const char *str);
+    void append_cstring(const byte *str);
+    void append_cstring(const char *str) { append_cstring((const byte *) str); }
 
     // Append _size_ bytes of string contained in _data_
-    void append_pointer_and_size(const char *data, size_t size);
+    void append_pointer_and_size(const byte *data, size_t size);
+    void append_pointer_and_size(const char *data, size_t size) { append_pointer_and_size((const byte *) data, size); }
+
+    template <size_t S>
+    void append(const Memory_Buffer<S> &other) {
+        append_pointer_and_size(other.Data, other.ByteLength);
+    }
+    void append(const Memory_View &view) { append_pointer_and_size(view.Data, view.ByteLength); }
 
     // Execute void f(string_view) on every buffer
     template <typename Lambda>

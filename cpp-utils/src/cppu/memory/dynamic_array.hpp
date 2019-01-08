@@ -2,8 +2,8 @@
 
 #include "../context.hpp"
 
-#include "memory.hpp"
 #include "array.hpp"
+#include "memory.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

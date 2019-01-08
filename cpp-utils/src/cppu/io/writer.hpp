@@ -24,7 +24,7 @@ namespace io {
 // All other overloads are implemented around those functions.
 class Writer {
    protected:
-    char *Buffer = null, *Current = null;
+    byte *Buffer = null, *Current = null;
     size_t Available = 0;
 
    public:
@@ -35,16 +35,17 @@ class Writer {
     virtual void write(const Memory_View &str) = 0;
     virtual void flush() = 0;
 
-    void write(const string_view &str) { write(Memory_View((const byte *) str.Data, str.ByteLength)); }
+    void write(const string_view &str) { write(Memory_View(str.Data, str.ByteLength)); }
     void write(const string &str) { write(str.get_view()); }
     void write(const byte *data, size_t size) { write(Memory_View(data, size)); }
-    void write(const char *data, size_t size) { write((const byte *) data, size); }
-    void write(const char *data) { write(string_view(data)); }
+    void write(const byte *data) { write(Memory_View(data, cstring_strlen(data))); }
+    void write(const char *data, size_t size) { write(Memory_View(data, size)); }
+    void write(const char *data) { write(Memory_View(data, cstring_strlen((const byte *) data))); }
 
     void write_codepoint(char32_t ch) {
-        char data[4];
+        byte data[4];
         encode_code_point(data, ch);
-        write(string_view(data, get_size_of_code_point(data)));
+        write(Memory_View(data, get_size_of_code_point(data)));
     }
 
     template <typename... Args>
@@ -57,9 +58,7 @@ class Writer {
 struct String_Writer : Writer {
     String_Builder Builder;
 
-    void write(const Memory_View &str) override {
-        Builder.append_pointer_and_size((const char *) str.Data, str.ByteLength);
-    }
+    void write(const Memory_View &str) override { Builder.append_pointer_and_size(str.Data, str.ByteLength); }
 
     void flush() override {}
 };

@@ -2,8 +2,6 @@
 - File I/O Reader and Writer
 - File system
 
-- Switch char* to byte* where appropriate (since char just plays the role of a byte atm)
-
 - Add ability for custom types in Reader (similar to fmt::Formatter>
 
 - Figure out why WriteFile to console on Win32 is so mega slow compared to fwrite

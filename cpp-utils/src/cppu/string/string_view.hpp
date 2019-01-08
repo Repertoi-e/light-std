@@ -18,11 +18,11 @@ struct string_view {
    private:
     struct Iterator : public std::iterator<std::random_access_iterator_tag, char32_t> {
        private:
-        const char *Current;
+        const byte *Current;
 
         // Returns a pointer to Current + _n_ utf-8 characters
-        constexpr const char *get_current_after(s64 n) const {
-            const char *result = Current;
+        constexpr const byte *get_current_after(s64 n) const {
+            const byte *result = Current;
             if (n > 0) {
                 For(range(n)) result += get_size_of_code_point(result);
             }
@@ -37,7 +37,7 @@ struct string_view {
         }
 
        public:
-        constexpr Iterator(const char *data) : Current(data) {}
+        constexpr Iterator(const byte *data) : Current(data) {}
 
         constexpr Iterator &operator+=(s64 amount) {
             Current = get_current_after(amount);
@@ -62,7 +62,7 @@ struct string_view {
 
         constexpr s64 operator-(const Iterator &other) const {
             s64 difference = 0;
-            const char *lesser = Current, *greater = other.Current;
+            const byte *lesser = Current, *greater = other.Current;
             if (lesser > greater) {
                 lesser = other.Current;
                 greater = Current;
@@ -89,23 +89,23 @@ struct string_view {
 
         constexpr char32_t operator*() const { return decode_code_point(Current); }
 
-        constexpr const char *to_pointer() const { return Current; }
+        constexpr const byte *to_pointer() const { return Current; }
     };
 
    public:
     using iterator = Iterator;
 
-    const char *Data = null;
+    const byte *Data = null;
     size_t ByteLength = 0;
     size_t Length = 0;
 
     constexpr string_view() {}
     string_view(const string &str);
     // Construct from a null-terminated c-style string.
-    constexpr string_view(const char *str) : string_view(str, str ? cstring_strlen(str) : 0) {}
+    constexpr string_view(const byte *str) : string_view(str, str ? cstring_strlen(str) : 0) {}
 
     // Construct from a c-style string and a size (in code units, not code points)
-    constexpr string_view(const char *str, size_t size) {
+    constexpr string_view(const byte *str, size_t size) {
         Data = str;
         ByteLength = size;
         if (Data) {
@@ -117,7 +117,11 @@ struct string_view {
             }
         }
     }
-    constexpr string_view(const Memory_View &memView) : string_view((char *) memView.Data, memView.ByteLength) {}
+
+    constexpr string_view(const char *str) : string_view((const byte *) str) {}
+    constexpr string_view(const char *str, size_t size) : string_view((const byte *) str, size) {}
+
+    constexpr string_view(const Memory_View &memView) : string_view(memView.Data, memView.ByteLength) {}
 
     constexpr string_view(const string_view &other) = default;
     constexpr string_view(string_view &&other) = default;
@@ -144,9 +148,9 @@ struct string_view {
         size_t beginIndex = translate_index(begin, Length);
         size_t endIndex = translate_index(end - 1, Length) + 1;
 
-        const char *beginPtr = Data;
+        const byte *beginPtr = Data;
         for (size_t i = 0; i < beginIndex; i++) beginPtr += get_size_of_code_point(beginPtr);
-        const char *endPtr = beginPtr;
+        const byte *endPtr = beginPtr;
         for (size_t i = beginIndex; i < endIndex; i++) endPtr += get_size_of_code_point(endPtr);
 
         string_view result;
@@ -218,7 +222,7 @@ struct string_view {
         assert(Data);
         assert(n <= Length);
 
-        const char *newData = get_pointer_to_code_point_at(Data, Length, n);
+        const byte *newData = get_pointer_to_code_point_at(Data, Length, n);
         ByteLength -= newData - Data;
         Length -= n;
 
@@ -315,6 +319,7 @@ struct string_view {
         return ((s32) *s1 - (s32) *s2);
     }
 
+    constexpr s32 compare(const byte *other) const { return compare(string_view(other)); }
     constexpr s32 compare(const char *other) const { return compare(string_view(other)); }
 
     // Compares the string view to _other_ lexicographically. Case insensitive.
@@ -337,6 +342,7 @@ struct string_view {
         return ((s32) to_lower(*s1) - (s32) to_lower(*s2));
     }
 
+    constexpr s32 compare_ignore_case(const byte *other) const { return compare_ignore_case(string_view(other)); }
     constexpr s32 compare_ignore_case(const char *other) const { return compare_ignore_case(string_view(other)); }
 
     // Check two string views for equality
@@ -360,7 +366,14 @@ struct string_view {
     constexpr string_view operator()(s64 begin, s64 end) const { return substring(begin, end); }
 };
 
-constexpr bool operator==(const char *one, const string_view &other) { return other.compare(other) == 0; }
+constexpr bool operator==(const byte *one, const string_view &other) { return other.compare(one) == 0; }
+constexpr bool operator!=(const byte *one, const string_view &other) { return !(one == other); }
+constexpr bool operator<(const byte *one, const string_view &other) { return other.compare(one) > 0; }
+constexpr bool operator>(const byte *one, const string_view &other) { return other.compare(one) < 0; }
+constexpr bool operator<=(const byte *one, const string_view &other) { return !(one > other); }
+constexpr bool operator>=(const byte *one, const string_view &other) { return !(one < other); }
+
+constexpr bool operator==(const char *one, const string_view &other) { return other.compare(one) == 0; }
 constexpr bool operator!=(const char *one, const string_view &other) { return !(one == other); }
 constexpr bool operator<(const char *one, const string_view &other) { return other.compare(one) > 0; }
 constexpr bool operator>(const char *one, const string_view &other) { return other.compare(one) < 0; }

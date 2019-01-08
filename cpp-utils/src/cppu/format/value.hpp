@@ -170,7 +170,7 @@ constexpr bool is_type_arithmetic(Format_Type type) {
 
 struct Format_Context;
 struct String_Value {
-    const char *Data;
+    const byte *Data;
     size_t Size;
 };
 
@@ -198,10 +198,11 @@ struct Value {
     Value(s64 value) { S64_Value = value; }
     Value(u64 value) { U64_Value = value; }
     Value(f64 value) { F64_Value = value; }
-    Value(const char *value) {
+    Value(const byte *value) {
         String_Value.Data = value;
         String_Value.Size = cstring_strlen(value);
     }
+    Value(const char *value) : Value((const byte *) value) {}
 
     Value(const string_view &value) {
         String_Value.Data = value.Data;
@@ -263,7 +264,9 @@ MAKE_VALUE_HELPER(Format_Type::F64, f32, f64)
 MAKE_VALUE_SAME_HELPER(Format_Type::F64, f64)
 
 MAKE_VALUE_HELPER(Format_Type::CSTRING, char *, const char *);
+MAKE_VALUE_HELPER(Format_Type::CSTRING, byte *, const byte *);
 MAKE_VALUE_SAME_HELPER(Format_Type::CSTRING, const char *);
+MAKE_VALUE_SAME_HELPER(Format_Type::CSTRING, const byte *);
 MAKE_VALUE_SAME_HELPER(Format_Type::STRING, string_view);
 MAKE_VALUE_HELPER(Format_Type::STRING, const string &, string_view);
 

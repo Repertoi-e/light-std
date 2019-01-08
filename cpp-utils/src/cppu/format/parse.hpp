@@ -157,7 +157,7 @@ constexpr Parsing_Error_Code parse_arg_id(const byte *&it, IDHandler &&handler) 
     do {
         c = *++it;
     } while (is_identifier_start(c) || is_digit(c));
-    handler(string_view((const char *)start, (size_t)(it - start)));
+    handler(string_view(start, (size_t)(it - start)));
     return Parsing_Error_Code::NONE;
 }
 

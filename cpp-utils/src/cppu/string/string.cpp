@@ -13,18 +13,18 @@ string::Code_Point &string::Code_Point::operator=(char32_t other) {
 
 string::Code_Point::operator char32_t() const { return ((const string &) Parent).get((s64) Index); }
 
-string::string(const char *str) : string(str, str ? cstring_strlen(str) : 0) {}
+string::string(const byte *str) : string(str, str ? cstring_strlen(str) : 0) {}
 
-string::string(const char *str, size_t size) {
+string::string(const byte *str, size_t size) {
     ByteLength = size;
     if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_and_ensure_allocator<char>(ByteLength, Allocator);
+        Data = New_and_ensure_allocator<byte>(ByteLength, Allocator);
         Reserved = ByteLength;
     }
     if (str && ByteLength) {
         copy_memory(Data, str, ByteLength);
 
-        const char *end = str + size;
+        const byte *end = str + size;
         while (str < end) {
             str += get_size_of_code_point(str);
             Length++;
@@ -40,7 +40,7 @@ string::string(const string &other) {
     Allocator = other.Allocator;
 
     if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_and_ensure_allocator<char>(ByteLength, Allocator);
+        Data = New_and_ensure_allocator<byte>(ByteLength, Allocator);
         Reserved = ByteLength;
     }
     if (other.Data && ByteLength) {
@@ -131,7 +131,7 @@ void string::reserve(size_t size) {
 
         // If we are small but we need more size, it's time to convert
         // to a dynamically allocated memory.
-        Data = New_and_ensure_allocator<char>(size, Allocator);
+        Data = New_and_ensure_allocator<byte>(size, Allocator);
         copy_memory(Data, StackData, ByteLength);
         Reserved = size;
     } else {
@@ -144,12 +144,12 @@ void string::reserve(size_t size) {
 }
 
 void string::set(s64 index, char32_t codePoint) {
-    const char *target = get_pointer_to_code_point_at(Data, Length, index);
+    const byte *target = get_pointer_to_code_point_at(Data, Length, index);
 
     uptr_t offset = (uptr_t)(target - Data);
     assert(offset < ByteLength);
 
-    char *at = Data + offset;
+    byte *at = Data + offset;
 
     size_t sizeAtTarget = get_size_of_code_point(at);
     assert(sizeAtTarget);
@@ -191,7 +191,7 @@ void string::append(char32_t codePoint) {
     size_t neededCapacity = ByteLength + codePointSize;
     reserve(neededCapacity);
 
-    char *s = Data + ByteLength;
+    byte *s = Data + ByteLength;
 
     encode_code_point(s, codePoint);
 
@@ -199,9 +199,9 @@ void string::append(char32_t codePoint) {
     Length++;
 }
 
-void string::append_cstring(const char *other) { append_pointer_and_size(other, cstring_strlen(other)); }
+void string::append_cstring(const byte *other) { append_pointer_and_size(other, cstring_strlen(other)); }
 
-void string::append_pointer_and_size(const char *data, size_t size) {
+void string::append_pointer_and_size(const byte *data, size_t size) {
     size_t neededCapacity = ByteLength + size;
     reserve(neededCapacity);
 
@@ -209,7 +209,7 @@ void string::append_pointer_and_size(const char *data, size_t size) {
 
     ByteLength = neededCapacity;
 
-    const char *end = data + size;
+    const byte *end = data + size;
     while (data < end) {
         data += get_size_of_code_point(data);
         Length++;

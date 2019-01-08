@@ -92,7 +92,7 @@ struct Memory_Buffer {
     void append_codepoint(char32_t cp) {
         size_t cpSize = get_size_of_code_point(cp);
         grow(cpSize);
-        encode_code_point((char *) (Data + ByteLength), cp);
+        encode_code_point(Data + ByteLength, cp);
         ByteLength += cpSize;
     }
 
@@ -100,13 +100,21 @@ struct Memory_Buffer {
     // Useful if you want every last bit of performance
     void append_unsafe(byte b) { *(Data + ByteLength++) = b; }
 
-    void append_cstring(const char *data) { append_pointer_and_size((const byte *) data, cstring_strlen(data)); }
-    void append_cstring_unsafe(const Memory_Buffer &other) {
-        append_pointer_and_size_unsafe(data, cstring_strlen(data));
+    void append_cstring(const char *data) {
+        append_pointer_and_size((const byte *) data, cstring_strlen((const byte *) data));
+    }
+    void append_cstring(const byte *data) { append_pointer_and_size(data, cstring_strlen(data)); }
+    void append_cstring_unsafe(const char *data) {
+        append_pointer_and_size_unsafe((const byte *) data, cstring_strlen(data));
+    }
+    void append_cstring_unsafe(const byte *data) {
+        append_pointer_and_size_unsafe(data, cstring_strlen((const byte *) data));
     }
 
     template <size_t S>
-    void append(const Memory_Buffer<S> &other) { append_pointer_and_size(other.Data, other.ByteLength); }
+    void append(const Memory_Buffer<S> &other) {
+        append_pointer_and_size(other.Data, other.ByteLength);
+    }
     void append(const Memory_View &view) { append_pointer_and_size(view.Data, view.ByteLength); }
 
     // Append without checking if there is enough space
