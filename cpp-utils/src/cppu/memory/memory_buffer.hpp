@@ -2,6 +2,7 @@
 
 #include "memory.hpp"
 #include "memory_view.hpp"
+#include "../string/string_view.hpp"
 
 CPPU_BEGIN_NAMESPACE
 
@@ -87,6 +88,14 @@ struct Memory_Buffer {
     void append(byte b) {
         grow(1);
         *(Data + ByteLength++) = b;
+    }
+
+    void append(const string_view &view) {
+        append_pointer_and_size(view.Data, view.ByteLength);
+    }
+
+    void append_unsafe(const string_view &view) {
+        append_pointer_and_size_unsafe(view.Data, view.ByteLength);
     }
 
     void append_codepoint(char32_t cp) {

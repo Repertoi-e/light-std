@@ -297,9 +297,9 @@ make_value(const T &value) {
 }
 
 template <typename T>
-inline typename std::enable_if_t<std::is_arithmetic_v<T> || !std::is_convertible_v<T, s32> &&
+inline typename std::enable_if_t<std::is_arithmetic_v<T> || (!std::is_convertible_v<T, s32> &&
                                                                 !std::is_convertible_v<T, string_view> &&
-                                                                !std::is_constructible_v<string_view, T>,
+                                                                !std::is_constructible_v<string_view, T>),
                                  // Implicit conversion to string is not handled here
                                  Init_Value<const T &, Format_Type::CUSTOM>>
 make_value(const T &value) {

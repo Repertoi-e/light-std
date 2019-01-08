@@ -58,7 +58,7 @@ inline string get_drive_letter(const File_Path &path) {
     //     result.append_pointer_and_size(pathStr, pathStr - pos + 1);
     //     return result;
     // }
-    // return "";
+    return "";
 }
 
 CPPU_END_NAMESPACE

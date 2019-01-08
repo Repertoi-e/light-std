@@ -16,7 +16,7 @@ struct string;
 // you don't want to allocate memory for a new string (eg. a substring)
 struct string_view {
    private:
-    struct Iterator : public std::iterator<std::random_access_iterator_tag, char32_t> {
+    struct Iterator {
        private:
         const byte *Current;
 
@@ -37,6 +37,12 @@ struct string_view {
         }
 
        public:
+        using iterator_category = std::random_access_iterator_tag;
+        using value_type = char32_t;
+        using difference_type = ptr_t;
+        using pointer = char32_t *;
+        using reference = char32_t &;
+
         constexpr Iterator(const byte *data) : Current(data) {}
 
         constexpr Iterator &operator+=(s64 amount) {
@@ -100,7 +106,6 @@ struct string_view {
     size_t Length = 0;
 
     constexpr string_view() {}
-    string_view(const string &str);
     // Construct from a null-terminated c-style string.
     constexpr string_view(const byte *str) : string_view(str, str ? cstring_strlen(str) : 0) {}
 

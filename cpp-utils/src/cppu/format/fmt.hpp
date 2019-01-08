@@ -148,7 +148,8 @@ inline void do_formatting(Format_Context &context) {
 template <typename... Args>
 void to_writer(io::Writer &writer, const string_view &formatString, Args &&... args) {
     Arguments_Array<Args...> store = {args...};
-    internal::do_formatting(Format_Context(writer, formatString, Arguments(store)));
+    auto context = Format_Context(writer, formatString, Arguments(store));
+    internal::do_formatting(context);
 }
 }  // namespace internal
 

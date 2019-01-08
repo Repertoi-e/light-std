@@ -4,8 +4,6 @@
 
 CPPU_BEGIN_NAMESPACE
 
-string_view::string_view(const string &str) : Data(str.Data), ByteLength(str.ByteLength), Length(str.Length) {}
-
 string::Code_Point &string::Code_Point::operator=(char32_t other) {
     Parent.set((s64) Index, other);
     return *this;
@@ -79,13 +77,6 @@ void string::swap(string &other) {
     std::swap(Reserved, other.Reserved);
     std::swap(ByteLength, other.ByteLength);
     std::swap(Length, other.Length);
-}
-
-string &string::operator=(const string_view &view) {
-    release();
-
-    string(view).swap(*this);
-    return *this;
 }
 
 string &string::operator=(const string &other) {

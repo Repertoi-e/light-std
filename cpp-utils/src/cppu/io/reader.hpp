@@ -13,7 +13,7 @@ CPPU_BEGIN_NAMESPACE
 
 namespace io {
 
-constexpr char eof = -1;
+constexpr byte eof = -1;
 
 // Provides a way to parse types and any bytes with a simple extension API.
 // Any subclass needs to implement just _request_byte_. Every other function
@@ -44,7 +44,7 @@ class Reader {
             return eof;
         }
 
-        char ch = peek_byte();
+        byte ch = peek_byte();
         if (ch == eof) {
             ReachedEOF = true;
             return eof;
@@ -208,6 +208,20 @@ class Reader {
     void read(char &value, bool noSkipWs = false) {
         if (!test_state_and_skip_ws(noSkipWs)) {
             ParseError = true;
+            value = (char) eof;
+            return;
+        }
+        value = bump_byte();
+        if (value == (char) eof) {
+            ParseError = true;
+            ReachedEOF = true;
+        }
+    }
+
+    // Read a byte
+    void read(byte &value, bool noSkipWs = false) {
+        if (!test_state_and_skip_ws(noSkipWs)) {
+            ParseError = true;
             value = eof;
             return;
         }
@@ -232,7 +246,7 @@ class Reader {
         }
 
         bool negative = false;
-        char ch = bump_byte();
+        byte ch = bump_byte();
         check_eof(ch);
 
         if (ch == '+') {
@@ -243,7 +257,7 @@ class Reader {
         }
         check_eof(ch);
 
-        char next = peek_byte();
+        byte next = peek_byte();
         check_eof(next);
 
         if ((base == 0 || base == 16) && ch == '0' && (next == 'x' || next == 'X')) {
@@ -323,7 +337,7 @@ class Reader {
         }
 
         bool negative = false;
-        char ch = bump_byte();
+        byte ch = bump_byte();
         check_eof(ch);
 
         if (ch == '+') {
@@ -354,8 +368,8 @@ class Reader {
                 return {(negative ? -1 : 1) * integerPart, false};
             }
 
-            char byte = peek_byte();
-            if (!is_alphanumeric(byte) && byte != '.' && byte != 'e') break;
+            byte next = peek_byte();
+            if (!is_alphanumeric(next) && next != '.' && next != 'e') break;
             ch = bump_byte();
         }
         check_eof(ch);
@@ -375,8 +389,8 @@ class Reader {
                     return {(negative ? -1 : 1) * (integerPart + fractionPart), true};
                 }
 
-                char byte = peek_byte();
-                if (!is_digit(byte) && byte != '.' && byte != 'e') break;
+                byte next = peek_byte();
+                if (!is_digit(next) && next != '.' && next != 'e') break;
                 ch = bump_byte();
             }
         }
@@ -411,7 +425,7 @@ class Reader {
             return {false, false};
         }
 
-        char ch = bump_byte();
+        byte ch = bump_byte();
         check_eof(ch);
         if (ch == '0') {
             return {false, true};
@@ -454,10 +468,10 @@ class Reader {
                 Current += size;
                 Available -= size;
             } else {
-                char byte = request_byte_and_incr();
-                if (byte == eof) break;
+                byte ch= request_byte_and_incr();
+                if (ch == eof) break;
 
-                *buffer++ = byte;
+                *buffer++ = ch;
                 --n;
             }
         }
@@ -468,7 +482,7 @@ class Reader {
         if (EOF) return false;
 
         if (!noSkip && SkipWhitespace) {
-            for (char ch = peek_byte();; ch = next_byte()) {
+            for (byte ch = peek_byte();; ch = next_byte()) {
                 if (ch == eof) {
                     ReachedEOF = true;
                     return false;

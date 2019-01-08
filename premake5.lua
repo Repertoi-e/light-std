@@ -29,17 +29,15 @@ project "cpp-utils"
     
     }
 
+    cppdialect "C++17"
+    systemversion "latest"
+    defines 
+    {
+        "CPPU_PLATFORM_WINDOWS",
+        "_HAS_EXCEPTIONS=0"
+    }
+
     filter "system:windows"
-        cppdialect "C++17"
-        staticruntime "On"
-        systemversion "latest"
-
-        defines 
-        {
-            "CPPU_PLATFORM_WINDOWS",
-            "_HAS_EXCEPTIONS=0"
-        }
-
         excludes
         {
             "%{prj.name}/src/cppu/posix_*.cpp"
@@ -82,16 +80,13 @@ project "cpp-utils-tests"
         "cpp-utils"
     }
 
-    filter "system:windows"
-        cppdialect "C++17"
-        staticruntime "On"
-        systemversion "latest"
-
-        defines 
-        {
-            "CPPU_PLATFORM_WINDOWS",
-            "_HAS_EXCEPTIONS=0"
-        }
+    cppdialect "C++17"
+    systemversion "latest"
+    defines 
+    {
+        "CPPU_PLATFORM_WINDOWS",
+        "_HAS_EXCEPTIONS=0"
+    }
 
     filter "configurations:Debug"
         defines "CPPU_DEBUG"
@@ -133,17 +128,15 @@ project "benchmark"
         "C:/Program Files/FMT/lib/fmt.lib"
     }
 
+    cppdialect "C++17"
+    systemversion "latest"
+    defines 
+    {
+        "CPPU_PLATFORM_WINDOWS",
+        "_HAS_EXCEPTIONS=0"
+    }
+
     filter "system:windows"
-        cppdialect "C++17"
-        staticruntime "On"
-        systemversion "latest"
-
-        defines 
-        {
-            "CPPU_PLATFORM_WINDOWS",
-            "_HAS_EXCEPTIONS=0"
-        }
-
         links
         {
             "Shlwapi.lib"

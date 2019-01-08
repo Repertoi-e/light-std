@@ -217,7 +217,13 @@ struct Table {
 };
 
 template <typename Key, typename Value>
-struct Table_Iterator : public std::iterator<std::forward_iterator_tag, std::tuple<Key &, Value &>> {
+struct Table_Iterator {
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = std::tuple<Key &, Value &>;
+    using difference_type = ptr_t;
+    using pointer = value_type *;
+    using reference = value_type &;
+
     const Table<Key, Value> &ParentTable;
     s64 SlotIndex = -1;
 

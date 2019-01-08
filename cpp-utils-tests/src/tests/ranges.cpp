@@ -1,5 +1,3 @@
-#pragma once
-
 #include "../test.hpp"
 
 #include <cppu/format/fmt.hpp>

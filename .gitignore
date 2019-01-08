@@ -45,3 +45,5 @@ bin-int/
 *.filters
 *.user
 cpp-utils-tests_project_suppressions.cfg
+
+Makefile

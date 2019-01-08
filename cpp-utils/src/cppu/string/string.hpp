@@ -35,13 +35,19 @@ struct string {
     };
 
     template <bool Mutable>
-    struct Iterator : public std::iterator<std::random_access_iterator_tag, char32_t> {
+    struct Iterator {
        private:
         using parent_type = typename std::conditional_t<Mutable, string, const string>;
         parent_type &Parent;
         size_t Index;
 
        public:
+        using iterator_category = std::random_access_iterator_tag;
+        using value_type = typename std::conditional_t<Mutable, Code_Point, char32_t>;
+        using difference_type = ptr_t;
+        using pointer = value_type *;
+        using reference = value_type &;
+
         Iterator(parent_type &parent, size_t index) : Parent(parent), Index(index) {}
 
         Iterator &operator+=(s64 amount) {
@@ -223,7 +229,13 @@ struct string {
     s32 compare_ignore_case(const byte *other) const { return get_view().compare_ignore_case(other); }
     s32 compare_ignore_case(const char *other) const { return get_view().compare_ignore_case(other); }
 
-    string_view get_view() const { return string_view(*this); }
+    string_view get_view() const {
+        string_view view;
+        view.Data = Data;
+        view.ByteLength = ByteLength;
+        view.Length = Length;
+        return view;
+    }
 
     void swap(string &other);
 
@@ -312,7 +324,6 @@ struct string {
     bool ends_with(char32_t ch) const { return get_view().ends_with(ch); }
     bool ends_with(const string_view &other) { return get_view().ends_with(other); }
 
-    string &operator=(const string_view &view);
     string &operator=(const string &other);
     string &operator=(string &&other);
 

@@ -3,7 +3,7 @@
 #include "../common.hpp"
 
 #include "../io/writer.hpp"
-#include "../memory/Memory_Buffer.hpp"
+#include "../memory/memory_buffer.hpp"
 
 CPPU_BEGIN_NAMESPACE
 
