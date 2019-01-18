@@ -74,6 +74,8 @@ struct Memory_View {
 
     constexpr Memory_View(const Memory_View &other) = default;
     constexpr Memory_View(Memory_View &&other) = default;
+    constexpr Memory_View &operator=(const Memory_View &other) = default;
+    constexpr Memory_View &operator=(Memory_View &&other) = default;
 
     constexpr byte operator[](s64 index) const { return get(index); }
 

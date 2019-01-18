@@ -103,6 +103,8 @@ struct string_view {
 
     const byte *Data = null;
     size_t ByteLength = 0;
+
+    // Length of the string in code points
     size_t Length = 0;
 
     constexpr string_view() {}
@@ -114,12 +116,7 @@ struct string_view {
         Data = str;
         ByteLength = size;
         if (Data) {
-            while (size) {
-                do {
-                    --size, ++str;
-                } while ((*str & 0xC0) == 0x80);
-                ++Length;
-            }
+            Length = utf8_strlen(Data, ByteLength);
         }
     }
 

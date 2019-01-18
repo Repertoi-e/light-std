@@ -28,8 +28,6 @@ class Writer {
     size_t Available = 0;
 
    public:
-    bool AlwaysFlush = true;
-
     virtual ~Writer() {}
 
     virtual void write(const Memory_View &str) = 0;

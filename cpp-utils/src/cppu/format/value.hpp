@@ -189,7 +189,7 @@ struct Value {
         u64 U64_Value;
         f64 F64_Value;
         const void *Pointer_Value;
-        String_Value String_Value;
+        Memory_View String_Value;
         Custom_Value Custom_Value;
     };
 
@@ -198,16 +198,11 @@ struct Value {
     Value(s64 value) { S64_Value = value; }
     Value(u64 value) { U64_Value = value; }
     Value(f64 value) { F64_Value = value; }
-    Value(const byte *value) {
-        String_Value.Data = value;
-        String_Value.Size = cstring_strlen(value);
-    }
+    Value(const byte *value) : String_Value(value, cstring_strlen(value)) {}
     Value(const char *value) : Value((const byte *) value) {}
 
-    Value(const string_view &value) {
-        String_Value.Data = value.Data;
-        String_Value.Size = value.ByteLength;
-    }
+    Value(const string_view &value) : String_Value(value.Data, value.ByteLength) {}
+    Value(const string &value) : String_Value(value.Data, value.ByteLength) {}
     Value(const void *value) { Pointer_Value = value; }
 
     template <typename T>
@@ -215,8 +210,6 @@ struct Value {
         Custom_Value.Data = &value;
         Custom_Value.Format = &format_custom_arg<T>;
     }
-
-    const Named_Argument_Base &as_named_arg() { return *static_cast<const Named_Argument_Base *>(Pointer_Value); }
 
    private:
     template <typename T>
@@ -297,9 +290,9 @@ make_value(const T &value) {
 }
 
 template <typename T>
-inline typename std::enable_if_t<std::is_arithmetic_v<T> || (!std::is_convertible_v<T, s32> &&
-                                                                !std::is_convertible_v<T, string_view> &&
-                                                                !std::is_constructible_v<string_view, T>),
+inline typename std::enable_if_t<std::is_arithmetic_v<T> ||
+                                     (!std::is_convertible_v<T, s32> && !std::is_convertible_v<T, string_view> &&
+                                      !std::is_constructible_v<string_view, T>),
                                  // Implicit conversion to string is not handled here
                                  Init_Value<const T &, Format_Type::CUSTOM>>
 make_value(const T &value) {

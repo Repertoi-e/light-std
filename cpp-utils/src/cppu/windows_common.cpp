@@ -79,16 +79,13 @@ void io::Console_Writer::write(const Memory_View &str) {
     copy_memory(Current, str.Data, str.ByteLength);
     Current += str.ByteLength;
     Available -= str.ByteLength;
-
-    if (AlwaysFlush) flush();
 }
 
 void io::Console_Writer::flush() {
     assert(PlatformData);
 
-    fwrite(Buffer, 1, CONSOLE_BUFFER_SIZE - Available, stdout);
-    // DWORD ignored;
-    // WriteFile((HANDLE) PlatformData, Buffer, (DWORD)(CONSOLE_BUFFER_SIZE - Available), &ignored, null);
+    DWORD ignored;
+    WriteFile((HANDLE) PlatformData, Buffer, (DWORD)(CONSOLE_BUFFER_SIZE - Available), &ignored, null);
 
     Current = Buffer;
     Available = CONSOLE_BUFFER_SIZE;

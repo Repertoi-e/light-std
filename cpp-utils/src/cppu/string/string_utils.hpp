@@ -13,8 +13,20 @@ CPPU_BEGIN_NAMESPACE
 // This function can also be used to determine the size in
 // bytes of a null terminated utf-8 string.
 constexpr size_t cstring_strlen(const byte *str) {
+    if (str == null) return 0;
+
     size_t length = 0;
     while (*str++) length++;
+    return length;
+}
+
+// This is a constexpr function for working with utf8 strings at compile time
+// Retrieve the length of a valid utf8 string
+constexpr size_t utf8_strlen(const byte *str, size_t size) {
+    size_t length = 0;
+    For(range(size)) {
+        if (!((*str++ & 0xc0) == 0x80)) ++length;
+    }
     return length;
 }
 

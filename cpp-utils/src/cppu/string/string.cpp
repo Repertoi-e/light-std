@@ -21,12 +21,7 @@ string::string(const byte *str, size_t size) {
     }
     if (str && ByteLength) {
         copy_memory(Data, str, ByteLength);
-
-        const byte *end = str + size;
-        while (str < end) {
-            str += get_size_of_code_point(str);
-            Length++;
-        }
+        Length = utf8_strlen(str, size);
     }
 }
 
@@ -187,7 +182,7 @@ void string::append(char32_t codePoint) {
     encode_code_point(s, codePoint);
 
     ByteLength += codePointSize;
-    Length++;
+    ++Length;
 }
 
 void string::append_cstring(const byte *other) { append_pointer_and_size(other, cstring_strlen(other)); }
@@ -200,11 +195,7 @@ void string::append_pointer_and_size(const byte *data, size_t size) {
 
     ByteLength = neededCapacity;
 
-    const byte *end = data + size;
-    while (data < end) {
-        data += get_size_of_code_point(data);
-        Length++;
-    }
+    Length += utf8_strlen(data, size);
 }
 
 string string::repeated(size_t n) {

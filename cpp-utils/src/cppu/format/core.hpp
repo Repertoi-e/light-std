@@ -166,7 +166,8 @@ struct Arguments {
         result.Value = Values[index];
 
         if (result.Type == Format_Type::NAMED_ARGUMENT) {
-            result = result.Value.as_named_arg().deserialize();
+            auto &named = *(const Named_Argument_Base *)(result.Value.Pointer_Value);
+            result = named.deserialize();
         }
         return result;
     }
@@ -216,7 +217,7 @@ struct Argument_Map {
     }
 
     void add(Value value) {
-        const Named_Argument_Base &named = value.as_named_arg();
+        auto &named = *(const Named_Argument_Base *)(value.Pointer_Value);
         Entries[Size++] = Entry{named.Name, named.deserialize()};
     }
 
@@ -306,7 +307,10 @@ struct Format_Context : io::Writer {
 
     Argument next_arg() { return do_get_arg(ParseContext.next_arg_id()); }
 
-    void flush() override { FlushOutput.write(Out.Data, Out.ByteLength); }
+    void flush() override {
+        FlushOutput.write(Out.Data, Out.ByteLength);
+        FlushOutput.flush();
+    }
 
     using io::Writer::write;
 
@@ -401,10 +405,6 @@ struct Format_Context : io::Writer {
         char t = (char) type();
         bool upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
         if (t == 0 || t == 'G') t = 'f';
-#if COMPILER == MSVC
-        // MSVC's printf doesn't support 'F'.
-        if (t == 'F') t = 'f';
-#endif
 
         byte sign = 0;
         // Use signbit instead of value < 0 because the latter is always false for NaN.
@@ -507,9 +507,7 @@ struct Format_Context : io::Writer {
                         Out.append_cstring("{String pointer is null}");
                         return;
                     }
-
-                    string_view view(strValue.Data, strValue.Size);
-                    write(view);
+                    write(strValue);
                 } else if (type() == 'p') {
                     auto oldFlags = ParseContext.Specs.Flags;
                     auto oldType = ParseContext.Specs.Type;
@@ -527,9 +525,7 @@ struct Format_Context : io::Writer {
                     Out.append_cstring("{String pointer is null}");
                     return;
                 }
-
-                string_view view(strValue.Data, strValue.Size);
-                write(view);
+                write(strValue);
             } break;
             case Format_Type::POINTER: {
                 auto oldFlags = ParseContext.Specs.Flags;

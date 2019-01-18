@@ -2,9 +2,9 @@
 - File I/O Reader and Writer
 - File system
 
-- Add ability for custom types in Reader (similar to fmt::Formatter>
+- string: add codepoint at index, remove codepoint at index, replace, replace_all
 
-- Figure out why WriteFile to console on Win32 is so mega slow compared to fwrite
+- Add ability for custom types in Reader (similar to fmt::Formatter)
 
 - Time?
 - Random?

@@ -136,7 +136,7 @@ struct string {
     // The number of code units in the string, >= the number of code points
     size_t ByteLength = 0;
 
-    // The number of code points in the string.
+    // Length of the string in code points
     size_t Length = 0;
 
     // The allocator used for expanding the string.
