@@ -180,27 +180,51 @@ struct string {
     // -2 the one before that, etc. (Python-style)
     void set(s64 index, char32_t codePoint);
 
+    // Adds a codepoint at specified index, such that `this[index] == codePoint`
+    void add(s64 index, char32_t codePoint);
+
+    // Removes codepoint at specified index
+    void remove(s64 index);
+
     // Gets [begin, end) range of characters
     // Allows negative reversed indexing which begins at
     // the end of the string, so -1 is the last character
     // -2 the one before that, etc. (Python-style)
     // The string returned is a string view.
+    // Note that the string returned is a view into _str_.
+    //    It's not actually an allocated string, so it _str_ gets
+    //    destroyed, then the returned string will be pointing to
+    //      invalid memory. Copy the returned string explicitly if
+    //      you intend to use it longer than this string.
     const string_view substring(s64 begin, s64 end) const { return get_view().substring(begin, end); }
 
-    // Find the first occurence of _ch_
-    size_t find(char32_t ch) const { return get_view().find(ch); }
+    // Find the first occurence of _ch_ starting at specified index
+    size_t find(char32_t ch, s64 start = 0) const { return get_view().find(ch, start); }
 
-    // Find the first occurence of _other_
-    size_t find(const string_view &other) const { return get_view().find(other); }
+    // Find the first occurence of _other_ starting at specified index
+    size_t find(const string_view &view, s64 start = 0) const { return get_view().find(view, start); }
 
-    // Find the last occurence of _ch_
-    size_t find_last(char32_t ch) const { return get_view().find_last(ch); }
+    // Find the last occurence of _ch_ starting at specified index
+    size_t find_last(char32_t ch, s64 start = 0) const { return get_view().find_last(ch, start); }
 
-    // Find the last occurence of _other_
-    size_t find_last(const string_view &other) const { return get_view().find_last(other); }
+    // Find the last occurence of _other_ starting at specified index
+    size_t find_last(const string_view &view, s64 start = 0) const { return get_view().find_last(view, start); }
 
     bool has(char32_t ch) const { return find(ch) != npos; }
-    bool has(const string_view &other) const { return find(other) != npos; }
+    bool has(const string_view &view) const { return find(view) != npos; }
+
+    size_t count(char32_t cp) { return get_view().count(cp); }
+    size_t count(const string_view &view) { return get_view().count(view); }
+
+    void replace(char32_t what, char32_t withWhat, s64 start = 0);
+    void replace(const string_view &what, char32_t withWhat, s64 start = 0);
+    void replace(char32_t what, const string_view &withWhat, s64 start = 0);
+    void replace(const string_view &what, const string_view &withWhat, s64 start = 0);
+
+    void replace_all(char32_t what, char32_t withWhat, s64 after = 0);
+    void replace_all(const string_view &what, char32_t withWhat, s64 start = 0);
+    void replace_all(char32_t what, const string_view &withWhat, s64 start = 0);
+    void replace_all(const string_view &what, const string_view &withWhat, s64 start = 0);
 
     // Append one string to another
     void append(const string &other);
@@ -222,12 +246,10 @@ struct string {
     // The result is less than 0 if this string sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
     s32 compare(const string &other) const { return get_view().compare(other.get_view()); }
-    s32 compare(const byte *other) const { return get_view().compare(other); }
-    s32 compare(const char *other) const { return get_view().compare(other); }
+    s32 compare(const string_view &other) const { return get_view().compare(other); }
 
     s32 compare_ignore_case(const string &other) const { return get_view().compare_ignore_case(other.get_view()); }
-    s32 compare_ignore_case(const byte *other) const { return get_view().compare_ignore_case(other); }
-    s32 compare_ignore_case(const char *other) const { return get_view().compare_ignore_case(other); }
+    s32 compare_ignore_case(const string_view &other) const { return get_view().compare_ignore_case(other); }
 
     string_view get_view() const {
         string_view view;
@@ -345,17 +367,17 @@ constexpr size_t a = sizeof(string);
 inline string operator+(const byte *one, const string &other) { return string(one) + other; }
 inline string operator+(const char *one, const string &other) { return string(one) + other; }
 
-inline bool operator==(const byte *one, const string &other) { return other.compare(one) == 0; }
+inline bool operator==(const byte *one, const string &other) { return other.compare(string_view(one)) == 0; }
 inline bool operator!=(const byte *one, const string &other) { return !(one == other); }
-inline bool operator<(const byte *one, const string &other) { return other.compare(one) > 0; }
-inline bool operator>(const byte *one, const string &other) { return other.compare(one) < 0; }
+inline bool operator<(const byte *one, const string &other) { return other.compare(string_view(one)) > 0; }
+inline bool operator>(const byte *one, const string &other) { return other.compare(string_view(one)) < 0; }
 inline bool operator<=(const byte *one, const string &other) { return !(one > other); }
 inline bool operator>=(const byte *one, const string &other) { return !(one < other); }
 
-inline bool operator==(const char *one, const string &other) { return other.compare(one) == 0; }
+inline bool operator==(const char *one, const string &other) { return other.compare(string_view(one)) == 0; }
 inline bool operator!=(const char *one, const string &other) { return !(one == other); }
-inline bool operator<(const char *one, const string &other) { return other.compare(one) > 0; }
-inline bool operator>(const char *one, const string &other) { return other.compare(one) < 0; }
+inline bool operator<(const char *one, const string &other) { return other.compare(string_view(one)) > 0; }
+inline bool operator>(const char *one, const string &other) { return other.compare(string_view(one)) < 0; }
 inline bool operator<=(const char *one, const string &other) { return !(one > other); }
 inline bool operator>=(const char *one, const string &other) { return !(one < other); }
 

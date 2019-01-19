@@ -60,6 +60,20 @@ TEST(index) {
     assert_eq(a[0], 'X');
 }
 
+TEST(add_and_remove) {
+    string a = "e";
+    a.add(1, 'l');
+    a.add(0, 'H');
+    assert_eq(a, "Hel");
+
+    a.remove(1);
+    assert_eq(a, "Hl");
+    a.remove(1);
+    assert_eq(a, "H");
+    a.remove(0);
+    assert_eq(a, "");
+}
+
 TEST(utility_functions) {
     string a = "\t\t    Hello, everyone!   \t\t   \n";
     assert_eq(a.trim_start(), "Hello, everyone!   \t\t   \n");
@@ -167,13 +181,22 @@ TEST(string_find) {
     string a = "Hello";
     assert_eq(a.find('e'), 1);
     assert_eq(a.find('l'), 2);
+    assert_eq(a.find('l', 3), 3);
     assert_eq(a.find_last('l'), 3);
+    assert_eq(a.find_last('l', 4), npos);
 
     a = u8"Здрello";
     assert_eq(a.find('e'), 3);
     assert_eq(a.find('l'), 4);
     assert_eq(a.find_last('l'), 5);
     assert_eq(a.find_last('o'), 6);
+}
+
+TEST(string_count) {
+    string a = "Hello";
+    assert_eq(a.count('l'), 2);
+    assert_eq(a.count('e'), 1);
+    assert_eq(a.count('o'), 1);
 }
 
 TEST(string_builder) {

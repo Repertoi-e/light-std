@@ -140,20 +140,16 @@ struct string_view {
     // Allows negative reversed indexing which begins at
     // the end of the string, so -1 is the last character
     // -2 the one before that, etc. (Python-style)
-    // Note that the string returned is a view into _str_.
-    //    It's not actually an allocated string, so it _str_ gets
-    //    destroyed, then the returned string will be pointing to
-    //      invalid memory. Copy the returned string explicitly if
-    //      you intend to use it longer than this string.
     constexpr string_view substring(s64 begin, s64 end) const {
         // Convert to absolute [begin, end)
         size_t beginIndex = translate_index(begin, Length);
-        size_t endIndex = translate_index(end - 1, Length) + 1;
+        size_t endIndex = translate_index_unchecked(end, Length);
 
-        const byte *beginPtr = Data;
-        for (size_t i = 0; i < beginIndex; i++) beginPtr += get_size_of_code_point(beginPtr);
+        assert(endIndex <= Length);
+
+        const byte *beginPtr = get_pointer_to_code_point_at(Data, Length, beginIndex);
         const byte *endPtr = beginPtr;
-        for (size_t i = beginIndex; i < endIndex; i++) endPtr += get_size_of_code_point(endPtr);
+        For(range(beginIndex, endIndex)) endPtr += get_size_of_code_point(endPtr);
 
         string_view result;
         result.Data = beginPtr;
@@ -162,62 +158,85 @@ struct string_view {
         return result;
     }
 
-    // Find the first occurence of _ch_
-    constexpr size_t find(char32_t ch) const {
+    // Find the first occurence of _cp_ starting at specified index
+    constexpr size_t find(char32_t cp, s64 start = 0) const {
         assert(Data);
-        for (size_t i = 0; i < Length; ++i)
-            if (get(i) == ch) return i;
+        size_t translated = translate_index_unchecked(start, Length);
+        assert(translated <= Length);
+
+        auto ch = begin() + translated;
+        For(range(translated, Length)) {
+            if (*ch++ == cp) return it;
+        }
         return npos;
     }
 
-    // Find the first occurence of _other_
-    constexpr size_t find(const string_view &other) const {
+    // Find the first occurence of _other_ starting at specified index
+    constexpr size_t find(const string_view &view, s64 start = 0) const {
         assert(Data);
-        assert(other.Data);
+        assert(view.Data);
 
-        for (size_t haystack = 0; haystack < Length; ++haystack) {
-            size_t i = haystack;
-            size_t n = 0;
-            while (n < other.Length && get(i) == other.get(n)) {
-                ++n;
-                ++i;
-            }
-            if (n == other.Length) {
-                return haystack;
+        size_t translated = translate_index_unchecked(start, Length);
+        assert(translated <= Length);
+
+        For(range(translated, Length)) {
+            auto search = begin() + it;
+            auto progress = view.begin();
+            while (progress != view.end() && *search++ == *progress++)
+                ;
+            if (progress == view.end()) {
+                return it;
             }
         }
         return npos;
     }
 
-    // Find the last occurence of _ch_
-    constexpr size_t find_last(char32_t ch) const {
+    // Find the last occurence of _ch_ starting at specified index
+    constexpr size_t find_last(char32_t cp, s64 start = 0) const {
         assert(Data);
-        for (size_t i = Length - 1; i >= 0; --i)
-            if (get(i) == ch) return i;
+        size_t translated = translate_index_unchecked(start, Length);
+        assert(translated <= Length);
+
+        auto ch = end() - 1;
+        For(range(Length - 1, (s64) translated - 1, -1)) {
+            if (*ch-- == cp) return it;
+        }
         return npos;
     }
 
-    // Find the last occurence of _other_
-    constexpr size_t find_last(const string_view &other) const {
+    // Find the last occurence of _other_ starting at specified index
+    constexpr size_t find_last(const string_view &view, s64 start = 0) const {
         assert(Data);
-        assert(other.Data);
+        assert(view.Data);
+        size_t translated = translate_index_unchecked(start, Length);
+        assert(translated <= Length);
 
-        for (size_t haystack = Length - 1; haystack >= 0; --haystack) {
-            size_t i = haystack;
-            size_t n = 0;
-            while (n < other.Length && get(i) == other.get(n)) {
-                ++n;
-                ++i;
-            }
-            if (n == other.Length) {
-                return haystack;
+        For(range(Length - 1, (s64) translated - 1, -1)) {
+            auto search = begin() + it;
+            auto progress = view.begin();
+            while (progress != view.end() && *search++ == *progress++)
+                ;
+            if (progress == view.end()) {
+                return it;
             }
         }
         return npos;
     }
 
-    constexpr bool has(char32_t ch) const { return find(ch) != npos; }
-    constexpr bool has(const string_view &other) const { return find(other) != npos; }
+    constexpr bool has(char32_t cp) const { return find(cp) != npos; }
+    constexpr bool has(const string_view &view) const { return find(view) != npos; }
+
+    constexpr size_t count(char32_t cp) {
+        size_t result = 0, index = 0;
+        while ((index = find(cp, index)) != npos) ++result, ++index;
+        return result;
+    }
+
+    constexpr size_t count(const string_view &view) {
+        size_t result = 0, index = 0;
+        while ((index = find(view, index)) != npos) ++result, ++index;
+        return result;
+    }
 
     // Moves the beginning forwards by n characters.
     constexpr void remove_prefix(size_t n) {
@@ -321,9 +340,6 @@ struct string_view {
         return ((s32) *s1 - (s32) *s2);
     }
 
-    constexpr s32 compare(const byte *other) const { return compare(string_view(other)); }
-    constexpr s32 compare(const char *other) const { return compare(string_view(other)); }
-
     // Compares the string view to _other_ lexicographically. Case insensitive.
     // The result is less than 0 if this string_view sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
@@ -343,9 +359,6 @@ struct string_view {
         }
         return ((s32) to_lower(*s1) - (s32) to_lower(*s2));
     }
-
-    constexpr s32 compare_ignore_case(const byte *other) const { return compare_ignore_case(string_view(other)); }
-    constexpr s32 compare_ignore_case(const char *other) const { return compare_ignore_case(string_view(other)); }
 
     // Check two string views for equality
     constexpr bool operator==(const string_view &other) const { return compare(other) == 0; }
@@ -368,17 +381,17 @@ struct string_view {
     constexpr string_view operator()(s64 begin, s64 end) const { return substring(begin, end); }
 };
 
-constexpr bool operator==(const byte *one, const string_view &other) { return other.compare(one) == 0; }
+constexpr bool operator==(const byte *one, const string_view &other) { return other.compare(string_view(one)) == 0; }
 constexpr bool operator!=(const byte *one, const string_view &other) { return !(one == other); }
-constexpr bool operator<(const byte *one, const string_view &other) { return other.compare(one) > 0; }
-constexpr bool operator>(const byte *one, const string_view &other) { return other.compare(one) < 0; }
+constexpr bool operator<(const byte *one, const string_view &other) { return other.compare(string_view(one)) > 0; }
+constexpr bool operator>(const byte *one, const string_view &other) { return other.compare(string_view(one)) < 0; }
 constexpr bool operator<=(const byte *one, const string_view &other) { return !(one > other); }
 constexpr bool operator>=(const byte *one, const string_view &other) { return !(one < other); }
 
-constexpr bool operator==(const char *one, const string_view &other) { return other.compare(one) == 0; }
+constexpr bool operator==(const char *one, const string_view &other) { return other.compare(string_view(one)) == 0; }
 constexpr bool operator!=(const char *one, const string_view &other) { return !(one == other); }
-constexpr bool operator<(const char *one, const string_view &other) { return other.compare(one) > 0; }
-constexpr bool operator>(const char *one, const string_view &other) { return other.compare(one) < 0; }
+constexpr bool operator<(const char *one, const string_view &other) { return other.compare(string_view(one)) > 0; }
+constexpr bool operator>(const char *one, const string_view &other) { return other.compare(string_view(one)) < 0; }
 constexpr bool operator<=(const char *one, const string_view &other) { return !(one > other); }
 constexpr bool operator>=(const char *one, const string_view &other) { return !(one < other); }
 

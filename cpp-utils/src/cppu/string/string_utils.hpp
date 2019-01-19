@@ -269,6 +269,12 @@ constexpr char32_t decode_code_point(const byte *str) {
 // For example 5 maps to 5
 // but -5 maps to length - 5
 // This function is used to support python-like negative indexing.
+constexpr size_t translate_index_unchecked(s64 index, size_t length) {
+    if (index < 0) return (size_t)(length + index);
+    return (size_t) index;
+}
+
+// This function checks if the index is in range
 constexpr size_t translate_index(s64 index, size_t length) {
     if (index < 0) {
         s64 actual = length + index;

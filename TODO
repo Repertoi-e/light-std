@@ -2,7 +2,7 @@
 - File I/O Reader and Writer
 - File system
 
-- string: add codepoint at index, remove codepoint at index, replace, replace_all
+- string: replace, replace_all
 
 - Add ability for custom types in Reader (similar to fmt::Formatter)
 

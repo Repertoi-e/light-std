@@ -130,36 +130,57 @@ void string::reserve(size_t size) {
 }
 
 void string::set(s64 index, char32_t codePoint) {
+    size_t cpSize = get_size_of_code_point(codePoint);
     const byte *target = get_pointer_to_code_point_at(Data, Length, index);
+    size_t cpSizeTarget = get_size_of_code_point(target);
+    s64 diff = (s64) cpSize - (s64) cpSizeTarget;
 
     uptr_t offset = (uptr_t)(target - Data);
-    assert(offset < ByteLength);
+    reserve((size_t)((s64) ByteLength + diff));
 
-    byte *at = Data + offset;
+    // We may have moved Data while reserving space!
+    target = Data + offset;
+    move_memory(Data + offset + cpSize, target + cpSizeTarget, ByteLength - (target - Data) - cpSizeTarget);
+    encode_code_point(Data + offset, codePoint);
 
-    size_t sizeAtTarget = get_size_of_code_point(at);
-    assert(sizeAtTarget);
+    ByteLength += diff;
+}
 
-    size_t codePointSize = get_size_of_code_point(codePoint);
+void string::add(s64 index, char32_t codePoint) {
+    size_t cpSize = get_size_of_code_point(codePoint);
+    reserve(ByteLength + cpSize);
 
-    s32 difference = (s32) sizeAtTarget - (s32) codePointSize;
-    if (difference < 0) {
-        // If we get here, the size of the codepoint we want to encode
-        // is larger than the code point already there, so we need to move
-        // the data to make enough space.
-        reserve(ByteLength - difference);
-
-        // We need to recalculate _at_, because the reserve call above
-        // might have moved the Data to a new memory location.
-        at = Data + offset;
-
-        move_memory(at + codePointSize, at + sizeAtTarget, ByteLength - (at - Data) - sizeAtTarget);
-    } else if (difference > 0) {
-        move_memory(at + codePointSize, at + sizeAtTarget, ByteLength - (at - Data) - sizeAtTarget);
+    size_t translated = (size_t) index;
+    if (index < 0) {
+        translated = Length + index;
     }
-    ByteLength -= difference;
+    if (translated >= Length) {
+        if (translated == Length) {
+            append(codePoint);
+            return;
+        }
+        assert(false && "Cannot add code point at specified index (out of range)");
+    }
 
-    encode_code_point(at, codePoint);
+    const byte *target = get_pointer_to_code_point_at(Data, Length, translated);
+    uptr_t offset = (uptr_t)(target - Data);
+    move_memory(Data + offset + cpSize, target, ByteLength - (target - Data));
+
+    encode_code_point(Data + offset, codePoint);
+
+    ByteLength += cpSize;
+    ++Length;
+}
+
+void string::remove(s64 index) {
+    const byte *target = get_pointer_to_code_point_at(Data, Length, index);
+    size_t cpSize = get_size_of_code_point(target);
+
+    uptr_t offset = (uptr_t)(target - Data);
+    move_memory(Data + offset, target + cpSize, cpSize);
+
+    ByteLength -= cpSize;
+    --Length;
 }
 
 void string::append(const string &other) {
