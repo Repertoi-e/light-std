@@ -15,6 +15,17 @@ namespace io {
 
 constexpr byte eof = -1;
 
+class Reader;
+
+template <typename T, typename Enable = void>
+struct Deserializer {
+    // Return false on failure, true if the read completed successfully
+    bool read(T &, Reader &) {
+        static_assert(false, "Deserializer<T> not specialized");
+        return false;
+    }
+};
+
 // Provides a way to parse types and any bytes with a simple extension API.
 // Any subclass needs to implement just _request_byte_. Every other function
 // in this class is implemented around that.
@@ -230,6 +241,12 @@ class Reader {
             ParseError = true;
             ReachedEOF = true;
         }
+    }
+
+    template <typename T>
+    std::enable_if_t<!std::is_arithmetic_v<T> && !std::is_same_v<T, string>> read(T &value) {
+        Deserializer<T> deserializer;
+        ParseError = !deserializer.read(value, *this);
     }
 
 #define check_eof(x)       \
@@ -468,7 +485,7 @@ class Reader {
                 Current += size;
                 Available -= size;
             } else {
-                byte ch= request_byte_and_incr();
+                byte ch = request_byte_and_incr();
                 if (ch == eof) break;
 
                 *buffer++ = ch;
@@ -529,6 +546,14 @@ class Reader {
     // By default, when reading codepoints, integers, etc. any white space is disregarded.
     // If you don't want that, set this flag to false.
     bool SkipWhitespace = true;
+};
+
+template <typename T>
+struct Deserializer<T, typename std::enable_if_t<std::is_arithmetic_v<T> || std::is_same_v<T, string>>> {
+    bool read(T &value, Reader &reader) {
+        reader.read(value);
+        return !reader.FailedParse;
+    }
 };
 
 struct String_Reader : Reader {

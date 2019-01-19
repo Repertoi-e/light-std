@@ -216,16 +216,6 @@ struct string {
     size_t count(char32_t cp) { return get_view().count(cp); }
     size_t count(const string_view &view) { return get_view().count(view); }
 
-    void replace(char32_t what, char32_t withWhat, s64 start = 0);
-    void replace(const string_view &what, char32_t withWhat, s64 start = 0);
-    void replace(char32_t what, const string_view &withWhat, s64 start = 0);
-    void replace(const string_view &what, const string_view &withWhat, s64 start = 0);
-
-    void replace_all(char32_t what, char32_t withWhat, s64 after = 0);
-    void replace_all(const string_view &what, char32_t withWhat, s64 start = 0);
-    void replace_all(char32_t what, const string_view &withWhat, s64 start = 0);
-    void replace_all(const string_view &what, const string_view &withWhat, s64 start = 0);
-
     // Append one string to another
     void append(const string &other);
 

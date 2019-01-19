@@ -50,3 +50,22 @@ TEST(floats) {
     }
     assert_eq(results, to_array(-2305.02, 2050.02502, 10e10, -520.20501, 5.2e2));
 }
+
+struct Custom_Int {
+    s32 v = 0;
+};
+
+template <>
+struct io::Deserializer<Custom_Int> {
+    bool read(Custom_Int &value, Reader &reader) {
+        reader.read(value.v);
+        return !reader.FailedParse;
+    }
+};
+
+TEST(custom_types) {
+    io::String_Reader in("42");
+    Custom_Int myType;
+    in.read(myType);
+    assert_eq(myType.v, 42);
+}

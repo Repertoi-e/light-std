@@ -2,12 +2,10 @@
 - File I/O Reader and Writer
 - File system
 
-- string: replace, replace_all
-
-- Add ability for custom types in Reader (similar to fmt::Formatter)
-
 - Time?
 - Random?
+
+- string::replace 
 
 - Support for threads
 - Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
