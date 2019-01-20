@@ -78,11 +78,11 @@ struct string {
                 greater = Index;
             }
             s64 difference = greater - lesser;
-            return Current <= other.Current ? difference : -difference;
+            return Index <= other.Index ? difference : -difference;
         }
 
-        Iterator operator+(s64 amount) const { return Iterator(Parent, index + amount); }
-        Iterator operator-(s64 amount) const { return Iterator(Parent, index - amount); }
+        Iterator operator+(s64 amount) const { return Iterator(Parent, Index + amount); }
+        Iterator operator-(s64 amount) const { return Iterator(Parent, Index - amount); }
 
         friend inline Iterator operator+(s64 amount, const Iterator &it) { return it + amount; }
         friend inline Iterator operator-(s64 amount, const Iterator &it) { return it - amount; }

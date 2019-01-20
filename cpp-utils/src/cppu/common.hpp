@@ -22,16 +22,17 @@
 #include <algorithm>
 #include <limits>
 #include <utility>
+#include <stdint.h>
 
-using s8 = char;
-using s16 = short;
-using s32 = int;
-using s64 = long long;
+using s8 = int8_t;
+using s16 = int16_t;
+using s32 = int32_t;
+using s64 = int64_t;
 
-using u8 = unsigned char;
-using u16 = unsigned short;
-using u32 = unsigned;
-using u64 = unsigned long long;
+using u8 = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
 
 using byte = u8;
 
@@ -49,6 +50,13 @@ using size_t = uptr_t;
 // This constant is used to represent an invalid index
 // (e.g. the result of a search)
 static constexpr size_t npos = (size_t) -1;
+
+#define        __LITTLE_ENDIAN     1234
+#define        __BIG_ENDIAN        4321
+#define        __PDP_ENDIAN        3412
+
+/* This file defines `__BYTE_ORDER' for the particular machine.  */
+#include <bits/endian.h>
 
 #define MSVC 1
 #define CLANG 2
@@ -96,13 +104,13 @@ CPPU_END_NAMESPACE
 //    size_t mySize = 10MiB;
 //    mySize = 10GiB;
 //
-inline constexpr size_t operator"" _B(u64 i) {
+inline constexpr size_t operator"" _B(unsigned long long i) {
     return (size_t)(i);  // For completeness
 }
 
-inline constexpr size_t operator"" _KiB(u64 i) { return (size_t)(i) << 10; }
-inline constexpr size_t operator"" _MiB(u64 i) { return (size_t)(i) << 20; }
-inline constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
+inline constexpr size_t operator"" _KiB(unsigned long long i) { return (size_t)(i) << 10; }
+inline constexpr size_t operator"" _MiB(unsigned long long i) { return (size_t)(i) << 20; }
+inline constexpr size_t operator"" _GiB(unsigned long long i) { return (size_t)(i) << 30; }
 
 // Go-style defer macro
 // Use:

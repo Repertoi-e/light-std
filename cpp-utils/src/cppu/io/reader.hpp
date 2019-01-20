@@ -21,7 +21,8 @@ template <typename T, typename Enable = void>
 struct Deserializer {
     // Return false on failure, true if the read completed successfully
     bool read(T &, Reader &) {
-        static_assert(false, "Deserializer<T> not specialized");
+        assert(false);
+        // static_assert(false, "Deserializer<T> not specialized");
         return false;
     }
 };

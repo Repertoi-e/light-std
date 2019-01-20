@@ -2,16 +2,19 @@
 
 #if OS == LINUX || OS == MAC
 
-#include "io/writer.hpp"
+#include "io/io.hpp"
 
 #include "memory/allocator.hpp"
-#include "string/print.hpp"
+
+#include "format/fmt.hpp"
 
 #include <sys/mman.h>
 #include <sys/time.h>
 
 #include <termios.h>
 #include <unistd.h>
+
+#include <csignal>
 
 CPPU_BEGIN_NAMESPACE
 
@@ -39,26 +42,62 @@ void *linux_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMem
     return null;
 }
 
-Allocator_Func __default_allocator = linux_allocator;
+Allocator_Func DefaultAllocator = linux_allocator;
 
-void exit_program(int code) { _exit(code); }
+void os_exit_program(int code) { _exit(code); }
 
-void default_assert_failed(const char *file, int line, const char *condition) {
-    print("\033[31m>>> %:%, Assert failed: %\033[0m\n", file, line, condition);
-    exit_program(-1);
+void os_assert_failed(const char *file, int line, const char *condition) {
+    fmt::print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::FG::Red, file, line, condition, fmt::FG::Reset);
+#if COMPILER == GCC || COMPILER == CLANG
+    std::raise(SIGINT);
+#else
+    os_exit_program(-1);
+#endif
 }
 
-Writer &Console_Writer::write(const string_view &str) {
-    write(STDOUT_FILENO, str.Data, str.Size);
-    return *this;
+#define CONSOLE_BUFFER_SIZE 1_KiB
+
+io::Console_Writer::Console_Writer() {
+    Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
+    Current = Buffer;
+    Available = CONSOLE_BUFFER_SIZE;
 }
 
-void wait_for_input(b32 message) {
-    if (message) print("Press ENTER to continue...\n");
-    getchar();
+void io::Console_Writer::write(const Memory_View &str) {
+    if (str.ByteLength > Available) {
+        flush();
+    }
+
+    copy_memory(Current, str.Data, str.ByteLength);
+    Current += str.ByteLength;
+    Available -= str.ByteLength;
 }
 
-f64 get_wallclock_in_seconds() {
+void io::Console_Writer::flush() {
+    ::write(STDOUT_FILENO, Buffer, CONSOLE_BUFFER_SIZE - Available);
+
+    Current = Buffer;
+    Available = CONSOLE_BUFFER_SIZE;
+}
+
+io::Console_Reader::Console_Reader() {
+    // Leak, but doesn't matter since the object is global
+    Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
+    Current = Buffer;
+}
+
+byte io::Console_Reader::request_byte() {
+    assert(Available == 0);  // Sanity
+
+    size_t read = ::read(STDIN_FILENO, (char *) Buffer, CONSOLE_BUFFER_SIZE);
+
+    Current = Buffer;
+    Available = read;
+
+    return (read == 0) ? io::eof : (*Current);
+}
+
+f64 os_get_wallclock_in_seconds() {
     timeval time;
     assert(!gettimeofday(&time, 0));
     return (f64) time.tv_sec + (f64) time.tv_usec * 0.000001;
@@ -66,4 +105,4 @@ f64 get_wallclock_in_seconds() {
 
 CPPU_END_NAMESPACE
 
-#endif  // defined OS_LINUX || defined OS_MAC
+#endif  // OS == LINUX || OS == MAC

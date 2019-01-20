@@ -129,7 +129,7 @@ struct Dynamic_Array {
         Data_Type *index = Data;
         For(range(Count)) {
             if (*index-- == item) {
-                return Count - i - 1;
+                return Count - it - 1;
             }
         }
         return npos;

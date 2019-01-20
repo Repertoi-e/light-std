@@ -2,6 +2,8 @@
 
 #include <cppu/format/fmt.hpp>
 
+#include <limits.h>
+
 struct Custom_Type {};
 
 template <>

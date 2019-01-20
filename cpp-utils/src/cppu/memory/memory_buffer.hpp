@@ -114,7 +114,7 @@ struct Memory_Buffer {
     }
     void append_cstring(const byte *data) { append_pointer_and_size(data, cstring_strlen(data)); }
     void append_cstring_unsafe(const char *data) {
-        append_pointer_and_size_unsafe((const byte *) data, cstring_strlen(data));
+        append_pointer_and_size_unsafe((const byte *) data, cstring_strlen((const byte *) data));
     }
     void append_cstring_unsafe(const byte *data) {
         append_pointer_and_size_unsafe(data, cstring_strlen((const byte *) data));

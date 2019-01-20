@@ -109,7 +109,7 @@ byte io::Console_Reader::request_byte() {
     Current = Buffer;
     Available = read;
 
-    return (read == 0) ? eof : (*Current);
+    return (read == 0) ? io::eof : (*Current);
 }
 
 f64 os_get_wallclock_in_seconds() {

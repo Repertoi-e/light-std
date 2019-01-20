@@ -4,6 +4,8 @@
 
 #include "../memory/memory_buffer.hpp"
 
+#include "format_integer.hpp"
+
 #include "specs.hpp"
 
 #include <stdio.h>
@@ -152,12 +154,20 @@ class fp {
     }
 };
 
+inline s32 my_ceil(f32 num) {
+    s32 inum = (s32) num;
+    if (num == (f32) inum) {
+        return inum;
+    }
+    return inum + 1;
+}
+
 // Returns cached power (of 10) c_k = c_k.f * pow(2, c_k.e) such that its
 // (binary) exponent satisfies min_exponent <= c_k.e <= min_exponent + 3.
 inline fp get_cached_power(s32 minExponent, s32 &pow10Exp) {
     constexpr double ONE_OVER_LOG2_10 = 0.30102999566398114;  // 1 / log2(10)
 
-    s32 index = (s32)(std::ceil((minExponent + fp::SIGNIFICAND_SIZE - 1) * ONE_OVER_LOG2_10));
+    s32 index = my_ceil((minExponent + fp::SIGNIFICAND_SIZE - 1) * ONE_OVER_LOG2_10);
     // Decimal exponent of the first (smallest) cached power of 10.
     constexpr s32 FIRST_DEC_EXP = -348;
     // Difference between 2 consecutive decimal exponents in cached powers of 10.

@@ -163,7 +163,7 @@ string sprint(const string_view &formatString, Args &&... args) {
 }
 
 template <typename... Args>
-void tprint(const string_view &formatString, Args &&... args) {
+string tprint(const string_view &formatString, Args &&... args) {
     auto tempContext = Context;
     tempContext.Allocator = TEMPORARY_ALLOC;
 

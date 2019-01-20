@@ -1,5 +1,6 @@
 #include "common.hpp"
 
+#if 0 
 #if OS == LINUX || OS == MAC
 
 #include "file/local_file_path.hpp"
@@ -131,3 +132,4 @@ bool rename(Local_File_Path const &path, string const &name) {
 CPPU_END_NAMESPACE
 
 #endif  // defined OS_LINUX || defined OS_MAC
+#endif

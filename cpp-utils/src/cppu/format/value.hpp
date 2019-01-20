@@ -193,10 +193,10 @@ struct Value {
         Custom_Value Custom_Value;
     };
 
-    constexpr Value(s32 value = 0) : S32_Value(value) {}
-    Value(u32 value) { U32_Value = value; }
-    Value(s64 value) { S64_Value = value; }
-    Value(u64 value) { U64_Value = value; }
+    constexpr Value(int value = 0) : S32_Value(value) {}
+    Value(unsigned value) { U32_Value = value; }
+    Value(long long value) { S64_Value = value; }
+    Value(unsigned long long value) { U64_Value = value; }
     Value(f64 value) { F64_Value = value; }
     Value(const byte *value) : String_Value(value, cstring_strlen(value)) {}
     Value(const char *value) : Value((const byte *) value) {}
@@ -233,37 +233,39 @@ struct Init_Value {
 #define MAKE_VALUE_SAME_HELPER(TAG, Type) \
     constexpr Init_Value<Type, TAG> make_value(Type value) { return value; }
 
-MAKE_VALUE_HELPER(Format_Type::BOOL, bool, s32)
-MAKE_VALUE_HELPER(Format_Type::S32, s16, s32)
-MAKE_VALUE_HELPER(Format_Type::U32, u16, u32)
-MAKE_VALUE_SAME_HELPER(Format_Type::S32, s32)
-MAKE_VALUE_SAME_HELPER(Format_Type::U32, u32)
+MAKE_VALUE_HELPER(Format_Type::BOOL, bool, int)
+MAKE_VALUE_HELPER(Format_Type::S32, short, int)
+MAKE_VALUE_HELPER(Format_Type::U32, unsigned short, unsigned)
+MAKE_VALUE_SAME_HELPER(Format_Type::S32, int)
+MAKE_VALUE_SAME_HELPER(Format_Type::U32, unsigned)
 
 // To minimize the number of types we need to deal with, long is translated
 // either to int or to long long depending on its size.
-using long_type = std::conditional_t<sizeof(long) == sizeof(s32), s32, s64>;
-MAKE_VALUE_HELPER((sizeof(long) == sizeof(s32) ? Format_Type::S32 : Format_Type::S64), long, long_type)
-using ulong_type = std::conditional_t<sizeof(unsigned long) == sizeof(u32), u32, u64>;
-MAKE_VALUE_HELPER((sizeof(unsigned long) == sizeof(u32) ? Format_Type::U32 : Format_Type::U64), unsigned long,
+using long_type = std::conditional_t<sizeof(long) == sizeof(int), int, long long>;
+MAKE_VALUE_HELPER((sizeof(long) == sizeof(int) ? Format_Type::S32 : Format_Type::S64), long, long_type)
+using ulong_type = std::conditional_t<sizeof(unsigned long) == sizeof(unsigned), unsigned, unsigned long long>;
+MAKE_VALUE_HELPER((sizeof(unsigned long) == sizeof(unsigned) ? Format_Type::U32 : Format_Type::U64), unsigned long,
                   ulong_type)
 
-MAKE_VALUE_SAME_HELPER(Format_Type::S64, s64)
-MAKE_VALUE_SAME_HELPER(Format_Type::U64, u64)
-MAKE_VALUE_HELPER(Format_Type::S32, s8, s32)
-MAKE_VALUE_HELPER(Format_Type::U32, u8, u32)
-MAKE_VALUE_HELPER(Format_Type::U32, char32_t, u32)
+MAKE_VALUE_SAME_HELPER(Format_Type::S64, long long)
+MAKE_VALUE_SAME_HELPER(Format_Type::U64, unsigned long long)
+
+MAKE_VALUE_HELPER(Format_Type::S32, signed char, int)
+MAKE_VALUE_HELPER(Format_Type::U32, unsigned char, unsigned)
+
+constexpr Init_Value<int, Format_Type::S32> make_value(char val) { return val; }
 
 MAKE_VALUE_HELPER(Format_Type::F64, f32, f64)
 MAKE_VALUE_SAME_HELPER(Format_Type::F64, f64)
 
-MAKE_VALUE_HELPER(Format_Type::CSTRING, char *, const char *);
-MAKE_VALUE_HELPER(Format_Type::CSTRING, byte *, const byte *);
-MAKE_VALUE_SAME_HELPER(Format_Type::CSTRING, const char *);
-MAKE_VALUE_SAME_HELPER(Format_Type::CSTRING, const byte *);
-MAKE_VALUE_SAME_HELPER(Format_Type::STRING, string_view);
-MAKE_VALUE_HELPER(Format_Type::STRING, const string &, string_view);
+MAKE_VALUE_HELPER(Format_Type::CSTRING, char *, const char *)
+MAKE_VALUE_HELPER(Format_Type::CSTRING, byte *, const byte *)
+MAKE_VALUE_SAME_HELPER(Format_Type::CSTRING, const char *)
+MAKE_VALUE_SAME_HELPER(Format_Type::CSTRING, const byte *)
+MAKE_VALUE_SAME_HELPER(Format_Type::STRING, string_view)
+MAKE_VALUE_HELPER(Format_Type::STRING, const string &, string_view)
 
-MAKE_VALUE_HELPER(Format_Type::POINTER, void *, const void *);
+MAKE_VALUE_HELPER(Format_Type::POINTER, void *, const void *)
 MAKE_VALUE_SAME_HELPER(Format_Type::POINTER, const void *)
 
 MAKE_VALUE_HELPER(Format_Type::POINTER, std::nullptr_t, const void *)
