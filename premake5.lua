@@ -1,3 +1,39 @@
+premake.tools.zapcc = {}
+
+local local_zapcc = premake.tools.zapcc
+local local_gcc = premake.tools.gcc
+
+local_zapcc.getcflags             = local_gcc.getcflags
+local_zapcc.getcxxflags           = local_gcc.getcxxflags
+local_zapcc.getforceincludes      = local_gcc.getforceincludes
+local_zapcc.getldflags            = local_gcc.getldflags
+local_zapcc.getcppflags           = local_gcc.getcppflags
+local_zapcc.getdefines            = local_gcc.getdefines
+local_zapcc.getundefines          = local_gcc.getundefines
+local_zapcc.getrunpathdirs        = local_gcc.getrunpathdirs
+local_zapcc.getincludedirs        = local_gcc.getincludedirs
+local_zapcc.getLibraryDirectories = local_gcc.getLibraryDirectories
+local_zapcc.getlinks              = local_gcc.getlinks
+local_zapcc.getmakesettings       = local_gcc.getmakesettings
+
+function local_zapcc.gettoolname(cfg, tool)  
+  if tool == "cc" then
+    name = "zapcc"  
+  elseif tool == "cxx" then
+    name = "zapcc++"
+  elseif tool == "ar" then
+    name = "ar"
+  else
+    name = nil
+  end
+  return name
+end
+
+newoption {
+    trigger     = "use-zapcc",
+    description = "If you have zapcc installed, you can use it for debug builds to speed up building."
+}
+
 workspace "cpp-utils"
     architecture "x64"
 
@@ -66,14 +102,15 @@ project "cpp-utils"
     filter "configurations:Dist"
         defines "CPPU_DIST"
         optimize "On"
-
+    configuration "use-zapcc"
+        toolset "zapcc"
 
 project "cpp-utils-tests"
     location "cpp-utils-tests"
     kind "ConsoleApp"
     language "C++"
     architecture "x64"
-
+    
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
     objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
@@ -121,6 +158,8 @@ project "cpp-utils-tests"
     filter "configurations:Dist"
         defines "CPPU_DIST"
         optimize "On"
+    configuration "use-zapcc"
+        toolset "zapcc"
 
 project "benchmark"
     location "benchmark"
@@ -187,3 +226,5 @@ project "benchmark"
     filter "configurations:Dist"
         defines "CPPU_DIST"
         optimize "On"
+    configuration "use-zapcc"
+        toolset "zapcc"

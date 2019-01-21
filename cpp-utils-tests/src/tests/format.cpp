@@ -360,6 +360,6 @@ TEST(pointer) {
     assert_eq("0x0", fmt::sprint("{0}", (void *) null));
     assert_eq("0x1234", fmt::sprint("{0}", (void *) 0x1234));
     assert_eq("0x1234", fmt::sprint("{0:p}", (void *) 0x1234));
-    assert_eq("0x" + string("f").repeated(sizeof(void *) * CHAR_BIT / 4), fmt::sprint("{0}", (void *) (~uptr_t())));
+    assert_eq("0x" + string("f").repeated(sizeof(void *) * 2), fmt::sprint("{0}", (void *) (~uptr_t())));
     assert_eq("0x0", fmt::sprint("{}", null));
 }
