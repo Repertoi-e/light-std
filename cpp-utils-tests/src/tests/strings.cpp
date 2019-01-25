@@ -1,7 +1,5 @@
-﻿#include <cppu/memory/pool.hpp>
-#include <cppu/memory/table.hpp>
-
-#include <cppu/format/fmt.hpp>
+﻿#include <cppu/containers.hpp>
+#include <cppu/io.hpp>
 
 #include "../test.hpp"
 

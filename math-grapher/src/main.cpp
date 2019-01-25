@@ -1,5 +1,4 @@
-#include <cppu/io/io.hpp>
-#include <cppu/format/fmt.hpp>
+#include <cppu/io.hpp>
 
 int main() {
     fmt::print("Hello, world!\n");

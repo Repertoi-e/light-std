@@ -8,12 +8,7 @@ int _fltused;
 }
 #endif
 
-#include "io/reader.hpp"
-#include "io/writer.hpp"
-
-#include "format/console_colors.hpp"
-#include "format/fmt.hpp"
-#include "memory/allocator.hpp"
+#include "io.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>

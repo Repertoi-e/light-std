@@ -1,6 +1,6 @@
 #include "../test.hpp"
 
-#include <cppu/format/fmt.hpp>
+#include <cppu/io.hpp>
 
 #include <limits.h>
 

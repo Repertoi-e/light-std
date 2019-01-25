@@ -1,11 +1,7 @@
 #include "../test.hpp"
 
-#include <cppu/memory/array.hpp>
-#include <cppu/memory/dynamic_array.hpp>
-
-#include <cppu/format/fmt.hpp>
-
-#include <array>
+#include <cppu/containers.hpp>
+#include <cppu/io.hpp>
 
 TEST(static_array) {
     Array<s32, 5> ints = {0, 1, 2, 3, 4};

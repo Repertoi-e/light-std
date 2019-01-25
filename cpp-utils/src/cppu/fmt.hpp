@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../memory/temporary_allocator.hpp"
-#include "../memory/dynamic_array.hpp"
+#include "memory/temporary_allocator.hpp"
+#include "memory/dynamic_array.hpp"
 
-#include "console_colors.hpp"
-#include "core.hpp"
-#include "parse.hpp"
+#include "format/console_colors.hpp"
+#include "format/core.hpp"
+#include "format/parse.hpp"
 
 CPPU_BEGIN_NAMESPACE
 

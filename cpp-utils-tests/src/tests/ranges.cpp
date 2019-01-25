@@ -1,6 +1,6 @@
 #include "../test.hpp"
 
-#include <cppu/format/fmt.hpp>
+#include <cppu/io.hpp>
 
 template <size_t N>
 void test_expected(Array<s32, N> expected, s64 start, s64 stop, s64 step = 1) {
