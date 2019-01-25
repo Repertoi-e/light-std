@@ -174,6 +174,12 @@ class Reader {
     // The newline is NOT included in the string
     void read(string &str) { return read(str, U'\n'); }
 
+    // Read until newline and ignore it
+    void read() {
+        string ignored;
+        read(ignored);
+    }
+
     // Parse an integer from the stream
     // You can supply a custom base the integer is encoded in.
     // 0 means it is automatically determined: 0x prefix - hex, 0 prefix - oct, otherwise - decimal
