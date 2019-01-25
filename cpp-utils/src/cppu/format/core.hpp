@@ -12,6 +12,8 @@
 #include "specs.hpp"
 #include "value.hpp"
 
+#include "../intrinsics/intrin.h"
+
 #include <type_traits>
 
 CPPU_BEGIN_NAMESPACE
@@ -409,56 +411,9 @@ struct Format_Context : io::Writer {
         bool upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
         if (t == 0 || t == 'G') t = 'f';
 
-        byte signBit = 0;
-        if constexpr (sizeof(T) == sizeof(f32)) {
-            union IEEEf2bits {
-        	f32 f;
-        	struct {
-        #if __BYTE_ORDER == __LITTLE_ENDIAN
-        		u32 sign :1;
-        		u32 exp	:8;
-        		u32 man	:23;
-        #else /* _BIG_ENDIAN */
-                u32 man	:23;
-        		u32 exp	:8;
-        		u32 sign :1;
-        #endif
-        	    } bits;
-            };
-            IEEEf2bits u;
-            u.f = value;
-            signBit = u.bits.sign;
-        } else if constexpr (sizeof(T) == sizeof(f64)) {
-            union IEEEd2bits {
-            	f64	d;
-            	struct {
-            /* #ifdef __ARMEB__ */
-            #if (__BYTE_ORDER == __BIG_ENDIAN) || (defined(__arm__) && !defined(__VFP_FP__))
-            		u32 manh	:20;
-            		u32 exp	:11;
-            		u32 sign	:1;
-            		u32 manl	:32;
-            #elif  __BYTE_ORDER == __LITTLE_ENDIAN 
-            		u32 manl	:32;
-            		u32 manh	:20;
-            		u32 exp	:11;
-            		u32 sign	:1;
-            #elif __BYTE_ORDER == __BIG_ENDIAN
-            		u32 sign	:1;
-            		u32 exp	:11;
-            		u32 manh	:20;
-            		u32 manl	:32;
-            #endif
-            	} bits;
-            };
-            IEEEd2bits u;
-            u.d = value;
-            signBit = u.bits.sign;
-        }
-
         byte sign = 0;
         // Check signbit instead of value < 0 because the latter is always false for NaN.
-        if (signBit) {
+        if (sign_bit(value)) {
             sign = '-';
             value = -value;
         } else if (ParseContext.Specs.has_flag(Flag::SIGN)) {

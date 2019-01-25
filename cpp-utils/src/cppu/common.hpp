@@ -4,9 +4,6 @@
 // A header with common definitions and helper macros and functions
 //
 
-// @Temp
-#define CPPU_NAMESPACE_NAME cppu
-
 // By default everything is outside namespace, but if that's a problem for the
 // user, provide a way to specify a namespace in which everything gets wrapped.
 #if !defined CPPU_NAMESPACE_NAME
@@ -19,10 +16,10 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 #include <algorithm>
 #include <limits>
 #include <utility>
-#include <stdint.h>
 
 using s8 = int8_t;
 using s16 = int16_t;
@@ -51,28 +48,23 @@ using size_t = uptr_t;
 // (e.g. the result of a search)
 static constexpr size_t npos = (size_t) -1;
 
-#define        __LITTLE_ENDIAN     1234
-#define        __BIG_ENDIAN        4321
-#define        __PDP_ENDIAN        3412
-
-/* This file defines `__BYTE_ORDER' for the particular machine.  */
-#include <bits/endian.h>
-
+// Define compiler
 #define MSVC 1
 #define CLANG 2
 #define GCC 3
 
-// Determine compiler, at the moment only MSVC, Clang or GCC are detected
-#if defined(__clang__)
+// Only MSVC, Clang or GCC are detected
+#if defined __clang__
 #define COMPILER CLANG
-#elif defined(__GNUC__) || defined(__GNUG__)
+#elif defined __GNUC__ || defined __GNUG__
 #define COMPILER GCC
-#elif defined(_MSC_VER)
+#elif defined _MSC_VER
 #define COMPILER MSVC
 #else
 #warning Compiler not detected
 #endif
 
+// Define platform
 #define WINDOWS 1
 #define LINUX 2
 #define MAC 3
@@ -87,13 +79,54 @@ static constexpr size_t npos = (size_t) -1;
 #error Platform not set
 #endif
 
+// Define endianness
+#define LITTLE_ENDIAN 1234
+#define BIG_ENDIAN 4321
+
+#if defined __GLIBC__ || defined __GNU_LIBRARY__
+#include <endian.h>
+#else
+#if OS == MACOS
+#include <machine/endian.h>
+#else
+#endif
+#endif
+
+#if defined __BYTE_ORDER
+#if defined __BIG_ENDIAN && (__BYTE_ORDER == __BIG_ENDIAN)
+#define ENDIAN BIG_ENDIAN
+#endif
+#if defined __LITTLE_ENDIAN && (__BYTE_ORDER == __LITTLE_ENDIAN)
+#define ENDIAN LITTLE_ENDIAN
+#endif
+#endif
+#if !defined __BYTE_ORDER && defined _BYTE_ORDER
+#if defined _BIG_ENDIAN && (_BYTE_ORDER == _BIG_ENDIAN)
+#define ENDIAN BIG_ENDIAN
+#endif
+#if defined _LITTLE_ENDIAN && (_BYTE_ORDER == _LITTLE_ENDIAN)
+#define ENDIAN LITTLE_ENDIAN
+#endif
+#endif
+
+// Windows is always little-endian.
+#if !defined ENDIAN
+#if OS == WINDOWS
+#define ENDIAN LITTLE_ENDIAN
+#endif
+#endif
+
+#if !defined ENDIAN
+#error Endianness not detected
+#endif
+
+
 // A type-safe compile-time function that returns the number of elements in an array
 //
 //    int arr[25];
 //    constexpr size_t len = array_count(arr); // 25
 //
-CPPU_BEGIN_NAMESPACE
-template <typename T, size_t n>
+CPPU_BEGIN_NAMESPACE template <typename T, size_t n>
 constexpr size_t array_count(const T (&)[n]) {
     return n;
 }

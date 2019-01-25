@@ -165,7 +165,7 @@ inline s32 my_ceil(f32 num) {
 // Returns cached power (of 10) c_k = c_k.f * pow(2, c_k.e) such that its
 // (binary) exponent satisfies min_exponent <= c_k.e <= min_exponent + 3.
 inline fp get_cached_power(s32 minExponent, s32 &pow10Exp) {
-    constexpr double ONE_OVER_LOG2_10 = 0.30102999566398114;  // 1 / log2(10)
+    constexpr f32 ONE_OVER_LOG2_10 = (f32) 0.30102999566398114;  // 1 / log2(10)
 
     s32 index = my_ceil((minExponent + fp::SIGNIFICAND_SIZE - 1) * ONE_OVER_LOG2_10);
     // Decimal exponent of the first (smallest) cached power of 10.

@@ -186,7 +186,8 @@ project "benchmark"
     cppdialect "C++17"
     systemversion "latest"
     defines {
-        "_HAS_EXCEPTIONS=0"
+        "_HAS_EXCEPTIONS=0",
+        "CPPU_NAMESPACE_NAME=cppu"
     }
 
     filter "system:windows"
