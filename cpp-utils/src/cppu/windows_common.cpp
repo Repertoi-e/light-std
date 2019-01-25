@@ -11,6 +11,7 @@ int _fltused;
 #include "io/reader.hpp"
 #include "io/writer.hpp"
 
+#include "format/console_colors.hpp"
 #include "format/fmt.hpp"
 #include "memory/allocator.hpp"
 
@@ -112,19 +113,23 @@ byte io::Console_Reader::request_byte() {
     return (read == 0) ? io::eof : (*Current);
 }
 
-f64 os_get_wallclock_in_seconds() {
-    // #TODO: Not implemented
-    // #TODO: Not implemented
-    // #TODO: Not implemented
-    return 0;
-    // #TODO: Not implemented
-    // #TODO: Not implemented
-    // #TODO: Not implemented
+static LARGE_INTEGER g_PerformanceFrequency = {0};
 
-    // timeval time;
-    // assert(!gettimeofday(&time, 0));
-    // return (f64) time.tv_sec + (f64) time.tv_usec * 0.000001;
+f64 os_get_wallclock_in_seconds() {
+    if (g_PerformanceFrequency.QuadPart == 0) {
+        if (!QueryPerformanceFrequency(&g_PerformanceFrequency)) {
+            return 0;
+        }
+    }
+    LARGE_INTEGER time;
+    if (!QueryPerformanceCounter(&time)) {
+        return 0;
+    }
+    return (f64) time.QuadPart / g_PerformanceFrequency.QuadPart;
 }
+
+// All windows terminals support colors
+bool fmt::internal::does_terminal_support_color() { return true; }
 
 CPPU_END_NAMESPACE
 

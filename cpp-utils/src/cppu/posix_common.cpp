@@ -4,12 +4,17 @@
 
 #include "io/io.hpp"
 
+#include "format/console_colors.hpp"
 #include "memory/allocator.hpp"
+#include "memory/array.hpp"
+#include "string/string.hpp"
 
 #include "format/fmt.hpp"
 
 #include <sys/mman.h>
 #include <sys/time.h>
+
+#include <stdlib.h>
 
 #include <termios.h>
 #include <unistd.h>
@@ -101,6 +106,20 @@ f64 os_get_wallclock_in_seconds() {
     timeval time;
     assert(!gettimeofday(&time, 0));
     return (f64) time.tv_sec + (f64) time.tv_usec * 0.000001;
+}
+
+bool fmt::internal::does_terminal_support_color() {
+    const char *env = getenv("TERM");
+    if (!env) return false;
+
+    auto terms = to_array(string_view("ansi"), "color", "console", "cygwin", "gnome", "konsole", "kterm", "linux",
+        "msys", "putty", "rxvt", "screen", "vt100", "xterm");
+    For(terms) {
+        if (string_view(env).begins_with(it)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 CPPU_END_NAMESPACE
