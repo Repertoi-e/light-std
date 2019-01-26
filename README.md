@@ -1,6 +1,8 @@
-# cpp-utils
+# light-std
 A performance-oriented C++17 library for general programming that attempts to mimic Jai's context and allocators and provides common data structures that work with them.
+This library is supposed to be a lighter replacement of c/c++'s standard library in general. Anybody who thinks modern C++ is bananas, you've come to the right place!
 
+Example of custom allocations and implicit context:
 ```cpp
 // Fast arena allocator that's available globally; supports only "free all"
 temporary_storage_init(4_MiB);
@@ -19,7 +21,7 @@ PUSH_CONTEXT(tempContext) {
 Delete(memory1);
 ```
 
-The philosophy behind the containers' API is: concise code, less typing, as/or more expresive, more Python-ish:
+Example usage of data structures:
 ```cpp
 string a = "ЗДРАСТИ";
 for (auto ch : a) {
@@ -48,4 +50,5 @@ assert(integers == to_array(0, 1, 2, 3, 4));
 ```
 *More examples when the library is in a more solid state and API is finalized!*
 
-Currently the library is written with only x64 architecture in mind.
+The API is inspired by Rust and Python.
+

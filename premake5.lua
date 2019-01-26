@@ -34,7 +34,7 @@ newoption {
     description = "If you have zapcc installed, you can use it for debug builds to speed up building."
 }
 
-workspace "cpp-utils"
+workspace "light-std"
     architecture "x64"
 
     configurations
@@ -46,47 +46,47 @@ workspace "cpp-utils"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 function common_stuff()
+    architecture "x64"
     defines { "_HAS_EXCEPTIONS=0" }
     filter "system:windows"
-        defines "CPPU_PLATFORM_WINDOWS"
-        excludes "%{prj.name}/src/cppu/posix_*.cpp"
+        defines "LSTD_PLATFORM_WINDOWS"
+        excludes "%{prj.name}/src/posix_*.cpp"
     filter "system:linux"
-        defines "CPPU_PLATFORM_LINUX"
+        defines "LSTD_PLATFORM_LINUX"
         buildoptions "-fdiagnostics-absolute-paths"
-        excludes "%{prj.name}/src/cppu/windows_*.cpp"
+        excludes "%{prj.name}/src/windows_*.cpp"
     filter "system:macosx"
-        defines "CPPU_PLATFORM_MAC"
-        excludes "%{prj.name}/src/cppu/windows_*.cpp"
+        defines "LSTD_PLATFORM_MAC"
+        excludes "%{prj.name}/src/windows_*.cpp"
 
     filter "configurations:Debug"
-        defines "CPPU_DEBUG"
+        defines "LSTD_DEBUG"
         symbols "On"
 
     filter "configurations:Release"
-        defines "CPPU_RELEASE"
+        defines "LSTD_RELEASE"
         optimize "On"
 
     filter "configurations:Dist"
-        defines "CPPU_DIST"
+        defines "LSTD_DIST"
         optimize "On"
     configuration "use-zapcc"
         toolset "zapcc"
 end
 
-project "cpp-utils"
-    location "cpp-utils"
+project "light-std"
+    location "light-std"
     kind "StaticLib"
     language "C++"
     cppdialect "C++17"
-    architecture "x64"
     systemversion "latest"
 
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
     objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
     files {
-        "%{prj.name}/src/cppu/**.hpp",
-        "%{prj.name}/src/cppu/**.cpp"
+        "%{prj.name}/src/**.hpp",
+        "%{prj.name}/src/**.cpp"
     }
 
     includedirs {}
@@ -94,12 +94,11 @@ project "cpp-utils"
     common_stuff()
     
 
-project "cpp-utils-tests"
-    location "cpp-utils-tests"
+project "lstd-tests"
+    location "lstd-tests"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++17"
-    architecture "x64"
     systemversion "latest"
     
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
@@ -111,21 +110,20 @@ project "cpp-utils-tests"
     }
 
     includedirs {
-        "cpp-utils/src"
+        "light-std/src"
     }
 
     links {
-        "cpp-utils"
+        "light-std"
     }
 
     common_stuff()
 
-project "benchmark"
-    location "benchmark"
+project "lstd-benchmark"
+    location "lstd-benchmark"
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++17"
-    architecture "x64"
     systemversion "latest"
 
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
@@ -137,15 +135,15 @@ project "benchmark"
     }
 
     includedirs {
-        "cpp-utils/src"
+        "light-std/src"
     }
 
     links {
-        "cpp-utils"
+        "light-std"
     }
 
     defines {
-        "CPPU_NAMESPACE_NAME=cppu"
+        "LSTD_NAMESPACE_NAME=lstd"
     }
 
     common_stuff()
@@ -164,12 +162,11 @@ project "benchmark"
             "benchmark", "fmt"
         }
 
-project "math-grapher"
-    location "math-grapher"
-    kind "ConsoleApp"
+project "lstd-engine"
+    location "lstd-engine"
+    kind "SharedLib"
     language "C++"
     cppdialect "C++17"
-    architecture "x64"
     systemversion "latest"
 
     targetdir ("bin/" .. outputdir .. "/%{prj.name}")
@@ -181,11 +178,44 @@ project "math-grapher"
     }
 
     includedirs {
-        "cpp-utils/src"
+        "light-std/src"
     }
 
     links {
-        "cpp-utils"
+        "light-std"
+    }
+
+    defines {
+        "LE_BUILD_DLL"
+    }
+
+    -- Add projects that link to the engine here:
+    postbuildcommands ("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/math-grapher")
+
+    common_stuff()
+
+project "math-grapher"
+    location "math-grapher"
+    kind "ConsoleApp"
+    language "C++"
+    cppdialect "C++17"
+    systemversion "latest"
+
+    targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+    files {
+        "%{prj.name}/src/**.hpp",
+        "%{prj.name}/src/**.cpp"
+    }
+
+    includedirs {
+        "light-std/src",
+        "lstd-engine/src",
+    }
+
+    links {
+        "lstd-engine"
     }
 
     common_stuff()
