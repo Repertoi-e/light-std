@@ -44,6 +44,15 @@ struct Dynamic_Array {
         return *this;
     }
 
+    // Clears the array
+    void clear() {
+        auto it = end() - 1;
+        while (Count != 0) {
+            it->~Data_Type();
+            --Count;
+        };
+    }
+
     // Clears the array and deallocates memory
     void release() {
         if (Data) Delete(Data, Reserved, Allocator);
@@ -53,7 +62,8 @@ struct Dynamic_Array {
         Reserved = 0;
     }
 
-    void insert(Data_Type *where, const Data_Type &item) {
+    template <typename... Args>
+    void insert(Data_Type *where, Args &&... item) {
         uptr_t offset = where - begin();
         if (Count >= Reserved) {
             size_t required = 2 * Reserved;
@@ -69,7 +79,7 @@ struct Dynamic_Array {
         if (offset < Count) {
             move_elements(where + 1, where, Count - offset);
         }
-        *where = item;
+        *where = Data_Type(std::forward<Args>(item)...);
         Count++;
     }
 
@@ -96,20 +106,22 @@ struct Dynamic_Array {
         Count += elementsCount;
     }
 
-    void insert_front(const Data_Type &item) {
+    template <typename... Args>
+    void insert_front(Args &&... item) {
         if (Count == 0) {
-            add(item);
+            add(std::forward<Args>(item)...);
         } else {
-            insert(begin(), item);
+            insert(begin(), std::forward<Args>(item)...);
         }
     }
 
-    void add(const Data_Type &item) {
+    template <typename... Args>
+    void add(Args &&... item) {
         if (Count == 0) {
             reserve(8);
-            Data[Count++] = item;
+            Data[Count++] = Data_Type(std::forward<Args>(item)...);
         } else {
-            insert(end(), item);
+            insert(end(), std::forward<Args>(item)...);
         }
     }
 

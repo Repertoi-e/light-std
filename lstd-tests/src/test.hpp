@@ -63,7 +63,7 @@ struct Asserts {
                 g_TestTable.put(file, testsArray);                                        \
             }                                                                             \
                                                                                           \
-            testsArray->add({#name, &run});                                               \
+            testsArray->add(Test{#name, &run});                                           \
         }                                                                                 \
         static void run();                                                                \
     };                                                                                    \
