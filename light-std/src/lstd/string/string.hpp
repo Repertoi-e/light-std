@@ -141,7 +141,7 @@ struct string {
 
     // The allocator used for expanding the string.
     // This value is null until this object allocates memory or the user sets it manually.
-    Allocator_Closure Allocator;
+    mutable Allocator_Closure Allocator;
 
     string() {}
     // Construct from a null-terminated c-style string.
@@ -329,6 +329,20 @@ struct string {
     // Returns a substring of _str_ with whitespace
     // removed at the end.
     string_view trim_end() const { return get_view().trim_end(); }
+
+    // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
+    // The string returned is allocated by this object's allcoator and must be freed by the caller
+    wchar_t *to_utf16() const;
+
+    // Converts a null-terminated wide char string to utf-8 and stores it in this object
+    void from_utf16(const wchar_t *str);
+   
+    // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
+    // The string returned is allocated by this object's allcoator and must be freed by the caller
+    char32_t *to_utf32() const;
+
+    // Converts a null-terminated wide char string to utf-8 and stores it in this object
+    void from_utf32(const char32_t *str);
 
     bool begins_with(char32_t ch) const { return get_view().begins_with(ch); }
     bool begins_with(const string_view &other) const { return get_view().begins_with(other); }

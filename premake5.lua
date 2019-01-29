@@ -215,6 +215,7 @@ project "math-grapher"
     }
 
     links {
+        "light-std",
         "lstd-engine"
     }
 

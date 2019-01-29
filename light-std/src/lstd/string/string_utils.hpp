@@ -20,6 +20,24 @@ constexpr size_t cstring_strlen(const byte *str) {
     return length;
 }
 
+// Overload for wide chars
+constexpr size_t cstring_strlen(const wchar_t *str) {
+    if (str == null) return 0;
+
+    size_t length = 0;
+    while (*str++) length++;
+    return length;
+}
+
+// Overload for utf32 chars
+constexpr size_t cstring_strlen(const char32_t *str) {
+    if (str == null) return 0;
+
+    size_t length = 0;
+    while (*str++) length++;
+    return length;
+}
+
 // This is a constexpr function for working with utf8 strings at compile time
 // Retrieve the length of a valid utf8 string
 constexpr size_t utf8_strlen(const byte *str, size_t size) {

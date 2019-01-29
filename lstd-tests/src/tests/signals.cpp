@@ -8,7 +8,6 @@ static s32 my_callback2(s32 a) { return a + 2; }
 static s32 my_callback3(s32 a) { return a + 3; }
 
 TEST(global_function) {
-    // Event_Queue<int, > queue;
     Signal<s32(s32), Collector_Array<s32>> signal;
     signal.connect(my_callback);
     signal.connect(my_callback1);

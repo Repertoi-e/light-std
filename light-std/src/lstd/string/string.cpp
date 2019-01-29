@@ -74,6 +74,43 @@ void string::swap(string &other) {
     std::swap(Length, other.Length);
 }
 
+wchar_t *string::to_utf16() const {
+    auto *result = New_and_ensure_allocator<wchar_t>(Length, Allocator);
+    auto *p = result;
+    For(*this) {
+        if (it > 0xffff) {
+            *p++ = (u16)((it >> 10) + (0xd800u - (0x10000 >> 10)));
+            *p++ = (u16)((it & 0x3ff) + 0xdc00u);
+        } else {
+            *p++ = (u16) it;
+        }
+    }
+    *p = 0;
+    return result;
+}
+
+void string::from_utf16(const wchar_t *str) {
+    reserve(2 * cstring_strlen(str));
+    while (*str++) {
+        append((char32_t) *str);
+    }
+}
+
+char32_t *string::to_utf32() const {
+    auto *result = New_and_ensure_allocator<char32_t>(Length, Allocator);
+    auto *p = result;
+    For(*this) { *p++ = it; }
+    *p = 0;
+    return result;
+}
+
+void string::from_utf32(const char32_t *str) {
+    reserve(4 * cstring_strlen(str));
+    while (*str++) {
+        append(*str);
+    }
+}
+
 string &string::operator=(const string &other) {
     release();
 
