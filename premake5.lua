@@ -51,6 +51,9 @@ function common_stuff()
     filter "system:windows"
         defines "LSTD_PLATFORM_WINDOWS"
         excludes "%{prj.name}/src/posix_*.cpp"
+        links { "Winmm" }
+        ignoredefaultlibraries { "winspool", "comdlg32", "advapi32", "shell32", 
+                                 "ole32", "oleaut32", "uuid", "odbc32", "odbccp32" }
     filter "system:linux"
         defines "LSTD_PLATFORM_LINUX"
         buildoptions "-fdiagnostics-absolute-paths"

@@ -189,6 +189,12 @@ using std::min;
 // Platform specific utily functions:
 // Implementations in *platform*.cpp
 
+// Returns the elapsed real time in ticks (platform-specific meaning)
+s64 os_get_wallclock();
+
+// Get elapsed time in seconds between two points measured with os_get_wallclock()
+f64 os_get_elapsed_in_seconds(s64 begin, s64 end);
+
 // Returns the elapsed real time in seconds, platform-specific implementation
 f64 os_get_wallclock_in_seconds();
 

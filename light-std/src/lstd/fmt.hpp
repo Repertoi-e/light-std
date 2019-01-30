@@ -57,29 +57,7 @@ struct Formatter<Dynamic_Array<T>> {
 };
 
 namespace internal {
-template <size_t S>
-inline void helper_write(Memory_Buffer<S> &out, const byte *begin, const byte *end) {
-    if (begin == end) return;
-    while (true) {
-        auto view = Memory_View(begin, end - begin);
-        size_t curly = view.find('}');
-        if (curly == npos) {
-            out.append(view);
-            return;
-        }
-        auto p = begin + curly;
-        if (p == end || *p != '}') {
-            assert(false && "unmatched } in format string");
-            return;
-        }
-        out.append(view);
-        begin = p + 1;
-    }
-}
-
 inline void do_formatting(Format_Context &context) {
-    defer { context.flush(); };
-
     Argument arg;
 
     auto &specs = context.ParseContext.Specs;
@@ -89,11 +67,11 @@ inline void do_formatting(Format_Context &context) {
     while (it != end) {
         size_t curly = Memory_View(it, end - it).find('{');
         if (*it != '{' && curly == npos) {
-            internal::helper_write(context.Out, it, end);
+            context.Out.append(string_view(it, end - it));
             return;
         }
         auto p = it + curly;
-        internal::helper_write(context.Out, it, p);
+        context.Out.append(string_view(it, p - it));
         ++p;
         if (p == end) {
             assert(false && "Invalid format string");
@@ -107,7 +85,7 @@ inline void do_formatting(Format_Context &context) {
             specs = {};
             context.write_argument(arg);
         } else if (*p == '{') {
-            internal::helper_write(context.Out, p, p + 1);
+            context.Out.append(string_view(p, 1));
         } else {
             specs = {};
 
@@ -150,6 +128,7 @@ void to_writer(io::Writer &writer, const string_view &formatString, Args &&... a
     Arguments_Array<Args...> store = {args...};
     auto context = Format_Context(writer, formatString, Arguments(store));
     internal::do_formatting(context);
+    context.flush();
 }
 }  // namespace internal
 
@@ -176,6 +155,7 @@ string tprint(const string_view &formatString, Args &&... args) {
 template <typename... Args>
 void print(const string_view &formatString, Args &&... args) {
     internal::to_writer(*Context.Log, formatString, std::forward<Args>(args)...);
+    Context.Log->flush();
 }
 
 template <typename T>

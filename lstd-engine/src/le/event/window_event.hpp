@@ -25,7 +25,7 @@ struct LE_API Window_Lost_Focus_Event {
 
 struct LE_API Window_Moved_Event {
     Window *WindowPtr;
-    const u32 Left, Top;
+    const s32 Left, Top;
 };
 
 }  // namespace le

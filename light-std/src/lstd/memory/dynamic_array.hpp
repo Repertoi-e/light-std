@@ -33,14 +33,14 @@ struct Dynamic_Array {
     Dynamic_Array &operator=(const Dynamic_Array &other) {
         release();
 
-        Function(other).swap(*this);
+        Dynamic_Array(other).swap(*this);
         return *this;
     }
 
     Dynamic_Array &operator=(Dynamic_Array &&other) {
         release();
 
-        Function(std::move(other)).swap(*this);
+        Dynamic_Array(std::move(other)).swap(*this);
         return *this;
     }
 
@@ -62,8 +62,7 @@ struct Dynamic_Array {
         Reserved = 0;
     }
 
-    template <typename... Args>
-    void insert(Data_Type *where, Args &&... item) {
+    void insert(Data_Type *where, const Data_Type &item) {
         uptr_t offset = where - begin();
         if (Count >= Reserved) {
             size_t required = 2 * Reserved;
@@ -79,7 +78,7 @@ struct Dynamic_Array {
         if (offset < Count) {
             move_elements(where + 1, where, Count - offset);
         }
-        *where = Data_Type(std::forward<Args>(item)...);
+        *where = item;
         Count++;
     }
 
@@ -106,22 +105,20 @@ struct Dynamic_Array {
         Count += elementsCount;
     }
 
-    template <typename... Args>
-    void insert_front(Args &&... item) {
+    void insert_front(const Data_Type &item) {
         if (Count == 0) {
-            add(std::forward<Args>(item)...);
+            add(item);
         } else {
-            insert(begin(), std::forward<Args>(item)...);
+            insert(begin(), item);
         }
     }
 
-    template <typename... Args>
-    void add(Args &&... item) {
+    void add(const Data_Type &item) {
         if (Count == 0) {
             reserve(8);
-            Data[Count++] = Data_Type(std::forward<Args>(item)...);
+            Data[Count++] = item;
         } else {
-            insert(end(), std::forward<Args>(item)...);
+            insert(end(), item);
         }
     }
 

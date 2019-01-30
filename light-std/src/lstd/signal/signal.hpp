@@ -47,8 +47,12 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
         s32 RefCount;
 
         Signal_Link() : Callback() {}
-        Signal_Link(const callback_type &cbf) : Callback(cbf), RefCount(1) {}
         ~Signal_Link() { assert(RefCount == 0); }
+
+        void set_callback(const callback_type &cb) {
+            Callback = cb;
+            RefCount = 1;
+        }
 
         void incref() {
             RefCount += 1;
@@ -75,7 +79,7 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
 
         size_t add_before(const callback_type &cb, const Allocator_Closure &allocator) {
             Signal_Link *link = New<Signal_Link>(allocator);
-            new (link) Signal_Link(cb);
+            link->set_callback(cb);
 
             link->Prev = Prev;  // link to last
             link->Next = this;
@@ -148,7 +152,7 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
                 if (!this->invoke(collector, link->Callback, std::forward<Args>(args)...)) break;
             }
             Signal_Link *old = link;
-            link = old->Next;
+            link = old->Prev;
             link->incref();
             old->decref(Allocator);
         } while (link != CallbackRing);
@@ -161,9 +165,7 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
     void ensure_ring() {
         if (!CallbackRing) {
             CallbackRing = New_and_ensure_allocator<Signal_Link>(Allocator);
-            new (CallbackRing) Signal_Link(callback_type());
-
-            CallbackRing->incref();  // RefCount = 2, head of ring, can be deactivated but not removed
+            CallbackRing->incref();  // set RefCount = 2, head of ring, can be deactivated but not removed
             CallbackRing->Next = CallbackRing;
             CallbackRing->Prev = CallbackRing;
         }
@@ -171,7 +173,8 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
 };
 }  // namespace internal
 
-template <typename Signature, typename Collector = Collector_Default<typename fastdelegate::FastDelegate<Signature>::ReturnType>>
+template <typename Signature,
+          typename Collector = Collector_Default<typename fastdelegate::FastDelegate<Signature>::ReturnType>>
 struct Signal : internal::Proto_Signal<Signature, Collector> {
     using proto_signal = internal::Proto_Signal<Signature, Collector>;
     using callback_type = typename proto_signal::callback_type;

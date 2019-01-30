@@ -97,7 +97,6 @@ template <typename T>
 T *New(Allocator_Closure allocator = {0, 0}) {
     if (!allocator) allocator = CONTEXT_ALLOC;
     T *result = new (allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, sizeof(T), 0, 0, 0)) T;
-    zero_memory(result, sizeof(T));
     return result;
 }
 
@@ -106,7 +105,6 @@ T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
     if (!allocator) allocator = CONTEXT_ALLOC;
 
     T *result = (T *) allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, count * sizeof(T), 0, 0, 0);
-    zero_memory(result, count * sizeof(T));
     For(range(count)) new (result + it) T;
     return result;
 }

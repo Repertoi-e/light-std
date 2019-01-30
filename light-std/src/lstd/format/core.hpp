@@ -314,7 +314,6 @@ struct Format_Context : io::Writer {
 
     void flush() override {
         FlushOutput.write(Out.Data, Out.ByteLength);
-        FlushOutput.flush();
     }
 
     using io::Writer::write;

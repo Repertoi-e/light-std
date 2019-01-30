@@ -10,6 +10,24 @@
 
 namespace le {
 
+// Returns the last Win32 error, in string format. Returns an empty string if there is no error.
+string get_last_error_as_string() {
+    DWORD errorMessageID = ::GetLastError();
+    if (errorMessageID == 0) return "";
+
+    LPSTR messageBuffer = null;
+    size_t size = FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+        errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR) &messageBuffer, 0, NULL);
+
+    string message(messageBuffer, size);
+
+    // Free the buffer.
+    LocalFree(messageBuffer);
+
+    return message;
+}
+
 struct Windows_Data {
     HWND hWnd;
     wchar_t *LastTitle;
@@ -41,9 +59,12 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
             window = (Window *) ((CREATESTRUCT *) lParam)->lpCreateParams;
             SetWindowLongPtrW(hWnd, 0, (ptr_t) window);
             SetWindowPos(hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
-            break;
+            return DefWindowProc(hWnd, message, wParam, lParam);
         case WM_CLOSE:
             window->WindowClosedEvent.emit({window});
+            DestroyWindow(hWnd);
+            break;
+        case WM_DESTROY:
             PostQuitMessage(0);
             break;
         case WM_SIZE:
@@ -57,12 +78,12 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
             window->WindowLostFocusEvent.emit({window});
             break;
         case WM_MOVE:
-            window->WindowMovedEvent.emit({window, (u32) LOWORD(lParam), (u32) HIWORD(lParam)});
+            window->WindowMovedEvent.emit({window, (s32)(s16) LOWORD(lParam), (s32)(s16) HIWORD(lParam)});
             break;
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
             window->KeyPressedEvent.emit(
-                {window, KEYCODE_NATIVE_TO_HID[wParam], KEY_EVENT_GET_MODS, (bool) (lParam & 0xffff)});
+                {window, KEYCODE_NATIVE_TO_HID[wParam], KEY_EVENT_GET_MODS, (bool) (lParam & 0x40000000)});
             break;
         case WM_SYSKEYUP:
         case WM_KEYUP:
@@ -108,14 +129,14 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
                  MOUSE_EVENT_GET_MODS(LOWORD(wParam)), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MOUSEHWHEEL:
-            window->MouseScrolledEvent.emit({window, GET_WHEEL_DELTA_WPARAM(wParam), 0, GET_X_LPARAM(lParam),
-                                             GET_Y_LPARAM(lParam), MOUSE_EVENT_GET_MODS(LOWORD(wParam)),
-                                             MOUSE_EVENT_GET_BUTTONS_DOWN(LOWORD(wParam))});
+            window->MouseScrolledEvent.emit(
+                {window, GET_WHEEL_DELTA_WPARAM(wParam), 0, MOUSE_EVENT_GET_MODS(LOWORD(wParam)),
+                 MOUSE_EVENT_GET_BUTTONS_DOWN(LOWORD(wParam)), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MOUSEWHEEL:
-            window->MouseScrolledEvent.emit({window, 0, GET_WHEEL_DELTA_WPARAM(wParam), GET_X_LPARAM(lParam),
-                                             GET_Y_LPARAM(lParam), MOUSE_EVENT_GET_MODS(LOWORD(wParam)),
-                                             MOUSE_EVENT_GET_BUTTONS_DOWN(LOWORD(wParam))});
+            window->MouseScrolledEvent.emit(
+                {window, 0, GET_WHEEL_DELTA_WPARAM(wParam), MOUSE_EVENT_GET_MODS(LOWORD(wParam)),
+                 MOUSE_EVENT_GET_BUTTONS_DOWN(LOWORD(wParam)), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MOUSEMOVE:
             if (!data->MouseInClient) {
@@ -131,8 +152,8 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
                 TrackMouseEvent(&tme);
             }
 
-            window->MouseMovedEvent.emit({window, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam),
-                                          MOUSE_EVENT_GET_MODS(wParam), MOUSE_EVENT_GET_BUTTONS_DOWN(wParam)});
+            window->MouseMovedEvent.emit({window, MOUSE_EVENT_GET_MODS(wParam), MOUSE_EVENT_GET_BUTTONS_DOWN(wParam),
+                                          GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MOUSELEAVE:
             data->MouseInClient = false;
@@ -146,7 +167,9 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-Window::Window(const string &title, u32 width, u32 height) : Title(title) {
+Window *Window::initialize(const string &title, u32 width, u32 height) {
+    static_assert(sizeof(PlatformData) >= sizeof(Windows_Data));  // Sanity
+
     constexpr wchar_t CLASS_NAME[] = L"Le engine window class";
 
     HINSTANCE hInstance = ((HINSTANCE) &__ImageBase);
@@ -165,7 +188,8 @@ Window::Window(const string &title, u32 width, u32 height) : Title(title) {
     wcex.lpszClassName = CLASS_NAME;
 
     if (!RegisterClassExW(&wcex)) {
-        fmt::print("INTERNAL PLATFORM ERROR (Windows): Couldn't register window class. \n");
+        fmt::print("INTERNAL PLATFORM ERROR (Windows): Couldn't register window class. ({})\n",
+                   get_last_error_as_string());
         os_exit_program(-1);
     }
 
@@ -173,26 +197,28 @@ Window::Window(const string &title, u32 width, u32 height) : Title(title) {
     AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, false,
                        WS_EX_APPWINDOW | WS_EX_WINDOWEDGE);
 
-    PDATA->hWnd = CreateWindowExW(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, wcex.lpszClassName, title.to_utf16(),
-                                  WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, CW_USEDEFAULT, 0,
+    PDATA->hWnd = CreateWindowExW(WS_EX_APPWINDOW | WS_EX_WINDOWEDGE, wcex.lpszClassName, L"",
+                                  WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
                                   rect.right - rect.left, rect.bottom - rect.top, null, null, hInstance, this);
-
     if (!PDATA->hWnd) {
-        fmt::print("INTERNAL PLATFORM ERROR (Windows): Couldn't create window. \n");
+        fmt::print("INTERNAL PLATFORM ERROR (Windows): Couldn't create window. ({})\n", get_last_error_as_string());
         os_exit_program(-1);
     }
 
     GetWindowRect(PDATA->hWnd, &rect);
-    Left = (u32) rect.left;
-    Top = (u32) rect.top;
+    Left = (s32) rect.left;
+    Top = (s32) rect.top;
     Width = (u32) rect.right - rect.left;
     Height = (u32) rect.bottom - rect.top;
 
+    set_title(title);
     ShowWindow(PDATA->hWnd, SW_SHOW);
     SetFocus(PDATA->hWnd);
 
     WindowResizedEvent.connect({this, &Window::on_window_resized});
     WindowMovedEvent.connect({this, &Window::on_window_moved});
+
+    return this;
 }
 
 void Window::update() {
@@ -221,8 +247,8 @@ void Window::set_title(const string &title) {
 
 void Window::set_vsync(bool enabled) { VSyncEnabled = enabled; }
 
-void Window::set_left(u32 left) { SetWindowPos(PDATA->hWnd, null, left, Top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
-void Window::set_top(u32 top) { SetWindowPos(PDATA->hWnd, null, Left, top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
+void Window::set_left(s32 left) { SetWindowPos(PDATA->hWnd, null, left, Top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
+void Window::set_top(s32 top) { SetWindowPos(PDATA->hWnd, null, Left, top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
 void Window::set_width(u32 width) { SetWindowPos(PDATA->hWnd, null, 0, 0, width, Height, SWP_NOZORDER | SWP_NOMOVE); }
 void Window::set_height(u32 height) { SetWindowPos(PDATA->hWnd, null, 0, 0, Width, height, SWP_NOZORDER | SWP_NOMOVE); }
 

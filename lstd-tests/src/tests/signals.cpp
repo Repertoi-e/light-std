@@ -13,8 +13,9 @@ TEST(global_function) {
     signal.connect(my_callback1);
     signal.connect(my_callback2);
     signal.connect(my_callback3);
-
-    assert_eq(signal.emit(20), to_array(20, 21, 22, 23));
+    
+    // Signals are emmitted to connections backwards
+    assert_eq(signal.emit(20), to_array(23, 22, 21, 20));
 }
 
 struct Member_Test {

@@ -57,7 +57,6 @@ struct String_Writer : Writer {
     String_Builder Builder;
 
     void write(const Memory_View &str) override { Builder.append_pointer_and_size(str.Data, str.ByteLength); }
-
     void flush() override {}
 };
 

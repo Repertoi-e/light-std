@@ -73,7 +73,7 @@ void io::Console_Writer::flush() {
                 ">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.\n";
 
             DWORD ignored;
-            WriteFile(g_CoutHandle, warning.Data, (DWORD)warning.ByteLength, &ignored, null);
+            WriteFile(g_CoutHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
         }
 
         // Enable colors with escape sequences
@@ -114,7 +114,7 @@ byte io::Console_Reader::request_byte() {
 
 static LARGE_INTEGER g_PerformanceFrequency = {0};
 
-f64 os_get_wallclock_in_seconds() {
+s64 os_get_wallclock() {
     if (g_PerformanceFrequency.QuadPart == 0) {
         if (!QueryPerformanceFrequency(&g_PerformanceFrequency)) {
             return 0;
@@ -124,8 +124,11 @@ f64 os_get_wallclock_in_seconds() {
     if (!QueryPerformanceCounter(&time)) {
         return 0;
     }
-    return (f64) time.QuadPart / g_PerformanceFrequency.QuadPart;
+    return time.QuadPart;
 }
+
+f64 os_get_elapsed_in_seconds(s64 begin, s64 end) { return (f64)(end - begin) / (f64) g_PerformanceFrequency.QuadPart; }
+f64 os_get_wallclock_in_seconds() { return (f64) os_get_wallclock() / (f64) g_PerformanceFrequency.QuadPart; }
 
 // All windows terminals support colors
 bool fmt::internal::does_terminal_support_color() { return true; }
