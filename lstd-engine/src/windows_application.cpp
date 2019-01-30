@@ -6,9 +6,16 @@
 
 #include <lstd/fmt.hpp>
 
-#define WIN32_LEAN_AND_MEAN
+#undef MAC
+#undef _MAC
 #include <Windows.h>
-#include <timeapi.h>
+
+static NTSTATUS(__stdcall *NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) =
+    (NTSTATUS(__stdcall *)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
+static NTSTATUS(__stdcall *ZwSetTimerResolution)(IN ULONG RequestedResolution, IN BOOLEAN Set,
+                                                 OUT PULONG ActualResolution) =
+    (NTSTATUS(__stdcall *)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"),
+                                                                   "ZwSetTimerResolution");
 
 namespace le {
 
@@ -23,8 +30,8 @@ Application *Application::s_Instance = null;
 void Application::run() {
     HWND hWnd = (HWND) WindowPtr->PlatformData;
 
-    // Request 1 ms granularity for Sleep
-    bool sleepIsGranular = (timeBeginPeriod(1) == TIMERR_NOERROR);
+    ULONG ignored;
+    ZwSetTimerResolution(1, true, &ignored);
 
     s32 monitorRefreshHz = 60;
 
@@ -36,7 +43,7 @@ void Application::run() {
         monitorRefreshHz = Win32RefreshRate;
     }
 
-    f32 gameUpdateHz = ((f32) monitorRefreshHz / 2.0f);
+    f32 gameUpdateHz = (f32) monitorRefreshHz;
     f32 targetSecondsPerFrame = (1.0f / (gameUpdateHz));
 
     s64 lastCounter = os_get_wallclock();
@@ -48,32 +55,42 @@ void Application::run() {
         For(Layers) { it->on_update(targetSecondsPerFrame); }
 
         f64 workSecondsElapsed = os_get_elapsed_in_seconds(lastCounter, os_get_wallclock());
+        f64 compensate = workSecondsElapsed;
+        u32 actualMs, whiles = 0;
 
-        if (workSecondsElapsed < targetSecondsPerFrame) {
-            if (sleepIsGranular) {
-                auto ms = (u32)(1000.0f * (targetSecondsPerFrame - workSecondsElapsed));
-                // Sometimes 5 ms is enough to cause error (at least on my machine), so be safe
-                // and sleep for 1 ms shorter than we need (the rest is compensated by the spin lock)
-                if (ms > 5) {
-                    Sleep(ms - 5);
-                }
+        if (compensate < targetSecondsPerFrame) {
+            s64 before = os_get_wallclock();
+            auto ms = (u32)(1000.0f * (targetSecondsPerFrame - compensate));
+            if (ms > 3) {
+                ms -= 3;
+
+                LARGE_INTEGER interval;
+                interval.QuadPart = -1 * (s32)(ms * 10000.0f);
+                NtDelayExecution(false, &interval);
             }
-            if (targetSecondsPerFrame < os_get_elapsed_in_seconds(lastCounter, os_get_wallclock())) {
+            s64 now = os_get_wallclock();
+            actualMs = (u32)(1000.0f * os_get_elapsed_in_seconds(before, now));
+
+            if (os_get_elapsed_in_seconds(lastCounter, now) > targetSecondsPerFrame) {
                 fmt::print("(windows_application.cpp): Slept for too long! (Didn't hit target framerate)\n");
             }
 
-            while (workSecondsElapsed < targetSecondsPerFrame) {
-                workSecondsElapsed = os_get_elapsed_in_seconds(lastCounter, os_get_wallclock());
+            while (compensate < targetSecondsPerFrame) {
+                ++whiles;
+                compensate = os_get_elapsed_in_seconds(lastCounter, os_get_wallclock());
             }
         } else {
             fmt::print("(windows_application.cpp): Frame took too long! (Didn't hit target framerate)\n");
         }
 
+        fmt::print("(windows_application.cpp): Target: {} s, work done: {} s, slept: {} ms, {} whiles\n",
+                   targetSecondsPerFrame, workSecondsElapsed, actualMs, whiles);
+
         s64 endCounter = os_get_wallclock();
         lastCounter = endCounter;
 
         // TODO: Swap buffers here!
-        
+
         // At the moment flipWallClock is not used for anything,
         // but will be useful when we do audio
         flipWallClock = os_get_wallclock();
