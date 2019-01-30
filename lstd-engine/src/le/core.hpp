@@ -17,10 +17,11 @@
 #endif
 #else
 #define LE_API
-#pragma warning Unknown dynamic link import/export semantics.
+#pragma warning Unknown dynamic link import / export semantics.
 #endif
 #endif
 
+namespace le {
 // Used for keyboard/mouse input
 enum : u32 {
     Modifier_Shift = BIT(0),
@@ -28,6 +29,7 @@ enum : u32 {
     Modifier_Alt = BIT(2),
     Modifier_Super = BIT(3),
 };
+}  // namespace le
 
 // 'x' needs to have dll-interface to be used by clients of struct 'y'
 // This will never be a problem since nowhere do we change struct sizes based on debug/release/whatever conditions

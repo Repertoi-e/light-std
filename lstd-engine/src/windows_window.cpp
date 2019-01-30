@@ -183,8 +183,8 @@ Window *Window::initialize(const string &title, u32 width, u32 height) {
     wcex.lpfnWndProc = WndProc;
     wcex.cbWndExtra = sizeof(Window *);
     wcex.hInstance = hInstance;
-    wcex.hIcon = LoadIconW(NULL, IDI_WINLOGO);
-    wcex.hCursor = LoadCursorW(hInstance, IDC_ARROW);
+    wcex.hIcon = LoadIconW(null, IDI_WINLOGO);
+    wcex.hCursor = LoadCursorW(null, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_BACKGROUND);
     wcex.lpszClassName = CLASS_NAME;
 

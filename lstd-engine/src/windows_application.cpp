@@ -10,10 +10,10 @@
 #undef _MAC
 #include <Windows.h>
 
+// It's always fun to use undocumented kernel functions :eyes:
 static NTSTATUS(__stdcall *NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) =
     (NTSTATUS(__stdcall *)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
-static NTSTATUS(__stdcall *ZwSetTimerResolution)(IN ULONG RequestedResolution, IN BOOLEAN Set,
-                                                 OUT PULONG ActualResolution) =
+static NTSTATUS(__stdcall *ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) =
     (NTSTATUS(__stdcall *)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"),
                                                                    "ZwSetTimerResolution");
 
