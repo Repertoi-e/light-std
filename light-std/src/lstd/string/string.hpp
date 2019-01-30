@@ -264,19 +264,25 @@ struct string {
     bool operator<=(const string &other) const { return !(*this > other); }
     bool operator>=(const string &other) const { return !(*this < other); }
 
-    string operator+(const string &other) {
+    string operator+(const string &other) const {
         string result = *this;
         result.append(other);
         return result;
     }
 
-    string operator+(const byte *other) {
+    string operator+(const byte *other) const {
         string result = *this;
         result.append_cstring(other);
         return result;
     }
 
-    string operator+(char32_t codePoint) {
+    string operator+(const char *other) const {
+        string result = *this;
+        result.append_cstring(other);
+        return result;
+    }
+
+    string operator+(char32_t codePoint) const {
         string result = *this;
         result.append(codePoint);
         return result;

@@ -46,8 +46,7 @@ struct LE_API Application {
 };
 
 // Should be defined in the client program.
-// When creating the application you should allocate it with
-// the default global allocator and set the WindowPtr before returning it.
+// When creating the application you should set the WindowPtr before returning it.
 // Do not define int main() or any other entry point in your program (include "entry_point.hpp" instead)
 Application *create_application();
 

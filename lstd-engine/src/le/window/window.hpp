@@ -10,6 +10,15 @@
 namespace le {
 
 struct LE_API Window {
+    string Title;
+    s32 Left, Top;
+    u32 Width, Height;
+    bool VSyncEnabled = false;
+    bool Closed = false;
+
+    // Reserve 256 bytes for any platform data needed by implementations.
+    byte PlatformData[256] = {};
+
     Window() {}
 
     // Returns this
@@ -17,22 +26,11 @@ struct LE_API Window {
 
     void update();
 
-    const string &title() { return Title; }
     void set_title(const string &title);
-
-    bool vsync() { return VSyncEnabled; }
     void set_vsync(bool enabled);
-
-    s32 left() { return Left; }
     void set_left(s32 left);
-
-    s32 top() { return Top; }
     void set_top(s32 top);
-
-    u32 width() { return Width; }
     void set_width(u32 width);
-
-    u32 height() { return Height; }
     void set_height(u32 height);
 
     // Event signals. Connect to these to receive callbacks for this window.
@@ -58,17 +56,7 @@ struct LE_API Window {
     Signal<void(const Mouse_Left_Event &)> MouseLeftEvent;
     Signal<bool(const Mouse_Moved_Event &), Collector_While0<bool>> MouseMovedEvent;
 
-    bool Closed = false;
-
-    // Reserve 256 bytes for any platform data needed by implementations.
-    byte PlatformData[256] = {};
-
    private:
-    string Title;
-    s32 Left, Top;
-    u32 Width, Height;
-    bool VSyncEnabled = false;
-
     void on_window_resized(const Window_Resized_Event &e) {
         Width = e.Width;
         Height = e.Height;

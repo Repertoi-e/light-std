@@ -52,10 +52,10 @@ void Application::run() {
         if (workSecondsElapsed < targetSecondsPerFrame) {
             if (sleepIsGranular) {
                 auto ms = (u32)(1000.0f * (targetSecondsPerFrame - workSecondsElapsed));
-                // Sometimes 2 ms is enough to cause error (at least on my machine), so be safe
+                // Sometimes 5 ms is enough to cause error (at least on my machine), so be safe
                 // and sleep for 1 ms shorter than we need (the rest is compensated by the spin lock)
-                if (ms > 2) {
-                    Sleep(ms - 2);
+                if (ms > 5) {
+                    Sleep(ms - 5);
                 }
             }
             if (targetSecondsPerFrame < os_get_elapsed_in_seconds(lastCounter, os_get_wallclock())) {
@@ -73,7 +73,7 @@ void Application::run() {
         lastCounter = endCounter;
 
         // TODO: Swap buffers here!
-
+        
         // At the moment flipWallClock is not used for anything,
         // but will be useful when we do audio
         flipWallClock = os_get_wallclock();

@@ -30,8 +30,6 @@ string get_last_error_as_string() {
 
 struct Windows_Data {
     HWND hWnd;
-    wchar_t *LastTitle;
-    Allocator_Closure LastTitleAllocator;
     bool MouseInClient = true;
 };
 #define PDATA ((Windows_Data *) PlatformData)
@@ -168,6 +166,9 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 Window *Window::initialize(const string &title, u32 width, u32 height) {
+    // Pray that people aren't insane and going to put such long window titles
+    temporary_storage_init(500_KiB);
+
     static_assert(sizeof(PlatformData) >= sizeof(Windows_Data));  // Sanity
 
     constexpr wchar_t CLASS_NAME[] = L"Le engine window class";
@@ -231,21 +232,18 @@ void Window::update() {
         TranslateMessage(&message);
         DispatchMessageW(&message);
     }
+    temporary_storage_reset();
 }
 
 void Window::set_title(const string &title) {
     Title = title;
+    
+    string tempTitle;
+    tempTitle.Allocator = TEMPORARY_ALLOC;
+    tempTitle.append(title);
 
-    if (PDATA->LastTitle) {
-        Delete(PDATA->LastTitle, PDATA->LastTitleAllocator);
-    }
-
-    PDATA->LastTitle = title.to_utf16();
-    PDATA->LastTitleAllocator = title.Allocator;
-    SetWindowTextW(PDATA->hWnd, PDATA->LastTitle);
+    SetWindowTextW(PDATA->hWnd, tempTitle.to_utf16());
 }
-
-void Window::set_vsync(bool enabled) { VSyncEnabled = enabled; }
 
 void Window::set_left(s32 left) { SetWindowPos(PDATA->hWnd, null, left, Top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
 void Window::set_top(s32 top) { SetWindowPos(PDATA->hWnd, null, Left, top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
