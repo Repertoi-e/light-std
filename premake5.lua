@@ -49,6 +49,7 @@ function common_stuff()
     architecture "x64"
     defines { "_HAS_EXCEPTIONS=0" }
     filter "system:windows"
+        staticruntime "on"
         defines "LSTD_PLATFORM_WINDOWS"
         excludes "%{prj.name}/src/posix_*.cpp"
         links { "Winmm" }

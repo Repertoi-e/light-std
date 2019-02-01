@@ -15,6 +15,7 @@ int _fltused;
 
 LSTD_BEGIN_NAMESPACE
 
+#if defined LSTD_NO_CRT
 void *windows_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32) {
     switch (mode) {
         case Allocator_Mode::ALLOCATE:
@@ -31,8 +32,8 @@ void *windows_allocator(Allocator_Mode mode, void *data, size_t size, void *oldM
     }
     return null;
 }
-
 Allocator_Func DefaultAllocator = windows_allocator;
+#endif
 
 void os_exit_program(int code) { _exit(code); }
 

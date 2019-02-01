@@ -8,12 +8,10 @@
 // (for example if you want to use it as a key in a Table)
 // implement like this:
 //
-// LSTD_BEGIN_NAMESPACE
 // template <>
 // struct Hash<my_type> {
-//         static constexpr uptr_t get(...my_type... value) { return ...; }
+//     static constexpr uptr_t get(...my_type... value) { return ...; }
 // }
-// LSTD_END_NAMESPACE
 //
 
 LSTD_BEGIN_NAMESPACE

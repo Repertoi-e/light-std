@@ -5,7 +5,7 @@
 #include <lstd/signal/signal.hpp>
 #include <lstd/string/string.hpp>
 
-#include "../events.h"
+#include "../events.hpp"
 
 namespace le {
 

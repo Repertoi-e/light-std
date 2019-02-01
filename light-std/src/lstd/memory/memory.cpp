@@ -1,5 +1,7 @@
 #include "memory.hpp"
 
+#include "allocator.hpp"
+
 LSTD_BEGIN_NAMESPACE
 
 #if defined LSTD_NO_CRT
@@ -59,6 +61,33 @@ s32 compare_memory(const void *ptr1, const void *ptr2, size_t num) {
     // The memory regions match
     return 0;
 }
+#else
+void *crt_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32) {
+    switch (mode) {
+        case Allocator_Mode::ALLOCATE: {
+            void *memory = malloc(size);
+            zero_memory(memory, size);
+            return memory;
+        }
+        case Allocator_Mode::RESIZE: {
+            void *memory = realloc(oldMemory, size);
+            if (oldSize > size) {
+                zero_memory((byte *) memory + oldSize, oldSize - size);
+            }
+            return memory;
+        }
+        case Allocator_Mode::FREE:
+            free(oldMemory);
+            return null;
+        case Allocator_Mode::FREE_ALL:
+            return null;
+        default:
+            assert(false);  // We shouldn't get here
+    }
+    return null;
+}
+
+Allocator_Func DefaultAllocator = crt_allocator;
 #endif
 
 LSTD_END_NAMESPACE

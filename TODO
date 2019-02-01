@@ -1,14 +1,20 @@
-- File system
-- File I/O Reader and Writer
+- File I/O
 
 - Time?
 - Random?
 
 - string::replace 
 
-- Support for threads
-- Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
+- Threads?
 
+- Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
 ----------------
-There's a memory leak with setting the window title every frame but there should't be?! Maybe figure it out ...
+Currently there is no way to pass constructor arguments to New<My_Type>(allocator...)
+Only now I realize it's a problem since most of the stuff in our library/engine has a parameterless default constructor,
+but users may want to have things like that. The current workout is to provide an empty default constructor and use placement new:
+
+	auto *myType = new(New<My_Type>()) My_Type(...params...);
+----------------
+Remove all instances of "virtual" in our code.
+This will help with the ability to compile without CRT
 ----------------

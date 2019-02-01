@@ -2,10 +2,10 @@
 
 #include <iomanip>
 #include <iostream>
-#include <lstd/io.hpp>
 
 #include <fmt/format.h>
 
+/*
 static void stl_cout(benchmark::State& state) {
     s32 a = 5000;
     f32 b = 1.622f;
@@ -26,15 +26,15 @@ static void c_printf(benchmark::State& state) {
     For(state) { printf("Hello, world! %.*f %x\r", 2, b, a); }
 }
 
-static void lstd_cout(benchmark::State& state) {
-    s32 a = 5000;
-    f32 b = 1.622f;
-    For(state) { lstd::fmt::print("Hello, world! {:.{}} {:x}\r", b, 2, a); }
-}
+// static void lstd_cout(benchmark::State& state) {
+//     s32 a = 5000;
+//     f32 b = 1.622f;
+//     For(state) { lstd::fmt::print("Hello, world! {:.{}} {:x}\r", b, 2, a); }
+// }
 // BENCHMARK(lstd_cout)->Iterations(10000000000);
-BENCHMARK(lstd_cout);
+// BENCHMARK(lstd_cout);
 BENCHMARK(c_printf);
 BENCHMARK(cpp_fmt);
 BENCHMARK(stl_cout);
-
+*/
 BENCHMARK_MAIN();

@@ -78,6 +78,14 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
         case WM_MOVE:
             window->WindowMovedEvent.emit({window, (s32)(s16) LOWORD(lParam), (s32)(s16) HIWORD(lParam)});
             break;
+        case WM_WINDOWPOSCHANGED: {
+            auto *params = (WINDOWPOS *) lParam;
+            if (params->flags & SWP_NOMOVE) {
+                window->WindowResizedEvent.emit({window, (u32) params->cx, (u32) params->cy});
+            } else if (params->flags & SWP_NOSIZE) {
+                window->WindowMovedEvent.emit({window, params->x, params->y});
+            }
+        } break;
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
             window->KeyPressedEvent.emit(
@@ -237,7 +245,7 @@ void Window::update() {
 
 void Window::set_title(const string &title) {
     Title = title;
-    
+
     string tempTitle;
     tempTitle.Allocator = TEMPORARY_ALLOC;
     tempTitle.append(title);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../application/Application.hpp"
-#include "../event/event_fmt.hpp"
+#include "../events_fmt.hpp"
 
 #include <lstd/io.hpp>
 

@@ -12,7 +12,7 @@
 #include "specs.hpp"
 #include "value.hpp"
 
-#include "../intrinsics/intrin.h"
+#include "../intrinsics/intrin.hpp"
 
 #include <type_traits>
 

@@ -33,6 +33,7 @@ namespace fmt {
 template <typename... Args>
 void print(const string_view &formatString, Args &&... args);
 }
+// (size_t)&(((TYPE *)0)->ELEMENT)
 
 inline void *temporary_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
                                  s32 options) {

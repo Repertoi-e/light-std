@@ -11,20 +11,6 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// Windows.h defines copy_memory as memcpy, our version is compatible so it's safe to undefine it
-#if defined copy_memory
-#undef copy_memory
-#endif
-#if defined move_memory
-#undef move_memory
-#endif
-#if defined fill_memory
-#undef fill_memory
-#endif
-#if defined zero_memory
-#undef zero_memory
-#endif
-
 #if !defined LSTD_NO_CRT
 
 inline void *copy_memory(void *dest, void const *src, size_t num) { return memcpy(dest, src, num); }

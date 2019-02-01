@@ -151,7 +151,7 @@ enum : u32 {
     KEY_RightGUI = 231
 };
 
-// This code has been automatically generated:
+// This following code has been automatically generated:
 
 inline const char KEYID_NAME[598] =
 "0\0001\0002\0003\0004\0005\0006\0007\0008\0009\0A\0B\0Backslash\0C\0CapsLoc"
