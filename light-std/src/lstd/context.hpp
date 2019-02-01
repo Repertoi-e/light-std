@@ -19,7 +19,7 @@ LSTD_BEGIN_NAMESPACE
 using Assert_Function = std::function<void(const char *file, int line, const char *condition)>;
 
 namespace io {
-class Writer;
+    struct Writer;
 }
 
 namespace internal {

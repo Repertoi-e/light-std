@@ -52,21 +52,28 @@ io::Console_Writer::Console_Writer() {
     Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
     Current = Buffer;
     Available = CONSOLE_BUFFER_SIZE;
+
+    write_function = console_writer_write;
+    flush_function = console_writer_flush;
 }
 
-void io::Console_Writer::write(const Memory_View &str) {
-    if (str.ByteLength > Available) {
-        flush();
+void io::console_writer_write(void *data, const Memory_View &writeData) {
+    auto *writer = (Console_Writer *) data;
+
+    if (writeData.ByteLength > writer->Available) {
+        writer->flush();
     }
 
-    copy_memory(Current, str.Data, str.ByteLength);
-    Current += str.ByteLength;
-    Available -= str.ByteLength;
+    copy_memory(writer->Current, writeData.Data, writeData.ByteLength);
+    writer->Current += writeData.ByteLength;
+    writer->Available -= writeData.ByteLength;
 }
 
 static HANDLE g_CoutHandle = null;
 
-void io::Console_Writer::flush() {
+void io::console_writer_flush(void *data) {
+    auto *writer = (Console_Writer *) data;
+
     if (!g_CoutHandle) {
         g_CoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {
@@ -84,33 +91,37 @@ void io::Console_Writer::flush() {
     }
 
     DWORD ignored;
-    WriteFile(g_CoutHandle, Buffer, (DWORD)(CONSOLE_BUFFER_SIZE - Available), &ignored, null);
+    WriteFile(g_CoutHandle, writer->Buffer, (DWORD)(CONSOLE_BUFFER_SIZE - writer->Available), &ignored, null);
 
-    Current = Buffer;
-    Available = CONSOLE_BUFFER_SIZE;
+    writer->Current = writer->Buffer;
+    writer->Available = CONSOLE_BUFFER_SIZE;
 }
 
 io::Console_Reader::Console_Reader() {
     // Leak, but doesn't matter since the object is global
     Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
     Current = Buffer;
+
+    request_byte_function = console_reader_request_byte;
 }
 
 static HANDLE g_CinHandle = null;
 
-byte io::Console_Reader::request_byte() {
+byte io::console_reader_request_byte(void *data) {
+    auto *reader = (io::Console_Reader *) data;
+
     if (!g_CinHandle) {
         g_CinHandle = GetStdHandle(STD_INPUT_HANDLE);
     }
-    assert(Available == 0);  // Sanity
+    assert(reader->Available == 0);  // Sanity
 
     DWORD read;
-    ReadFile(g_CinHandle, (char *) Buffer, (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
+    ReadFile(g_CinHandle, (char *) reader->Buffer, (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
 
-    Current = Buffer;
-    Available = read;
+    reader->Current = reader->Buffer;
+    reader->Available = read;
 
-    return (read == 0) ? io::eof : (*Current);
+    return (read == 0) ? io::eof : (*reader->Current);
 }
 
 static LARGE_INTEGER g_PerformanceFrequency = {0};

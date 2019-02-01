@@ -24,9 +24,9 @@ struct Format_Context;
 
 template <typename T, typename Enable = void>
 struct Formatter {
-    void format(const T &, Format_Context &) { 
+    void format(const T &, Format_Context &) {
         assert(false);
-        // static_assert(false, "Formatter<T> not specialized"); 
+        // static_assert(false, "Formatter<T> not specialized");
     }
 };
 
@@ -171,7 +171,7 @@ struct Arguments {
         result.Value = Values[index];
 
         if (result.Type == Format_Type::NAMED_ARGUMENT) {
-            auto &named = *(const Named_Argument_Base *)(result.Value.Pointer_Value);
+            auto &named = *(const Named_Argument_Base *) (result.Value.Pointer_Value);
             result = named.deserialize();
         }
         return result;
@@ -222,7 +222,7 @@ struct Argument_Map {
     }
 
     void add(Value value) {
-        auto &named = *(const Named_Argument_Base *)(value.Pointer_Value);
+        auto &named = *(const Named_Argument_Base *) (value.Pointer_Value);
         Entries[Size++] = Entry{named.Name, named.deserialize()};
     }
 
@@ -270,6 +270,9 @@ struct Parse_Context {
     void check_arg_id(const string_view &) {}
 };
 
+void format_context_write(void *data, const Memory_View &writeData);
+void format_context_flush(void *data);
+
 struct Format_Context : io::Writer {
    private:
     Argument_Map ArgMap;
@@ -282,10 +285,16 @@ struct Format_Context : io::Writer {
 
     // If you want to use this Writer to just output formatted types (without a format string, etc.) you can use this
     // constructor. If you want to control the format specifiers, modify ParseContext.Specs
-    Format_Context(io::Writer &flushOutput) : FlushOutput(flushOutput), Args(null, 0), ParseContext("") {}
+    Format_Context(io::Writer &flushOutput) : FlushOutput(flushOutput), Args(null, 0), ParseContext("") {
+        write_function = format_context_write;
+        flush_function = format_context_flush;
+    }
 
     Format_Context(io::Writer &flushOutput, const string_view &formatString, Arguments args)
-        : FlushOutput(flushOutput), ParseContext(formatString), Args(args) {}
+        : FlushOutput(flushOutput), ParseContext(formatString), Args(args) {
+        write_function = format_context_write;
+        flush_function = format_context_flush;
+    }
 
     // Returns the argument with specified index.
     Argument do_get_arg(u32 argId) {
@@ -312,22 +321,7 @@ struct Format_Context : io::Writer {
 
     Argument next_arg() { return do_get_arg(ParseContext.next_arg_id()); }
 
-    void flush() override {
-        FlushOutput.write(Out.Data, Out.ByteLength);
-    }
-
     using io::Writer::write;
-
-    // Write a string and pad it according to the current argument's format specs.
-    void write(const Memory_View &view) override {
-        string_view toWrite = view;
-
-        size_t prec = (size_t) precision();
-        if (precision() >= 0 && prec < toWrite.Length) {
-            toWrite.remove_suffix(toWrite.Length - prec);
-        }
-        format_padded([&](Format_Context &f) { f.Out.append(toWrite); }, align(), toWrite.Length);
-    }
 
     // Format an integer according to the current argument's format specs.
     template <typename T>
@@ -623,7 +617,26 @@ struct Format_Context : io::Writer {
 
     Format_Context(const Format_Context &) = delete;
     void operator=(const Format_Context &) = delete;
+
+    friend void format_context_write(void *, const Memory_View &);
 };
+
+inline void format_context_write(void *data, const Memory_View &writeData) {
+    auto context = (Format_Context *)data;
+
+    string_view toWrite = writeData;
+
+    size_t prec = (size_t)context->precision();
+    if (context->precision() >= 0 && prec < toWrite.Length) {
+        toWrite.remove_suffix(toWrite.Length - prec);
+    }
+    context->format_padded([&](Format_Context &f) { f.Out.append(toWrite); }, context->align(), toWrite.Length);
+}
+
+inline void format_context_flush(void *data) {
+    auto context = (Format_Context *) data;
+    context->FlushOutput.write(context->Out.Data, context->Out.ByteLength);
+}
 
 // :struct Value in value.h
 template <typename T>

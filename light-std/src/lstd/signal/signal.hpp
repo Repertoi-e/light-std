@@ -148,7 +148,7 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
         Signal_Link *link = CallbackRing;
         link->incref();
         do {
-            if (link->Callback != nullptr) {
+            if (link->Callback != null) {
                 if (!this->invoke(collector, link->Callback, std::forward<Args>(args)...)) break;
             }
             Signal_Link *old = link;
@@ -165,6 +165,7 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
     void ensure_ring() {
         if (!CallbackRing) {
             CallbackRing = New_and_ensure_allocator<Signal_Link>(Allocator);
+            CallbackRing->set_callback(callback_type());
             CallbackRing->incref();  // set RefCount = 2, head of ring, can be deactivated but not removed
             CallbackRing->Next = CallbackRing;
             CallbackRing->Prev = CallbackRing;

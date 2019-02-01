@@ -18,3 +18,9 @@ but users may want to have things like that. The current workout is to provide a
 Remove all instances of "virtual" in our code.
 This will help with the ability to compile without CRT
 ----------------
+The following things implemented in windows but not on posix yet:
+  LSTD:
+- os wallclock functions
+- changes in console_reader/writer that remove virtual functions
+  LE:
+- game loop and windows and events 

@@ -6,11 +6,7 @@
 using namespace le;
 
 struct My_Layer : Layer {
-    void on_add() override {
-    }
-
-    void on_update(f32 dt) override {
-    }
+    My_Layer() {}
 };
 
 Application *le::create_application() {
