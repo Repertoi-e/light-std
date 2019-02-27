@@ -3,7 +3,7 @@
 #include "common.hpp"
 #include "memory/allocator.hpp"
 
-#include <functional>
+#include "../vendor/FastDelegate/FastDelegate.hpp"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -16,7 +16,7 @@ LSTD_BEGIN_NAMESPACE
 //
 //      assert(index < size && "Index out of bounds.");
 //
-using Assert_Function = std::function<void(const char *file, int line, const char *condition)>;
+using Assert_Function = fastdelegate::FastDelegate<void(const char *file, int line, const char *condition)>;
 
 namespace io {
     struct Writer;
@@ -33,6 +33,10 @@ extern io::Writer *ConsoleLog;
 //
 // The idea for this comes from the implicit context in Jai.
 struct Implicit_Context {
+    Implicit_Context() {
+        int a = 42;
+    }
+
     Allocator_Closure Allocator = MALLOC;
 
     // This variable is useful when you redirect all logging output
@@ -43,8 +47,7 @@ struct Implicit_Context {
 };
 
 // Immutable context available everywhere
-// TODO: This should be thread local
-inline const Implicit_Context Context;
+inline thread_local const Implicit_Context Context;
 
 #define OLD_CONTEXT_VAR_GEN_(x, LINE) LSTD_NAMESPACE_NAME##_lstd_context##x##LINE
 #define OLD_CONTEXT_VAR_GEN(x, LINE) OLD_CONTEXT_VAR_GEN_(x, LINE)

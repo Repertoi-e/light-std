@@ -2,12 +2,6 @@
 
 #if OS == WINDOWS
 
-#if COMPILER == MSVC && defined LSTD_NO_CRT
-extern "C" {
-int _fltused;
-}
-#endif
-
 #include "lstd/io.hpp"
 
 #define WIN32_LEAN_AND_MEAN
@@ -35,11 +29,13 @@ void *windows_allocator(Allocator_Mode mode, void *data, size_t size, void *oldM
 Allocator_Func DefaultAllocator = windows_allocator;
 #endif
 
-void os_exit_program(int code) { _exit(code); }
+#if !defined LSTD_NO_CRT
+void os_exit_program(int code) { exit(code); }
+#endif
 
 void os_assert_failed(const char *file, int line, const char *condition) {
     fmt::print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::FG::Red, file, line, condition, fmt::FG::Reset);
-#if COMPILER == MSVC
+#if COMPILER == MSVC && !defined LSTD_NO_CRT
     __debugbreak();
 #else
     os_exit_program(-1);
@@ -47,6 +43,7 @@ void os_assert_failed(const char *file, int line, const char *condition) {
 }
 
 #define CONSOLE_BUFFER_SIZE 1_KiB
+#define MAX_CONSOLE_LINES 500
 
 io::Console_Writer::Console_Writer() {
     Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
@@ -69,12 +66,29 @@ void io::console_writer_write(void *data, const Memory_View &writeData) {
     writer->Available -= writeData.ByteLength;
 }
 
+static bool g_ConsoleAllocated = false;
 static HANDLE g_CoutHandle = null;
+
+static void allocate_console() {
+    if (!g_ConsoleAllocated) {
+        AllocConsole();
+
+        // set the screen buffer to be big enough to let us scroll text
+        CONSOLE_SCREEN_BUFFER_INFO cInfo;
+        GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cInfo);
+        cInfo.dwSize.Y = MAX_CONSOLE_LINES;
+        SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), cInfo.dwSize);
+
+        g_ConsoleAllocated = true;
+    }
+}
 
 void io::console_writer_flush(void *data) {
     auto *writer = (Console_Writer *) data;
 
     if (!g_CoutHandle) {
+        allocate_console();
+
         g_CoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {
             string_view warning =
@@ -111,6 +125,7 @@ byte io::console_reader_request_byte(void *data) {
     auto *reader = (io::Console_Reader *) data;
 
     if (!g_CinHandle) {
+        allocate_console();
         g_CinHandle = GetStdHandle(STD_INPUT_HANDLE);
     }
     assert(reader->Available == 0);  // Sanity

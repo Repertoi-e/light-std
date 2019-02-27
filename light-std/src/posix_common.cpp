@@ -2,6 +2,10 @@
 
 #if OS == LINUX || OS == MAC
 
+#if defined LSTD_NO_CRT
+#error NO_CRT is Windows-only
+#endif
+
 #include "io.hpp"
 
 #include "memory/array.hpp"
@@ -18,34 +22,6 @@
 #include <csignal>
 
 CPPU_BEGIN_NAMESPACE
-
-#if defined LSTD_NO_CRT
-void *linux_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32) {
-    switch (mode) {
-        case Allocator_Mode::ALLOCATE:
-            [[fallthrough]];
-        case Allocator_Mode::RESIZE:
-            void *result;
-            if (mode == Allocator_Mode::ALLOCATE) {
-                result = mmap(null, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-            } else {
-                result = mremap(oldMemory, oldSize, size, MREMAP_MAYMOVE);
-            }
-            if (result == (void *) -1) return 0;
-            return result;
-        case Allocator_Mode::FREE:
-            munmap(oldMemory, oldSize);
-            return null;
-        case Allocator_Mode::FREE_ALL:
-            return null;
-        default:
-            assert(false);  // We shouldn't get here
-    }
-    return null;
-}
-
-Allocator_Func DefaultAllocator = linux_allocator;
-#endif
 
 void os_exit_program(int code) { _exit(code); }
 

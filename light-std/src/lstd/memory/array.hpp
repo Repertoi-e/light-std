@@ -4,8 +4,6 @@
 
 #include "range.hpp"
 
-#include <algorithm>
-
 LSTD_BEGIN_NAMESPACE
 
 template <typename T, size_t Size>
@@ -43,12 +41,14 @@ struct Array {
         return npos;
     }
 
+#if !defined LSTD_NO_CRT
     constexpr void sort() { std::sort(begin(), end()); }
     template <typename Pred>
 
     constexpr void sort(Pred &&predicate) {
         std::sort(begin(), end(), predicate);
     }
+#endif
 
     constexpr bool has(const T &item) const { return find(item) != npos; }
 

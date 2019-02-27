@@ -5,9 +5,14 @@
 
 #if !defined LSTD_NO_CRT
 #include <cstring>
-#endif
+#else
 
-#include <new>
+#pragma warning(disable : 4595)
+inline void operator delete(void *ptr, std::size_t sz) {
+    assert(false && "Shouldn't get here");
+}
+#pragma warning(default : 4595)
+#endif
 
 LSTD_BEGIN_NAMESPACE
 

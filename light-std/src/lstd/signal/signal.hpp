@@ -8,9 +8,6 @@ LSTD_BEGIN_NAMESPACE
 
 namespace internal {
 
-template <typename, typename>
-struct Proto_Signal;
-
 // Collector_Invocation invokes callbacks differently depending on return type.
 template <typename, typename>
 struct Collector_Invocation;
@@ -31,12 +28,17 @@ struct Collector_Invocation<Collector, void(Args...)> {
         return collector();
     }
 };
+}  // namespace internal
 
-template <typename Collector, typename R, typename... Args>
-struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collector, R(Args...)>, public NonCopyable {
+template <typename Signature,
+          typename Collector = Collector_Default<typename fastdelegate::FastDelegate<Signature>::ReturnType>>
+struct Signal;
+
+template <typename R, typename... Args, typename Collector>
+struct Signal<R(Args...), Collector> : public NonCopyable {
    protected:
-    using callback_type = fastdelegate::FastDelegate<R(Args...)>;
     using result_type = R;
+    using callback_type = typename fastdelegate::FastDelegate<R(Args...)>;
     using collector_result_type = typename Collector::result_type;
 
    private:
@@ -59,22 +61,22 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
             assert(RefCount > 0);
         }
 
-        // Takes an allocator in case it's time to get destroyed
-        void decref(const Allocator_Closure &allocator) {
+        // Returns whether it should be destroyed
+        bool decref() {
             RefCount -= 1;
             if (!RefCount) {
-                Delete(this, allocator);
-            } else {
-                assert(RefCount > 0);
+                return true;
             }
+            assert(RefCount > 0);
+            return false;
         }
 
-        // Takes an allocator in case it's time to get destroyed
-        void unlink(const Allocator_Closure &allocator) {
+        // Returns whether it should be destroyed
+        bool unlink() {
             Callback = typename callback_type();
             if (Next) Next->Prev = Prev;
             if (Prev) Prev->Next = Next;
-            decref(allocator);
+            return decref();
         }
 
         size_t add_before(const callback_type &cb, const Allocator_Closure &allocator) {
@@ -89,13 +91,16 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
             return (size_t) link;
         }
 
-        bool remove_sibling(size_t id, const Allocator_Closure &allocator) {
+        std::pair<Signal_Link *, bool> remove_sibling(size_t id, const Allocator_Closure &allocator) {
             for (Signal_Link *link = this->Next ? this->Next : this; link != this; link = link->Next)
                 if (id == (size_t) link) {
-                    link->unlink(allocator);
-                    return true;
+                    return {link, link->unlink()};
                 }
-            return false;
+            return {null, false};
+        }
+
+        static void operator delete(void *ptr, std::size_t sz) {
+            assert(false && "Wtf?");
         }
     };
 
@@ -106,23 +111,32 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
 
     Signal_Link *CallbackRing = null;
 
+    internal::Collector_Invocation<Collector, R(Args...)> Invoker;
+
     // Connects default callback if non-nullptr.
-    Proto_Signal(const callback_type &cb) {
+    Signal(const callback_type &cb = null) {
         if (!cb.empty()) {
             ensure_ring();
             CallbackRing->Callback = cb;
         }
     }
 
-    ~Proto_Signal() { release(); }
+    ~Signal() { release(); }
 
     // Releases all memory associated with this signal
     void release() {
         if (CallbackRing) {
-            while (CallbackRing->Next != CallbackRing) CallbackRing->Next->unlink(Allocator);
+            while (CallbackRing->Next != CallbackRing) {
+                auto result = CallbackRing->Next->unlink();
+                if (result) {
+                    Delete(CallbackRing->Next, Allocator);
+                }
+            }
             assert(CallbackRing->RefCount >= 2);
-            CallbackRing->decref(Allocator);
-            CallbackRing->decref(Allocator);
+            CallbackRing->decref();
+            auto result = CallbackRing->decref();
+            assert(result);
+            Delete(CallbackRing, Allocator);
         }
     }
 
@@ -135,7 +149,12 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
 
     // Remove a callback via connection id. Returns true on success.
     bool disconnect(size_t connection) {
-        return CallbackRing ? CallbackRing->remove_sibling(connection, Allocator) : false;
+        if (!CallbackRing) return false;
+        auto [link, result] = CallbackRing->remove_sibling(connection, Allocator);
+        if (result) {
+            Delete(link, Allocator);
+        }
+        return result;
     }
 
     // Emit a signal, i.e. invoke all callbacks and collect return types with the Collector
@@ -149,14 +168,14 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
         link->incref();
         do {
             if (link->Callback != null) {
-                if (!this->invoke(collector, link->Callback, std::forward<Args>(args)...)) break;
+                if (!Invoker.invoke(collector, link->Callback, std::forward<Args>(args)...)) break;
             }
             Signal_Link *old = link;
             link = old->Prev;
             link->incref();
-            old->decref(Allocator);
+            assert(!old->decref());
         } while (link != CallbackRing);
-        link->decref(Allocator);
+        assert(!link->decref());
 
         return collector.result();
     }
@@ -171,16 +190,6 @@ struct Proto_Signal<R(Args...), Collector> : private Collector_Invocation<Collec
             CallbackRing->Prev = CallbackRing;
         }
     }
-};
-}  // namespace internal
-
-template <typename Signature,
-          typename Collector = Collector_Default<typename fastdelegate::FastDelegate<Signature>::ReturnType>>
-struct Signal : internal::Proto_Signal<Signature, Collector> {
-    using proto_signal = internal::Proto_Signal<Signature, Collector>;
-    using callback_type = typename proto_signal::callback_type;
-
-    Signal(const callback_type &cb = callback_type()) : proto_signal(cb) {}
 };
 
 LSTD_END_NAMESPACE

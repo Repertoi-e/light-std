@@ -402,7 +402,16 @@ struct Format_Context : io::Writer {
     std::enable_if_t<std::is_floating_point_v<T>> write_float(T value) {
         char t = (char) type();
         bool upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
-        if (t == 0 || t == 'G') t = 'f';
+
+        bool fixed = false;
+        if (t == 0 || t == 'G') {
+            fixed = true;
+            t = 'f';
+        }
+
+        if (t == 'f' || t == 'F') {
+            fixed = true;
+        }
 
         byte sign = 0;
         // Check signbit instead of value < 0 because the latter is always false for NaN.
@@ -434,11 +443,23 @@ struct Format_Context : io::Writer {
         }
 
         Memory_Buffer<30> buffer;
-        if (!(sizeof(T) <= sizeof(f64) && t != 'a' && t != 'A' &&
-              internal::grisu2_format((f64) value, buffer, ParseContext.Specs))) {
-            Format_Specs normalizedSpecs = ParseContext.Specs;
-            normalizedSpecs.Type = t;
-            internal::sprintf_format(value, buffer, normalizedSpecs);
+        s32 exp = 0;
+
+        s32 prec = precision();
+        if (prec == -1 && type()) {
+            prec = 6;
+        }
+
+        bool useGrisu = sizeof(T) <= sizeof(f64) && (!type() || fixed) &&
+                        internal::grisu2_format((f64) value, buffer, prec, fixed, &exp);
+        if (!useGrisu) {
+            // TODO: What should we do about this?
+            // We don't have sprintf without the CRT...
+#if !defined LSTD_NO_CRT
+            internal::sprintf_format(value, buffer, ParseContext.Specs);
+#else
+            buffer.append_cstring("{ Couldn't format with grisu }");
+#endif
         }
 
         size_t n = buffer.ByteLength;
@@ -459,12 +480,39 @@ struct Format_Context : io::Writer {
             if (sign) ++n;
         }
 
-        format_padded(
-            [&](Format_Context &f) {
-                if (sign) f.Out.append(sign);
-                f.Out.append(buffer);
-            },
-            alignSpec, n);
+        if (useGrisu) {
+            s32 numDigits = precision() >= 0 ? precision() : 6;
+            bool trailingZeros = true;
+            if (t == 'G' || t == 'g') {
+                trailingZeros = ((u32) ParseContext.Specs.Flags & (u32) Flag::HASH) != 0;
+            }
+            if (t == 'F' || t == 'f') {
+                trailingZeros = true;
+                s32 adjustedMinDigits = numDigits + exp;
+                if (adjustedMinDigits > 0) numDigits = adjustedMinDigits;
+            }
+
+            io::Counter_Writer counter;
+            internal::grisu2_prettify(buffer.Data, (s32) buffer.ByteLength, exp, counter, upper, numDigits,
+                                      trailingZeros);
+            n = counter.Count + (sign ? 1 : 0);
+
+            format_padded(
+                [&](Format_Context &f) {
+                    if (sign) f.Out.append(sign);
+                    io::Memory_Buffer_Writer<500> writer{f.Out};
+                    internal::grisu2_prettify(buffer.Data, (s32) buffer.ByteLength, exp, writer, upper, numDigits,
+                                              trailingZeros);
+                },
+                alignSpec, n);
+        } else {
+            format_padded(
+                [&](Format_Context &f) {
+                    if (sign) f.Out.append(sign);
+                    f.Out.append(buffer);
+                },
+                alignSpec, n);
+        }
     }
 
 #define int_helper(x)                                                           \
@@ -622,11 +670,11 @@ struct Format_Context : io::Writer {
 };
 
 inline void format_context_write(void *data, const Memory_View &writeData) {
-    auto context = (Format_Context *)data;
+    auto context = (Format_Context *) data;
 
     string_view toWrite = writeData;
 
-    size_t prec = (size_t)context->precision();
+    size_t prec = (size_t) context->precision();
     if (context->precision() >= 0 && prec < toWrite.Length) {
         toWrite.remove_suffix(toWrite.Length - prec);
     }

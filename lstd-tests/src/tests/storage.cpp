@@ -8,6 +8,7 @@ TEST(static_array) {
 
     For(range(ints.Count)) { assert_eq(ints[it], it); }
 
+#if !defined LSTD_NO_CRT
     size_t j = 0;
     For(ints) { assert_eq(it, j++); }
 
@@ -15,6 +16,7 @@ TEST(static_array) {
     j = 4;
     For(ints) { assert_eq(it, j--); }
     ints.sort(std::less<s32>());
+#endif
 
     assert_true(ints.has(3));
     assert_true(ints.has(4));

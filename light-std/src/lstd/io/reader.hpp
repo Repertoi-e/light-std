@@ -7,6 +7,8 @@
 
 #include "../memory/dynamic_array.hpp"
 
+#include "../intrinsics/intrin.hpp"
+
 LSTD_BEGIN_NAMESPACE
 
 #undef EOF
@@ -214,7 +216,7 @@ struct Reader {
         } else {
             maxValue = negative ? -(std::numeric_limits<T>::min()) : std::numeric_limits<T>::max();
         }
-        T cutoff = abs(maxValue / base);
+        T cutoff = absolute_value(maxValue / base);
         s32 cutlim = maxValue % (T) base;
 
         T value = 0;

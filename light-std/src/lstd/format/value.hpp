@@ -47,9 +47,9 @@ namespace internal {
         factor * 100000000, factor * 1000000000
 
 inline constexpr u32 POWERS_OF_10_32[] = {1, POWERS_OF_10(1)};
+inline constexpr u64 POWERS_OF_10_64[] = {1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
 
 inline constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
-
 inline constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull),
                                                   10000000000000000000ull};
 

@@ -39,4 +39,24 @@ union IEEEd2bits {
 constexpr byte sign_bit(f32 value) { return IEEEf2bits{value}.Bits.Sign; }
 constexpr byte sign_bit(f64 value) { return IEEEd2bits{value}.Bits.Sign; }
 
+inline s32 absolute_value(s32 x) {
+    if (x < 0) x = -x;
+    return x;
+}
+
+inline s64 absolute_value(s64 x) {
+    if (x < 0) x = -x;
+    return x;
+}
+
+inline f32 absolute_value(f32 x) {
+    if (x < 0) x = -x;
+    return x;
+}
+
+inline f64 absolute_value(f64 x) {
+    if (x < 0) x = -x;
+    return x;
+}
+
 LSTD_END_NAMESPACE

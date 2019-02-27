@@ -4,20 +4,22 @@
 
 #include "../memory/memory_buffer.hpp"
 
+#include "../io/writer.hpp"
+
 #include "format_integer.hpp"
 
 #include "specs.hpp"
 
-#include <stdio.h>
 #include <cstdarg>
+
+#if !defined LSTD_NO_CRT
+#include <stdio.h>
+#endif
 
 LSTD_BEGIN_NAMESPACE
 
-// Note: this won't work if we want LSTD_NO_CRT...
-// Figure out a way to replace these functions
-#if !defined COMPILER_MSVC
-#define LSTD_FMT_SNPRINTF snprintf
-#else
+#if COMPILER == MSVC
+#if !defined LSTD_NO_CRT
 inline s32 fmt_snprintf(char *buffer, size_t size, const char *format, ...) {
     va_list args;
     va_start(args, format);
@@ -26,6 +28,12 @@ inline s32 fmt_snprintf(char *buffer, size_t size, const char *format, ...) {
     return result;
 }
 #define LSTD_FMT_SNPRINTF fmt_snprintf
+#else
+// We don't use vsnprintf_s since we aren't linking with the runtime library...
+#define LSTD_FMT_SNPRINTF(buffer, size, ...) (s32) size
+#endif
+#else
+#define LSTD_FMT_SNPRINTF snprintf
 #endif
 
 namespace fmt::internal {
@@ -163,8 +171,8 @@ inline s32 my_ceil(f32 num) {
 }
 
 // Returns cached power (of 10) c_k = c_k.f * pow(2, c_k.e) such that its
-// (binary) exponent satisfies min_exponent <= c_k.e <= min_exponent + 3.
-inline fp get_cached_power(s32 minExponent, s32 &pow10Exp) {
+// (binary) exponent satisfies minExponent <= c_k.e <= minExponent + 3.
+inline fp get_cached_power(s32 minExponent, s32 *pow10Exp) {
     constexpr f32 ONE_OVER_LOG2_10 = (f32) 0.30102999566398114;  // 1 / log2(10)
 
     s32 index = my_ceil((minExponent + fp::SIGNIFICAND_SIZE - 1) * ONE_OVER_LOG2_10);
@@ -173,324 +181,271 @@ inline fp get_cached_power(s32 minExponent, s32 &pow10Exp) {
     // Difference between 2 consecutive decimal exponents in cached powers of 10.
     constexpr s32 DEC_EXP_STEP = 8;
     index = (index - FIRST_DEC_EXP - 1) / DEC_EXP_STEP + 1;
-    pow10Exp = FIRST_DEC_EXP + index * DEC_EXP_STEP;
+    *pow10Exp = FIRST_DEC_EXP + index * DEC_EXP_STEP;
     return fp(POW10_SIGNIFICANDS[index], POW10_EXPONENTS[index]);
 }
 
-inline bool grisu2_round(byte *buffer, size_t &size, size_t maxDigits, u64 delta, u64 remainder, u64 exp, u64 diff,
-                         s32 &exp10) {
-    while (remainder < diff && delta - remainder >= exp &&
-           (remainder + exp < diff || diff - remainder > remainder + exp - diff)) {
-        --buffer[size - 1];
-        remainder += exp;
+// Stopping condition for the fixed precision.
+struct Fixed_Stop {
+    s32 Precision;
+    s32 Exp10;
+    bool Fixed;
+
+    void on_exp(s32 exp) {
+        if (!Fixed) return;
+        exp += Exp10;
+        if (exp >= 0) {
+            Precision += exp;
+        }
     }
-    if (size > maxDigits) {
-        --size;
-        ++exp10;
-        if (buffer[size] >= '5') return false;
+
+    bool operator()(byte *, s32 *size, u64 remainder, u64 divisor, u64 error, s32 *, bool integral) {
+        assert(remainder < divisor);
+
+        if (*size != Precision) return false;
+
+        if (!integral) {
+            // Check if error * 2 < divisor with overflow prevention.
+            // The check is not needed for the integral part because error = 1
+            // and divisor > (1 << 32) there.
+            if (error >= divisor || error >= divisor - error) {
+                *size = -1;
+                return true;
+            }
+        } else {
+            assert(error == 1 && divisor > 2);
+        }
+        // Round down if (remainder + error) * 2 <= divisor.
+        if (remainder < divisor - remainder && error * 2 <= divisor - remainder * 2) return true;
+
+        // TODO: round up
+        *size = -1;
+        return true;
     }
-    return true;
-}
+};
+
+// Stopping condition for the shortest representation.
+struct Shortest_Stop {
+    fp Diff;  // wp_w in Grisu.
+
+    void on_exp(s32 exp) {}
+
+    bool operator()(byte *buffer, s32 *size, u64 remainder, u64 divisor, u64 error, s32 *exp, bool integral) {
+        if (remainder > error) return false;
+
+        u64 d = integral ? Diff.f : Diff.f * POWERS_OF_10_64[-(*exp)];
+        while (remainder < d && error - remainder >= divisor &&
+               (remainder + divisor < d || d - remainder > remainder + divisor - d)) {
+            --buffer[*size - 1];
+            remainder += divisor;
+        }
+        return true;
+    }
+};
 
 // Generates output using Grisu2 digit-gen algorithm.
-inline bool grisu2_gen_digits(byte *buffer, size_t &size, u32 hi, u64 lo, s32 &exp, u64 delta, const fp &one,
-                              const fp &diff, size_t maxDigits) {
-    // Generate digits for the most significant part (hi).
-    while (exp > 0) {
+template <typename Stop>
+inline s32 grisu2_gen_digits(byte *buffer, fp value, u64 errorUlp, s32 *exp, Stop stop) {
+    fp one(1ull << -value.e, value.e);
+    // The integral part of scaled value (p1 in Grisu) = value / one. It cannot be
+    // zero because it contains a product of two 64-bit numbers with MSB set (due
+    // to normalization) - 1, shifted right by at most 60 bits.
+    auto integral = (u32)(value.f >> -one.e);
+    assert(integral != 0);
+    assert(integral == value.f >> -one.e);
+
+    // The fractional part of scaled value (p2 in Grisu) c = value % one.
+    u64 fractional = value.f & (one.f - 1);
+    *exp = count_digits(integral);  // kappa in Grisu.
+    stop.on_exp(*exp);
+
+    // Generate digits for the integral part. This can produce up to 10 digits.
+    s32 size = 0;
+    do {
         u32 digit = 0;
-        // This optimization by miloyip reduces the number of integer divisions by
-        // one per iteration.
-        switch (exp) {
+        switch (*exp) {
             case 10:
-                digit = hi / 1000000000;
-                hi %= 1000000000;
+                digit = integral / 1000000000;
+                integral %= 1000000000;
                 break;
             case 9:
-                digit = hi / 100000000;
-                hi %= 100000000;
+                digit = integral / 100000000;
+                integral %= 100000000;
                 break;
             case 8:
-                digit = hi / 10000000;
-                hi %= 10000000;
+                digit = integral / 10000000;
+                integral %= 10000000;
                 break;
             case 7:
-                digit = hi / 1000000;
-                hi %= 1000000;
+                digit = integral / 1000000;
+                integral %= 1000000;
                 break;
             case 6:
-                digit = hi / 100000;
-                hi %= 100000;
+                digit = integral / 100000;
+                integral %= 100000;
                 break;
             case 5:
-                digit = hi / 10000;
-                hi %= 10000;
+                digit = integral / 10000;
+                integral %= 10000;
                 break;
             case 4:
-                digit = hi / 1000;
-                hi %= 1000;
+                digit = integral / 1000;
+                integral %= 1000;
                 break;
             case 3:
-                digit = hi / 100;
-                hi %= 100;
+                digit = integral / 100;
+                integral %= 100;
                 break;
             case 2:
-                digit = hi / 10;
-                hi %= 10;
+                digit = integral / 10;
+                integral %= 10;
                 break;
             case 1:
-                digit = hi;
-                hi = 0;
+                digit = integral;
+                integral = 0;
                 break;
             default:
-                assert(false && "Invalid number of digits");
+                assert(false && "invalid number of digits");
         }
-        if (digit != 0 || size != 0) buffer[size++] = (byte)('0' + digit);
-        --exp;
-        u64 remainder = ((u64) hi << -one.e) + lo;
-        if (remainder <= delta || size > maxDigits) {
-            return grisu2_round(buffer, size, maxDigits, delta, remainder, (u64)(POWERS_OF_10_32[exp]) << -one.e,
-                                diff.f, exp);
-        }
-    }
+        buffer[size++] = (byte)('0' + digit);
+        --*exp;
+        auto remainder = ((u64) integral << -one.e) + fractional;
+        if (stop(buffer, &size, remainder, POWERS_OF_10_64[*exp] << -one.e, errorUlp, exp, true)) return size;
+    } while (*exp > 0);
 
-    // Generate digits for the least significant part (lo).
+    // Generate digits for the fractional part.
     while (true) {
-        lo *= 10;
-        delta *= 10;
-        byte digit = (byte)(lo >> -one.e);
-        if (digit != 0 || size != 0) buffer[size++] = (byte)('0' + digit);
-        lo &= one.f - 1;
-        --exp;
-        if (lo < delta || size > maxDigits) {
-            return grisu2_round(buffer, size, maxDigits, delta, lo, one.f, diff.f * POWERS_OF_10_32[-exp], exp);
-        }
+        fractional *= 10;
+        errorUlp *= 10;
+        buffer[size++] = (byte)('0' + (byte)(fractional >> -one.e));
+        fractional &= one.f - 1;
+        --*exp;
+        if (stop(buffer, &size, fractional, one.f, errorUlp, exp, false)) return size;
     }
 }
-
-struct Gen_Digits_Params {
-    u32 NumDigits = 0;
-    bool Fixed = false;
-    bool Upper = false;
-    bool TrailingZeros = false;
-};
-
-struct Prettify_Handler {
-    byte *Data;
-    size_t &Size;
-
-    Prettify_Handler(byte *data, size_t &size) : Data(data), Size(size) {}
-
-    template <typename F>
-    void insert(size_t pos, size_t n, F f) {
-        move_memory(Data + pos + n, Data + pos, Size - pos);
-        f(Data + pos);
-        Size += n;
-    }
-
-    void insert(size_t pos, byte c) {
-        move_memory(Data + pos + 1, Data + pos, Size - pos);
-        Data[pos] = c;
-        ++Size;
-    }
-
-    void append(size_t n, byte c) {
-        byte *p = Data + Size;
-        For(range(n)) { *p++ = c; }
-        Size += n;
-    }
-
-    void append(byte c) { Data[Size++] = c; }
-
-    void remove_trailing(byte c) {
-        while (Data[Size - 1] == c) --Size;
-    }
-};
 
 // Writes the exponent exp in the form "[+-]d{2,3}" to buffer.
-template <typename Handler>
-void write_exponent(s32 exp, Handler &&h) {
+inline void write_exponent(s32 exp, io::Writer &writer) {
     assert(-1000 < exp && exp < 1000 && "Exponent out of range");
     if (exp < 0) {
-        h.append('-');
+        writer.write_codepoint('-');
         exp = -exp;
     } else {
-        h.append('+');
+        writer.write_codepoint('+');
     }
     if (exp >= 100) {
-        h.append((byte)('0' + exp / 100));
+        writer.write_codepoint('0' + exp / 100);
         exp %= 100;
-
         const byte *d = DIGITS + exp * 2;
-        h.append(d[0]);
-        h.append(d[1]);
+        writer.write_codepoint(d[0]);
+        writer.write_codepoint(d[1]);
     } else {
         const byte *d = DIGITS + exp * 2;
-        h.append(d[0]);
-        h.append(d[1]);
+        if (d[0] != '0') writer.write_codepoint(d[0]);
+        writer.write_codepoint(d[1]);
     }
 }
 
-struct Fill {
-    size_t n;
-
-    void operator()(byte *buffer) const {
-        buffer[0] = '0';
-        buffer[1] = '.';
-
-        byte *p = buffer + 2;
-        For(range(n)) { *p++ = '0'; }
-    }
-};
-
-// The number is given as v = f * pow(10, exp), where f has size digits.
-template <typename Handler>
-void grisu2_prettify(const Gen_Digits_Params &params, size_t size, s32 exp, Handler &&handler) {
-    if (!params.Fixed) {
-        // Insert a decimal point after the first digit and add an exponent.
-        handler.insert(1, '.');
-        exp += (s32) size - 1;
-        if (size < params.NumDigits) handler.append(params.NumDigits - size, '0');
-        handler.append(params.Upper ? 'E' : 'e');
-        write_exponent(exp, handler);
-        return;
-    }
-
-    // pow(10, fullExp - 1) <= v <= pow(10, fullExp).
-    s32 intSize = (s32) size;
-    s32 fullExp = intSize + exp;
-    if (intSize <= fullExp && fullExp <= 21) {
-        // 1234e7 -> 12340000000[.0+]
-        handler.append(fullExp - intSize, '0');
-        s32 numZeros = (s32) params.NumDigits - fullExp;
-        if (numZeros > 0 && params.TrailingZeros) {
-            handler.append('.');
-            handler.append(numZeros, '0');
-        }
-    } else if (fullExp > 0) {
-        // 1234e-2 -> 12.34[0+]
-        handler.insert(fullExp, '.');
-        if (!params.TrailingZeros) {
-            // Remove trailing zeros.
-            handler.remove_trailing('0');
-        } else if (params.NumDigits > size) {
-            // Add trailing zeros.
-            handler.append(params.NumDigits - size, '0');
-        }
-    } else {
-        // 1234e-6 -> 0.001234
-        handler.insert(0, 2 - fullExp, Fill{to_unsigned(-fullExp)});
-    }
-}
-
-// Uses to determine how much space to reserve in the buffer when formatting.
-struct Char_Counter {
-    size_t Size;
-
-    template <typename F>
-    void insert(size_t, size_t n, F) {
-        Size += n;
-    }
-    void insert(size_t, byte) { ++Size; }
-    void append(size_t n, byte) { Size += n; }
-    void append(byte) { ++Size; }
-    void remove_trailing(byte) {}
-};
-
-// Converts format specifiers into parameters for digit generation and computes
-// output buffer size for a number in the range [pow(10, exp - 1), pow(10, exp)
-// or 0 if exp == 1.
 template <size_t S>
-inline Gen_Digits_Params process_specs(const Format_Specs &specs, s32 exp, Memory_Buffer<S> &buffer) {
-    Gen_Digits_Params params;
-    s32 numDigits = specs.Precision >= 0 ? specs.Precision : 6;
-    switch (specs.Type) {
-        case 'G':
-            params.Upper = true;
-            [[fallthrough]];
-        case 'g':
-            params.TrailingZeros = ((u32) specs.Flags & (u32) Flag::HASH) != 0;
-            if (-4 <= exp && exp < numDigits + 1) {
-                params.Fixed = true;
-                if (!specs.Type && params.TrailingZeros && exp >= 0) numDigits = exp + 1;
-            }
-            break;
-        case '\0':
-        case 'F':
-            params.Upper = true;
-            [[fallthrough]];
-        case 'f': {
-            params.Fixed = true;
-            params.TrailingZeros = true;
-            s32 adjustedMinDigits = numDigits + exp;
-            if (adjustedMinDigits > 0) numDigits = adjustedMinDigits;
-            break;
-        }
-        case 'E':
-            params.Upper = true;
-            [[fallthrough]];
-        case 'e':
-            ++numDigits;
-            break;
-    }
-    params.NumDigits = to_unsigned(numDigits);
-    Char_Counter counter{params.NumDigits};
-    grisu2_prettify(params, params.NumDigits, exp - numDigits, counter);
-    buffer.grow(counter.Size);
-    return params;
-}
-
-template <typename Double, size_t S>
-typename std::enable_if_t<sizeof(Double) == sizeof(u64), bool> grisu2_format(Double value, Memory_Buffer<S> &buffer,
-                                                                             const Format_Specs &specs) {
+bool grisu2_format(f64 value, Memory_Buffer<S> &buffer, s32 precision, bool fixed, s32 *exp) {
     assert(value >= 0 && "Value is negative");
     if (value == 0) {
-        Gen_Digits_Params params = process_specs(specs, 1, buffer);
-        size_t size = 1;
-        buffer.ByteLength = 1;
-        buffer[0] = '0';
-        grisu2_prettify(params, size, 0, Prettify_Handler(buffer.Data, buffer.ByteLength));
+        if (precision < 0) {
+            buffer[0] = '0';
+            *exp = 0;
+            buffer.ByteLength = 1;
+        } else {
+            *exp = -precision;
+            buffer.reserve(precision);
+            fill_memory(buffer.Data, '0', precision);
+            buffer.ByteLength = precision;
+        }
         return true;
     }
 
     fp fpValue(value);
-    fp lower, upper;  // w^- and w^+ in the Grisu paper.
-    fpValue.compute_boundaries(lower, upper);
+    s32 minExp = -60;     // alpha in Grisu.
+    s32 cachedExp10 = 0;  // K in Grisu.
+    if (precision != -1) {
+        if (precision > 17) return false;
+        fpValue.normalize();
+        fpValue = fpValue * get_cached_power(minExp - (fpValue.e + fp::SIGNIFICAND_SIZE), &cachedExp10);
+        s32 size = grisu2_gen_digits(buffer.Data, fpValue, 1, exp, Fixed_Stop{precision, -cachedExp10, fixed});
+        if (size < 0) return false;
+        buffer.ByteLength = size;
+    } else {
+        fp lower, upper;  // w^- and w^+ in the Grisu paper.
+        fpValue.compute_boundaries(lower, upper);
 
-    // Find a cached power of 10 close to 1 / upper and use it to scale upper.
-    s32 minExp = -60;                   // alpha in Grisu.
-    s32 cachedExp = 0;                  // K in Grisu.
-    auto cachedPow = get_cached_power(  // \tilde{c}_{-k} in Grisu.
-        minExp - (upper.e + fp::SIGNIFICAND_SIZE), cachedExp);
-    cachedExp = -cachedExp;
-    upper = upper * cachedPow;  // \tilde{M}^+ in Grisu.
-    --upper.f;                  // \tilde{M}^+ - 1 ulp -> M^+_{\downarrow}.
-
-    fp one(1ull << -upper.e, upper.e);
-    // hi (p1 in Grisu) contains the most significant digits of scaled_upper.
-    // hi = floor(upper / one).
-    u32 hi = (u32)(upper.f >> -one.e);
-    s32 exp = (s32) count_digits(hi);  // kappa in Grisu.
-
-    Gen_Digits_Params params = process_specs(specs, cachedExp + exp, buffer);
-    fpValue.normalize();
-    fp scaledValue = fpValue * cachedPow;
-    lower = lower * cachedPow;  // \tilde{M}^- in Grisu.
-    ++lower.f;                  // \tilde{M}^- + 1 ulp -> M^-_{\uparrow}.
-
-    u64 delta = upper.f - lower.f;
-    fp diff = upper - scaledValue;  // wp_w in Grisu.
-    // lo (p2 in Grisu) contains the least significants digits of scaled_upper.
-    // lo = supper % one.
-    u64 lo = upper.f & (one.f - 1);
-    size_t &size = buffer.ByteLength;
-    size_t oldSize = buffer.ByteLength;
-    if (!grisu2_gen_digits(buffer.Data, size, hi, lo, exp, delta, one, diff, params.NumDigits)) {
-        // Restore buffer to original state
-        size = oldSize;
-        return false;
+        // Find a cached power of 10 such that multiplying upper by it will bring
+        // the exponent in the range [minExp, -32].
+        auto cachedPow =
+            get_cached_power(minExp - (upper.e + fp::SIGNIFICAND_SIZE), &cachedExp10);  // \tilde{c}_{-k} in Grisu.
+        upper = upper * cachedPow;                                                      // \tilde{M}^+ in Grisu.
+        --upper.f;  // \tilde{M}^+ - 1 ulp -> M^+_{\downarrow}.
+        assert(minExp <= upper.e && upper.e <= -32);
+        fpValue.normalize();
+        fpValue = fpValue * cachedPow;
+        lower = lower * cachedPow;  // \tilde{M}^- in Grisu.
+        ++lower.f;                  // \tilde{M}^- + 1 ulp -> M^-_{\uparrow}.
+        s32 size = grisu2_gen_digits(buffer.Data, upper, upper.f - lower.f, exp, Shortest_Stop{upper - fpValue});
+        if (size < 0) return false;
+        buffer.ByteLength = size;
     }
-    grisu2_prettify(params, size, cachedExp + exp, Prettify_Handler(buffer.Data, buffer.ByteLength));
+    *exp -= cachedExp10;
     return true;
+}
+
+// The number is given as v = digits * pow(10, exp).
+inline void grisu2_prettify(byte *digits, s32 size, s32 exp, io::Writer &writer, bool upper, s32 numDigits,
+                            bool trailingZeros) {
+    // pow(10, fullExp - 1) <= v <= pow(10, fullExp).
+    s32 fullExp = size + exp;
+
+    u32 NumDigits = 0;
+
+    bool fixed = (fullExp - 1) >= -4 && (fullExp - 1) <= 10;
+    if (!fixed) {
+        // Insert a decimal point after the first digit and add an exponent.
+        writer.write_codepoint(*digits);
+        if (size > 1) writer.write_codepoint('.');
+        exp += size - 1;
+        writer.write(digits + 1, size - 1);
+        if (size < numDigits) {
+            For(range(numDigits - size)) writer.write_codepoint('0');
+        }
+        writer.write_codepoint(upper ? 'E' : 'e');
+        write_exponent(exp, writer);
+        return;
+    }
+
+    if (size <= fullExp && fullExp <= 21) {
+        // 1234e7 -> 12340000000[.0+]
+        writer.write(digits + 1, size - 1);
+        For(range(fullExp - size)) writer.write_codepoint('0');
+
+        int numZeros = max(numDigits - fullExp, 1);
+        if (trailingZeros) {
+            writer.write_codepoint('.');
+            For(range(numZeros)) writer.write_codepoint('0');
+        }
+    } else if (fullExp > 0) {
+        // 1234e-2 -> 12.34[0+]
+        writer.write(digits, fullExp);
+        writer.write_codepoint('.');
+        writer.write(digits + fullExp, size - fullExp);
+        if (!trailingZeros) {
+            writer.remove_trailing_bytes('0');
+        } else if (numDigits > size) {
+            For(range(numDigits - size)) writer.write_codepoint('0');
+        }
+    } else {
+        // 1234e-6 -> 0.001234
+        writer.write_codepoint('0');
+        writer.write_codepoint('.');
+        For(range(-fullExp)) writer.write_codepoint('0');
+        writer.write(digits, size);
+    }
 }
 
 template <typename Double, size_t S>

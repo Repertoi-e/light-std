@@ -1,7 +1,4 @@
-/// LSTD code:
 #pragma once
-#include "../../lstd/memory/memory.hpp"
-///
 
 //						FastDelegate.h
 //	Efficient delegates in C++ that generate only two lines of asm code!
@@ -353,65 +350,6 @@ struct SimplifyMemFunc<SINGLE_MEMFUNCPTR_SIZE + sizeof(int)> {
     }
 };
 
-// virtual inheritance is a real nuisance. It's inefficient and complicated.
-// On MSVC and Intel, there isn't enough information in the pointer itself to
-// enable conversion to a closure pointer. Earlier versions of this code didn't
-// work for all cases, and generated a compile-time error instead.
-// But a very clever hack invented by John M. Dlugosz solves this problem.
-// My code is somewhat different to his: I have no asm code, and I make no
-// assumptions about the calling convention that is used.
-
-// In VC++ and ICL, a virtual_inheritance member pointer
-// is internally defined as:
-struct MicrosoftVirtualMFP {
-    void (GenericClass::*codeptr)();  // points to the actual member function
-    int delta;                        // #bytes to be added to the 'this' pointer
-    int vtable_index;                 // or 0 if no virtual inheritance
-};
-// The CRUCIAL feature of Microsoft/Intel MFPs which we exploit is that the
-// m_codeptr member is *always* called, regardless of the values of the other
-// members. (This is *not* true for other compilers, eg GCC, which obtain the
-// function address from the vtable if a virtual function is being called).
-// Dlugosz's trick is to make the codeptr point to a probe function which
-// returns the 'this' pointer that was used.
-
-// Define a generic class that uses virtual inheritance.
-// It has a trival member function that returns the value of the 'this' pointer.
-struct GenericVirtualClass : virtual public GenericClass {
-    typedef GenericVirtualClass *(GenericVirtualClass::*ProbePtrType)();
-    GenericVirtualClass *GetThis() { return this; }
-};
-
-// __virtual_inheritance classes go here
-template <>
-struct SimplifyMemFunc<SINGLE_MEMFUNCPTR_SIZE + 2 * sizeof(int)> {
-    template <class X, class XFuncType, class GenericMemFuncType>
-    inline static GenericClass *Convert(X *pthis, XFuncType function_to_bind, GenericMemFuncType &bound_func) {
-        union {
-            XFuncType func;
-            GenericClass *(X::*ProbeFunc)();
-            MicrosoftVirtualMFP s;
-        } u;
-        u.func = function_to_bind;
-        bound_func = reinterpret_cast<GenericMemFuncType>(u.s.codeptr);
-        union {
-            GenericVirtualClass::ProbePtrType virtfunc;
-            MicrosoftVirtualMFP s;
-        } u2;
-        // Check that the horrible_cast<>s will work
-        typedef int ERROR_CantUsehorrible_cast[sizeof(function_to_bind) == sizeof(u.s) &&
-                                                       sizeof(function_to_bind) == sizeof(u.ProbeFunc) &&
-                                                       sizeof(u2.virtfunc) == sizeof(u2.s)
-                                                   ? 1
-                                                   : -1];
-        // Unfortunately, taking the address of a MF prevents it from being inlined, so
-        // this next line can't be completely optimised away by the compiler.
-        u2.virtfunc = &GenericVirtualClass::GetThis;
-        u.s.codeptr = u2.s.codeptr;
-        return (pthis->*u.ProbeFunc)();
-    }
-};
-
 #if (_MSC_VER < 1300)
 
 // Nasty hack for Microsoft Visual C++ 6.0
@@ -545,6 +483,18 @@ struct SimplifyMemFunc<SINGLE_MEMFUNCPTR_SIZE + 3 * sizeof(int)> {
 // Note that the Sun C++ and MSVC documentation explicitly state that they
 // support static_cast between void * and function pointers.
 
+inline s32 fast_delegate_compare_memory_workaround_please_kill_me(const void *ptr1, const void *ptr2, size_t num) {
+    const byte *s1 = (const byte *)ptr1;
+    const byte *s2 = (const byte *)ptr2;
+
+    while (num-- > 0) {
+        if (*s1++ != *s2++) return s1[-1] < s2[-1] ? -1 : 1;
+    }
+
+    // The memory regions match
+    return 0;
+}
+
 class DelegateMemento {
    protected:
     // the data is protected, not private, because many
@@ -599,7 +549,7 @@ class DelegateMemento {
         // but we can fake one by comparing each byte. The resulting ordering is
         // arbitrary (and compiler-dependent), but it permits storage in ordered STL containers.
         /// LSTD code: used to be memcmp
-        return compare_memory(&m_pFunction, &right.m_pFunction, sizeof(m_pFunction)) < 0;
+        return fast_delegate_compare_memory_workaround_please_kill_me(&m_pFunction, &right.m_pFunction, sizeof(m_pFunction)) < 0;
     }
     // BUGFIX (Mar 2005):
     // We can't just compare m_pFunction because on Metrowerks,

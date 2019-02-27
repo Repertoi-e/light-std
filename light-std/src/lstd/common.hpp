@@ -17,8 +17,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <algorithm>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 using s8 = int8_t;
@@ -183,8 +183,19 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #define assert(condition) ((void) 0)
 #endif
 
-using std::max;
-using std::min;
+template<class T>
+constexpr const T &max(const T &left, const T &right)
+{
+    if (left < right) return right;
+    return left;
+}
+
+template<class T>
+constexpr const T &min(const T &left, const T &right)
+{
+    if (left > right) return right;
+    return left;
+}
 
 // Platform specific utily functions:
 // Implementations in *platform*.cpp

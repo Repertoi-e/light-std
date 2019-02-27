@@ -2,8 +2,8 @@
 
 #include "../common.hpp"
 
+#include "../memory/memory_buffer.hpp"
 #include "../string/string_builder.hpp"
-#include "../string/string_view.hpp"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -50,6 +50,16 @@ struct Writer {
         write_function(this, Memory_View(data, get_size_of_code_point(data)));
     }
 
+    // Remove all trailing bytes that equal _ch_.
+    // This function does not notify any implementations
+    // so for example Counter_Writer doesn't account for these "unwritten" bytes
+    void remove_trailing_bytes(byte ch) {
+        while (Current != Buffer && *(Current - 1) == ch) {
+            --Current;
+            Available++;
+        }
+    }
+
     template <typename... Args>
     void write_fmt(const string_view &formatString, Args &&... args) {
         fmt::internal::to_writer(*this, formatString, std::forward<Args>(args)...);
@@ -73,6 +83,32 @@ struct Console_Writer : Writer, NonCopyable, NonMovable {
 };
 
 inline Console_Writer cout;
+
+void counter_writer_write(void *data, const Memory_View &writeData);
+
+// Writer that does nothing but count how many bytes would have been written
+struct Counter_Writer : Writer {
+    size_t Count = 0;
+
+    Counter_Writer() { write_function = counter_writer_write; }
+};
+
+template <size_t S>
+void memory_buffer_write(void *data, const Memory_View &writeData);
+
+template <size_t S>
+struct Memory_Buffer_Writer : Writer {
+    Memory_Buffer<S> &Buffer;
+
+    Memory_Buffer_Writer(Memory_Buffer<S> &buffer) : Buffer(buffer) { write_function = memory_buffer_write<S>; }
+};
+
+template <size_t S>
+void memory_buffer_write(void *data, const Memory_View &writeData) {
+    auto *writer = (Memory_Buffer_Writer<S> *) data;
+    writer->Buffer.append(writeData);
+}
+
 }  // namespace io
 
 LSTD_END_NAMESPACE

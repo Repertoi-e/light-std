@@ -2,8 +2,6 @@
 
 #include "../memory/range.hpp"
 
-#include <iterator>
-
 LSTD_BEGIN_NAMESPACE
 
 // This is a constexpr function for working with cstyle strings at compile time

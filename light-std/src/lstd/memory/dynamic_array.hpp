@@ -154,12 +154,15 @@ struct Dynamic_Array {
 
     bool has(const Data_Type &item) { return find(item) != npos; }
 
+    // TODO: Implement sorting algorithm for dynamic array
+#if !defined LSTD_NO_CRT
     void sort() { std::sort(begin(), end()); }
 
     template <typename Pred>
     void sort(Pred &&predicate) {
         std::sort(begin(), end(), predicate);
     }
+#endif
 
     void remove(Data_Type *where) {
         assert(where >= begin() && where < end());

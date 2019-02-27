@@ -37,12 +37,6 @@ struct string_view {
         }
 
        public:
-        using iterator_category = std::random_access_iterator_tag;
-        using value_type = char32_t;
-        using difference_type = ptr_t;
-        using pointer = char32_t *;
-        using reference = char32_t &;
-
         constexpr Iterator(const byte *data) : Current(data) {}
 
         constexpr Iterator &operator+=(s64 amount) {

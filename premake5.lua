@@ -34,6 +34,11 @@ newoption {
     description = "If you have zapcc installed, you can use it for debug builds to speed up building."
 }
 
+newoption {
+    trigger     = "no-crt",
+    description = "Disable linking with the Visual C++ Runtime Library on Windows."
+}
+
 workspace "light-std"
     architecture "x64"
 
@@ -47,35 +52,53 @@ workspace "light-std"
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 function common_stuff()
     architecture "x64"
-    defines { "_HAS_EXCEPTIONS=0" }
+
+    rtti "Off"
+    exceptionhandling "Off"
+    floatingpointexceptions "off"
+    defines "_HAS_EXCEPTIONS=0"
+
     filter "system:windows"
-        staticruntime "on"
         defines "LSTD_PLATFORM_WINDOWS"
         excludes "%{prj.name}/src/posix_*.cpp"
-        links { "Winmm" }
-        ignoredefaultlibraries { "winspool", "comdlg32", "advapi32", "shell32", 
-                                 "ole32", "oleaut32", "uuid", "odbc32", "odbccp32" }
+    filter { "system:windows", "not options:no-crt" }
+        staticruntime "on"
+
+    filter { "system:windows", "options:no-crt" }
+        defines "LSTD_NO_CRT"
+        flags { "NoRuntimeChecks", "NoBufferSecurityCheck" }
+        buildoptions { "/Gs9999999" }
+    filter { "system:windows", "options:no-crt", "not kind:StaticLib" }
+        linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
+        links { "Kernel32", "Shell32", "Winmm" }
+        flags { "OmitDefaultLibrary" }
+    filter { "system:windows", "options:no-crt", "kind:SharedLib" }
+        entrypoint "main_no_crt_dll"
+    filter { "system:windows", "options:no-crt", "kind:ConsoleApp" }
+        entrypoint "main_no_crt"
+  
     filter "system:linux"
         defines "LSTD_PLATFORM_LINUX"
         buildoptions "-fdiagnostics-absolute-paths"
         excludes "%{prj.name}/src/windows_*.cpp"
+    filter { "system:linux", "options:use-zapcc" }
+        toolset "zapcc"
+    
     filter "system:macosx"
         defines "LSTD_PLATFORM_MAC"
         excludes "%{prj.name}/src/windows_*.cpp"
+    filter { "system:macosx", "options:use-zapcc" }
+        toolset "zapcc"
 
     filter "configurations:Debug"
         defines "LSTD_DEBUG"
         symbols "On"
-
     filter "configurations:Release"
         defines "LSTD_RELEASE"
         optimize "On"
-
     filter "configurations:Dist"
         defines "LSTD_DIST"
         optimize "On"
-    configuration "use-zapcc"
-        toolset "zapcc"
 end
 
 project "light-std"

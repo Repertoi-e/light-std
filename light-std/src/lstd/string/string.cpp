@@ -1,7 +1,5 @@
 #include "string.hpp"
 
-#include <algorithm>
-
 LSTD_BEGIN_NAMESPACE
 
 string::Code_Point &string::Code_Point::operator=(char32_t other) {

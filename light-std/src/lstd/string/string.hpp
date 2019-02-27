@@ -42,12 +42,6 @@ struct string {
         size_t Index;
 
        public:
-        using iterator_category = std::random_access_iterator_tag;
-        using value_type = typename std::conditional_t<Mutable, Code_Point, char32_t>;
-        using difference_type = ptr_t;
-        using pointer = value_type *;
-        using reference = value_type &;
-
         Iterator(parent_type &parent, size_t index) : Parent(parent), Index(index) {}
 
         Iterator &operator+=(s64 amount) {

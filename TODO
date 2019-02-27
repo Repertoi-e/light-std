@@ -6,21 +6,43 @@
 - string::replace 
 
 - Threads?
-
-- Support ability to compile without CRT (it will be very hard to support this as a simple switch, but not impossible!)
-----------------
+---------------------------------------------------------------------------------
+Fix formatting of floats
+---------------------------------------------------------------------------------
 Currently there is no way to pass constructor arguments to New<My_Type>(allocator...)
 Only now I realize it's a problem since most of the stuff in our library/engine has a parameterless default constructor,
 but users may want to have things like that. The current workout is to provide an empty default constructor and use placement new:
 
 	auto *myType = new(New<My_Type>()) My_Type(...params...);
-----------------
-Remove all instances of "virtual" in our code.
-This will help with the ability to compile without CRT
-----------------
+---------------------------------------------------------------------------------
 The following things implemented in windows but not on posix yet:
   LSTD:
 - os wallclock functions
 - changes in console_reader/writer that remove virtual functions
   LE:
 - game loop and windows and events 
+---------------------------------------------------------------------------------
+Allow users to add more variables to Implicit_Context (do this with headers)
+---------------------------------------------------------------------------------
+At the moment this is too much code, and too confusing:
+
+	auto tempContext = Context;
+	tempContext.Allocator = TEMPORARY_ALLOC;
+	PUSH_CONTEXT(tempContext) { ... }
+
+instead a _faster in most cases_/_more readable macro_ would be a "psuh context variable":
+	
+	PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) { ... } 
+
+and somehow allow chaining:
+
+	PUSH_CONTEXT(Log, my_logger) 
+	PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) 
+	{
+		// both are changed here
+		...
+	} 
+---------------------------------------------------------------------------------
+Support ability to compile without CRT, currently you can't format floats with custom specifiers
+---------------------------------------------------------------------------------
+
