@@ -7,8 +7,6 @@
 
 - Threads?
 ---------------------------------------------------------------------------------
-Fix formatting of floats
----------------------------------------------------------------------------------
 Currently there is no way to pass constructor arguments to New<My_Type>(allocator...)
 Only now I realize it's a problem since most of the stuff in our library/engine has a parameterless default constructor,
 but users may want to have things like that. The current workout is to provide an empty default constructor and use placement new:
@@ -42,7 +40,4 @@ and somehow allow chaining:
 		// both are changed here
 		...
 	} 
----------------------------------------------------------------------------------
-Support ability to compile without CRT, currently you can't format floats with custom specifiers
----------------------------------------------------------------------------------
 

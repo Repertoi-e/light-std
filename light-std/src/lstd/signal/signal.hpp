@@ -49,7 +49,9 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
         s32 RefCount;
 
         Signal_Link() : Callback() {}
-        ~Signal_Link() { assert(RefCount == 0); }
+        ~Signal_Link() { 
+            assert(RefCount == 0); 
+        }
 
         void set_callback(const callback_type &cb) {
             Callback = cb;
@@ -127,9 +129,10 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
     void release() {
         if (CallbackRing) {
             while (CallbackRing->Next != CallbackRing) {
-                auto result = CallbackRing->Next->unlink();
+                auto next = CallbackRing->Next;
+                auto result = next->unlink();
                 if (result) {
-                    Delete(CallbackRing->Next, Allocator);
+                    Delete(next, Allocator);
                 }
             }
             assert(CallbackRing->RefCount >= 2);

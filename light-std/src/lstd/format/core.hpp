@@ -3,7 +3,9 @@
 #include "../common.hpp"
 #include "../context.hpp"
 
+#include "../../vendor/stb/stb_sprintf.hpp"
 #include "format_float.hpp"
+
 #include "format_integer.hpp"
 
 #include "../io/writer.hpp"
@@ -19,6 +21,16 @@
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
+
+inline char *float_callback_for_sprintf(char *sprintfBuffer, void *user, int len) {
+    auto *buffer = (Memory_Buffer<500> *) user;
+    if (!buffer->has_space_for(len)) {
+        buffer->grow(STB_SPRINTF_MIN);
+    }
+    buffer->append_pointer_and_size_unsafe((byte *) sprintfBuffer, len);
+    return sprintfBuffer;
+}
+
 struct Parse_Context;
 struct Format_Context;
 
@@ -397,21 +409,20 @@ struct Format_Context : io::Writer {
         }
     }
 
+    void write_float_sprintf(STBSP_SPRINTFCB callback, void *user, const char *format, ...) {
+        va_list va;
+        va_start(va, format);
+        
+        char buffer[STB_SPRINTF_MIN];
+        auto len = stbsp_vsprintfcb(callback, user, buffer, format, va);
+        assert(len > 0);
+        va_end(va);
+    }
+
     // Format an float according to the current argument's format specs.
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>> write_float(T value) {
-        char t = (char) type();
-        bool upper = t == 'F' || t == 'G' || t == 'E' || t == 'A';
-
-        bool fixed = false;
-        if (t == 0 || t == 'G') {
-            fixed = true;
-            t = 'f';
-        }
-
-        if (t == 'f' || t == 'F') {
-            fixed = true;
-        }
+        bool upper = is_upper(type());
 
         byte sign = 0;
         // Check signbit instead of value < 0 because the latter is always false for NaN.
@@ -442,24 +453,28 @@ struct Format_Context : io::Writer {
             return;
         }
 
-        Memory_Buffer<30> buffer;
-        s32 exp = 0;
+        // Formatting floats is hard... we use stb_snprintf
 
-        s32 prec = precision();
-        if (prec == -1 && type()) {
-            prec = 6;
+        // Build format string.
+        char format[10];  // longest format: %#-*.*Lg
+        char *formatPtr = format;
+        *formatPtr++ = '%';
+        if (alternate()) *formatPtr++ = '#';
+        if (precision() >= 0) {
+            *formatPtr++ = '.';
+            *formatPtr++ = '*';
         }
+        char t = (char) type();
+        if (t == 0 || t == 'F') t = 'f';
+        *formatPtr++ = t;
+        *formatPtr = '\0';
 
-        bool useGrisu = sizeof(T) <= sizeof(f64) && (!type() || fixed) &&
-                        internal::grisu2_format((f64) value, buffer, prec, fixed, &exp);
-        if (!useGrisu) {
-            // TODO: What should we do about this?
-            // We don't have sprintf without the CRT...
-#if !defined LSTD_NO_CRT
-            internal::sprintf_format(value, buffer, ParseContext.Specs);
-#else
-            buffer.append_cstring("{ Couldn't format with grisu }");
-#endif
+        Memory_Buffer<500> buffer;
+
+        if (precision() < 0) {
+            write_float_sprintf(float_callback_for_sprintf, &buffer, format, (f64)value);
+        } else {
+            write_float_sprintf(float_callback_for_sprintf, &buffer, format, precision(), (f64)value);
         }
 
         size_t n = buffer.ByteLength;
@@ -480,39 +495,12 @@ struct Format_Context : io::Writer {
             if (sign) ++n;
         }
 
-        if (useGrisu) {
-            s32 numDigits = precision() >= 0 ? precision() : 6;
-            bool trailingZeros = true;
-            if (t == 'G' || t == 'g') {
-                trailingZeros = ((u32) ParseContext.Specs.Flags & (u32) Flag::HASH) != 0;
-            }
-            if (t == 'F' || t == 'f') {
-                trailingZeros = true;
-                s32 adjustedMinDigits = numDigits + exp;
-                if (adjustedMinDigits > 0) numDigits = adjustedMinDigits;
-            }
-
-            io::Counter_Writer counter;
-            internal::grisu2_prettify(buffer.Data, (s32) buffer.ByteLength, exp, counter, upper, numDigits,
-                                      trailingZeros);
-            n = counter.Count + (sign ? 1 : 0);
-
-            format_padded(
-                [&](Format_Context &f) {
-                    if (sign) f.Out.append(sign);
-                    io::Memory_Buffer_Writer<500> writer{f.Out};
-                    internal::grisu2_prettify(buffer.Data, (s32) buffer.ByteLength, exp, writer, upper, numDigits,
-                                              trailingZeros);
-                },
-                alignSpec, n);
-        } else {
-            format_padded(
-                [&](Format_Context &f) {
-                    if (sign) f.Out.append(sign);
-                    f.Out.append(buffer);
-                },
-                alignSpec, n);
-        }
+        format_padded(
+            [&](Format_Context &f) {
+                if (sign) f.Out.append(sign);
+                f.Out.append(buffer);
+            },
+            alignSpec, n);
     }
 
 #define int_helper(x)                                                           \
