@@ -4,7 +4,6 @@
 #include "../context.hpp"
 
 #include "../../vendor/stb/stb_sprintf.hpp"
-#include "format_float.hpp"
 
 #include "format_integer.hpp"
 

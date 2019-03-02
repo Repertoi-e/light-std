@@ -1,7 +1,7 @@
 #pragma once
 
-#include "memory/temporary_allocator.hpp"
 #include "memory/dynamic_array.hpp"
+#include "memory/temporary_allocator.hpp"
 
 #include "format/console_colors.hpp"
 #include "format/core.hpp"
@@ -143,12 +143,9 @@ string sprint(const string_view &formatString, Args &&... args) {
 
 template <typename... Args>
 string tprint(const string_view &formatString, Args &&... args) {
-    auto tempContext = Context;
-    tempContext.Allocator = TEMPORARY_ALLOC;
-
     string result;
     result.Allocator = TEMPORARY_ALLOC;
-    PUSH_CONTEXT(tempContext) { result = sprint(formatString, std::forward<Args>(args)...); }
+    PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) { result = sprint(formatString, std::forward<Args>(args)...); }
     return result;
 }
 
@@ -172,9 +169,7 @@ template <typename... Args>
 inline string tprint(const string &formatString, Args &&... args) {
     assert(TemporaryAllocatorData);
 
-    auto tempContext = Context;
-    tempContext.Allocator = TEMPORARY_ALLOC;
-    PUSH_CONTEXT(tempContext) { return sprint(formatString, std::forward<Args>(args)...); }
+    PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) { return sprint(formatString, std::forward<Args>(args)...); }
 }
 }  // namespace fmt
 

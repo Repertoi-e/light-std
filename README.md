@@ -9,15 +9,12 @@ temporary_storage_init(4_MiB);
 
 byte *memory1 = New<byte>(200); // using default allocator (MALLOC)
 
-// Create a new context and push it 
-auto tempContext = Context; // Copy the current context
-tempContext.Allocator = TEMPORARY_ALLOC;
-PUSH_CONTEXT(tempContext) {
-    // Anything in this scope now has a new default allocator
-    byte *memory2 = New<byte>(200); // using the temporary allocator
+// (Allocator is a variable inside the Context struct)
+PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) {
+    byte *memory2 = New<byte>(200); // now using the temporary allocator
     // ... //
 }
-// Old context has been restored
+// Old malloc allocator has been restored in context
 Delete(memory1);
 ```
 

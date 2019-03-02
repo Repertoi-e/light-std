@@ -19,7 +19,7 @@ LSTD_BEGIN_NAMESPACE
 using Assert_Function = fastdelegate::FastDelegate<void(const char *file, int line, const char *condition)>;
 
 namespace io {
-    struct Writer;
+struct Writer;
 }
 
 namespace internal {
@@ -33,9 +33,7 @@ extern io::Writer *ConsoleLog;
 //
 // The idea for this comes from the implicit context in Jai.
 struct Implicit_Context {
-    Implicit_Context() {
-        int a = 42;
-    }
+    Implicit_Context() { int a = 42; }
 
     Allocator_Closure Allocator = MALLOC;
 
@@ -52,32 +50,31 @@ inline thread_local const Implicit_Context Context;
 #define OLD_CONTEXT_VAR_GEN_(x, LINE) LSTD_NAMESPACE_NAME##_lstd_context##x##LINE
 #define OLD_CONTEXT_VAR_GEN(x, LINE) OLD_CONTEXT_VAR_GEN_(x, LINE)
 
-// This is a helper macro to safely modify the implicit context in a block of code.
+// This is a helper macro to safely modify a varaible in the implicit context in a block of code.
 // Usage:
-//    PUSH_CONTEXT(myContext) {
-//        ... code with new context ...
+//    PUSH_CONTEXT(variable, newVariableValue) {
+//        ... code with new context variable ...
 //    }
-//    ... old context is restored ...
+//    ... old context variable value is restored ...
 //
-// Don't pass a pointer as a parameter!
-#define PUSH_CONTEXT(newContext)                                                                    \
-    Implicit_Context OLD_CONTEXT_VAR_GEN(context, __LINE__) = Context;                              \
-    bool OLD_CONTEXT_VAR_GEN(restored, __LINE__) = false;                                           \
-    defer {                                                                                         \
-        if (!OLD_CONTEXT_VAR_GEN(restored, __LINE__)) {                                             \
-            *const_cast<Implicit_Context *>(&Context) = OLD_CONTEXT_VAR_GEN(context, __LINE__);     \
-        }                                                                                           \
-    };                                                                                              \
-    if (true) {                                                                                     \
-        *const_cast<Implicit_Context *>(&Context) = newContext;                                     \
-        goto body;                                                                                  \
-    } else                                                                                          \
-        while (true)                                                                                \
-            if (true) {                                                                             \
-                *const_cast<Implicit_Context *>(&Context) = OLD_CONTEXT_VAR_GEN(context, __LINE__); \
-                OLD_CONTEXT_VAR_GEN(restored, __LINE__) = true;                                     \
-                break;                                                                              \
-            } else                                                                                  \
+#define PUSH_CONTEXT(var, newValue)                                                                      \
+    auto OLD_CONTEXT_VAR_GEN(oldVar, __LINE__) = Context.##var;                                          \
+    bool OLD_CONTEXT_VAR_GEN(restored, __LINE__) = false;                                                \
+    defer {                                                                                              \
+        if (!OLD_CONTEXT_VAR_GEN(restored, __LINE__)) {                                                  \
+            const_cast<Implicit_Context *>(&Context)->##var = OLD_CONTEXT_VAR_GEN(oldVar, __LINE__);     \
+        }                                                                                                \
+    };                                                                                                   \
+    if (true) {                                                                                          \
+        const_cast<Implicit_Context *>(&Context)->##var = newValue;                                      \
+        goto body;                                                                                       \
+    } else                                                                                               \
+        while (true)                                                                                     \
+            if (true) {                                                                                  \
+                const_cast<Implicit_Context *>(&Context)->##var = OLD_CONTEXT_VAR_GEN(oldVar, __LINE__); \
+                OLD_CONTEXT_VAR_GEN(restored, __LINE__) = true;                                          \
+                break;                                                                                   \
+            } else                                                                                       \
             body:
 
 #define CONTEXT_ALLOC Context.Allocator
