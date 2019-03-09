@@ -24,7 +24,7 @@ struct Temporary_Storage {
     Temporary_Storage(Temporary_Storage &&other) = delete;
     Temporary_Storage &operator=(const Temporary_Storage &other) = delete;
     Temporary_Storage &operator=(Temporary_Storage &&other) = delete;
-    ~Temporary_Storage() { Delete((byte *) Data, Size, MALLOC); }
+    ~Temporary_Storage() { delete Data; }
 };
 
 inline Temporary_Storage *TemporaryAllocatorData;
@@ -84,9 +84,9 @@ inline void *temporary_allocator(Allocator_Mode mode, void *allocatorData, size_
 }
 
 inline void temporary_storage_init(size_t allocatorSize) {
-    TemporaryAllocatorData = New<Temporary_Storage>(MALLOC);
+    TemporaryAllocatorData = new(MALLOC) Temporary_Storage;
 
-    TemporaryAllocatorData->Data = New<byte>(allocatorSize, MALLOC);
+    TemporaryAllocatorData->Data = new(MALLOC) byte[allocatorSize];
     TemporaryAllocatorData->Size = allocatorSize;
 }
 

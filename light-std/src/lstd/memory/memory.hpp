@@ -5,14 +5,18 @@
 
 #if !defined LSTD_NO_CRT
 #include <cstring>
-#else
-
-#pragma warning(disable : 4595)
-inline void operator delete(void *ptr, std::size_t sz) {
-    assert(false && "Shouldn't get here");
-}
-#pragma warning(default : 4595)
 #endif
+
+enum class ensure_allocator_t : byte { YES };
+constexpr auto ensure_allocator = ensure_allocator_t::YES;
+
+void *operator new(size_t count, Allocator_Closure allocator);
+void *operator new[](size_t count, Allocator_Closure allocator);
+
+// This operator is a wrapper around new (allocator) T, but if the passed pointer to allocator
+// points to a null allocator, it makes it point to the context allocator and uses that one.
+void *operator new(size_t count, Allocator_Closure *allocator, ensure_allocator_t);
+void *operator new[](size_t count, Allocator_Closure *allocator, ensure_allocator_t);
 
 LSTD_BEGIN_NAMESPACE
 
@@ -84,78 +88,33 @@ T *move_elements(T *dest, T *src, size_t numberOfElements) {
     return d;
 }
 
-template <typename T>
-T *New(Allocator_Closure allocator = {0, 0}) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-    T *result = new (allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, sizeof(T), 0, 0, 0)) T;
-    return result;
-}
-
-template <typename T>
-T *New(size_t count, Allocator_Closure allocator = {0, 0}) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-
-    T *result = (T *) allocator.Function(Allocator_Mode::ALLOCATE, allocator.Data, count * sizeof(T), 0, 0, 0);
-    For(range(count)) new (result + it) T;
-    return result;
-}
-
-// This function is a wrapper around New<T>(allocator), but if the passed reference to allocator
-// is null, it sets it to the context allocator and uses that one. This is different from the
-// default New, because the default new just silently uses the context allocator. If you plan
-// to use the memory allocated for longer time than just simple scopes (for example storage in
-// data structures) and be robust to changes in the context allocator, you must save it in a
-// variable that either the user can specify or just for your own internal purposes,
-// and save it for later when you Delete the allocated storage.
-//
-// If you don't use the same allocator when you New and Delete something, you most probably
-// will crash, because there is little guarantee that the two allocators are compatible.
-template <typename T>
-T *New_and_ensure_allocator(Allocator_Closure &allocator) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-    return New<T>(allocator);
-}
-
-// See comment above this function. Actually important as to how this works!
-template <typename T>
-T *New_and_ensure_allocator(size_t count, Allocator_Closure &allocator) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-    return New<T>(count, allocator);
-}
-
-template <typename T>
-void Delete(T *memory, Allocator_Closure allocator = {0, 0}) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-
-    memory->~T();
-    allocator.Function(Allocator_Mode::FREE, allocator.Data, 0, memory, sizeof(T), 0);
-}
-
-template <typename T>
-void Delete(T *memory, size_t count, Allocator_Closure allocator = {0, 0}) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-
-    For(range(count))(memory + it)->~T();
-    allocator.Function(Allocator_Mode::FREE, allocator.Data, 0, memory, count * sizeof(T), 0);
-}
+struct Allocation_Info {
+    Allocator_Closure Allocator;
+    size_t Size;
+};
 
 // Used for rezising an array.
-// _oldSize_ and _newSize_ are automatically multiplied by sizeof(T).
+// _newSize_ is automatically multiplied by sizeof(T).
+// The old size is kept before the memory pointer of every allocation in a Allocation_Info struct.
 template <typename T>
-T *Resize(T *memory, size_t oldSize, size_t newSize, Allocator_Closure allocator = {0, 0}) {
+T *resize(T *memory, size_t newSize, Allocator_Closure allocator = {0, 0}) {
     if (!allocator) allocator = CONTEXT_ALLOC;
 
-    oldSize *= sizeof(T);
-    newSize *= sizeof(T);
+    newSize = newSize * sizeof(T) + sizeof(Allocation_Info);
 
-    return (T *) allocator.Function(Allocator_Mode::RESIZE, allocator.Data, newSize, memory, oldSize, 0);
+    auto *info = (Allocation_Info *) memory - 1;
+    size_t oldSize = info->Size + sizeof(Allocation_Info);
+
+    void *newMemory = allocator.Function(Allocator_Mode::RESIZE, allocator.Data, newSize, info, oldSize, 0);
+    return (T *) ((Allocation_Info *) newMemory + 1);
 }
 
-// See comment at New_and_ensure_allocator above this function. Actually important as to how this works!
+// This function is a wrapper around resize(...), but if the passed pointer to allocator
+// points to a null allocator, it makes it point to the context allocator and uses that one.
 template <typename T>
-inline T *Resize_and_ensure_allocator(T *memory, size_t oldSize, size_t newSize, Allocator_Closure &allocator) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-    return Resize(memory, oldSize, newSize, allocator);
+inline T *resize(ensure_allocator_t, T *memory, size_t newSize, Allocator_Closure *allocator) {
+    if (!*allocator) *allocator = CONTEXT_ALLOC;
+    return resize(memory, newSize, *allocator);
 }
 
 LSTD_END_NAMESPACE

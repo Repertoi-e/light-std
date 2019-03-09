@@ -114,7 +114,7 @@ struct string {
     // bytes of memory, it allocates a buffer on the heap.
     //
     // Note that the "Data" member points to this buffer *or* the dynamically allocated one.
-    byte StackData[SMALL_STRING_BUFFER_SIZE];
+    byte StackData[SMALL_STRING_BUFFER_SIZE] = {0};
 
     // This member points to a valid utf-8 string in memory.
     // Each 'char' means one byte, which doesn't guarantee a valid utf-8 code point
@@ -336,7 +336,7 @@ struct string {
 
     // Converts a null-terminated wide char string to utf-8 and stores it in this object
     void from_utf16(const wchar_t *str);
-   
+
     // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
     // The string returned is allocated by this object's allcoator and must be freed by the caller
     char32_t *to_utf32() const;

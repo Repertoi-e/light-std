@@ -46,17 +46,10 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
     struct Signal_Link {
         Signal_Link *Next = null, *Prev = null;
         callback_type Callback;
-        s32 RefCount;
+        s32 RefCount = 1;
 
-        Signal_Link() : Callback() {}
-        ~Signal_Link() { 
-            assert(RefCount == 0); 
-        }
-
-        void set_callback(const callback_type &cb) {
-            Callback = cb;
-            RefCount = 1;
-        }
+        Signal_Link(const callback_type &cb) : Callback(cb) {}
+        ~Signal_Link() { assert(RefCount == 0); }
 
         void incref() {
             RefCount += 1;
@@ -82,9 +75,7 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
         }
 
         size_t add_before(const callback_type &cb, const Allocator_Closure &allocator) {
-            Signal_Link *link = New<Signal_Link>(allocator);
-            link->set_callback(cb);
-
+            Signal_Link *link = new (allocator) Signal_Link(cb);
             link->Prev = Prev;  // link to last
             link->Next = this;
             Prev->Next = link;  // link from last
@@ -99,10 +90,6 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
                     return {link, link->unlink()};
                 }
             return {null, false};
-        }
-
-        static void operator delete(void *ptr, std::size_t sz) {
-            assert(false && "Wtf?");
         }
     };
 
@@ -130,16 +117,12 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
         if (CallbackRing) {
             while (CallbackRing->Next != CallbackRing) {
                 auto next = CallbackRing->Next;
-                auto result = next->unlink();
-                if (result) {
-                    Delete(next, Allocator);
-                }
+                if (next->unlink()) delete next;
             }
             assert(CallbackRing->RefCount >= 2);
             CallbackRing->decref();
-            auto result = CallbackRing->decref();
-            assert(result);
-            Delete(CallbackRing, Allocator);
+            assert(CallbackRing->decref());
+            delete CallbackRing;
         }
     }
 
@@ -155,7 +138,7 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
         if (!CallbackRing) return false;
         auto [link, result] = CallbackRing->remove_sibling(connection, Allocator);
         if (result) {
-            Delete(link, Allocator);
+            delete link;
         }
         return result;
     }
@@ -186,8 +169,7 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
    private:
     void ensure_ring() {
         if (!CallbackRing) {
-            CallbackRing = New_and_ensure_allocator<Signal_Link>(Allocator);
-            CallbackRing->set_callback(callback_type());
+            CallbackRing = new (&Allocator, ensure_allocator) Signal_Link(callback_type());
             CallbackRing->incref();  // set RefCount = 2, head of ring, can be deactivated but not removed
             CallbackRing->Next = CallbackRing;
             CallbackRing->Prev = CallbackRing;

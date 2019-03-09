@@ -10,11 +10,11 @@ struct My_Layer : Layer {
 };
 
 Application *le::create_application() {
-    auto *app = New<Application>();
-    app->WindowPtr = New<Window>()->initialize("Math grapher", 800, 600);
+    auto *app = new Application;
+    app->WindowPtr = (new Window)->initialize("Math grapher", 800, 600);
 
     // app->add_layer(New<Log_All_Events>());
-    app->add_layer(New<My_Layer>());
+    app->add_layer(new My_Layer);
 
     return app;
 }

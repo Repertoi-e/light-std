@@ -37,10 +37,10 @@ struct Table {
         Reserved = other.Reserved;
         UnfoundValue = other.UnfoundValue;
 
-        OccupancyMask = New_and_ensure_allocator<bool>(Reserved, Allocator);
-        Keys = New<Key_Type>(Reserved, Allocator);
-        Values = New<Value_Type>(Reserved, Allocator);
-        Hashes = New<uptr_t>(Reserved, Allocator);
+        OccupancyMask = new (&Allocator, ensure_allocator) bool[Reserved];
+        Keys = new (Allocator) Key_Type[Reserved];
+        Values = new (Allocator) Value_Type[Reserved];
+        Hashes = new (Allocator) uptr_t[Reserved];
 
         copy_elements(OccupancyMask, other.OccupancyMask, Reserved);
         copy_elements(Keys, other.Keys, Reserved);
@@ -53,10 +53,10 @@ struct Table {
 
     void release() {
         if (Reserved) {
-            Delete(OccupancyMask, Reserved, Allocator);
-            Delete(Keys, Reserved, Allocator);
-            Delete(Values, Reserved, Allocator);
-            Delete(Hashes, Reserved, Allocator);
+            delete[] OccupancyMask;
+            delete[] Keys;
+            delete[] Values;
+            delete[] Hashes;
 
             OccupancyMask = null;
             Keys = null;
@@ -149,10 +149,10 @@ struct Table {
     void reverse(size_t size) {
         Reserved = size;
 
-        OccupancyMask = New_and_ensure_allocator<bool>(size, Allocator);
-        Keys = New<Key>(size, Allocator);
-        Values = New<Value>(size, Allocator);
-        Hashes = New<uptr_t>(size, Allocator);
+        OccupancyMask = new (&Allocator, ensure_allocator) bool[size];
+        Keys = new (Allocator) Key[size];
+        Values = new (Allocator) Value[size];
+        Hashes = new (Allocator) uptr_t[size];
     }
 
     s32 find_index(const Key_Type &key, uptr_t hash) {
@@ -199,10 +199,10 @@ struct Table {
         }
 
         if (oldReserved) {
-            Delete(oldOccupancyMask, oldReserved, Allocator);
-            Delete(oldKeys, oldReserved, Allocator);
-            Delete(oldValues, oldReserved, Allocator);
-            Delete(oldHashes, oldReserved, Allocator);
+            delete[] oldOccupancyMask;
+            delete[] oldKeys;
+            delete[] oldValues;
+            delete[] oldHashes;
         }
     }
 

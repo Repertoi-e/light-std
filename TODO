@@ -7,12 +7,6 @@
 
 - Threads?
 ---------------------------------------------------------------------------------
-Currently there is no way to pass constructor arguments to New<My_Type>(allocator...)
-Only now I realize it's a problem since most of the stuff in our library/engine has a parameterless default constructor,
-but users may want to have things like that. The current workout is to provide an empty default constructor and use placement new:
-
-	auto *myType = new(New<My_Type>()) My_Type(...params...);
----------------------------------------------------------------------------------
 The following things implemented in windows but not on posix yet:
   LSTD:
 - os wallclock functions
@@ -22,3 +16,9 @@ The following things implemented in windows but not on posix yet:
 ---------------------------------------------------------------------------------
 Allow users to add more variables to Implicit_Context (do this with headers)
 ---------------------------------------------------------------------------------
+At the moment every allocation has a 24 byte header (the Allocator it used and the size of the allocation)
+This is done to make sure delete always uses the right allocator as well as provide convenience for the user.
+(Calling delete no matter the context uses the right allocator etc...)
+
+Maybe those 24 don't matter in today's world where computers have practically infinite RAM,
+but it feels like it's too wasteful.

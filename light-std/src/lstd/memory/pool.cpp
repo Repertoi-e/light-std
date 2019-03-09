@@ -21,7 +21,7 @@ void Pool::cycle_new_block() {
         newBlock = *(UnusedMemblocks.end() - 1);
         UnusedMemblocks.pop();
     } else {
-        newBlock = New_and_ensure_allocator<u8>(BlockSize, BlockAllocator);
+        newBlock = new (&BlockAllocator, ensure_allocator) u8[BlockSize];
     }
 
     _BytesLeft = BlockSize;
@@ -49,7 +49,7 @@ void Pool::reset() {
     For(UsedMemblocks) { UnusedMemblocks.add(it); }
     UsedMemblocks.Count = 0;
 
-    For(ObsoletedMemblocks) { Delete(it, BlockAllocator); }
+    For(ObsoletedMemblocks) { delete it; }
     ObsoletedMemblocks.Count = 0;
 
     cycle_new_block();
@@ -58,7 +58,7 @@ void Pool::reset() {
 void Pool::release() {
     reset();
 
-    For(UnusedMemblocks) { Delete(it, BlockAllocator); }
+    For(UnusedMemblocks) { delete it; }
 }
 
 void *Pool::get(size_t size) {

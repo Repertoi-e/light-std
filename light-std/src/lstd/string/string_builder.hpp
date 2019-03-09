@@ -20,6 +20,10 @@ struct String_Builder {
     Buffer _BaseBuffer;
     Buffer *CurrentBuffer = &_BaseBuffer;
 
+    String_Builder() {
+        int a = 52;
+    }
+
     // The allocator used for allocating new buffers past the first one (which is stack allocated).
     // This value is null until this object allocates memory or the user sets it manually.
     Allocator_Closure Allocator;

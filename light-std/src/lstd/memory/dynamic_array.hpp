@@ -23,7 +23,7 @@ struct Dynamic_Array {
         Reserved = other.Reserved;
         Count = other.Count;
 
-        Data = New_and_ensure_allocator<Data_Type>(Reserved, Allocator);
+        Data = new (&Allocator, ensure_allocator) Data_Type[Reserved];
         copy_elements(Data, other.Data, Reserved);
     }
 
@@ -55,7 +55,7 @@ struct Dynamic_Array {
 
     // Clears the array and deallocates memory
     void release() {
-        if (Data) Delete(Data, Reserved, Allocator);
+        if (Data) delete[] Data;
 
         Data = null;
         Count = 0;
@@ -212,11 +212,13 @@ struct Dynamic_Array {
     void reserve(size_t reserve) {
         if (reserve <= Reserved) return;
 
-        Data_Type *newMemory = New_and_ensure_allocator<Data_Type>(reserve, Allocator);
+        Data_Type *newMemory = new (&Allocator, ensure_allocator) Data_Type[reserve];
 
-        move_elements(newMemory, Data, Count);
-        Delete(Data, Reserved, Allocator);
-
+        if (Data) {
+            move_elements(newMemory, Data, Count);
+            delete[] Data;
+        }
+        
         Data = newMemory;
         Reserved = reserve;
     }

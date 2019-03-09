@@ -10,14 +10,21 @@
 LSTD_BEGIN_NAMESPACE
 
 #if defined LSTD_NO_CRT
+
+static HANDLE g_Heap = null;
+
 void *windows_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32) {
+    if (!g_Heap) {
+        g_Heap = GetProcessHeap();
+    }
+
     switch (mode) {
         case Allocator_Mode::ALLOCATE:
-            return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size);
+            return HeapAlloc(g_Heap, HEAP_ZERO_MEMORY, size);
         case Allocator_Mode::RESIZE:
-            return HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, oldMemory, size);
+            return HeapReAlloc(g_Heap, HEAP_ZERO_MEMORY, oldMemory, size);
         case Allocator_Mode::FREE:
-            HeapFree(GetProcessHeap(), 0, oldMemory);
+            HeapFree(g_Heap, 0, oldMemory);
             return null;
         case Allocator_Mode::FREE_ALL:
             return null;
@@ -46,7 +53,7 @@ void os_assert_failed(const char *file, int line, const char *condition) {
 #define MAX_CONSOLE_LINES 500
 
 io::Console_Writer::Console_Writer() {
-    Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
+    Buffer = new byte[CONSOLE_BUFFER_SIZE];
     Current = Buffer;
     Available = CONSOLE_BUFFER_SIZE;
 
@@ -113,7 +120,7 @@ void io::console_writer_flush(void *data) {
 
 io::Console_Reader::Console_Reader() {
     // Leak, but doesn't matter since the object is global
-    Buffer = New<byte>(CONSOLE_BUFFER_SIZE);
+    Buffer = new byte[CONSOLE_BUFFER_SIZE];
     Current = Buffer;
 
     request_byte_function = console_reader_request_byte;

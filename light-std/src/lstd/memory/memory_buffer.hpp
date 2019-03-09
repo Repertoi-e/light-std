@@ -60,14 +60,14 @@ struct Memory_Buffer {
 
             // If we are small but we need more size, it's time to convert
             // to a dynamically allocated memory.
-            Data = New_and_ensure_allocator<byte>(size, Allocator);
+            Data = new(&Allocator, ensure_allocator) byte[size];
             copy_memory(Data, StackData, ByteLength);
             Reserved = size;
         } else {
             // Return if there is enough space
             if (size <= Reserved) return;
 
-            Data = Resize_and_ensure_allocator(Data, Reserved, size, Allocator);
+            Data = resize(ensure_allocator, Data, size, &Allocator);
             Reserved = size;
         }
     }

@@ -7,15 +7,16 @@ Example of custom allocations and implicit context:
 // Fast arena allocator that's available globally; supports only "free all"
 temporary_storage_init(4_MiB);
 
-byte *memory1 = New<byte>(200); // using default allocator (MALLOC)
+byte *memory1 = new byte[200]; // using default allocator (MALLOC)
 
 // (Allocator is a variable inside the Context struct)
 PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) {
-    byte *memory2 = New<byte>(200); // now using the temporary allocator
+    byte *memory2 = new byte[200]; // now using the temporary allocator
     // ... //
 }
-// Old malloc allocator has been restored in context
-Delete(memory1);
+
+// Delete always calls the allocator the memory was allocated with
+delete[] memory1;
 ```
 
 Example usage of data structures:

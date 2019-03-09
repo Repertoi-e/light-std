@@ -2,6 +2,114 @@
 
 #include "allocator.hpp"
 
+void *operator new(size_t size) {
+    Allocation_Info info = {CONTEXT_ALLOC, size};
+    size += sizeof(Allocation_Info);
+
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
+    copy_memory(data, &info, sizeof(Allocation_Info));
+    return (byte *) data + sizeof(Allocation_Info);
+}
+
+void *operator new[](size_t size) {
+    Allocation_Info info = {CONTEXT_ALLOC, size};
+    size += sizeof(Allocation_Info);
+
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
+    copy_memory(data, &info, sizeof(Allocation_Info));
+    return (byte *) data + sizeof(Allocation_Info);
+}
+
+// We ignore alignment for now ??
+void *operator new(size_t size, std::align_val_t align) {
+    Allocation_Info info = { CONTEXT_ALLOC, size };
+    size += sizeof(Allocation_Info);
+
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
+    copy_memory(data, &info, sizeof(Allocation_Info));
+    return (byte *)data + sizeof(Allocation_Info);
+}
+
+// We ignore alignment for now ??
+void *operator new[](size_t size, std::align_val_t align) {
+    Allocation_Info info = { CONTEXT_ALLOC, size };
+    size += sizeof(Allocation_Info);
+
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
+    copy_memory(data, &info, sizeof(Allocation_Info));
+    return (byte *)data + sizeof(Allocation_Info);
+}
+
+void *operator new(size_t size, Allocator_Closure allocator) {
+    Allocation_Info info = {allocator, size};
+    if (!info.Allocator) info.Allocator = CONTEXT_ALLOC;
+
+    size += sizeof(Allocation_Info);
+
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
+    copy_memory(data, &info, sizeof(Allocation_Info));
+    return (byte *) data + sizeof(Allocation_Info);
+}
+
+void *operator new[](size_t size, Allocator_Closure allocator) {
+    Allocation_Info info = {allocator, size};
+    if (!info.Allocator) info.Allocator = CONTEXT_ALLOC;
+
+    size += sizeof(Allocation_Info);
+
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
+    copy_memory(data, &info, sizeof(Allocation_Info));
+    return (byte *) data + sizeof(Allocation_Info);
+}
+
+// This operator is a wrapper around new (allocator) T, but if the passed pointer to allocator
+// points to a null allocator, it makes it point to the context allocator and uses that one.
+void *operator new(size_t size, Allocator_Closure *allocator, const ensure_allocator_t) {
+    if (!*allocator) *allocator = CONTEXT_ALLOC;
+
+    Allocation_Info info = { *allocator, size };
+    size += sizeof(Allocation_Info);
+
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
+    copy_memory(data, &info, sizeof(Allocation_Info));
+    return (byte *)data + sizeof(Allocation_Info);
+}
+
+void *operator new[](size_t size, Allocator_Closure *allocator, const ensure_allocator_t) {
+    if (!*allocator) *allocator = CONTEXT_ALLOC;
+
+    Allocation_Info info = { *allocator, size };
+    size += sizeof(Allocation_Info);
+
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
+    copy_memory(data, &info, sizeof(Allocation_Info));
+    return (byte *)data + sizeof(Allocation_Info);
+}
+
+void operator delete(void *ptr) {
+    auto *info = (Allocation_Info *) ptr - 1;
+    auto allocSize = info->Size + sizeof(Allocation_Info);
+    info->Allocator.Function(Allocator_Mode::FREE, info->Allocator.Data, 0, info, allocSize, 0);
+}
+
+void operator delete[](void *ptr) {
+    auto *info = (Allocation_Info *) ptr - 1;
+    auto allocSize = info->Size + sizeof(Allocation_Info);
+    info->Allocator.Function(Allocator_Mode::FREE, info->Allocator.Data, 0, info, allocSize, 0);
+}
+
+void operator delete(void *ptr, size_t size) {
+    auto *info = (Allocation_Info *) ptr - 1;
+    auto allocSize = info->Size + sizeof(Allocation_Info);
+    info->Allocator.Function(Allocator_Mode::FREE, info->Allocator.Data, 0, info, allocSize, 0);
+}
+
+void operator delete[](void *ptr, size_t size) {
+    auto *info = (Allocation_Info *) ptr - 1;
+    auto allocSize = info->Size + sizeof(Allocation_Info);
+    info->Allocator.Function(Allocator_Mode::FREE, info->Allocator.Data, 0, info, allocSize, 0);
+}
+
 LSTD_BEGIN_NAMESPACE
 
 #if defined LSTD_NO_CRT

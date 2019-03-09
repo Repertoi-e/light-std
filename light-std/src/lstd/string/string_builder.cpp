@@ -8,7 +8,7 @@ void String_Builder::release() {
     while (buffer) {
         String_Builder::Buffer *toDelete = buffer;
         buffer = buffer->Next;
-        Delete(toDelete, Allocator);
+        delete toDelete;
     }
     CurrentBuffer = &_BaseBuffer;
     _BaseBuffer.Occupied = 0;
@@ -51,7 +51,7 @@ void String_Builder::append_pointer_and_size(const byte *data, size_t size) {
 
         // If the entire string doesn't fit inside the available space,
         // allocate the next buffer and continue appending.
-        String_Builder::Buffer *buffer = New_and_ensure_allocator<String_Builder::Buffer>(Allocator);
+        String_Builder::Buffer *buffer = new (&Allocator, ensure_allocator) String_Builder::Buffer;
 
         CurrentBuffer->Next = buffer;
         CurrentBuffer = buffer;

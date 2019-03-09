@@ -59,7 +59,7 @@ struct Asserts {
                                                                                           \
             auto [testsArray, fileKeyFound] = g_TestTable.find(file);                     \
             if (!fileKeyFound) {                                                          \
-                testsArray = New<Dynamic_Array<Test>>();                                  \
+                testsArray = new Dynamic_Array<Test>;                                     \
                 g_TestTable.put(file, testsArray);                                        \
             }                                                                             \
                                                                                           \

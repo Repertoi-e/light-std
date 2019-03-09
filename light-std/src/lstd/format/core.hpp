@@ -201,12 +201,14 @@ struct Argument_Map {
     Allocator_Closure Allocator;
 
     Argument_Map() {}
-    ~Argument_Map() { Delete(Entries, Allocator); }
+    ~Argument_Map() {
+        if (Entries) delete Entries;
+    }
 
     void ensure_initted(const Arguments &args) {
         if (Entries) return;
 
-        Entries = New_and_ensure_allocator<Entry>(args.max_size(), Allocator);
+        Entries = new (&Allocator, ensure_allocator) Entry[args.max_size()];
 
         if (args.get_type_at(MAX_PACKED_ARGS - 1) == Format_Type::NONE) {
             u32 i = 0;
@@ -411,7 +413,7 @@ struct Format_Context : io::Writer {
     void write_float_sprintf(STBSP_SPRINTFCB callback, void *user, const char *format, ...) {
         va_list va;
         va_start(va, format);
-        
+
         char buffer[STB_SPRINTF_MIN];
         auto len = stbsp_vsprintfcb(callback, user, buffer, format, va);
         assert(len > 0);
@@ -471,9 +473,9 @@ struct Format_Context : io::Writer {
         Memory_Buffer<500> buffer;
 
         if (precision() < 0) {
-            write_float_sprintf(float_callback_for_sprintf, &buffer, format, (f64)value);
+            write_float_sprintf(float_callback_for_sprintf, &buffer, format, (f64) value);
         } else {
-            write_float_sprintf(float_callback_for_sprintf, &buffer, format, precision(), (f64)value);
+            write_float_sprintf(float_callback_for_sprintf, &buffer, format, precision(), (f64) value);
         }
 
         size_t n = buffer.ByteLength;
@@ -604,18 +606,33 @@ struct Format_Context : io::Writer {
             return;
         }
 
+        byte fillCpData[4];
+        size_t fillCpSize = 0;
+        if (fill()) {
+            encode_code_point(fillCpData, fill());
+            fillCpSize = get_size_of_code_point(fillCpData);
+        }
+
         size_t padding = width() - length;
         if (align == Alignment::RIGHT) {
-            For(range(padding)) Out.append_codepoint(fill());
+            Out.grow(padding * fillCpSize);
+            For(range(padding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
             func(*this);
         } else if (align == Alignment::CENTER) {
             size_t leftPadding = padding / 2;
-            For(range(leftPadding)) Out.append_codepoint(fill());
+
+            Out.grow(leftPadding * fillCpSize);
+            For(range(leftPadding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
+
             func(*this);
-            For(range(padding - leftPadding)) Out.append_codepoint(fill());
+
+            size_t rightPadding = padding - leftPadding;
+            Out.grow(rightPadding * fillCpSize);
+            For(range(rightPadding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
         } else {
             func(*this);
-            For(range(padding)) Out.append_codepoint(fill());
+            Out.grow(padding * fillCpSize);
+            For(range(padding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
         }
     }
 

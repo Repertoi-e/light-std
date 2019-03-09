@@ -14,7 +14,7 @@ string::string(const byte *str) : string(str, str ? cstring_strlen(str) : 0) {}
 string::string(const byte *str, size_t size) {
     ByteLength = size;
     if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_and_ensure_allocator<byte>(ByteLength, Allocator);
+        Data = new (&Allocator, ensure_allocator) byte[ByteLength];
         Reserved = ByteLength;
     }
     if (str && ByteLength) {
@@ -31,7 +31,7 @@ string::string(const string &other) {
     Allocator = other.Allocator;
 
     if (ByteLength > SMALL_STRING_BUFFER_SIZE) {
-        Data = New_and_ensure_allocator<byte>(ByteLength, Allocator);
+        Data = new (&Allocator, ensure_allocator) byte[ByteLength];
         Reserved = ByteLength;
     }
     if (other.Data && ByteLength) {
@@ -73,7 +73,7 @@ void string::swap(string &other) {
 }
 
 wchar_t *string::to_utf16() const {
-    auto *result = New_and_ensure_allocator<wchar_t>(Length, Allocator);
+    auto *result = new (&Allocator, ensure_allocator) wchar_t[Length];
     auto *p = result;
     For(*this) {
         if (it > 0xffff) {
@@ -95,7 +95,7 @@ void string::from_utf16(const wchar_t *str) {
 }
 
 char32_t *string::to_utf32() const {
-    auto *result = New_and_ensure_allocator<char32_t>(Length, Allocator);
+    auto *result = new (&Allocator, ensure_allocator) char32_t[Length];
     auto *p = result;
     For(*this) { *p++ = it; }
     *p = 0;
@@ -127,7 +127,7 @@ string::~string() { release(); }
 
 void string::release() {
     if (Data && Data != StackData && Reserved) {
-        Delete(Data, Reserved, Allocator);
+        delete[] Data;
         Data = StackData;
 
         Reserved = 0;
@@ -152,14 +152,14 @@ void string::reserve(size_t size) {
 
         // If we are small but we need more size, it's time to convert
         // to a dynamically allocated memory.
-        Data = New_and_ensure_allocator<byte>(size, Allocator);
+        Data = new(&Allocator, ensure_allocator) byte[size];
         copy_memory(Data, StackData, ByteLength);
         Reserved = size;
     } else {
         // Return if there is enough space
         if (size <= Reserved) return;
 
-        Data = Resize_and_ensure_allocator(Data, Reserved, size, Allocator);
+        Data = resize(ensure_allocator, Data, size, &Allocator);
         Reserved = size;
     }
 }
