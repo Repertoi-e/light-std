@@ -78,7 +78,7 @@ struct Dynamic_Array {
         if (offset < Count) {
             move_elements(where + 1, where, Count - offset);
         }
-        *where = item;
+        new (where) Data_Type(item);
         Count++;
     }
 

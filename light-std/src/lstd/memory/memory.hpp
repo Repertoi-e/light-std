@@ -44,7 +44,7 @@ template <typename T>
 T *copy_elements(T *dest, T *src, size_t numberOfElements) {
     static_assert(!std::is_same_v<T, void>);
 
-    For(range(numberOfElements)) { dest[it] = T(src[it]); }
+    For(range(numberOfElements)) { new (&dest[it]) T(src[it]); }
     return dest;
 }
 

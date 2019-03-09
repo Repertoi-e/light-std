@@ -78,6 +78,8 @@ static HANDLE g_CoutHandle = null;
 
 static void allocate_console() {
     if (!g_ConsoleAllocated) {
+        g_ConsoleAllocated = true;
+        
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
             AllocConsole();
 
@@ -86,8 +88,6 @@ static void allocate_console() {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cInfo);
             cInfo.dwSize.Y = MAX_CONSOLE_LINES;
             SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), cInfo.dwSize);
-
-            g_ConsoleAllocated = true;
         }
     }
 }

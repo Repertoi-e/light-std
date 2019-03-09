@@ -90,8 +90,8 @@ struct Table {
         }
 
         OccupancyMask[index] = true;
-        Keys[index] = key;
-        Values[index] = value;
+        new (&Keys[index]) Key_Type(key);
+        new (&Values[index]) Value_Type(value);
         Hashes[index] = hash;
     }
 
