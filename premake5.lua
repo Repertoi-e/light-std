@@ -61,6 +61,7 @@ function common_stuff()
     filter "system:windows"
         defines "LSTD_PLATFORM_WINDOWS"
         excludes "%{prj.name}/src/posix_*.cpp"
+    
     filter { "system:windows", "not options:no-crt" }
         staticruntime "on"
 

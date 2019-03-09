@@ -78,15 +78,17 @@ static HANDLE g_CoutHandle = null;
 
 static void allocate_console() {
     if (!g_ConsoleAllocated) {
-        AllocConsole();
+        if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+            AllocConsole();
 
-        // set the screen buffer to be big enough to let us scroll text
-        CONSOLE_SCREEN_BUFFER_INFO cInfo;
-        GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cInfo);
-        cInfo.dwSize.Y = MAX_CONSOLE_LINES;
-        SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), cInfo.dwSize);
+            // set the screen buffer to be big enough to let us scroll text
+            CONSOLE_SCREEN_BUFFER_INFO cInfo;
+            GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cInfo);
+            cInfo.dwSize.Y = MAX_CONSOLE_LINES;
+            SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), cInfo.dwSize);
 
-        g_ConsoleAllocated = true;
+            g_ConsoleAllocated = true;
+        }
     }
 }
 

@@ -33,21 +33,6 @@ void *copy_memory(void *dest, void const *src, size_t num);
 void *move_memory(void *dest, void const *src, size_t num);
 void *fill_memory(void *dest, int value, size_t num);
 s32 compare_memory(const void *ptr1, const void *ptr2, size_t num);
-LSTD_END_NAMESPACE
-extern "C" {
-// Defining intrinsic functions that the compiler may use to optimize.
-inline void *memcpy(void *dest, void const *src, size_t num) {
-    return LSTD_NAMESPACE_NAME ::copy_memory(dest, src, num);
-}
-inline void *memmove(void *dest, void const *src, size_t num) {
-    return LSTD_NAMESPACE_NAME ::move_memory(dest, src, num);
-}
-inline void *memset(void *dest, int value, size_t num) { return LSTD_NAMESPACE_NAME ::fill_memory(dest, value, num); }
-inline s32 memcmp(const void *ptr1, const void *ptr2, size_t num) {
-    return LSTD_NAMESPACE_NAME ::compare_memory(ptr1, ptr2, num);
-}
-}
-LSTD_BEGIN_NAMESPACE
 #endif
 
 // Helper function that fills memory with 0

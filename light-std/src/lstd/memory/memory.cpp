@@ -4,6 +4,8 @@
 
 void *operator new(size_t size) {
     Allocation_Info info = {CONTEXT_ALLOC, size};
+    if (!info.Allocator) info.Allocator = MALLOC;
+
     size += sizeof(Allocation_Info);
 
     void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
@@ -13,6 +15,8 @@ void *operator new(size_t size) {
 
 void *operator new[](size_t size) {
     Allocation_Info info = {CONTEXT_ALLOC, size};
+    if (!info.Allocator) info.Allocator = MALLOC;
+
     size += sizeof(Allocation_Info);
 
     void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
@@ -22,27 +26,32 @@ void *operator new[](size_t size) {
 
 // We ignore alignment for now ??
 void *operator new(size_t size, std::align_val_t align) {
-    Allocation_Info info = { CONTEXT_ALLOC, size };
+    Allocation_Info info = {CONTEXT_ALLOC, size};
+    if (!info.Allocator) info.Allocator = MALLOC;
+
     size += sizeof(Allocation_Info);
 
     void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
     copy_memory(data, &info, sizeof(Allocation_Info));
-    return (byte *)data + sizeof(Allocation_Info);
+    return (byte *) data + sizeof(Allocation_Info);
 }
 
 // We ignore alignment for now ??
 void *operator new[](size_t size, std::align_val_t align) {
-    Allocation_Info info = { CONTEXT_ALLOC, size };
+    Allocation_Info info = {CONTEXT_ALLOC, size};
+    if (!info.Allocator) info.Allocator = MALLOC;
+
     size += sizeof(Allocation_Info);
 
     void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
     copy_memory(data, &info, sizeof(Allocation_Info));
-    return (byte *)data + sizeof(Allocation_Info);
+    return (byte *) data + sizeof(Allocation_Info);
 }
 
 void *operator new(size_t size, Allocator_Closure allocator) {
     Allocation_Info info = {allocator, size};
     if (!info.Allocator) info.Allocator = CONTEXT_ALLOC;
+    if (!info.Allocator) info.Allocator = MALLOC;
 
     size += sizeof(Allocation_Info);
 
@@ -54,6 +63,7 @@ void *operator new(size_t size, Allocator_Closure allocator) {
 void *operator new[](size_t size, Allocator_Closure allocator) {
     Allocation_Info info = {allocator, size};
     if (!info.Allocator) info.Allocator = CONTEXT_ALLOC;
+    if (!info.Allocator) info.Allocator = MALLOC;
 
     size += sizeof(Allocation_Info);
 
@@ -66,24 +76,26 @@ void *operator new[](size_t size, Allocator_Closure allocator) {
 // points to a null allocator, it makes it point to the context allocator and uses that one.
 void *operator new(size_t size, Allocator_Closure *allocator, const ensure_allocator_t) {
     if (!*allocator) *allocator = CONTEXT_ALLOC;
+    if (!*allocator) *allocator = MALLOC;
 
-    Allocation_Info info = { *allocator, size };
+    Allocation_Info info = {*allocator, size};
     size += sizeof(Allocation_Info);
 
     void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
     copy_memory(data, &info, sizeof(Allocation_Info));
-    return (byte *)data + sizeof(Allocation_Info);
+    return (byte *) data + sizeof(Allocation_Info);
 }
 
 void *operator new[](size_t size, Allocator_Closure *allocator, const ensure_allocator_t) {
     if (!*allocator) *allocator = CONTEXT_ALLOC;
+    if (!*allocator) *allocator = MALLOC;
 
-    Allocation_Info info = { *allocator, size };
+    Allocation_Info info = {*allocator, size};
     size += sizeof(Allocation_Info);
 
     void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, 0);
     copy_memory(data, &info, sizeof(Allocation_Info));
-    return (byte *)data + sizeof(Allocation_Info);
+    return (byte *) data + sizeof(Allocation_Info);
 }
 
 void operator delete(void *ptr) {
@@ -199,3 +211,15 @@ Allocator_Func DefaultAllocator = crt_allocator;
 #endif
 
 LSTD_END_NAMESPACE
+
+#if defined LSTD_NO_CRT
+extern "C" {
+
+    // Defining intrinsic functions that the compiler may use to optimize.
+#pragma function(memcpy)
+    void *memcpy(void *dest, void const *src, size_t num) { return LSTD_NAMESPACE_NAME::copy_memory(dest, src, num); }
+
+#pragma function(memset)
+    void *memset(void *dest, s32 value, size_t num) { return LSTD_NAMESPACE_NAME::fill_memory(dest, value, num); }
+}
+#endif

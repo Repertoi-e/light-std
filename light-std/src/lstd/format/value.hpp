@@ -4,6 +4,10 @@
 
 #include "../string/string.hpp"
 
+#if !defined LSTD_NO_CRT
+#include <locale>
+#endif
+
 #if COMPILER != MSVC
 #define CLZ(n) __builtin_clz(n)
 #define CLZLL(n) __builtin_clzll(n)

@@ -33,8 +33,6 @@ extern io::Writer *ConsoleLog;
 //
 // The idea for this comes from the implicit context in Jai.
 struct Implicit_Context {
-    Implicit_Context() { int a = 42; }
-
     Allocator_Closure Allocator = MALLOC;
 
     // This variable is useful when you redirect all logging output

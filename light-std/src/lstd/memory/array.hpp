@@ -4,6 +4,10 @@
 
 #include "range.hpp"
 
+#if !defined LSTD_NO_CRT
+#include <algorithm>
+#endif
+
 LSTD_BEGIN_NAMESPACE
 
 template <typename T, size_t Size>
