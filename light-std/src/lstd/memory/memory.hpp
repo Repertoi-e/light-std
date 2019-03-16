@@ -75,7 +75,7 @@ T *move_elements(T *dest, T *src, size_t numberOfElements) {
 
 struct Allocation_Info {
     size_t Id = 0;
-    Allocator_Closure Allocator = { null, null };
+    Allocator_Closure Allocator = {null, null};
     size_t Size = 0;
 };
 
@@ -83,7 +83,7 @@ struct Allocation_Info {
 // _newSize_ is automatically multiplied by sizeof(T).
 // The old size is kept before the memory pointer of every allocation in a Allocation_Info struct.
 template <typename T>
-T *resize(T *memory, size_t newSize, Allocator_Closure allocator = {0, 0}) {
+T *resize(T *memory, size_t newSize, Allocator_Closure allocator = {0, 0}, uptr_t userData = 0) {
     if (!allocator) allocator = CONTEXT_ALLOC;
 
     newSize = newSize * sizeof(T) + sizeof(Allocation_Info);
@@ -91,16 +91,16 @@ T *resize(T *memory, size_t newSize, Allocator_Closure allocator = {0, 0}) {
     auto *info = (Allocation_Info *) memory - 1;
     size_t oldSize = info->Size + sizeof(Allocation_Info);
 
-    void *newMemory = allocator.Function(Allocator_Mode::RESIZE, allocator.Data, newSize, info, oldSize, 0);
+    void *newMemory = allocator.Function(Allocator_Mode::RESIZE, allocator.Data, newSize, info, oldSize, userData);
     return (T *) ((Allocation_Info *) newMemory + 1);
 }
 
 // This function is a wrapper around resize(...), but if the passed pointer to allocator
 // points to a null allocator, it makes it point to the context allocator and uses that one.
 template <typename T>
-inline T *resize(ensure_allocator_t, T *memory, size_t newSize, Allocator_Closure *allocator) {
+inline T *resize(ensure_allocator_t, T *memory, size_t newSize, Allocator_Closure *allocator, uptr_t userData = 0) {
     if (!*allocator) *allocator = CONTEXT_ALLOC;
-    return resize(memory, newSize, *allocator);
+    return resize(memory, newSize, *allocator, userData);
 }
 
 // Used by stb_malloc

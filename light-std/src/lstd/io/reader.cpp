@@ -56,7 +56,7 @@ void Reader::read(byte *buffer, char32_t delim) {
 }
 
 void Reader::read(Dynamic_Array<byte> &buffer, const string_view &delims) {
-    if (!test_state_and_skip_ws()) {
+    if (!test_state_and_skip_ws(true)) {
         EOF = true;
         return;
     }
@@ -64,7 +64,7 @@ void Reader::read(Dynamic_Array<byte> &buffer, const string_view &delims) {
     byte *bufferData = buffer.Data;
 
     char32_t cp = 0;
-    for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
+    for (char32_t cp = read_codepoint(true); cp != eof; cp = read_codepoint(true)) {
         if (delims.has(cp)) break;
 
         size_t cpSize = get_size_of_code_point(cp);

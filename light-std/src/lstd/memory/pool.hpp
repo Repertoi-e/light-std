@@ -47,7 +47,6 @@ struct Pool {
 // that's because Pool doesn't manage freeing of invidual pieces
 // of memory. So calling pool_allocator with Allocator_Mode::FREE,
 // doesn't do anything. Allocator_Mode::FREE_ALL does tho.
-void *pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
-                     s32 options);
+void *pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize, uptr_t);
 
 LSTD_END_NAMESPACE

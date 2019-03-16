@@ -33,10 +33,9 @@ namespace fmt {
 template <typename... Args>
 void print(const string_view &formatString, Args &&... args);
 }
-// (size_t)&(((TYPE *)0)->ELEMENT)
 
 inline void *temporary_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize,
-                                 s32 options) {
+                                 uptr_t) {
     Temporary_Storage *storage = (Temporary_Storage *) allocatorData;
 
     switch (mode) {
@@ -59,7 +58,7 @@ inline void *temporary_allocator(Allocator_Mode mode, void *allocatorData, size_
                 fmt::print(">> Invalidating pointer to TemporaryAllocatorData...\n");
                 if (switched) fmt::print(">> Context detected with temporary allocator, switching it to malloc...\n");
 
-                return DefaultAllocator(mode, allocatorData, size, oldMemory, oldSize, options);
+                return DefaultAllocator(mode, allocatorData, size, oldMemory, oldSize, 0);
             }
 
             void *block = (byte *) storage->Data + storage->Occupied;

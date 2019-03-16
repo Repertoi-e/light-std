@@ -73,7 +73,7 @@ void *Pool::get(size_t size) {
     return ret;
 }
 
-void *pool_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32 options) {
+void *pool_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, uptr_t) {
     Pool *pool = (Pool *) data;
 
     switch (mode) {
