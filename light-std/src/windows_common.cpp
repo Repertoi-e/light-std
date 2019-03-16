@@ -12,6 +12,25 @@ LSTD_BEGIN_NAMESPACE
 void *os_memory_alloc(void *context, size_t size, size_t *outsize) { return HeapAlloc(GetProcessHeap(), 0, size); }
 void os_memory_free(void *context, void *ptr) { HeapFree(GetProcessHeap(), 0, ptr); }
 
+void *os_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, uptr_t) {
+    switch (mode) {
+        case Allocator_Mode::ALLOCATE: {
+            void *data = os_memory_alloc(0, size, 0);
+            zero_memory(data, size);
+            return data;
+        }
+        case Allocator_Mode::RESIZE:
+            return HeapReAlloc(GetProcessHeap(), 0, oldMemory, size);
+        case Allocator_Mode::FREE:
+            os_memory_free(0, oldMemory);
+            return null;
+        case Allocator_Mode::FREE_ALL:
+            assert(false);
+            return null;
+    }
+    return null;
+}
+
 #if !defined LSTD_NO_CRT
 void os_exit_program(int code) { exit(code); }
 #endif
@@ -28,8 +47,10 @@ void os_assert_failed(const char *file, s32 line, const char *condition) {
 #define CONSOLE_BUFFER_SIZE 1_KiB
 #define MAX_CONSOLE_LINES 500
 
+byte g_ConsoleWriterBuffer[CONSOLE_BUFFER_SIZE];
+
 io::Console_Writer::Console_Writer() {
-    Buffer = new byte[CONSOLE_BUFFER_SIZE];
+    Buffer = g_ConsoleWriterBuffer;
     Current = Buffer;
     Available = CONSOLE_BUFFER_SIZE;
 
@@ -37,9 +58,7 @@ io::Console_Writer::Console_Writer() {
     flush_function = console_writer_flush;
 }
 
-void io::console_writer_write(void *data, const Memory_View &writeData) {
-    auto *writer = (Console_Writer *) data;
-
+static void console_writer_write_wrapper(io::Console_Writer *writer, const Memory_View &writeData) {
     if (writeData.ByteLength > writer->Available) {
         writer->flush();
     }
@@ -47,6 +66,21 @@ void io::console_writer_write(void *data, const Memory_View &writeData) {
     copy_memory(writer->Current, writeData.Data, writeData.ByteLength);
     writer->Current += writeData.ByteLength;
     writer->Available -= writeData.ByteLength;
+}
+
+void io::console_writer_write(void *data, const Memory_View &writeData) {
+    auto *writer = (Console_Writer *) data;
+
+    if (!writer->Mutex) {
+        writer->Mutex = new thread::Recursive_Mutex;
+    }
+
+    if (writer->LockMutex) {
+        thread::Scoped_Lock<thread::Recursive_Mutex> _(*writer->Mutex);
+        console_writer_write_wrapper(writer, writeData);
+    } else {
+        console_writer_write_wrapper(writer, writeData);
+    }
 }
 
 static bool g_ConsoleAllocated = false;
@@ -68,9 +102,7 @@ static void allocate_console() {
     }
 }
 
-void io::console_writer_flush(void *data) {
-    auto *writer = (Console_Writer *) data;
-
+static void console_writer_flush_wrapper(io::Console_Writer *writer) {
     if (!g_CoutHandle) {
         allocate_console();
 
@@ -96,9 +128,25 @@ void io::console_writer_flush(void *data) {
     writer->Available = CONSOLE_BUFFER_SIZE;
 }
 
+void io::console_writer_flush(void *data) {
+    auto *writer = (Console_Writer *) data;
+
+    if (!writer->Mutex) {
+        writer->Mutex = new thread::Recursive_Mutex;
+    }
+
+    if (writer->LockMutex) {
+        thread::Scoped_Lock<thread::Recursive_Mutex> _(*writer->Mutex);
+        console_writer_flush_wrapper(writer);
+    } else {
+        console_writer_flush_wrapper(writer);
+    }
+}
+
+byte g_ConsoleReaderBuffer[CONSOLE_BUFFER_SIZE];
+
 io::Console_Reader::Console_Reader() {
-    // Leak, but doesn't matter since the object is global
-    Buffer = new byte[CONSOLE_BUFFER_SIZE];
+    Buffer = g_ConsoleReaderBuffer;
     Current = Buffer;
 
     request_byte_function = console_reader_request_byte;
@@ -106,9 +154,7 @@ io::Console_Reader::Console_Reader() {
 
 static HANDLE g_CinHandle = null;
 
-byte io::console_reader_request_byte(void *data) {
-    auto *reader = (io::Console_Reader *) data;
-
+static byte console_reader_wrapper(io::Console_Reader *reader) {
     if (!g_CinHandle) {
         allocate_console();
         g_CinHandle = GetStdHandle(STD_INPUT_HANDLE);
@@ -122,6 +168,21 @@ byte io::console_reader_request_byte(void *data) {
     reader->Available = read;
 
     return (read == 0) ? io::eof : (*reader->Current);
+}
+
+byte io::console_reader_request_byte(void *data) {
+    auto *reader = (io::Console_Reader *) data;
+
+    if (!reader->Mutex) {
+        reader->Mutex = new thread::Mutex;
+    }
+
+    if (reader->LockMutex) {
+        thread::Scoped_Lock<thread::Mutex> _(*reader->Mutex);
+        return console_reader_wrapper(reader);
+    } else {
+        return console_reader_wrapper(reader);
+    }
 }
 
 static LARGE_INTEGER g_PerformanceFrequency = {0};

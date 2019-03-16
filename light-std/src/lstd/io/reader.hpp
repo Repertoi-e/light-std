@@ -7,6 +7,8 @@
 
 #include "../memory/dynamic_array.hpp"
 
+#include "../thread.hpp"
+
 #include "../intrinsics/intrin.hpp"
 
 LSTD_BEGIN_NAMESPACE
@@ -296,7 +298,16 @@ inline byte string_reader_request_byte(void *data) {
 byte console_reader_request_byte(void *data);
 
 struct Console_Reader : Reader, NonCopyable, NonMovable {
+    // By default, we are thread-safe.
+    // If you don't use seperate threads and aim for max
+    // performance, set this to false.
+    bool LockMutex = true;
+
     Console_Reader();
+private:
+    thread::Mutex *Mutex;
+
+    friend byte console_reader_request_byte(void *);
 };
 
 inline Console_Reader cin;

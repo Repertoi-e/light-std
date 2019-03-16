@@ -9,7 +9,6 @@
 #if !defined LSTD_NAMESPACE_NAME
 #define LSTD_BEGIN_NAMESPACE
 #define LSTD_END_NAMESPACE
-#define LSTD_NAMESPACE_NAME
 #else
 #define LSTD_BEGIN_NAMESPACE namespace LSTD_NAMESPACE_NAME {
 #define LSTD_END_NAMESPACE }
@@ -78,6 +77,8 @@ static constexpr size_t npos = (size_t) -1;
 #else
 #error Platform not set
 #endif
+
+#define IS_OS_POSIX OS != WINDOWS
 
 // Define endianness
 #define LITTLE_ENDIAN 1234
@@ -170,14 +171,6 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #define DEFER_INTERNAL_(LINE) LSTD_NAMESPACE_NAME##_LSTD_defer##LINE
 #define DEFER_INTERNAL(LINE) DEFER_INTERNAL_(LINE)
 #define defer auto DEFER_INTERNAL(__LINE__) = Defer_Dummy{} *[&]()
-#endif
-
-#undef assert
-
-#ifdef LSTD_DEBUG
-#define assert(condition) (!!(condition)) ? (void) 0 : Context.AssertFailed(__FILE__, __LINE__, u8## #condition)
-#else
-#define assert(condition) ((void) 0)
 #endif
 
 template <class T>

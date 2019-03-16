@@ -2,48 +2,41 @@
 
 #include "allocator.hpp"
 
+#include "../thread.hpp"
+
 #include "../../vendor/stb/stb_malloc.hpp"
 
 static size_t g_AllocationId = 0;
 
 static void *allocate(size_t size, const Allocator_Closure &allocator, uptr_t userData = 0) {
     Allocation_Info info = {++g_AllocationId, allocator, size};
-    if (!info.Allocator) info.Allocator = MALLOC;
+    if (!info.Allocator) info.Allocator = CONTEXT_ALLOC;
+    if (!info.Allocator) {
+        info.Allocator = OS_ALLOC;
+    }
 
-    size += sizeof(Allocation_Info);
+    size_t actualSize = size + sizeof(Allocation_Info);
 
-    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, size, 0, 0, userData);
+    void *data = info.Allocator.Function(Allocator_Mode::ALLOCATE, info.Allocator.Data, actualSize, 0, 0, userData);
     copy_memory(data, &info, sizeof(Allocation_Info));
     return (byte *) data + sizeof(Allocation_Info);
 }
 
 void *operator new(size_t size) { return allocate(size, CONTEXT_ALLOC); }
-
 void *operator new[](size_t size) { return allocate(size, CONTEXT_ALLOC); }
 
 // We ignore alignment for now ??
 void *operator new(size_t size, std::align_val_t align) { return allocate(size, CONTEXT_ALLOC); }
-
 // We ignore alignment for now ??
 void *operator new[](size_t size, std::align_val_t align) { return allocate(size, CONTEXT_ALLOC); }
 
-void *operator new(size_t size, Allocator_Closure allocator) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-    return allocate(size, allocator);
-}
-
-void *operator new[](size_t size, Allocator_Closure allocator) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-    return allocate(size, allocator);
-}
+void *operator new(size_t size, Allocator_Closure allocator) { return allocate(size, allocator); }
+void *operator new[](size_t size, Allocator_Closure allocator) { return allocate(size, allocator); }
 
 void *operator new(size_t size, Allocator_Closure allocator, uptr_t userData) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
     return allocate(size, allocator, userData);
 }
-
 void *operator new[](size_t size, Allocator_Closure allocator, uptr_t userData) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
     return allocate(size, allocator, userData);
 }
 
@@ -51,25 +44,25 @@ void *operator new[](size_t size, Allocator_Closure allocator, uptr_t userData) 
 // points to a null allocator, it makes it point to the context allocator and uses that one.
 void *operator new(size_t size, Allocator_Closure *allocator, const ensure_allocator_t) {
     if (!*allocator) *allocator = CONTEXT_ALLOC;
-    if (!*allocator) *allocator = MALLOC;
+    if (!*allocator) *allocator = OS_ALLOC;
     return allocate(size, *allocator);
 }
 
 void *operator new[](size_t size, Allocator_Closure *allocator, const ensure_allocator_t) {
     if (!*allocator) *allocator = CONTEXT_ALLOC;
-    if (!*allocator) *allocator = MALLOC;
+    if (!*allocator) *allocator = OS_ALLOC;
     return allocate(size, *allocator);
 }
 
 void *operator new(size_t size, Allocator_Closure *allocator, uptr_t userData, const ensure_allocator_t) {
     if (!*allocator) *allocator = CONTEXT_ALLOC;
-    if (!*allocator) *allocator = MALLOC;
+    if (!*allocator) *allocator = OS_ALLOC;
     return allocate(size, *allocator, userData);
 }
 
 void *operator new[](size_t size, Allocator_Closure *allocator, uptr_t userData, const ensure_allocator_t) {
     if (!*allocator) *allocator = CONTEXT_ALLOC;
-    if (!*allocator) *allocator = MALLOC;
+    if (!*allocator) *allocator = OS_ALLOC;
     return allocate(size, *allocator, userData);
 }
 
@@ -157,6 +150,9 @@ void *malloc_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMe
             hc.system_free = os_memory_free;
             hc.user_context = null;
             hc.minimum_alignment = 8;
+
+            hc.allocation_mutex = new(OS_ALLOC) thread::Mutex;
+            hc.crossthread_free_mutex = new(OS_ALLOC) thread::Mutex;
         }
         stbm_heap_init(g_Heap, sizeof(g_Heap), &hc);
 
@@ -178,8 +174,6 @@ void *malloc_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMe
         }
         case Allocator_Mode::FREE:
             stbm_free(0, (stbm_heap *) g_Heap, oldMemory);
-            return null;
-        case Allocator_Mode::FREE_ALL:
             return null;
         default:
             assert(false);  // We shouldn't get here

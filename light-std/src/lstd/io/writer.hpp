@@ -5,6 +5,8 @@
 #include "../memory/memory_buffer.hpp"
 #include "../string/string_builder.hpp"
 
+#include "../thread.hpp"
+
 LSTD_BEGIN_NAMESPACE
 
 struct string;
@@ -79,7 +81,18 @@ void console_writer_write(void *data, const Memory_View &writeData);
 void console_writer_flush(void *data);
 
 struct Console_Writer : Writer, NonCopyable, NonMovable {
+    // By default, we are thread-safe.
+    // If you don't use seperate threads and aim for max
+    // performance, set this to false.
+    bool LockMutex = true;
+
     Console_Writer();
+
+   private:
+    thread::Recursive_Mutex *Mutex = null;
+
+    friend void console_writer_write(void *, const Memory_View &);
+    friend void console_writer_flush(void *);
 };
 
 inline Console_Writer cout;

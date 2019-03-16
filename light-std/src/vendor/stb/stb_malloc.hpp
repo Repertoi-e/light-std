@@ -631,21 +631,19 @@ typedef uintptr_t stbm__uintptr;
 #else
 #define STBM_POINTER_SIZE 32
 #endif
+#else
+#ifndef STBM_UINT32
+typedef unsigned int stbm__uint32;
 #endif
 
-// #else
-// #ifndef STBM_UINT32
-// typedef unsigned int stbm__uint32;
-// #endif
-//
-// #ifndef STBM_UINTPTR
-// typedef size_t stbm__uintptr;
-// #endif
-//
-// #ifndef STBM_POINTER_SIZE
-// #define STBM_POINTER_SIZE 32
-// #endif
-// #endif
+#ifndef STBM_UINTPTR
+typedef size_t stbm__uintptr;
+#endif
+
+#ifndef STBM_POINTER_SIZE
+#define STBM_POINTER_SIZE 32
+#endif
+#endif
 
 #ifdef STBM_UINTPTR
 typedef STBM_UINTPTR stbm__uintptr;

@@ -3,16 +3,21 @@
 - Time?
 - Random?
 
-- string::replace 
-
-- Threads?
+- string::replace
+---------------------------------------------------------------------------------
+Threads and TLS doesn't work with LSTD_NO_CRT 
 ---------------------------------------------------------------------------------
 The following things implemented in windows but not on posix yet:
   LSTD:
 - os wallclock functions
 - changes in console_reader/writer that remove virtual functions
+- threads
   LE:
 - game loop and windows and events 
+---------------------------------------------------------------------------------
+Way to get monitor refresh rate (and possibly other system info)
+---------------------------------------------------------------------------------
+Replace LE's game loop with a platform inspecific one
 ---------------------------------------------------------------------------------
 Allow users to add more variables to Implicit_Context (do this with headers)
 ---------------------------------------------------------------------------------

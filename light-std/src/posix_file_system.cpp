@@ -1,7 +1,7 @@
 #include "common.hpp"
 
 #if 0 
-#if OS == LINUX || OS == MAC
+#if IS_OS_POSIX
 
 #include "file/local_file_path.hpp"
 

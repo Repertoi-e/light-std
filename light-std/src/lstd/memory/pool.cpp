@@ -87,12 +87,12 @@ void *pool_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemo
         }
         case Allocator_Mode::FREE:
             // This allocator only supports FREE_ALL
-            return 0;
+            return null;
         case Allocator_Mode::FREE_ALL:
             pool->reset();
-            return 0;
+            return null;
     }
-    return 0;
+    return null;
 }
 
 LSTD_END_NAMESPACE

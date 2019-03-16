@@ -1,9 +1,9 @@
-#include "common.hpp"
+#include "lstd/common.hpp"
 
-#if OS == LINUX || OS == MAC
+#if IS_OS_POSIX
 
 #if defined LSTD_NO_CRT
-#error NO_CRT is Windows-only
+#error LSTD_NO_CRT is Windows-only
 #endif
 
 #include "io.hpp"

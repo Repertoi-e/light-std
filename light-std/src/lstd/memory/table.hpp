@@ -218,7 +218,7 @@ struct Table {
 template <typename Key, typename Value>
 struct Table_Iterator {
     const Table<Key, Value> &ParentTable;
-    s64 SlotIndex = -1;
+    s64 SlotIndex = 0;
 
     explicit Table_Iterator(const Table<Key, Value> &table, s64 index = -1) : ParentTable(table), SlotIndex(index) {
         // Find the first pair
@@ -228,6 +228,7 @@ struct Table_Iterator {
     Table_Iterator &operator++() {
         while (SlotIndex < (s64) ParentTable.Reserved) {
             SlotIndex++;
+            if (SlotIndex == ParentTable.Reserved) break;
             if (ParentTable.OccupancyMask && ParentTable.OccupancyMask[SlotIndex]) {
                 break;
             }

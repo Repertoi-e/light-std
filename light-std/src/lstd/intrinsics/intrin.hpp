@@ -2,6 +2,8 @@
 
 #include "../common.hpp"
 
+#include <intrin.h>
+
 LSTD_BEGIN_NAMESPACE
 
 union IEEEf2bits {

@@ -3,6 +3,8 @@
 #include "memory/dynamic_array.hpp"
 #include "memory/temporary_allocator.hpp"
 
+#include "thread.hpp"
+
 #include "format/console_colors.hpp"
 #include "format/core.hpp"
 #include "format/parse.hpp"
@@ -54,6 +56,11 @@ struct Formatter<Dynamic_Array<T>> {
         f.write_fmt("], Count: {} ", value.Count);
         f.write("}");
     }
+};
+
+template <>
+struct Formatter<thread::Thread::id> {
+    void format(const thread::Thread::id &value, Format_Context &f) { f.write_int(value.Value); }
 };
 
 namespace internal {

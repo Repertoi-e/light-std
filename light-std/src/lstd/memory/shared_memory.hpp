@@ -2,13 +2,64 @@
 
 #include "../common.hpp"
 
+// We include this in delegate, which is included in context
+// and assert uses the context, which creates a circular dependency.
+// Instead, if we assert in this file we call "os_assert_failed"
+#if !defined LSTD_ASSERT
+#if defined LSTD_DEBUG
+#define assert(condition) \
+    (!!(condition)) ? (void)0 : os_assert_failed(__FILE__, __LINE__, u8## "Note: Assert called in a file which can't use the context's assert function without creating a circular dependency.\n" ## #condition)
+#else
+#define assert(condition) ((void) 0)
+#endif
+#endif
+
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
 struct Shared_Memory {
-    using deleter_t = void (*)(void *);
     using element_t = T;
+    using deleter_t = void (*)(void *);
 
+   private:
+    element_t *Pointer = null;
+
+    struct Shared_Memory_Count {
+        s32 *Pn = null;
+        deleter_t Deleter = default_deleter;
+
+        s32 ref_count() const { return Pn ? *Pn : 0; }
+
+        template <typename U>
+        void acquire(U *p) {
+            if (p) {
+                if (!Pn) {
+                    Pn = new s32;
+                    *Pn = 1;
+                } else {
+                    ++(*Pn);
+                }
+            }
+        }
+
+        template <typename U>
+        void release(U *p) {
+            if (Pn) {
+                --(*Pn);
+                if (*Pn == 0) {
+                    assert(Deleter);
+                    Deleter(p);
+                    delete Pn;
+                }
+                Pn = null;
+            }
+        }
+
+        void swap(Shared_Memory_Count &other) { std::swap(Pn, other.Pn); }
+    };
+    Shared_Memory_Count Count;
+
+   public:
     static void default_deleter(void *p) {
         ((T *) p)->~T();
         delete p;
@@ -80,47 +131,10 @@ struct Shared_Memory {
     T *get() const { return Pointer; }
 
    private:
-    struct Shared_Memory_Count {
-        s32 *Pn = null;
-        deleter_t Deleter = default_deleter;
-
-        s32 ref_count() const { return Pn ? *Pn : 0; }
-
-        template <typename U>
-        void acquire(U *p) {
-            if (p) {
-                if (!Pn) {
-                    Pn = new s32;
-                    *Pn = 1;
-                } else {
-                    ++(*Pn);
-                }
-            }
-        }
-
-        template <typename U>
-        void release(U *p) {
-            if (Pn) {
-                --(*Pn);
-                if (*Pn == 0) {
-                    assert(Deleter);
-                    Deleter(p);
-                    delete Pn;
-                }
-                Pn = null;
-            }
-        }
-
-        void swap(Shared_Memory_Count &other) { std::swap(Pn, other.Pn); }
-    };
-
     void acquire(T *p) {
         Count.acquire(p);
         Pointer = p;
     }
-
-    element_t *Pointer = null;
-    Shared_Memory_Count Count;
 };
 
 LSTD_END_NAMESPACE

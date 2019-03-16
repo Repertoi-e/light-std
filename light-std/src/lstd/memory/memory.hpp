@@ -73,6 +73,17 @@ T *move_elements(T *dest, T *src, size_t numberOfElements) {
     return d;
 }
 
+// Used by stb_malloc
+void *os_memory_alloc(void *context, size_t size, size_t *outsize);
+
+// Used by stb_malloc
+void os_memory_free(void *context, void *ptr);
+
+void *os_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, uptr_t);
+
+#define OS_ALLOC \
+    Allocator_Closure { os_allocator, null }
+
 struct Allocation_Info {
     size_t Id = 0;
     Allocator_Closure Allocator = {null, null};
@@ -85,6 +96,7 @@ struct Allocation_Info {
 template <typename T>
 T *resize(T *memory, size_t newSize, Allocator_Closure allocator = {0, 0}, uptr_t userData = 0) {
     if (!allocator) allocator = CONTEXT_ALLOC;
+    if (!allocator) allocator = OS_ALLOC;
 
     newSize = newSize * sizeof(T) + sizeof(Allocation_Info);
 
@@ -100,13 +112,8 @@ T *resize(T *memory, size_t newSize, Allocator_Closure allocator = {0, 0}, uptr_
 template <typename T>
 inline T *resize(ensure_allocator_t, T *memory, size_t newSize, Allocator_Closure *allocator, uptr_t userData = 0) {
     if (!*allocator) *allocator = CONTEXT_ALLOC;
+    if (!*allocator) *allocator = OS_ALLOC;
     return resize(memory, newSize, *allocator, userData);
 }
-
-// Used by stb_malloc
-void *os_memory_alloc(void *context, size_t size, size_t *outsize);
-
-// Used by stb_malloc
-void os_memory_free(void *context, void *ptr);
 
 LSTD_END_NAMESPACE
