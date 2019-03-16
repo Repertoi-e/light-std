@@ -84,9 +84,9 @@ inline void *temporary_allocator(Allocator_Mode mode, void *allocatorData, size_
 }
 
 inline void temporary_storage_init(size_t allocatorSize) {
-    TemporaryAllocatorData = new(MALLOC) Temporary_Storage;
+    TemporaryAllocatorData = new (MALLOC) Temporary_Storage;
 
-    TemporaryAllocatorData->Data = new(MALLOC) byte[allocatorSize];
+    TemporaryAllocatorData->Data = new (MALLOC) byte[allocatorSize];
     TemporaryAllocatorData->Size = allocatorSize;
 }
 

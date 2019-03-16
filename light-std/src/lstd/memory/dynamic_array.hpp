@@ -218,7 +218,7 @@ struct Dynamic_Array {
             move_elements(newMemory, Data, Count);
             delete[] Data;
         }
-        
+
         Data = newMemory;
         Reserved = reserve;
     }

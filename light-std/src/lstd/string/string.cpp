@@ -152,7 +152,7 @@ void string::reserve(size_t size) {
 
         // If we are small but we need more size, it's time to convert
         // to a dynamically allocated memory.
-        Data = new(&Allocator, ensure_allocator) byte[size];
+        Data = new (&Allocator, ensure_allocator) byte[size];
         copy_memory(Data, StackData, ByteLength);
         Reserved = size;
     } else {

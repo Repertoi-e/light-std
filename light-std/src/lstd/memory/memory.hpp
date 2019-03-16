@@ -74,8 +74,9 @@ T *move_elements(T *dest, T *src, size_t numberOfElements) {
 }
 
 struct Allocation_Info {
-    Allocator_Closure Allocator;
-    size_t Size;
+    size_t Id = 0;
+    Allocator_Closure Allocator = { null, null };
+    size_t Size = 0;
 };
 
 // Used for rezising an array.
@@ -101,5 +102,11 @@ inline T *resize(ensure_allocator_t, T *memory, size_t newSize, Allocator_Closur
     if (!*allocator) *allocator = CONTEXT_ALLOC;
     return resize(memory, newSize, *allocator);
 }
+
+// Used by stb_malloc
+void *os_memory_alloc(void *context, size_t size, size_t *outsize);
+
+// Used by stb_malloc
+void os_memory_free(void *context, void *ptr);
 
 LSTD_END_NAMESPACE

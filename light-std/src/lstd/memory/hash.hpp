@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../string/string.hpp"
+#include "delegate.hpp"
 
 //
 // This header provides a way to hash basic types.
@@ -99,6 +100,14 @@ struct Hash<string_view> {
         uptr_t hash = 5381;
         For(str) hash = ((hash << 5) + hash) + it;
         return hash;
+    }
+};
+
+template <typename R, typename... A>
+struct Hash<Delegate<R(A...)>> {
+    static constexpr uptr_t get(const Delegate<R(A...)>& d) {
+        uptr_t seed = d.ObjectPtr;
+        return Hash<typename Delegate<R(A...)>::stub_t>::get(d.StubPtr) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 };
 

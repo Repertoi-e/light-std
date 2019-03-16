@@ -22,3 +22,5 @@ This is done to make sure delete always uses the right allocator as well as prov
 
 Maybe those 24 don't matter in today's world where computers have practically infinite RAM,
 but it feels like it's too wasteful.
+---------------------------------------------------------------------------------
+Support lambdas with delegates

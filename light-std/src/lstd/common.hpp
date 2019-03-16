@@ -120,7 +120,6 @@ static constexpr size_t npos = (size_t) -1;
 #error Endianness not detected
 #endif
 
-
 // A type-safe compile-time function that returns the number of elements in an array
 //
 //    int arr[25];
@@ -145,10 +144,8 @@ inline constexpr size_t operator"" _KiB(unsigned long long i) { return (size_t)(
 inline constexpr size_t operator"" _MiB(unsigned long long i) { return (size_t)(i) << 20; }
 inline constexpr size_t operator"" _GiB(unsigned long long i) { return (size_t)(i) << 30; }
 
-
 // Helper macro for, e.g flag enums
 #define BIT(x) (1 << x)
-
 
 // Go-style defer macro
 // Use:
@@ -183,16 +180,14 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #define assert(condition) ((void) 0)
 #endif
 
-template<class T>
-constexpr const T &max(const T &left, const T &right)
-{
+template <class T>
+constexpr const T &max(const T &left, const T &right) {
     if (left < right) return right;
     return left;
 }
 
-template<class T>
-constexpr const T &min(const T &left, const T &right)
-{
+template <class T>
+constexpr const T &min(const T &left, const T &right) {
     if (left > right) return right;
     return left;
 }
@@ -212,7 +207,7 @@ f64 os_get_wallclock_in_seconds();
 extern void os_exit_program(int code);
 
 // A default failed assert callback that logs a message and stops the program
-void os_assert_failed(const char *file, int line, const char *condition);
+void os_assert_failed(const char *file, s32 line, const char *condition);
 
 class NonCopyable {
    protected:

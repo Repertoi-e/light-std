@@ -576,8 +576,9 @@ STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(vsprintfcb)(STBSP_SPRINTFCB *callback,
             case 'a':  // hex float
                 h = (f[0] == 'A') ? hexu : hex;
                 fv = va_arg(va, double);
-                if (pr == -1) pr = 6;  // default is 6
-                                       // read the double into a string
+                if (pr == -1)
+                    pr = 6;  // default is 6
+                             // read the double into a string
                 if (stbsp__real_to_parts((stbsp__int64 *) &n64, &dp, fv)) fl |= STBSP__NEGATIVE;
 
                 s = num + 64;
@@ -676,8 +677,9 @@ STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(vsprintfcb)(STBSP_SPRINTFCB *callback,
             case 'e':  // float
                 h = (f[0] == 'E') ? hexu : hex;
                 fv = va_arg(va, double);
-                if (pr == -1) pr = 6;  // default is 6
-                                       // read the double into a string
+                if (pr == -1)
+                    pr = 6;  // default is 6
+                             // read the double into a string
                 if (stbsp__real_to_str(&sn, &l, num, &dp, fv, pr | 0x80000000)) fl |= STBSP__NEGATIVE;
             doexpfromg:
                 tail[0] = 0;
@@ -737,8 +739,9 @@ STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(vsprintfcb)(STBSP_SPRINTFCB *callback,
                         fl += 0x1000000;
                     }
                 }
-                if (pr == -1) pr = 6;  // default is 6
-                                       // read the double into a string
+                if (pr == -1)
+                    pr = 6;  // default is 6
+                             // read the double into a string
                 if (stbsp__real_to_str(&sn, &l, num, &dp, fv, pr)) fl |= STBSP__NEGATIVE;
             dofloatfromg:
                 tail[0] = 0;

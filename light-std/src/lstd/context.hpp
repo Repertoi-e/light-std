@@ -3,7 +3,7 @@
 #include "common.hpp"
 #include "memory/allocator.hpp"
 
-#include "../vendor/FastDelegate/FastDelegate.hpp"
+#include "memory/delegate.hpp"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -16,7 +16,7 @@ LSTD_BEGIN_NAMESPACE
 //
 //      assert(index < size && "Index out of bounds.");
 //
-using Assert_Function = fastdelegate::FastDelegate<void(const char *file, int line, const char *condition)>;
+using Assert_Function = Delegate<void(const char *file, s32 line, const char *condition)>;
 
 namespace io {
 struct Writer;

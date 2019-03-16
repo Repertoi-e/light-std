@@ -23,30 +23,11 @@
 
 #pragma once
 
-#include <algorithm>
-#include <cassert>
-#include <cctype>
-#include <cstring>
+#include "../common.hpp"
+
+#include "../string/string_utils.hpp"
 
 namespace bn {
-
-template <class Iter1, class Iter2>
-void encode_b16(Iter1 start, Iter1 end, Iter2 out);
-
-template <class Iter1, class Iter2>
-void encode_b32(Iter1 start, Iter1 end, Iter2 out);
-
-template <class Iter1, class Iter2>
-void encode_b64(Iter1 start, Iter1 end, Iter2 out);
-
-template <class Iter1, class Iter2>
-void decode_b16(Iter1 start, Iter1 end, Iter2 out);
-
-template <class Iter1, class Iter2>
-void decode_b32(Iter1 start, Iter1 end, Iter2 out);
-
-template <class Iter1, class Iter2>
-void decode_b64(Iter1 start, Iter1 end, Iter2 out);
 
 namespace impl {
 
@@ -54,36 +35,35 @@ const int ERROR = -1;
 
 namespace {
 
-char extract_partial_bits(char value, unsigned int start_bit, unsigned int bits_count) {
-    assert(start_bit + bits_count < 8);
+constexpr byte extract_partial_bits(byte value, u32 startBit, u32 bitsCount) {
+    assert(startBit + bitsCount < 8);
     // shift extracted bits to the beginning of the byte
-    char t1 = value >> (8 - bits_count - start_bit);
+    byte t1 = value >> (8 - bitsCount - startBit);
     // mask out bits on the left
-    char t2 = t1 & ~(-1U << bits_count);
+    byte t2 = t1 & ~(-1U << bitsCount);
     return t2;
 }
 
-char extract_overlapping_bits(char previous, char next, unsigned int start_bit, unsigned int bits_count) {
-    assert(start_bit + bits_count < 16);
-    int bits_count_in_previous = 8 - start_bit;
-    int bits_count_in_next = bits_count - bits_count_in_previous;
-    char t1 = previous << bits_count_in_next;
-    char t2 = next >> (8 - bits_count_in_next) & ~(-1U << bits_count_in_next);
-    return (t1 | t2) & ~(-1U << bits_count);
+constexpr byte extract_overlapping_bits(byte previous, byte next, u32 startBit, u32 bitsCount) {
+    assert(startBit + bitsCount < 16);
+    s32 bitsCountInNext = bitsCount - (8 - startBit);
+    byte t1 = previous << bitsCountInNext;
+    byte t2 = next >> (8 - bitsCountInNext) & ~(-1U << bitsCountInNext);
+    return (t1 | t2) & ~(-1U << bitsCount);
 }
 
 }  // namespace
 
 struct b16_conversion_traits {
-    static size_t group_length() { return 4; }
+    static constexpr size_t GROUP_LENGTH = 4;
 
-    static char encode(unsigned int index) {
-        const char* const dictionary = "0123456789ABCDEF";
-        assert(index < strlen(dictionary));
-        return dictionary[index];
+    static constexpr byte encode(u32 index) {
+        const char *const dictionary = "0123456789ABCDEF";
+        assert(index < cstring_strlen((byte *) dictionary));
+        return (byte) dictionary[index];
     }
 
-    static char decode(char c) {
+    static constexpr byte decode(byte c) {
         if (c >= '0' && c <= '9') {
             return c - '0';
         } else if (c >= 'A' && c <= 'F') {
@@ -94,15 +74,15 @@ struct b16_conversion_traits {
 };
 
 struct b32_conversion_traits {
-    static size_t group_length() { return 5; }
+    static constexpr size_t GROUP_LENGTH = 5;
 
-    static char encode(unsigned int index) {
-        const char* dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-        assert(index < strlen(dictionary));
-        return dictionary[index];
+    static constexpr byte encode(u32 index) {
+        const char *dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        assert(index < cstring_strlen((byte *) dictionary));
+        return (byte) dictionary[index];
     }
 
-    static char decode(char c) {
+    static constexpr byte decode(byte c) {
         if (c >= 'A' && c <= 'Z') {
             return c - 'A';
         } else if (c >= '2' && c <= '7') {
@@ -113,37 +93,38 @@ struct b32_conversion_traits {
 };
 
 struct b64_conversion_traits {
-    static size_t group_length() { return 6; }
+    static constexpr size_t GROUP_LENGTH = 6;
 
-    static char encode(unsigned int index) {
-        const char* const dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        assert(index < strlen(dictionary));
-        return dictionary[index];
+    static constexpr byte encode(u32 index) {
+        const char *dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        assert(index < cstring_strlen((byte *) dictionary));
+        return (byte) dictionary[index];
     }
 
-    static char decode(char c) {
-        const int alph_len = 26;
+    static constexpr byte decode(byte c) {
+        s32 alphabetLength = 26;
         if (c >= 'A' && c <= 'Z') {
             return c - 'A';
         } else if (c >= 'a' && c <= 'z') {
-            return c - 'a' + alph_len * 1;
+            return c - 'a' + alphabetLength * 1;
         } else if (c >= '0' && c <= '9') {
-            return c - '0' + alph_len * 2;
+            return c - '0' + alphabetLength * 2;
         } else if (c == '+') {
-            return c - '+' + alph_len * 2 + 10;
+            return c - '+' + alphabetLength * 2 + 10;
         } else if (c == '/') {
-            return c - '/' + alph_len * 2 + 11;
+            return c - '/' + alphabetLength * 2 + 11;
         }
         return ERROR;
     }
 };
 
 template <class ConversionTraits, class Iter1, class Iter2>
-void decode(Iter1 start, Iter1 end, Iter2 out) {
+constexpr void decode(Iter1 start, Iter1 end, Iter2 out) {
     Iter1 iter = start;
-    int output_current_bit = 0;
-    char buffer = 0;
 
+    byte buffer = 0;
+
+    s32 outputCurrentBit = 0;
     while (iter != end) {
         if (std::isspace(*iter)) {
             ++iter;
@@ -155,21 +136,20 @@ void decode(Iter1 start, Iter1 end, Iter2 out) {
             ++iter;
             continue;
         }
-        unsigned int bits_in_current_byte =
-            std::min<int>(output_current_bit + ConversionTraits::group_length(), 8) - output_current_bit;
-        if (bits_in_current_byte == ConversionTraits::group_length()) {
+        u32 bits_in_current_byte = min(outputCurrentBit + ConversionTraits::GROUP_LENGTH, 8) - outputCurrentBit;
+        if (bits_in_current_byte == ConversionTraits::GROUP_LENGTH) {
             // the value fits within current byte, so we can extract it directly
-            buffer |= value << (8 - output_current_bit - ConversionTraits::group_length());
-            output_current_bit += ConversionTraits::group_length();
+            buffer |= value << (8 - outputCurrentBit - ConversionTraits::GROUP_LENGTH);
+            outputCurrentBit += ConversionTraits::GROUP_LENGTH;
             // check if we filled up current byte completely; in such case we flush output and continue
-            if (output_current_bit == 8) {
+            if (outputCurrentBit == 8) {
                 *out++ = buffer;
                 buffer = 0;
-                output_current_bit = 0;
+                outputCurrentBit = 0;
             }
         } else {
             // the value spans across the current and the next byte
-            int bits_in_next_byte = ConversionTraits::group_length() - bits_in_current_byte;
+            int bits_in_next_byte = ConversionTraits::GROUP_LENGTH - bits_in_current_byte;
             // fill the current byte and flush it to our output
             buffer |= value >> bits_in_next_byte;
             *out++ = buffer;
@@ -177,46 +157,47 @@ void decode(Iter1 start, Iter1 end, Iter2 out) {
             // save the remainder of our value in the buffer; it will be flushed
             // during next iterations
             buffer |= value << (8 - bits_in_next_byte);
-            output_current_bit = bits_in_next_byte;
+            outputCurrentBit = bits_in_next_byte;
         }
         ++iter;
     }
 }
 
 template <class ConversionTraits, class Iter1, class Iter2>
-void encode(Iter1 start, Iter1 end, Iter2 out) {
+constexpr void encode(Iter1 start, Iter1 end, Iter2 out) {
     Iter1 iter = start;
-    int start_bit = 0;
-    b32 has_backlog = false;
-    char backlog = 0;
 
-    while (has_backlog || iter != end) {
-        if (!has_backlog) {
-            if (start_bit + ConversionTraits::group_length() < 8) {
+    bool hasBacklog = false;
+    byte backlog = 0;
+    s32 startBit = 0;
+    while (hasBacklog || iter != end) {
+        if (!hasBacklog) {
+            if (startBit + ConversionTraits::GROUP_LENGTH < 8) {
                 // the value fits within single byte, so we can extract it
                 // directly
-                char v = extract_partial_bits(*iter, start_bit, ConversionTraits::group_length());
+                char v = extract_partial_bits(*iter, startBit, ConversionTraits::GROUP_LENGTH);
                 *out++ = ConversionTraits::encode(v);
-                // since we know that start_bit + ConversionTraits::group_length() < 8 we don't need to go
+                // since we know that startBit + ConversionTraits::GROUP_LENGTH < 8 we don't need to go
                 // to the next byte
-                start_bit += ConversionTraits::group_length();
+                startBit += ConversionTraits::GROUP_LENGTH;
             } else {
                 // our bits are spanning across byte border; we need to keep the
                 // starting point and move over to next byte.
                 backlog = *iter++;
-                has_backlog = true;
+                hasBacklog = true;
             }
         } else {
             // encode value which is made from bits spanning across byte
             // boundary
             char v;
-            if (iter == end)
-                v = extract_overlapping_bits(backlog, 0, start_bit, ConversionTraits::group_length());
-            else
-                v = extract_overlapping_bits(backlog, *iter, start_bit, ConversionTraits::group_length());
+            if (iter == end) {
+                v = extract_overlapping_bits(backlog, 0, startBit, ConversionTraits::GROUP_LENGTH);
+            } else {
+                v = extract_overlapping_bits(backlog, *iter, startBit, ConversionTraits::GROUP_LENGTH);
+            }
             *out++ = ConversionTraits::encode(v);
-            has_backlog = false;
-            start_bit = (start_bit + ConversionTraits::group_length()) % 8;
+            hasBacklog = false;
+            startBit = (startBit + ConversionTraits::GROUP_LENGTH) % 8;
         }
     }
 }
@@ -226,32 +207,32 @@ void encode(Iter1 start, Iter1 end, Iter2 out) {
 using namespace bn::impl;
 
 template <class Iter1, class Iter2>
-void encode_b16(Iter1 start, Iter1 end, Iter2 out) {
+constexpr void encode_b16(Iter1 start, Iter1 end, Iter2 out) {
     encode<b16_conversion_traits>(start, end, out);
 }
 
 template <class Iter1, class Iter2>
-void encode_b32(Iter1 start, Iter1 end, Iter2 out) {
+constexpr void encode_b32(Iter1 start, Iter1 end, Iter2 out) {
     encode<b32_conversion_traits>(start, end, out);
 }
 
 template <class Iter1, class Iter2>
-void encode_b64(Iter1 start, Iter1 end, Iter2 out) {
+constexpr void encode_b64(Iter1 start, Iter1 end, Iter2 out) {
     encode<b64_conversion_traits>(start, end, out);
 }
 
 template <class Iter1, class Iter2>
-void decode_b16(Iter1 start, Iter1 end, Iter2 out) {
+constexpr void decode_b16(Iter1 start, Iter1 end, Iter2 out) {
     decode<b16_conversion_traits>(start, end, out);
 }
 
 template <class Iter1, class Iter2>
-void decode_b32(Iter1 start, Iter1 end, Iter2 out) {
+constexpr void decode_b32(Iter1 start, Iter1 end, Iter2 out) {
     decode<b32_conversion_traits>(start, end, out);
 }
 
 template <class Iter1, class Iter2>
-void decode_b64(Iter1 start, Iter1 end, Iter2 out) {
+constexpr void decode_b64(Iter1 start, Iter1 end, Iter2 out) {
     decode<b64_conversion_traits>(start, end, out);
 }
 

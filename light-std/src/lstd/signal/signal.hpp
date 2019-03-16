@@ -2,7 +2,7 @@
 
 #include "collector.hpp"
 
-#include "../../vendor/FastDelegate/FastDelegate.hpp"
+#include "../memory/delegate.hpp"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -15,7 +15,7 @@ struct Collector_Invocation;
 // Specialization for regular signals.
 template <class Collector, class R, class... Args>
 struct Collector_Invocation<Collector, R(Args...)> {
-    inline bool invoke(Collector &collector, const fastdelegate::FastDelegate<R(Args...)> &cb, Args... args) {
+    inline bool invoke(Collector &collector, const Delegate<R(Args...)> &cb, Args... args) {
         return collector(cb(args...));
     }
 };
@@ -23,7 +23,7 @@ struct Collector_Invocation<Collector, R(Args...)> {
 // Specialization for signals with void return type.
 template <class Collector, class... Args>
 struct Collector_Invocation<Collector, void(Args...)> {
-    inline bool invoke(Collector &collector, const fastdelegate::FastDelegate<void(Args...)> &cb, Args... args) {
+    inline bool invoke(Collector &collector, const Delegate<void(Args...)> &cb, Args... args) {
         cb(args...);
         return collector();
     }
@@ -31,14 +31,14 @@ struct Collector_Invocation<Collector, void(Args...)> {
 }  // namespace internal
 
 template <typename Signature,
-          typename Collector = Collector_Default<typename fastdelegate::FastDelegate<Signature>::ReturnType>>
+          typename Collector = Collector_Default<typename Delegate<Signature>::return_t>>
 struct Signal;
 
 template <typename R, typename... Args, typename Collector>
 struct Signal<R(Args...), Collector> : public NonCopyable {
    protected:
     using result_type = R;
-    using callback_type = typename fastdelegate::FastDelegate<R(Args...)>;
+    using callback_type = typename Delegate<R(Args...)>;
     using collector_result_type = typename Collector::result_type;
 
    private:
@@ -104,7 +104,7 @@ struct Signal<R(Args...), Collector> : public NonCopyable {
 
     // Connects default callback if non-nullptr.
     Signal(const callback_type &cb = null) {
-        if (!cb.empty()) {
+        if (cb) {
             ensure_ring();
             CallbackRing->Callback = cb;
         }

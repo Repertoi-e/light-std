@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../string/string_view.hpp"
 #include "memory.hpp"
 #include "memory_view.hpp"
-#include "../string/string_view.hpp"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -60,7 +60,7 @@ struct Memory_Buffer {
 
             // If we are small but we need more size, it's time to convert
             // to a dynamically allocated memory.
-            Data = new(&Allocator, ensure_allocator) byte[size];
+            Data = new (&Allocator, ensure_allocator) byte[size];
             copy_memory(Data, StackData, ByteLength);
             Reserved = size;
         } else {
@@ -90,13 +90,9 @@ struct Memory_Buffer {
         *(Data + ByteLength++) = b;
     }
 
-    void append(const string_view &view) {
-        append_pointer_and_size(view.Data, view.ByteLength);
-    }
+    void append(const string_view &view) { append_pointer_and_size(view.Data, view.ByteLength); }
 
-    void append_unsafe(const string_view &view) {
-        append_pointer_and_size_unsafe(view.Data, view.ByteLength);
-    }
+    void append_unsafe(const string_view &view) { append_pointer_and_size_unsafe(view.Data, view.ByteLength); }
 
     void append_codepoint(char32_t cp) {
         size_t cpSize = get_size_of_code_point(cp);

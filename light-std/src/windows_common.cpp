@@ -9,38 +9,14 @@
 
 LSTD_BEGIN_NAMESPACE
 
-#if defined LSTD_NO_CRT
-
-static HANDLE g_Heap = null;
-
-void *windows_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, s32) {
-    if (!g_Heap) {
-        g_Heap = GetProcessHeap();
-    }
-
-    switch (mode) {
-        case Allocator_Mode::ALLOCATE:
-            return HeapAlloc(g_Heap, HEAP_ZERO_MEMORY, size);
-        case Allocator_Mode::RESIZE:
-            return HeapReAlloc(g_Heap, HEAP_ZERO_MEMORY, oldMemory, size);
-        case Allocator_Mode::FREE:
-            HeapFree(g_Heap, 0, oldMemory);
-            return null;
-        case Allocator_Mode::FREE_ALL:
-            return null;
-        default:
-            assert(false);  // We shouldn't get here
-    }
-    return null;
-}
-Allocator_Func DefaultAllocator = windows_allocator;
-#endif
+void *os_memory_alloc(void *context, size_t size, size_t *outsize) { return HeapAlloc(GetProcessHeap(), 0, size); }
+void os_memory_free(void *context, void *ptr) { HeapFree(GetProcessHeap(), 0, ptr); }
 
 #if !defined LSTD_NO_CRT
 void os_exit_program(int code) { exit(code); }
 #endif
 
-void os_assert_failed(const char *file, int line, const char *condition) {
+void os_assert_failed(const char *file, s32 line, const char *condition) {
     fmt::print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::FG::Red, file, line, condition, fmt::FG::Reset);
 #if COMPILER == MSVC && !defined LSTD_NO_CRT
     __debugbreak();
@@ -79,7 +55,7 @@ static HANDLE g_CoutHandle = null;
 static void allocate_console() {
     if (!g_ConsoleAllocated) {
         g_ConsoleAllocated = true;
-        
+
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
             AllocConsole();
 
