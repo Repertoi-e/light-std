@@ -5,12 +5,31 @@
 
 LSTD_BEGIN_NAMESPACE
 
+// This object stores a path to a file or directory and provides common
+// operations like getting the file name or extension.
+//
+// File_Path uses a unified format for storing paths that can be used
+// consistently on every platform, using only '/' as a separator.
+// When a File_Path is constructed from a string, the path is translated into
+// the unified format. All operations on File_Path also return paths in the
+// unified format. To obtain a path in native platform format, use to_native().
+// Note that this applies mainly for Windows systems, 
+// on other platforms to_native() just returns the unified format.
 struct File_Path {
-    // Unified format (to get native format, call to_native)
+    // Unified format (to get native format, call to_native())
     string Path;
 
-    File_Path() = default;
-    File_Path(string const &str) : Path(str) {}
+    Allocator_Closure &Allocator = Path.Allocator;
+
+    File_Path() {}
+    File_Path(const string &path) : Path(path) { unify(); }
+    File_Path(const byte *path) : Path(path) { unify(); }
+    File_Path(const char *path) : Path(path) { unify(); }
+
+private:
+    void unify() {
+
+    }
 };
 
 #if OS == WINDOWS

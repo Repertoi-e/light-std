@@ -72,6 +72,66 @@ void string::swap(string &other) {
     std::swap(Length, other.Length);
 }
 
+string string::removed_all(char32_t ch) {
+    if (Length == 0) return "";
+
+    byte data[4] = {0};
+    encode_code_point(data, ch);
+    return removed_all(string_view(data, get_size_of_code_point(ch)));
+}
+
+string string::removed_all(const string_view &str) {
+    assert(str.Length != 0);
+
+    if (Length == 0) return "";
+
+    string result;
+    result.reserve(ByteLength);
+
+    size_t p = 0, pos;
+    while ((pos = find(str, p)) != npos) {
+        ptr_t offset = get_pointer_to_code_point_at(Data, Length, p) - Data;
+        result.append_pointer_and_size(Data + offset, pos - offset);
+        p = pos + str.ByteLength;
+    }
+    result.append_pointer_and_size(Data + p, ByteLength - p);
+
+    return result;
+}
+
+string string::replaced_all(char32_t oldCh, char32_t newCh) {
+    if (Length == 0) return "";
+
+    byte data1[4] = {0};
+    encode_code_point(data1, oldCh);
+
+    byte data2[4] = {0};
+    encode_code_point(data2, newCh);
+
+    return replaced_all(string_view(data1, get_size_of_code_point(oldCh)),
+                        string_view(data2, get_size_of_code_point(newCh)));
+}
+
+string string::replaced_all(const string_view &oldStr, const string_view &newStr) {
+    assert(oldStr.Length != 0);
+
+    if (Length == 0) return "";
+
+    string result;
+    result.reserve(ByteLength);
+
+    size_t p = 0;
+    size_t pos;
+    while ((pos = find(oldStr, p)) != npos) {
+        result.append_pointer_and_size(Data + p, pos - p);
+        result.append(newStr);
+        p += pos + oldStr.ByteLength;
+    }
+    result.append_pointer_and_size(Data + p, ByteLength - p);
+
+    return result;
+}
+
 wchar_t *string::to_utf16() const {
     auto *result = new (&Allocator, ensure_allocator) wchar_t[Length];
     auto *p = result;

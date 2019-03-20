@@ -3,6 +3,7 @@
 #if OS == WINDOWS && defined LSTD_NO_CRT
 
 #include "lstd/context.hpp"
+#include "lstd/memory/memory.hpp"
 
 extern "C" int _fltused = 0;
 
@@ -41,7 +42,6 @@ extern "C" int _fltused = 0;
 typedef void(__cdecl *_PVFV)(void);
 typedef int(__cdecl *_PIFV)(void);
 
-// Global variable initializers and deinitializers:
 extern __declspec(allocate(".CRT$XIA")) _PIFV __xi_a[] = {null};  // First C Initializer
 extern __declspec(allocate(".CRT$XIZ")) _PIFV __xi_z[] = {null};  // Last C Initializer
 extern __declspec(allocate(".CRT$XCA")) _PVFV __xc_a[] = {null};  // First C++ Initializer
@@ -66,14 +66,27 @@ int __cdecl walk_table_of_functions_and_return_result(_PIFV *pfbegin, _PIFV *pfe
     return ret;
 }
 
+#if defined LSTD_NAMESPACE_NAME
+using namespace LSTD_NAMESPACE_NAME;
+#endif
+
 extern "C" {
 struct _onexit_table_t {
     _PVFV *_first, *_last, *_end;
 };
 _onexit_table_t g_ExitTable{};
 
+
+static bool g_ExitMutexInitted = false;
+static CRITICAL_SECTION g_AtExitMutex;
+
 int __cdecl atexit(_PVFV function) {
-    // TODO: Thread lock!
+    if (!g_ExitMutexInitted) {
+        InitializeCriticalSectionEx(&g_AtExitMutex, 4000, 0);
+        g_ExitMutexInitted = true;
+    }
+    EnterCriticalSection(&g_AtExitMutex);
+    defer{ LeaveCriticalSection(&g_AtExitMutex); };
 
     _PVFV *first = g_ExitTable._first;
     _PVFV *last = g_ExitTable._last;
@@ -89,10 +102,11 @@ int __cdecl atexit(_PVFV function) {
 
         _PVFV *newFirst = null;
         if (newCount >= oldCount) {
-            if (g_ExitTable._first)
-                newFirst = (_PVFV *) HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, first, sizeof(_PVFV) * newCount);
-            else
-                newFirst = (_PVFV *) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(_PVFV) * newCount);
+            if (g_ExitTable._first) {
+                newFirst = (_PVFV *) resize(first, newCount);
+            } else {
+                newFirst = (_PVFV *) new _PVFV[newCount];
+            }
         }
         if (newFirst == null) return -1;
 
@@ -344,6 +358,10 @@ extern "C" void execute_on_exit_table() {
                 last = savedLast = newLast;
             }
         }
+    }
+
+    if (g_ExitMutexInitted) {
+        DeleteCriticalSection(&g_AtExitMutex);
     }
 }
 

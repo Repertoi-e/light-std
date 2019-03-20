@@ -123,6 +123,7 @@ void Condition_Variable::notify_one() {
     // If we have any waiting threads, send them a signal
     if (haveWaiters) SetEvent(data->Events[_CONDITION_EVENT_ONE]);
 }
+
 void Condition_Variable::notify_all() {
     auto *data = (CV_Data *) Handle;
 
@@ -145,6 +146,13 @@ struct Thread_Start_Info {
     void *UserData;
     Thread *ThreadPtr;
 
+    // This may be null. It's used only when we don't link with the CRT,
+    // because we have to make sure the module the thread is executing in
+    // doesn't get unloaded while the thread is still doing work.
+    // (The CRT usually does that for us.)
+    bool NoCrt = false;
+    HMODULE Module;
+
     // Pointer to the implicit context in the "parent" thread.
     // We copy its members to the newly created thread.
     const Implicit_Context *ContextPtr;
@@ -159,8 +167,17 @@ u32 __stdcall Thread::wrapper_function(void *data) {
     ti->Function(ti->UserData);
 
     // The thread is no longer executing
-    Scoped_Lock<Mutex> guard(ti->ThreadPtr->DataMutex);
+    Scoped_Lock<Mutex> _(ti->ThreadPtr->DataMutex);
     ti->ThreadPtr->NotAThread = true;
+
+    if (ti->NoCrt) {
+        CloseHandle((HANDLE) ti->ThreadPtr->Handle);
+        ti->ThreadPtr->Handle = 0;
+
+        if (ti->Module) {
+            FreeLibrary(ti->Module);
+        }
+    }
 
     delete ti;
 
@@ -168,26 +185,30 @@ u32 __stdcall Thread::wrapper_function(void *data) {
 }
 
 Thread::Thread(Delegate<void(void *)> function, void *userData) {
-    Scoped_Lock<Mutex> guard(DataMutex);
+    Scoped_Lock<Mutex> _(DataMutex);
 
     // Passed to the thread wrapper, which will eventually free it
     auto *ti = new Thread_Start_Info;
-    ti->Function = function;
-    ti->UserData = userData;
-    ti->ThreadPtr = this;
-    ti->ContextPtr = &Context;
+    {
+        ti->Function = function;
+        ti->UserData = userData;
+        ti->ThreadPtr = this;
+        ti->ContextPtr = &Context;
+    }
 
     NotAThread = false;
 
     // Create the thread
     // if (pthread_create(&mHandle, NULL, wrapper_function, (void *) ti) != 0) mHandle = 0;
 #if !defined LSTD_NO_CRT
-    Handle = _beginthreadex(0, 0, wrapper_function, (void *) ti, 0, &Win32ThreadID);
+    Handle = _beginthreadex(null, 0, wrapper_function, (void *) ti, /*Creation Flags*/ 0, &Win32ThreadID);
 #else
-#error Use CreateThread and init thread local storage
-#endif
+    ti->NoCrt = true;
+    GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR) wrapper_function, &ti->Module);
 
-    if (!Handle) {
+    Handle = (uptr_t) CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, (DWORD *) &Win32ThreadID);
+#endif
+    if (!Handle || (HANDLE) Handle == INVALID_HANDLE_VALUE) {
         NotAThread = true;
         delete ti;
     }
@@ -200,19 +221,25 @@ Thread::~Thread() {
 void Thread::join() {
     if (joinable()) {
         // pthread_join(mHandle, NULL);
-        WaitForSingleObject((HANDLE) Handle, INFINITE);
-        CloseHandle((HANDLE) Handle);
+        if (Handle && (HANDLE) Handle != INVALID_HANDLE_VALUE) {
+            WaitForSingleObject((HANDLE) Handle, INFINITE);
+            CloseHandle((HANDLE) Handle);
+            
+            Scoped_Lock<Mutex> _(DataMutex);
+            Handle = 0;
+            NotAThread = true;
+        }
     }
 }
 
 bool Thread::joinable() const {
-    Scoped_Lock<Mutex> guard(DataMutex);
+    Scoped_Lock<Mutex> _(DataMutex);
     bool result = !NotAThread;
     return result;
 }
 
 void Thread::detach() {
-    Scoped_Lock<Mutex> guard(DataMutex);
+    Scoped_Lock<Mutex> _(DataMutex);
     if (!NotAThread) {
         // pthread_detach(mHandle);
         CloseHandle((HANDLE) Handle);

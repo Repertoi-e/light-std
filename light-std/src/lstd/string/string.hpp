@@ -330,6 +330,11 @@ struct string {
     // removed at the end.
     string_view trim_end() const { return get_view().trim_end(); }
 
+    string removed_all(char32_t ch);
+    string removed_all(const string_view &str);
+    string replaced_all(char32_t oldCh, char32_t newCh);
+    string replaced_all(const string_view &oldStr, const string_view &newStr);
+
     // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
     // The string returned is allocated by this object's allcoator and must be freed by the caller
     wchar_t *to_utf16() const;

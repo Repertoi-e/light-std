@@ -5,8 +5,6 @@
 
 - string::replace
 ---------------------------------------------------------------------------------
-Threads and TLS doesn't work with LSTD_NO_CRT 
----------------------------------------------------------------------------------
 The following things implemented in windows but not on posix yet:
   LSTD:
 - os wallclock functions
@@ -29,3 +27,6 @@ Maybe those 24 don't matter in today's world where computers have practically in
 but it feels like it's too wasteful.
 ---------------------------------------------------------------------------------
 Rewrite vendor libraries and reduce to the minimum needed
+---------------------------------------------------------------------------------
+string::removed_all/replaced_all are maybe too slow
+---------------------------------------------------------------------------------

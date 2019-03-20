@@ -151,8 +151,8 @@ void *malloc_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMe
             hc.user_context = null;
             hc.minimum_alignment = 8;
 
-            hc.allocation_mutex = new(OS_ALLOC) thread::Mutex;
-            hc.crossthread_free_mutex = new(OS_ALLOC) thread::Mutex;
+            hc.allocation_mutex = new (OS_ALLOC) thread::Mutex;
+            hc.crossthread_free_mutex = new (OS_ALLOC) thread::Mutex;
         }
         stbm_heap_init(g_Heap, sizeof(g_Heap), &hc);
 
@@ -187,6 +187,10 @@ LSTD_END_NAMESPACE
 
 #if defined LSTD_NO_CRT
 extern "C" {
+
+#if !defined LSTD_NAMESPACE_NAME
+#define LSTD_NAMESPACE_NAME
+#endif
 
 // Defining intrinsic functions that the compiler may use to optimize.
 #pragma function(memcpy)

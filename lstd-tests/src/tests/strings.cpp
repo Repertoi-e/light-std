@@ -207,3 +207,32 @@ TEST(string_builder) {
     string result = builder.combine();
     assert_eq(result, "Hello, world!");
 }
+
+TEST(removed_all) {
+    string a = "Hello world!";
+    assert_eq(a.removed_all('l'), "Heo word!");
+    assert_eq(a.removed_all("ll"), "Heo world!");
+
+    assert_eq(a.removed_all("x"), a);
+
+    a = "llHello world!ll";
+    assert_eq(a.removed_all('l'), "Heo word!");
+
+    a = "llHello world!ll";
+    assert_eq(a.removed_all("ll"), "Heo world!");
+}
+
+TEST(replaced_all) {
+    string a = "Hello world!";
+    assert_eq(a.replaced_all('l', 'll'), "Hellllo worlld!");
+    assert_eq(a.replaced_all("l", ""), a.removed_all('l'));
+
+    assert_eq(a.replaced_all("x", ""), a);
+
+    assert_eq(a.replaced_all("Hello", "olleH"), "olleH world!");
+
+    a = "llHello world!ll";
+    assert_eq(a.replaced_all("ll", "l"), "lHelo world!l");
+    assert_eq(a.replaced_all("l", "ll"), "llllHellllo worlld!llll");
+    assert_eq(a.replaced_all("l", "K"), "KKHeKKo worKd!KK");
+}

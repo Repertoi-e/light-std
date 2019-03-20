@@ -176,8 +176,12 @@ struct string_view {
         For(range(translated, Length)) {
             auto search = begin() + it;
             auto progress = view.begin();
-            while (progress != view.end() && *search++ == *progress++)
-                ;
+            while (progress != view.end()) {
+                if (*search == *progress) {
+                    search++, progress++;
+                } else
+                    break;
+            }
             if (progress == view.end()) {
                 return it;
             }
@@ -208,8 +212,12 @@ struct string_view {
         For(range(Length - 1, (s64) translated - 1, -1)) {
             auto search = begin() + it;
             auto progress = view.begin();
-            while (progress != view.end() && *search++ == *progress++)
-                ;
+            while (progress != view.end()) {
+                if (*search == *progress) {
+                    search++, progress++;
+                } else
+                    break;
+            }
             if (progress == view.end()) {
                 return it;
             }
