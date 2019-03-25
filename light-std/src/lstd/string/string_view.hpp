@@ -152,76 +152,143 @@ struct string_view {
         return result;
     }
 
-    // Find the first occurence of _cp_ starting at specified index
+    // Find the first occurence of a code point that is after a specified index
     constexpr size_t find(char32_t cp, s64 start = 0) const {
         assert(Data);
-        size_t translated = translate_index_unchecked(start, Length);
-        assert(translated <= Length);
+        if (Length == 0) return npos;
 
-        auto ch = begin() + translated;
-        For(range(translated, Length)) {
-            if (*ch++ == cp) return it;
+        start = translate_index(start, Length);
+
+        auto p = begin() + start;
+        For(range(start, Length)) if (*p++ == cp) return it;
+        return npos;
+    }
+
+    // Find the first occurence of a substring that is after a specified index
+    constexpr size_t find(const string_view &other, s64 start = 0) const {
+        assert(Data);
+        assert(other.Data);
+        assert(other.Length);
+        if (Length == 0) return npos;
+
+        start = translate_index(start, Length);
+
+        For(range(start, Length)) {
+            auto progress = other.begin();
+            for (auto search = begin() + it; progress != other.end(); ++search, ++progress) {
+                if (*search != *progress) break;
+            }
+            if (progress == other.end()) return it;
         }
         return npos;
     }
 
-    // Find the first occurence of _other_ starting at specified index
-    constexpr size_t find(const string_view &view, s64 start = 0) const {
+    // Find the last occurence of a code point that is before a specified index
+    constexpr size_t find_reverse(char32_t cp, s64 start = 0) const {
         assert(Data);
-        assert(view.Data);
+        if (Length == 0) return npos;
 
-        size_t translated = translate_index_unchecked(start, Length);
-        assert(translated <= Length);
+        start = translate_index(start, Length);
+        if (start == 0) start = Length - 1;
 
-        For(range(translated, Length)) {
-            auto search = begin() + it;
-            auto progress = view.begin();
-            while (progress != view.end()) {
-                if (*search == *progress) {
-                    search++, progress++;
-                } else
-                    break;
+        auto p = begin() + start;
+        For(range(start, -1, -1)) if (*p-- == cp) return it;
+        return npos;
+    }
+
+    // Find the last occurence of a substring that is before a specified index
+    constexpr size_t find_reverse(const string_view &other, s64 start = 0) const {
+        assert(Data);
+        assert(other.Data);
+        assert(other.Length);
+        if (Length == 0) return npos;
+
+        start = translate_index(start, Length);
+        if (start == 0) start = Length - 1;
+
+        For(range(start - other.Length + 1, -1, -1)) {
+            auto progress = other.begin();
+            for (auto search = begin() + it; progress != other.end(); ++search, ++progress) {
+                if (*search != *progress) break;
             }
-            if (progress == view.end()) {
-                return it;
-            }
+            if (progress == other.end()) return it;
         }
         return npos;
     }
 
-    // Find the last occurence of _ch_ starting at specified index
-    constexpr size_t find_last(char32_t cp, s64 start = 0) const {
+    // Find the first occurence of any code point in the specified view that is after a specified index
+    constexpr size_t find_any_of(const string_view &cps, s64 start = 0) const {
         assert(Data);
-        size_t translated = translate_index_unchecked(start, Length);
-        assert(translated <= Length);
+        if (Length == 0) return npos;
 
-        auto ch = end() - 1;
-        For(range(Length - 1, (s64) translated - 1, -1)) {
-            if (*ch-- == cp) return it;
-        }
+        start = translate_index(start, Length);
+
+        auto p = begin() + start;
+        For(range(start, Length)) if (cps.has(*p++)) return it;
         return npos;
     }
 
-    // Find the last occurence of _other_ starting at specified index
-    constexpr size_t find_last(const string_view &view, s64 start = 0) const {
+    // Find the last occurence of any code point in the specified view
+    // that is before a specified index (0 means: start from the end)
+    constexpr size_t find_reverse_any_of(const string_view &cps, s64 start = 0) const {
         assert(Data);
-        assert(view.Data);
-        size_t translated = translate_index_unchecked(start, Length);
-        assert(translated <= Length);
+        if (Length == 0) return npos;
 
-        For(range(Length - 1, (s64) translated - 1, -1)) {
-            auto search = begin() + it;
-            auto progress = view.begin();
-            while (progress != view.end()) {
-                if (*search == *progress) {
-                    search++, progress++;
-                } else
-                    break;
-            }
-            if (progress == view.end()) {
-                return it;
-            }
-        }
+        start = translate_index(start, Length);
+        if (start == 0) start = Length - 1;
+
+        auto p = begin() + start;
+        For(range(start, -1, -1)) if (cps.has(*p--)) return it;
+        return npos;
+    }
+
+    // Find the first absence of a code point that is after a specified index
+    constexpr size_t find_not(char32_t cp, s64 start = 0) const {
+        assert(Data);
+        if (Length == 0) return npos;
+
+        start = translate_index(start, Length);
+
+        auto p = begin() + start;
+        For(range(start, Length)) if (*p++ != cp) return it;
+        return npos;
+    }
+
+    // Find the last absence of a code point that is before the specified index
+    constexpr size_t find_reverse_not(char32_t cp, s64 start = 0) const {
+        assert(Data);
+        if (Length == 0) return npos;
+
+        start = translate_index(start, Length);
+        if (start == 0) start = Length - 1;
+
+        auto p = begin() + start;
+        For(range(start, 0, -1)) if (*p-- != cp) return it;
+        return npos;
+    }
+
+    // Find the first absence of any code point in the specified view that is after a specified index
+    constexpr size_t find_not_any_of(const string_view &cps, s64 start = 0) const {
+        assert(Data);
+        if (Length == 0) return npos;
+
+        start = translate_index(start, Length);
+
+        auto p = begin() + start;
+        For(range(start, Length)) if (!cps.has(*p++)) return it;
+        return npos;
+    }
+
+    // Find the first absence of any code point in the specified view that is after a specified index
+    constexpr size_t find_reverse_not_any_of(const string_view &cps, s64 start = 0) const {
+        assert(Data);
+        if (Length == 0) return npos;
+
+        start = translate_index(start, Length);
+        if (start == 0) start = Length - 1;
+
+        auto p = begin() + start;
+        For(range(start, 0, -1)) if (!cps.has(*p--)) return it;
         return npos;
     }
 
@@ -230,13 +297,19 @@ struct string_view {
 
     constexpr size_t count(char32_t cp) {
         size_t result = 0, index = 0;
-        while ((index = find(cp, index)) != npos) ++result, ++index;
+        while ((index = find(cp, index)) != npos) {
+            ++result, ++index;
+            if (index >= Length) break;
+        }
         return result;
     }
 
     constexpr size_t count(const string_view &view) {
         size_t result = 0, index = 0;
-        while ((index = find(view, index)) != npos) ++result, ++index;
+        while ((index = find(view, index)) != npos) {
+            ++result, ++index;
+            if (index >= Length) break;
+        }
         return result;
     }
 

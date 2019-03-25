@@ -26,7 +26,7 @@ TEST(code_point_size) {
 }
 
 TEST(substring) {
-    string a = "Hello, world!";
+    string_view a = "Hello, world!";
     assert_eq(a.substring(2, 5), "llo");
     assert_eq(a.substring(7, a.Length), "world!");
     assert_eq(a.substring(0, -1), "Hello, world");
@@ -39,7 +39,7 @@ TEST(substring) {
 }
 
 TEST(substring_mixed_sizes) {
-    string a = u8"Хеllo, уоrлd!";
+    string_view a = u8"Хеllo, уоrлd!";
     assert_eq(a.substring(2, 5), "llo");
     assert_eq(a.substring(7, a.Length), u8"уоrлd!");
     assert_eq(a.substring(0, -1), u8"Хеllo, уоrлd");
@@ -70,22 +70,26 @@ TEST(add_and_remove) {
     assert_eq(a, "H");
     a.remove(0);
     assert_eq(a, "");
+
+    a = "Hello world";
+    a.remove(0, 5);
+    assert_eq(a, " world");
 }
 
 TEST(utility_functions) {
-    string a = "\t\t    Hello, everyone!   \t\t   \n";
+    string_view a = "\t\t    Hello, everyone!   \t\t   \n";
     assert_eq(a.trim_start(), "Hello, everyone!   \t\t   \n");
     assert_eq(a.trim_end(), "\t\t    Hello, everyone!");
     assert_eq(a.trim(), "Hello, everyone!");
 
-    string b = "Hello, world!";
-    assert_true(b.begins_with("Hello"));
-    assert_false(b.begins_with("Xello"));
-    assert_false(b.begins_with("Hellol"));
+    a = "Hello, world!";
+    assert_true(a.begins_with("Hello"));
+    assert_false(a.begins_with("Xello"));
+    assert_false(a.begins_with("Hellol"));
 
-    assert_true(b.ends_with("world!"));
-    assert_false(b.ends_with("!world!"));
-    assert_false(b.ends_with("world!!"));
+    assert_true(a.ends_with("world!"));
+    assert_false(a.ends_with("!world!"));
+    assert_false(a.ends_with("world!!"));
 }
 
 TEST(modify) {
@@ -175,22 +179,7 @@ TEST(concat) {
     }
 }
 
-TEST(string_find) {
-    string a = "Hello";
-    assert_eq(a.find('e'), 1);
-    assert_eq(a.find('l'), 2);
-    assert_eq(a.find('l', 3), 3);
-    assert_eq(a.find_last('l'), 3);
-    assert_eq(a.find_last('l', 4), npos);
-
-    a = u8"Здрello";
-    assert_eq(a.find('e'), 3);
-    assert_eq(a.find('l'), 4);
-    assert_eq(a.find_last('l'), 5);
-    assert_eq(a.find_last('o'), 6);
-}
-
-TEST(string_count) {
+TEST(count) {
     string a = "Hello";
     assert_eq(a.count('l'), 2);
     assert_eq(a.count('e'), 1);
@@ -224,7 +213,7 @@ TEST(removed_all) {
 
 TEST(replaced_all) {
     string a = "Hello world!";
-    assert_eq(a.replaced_all('l', 'll'), "Hellllo worlld!");
+    assert_eq(a.replaced_all("l", "ll"), "Hellllo worlld!");
     assert_eq(a.replaced_all("l", ""), a.removed_all('l'));
 
     assert_eq(a.replaced_all("x", ""), a);
@@ -235,4 +224,75 @@ TEST(replaced_all) {
     assert_eq(a.replaced_all("ll", "l"), "lHelo world!l");
     assert_eq(a.replaced_all("l", "ll"), "llllHellllo worlld!llll");
     assert_eq(a.replaced_all("l", "K"), "KKHeKKo worKd!KK");
+}
+
+TEST(find) {
+    string a = "This is a string";
+    assert_eq(2, a.find("is"));
+    assert_eq(5, a.find("is", 5));
+
+    assert_eq(0, a.find("This"));
+    assert_eq(0, a.find_reverse("This"));
+    assert_eq(10, a.find("string"));
+    assert_eq(10, a.find_reverse("string"));
+
+    assert_eq(5, a.find_reverse("is", 6));
+    assert_eq(2, a.find_reverse("is", 5));
+    assert_eq(2, a.find_reverse("is", 3));
+
+    assert_eq(1, a.find('h'));
+    assert_eq(1, a.find('h', 1));
+    assert_eq(1, a.find("h", 1));
+
+    assert_eq(0, a.find('T'));
+    assert_eq(0, a.find_reverse('T'));
+
+    assert_eq(13, a.find_reverse('i'));
+    assert_eq(13, a.find_reverse('i', 13));
+    assert_eq(5, a.find_reverse('i', 12));
+
+    assert_eq(a.Length - 1, a.find('g'));
+    assert_eq(a.Length - 1, a.find_reverse('g'));
+
+    assert_eq(1, a.find_not('T'));
+    assert_eq(0, a.find_not('Q'));
+    assert_eq(a.Length - 1, a.find_reverse_not('Q'));
+    assert_eq(a.Length - 2, a.find_reverse_not('g'));
+
+    assert_eq(npos, a.find('Q'));
+
+    a = u8"Това е низ от букви";
+    assert_eq(8, a.find(u8"и"));
+    assert_eq(8, a.find(u8"и", 8));
+
+    assert_eq(8, a.find(U'и'));
+    assert_eq(8, a.find(U'и', 8));
+
+    assert_eq(14, a.find(U'б'));
+    assert_eq(14, a.find_reverse(U'б'));
+
+    assert_eq(npos, a.find(U'я'));
+
+    a = "aaabbbcccddd";
+    assert_eq(3, a.find_any_of("DCb"));
+    assert_eq(3, a.find_any_of("CbD"));
+    assert_eq(0, a.find_any_of("PQa"));
+
+    assert_eq(2, a.find_reverse_any_of("PQa"));
+    assert_eq(2, a.find_reverse_any_of("PQa", 2));
+    assert_eq(1, a.find_reverse_any_of("PQa", 1));
+
+    assert_eq(a.find('d'), a.find_not_any_of("abc"));
+    assert_eq(0, a.find_not_any_of("bcd"));
+    assert_eq(a.find('b'), a.find_not_any_of("ac"));
+
+    assert_eq(2, a.find_reverse_not_any_of("bcd"));
+    assert_eq(a.Length - 3, a.find_reverse_not_any_of("bc", -3));
+    assert_eq(2, a.find_reverse_not_any_of("bc", -4));
+    assert_eq(1, a.find_reverse_not_any_of("bcd", 1));
+
+    assert_eq(a.Length - 1, a.find_reverse_any_of("CdB"));
+
+    assert_eq(npos, a.find_any_of("QRT"));
+
 }

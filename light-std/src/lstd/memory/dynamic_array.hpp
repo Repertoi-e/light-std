@@ -134,7 +134,7 @@ struct Dynamic_Array {
     }
 
     // Find the index of the last occuring _item_ in the array, npos if it's not found
-    size_t find_last(const Data_Type &item) const {
+    size_t find_reverse(const Data_Type &item) const {
         Data_Type *index = Data;
         For(range(Count)) {
             if (*index-- == item) {

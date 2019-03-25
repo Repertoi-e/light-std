@@ -2,8 +2,8 @@
 
 - Time?
 - Random?
-
-- string::replace
+---------------------------------------------------------------------------------
+Sometimes, condition_variable test crashes
 ---------------------------------------------------------------------------------
 The following things implemented in windows but not on posix yet:
   LSTD:
@@ -29,4 +29,6 @@ but it feels like it's too wasteful.
 Rewrite vendor libraries and reduce to the minimum needed
 ---------------------------------------------------------------------------------
 string::removed_all/replaced_all are maybe too slow
+---------------------------------------------------------------------------------
+replace string::add with string::insert with a wider API (support for ranges)
 ---------------------------------------------------------------------------------

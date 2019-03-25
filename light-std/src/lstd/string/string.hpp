@@ -174,11 +174,15 @@ struct string {
     // -2 the one before that, etc. (Python-style)
     void set(s64 index, char32_t codePoint);
 
-    // Adds a codepoint at specified index, such that `this[index] == codePoint`
+    // Adds a code point at specified index, such that `this[index] == codePoint`
     void add(s64 index, char32_t codePoint);
 
-    // Removes codepoint at specified index
+    // Removes code point at specified index
     void remove(s64 index);
+
+    // Removes a range of code points
+    // [begin, end)
+    void remove(s64 begin, s64 end);
 
     // Gets [begin, end) range of characters
     // Allows negative reversed indexing which begins at
@@ -192,23 +196,55 @@ struct string {
     //      you intend to use it longer than this string.
     const string_view substring(s64 begin, s64 end) const { return get_view().substring(begin, end); }
 
-    // Find the first occurence of _ch_ starting at specified index
-    size_t find(char32_t ch, s64 start = 0) const { return get_view().find(ch, start); }
+    // Find the first occurence of a code point that is after a specified index
+    inline size_t find(char32_t cp, s64 start = 0) const { return get_view().find(cp, start); }
 
-    // Find the first occurence of _other_ starting at specified index
-    size_t find(const string_view &view, s64 start = 0) const { return get_view().find(view, start); }
+    // Find the first occurence of a substring that is after a specified index
+    inline size_t find(const string_view &other, s64 start = 0) const { return get_view().find(other, start); }
 
-    // Find the last occurence of _ch_ starting at specified index
-    size_t find_last(char32_t ch, s64 start = 0) const { return get_view().find_last(ch, start); }
+    // Find the last occurence of a code point that is before a specified index
+    inline size_t find_reverse(char32_t cp, s64 start = 0) const { return get_view().find_reverse(cp, start); }
 
-    // Find the last occurence of _other_ starting at specified index
-    size_t find_last(const string_view &view, s64 start = 0) const { return get_view().find_last(view, start); }
+    // Find the last occurence of a substring that is before a specified index
+    inline size_t find_reverse(const string_view &other, s64 start = 0) const {
+        return get_view().find_reverse(other, start);
+    }
+
+    // Find the first occurence of any code point in the specified view that is after a specified index
+    inline size_t find_any_of(const string_view &cps, s64 start = 0) const {
+        return get_view().find_any_of(cps, start);
+    }
+
+    // Find the last occurence of any code point in the specified view
+    // that is before a specified index (0 means: start from the end)
+    inline size_t find_reverse_any_of(const string_view &cps, s64 start = 0) const {
+        return get_view().find_reverse_any_of(cps, start);
+    }
+
+    // Find the first absence of a code point that is after a specified index
+    inline size_t find_not(char32_t cp, s64 start = 0) const { return get_view().find_not(cp, start); }
+
+    // Find the last absence of a code point that is before the specified index
+    inline size_t find_reverse_not(char32_t cp, s64 start = 0) const { return get_view().find_reverse_not(cp, start); }
+
+    // Find the first absence of any code point in the specified view that is after a specified index
+    inline size_t find_not_any_of(const string_view &cps, s64 start = 0) const {
+        return get_view().find_not_any_of(cps, start);
+    }
+
+    // Find the first absence of any code point in the specified view that is after a specified index
+    inline size_t find_reverse_not_any_of(const string_view &cps, s64 start = 0) const {
+        return get_view().find_reverse_not_any_of(cps, start);
+    }
 
     bool has(char32_t ch) const { return find(ch) != npos; }
     bool has(const string_view &view) const { return find(view) != npos; }
 
     size_t count(char32_t cp) { return get_view().count(cp); }
     size_t count(const string_view &view) { return get_view().count(view); }
+
+    // Append one string to another
+    void append(const string_view &other);
 
     // Append one string to another
     void append(const string &other);
@@ -257,6 +293,12 @@ struct string {
     bool operator>(const string &other) const { return compare(other) > 0; }
     bool operator<=(const string &other) const { return !(*this > other); }
     bool operator>=(const string &other) const { return !(*this < other); }
+
+    string operator+(const string_view &other) const {
+        string result = *this;
+        result.append(other);
+        return result;
+    }
 
     string operator+(const string &other) const {
         string result = *this;
@@ -330,10 +372,10 @@ struct string {
     // removed at the end.
     string_view trim_end() const { return get_view().trim_end(); }
 
-    string removed_all(char32_t ch);
-    string removed_all(const string_view &str);
-    string replaced_all(char32_t oldCh, char32_t newCh);
-    string replaced_all(const string_view &oldStr, const string_view &newStr);
+    string removed_all(char32_t ch) const;
+    string removed_all(const string_view &str) const;
+    string replaced_all(char32_t oldCh, char32_t newCh) const;
+    string replaced_all(const string_view &oldStr, const string_view &newStr) const;
 
     // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
     // The string returned is allocated by this object's allcoator and must be freed by the caller
@@ -373,6 +415,7 @@ struct string {
 
 constexpr size_t a = sizeof(string);
 
+inline string operator+(const string_view &one, const string &other) { return string(one) + other; }
 inline string operator+(const byte *one, const string &other) { return string(one) + other; }
 inline string operator+(const char *one, const string &other) { return string(one) + other; }
 

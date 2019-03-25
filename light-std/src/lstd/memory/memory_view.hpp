@@ -38,7 +38,7 @@ struct Memory_View {
     }
 
     // Find the last occurence of _b_
-    size_t find_last(byte b) const {
+    size_t find_reverse(byte b) const {
         assert(Data);
         for (size_t i = ByteLength - 1; i >= 0; --i)
             if (get(i) == b) return i;

@@ -72,7 +72,7 @@ void string::swap(string &other) {
     std::swap(Length, other.Length);
 }
 
-string string::removed_all(char32_t ch) {
+string string::removed_all(char32_t ch) const {
     if (Length == 0) return "";
 
     byte data[4] = {0};
@@ -80,7 +80,7 @@ string string::removed_all(char32_t ch) {
     return removed_all(string_view(data, get_size_of_code_point(ch)));
 }
 
-string string::removed_all(const string_view &str) {
+string string::removed_all(const string_view &str) const {
     assert(str.Length != 0);
 
     if (Length == 0) return "";
@@ -93,13 +93,14 @@ string string::removed_all(const string_view &str) {
         ptr_t offset = get_pointer_to_code_point_at(Data, Length, p) - Data;
         result.append_pointer_and_size(Data + offset, pos - offset);
         p = pos + str.ByteLength;
+        if (p == Length) break;
     }
     result.append_pointer_and_size(Data + p, ByteLength - p);
 
     return result;
 }
 
-string string::replaced_all(char32_t oldCh, char32_t newCh) {
+string string::replaced_all(char32_t oldCh, char32_t newCh) const {
     if (Length == 0) return "";
 
     byte data1[4] = {0};
@@ -112,7 +113,7 @@ string string::replaced_all(char32_t oldCh, char32_t newCh) {
                         string_view(data2, get_size_of_code_point(newCh)));
 }
 
-string string::replaced_all(const string_view &oldStr, const string_view &newStr) {
+string string::replaced_all(const string_view &oldStr, const string_view &newStr) const {
     assert(oldStr.Length != 0);
 
     if (Length == 0) return "";
@@ -125,7 +126,8 @@ string string::replaced_all(const string_view &oldStr, const string_view &newStr
     while ((pos = find(oldStr, p)) != npos) {
         result.append_pointer_and_size(Data + p, pos - p);
         result.append(newStr);
-        p += pos + oldStr.ByteLength;
+        p = pos + oldStr.ByteLength;
+        if (p == Length) break;
     }
     result.append_pointer_and_size(Data + p, ByteLength - p);
 
@@ -219,14 +221,14 @@ void string::reserve(size_t size) {
         // Return if there is enough space
         if (size <= Reserved) return;
 
-        Data = resize(ensure_allocator, Data, size, &Allocator);
+        Data = resize(Data, size);
         Reserved = size;
     }
 }
 
 void string::set(s64 index, char32_t codePoint) {
     size_t cpSize = get_size_of_code_point(codePoint);
-    const byte *target = get_pointer_to_code_point_at(Data, Length, index);
+    auto *target = get_pointer_to_code_point_at(Data, Length, index);
     size_t cpSizeTarget = get_size_of_code_point(target);
     s64 diff = (s64) cpSize - (s64) cpSizeTarget;
 
@@ -257,7 +259,7 @@ void string::add(s64 index, char32_t codePoint) {
         assert(false && "Cannot add code point at specified index (out of range)");
     }
 
-    const byte *target = get_pointer_to_code_point_at(Data, Length, translated);
+    auto *target = get_pointer_to_code_point_at(Data, Length, translated);
     uptr_t offset = (uptr_t)(target - Data);
     move_memory(Data + offset + cpSize, target, ByteLength - (target - Data));
 
@@ -268,15 +270,32 @@ void string::add(s64 index, char32_t codePoint) {
 }
 
 void string::remove(s64 index) {
-    const byte *target = get_pointer_to_code_point_at(Data, Length, index);
+    auto *target = get_pointer_to_code_point_at(Data, Length, index);
+
     size_t cpSize = get_size_of_code_point(target);
+    --Length;
 
     uptr_t offset = (uptr_t)(target - Data);
-    move_memory(Data + offset, target + cpSize, cpSize);
+    move_memory(Data + offset, target + cpSize, ByteLength - offset - cpSize);
 
     ByteLength -= cpSize;
-    --Length;
 }
+
+void string::remove(s64 begin, s64 end) {
+    auto *targetBegin = get_pointer_to_code_point_at(Data, Length, begin);
+    auto *targetEnd = get_pointer_to_code_point_at(Data, Length, end);
+    assert(targetEnd > targetBegin);
+
+    size_t bytes = targetEnd - targetBegin;
+    Length -= utf8_strlen(targetBegin, targetEnd - targetBegin);
+
+    uptr_t offset = (uptr_t)(targetBegin - Data);
+    move_memory(Data + offset, targetEnd, ByteLength - offset - bytes);
+
+    ByteLength -= bytes;
+}
+
+void string::append(const string_view &other) { append_pointer_and_size(other.Data, other.ByteLength); }
 
 void string::append(const string &other) {
     size_t neededCapacity = ByteLength + other.ByteLength;

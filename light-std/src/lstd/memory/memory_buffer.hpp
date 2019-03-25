@@ -67,7 +67,7 @@ struct Memory_Buffer {
             // Return if there is enough space
             if (size <= Reserved) return;
 
-            Data = resize(ensure_allocator, Data, size, &Allocator);
+            Data = resize(Data, size);
             Reserved = size;
         }
     }
@@ -154,7 +154,7 @@ struct Memory_Buffer {
     }
 
     // Find the last occurence of _b_
-    size_t find_last(byte b) const {
+    size_t find_reverse(byte b) const {
         assert(Data);
         for (size_t i = ByteLength - 1; i >= 0; --i)
             if (get(i) == b) return i;

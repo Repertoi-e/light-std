@@ -62,11 +62,11 @@ struct Reader {
     // Reads _n_ bytes and put them in _buffer_
     void read(byte *buffer, size_t n);
 
-    // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
+    // Reads bytes until _delim_ code point is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
     void read(Dynamic_Array<byte> &buffer, size_t n);
 
-    // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
+    // Reads bytes until _delim_ code point is encountered and put them in _buffer_
     // Assumes there is enough space in _buffer_
     void read(byte *buffer, char32_t delim);
 
@@ -75,7 +75,7 @@ struct Reader {
     // Doesn't include the delimeter in the buffer
     void read(Dynamic_Array<byte> &buffer, const string_view &delims);
 
-    // Reads bytes until _delim_ codepoint is encountered and put them in _buffer_
+    // Reads bytes until _delim_ code point is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
     // The encountered _delim_ is not going to be part of the buffer
     void read(Dynamic_Array<byte> &buffer, char32_t delim);

@@ -3,7 +3,7 @@
 #include <lstd/containers.hpp>
 #include <lstd/io.hpp>
 
-#include <lstd/file/file_path.hpp>
+#include <lstd/file/path.hpp>
 
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.
@@ -13,12 +13,12 @@
 //      .../home/user/dev/sandbox-tests/string.cpp           ---> string.cpp
 //
 constexpr string_view get_file_path_relative_to_src_or_just_file_name(const string_view &str) {
-    char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
+    char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATOR, '\0'};
     string_view src = srcData;
 
-    size_t findResult = str.find_last(src);
+    size_t findResult = str.find_reverse(src);
     if (findResult == npos) {
-        findResult = str.find_last(OS_PATH_SEPARATOR);
+        findResult = str.find_reverse(file::OS_PATH_SEPARATOR);
         assert(findResult != str.Length - 1);
         // Skip the slash
         findResult++;

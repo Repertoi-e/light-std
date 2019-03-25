@@ -167,8 +167,8 @@ void *malloc_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMe
         }
         case Allocator_Mode::RESIZE: {
             void *memory = stbm_realloc(0, (stbm_heap *) g_Heap, oldMemory, size, 0);
-            if (oldSize > size) {
-                zero_memory((byte *) memory + oldSize, oldSize - size);
+            if (size > oldSize) {
+                zero_memory((byte *) memory + oldSize, size - oldSize);
             }
             return memory;
         }

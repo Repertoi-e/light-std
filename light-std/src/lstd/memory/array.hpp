@@ -35,7 +35,7 @@ struct Array {
     }
 
     // Find the index of the last occuring _item_ in the array, npos if it's not found
-    constexpr size_t find_last(const T &item) const {
+    constexpr size_t find_reverse(const T &item) const {
         const T *index = Data + Count - 1;
         For(range(Count)) {
             if (*index-- == item) {

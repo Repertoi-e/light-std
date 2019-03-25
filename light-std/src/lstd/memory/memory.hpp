@@ -73,6 +73,8 @@ T *move_elements(T *dest, T *src, size_t numberOfElements) {
     return d;
 }
 
+// OS ALLOCATOR (not quite malloc)
+
 // Used by stb_malloc
 void *os_memory_alloc(void *context, size_t size, size_t *outsize);
 
@@ -92,28 +94,20 @@ struct Allocation_Info {
 
 // Used for rezising an array.
 // _newSize_ is automatically multiplied by sizeof(T).
-// The old size is kept before the memory pointer of every allocation in a Allocation_Info struct.
+// The old size is stored in the header of every allocation's memory pointer (Allocation_Info)
 template <typename T>
-T *resize(T *memory, size_t newSize, Allocator_Closure allocator = {0, 0}, uptr_t userData = 0) {
-    if (!allocator) allocator = CONTEXT_ALLOC;
-    if (!allocator) allocator = OS_ALLOC;
-
-    newSize = newSize * sizeof(T) + sizeof(Allocation_Info);
-
+T *resize(T *memory, size_t newSize, uptr_t userData = 0) {
     auto *info = (Allocation_Info *) memory - 1;
     size_t oldSize = info->Size + sizeof(Allocation_Info);
 
-    void *newMemory = allocator.Function(Allocator_Mode::RESIZE, allocator.Data, newSize, info, oldSize, userData);
-    return (T *) ((Allocation_Info *) newMemory + 1);
-}
+    newSize = newSize * sizeof(T) + sizeof(Allocation_Info);
 
-// This function is a wrapper around resize(...), but if the passed pointer to allocator
-// points to a null allocator, it makes it point to the context allocator and uses that one.
-template <typename T>
-inline T *resize(ensure_allocator_t, T *memory, size_t newSize, Allocator_Closure *allocator, uptr_t userData = 0) {
-    if (!*allocator) *allocator = CONTEXT_ALLOC;
-    if (!*allocator) *allocator = OS_ALLOC;
-    return resize(memory, newSize, *allocator, userData);
+    // Note: We don't change info->Id here
+    // I don't think we should...
+    auto *newMemory = (Allocation_Info *) info->Allocator.Function(Allocator_Mode::RESIZE, info->Allocator.Data,
+                                                                   newSize, info, oldSize, userData);
+    newMemory->Size = newSize;
+    return (T *) (newMemory + 1);
 }
 
 LSTD_END_NAMESPACE

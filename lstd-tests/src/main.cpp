@@ -66,5 +66,6 @@ void run_tests() {
 int main() {
     temporary_storage_init(4_MiB);
 
-    PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) run_tests();
+    // PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) run_tests();
+    run_tests();
 }

@@ -25,9 +25,9 @@ TEST(static_array) {
     assert_false(ints.has(10));
     assert_false(ints.has(20));
 
-    assert_eq(ints.find_last(3), 3);
-    assert_eq(ints.find_last(4), 4);
-    assert_eq(ints.find_last(0), 0);
+    assert_eq(ints.find_reverse(3), 3);
+    assert_eq(ints.find_reverse(4), 4);
+    assert_eq(ints.find_reverse(0), 0);
     assert_eq(ints.find(3), 3);
     assert_eq(ints.find(4), 4);
     assert_eq(ints.find(0), 0);
