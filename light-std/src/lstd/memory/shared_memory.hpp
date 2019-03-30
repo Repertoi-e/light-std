@@ -114,7 +114,7 @@ struct Shared_Memory {
     }
 
     operator bool() const { return ref_count() > 0; }
-    bool unique() const { return ref_count() == 1; }
+    bool is_unique() const { return ref_count() == 1; }
     s32 ref_count() const { return Count.ref_count(); }
 
     template <typename U = T>

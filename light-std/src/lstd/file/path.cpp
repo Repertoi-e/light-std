@@ -59,18 +59,25 @@ Path Path::combined_with(const string_view &other) const {
 }
 
 void Path::resolve() {
-    size_t beginning = 0;
-    For(PathStr) {
-        ++beginning;
-        if (it != '.' && it != '/') break;
+    size_t dots, beginning = 0;
+    while ((dots = PathStr.find("../", beginning)) != npos) {
+        if (dots != beginning) break;
+        beginning += 3;
     }
 
-    size_t dots;
-    while ((dots = PathStr.find("..", beginning)) != npos) {
+    size_t progress = beginning;
+    while ((dots = PathStr.find("..", progress)) != npos) {
         size_t previousSlash = PathStr.find_reverse('/', dots - 2);
         PathStr.remove(previousSlash, dots + 2);
-        beginning = previousSlash + 1;
-        if (beginning >= PathStr.Length) break;
+        progress = previousSlash + 1;
+        if (progress >= PathStr.Length) break;
+    }
+
+    progress = beginning;
+    while ((dots = PathStr.find("./", progress)) != npos) {
+        PathStr.remove(dots, dots + 2);
+        progress = dots + 1;
+        if (progress >= PathStr.Length) break;
     }
 }
 }  // namespace file

@@ -25,6 +25,8 @@ string::string(const byte *str, size_t size) {
 
 string::string(const string_view &view) : string(view.Data, view.ByteLength) {}
 
+string::string(size_t size) { reserve(size); }
+
 string::string(const string &other) {
     ByteLength = other.ByteLength;
     Length = other.Length;
@@ -135,38 +137,31 @@ string string::replaced_all(const string_view &oldStr, const string_view &newStr
 }
 
 wchar_t *string::to_utf16() const {
-    auto *result = new (&Allocator, ensure_allocator) wchar_t[Length];
-    auto *p = result;
-    For(*this) {
-        if (it > 0xffff) {
-            *p++ = (u16)((it >> 10) + (0xd800u - (0x10000 >> 10)));
-            *p++ = (u16)((it & 0x3ff) + 0xdc00u);
-        } else {
-            *p++ = (u16) it;
-        }
-    }
-    *p = 0;
+    auto *result = new (&Allocator, ensure_allocator) wchar_t[Length + 1];
+    get_view().to_utf16(result);
     return result;
 }
 
-void string::from_utf16(const wchar_t *str) {
+void string::from_utf16(const wchar_t *str, bool overwrite) {
+    if (overwrite) *this = "";
+
     reserve(2 * cstring_strlen(str));
-    while (*str++) {
+    for (; *str; ++str) {
         append((char32_t) *str);
     }
 }
 
 char32_t *string::to_utf32() const {
-    auto *result = new (&Allocator, ensure_allocator) char32_t[Length];
-    auto *p = result;
-    For(*this) { *p++ = it; }
-    *p = 0;
+    auto *result = new (&Allocator, ensure_allocator) char32_t[Length + 1];
+    get_view().to_utf32(result);
     return result;
 }
 
-void string::from_utf32(const char32_t *str) {
+void string::from_utf32(const char32_t *str, bool overwrite) {
+    if (overwrite) *this = "";
+
     reserve(4 * cstring_strlen(str));
-    while (*str++) {
+    for (; *str; ++str) {
         append(*str);
     }
 }
@@ -283,7 +278,12 @@ void string::remove(s64 index) {
 
 void string::remove(s64 begin, s64 end) {
     auto *targetBegin = get_pointer_to_code_point_at(Data, Length, begin);
-    auto *targetEnd = get_pointer_to_code_point_at(Data, Length, end);
+    const byte *targetEnd = null;
+    if ((size_t) end >= Length) {
+        targetEnd = Data + ByteLength;
+    } else {
+        targetEnd = get_pointer_to_code_point_at(Data, Length, end);
+    }
     assert(targetEnd > targetBegin);
 
     size_t bytes = targetEnd - targetBegin;

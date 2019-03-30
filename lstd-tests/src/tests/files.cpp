@@ -1,4 +1,4 @@
-#include <lstd/file/path.hpp>
+#include <lstd/file.hpp>
 
 #include "../test.hpp"
 
@@ -37,4 +37,8 @@ TEST(path) {
     assert_eq(a.base_name(), "lstd");
     assert_eq(a.extension(), ".exe");
     assert_eq(a.directory(), "../../data/bin/debug/");
+}
+
+TEST(size) {
+    assert_eq(file::Handle("data/five_bytes").file_size(), 5);
 }

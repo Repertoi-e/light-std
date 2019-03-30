@@ -124,7 +124,10 @@ struct Path {
    private:
     string PathStr;
 
-    void unify() { PathStr = PathStr.replaced_all("\\", "/"); }
+    void unify() {
+        PathStr = PathStr.replaced_all("\\", "/");
+        resolve();
+    }
 };
 
 // Returns the drive letter on Windows, if the path is not
@@ -156,6 +159,5 @@ inline bool operator==(const char *one, const file::Path &other) { return file::
 
 inline bool operator!=(const byte *one, const file::Path &other) { return file::Path(one) != other; }
 inline bool operator!=(const char *one, const file::Path &other) { return file::Path(one) != other; }
-
 
 LSTD_END_NAMESPACE

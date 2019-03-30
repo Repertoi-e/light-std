@@ -220,10 +220,8 @@ struct Thread {
 
     mutable Mutex DataMutex;
 
-#if OS == WINDOWS
-    // Unique thread ID (filled out by _beginthreadex).
+    // Unique thread ID. Used only on Windows
     u32 Win32ThreadID = 0;
-#endif
 
     // True if this object is not a thread of execution.
     bool NotAThread = true;

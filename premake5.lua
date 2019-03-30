@@ -64,6 +64,7 @@ function common_stuff()
     
     filter { "system:windows", "not options:no-crt" }
         staticruntime "on"
+        excludes "%{prj.name}/src/windows_no_crt.cpp"
 
     filter { "system:windows", "options:no-crt" }
         defines "LSTD_NO_CRT"

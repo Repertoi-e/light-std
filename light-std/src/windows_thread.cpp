@@ -5,6 +5,8 @@
 #include "lstd/context.hpp"
 #include "lstd/thread.hpp"
 
+#include "lstd/fmt.hpp"
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <process.h>
@@ -98,8 +100,7 @@ void Condition_Variable::pre_wait() {
 void Condition_Variable::do_wait() {
     auto *data = (CV_Data *) Handle;
 
-    // Wait for either event to become signaled due to notify_one() or
-    // notify_all() being called
+    // Wait for either event to become signaled due to notify_one() or notify_all() being called
     s32 result = WaitForMultipleObjects(2, data->Events, FALSE, INFINITE);
 
     // Check if we are the last waiter
@@ -179,8 +180,11 @@ u32 __stdcall Thread::wrapper_function(void *data) {
         }
     }
 
-    delete ti;
+    // Seems like this line fixes a rare crash
+    ti->Function.~Delegate<void(void *)>();
 
+    delete ti;
+    
     return 0;
 }
 
@@ -224,7 +228,7 @@ void Thread::join() {
         if (Handle && (HANDLE) Handle != INVALID_HANDLE_VALUE) {
             WaitForSingleObject((HANDLE) Handle, INFINITE);
             CloseHandle((HANDLE) Handle);
-            
+
             Scoped_Lock<Mutex> _(DataMutex);
             Handle = 0;
             NotAThread = true;

@@ -1,15 +1,23 @@
-- File I/O
-
+---------------------------------------------------------------------------------
 - Time?
 - Random?
 ---------------------------------------------------------------------------------
-Sometimes, condition_variable test crashes
+File I/O and Reader/Writer implementations
+(File mapping too)
+---------------------------------------------------------------------------------
+API for watching directory changes
+---------------------------------------------------------------------------------
+io::cerr
+---------------------------------------------------------------------------------
+constexpr: copy_memory, move_memory, fill_memory, compare_memory
+(and begins_with/ends_with in string_view)
 ---------------------------------------------------------------------------------
 The following things implemented in windows but not on posix yet:
   LSTD:
 - os wallclock functions
 - changes in console_reader/writer that remove virtual functions
 - threads
+- file handles
   LE:
 - game loop and windows and events 
 ---------------------------------------------------------------------------------
@@ -17,7 +25,14 @@ Way to get monitor refresh rate (and possibly other system info)
 ---------------------------------------------------------------------------------
 Replace LE's game loop with a platform inspecific one
 ---------------------------------------------------------------------------------
-Allow users to add more variables to Implicit_Context (do this with headers)
+replace string::add with string::insert with a wider API (support for ranges)
+---------------------------------------------------------------------------------
+Sometimes, condition_variable test crashes
+After running the program for a while, it seems like it's fixed by calling
+the Delegate's destructor before deleting the Thread_Start_Info when finished
+calling the thread function.
+---------------------------------------------------------------------------------
+Rewrite vendor libraries and reduce to the minimum needed
 ---------------------------------------------------------------------------------
 At the moment every allocation has a 24 byte header (the Allocator it used and the size of the allocation)
 This is done to make sure delete always uses the right allocator as well as provide convenience for the user.
@@ -26,9 +41,6 @@ This is done to make sure delete always uses the right allocator as well as prov
 Maybe those 24 don't matter in today's world where computers have practically infinite RAM,
 but it feels like it's too wasteful.
 ---------------------------------------------------------------------------------
-Rewrite vendor libraries and reduce to the minimum needed
----------------------------------------------------------------------------------
-string::removed_all/replaced_all are maybe too slow
----------------------------------------------------------------------------------
-replace string::add with string::insert with a wider API (support for ranges)
+Allow users to add more variables to Implicit_Context
+Won't work with headers tho
 ---------------------------------------------------------------------------------

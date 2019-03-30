@@ -59,6 +59,7 @@ struct string {
             ++(*this);
             return temp;
         }
+
         constexpr Iterator operator--(s32) {
             Iterator temp = *this;
             --(*this);
@@ -147,6 +148,10 @@ struct string {
     // Construct from a c-style string and a size (in code units, not code points)
     string(const char *str, size_t size) : string((const byte *) str, size) {}
     explicit string(const string_view &view);
+
+    // Create a string with an initial size reserved
+    string(size_t size);
+
     string(const string &other);
     string(string &&other);
     ~string();
@@ -380,16 +385,18 @@ struct string {
     // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
     // The string returned is allocated by this object's allcoator and must be freed by the caller
     wchar_t *to_utf16() const;
+    void to_utf16(wchar_t *out) { return get_view().to_utf16(out); }
 
-    // Converts a null-terminated wide char string to utf-8 and stores it in this object
-    void from_utf16(const wchar_t *str);
+    // Converts a null-terminated wide char string to utf-8 and stores it to this string
+    void from_utf16(const wchar_t *str, bool overwrite = true);
 
     // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
     // The string returned is allocated by this object's allcoator and must be freed by the caller
     char32_t *to_utf32() const;
+    void to_utf32(char32_t *out) const { return get_view().to_utf32(out); }
 
-    // Converts a null-terminated wide char string to utf-8 and stores it in this object
-    void from_utf32(const char32_t *str);
+    // Converts a null-terminated wide char string to utf-8 and appends it to this string
+    void from_utf32(const char32_t *str, bool overwrite = true);
 
     bool begins_with(char32_t ch) const { return get_view().begins_with(ch); }
     bool begins_with(const string_view &other) const { return get_view().begins_with(other); }

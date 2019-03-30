@@ -1,165 +1,241 @@
 #include "lstd/common.hpp"
 
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
+#if OS == WINDOWS
 
-#if 0  // OS == WINDOWS
+#include "lstd/file/handle.hpp"
 
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
-// #TODO: Not implemented
+#include "lstd/memory/hash.hpp"
 
-#include "file/local_file_path.h"
-
-#include <dirent.h>
-#include <stdio.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#undef MAC
+#undef _MAC
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <shlwapi.h>
 
 LSTD_BEGIN_NAMESPACE
 
-static void reset_info(Local_File_Path const &path) {
-    if (path.FileInfo) Delete((struct stat *) path.FileInfo);
-    if (path.LinkInfo) Delete((struct stat *) path.LinkInfo);
+namespace file {
 
-    path.FileInfo = null;
-    path.LinkInfo = null;
+Handle::Iterator::Iterator(const file::Path &path) : Path(path) { read_next_entry(); }
+
+void Handle::Iterator::operator++(s32) { read_next_entry(); }
+
+string Handle::Iterator::operator*() const {
+    string fileName;
+    fileName.from_utf16(((WIN32_FIND_DATA *) PlatformFileInfo)->cFileName);
+    auto path = Path / fileName.get_view();
+    path.resolve();
+    return string(path.get());
 }
 
-Local_File_Path::~Local_File_Path() { reset_info(*this); }
-
-static void read_file_info(Local_File_Path const &path) {
-    if (path.FileInfo) return;
-
-    path.FileInfo = (void *) New<struct stat>();
-
-    if (stat(path.Path.Data, (struct stat *) path.FileInfo)) {
-        Delete((struct stat *) path.FileInfo);
-        path.FileInfo = null;
-    }
-}
-
-static void read_link_info(Local_File_Path const &path) {
-    if (path.LinkInfo) return;
-
-    path.LinkInfo = (void *) New<struct stat>();
-
-    if (lstat(path.Path.Data, (struct stat *) path.LinkInfo)) {
-        Delete((struct stat *) path.LinkInfo);
-        path.LinkInfo = null;
-    }
-}
-
-bool exists(Local_File_Path const &path) {
-    read_file_info(path);
-    return path.FileInfo;
-}
-
-bool is_file(Local_File_Path const &path) {
-    read_file_info(path);
-    if (path.FileInfo) {
-        return S_ISREG(((struct stat *) path.FileInfo)->st_mode);
+bool Handle::Iterator::operator==(const Iterator &other) const {
+    if (!PlatformHandle && !other.PlatformHandle) return true;
+    if (PlatformHandle && other.PlatformHandle) {
+        if (*(*this) == *other) return true;
     }
     return false;
 }
 
-bool is_dir(Local_File_Path const &path) {
-    read_file_info(path);
-    if (path.FileInfo) {
-        return S_ISDIR(((struct stat *) path.FileInfo)->st_mode);
+void Handle::Iterator::read_next_entry() {
+    string fileName;
+    do {
+        if (!PlatformHandle) {
+            auto queryPath = Path / "*";
+            auto *query = string(queryPath.get()).to_utf16();
+            defer { delete query; };
+
+            auto handle = FindFirstFileW(query, (WIN32_FIND_DATA *) PlatformFileInfo);
+            if (handle == INVALID_HANDLE_VALUE) return;
+            PlatformHandle = (uptr_t) handle;
+        } else {
+            if (!FindNextFileW((HANDLE) PlatformHandle, (WIN32_FIND_DATA *) PlatformFileInfo)) {
+                // No more files
+                FindClose((HANDLE) PlatformHandle);
+                PlatformHandle = 0;
+                return;
+            }
+        }
+        ++Index;
+        fileName.from_utf16(((WIN32_FIND_DATA *) PlatformFileInfo)->cFileName);
+    } while (fileName == ".." || fileName == ".");
+    assert(fileName != ".." && fileName != ".");
+}
+
+void Handle::traverse_recursively(const Handle &first, Handle::visit_func_t func) const {
+    for (auto it = begin(); it != end(); ++it) {
+        func(*it);
+        if ((((WIN32_FIND_DATA *) it.PlatformFileInfo)->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+            first.open_relative(*it).traverse_recursively(first, func);
+        }
     }
-    return false;
 }
 
-bool is_symbolic_link(Local_File_Path const &path) {
-    read_link_info(path);
-    if (path.FileInfo) {
-        return S_ISLNK(((struct stat *) path.LinkInfo)->st_mode);
-    }
-    return false;
+void Handle::traverse_recursively(visit_func_t func) const { traverse_recursively(*this, func); }
+
+Handle::Handle(const file::Path &path) : Path(path) {
+    PathUtf16 = Shared_Memory<wchar_t>(string(path.get()).to_utf16());
 }
 
-void visit_entries(Local_File_Path const &path, Visit_Func function) {
-    DIR *dir = opendir(path.Path.Data);
-    if (!dir) return;
-    defer { closedir(dir); };
+bool Handle::is_file() const {
+    HANDLE file = CreateFileW(PathUtf16.get(), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    defer { CloseHandle(file); };
 
-    while (true) {
-        struct dirent *entry = readdir(dir);
-        if (!entry) break;
-
-        string name = entry->d_name;
-        if (name == ".." || name == ".") continue;
-
-        function(Local_File_Path(path));
-    }
-}
-
-size_t file_size(Local_File_Path const &path) {
-    if (!is_file(path)) return 0;
-    return ((struct stat *) path.FileInfo)->st_size;
-}
-
-u32 last_access_time(Local_File_Path const &path) {
-    read_file_info(path);
-    if (path.FileInfo) {
-        return ((struct stat *) path.FileInfo)->st_atime;
-    }
-    return 0;
-}
-
-u32 last_write_time(Local_File_Path const &path) {
-    read_file_info(path);
-    if (path.FileInfo) {
-        return ((struct stat *) path.FileInfo)->st_mtime;
-    }
-    return 0;
-}
-
-bool remove(Local_File_Path const &path) {
-    if (!exists(path)) return false;
-
-    if (::remove(path.Path.Data)) {
+    BY_HANDLE_FILE_INFORMATION info;
+    if (!GetFileInformationByHandle(file, &info)) {
         return false;
     }
+    return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
 
-    reset_info(path);
+bool Handle::is_directory() const {
+    HANDLE file = CreateFileW(PathUtf16.get(), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    defer { CloseHandle(file); };
+
+    BY_HANDLE_FILE_INFORMATION info;
+    if (!GetFileInformationByHandle(file, &info)) {
+        return false;
+    }
+    return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
+bool Handle::exists() const {
+    HANDLE file = CreateFileW(PathUtf16.get(), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    CloseHandle(file);
     return true;
 }
 
-bool rename(Local_File_Path const &path, string const &name) {
-    if (!exists(path)) return false;
-
-    // Not implemented
+bool Handle::is_symbolic_link() const {
+    auto attribs = GetFileAttributesW(PathUtf16.get());
+    if (attribs != INVALID_FILE_ATTRIBUTES) {
+        return (attribs & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+    }
     return false;
 }
+
+size_t Handle::file_size() const {
+    HANDLE file =
+        CreateFileW(PathUtf16.get(), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null);
+    if (file == INVALID_HANDLE_VALUE) {
+        return 0;
+    }
+
+    LARGE_INTEGER size = {0};
+    GetFileSizeEx(file, &size);
+    return (size_t) size.QuadPart;
+}
+
+#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                      \
+    HANDLE x = CreateFileW(PathUtf16.get(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, \
+                           FILE_ATTRIBUTE_NORMAL, NULL);                                                           \
+    if (x == INVALID_HANDLE_VALUE) fail;                                                                           \
+    defer { CloseHandle(x); }
+
+u64 Handle::creation_time() const {
+    GET_READONLY_EXISTING_HANDLE(handle, return 0);
+    FILETIME time;
+    if (!GetFileTime(handle, &time, null, null)) return 0;
+    return ((u64) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+}
+
+u64 Handle::last_access_time() const {
+    GET_READONLY_EXISTING_HANDLE(handle, return 0);
+    FILETIME time;
+    if (!GetFileTime(handle, null, &time, null)) return 0;
+    return ((u64) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+}
+
+u64 Handle::last_modification_time() const {
+    GET_READONLY_EXISTING_HANDLE(handle, return 0);
+    FILETIME time;
+    if (!GetFileTime(handle, null, null, &time)) return 0;
+    return ((u64) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+}
+
+bool Handle::create_directory() const {
+    if (exists()) return false;
+    return CreateDirectoryW(PathUtf16.get(), null);
+}
+
+bool Handle::delete_file() {
+    if (!is_file()) return false;
+    return DeleteFileW(PathUtf16.get());
+}
+
+bool Handle::delete_directory() const {
+    if (!is_directory()) return false;
+    return RemoveDirectoryW(PathUtf16.get());
+}
+
+void Handle::delete_directory_with_contents() const {}
+
+void Handle::copy_directory_contents(const Handle &destination) const {}
+
+bool Handle::copy(const Handle &destination, bool overwrite) const {
+    if (!is_file()) return false;
+
+    auto destPath = destination.Path;
+    wchar_t *dest;
+
+    if (destination.is_directory()) {
+        destPath = destPath / Path.file_name();
+        dest = string(destPath.get()).to_utf16();
+    } else {
+        dest = destination.PathUtf16.get();
+    }
+
+    return CopyFileW(PathUtf16.get(), dest, !overwrite);
+}
+
+bool Handle::move(const Handle &destination, bool overwrite) const {
+    if (!is_file()) return false;
+
+    auto destPath = destination.Path;
+    wchar_t *dest;
+
+    if (destination.is_directory()) {
+        destPath = destPath / Path.file_name();
+        dest = string(destPath.get()).to_utf16();
+    } else {
+        dest = destination.PathUtf16.get();
+    }
+
+    if (MoveFileExW(PathUtf16.get(), dest, MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
+        *(const_cast<file::Path *>(&Path)) = destPath;
+        return true;
+    }
+    return false;
+}
+
+bool Handle::rename(const string_view &newName) const {
+    if (!exists()) return false;
+
+    wchar_t *newPath = string((file::Path(Path.directory()) / newName).get()).to_utf16();
+    defer { delete newPath; };
+
+    if (MoveFileW(PathUtf16.get(), newPath)) {
+        *(const_cast<file::Path *>(&Path)) = file::Path(Path.directory()) / newName;
+        return true;
+    }
+
+    return false;
+}
+
+bool Handle::create_hard_link(const Handle &destination) const {
+    if (!is_directory()) return false;
+    if (!destination.is_directory()) return false;
+    return CreateHardLinkW(destination.PathUtf16.get(), PathUtf16.get(), null);
+}
+
+bool Handle::create_symbolic_link(const Handle &destination) const {
+    if (!exists()) return false;
+    if (!destination.exists()) return false;
+    return CreateSymbolicLinkW(destination.PathUtf16.get(), PathUtf16.get(),
+                               destination.is_directory() ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0);
+}
+}  // namespace file
 
 LSTD_END_NAMESPACE
 

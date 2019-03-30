@@ -365,12 +365,38 @@ struct string_view {
         return result;
     }
 
+    // TODO: Constexpr
     bool begins_with(char32_t ch) const { return get(0) == ch; }
     bool begins_with(const string_view &other) const { return compare_memory(Data, other.Data, other.ByteLength) == 0; }
 
+    // TODO: Constexpr
     bool ends_with(char32_t ch) const { return get(-1) == ch; }
     bool ends_with(const string_view &other) const {
         return compare_memory(Data + ByteLength - other.ByteLength, other.Data, other.ByteLength) == 0;
+    }
+
+    // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
+    // Assumes _out_ has enough space
+    constexpr void to_utf16(wchar_t *out) const {
+        auto *p = out;
+        For(*this) {
+            if (it > 0xffff) {
+                *p++ = (u16)((it >> 10) + (0xd800u - (0x10000 >> 10)));
+                *p++ = (u16)((it & 0x3ff) + 0xdc00u);
+            }
+            else {
+                *p++ = (u16)it;
+            }
+        }
+        *p = 0;
+    }
+
+    // Converts a utf8 string to a null-terminated utf32 string
+    // Assumes _out_ has enough space
+    constexpr void to_utf32(char32_t *out) const {
+        auto *p = out;
+        For(*this) { *p++ = it; }
+        *p = 0;
     }
 
     constexpr void swap(string_view &other) {
