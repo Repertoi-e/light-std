@@ -238,7 +238,7 @@ void string::set(s64 index, char32_t codePoint) {
     ByteLength += diff;
 }
 
-void string::add(s64 index, char32_t codePoint) {
+void string::insert(s64 index, char32_t codePoint) {
     size_t cpSize = get_size_of_code_point(codePoint);
     reserve(ByteLength + cpSize);
 
@@ -262,6 +262,42 @@ void string::add(s64 index, char32_t codePoint) {
 
     ByteLength += cpSize;
     ++Length;
+}
+
+void string::insert(s64 index, const string_view &view) { insert_pointer_and_size(index, view.Data, view.ByteLength); }
+
+void string::insert(s64 index, const Memory_View &view) { insert_pointer_and_size(index, view.Data, view.ByteLength); }
+
+void string::insert_cstring(s64 index, const byte *str) { insert_pointer_and_size(index, str, cstring_strlen(str)); }
+void string::insert_cstring(s64 index, const char *str) { insert_cstring(index, (const byte *) str); }
+
+void string::insert_pointer_and_size(s64 index, const byte *str, size_t size) {
+    reserve(ByteLength + size);
+
+    size_t translated = (size_t) index;
+    if (index < 0) {
+        translated = Length + index;
+    }
+    if (translated >= Length) {
+        if (translated == Length) {
+            append_pointer_and_size(str, size);
+            return;
+        }
+        assert(false && "Cannot add code point at specified index (out of range)");
+    }
+
+    auto *target = get_pointer_to_code_point_at(Data, Length, translated);
+    uptr_t offset = (uptr_t)(target - Data);
+    move_memory(Data + offset + size, target, ByteLength - (target - Data));
+
+    copy_memory(Data + offset, str, size);
+
+    ByteLength += size;
+    Length += utf8_strlen(str, size);
+}
+
+void string::insert_pointer_and_size(s64 index, const char *str, size_t size) {
+    insert_pointer_and_size(index, (const byte *) str, size);
 }
 
 void string::remove(s64 index) {

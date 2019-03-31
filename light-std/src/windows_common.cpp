@@ -47,15 +47,20 @@ void os_assert_failed(const char *file, s32 line, const char *condition) {
 #define CONSOLE_BUFFER_SIZE 1_KiB
 #define MAX_CONSOLE_LINES 500
 
-byte g_ConsoleWriterBuffer[CONSOLE_BUFFER_SIZE];
+byte g_CoutBuffer[CONSOLE_BUFFER_SIZE];
+byte g_CerrBuffer[CONSOLE_BUFFER_SIZE];
 
 io::Console_Writer::Console_Writer() {
-    Buffer = g_ConsoleWriterBuffer;
-    Current = Buffer;
+    Buffer = Current = g_CoutBuffer;
     Available = CONSOLE_BUFFER_SIZE;
 
     write_function = console_writer_write;
     flush_function = console_writer_flush;
+}
+
+io::Console_Writer::Console_Writer(bool cerr) : Console_Writer() {
+    Err = cerr;
+    if (cerr) Buffer = Current = g_CerrBuffer;
 }
 
 static void console_writer_write_wrapper(io::Console_Writer *writer, const Memory_View &writeData) {
@@ -71,9 +76,7 @@ static void console_writer_write_wrapper(io::Console_Writer *writer, const Memor
 void io::console_writer_write(void *data, const Memory_View &writeData) {
     auto *writer = (Console_Writer *) data;
 
-    if (!writer->Mutex) {
-        writer->Mutex = new thread::Recursive_Mutex;
-    }
+    if (!writer->Mutex) writer->Mutex = new thread::Recursive_Mutex;
 
     if (writer->LockMutex) {
         thread::Scoped_Lock<thread::Recursive_Mutex> _(*writer->Mutex);
@@ -85,6 +88,7 @@ void io::console_writer_write(void *data, const Memory_View &writeData) {
 
 static bool g_ConsoleAllocated = false;
 static HANDLE g_CoutHandle = null;
+static HANDLE g_CerrHandle = null;
 
 static void allocate_console() {
     if (!g_ConsoleAllocated) {
@@ -102,27 +106,32 @@ static void allocate_console() {
     }
 }
 
-static void console_writer_flush_wrapper(io::Console_Writer *writer) {
+static void console_writer_flush_wrapper(io::Console_Writer *writer, bool cerr) {
     if (!g_CoutHandle) {
         allocate_console();
 
         g_CoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+        g_CerrHandle = GetStdHandle(STD_ERROR_HANDLE);
         if (!SetConsoleOutputCP(CP_UTF8)) {
             string_view warning =
                 ">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.\n";
 
             DWORD ignored;
-            WriteFile(g_CoutHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
+            WriteFile(g_CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
         }
 
         // Enable colors with escape sequences
         DWORD dw = 0;
         GetConsoleMode(g_CoutHandle, &dw);
         SetConsoleMode(g_CoutHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+        GetConsoleMode(g_CerrHandle, &dw);
+        SetConsoleMode(g_CerrHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
     }
 
     DWORD ignored;
-    WriteFile(g_CoutHandle, writer->Buffer, (DWORD)(CONSOLE_BUFFER_SIZE - writer->Available), &ignored, null);
+    WriteFile(cerr ? g_CerrHandle : g_CoutHandle, writer->Buffer, (DWORD)(CONSOLE_BUFFER_SIZE - writer->Available),
+              &ignored, null);
 
     writer->Current = writer->Buffer;
     writer->Available = CONSOLE_BUFFER_SIZE;
@@ -131,22 +140,20 @@ static void console_writer_flush_wrapper(io::Console_Writer *writer) {
 void io::console_writer_flush(void *data) {
     auto *writer = (Console_Writer *) data;
 
-    if (!writer->Mutex) {
-        writer->Mutex = new thread::Recursive_Mutex;
-    }
+    if (!writer->Mutex) writer->Mutex = new thread::Recursive_Mutex;
 
     if (writer->LockMutex) {
         thread::Scoped_Lock<thread::Recursive_Mutex> _(*writer->Mutex);
-        console_writer_flush_wrapper(writer);
+        console_writer_flush_wrapper(writer, writer->Err);
     } else {
-        console_writer_flush_wrapper(writer);
+        console_writer_flush_wrapper(writer, writer->Err);
     }
 }
 
-byte g_ConsoleReaderBuffer[CONSOLE_BUFFER_SIZE];
+byte g_CinBuffer[CONSOLE_BUFFER_SIZE];
 
 io::Console_Reader::Console_Reader() {
-    Buffer = g_ConsoleReaderBuffer;
+    Buffer = g_CinBuffer;
     Current = Buffer;
 
     request_byte_function = console_reader_request_byte;

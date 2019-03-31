@@ -58,18 +58,34 @@ TEST(index) {
     assert_eq(a[0], 'X');
 }
 
-TEST(add_and_remove) {
+TEST(insert_and_remove) {
     string a = "e";
-    a.add(1, 'l');
-    a.add(0, 'H');
+    a.insert(1, 'l');
+    a.insert(0, 'H');
     assert_eq(a, "Hel");
 
+    a.insert(3, "lo");
+    assert_eq(a, "Hello");
+    
+    a.insert(0, "Hello ");
+    assert_eq(a, "Hello Hello");
+
+    a.insert(5, " world");
+    assert_eq(a, "Hello world Hello");
+
+    a.remove(-6, a.Length);
+    assert_eq(a, "Hello world");
+
     a.remove(1);
-    assert_eq(a, "Hl");
+    assert_eq(a, "Hllo world");
     a.remove(1);
-    assert_eq(a, "H");
+    assert_eq(a, "Hlo world");
     a.remove(0);
-    assert_eq(a, "");
+    assert_eq(a, "lo world");
+    a.remove(-1);
+    assert_eq(a, "lo worl");
+    a.remove(-2);
+    assert_eq(a, "lo wol");
 
     a = "Hello world";
     a.remove(0, 5);

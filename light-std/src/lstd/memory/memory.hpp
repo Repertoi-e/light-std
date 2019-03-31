@@ -3,9 +3,7 @@
 #include "../common.hpp"
 #include "../context.hpp"
 
-#if !defined LSTD_NO_CRT
-#include <cstring>
-#endif
+#include "../../vendor/apex_memmove/apex_memmove.hpp"
 
 enum class ensure_allocator_t : byte { YES };
 constexpr auto ensure_allocator = ensure_allocator_t::YES;
@@ -20,20 +18,61 @@ void *operator new[](size_t count, Allocator_Closure *allocator, ensure_allocato
 
 LSTD_BEGIN_NAMESPACE
 
-#if !defined LSTD_NO_CRT
+// constexpr slow copy memory
+constexpr void *copy_memory_constexpr(void *dest, const void *src, size_t num) {
+    auto *d = (byte *) dest;
+    auto *s = (const byte *) src;
 
-inline void *copy_memory(void *dest, void const *src, size_t num) { return memcpy(dest, src, num); }
-inline void *move_memory(void *dest, void const *src, size_t num) { return memmove(dest, src, num); }
-inline void *fill_memory(void *dest, int value, size_t num) { return memset(dest, value, num); }
-inline s32 compare_memory(const void *ptr1, const void *ptr2, size_t num) { return memcmp(ptr1, ptr2, num); }
+    for (size_t i = 0; i < num; ++i) d[i] = s[i];
+    return dest;
+}
 
-#else
-// Defined in memory.cpp
-void *copy_memory(void *dest, void const *src, size_t num);
-void *move_memory(void *dest, void const *src, size_t num);
-void *fill_memory(void *dest, int value, size_t num);
-s32 compare_memory(const void *ptr1, const void *ptr2, size_t num);
-#endif
+// constexpr slow move memory
+constexpr void *move_memory_constexpr(void *dest, void const *src, size_t num) {
+    auto *d = (byte *) dest;
+    auto *s = (const byte *) src;
+
+    if (d <= s || d >= (s + num)) {
+        // non-overlapping
+        while (num--) {
+            *d++ = *s++;
+        }
+    } else {
+        // overlapping
+        d += num - 1;
+        s += num - 1;
+
+        while (num--) {
+            *d-- = *s--;
+        }
+    }
+    return dest;
+}
+
+// constexpr fill memory
+constexpr void *fill_memory_constexpr(void *dest, s32 value, size_t num) {
+    auto ptr = (byte *) dest;
+    while (num-- > 0) {
+        *ptr++ = value;
+    }
+    return dest;
+}
+
+// constexpr compare memory
+constexpr s32 compare_memory_constexpr(const void *ptr1, const void *ptr2, size_t num) {
+    auto *s1 = (const byte *) ptr1;
+    auto *s2 = (const byte *) ptr2;
+
+    while (num-- > 0) {
+        if (*s1++ != *s2++) return s1[-1] < s2[-1] ? -1 : 1;
+    }
+    return 0;
+}
+
+inline void *fill_memory(void *dest, s32 value, size_t num) { return fill_memory_constexpr(dest, value, num); }
+inline s32 compare_memory(const void *ptr1, const void *ptr2, size_t num) {
+    return compare_memory_constexpr(ptr1, ptr2, num);
+}
 
 // Helper function that fills memory with 0
 inline void *zero_memory(void *dest, size_t num) { return fill_memory(dest, 0, num); }
@@ -110,4 +149,14 @@ T *resize(T *memory, size_t newSize, uptr_t userData = 0) {
     return (T *) (newMemory + 1);
 }
 
+// BIT CAST
+
+template <class T, class U>
+inline T bit_cast(const U &source) {
+    static_assert(sizeof(T) == sizeof(U), "trying to bit_cast types of different size");
+
+    T dest;
+    copy_memory(&dest, &source, sizeof(dest));
+    return dest;
+}
 LSTD_END_NAMESPACE

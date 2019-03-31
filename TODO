@@ -7,10 +7,12 @@ File I/O and Reader/Writer implementations
 ---------------------------------------------------------------------------------
 API for watching directory changes
 ---------------------------------------------------------------------------------
-io::cerr
+Owned_Memory, Stack_Dynamic_Memory, etc.
 ---------------------------------------------------------------------------------
-constexpr: copy_memory, move_memory, fill_memory, compare_memory
-(and begins_with/ends_with in string_view)
+rework get_pointer_to_code_point_at and get_translated... to handle index == Length
+(currently only few functions use them (those who use ranges), others have custom implementations)
+---------------------------------------------------------------------------------
+Make temporary allocator thread local
 ---------------------------------------------------------------------------------
 The following things implemented in windows but not on posix yet:
   LSTD:
@@ -24,8 +26,6 @@ The following things implemented in windows but not on posix yet:
 Way to get monitor refresh rate (and possibly other system info)
 ---------------------------------------------------------------------------------
 Replace LE's game loop with a platform inspecific one
----------------------------------------------------------------------------------
-replace string::add with string::insert with a wider API (support for ranges)
 ---------------------------------------------------------------------------------
 Sometimes, condition_variable test crashes
 After running the program for a while, it seems like it's fixed by calling

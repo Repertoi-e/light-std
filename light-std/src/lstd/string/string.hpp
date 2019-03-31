@@ -179,8 +179,19 @@ struct string {
     // -2 the one before that, etc. (Python-style)
     void set(s64 index, char32_t codePoint);
 
-    // Adds a code point at specified index, such that `this[index] == codePoint`
-    void add(s64 index, char32_t codePoint);
+    // Insert a code point at a specified index
+    void insert(s64 index, char32_t codePoint);
+
+    // Insert a string at a specified index
+    void insert(s64 index, const string_view &view);
+    void insert(s64 index, const Memory_View &view);
+
+    void insert_cstring(s64 index, const byte *str);
+    void insert_cstring(s64 index, const char *str);
+
+    // Insert [begin, end) bytes at a specified index
+    void insert_pointer_and_size(s64 index, const byte *begin, size_t size);
+    void insert_pointer_and_size(s64 index, const char *begin, size_t size);
 
     // Removes code point at specified index
     void remove(s64 index);

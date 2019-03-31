@@ -68,9 +68,9 @@ struct Writer {
     }
 };
 
+// A Writer around String_Builder
 void string_writer_write(void *data, const Memory_View &writeData);
 
-// A Writer around String_Builder
 struct String_Writer : Writer {
     String_Builder Builder;
 
@@ -87,25 +87,29 @@ struct Console_Writer : Writer, NonCopyable, NonMovable {
     bool LockMutex = true;
 
     Console_Writer();
+    Console_Writer(bool cerr);
 
    private:
+    bool Err = false;
     thread::Recursive_Mutex *Mutex = null;
 
     friend void console_writer_write(void *, const Memory_View &);
     friend void console_writer_flush(void *);
 };
 
-inline Console_Writer cout;
-
-void counter_writer_write(void *data, const Memory_View &writeData);
+inline auto cout = Console_Writer(false);
+inline auto cerr = Console_Writer(true);
 
 // Writer that does nothing but count how many bytes would have been written
+void counter_writer_write(void *data, const Memory_View &writeData);
+
 struct Counter_Writer : Writer {
     size_t Count = 0;
 
     Counter_Writer() { write_function = counter_writer_write; }
 };
 
+// Writer around a Memory_Buffer
 template <size_t S>
 void memory_buffer_write(void *data, const Memory_View &writeData);
 
