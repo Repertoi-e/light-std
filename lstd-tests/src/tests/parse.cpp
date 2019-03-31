@@ -3,7 +3,7 @@
 #include "../test.hpp"
 
 TEST(bytes_and_codepoints) {
-    io::String_Reader in(" 1 2   3");
+    io::string_reader in(" 1 2   3");
     assert_eq(in.read_codepoint(), '1');
     assert_eq(in.read_codepoint(), '2');
     assert_eq(in.read_codepoint(), '3');
@@ -19,8 +19,8 @@ TEST(bytes_and_codepoints) {
 }
 
 TEST(bools) {
-    io::String_Reader in("0 1 true false TRUE fALsE tRue");
-    Dynamic_Array<bool> results;
+    io::string_reader in("0 1 true false TRUE fALsE tRue");
+    dynamic_array<bool> results;
     while (!in.EOF) {
         bool value;
         in.read(value);
@@ -30,8 +30,8 @@ TEST(bools) {
 }
 
 TEST(integers) {
-    io::String_Reader in("-2305 2050 10 -0xff 0xff 0202 -240");
-    Dynamic_Array<s32> results;
+    io::string_reader in("-2305 2050 10 -0xff 0xff 0202 -240");
+    dynamic_array<s32> results;
     while (!in.EOF) {
         s32 value;
         in.read(value);
@@ -41,8 +41,8 @@ TEST(integers) {
 }
 
 TEST(floats) {
-    io::String_Reader in("-2305.02 2050.02502 10e10 -520.20501 5.2e2");
-    Dynamic_Array<f64> results;
+    io::string_reader in("-2305.02 2050.02502 10e10 -520.20501 5.2e2");
+    dynamic_array<f64> results;
     while (!in.EOF) {
         f64 value;
         in.read(value);
@@ -51,21 +51,21 @@ TEST(floats) {
     assert_eq(results, to_array(-2305.02, 2050.02502, 10e10, -520.20501, 5.2e2));
 }
 
-struct Custom_Int {
+struct custom_int {
     s32 v = 0;
 };
 
 template <>
-struct io::Deserializer<Custom_Int> {
-    bool read(Custom_Int &value, Reader &reader) {
+struct io::deserializer<custom_int> {
+    bool read(custom_int &value, reader &reader) const {
         reader.read(value.v);
         return !reader.FailedParse;
     }
 };
 
 TEST(custom_types) {
-    io::String_Reader in("42");
-    Custom_Int myType;
+    io::string_reader in("42");
+    custom_int myType;
     in.read(myType);
     assert_eq(myType.v, 42);
 }

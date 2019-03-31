@@ -27,21 +27,21 @@ namespace apex {
 void *tiberium(void *dest, const void *src, size_t num) {
     if (num <= 112) {
         if (num >= 16) {
-            const __m128i xmm0 = _mm_loadu_si128((__m128i *) src);
+            auto xmm0 = _mm_loadu_si128((__m128i *) src);
             if (num > 16) {
                 if (num >= 32) {
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
+                    auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
                     if (num > 32) {
                         s64 rax = *(s64 *) ((byte *) src + num - 16);
                         s64 rcx = *(s64 *) ((byte *) src + num - 8);
                         if (num > 48) {
-                            const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + 32));
+                            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + 32));
                             if (num > 64) {
-                                const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + 48));
+                                auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + 48));
                                 if (num > 80) {
-                                    const __m128i xmm4 = _mm_loadu_si128((__m128i *) ((byte *) src + 64));
+                                    auto xmm4 = _mm_loadu_si128((__m128i *) ((byte *) src + 64));
                                     if (num > 96) {
-                                        const __m128i xmm5 = _mm_loadu_si128((__m128i *) ((byte *) src + 80));
+                                        auto xmm5 = _mm_loadu_si128((__m128i *) ((byte *) src + 80));
                                         *(s64 *) ((byte *) dest + num - 16) = rax;
                                         *(s64 *) ((byte *) dest + num - 8) = rcx;
                                         _mm_storeu_si128((__m128i *) dest, xmm0);
@@ -117,377 +117,374 @@ void *tiberium(void *dest, const void *src, size_t num) {
                 *(byte *) dest = al;
         }
         return dest;
-    } else {
-        void *const ret = dest;
-        if (((size_t) dest - (size_t) src) >= num) {
-            if (num < (1024 * 256)) {
-                s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
-                dest = (byte *) dest + offset;    // "Point to the end"
-                src = (byte *) src + offset;      // "Point to the end"
-                num -= offset;                    // "Remaining data after loop"
-                offset = -offset;                 // "Negative index from the end"
+    }
 
-                do {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset), xmm0);
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
-                } while (offset += 64);
+    void *ret = dest;
+    if (((size_t) dest - (size_t) src) >= num) {
+        if (num < (1024 * 256)) {
+            s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
+            dest = (byte *) dest + offset;    // "Point to the end"
+            src = (byte *) src + offset;      // "Point to the end"
+            num -= offset;                    // "Remaining data after loop"
+            offset = -offset;                 // "Negative index from the end"
 
-                if (num >= 16) {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) src);
-                    if (num > 16) {
-                        const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
-                        if (num > 32) {
-                            const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
-                            if (num > 48) {
-                                const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + 32));
-                                _mm_storeu_si128((__m128i *) dest, xmm0);
-                                _mm_storeu_si128((__m128i *) ((byte *) dest + 16), xmm1);
-                                _mm_storeu_si128((__m128i *) ((byte *) dest + 32), xmm2);
-                                _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm3);
-                                return ret;
-                            }
+            do {
+                auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+                auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+                auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+                auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+                _mm_storeu_si128((__m128i *) ((byte *) dest + offset), xmm0);
+                _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
+                _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
+                _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
+            } while (offset += 64);
+
+            if (num >= 16) {
+                auto xmm0 = _mm_loadu_si128((__m128i *) src);
+                if (num > 16) {
+                    auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
+                    if (num > 32) {
+                        auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
+                        if (num > 48) {
+                            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + 32));
                             _mm_storeu_si128((__m128i *) dest, xmm0);
                             _mm_storeu_si128((__m128i *) ((byte *) dest + 16), xmm1);
+                            _mm_storeu_si128((__m128i *) ((byte *) dest + 32), xmm2);
                             _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm3);
                             return ret;
                         }
                         _mm_storeu_si128((__m128i *) dest, xmm0);
+                        _mm_storeu_si128((__m128i *) ((byte *) dest + 16), xmm1);
                         _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm3);
                         return ret;
                     }
                     _mm_storeu_si128((__m128i *) dest, xmm0);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm3);
                     return ret;
                 }
-            } else  // do forward streaming copy/move
+                _mm_storeu_si128((__m128i *) dest, xmm0);
+                return ret;
+            }
+        } else  // do forward streaming copy/move
+        {
+            // We MUST do prealignment on streaming copies!
+            auto prealign = -(size_t) dest & 0xf;
+            if (prealign) {
+                if (prealign >= 8) {
+                    s64 rax = *(s64 *) src;
+                    if (prealign > 8) {
+                        s64 rcx = *(s64 *) ((byte *) src + prealign - 8);
+                        *(s64 *) dest = rax;
+                        *(s64 *) ((byte *) dest + prealign - 8) = rcx;
+                    } else
+                        *(s64 *) dest = rax;
+                } else if (prealign >= 4) {
+                    s32 eax = *(s32 *) src;
+                    if (prealign > 4) {
+                        s32 ecx = *(s32 *) ((byte *) src + prealign - 4);
+                        *(s32 *) dest = eax;
+                        *(s32 *) ((byte *) dest + prealign - 4) = ecx;
+                    } else
+                        *(s32 *) dest = eax;
+                } else {
+                    byte al = *(byte *) src;
+                    if (prealign > 1) {
+                        s16 cx = *(s16 *) ((byte *) src + prealign - 2);
+                        *(byte *) dest = al;
+                        *(s16 *) ((byte *) dest + prealign - 2) = cx;
+                    } else
+                        *(byte *) dest = al;
+                }
+                src = (byte *) src + prealign;
+                dest = (byte *) dest + prealign;
+                num -= prealign;
+            }
+
+            // Begin prefetching upto 4KB
+            for (s64 offset = 0; offset < 4096; offset += 256) {
+                _mm_prefetch(((byte *) src + offset), _MM_HINT_NTA);
+                _mm_prefetch(((byte *) src + offset + 64), _MM_HINT_NTA);
+                _mm_prefetch(((byte *) src + offset + 128), _MM_HINT_NTA);
+                _mm_prefetch(((byte *) src + offset + 192), _MM_HINT_NTA);
+            }
+
+            s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
+            num -= offset;                    // "Remaining data after loop"
+            offset -= 4096;                   // stage 1 INCLUDES prefetches
+            dest = (byte *) dest + offset;    // "Point to the end"
+            src = (byte *) src + offset;      // "Point to the end"
+            offset = -offset;                 // "Negative index from the end"
+
+            do  // stage 1 ~~ WITH prefetching
             {
-                // We MUST do prealignment on streaming copies!
-                const size_t prealign = -(size_t) dest & 0xf;
-                if (prealign) {
-                    if (prealign >= 8) {
-                        s64 rax = *(s64 *) src;
-                        if (prealign > 8) {
-                            s64 rcx = *(s64 *) ((byte *) src + prealign - 8);
-                            *(s64 *) dest = rax;
-                            *(s64 *) ((byte *) dest + prealign - 8) = rcx;
-                        } else
-                            *(s64 *) dest = rax;
-                    } else if (prealign >= 4) {
-                        s32 eax = *(s32 *) src;
-                        if (prealign > 4) {
-                            s32 ecx = *(s32 *) ((byte *) src + prealign - 4);
-                            *(s32 *) dest = eax;
-                            *(s32 *) ((byte *) dest + prealign - 4) = ecx;
-                        } else
-                            *(s32 *) dest = eax;
-                    } else {
-                        byte al = *(byte *) src;
-                        if (prealign > 1) {
-                            s16 cx = *(s16 *) ((byte *) src + prealign - 2);
-                            *(byte *) dest = al;
-                            *(s16 *) ((byte *) dest + prealign - 2) = cx;
-                        } else
-                            *(byte *) dest = al;
-                    }
-                    src = (byte *) src + prealign;
-                    dest = (byte *) dest + prealign;
-                    num -= prealign;
-                }
+                _mm_prefetch((byte *) src + offset + 4096, _MM_HINT_NTA);
+                auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+                auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+                auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+                auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm0);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
+            } while (offset += 64);
 
-                // Begin prefetching upto 4KB
-                for (s64 offset = 0; offset < 4096; offset += 256) {
-                    _mm_prefetch(((char *) src + offset), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset + 64), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset + 128), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset + 192), _MM_HINT_NTA);
-                }
+            offset = -4096;
+            dest = (byte *) dest + 4096;
+            src = (byte *) src + 4096;
 
-                s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
-                num -= offset;                    // "Remaining data after loop"
-                offset -= 4096;                   // stage 1 INCLUDES prefetches
-                dest = (byte *) dest + offset;    // "Point to the end"
-                src = (byte *) src + offset;      // "Point to the end"
-                offset = -offset;                 // "Negative index from the end"
+            _mm_prefetch(((byte *) src + num - 64), _MM_HINT_NTA);  // prefetch the final tail section
 
-                do  // stage 1 ~~ WITH prefetching
-                {
-                    _mm_prefetch((char *) src + offset + 4096, _MM_HINT_NTA);
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm0);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
-                } while (offset += 64);
+            do  // stage 2 ~~ WITHOUT further prefetching
+            {
+                auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+                auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+                auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+                auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm0);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
+            } while (offset += 64);
 
-                offset = -4096;
-                dest = (byte *) dest + 4096;
-                src = (byte *) src + 4096;
-
-                _mm_prefetch(((char *) src + num - 64), _MM_HINT_NTA);  // prefetch the final tail section
-
-                do  // stage 2 ~~ WITHOUT further prefetching
-                {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm0);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
-                } while (offset += 64);
-
-                if (num >= 16) {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) src);
-                    if (num > 16) {
-                        if (num > 32) {
-                            const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
-                            const __m128i xmm6 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 32));
-                            const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
-                            _mm_stream_si128((__m128i *) dest, xmm0);
-                            _mm_stream_si128((__m128i *) ((byte *) dest + 16), xmm1);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num - 32), xmm6);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
-                            return ret;
-                        }
-                        const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
+            if (num >= 16) {
+                auto xmm0 = _mm_loadu_si128((__m128i *) src);
+                if (num > 16) {
+                    if (num > 32) {
+                        auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
+                        auto xmm6 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 32));
+                        auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
                         _mm_stream_si128((__m128i *) dest, xmm0);
+                        _mm_stream_si128((__m128i *) ((byte *) dest + 16), xmm1);
+                        _mm_storeu_si128((__m128i *) ((byte *) dest + num - 32), xmm6);
                         _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
                         return ret;
                     }
+                    auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
                     _mm_stream_si128((__m128i *) dest, xmm0);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
                     return ret;
                 }
+                _mm_stream_si128((__m128i *) dest, xmm0);
+                return ret;
             }
+        }
 
-            if (num >= 8) {
-                s64 rax = *(s64 *) src;
-                if (num > 8) {
-                    s64 rcx = *(s64 *) ((byte *) src + num - 8);
-                    *(s64 *) dest = rax;
-                    *(s64 *) ((byte *) dest + num - 8) = rcx;
-                } else
-                    *(s64 *) dest = rax;
-            } else if (num >= 4) {
-                s32 eax = *(s32 *) src;
-                if (num > 4) {
-                    s32 ecx = *(s32 *) ((byte *) src + num - 4);
-                    *(s32 *) dest = eax;
-                    *(s32 *) ((byte *) dest + num - 4) = ecx;
-                } else
-                    *(s32 *) dest = eax;
-            } else if (num >= 1) {
-                byte al = *(byte *) src;
-                if (num > 1) {
-                    s16 cx = *(s16 *) ((byte *) src + num - 2);
-                    *(byte *) dest = al;
-                    *(s16 *) ((byte *) dest + num - 2) = cx;
-                } else
-                    *(byte *) dest = al;
-            }
-            return ret;
-        } else  // src < dest ... do reverse copy
-        {
-            src = (byte *) src + num;
-            dest = (byte *) dest + num;
+        if (num >= 8) {
+            s64 rax = *(s64 *) src;
+            if (num > 8) {
+                s64 rcx = *(s64 *) ((byte *) src + num - 8);
+                *(s64 *) dest = rax;
+                *(s64 *) ((byte *) dest + num - 8) = rcx;
+            } else
+                *(s64 *) dest = rax;
+        } else if (num >= 4) {
+            s32 eax = *(s32 *) src;
+            if (num > 4) {
+                s32 ecx = *(s32 *) ((byte *) src + num - 4);
+                *(s32 *) dest = eax;
+                *(s32 *) ((byte *) dest + num - 4) = ecx;
+            } else
+                *(s32 *) dest = eax;
+        } else if (num >= 1) {
+            byte al = *(byte *) src;
+            if (num > 1) {
+                s16 cx = *(s16 *) ((byte *) src + num - 2);
+                *(byte *) dest = al;
+                *(s16 *) ((byte *) dest + num - 2) = cx;
+            } else
+                *(byte *) dest = al;
+        }
+        return ret;
+    }  // src < dest ... do reverse copy
+    src = (byte *) src + num;
+    dest = (byte *) dest + num;
 
-            if (num < (1024 * 256)) {
-                s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
-                dest = (byte *) dest - offset;    // "Point to the end" ... actually, we point to the start!
-                src = (byte *) src - offset;      // "Point to the end" ... actually, we point to the start!
-                num -= offset;                    // "Remaining data after loop"
-                // offset = -offset;// "Negative index from the end" ... not when
-                // doing reverse copy/move!
+    if (num < (1024 * 256)) {
+        s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
+        dest = (byte *) dest - offset;    // "Point to the end" ... actually, we point to the start!
+        src = (byte *) src - offset;      // "Point to the end" ... actually, we point to the start!
+        num -= offset;                    // "Remaining data after loop"
+        // offset = -offset;// "Negative index from the end" ... not when
+        // doing reverse copy/move!
 
-                offset -= 64;
-                do {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset), xmm3);
-                } while ((offset -= 64) >= 0);
+        offset -= 64;
+        do {
+            auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+            auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+            auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+            _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
+            _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
+            _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
+            _mm_storeu_si128((__m128i *) ((byte *) dest + offset), xmm3);
+        } while ((offset -= 64) >= 0);
 
-                if (num >= 16) {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src - 16));
-                    if (num > 16) {
-                        num = -num;
-                        const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
-                        if (num > 32) {
-                            const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src - 32));
-                            if (num > 48) {
-                                const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src - 48));
-                                _mm_storeu_si128((__m128i *) ((byte *) dest - 16), xmm0);
-                                _mm_storeu_si128((__m128i *) ((byte *) dest - 32), xmm1);
-                                _mm_storeu_si128((__m128i *) ((byte *) dest - 48), xmm2);
-                                _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm3);
-                                return ret;
-                            }
-                            _mm_storeu_si128((__m128i *) ((byte *) dest - 16), xmm0);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest - 32), xmm1);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm3);
-                            return ret;
-                        }
+        if (num >= 16) {
+            auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src - 16));
+            if (num > 16) {
+                num = -num;
+                auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
+                if (num > 32) {
+                    auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src - 32));
+                    if (num > 48) {
+                        auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src - 48));
                         _mm_storeu_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                        _mm_storeu_si128((__m128i *) ((byte *) dest - 32), xmm1);
+                        _mm_storeu_si128((__m128i *) ((byte *) dest - 48), xmm2);
                         _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm3);
                         return ret;
                     }
                     _mm_storeu_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest - 32), xmm1);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm3);
                     return ret;
                 }
-            } else  // do reversed streaming copy/move
-            {
-                // We MUST do prealignment on streaming copies!
-                const size_t prealign = (size_t) dest & 0xf;
-                if (prealign) {
-                    src = (byte *) src - prealign;
-                    dest = (byte *) dest - prealign;
-                    num -= prealign;
-                    if (prealign >= 8) {
-                        s64 rax = *(s64 *) ((byte *) src + prealign - 8);
-                        if (prealign > 8) {
-                            s64 rcx = *(s64 *) src;
-                            *(s64 *) ((byte *) dest + prealign - 8) = rax;
-                            *(s64 *) dest = rcx;
-                        } else
-                            *(s64 *) dest = rax;  // different on purpose, because we know the exact num now,
-                                                  // which is 8, and "dest" has already been aligned!
-                    } else if (prealign >= 4) {
-                        s32 eax = *(s32 *) ((byte *) src + prealign - 4);
-                        if (prealign > 4) {
-                            s32 ecx = *(s32 *) src;
-                            *(s32 *) ((byte *) dest + prealign - 4) = eax;
-                            *(s32 *) dest = ecx;
-                        } else
-                            *(s32 *) dest = eax;  // different on purpose!
-                    } else {
-                        byte al = *(byte *) ((byte *) src + prealign - 1);
-                        if (prealign > 1) {
-                            s16 cx = *(s16 *) src;
-                            *(byte *) ((byte *) dest + prealign - 1) = al;
-                            *(s16 *) dest = cx;
-                        } else
-                            *(byte *) dest = al;  // different on purpose!
-                    }
-                }
+                _mm_storeu_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm3);
+                return ret;
+            }
+            _mm_storeu_si128((__m128i *) ((byte *) dest - 16), xmm0);
+            return ret;
+        }
+    } else  // do reversed streaming copy/move
+    {
+        // We MUST do prealignment on streaming copies!
+        auto prealign = (size_t) dest & 0xf;
+        if (prealign) {
+            src = (byte *) src - prealign;
+            dest = (byte *) dest - prealign;
+            num -= prealign;
+            if (prealign >= 8) {
+                s64 rax = *(s64 *) ((byte *) src + prealign - 8);
+                if (prealign > 8) {
+                    s64 rcx = *(s64 *) src;
+                    *(s64 *) ((byte *) dest + prealign - 8) = rax;
+                    *(s64 *) dest = rcx;
+                } else
+                    *(s64 *) dest = rax;  // different on purpose, because we know the exact num now,
+                // which is 8, and "dest" has already been aligned!
+            } else if (prealign >= 4) {
+                s32 eax = *(s32 *) ((byte *) src + prealign - 4);
+                if (prealign > 4) {
+                    s32 ecx = *(s32 *) src;
+                    *(s32 *) ((byte *) dest + prealign - 4) = eax;
+                    *(s32 *) dest = ecx;
+                } else
+                    *(s32 *) dest = eax;  // different on purpose!
+            } else {
+                byte al = *(byte *) ((byte *) src + prealign - 1);
+                if (prealign > 1) {
+                    s16 cx = *(s16 *) src;
+                    *(byte *) ((byte *) dest + prealign - 1) = al;
+                    *(s16 *) dest = cx;
+                } else
+                    *(byte *) dest = al;  // different on purpose!
+            }
+        }
 
-                // Begin prefetching upto 4KB
-                for (s64 offset = 0; offset > -4096; offset -= 256) {
-                    _mm_prefetch(((char *) src + offset - 64), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset - 128), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset - 192), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset - 256), _MM_HINT_NTA);
-                }
+        // Begin prefetching upto 4KB
+        for (s64 offset = 0; offset > -4096; offset -= 256) {
+            _mm_prefetch(((byte *) src + offset - 64), _MM_HINT_NTA);
+            _mm_prefetch(((byte *) src + offset - 128), _MM_HINT_NTA);
+            _mm_prefetch(((byte *) src + offset - 192), _MM_HINT_NTA);
+            _mm_prefetch(((byte *) src + offset - 256), _MM_HINT_NTA);
+        }
 
-                s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
-                num -= offset;                    // "Remaining data after loop"
-                offset -= 4096;                   // stage 1 INCLUDES prefetches
-                dest = (byte *) dest - offset;    // "Point to the end" ... actually, we point to the start!
-                src = (byte *) src - offset;      // "Point to the end" ... actually, we point to the start!
-                // offset = -offset;// "Negative index from the end" ... not when
-                // doing reverse copy/move!
+        s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
+        num -= offset;                    // "Remaining data after loop"
+        offset -= 4096;                   // stage 1 INCLUDES prefetches
+        dest = (byte *) dest - offset;    // "Point to the end" ... actually, we point to the start!
+        src = (byte *) src - offset;      // "Point to the end" ... actually, we point to the start!
+        // offset = -offset;// "Negative index from the end" ... not when
+        // doing reverse copy/move!
 
-                offset -= 64;
-                do  // stage 1 ~~ WITH prefetching
-                {
-                    _mm_prefetch((char *) src + offset - 4096, _MM_HINT_NTA);
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm3);
-                } while ((offset -= 64) >= 0);
+        offset -= 64;
+        do  // stage 1 ~~ WITH prefetching
+        {
+            _mm_prefetch((byte *) src + offset - 4096, _MM_HINT_NTA);
+            auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+            auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+            auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm3);
+        } while ((offset -= 64) >= 0);
 
-                offset = 4096;
-                dest = (byte *) dest - 4096;
-                src = (byte *) src - 4096;
+        offset = 4096;
+        dest = (byte *) dest - 4096;
+        src = (byte *) src - 4096;
 
-                _mm_prefetch(((char *) src - 64), _MM_HINT_NTA);  // prefetch the final tail section
+        _mm_prefetch(((byte *) src - 64), _MM_HINT_NTA);  // prefetch the final tail section
 
-                offset -= 64;
-                do  // stage 2 ~~ WITHOUT further prefetching
-                {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm3);
-                } while ((offset -= 64) >= 0);
+        offset -= 64;
+        do  // stage 2 ~~ WITHOUT further prefetching
+        {
+            auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+            auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+            auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm3);
+        } while ((offset -= 64) >= 0);
 
-                if (num >= 16) {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src - 16));
-                    if (num > 16) {
-                        if (num > 32) {
-                            num = -num;
-                            const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src - 32));
-                            const __m128i xmm6 = _mm_loadu_si128((__m128i *) ((byte *) src + num + 16));
-                            const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
-                            _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
-                            _mm_stream_si128((__m128i *) ((byte *) dest - 32), xmm1);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num + 16), xmm6);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
-                            return ret;
-                        }
-                        num = -num;
-                        const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
-                        _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
-                        _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
-                        return ret;
-                    }
+        if (num >= 16) {
+            auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src - 16));
+            if (num > 16) {
+                if (num > 32) {
+                    num = -num;
+                    auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src - 32));
+                    auto xmm6 = _mm_loadu_si128((__m128i *) ((byte *) src + num + 16));
+                    auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
                     _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                    _mm_stream_si128((__m128i *) ((byte *) dest - 32), xmm1);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num + 16), xmm6);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
                     return ret;
                 }
+                num = -num;
+                auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
+                _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
+                return ret;
             }
-
-            if (num >= 8) {
-                s64 rax = *(s64 *) ((byte *) src - 8);
-                if (num > 8) {
-                    num =
-                        -num;  // that's right, we're converting an unsigned value to a negative, saves 2 clock cycles!
-                    s64 rcx = *(s64 *) ((byte *) src + num);
-                    *(s64 *) ((byte *) dest - 8) = rax;
-                    *(s64 *) ((byte *) dest + num) = rcx;
-                } else
-                    *(s64 *) ((byte *) dest - 8) = rax;
-            } else if (num >= 4) {
-                s32 eax = *(s32 *) ((byte *) src - 4);
-                if (num > 4) {
-                    num = -num;
-                    s32 ecx = *(s32 *) ((byte *) src + num);
-                    *(s32 *) ((byte *) dest - 4) = eax;
-                    *(s32 *) ((byte *) dest + num) = ecx;
-                } else
-                    *(s32 *) ((byte *) dest - 4) = eax;
-            } else if (num >= 1) {
-                byte al = *((byte *) src - 1);
-                if (num > 1) {
-                    num = -num;
-                    s16 cx = *(s16 *) ((byte *) src + num);
-                    *((byte *) dest - 1) = al;
-                    *(s16 *) ((byte *) dest + num) = cx;
-                } else
-                    *((byte *) dest - 1) = al;
-            }
+            _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
             return ret;
         }
     }
+
+    if (num >= 8) {
+        s64 rax = *(s64 *) ((byte *) src - 8);
+        if (num > 8) {
+            num = -num;  // that's right, we're converting an unsigned value to a negative, saves 2 clock cycles!
+            s64 rcx = *(s64 *) ((byte *) src + num);
+            *(s64 *) ((byte *) dest - 8) = rax;
+            *(s64 *) ((byte *) dest + num) = rcx;
+        } else
+            *(s64 *) ((byte *) dest - 8) = rax;
+    } else if (num >= 4) {
+        s32 eax = *(s32 *) ((byte *) src - 4);
+        if (num > 4) {
+            num = -num;
+            s32 ecx = *(s32 *) ((byte *) src + num);
+            *(s32 *) ((byte *) dest - 4) = eax;
+            *(s32 *) ((byte *) dest + num) = ecx;
+        } else
+            *(s32 *) ((byte *) dest - 4) = eax;
+    } else if (num >= 1) {
+        byte al = *((byte *) src - 1);
+        if (num > 1) {
+            num = -num;
+            s16 cx = *(s16 *) ((byte *) src + num);
+            *((byte *) dest - 1) = al;
+            *(s16 *) ((byte *) dest + num) = cx;
+        } else
+            *((byte *) dest - 1) = al;
+    }
+    return ret;
 }
 
 // based on memmove09 for "num <= 112" and memmove41 for "num > 112"; memmove09's
@@ -495,21 +492,21 @@ void *tiberium(void *dest, const void *src, size_t num) {
 void *kryptonite(void *dest, const void *src, size_t num) {
     if (num <= 112) {
         if (num >= 16) {
-            const __m128i xmm0 = _mm_loadu_si128((__m128i *) src);
+            auto xmm0 = _mm_loadu_si128((__m128i *) src);
             if (num > 16) {
                 if (num >= 32) {
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
+                    auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
                     if (num > 32) {
                         s64 rax = *(s64 *) ((byte *) src + num - 16);
                         s64 rcx = *(s64 *) ((byte *) src + num - 8);
                         if (num > 48) {
-                            const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + 32));
+                            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + 32));
                             if (num > 64) {
-                                const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + 48));
+                                auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + 48));
                                 if (num > 80) {
-                                    const __m128i xmm4 = _mm_loadu_si128((__m128i *) ((byte *) src + 64));
+                                    auto xmm4 = _mm_loadu_si128((__m128i *) ((byte *) src + 64));
                                     if (num > 96) {
-                                        const __m128i xmm5 = _mm_loadu_si128((__m128i *) ((byte *) src + 80));
+                                        auto xmm5 = _mm_loadu_si128((__m128i *) ((byte *) src + 80));
                                         *(s64 *) ((byte *) dest + num - 16) = rax;
                                         *(s64 *) ((byte *) dest + num - 8) = rcx;
                                         _mm_storeu_si128((__m128i *) dest, xmm0);
@@ -585,341 +582,336 @@ void *kryptonite(void *dest, const void *src, size_t num) {
                 *(byte *) dest = al;
         }
         return dest;
-    } else {
-        void *const ret = dest;
-        if (((size_t) dest - (size_t) src) >= num) {
-            if (num < (1024 * 256)) {
-                s64 offset = (s64)(num & -0x20);  // "Round down to nearest multiple of 64"
-                dest = (byte *) dest + offset;    // "Point to the end"
-                src = (byte *) src + offset;      // "Point to the end"
-                num -= offset;                    // "Remaining data after loop"
-                offset = -offset;                 // "Negative index from the end"
+    }
+    void *ret = dest;
+    if (((size_t) dest - (size_t) src) >= num) {
+        if (num < (1024 * 256)) {
+            s64 offset = (s64)(num & -0x20);  // "Round down to nearest multiple of 64"
+            dest = (byte *) dest + offset;    // "Point to the end"
+            src = (byte *) src + offset;      // "Point to the end"
+            num -= offset;                    // "Remaining data after loop"
+            offset = -offset;                 // "Negative index from the end"
 
-                do {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset), xmm0);
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
-                } while (offset += 32);
+            do {
+                auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+                auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+                _mm_storeu_si128((__m128i *) ((byte *) dest + offset), xmm0);
+                _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
+            } while (offset += 32);
 
-                if (num >= 16) {
-                    if (num > 16) {
-                        const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
-                        const __m128i xmm0 = _mm_loadu_si128((__m128i *) src);
-                        _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
-                        _mm_storeu_si128((__m128i *) dest, xmm0);
-                        return ret;
-                    }
-                    _mm_storeu_si128((__m128i *) dest, _mm_loadu_si128((__m128i *) src));
+            if (num >= 16) {
+                if (num > 16) {
+                    auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
+                    auto xmm0 = _mm_loadu_si128((__m128i *) src);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
+                    _mm_storeu_si128((__m128i *) dest, xmm0);
                     return ret;
                 }
-            } else  // do forward streaming copy/move
-            {
-                // We MUST do prealignment on streaming copies!
-                const size_t prealign = -(size_t) dest & 0xf;
-                if (prealign) {
-                    if (prealign >= 8) {
-                        s64 rax = *(s64 *) src;
-                        if (prealign > 8) {
-                            s64 rcx = *(s64 *) ((byte *) src + prealign - 8);
-                            *(s64 *) dest = rax;
-                            *(s64 *) ((byte *) dest + prealign - 8) = rcx;
-                        } else
-                            *(s64 *) dest = rax;
-                    } else if (prealign >= 4) {
-                        s32 eax = *(s32 *) src;
-                        if (prealign > 4) {
-                            s32 ecx = *(s32 *) ((byte *) src + prealign - 4);
-                            *(s32 *) dest = eax;
-                            *(s32 *) ((byte *) dest + prealign - 4) = ecx;
-                        } else
-                            *(s32 *) dest = eax;
-                    } else {
-                        byte al = *(byte *) src;
-                        if (prealign > 1) {
-                            s16 cx = *(s16 *) ((byte *) src + prealign - 2);
-                            *(byte *) dest = al;
-                            *(s16 *) ((byte *) dest + prealign - 2) = cx;
-                        } else
-                            *(byte *) dest = al;
-                    }
-                    src = (byte *) src + prealign;
-                    dest = (byte *) dest + prealign;
-                    num -= prealign;
-                }
-
-                // Begin prefetching upto 4KB
-                for (s64 offset = 0; offset < 4096; offset += 256) {
-                    _mm_prefetch(((char *) src + offset), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset + 64), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset + 128), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset + 192), _MM_HINT_NTA);
-                }
-
-                s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
-                num -= offset;                    // "Remaining data after loop"
-                offset -= 4096;                   // stage 1 INCLUDES prefetches
-                dest = (byte *) dest + offset;    // "Point to the end"
-                src = (byte *) src + offset;      // "Point to the end"
-                offset = -offset;                 // "Negative index from the end"
-
-                do  // stage 1 ~~ WITH prefetching
-                {
-                    _mm_prefetch((char *) src + offset + 4096, _MM_HINT_NTA);
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm0);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
-                } while (offset += 64);
-
-                offset = -4096;
-                dest = (byte *) dest + 4096;
-                src = (byte *) src + 4096;
-
-                _mm_prefetch(((char *) src + num - 64), _MM_HINT_NTA);  // prefetch the final tail section
-
-                do  // stage 2 ~~ WITHOUT further prefetching
-                {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm0);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
-                } while (offset += 64);
-
-                if (num >= 16) {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) src);
-                    if (num > 16) {
-                        if (num > 32) {
-                            const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
-                            const __m128i xmm6 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 32));
-                            const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
-                            _mm_stream_si128((__m128i *) dest, xmm0);
-                            _mm_stream_si128((__m128i *) ((byte *) dest + 16), xmm1);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num - 32), xmm6);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
-                            return ret;
-                        }
-                        const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
-                        _mm_stream_si128((__m128i *) dest, xmm0);
-                        _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
-                        return ret;
-                    }
-                    _mm_stream_si128((__m128i *) dest, xmm0);
-                    return ret;
-                }
+                _mm_storeu_si128((__m128i *) dest, _mm_loadu_si128((__m128i *) src));
+                return ret;
             }
-
-            if (num >= 8) {
-                s64 rax = *(s64 *) src;
-                if (num > 8) {
-                    s64 rcx = *(s64 *) ((byte *) src + num - 8);
-                    *(s64 *) dest = rax;
-                    *(s64 *) ((byte *) dest + num - 8) = rcx;
-                } else
-                    *(s64 *) dest = rax;
-            } else if (num >= 4) {
-                s32 eax = *(s32 *) src;
-                if (num > 4) {
-                    s32 ecx = *(s32 *) ((byte *) src + num - 4);
-                    *(s32 *) dest = eax;
-                    *(s32 *) ((byte *) dest + num - 4) = ecx;
-                } else
-                    *(s32 *) dest = eax;
-            } else if (num >= 1) {
-                byte al = *(byte *) src;
-                if (num > 1) {
-                    s16 cx = *(s16 *) ((byte *) src + num - 2);
-                    *(byte *) dest = al;
-                    *(s16 *) ((byte *) dest + num - 2) = cx;
-                } else
-                    *(byte *) dest = al;
-            }
-            return ret;
-        } else  // src < dest ... do reverse copy
+        } else  // do forward streaming copy/move
         {
-            src = (byte *) src + num;
-            dest = (byte *) dest + num;
-
-            if (num < (1024 * 256)) {
-                s64 offset = (s64)(num & -0x20);  // "Round down to nearest multiple of 64"
-                dest = (byte *) dest - offset;    // "Point to the end" ... actually, we point to the start!
-                src = (byte *) src - offset;      // "Point to the end" ... actually, we point to the start!
-                num -= offset;                    // "Remaining data after loop"
-                // offset = -offset;// "Negative index from the end" ... not when
-                // doing reverse copy/move!
-
-                offset -= 32;
-                do {
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
-                    _mm_storeu_si128((__m128i *) ((byte *) dest + offset), xmm3);
-                } while ((offset -= 32) >= 0);
-
-                if (num >= 16) {
-                    if (num > 16) {
-                        num = -num;
-                        // The order has been mixed so the compiler will not re-order the statements!
-                        const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
-                        const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src - 16));
-                        _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
-                        _mm_storeu_si128((__m128i *) ((byte *) dest - 16), xmm0);
-                        return ret;
-                    }
-                    _mm_storeu_si128((__m128i *) ((byte *) dest - 16),
-                                     _mm_loadu_si128((__m128i *) ((byte *) src - 16)));
-                    return ret;
+            // We MUST do prealignment on streaming copies!
+            auto prealign = -(size_t) dest & 0xf;
+            if (prealign) {
+                if (prealign >= 8) {
+                    s64 rax = *(s64 *) src;
+                    if (prealign > 8) {
+                        s64 rcx = *(s64 *) ((byte *) src + prealign - 8);
+                        *(s64 *) dest = rax;
+                        *(s64 *) ((byte *) dest + prealign - 8) = rcx;
+                    } else
+                        *(s64 *) dest = rax;
+                } else if (prealign >= 4) {
+                    s32 eax = *(s32 *) src;
+                    if (prealign > 4) {
+                        s32 ecx = *(s32 *) ((byte *) src + prealign - 4);
+                        *(s32 *) dest = eax;
+                        *(s32 *) ((byte *) dest + prealign - 4) = ecx;
+                    } else
+                        *(s32 *) dest = eax;
+                } else {
+                    byte al = *(byte *) src;
+                    if (prealign > 1) {
+                        s16 cx = *(s16 *) ((byte *) src + prealign - 2);
+                        *(byte *) dest = al;
+                        *(s16 *) ((byte *) dest + prealign - 2) = cx;
+                    } else
+                        *(byte *) dest = al;
                 }
-            } else  // do reversed streaming copy/move
+                src = (byte *) src + prealign;
+                dest = (byte *) dest + prealign;
+                num -= prealign;
+            }
+
+            // Begin prefetching upto 4KB
+            for (s64 offset = 0; offset < 4096; offset += 256) {
+                _mm_prefetch(((byte *) src + offset), _MM_HINT_NTA);
+                _mm_prefetch(((byte *) src + offset + 64), _MM_HINT_NTA);
+                _mm_prefetch(((byte *) src + offset + 128), _MM_HINT_NTA);
+                _mm_prefetch(((byte *) src + offset + 192), _MM_HINT_NTA);
+            }
+
+            s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
+            num -= offset;                    // "Remaining data after loop"
+            offset -= 4096;                   // stage 1 INCLUDES prefetches
+            dest = (byte *) dest + offset;    // "Point to the end"
+            src = (byte *) src + offset;      // "Point to the end"
+            offset = -offset;                 // "Negative index from the end"
+
+            do  // stage 1 ~~ WITH prefetching
             {
-                // We MUST do prealignment on streaming copies!
-                const size_t prealign = (size_t) dest & 0xf;
-                if (prealign) {
-                    src = (byte *) src - prealign;
-                    dest = (byte *) dest - prealign;
-                    num -= prealign;
-                    if (prealign >= 8) {
-                        s64 rax = *(s64 *) ((byte *) src + prealign - 8);
-                        if (prealign > 8) {
-                            s64 rcx = *(s64 *) src;
-                            *(s64 *) ((byte *) dest + prealign - 8) = rax;
-                            *(s64 *) dest = rcx;
-                        } else
-                            *(s64 *) dest = rax;  // different on purpose, because we know the exact num now,
-                                                  // which is 8, and "dest" has already been aligned!
-                    } else if (prealign >= 4) {
-                        s32 eax = *(s32 *) ((byte *) src + prealign - 4);
-                        if (prealign > 4) {
-                            s32 ecx = *(s32 *) src;
-                            *(s32 *) ((byte *) dest + prealign - 4) = eax;
-                            *(s32 *) dest = ecx;
-                        } else
-                            *(s32 *) dest = eax;  // different on purpose!
-                    } else {
-                        byte al = *(byte *) ((byte *) src + prealign - 1);
-                        if (prealign > 1) {
-                            s16 cx = *(s16 *) src;
-                            *(byte *) ((byte *) dest + prealign - 1) = al;
-                            *(s16 *) dest = cx;
-                        } else
-                            *(byte *) dest = al;  // different on purpose!
-                    }
-                }
+                _mm_prefetch((byte *) src + offset + 4096, _MM_HINT_NTA);
+                auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+                auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+                auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+                auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm0);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
+            } while (offset += 64);
 
-                // Begin prefetching upto 4KB
-                for (s64 offset = 0; offset > -4096; offset -= 256) {
-                    _mm_prefetch(((char *) src + offset - 64), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset - 128), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset - 192), _MM_HINT_NTA);
-                    _mm_prefetch(((char *) src + offset - 256), _MM_HINT_NTA);
-                }
+            offset = -4096;
+            dest = (byte *) dest + 4096;
+            src = (byte *) src + 4096;
 
-                s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
-                num -= offset;                    // "Remaining data after loop"
-                offset -= 4096;                   // stage 1 INCLUDES prefetches
-                dest = (byte *) dest - offset;    // "Point to the end" ... actually, we point to the start!
-                src = (byte *) src - offset;      // "Point to the end" ... actually, we point to the start!
-                // offset = -offset;// "Negative index from the end" ... not when
-                // doing reverse copy/move!
+            _mm_prefetch(((byte *) src + num - 64), _MM_HINT_NTA);  // prefetch the final tail section
 
-                offset -= 64;
-                do  // stage 1 ~~ WITH prefetching
-                {
-                    _mm_prefetch((char *) src + offset - 4096, _MM_HINT_NTA);
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm3);
-                } while ((offset -= 64) >= 0);
+            do  // stage 2 ~~ WITHOUT further prefetching
+            {
+                auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+                auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+                auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+                auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm0);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm1);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm2);
+                _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm3);
+            } while (offset += 64);
 
-                offset = 4096;
-                dest = (byte *) dest - 4096;
-                src = (byte *) src - 4096;
-
-                _mm_prefetch(((char *) src - 64), _MM_HINT_NTA);  // prefetch the final tail section
-
-                offset -= 64;
-                do  // stage 2 ~~ WITHOUT further prefetching
-                {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
-                    const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
-                    const __m128i xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
-                    const __m128i xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
-                    _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm3);
-                } while ((offset -= 64) >= 0);
-
-                if (num >= 16) {
-                    const __m128i xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src - 16));
-                    if (num > 16) {
-                        if (num > 32) {
-                            num = -num;
-                            const __m128i xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src - 32));
-                            const __m128i xmm6 = _mm_loadu_si128((__m128i *) ((byte *) src + num + 16));
-                            const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
-                            _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
-                            _mm_stream_si128((__m128i *) ((byte *) dest - 32), xmm1);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num + 16), xmm6);
-                            _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
-                            return ret;
-                        }
-                        num = -num;
-                        const __m128i xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
-                        _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
-                        _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
+            if (num >= 16) {
+                auto xmm0 = _mm_loadu_si128((__m128i *) src);
+                if (num > 16) {
+                    if (num > 32) {
+                        auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + 16));
+                        auto xmm6 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 32));
+                        auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
+                        _mm_stream_si128((__m128i *) dest, xmm0);
+                        _mm_stream_si128((__m128i *) ((byte *) dest + 16), xmm1);
+                        _mm_storeu_si128((__m128i *) ((byte *) dest + num - 32), xmm6);
+                        _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
                         return ret;
                     }
-                    _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                    auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num - 16));
+                    _mm_stream_si128((__m128i *) dest, xmm0);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num - 16), xmm7);
                     return ret;
                 }
+                _mm_stream_si128((__m128i *) dest, xmm0);
+                return ret;
             }
+        }
 
-            if (num >= 8) {
-                s64 rax = *(s64 *) ((byte *) src - 8);
-                if (num > 8) {
-                    num =
-                        -num;  // that's right, we're converting an unsigned value to a negative, saves 2 clock cycles!
-                    s64 rcx = *(s64 *) ((byte *) src + num);
-                    *(s64 *) ((byte *) dest - 8) = rax;
-                    *(s64 *) ((byte *) dest + num) = rcx;
-                } else
-                    *(s64 *) ((byte *) dest - 8) = rax;
-            } else if (num >= 4) {
-                s32 eax = *(s32 *) ((byte *) src - 4);
-                if (num > 4) {
-                    num = -num;
-                    s32 ecx = *(s32 *) ((byte *) src + num);
-                    *(s32 *) ((byte *) dest - 4) = eax;
-                    *(s32 *) ((byte *) dest + num) = ecx;
-                } else
-                    *(s32 *) ((byte *) dest - 4) = eax;
-            } else if (num >= 1) {
-                byte al = *((byte *) src - 1);
-                if (num > 1) {
-                    num = -num;
-                    s16 cx = *(s16 *) ((byte *) src + num);
-                    *((byte *) dest - 1) = al;
-                    *(s16 *) ((byte *) dest + num) = cx;
-                } else
-                    *((byte *) dest - 1) = al;
+        if (num >= 8) {
+            s64 rax = *(s64 *) src;
+            if (num > 8) {
+                s64 rcx = *(s64 *) ((byte *) src + num - 8);
+                *(s64 *) dest = rax;
+                *(s64 *) ((byte *) dest + num - 8) = rcx;
+            } else
+                *(s64 *) dest = rax;
+        } else if (num >= 4) {
+            s32 eax = *(s32 *) src;
+            if (num > 4) {
+                s32 ecx = *(s32 *) ((byte *) src + num - 4);
+                *(s32 *) dest = eax;
+                *(s32 *) ((byte *) dest + num - 4) = ecx;
+            } else
+                *(s32 *) dest = eax;
+        } else if (num >= 1) {
+            byte al = *(byte *) src;
+            if (num > 1) {
+                s16 cx = *(s16 *) ((byte *) src + num - 2);
+                *(byte *) dest = al;
+                *(s16 *) ((byte *) dest + num - 2) = cx;
+            } else
+                *(byte *) dest = al;
+        }
+        return ret;
+    }  // src < dest ... do reverse copy
+    src = (byte *) src + num;
+    dest = (byte *) dest + num;
+
+    if (num < (1024 * 256)) {
+        s64 offset = (s64)(num & -0x20);  // "Round down to nearest multiple of 64"
+        dest = (byte *) dest - offset;    // "Point to the end" ... actually, we point to the start!
+        src = (byte *) src - offset;      // "Point to the end" ... actually, we point to the start!
+        num -= offset;                    // "Remaining data after loop"
+        // offset = -offset;// "Negative index from the end" ... not when
+        // doing reverse copy/move!
+
+        offset -= 32;
+        do {
+            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+            auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+            _mm_storeu_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
+            _mm_storeu_si128((__m128i *) ((byte *) dest + offset), xmm3);
+        } while ((offset -= 32) >= 0);
+
+        if (num >= 16) {
+            if (num > 16) {
+                num = -num;
+                // The order has been mixed so the compiler will not re-order the statements!
+                auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
+                auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src - 16));
+                _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
+                _mm_storeu_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                return ret;
             }
+            _mm_storeu_si128((__m128i *) ((byte *) dest - 16), _mm_loadu_si128((__m128i *) ((byte *) src - 16)));
+            return ret;
+        }
+    } else  // do reversed streaming copy/move
+    {
+        // We MUST do prealignment on streaming copies!
+        auto prealign = (size_t) dest & 0xf;
+        if (prealign) {
+            src = (byte *) src - prealign;
+            dest = (byte *) dest - prealign;
+            num -= prealign;
+            if (prealign >= 8) {
+                s64 rax = *(s64 *) ((byte *) src + prealign - 8);
+                if (prealign > 8) {
+                    s64 rcx = *(s64 *) src;
+                    *(s64 *) ((byte *) dest + prealign - 8) = rax;
+                    *(s64 *) dest = rcx;
+                } else
+                    *(s64 *) dest = rax;  // different on purpose, because we know the exact num now,
+                // which is 8, and "dest" has already been aligned!
+            } else if (prealign >= 4) {
+                s32 eax = *(s32 *) ((byte *) src + prealign - 4);
+                if (prealign > 4) {
+                    s32 ecx = *(s32 *) src;
+                    *(s32 *) ((byte *) dest + prealign - 4) = eax;
+                    *(s32 *) dest = ecx;
+                } else
+                    *(s32 *) dest = eax;  // different on purpose!
+            } else {
+                byte al = *(byte *) ((byte *) src + prealign - 1);
+                if (prealign > 1) {
+                    s16 cx = *(s16 *) src;
+                    *(byte *) ((byte *) dest + prealign - 1) = al;
+                    *(s16 *) dest = cx;
+                } else
+                    *(byte *) dest = al;  // different on purpose!
+            }
+        }
+
+        // Begin prefetching upto 4KB
+        for (s64 offset = 0; offset > -4096; offset -= 256) {
+            _mm_prefetch(((byte *) src + offset - 64), _MM_HINT_NTA);
+            _mm_prefetch(((byte *) src + offset - 128), _MM_HINT_NTA);
+            _mm_prefetch(((byte *) src + offset - 192), _MM_HINT_NTA);
+            _mm_prefetch(((byte *) src + offset - 256), _MM_HINT_NTA);
+        }
+
+        s64 offset = (s64)(num & -0x40);  // "Round down to nearest multiple of 64"
+        num -= offset;                    // "Remaining data after loop"
+        offset -= 4096;                   // stage 1 INCLUDES prefetches
+        dest = (byte *) dest - offset;    // "Point to the end" ... actually, we point to the start!
+        src = (byte *) src - offset;      // "Point to the end" ... actually, we point to the start!
+        // offset = -offset;// "Negative index from the end" ... not when
+        // doing reverse copy/move!
+
+        offset -= 64;
+        do  // stage 1 ~~ WITH prefetching
+        {
+            _mm_prefetch((byte *) src + offset - 4096, _MM_HINT_NTA);
+            auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+            auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+            auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm3);
+        } while ((offset -= 64) >= 0);
+
+        offset = 4096;
+        dest = (byte *) dest - 4096;
+        src = (byte *) src - 4096;
+
+        _mm_prefetch(((byte *) src - 64), _MM_HINT_NTA);  // prefetch the final tail section
+
+        offset -= 64;
+        do  // stage 2 ~~ WITHOUT further prefetching
+        {
+            auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 48));
+            auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 32));
+            auto xmm2 = _mm_loadu_si128((__m128i *) ((byte *) src + offset + 16));
+            auto xmm3 = _mm_loadu_si128((__m128i *) ((byte *) src + offset));
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 48), xmm0);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 32), xmm1);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset + 16), xmm2);
+            _mm_stream_si128((__m128i *) ((byte *) dest + offset), xmm3);
+        } while ((offset -= 64) >= 0);
+
+        if (num >= 16) {
+            auto xmm0 = _mm_loadu_si128((__m128i *) ((byte *) src - 16));
+            if (num > 16) {
+                if (num > 32) {
+                    num = -num;
+                    auto xmm1 = _mm_loadu_si128((__m128i *) ((byte *) src - 32));
+                    auto xmm6 = _mm_loadu_si128((__m128i *) ((byte *) src + num + 16));
+                    auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
+                    _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                    _mm_stream_si128((__m128i *) ((byte *) dest - 32), xmm1);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num + 16), xmm6);
+                    _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
+                    return ret;
+                }
+                num = -num;
+                auto xmm7 = _mm_loadu_si128((__m128i *) ((byte *) src + num));
+                _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
+                _mm_storeu_si128((__m128i *) ((byte *) dest + num), xmm7);
+                return ret;
+            }
+            _mm_stream_si128((__m128i *) ((byte *) dest - 16), xmm0);
             return ret;
         }
     }
+
+    if (num >= 8) {
+        s64 rax = *(s64 *) ((byte *) src - 8);
+        if (num > 8) {
+            num = -num;  // that's right, we're converting an unsigned value to a negative, saves 2 clock cycles!
+            auto rcx = *(s64 *) ((byte *) src + num);
+            *(s64 *) ((byte *) dest - 8) = rax;
+            *(s64 *) ((byte *) dest + num) = rcx;
+        } else
+            *(s64 *) ((byte *) dest - 8) = rax;
+    } else if (num >= 4) {
+        s32 eax = *(s32 *) ((byte *) src - 4);
+        if (num > 4) {
+            num = -num;
+            s32 ecx = *(s32 *) ((byte *) src + num);
+            *(s32 *) ((byte *) dest - 4) = eax;
+            *(s32 *) ((byte *) dest + num) = ecx;
+        } else
+            *(s32 *) ((byte *) dest - 4) = eax;
+    } else if (num >= 1) {
+        byte al = *((byte *) src - 1);
+        if (num > 1) {
+            num = -num;
+            s16 cx = *(s16 *) ((byte *) src + num);
+            *((byte *) dest - 1) = al;
+            *(s16 *) ((byte *) dest + num) = cx;
+        } else
+            *((byte *) dest - 1) = al;
+    }
+    return ret;
 }
 #endif  // end test for Intel/AMD
 
@@ -942,9 +934,9 @@ static void *dispatcher(void *dest, const void *src, size_t num) {
 #endif
     // detect SSE4.2, available on Core i and newer processors, they include "fast unaligned" memory access
     if (cpuid[2] & bit_SSE4_2) {
-        copy_memory = move_memory = &apex::kryptonite;
+        copy_memory = move_memory = &kryptonite;
     } else {
-        copy_memory = move_memory = &apex::tiberium;
+        copy_memory = move_memory = &tiberium;
     }
 #endif
     return move_memory(dest, src, num);  // safe to call memmove even for memcpy!

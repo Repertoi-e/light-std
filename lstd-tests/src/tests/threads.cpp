@@ -14,11 +14,11 @@ static void thread_ids(void *) { io::cout.write_fmt("\t\tMy thread id is {}.\n",
 
 TEST(ids) {
     io::cout.write_fmt("\n\t\tMain thread's id is {}.\n", thread::this_thread::get_id());
-    thread::Thread t1(thread_ids, 0);
+    thread::thread t1(thread_ids, null);
     t1.join();
-    thread::Thread t2(thread_ids, 0);
+    thread::thread t2(thread_ids, null);
     t2.join();
-    thread::Thread t3(thread_ids, 0);
+    thread::thread t3(thread_ids, null);
     t3.join();
     For(range(45)) io::cout.write_codepoint(' ');
 }
@@ -29,29 +29,27 @@ static void thread_tls(void *) { g_LocalVar = 2; }
 TEST(thread_local_storage) {
     g_LocalVar = 1;
 
-    thread::Thread t1(thread_tls, 0);
+    thread::thread t1(thread_tls, null);
     t1.join();
 
     assert_eq(g_LocalVar, 1);
 }
 
-static thread::Mutex g_Mutex;
+static thread::mutex g_Mutex;
 static s32 g_Count = 0;
 
 static void thread_lock(void *) {
     For(range(10000)) {
-        thread::Scoped_Lock<thread::Mutex> _(g_Mutex);
+        thread::scoped_lock<thread::mutex> _(g_Mutex);
         ++g_Count;
     }
 }
 
-// TODO: Temp
-#if 0
 TEST(mutex_lock) {
     g_Count = 0;
 
-    Dynamic_Array<thread::Thread *> threads;
-    For(range(100)) { threads.add(new thread::Thread(thread_lock, 0)); }
+    dynamic_array<thread::thread *> threads;
+    For(range(100)) { threads.add(new thread::thread(thread_lock, null)); }
 
     For(threads) {
         it->join();
@@ -61,11 +59,13 @@ TEST(mutex_lock) {
     assert_eq(g_Count, 100 * 10000);
 }
 
-static thread::Fast_Mutex g_FastMutex;
+// This causes crashes
+#if 0 
+static thread::fast_mutex g_FastMutex;
 
 static void thread_lock2(void *) {
     For(range(10000)) {
-        thread::Scoped_Lock<thread::Fast_Mutex> _(g_FastMutex);
+        thread::scoped_lock<thread::fast_mutex> _(g_FastMutex);
         ++g_Count;
     }
 }
@@ -73,8 +73,8 @@ static void thread_lock2(void *) {
 TEST(fast_mutex_lock) {
     g_Count = 0;
 
-    Dynamic_Array<thread::Thread *> threads;
-    For(range(100)) { threads.add(new thread::Thread(thread_lock2, 0)); }
+    dynamic_array<thread::thread *> threads;
+    For(range(100)) { threads.add(new thread::thread(thread_lock2, null)); }
 
     For(threads) {
         it->join();
@@ -85,16 +85,16 @@ TEST(fast_mutex_lock) {
 }
 #endif
 
-static thread::Condition_Variable g_Cond;
+static thread::condition_variable g_Cond;
 
 static void thread_condition_notifier(void *) {
-    thread::Scoped_Lock<thread::Mutex> _(g_Mutex);
+    thread::scoped_lock<thread::mutex> _(g_Mutex);
     --g_Count;
     g_Cond.notify_all();
 }
 
 static void thread_condition_waiter(void *) {
-    thread::Scoped_Lock<thread::Mutex> _(g_Mutex);
+    thread::scoped_lock<thread::mutex> _(g_Mutex);
     while (g_Count > 0) {
         g_Cond.wait(g_Mutex);
     }
@@ -105,11 +105,11 @@ static void thread_condition_waiter(void *) {
 TEST(condition_variable) {
     g_Count = 40;
 
-    thread::Thread t1(thread_condition_waiter, 0);
+    thread::thread t1(thread_condition_waiter, null);
 
     // These will decrease gCount by 1 when they finish)
-    Dynamic_Array<thread::Thread *> threads;
-    For(range(g_Count)) { threads.add(new thread::Thread(thread_condition_notifier, 0)); }
+    dynamic_array<thread::thread *> threads;
+    For(range(g_Count)) { threads.add(new thread::thread(thread_condition_notifier, null)); }
 
     t1.join();
 
@@ -123,7 +123,7 @@ TEST(implicit_context) {
     auto *old = CONTEXT_ALLOC.Function;
 
     PUSH_CONTEXT(Allocator, OS_ALLOC) {
-        thread::Thread t1(
+        thread::thread t1(
             [](void *) {
                 assert_eq((void *) CONTEXT_ALLOC.Function, (void *) OS_ALLOC.Function);
 
@@ -136,7 +136,7 @@ TEST(implicit_context) {
 
                 assert_eq((void *) CONTEXT_ALLOC.Function, (void *) OS_ALLOC.Function);
             },
-            0);
+            null);
         t1.join();
     }
 

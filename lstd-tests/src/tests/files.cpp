@@ -3,7 +3,7 @@
 #include "../test.hpp"
 
 TEST(path) {
-    file::Path a = "/home/data.txt";
+    file::path a = "/home/data.txt";
     assert(!a.is_pointing_to_content());
     assert(a.is_absolute());
 
@@ -39,6 +39,4 @@ TEST(path) {
     assert_eq(a.directory(), "../../data/bin/debug/");
 }
 
-TEST(size) {
-    assert_eq(file::Handle("data/five_bytes").file_size(), 5);
-}
+TEST(size) { assert_eq(file::handle("data/five_bytes").file_size(), 5); }

@@ -6,21 +6,21 @@
 
 namespace le {
 
-struct LE_API Window;
+struct LE_API window;
 
-struct LE_API Key_Pressed_Event {
-    Window *WindowPtr;
+struct LE_API key_pressed_event {
+    window *Window;
     u32 KeyCode, Modifiers;
     bool Repeat;
 };
 
-struct LE_API Key_Released_Event {
-    Window *WindowPtr;
+struct LE_API key_released_event {
+    window *Window;
     u32 KeyCode, Modifiers;
 };
 
-struct LE_API Key_Typed_Event {
-    Window *WindowPtr;
+struct LE_API key_typed_event {
+    window *Window;
     char32_t CodePoint;
 };
 
@@ -153,7 +153,7 @@ enum : u32 {
 
 // This following code has been automatically generated:
 
-inline const char KEYID_NAME[598] =
+inline const byte KEYID_NAME[598] =
     "0\0001\0002\0003\0004\0005\0006\0007\0008\0009\0A\0B\0Backslash\0C\0CapsLoc"
     "k\0Comma\0D\0Delete\0DeleteForward\0Down\0E\0End\0Enter\0Equals\0Escape\0F"
     "\0F1\0F10\0F11\0F12\0F13\0F14\0F15\0F16\0F17\0F18\0F19\0F2\0F20\0F21\0F22\0"
@@ -165,7 +165,7 @@ inline const char KEYID_NAME[598] =
     "ight\0RightAlt\0RightBracket\0RightControl\0RightGUI\0RightShift\0S\0Scroll"
     "Lock\0Semicolon\0Slash\0Space\0T\0Tab\0U\0Up\0V\0W\0X\0Y\0Z";
 
-inline u16 KEYID_OFF[256] = {
+inline s16 g_KeyidOff[256] = {
     -1,  -1,  -1,  -1,  20,  22,  34,  51,  79,  105, 194, 202, 214, 223, 225, 339, 396, 409, 426, 428, 471, 479,
     542, 577, 583, 588, 590, 592, 594, 596, 2,   4,   6,   8,   10,  12,  14,  16,  18,  0,   85,  98,  53,  579,
     571, 403, 91,  354, 496, 24,  -1,  555, 473, 196, 45,  452, 565, 36,  107, 150, 173, 176, 179, 182, 185, 188,
@@ -179,7 +179,7 @@ inline u16 KEYID_OFF[256] = {
     -1,  -1,  -1,  -1,  366, 386, 346, 378, 509, 531, 487, 522, -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,
     -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1};
 
-inline byte KEYID_ORDER[119] = {
+inline s32 g_KeyidOrder[119] = {
     39,  30, 31, 32, 33,  34,  35,  36,  37,  38,  4,   5,   49,  6,   57,  54,  7,   42,  76,  81, 8,  77, 40, 46,
     41,  9,  58, 67, 68,  69,  104, 105, 106, 107, 108, 109, 110, 59,  111, 112, 113, 114, 115, 60, 61, 62, 63, 64,
     65,  66, 10, 53, 11,  117, 74,  12,  73,  13,  14,  98,  89,  90,  91,  92,  93,  94,  95,  96, 97, 87, 84, 88,
@@ -188,11 +188,10 @@ inline byte KEYID_ORDER[119] = {
 
 inline u32 key_code_from_name(const string_view &name) {
     u32 l = 0, r = 119;
-    s32 x, c;
     while (l < r) {
-        u32 m = (l + r) / 2;
-        x = KEYID_ORDER[m];
-        c = name.compare(string_view(KEYID_NAME + KEYID_OFF[x]));
+        auto m = (l + r) / 2;
+        auto x = g_KeyidOrder[m];
+        auto c = name.compare(string_view(KEYID_NAME + g_KeyidOff[x]));
         if (c < 0) {
             r = m;
         } else if (c > 0) {
@@ -205,15 +204,14 @@ inline u32 key_code_from_name(const string_view &name) {
 }
 
 inline string_view key_name_from_code(u32 code) {
-    s32 off;
     if (code < 0 || code > 255) return "";
-    off = KEYID_OFF[code];
+    s32 off = g_KeyidOff[code];
     if (off == (u16) -1) return "";
     return string_view(KEYID_NAME + off);
 }
 
 // Implemented in *_keycode.cpp platform specific files.
-extern byte KEYCODE_HID_TO_NATIVE[256];
-extern byte KEYCODE_NATIVE_TO_HID[256];
+extern u32 g_KeycodeHidToNative[256];
+extern u32 g_KeycodeNativeToHid[256];
 
 }  // namespace le

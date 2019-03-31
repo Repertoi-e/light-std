@@ -8,18 +8,13 @@
 
 #undef MAC
 #undef _MAC
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-
-// It's always fun to use undocumented kernel functions :eyes:
-static NTSTATUS(__stdcall *NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) =
-    (NTSTATUS(__stdcall *)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
-static NTSTATUS(__stdcall *ZwSetTimerResolution)(ULONG RequestedResolution, BOOLEAN Set, PULONG ActualResolution) =
-    (NTSTATUS(__stdcall *)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"),
-                                                                   "ZwSetTimerResolution");
 
 namespace le {
 
-Application *Application::s_Instance = null;
+application *application::s_Instance = null;
 
 // The reason we implement Application::run platform-specifically is so we can get the monitor
 // refresh rate and use that as the program's target framerate and also attempt to set a granular
@@ -27,11 +22,17 @@ Application *Application::s_Instance = null;
 //
 // We can abstract these things away and have a platform-inspecific implementation but I don't
 // think that provides much benefit.
-void Application::run() {
-    HWND hWnd = (HWND) WindowPtr->PlatformData;
+void application::run() {
+    HWND hWnd = (HWND) Window->PlatformData;
+
+    // It's always fun to use undocumented kernel functions :eyes:
+    s32(__stdcall * NtDelayExecutionFunc)(BOOL, PLARGE_INTEGER) =
+        (s32(*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
+    s32(__stdcall * ZwSetTimerResolutionFunc)(ULONG, BOOLEAN, PULONG) =
+        (s32(*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
 
     ULONG ignored;
-    ZwSetTimerResolution(1, true, &ignored);
+    ZwSetTimerResolutionFunc(1, true, &ignored);
 
     s32 monitorRefreshHz = 60;
 
@@ -47,12 +48,12 @@ void Application::run() {
     f32 targetSecondsPerFrame = (1.0f / (gameUpdateHz));
 
     s64 lastCounter = os_get_wallclock();
-    s64 flipWallClock = lastCounter;
+    s64 flipWallClock;
 
-    while (!WindowPtr->Closed) {
-        WindowPtr->update();
+    while (!Window->Closed) {
+        Window->update();
 
-        For(Layers) { it->on_update(targetSecondsPerFrame); }
+        For(_Layers) { it->on_update(targetSecondsPerFrame); }
 
         f64 workSecondsElapsed = os_get_elapsed_in_seconds(lastCounter, os_get_wallclock());
         f64 compensate = workSecondsElapsed;
@@ -66,7 +67,7 @@ void Application::run() {
 
                 LARGE_INTEGER interval;
                 interval.QuadPart = -1 * (s32)(ms * 10000.0f);
-                NtDelayExecution(false, &interval);
+                NtDelayExecutionFunc(false, &interval);
             }
             s64 now = os_get_wallclock();
             actualMs = (u32)(1000.0f * os_get_elapsed_in_seconds(before, now));

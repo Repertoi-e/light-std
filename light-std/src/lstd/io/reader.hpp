@@ -19,12 +19,12 @@ namespace io {
 
 constexpr byte eof = -1;
 
-struct Reader;
+struct reader;
 
 template <typename T, typename Enable = void>
-struct Deserializer {
+struct deserializer {
     // Return false on failure, true if the read completed successfully
-    bool read(T &, Reader &) {
+    bool read(T &, reader &) {
         assert(false);
         // static_assert(false, "Deserializer<T> not specialized");
         return false;
@@ -35,7 +35,7 @@ struct Deserializer {
 // Holds a pointer to _request_byte_. Every other function
 // in this class is implemented around that function.
 
-struct Reader {
+struct reader {
     using request_byte_type = byte (*)(void *data);
 
     // This is the only method function required for the Reader to work, it is called only
@@ -64,7 +64,7 @@ struct Reader {
 
     // Reads bytes until _delim_ code point is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
-    void read(Dynamic_Array<byte> &buffer, size_t n);
+    void read(dynamic_array<byte> &buffer, size_t n);
 
     // Reads bytes until _delim_ code point is encountered and put them in _buffer_
     // Assumes there is enough space in _buffer_
@@ -73,12 +73,12 @@ struct Reader {
     // Reads codepoints until any of _delims_ is reached and appends them to buffer
     // This function automatically reserves space in the buffer
     // Doesn't include the delimeter in the buffer
-    void read(Dynamic_Array<byte> &buffer, const string_view &delims);
+    void read(dynamic_array<byte> &buffer, const string_view &delims);
 
     // Reads bytes until _delim_ code point is encountered and put them in _buffer_
     // This function automatically reserves space in the buffer
     // The encountered _delim_ is not going to be part of the buffer
-    void read(Dynamic_Array<byte> &buffer, char32_t delim);
+    void read(dynamic_array<byte> &buffer, char32_t delim);
 
     // Reads a given number of codepoints and overwrites _str_
     void read(string &str, size_t codepoints);
@@ -141,20 +141,6 @@ struct Reader {
     }
 
     // Read a byte
-    void read(char &value, bool noSkipWs = false) {
-        if (!test_state_and_skip_ws(noSkipWs)) {
-            FailedParse = true;
-            value = (char) eof;
-            return;
-        }
-        value = bump_byte();
-        if (value == (char) eof) {
-            FailedParse = true;
-            EOF = true;
-        }
-    }
-
-    // Read a byte
     void read(byte &value, bool noSkipWs = false) {
         if (!test_state_and_skip_ws(noSkipWs)) {
             FailedParse = true;
@@ -170,7 +156,7 @@ struct Reader {
 
     template <typename T>
     std::enable_if_t<!std::is_arithmetic_v<T> && !std::is_same_v<T, string>> read(T &value) {
-        Deserializer<T> deserializer;
+        deserializer<T> deserializer;
         FailedParse = !deserializer.read(value, *this);
     }
 
@@ -236,9 +222,8 @@ struct Reader {
                 } else {
                     return {(negative ? -1 : 1) * maxValue, false};
                 }
-            } else {
-                value = value * base + ch;
             }
+            value = value * base + ch;
 
             if (!is_alphanumeric(peek_byte())) break;
             ch = bump_byte();
@@ -269,22 +254,22 @@ struct Reader {
 };
 
 template <typename T>
-struct Deserializer<T, typename std::enable_if_t<std::is_arithmetic_v<T> || std::is_same_v<T, string>>> {
-    bool read(T &value, Reader &reader) {
+struct deserializer<T, std::enable_if_t<std::is_arithmetic_v<T> || std::is_same_v<T, string>>> {
+    bool read(T &value, reader &reader) {
         reader.read(value);
         return !reader.FailedParse;
     }
 };
 
-struct String_Reader : Reader {
+struct string_reader : reader {
     string_view View;
     bool Exhausted = false;
 
-    String_Reader(const string_view &view);
+    explicit string_reader(const string_view &view);
 };
 
 inline byte string_reader_request_byte(void *data) {
-    auto *reader = (String_Reader *) data;
+    auto *reader = (string_reader *) data;
 
     if (reader->Exhausted) return eof;
     reader->Buffer = reader->View.Data;
@@ -297,20 +282,21 @@ inline byte string_reader_request_byte(void *data) {
 // Defined in *platform*.cpp
 byte console_reader_request_byte(void *data);
 
-struct Console_Reader : Reader, NonCopyable, NonMovable {
+struct console_reader : reader, NonCopyable, NonMovable {
     // By default, we are thread-safe.
     // If you don't use seperate threads and aim for max
     // performance, set this to false.
     bool LockMutex = true;
 
-    Console_Reader();
-private:
-    thread::Mutex *Mutex;
+    console_reader();
+
+   private:
+    thread::mutex *_Mutex = null;
 
     friend byte console_reader_request_byte(void *);
 };
 
-inline Console_Reader cin;
+inline console_reader cin;
 
 }  // namespace io
 

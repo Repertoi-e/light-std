@@ -4,6 +4,6 @@
 
 LSTD_BEGIN_NAMESPACE
 
-io::Writer *internal::ConsoleLog = &io::cout;
+io::writer *internal::g_ConsoleLog = &io::cout;
 
 LSTD_END_NAMESPACE

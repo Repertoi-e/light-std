@@ -32,11 +32,11 @@ constexpr string_view get_file_path_relative_to_src_or_just_file_name(const stri
     return result;
 }
 
-typedef void (*Test_Func)();
+typedef void (*test_func)();
 
-struct Test {
+struct test {
     string_view Name;
-    Test_Func Function;
+    test_func Function;
 };
 
 // !!! WORKAORUND
@@ -45,11 +45,11 @@ struct Test {
 // inline Table<string, Dynamic_Array<Test> *> g_TestTable;
 //
 // Definition of this in main.cpp
-extern Table<string_view, Dynamic_Array<Test> *> g_TestTable;
+extern table<string_view, dynamic_array<test> *> g_TestTable;
 
-struct Asserts {
+struct asserts {
     static size_t GlobalCalledCount;
-    static Dynamic_Array<string> GlobalFailed;
+    static dynamic_array<string> GlobalFailed;
 };
 
 #define TEST(name)                                                                        \
@@ -59,27 +59,27 @@ struct Asserts {
                                                                                           \
             auto [testsArray, fileKeyFound] = g_TestTable.find(file);                     \
             if (!fileKeyFound) {                                                          \
-                testsArray = new Dynamic_Array<Test>;                                     \
+                testsArray = new dynamic_array<test>;                                     \
                 g_TestTable.put(file, testsArray);                                        \
             }                                                                             \
                                                                                           \
-            testsArray->add(Test{#name, &run});                                           \
+            testsArray->add(test{#name, &run});                                           \
         }                                                                                 \
         static void run();                                                                \
     };                                                                                    \
     static Test_Struct_##name g_TestStruct_##name;                                        \
     void Test_Struct_##name::run()
 
-inline void test_assert_helper(const char *fileName, u32 line, const char *condition, bool eval, bool expected) {
+inline void test_assert_helper(const byte *fileName, u32 line, const byte *condition, bool eval, bool expected) {
     auto shortFile = get_file_path_relative_to_src_or_just_file_name(fileName);
-    ++Asserts::GlobalCalledCount;
+    ++asserts::GlobalCalledCount;
     if (expected && !eval) {
-        Asserts::GlobalFailed.add(fmt::sprint("{}:{} Expected {}true{}: {}{}{}", shortFile, line, fmt::FG::Yellow,
-                                              fmt::FGB::Gray, fmt::FG::Yellow, condition, fmt::FG::Reset));
+        asserts::GlobalFailed.add(sprint("{}:{} Expected {}true{}: {}{}{}", shortFile, line, fmt::fg::Yellow,
+                                         fmt::fgb::Gray, fmt::fg::Yellow, condition, fmt::fg::Reset));
     }
     if (!expected && eval) {
-        Asserts::GlobalFailed.add(fmt::sprint("{}:{} Expected {}false{}: {}{}{}", shortFile, line, fmt::FG::Yellow,
-                                              fmt::FGB::Gray, fmt::FG::Yellow, condition, fmt::FG::Reset));
+        asserts::GlobalFailed.add(sprint("{}:{} Expected {}false{}: {}{}{}", shortFile, line, fmt::fg::Yellow,
+                                         fmt::fgb::Gray, fmt::fg::Yellow, condition, fmt::fg::Reset));
     }
 }
 
@@ -88,109 +88,109 @@ inline void test_assert_helper(const char *fileName, u32 line, const char *condi
 // We redefine the default context _assert_ macro that panics the program if the condition is false.
 #undef assert
 #define assert(x)                                                                                                     \
-    ++Asserts::GlobalCalledCount;                                                                                     \
+    ++asserts::GlobalCalledCount;                                                                                     \
     if (!(x)) {                                                                                                       \
-        Asserts::GlobalFailed.add(                                                                                    \
+        asserts::GlobalFailed.add(                                                                                    \
             fmt::sprint("{}:{} Expected {}true{}: {}{}{}", get_file_path_relative_to_src_or_just_file_name(__FILE__), \
-                        __LINE__, fmt::FG::Yellow, fmt::FGB::Gray, fmt::FG::Yellow, u8## #x, fmt::FG::Reset));        \
+                        __LINE__, fmt::fg::Yellow, fmt::fgb::Gray, fmt::fg::Yellow, u8## #x, fmt::fg::Reset));        \
     }
 
 // Prefer these to just _assert_
 #define assert_true(x) assert(x)
 #define assert_false(x)                                                                                                \
-    ++Asserts::GlobalCalledCount;                                                                                      \
+    ++asserts::GlobalCalledCount;                                                                                      \
     if (!!(x)) {                                                                                                       \
-        Asserts::GlobalFailed.add(                                                                                     \
+        asserts::GlobalFailed.add(                                                                                     \
             fmt::sprint("{}:{} Expected {}false{}: {}{}{}", get_file_path_relative_to_src_or_just_file_name(__FILE__), \
-                        __LINE__, fmt::FG::Yellow, fmt::FGB::Gray, fmt::FG::Yellow, u8## #x, fmt::FG::Reset));         \
+                        __LINE__, fmt::fg::Yellow, fmt::fgb::Gray, fmt::fg::Yellow, u8## #x, fmt::fg::Reset));         \
     }
 
 // x == y
 #define assert_eq(x, y)                                                                                                \
-    ++Asserts::GlobalCalledCount;                                                                                      \
+    ++asserts::GlobalCalledCount;                                                                                      \
     {                                                                                                                  \
         auto a##__LINE__ = x;                                                                                          \
         auto b##__LINE__ = y;                                                                                          \
         if (!(a##__LINE__ == b##__LINE__)) {                                                                           \
-            Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} == {}{}, expected {}\"{}\"{}, got {}\"{}{}\"",           \
+            asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} == {}{}, expected {}\"{}\"{}, got {}\"{}{}\"",           \
                                                   get_file_path_relative_to_src_or_just_file_name(__FILE__), __LINE__, \
-                                                  fmt::FG::Yellow, u8## #x, u8## #y, fmt::FGB::Gray, fmt::FG::Yellow,  \
-                                                  a##__LINE__, fmt::FGB::Gray, fmt::FG::Yellow, b##__LINE__,           \
-                                                  fmt::FG::Reset));                                                    \
+                                                  fmt::fg::Yellow, u8## #x, u8## #y, fmt::fgb::Gray, fmt::fg::Yellow,  \
+                                                  a##__LINE__, fmt::fgb::Gray, fmt::fg::Yellow, b##__LINE__,           \
+                                                  fmt::fg::Reset));                                                    \
         }                                                                                                              \
     }
 
 // x != y
 #define assert_nq(x, y)                                                                                                \
-    ++Asserts::GlobalCalledCount;                                                                                      \
+    ++asserts::GlobalCalledCount;                                                                                      \
     {                                                                                                                  \
         auto a##__LINE__ = x;                                                                                          \
         auto b##__LINE__ = y;                                                                                          \
         if (!(a##__LINE__ != b##__LINE__)) {                                                                           \
-            Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} != {}{}, got {}\"{}\"{}, and {}\"{}{}\"",                \
+            asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} != {}{}, got {}\"{}\"{}, and {}\"{}{}\"",                \
                                                   get_file_path_relative_to_src_or_just_file_name(__FILE__), __LINE__, \
-                                                  fmt::FG::Yellow, u8## #x, u8## #y, fmt::FGB::Gray, fmt::FG::Yellow,  \
-                                                  a##__LINE__, fmt::FGB::Gray, fmt::FG::Yellow, b##__LINE__,           \
-                                                  fmt::FG::Reset));                                                    \
+                                                  fmt::fg::Yellow, u8## #x, u8## #y, fmt::fgb::Gray, fmt::fg::Yellow,  \
+                                                  a##__LINE__, fmt::fgb::Gray, fmt::fg::Yellow, b##__LINE__,           \
+                                                  fmt::fg::Reset));                                                    \
         }                                                                                                              \
     }
 
 // x < y
 #define assert_lt(x, y)                                                                                                \
-    ++Asserts::GlobalCalledCount;                                                                                      \
+    ++asserts::GlobalCalledCount;                                                                                      \
     {                                                                                                                  \
         auto a##__LINE__ = x;                                                                                          \
         auto b##__LINE__ = y;                                                                                          \
         if (!(a##__LINE__ < b##__LINE__)) {                                                                            \
-            Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} < {}{}, got: {}\"{}\"{} and {}\"{}\"{}",                 \
+            asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} < {}{}, got: {}\"{}\"{} and {}\"{}\"{}",                 \
                                                   get_file_path_relative_to_src_or_just_file_name(__FILE__), __LINE__, \
-                                                  fmt::FG::Yellow, u8## #x, u8## #y, fmt::FGB::Gray, fmt::FG::Yellow,  \
-                                                  a##__LINE__, fmt::FGB::Gray, fmt::FG::Yellow, b##__LINE__,           \
-                                                  fmt::FG::Reset));                                                    \
+                                                  fmt::fg::Yellow, u8## #x, u8## #y, fmt::fgb::Gray, fmt::fg::Yellow,  \
+                                                  a##__LINE__, fmt::fgb::Gray, fmt::fg::Yellow, b##__LINE__,           \
+                                                  fmt::fg::Reset));                                                    \
         }                                                                                                              \
     }
 
 // x <= y
 #define assert_le(x, y)                                                                                                \
-    ++Asserts::GlobalCalledCount;                                                                                      \
+    ++asserts::GlobalCalledCount;                                                                                      \
     {                                                                                                                  \
         auto a##__LINE__ = x;                                                                                          \
         auto b##__LINE__ = y;                                                                                          \
         if (!(a##__LINE__ <= b##__LINE__)) {                                                                           \
-            Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} <= {}{}, got: {}\"{}\"{} and {}\"{}\"{}",                \
+            asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} <= {}{}, got: {}\"{}\"{} and {}\"{}\"{}",                \
                                                   get_file_path_relative_to_src_or_just_file_name(__FILE__), __LINE__, \
-                                                  fmt::FG::Yellow, u8## #x, u8## #y, fmt::FGB::Gray, fmt::FG::Yellow,  \
-                                                  a##__LINE__, fmt::FGB::Gray, fmt::FG::Yellow, b##__LINE__,           \
-                                                  fmt::FG::Reset));                                                    \
+                                                  fmt::fg::Yellow, u8## #x, u8## #y, fmt::fgb::Gray, fmt::fg::Yellow,  \
+                                                  a##__LINE__, fmt::fgb::Gray, fmt::fg::Yellow, b##__LINE__,           \
+                                                  fmt::fg::Reset));                                                    \
         }                                                                                                              \
     }
 
 // x > y
 #define assert_gt(x, y)                                                                                                \
-    ++Asserts::GlobalCalledCount;                                                                                      \
+    ++asserts::GlobalCalledCount;                                                                                      \
     {                                                                                                                  \
         auto a##__LINE__ = x;                                                                                          \
         auto b##__LINE__ = y;                                                                                          \
         if (!(a##__LINE__ > b##__LINE__)) {                                                                            \
-            Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} > {}{}, got: {}\"{}\"{} and {}\"{}\"{}",                 \
+            asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} > {}{}, got: {}\"{}\"{} and {}\"{}\"{}",                 \
                                                   get_file_path_relative_to_src_or_just_file_name(__FILE__), __LINE__, \
-                                                  fmt::FG::Yellow, u8## #x, u8## #y, fmt::FGB::Gray, fmt::FG::Yellow,  \
-                                                  a##__LINE__, fmt::FGB::Gray, fmt::FG::Yellow, b##__LINE__,           \
-                                                  fmt::FG::Reset));                                                    \
+                                                  fmt::fg::Yellow, u8## #x, u8## #y, fmt::fgb::Gray, fmt::fg::Yellow,  \
+                                                  a##__LINE__, fmt::fgb::Gray, fmt::fg::Yellow, b##__LINE__,           \
+                                                  fmt::fg::Reset));                                                    \
         }                                                                                                              \
     }
 
 // x >= y
 #define assert_ge(x, y)                                                                                                \
-    ++Asserts::GlobalCalledCount;                                                                                      \
+    ++asserts::GlobalCalledCount;                                                                                      \
     {                                                                                                                  \
         auto a##__LINE__ = x;                                                                                          \
         auto b##__LINE__ = y;                                                                                          \
         if (!(a##__LINE__ >= b##__LINE__)) {                                                                           \
-            Asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} >= {}{}, got: {}\"{}\"{} and {}\"{}\"{}",                \
+            asserts::GlobalFailed.add(fmt::sprint("{}:{} {}{} >= {}{}, got: {}\"{}\"{} and {}\"{}\"{}",                \
                                                   get_file_path_relative_to_src_or_just_file_name(__FILE__), __LINE__, \
-                                                  fmt::FG::Yellow, u8## #x, u8## #y, fmt::FGB::Gray, fmt::FG::Yellow,  \
-                                                  a##__LINE__, fmt::FGB::Gray, fmt::FG::Yellow, b##__LINE__,           \
-                                                  fmt::FG::Reset));                                                    \
+                                                  fmt::fg::Yellow, u8## #x, u8## #y, fmt::fgb::Gray, fmt::fg::Yellow,  \
+                                                  a##__LINE__, fmt::fgb::Gray, fmt::fg::Yellow, b##__LINE__,           \
+                                                  fmt::fg::Reset));                                                    \
         }                                                                                                              \
     }

@@ -8,43 +8,43 @@ namespace file {
 
 // This structure is immutable.
 // To change the file/directory this is pointing to, simply create a new one.
-struct Handle {
-   private:
-    struct Iterator : NonCopyable {
+struct handle {
+   public:
+    struct iterator : NonCopyable {
        private:
-        uptr_t PlatformHandle = 0;
-        byte PlatformFileInfo[592];
-        file::Path Path;
-        size_t Index = 0;
+        uptr_t _PlatformHandle = 0;
+        byte _PlatformFileInfo[592]{};
+        path _Path;
+        size_t _Index = 0;
 
        public:
-        Iterator() {}
-        Iterator(const file::Path &path);
+        iterator() {}
+        iterator(const path &path);
 
         void operator++() { (*this)++; }
         void operator++(s32);
 
-        bool operator==(const Iterator &other) const;
-        bool operator!=(const Iterator &other) const { return !(*this == other); }
+        bool operator==(const iterator &other) const;
+        bool operator!=(const iterator &other) const { return !(*this == other); }
 
         string operator*() const;
 
        private:
         void read_next_entry();
 
-        friend struct Handle;
+        friend struct handle;
     };
 
-   public:
-    using iterator = Iterator;
-    using visit_func_t = Delegate<void(const string &)>;
+    using visit_func_t = delegate<void(const string &)>;
 
-    const Path Path;
+    const path Path;
 
-    Handle(const file::Path &path);
+    handle(const path &path);
+    handle(const memory_view &memory) : handle(path(memory)) {}
 
     // Get a handle relative to this Handle's path
-    Handle open_relative(file::Path path) const;
+    handle open_relative(path path) const;
+    handle open_relative(const memory_view &memory) const { return open_relative(path(memory)); }
 
     // is_file() doesn't always equal !is_directory()
     bool is_file() const;
@@ -66,7 +66,7 @@ struct Handle {
     bool create_directory() const;
 
     // Only works if this handle points to a valid file (not a directory)
-    bool delete_file();
+    bool delete_file() const;
 
     // Removes a directory with this path if it's empty
     bool delete_directory() const;
@@ -82,17 +82,17 @@ struct Handle {
     //      Handle dir("/my_project/");
     //      dir.copy_directory_contents(dir.open("../backups/my_project/"))
     //
-    void copy_directory_contents(const Handle &destination) const;
+    void copy_directory_contents(const handle &destination) const;
 
     // Copies a file to destination
     // Destination can point to another file (in which case it gets overwritten if it exists and the parameter is true)
     // or a directory (in which case the file name is kept the same or determined by the OS)
-    bool copy(const Handle &destination, bool overwrite = true) const;
+    bool copy(const handle &destination, bool overwrite = true) const;
 
     // Moves a file to destination
     // Destination can point to another file (in which case it gets overwritten if it exists and the parameter is true)
     // or a directory (in which case the file name is kept the same or determined by the OS)
-    bool move(const Handle &destination, bool overwrite = true) const;
+    bool move(const handle &destination, bool overwrite = true) const;
 
     // Renames file/directory
     bool rename(const string_view &newName) const;
@@ -102,7 +102,7 @@ struct Handle {
     // Hard links can be created to files (not directories) only on the same volume.
     //
     // Destination must exist, otherwise this function fails.
-    bool create_hard_link(const Handle &destination) const;
+    bool create_hard_link(const handle &destination) const;
 
     // Symbolic links are different from hard links. Hard links do not link paths on different
     // volumes or file systems, whereas symbolic links may point to any file or directory
@@ -112,7 +112,7 @@ struct Handle {
     // arbitrary path that does not point to anything.
     //
     // Destination must exist, otherwise this function fails.
-    bool create_symbolic_link(const Handle &destination) const;
+    bool create_symbolic_link(const handle &destination) const;
 
     // If this Handle is pointing to a directory,
     // call _func_ on each file/subdirectory recursively.
@@ -120,16 +120,16 @@ struct Handle {
     // (To traverse non-recursively, just use for(auto it: handle) {...})
     void traverse_recursively(visit_func_t func) const;
 
-    iterator begin() const { return Iterator(Path); }
-    iterator end() const { return Iterator(); }
+    iterator begin() const { return iterator(Path); }
+    iterator end() const { return iterator(); }
 
     string compute_base64() const;
 
    private:
-    void traverse_recursively(const Handle &first, Handle::visit_func_t func) const;
+    void traverse_recursively(const handle &first, visit_func_t func) const;
 
     // Used on Windows only
-    Shared_Memory<wchar_t> PathUtf16;
+    shared_memory<wchar_t> _PathUtf16;
 };
 
 }  // namespace file

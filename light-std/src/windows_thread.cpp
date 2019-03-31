@@ -8,6 +8,7 @@
 #include "lstd/fmt.hpp"
 
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
 #include <process.h>
 
@@ -19,40 +20,40 @@ namespace thread {
 // Mutexes:
 //
 
-#define MHANDLE (CRITICAL_SECTION *) Handle
+#define MHANDLE (CRITICAL_SECTION *) _Handle
 
-Mutex::Mutex() : AlreadyLocked(false) { InitializeCriticalSection(MHANDLE); }
-Mutex::~Mutex() { DeleteCriticalSection(MHANDLE); }
+mutex::mutex() : _AlreadyLocked(false) { InitializeCriticalSection(MHANDLE); }
+mutex::~mutex() { DeleteCriticalSection(MHANDLE); }
 
-void Mutex::lock() {
+void mutex::lock() {
     EnterCriticalSection(MHANDLE);
 
     // Simulate deadlock...
-    while (AlreadyLocked) Sleep(1000);
-    AlreadyLocked = true;
+    while (_AlreadyLocked) Sleep(1000);
+    _AlreadyLocked = true;
 }
 
-bool Mutex::try_lock() {
-    bool result = (TryEnterCriticalSection(MHANDLE) ? true : false);
-    if (result && AlreadyLocked) {
+bool mutex::try_lock() {
+    bool result = TryEnterCriticalSection(MHANDLE);
+    if (result && _AlreadyLocked) {
         LeaveCriticalSection(MHANDLE);
         result = false;
     }
     return result;
 }
 
-void Mutex::unlock() {
-    AlreadyLocked = false;
+void mutex::unlock() {
+    _AlreadyLocked = false;
     LeaveCriticalSection(MHANDLE);
 }
 
-Recursive_Mutex::Recursive_Mutex() { InitializeCriticalSection(MHANDLE); }
-Recursive_Mutex::~Recursive_Mutex() { DeleteCriticalSection(MHANDLE); }
+recursive_mutex::recursive_mutex() { InitializeCriticalSection(MHANDLE); }
+recursive_mutex::~recursive_mutex() { DeleteCriticalSection(MHANDLE); }
 
-void Recursive_Mutex::lock() { EnterCriticalSection(MHANDLE); }
-bool Recursive_Mutex::try_lock() { return TryEnterCriticalSection(MHANDLE) ? true : false; }
+void recursive_mutex::lock() { EnterCriticalSection(MHANDLE); }
+bool recursive_mutex::try_lock() { return TryEnterCriticalSection(MHANDLE) ? true : false; }
 
-void Recursive_Mutex::unlock() { LeaveCriticalSection(MHANDLE); }
+void recursive_mutex::unlock() { LeaveCriticalSection(MHANDLE); }
 
 //
 // Condition variable:
@@ -72,24 +73,24 @@ struct CV_Data {
 #define _CONDITION_EVENT_ONE 0
 #define _CONDITION_EVENT_ALL 1
 
-Condition_Variable::Condition_Variable() {
-    auto *data = (CV_Data *) Handle;
+condition_variable::condition_variable() {
+    auto *data = (CV_Data *) _Handle;
 
-    data->Events[_CONDITION_EVENT_ONE] = CreateEvent(NULL, FALSE, FALSE, NULL);
-    data->Events[_CONDITION_EVENT_ALL] = CreateEvent(NULL, TRUE, FALSE, NULL);
+    data->Events[_CONDITION_EVENT_ONE] = CreateEvent(null, FALSE, FALSE, null);
+    data->Events[_CONDITION_EVENT_ALL] = CreateEvent(null, TRUE, FALSE, null);
     InitializeCriticalSection(&data->WaitersCountLock);
 }
 
-Condition_Variable::~Condition_Variable() {
-    auto *data = (CV_Data *) Handle;
+condition_variable::~condition_variable() {
+    auto *data = (CV_Data *) _Handle;
 
     CloseHandle(data->Events[_CONDITION_EVENT_ONE]);
     CloseHandle(data->Events[_CONDITION_EVENT_ALL]);
     DeleteCriticalSection(&data->WaitersCountLock);
 }
 
-void Condition_Variable::pre_wait() {
-    auto *data = (CV_Data *) Handle;
+void condition_variable::pre_wait() {
+    auto *data = (CV_Data *) _Handle;
 
     // Increment number of waiters
     EnterCriticalSection(&data->WaitersCountLock);
@@ -97,8 +98,8 @@ void Condition_Variable::pre_wait() {
     LeaveCriticalSection(&data->WaitersCountLock);
 }
 
-void Condition_Variable::do_wait() {
-    auto *data = (CV_Data *) Handle;
+void condition_variable::do_wait() {
+    auto *data = (CV_Data *) _Handle;
 
     // Wait for either event to become signaled due to notify_one() or notify_all() being called
     s32 result = WaitForMultipleObjects(2, data->Events, FALSE, INFINITE);
@@ -113,8 +114,8 @@ void Condition_Variable::do_wait() {
     if (lastWaiter) ResetEvent(data->Events[_CONDITION_EVENT_ALL]);
 }
 
-void Condition_Variable::notify_one() {
-    auto *data = (CV_Data *) Handle;
+void condition_variable::notify_one() {
+    auto *data = (CV_Data *) _Handle;
 
     // Are there any waiters?
     EnterCriticalSection(&data->WaitersCountLock);
@@ -125,8 +126,8 @@ void Condition_Variable::notify_one() {
     if (haveWaiters) SetEvent(data->Events[_CONDITION_EVENT_ONE]);
 }
 
-void Condition_Variable::notify_all() {
-    auto *data = (CV_Data *) Handle;
+void condition_variable::notify_all() {
+    auto *data = (CV_Data *) _Handle;
 
     // Are there any waiters?
     EnterCriticalSection(&data->WaitersCountLock);
@@ -143,9 +144,9 @@ void Condition_Variable::notify_all() {
 
 // Information to pass to the new thread (what to run).
 struct Thread_Start_Info {
-    Delegate<void(void *)> Function;
+    delegate<void(void *)> Function;
     void *UserData;
-    Thread *ThreadPtr;
+    thread *ThreadPtr;
 
     // This may be null. It's used only when we don't link with the CRT,
     // because we have to make sure the module the thread is executing in
@@ -159,7 +160,7 @@ struct Thread_Start_Info {
     const Implicit_Context *ContextPtr;
 };
 
-u32 __stdcall Thread::wrapper_function(void *data) {
+u32 __stdcall thread::wrapper_function(void *data) {
     auto *ti = (Thread_Start_Info *) data;
 
     // Copy the context from the "parent" thread
@@ -168,8 +169,8 @@ u32 __stdcall Thread::wrapper_function(void *data) {
     ti->Function(ti->UserData);
 
     // The thread is no longer executing
-    Scoped_Lock<Mutex> _(ti->ThreadPtr->DataMutex);
-    ti->ThreadPtr->NotAThread = true;
+    scoped_lock<mutex> _(ti->ThreadPtr->_DataMutex);
+    ti->ThreadPtr->_NotAThread = true;
 
     if (ti->NoCrt) {
         CloseHandle((HANDLE) ti->ThreadPtr->Handle);
@@ -181,15 +182,15 @@ u32 __stdcall Thread::wrapper_function(void *data) {
     }
 
     // Seems like this line fixes a rare crash
-    ti->Function.~Delegate<void(void *)>();
+    ti->Function.~delegate<void(void *)>();
 
     delete ti;
-    
+
     return 0;
 }
 
-Thread::Thread(Delegate<void(void *)> function, void *userData) {
-    Scoped_Lock<Mutex> _(DataMutex);
+thread::thread(delegate<void(void *)> function, void *userData) {
+    scoped_lock<mutex> _(_DataMutex);
 
     // Passed to the thread wrapper, which will eventually free it
     auto *ti = new Thread_Start_Info;
@@ -200,12 +201,12 @@ Thread::Thread(Delegate<void(void *)> function, void *userData) {
         ti->ContextPtr = &Context;
     }
 
-    NotAThread = false;
+    _NotAThread = false;
 
     // Create the thread
     // if (pthread_create(&mHandle, NULL, wrapper_function, (void *) ti) != 0) mHandle = 0;
 #if !defined LSTD_NO_CRT
-    Handle = _beginthreadex(null, 0, wrapper_function, (void *) ti, /*Creation Flags*/ 0, &Win32ThreadID);
+    Handle = _beginthreadex(null, 0, wrapper_function, (void *) ti, /*Creation Flags*/ 0, &_Win32ThreadId);
 #else
     ti->NoCrt = true;
     GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR) wrapper_function, &ti->Module);
@@ -213,48 +214,48 @@ Thread::Thread(Delegate<void(void *)> function, void *userData) {
     Handle = (uptr_t) CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, (DWORD *) &Win32ThreadID);
 #endif
     if (!Handle || (HANDLE) Handle == INVALID_HANDLE_VALUE) {
-        NotAThread = true;
+        _NotAThread = true;
         delete ti;
     }
 }
 
-Thread::~Thread() {
+thread::~thread() {
     if (joinable()) os_exit_program(-1);
 }
 
-void Thread::join() {
+void thread::join() {
     if (joinable()) {
         // pthread_join(mHandle, NULL);
         if (Handle && (HANDLE) Handle != INVALID_HANDLE_VALUE) {
             WaitForSingleObject((HANDLE) Handle, INFINITE);
             CloseHandle((HANDLE) Handle);
 
-            Scoped_Lock<Mutex> _(DataMutex);
+            scoped_lock<mutex> _(_DataMutex);
             Handle = 0;
-            NotAThread = true;
+            _NotAThread = true;
         }
     }
 }
 
-bool Thread::joinable() const {
-    Scoped_Lock<Mutex> _(DataMutex);
-    bool result = !NotAThread;
+bool thread::joinable() const {
+    scoped_lock<mutex> _(_DataMutex);
+    bool result = !_NotAThread;
     return result;
 }
 
-void Thread::detach() {
-    Scoped_Lock<Mutex> _(DataMutex);
-    if (!NotAThread) {
+void thread::detach() {
+    scoped_lock<mutex> _(_DataMutex);
+    if (!_NotAThread) {
         // pthread_detach(mHandle);
         CloseHandle((HANDLE) Handle);
-        NotAThread = true;
+        _NotAThread = true;
     }
 }
 
 // return _pthread_t_to_ID(mHandle);
-Thread::id Thread::get_id() const {
+thread::id thread::get_id() const {
     if (!joinable()) return id();
-    return Id((u64) Win32ThreadID);
+    return id((u64) _Win32ThreadId);
 }
 
 u32 get_hardware_concurrency() {
@@ -267,7 +268,7 @@ u32 get_hardware_concurrency() {
 // this_thread:
 //
 
-Thread::id this_thread::get_id() { return Thread::id((u64) GetCurrentThreadId()); }
+thread::id this_thread::get_id() { return thread::id((u64) GetCurrentThreadId()); }
 void this_thread::yield() { Sleep(0); }
 void this_thread::sleep_for(u32 ms) { Sleep((DWORD) ms); }
 

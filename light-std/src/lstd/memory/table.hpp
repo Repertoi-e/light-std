@@ -10,243 +10,306 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename Key, typename Value>
-struct Table_Iterator;
+struct table_iterator;
 
 // Table means hash-map/undordered_map etc.
 template <typename Key, typename Value>
-struct Table {
-    using Key_Type = Key;
-    using Value_Type = Value;
+struct table {
+    using key_t = Key;
+    using value_t = Value;
 
     static const size_t MINIMUM_SIZE = 32;
     size_t Count = 0;
     size_t Reserved = 0;
 
     // By default, the value that gets returned if a value is not found
-    // is a default constructed Value_Type. This value can be changed if
+    // is a default constructed value_t. This value can be changed if
     // special behaviour is desired.
-    Value_Type UnfoundValue = Value_Type();
+    value_t UnfoundValue = value_t();
 
     // The allocator used for expanding the table.
     // This value is null until this object allocates memory or the user sets it manually.
-    Allocator_Closure Allocator;
+    allocator_closure Allocator;
 
-    Table() {}
-    Table(const Table &other) {
-        Count = other.Count;
-        Reserved = other.Reserved;
-        UnfoundValue = other.UnfoundValue;
+    table() = default;
+    table(const table& other);
+    table(table&& other);
+    ~table();
 
-        OccupancyMask = new (&Allocator, ensure_allocator) bool[Reserved];
-        Keys = new (Allocator) Key_Type[Reserved];
-        Values = new (Allocator) Value_Type[Reserved];
-        Hashes = new (Allocator) uptr_t[Reserved];
-
-        copy_elements(OccupancyMask, other.OccupancyMask, Reserved);
-        copy_elements(Keys, other.Keys, Reserved);
-        copy_elements(Values, other.Values, Reserved);
-        copy_elements(Hashes, other.Hashes, Reserved);
-    }
-
-    Table(Table &&other) { other.swap(*this); }
-    ~Table() { release(); }
-
-    void release() {
-        if (Reserved) {
-            delete[] OccupancyMask;
-            delete[] Keys;
-            delete[] Values;
-            delete[] Hashes;
-
-            OccupancyMask = null;
-            Keys = null;
-            Values = null;
-            Hashes = null;
-            Reserved = 0;
-            Count = 0;
-        }
-    }
+    void release();
 
     // Copies the key and the value into the table.
-    void put(const Key_Type &key, const Value_Type &value) {
-        uptr_t hash = Hash<Key_Type>::get(key);
-        s32 index = find_index(key, hash);
-        if (index == -1) {
-            if (Count >= Reserved) {
-                grow();
-            }
-            assert(Count <= Reserved);
-
-            index = (s32)(hash % Reserved);
-            while (OccupancyMask[index]) {
-                // Resolve collision
-                index++;
-                if (index >= Reserved) {
-                    index = 0;
-                }
-            }
-
-            Count++;
-        }
-
-        OccupancyMask[index] = true;
-        new (&Keys[index]) Key_Type(key);
-        new (&Values[index]) Value_Type(value);
-        Hashes[index] = hash;
-    }
+    void put(const key_t& key, const value_t& value);
 
     // Returns a tuple of the value and a bool (true if found). Doesn't return the value by reference so
     // modifying it doesn't update it in the table, use pointers if you want that kind of behaviour.
-    std::tuple<Value_Type &, bool> find(const Key_Type &key) {
-        uptr_t hash = Hash<Key_Type>::get(key);
+    std::tuple<value_t&, bool> find(const key_t& key);
 
-        s32 index = find_index(key, hash);
-        if (index == -1) {
-            return {UnfoundValue, false};
-        }
+    bool has(const key_t& key);
 
-        return std::forward_as_tuple(Values[index], true);
-    }
+    table_iterator<Key, Value> begin();
+    table_iterator<Key, Value> end();
+    table_iterator<Key, Value> begin() const;
+    table_iterator<Key, Value> end() const;
 
-    bool has(const Key_Type &key) {
-        auto [_, found] = find(key);
-        return found;
-    }
+    void swap(table& other);
 
-    Table_Iterator<Key, Value> begin() { return Table_Iterator<Key, Value>(*this); }
-    Table_Iterator<Key, Value> end() { return Table_Iterator<Key, Value>(*this, Reserved); }
-    const Table_Iterator<Key, Value> begin() const { return Table_Iterator<Key, Value>(*this); }
-    const Table_Iterator<Key, Value> end() const { return Table_Iterator<Key, Value>(*this, Reserved); }
-
-    void swap(Table &other) {
-        std::swap(Count, other.Count);
-        std::swap(Allocator, other.Allocator);
-        std::swap(Reserved, other.Reserved);
-        std::swap(UnfoundValue, other.UnfoundValue);
-
-        std::swap(OccupancyMask, other.OccupancyMask);
-        std::swap(Keys, other.Keys);
-        std::swap(Values, other.Values);
-        std::swap(Hashes, other.Hashes);
-    }
-
-    Table &operator=(const Table &other) {
-        release();
-
-        Table(other).swap(*this);
-        return *this;
-    }
-
-    Table &operator=(Table &&other) {
-        release();
-
-        Table(std::move(other)).swap(*this);
-        return *this;
-    }
+    table& operator=(const table& other);
+    table& operator=(table&& other);
 
    private:
     // This doesn't free the old memory before allocating new, so that's up to the caller to do.
-    void reverse(size_t size) {
-        Reserved = size;
+    void reserve(size_t size);
 
-        OccupancyMask = new (&Allocator, ensure_allocator) bool[size];
-        Keys = new (Allocator) Key[size];
-        Values = new (Allocator) Value[size];
-        Hashes = new (Allocator) uptr_t[size];
+    s32 find_index(const key_t& key, uptr_t hash);
+
+    // Double's the size of the table and copies the elements to their new location.
+    void grow();
+
+    // We store slots as SOA to minimize cache misses.
+    bool* _OccupancyMask = null;
+    key_t* _Keys = null;
+    value_t* _Values = null;
+    uptr_t* _Hashes = null;
+
+    friend struct table_iterator<key_t, value_t>;
+};
+
+template <typename Key, typename Value>
+table<Key, Value>::table(const table& other) {
+    Count = other.Count;
+    Reserved = other.Reserved;
+    UnfoundValue = other.UnfoundValue;
+
+    _OccupancyMask = new (&Allocator, ensure_allocator) bool[Reserved];
+    _Keys = new (Allocator) key_t[Reserved];
+    _Values = new (Allocator) value_t[Reserved];
+    _Hashes = new (Allocator) uptr_t[Reserved];
+
+    copy_elements(_OccupancyMask, other._OccupancyMask, Reserved);
+    copy_elements(_Keys, other._Keys, Reserved);
+    copy_elements(_Values, other._Values, Reserved);
+    copy_elements(_Hashes, other._Hashes, Reserved);
+}
+
+template <typename Key, typename Value>
+table<Key, Value>::table(table&& other) {
+    other.swap(*this);
+}
+
+template <typename Key, typename Value>
+table<Key, Value>::~table() {
+    release();
+}
+
+template <typename Key, typename Value>
+void table<Key, Value>::release() {
+    if (Reserved) {
+        delete[] _OccupancyMask;
+        delete[] _Keys;
+        delete[] _Values;
+        delete[] _Hashes;
+
+        _OccupancyMask = null;
+        _Keys = null;
+        _Values = null;
+        _Hashes = null;
+        Reserved = 0;
+        Count = 0;
     }
+}
 
-    s32 find_index(const Key_Type &key, uptr_t hash) {
-        if (!Reserved) {
-            return -1;
+template <typename Key, typename Value>
+void table<Key, Value>::put(const key_t& key, const value_t& value) {
+    uptr_t h = hash<key_t>::get(key);
+    s32 index = find_index(key, h);
+    if (index == -1) {
+        if (Count >= Reserved) {
+            grow();
         }
+        assert(Count <= Reserved);
 
-        size_t index = hash % Reserved;
-        while (OccupancyMask[index]) {
-            if (Hashes[index] == hash) {
-                if (Keys[index] == key) {
-                    return (s32) index;
-                }
-            }
-
+        index = (s32)(h % Reserved);
+        while (_OccupancyMask[index]) {
+            // Resolve collision
             index++;
-            if (index >= Reserved) {
+            if ((size_t) index >= Reserved) {
                 index = 0;
             }
         }
 
+        Count++;
+    }
+
+    _OccupancyMask[index] = true;
+    new (&_Keys[index]) key_t(key);
+    new (&_Values[index]) value_t(value);
+    _Hashes[index] = h;
+}
+
+template <typename Key, typename Value>
+std::tuple<typename table<Key, Value>::value_t&, bool> table<Key, Value>::find(const key_t& key) {
+    uptr_t h = hash<key_t>::get(key);
+
+    s32 index = find_index(key, h);
+    if (index == -1) {
+        return {UnfoundValue, false};
+    }
+
+    return std::forward_as_tuple(_Values[index], true);
+}
+
+template <typename Key, typename Value>
+bool table<Key, Value>::has(const key_t& key) {
+    auto [_, found] = find(key);
+    return found;
+}
+
+template <typename Key, typename Value>
+table_iterator<Key, Value> table<Key, Value>::begin() {
+    return table_iterator<Key, Value>(*this);
+}
+
+template <typename Key, typename Value>
+table_iterator<Key, Value> table<Key, Value>::end() {
+    return table_iterator<Key, Value>(*this, Reserved);
+}
+
+template <typename Key, typename Value>
+table_iterator<Key, Value> table<Key, Value>::begin() const {
+    return table_iterator<Key, Value>(*this);
+}
+
+template <typename Key, typename Value>
+table_iterator<Key, Value> table<Key, Value>::end() const {
+    return table_iterator<Key, Value>(*this, Reserved);
+}
+
+template <typename Key, typename Value>
+void table<Key, Value>::swap(table& other) {
+    std::swap(Count, other.Count);
+    std::swap(Allocator, other.Allocator);
+    std::swap(Reserved, other.Reserved);
+    std::swap(UnfoundValue, other.UnfoundValue);
+
+    std::swap(_OccupancyMask, other._OccupancyMask);
+    std::swap(_Keys, other._Keys);
+    std::swap(_Values, other._Values);
+    std::swap(_Hashes, other._Hashes);
+}
+
+template <typename Key, typename Value>
+table<Key, Value>& table<Key, Value>::operator=(const table& other) {
+    release();
+
+    table(other).swap(*this);
+    return *this;
+}
+
+template <typename Key, typename Value>
+table<Key, Value>& table<Key, Value>::operator=(table&& other) {
+    release();
+
+    table(std::move(other)).swap(*this);
+    return *this;
+}
+
+template <typename Key, typename Value>
+void table<Key, Value>::reserve(size_t size) {
+    Reserved = size;
+
+    _OccupancyMask = new (&Allocator, ensure_allocator) bool[size];
+    zero_memory(_OccupancyMask, size);
+
+    _Keys = new (Allocator) Key[size];
+    _Values = new (Allocator) Value[size];
+    _Hashes = new (Allocator) uptr_t[size];
+}
+
+template <typename Key, typename Value>
+s32 table<Key, Value>::find_index(const key_t& key, uptr_t hash) {
+    if (!Reserved) {
         return -1;
     }
 
-    // Double's the size of the table and copies the elements to their new location.
-    void grow() {
-        size_t oldReserved = Reserved;
-        auto oldOccupancyMask = OccupancyMask;
-        auto oldKeys = Keys;
-        auto oldValues = Values;
-        auto oldHashes = Hashes;
-
-        size_t newSize = Reserved * 2;
-        if (newSize < MINIMUM_SIZE) {
-            newSize = MINIMUM_SIZE;
-        }
-
-        reverse(newSize);
-
-        For(range(oldReserved)) {
-            if (oldOccupancyMask[it]) {
-                put(oldKeys[it], oldValues[it]);
+    size_t index = hash % Reserved;
+    while (_OccupancyMask[index]) {
+        if (_Hashes[index] == hash) {
+            if (_Keys[index] == key) {
+                return (s32) index;
             }
         }
 
-        if (oldReserved) {
-            delete[] oldOccupancyMask;
-            delete[] oldKeys;
-            delete[] oldValues;
-            delete[] oldHashes;
+        index++;
+        if (index >= Reserved) {
+            index = 0;
         }
     }
 
-    // We store slots as SOA to minimize cache misses.
-    bool *OccupancyMask = null;
-    Key_Type *Keys = null;
-    Value_Type *Values = null;
-    uptr_t *Hashes = null;
-
-    friend struct Table_Iterator<Key_Type, Value_Type>;
-};
+    return -1;
+}
 
 template <typename Key, typename Value>
-struct Table_Iterator {
-    const Table<Key, Value> &ParentTable;
+void table<Key, Value>::grow() {
+    size_t oldReserved = Reserved;
+    auto oldOccupancyMask = _OccupancyMask;
+    auto oldKeys = _Keys;
+    auto oldValues = _Values;
+    auto oldHashes = _Hashes;
+
+    size_t newSize = Reserved * 2;
+    if (newSize < MINIMUM_SIZE) {
+        newSize = MINIMUM_SIZE;
+    }
+
+    reserve(newSize);
+
+    For(range(oldReserved)) {
+        if (oldOccupancyMask[it]) {
+            put(oldKeys[it], oldValues[it]);
+        }
+    }
+
+    if (oldReserved) {
+        delete[] oldOccupancyMask;
+        delete[] oldKeys;
+        delete[] oldValues;
+        delete[] oldHashes;
+    }
+}
+
+template <typename Key, typename Value>
+struct table_iterator {
+    const table<Key, Value>& ParentTable;
     s64 SlotIndex = 0;
 
-    explicit Table_Iterator(const Table<Key, Value> &table, s64 index = -1) : ParentTable(table), SlotIndex(index) {
+    explicit table_iterator(const table<Key, Value>& table, s64 index = -1) : ParentTable(table), SlotIndex(index) {
         // Find the first pair
         ++(*this);
     }
 
-    Table_Iterator &operator++() {
+    table_iterator& operator++() {
         while (SlotIndex < (s64) ParentTable.Reserved) {
             SlotIndex++;
             if (SlotIndex == ParentTable.Reserved) break;
-            if (ParentTable.OccupancyMask && ParentTable.OccupancyMask[SlotIndex]) {
+            if (ParentTable._OccupancyMask && ParentTable._OccupancyMask[SlotIndex]) {
                 break;
             }
         }
         return *this;
     }
 
-    Table_Iterator operator++(int) {
-        Table_Iterator pre = *this;
+    table_iterator operator++(int) {
+        table_iterator pre = *this;
         ++(*this);
         return pre;
     }
 
-    bool operator==(Table_Iterator other) const { return SlotIndex == other.SlotIndex; }
-    bool operator!=(Table_Iterator other) const { return !(*this == other); }
+    bool operator==(table_iterator other) const { return SlotIndex == other.SlotIndex; }
+    bool operator!=(table_iterator other) const { return !(*this == other); }
 
-    std::tuple<Key &, Value &> operator*() const {
-        return std::forward_as_tuple(ParentTable.Keys[SlotIndex], ParentTable.Values[SlotIndex]);
+    std::tuple<Key&, Value&> operator*() const {
+        return std::forward_as_tuple(ParentTable._Keys[SlotIndex], ParentTable._Values[SlotIndex]);
     }
 };
 

@@ -5,6 +5,7 @@
 #include <lstd/fmt.hpp>
 
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
 #include <Windowsx.h>
 
@@ -12,13 +13,13 @@ namespace le {
 
 // Returns the last Win32 error, in string format. Returns an empty string if there is no error.
 string get_last_error_as_string() {
-    DWORD errorMessageID = ::GetLastError();
+    DWORD errorMessageID = GetLastError();
     if (errorMessageID == 0) return "";
 
     LPSTR messageBuffer = null;
     size_t size = FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-        errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR) &messageBuffer, 0, NULL);
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, null,
+        errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR) &messageBuffer, 0, null);
 
     string message(messageBuffer, size);
 
@@ -49,17 +50,17 @@ struct Windows_Data {
      ((x & MK_XBUTTON2) ? Mouse_Button_X2 : 0))
 
 ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
-    auto *window = (Window *) GetWindowLongPtrW(hWnd, 0);
-    auto *data = (Windows_Data *) window->PlatformData;
+    auto *wind = (window *) GetWindowLongPtrW(hWnd, 0);
+    auto *data = (Windows_Data *) wind->PlatformData;
 
     switch (message) {
         case WM_NCCREATE:
-            window = (Window *) ((CREATESTRUCT *) lParam)->lpCreateParams;
-            SetWindowLongPtrW(hWnd, 0, (ptr_t) window);
+            wind = (window *) ((CREATESTRUCT *) lParam)->lpCreateParams;
+            SetWindowLongPtrW(hWnd, 0, (ptr_t) wind);
             SetWindowPos(hWnd, null, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
             return DefWindowProc(hWnd, message, wParam, lParam);
         case WM_CLOSE:
-            window->WindowClosedEvent.emit({window});
+            wind->WindowClosedEvent.emit({wind});
             DestroyWindow(hWnd);
             break;
         case WM_DESTROY:
@@ -67,87 +68,87 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
             break;
         case WM_SIZE:
             if (wParam == SIZE_RESTORED) {
-                window->WindowResizedEvent.emit({window, (u32) LOWORD(lParam), (u32) HIWORD(lParam)});
+                wind->WindowResizedEvent.emit({wind, (u32) LOWORD(lParam), (u32) HIWORD(lParam)});
             }
         case WM_SETFOCUS:
-            window->WindowGainedFocusEvent.emit({window});
+            wind->WindowGainedFocusEvent.emit({wind});
             break;
         case WM_KILLFOCUS:
-            window->WindowLostFocusEvent.emit({window});
+            wind->WindowLostFocusEvent.emit({wind});
             break;
         case WM_MOVE:
-            window->WindowMovedEvent.emit({window, (s32)(s16) LOWORD(lParam), (s32)(s16) HIWORD(lParam)});
+            wind->WindowMovedEvent.emit({wind, (s32)(s16) LOWORD(lParam), (s32)(s16) HIWORD(lParam)});
             break;
         case WM_WINDOWPOSCHANGED: {
             auto *params = (WINDOWPOS *) lParam;
             if (params->flags & SWP_NOMOVE) {
-                window->WindowResizedEvent.emit({window, (u32) params->cx, (u32) params->cy});
+                wind->WindowResizedEvent.emit({wind, (u32) params->cx, (u32) params->cy});
             } else if (params->flags & SWP_NOSIZE) {
-                window->WindowMovedEvent.emit({window, params->x, params->y});
+                wind->WindowMovedEvent.emit({wind, params->x, params->y});
             }
         } break;
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
-            window->KeyPressedEvent.emit(
-                {window, KEYCODE_NATIVE_TO_HID[wParam], KEY_EVENT_GET_MODS, (bool) (lParam & 0x40000000)});
+            wind->KeyPressedEvent.emit(
+                {wind, g_KeycodeNativeToHid[wParam], KEY_EVENT_GET_MODS, (bool) (lParam & 0x40000000)});
             break;
         case WM_SYSKEYUP:
         case WM_KEYUP:
-            window->KeyReleasedEvent.emit({window, KEYCODE_NATIVE_TO_HID[wParam], KEY_EVENT_GET_MODS});
+            wind->KeyReleasedEvent.emit({wind, g_KeycodeNativeToHid[wParam], KEY_EVENT_GET_MODS});
             break;
         case WM_UNICHAR:
             // We return 1 the first time to tell Windows we support utf-32 characters
             if (wParam == UNICODE_NOCHAR) return 1;
-            window->KeyTypedEvent.emit({window, (char32_t) wParam});
+            wind->KeyTypedEvent.emit({wind, (char32_t) wParam});
             break;
         case WM_LBUTTONDOWN:
-            window->MouseButtonPressedEvent.emit(
-                {window, Mouse_Button_Left, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseButtonPressedEvent.emit(
+                {wind, Mouse_Button_Left, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_LBUTTONUP:
-            window->MouseButtonReleasedEvent.emit(
-                {window, Mouse_Button_Left, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseButtonReleasedEvent.emit(
+                {wind, Mouse_Button_Left, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MBUTTONDOWN:
-            window->MouseButtonPressedEvent.emit({window, Mouse_Button_Middle, MOUSE_EVENT_GET_MODS(wParam),
-                                                  GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseButtonPressedEvent.emit(
+                {wind, Mouse_Button_Middle, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MBUTTONUP:
-            window->MouseButtonReleasedEvent.emit({window, Mouse_Button_Middle, MOUSE_EVENT_GET_MODS(wParam),
-                                                   GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseButtonReleasedEvent.emit(
+                {wind, Mouse_Button_Middle, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_RBUTTONDOWN:
-            window->MouseButtonPressedEvent.emit(
-                {window, Mouse_Button_Right, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseButtonPressedEvent.emit(
+                {wind, Mouse_Button_Right, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_RBUTTONUP:
-            window->MouseButtonReleasedEvent.emit(
-                {window, Mouse_Button_Right, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseButtonReleasedEvent.emit(
+                {wind, Mouse_Button_Right, MOUSE_EVENT_GET_MODS(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_XBUTTONDOWN:
-            window->MouseButtonPressedEvent.emit(
-                {window, HIWORD(wParam) == XBUTTON1 ? Mouse_Button_X1 : Mouse_Button_X2,
-                 MOUSE_EVENT_GET_MODS(LOWORD(wParam)), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseButtonPressedEvent.emit({wind, HIWORD(wParam) == XBUTTON1 ? Mouse_Button_X1 : Mouse_Button_X2,
+                                                MOUSE_EVENT_GET_MODS(LOWORD(wParam)), GET_X_LPARAM(lParam),
+                                                GET_Y_LPARAM(lParam)});
             break;
         case WM_XBUTTONUP:
-            window->MouseButtonReleasedEvent.emit(
-                {window, HIWORD(wParam) == XBUTTON1 ? Mouse_Button_X1 : Mouse_Button_X2,
-                 MOUSE_EVENT_GET_MODS(LOWORD(wParam)), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseButtonReleasedEvent.emit({wind, HIWORD(wParam) == XBUTTON1 ? Mouse_Button_X1 : Mouse_Button_X2,
+                                                 MOUSE_EVENT_GET_MODS(LOWORD(wParam)), GET_X_LPARAM(lParam),
+                                                 GET_Y_LPARAM(lParam)});
             break;
         case WM_MOUSEHWHEEL:
-            window->MouseScrolledEvent.emit(
-                {window, GET_WHEEL_DELTA_WPARAM(wParam), 0, MOUSE_EVENT_GET_MODS(LOWORD(wParam)),
+            wind->MouseScrolledEvent.emit(
+                {wind, GET_WHEEL_DELTA_WPARAM(wParam), 0, MOUSE_EVENT_GET_MODS(LOWORD(wParam)),
                  MOUSE_EVENT_GET_BUTTONS_DOWN(LOWORD(wParam)), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MOUSEWHEEL:
-            window->MouseScrolledEvent.emit(
-                {window, 0, GET_WHEEL_DELTA_WPARAM(wParam), MOUSE_EVENT_GET_MODS(LOWORD(wParam)),
+            wind->MouseScrolledEvent.emit(
+                {wind, 0, GET_WHEEL_DELTA_WPARAM(wParam), MOUSE_EVENT_GET_MODS(LOWORD(wParam)),
                  MOUSE_EVENT_GET_BUTTONS_DOWN(LOWORD(wParam)), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MOUSEMOVE:
             if (!data->MouseInClient) {
                 data->MouseInClient = true;
-                window->MouseEnteredEvent.emit({window});
+                wind->MouseEnteredEvent.emit({wind});
 
                 TRACKMOUSEEVENT tme;
                 zero_memory(&tme, sizeof(tme));
@@ -158,12 +159,12 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
                 TrackMouseEvent(&tme);
             }
 
-            window->MouseMovedEvent.emit({window, MOUSE_EVENT_GET_MODS(wParam), MOUSE_EVENT_GET_BUTTONS_DOWN(wParam),
-                                          GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            wind->MouseMovedEvent.emit({wind, MOUSE_EVENT_GET_MODS(wParam), MOUSE_EVENT_GET_BUTTONS_DOWN(wParam),
+                                        GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             break;
         case WM_MOUSELEAVE:
             data->MouseInClient = false;
-            window->MouseLeftEvent.emit({window});
+            wind->MouseLeftEvent.emit({wind});
             break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
@@ -173,7 +174,7 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-Window *Window::initialize(const string &title, u32 width, u32 height) {
+window *window::initialize(const string &title, u32 width, u32 height) {
     // Pray that people aren't insane and going to put such long window titles
     temporary_storage_init(500_KiB);
 
@@ -189,7 +190,7 @@ Window *Window::initialize(const string &title, u32 width, u32 height) {
     wcex.cbSize = sizeof(wcex);
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = WndProc;
-    wcex.cbWndExtra = sizeof(Window *);
+    wcex.cbWndExtra = sizeof(window *);
     wcex.hInstance = hInstance;
     wcex.hIcon = LoadIconW(null, IDI_WINLOGO);
     wcex.hCursor = LoadCursorW(null, IDC_ARROW);
@@ -224,13 +225,13 @@ Window *Window::initialize(const string &title, u32 width, u32 height) {
     ShowWindow(PDATA->hWnd, SW_SHOW);
     SetFocus(PDATA->hWnd);
 
-    WindowResizedEvent.connect({this, &Window::on_window_resized});
-    WindowMovedEvent.connect({this, &Window::on_window_moved});
+    WindowResizedEvent.connect({this, &window::on_window_resized});
+    WindowMovedEvent.connect({this, &window::on_window_moved});
 
     return this;
 }
 
-void Window::update() {
+void window::update() {
     MSG message;
     while (PeekMessageW(&message, null, 0, 0, PM_REMOVE) > 0) {
         if (message.message == WM_QUIT) {
@@ -243,7 +244,7 @@ void Window::update() {
     temporary_storage_reset();
 }
 
-void Window::set_title(const string &title) {
+void window::set_title(const string &title) {
     Title = title;
 
     string tempTitle;
@@ -253,10 +254,10 @@ void Window::set_title(const string &title) {
     SetWindowTextW(PDATA->hWnd, tempTitle.to_utf16());
 }
 
-void Window::set_left(s32 left) { SetWindowPos(PDATA->hWnd, null, left, Top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
-void Window::set_top(s32 top) { SetWindowPos(PDATA->hWnd, null, Left, top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
-void Window::set_width(u32 width) { SetWindowPos(PDATA->hWnd, null, 0, 0, width, Height, SWP_NOZORDER | SWP_NOMOVE); }
-void Window::set_height(u32 height) { SetWindowPos(PDATA->hWnd, null, 0, 0, Width, height, SWP_NOZORDER | SWP_NOMOVE); }
+void window::set_left(s32 left) { SetWindowPos(PDATA->hWnd, null, left, Top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
+void window::set_top(s32 top) { SetWindowPos(PDATA->hWnd, null, Left, top, 0, 0, SWP_NOZORDER | SWP_NOSIZE); }
+void window::set_width(u32 width) { SetWindowPos(PDATA->hWnd, null, 0, 0, width, Height, SWP_NOZORDER | SWP_NOMOVE); }
+void window::set_height(u32 height) { SetWindowPos(PDATA->hWnd, null, 0, 0, Width, height, SWP_NOZORDER | SWP_NOMOVE); }
 
 }  // namespace le
 

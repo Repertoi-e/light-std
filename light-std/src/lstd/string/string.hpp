@@ -24,49 +24,49 @@ LSTD_BEGIN_NAMESPACE
 // is an exception since I consider it a fundamental data type.
 struct string {
    private:
-    struct Code_Point {
+    struct code_point {
         string &Parent;
         size_t Index;
 
-        Code_Point(string &parent, size_t index) : Parent(parent), Index(index) {}
+        code_point(string &parent, size_t index) : Parent(parent), Index(index) {}
 
-        Code_Point &operator=(char32_t other);
+        code_point &operator=(char32_t other);
         operator char32_t() const;
     };
 
     template <bool Mutable>
-    struct Iterator {
+    struct iterator_impl {
        private:
-        using parent_type = typename std::conditional_t<Mutable, string, const string>;
+        using parent_type = std::conditional_t<Mutable, string, const string>;
         parent_type &Parent;
         size_t Index;
 
        public:
-        Iterator(parent_type &parent, size_t index) : Parent(parent), Index(index) {}
+        iterator_impl(parent_type &parent, size_t index) : Parent(parent), Index(index) {}
 
-        Iterator &operator+=(s64 amount) {
+        iterator_impl &operator+=(s64 amount) {
             Index += amount;
             return *this;
         }
-        Iterator &operator-=(s64 amount) {
+        iterator_impl &operator-=(s64 amount) {
             Index -= amount;
             return *this;
         }
-        Iterator &operator++() { return *this += 1; }
-        Iterator &operator--() { return *this -= 1; }
-        constexpr Iterator operator++(s32) {
-            Iterator temp = *this;
+        iterator_impl &operator++() { return *this += 1; }
+        iterator_impl &operator--() { return *this -= 1; }
+        constexpr iterator_impl operator++(s32) {
+            iterator_impl temp = *this;
             ++(*this);
             return temp;
         }
 
-        constexpr Iterator operator--(s32) {
-            Iterator temp = *this;
+        constexpr iterator_impl operator--(s32) {
+            iterator_impl temp = *this;
             --(*this);
             return temp;
         }
 
-        s64 operator-(const Iterator &other) const {
+        s64 operator-(const iterator_impl &other) const {
             size_t lesser = Index, greater = other.Index;
             if (lesser > greater) {
                 lesser = other.Index;
@@ -76,21 +76,21 @@ struct string {
             return Index <= other.Index ? difference : -difference;
         }
 
-        Iterator operator+(s64 amount) const { return Iterator(Parent, Index + amount); }
-        Iterator operator-(s64 amount) const { return Iterator(Parent, Index - amount); }
+        iterator_impl operator+(s64 amount) const { return iterator_impl(Parent, Index + amount); }
+        iterator_impl operator-(s64 amount) const { return iterator_impl(Parent, Index - amount); }
 
-        friend inline Iterator operator+(s64 amount, const Iterator &it) { return it + amount; }
-        friend inline Iterator operator-(s64 amount, const Iterator &it) { return it - amount; }
+        friend iterator_impl operator+(s64 amount, const iterator_impl &it) { return it + amount; }
+        friend iterator_impl operator-(s64 amount, const iterator_impl &it) { return it - amount; }
 
-        bool operator==(const Iterator &other) const { return Index == other.Index; }
-        bool operator!=(const Iterator &other) const { return Index != other.Index; }
-        bool operator>(const Iterator &other) const { return Index > other.Index; }
-        bool operator<(const Iterator &other) const { return Index < other.Index; }
-        bool operator>=(const Iterator &other) const { return Index >= other.Index; }
-        bool operator<=(const Iterator &other) const { return Index <= other.Index; }
+        bool operator==(const iterator_impl &other) const { return Index == other.Index; }
+        bool operator!=(const iterator_impl &other) const { return Index != other.Index; }
+        bool operator>(const iterator_impl &other) const { return Index > other.Index; }
+        bool operator<(const iterator_impl &other) const { return Index < other.Index; }
+        bool operator>=(const iterator_impl &other) const { return Index >= other.Index; }
+        bool operator<=(const iterator_impl &other) const { return Index <= other.Index; }
 
         template <bool Const = !Mutable>
-        std::enable_if_t<!Const, Code_Point> operator*() {
+        std::enable_if_t<!Const, code_point> operator*() {
             return Parent.get(Index);
         }
 
@@ -103,10 +103,10 @@ struct string {
     };
 
    public:
-    using code_point = Code_Point;
+    using code_point = code_point;
 
-    using iterator = Iterator<true>;
-    using const_iterator = Iterator<false>;
+    using iterator = iterator_impl<true>;
+    using const_iterator = iterator_impl<false>;
 
     static constexpr size_t SMALL_STRING_BUFFER_SIZE = 8;
     // This implementation uses a small stack allocated buffer
@@ -136,21 +136,14 @@ struct string {
 
     // The allocator used for expanding the string.
     // This value is null until this object allocates memory or the user sets it manually.
-    mutable Allocator_Closure Allocator;
+    mutable allocator_closure Allocator;
 
     string() {}
-    // Construct from a null-terminated c-style string.
-    string(const byte *str);
-    // Construct from a c-style string and a size (in code units, not code points)
-    string(const byte *str, size_t size);
-    // Construct from a null-terminated c-style string.
-    string(const char *str) : string((const byte *) str) {}
-    // Construct from a c-style string and a size (in code units, not code points)
-    string(const char *str, size_t size) : string((const byte *) str, size) {}
-    explicit string(const string_view &view);
-
     // Create a string with an initial size reserved
     string(size_t size);
+    string(const memory_view &memory);
+    string(const byte *str) : string(memory_view(str)) {}
+    string(const byte *str, size_t size) : string(memory_view(str, size)) {}
 
     string(const string &other);
     string(string &&other);
@@ -183,15 +176,10 @@ struct string {
     void insert(s64 index, char32_t codePoint);
 
     // Insert a string at a specified index
-    void insert(s64 index, const string_view &view);
-    void insert(s64 index, const Memory_View &view);
-
-    void insert_cstring(s64 index, const byte *str);
-    void insert_cstring(s64 index, const char *str);
+    void insert(s64 index, const memory_view &memory);
 
     // Insert [begin, end) bytes at a specified index
     void insert_pointer_and_size(s64 index, const byte *begin, size_t size);
-    void insert_pointer_and_size(s64 index, const char *begin, size_t size);
 
     // Removes code point at specified index
     void remove(s64 index);
@@ -210,81 +198,64 @@ struct string {
     //    destroyed, then the returned string will be pointing to
     //      invalid memory. Copy the returned string explicitly if
     //      you intend to use it longer than this string.
-    const string_view substring(s64 begin, s64 end) const { return get_view().substring(begin, end); }
+    string_view substring(s64 begin, s64 end) const { return get_view().substring(begin, end); }
 
     // Find the first occurence of a code point that is after a specified index
-    inline size_t find(char32_t cp, s64 start = 0) const { return get_view().find(cp, start); }
+    size_t find(char32_t cp, s64 start = 0) const { return get_view().find(cp, start); }
 
     // Find the first occurence of a substring that is after a specified index
-    inline size_t find(const string_view &other, s64 start = 0) const { return get_view().find(other, start); }
+    size_t find(const string_view &other, s64 start = 0) const { return get_view().find(other, start); }
 
     // Find the last occurence of a code point that is before a specified index
-    inline size_t find_reverse(char32_t cp, s64 start = 0) const { return get_view().find_reverse(cp, start); }
+    size_t find_reverse(char32_t cp, s64 start = 0) const { return get_view().find_reverse(cp, start); }
 
     // Find the last occurence of a substring that is before a specified index
-    inline size_t find_reverse(const string_view &other, s64 start = 0) const {
-        return get_view().find_reverse(other, start);
-    }
+    size_t find_reverse(const string_view &other, s64 start = 0) const { return get_view().find_reverse(other, start); }
 
     // Find the first occurence of any code point in the specified view that is after a specified index
-    inline size_t find_any_of(const string_view &cps, s64 start = 0) const {
-        return get_view().find_any_of(cps, start);
-    }
+    size_t find_any_of(const string_view &cps, s64 start = 0) const { return get_view().find_any_of(cps, start); }
 
     // Find the last occurence of any code point in the specified view
     // that is before a specified index (0 means: start from the end)
-    inline size_t find_reverse_any_of(const string_view &cps, s64 start = 0) const {
+    size_t find_reverse_any_of(const string_view &cps, s64 start = 0) const {
         return get_view().find_reverse_any_of(cps, start);
     }
 
     // Find the first absence of a code point that is after a specified index
-    inline size_t find_not(char32_t cp, s64 start = 0) const { return get_view().find_not(cp, start); }
+    size_t find_not(char32_t cp, s64 start = 0) const { return get_view().find_not(cp, start); }
 
     // Find the last absence of a code point that is before the specified index
-    inline size_t find_reverse_not(char32_t cp, s64 start = 0) const { return get_view().find_reverse_not(cp, start); }
+    size_t find_reverse_not(char32_t cp, s64 start = 0) const { return get_view().find_reverse_not(cp, start); }
 
     // Find the first absence of any code point in the specified view that is after a specified index
-    inline size_t find_not_any_of(const string_view &cps, s64 start = 0) const {
+    size_t find_not_any_of(const string_view &cps, s64 start = 0) const {
         return get_view().find_not_any_of(cps, start);
     }
 
     // Find the first absence of any code point in the specified view that is after a specified index
-    inline size_t find_reverse_not_any_of(const string_view &cps, s64 start = 0) const {
+    size_t find_reverse_not_any_of(const string_view &cps, s64 start = 0) const {
         return get_view().find_reverse_not_any_of(cps, start);
     }
 
     bool has(char32_t ch) const { return find(ch) != npos; }
     bool has(const string_view &view) const { return find(view) != npos; }
 
-    size_t count(char32_t cp) { return get_view().count(cp); }
-    size_t count(const string_view &view) { return get_view().count(view); }
-
-    // Append one string to another
-    void append(const string_view &other);
-
-    // Append one string to another
-    void append(const string &other);
+    size_t count(char32_t cp) const { return get_view().count(cp); }
+    size_t count(const string_view &view) const { return get_view().count(view); }
 
     // Append a non encoded character to a string
     void append(char32_t codePoint);
 
-    // Append a null terminated utf-8 c-style string to a string.
-    // If the cstyle string is not a valid utf-8 string the
-    // modified string is will also not be valid.
-    void append_cstring(const byte *other);
-    void append_cstring(const char *other) { append_cstring((const byte *) other); }
+    // Append one string to another
+    void append(const memory_view &memory);
 
     // Append _size_ bytes of string contained in _data_
     void append_pointer_and_size(const byte *data, size_t size);
-    void append_pointer_and_size(const char *data, size_t size) { append_pointer_and_size((const byte *) data, size); }
 
     // Compares the string to _other_ lexicographically.
     // The result is less than 0 if this string sorts before the other,
     // 0 if they are equal, and greater than 0 otherwise.
-    s32 compare(const string &other) const { return get_view().compare(other.get_view()); }
     s32 compare(const string_view &other) const { return get_view().compare(other); }
-
-    s32 compare_ignore_case(const string &other) const { return get_view().compare_ignore_case(other.get_view()); }
     s32 compare_ignore_case(const string_view &other) const { return get_view().compare_ignore_case(other); }
 
     string_view get_view() const {
@@ -303,36 +274,12 @@ struct string {
     const_iterator end() const;
 
     // Check two strings for equality
-    bool operator==(const string &other) const { return compare(other) == 0; }
-    bool operator!=(const string &other) const { return !(*this == other); }
-    bool operator<(const string &other) const { return compare(other) < 0; }
-    bool operator>(const string &other) const { return compare(other) > 0; }
-    bool operator<=(const string &other) const { return !(*this > other); }
-    bool operator>=(const string &other) const { return !(*this < other); }
-
-    string operator+(const string_view &other) const {
-        string result = *this;
-        result.append(other);
-        return result;
-    }
-
-    string operator+(const string &other) const {
-        string result = *this;
-        result.append(other);
-        return result;
-    }
-
-    string operator+(const byte *other) const {
-        string result = *this;
-        result.append_cstring(other);
-        return result;
-    }
-
-    string operator+(const char *other) const {
-        string result = *this;
-        result.append_cstring(other);
-        return result;
-    }
+    bool operator==(const string_view &other) const { return compare(other) == 0; }
+    bool operator!=(const string_view &other) const { return !(*this == other); }
+    bool operator<(const string_view &other) const { return compare(other) < 0; }
+    bool operator>(const string_view &other) const { return compare(other) > 0; }
+    bool operator<=(const string_view &other) const { return !(*this > other); }
+    bool operator>=(const string_view &other) const { return !(*this < other); }
 
     string operator+(char32_t codePoint) const {
         string result = *this;
@@ -340,20 +287,25 @@ struct string {
         return result;
     }
 
-    string &operator+=(const string &other) {
-        append(other);
-        return *this;
+    string operator+(const memory_view &memory) const {
+        string result = *this;
+        result.append(memory);
+        return result;
     }
 
-    string &operator+=(const byte *other) {
-        append_cstring(other);
-        return *this;
-    }
+    string operator+(const byte *str) const { return *this + memory_view(str); }
 
     string &operator+=(char32_t codePoint) {
         append(codePoint);
         return *this;
     }
+
+    string &operator+=(const memory_view &memory) {
+        append(memory);
+        return *this;
+    }
+
+    string &operator+=(const byte *str) { return *this += memory_view(str); }
 
     string operator*(size_t n) { return repeated(n); }
 
@@ -389,14 +341,14 @@ struct string {
     string_view trim_end() const { return get_view().trim_end(); }
 
     string removed_all(char32_t ch) const;
-    string removed_all(const string_view &str) const;
+    string removed_all(const string_view &view) const;
     string replaced_all(char32_t oldCh, char32_t newCh) const;
-    string replaced_all(const string_view &oldStr, const string_view &newStr) const;
+    string replaced_all(const string_view &oldView, const string_view &newView) const;
 
     // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
     // The string returned is allocated by this object's allcoator and must be freed by the caller
     wchar_t *to_utf16() const;
-    void to_utf16(wchar_t *out) { return get_view().to_utf16(out); }
+    void to_utf16(wchar_t *out) const { return get_view().to_utf16(out); }
 
     // Converts a null-terminated wide char string to utf-8 and stores it to this string
     void from_utf16(const wchar_t *str, bool overwrite = true);
@@ -410,15 +362,22 @@ struct string {
     void from_utf32(const char32_t *str, bool overwrite = true);
 
     bool begins_with(char32_t ch) const { return get_view().begins_with(ch); }
-    bool begins_with(const string_view &other) const { return get_view().begins_with(other); }
+    bool begins_with(const memory_view &other) const { return get_view().begins_with(other); }
 
     bool ends_with(char32_t ch) const { return get_view().ends_with(ch); }
-    bool ends_with(const string_view &other) { return get_view().ends_with(other); }
+    bool ends_with(const memory_view &other) const { return get_view().ends_with(other); }
 
+    string &operator=(const memory_view &memory);
     string &operator=(const string &other);
     string &operator=(string &&other);
 
     operator string_view() const { return get_view(); }
+    operator memory_view() const {
+        memory_view view;
+        view.Data = Data;
+        view.ByteLength = ByteLength;
+        return view;
+    }
 
     // Read/write [] operator
     code_point operator[](s64 index);
@@ -431,24 +390,13 @@ struct string {
     string_view operator()(s64 begin, s64 end) const;
 };
 
-constexpr size_t a = sizeof(string);
-
-inline string operator+(const string_view &one, const string &other) { return string(one) + other; }
 inline string operator+(const byte *one, const string &other) { return string(one) + other; }
-inline string operator+(const char *one, const string &other) { return string(one) + other; }
 
-inline bool operator==(const byte *one, const string &other) { return other.compare(string_view(one)) == 0; }
-inline bool operator!=(const byte *one, const string &other) { return !(one == other); }
-inline bool operator<(const byte *one, const string &other) { return other.compare(string_view(one)) > 0; }
-inline bool operator>(const byte *one, const string &other) { return other.compare(string_view(one)) < 0; }
-inline bool operator<=(const byte *one, const string &other) { return !(one > other); }
-inline bool operator>=(const byte *one, const string &other) { return !(one < other); }
-
-inline bool operator==(const char *one, const string &other) { return other.compare(string_view(one)) == 0; }
-inline bool operator!=(const char *one, const string &other) { return !(one == other); }
-inline bool operator<(const char *one, const string &other) { return other.compare(string_view(one)) > 0; }
-inline bool operator>(const char *one, const string &other) { return other.compare(string_view(one)) < 0; }
-inline bool operator<=(const char *one, const string &other) { return !(one > other); }
-inline bool operator>=(const char *one, const string &other) { return !(one < other); }
+inline bool operator==(const byte *one, const string &other) { return string_view(one) == other; }
+inline bool operator!=(const byte *one, const string &other) { return string_view(one) == other; }
+inline bool operator>(const byte *one, const string &other) { return string_view(one) > other; }
+inline bool operator>=(const byte *one, const string &other) { return string_view(one) >= other; }
+inline bool operator<(const byte *one, const string &other) { return string_view(one) < other; }
+inline bool operator<=(const byte *one, const string &other) { return string_view(one) <= other; }
 
 LSTD_END_NAMESPACE

@@ -2,29 +2,30 @@
 
 #if OS == WINDOWS
 
-#include "lstd/io.hpp"
-
+#define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+
+#include "lstd/io.hpp"
 
 LSTD_BEGIN_NAMESPACE
 
 void *os_memory_alloc(void *context, size_t size, size_t *outsize) { return HeapAlloc(GetProcessHeap(), 0, size); }
 void os_memory_free(void *context, void *ptr) { HeapFree(GetProcessHeap(), 0, ptr); }
 
-void *os_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, uptr_t) {
+void *os_allocator(allocator_mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, uptr_t) {
     switch (mode) {
-        case Allocator_Mode::ALLOCATE: {
-            void *data = os_memory_alloc(0, size, 0);
+        case allocator_mode::ALLOCATE: {
+            void *data = os_memory_alloc(null, size, null);
             zero_memory(data, size);
             return data;
         }
-        case Allocator_Mode::RESIZE:
+        case allocator_mode::RESIZE:
             return HeapReAlloc(GetProcessHeap(), 0, oldMemory, size);
-        case Allocator_Mode::FREE:
-            os_memory_free(0, oldMemory);
+        case allocator_mode::FREE:
+            os_memory_free(null, oldMemory);
             return null;
-        case Allocator_Mode::FREE_ALL:
+        case allocator_mode::FREE_ALL:
             assert(false);
             return null;
     }
@@ -32,11 +33,11 @@ void *os_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory
 }
 
 #if !defined LSTD_NO_CRT
-void os_exit_program(int code) { exit(code); }
+void os_exit_program(s32 code) { exit(code); }
 #endif
 
-void os_assert_failed(const char *file, s32 line, const char *condition) {
-    fmt::print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::FG::Red, file, line, condition, fmt::FG::Reset);
+void os_assert_failed(const byte *file, s32 line, const byte *condition) {
+    print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::fg::Red, file, line, condition, fmt::fg::Reset);
 #if COMPILER == MSVC && !defined LSTD_NO_CRT
     __debugbreak();
 #else
@@ -50,20 +51,20 @@ void os_assert_failed(const char *file, s32 line, const char *condition) {
 byte g_CoutBuffer[CONSOLE_BUFFER_SIZE];
 byte g_CerrBuffer[CONSOLE_BUFFER_SIZE];
 
-io::Console_Writer::Console_Writer() {
+io::console_writer::console_writer() {
     Buffer = Current = g_CoutBuffer;
     Available = CONSOLE_BUFFER_SIZE;
 
-    write_function = console_writer_write;
-    flush_function = console_writer_flush;
+    WriteFunction = console_writer_write;
+    FlushFunction = console_writer_flush;
 }
 
-io::Console_Writer::Console_Writer(bool cerr) : Console_Writer() {
-    Err = cerr;
+io::console_writer::console_writer(bool cerr) : console_writer() {
+    _Err = cerr;
     if (cerr) Buffer = Current = g_CerrBuffer;
 }
 
-static void console_writer_write_wrapper(io::Console_Writer *writer, const Memory_View &writeData) {
+static void console_writer_write_wrapper(io::console_writer *writer, const memory_view &writeData) {
     if (writeData.ByteLength > writer->Available) {
         writer->flush();
     }
@@ -73,13 +74,13 @@ static void console_writer_write_wrapper(io::Console_Writer *writer, const Memor
     writer->Available -= writeData.ByteLength;
 }
 
-void io::console_writer_write(void *data, const Memory_View &writeData) {
-    auto *writer = (Console_Writer *) data;
+void io::console_writer_write(void *data, const memory_view &writeData) {
+    auto *writer = (console_writer *) data;
 
-    if (!writer->Mutex) writer->Mutex = new thread::Recursive_Mutex;
+    if (!writer->_Mutex) writer->_Mutex = new (MALLOC) thread::recursive_mutex;
 
     if (writer->LockMutex) {
-        thread::Scoped_Lock<thread::Recursive_Mutex> _(*writer->Mutex);
+        thread::scoped_lock<thread::recursive_mutex> _(*writer->_Mutex);
         console_writer_write_wrapper(writer, writeData);
     } else {
         console_writer_write_wrapper(writer, writeData);
@@ -106,7 +107,7 @@ static void allocate_console() {
     }
 }
 
-static void console_writer_flush_wrapper(io::Console_Writer *writer, bool cerr) {
+static void console_writer_flush_wrapper(io::console_writer *writer, bool cerr) {
     if (!g_CoutHandle) {
         allocate_console();
 
@@ -138,21 +139,21 @@ static void console_writer_flush_wrapper(io::Console_Writer *writer, bool cerr) 
 }
 
 void io::console_writer_flush(void *data) {
-    auto *writer = (Console_Writer *) data;
+    auto *writer = (console_writer *) data;
 
-    if (!writer->Mutex) writer->Mutex = new thread::Recursive_Mutex;
+    if (!writer->_Mutex) writer->_Mutex = new (MALLOC) thread::recursive_mutex;
 
     if (writer->LockMutex) {
-        thread::Scoped_Lock<thread::Recursive_Mutex> _(*writer->Mutex);
-        console_writer_flush_wrapper(writer, writer->Err);
+        thread::scoped_lock<thread::recursive_mutex> _(*writer->_Mutex);
+        console_writer_flush_wrapper(writer, writer->_Err);
     } else {
-        console_writer_flush_wrapper(writer, writer->Err);
+        console_writer_flush_wrapper(writer, writer->_Err);
     }
 }
 
 byte g_CinBuffer[CONSOLE_BUFFER_SIZE];
 
-io::Console_Reader::Console_Reader() {
+io::console_reader::console_reader() {
     Buffer = g_CinBuffer;
     Current = Buffer;
 
@@ -161,7 +162,7 @@ io::Console_Reader::Console_Reader() {
 
 static HANDLE g_CinHandle = null;
 
-static byte console_reader_wrapper(io::Console_Reader *reader) {
+static byte console_reader_wrapper(io::console_reader *reader) {
     if (!g_CinHandle) {
         allocate_console();
         g_CinHandle = GetStdHandle(STD_INPUT_HANDLE);
@@ -169,7 +170,7 @@ static byte console_reader_wrapper(io::Console_Reader *reader) {
     assert(reader->Available == 0);  // Sanity
 
     DWORD read;
-    ReadFile(g_CinHandle, (char *) reader->Buffer, (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
+    ReadFile(g_CinHandle, const_cast<byte *>(reader->Buffer), (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
 
     reader->Current = reader->Buffer;
     reader->Available = read;
@@ -178,14 +179,14 @@ static byte console_reader_wrapper(io::Console_Reader *reader) {
 }
 
 byte io::console_reader_request_byte(void *data) {
-    auto *reader = (io::Console_Reader *) data;
+    auto *reader = (console_reader *) data;
 
-    if (!reader->Mutex) {
-        reader->Mutex = new thread::Mutex;
+    if (!reader->_Mutex) {
+        reader->_Mutex = new (MALLOC) thread::mutex;
     }
 
     if (reader->LockMutex) {
-        thread::Scoped_Lock<thread::Mutex> _(*reader->Mutex);
+        thread::scoped_lock<thread::mutex> _(*reader->_Mutex);
         return console_reader_wrapper(reader);
     } else {
         return console_reader_wrapper(reader);

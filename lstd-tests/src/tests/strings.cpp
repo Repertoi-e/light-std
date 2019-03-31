@@ -66,7 +66,7 @@ TEST(insert_and_remove) {
 
     a.insert(3, "lo");
     assert_eq(a, "Hello");
-    
+
     a.insert(0, "Hello ");
     assert_eq(a, "Hello Hello");
 
@@ -168,7 +168,7 @@ TEST(concat) {
     {
         string result = "Hello";
         result.append_pointer_and_size(",THIS IS GARBAGE", 1);
-        result.append_cstring(" world!");
+        result.append(" world!");
 
         assert_eq(result, "Hello, world!");
     }
@@ -203,8 +203,8 @@ TEST(count) {
 }
 
 TEST(string_builder) {
-    String_Builder builder;
-    builder.append_cstring("Hello");
+    string_builder builder;
+    builder.append("Hello");
     builder.append_pointer_and_size(",THIS IS GARBAGE", 1);
     builder.append(string(" world"));
     builder.append('!');
@@ -310,5 +310,4 @@ TEST(find) {
     assert_eq(a.Length - 1, a.find_reverse_any_of("CdB"));
 
     assert_eq(npos, a.find_any_of("QRT"));
-
 }

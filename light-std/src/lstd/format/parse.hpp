@@ -9,7 +9,7 @@ LSTD_BEGIN_NAMESPACE
 namespace fmt {
 
 template <typename T>
-constexpr std::enable_if_t<std::is_integral_v<T>, std::pair<T, bool>> parse_int(const byte *&it, u32 base = 0) {
+constexpr std::enable_if_t<std::is_integral_v<T>, std::pair<T, bool>> parse_int(const byte *&it, s32 base = 0) {
     // Skip white space
     while (is_space(*it)) {
         ++it;
@@ -49,7 +49,7 @@ constexpr std::enable_if_t<std::is_integral_v<T>, std::pair<T, bool>> parse_int(
         if (is_digit(ch)) {
             ch -= '0';
         } else if (is_alpha(ch)) {
-            ch -= to_upper(ch) == ch ? 'A' - 10 : 'a' - 10;
+            ch -= to_upper(ch) == (u32) ch ? 'A' - 10 : 'a' - 10;
         } else {
             break;
         }
@@ -74,7 +74,7 @@ constexpr std::enable_if_t<std::is_integral_v<T>, std::pair<T, bool>> parse_int(
     }
 }
 
-enum class Parsing_Error_Code {
+enum class parsing_error_code {
     NONE = 0,
     SPEC_NEEDS_NUMERIC_ARG, /*Format specifier requires numeric argument*/
     SPEC_NEEDS_SIGNED_ARG,  /*Format specifier requires signed argument*/
@@ -85,25 +85,24 @@ enum class Parsing_Error_Code {
     INVALID_FILL_CHAR_CURLY /*Invalid fill character '{' */
 };
 
-constexpr string_view get_message_from_parsing_error_code(Parsing_Error_Code errorCode) {
+constexpr string_view get_message_from_parsing_error_code(parsing_error_code errorCode) {
     switch (errorCode) {
-        case Parsing_Error_Code::NONE:
+        case parsing_error_code::NONE:
             return "";  // No error
-        case Parsing_Error_Code::SPEC_NEEDS_NUMERIC_ARG:
+        case parsing_error_code::SPEC_NEEDS_NUMERIC_ARG:
             return "Format specifier requires numeric argument";
-        case Parsing_Error_Code::SPEC_NEEDS_SIGNED_ARG:
+        case parsing_error_code::SPEC_NEEDS_SIGNED_ARG:
             return "Format specifier requires signed argument";
-        case Parsing_Error_Code::INVALID_FORMAT_STRING:
+        case parsing_error_code::INVALID_FORMAT_STRING:
             return "Invalid format string";
-        case Parsing_Error_Code::MISSING_PRECISION_SPEC:
+        case parsing_error_code::MISSING_PRECISION_SPEC:
             return "Missing precision specifier";
-        case Parsing_Error_Code::PRECISION_NOT_ALLOWED:
+        case parsing_error_code::PRECISION_NOT_ALLOWED:
             return "Precision not allowed for this argument type";
-        case Parsing_Error_Code::INVALID_TYPE_SPEC:
+        case parsing_error_code::INVALID_TYPE_SPEC:
             return "Invalid type specifier";
-        case Parsing_Error_Code::INVALID_FILL_CHAR_CURLY:
+        case parsing_error_code::INVALID_FILL_CHAR_CURLY:
             return "Invalid fill character \"{\"";
-            break;
         default:
             assert(false && "Not handling every error");
             return "";
@@ -134,124 +133,124 @@ constexpr u32 parse_nonnegative_int(const byte *&it) {
 }
 
 template <typename IDHandler>
-constexpr Parsing_Error_Code parse_arg_id(const byte *&it, IDHandler &&handler) {
+constexpr parsing_error_code parse_arg_id(const byte *&it, IDHandler &&handler) {
     byte c = *it;
     if (c == '}' || c == ':') {
         handler();
-        return Parsing_Error_Code::NONE;
+        return parsing_error_code::NONE;
     }
     if (is_digit(c)) {
         assert(is_digit(*it));
         auto [index, success] = parse_int<u32>(it, 10);
         assert(success);
         if (*it != '}' && *it != ':') {
-            return Parsing_Error_Code::INVALID_FORMAT_STRING;
+            return parsing_error_code::INVALID_FORMAT_STRING;
         }
         handler(index);
-        return Parsing_Error_Code::NONE;
+        return parsing_error_code::NONE;
     }
     if (!is_identifier_start(c)) {
-        return Parsing_Error_Code::INVALID_FORMAT_STRING;
+        return parsing_error_code::INVALID_FORMAT_STRING;
     }
     auto start = it;
     do {
         c = *++it;
     } while (is_identifier_start(c) || is_digit(c));
     handler(string_view(start, (size_t)(it - start)));
-    return Parsing_Error_Code::NONE;
+    return parsing_error_code::NONE;
 }
 
 // IDHandler API for dynamic width.
-struct Width_Adapter {
-    Dynamic_Format_Specs &Specs;
-    Parse_Context &ParseContext;
+struct width_adapter {
+    dynamic_format_specs &Specs;
+    parse_context &ParseContext;
 
-    explicit constexpr Width_Adapter(Dynamic_Format_Specs &specs, Parse_Context &parseContext)
+    explicit constexpr width_adapter(dynamic_format_specs &specs, parse_context &parseContext)
         : Specs(specs), ParseContext(parseContext) {}
 
-    constexpr void operator()() { Specs.WidthRef = Argument_Ref(ParseContext.next_arg_id()); }
-    constexpr void operator()(u32 id) { Specs.WidthRef = Argument_Ref(id); }
-    constexpr void operator()(const string_view &id) { Specs.WidthRef = Argument_Ref(id); }
+    constexpr void operator()() const { Specs.WidthRef = argument_ref(ParseContext.next_arg_id()); }
+    constexpr void operator()(u32 id) const { Specs.WidthRef = argument_ref(id); }
+    constexpr void operator()(const string_view &id) const { Specs.WidthRef = argument_ref(id); }
 };
 
 // IDHandler API for dynamic precision.
-struct Precision_Adapter {
-    Dynamic_Format_Specs &Specs;
-    Parse_Context &ParseContext;
+struct precision_adapter {
+    dynamic_format_specs &Specs;
+    parse_context &ParseContext;
 
-    explicit constexpr Precision_Adapter(Dynamic_Format_Specs &specs, Parse_Context &parseContext)
+    explicit constexpr precision_adapter(dynamic_format_specs &specs, parse_context &parseContext)
         : Specs(specs), ParseContext(parseContext) {}
 
-    constexpr void operator()() { Specs.PrecisionRef = Argument_Ref(ParseContext.next_arg_id()); }
-    constexpr void operator()(u32 id) { Specs.PrecisionRef = Argument_Ref(id); }
-    constexpr void operator()(const string_view &id) { Specs.PrecisionRef = Argument_Ref(id); }
+    constexpr void operator()() const { Specs.PrecisionRef = argument_ref(ParseContext.next_arg_id()); }
+    constexpr void operator()(u32 id) const { Specs.PrecisionRef = argument_ref(id); }
+    constexpr void operator()(const string_view &id) const { Specs.PrecisionRef = argument_ref(id); }
 };
 
 // IDHandler API for arguments.
-struct ID_Adapter {
-    Format_Context &Context;
-    Argument &ArgRef;
+struct id_adapter {
+    format_context &Context;
+    argument &ArgRef;
 
-    constexpr ID_Adapter(Format_Context &context, Argument &argRef) : Context(context), ArgRef(argRef) {}
+    constexpr id_adapter(format_context &context, argument &argRef) : Context(context), ArgRef(argRef) {}
 
-    void operator()() { ArgRef = Context.next_arg(); }
-    void operator()(u32 id) {
+    void operator()() const { ArgRef = Context.next_arg(); }
+    void operator()(u32 id) const {
         Context.ParseContext.check_arg_id(id);
         ArgRef = Context.get_arg(id);
     }
-    void operator()(const string_view &id) { ArgRef = Context.get_arg(id); }
+    void operator()(const string_view &id) const { ArgRef = Context.get_arg(id); }
 };
 
-struct Dynamic_Width_Handler {
+struct dynamic_width_handler {
     u32 &WidthRef;
 
-    Dynamic_Width_Handler(u32 &widthRef) : WidthRef(widthRef) {}
+    dynamic_width_handler(u32 &widthRef) : WidthRef(widthRef) {}
 
-    void operator()(Format_Context &f, s64 value) {
+    void operator()(format_context &f, s64 value) const {
         if (value >= 0) {
             WidthRef = (u32) value;
         } else {
-            f.Out.append_cstring("{Unexpected negative integer with dynamic width}");
+            f.Out.append("{Unexpected negative integer with dynamic width}");
         }
     }
-    void on_error(Format_Context &f) { f.Out.append_cstring("{Dynamic width is not an integer}"); }
+    void on_error(format_context &f) const { f.Out.append("{Dynamic width is not an integer}"); }
 };
 
-struct Dynamic_Precision_Handler {
+struct dynamic_precision_handler {
     s32 &PrecisionRef;
 
-    Dynamic_Precision_Handler(s32 &precisionRef) : PrecisionRef(precisionRef) {}
+    dynamic_precision_handler(s32 &precisionRef) : PrecisionRef(precisionRef) {}
 
-    void operator()(Format_Context &f, s64 value) {
+    void operator()(format_context &f, s64 value) const {
         if (value >= 0) {
             PrecisionRef = (s32) value;
         } else {
-            f.Out.append_cstring("{Unexpected negative integer with dynamic precision}");
+            f.Out.append("{Unexpected negative integer with dynamic precision}");
         }
     }
-    void on_error(Format_Context &f) { f.Out.append_cstring("{Dynamic precision is not an integer}"); }
+    void on_error(format_context &f) const { f.Out.append("{Dynamic precision is not an integer}"); }
 };
 
 template <typename Handler>
-void handle_dynamic_field(Format_Context &f, const Argument_Ref &ref, Handler &&handler) {
-    if (ref.Kind != Argument_Ref::Kind::NONE) {
-        auto arg = ref.Kind == Argument_Ref::Kind::INDEX ? f.do_get_arg(ref.Index) : f.get_arg(ref.Name);
+void handle_dynamic_field(format_context &f, const argument_ref &ref, Handler &&handler) {
+    if (ref.Kind != argument_ref::kind::NONE) {
+        auto arg = ref.Kind == argument_ref::kind::INDEX ? f.do_get_arg(ref.Index) : f.get_arg(ref.Name);
 
         s64 value = 0;
         switch (arg.Type) {
-            case Format_Type::S32:
+            case format_type::S32:
                 value = (s64) arg.Value.S32_Value;
                 break;
-            case Format_Type::U32:
+            case format_type::U32:
                 value = (s64) arg.Value.U32_Value;
                 break;
-            case Format_Type::S64:
+            case format_type::S64:
                 value = (s64) arg.Value.S64_Value;
                 break;
-            case Format_Type::U64:
+            case format_type::U64:
                 value = (s64) arg.Value.U64_Value;
                 break;
-            case Format_Type::BOOL:
+            case format_type::BOOL:
                 value = (s64) arg.Value.S32_Value != 0;
                 break;
             default:
@@ -265,39 +264,39 @@ void handle_dynamic_field(Format_Context &f, const Argument_Ref &ref, Handler &&
 }  // namespace internal
 
 // Parses default type specs and advances parse iterator.
-inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Context &f) {
+inline parsing_error_code parse_and_validate_specs(format_type type, format_context &f) {
     auto &it = f.ParseContext.It;
     auto &specs = f.ParseContext.Specs;
 
     char32_t c = *it;
-    if (it == (byte *) f.ParseContext.FormatString.end().to_pointer() || c == '}') {
-        return Parsing_Error_Code::NONE;
+    if (it == f.ParseContext.FormatString.end().to_pointer() || c == '}') {
+        return parsing_error_code::NONE;
     }
 
     // Parse fill and alignment.
-    Alignment align = Alignment::DEFAULT;
+    alignment align = alignment::DEFAULT;
     s32 i = 1;
     do {
         auto p = it + i;
         switch (*p) {
             case '<':
-                align = Alignment::LEFT;
+                align = alignment::LEFT;
                 break;
             case '>':
-                align = Alignment::RIGHT;
+                align = alignment::RIGHT;
                 break;
             case '=':
-                if (!is_type_arithmetic(type)) return Parsing_Error_Code::SPEC_NEEDS_NUMERIC_ARG;
-                align = Alignment::NUMERIC;
+                if (!is_type_arithmetic(type)) return parsing_error_code::SPEC_NEEDS_NUMERIC_ARG;
+                align = alignment::NUMERIC;
                 break;
             case '^':
-                align = Alignment::CENTER;
+                align = alignment::CENTER;
                 break;
         }
-        if (align != Alignment::DEFAULT) {
+        if (align != alignment::DEFAULT) {
             if (p != it) {
                 if (c == '{') {
-                    return Parsing_Error_Code::INVALID_FILL_CHAR_CURLY;
+                    return parsing_error_code::INVALID_FILL_CHAR_CURLY;
                 }
                 it += 2;
                 specs.Fill = c;
@@ -312,37 +311,37 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
     // Parse sign.
     if (*it == '+' || *it == '-' || *it == ' ') {
         if (!is_type_arithmetic(type)) {
-            return Parsing_Error_Code::SPEC_NEEDS_NUMERIC_ARG;
+            return parsing_error_code::SPEC_NEEDS_NUMERIC_ARG;
         }
-        if (is_type_integral(type) && type != Format_Type::S32 && type != Format_Type::S64) {
-            return Parsing_Error_Code::SPEC_NEEDS_SIGNED_ARG;
+        if (is_type_integral(type) && type != format_type::S32 && type != format_type::S64) {
+            return parsing_error_code::SPEC_NEEDS_SIGNED_ARG;
         }
     }
     switch (*it) {
         case '+':
-            specs.Flags |= Flag::SIGN | Flag::PLUS;
+            specs.Flags |= flag::SIGN | flag::PLUS;
             ++it;
             break;
         case '-':
-            specs.Flags |= Flag::MINUS;
+            specs.Flags |= flag::MINUS;
             ++it;
             break;
         case ' ':
-            specs.Flags |= Flag::SIGN;
+            specs.Flags |= flag::SIGN;
             ++it;
             break;
     }
 
     if (*it == '#') {
-        if (!is_type_arithmetic(type)) return Parsing_Error_Code::SPEC_NEEDS_NUMERIC_ARG;
-        specs.Flags |= Flag::HASH;
+        if (!is_type_arithmetic(type)) return parsing_error_code::SPEC_NEEDS_NUMERIC_ARG;
+        specs.Flags |= flag::HASH;
         ++it;
     }
 
     // Parse zero flag.
     if (*it == '0') {
-        if (!is_type_arithmetic(type)) return Parsing_Error_Code::SPEC_NEEDS_NUMERIC_ARG;
-        specs.Align = Alignment::NUMERIC;
+        if (!is_type_arithmetic(type)) return parsing_error_code::SPEC_NEEDS_NUMERIC_ARG;
+        specs.Align = alignment::NUMERIC;
         specs.Fill = '0';
         ++it;
     }
@@ -351,9 +350,9 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
     if (is_digit(*it)) {
         specs.Width = internal::parse_nonnegative_int(it);
     } else if (*it == '{') {
-        auto error = internal::parse_arg_id(++it, internal::Width_Adapter(specs, f.ParseContext));
-        if (error == Parsing_Error_Code::INVALID_FORMAT_STRING || *it++ != '}') {
-            return Parsing_Error_Code::INVALID_FORMAT_STRING;
+        auto error = parse_arg_id(++it, internal::width_adapter(specs, f.ParseContext));
+        if (error == parsing_error_code::INVALID_FORMAT_STRING || *it++ != '}') {
+            return parsing_error_code::INVALID_FORMAT_STRING;
         }
     }
 
@@ -363,15 +362,15 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
         if (is_digit(*it)) {
             specs.Precision = internal::parse_nonnegative_int(it);
         } else if (*it == '{') {
-            auto error = internal::parse_arg_id(++it, internal::Precision_Adapter(specs, f.ParseContext));
-            if (error == Parsing_Error_Code::INVALID_FORMAT_STRING || *it++ != '}') {
-                return Parsing_Error_Code::INVALID_FORMAT_STRING;
+            auto error = parse_arg_id(++it, internal::precision_adapter(specs, f.ParseContext));
+            if (error == parsing_error_code::INVALID_FORMAT_STRING || *it++ != '}') {
+                return parsing_error_code::INVALID_FORMAT_STRING;
             }
         } else {
-            return Parsing_Error_Code::MISSING_PRECISION_SPEC;
+            return parsing_error_code::MISSING_PRECISION_SPEC;
         }
-        if (is_type_integral(type) || type == Format_Type::POINTER) {
-            return Parsing_Error_Code::MISSING_PRECISION_SPEC;
+        if (is_type_integral(type) || type == format_type::POINTER) {
+            return parsing_error_code::MISSING_PRECISION_SPEC;
         }
     }
 
@@ -381,63 +380,63 @@ inline Parsing_Error_Code parse_and_validate_specs(Format_Type type, Format_Cont
     }
 
     // Handle dynamic fields
-    internal::handle_dynamic_field(f, specs.WidthRef, internal::Dynamic_Width_Handler(specs.Width));
-    internal::handle_dynamic_field(f, specs.PrecisionRef, internal::Dynamic_Precision_Handler(specs.Precision));
+    handle_dynamic_field(f, specs.WidthRef, internal::dynamic_width_handler(specs.Width));
+    handle_dynamic_field(f, specs.PrecisionRef, internal::dynamic_precision_handler(specs.Precision));
 
     // Validate printf-like types
     auto typeSpec = specs.Type;
     if (!typeSpec) {
         // There is nothing to check
-        return Parsing_Error_Code::NONE;
+        return parsing_error_code::NONE;
     }
 
     switch (type) {
-        case Format_Type::NONE:
-        case Format_Type::NAMED_ARGUMENT:
+        case format_type::NONE:
+        case format_type::NAMED_ARGUMENT:
             assert(false && "Invalid argument type");
             break;
-        case Format_Type::S32:
-        case Format_Type::U32:
-        case Format_Type::S64:
-        case Format_Type::U64:
-        case Format_Type::BOOL: {
+        case format_type::S32:
+        case format_type::U32:
+        case format_type::S64:
+        case format_type::U64:
+        case format_type::BOOL: {
             if (typeSpec != 'd' && typeSpec != 'x' && typeSpec != 'X' && typeSpec != 'b' && typeSpec != 'B' &&
                 typeSpec != 'o' && typeSpec != 'n') {
                 // Allow treating integers as chars (except S64, U64 and BOOL)
                 if (typeSpec != 'c') {
-                    return Parsing_Error_Code::INVALID_TYPE_SPEC;
-                } else if (type == Format_Type::S64 || type == Format_Type::U64 || type == Format_Type::BOOL) {
-                    return Parsing_Error_Code::INVALID_TYPE_SPEC;
+                    return parsing_error_code::INVALID_TYPE_SPEC;
+                } else if (type == format_type::S64 || type == format_type::U64 || type == format_type::BOOL) {
+                    return parsing_error_code::INVALID_TYPE_SPEC;
                 }
             }
         } break;
-        case Format_Type::F64:
+        case format_type::F64:
             if (typeSpec != 'g' && typeSpec != 'G' && typeSpec != 'e' && typeSpec != 'E' && typeSpec != 'f' &&
                 typeSpec != 'F' && typeSpec != 'a' && typeSpec != 'A') {
-                return Parsing_Error_Code::INVALID_TYPE_SPEC;
+                return parsing_error_code::INVALID_TYPE_SPEC;
             }
             break;
-        case Format_Type::CSTRING:
+        case format_type::CSTRING:
             if (typeSpec != 's' && typeSpec != 'p') {
-                return Parsing_Error_Code::INVALID_TYPE_SPEC;
+                return parsing_error_code::INVALID_TYPE_SPEC;
             }
             break;
-        case Format_Type::STRING:
+        case format_type::STRING:
             if (typeSpec != 's') {
-                return Parsing_Error_Code::INVALID_TYPE_SPEC;
+                return parsing_error_code::INVALID_TYPE_SPEC;
             }
             break;
-        case Format_Type::POINTER:
+        case format_type::POINTER:
             if (typeSpec != 'p') {
-                return Parsing_Error_Code::INVALID_TYPE_SPEC;
+                return parsing_error_code::INVALID_TYPE_SPEC;
             }
             break;
-        case Format_Type::CUSTOM:
+        case format_type::CUSTOM:
             // Nothing to validate!
             break;
     }
 
-    return Parsing_Error_Code::NONE;
+    return parsing_error_code::NONE;
 }
 }  // namespace fmt
 

@@ -4,10 +4,10 @@ LSTD_BEGIN_NAMESPACE
 
 namespace file {
 
-Handle Handle::open_relative(file::Path path) const {
+handle handle::open_relative(path path) const {
     path = Path / path;
     path.resolve();
-    return Handle(path);
+    return handle(path);
 }
 
 }  // namespace file

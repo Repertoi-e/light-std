@@ -501,7 +501,7 @@ STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(vsprintfcb)(STBSP_SPRINTFCB *callback,
             case 's':
                 // get the string
                 s = va_arg(va, char *);
-                if (s == 0) s = (char *) "null";
+                if (s == nullptr) s = (char *) "nullptr";
                 // get the length
                 sn = s;
                 for (;;) {
@@ -1274,10 +1274,9 @@ done:
 //   wrapper functions
 
 STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(sprintf)(char *buf, char const *fmt, ...) {
-    int result;
     va_list va;
     va_start(va, fmt);
-    result = STB_SPRINTF_DECORATE(vsprintfcb)(0, 0, buf, fmt, va);
+    int result = STB_SPRINTF_DECORATE(vsprintfcb)(nullptr, nullptr, buf, fmt, va);
     va_end(va);
     return result;
 }
@@ -1295,10 +1294,9 @@ static char *stbsp__clamp_callback(char *buf, void *user, int len) {
 
     if (len) {
         if (buf != c->buf) {
-            char *s, *d, *se;
-            d = c->buf;
-            s = buf;
-            se = buf + len;
+            char *d = c->buf;
+            char *s = buf;
+            char *se = buf + len;
             do {
                 *d++ = *s++;
             } while (s < se);
@@ -1307,7 +1305,7 @@ static char *stbsp__clamp_callback(char *buf, void *user, int len) {
         c->count -= len;
     }
 
-    if (c->count <= 0) return 0;
+    if (c->count <= 0) return nullptr;
     return (c->count >= STB_SPRINTF_MIN) ? c->buf : c->tmp;  // go direct into buffer if you can
 }
 
@@ -1333,7 +1331,7 @@ STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(vsnprintf)(char *buf, int count, char 
         c.buf = buf;
         c.count = count;
 
-        STB_SPRINTF_DECORATE(vsprintfcb)(stbsp__clamp_callback, &c, stbsp__clamp_callback(0, &c, 0), fmt, va);
+        STB_SPRINTF_DECORATE(vsprintfcb)(stbsp__clamp_callback, &c, stbsp__clamp_callback(nullptr, &c, 0), fmt, va);
 
         // zero-terminate
         l = (int) (c.buf - buf);
@@ -1346,18 +1344,17 @@ STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(vsnprintf)(char *buf, int count, char 
 }
 
 STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(snprintf)(char *buf, int count, char const *fmt, ...) {
-    int result;
     va_list va;
     va_start(va, fmt);
 
-    result = STB_SPRINTF_DECORATE(vsnprintf)(buf, count, fmt, va);
+    int result = STB_SPRINTF_DECORATE(vsnprintf)(buf, count, fmt, va);
     va_end(va);
 
     return result;
 }
 
 STBSP__PUBLICDEF int STB_SPRINTF_DECORATE(vsprintf)(char *buf, char const *fmt, va_list va) {
-    return STB_SPRINTF_DECORATE(vsprintfcb)(0, 0, buf, fmt, va);
+    return STB_SPRINTF_DECORATE(vsprintfcb)(nullptr, nullptr, buf, fmt, va);
 }
 
 // =======================================================================
@@ -1578,12 +1575,12 @@ static stbsp__int32 stbsp__real_to_str(char const **start, stbsp__uint32 *len, c
                                        double value, stbsp__uint32 frac_digits) {
     double d;
     stbsp__int64 bits = 0;
-    stbsp__int32 expo, e, ng, tens;
+    stbsp__int32 e, tens;
 
     d = value;
     STBSP__COPYFP(bits, d);
-    expo = (stbsp__int32)((bits >> 52) & 2047);
-    ng = (stbsp__int32)((stbsp__uint64) bits >> 63);
+    stbsp__int32 expo = (stbsp__int32)((bits >> 52) & 2047);
+    stbsp__int32 ng = (stbsp__int32)((stbsp__uint64) bits >> 63);
     if (ng) d = -d;
 
     if (expo == 2047)  // is nan or inf?
@@ -1643,11 +1640,10 @@ static stbsp__int32 stbsp__real_to_str(char const **start, stbsp__uint32 *len, c
             if (dg == 20) goto noround;
         }
         if (frac_digits < dg) {
-            stbsp__uint64 r;
             // add 0.5 at the right position and round
             e = dg - frac_digits;
             if ((stbsp__uint32) e >= 24) goto noround;
-            r = stbsp__powten[e];
+            stbsp__uint64 r = stbsp__powten[e];
             bits = bits + (r / 2);
             if ((stbsp__uint64) bits >= stbsp__powten[dg]) ++tens;
             bits /= r;
@@ -1657,13 +1653,12 @@ static stbsp__int32 stbsp__real_to_str(char const **start, stbsp__uint32 *len, c
 
     // kill long trailing runs of zeros
     if (bits) {
-        stbsp__uint32 n;
         for (;;) {
             if (bits <= 0xffffffff) break;
             if (bits % 1000) goto donez;
             bits /= 1000;
         }
-        n = (stbsp__uint32) bits;
+        stbsp__uint32 n = (stbsp__uint32) bits;
         while ((n % 1000) == 0) n /= 1000;
         bits = n;
     donez:;

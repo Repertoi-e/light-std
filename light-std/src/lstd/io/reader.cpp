@@ -3,15 +3,15 @@
 LSTD_BEGIN_NAMESPACE
 
 namespace io {
-char32_t Reader::read_codepoint(bool noSkipWS) {
+char32_t reader::read_codepoint(bool noSkipWS) {
     if (!test_state_and_skip_ws(noSkipWS)) {
-        return eof;
+        return (char32_t) eof;
     }
 
     byte ch = peek_byte();
     if (ch == eof) {
         EOF = true;
-        return eof;
+        return (char32_t) eof;
     }
 
     byte data[4] = {0};
@@ -19,35 +19,35 @@ char32_t Reader::read_codepoint(bool noSkipWS) {
         ch = bump_byte();
         if (ch == eof) {
             EOF = true;
-            return eof;
+            return (char32_t) eof;
         }
         data[it] = ch;
     }
     return decode_code_point(data);
 }
 
-void Reader::read(char32_t &out) { out = read_codepoint(); }
+void reader::read(char32_t &out) { out = read_codepoint(); }
 
-void Reader::read(byte *buffer, size_t n) {
+void reader::read(byte *buffer, size_t n) {
     size_t read = read_bytes(buffer, n);
     if (read != n) {
         EOF = true;
     }
 }
 
-void Reader::read(Dynamic_Array<byte> &buffer, size_t n) {
+void reader::read(dynamic_array<byte> &buffer, size_t n) {
     if (!buffer.has_space_for(n)) buffer.grow(n);
     return read(buffer.Data, n);
 }
 
-void Reader::read(byte *buffer, char32_t delim) {
+void reader::read(byte *buffer, char32_t delim) {
     if (!test_state_and_skip_ws()) {
         EOF = true;
         return;
     }
 
     char32_t cp = 0;
-    for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
+    for (char32_t cp = read_codepoint(); cp != (char32_t) eof; cp = read_codepoint(true)) {
         if (cp == delim) break;
 
         encode_code_point(buffer, cp);
@@ -55,7 +55,7 @@ void Reader::read(byte *buffer, char32_t delim) {
     }
 }
 
-void Reader::read(Dynamic_Array<byte> &buffer, const string_view &delims) {
+void reader::read(dynamic_array<byte> &buffer, const string_view &delims) {
     if (!test_state_and_skip_ws(true)) {
         EOF = true;
         return;
@@ -64,7 +64,7 @@ void Reader::read(Dynamic_Array<byte> &buffer, const string_view &delims) {
     byte *bufferData = buffer.Data;
 
     char32_t cp = 0;
-    for (char32_t cp = read_codepoint(true); cp != eof; cp = read_codepoint(true)) {
+    for (char32_t cp = read_codepoint(true); cp != (char32_t) eof; cp = read_codepoint(true)) {
         if (delims.has(cp)) break;
 
         size_t cpSize = get_size_of_code_point(cp);
@@ -80,35 +80,35 @@ void Reader::read(Dynamic_Array<byte> &buffer, const string_view &delims) {
     }
 }
 
-void Reader::read(Dynamic_Array<byte> &buffer, char32_t delim) {
+void reader::read(dynamic_array<byte> &buffer, char32_t delim) {
     byte data[4];
     encode_code_point(data, delim);
     return read(buffer, string_view(data, get_size_of_code_point(delim)));
 }
 
-void Reader::read(string &str, size_t codepoints) {
+void reader::read(string &str, size_t codepoints) {
     str = "";
     str.reserve(codepoints * 4);
-    for (char32_t cp = read_codepoint(); cp != eof; cp = read_codepoint(true)) {
+    for (char32_t cp = read_codepoint(); cp != (char32_t) eof; cp = read_codepoint(true)) {
         str.append(cp);
     }
 }
 
-void Reader::read(string &str, char32_t delim) {
-    Dynamic_Array<byte> buffer;
+void reader::read(string &str, char32_t delim) {
+    dynamic_array<byte> buffer;
     read(buffer, delim);
     str = string(buffer.Data, buffer.Count);
 }
 
-void Reader::read(string &str, const string_view &delims) {
-    Dynamic_Array<byte> buffer;
+void reader::read(string &str, const string_view &delims) {
+    dynamic_array<byte> buffer;
     read(buffer, delims);
     str = string(buffer.Data, buffer.Count);
 }
 
-void Reader::read(string &str) { return read(str, U'\n'); }
+void reader::read(string &str) { return read(str, U'\n'); }
 
-void Reader::read() {
+void reader::read() {
     string ignored;
     read(ignored);
 }
@@ -135,7 +135,7 @@ static f64 pow10(s32 n) {
         return {0.0, false}; \
     }
 
-std::pair<f64, bool> Reader::parse_float() {
+std::pair<f64, bool> reader::parse_float() {
     if (!test_state_and_skip_ws()) {
         return {0.0, false};
     }
@@ -224,7 +224,7 @@ std::pair<f64, bool> Reader::parse_float() {
 }
 
 // Second bool is success
-std::pair<bool, bool> Reader::parse_bool() {
+std::pair<bool, bool> reader::parse_bool() {
     if (!test_state_and_skip_ws()) {
         return {false, false};
     }
@@ -258,7 +258,7 @@ std::pair<bool, bool> Reader::parse_bool() {
 }
 #undef check_eof
 
-size_t Reader::read_bytes(byte *buffer, size_t n) {
+size_t reader::read_bytes(byte *buffer, size_t n) {
     size_t copyN = n;
     while (n > 0) {
         size_t size = Available;
@@ -282,7 +282,7 @@ size_t Reader::read_bytes(byte *buffer, size_t n) {
     return copyN - n;
 }
 
-bool Reader::test_state_and_skip_ws(bool noSkip) {
+bool reader::test_state_and_skip_ws(bool noSkip) {
     if (EOF) return false;
 
     if (!noSkip && SkipWhitespace) {
@@ -299,29 +299,29 @@ bool Reader::test_state_and_skip_ws(bool noSkip) {
     return true;
 }
 
-const byte *Reader::incr() { return --Available, Current++; }
-const byte *Reader::pre_incr() { return --Available, ++Current; }
+const byte *reader::incr() { return --Available, Current++; }
+const byte *reader::pre_incr() { return --Available, ++Current; }
 
-byte Reader::peek_byte() {
+byte reader::peek_byte() {
     if (Available == 0) {
         return request_byte_function(this);
     }
     return *Current;
 }
 
-byte Reader::request_byte_and_incr() {
+byte reader::request_byte_and_incr() {
     if (request_byte_function(this) == eof) return eof;
     return *incr();
 }
 
-byte Reader::bump_byte() {
+byte reader::bump_byte() {
     if (Available == 0) {
         return request_byte_and_incr();
     }
     return *incr();
 }
 
-byte Reader::next_byte() {
+byte reader::next_byte() {
     if (Available <= 1) {
         if (bump_byte() == eof) return eof;
         return peek_byte();
@@ -329,7 +329,7 @@ byte Reader::next_byte() {
     return *pre_incr();
 }
 
-String_Reader::String_Reader(const string_view &view) : View(view) {
+string_reader::string_reader(const string_view &view) : View(view) {
     request_byte_function = string_reader_request_byte;
 }
 }  // namespace io

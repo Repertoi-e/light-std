@@ -18,14 +18,14 @@ LSTD_BEGIN_NAMESPACE
 //
 //      assert(index < size && "Index out of bounds.");
 //
-using Assert_Function = Delegate<void(const char *file, s32 line, const char *condition)>;
+using Assert_Function = delegate<void(const byte *file, s32 line, const byte *condition)>;
 
 namespace io {
-struct Writer;
+struct writer;
 }
 
 namespace internal {
-extern io::Writer *ConsoleLog;
+extern io::writer *g_ConsoleLog;
 }
 
 struct Implicit_Context {
@@ -35,12 +35,12 @@ struct Implicit_Context {
     // without having to pass you anything as a parameter for example.
     //
     // The idea for this comes from the implicit context in Jai.
-    Allocator_Closure Allocator = MALLOC;
+    allocator_closure Allocator = MALLOC;
 
     // This variable is useful when you redirect all logging output
     // (provided that the code that logs stuff uses the context!).
     // By default the writer outputs to the console.
-    io::Writer *Log = internal::ConsoleLog;
+    io::writer *Log = internal::g_ConsoleLog;
 
     // The delegate that gets called when an assert fails
     Assert_Function AssertFailed = os_assert_failed;

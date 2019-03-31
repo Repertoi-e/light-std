@@ -759,7 +759,6 @@ static int stbm__find_leftmost_one_bit_after_skipping(stbm__uint32 value, stbm__
 
 // align an address to a specific alignment & offset
 static void *stbm__align_address(void *ptr, size_t align, size_t align_off) {
-    stbm__uintptr cur_off;
     stbm__uintptr align_mask = (stbm__uintptr) align - 1;
 
     union {
@@ -769,20 +768,12 @@ static void *stbm__align_address(void *ptr, size_t align, size_t align_off) {
 
     v.ptr = ptr;
 
-    cur_off = (v.address & align_mask);
+    stbm__uintptr cur_off = (v.address & align_mask);
     v.address += (align_off - cur_off) & align_mask;
     STBM_ASSERT((v.address & align_mask) == align_off);
 
     return v.ptr;
 }
-
-#ifndef STBM_MEMSET
-static void STBM_MEMSET(void *mem, unsigned char value, size_t num_bytes) {
-    unsigned char *s = (unsigned char *) mem;
-    size_t i;
-    for (i = 0; i < num_bytes; ++i) s[i] = value;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -1208,8 +1199,6 @@ static void stbm__heap_crossthread_free(stbm_heap *src_heap, void *ptr) {
 }
 
 static void stbm__heap_free(stbm_heap *safe_heap, stbm_heap *src_heap, void *ptr) {
-    stbm__uintptr prefix;
-
     // four cases:
     //     - src_heap == safe_heap
     //       - use regular heap free path
@@ -1231,7 +1220,7 @@ static void stbm__heap_free(stbm_heap *safe_heap, stbm_heap *src_heap, void *ptr
         }
     }
 
-    prefix = ((stbm__uintptr *) ptr)[-1];
+    stbm__uintptr prefix = ((stbm__uintptr *) ptr)[-1];
     if (STBM__TYPE(prefix) == STBM__TYPE_medium)
         stbm__medium_free(src_heap, ptr);
     else if (STBM__TYPE(prefix) == STBM__TYPE_small)
@@ -1280,7 +1269,7 @@ typedef struct stbm__small_freeblock {
 static void stbm__small_init(stbm_heap *heap) {
     heap->small.full.next = heap->small.full.prev = &heap->small.full;
     heap->small.nonfull.next = heap->small.nonfull.prev = &heap->small.nonfull;
-    heap->small.chunkcache = 0;
+    heap->small.chunkcache = null;
 }
 
 static void stbm__smallchunk_link(stbm__small_chunk *sentinel, stbm__small_chunk *chunk) {
@@ -1302,7 +1291,7 @@ static void stbm__smallchunk_unlink(stbm__small_chunk *sentinel, stbm__small_chu
 
 static void stbm__small_free(stbm_heap *heap, void *ptr) {
     stbm__small_allocated *b = (stbm__small_allocated *) ptr - 1;
-    stbm__small_chunk *c = b->u.chunk, *chunk_to_free = NULL;
+    stbm__small_chunk *c = b->u.chunk, *chunk_to_free = null;
     stbm__small_freeblock *f = (stbm__small_freeblock *) b;
     STBM_ASSERT(c->num_alloc > 0);
 
@@ -1334,30 +1323,29 @@ static void stbm__small_free(stbm_heap *heap, void *ptr) {
 }
 
 static void *stbm__small_alloc(stbm_heap *heap, size_t size) {
-    stbm__small_chunk *c;
     stbm__small_allocated *b;
 
     STBM__ACQUIRE(heap->allocation_mutex);
 
     // find first non-full chunk of small blocks
-    c = heap->small.nonfull.next;
+    stbm__small_chunk *c = heap->small.nonfull.next;
 
     // if non-full list is empty, allocate a new small chunk
     if (c == &heap->small.nonfull) {
         if (heap->small.chunkcache) {
             // if we cached an entirely-empty smallchunk, use that
             c = heap->small.chunkcache;
-            heap->small.chunkcache = NULL;
+            heap->small.chunkcache = null;
         } else {
             // avoid nesting mutexes
             STBM__RELEASE(heap->allocation_mutex);
             c = (stbm__small_chunk *) stbm__medium_alloc(heap, heap->smallchunk_size);
-            if (c == NULL) return NULL;
+            if (c == null) return null;
             STBM__ACQUIRE(heap->allocation_mutex);
-            c->wrapped_user_pointer = NULL;  // flags which type this is
+            c->wrapped_user_pointer = null;  // flags which type this is
             c->heap = heap;
-            c->first_free = NULL;
-            c->next = c->prev = 0;
+            c->first_free = null;
+            c->next = c->prev = null;
             c->num_alloc = 0;
             c->full = 0;
             c->unused_storage = (char *) stbm__align_address((char *) c + heap->smallchunk_size - STBM__SMALL_ALIGNMENT,
@@ -1384,10 +1372,10 @@ static void *stbm__small_alloc(stbm_heap *heap, size_t size) {
         STBM_ASSERT((char *) b >= (char *) (c + 1));
         c->unused_storage -= STBM__SMALLEST_BLOCKSIZE;
         STBM_ASSERT(STBM__SMALLEST_BLOCKSIZE == sizeof(stbm__small_freeblock));
-        if (c->unused_storage < (char *) (c + 1)) c->unused_storage = NULL;
+        if (c->unused_storage < (char *) (c + 1)) c->unused_storage = null;
     }
     // check if the chunk became full
-    if (c->first_free == NULL && c->unused_storage == NULL) {
+    if (c->first_free == null && c->unused_storage == null) {
         stbm__smallchunk_unlink(&heap->small.nonfull, c);
         stbm__smallchunk_link(&heap->small.full, c);
         c->full = 1;
@@ -1444,20 +1432,15 @@ typedef struct {
 static void stbm__large_init(stbm_heap *heap) { (void) (sizeof(heap)); }
 
 static void *stbm__large_alloc(stbm_heap *heap, size_t size) {
-    stbm__system_allocation *s;
-    void *user_ptr;
-    stbm__large_allocated *a;
-
-    size_t user_size;
     size_t overhead = sizeof(stbm__system_allocation) + sizeof(stbm__large_allocated);
     size_t actual = overhead + (heap->minimum_alignment - 1) + size;
 
-    s = (stbm__system_allocation *) heap->system_alloc(heap->user_context, actual, &actual);
-    if (s == NULL) return NULL;
+    stbm__system_allocation *s = (stbm__system_allocation *) heap->system_alloc(heap->user_context, actual, &actual);
+    if (s == null) return null;
 
-    user_ptr = stbm__align_address((char *) s + overhead, heap->minimum_alignment, 0);
+    void *user_ptr = stbm__align_address((char *) s + overhead, heap->minimum_alignment, 0);
 
-    user_size = ((char *) s + actual) - ((char *) user_ptr);
+    size_t user_size = ((char *) s + actual) - ((char *) user_ptr);
 
     STBM_ASSERT(user_size >= size);
     STBM_ASSERT((char *) user_ptr + size <= (char *) s + actual);
@@ -1469,7 +1452,7 @@ static void *stbm__large_alloc(stbm_heap *heap, size_t size) {
 
     s->begin_pointer = user_ptr;
 
-    a = ((stbm__large_allocated *) user_ptr) - 1;
+    stbm__large_allocated *a = ((stbm__large_allocated *) user_ptr) - 1;
 
     a->system_allocation = s;
     a->heap = heap;
@@ -1553,7 +1536,7 @@ typedef struct stbm__medium_freeblock {
 static void stbm__medium_init(stbm_heap *heap) {
     STBM_MEMSET(&heap->medium, 0, sizeof(heap->medium));
     heap->medium.minimum_freeblock_size = STBM__MAX(heap->minimum_alignment, STBM__MEDIUM_SMALLEST_BLOCK);
-    heap->medium.cached_system_alloc = NULL;
+    heap->medium.cached_system_alloc = null;
     heap->medium.cached_system_alloc_size = 0;
 }
 
@@ -1562,20 +1545,13 @@ static void stbm__medium_init(stbm_heap *heap) {
 // can't coalesce against them). this is called without any locks taken.
 static size_t stbm__medium_init_chunk(stbm_heap *heap, stbm__medium_freeblock **ptr_block, size_t freesize,
                                       stbm__system_allocation *s) {
-    size_t start_size;
-
-    stbm__medium_chunk *c;
-    void *ptr;
-    stbm__medium_allocated *tail;
-    stbm__medium_freeblock *block;
-
     // now we need to create phantom blocks before and after the free region,
     // and all of them need to be heap->minimum_alignment aligned
 
     // first we want to create a block immediately after the system allocation region
     // find the correctly-aligned user address
-    start_size = sizeof(*s) + sizeof(stbm__medium_chunk) + sizeof(stbm__medium_allocated);
-    ptr = stbm__align_address((char *) s + start_size, heap->minimum_alignment, 0);
+    size_t start_size = sizeof(*s) + sizeof(stbm__medium_chunk) + sizeof(stbm__medium_allocated);
+    void *ptr = stbm__align_address((char *) s + start_size, heap->minimum_alignment, 0);
 
     s->begin_pointer = ptr;
     s->size = (size_t) freesize;
@@ -1583,9 +1559,9 @@ static size_t stbm__medium_init_chunk(stbm_heap *heap, stbm__medium_freeblock **
     // back up to the header that corresponds to this user address
     ptr = ((stbm__medium_allocated *) ptr) - 1;
     // and then switch to a free block at the same address
-    block = (stbm__medium_freeblock *) ptr;
+    stbm__medium_freeblock *block = (stbm__medium_freeblock *) ptr;
     // and get the medium chunk header
-    c = ((stbm__medium_chunk *) ptr) - 1;
+    stbm__medium_chunk *c = ((stbm__medium_chunk *) ptr) - 1;
 
     // setup the medium chunk header
     c->system_alloc = s;
@@ -1608,7 +1584,7 @@ static size_t stbm__medium_init_chunk(stbm_heap *heap, stbm__medium_freeblock **
 
     s->end_pointer = ptr;
 
-    tail = ((stbm__medium_allocated *) ptr) - 1;
+    stbm__medium_allocated *tail = ((stbm__medium_allocated *) ptr) - 1;
     STBM_ASSERT((char *) (tail + 1) < (char *) s + freesize);
 
     tail->prefix = STBM__BLOCK_alloc | STBM__PREVIOUS_free;
@@ -1631,7 +1607,7 @@ static void stbm__medium_free_chunk(stbm_heap *heap, stbm__system_allocation *s)
     stbm__system_alloc_unlink(heap, s, STBM__SYSTEM_ALLOC_MEDIUM);
 
     if (heap->cache_medium_chunks == STBM_MEDIUM_CACHE_one) {
-        if (heap->medium.cached_system_alloc == NULL) {
+        if (heap->medium.cached_system_alloc == null) {
             heap->medium.cached_system_alloc = s;
             heap->medium.cached_system_alloc_size = s->size;
             STBM__RELEASE(heap->allocation_mutex);
@@ -1646,7 +1622,6 @@ static void stbm__medium_free_chunk(stbm_heap *heap, stbm__system_allocation *s)
 // link 'block' to the correct free list and set up its header / footer
 static void stbm__medium_link(stbm_heap *heap, struct stbm__medium_freeblock *block, size_t size) {
     stbm__index_slot is;
-    stbm__medium_freeblock *list;
 
     STBM_ASSERT(size <= (2 << 20) - 8);  // necessary for packing into MED_FREE
 
@@ -1661,10 +1636,10 @@ static void stbm__medium_link(stbm_heap *heap, struct stbm__medium_freeblock *bl
     STBM_ASSERT(size == STBM__MED_FREE_BYTES(block->prefix));
     STBM_ASSERT(STBM__MED_FREE_SIZECLASS(block->prefix) == (unsigned) is.index * STBM__NUM_SLOTS + is.slot);
 
-    list = heap->medium.lists[is.index][is.slot];
+    stbm__medium_freeblock *list = heap->medium.lists[is.index][is.slot];
     heap->medium.lists[is.index][is.slot] = block;
     block->next_free = list;
-    block->prev_free = NULL;
+    block->prev_free = null;
     if (list)
         list->prev_free = block;
     else {
@@ -1701,7 +1676,7 @@ static void stbm__medium_unlink(stbm_heap *heap, struct stbm__medium_freeblock *
         stbm__medium_freeblock *next = block->next_free;
         heap->medium.lists[index][slot] = next;
         if (next)
-            next->prev_free = NULL;
+            next->prev_free = null;
         else {
             // the list is empty, so update the bitmap
             heap->medium.bitmap[index] &= ~(1 << (31 - slot));
@@ -1714,13 +1689,11 @@ static void stbm__medium_free(stbm_heap *heap, void *ptr) {
     stbm__uintptr previous_tag;
     stbm__medium_allocated *alloc = ((stbm__medium_allocated *) ptr) - 1;
     stbm__medium_freeblock *block = (stbm__medium_freeblock *) alloc;
-    stbm__medium_freeblock *follow;
     stbm__uintptr sizedata = STBM__SIZE_DATA(alloc->prefix);
-    size_t size;
     stbm__index_slot is;
     is.index = (int) STBM__SIZEDATA_index(sizedata);
     is.slot = (int) STBM__SIZEDATA_slot(sizedata);
-    size = stbm__size_for_index_slot(is.index, is.slot);
+    size_t size = stbm__size_for_index_slot(is.index, is.slot);
     if (STBM__SIZEDATA_extra(sizedata)) size += STBM__EXTRA_SIZE;
 
     STBM_ASSERT((size & (heap->minimum_alignment - 1)) == 0);
@@ -1730,7 +1703,7 @@ static void stbm__medium_free(stbm_heap *heap, void *ptr) {
     stbm__stats_update_free(heap, size - sizeof(*alloc));
 
     // merge with following block
-    follow = (stbm__medium_freeblock *) ((char *) block + size);
+    stbm__medium_freeblock *follow = (stbm__medium_freeblock *) ((char *) block + size);
     STBM_ASSERT((follow->prefix & STBM__PREVIOUS_MASK) == STBM__PREVIOUS_alloc);
     if ((follow->prefix & STBM__BLOCK_MASK) == STBM__BLOCK_free) {
         size_t blocksize = STBM__MED_FREE_BYTES(follow->prefix);
@@ -1789,19 +1762,17 @@ static void stbm__medium_free(stbm_heap *heap, void *ptr) {
 
 static void *stbm__medium_alloc(stbm_heap *heap, size_t size) {
     stbm__medium_freeblock *block;
-    stbm__medium_allocated *alloc;
     size_t freesize, expected_size;
-    int index, slot;
-    stbm__index_slot is;
+    int index;
 
     // switch from user-requested size to physically-needed size
 
     size += sizeof(stbm__medium_allocated);
 
     // force the size to be a multiple of the minimum alignment
-    size = (size + heap->minimum_alignment - 1) & ~((size_t) (heap->minimum_alignment - 1));
+    size = (size + heap->minimum_alignment - 1) & ~((size_t)(heap->minimum_alignment - 1));
 
-    is = stbm__index_slot_for_request(size);
+    stbm__index_slot is = stbm__index_slot_for_request(size);
 
     STBM_ASSERT(is.index < STBM__NUM_INDICES);
     STBM_ASSERT(stbm__size_for_index_slot(is.index, is.slot) >= size);
@@ -1814,7 +1785,7 @@ static void *stbm__medium_alloc(stbm_heap *heap, size_t size) {
     // our bitmaps are indexed with smaller sizes to the left so that
     // the bitscan can be from the left so it's efficient on all
     // processors
-    slot = stbm__find_leftmost_one_bit_after_skipping(heap->medium.bitmap[is.index], is.slot);
+    int slot = stbm__find_leftmost_one_bit_after_skipping(heap->medium.bitmap[is.index], is.slot);
 
     if (slot < 32) {
         // if we got a valid slot, then we can use that block
@@ -1836,8 +1807,6 @@ static void *stbm__medium_alloc(stbm_heap *heap, size_t size) {
             STBM_ASSERT(freesize >= size && freesize >= stbm__size_for_index_slot(is.index, is.slot));
             stbm__medium_unlink(heap, block);
         } else {
-            // if no sufficiently sufficiently large blocks exist, allocate a new chunk
-            size_t size_with_overhead;
             stbm__system_allocation *s;
             freesize = heap->cur_medium_chunk_size;
 
@@ -1846,14 +1815,14 @@ static void *stbm__medium_alloc(stbm_heap *heap, size_t size) {
             // pointlessly
             expected_size = stbm__size_for_index_slot(is.index, is.slot);
 
-            size_with_overhead =
+            size_t size_with_overhead =
                 expected_size + heap->minimum_alignment + 256;  // inexact extra padding for chunk headers etc
 
             if (heap->medium.cached_system_alloc_size >= STBM__MAX(freesize, size_with_overhead)) {
                 s = (stbm__system_allocation *) heap->medium.cached_system_alloc;
                 freesize = heap->medium.cached_system_alloc_size;
                 STBM_ASSERT(s != NULL);
-                heap->medium.cached_system_alloc = NULL;
+                heap->medium.cached_system_alloc = null;
                 heap->medium.cached_system_alloc_size = 0;
                 freesize = stbm__medium_init_chunk(heap, &block, freesize, s);
             } else {
@@ -1868,13 +1837,13 @@ static void *stbm__medium_alloc(stbm_heap *heap, size_t size) {
                 if (heap->medium.cached_system_alloc) {
                     s = (stbm__system_allocation *) heap->medium.cached_system_alloc;
                     heap->system_free(heap->user_context, s);
-                    heap->medium.cached_system_alloc = 0;
+                    heap->medium.cached_system_alloc = null;
                     heap->medium.cached_system_alloc_size = 0;
                 }
                 STBM__RELEASE(heap->allocation_mutex);
 
                 s = (stbm__system_allocation *) heap->system_alloc(heap->user_context, freesize, &freesize);
-                if (s == NULL) return s;
+                if (s == null) return s;
 
                 STBM_ASSERT(freesize >= size && freesize >= size_with_overhead);
 
@@ -1892,27 +1861,23 @@ static void *stbm__medium_alloc(stbm_heap *heap, size_t size) {
     // now we have a free block 'block' which is not on any lists and whose
     // size is 'freesize'
 
-    alloc = (stbm__medium_allocated *) block;
+    stbm__medium_allocated *alloc = (stbm__medium_allocated *) block;
 
     // check if we need to split the block -- we only split if the
     // extra piece is larger than STBM__SMALLEST_ALLOCATION and
     // larger than the minimum alignment
     if (freesize >= expected_size + heap->medium.minimum_freeblock_size) {
-        stbm__medium_freeblock *split;
-        void *ptr;
-        size_t tail_size;
-
         // move past allocation plus header to find location of user block after split
-        ptr = stbm__align_address((char *) alloc + expected_size + sizeof(stbm__medium_allocated),
-                                  heap->minimum_alignment, 0);
+        void *ptr = stbm__align_address((char *) alloc + expected_size + sizeof(stbm__medium_allocated),
+                                        heap->minimum_alignment, 0);
 
         // move back to find header corresponding to that user pointer
         ptr = (((stbm__medium_allocated *) ptr) - 1);
 
-        split = (stbm__medium_freeblock *) ptr;
+        stbm__medium_freeblock *split = (stbm__medium_freeblock *) ptr;
         STBM_ASSERT((char *) split + heap->medium.minimum_freeblock_size <= (char *) block + freesize);
 
-        tail_size = ((char *) block + freesize) - (char *) split;
+        size_t tail_size = ((char *) block + freesize) - (char *) split;
         freesize = (char *) split - (char *) block;
         STBM_ASSERT(freesize >= expected_size && freesize < expected_size + heap->medium.minimum_freeblock_size);
 
@@ -1957,7 +1922,6 @@ static void stbm__medium_check_list(stbm_heap *heap, int index, int slot) {
     stbm__medium_freeblock *cur = heap->medium.lists[index][slot];
     STBM_ASSERT((cur == NULL) == ((heap->medium.bitmap[index] & (1 << (31 - slot))) == 0));
     while (cur) {
-        stbm__index_slot is;
         stbm__uintptr prefix = cur->prefix;
         // this block must be free
         if ((prefix & STBM__BLOCK_MASK) != STBM__BLOCK_free) STBM_FAIL(message);
@@ -1975,7 +1939,7 @@ static void stbm__medium_check_list(stbm_heap *heap, int index, int slot) {
         // if it's not the largest size
         if (index != STBM__NUM_INDICES - 1 || slot != STBM__NUM_SLOTS - 1) {
             // then the size it is should generate the same index/slot pair
-            is = stbm__index_slot_for_free_block(STBM__MED_FREE_BYTES(prefix));
+            stbm__index_slot is = stbm__index_slot_for_free_block(STBM__MED_FREE_BYTES(prefix));
             if (is.index != index || is.slot != slot) STBM_FAIL(message);
         }
         // the next block should have its prev free set
@@ -1987,11 +1951,10 @@ static void stbm__medium_check_list(stbm_heap *heap, int index, int slot) {
 }
 
 static void stbm__medium_check_all(stbm_heap *heap) {
-    int i, s;
-    for (i = 0; i < STBM__NUM_INDICES; ++i) {
+    for (int i = 0; i < STBM__NUM_INDICES; ++i) {
         if (((heap->medium.toplevel_bitmap & (1 << (31 - i))) == 0) != (heap->medium.bitmap[i] == 0))
             STBM_FAIL("check");
-        for (s = 0; s < STBM__NUM_SLOTS; ++s) stbm__medium_check_list(heap, i, s);
+        for (int s = 0; s < STBM__NUM_SLOTS; ++s) stbm__medium_check_list(heap, i, s);
     }
 }
 
@@ -2074,15 +2037,13 @@ static void stbm__tc_update_lowwater_mark(stbm__cache *sizecache) {
 }
 
 static void stbm__tc_free_cached_blocks(stbm_tc *tc, stbm_heap *safe_heap, int tc_slot, int count) {
-    stbm__cached_block *cur;
     stbm__cache *sizecache = &tc->cache[tc_slot];
-    int i;
 
     STBM_ASSERT(count >= 0);
 
     // @OPTIMIZE: free a whole list in one operation (reduces locking in heap)
-    cur = sizecache->head;
-    for (i = 0; i < count; ++i) {
+    stbm__cached_block *cur = sizecache->head;
+    for (int i = 0; i < count; ++i) {
         stbm__cached_block *next = cur->next;
         stbm__heap_free(safe_heap, tc->heap, cur);
         cur = next;
@@ -2101,10 +2062,9 @@ static void stbm__tc_free_cached_blocks(stbm_tc *tc, stbm_heap *safe_heap, int t
 // track of how recently used each list is.
 static void stbm__tc_lru_tick(stbm_tc *tc) {
     if (++tc->lru_counter >= 0x10000) {
-        int i;
         // every 32K allocations, we'll rewrite all 32 last_used values--this way
         // we avoid having to update LRU linked lists on every alloc
-        for (i = 0; i < STBM__NUM_THREADCACHE; ++i)
+        for (int i = 0; i < STBM__NUM_THREADCACHE; ++i)
             // remap last_used values from 0..ffff to 0..7fff
             tc->last_used[i] >>= 1;
         tc->lru_counter = 0x8000;  // now lru counter is larger than any existing value
@@ -2112,10 +2072,9 @@ static void stbm__tc_lru_tick(stbm_tc *tc) {
 }
 
 static int stbm__tc_free_lru_slot(stbm_tc *tc, stbm_heap *safe_heap) {
-    int sizeclass;
     // find the LRU slot
-    int lru = 0x10000, lru_slot = 0, i;
-    for (i = 0; i < STBM__NUM_THREADCACHE; ++i) {
+    int lru = 0x10000, lru_slot = 0;
+    for (int i = 0; i < STBM__NUM_THREADCACHE; ++i) {
         if (tc->last_used[i] < lru) {
             lru = tc->last_used[i];
             lru_slot = i;
@@ -2125,7 +2084,7 @@ static int stbm__tc_free_lru_slot(stbm_tc *tc, stbm_heap *safe_heap) {
     // free the cached blocks in the slot
     if (tc->cache[lru_slot].num) stbm__tc_free_cached_blocks(tc, safe_heap, lru_slot, tc->cache[lru_slot].num);
 
-    sizeclass = tc->sizeclass[lru_slot];
+    int sizeclass = tc->sizeclass[lru_slot];
     STBM_ASSERT(tc->slot_for_sizeclass[sizeclass] == lru_slot);
     tc->slot_for_sizeclass[sizeclass] = -1;
 
@@ -2141,7 +2100,7 @@ static int stbm__tc_allocate_slot(stbm_tc *tc, int tc_index, stbm_heap *safe_hea
         tc->bitmap |= 1 << tc_slot;
     STBM_ASSERT(tc->bitmap & (1 << tc_slot));
     STBM_ASSERT(tc->cache[tc_slot].num == 0);
-    tc->cache[tc_slot].head = 0;
+    tc->cache[tc_slot].head = null;
     tc->cache[tc_slot].num = 0;
     tc->cache[tc_slot].alloc = 0;
     tc->cache[tc_slot].lowwater = 0;
@@ -2151,9 +2110,7 @@ static int stbm__tc_allocate_slot(stbm_tc *tc, int tc_index, stbm_heap *safe_hea
 
 static void stbm__tc_alloc_cached_blocks(stbm_tc *tc, int tc_slot, int sizeclass) {
     size_t size = stbm__size_for_tc_index(sizeclass);
-    stbm__cached_block *head;
-    stbm__uint8 num_alloc_uc;
-    int i, num_alloc;
+    int num_alloc;
     if (!tc->cache[tc_slot].alloc)
         // if we've never allocated any of this size before, allocate 2
         num_alloc = 1;
@@ -2166,10 +2123,10 @@ static void stbm__tc_alloc_cached_blocks(stbm_tc *tc, int tc_slot, int sizeclass
     // @OPTIMIZE: provide a function to allocate multiple so we don't
     // have to take the lock multiple times (and possibly can even
     // allocate one big block and subdivide it)
-    head = tc->cache[tc_slot].head;
-    for (i = 0; i < num_alloc; ++i) {
+    stbm__cached_block *head = tc->cache[tc_slot].head;
+    for (int i = 0; i < num_alloc; ++i) {
         stbm__cached_block *p = (stbm__cached_block *) stbm__heap_alloc(tc->heap, size);
-        if (p == NULL) {
+        if (p == null) {
             num_alloc = i;
             break;
         }
@@ -2178,7 +2135,7 @@ static void stbm__tc_alloc_cached_blocks(stbm_tc *tc, int tc_slot, int sizeclass
     }
     tc->cache[tc_slot].head = head;
 
-    num_alloc_uc = (stbm__uint8) num_alloc;
+    stbm__uint8 num_alloc_uc = (stbm__uint8) num_alloc;
     tc->cache[tc_slot].num += num_alloc_uc;
     tc->cache[tc_slot].alloc = num_alloc_uc;
     tc->cache[tc_slot].lowwater = num_alloc_uc;
@@ -2187,9 +2144,6 @@ static void stbm__tc_alloc_cached_blocks(stbm_tc *tc, int tc_slot, int sizeclass
 static void *stbm__tc_alloc(stbm__request *request) {
     stbm_tc *tc = request->tc;
     if (tc && tc->heap == request->heap && request->size <= STBM__MAX_TC_ALLOC_SIZE) {
-        stbm__cached_block *p;
-        stbm__cache *sizecache;
-
         int tc_index = stbm__tc_index_for_request(request->size);
         int tc_slot = tc->slot_for_sizeclass[tc_index];
 
@@ -2198,10 +2152,10 @@ static void *stbm__tc_alloc(stbm__request *request) {
         // update our last_used now so tc_slot is most-recently-used
         tc->last_used[tc_slot] = (unsigned short) tc->lru_counter;
 
-        sizecache = &tc->cache[tc_slot];
+        stbm__cache *sizecache = &tc->cache[tc_slot];
         if (sizecache->num == 0) {
             stbm__tc_alloc_cached_blocks(tc, tc_slot, tc_index);
-            if (sizecache->num == 0) return 0;  // if allocation fails, we should bail
+            if (sizecache->num == 0) return null;  // if allocation fails, we should bail
         }
         // tc_slot is dead
 
@@ -2216,7 +2170,7 @@ static void *stbm__tc_alloc(stbm__request *request) {
         stbm__tc_update_lowwater_mark(sizecache);
 
         // take head of free list
-        p = sizecache->head;
+        stbm__cached_block *p = sizecache->head;
         sizecache->head = p->next;
 
         return p;
@@ -2227,8 +2181,7 @@ static void *stbm__tc_alloc(stbm__request *request) {
 // TCmalloc-style scavenging logic -- free half the
 // unused objects in each list
 static void stbm__tc_scavenge(stbm_tc *tc, stbm_heap *safe_heap) {
-    int i;
-    for (i = 0; i < STBM__NUM_THREADCACHE; ++i) {
+    for (int i = 0; i < STBM__NUM_THREADCACHE; ++i) {
         if (tc->sizeclass[i] && tc->cache[i].num) {
             stbm__uint32 count = (tc->cache[i].lowwater + 1) >> 1;
             if (count) {
@@ -2245,12 +2198,11 @@ static void stbm__tc_free(stbm_tc *tc, stbm_heap *safe_heap, void *ptr) {
     size_t size = stbm_get_allocation_size(ptr);
 
     if (tc && tc->heap == src_heap && size <= STBM__MAX_TC_ALLOC_SIZE) {
-        stbm__cache *sizecache;
         stbm__cached_block *p = (stbm__cached_block *) ptr;
         int tc_index = stbm__tc_index_for_free_block(size);
         int tc_slot = tc->slot_for_sizeclass[tc_index];
         if (tc_slot < 0) tc_slot = stbm__tc_allocate_slot(tc, tc_index, safe_heap);
-        sizecache = &tc->cache[tc_slot];
+        stbm__cache *sizecache = &tc->cache[tc_slot];
         p->next = sizecache->head;
         sizecache->head = p;
         ++sizecache->num;
@@ -2275,13 +2227,12 @@ static void stbm__tc_free(stbm_tc *tc, stbm_heap *safe_heap, void *ptr) {
 #endif
 
 static void *stbm__alloc_normal(stbm__request *request) {
-    void *ptr;
     size_t size = request->size;
     if (size <= STBM__SMALLEST_ALLOCATION) {
         if (!request->userdata) return stbm__tc_alloc(request);
         request->size = STBM__SMALLEST_ALLOCATION + 1;
     }
-    ptr = stbm__tc_alloc(request);
+    void *ptr = stbm__tc_alloc(request);
     if (ptr) {
         stbm__uintptr *prefix = (stbm__uintptr *) ptr - 1;
         STBM_ASSERT(STBM__TYPE(*prefix) != STBM__TYPE_small);
@@ -2294,10 +2245,7 @@ static void *stbm__alloc_normal(stbm__request *request) {
 // allocate a block with non-default alignment
 static void *stbm__alloc_aligned_internal(stbm__request *request, size_t header_bytes, size_t footer_bytes,
                                           void **base_ptr) {
-    void *base;
-
     size_t align, align_off;
-    size_t extra_bytes;
 
     // canonicalize the requested alignment
     if (request->alignment == 0) {
@@ -2310,7 +2258,7 @@ static void *stbm__alloc_aligned_internal(stbm__request *request, size_t header_
 
     // suppose the underlying alloc is aligned to 'align', then compute
     // the number of bytes we need to guarantee userdata is correctly aligned
-    extra_bytes = stbm__round_up_to_multiple_of_power_of_two(header_bytes - align_off, align) + align_off;
+    size_t extra_bytes = stbm__round_up_to_multiple_of_power_of_two(header_bytes - align_off, align) + align_off;
 
     // now, provide enough bytes to allow for the underlying alloc not being
     // sufficiently aligned
@@ -2321,8 +2269,8 @@ static void *stbm__alloc_aligned_internal(stbm__request *request, size_t header_
 
     // now, work out the full allocation size
     request->size = extra_bytes + request->size + footer_bytes;
-    base = stbm__tc_alloc(request);
-    if (base == NULL) return base;
+    void *base = stbm__tc_alloc(request);
+    if (base == null) return base;
 
     *base_ptr = base;
 
@@ -2341,7 +2289,7 @@ static void *stbm__alloc_align(stbm__request *request) {
     stbm__aligned_base *ab = ((stbm__aligned_base *) base);
     (void) (sizeof(old_size));  // avoid warning
 
-    if (user_ptr == NULL) return user_ptr;
+    if (user_ptr == null) return user_ptr;
 
     aa->underlying_allocation = base;
     aa->prefix = STBM__USERDATA_SETBITS(STBM__TYPE_aligned, request->userdata);
@@ -2357,11 +2305,9 @@ static void *stbm__alloc_align(stbm__request *request) {
 }
 
 static void stbm__alloc_check_guard(stbm__debug_allocated *da, char *message) {
-    size_t num_bytes;
-
     if (STBM__DEBUG(da->prefix) != STBM__DEBUG_2) return;
 
-    num_bytes = da->underlying_allocation.debug2->num_guard_bytes;
+    size_t num_bytes = da->underlying_allocation.debug2->num_guard_bytes;
     if (!num_bytes) return;
 
     if (num_bytes & 0xf00f) {
@@ -2391,7 +2337,7 @@ static void *stbm__alloc_debug1(stbm__request *request) {
     void *user_ptr = stbm__alloc_aligned_internal(request, header_bytes, 0, &base);
     stbm__debug_allocated *da = ((stbm__debug_allocated *) user_ptr) - 1;
 
-    if (user_ptr == NULL) return user_ptr;
+    if (user_ptr == null) return user_ptr;
 
     // verify that both blocks of memory (aa & user) fit inside allocated block
     STBM_ASSERT((char *) user_ptr + user_size <= (char *) base + request->size);
@@ -2409,14 +2355,14 @@ static void *stbm__alloc_debug1(stbm__request *request) {
 
 static void *stbm__alloc_debug2(stbm__request *request) {
     void *base;
-    size_t excess, user_size = request->size;
+    size_t user_size = request->size;
     size_t extra_debug = stbm__round_up_to_multiple_of_power_of_two(request->extra_debug_size, sizeof(void *));
     int header_bytes = (int) (sizeof(stbm__debug_base2) + sizeof(stbm__debug_allocated) + extra_debug);
     void *user_ptr = stbm__alloc_aligned_internal(request, header_bytes, request->heap->num_guard_bytes, &base);
     stbm__debug_base2 *db2 = ((stbm__debug_base2 *) base);
     stbm__debug_allocated *da = ((stbm__debug_allocated *) user_ptr) - 1;
 
-    if (user_ptr == NULL) return user_ptr;
+    if (user_ptr == null) return user_ptr;
 
     // verify that all blocks of memory (aa & user) fit inside allocated block and don't overlap
     STBM_ASSERT((char *) user_ptr + user_size + request->heap->num_guard_bytes <= (char *) base + request->size);
@@ -2429,7 +2375,7 @@ static void *stbm__alloc_debug2(stbm__request *request) {
 
     db2->extra_debug_bytes = (stbm__uint32) request->extra_debug_size;
     db2->padding = 0x57;
-    excess = stbm_get_allocation_size(user_ptr) - user_size;
+    size_t excess = stbm_get_allocation_size(user_ptr) - user_size;
 
     STBM_ASSERT(excess >= request->heap->num_guard_bytes);
     if (excess) {
@@ -2479,7 +2425,7 @@ STBM__API void *stbm_alloc(stbm_tc *tc, stbm_heap *heap, size_t size, unsigned s
     r.userdata = userdata16;
 
     if (heap->force_debug) {
-        r.file = 0;
+        r.file = null;
         r.line = 0;
         r.alignment = 0;
         return stbm__alloc_debug(&r);
@@ -2527,7 +2473,7 @@ STBM__API void *stbm_alloc_align(stbm_tc *tc, stbm_heap *heap, size_t size, unsi
     r.align_offset = (stbm__uint32) align_offset;
 
     if (heap->force_debug) {
-        r.file = 0;
+        r.file = null;
         r.line = 0;
         return stbm__alloc_debug(&r);
     }
@@ -2567,7 +2513,7 @@ STBM__API void *stbm_alloc_debug(stbm_tc *tc, stbm_heap *heap, size_t size, unsi
     stbm__request r;
     r.tc = tc;
     r.heap = heap;
-    r.file = 0;
+    r.file = null;
     r.line = 0;
     r.size = size;
     r.userdata = userdata16;
@@ -2600,28 +2546,25 @@ STBM__API void stbm_free(stbm_tc *tc, stbm_heap *safe_heap, void *ptr) {
 }
 
 STBM__API void *stbm_realloc(stbm_tc *tc, stbm_heap *heap, void *oldptr, size_t newsize, unsigned short userdata16) {
-    if (oldptr == 0) {
+    if (oldptr == null) {
         return stbm_alloc(tc, heap, newsize, userdata16);
     } else if (newsize == 0) {
         stbm_free(tc, heap, oldptr);
-        return 0;
+        return null;
     } else {
-        size_t copysize;
-        void *newptr;
         size_t oldsize = stbm_get_allocation_size(oldptr);
         if (newsize <= oldsize && oldsize <= newsize * 2) return oldptr;
 
-        newptr = stbm_alloc(tc, heap, newsize, userdata16);
-        if (newptr == NULL) return newptr;
+        void *newptr = stbm_alloc(tc, heap, newsize, userdata16);
+        if (newptr == null) return newptr;
 
-        copysize = STBM__MIN(oldsize, newsize);
+        size_t copysize = STBM__MIN(oldsize, newsize);
 
 #ifdef STBM_MEMCPY
         STBM_MEMCPY(newptr, oldptr, copysize);
 #else
         {
-            size_t i;
-            for (i = 0; i < copysize; ++i) ((char *) newptr)[i] = ((char *) oldptr)[i];
+            for (size_t i = 0; i < copysize; ++i) ((char *) newptr)[i] = ((char *) oldptr)[i];
         }
 #endif
 
@@ -2700,7 +2643,7 @@ stbm_heap *stbm_get_heap(void *ptr) {
 
     STBM_ASSERT(!STBM__PREFIX_VALID(prefix));
     STBM_FAIL("Corrupt malloc header in stbm_get_heap");
-    return 0;
+    return null;
 }
 
 STBM__API size_t stbm_get_debug_data(void *ptr, void **data) {
@@ -2708,16 +2651,15 @@ STBM__API size_t stbm_get_debug_data(void *ptr, void **data) {
         stbm__uintptr prefix = ((stbm__uintptr *) ptr)[-1];
         if (STBM__TYPE(prefix) == STBM__TYPE_debug) {
             if (STBM__DEBUG(prefix) == STBM__DEBUG_2) {
-                int n;
                 stbm__debug_allocated *da = ((stbm__debug_allocated *) ptr) - 1;
                 stbm__debug_base2 *db2 = da->underlying_allocation.debug2;
-                n = (int) db2->extra_debug_bytes;
-                *data = n ? (db2 + 1) : 0;
+                int n = (int) db2->extra_debug_bytes;
+                *data = n ? (db2 + 1) : null;
                 return n;
             }
         }
     }
-    *data = 0;
+    *data = null;
     return 0;
 }
 
@@ -2731,23 +2673,20 @@ STBM__API int stbm_get_fileline(void *ptr, char **file) {
             return (int) db1->line;
         }
     }
-    *file = 0;
+    *file = null;
     return 0;
 }
 
 STBM__API stbm_tc *stbm_tc_init(void *storage, size_t storage_bytes, stbm_heap *heap) {
-    int i;
-    stbm_tc *tc;
+    if (storage_bytes < sizeof(stbm_tc)) return null;
 
-    if (storage_bytes < sizeof(stbm_tc)) return 0;
-
-    tc = (stbm_tc *) storage;
+    stbm_tc *tc = (stbm_tc *) storage;
 
     tc->bitmap = 0;
     tc->lru_counter = 0;
     tc->cached_bytes = 0;
     tc->cached_bytes_scavenge_threshhold = 1024 * 1024;  // 1MB
-    for (i = 0; i < STBM__NUM_TC_INDICES; ++i) tc->slot_for_sizeclass[i] = -1;
+    for (int i = 0; i < STBM__NUM_TC_INDICES; ++i) tc->slot_for_sizeclass[i] = -1;
     tc->heap = heap;
 
     return tc;
@@ -2770,14 +2709,14 @@ STBM__API void stbm_heap_check(stbm_heap *heap) {
     STBM__ACQUIRE(heap->allocation_mutex);
     stbm__heap_check_locked(heap);
     STBM__RELEASE(heap->allocation_mutex);
-    stbm_debug_iterate(heap, 0, 0);
+    stbm_debug_iterate(heap, null, null);
 }
 
 STBM__API void *stbm_get_heap_user_context(stbm_heap *heap) { return heap->user_context; }
 
 STBM__API stbm_heap *stbm_heap_init(void *storage, size_t storage_bytes, stbm_heap_config *hc) {
     stbm_heap *heap = (stbm_heap *) storage;
-    if (sizeof(*heap) > storage_bytes) return NULL;
+    if (sizeof(*heap) > storage_bytes) return null;
 
 #ifdef STBM__MUTEX
 #ifdef STBM_ATOMIC_COMPARE_AND_SWAP32
@@ -2786,7 +2725,7 @@ STBM__API stbm_heap *stbm_heap_init(void *storage, size_t storage_bytes, stbm_he
 #endif
 
     heap->crossthread_mutex = hc->crossthread_free_mutex;
-    heap->crossthread_free_list = NULL;
+    heap->crossthread_free_list = null;
 #endif
 
     heap->allocation_mutex = hc->allocation_mutex;
@@ -2859,7 +2798,7 @@ static void stbm__process_user_pointer(void *ptr, stbm_debug_iterate_func *callb
 
     if (maybe_wrapped && STBM__IS_WRAPPED(prefix)) {
         stbm__aligned_base *ab = (stbm__aligned_base *) ptr;
-        if (ab->wrapped_user_pointer == NULL) STBM_FAIL("Corrupt block in iterate");
+        if (ab->wrapped_user_pointer == null) STBM_FAIL("Corrupt block in iterate");
         ptr = ab->wrapped_user_pointer;
     }
 
@@ -2875,9 +2814,8 @@ static void stbm__process_user_pointer(void *ptr, stbm_debug_iterate_func *callb
 }
 
 STBM__API void stbm_debug_iterate(stbm_heap *heap, stbm_debug_iterate_func *callback, void *user_context) {
-    stbm__system_allocation *sa;
     STBM__ACQUIRE(heap->allocation_mutex);
-    sa = heap->system_sentinel.next;
+    stbm__system_allocation *sa = heap->system_sentinel.next;
     while (sa != &heap->system_sentinel) {
         // every system allocation is either one large allocation, or one or more
         // user allocations
@@ -2899,7 +2837,7 @@ STBM__API void stbm_debug_iterate(stbm_heap *heap, stbm_debug_iterate_func *call
                     void *next = (char *) user + stbm_get_allocation_size(user) + sizeof(stbm__medium_allocated);
                     // if it's wrapped, it might be a block used for small allocations,
                     // so check for the case where it's NOT
-                    if (!STBM__IS_WRAPPED(prefix) || ((stbm__aligned_base *) user)->wrapped_user_pointer != NULL)
+                    if (!STBM__IS_WRAPPED(prefix) || ((stbm__aligned_base *) user)->wrapped_user_pointer != null)
                         stbm__process_user_pointer(user, callback, user_context, 1);
                     else {
                         // it's a chunk used for small allocations, so walk all the allocations

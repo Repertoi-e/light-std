@@ -4,37 +4,37 @@
 
 namespace le {
 
-struct LE_API Window;
+struct LE_API window;
 
-struct LE_API Mouse_Button_Pressed_Event {
-    Window *WindowPtr;
+struct LE_API mouse_button_pressed_event {
+    window *Window;
     const u32 Button, Modifiers;
     const s64 MouseX, MouseY;
 };
 
-struct LE_API Mouse_Button_Released_Event {
-    Window *WindowPtr;
+struct LE_API mouse_button_released_event {
+    window *Window;
     const u32 Button, Modifiers;
     const s64 MouseX, MouseY;
 };
 
-struct LE_API Mouse_Scrolled_Event {
-    Window *WindowPtr;
+struct LE_API mouse_scrolled_event {
+    window *Window;
     const s64 DeltaX, DeltaY;
     const u32 Modifiers, ButtonsDown;
     const s64 MouseX, MouseY;
 };
 
-struct LE_API Mouse_Entered_Event {
-    Window *WindowPtr;
+struct LE_API mouse_entered_event {
+    window *Window;
 };
 
-struct LE_API Mouse_Left_Event {
-    Window *WindowPtr;
+struct LE_API mouse_left_event {
+    window *Window;
 };
 
-struct LE_API Mouse_Moved_Event {
-    Window *WindowPtr;
+struct LE_API mouse_moved_event {
+    window *Window;
     const u32 Modifiers, ButtonsDown;
     const s64 MouseX, MouseY;
 };

@@ -11,74 +11,142 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename T, size_t Size>
-struct Array {
-    T Data[Size];
+struct array {
+    using data_t = T;
+
+    data_t Data[Size];
     static constexpr size_t Count = Size;
 
-    using iterator = T *;
-    using const_iterator = const T *;
+    using iterator = data_t*;
+    using const_iterator = const data_t*;
 
-    constexpr iterator begin() { return Data; }
-    constexpr iterator end() { return Data + Count; }
-    constexpr const_iterator begin() const { return Data; }
-    constexpr const_iterator end() const { return Data + Count; }
+    constexpr iterator begin();
+    constexpr iterator end();
+    constexpr const_iterator begin() const;
+    constexpr const_iterator end() const;
 
     // Find the index of the first occuring _item_ in the array, npos if it's not found
-    constexpr size_t find(const T &item) const {
-        const T *index = Data;
-        For(range(Count)) {
-            if (*index++ == item) {
-                return it;
-            }
-        }
-        return npos;
-    }
+    constexpr size_t find(const data_t& item) const;
 
     // Find the index of the last occuring _item_ in the array, npos if it's not found
-    constexpr size_t find_reverse(const T &item) const {
-        const T *index = Data + Count - 1;
-        For(range(Count)) {
-            if (*index-- == item) {
-                return Count - it - 1;
-            }
-        }
-        return npos;
-    }
+    constexpr size_t find_reverse(const data_t& item) const;
 
 #if !defined LSTD_NO_CRT
-    constexpr void sort() { std::sort(begin(), end()); }
-    template <typename Pred>
+    constexpr void sort();
 
-    constexpr void sort(Pred &&predicate) {
-        std::sort(begin(), end(), predicate);
-    }
+    template <typename Pred>
+    constexpr void sort(Pred&& predicate);
 #endif
 
-    constexpr bool has(const T &item) const { return find(item) != npos; }
+    constexpr bool has(const data_t& item) const;
 
-    constexpr T &get(size_t index) { return Data[index]; }
-    constexpr const T &get(size_t index) const { return Data[index]; }
+    constexpr data_t& get(size_t index);
+    constexpr const data_t& get(size_t index) const;
 
-    constexpr T &operator[](size_t index) { return get(index); }
-    constexpr const T &operator[](size_t index) const { return get(index); }
+    constexpr data_t& operator[](size_t index);
+    constexpr const data_t& operator[](size_t index) const;
 
-    constexpr bool operator==(const Array &other) {
-        if (Count != other.Count) return false;
-        For(range(Count)) {
-            if (Data[it] != other.Data[it]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    constexpr bool operator!=(const Array &other) { return !(*this == other); }
+    constexpr bool operator==(const array& other);
+    constexpr bool operator!=(const array& other);
 };
 
+template <typename T, size_t Size>
+constexpr typename array<T, Size>::iterator array<T, Size>::begin() {
+    return Data;
+}
+
+template <typename T, size_t Size>
+constexpr typename array<T, Size>::iterator array<T, Size>::end() {
+    return Data + Count;
+}
+
+template <typename T, size_t Size>
+constexpr typename array<T, Size>::const_iterator array<T, Size>::begin() const {
+    return Data;
+}
+
+template <typename T, size_t Size>
+constexpr typename array<T, Size>::const_iterator array<T, Size>::end() const {
+    return Data + Count;
+}
+
+template <typename T, size_t Size>
+constexpr size_t array<T, Size>::find(const data_t& item) const {
+    const data_t* index = Data;
+    For(range(Count)) {
+        if (*index++ == item) {
+            return it;
+        }
+    }
+    return npos;
+}
+
+template <typename T, size_t Size>
+constexpr size_t array<T, Size>::find_reverse(const data_t& item) const {
+    const data_t* index = Data + Count - 1;
+    For(range(Count)) {
+        if (*index-- == item) {
+            return Count - it - 1;
+        }
+    }
+    return npos;
+}
+
+template <typename T, size_t Size>
+constexpr void array<T, Size>::sort() {
+    std::sort(begin(), end());
+}
+
+template <typename T, size_t Size>
+template <typename Pred>
+constexpr void array<T, Size>::sort(Pred&& predicate) {
+    std::sort(begin(), end(), predicate);
+}
+
+template <typename T, size_t Size>
+constexpr bool array<T, Size>::has(const data_t& item) const {
+    return find(item) != npos;
+}
+
+template <typename T, size_t Size>
+constexpr typename array<T, Size>::data_t& array<T, Size>::get(size_t index) {
+    return Data[index];
+}
+
+template <typename T, size_t Size>
+constexpr const typename array<T, Size>::data_t& array<T, Size>::get(size_t index) const {
+    return Data[index];
+}
+
+template <typename T, size_t Size>
+constexpr typename array<T, Size>::data_t& array<T, Size>::operator[](size_t index) {
+    return get(index);
+}
+
+template <typename T, size_t Size>
+constexpr const typename array<T, Size>::data_t& array<T, Size>::operator[](size_t index) const {
+    return get(index);
+}
+
+template <typename T, size_t Size>
+constexpr bool array<T, Size>::operator==(const array& other) {
+    if (Count != other.Count) return false;
+    For(range(Count)) {
+        if (Data[it] != other.Data[it]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template <typename T, size_t Size>
+constexpr bool array<T, Size>::operator!=(const array& other) {
+    return !(*this == other);
+}
+
 template <typename... T>
-constexpr auto to_array(T &&... values)
-    -> Array<typename std::decay_t<typename std::common_type_t<T...>>, sizeof...(T)> {
-    return Array<typename std::decay_t<typename std::common_type_t<T...>>, sizeof...(T)>{std::forward<T>(values)...};
+constexpr auto to_array(T&&... values) -> array<std::decay_t<std::common_type_t<T...>>, sizeof...(T)> {
+    return array<std::decay_t<std::common_type_t<T...>>, sizeof...(T)>{std::forward<T>(values)...};
 }
 
 LSTD_END_NAMESPACE

@@ -4,6 +4,7 @@
 ---------------------------------------------------------------------------------
 File I/O and Reader/Writer implementations
 (File mapping too)
++ Tests
 ---------------------------------------------------------------------------------
 API for watching directory changes
 ---------------------------------------------------------------------------------
@@ -26,11 +27,6 @@ The following things implemented in windows but not on posix yet:
 Way to get monitor refresh rate (and possibly other system info)
 ---------------------------------------------------------------------------------
 Replace LE's game loop with a platform inspecific one
----------------------------------------------------------------------------------
-Sometimes, condition_variable test crashes
-After running the program for a while, it seems like it's fixed by calling
-the Delegate's destructor before deleting the Thread_Start_Info when finished
-calling the thread function.
 ---------------------------------------------------------------------------------
 Rewrite vendor libraries and reduce to the minimum needed
 ---------------------------------------------------------------------------------

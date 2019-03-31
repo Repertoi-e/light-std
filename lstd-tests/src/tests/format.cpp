@@ -4,15 +4,15 @@
 
 #include <limits.h>
 
-struct Custom_Type {};
+struct custom_type {};
 
 template <>
-struct fmt::Formatter<Custom_Type> {
-    void format(Custom_Type, Format_Context &f) { f.write("foo"); }
+struct fmt::formatter<custom_type> {
+    void format(custom_type, format_context &f) const { f.write("foo"); }
 };
 
 TEST(custom_types_and_to_string) {
-    assert_eq(fmt::sprint("{}", Custom_Type{}), "foo");
+    assert_eq(fmt::sprint("{}", custom_type{}), "foo");
 
     assert_eq(fmt::to_string(42), "42");
     assert_eq(fmt::to_string(string("foo")), "foo");
@@ -21,7 +21,7 @@ TEST(custom_types_and_to_string) {
     assert_eq(fmt::to_string(false), "false");
     assert_eq(fmt::to_string(true), "true");
 
-    assert_eq(fmt::to_string(Custom_Type{}), "foo");
+    assert_eq(fmt::to_string(custom_type{}), "foo");
 }
 
 TEST(positional_arguments) {
@@ -339,8 +339,8 @@ TEST(bytes_chars_and_strings) {
     assert_eq("z", fmt::sprint("{0:c}", 'z'));
 
     s32 n = 'x';
-    const char types[] = "cbBdoxXn";
-    for (const char *type = types + 1; *type; ++type) {
+    byte types[] = "cbBdoxXn";
+    for (auto *type = types + 1; *type; ++type) {
         string formatStr = fmt::sprint("{{:{}}}", *type);
         assert_eq(fmt::sprint(string_view(formatStr), n), fmt::sprint(string_view(formatStr), 'x'));
     }

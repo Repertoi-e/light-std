@@ -10,61 +10,61 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-enum class Alignment { DEFAULT, LEFT, RIGHT, CENTER, NUMERIC };
-enum class Flag : u32 { SIGN = 1, PLUS = 2, MINUS = 4, HASH = 8 };
+enum class alignment { DEFAULT, LEFT, RIGHT, CENTER, NUMERIC };
+enum class flag : u32 { SIGN = 1, PLUS = 2, MINUS = 4, HASH = 8 };
 
-inline Flag operator|(Flag lhs, Flag rhs) {
-    using T = std::underlying_type_t<Flag>;
-    return (Flag)((T) lhs | (T) rhs);
+inline flag operator|(flag lhs, flag rhs) {
+    using T = std::underlying_type_t<flag>;
+    return (flag)((T) lhs | (T) rhs);
 }
-inline Flag &operator|=(Flag &lhs, Flag rhs) {
-    using T = std::underlying_type_t<Flag>;
-    lhs = (Flag)((T) lhs | (T) rhs);
+inline flag &operator|=(flag &lhs, flag rhs) {
+    using T = std::underlying_type_t<flag>;
+    lhs = (flag)((T) lhs | (T) rhs);
     return lhs;
 }
 
-struct Align_Spec {
+struct align_spec {
     u32 Width;
     char32_t Fill;
-    Alignment Align;
+    alignment Align;
 
-    constexpr Align_Spec(u32 width, char32_t fill, Alignment align = Alignment::DEFAULT)
+    constexpr align_spec(u32 width, char32_t fill, alignment align = alignment::DEFAULT)
         : Width(width), Fill(fill), Align(align) {}
 };
 
-class Format_Specs : public Align_Spec {
+class format_specs : public align_spec {
    public:
-    Flag Flags = (Flag) 0;
+    flag Flags = (flag) 0;
     s32 Precision = -1;
     char32_t Type;
 
-    constexpr Format_Specs(u32 width = 0, char32_t type = 0, char32_t fill = ' ')
-        : Align_Spec(width, fill), Type(type) {}
-    constexpr bool has_flag(Flag flag) const { return ((u32) Flags & (u32) flag) != 0; }
+    constexpr format_specs(u32 width = 0, char32_t type = 0, char32_t fill = ' ')
+        : align_spec(width, fill), Type(type) {}
+    constexpr bool has_flag(flag flag) const { return ((u32) Flags & (u32) flag) != 0; }
 };
 
-struct Argument_Ref {
-    enum class Kind { NONE, INDEX, NAME };
-    Kind Kind = Kind::NONE;
+struct argument_ref {
+    enum class kind { NONE, INDEX, NAME };
+    kind Kind = kind::NONE;
     union {
         u32 Index;
         string_view Name;
     };
 
-    constexpr Argument_Ref() : Index(0) {}
-    constexpr explicit Argument_Ref(u32 index) : Kind(Kind::INDEX), Index(index) {}
-    constexpr explicit Argument_Ref(const string_view &name) : Kind(Kind::NAME), Name(name) {}
+    constexpr argument_ref() : Index(0) {}
+    constexpr explicit argument_ref(u32 index) : Kind(kind::INDEX), Index(index) {}
+    constexpr explicit argument_ref(const string_view &name) : Kind(kind::NAME), Name(name) {}
 
-    constexpr Argument_Ref &operator=(u32 index) {
-        Kind = Kind::INDEX;
+    constexpr argument_ref &operator=(u32 index) {
+        Kind = kind::INDEX;
         Index = index;
         return *this;
     }
 };
 
-struct Dynamic_Format_Specs : Format_Specs {
-    Argument_Ref WidthRef;
-    Argument_Ref PrecisionRef;
+struct dynamic_format_specs : format_specs {
+    argument_ref WidthRef;
+    argument_ref PrecisionRef;
 };
 }  // namespace fmt
 

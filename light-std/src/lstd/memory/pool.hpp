@@ -4,19 +4,19 @@
 
 LSTD_BEGIN_NAMESPACE
 
-struct Pool {
+struct pool {
     size_t BlockSize = 65536;
     size_t Alignment = 8;
 
     // The allocator used for reserving the initial memory block
     // This value is null until this object allocates memory or the user sets it manually.
-    Allocator_Closure BlockAllocator;
+    allocator_closure BlockAllocator;
 
-    Pool() {}
-    Pool(const Pool &other) = delete;
-    Pool(Pool &&other) = delete;
-    Pool &operator=(const Pool &other) = delete;
-    Pool &operator=(Pool &&other) = delete;
+    pool() {}
+    pool(const pool &other) = delete;
+    pool(pool &&other) = delete;
+    pool &operator=(const pool &other) = delete;
+    pool &operator=(pool &&other) = delete;
 
     // Resets and frees the pool
     void release();
@@ -33,12 +33,12 @@ struct Pool {
     void cycle_new_block();
     void ensure_memory_exists(size_t size);
 
-    Dynamic_Array<u8 *> UnusedMemblocks;
-    Dynamic_Array<u8 *> UsedMemblocks;
-    Dynamic_Array<u8 *> ObsoletedMemblocks;
+    dynamic_array<u8 *> _UnusedMemblocks;
+    dynamic_array<u8 *> _UsedMemblocks;
+    dynamic_array<u8 *> _ObsoletedMemblocks;
 
-    u8 *CurrentMemblock = null;
-    u8 *CurrentPosition = null;
+    u8 *_CurrentMemblock = null;
+    u8 *_CurrentPosition = null;
     size_t _BytesLeft = 0;
 };
 
@@ -47,6 +47,6 @@ struct Pool {
 // that's because Pool doesn't manage freeing of invidual pieces
 // of memory. So calling pool_allocator with Allocator_Mode::FREE,
 // doesn't do anything. Allocator_Mode::FREE_ALL does tho.
-void *pool_allocator(Allocator_Mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize, uptr_t);
+void *pool_allocator(allocator_mode mode, void *allocatorData, size_t size, void *oldMemory, size_t oldSize, uptr_t);
 
 LSTD_END_NAMESPACE

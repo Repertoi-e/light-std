@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-enum class Style {
+enum class style {
     Reset = 0,
     Bold = 1,
     Dim = 2,
@@ -19,7 +19,7 @@ enum class Style {
     Crossed = 9
 };
 
-enum class FG {
+enum class fg {
     Black = 30,
     Red = 31,
     Green = 32,
@@ -31,7 +31,7 @@ enum class FG {
     Reset = 39
 };
 
-enum class BG {
+enum class bg {
     Black = 40,
     Red = 41,
     Green = 42,
@@ -43,18 +43,17 @@ enum class BG {
     Reset = 49
 };
 
-enum class FGB { Black = 90, Red = 91, Green = 92, Yellow = 93, Blue = 94, Magenta = 95, Cyan = 96, Gray = 97 };
-enum class BGB { Black = 100, Red = 101, Green = 102, Yellow = 103, Blue = 104, Magenta = 105, Cyan = 106, Gray = 107 };
+enum class fgb { Black = 90, Red = 91, Green = 92, Yellow = 93, Blue = 94, Magenta = 95, Cyan = 96, Gray = 97 };
+enum class bgb { Black = 100, Red = 101, Green = 102, Yellow = 103, Blue = 104, Magenta = 105, Cyan = 106, Gray = 107 };
 
 namespace internal {
 bool does_terminal_support_color();
 }
 
 template <typename T>
-struct Formatter<T, typename std::enable_if_t<std::is_same_v<T, fmt::Style> || std::is_same_v<T, fmt::FG> ||
-                                              std::is_same_v<T, fmt::BG> || std::is_same_v<T, fmt::FGB> ||
-                                              std::is_same_v<T, fmt::BGB>>> {
-    void format(const T &value, Format_Context &f) {
+struct formatter<T, std::enable_if_t<std::is_same_v<T, style> || std::is_same_v<T, fg> || std::is_same_v<T, bg> ||
+                                     std::is_same_v<T, fgb> || std::is_same_v<T, bgb>>> {
+    void format(const T &value, format_context &f) {
         if (internal::does_terminal_support_color()) {
             f.write("\033[");
             f.write_int((s32) value);

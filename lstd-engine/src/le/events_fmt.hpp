@@ -7,47 +7,47 @@
 #include "events.hpp"
 
 template <>
-struct fmt::Formatter<le::Window_Closed_Event> {
-    void format(const le::Window_Closed_Event &value, Format_Context &f) {
-        f.write_fmt("Window_Closed_Event {{ WindowPtr = {} }", (void *) value.WindowPtr);
+struct fmt::formatter<le::window_closed_event> {
+    void format(const le::window_closed_event &value, format_context &f) const {
+        f.write_fmt("window_closed_event {{ Window = {} }", (void *) value.Window);
     }
 };
 
 template <>
-struct fmt::Formatter<le::Window_Resized_Event> {
-    void format(const le::Window_Resized_Event &value, Format_Context &f) {
-        f.write_fmt("Window_Resized_Event {{ WindowPtr = {}, Width = {}, Height = {} }", (void *) value.WindowPtr,
+struct fmt::formatter<le::window_resized_event> {
+    void format(const le::window_resized_event &value, format_context &f) const {
+        f.write_fmt("window_resized_event {{ Window = {}, Width = {}, Height = {} }", (void *) value.Window,
                     value.Width, value.Height);
     }
 };
 
 template <>
-struct fmt::Formatter<le::Window_Gained_Focus_Event> {
-    void format(const le::Window_Gained_Focus_Event &value, Format_Context &f) {
-        f.write_fmt("Window_Gained_Focus_Event {{ WindowPtr = {} }", (void *) value.WindowPtr);
+struct fmt::formatter<le::window_gained_focus_event> {
+    void format(const le::window_gained_focus_event &value, format_context &f) const {
+        f.write_fmt("window_gained_Focus_event {{ Window = {} }", (void *) value.Window);
     }
 };
 
 template <>
-struct fmt::Formatter<le::Window_Lost_Focus_Event> {
-    void format(const le::Window_Lost_Focus_Event &value, Format_Context &f) {
-        f.write_fmt("Window_Lost_Focus_Event {{ WindowPtr = {} }", (void *) value.WindowPtr);
+struct fmt::formatter<le::window_lost_focus_event> {
+    void format(const le::window_lost_focus_event &value, format_context &f) const {
+        f.write_fmt("window_lost_focus_event {{ Window = {} }", (void *) value.Window);
     }
 };
 
 template <>
-struct fmt::Formatter<le::Window_Moved_Event> {
-    void format(const le::Window_Moved_Event &value, Format_Context &f) {
-        f.write_fmt("Window_Moved_Event {{ WindowPtr = {}, Left = {}, Top = {} }", (void *) value.WindowPtr, value.Left,
+struct fmt::formatter<le::window_moved_event> {
+    void format(const le::window_moved_event &value, format_context &f) const {
+        f.write_fmt("window_moved_event {{ Window = {}, Left = {}, Top = {} }", (void *) value.Window, value.Left,
                     value.Top);
     }
 };
 
 template <>
-struct fmt::Formatter<le::Key_Pressed_Event> {
-    void format(const le::Key_Pressed_Event &value, Format_Context &f) {
-        f.write_fmt("Key_Pressed_Event {{\n\tWindowPtr = {}, KeyCode = {},\n\tModifiers = {{\n",
-                    (void *) value.WindowPtr, le::key_name_from_code(value.KeyCode));
+struct fmt::formatter<le::key_pressed_event> {
+    void format(const le::key_pressed_event &value, format_context &f) const {
+        f.write_fmt("key_pressed_event {{\n\tWindowPtr = {}, KeyCode = {},\n\tModifiers = {{\n", (void *) value.Window,
+                    le::key_name_from_code(value.KeyCode));
         f.write_fmt("\t\tShift = {},\n", (bool) (value.Modifiers & le::Modifier_Shift));
         f.write_fmt("\t\tControl = {},\n", (bool) (value.Modifiers & le::Modifier_Control));
         f.write_fmt("\t\tAlt = {},\n", (bool) (value.Modifiers & le::Modifier_Alt));
@@ -57,10 +57,10 @@ struct fmt::Formatter<le::Key_Pressed_Event> {
 };
 
 template <>
-struct fmt::Formatter<le::Key_Released_Event> {
-    void format(const le::Key_Released_Event &value, Format_Context &f) {
-        f.write_fmt("Key_Released_Event {{\n\tWindowPtr = {}, KeyCode = {},\n\tModifiers = {{\n",
-                    (void *) value.WindowPtr, le::key_name_from_code(value.KeyCode));
+struct fmt::formatter<le::key_released_event> {
+    void format(const le::key_released_event &value, format_context &f) const {
+        f.write_fmt("key_released_event {{\n\tWindowPtr = {}, KeyCode = {},\n\tModifiers = {{\n", (void *) value.Window,
+                    le::key_name_from_code(value.KeyCode));
         f.write_fmt("\t\tShift = {},\n", (bool) (value.Modifiers & le::Modifier_Shift));
         f.write_fmt("\t\tControl = {},\n", (bool) (value.Modifiers & le::Modifier_Control));
         f.write_fmt("\t\tAlt = {},\n", (bool) (value.Modifiers & le::Modifier_Alt));
@@ -70,17 +70,17 @@ struct fmt::Formatter<le::Key_Released_Event> {
 };
 
 template <>
-struct fmt::Formatter<le::Key_Typed_Event> {
-    void format(const le::Key_Typed_Event &value, Format_Context &f) {
-        f.write_fmt("Key_Typed_Event {{ WindowPtr = {}, CodePoint: {} }", (void *) value.WindowPtr, value.CodePoint);
+struct fmt::formatter<le::key_typed_event> {
+    void format(const le::key_typed_event &value, format_context &f) const {
+        f.write_fmt("key_typed_event {{ Window = {}, CodePoint: {} }", (void *) value.Window, value.CodePoint);
     }
 };
 
 template <>
-struct fmt::Formatter<le::Mouse_Button_Pressed_Event> {
-    void format(const le::Mouse_Button_Pressed_Event &value, Format_Context &f) {
-        f.write_fmt("Mouse_Button_Pressed_Event {{\n\tWindowPtr = {}, Button = {},\n\tModifiers = {{\n",
-                    (void *) value.WindowPtr, le::mouse_button_name_from_code(value.Button));
+struct fmt::formatter<le::mouse_button_pressed_event> {
+    void format(const le::mouse_button_pressed_event &value, format_context &f) const {
+        f.write_fmt("mouse_button_pressed_event {{\n\tWindowPtr = {}, Button = {},\n\tModifiers = {{\n",
+                    (void *) value.Window, le::mouse_button_name_from_code(value.Button));
         f.write_fmt("\t\tShift = {},\n", (bool) (value.Modifiers & le::Modifier_Shift));
         f.write_fmt("\t\tControl = {},\n", (bool) (value.Modifiers & le::Modifier_Control));
         f.write_fmt("\t\tAlt = {},\n", (bool) (value.Modifiers & le::Modifier_Alt));
@@ -90,10 +90,10 @@ struct fmt::Formatter<le::Mouse_Button_Pressed_Event> {
 };
 
 template <>
-struct fmt::Formatter<le::Mouse_Button_Released_Event> {
-    void format(const le::Mouse_Button_Released_Event &value, Format_Context &f) {
-        f.write_fmt("Mouse_Button_Released_Event {{\n\tWindowPtr = {}, Button = {},\n\tModifiers = {{\n",
-                    (void *) value.WindowPtr, le::mouse_button_name_from_code(value.Button));
+struct fmt::formatter<le::mouse_button_released_event> {
+    void format(const le::mouse_button_released_event &value, format_context &f) const {
+        f.write_fmt("mouse_button_released_event {{\n\tWindowPtr = {}, Button = {},\n\tModifiers = {{\n",
+                    (void *) value.Window, le::mouse_button_name_from_code(value.Button));
         f.write_fmt("\t\tShift = {},\n", (bool) (value.Modifiers & le::Modifier_Shift));
         f.write_fmt("\t\tControl = {},\n", (bool) (value.Modifiers & le::Modifier_Control));
         f.write_fmt("\t\tAlt = {},\n", (bool) (value.Modifiers & le::Modifier_Alt));
@@ -103,10 +103,10 @@ struct fmt::Formatter<le::Mouse_Button_Released_Event> {
 };
 
 template <>
-struct fmt::Formatter<le::Mouse_Scrolled_Event> {
-    void format(const le::Mouse_Scrolled_Event &value, Format_Context &f) {
-        f.write_fmt("Mouse_Scrolled_Event {{\n\tWindowPtr = {}, DeltaX = {}, DeltaY = {}, \n\tModifiers = {{\n",
-                    (void *) value.WindowPtr, value.DeltaX, value.DeltaY);
+struct fmt::formatter<le::mouse_scrolled_event> {
+    void format(const le::mouse_scrolled_event &value, format_context &f) const {
+        f.write_fmt("Mouse_scrolled_event {{\n\tWindowPtr = {}, DeltaX = {}, DeltaY = {}, \n\tModifiers = {{\n",
+                    (void *) value.Window, value.DeltaX, value.DeltaY);
         f.write_fmt("\t\tShift = {},\n", (bool) (value.Modifiers & le::Modifier_Shift));
         f.write_fmt("\t\tControl = {},\n", (bool) (value.Modifiers & le::Modifier_Control));
         f.write_fmt("\t\tAlt = {},\n", (bool) (value.Modifiers & le::Modifier_Alt));
@@ -122,23 +122,23 @@ struct fmt::Formatter<le::Mouse_Scrolled_Event> {
 };
 
 template <>
-struct fmt::Formatter<le::Mouse_Entered_Event> {
-    void format(const le::Mouse_Entered_Event &value, Format_Context &f) {
-        f.write_fmt("Mouse_Entered_Event {{ WindowPtr = {} }", (void *) value.WindowPtr);
+struct fmt::formatter<le::mouse_entered_event> {
+    void format(const le::mouse_entered_event &value, format_context &f) const {
+        f.write_fmt("Mouse_Entered_event {{ Window = {} }", (void *) value.Window);
     }
 };
 
 template <>
-struct fmt::Formatter<le::Mouse_Left_Event> {
-    void format(const le::Mouse_Left_Event &value, Format_Context &f) {
-        f.write_fmt("Mouse_Left_Event {{ WindowPtr = {} }", (void *) value.WindowPtr);
+struct fmt::formatter<le::mouse_left_event> {
+    void format(const le::mouse_left_event &value, format_context &f) const {
+        f.write_fmt("Mouse_Left_event {{ Window = {} }", (void *) value.Window);
     }
 };
 
 template <>
-struct fmt::Formatter<le::Mouse_Moved_Event> {
-    void format(const le::Mouse_Moved_Event &value, Format_Context &f) {
-        f.write_fmt("Mouse_Moved_Event {{\n\tWindowPtr = {}, \n\tModifiers = {{\n", (void *) value.WindowPtr);
+struct fmt::formatter<le::mouse_moved_event> {
+    void format(const le::mouse_moved_event &value, format_context &f) const {
+        f.write_fmt("Mouse_Moved_event {{\n\tWindowPtr = {}, \n\tModifiers = {{\n", (void *) value.Window);
         f.write_fmt("\t\tShift = {},\n", (bool) (value.Modifiers & le::Modifier_Shift));
         f.write_fmt("\t\tControl = {},\n", (bool) (value.Modifiers & le::Modifier_Control));
         f.write_fmt("\t\tAlt = {},\n", (bool) (value.Modifiers & le::Modifier_Alt));

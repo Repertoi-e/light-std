@@ -21,101 +21,101 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-inline char *float_callback_for_sprintf(char *sprintfBuffer, void *user, int len) {
-    auto *buffer = (Memory_Buffer<500> *) user;
+inline byte *float_callback_for_sprintf(byte *sprintfBuffer, void *user, int len) {
+    auto *buffer = (memory_buffer<500> *) user;
     if (!buffer->has_space_for(len)) {
         buffer->grow(STB_SPRINTF_MIN);
     }
-    buffer->append_pointer_and_size_unsafe((byte *) sprintfBuffer, len);
+    buffer->append_pointer_and_size_unsafe(sprintfBuffer, len);
     return sprintfBuffer;
 }
 
-struct Parse_Context;
-struct Format_Context;
+struct parse_context;
+struct format_context;
 
 template <typename T, typename Enable = void>
-struct Formatter {
-    void format(const T &, Format_Context &) {
+struct formatter {
+    void format(const T &, format_context &) {
         assert(false);
         // static_assert(false, "Formatter<T> not specialized");
     }
 };
 
-struct Argument {
-    Value Value;
-    Format_Type Type = Format_Type::NONE;
+struct argument {
+    value Value;
+    format_type Type = format_type::NONE;
 
-    struct Handle {
-        Custom_Value Custom;
+    struct handle {
+        custom_value Custom;
 
-        explicit Handle(Custom_Value custom) : Custom(custom) {}
-        void format(Format_Context &f) const { Custom.Format(Custom.Data, f); }
+        explicit handle(custom_value custom) : Custom(custom) {}
+        void format(format_context &f) const { Custom.Format(Custom.Data, f); }
     };
 
-    explicit operator bool() const { return Type != Format_Type::NONE; }
+    explicit operator bool() const { return Type != format_type::NONE; }
 };
 
 template <bool IsPacked, typename T>
-inline typename std::enable_if_t<IsPacked, Value> make_argument(const T &value) {
+std::enable_if_t<IsPacked, value> make_argument(const T &value) {
     return make_value(value);
 }
 
 template <bool IsPacked, typename T>
-inline typename std::enable_if_t<!IsPacked, Argument> make_argument(const T &value) {
+std::enable_if_t<!IsPacked, argument> make_argument(const T &value) {
     return make_argument(value);
 }
 
 template <typename T>
-constexpr Argument make_argument(const T &value) {
-    Argument arg;
-    arg.Type = Get_Type<T>::Value;
+constexpr argument make_argument(const T &value) {
+    argument arg;
+    arg.Type = get_type<T>::Value;
     arg.Value = make_value(value);
     return arg;
 }
 
-struct Named_Argument_Base {
+struct named_argument_base {
     string_view Name;
-    mutable char Data[sizeof(Argument)];
+    mutable byte Data[sizeof(argument)]{};
 
-    Named_Argument_Base(const string_view &name) : Name(name) {}
+    named_argument_base(const string_view &name) : Name(name) {}
 
-    Argument deserialize() const {
-        Argument result;
-        copy_memory(&result, Data, sizeof(Argument));
+    argument deserialize() const {
+        argument result;
+        copy_memory(&result, Data, sizeof(argument));
         return result;
     }
 };
 
 template <typename T>
-struct Named_Argument : Named_Argument_Base {
+struct named_argument : named_argument_base {
     const T &Value;
 
-    Named_Argument(const string_view &name, const T &value) : Named_Argument_Base(name), Value(value) {}
+    named_argument(const string_view &name, const T &value) : named_argument_base(name), Value(value) {}
 };
 
 template <typename T>
-Init_Value<const void *, Format_Type::NAMED_ARGUMENT> make_value(const Named_Argument<T> &value) {
-    Argument arg;
-    arg.Type = Get_Type<decltype(value.Value)>::Value;
+init_value<const void *, format_type::NAMED_ARGUMENT> make_value(const named_argument<T> &value) {
+    argument arg;
+    arg.Type = get_type<decltype(value.Value)>::Value;
     arg.Value = make_value(value.Value);
-    copy_memory(value.Data, &arg, sizeof(Argument));
+    copy_memory(value.Data, &arg, sizeof(argument));
     return (const void *) (&value);
 }
 
 constexpr auto MAX_PACKED_ARGS = 15;
 
 template <typename... Args>
-struct Arguments_Array {
+struct arguments_array {
     static constexpr size_t NUM_ARGS = sizeof...(Args);
     static constexpr bool IS_PACKED = NUM_ARGS < MAX_PACKED_ARGS;
 
-    using value_type = typename std::conditional_t<IS_PACKED, Value, Argument>;
+    using value_type = std::conditional_t<IS_PACKED, value, argument>;
 
     // If the arguments are not packed, add one more element to mark the end.
     static constexpr size_t DATA_SIZE = NUM_ARGS + (IS_PACKED && NUM_ARGS != 0 ? 0 : 1);
     value_type Data[DATA_SIZE];
 
-    Arguments_Array(const Args &... args) : Data{make_argument<IS_PACKED>(args)...} {}
+    arguments_array(const Args &... args) : Data{make_argument<IS_PACKED>(args)...} {}
 
    private:
     // This dummy template is required because
@@ -128,7 +128,7 @@ struct Arguments_Array {
 
     template <typename dummy, typename Arg, typename... MyArgs>
     static constexpr u64 get_types_impl() {
-        return ((u64) Get_Type<Arg>::Value) | (get_types_impl<dummy, MyArgs...>() << 4);
+        return ((u64) get_type<Arg>::Value) | (get_types_impl<dummy, MyArgs...>() << 4);
     }
     static constexpr s64 get_types() { return IS_PACKED ? (s64)(get_types_impl<s32, Args...>()) : -(s64)(NUM_ARGS); }
 
@@ -136,33 +136,33 @@ struct Arguments_Array {
     static constexpr s64 TYPES = get_types();
 };
 
-struct Arguments {
+struct arguments {
     // To reduce compiled code size per formatting function call, types of first
     // MAX_PACKED_ARGS arguments are passed in the _Types field.
     u64 Types = 0;
     union {
-        const Value *Values;
-        const Argument *Args;
+        const value *Values;
+        const argument *Args;
         const void *DataPointer;
     };
 
     template <typename... Args>
-    Arguments(const Arguments_Array<Args...> &array) : Types((u64) array.TYPES), DataPointer(array.Data) {}
+    arguments(const arguments_array<Args...> &array) : Types((u64) array.TYPES), DataPointer(array.Data) {}
 
-    Arguments(const Argument *args, u32 count) : Types(-((s64) count)) { Args = args; }
+    arguments(const argument *args, u32 count) : Types(-((s64) count)) { Args = args; }
 
     u32 max_size() const {
         s64 signedTypes = (s64) Types;
         return (u32)(signedTypes < 0 ? -signedTypes : (s64) MAX_PACKED_ARGS);
     }
 
-    Format_Type get_type_at(u32 index) const {
+    format_type get_type_at(u32 index) const {
         u32 shift = index * 4;
         u64 mask = 0xf;
-        return (Format_Type)((Types & (mask << shift)) >> shift);
+        return (format_type)((Types & (mask << shift)) >> shift);
     }
 
-    Argument get(u32 index) const {
+    argument get(u32 index) const {
         s64 signedTypes = (s64) Types;
         if (signedTypes < 0) {
             u64 numArgs = (u64)(-signedTypes);
@@ -174,15 +174,15 @@ struct Arguments {
             return {};
         }
 
-        Argument result;
+        argument result;
         result.Type = get_type_at(index);
-        if (result.Type == Format_Type::NONE) {
+        if (result.Type == format_type::NONE) {
             return result;
         }
         result.Value = Values[index];
 
-        if (result.Type == Format_Type::NAMED_ARGUMENT) {
-            auto &named = *(const Named_Argument_Base *) (result.Value.Pointer_Value);
+        if (result.Type == format_type::NAMED_ARGUMENT) {
+            auto &named = *(const named_argument_base *) (result.Value.Pointer_Value);
             result = named.deserialize();
         }
         return result;
@@ -190,33 +190,33 @@ struct Arguments {
 };
 
 // A map from argument names to their values for named arguments.
-struct Argument_Map {
-    struct Entry {
+struct argument_map {
+    struct entry {
         string_view Name;
-        Argument Arg;
+        argument Arg;
     };
 
-    Entry *Entries = null;
+    entry *Entries = null;
     u32 Size = 0;
-    Allocator_Closure Allocator;
+    allocator_closure Allocator;
 
-    Argument_Map() {}
-    ~Argument_Map() {
+    argument_map() {}
+    ~argument_map() {
         if (Entries) delete Entries;
     }
 
-    void ensure_initted(const Arguments &args) {
+    void ensure_initted(const arguments &args) {
         if (Entries) return;
 
-        Entries = new (&Allocator, ensure_allocator) Entry[args.max_size()];
+        Entries = new (&Allocator, ensure_allocator) entry[args.max_size()];
 
-        if (args.get_type_at(MAX_PACKED_ARGS - 1) == Format_Type::NONE) {
+        if (args.get_type_at(MAX_PACKED_ARGS - 1) == format_type::NONE) {
             u32 i = 0;
             while (true) {
                 auto type = args.get_type_at(i);
-                if (type == Format_Type::NONE) {
+                if (type == format_type::NONE) {
                     return;
-                } else if (type == Format_Type::NAMED_ARGUMENT) {
+                } else if (type == format_type::NAMED_ARGUMENT) {
                     add(args.Values[i]);
                 }
                 ++i;
@@ -225,21 +225,21 @@ struct Argument_Map {
         u32 i = 0;
         while (true) {
             auto type = args.Args[i].Type;
-            if (type == Format_Type::NONE) {
+            if (type == format_type::NONE) {
                 return;
-            } else if (type == Format_Type::NAMED_ARGUMENT) {
+            } else if (type == format_type::NAMED_ARGUMENT) {
                 add(args.Args[i].Value);
             }
             ++i;
         }
     }
 
-    void add(Value value) {
-        auto &named = *(const Named_Argument_Base *) (value.Pointer_Value);
-        Entries[Size++] = Entry{named.Name, named.deserialize()};
+    void add(value value) {
+        auto &named = *(const named_argument_base *) (value.Pointer_Value);
+        Entries[Size++] = entry{named.Name, named.deserialize()};
     }
 
-    Argument find(const string_view &name) const {
+    argument find(const string_view &name) const {
         // The list is unsorted, so just return the first matching name.
         for (auto *it = Entries, *end = Entries + Size; it != end; ++it) {
             if (it->Name == name) return it->Arg;
@@ -248,20 +248,20 @@ struct Argument_Map {
     }
 
    private:
-    Argument_Map(const Argument_Map &) = delete;
-    void operator=(const Argument_Map &) = delete;
+    argument_map(const argument_map &) = delete;
+    void operator=(const argument_map &) = delete;
 };
 
-struct Parse_Context {
+struct parse_context {
    private:
     s32 NextArgId = 0;
 
    public:
     string_view FormatString;
     const byte *It;
-    Dynamic_Format_Specs Specs;
+    dynamic_format_specs Specs;
 
-    Parse_Context(const string_view &formatString) : FormatString(formatString) {
+    parse_context(const string_view &formatString) : FormatString(formatString) {
         It = (const byte *) FormatString.begin().to_pointer();
     }
 
@@ -280,37 +280,37 @@ struct Parse_Context {
         return true;
     }
 
-    void check_arg_id(const string_view &) {}
+    void check_arg_id(const string_view &) const {}
 };
 
-void format_context_write(void *data, const Memory_View &writeData);
+void format_context_write(void *data, const memory_view &memory);
 void format_context_flush(void *data);
 
-struct Format_Context : io::Writer {
+struct format_context : io::writer {
    private:
-    Argument_Map ArgMap;
-    Arguments Args;
+    argument_map ArgMap;
+    arguments Args;
 
    public:
-    Parse_Context ParseContext;
-    Memory_Buffer<500> Out;
-    io::Writer &FlushOutput;
+    parse_context ParseContext;
+    memory_buffer<500> Out;
+    writer &FlushOutput;
 
     // If you want to use this Writer to just output formatted types (without a format string, etc.) you can use this
     // constructor. If you want to control the format specifiers, modify ParseContext.Specs
-    Format_Context(io::Writer &flushOutput) : FlushOutput(flushOutput), Args(null, 0), ParseContext("") {
-        write_function = format_context_write;
-        flush_function = format_context_flush;
+    format_context(writer &flushOutput) : Args(null, 0), ParseContext(""), FlushOutput(flushOutput) {
+        WriteFunction = format_context_write;
+        FlushFunction = format_context_flush;
     }
 
-    Format_Context(io::Writer &flushOutput, const string_view &formatString, Arguments args)
-        : FlushOutput(flushOutput), ParseContext(formatString), Args(args) {
-        write_function = format_context_write;
-        flush_function = format_context_flush;
+    format_context(writer &flushOutput, const string_view &formatString, arguments args)
+        : Args(args), ParseContext(formatString), FlushOutput(flushOutput) {
+        WriteFunction = format_context_write;
+        FlushFunction = format_context_flush;
     }
 
     // Returns the argument with specified index.
-    Argument do_get_arg(u32 argId) {
+    argument do_get_arg(u32 argId) const {
         auto result = Args.get(argId);
         if (!result) {
             assert(false && "Argument index out of range");
@@ -319,10 +319,10 @@ struct Format_Context : io::Writer {
     }
 
     // Checks if manual indexing is used and returns the argument with specified index.
-    Argument get_arg(u32 argId) { return ParseContext.check_arg_id(argId) ? do_get_arg(argId) : Argument{}; }
+    argument get_arg(u32 argId) { return ParseContext.check_arg_id(argId) ? do_get_arg(argId) : argument{}; }
 
     // Checks if manual indexing is used and returns the argument with the specified name.
-    Argument get_arg(const string_view &name) {
+    argument get_arg(const string_view &name) {
         ArgMap.ensure_initted(Args);
 
         auto result = ArgMap.find(name);
@@ -332,9 +332,9 @@ struct Format_Context : io::Writer {
         return result;
     }
 
-    Argument next_arg() { return do_get_arg(ParseContext.next_arg_id()); }
+    argument next_arg() { return do_get_arg(ParseContext.next_arg_id()); }
 
-    using io::Writer::write;
+    using writer::write;
 
     // Format an integer according to the current argument's format specs.
     template <typename T>
@@ -342,13 +342,13 @@ struct Format_Context : io::Writer {
         byte prefix[4] = {0};
         size_t prefixSize = 0;
 
-        using unsigned_type = typename std::make_unsigned_t<T>;
+        using unsigned_type = std::make_unsigned_t<T>;
         unsigned_type absValue = (unsigned_type) value;
         if (is_negative(value)) {
             prefix[0] = '-';
             ++prefixSize;
             absValue = 0 - absValue;
-        } else if (ParseContext.Specs.has_flag(Flag::SIGN)) {
+        } else if (ParseContext.Specs.has_flag(flag::SIGN)) {
             prefix[0] = sign_plus() ? '+' : ' ';
             ++prefixSize;
         }
@@ -357,8 +357,8 @@ struct Format_Context : io::Writer {
             case 0:
             case 'd': {
                 u32 numDigits = internal::count_digits(absValue);
-                format_int(numDigits, Memory_View(prefix, prefixSize),
-                           [&](Format_Context &f) { internal::format_uint(f.Out, absValue, numDigits); });
+                format_int(numDigits, memory_view(prefix, prefixSize),
+                           [&](format_context &f) { internal::format_uint(f.Out, absValue, numDigits); });
             } break;
             case 'x':
             case 'X': {
@@ -367,7 +367,7 @@ struct Format_Context : io::Writer {
                     prefix[prefixSize++] = (byte) type();
                 }
                 u32 numDigits = internal::count_digits<4>(absValue);
-                format_int(numDigits, Memory_View(prefix, prefixSize), [&](Format_Context &f) {
+                format_int(numDigits, memory_view(prefix, prefixSize), [&](format_context &f) {
                     internal::format_uint<4>(f.Out, absValue, numDigits, type() != 'x');
                 });
             } break;
@@ -378,8 +378,8 @@ struct Format_Context : io::Writer {
                     prefix[prefixSize++] = (byte) type();
                 }
                 u32 numDigits = internal::count_digits<1>(absValue);
-                format_int(numDigits, Memory_View(prefix, prefixSize),
-                           [&](Format_Context &f) { internal::format_uint<1>(f.Out, absValue, numDigits); });
+                format_int(numDigits, memory_view(prefix, prefixSize),
+                           [&](format_context &f) { internal::format_uint<1>(f.Out, absValue, numDigits); });
             } break;
             case 'o': {
                 u32 numDigits = internal::count_digits<3>(absValue);
@@ -388,8 +388,8 @@ struct Format_Context : io::Writer {
                     // is not greater than the number of digits.
                     prefix[prefixSize++] = '0';
                 }
-                format_int(numDigits, Memory_View(prefix, prefixSize),
-                           [&](Format_Context &f) { internal::format_uint<3>(f.Out, absValue, numDigits); });
+                format_int(numDigits, memory_view(prefix, prefixSize),
+                           [&](format_context &f) { internal::format_uint<3>(f.Out, absValue, numDigits); });
             } break;
             case 'n': {
                 u32 numDigits = internal::count_digits(absValue);
@@ -398,10 +398,10 @@ struct Format_Context : io::Writer {
                 encode_code_point(sepEncoded, sep);
 
                 u32 size = numDigits + 1 * ((numDigits - 1) / 3);
-                format_int(size, Memory_View(prefix, prefixSize), [&](Format_Context &f) {
+                format_int(size, memory_view(prefix, prefixSize), [&](format_context &f) {
                     internal::format_uint(
                         f.Out, absValue, size,
-                        internal::Add_Thousands_Separator{Memory_View(sepEncoded, get_size_of_code_point(sep))});
+                        internal::add_thousands_separator{memory_view(sepEncoded, get_size_of_code_point(sep))});
                 });
             } break;
             default:
@@ -410,11 +410,11 @@ struct Format_Context : io::Writer {
         }
     }
 
-    void write_float_sprintf(STBSP_SPRINTFCB callback, void *user, const char *format, ...) {
+    void write_float_sprintf(STBSP_SPRINTFCB callback, void *user, const byte *format, ...) const {
         va_list va;
         va_start(va, format);
 
-        char buffer[STB_SPRINTF_MIN];
+        byte buffer[STB_SPRINTF_MIN];
         auto len = stbsp_vsprintfcb(callback, user, buffer, format, va);
         assert(len > 0);
         va_end(va);
@@ -430,25 +430,25 @@ struct Format_Context : io::Writer {
         if (sign_bit(value)) {
             sign = '-';
             value = -value;
-        } else if (ParseContext.Specs.has_flag(Flag::SIGN)) {
+        } else if (ParseContext.Specs.has_flag(flag::SIGN)) {
             sign = sign_plus() ? '+' : ' ';
         }
 
         // Format NaN and ininity ourselves because sprintf's output is not consistent across platforms.
         if (is_nan((f64) value)) {
             format_padded(
-                [&](Format_Context &f) {
+                [&](format_context &f) {
                     if (sign) f.Out.append(sign);
-                    f.Out.append_cstring(upper ? "NAN" : "nan");
+                    f.Out.append(upper ? "NAN" : "nan");
                 },
                 align(), 3 + (sign ? 1 : 0));
             return;
         }
         if (is_infinity((f64) value)) {
             format_padded(
-                [&](Format_Context &f) {
+                [&](format_context &f) {
                     if (sign) f.Out.append(sign);
-                    f.Out.append_cstring(upper ? "INF" : "inf");
+                    f.Out.append(upper ? "INF" : "inf");
                 },
                 align(), 3 + (sign ? 1 : 0));
             return;
@@ -457,20 +457,20 @@ struct Format_Context : io::Writer {
         // Formatting floats is hard... we use stb_snprintf
 
         // Build format string.
-        char format[10];  // longest format: %#-*.*Lg
-        char *formatPtr = format;
+        byte format[10];  // longest format: %#-*.*Lg
+        byte *formatPtr = format;
         *formatPtr++ = '%';
         if (alternate()) *formatPtr++ = '#';
         if (precision() >= 0) {
             *formatPtr++ = '.';
             *formatPtr++ = '*';
         }
-        char t = (char) type();
+        byte t = (char) type();
         if (t == 0 || t == 'F') t = 'f';
         *formatPtr++ = t;
         *formatPtr = '\0';
 
-        Memory_Buffer<500> buffer;
+        memory_buffer<500> buffer;
 
         if (precision() < 0) {
             write_float_sprintf(float_callback_for_sprintf, &buffer, format, (f64) value);
@@ -479,8 +479,8 @@ struct Format_Context : io::Writer {
         }
 
         size_t n = buffer.ByteLength;
-        Alignment alignSpec = align();
-        if (alignSpec == Alignment::NUMERIC) {
+        alignment alignSpec = align();
+        if (alignSpec == alignment::NUMERIC) {
             if (sign) {
                 auto old = ParseContext.Specs;
                 ParseContext.Specs = {};
@@ -490,14 +490,14 @@ struct Format_Context : io::Writer {
                 sign = 0;
                 if (width()) --ParseContext.Specs.Width;
             }
-            alignSpec = Alignment::RIGHT;
+            alignSpec = alignment::RIGHT;
         } else {
-            if (alignSpec == Alignment::DEFAULT) alignSpec = Alignment::RIGHT;
+            if (alignSpec == alignment::DEFAULT) alignSpec = alignment::RIGHT;
             if (sign) ++n;
         }
 
         format_padded(
-            [&](Format_Context &f) {
+            [&](format_context &f) {
                 if (sign) f.Out.append(sign);
                 f.Out.append(buffer);
             },
@@ -508,38 +508,38 @@ struct Format_Context : io::Writer {
     if (type() != 'c') {                                                        \
         write_int(x);                                                           \
     } else {                                                                    \
-        format_padded([&](Format_Context &f) { f.Out.append(x); }, align(), 1); \
+        format_padded([&](format_context &f) { f.Out.append(x); }, align(), 1); \
     }
 
-    void write_argument(const Argument &arg) {
+    void write_argument(const argument &arg) {
         switch (arg.Type) {
-            case Format_Type::S32:
+            case format_type::S32:
                 int_helper(arg.Value.S32_Value);
                 break;
-            case Format_Type::U32:
+            case format_type::U32:
                 int_helper(arg.Value.U32_Value);
                 break;
-            case Format_Type::S64:
+            case format_type::S64:
                 write_int(arg.Value.S64_Value);
                 break;
-            case Format_Type::U64:
+            case format_type::U64:
                 write_int(arg.Value.U64_Value);
                 break;
-            case Format_Type::BOOL: {
+            case format_type::BOOL: {
                 if (type()) {
                     write_int(arg.Value.S32_Value ? 1 : 0);
                 } else {
                     write(arg.Value.S32_Value ? "true" : "false");
                 }
             } break;
-            case Format_Type::F64:
+            case format_type::F64:
                 write_float(arg.Value.F64_Value);
                 break;
-            case Format_Type::CSTRING:
+            case format_type::CSTRING:
                 if (!type() || type() == 's') {
                     auto strValue = arg.Value.String_Value;
                     if (!strValue.Data) {
-                        Out.append_cstring("{String pointer is null}");
+                        Out.append("{String pointer is null}");
                         return;
                     }
                     write(strValue);
@@ -547,33 +547,33 @@ struct Format_Context : io::Writer {
                     auto oldFlags = ParseContext.Specs.Flags;
                     auto oldType = ParseContext.Specs.Type;
 
-                    ParseContext.Specs.Flags = Flag::HASH;
+                    ParseContext.Specs.Flags = flag::HASH;
                     ParseContext.Specs.Type = 'x';
                     write_int((uptr_t) arg.Value.Pointer_Value);
                     ParseContext.Specs.Flags = oldFlags;
                     ParseContext.Specs.Type = oldType;
                 }
                 break;
-            case Format_Type::STRING: {
+            case format_type::STRING: {
                 auto strValue = arg.Value.String_Value;
                 if (!strValue.Data) {
-                    Out.append_cstring("{String pointer is null}");
+                    Out.append("{String pointer is null}");
                     return;
                 }
                 write(strValue);
             } break;
-            case Format_Type::POINTER: {
+            case format_type::POINTER: {
                 auto oldFlags = ParseContext.Specs.Flags;
                 auto oldType = ParseContext.Specs.Type;
 
-                ParseContext.Specs.Flags = Flag::HASH;
+                ParseContext.Specs.Flags = flag::HASH;
                 ParseContext.Specs.Type = 'x';
                 write_int((uptr_t) arg.Value.Pointer_Value);
                 ParseContext.Specs.Flags = oldFlags;
                 ParseContext.Specs.Type = oldType;
             } break;
-            case Format_Type::CUSTOM: {
-                auto handle = typename Argument::Handle(arg.Value.Custom_Value);
+            case format_type::CUSTOM: {
+                auto handle = argument::handle(arg.Value.Custom_Value);
                 handle.format(*this);
             } break;
             default:
@@ -584,23 +584,23 @@ struct Format_Context : io::Writer {
 #undef int_helper
 
     // Helper functions to acess format specs more directly
-    inline u32 width() { return ParseContext.Specs.Width; }
-    inline char32_t fill() { return ParseContext.Specs.Fill; }
-    inline Alignment align() { return ParseContext.Specs.Align; }
-    inline s32 precision() { return ParseContext.Specs.Precision; }
-    inline char32_t type() { return ParseContext.Specs.Type; }
+    u32 width() const { return ParseContext.Specs.Width; }
+    char32_t fill() const { return ParseContext.Specs.Fill; }
+    alignment align() const { return ParseContext.Specs.Align; }
+    s32 precision() const { return ParseContext.Specs.Precision; }
+    char32_t type() const { return ParseContext.Specs.Type; }
 
-    inline bool sign_plus() { return ParseContext.Specs.has_flag(Flag::PLUS) != 0; }
-    inline bool sign_minus() { return ParseContext.Specs.has_flag(Flag::MINUS) != 0; }
-    inline bool alternate() { return ParseContext.Specs.has_flag(Flag::HASH) != 0; }
-    inline bool sign_aware_zero_pad() { return align() == Alignment::NUMERIC && fill() == '0'; }
+    bool sign_plus() const { return ParseContext.Specs.has_flag(flag::PLUS) != 0; }
+    bool sign_minus() const { return ParseContext.Specs.has_flag(flag::MINUS) != 0; }
+    bool alternate() const { return ParseContext.Specs.has_flag(flag::HASH) != 0; }
+    bool sign_aware_zero_pad() const { return align() == alignment::NUMERIC && fill() == '0'; }
 
    private:
     // Pad according to _spec_.
     // This calls _func_ when it is time to print the padded content.
     // _length_ should be the expected length of the output from calling _func_
     template <typename F>
-    void format_padded(F func, Alignment align, size_t length) {
+    void format_padded(F func, alignment align, size_t length) {
         if (width() <= length) {
             func(*this);
             return;
@@ -614,11 +614,11 @@ struct Format_Context : io::Writer {
         }
 
         size_t padding = width() - length;
-        if (align == Alignment::RIGHT) {
+        if (align == alignment::RIGHT) {
             Out.grow(padding * fillCpSize);
             For(range(padding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
             func(*this);
-        } else if (align == Alignment::CENTER) {
+        } else if (align == alignment::CENTER) {
             size_t leftPadding = padding / 2;
 
             Out.grow(leftPadding * fillCpSize);
@@ -640,11 +640,11 @@ struct Format_Context : io::Writer {
     //   <left-padding><prefix><numeric-padding><digits><right-padding>
     // where <digits> are written by func((Format_Context &) *this).
     template <typename F>
-    void format_int(u32 numDigits, const Memory_View &prefix, F func) {
+    void format_int(u32 numDigits, const memory_view &prefix, F func) {
         size_t size = prefix.ByteLength + numDigits;
         char32_t fillChar = fill();
         size_t padding = 0;
-        if (align() == Alignment::NUMERIC) {
+        if (align() == alignment::NUMERIC) {
             if (width() > size) {
                 padding = width() - size;
                 size = width();
@@ -654,59 +654,59 @@ struct Format_Context : io::Writer {
             padding = (size_t) precision() - numDigits;
             fillChar = '0';
         }
-        Align_Spec as = ParseContext.Specs;
-        if (align() == Alignment::DEFAULT) as.Align = Alignment::RIGHT;
+        align_spec as = ParseContext.Specs;
+        if (align() == alignment::DEFAULT) as.Align = alignment::RIGHT;
         format_padded(
-            [&](Format_Context &f) {
+            [&](format_context &f) {
                 if (prefix) {
                     f.Out.append(prefix);
                 }
-                For(range(padding)) f.Out.append_codepoint(fillChar);
+                For(range(padding)) f.Out.append(fillChar);
                 func(f);
             },
-            align() == Alignment::DEFAULT ? Alignment::RIGHT : align(), size);
+            align() == alignment::DEFAULT ? alignment::RIGHT : align(), size);
     }
 
-    Format_Context(const Format_Context &) = delete;
-    void operator=(const Format_Context &) = delete;
+    format_context(const format_context &) = delete;
+    void operator=(const format_context &) = delete;
 
-    friend void format_context_write(void *, const Memory_View &);
+    friend void format_context_write(void *, const memory_view &);
 };
 
-inline void format_context_write(void *data, const Memory_View &writeData) {
-    auto context = (Format_Context *) data;
+inline void format_context_write(void *data, const memory_view &memory) {
+    auto context = (format_context *) data;
 
-    string_view toWrite = writeData;
+    string_view writeData = memory;
 
     size_t prec = (size_t) context->precision();
-    if (context->precision() >= 0 && prec < toWrite.Length) {
-        toWrite.remove_suffix(toWrite.Length - prec);
+    if (context->precision() >= 0 && prec < writeData.Length) {
+        writeData.remove_suffix(writeData.Length - prec);
     }
-    context->format_padded([&](Format_Context &f) { f.Out.append(toWrite); }, context->align(), toWrite.Length);
+    context->format_padded([&](format_context &f) { f.Out.append(writeData); }, context->align(), writeData.Length);
 }
 
 inline void format_context_flush(void *data) {
-    auto context = (Format_Context *) data;
+    auto context = (format_context *) data;
     context->FlushOutput.write(context->Out.Data, context->Out.ByteLength);
 }
 
 // :struct Value in value.h
 template <typename T>
-void Value::format_custom_arg(const void *arg, Format_Context &f) {
-    Formatter<T> formatter;
+void value::format_custom_arg(const void *arg, format_context &f) {
+    formatter<T> formatter;
     formatter.format(*static_cast<const T *>(arg), f);
 }
 
-struct Named_Argument_Helper {
+struct named_argument_helper {
     string_view Name;
 
     template <typename T>
-    Named_Argument<T> operator=(T &&value) const {
+    named_argument<T> operator=(T &&value) const {
         return {Name, std::forward<T>(value)};
     }
 };
 }  // namespace fmt
 
-inline constexpr fmt::Named_Argument_Helper operator"" _a(const char *str, size_t size) { return {{str, size}}; }
+constexpr fmt::named_argument_helper operator"" _a(const byte *str, size_t size) { return {{str, size}}; }
 
 LSTD_END_NAMESPACE

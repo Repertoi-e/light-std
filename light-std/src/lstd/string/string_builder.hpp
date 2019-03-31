@@ -5,52 +5,41 @@
 
 LSTD_BEGIN_NAMESPACE
 
-struct String_Builder {
+struct string_builder {
     static constexpr size_t BUFFER_SIZE = 1_KiB;
 
-    struct Buffer {
+    struct buffer {
         byte Data[BUFFER_SIZE];
         size_t Occupied = 0;
-        Buffer *Next = null;
+        buffer *Next = null;
     };
 
-    // Counts how many extra buffers have been dynamically allocated.
+    // Counts how many buffers have been dynamically allocated.
     size_t IndirectionCount = 0;
 
-    Buffer _BaseBuffer;
-    Buffer *CurrentBuffer = &_BaseBuffer;
+    buffer BaseBuffer;
+    buffer *CurrentBuffer = &BaseBuffer;
 
-    String_Builder() { int a = 52; }
+    string_builder() = default;
+    ~string_builder();
 
     // The allocator used for allocating new buffers past the first one (which is stack allocated).
     // This value is null until this object allocates memory or the user sets it manually.
-    Allocator_Closure Allocator;
-
-    // Append a string to the builder
-    void append(const string_view &str);
-    void append(const string &str);
+    allocator_closure Allocator;
 
     // Append a non encoded character to a string
     void append(char32_t codePoint);
 
-    // Append a null terminated utf-8 cstyle string.
-    void append_cstring(const byte *str);
-    void append_cstring(const char *str) { append_cstring((const byte *) str); }
+    // Append a string to the builder
+    void append(const memory_view &memory);
 
     // Append _size_ bytes of string contained in _data_
     void append_pointer_and_size(const byte *data, size_t size);
-    void append_pointer_and_size(const char *data, size_t size) { append_pointer_and_size((const byte *) data, size); }
-
-    template <size_t S>
-    void append(const Memory_Buffer<S> &other) {
-        append_pointer_and_size(other.Data, other.ByteLength);
-    }
-    void append(const Memory_View &view) { append_pointer_and_size(view.Data, view.ByteLength); }
 
     // Execute void f(string_view) on every buffer
     template <typename Lambda>
-    inline void traverse(Lambda f) const {
-        const String_Builder::Buffer *buffer = &_BaseBuffer;
+    void traverse(Lambda f) const {
+        const buffer *buffer = &BaseBuffer;
         while (buffer) {
             f(string_view(buffer->Data, buffer->Occupied));
             buffer = buffer->Next;
@@ -58,11 +47,11 @@ struct String_Builder {
     }
 
     // Merges all buffers and returns a single string.
-    inline string combine() const {
+    string combine() const {
         string result;
         result.reserve((IndirectionCount + 1) * BUFFER_SIZE);
 
-        const String_Builder::Buffer *buffer = &_BaseBuffer;
+        const buffer *buffer = &BaseBuffer;
         while (buffer) {
             result.append_pointer_and_size(buffer->Data, buffer->Occupied);
             buffer = buffer->Next;
@@ -75,8 +64,6 @@ struct String_Builder {
 
     // Free the entire builder
     void release();
-
-    ~String_Builder();
 };
 
 LSTD_END_NAMESPACE

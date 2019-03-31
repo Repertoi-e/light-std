@@ -9,20 +9,20 @@
 
 namespace le {
 
-struct LE_API Window {
+struct LE_API window {
     string Title;
-    s32 Left, Top;
-    u32 Width, Height;
+    s32 Left = 0, Top = 0;
+    u32 Width = 0, Height = 0;
     bool VSyncEnabled = false;
     bool Closed = false;
 
     // Reserve 256 bytes for any platform data needed by implementations.
     byte PlatformData[256] = {};
 
-    Window() {}
+    window() = default;
 
     // Returns this
-    Window *initialize(const string &title, u32 width, u32 height);
+    window *initialize(const string &title, u32 width, u32 height);
 
     void update();
 
@@ -39,30 +39,30 @@ struct LE_API Window {
     // passing "through" the UI onto the game world.
     // Returning true means stop emitting the event to the other callbacks.
 
-    Signal<void(const Window_Closed_Event &)> WindowClosedEvent;
-    Signal<void(const Window_Resized_Event &)> WindowResizedEvent;
-    Signal<void(const Window_Gained_Focus_Event &)> WindowGainedFocusEvent;
-    Signal<void(const Window_Lost_Focus_Event &)> WindowLostFocusEvent;
-    Signal<void(const Window_Moved_Event &)> WindowMovedEvent;
+    signal<void(const window_closed_event &)> WindowClosedEvent;
+    signal<void(const window_resized_event &)> WindowResizedEvent;
+    signal<void(const window_gained_focus_event &)> WindowGainedFocusEvent;
+    signal<void(const window_lost_focus_event &)> WindowLostFocusEvent;
+    signal<void(const window_moved_event &)> WindowMovedEvent;
 
-    Signal<bool(const Key_Pressed_Event &), Collector_While0<bool>> KeyPressedEvent;
-    Signal<void(const Key_Released_Event &)> KeyReleasedEvent;
-    Signal<bool(const Key_Typed_Event &), Collector_While0<bool>> KeyTypedEvent;
+    signal<bool(const key_pressed_event &), collector_while0<bool>> KeyPressedEvent;
+    signal<void(const key_released_event &)> KeyReleasedEvent;
+    signal<bool(const key_typed_event &), collector_while0<bool>> KeyTypedEvent;
 
-    Signal<bool(const Mouse_Button_Pressed_Event &), Collector_While0<bool>> MouseButtonPressedEvent;
-    Signal<void(const Mouse_Button_Released_Event &)> MouseButtonReleasedEvent;
-    Signal<bool(const Mouse_Scrolled_Event &), Collector_While0<bool>> MouseScrolledEvent;
-    Signal<void(const Mouse_Entered_Event &)> MouseEnteredEvent;
-    Signal<void(const Mouse_Left_Event &)> MouseLeftEvent;
-    Signal<bool(const Mouse_Moved_Event &), Collector_While0<bool>> MouseMovedEvent;
+    signal<bool(const mouse_button_pressed_event &), collector_while0<bool>> MouseButtonPressedEvent;
+    signal<void(const mouse_button_released_event &)> MouseButtonReleasedEvent;
+    signal<bool(const mouse_scrolled_event &), collector_while0<bool>> MouseScrolledEvent;
+    signal<void(const mouse_entered_event &)> MouseEnteredEvent;
+    signal<void(const mouse_left_event &)> MouseLeftEvent;
+    signal<bool(const mouse_moved_event &), collector_while0<bool>> MouseMovedEvent;
 
    private:
-    void on_window_resized(const Window_Resized_Event &e) {
+    void on_window_resized(const window_resized_event &e) {
         Width = e.Width;
         Height = e.Height;
     }
 
-    void on_window_moved(const Window_Moved_Event &e) {
+    void on_window_moved(const window_moved_event &e) {
         Left = e.Left;
         Top = e.Top;
     }

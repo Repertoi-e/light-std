@@ -76,20 +76,20 @@ inline char32_t thousands_separator() { return LSTD_FMT_THOUSANDS_SEPARATOR; }
 // Returns true if value is negative, false otherwise.
 // Same as (value < 0) but doesn't produce warnings if T is an unsigned type.
 template <typename T>
-constexpr typename std::enable_if_t<std::numeric_limits<T>::is_signed, bool> is_negative(T value) {
+constexpr std::enable_if_t<std::numeric_limits<T>::is_signed, bool> is_negative(T value) {
     return value < 0;
 }
 
 template <typename T>
-constexpr typename std::enable_if_t<!std::numeric_limits<T>::is_signed, bool> is_negative(T) {
+constexpr std::enable_if_t<!std::numeric_limits<T>::is_signed, bool> is_negative(T) {
     return false;
 }
 
 // Casts nonnegative integer to unsigned.
 template <typename T>
-constexpr typename std::make_unsigned_t<T> to_unsigned(T value) {
+constexpr std::make_unsigned_t<T> to_unsigned(T value) {
     assert(value >= 0);
-    return (typename std::make_unsigned_t<T>) value;
+    return (std::make_unsigned_t<T>) value;
 }
 
 inline bool is_infinity(f64 x) {
@@ -116,7 +116,7 @@ namespace internal {
 // except for n == 0 in which case count_digits returns 1.
 inline u32 count_digits(u64 n) {
     s32 t = (64 - CLZLL(n | 1)) * 1233 >> 12;
-    return to_unsigned(t) - (n < internal::ZERO_OR_POWERS_OF_10_64[t]) + 1;
+    return to_unsigned(t) - (n < ZERO_OR_POWERS_OF_10_64[t]) + 1;
 }
 
 template <unsigned BITS, typename UInt>
@@ -131,7 +131,7 @@ u32 count_digits(UInt value) {
 
 }  // namespace internal
 
-enum class Format_Type {
+enum class format_type {
     NONE = 0,
     NAMED_ARGUMENT,
 
@@ -152,40 +152,40 @@ enum class Format_Type {
     POINTER,
     CUSTOM
 };
-inline Format_Type operator|(Format_Type lhs, Format_Type rhs) {
-    using T = std::underlying_type_t<Format_Type>;
-    return (Format_Type)((T) lhs | (T) rhs);
+inline format_type operator|(format_type lhs, format_type rhs) {
+    using T = std::underlying_type_t<format_type>;
+    return (format_type)((T) lhs | (T) rhs);
 }
-inline Format_Type &operator|=(Format_Type &lhs, Format_Type rhs) {
-    using T = std::underlying_type_t<Format_Type>;
-    lhs = (Format_Type)((T) lhs | (T) rhs);
+inline format_type &operator|=(format_type &lhs, format_type rhs) {
+    using T = std::underlying_type_t<format_type>;
+    lhs = (format_type)((T) lhs | (T) rhs);
     return lhs;
 }
 
-constexpr bool is_type_integral(Format_Type type) {
-    assert(type != Format_Type::NAMED_ARGUMENT);
-    return type > Format_Type::NONE && type <= Format_Type::LAST_INTEGER_TYPE;
+constexpr bool is_type_integral(format_type type) {
+    assert(type != format_type::NAMED_ARGUMENT);
+    return type > format_type::NONE && type <= format_type::LAST_INTEGER_TYPE;
 }
 
-constexpr bool is_type_arithmetic(Format_Type type) {
-    assert(type != Format_Type::NAMED_ARGUMENT);
-    return type > Format_Type::NONE && type <= Format_Type::LAST_NUMERIC_TYPE;
+constexpr bool is_type_arithmetic(format_type type) {
+    assert(type != format_type::NAMED_ARGUMENT);
+    return type > format_type::NONE && type <= format_type::LAST_NUMERIC_TYPE;
 }
 
-struct Format_Context;
-struct String_Value {
+struct format_context;
+struct string_value {
     const byte *Data;
     size_t Size;
 };
 
-struct Custom_Value {
+struct custom_value {
     const void *Data;
-    void (*Format)(const void *arg, Format_Context &f);
+    void (*Format)(const void *arg, format_context &f);
 };
 
-struct Named_Argument_Base;
+struct named_argument_base;
 
-struct Value {
+struct value {
     union {
         s32 S32_Value;
         u32 U32_Value;
@@ -193,122 +193,118 @@ struct Value {
         u64 U64_Value;
         f64 F64_Value;
         const void *Pointer_Value;
-        Memory_View String_Value;
-        Custom_Value Custom_Value;
+        memory_view String_Value;
+        custom_value Custom_Value;
     };
 
-    constexpr Value(int value = 0) : S32_Value(value) {}
-    Value(unsigned value) { U32_Value = value; }
-    Value(long long value) { S64_Value = value; }
-    Value(unsigned long long value) { U64_Value = value; }
-    Value(f64 value) { F64_Value = value; }
-    Value(const byte *value) : String_Value(value, cstring_strlen(value)) {}
-    Value(const char *value) : Value((const byte *) value) {}
+    constexpr value(int value = 0) : S32_Value(value) {}
+    value(unsigned value) { U32_Value = value; }
+    value(long long value) { S64_Value = value; }
+    value(unsigned long long value) { U64_Value = value; }
+    value(f64 value) { F64_Value = value; }
+    value(const byte *value) : String_Value(value, cstring_strlen(value)) {}
 
-    Value(const string_view &value) : String_Value(value.Data, value.ByteLength) {}
-    Value(const string &value) : String_Value(value.Data, value.ByteLength) {}
-    Value(const void *value) { Pointer_Value = value; }
+    value(const string_view &value) : String_Value(value.Data, value.ByteLength) {}
+    value(const string &value) : String_Value(value.Data, value.ByteLength) {}
+    value(const void *value) { Pointer_Value = value; }
 
     template <typename T>
-    explicit Value(const T &value) {
+    explicit value(const T &value) {
         Custom_Value.Data = &value;
         Custom_Value.Format = &format_custom_arg<T>;
     }
 
    private:
     template <typename T>
-    static void format_custom_arg(const void *arg, Format_Context &f);
+    static void format_custom_arg(const void *arg, format_context &f);
 };
 
 // Value initializer used to delay conversion to value and reduce memory churn.
-template <typename T, Format_Type Type>
-struct Init_Value {
-    static const Format_Type Type_Tag = Type;
+template <typename T, format_type Type>
+struct init_value {
+    static const format_type Type_Tag = Type;
 
     T StoredValue;
 
-    constexpr Init_Value(const T &value) : StoredValue(value) {}
-    constexpr operator Value() const { return Value(StoredValue); }
+    constexpr init_value(const T &value) : StoredValue(value) {}
+    constexpr operator value() const { return value(StoredValue); }
 };
 
 #define MAKE_VALUE_HELPER(TAG, ArgType, ValueType) \
-    constexpr Init_Value<ValueType, TAG> make_value(ArgType value) { return (ValueType) value; }
+    constexpr init_value<ValueType, TAG> make_value(ArgType value) { return (ValueType) value; }
 
 #define MAKE_VALUE_SAME_HELPER(TAG, Type) \
-    constexpr Init_Value<Type, TAG> make_value(Type value) { return value; }
+    constexpr init_value<Type, TAG> make_value(Type value) { return value; }
 
-MAKE_VALUE_HELPER(Format_Type::BOOL, bool, int)
-MAKE_VALUE_HELPER(Format_Type::S32, short, int)
-MAKE_VALUE_HELPER(Format_Type::U32, unsigned short, unsigned)
-MAKE_VALUE_SAME_HELPER(Format_Type::S32, int)
-MAKE_VALUE_SAME_HELPER(Format_Type::U32, unsigned)
+MAKE_VALUE_HELPER(format_type::BOOL, bool, int)
+MAKE_VALUE_HELPER(format_type::S32, short, int)
+MAKE_VALUE_HELPER(format_type::U32, unsigned short, unsigned)
+MAKE_VALUE_SAME_HELPER(format_type::S32, int)
+MAKE_VALUE_SAME_HELPER(format_type::U32, unsigned)
 
 // To minimize the number of types we need to deal with, long is translated
 // either to int or to long long depending on its size.
 using long_type = std::conditional_t<sizeof(long) == sizeof(int), int, long long>;
-MAKE_VALUE_HELPER((sizeof(long) == sizeof(int) ? Format_Type::S32 : Format_Type::S64), long, long_type)
+MAKE_VALUE_HELPER((sizeof(long) == sizeof(int) ? format_type::S32 : format_type::S64), long, long_type)
 using ulong_type = std::conditional_t<sizeof(unsigned long) == sizeof(unsigned), unsigned, unsigned long long>;
-MAKE_VALUE_HELPER((sizeof(unsigned long) == sizeof(unsigned) ? Format_Type::U32 : Format_Type::U64), unsigned long,
+MAKE_VALUE_HELPER((sizeof(unsigned long) == sizeof(unsigned) ? format_type::U32 : format_type::U64), unsigned long,
                   ulong_type)
 
-MAKE_VALUE_SAME_HELPER(Format_Type::S64, long long)
-MAKE_VALUE_SAME_HELPER(Format_Type::U64, unsigned long long)
+MAKE_VALUE_SAME_HELPER(format_type::S64, long long)
+MAKE_VALUE_SAME_HELPER(format_type::U64, unsigned long long)
 
-MAKE_VALUE_HELPER(Format_Type::S32, signed char, int)
-MAKE_VALUE_HELPER(Format_Type::U32, unsigned char, unsigned)
+MAKE_VALUE_HELPER(format_type::S32, signed char, int)
+MAKE_VALUE_HELPER(format_type::U32, unsigned char, unsigned)
 
-constexpr Init_Value<int, Format_Type::S32> make_value(char val) { return val; }
+constexpr init_value<int, format_type::S32> make_value(char val) { return val; }
 
-MAKE_VALUE_HELPER(Format_Type::F64, f32, f64)
-MAKE_VALUE_SAME_HELPER(Format_Type::F64, f64)
+MAKE_VALUE_HELPER(format_type::F64, f32, f64)
+MAKE_VALUE_SAME_HELPER(format_type::F64, f64)
 
-MAKE_VALUE_HELPER(Format_Type::CSTRING, char *, const char *)
-MAKE_VALUE_HELPER(Format_Type::CSTRING, byte *, const byte *)
-MAKE_VALUE_SAME_HELPER(Format_Type::CSTRING, const char *)
-MAKE_VALUE_SAME_HELPER(Format_Type::CSTRING, const byte *)
-MAKE_VALUE_SAME_HELPER(Format_Type::STRING, string_view)
-MAKE_VALUE_HELPER(Format_Type::STRING, const string &, string_view)
+MAKE_VALUE_HELPER(format_type::CSTRING, byte *, const byte *)
+MAKE_VALUE_SAME_HELPER(format_type::CSTRING, const byte *)
+MAKE_VALUE_SAME_HELPER(format_type::STRING, string_view)
+MAKE_VALUE_HELPER(format_type::STRING, const string &, string_view)
 
-MAKE_VALUE_HELPER(Format_Type::POINTER, void *, const void *)
-MAKE_VALUE_SAME_HELPER(Format_Type::POINTER, const void *)
+MAKE_VALUE_HELPER(format_type::POINTER, void *, const void *)
+MAKE_VALUE_SAME_HELPER(format_type::POINTER, const void *)
 
-MAKE_VALUE_HELPER(Format_Type::POINTER, std::nullptr_t, const void *)
+MAKE_VALUE_HELPER(format_type::POINTER, std::nullptr_t, const void *)
 
 #undef MAKE_VALUE_HELPER
 #undef MAKE_VALUE_SAME_HELPER
 
 template <typename T>
-typename std::enable_if_t<!std::is_same_v<T, char>> make_value(const T *) {
+std::enable_if_t<!std::is_same_v<T, char>> make_value(const T *) {
     static_assert(!sizeof(T), "Formatting of non-void pointers is not allowed");
 }
 
 template <typename T>
-inline typename std::enable_if_t<std::is_enum_v<T> && !std::is_arithmetic_v<T> && std::is_convertible_v<T, s32>,
-                                 Init_Value<s32, Format_Type::S32>>
+std::enable_if_t<std::is_enum_v<T> && !std::is_arithmetic_v<T> && std::is_convertible_v<T, s32>,
+                 init_value<s32, format_type::S32>>
 make_value(const T &value) {
     return static_cast<int>(value);
 }
 
 template <typename T>
-inline typename std::enable_if_t<std::is_constructible_v<string_view, T>, Init_Value<string_view, Format_Type::STRING>>
-make_value(const T &value) {
+std::enable_if_t<std::is_constructible_v<string_view, T>, init_value<string_view, format_type::STRING>> make_value(
+    const T &value) {
     return string_view(value);
 }
 
 template <typename T>
-inline typename std::enable_if_t<std::is_arithmetic_v<T> ||
-                                     (!std::is_convertible_v<T, s32> && !std::is_convertible_v<T, string_view> &&
-                                      !std::is_constructible_v<string_view, T>),
-                                 // Implicit conversion to string is not handled here
-                                 Init_Value<const T &, Format_Type::CUSTOM>>
+std::enable_if_t<std::is_arithmetic_v<T> || (!std::is_convertible_v<T, s32> && !std::is_convertible_v<T, string_view> &&
+                                             !std::is_constructible_v<string_view, T>),
+                 // Implicit conversion to string is not handled here
+                 init_value<const T &, format_type::CUSTOM>>
 make_value(const T &value) {
     return value;
 }
 
 template <typename T>
-struct Get_Type {
-    using value_type = decltype(make_value(std::declval<typename std::decay_t<T> &>()));
-    static const Format_Type Value = value_type::Type_Tag;
+struct get_type {
+    using value_type = decltype(make_value(std::declval<std::decay_t<T> &>()));
+    static const format_type Value = value_type::Type_Tag;
 };
 }  // namespace fmt
 

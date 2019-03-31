@@ -2,22 +2,22 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void String_Builder::release() {
+void string_builder::release() {
     // We don't need to free the base buffer, it is allocated on the stack
-    String_Builder::Buffer *buffer = _BaseBuffer.Next;
-    while (buffer) {
-        String_Builder::Buffer *toDelete = buffer;
-        buffer = buffer->Next;
-        delete toDelete;
+    buffer *b = BaseBuffer.Next;
+    while (b) {
+        buffer *old = b;
+        b = b->Next;
+        delete old;
     }
-    CurrentBuffer = &_BaseBuffer;
-    _BaseBuffer.Occupied = 0;
+    CurrentBuffer = &BaseBuffer;
+    BaseBuffer.Occupied = 0;
 }
 
-String_Builder::~String_Builder() { release(); }
+string_builder::~string_builder() { release(); }
 
-void String_Builder::reset() {
-    String_Builder::Buffer *buffer = &_BaseBuffer;
+void string_builder::reset() {
+    buffer *buffer = &BaseBuffer;
     CurrentBuffer = buffer;
 
     while (buffer) {
@@ -26,20 +26,16 @@ void String_Builder::reset() {
     }
 }
 
-void String_Builder::append(const string_view &str) { append_pointer_and_size(str.Data, str.ByteLength); }
-
-void String_Builder::append(const string &str) { append_pointer_and_size(str.Data, str.ByteLength); }
-
-void String_Builder::append(char32_t codePoint) {
+void string_builder::append(char32_t codePoint) {
     byte encoded[4];
     encode_code_point(encoded, codePoint);
     append_pointer_and_size(encoded, get_size_of_code_point(codePoint));
 }
 
-void String_Builder::append_cstring(const byte *str) { append_pointer_and_size(str, cstring_strlen(str)); }
+void string_builder::append(const memory_view &view) { append_pointer_and_size(view.Data, view.ByteLength); }
 
-void String_Builder::append_pointer_and_size(const byte *data, size_t size) {
-    String_Builder::Buffer *currentBuffer = CurrentBuffer;
+void string_builder::append_pointer_and_size(const byte *data, size_t size) {
+    buffer *currentBuffer = CurrentBuffer;
 
     size_t availableSpace = BUFFER_SIZE - currentBuffer->Occupied;
     if (availableSpace >= size) {
@@ -51,10 +47,10 @@ void String_Builder::append_pointer_and_size(const byte *data, size_t size) {
 
         // If the entire string doesn't fit inside the available space,
         // allocate the next buffer and continue appending.
-        String_Builder::Buffer *buffer = new (&Allocator, ensure_allocator) String_Builder::Buffer;
+        buffer *b = new (&Allocator, ensure_allocator) buffer;
 
-        CurrentBuffer->Next = buffer;
-        CurrentBuffer = buffer;
+        CurrentBuffer->Next = b;
+        CurrentBuffer = b;
 
         IndirectionCount++;
 

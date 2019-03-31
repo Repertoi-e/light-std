@@ -23,7 +23,7 @@ inline void layer_do_nothing(void *data, f32 dt) {}
 //
 // By default the function pointers aren't null, but a pointer to a function that does nothing.
 // This is so you aren't required to provide every function if it isn't needed in your case.
-class LE_API Layer {
+class LE_API layer {
    public:
     using on_add_type = void (*)(void *data);
     using on_remove_type = void (*)(void *data);

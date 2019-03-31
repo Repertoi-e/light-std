@@ -30,7 +30,7 @@ using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
 
-using byte = u8;
+using byte = char;
 
 using f32 = float;
 using f64 = double;
@@ -137,16 +137,16 @@ LSTD_END_NAMESPACE
 //    size_t mySize = 10MiB;
 //    mySize = 10GiB;
 //
-inline constexpr size_t operator"" _B(unsigned long long i) {
+constexpr size_t operator"" _B(unsigned long long i) {
     return (size_t)(i);  // For completeness
 }
 
-inline constexpr size_t operator"" _KiB(unsigned long long i) { return (size_t)(i) << 10; }
-inline constexpr size_t operator"" _MiB(unsigned long long i) { return (size_t)(i) << 20; }
-inline constexpr size_t operator"" _GiB(unsigned long long i) { return (size_t)(i) << 30; }
+constexpr size_t operator"" _KiB(unsigned long long i) { return (size_t)(i) << 10; }
+constexpr size_t operator"" _MiB(unsigned long long i) { return (size_t)(i) << 20; }
+constexpr size_t operator"" _GiB(unsigned long long i) { return (size_t)(i) << 30; }
 
 // Helper macro for, e.g flag enums
-#define BIT(x) (1 << x)
+#define BIT(x) (1 << (x))
 
 // Go-style defer macro
 // Use:
@@ -197,15 +197,15 @@ f64 os_get_elapsed_in_seconds(s64 begin, s64 end);
 // Returns the elapsed real time in seconds, platform-specific implementation
 f64 os_get_wallclock_in_seconds();
 
-extern void os_exit_program(int code);
+extern void os_exit_program(s32 code);
 
 // A default failed assert callback that logs a message and stops the program
-void os_assert_failed(const char *file, s32 line, const char *condition);
+void os_assert_failed(const byte *file, s32 line, const byte *condition);
 
 class NonCopyable {
    protected:
-    NonCopyable() {}
-    ~NonCopyable() {}
+    NonCopyable() = default;
+    ~NonCopyable() = default;
 
     NonCopyable(const NonCopyable &) = delete;
     NonCopyable &operator=(const NonCopyable &) = delete;

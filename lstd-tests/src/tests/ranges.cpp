@@ -3,8 +3,8 @@
 #include <lstd/io.hpp>
 
 template <size_t N>
-void test_expected(Array<s32, N> expected, s64 start, s64 stop, s64 step = 1) {
-    Dynamic_Array<s32> result;
+void test_expected(array<s32, N> expected, s64 start, s64 stop, s64 step = 1) {
+    dynamic_array<s32> result;
     For(range(start, stop, step)) result.add(it);
     assert_eq(result, expected);
 }
@@ -15,7 +15,7 @@ TEST(basic) {
 }
 
 TEST(variable_steps) {
-    Dynamic_Array<s32> result;
+    dynamic_array<s32> result;
     For(range(2, -3, 2)) result.add(it);
     assert_eq(result.Count, 0);
 

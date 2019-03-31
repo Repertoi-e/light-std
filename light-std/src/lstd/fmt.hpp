@@ -15,20 +15,20 @@ namespace fmt {
 
 // Specialize Formatter for non-custom types
 template <typename T>
-struct Formatter<T, typename std::enable_if_t<Get_Type<T>::Value != Format_Type::CUSTOM>> {
-    void format(const T &value, Format_Context &f) { f.write_argument(make_argument(value)); }
+struct formatter<T, std::enable_if_t<get_type<T>::Value != format_type::CUSTOM>> {
+    void format(const T &value, format_context &f) { f.write_argument(make_argument(value)); }
 };
 
 template <>
-struct Formatter<String_Builder> {
-    void format(const String_Builder &value, Format_Context &f) {
+struct formatter<string_builder> {
+    void format(const string_builder &value, format_context &f) {
         value.traverse([&](const string_view &view) { f.write(view); });
     }
 };
 
 template <typename T, size_t Size>
-struct Formatter<Array<T, Size>> {
-    void format(const Array<T, Size> &value, Format_Context &f) {
+struct formatter<array<T, Size>> {
+    void format(const array<T, Size> &value, format_context &f) {
         f.write("{ [");
         if (value.Count > 0) {
             f.write_argument(make_argument(value[0]));
@@ -43,8 +43,8 @@ struct Formatter<Array<T, Size>> {
 };
 
 template <typename T>
-struct Formatter<Dynamic_Array<T>> {
-    void format(const Dynamic_Array<T> &value, Format_Context &f) {
+struct formatter<dynamic_array<T>> {
+    void format(const dynamic_array<T> &value, format_context &f) {
         f.write("{ [");
         if (value.Count > 0) {
             f.write_argument(fmt::make_argument(value[0]));
@@ -59,20 +59,20 @@ struct Formatter<Dynamic_Array<T>> {
 };
 
 template <>
-struct Formatter<thread::Thread::id> {
-    void format(const thread::Thread::id &value, Format_Context &f) { f.write_int(value.Value); }
+struct formatter<thread::thread::id> {
+    void format(const thread::thread::id &value, format_context &f) const { f.write_int(value.Value); }
 };
 
 namespace internal {
-inline void do_formatting(Format_Context &context) {
-    Argument arg;
+inline void do_formatting(format_context &context) {
+    argument arg;
 
     auto &specs = context.ParseContext.Specs;
 
     const byte *&it = context.ParseContext.It;
     const byte *end = (const byte *) context.ParseContext.FormatString.end().to_pointer();
     while (it != end) {
-        size_t curly = Memory_View(it, end - it).find('{');
+        size_t curly = memory_view(it, end - it).find('{');
         if (*it != '{' && curly == npos) {
             context.Out.append(string_view(it, end - it));
             return;
@@ -96,9 +96,9 @@ inline void do_formatting(Format_Context &context) {
         } else {
             specs = {};
 
-            auto error = internal::parse_arg_id(p, internal::ID_Adapter(context, arg));
-            if (error != Parsing_Error_Code::NONE) {
-                context.Out.append_cstring("{Invalid format string}");
+            auto error = parse_arg_id(p, id_adapter(context, arg));
+            if (error != parsing_error_code::NONE) {
+                context.Out.append("{Invalid format string}");
                 return;
             }
             it = p;
@@ -108,21 +108,21 @@ inline void do_formatting(Format_Context &context) {
             } else if (c == ':') {
                 it = ++p;
                 auto error = parse_and_validate_specs(arg.Type, context);
-                if (error != Parsing_Error_Code::NONE) {
-                    context.Out.append_cstring("{");
+                if (error != parsing_error_code::NONE) {
+                    context.Out.append("{");
                     context.Out.append(get_message_from_parsing_error_code(error));
-                    context.Out.append_cstring("}");
+                    context.Out.append("}");
                     return;
                 }
                 p = it;
                 if (*it == '}') {
                     context.write_argument(arg);
                 } else {
-                    context.Out.append_cstring("{Unknown format specifier}");
+                    context.Out.append("{Unknown format specifier}");
                     return;
                 }
             } else {
-                context.Out.append_cstring("{Missing \"}\" in format string}");
+                context.Out.append("{Missing \"}\" in format string}");
                 return;
             }
         }
@@ -131,19 +131,19 @@ inline void do_formatting(Format_Context &context) {
 }
 
 template <typename... Args>
-void to_writer(io::Writer &writer, const string_view &formatString, Args &&... args) {
-    Arguments_Array<Args...> store = {args...};
-    auto context = Format_Context(writer, formatString, Arguments(store));
-    internal::do_formatting(context);
+void to_writer(io::writer &writer, const string_view &formatString, Args &&... args) {
+    arguments_array<Args...> store = {args...};
+    auto context = format_context(writer, formatString, arguments(store));
+    do_formatting(context);
     context.flush();
 }
 }  // namespace internal
 
 template <typename... Args>
 string sprint(const string_view &formatString, Args &&... args) {
-    Arguments_Array<Args...> store = {args...};
+    arguments_array<Args...> store = {args...};
 
-    io::String_Writer writer;
+    io::string_writer writer;
     writer.write_fmt(formatString, std::forward<Args>(args)...);
     return writer.Builder.combine();
 }
@@ -163,7 +163,7 @@ void print(const string_view &formatString, Args &&... args) {
 }
 
 template <typename T>
-inline string to_string(const T &value) {
+string to_string(const T &value) {
     return sprint("{}", value);
 }
 
@@ -173,8 +173,8 @@ namespace fmt {
 
 // Format a string using the temporary allocator
 template <typename... Args>
-inline string tprint(const string &formatString, Args &&... args) {
-    assert(TemporaryAllocatorData);
+string tprint(const string &formatString, Args &&... args) {
+    assert(g_TemporaryAllocatorData);
 
     PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) { return sprint(formatString, std::forward<Args>(args)...); }
 }

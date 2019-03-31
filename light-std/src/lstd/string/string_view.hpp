@@ -15,8 +15,7 @@ struct string;
 // string_view is useful when working with literal strings or when
 // you don't want to allocate memory for a new string (eg. a substring)
 struct string_view {
-   private:
-    struct Iterator {
+    struct iterator {
        private:
         const byte *Current;
 
@@ -37,30 +36,30 @@ struct string_view {
         }
 
        public:
-        constexpr Iterator(const byte *data) : Current(data) {}
+        constexpr iterator(const byte *data) : Current(data) {}
 
-        constexpr Iterator &operator+=(s64 amount) {
+        constexpr iterator &operator+=(s64 amount) {
             Current = get_current_after(amount);
             return *this;
         }
-        constexpr Iterator &operator-=(s64 amount) {
+        constexpr iterator &operator-=(s64 amount) {
             Current = get_current_after(-amount);
             return *this;
         }
-        constexpr Iterator &operator++() { return *this += 1; }
-        constexpr Iterator &operator--() { return *this -= 1; }
-        constexpr Iterator operator++(s32) {
-            Iterator temp = *this;
+        constexpr iterator &operator++() { return *this += 1; }
+        constexpr iterator &operator--() { return *this -= 1; }
+        constexpr iterator operator++(s32) {
+            iterator temp = *this;
             ++(*this);
             return temp;
         }
-        constexpr Iterator operator--(s32) {
-            Iterator temp = *this;
+        constexpr iterator operator--(s32) {
+            iterator temp = *this;
             --(*this);
             return temp;
         }
 
-        constexpr s64 operator-(const Iterator &other) const {
+        constexpr s64 operator-(const iterator &other) const {
             s64 difference = 0;
             const byte *lesser = Current, *greater = other.Current;
             if (lesser > greater) {
@@ -74,26 +73,23 @@ struct string_view {
             return Current <= other.Current ? -difference : difference;
         }
 
-        constexpr Iterator operator+(s64 amount) const { return Iterator(get_current_after(amount)); }
-        constexpr Iterator operator-(s64 amount) const { return Iterator(get_current_after(-amount)); }
+        constexpr iterator operator+(s64 amount) const { return iterator(get_current_after(amount)); }
+        constexpr iterator operator-(s64 amount) const { return iterator(get_current_after(-amount)); }
 
-        constexpr friend inline Iterator operator+(s64 amount, const Iterator &it) { return it + amount; }
-        constexpr friend inline Iterator operator-(s64 amount, const Iterator &it) { return it - amount; }
+        constexpr friend iterator operator+(s64 amount, const iterator &it) { return it + amount; }
+        constexpr friend iterator operator-(s64 amount, const iterator &it) { return it - amount; }
 
-        constexpr bool operator==(const Iterator &other) const { return Current == other.Current; }
-        constexpr bool operator!=(const Iterator &other) const { return Current != other.Current; }
-        constexpr bool operator>(const Iterator &other) const { return Current > other.Current; }
-        constexpr bool operator<(const Iterator &other) const { return Current < other.Current; }
-        constexpr bool operator>=(const Iterator &other) const { return Current >= other.Current; }
-        constexpr bool operator<=(const Iterator &other) const { return Current <= other.Current; }
+        constexpr bool operator==(const iterator &other) const { return Current == other.Current; }
+        constexpr bool operator!=(const iterator &other) const { return Current != other.Current; }
+        constexpr bool operator>(const iterator &other) const { return Current > other.Current; }
+        constexpr bool operator<(const iterator &other) const { return Current < other.Current; }
+        constexpr bool operator>=(const iterator &other) const { return Current >= other.Current; }
+        constexpr bool operator<=(const iterator &other) const { return Current <= other.Current; }
 
         constexpr char32_t operator*() const { return decode_code_point(Current); }
 
         constexpr const byte *to_pointer() const { return Current; }
     };
-
-   public:
-    using iterator = Iterator;
 
     const byte *Data = null;
     size_t ByteLength = 0;
@@ -102,22 +98,18 @@ struct string_view {
     size_t Length = 0;
 
     constexpr string_view() {}
-    // Construct from a null-terminated c-style string.
-    constexpr string_view(const byte *str) : string_view(str, str ? cstring_strlen(str) : 0) {}
+
+    constexpr string_view(const byte *str) : string_view(memory_view(str)) {}
+    constexpr string_view(const byte *str, size_t size) : string_view(memory_view(str, size)) {}
 
     // Construct from a c-style string and a size (in code units, not code points)
-    constexpr string_view(const byte *str, size_t size) {
-        Data = str;
-        ByteLength = size;
+    constexpr string_view(const memory_view &memory) {
+        Data = memory.Data;
+        ByteLength = memory.ByteLength;
         if (Data) {
             Length = utf8_strlen(Data, ByteLength);
         }
     }
-
-    constexpr string_view(const char *str) : string_view((const byte *) str) {}
-    constexpr string_view(const char *str, size_t size) : string_view((const byte *) str, size) {}
-
-    constexpr string_view(const Memory_View &memView) : string_view(memView.Data, memView.ByteLength) {}
 
     constexpr string_view(const string_view &other) = default;
     constexpr string_view(string_view &&other) = default;
@@ -295,7 +287,7 @@ struct string_view {
     constexpr bool has(char32_t cp) const { return find(cp) != npos; }
     constexpr bool has(const string_view &view) const { return find(view) != npos; }
 
-    constexpr size_t count(char32_t cp) {
+    constexpr size_t count(char32_t cp) const {
         size_t result = 0, index = 0;
         while ((index = find(cp, index)) != npos) {
             ++result, ++index;
@@ -304,7 +296,7 @@ struct string_view {
         return result;
     }
 
-    constexpr size_t count(const string_view &view) {
+    constexpr size_t count(const string_view &view) const {
         size_t result = 0, index = 0;
         while ((index = find(view, index)) != npos) {
             ++result, ++index;
@@ -366,12 +358,12 @@ struct string_view {
     }
 
     constexpr bool begins_with(char32_t ch) const { return get(0) == ch; }
-    constexpr bool begins_with(const string_view &other) const {
+    constexpr bool begins_with(const memory_view &other) const {
         return compare_memory_constexpr(Data, other.Data, other.ByteLength) == 0;
     }
 
     constexpr bool ends_with(char32_t ch) const { return get(-1) == ch; }
-    constexpr bool ends_with(const string_view &other) const {
+    constexpr bool ends_with(const memory_view &other) const {
         return compare_memory_constexpr(Data + ByteLength - other.ByteLength, other.Data, other.ByteLength) == 0;
     }
 
@@ -472,10 +464,10 @@ struct string_view {
     constexpr string_view &operator=(string_view &&other) = default;
 
     // Read-only [] operator
-    constexpr const char32_t operator[](s64 index) const { return get(index); }
+    constexpr char32_t operator[](s64 index) const { return get(index); }
 
     operator bool() const { return Length != 0; }
-    operator Memory_View() const { return Memory_View((const byte *) Data, ByteLength); }
+    operator memory_view() const { return memory_view(Data, ByteLength); }
 
     // Substring operator
     constexpr string_view operator()(s64 begin, s64 end) const { return substring(begin, end); }
@@ -487,12 +479,5 @@ constexpr bool operator<(const byte *one, const string_view &other) { return oth
 constexpr bool operator>(const byte *one, const string_view &other) { return other.compare(string_view(one)) < 0; }
 constexpr bool operator<=(const byte *one, const string_view &other) { return !(one > other); }
 constexpr bool operator>=(const byte *one, const string_view &other) { return !(one < other); }
-
-constexpr bool operator==(const char *one, const string_view &other) { return other.compare(string_view(one)) == 0; }
-constexpr bool operator!=(const char *one, const string_view &other) { return !(one == other); }
-constexpr bool operator<(const char *one, const string_view &other) { return other.compare(string_view(one)) > 0; }
-constexpr bool operator>(const char *one, const string_view &other) { return other.compare(string_view(one)) < 0; }
-constexpr bool operator<=(const char *one, const string_view &other) { return !(one > other); }
-constexpr bool operator>=(const char *one, const string_view &other) { return !(one < other); }
 
 LSTD_END_NAMESPACE

@@ -13,20 +13,20 @@ namespace thread {
 // memory areas for several threads. The mutex is non-recursive (i.e. a
 // program may deadlock if the thread that owns a mutex object calls lock()
 // on that object).
-struct Mutex {
+struct mutex {
    private:
-    byte Handle[64] = {0};  // pthread_mutex_t
-    bool AlreadyLocked;
+    byte _Handle[64] = {0};  // pthread_mutex_t
+    bool _AlreadyLocked;
 
    public:
     // pthread_mutex_init(&mHandle, NULL);
-    Mutex();
+    mutex();
 
     // pthread_mutex_destroy(&mHandle);
-    ~Mutex();
+    ~mutex();
 
-    Mutex(const Mutex &) = delete;
-    Mutex &operator=(const Mutex &) = delete;
+    mutex(const mutex &) = delete;
+    mutex &operator=(const mutex &) = delete;
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
@@ -48,28 +48,28 @@ struct Mutex {
     // pthread_mutex_unlock(&mHandle);
     void unlock();
 
-    friend struct Condition_Variable;
+    friend struct condition_variable;
 };
 
 // This is a mutual exclusion object for synchronizing access to shared
 // memory areas for several threads. The mutex is recursive (i.e. a thread
 // may lock the mutex several times, as long as it unlocks the mutex the same
 // number of times).
-struct Recursive_Mutex {
+struct recursive_mutex {
    private:
-    byte Handle[64] = {0};  // pthread_mutex_t
+    byte _Handle[64] = {0};  // pthread_mutex_t
    public:
     // pthread_mutexattr_t attr;
     // pthread_mutexattr_init(&attr);
     // pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     // pthread_mutex_init(&mHandle, &attr);
-    Recursive_Mutex();
+    recursive_mutex();
 
     // pthread_mutex_destroy(&mHandle);
-    ~Recursive_Mutex();
+    ~recursive_mutex();
 
-    Recursive_Mutex(const Recursive_Mutex &) = delete;
-    Recursive_Mutex &operator=(const Recursive_Mutex &) = delete;
+    recursive_mutex(const recursive_mutex &) = delete;
+    recursive_mutex &operator=(const recursive_mutex &) = delete;
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
@@ -91,7 +91,7 @@ struct Recursive_Mutex {
     // pthread_mutex_unlock(&mHandle);
     void unlock();
 
-    friend struct Condition_Variable;
+    friend struct condition_variable;
 };
 
 // Scoped lock.
@@ -108,18 +108,18 @@ struct Recursive_Mutex {
 //        ++counter;
 //      }
 template <class T>
-struct Scoped_Lock {
+struct scoped_lock {
     using mutex_t = T;
 
-    mutex_t *MutexPtr = null;
+    mutex_t *Mutex = null;
 
-    explicit Scoped_Lock(mutex_t &mutex) {
-        MutexPtr = &mutex;
-        MutexPtr->lock();
+    explicit scoped_lock(mutex_t &mutex) {
+        Mutex = &mutex;
+        Mutex->lock();
     }
 
-    ~Scoped_Lock() {
-        if (MutexPtr) MutexPtr->unlock();
+    ~scoped_lock() {
+        if (Mutex) Mutex->unlock();
     }
 };
 
@@ -147,7 +147,7 @@ struct Scoped_Lock {
 //         ++count;
 //         cond.notify_all();
 //       }
-struct Condition_Variable {
+struct condition_variable {
    private:
 #if OS == WINDOWS
     // Implement platform specific Windows code for wait() in these functions,
@@ -155,16 +155,16 @@ struct Condition_Variable {
     void pre_wait();
     void do_wait();
 #endif
-    byte Handle[64] = {0};  // pthread_cond_t
+    byte _Handle[64] = {0};  // pthread_cond_t
    public:
     // pthread_cond_init(&mHandle, NULL);
-    Condition_Variable();
+    condition_variable();
 
     // pthread_cond_destroy(&mHandle);
-    ~Condition_Variable();
+    ~condition_variable();
 
-    Condition_Variable(const Condition_Variable &) = delete;
-    Condition_Variable &operator=(const Condition_Variable &) = delete;
+    condition_variable(const condition_variable &) = delete;
+    condition_variable &operator=(const condition_variable &) = delete;
 
     // Wait for the condition.
     // The function will block the calling thread until the condition variable
@@ -172,7 +172,7 @@ struct Condition_Variable {
 
     // pthread_cond_wait(&mHandle, &aMutex.mHandle);
     template <class MutexT>
-    inline void wait(MutexT &mutex) {
+    void wait(MutexT &mutex) {
         pre_wait();
 
         // Release the mutex while waiting for the condition (will decrease
@@ -198,53 +198,51 @@ struct Condition_Variable {
     void notify_all();
 };
 
-struct Thread {
+struct thread {
    private:
-    struct Id {
-        u64 Value;
-
-        // The default constructed ID is that of thread without a thread of execution.
-        Id() : Value(0){};
-        Id(u64 value) : Value(value){};
-
-        Id(const Id &) = default;
-        Id &operator=(const Id &) = default;
-
-        inline friend bool operator==(const Id &id1, const Id &id2) { return (id1.Value == id2.Value); }
-        inline friend bool operator!=(const Id &id1, const Id &id2) { return (id1.Value != id2.Value); }
-        inline friend bool operator<=(const Id &id1, const Id &id2) { return (id1.Value <= id2.Value); }
-        inline friend bool operator<(const Id &id1, const Id &id2) { return (id1.Value < id2.Value); }
-        inline friend bool operator>=(const Id &id1, const Id &id2) { return (id1.Value >= id2.Value); }
-        inline friend bool operator>(const Id &id1, const Id &id2) { return (id1.Value > id2.Value); }
-    };
-
-    mutable Mutex DataMutex;
+    mutable mutex _DataMutex;
 
     // Unique thread ID. Used only on Windows
-    u32 Win32ThreadID = 0;
+    u32 _Win32ThreadId = 0;
 
     // True if this object is not a thread of execution.
-    bool NotAThread = true;
+    bool _NotAThread = true;
 
    public:
     // The thread ID is a unique identifier for each thread.
-    using id = Id;
+    struct id {
+        u64 Value;
+
+        // The default constructed ID is that of thread without a thread of execution.
+        id() : Value(0){};
+        id(u64 value) : Value(value){};
+
+        id(const id &) = default;
+        id &operator=(const id &) = default;
+
+        friend bool operator==(const id &id1, const id &id2) { return (id1.Value == id2.Value); }
+        friend bool operator!=(const id &id1, const id &id2) { return (id1.Value != id2.Value); }
+        friend bool operator<=(const id &id1, const id &id2) { return (id1.Value <= id2.Value); }
+        friend bool operator<(const id &id1, const id &id2) { return (id1.Value < id2.Value); }
+        friend bool operator>=(const id &id1, const id &id2) { return (id1.Value >= id2.Value); }
+        friend bool operator>(const id &id1, const id &id2) { return (id1.Value > id2.Value); }
+    };
 
     uptr_t Handle;
 
     // Construct without an associated thread of execution (i.e. non-joinable).
-    Thread() {}
+    thread() = default;
 
     // Thread starting constructor.
     // Construct a thread object with a new thread of execution.
-    Thread(Delegate<void(void *)> function, void *userData);
+    thread(delegate<void(void *)> function, void *userData);
 
-    Thread(const Thread &) = delete;
-    Thread &operator=(const Thread &) = delete;
+    thread(const thread &) = delete;
+    thread &operator=(const thread &) = delete;
 
     // If the thread is joinable upon destruction, os_exit_process() will be called, which terminates the process.
     // It is always wise to call join() before deleting a thread object.
-    ~Thread();
+    ~thread();
 
     // Wait for the thread to finish (join execution flows).
     // After calling join(), the thread object is no longer associated with
@@ -297,7 +295,7 @@ static thread::id _pthread_t_to_ID(const pthread_t &aHandle)
   return thread::id(idMap[aHandle]);
 }
 */
-Thread::id get_id();
+thread::id get_id();
 
 // Yield execution to another thread.
 // Offers the operating system the opportunity to schedule another thread
@@ -323,13 +321,13 @@ void sleep_for(u32 ms);
 //
 // Because of the limitations of this object, it should only be used in
 // situations where the mutex needs to be locked/unlocked very frequently.
-class Fast_Mutex {
+class fast_mutex {
    public:
-    Fast_Mutex() : Lock(0) {}
+    fast_mutex() : _Lock(0) {}
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
-    inline void lock() {
+    void lock() {
         while (!try_lock()) {
             this_thread::yield();
         }
@@ -339,10 +337,10 @@ class Fast_Mutex {
     // return immediately (non-blocking).
     //
     // Returns true if the lock was acquired
-    inline bool try_lock() {
+    bool try_lock() {
         s32 oldLock;
 #if COMPILER == MSVC
-        oldLock = _InterlockedExchange(&Lock, 1);
+        oldLock = _InterlockedExchange(&_Lock, 1);
 #else
         asm volatile(
             "movl $1,%%eax\n\t"
@@ -357,9 +355,9 @@ class Fast_Mutex {
 
     // Unlock the mutex.
     // If any threads are waiting for the lock on this mutex, one of them will be unblocked.
-    inline void unlock() {
+    void unlock() {
 #if COMPILER == MSVC
-        _InterlockedExchange(&Lock, 0);
+        _InterlockedExchange(&_Lock, 0);
 #else
         asm volatile(
             "movl $0,%%eax\n\t"
@@ -371,7 +369,7 @@ class Fast_Mutex {
     }
 
    private:
-    volatile long Lock;
+    volatile long _Lock;
 };
 
 }  // namespace thread

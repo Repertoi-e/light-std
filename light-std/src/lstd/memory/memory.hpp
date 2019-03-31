@@ -8,13 +8,13 @@
 enum class ensure_allocator_t : byte { YES };
 constexpr auto ensure_allocator = ensure_allocator_t::YES;
 
-void *operator new(size_t count, Allocator_Closure allocator);
-void *operator new[](size_t count, Allocator_Closure allocator);
+void *operator new(size_t count, allocator_closure allocator);
+void *operator new[](size_t count, allocator_closure allocator);
 
 // This operator is a wrapper around new (allocator) T, but if the passed pointer to allocator
 // points to a null allocator, it makes it point to the context allocator and uses that one.
-void *operator new(size_t count, Allocator_Closure *allocator, ensure_allocator_t);
-void *operator new[](size_t count, Allocator_Closure *allocator, ensure_allocator_t);
+void *operator new(size_t count, allocator_closure *allocator, ensure_allocator_t);
+void *operator new[](size_t count, allocator_closure *allocator, ensure_allocator_t);
 
 LSTD_BEGIN_NAMESPACE
 
@@ -120,14 +120,14 @@ void *os_memory_alloc(void *context, size_t size, size_t *outsize);
 // Used by stb_malloc
 void os_memory_free(void *context, void *ptr);
 
-void *os_allocator(Allocator_Mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, uptr_t);
+void *os_allocator(allocator_mode mode, void *data, size_t size, void *oldMemory, size_t oldSize, uptr_t);
 
 #define OS_ALLOC \
-    Allocator_Closure { os_allocator, null }
+    allocator_closure { os_allocator, null }
 
-struct Allocation_Info {
+struct allocation_info {
     size_t Id = 0;
-    Allocator_Closure Allocator = {null, null};
+    allocator_closure Allocator = {null, null};
     size_t Size = 0;
 };
 
@@ -136,14 +136,14 @@ struct Allocation_Info {
 // The old size is stored in the header of every allocation's memory pointer (Allocation_Info)
 template <typename T>
 T *resize(T *memory, size_t newSize, uptr_t userData = 0) {
-    auto *info = (Allocation_Info *) memory - 1;
-    size_t oldSize = info->Size + sizeof(Allocation_Info);
+    auto *info = (allocation_info *) memory - 1;
+    size_t oldSize = info->Size + sizeof(allocation_info);
 
-    newSize = newSize * sizeof(T) + sizeof(Allocation_Info);
+    newSize = newSize * sizeof(T) + sizeof(allocation_info);
 
     // Note: We don't change info->Id here
     // I don't think we should...
-    auto *newMemory = (Allocation_Info *) info->Allocator.Function(Allocator_Mode::RESIZE, info->Allocator.Data,
+    auto *newMemory = (allocation_info *) info->Allocator.Function(allocator_mode::RESIZE, info->Allocator.Data,
                                                                    newSize, info, oldSize, userData);
     newMemory->Size = newSize;
     return (T *) (newMemory + 1);
@@ -152,7 +152,7 @@ T *resize(T *memory, size_t newSize, uptr_t userData = 0) {
 // BIT CAST
 
 template <class T, class U>
-inline T bit_cast(const U &source) {
+T bit_cast(const U &source) {
     static_assert(sizeof(T) == sizeof(U), "trying to bit_cast types of different size");
 
     T dest;

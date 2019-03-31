@@ -17,14 +17,19 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
-struct Shared_Memory {
+struct shared_memory {
     using element_t = T;
     using deleter_t = void (*)(void *);
 
-   private:
-    element_t *Pointer = null;
+    static void default_deleter(void *p) {
+        ((T *) p)->~T();
+        delete (T *) p;
+    }
 
-    struct Shared_Memory_Count {
+   private:
+    element_t *_Pointer = null;
+
+    struct shared_memory_count {
         s32 *Pn = null;
         deleter_t Deleter = default_deleter;
 
@@ -55,61 +60,56 @@ struct Shared_Memory {
             }
         }
 
-        void swap(Shared_Memory_Count &other) { std::swap(Pn, other.Pn); }
+        void swap(shared_memory_count &other) { std::swap(Pn, other.Pn); }
     };
-    Shared_Memory_Count Count;
+    shared_memory_count Count;
 
    public:
-    static void default_deleter(void *p) {
-        ((T *) p)->~T();
-        delete p;
-    }
+    shared_memory() = default;
 
-    Shared_Memory() {}
-
-    explicit Shared_Memory(T *p) { acquire(p); }
-    explicit Shared_Memory(T *p, deleter_t deleter) : Count(Shared_Memory_Count{null, deleter}) { acquire(p); }
+    explicit shared_memory(T *p) { acquire(p); }
+    explicit shared_memory(T *p, deleter_t deleter) : Count(shared_memory_count{null, deleter}) { acquire(p); }
 
     template <class U>
-    Shared_Memory(const Shared_Memory<U> &ptr) : Count(ptr.Count) {
+    explicit shared_memory(const shared_memory<U> &ptr) : Count(ptr.Count) {
         // Must be coherent: no allocation allowed in this path
         assert(ptr.Pointer == null || ptr.ref_count() != 0);
-        acquire(static_cast<typename Shared_Memory<T>::element_t *>(ptr.Pointer));
+        acquire(static_cast<element_t *>(ptr.Pointer));
     }
 
-    Shared_Memory(const Shared_Memory &other) : Count(other.Count) {
+    shared_memory(const shared_memory &other) : Count(other.Count) {
         // Must be coherent: no allocation allowed in this path
-        assert(other.Pointer == null || other.ref_count() != 0);
-        acquire(other.Pointer);
+        assert(other._Pointer == null || other.ref_count() != 0);
+        acquire(other._Pointer);
     }
 
-    Shared_Memory &operator=(Shared_Memory ptr) {
+    shared_memory &operator=(shared_memory ptr) {
         swap(ptr);
         return *this;
     }
 
-    ~Shared_Memory() { reset(); }
+    ~shared_memory() { reset(); }
 
     void reset() {
-        Count.release(Pointer);
-        Pointer = null;
+        Count.release(_Pointer);
+        _Pointer = null;
     }
 
     void reset(T *p) {
-        assert(p == NULL || Pointer != p);
+        assert(p == NULL || _Pointer != p);
         reset();
         acquire(p);
     }
 
     void reset(T *p, deleter_t deleter) {
-        assert(p == NULL || Pointer != p);
+        assert(p == NULL || _Pointer != p);
         reset();
         Count.Deleter = deleter;
         acquire(p);
     }
 
-    void swap(Shared_Memory &other) {
-        std::swap(Pointer, other.Pointer);
+    void swap(shared_memory &other) {
+        std::swap(_Pointer, other._Pointer);
         Count.swap(other.Count);
     }
 
@@ -119,21 +119,21 @@ struct Shared_Memory {
 
     template <typename U = T>
     std::enable_if_t<!std::is_same_v<U, void>, U &> operator*() const {
-        assert(Pointer);
-        return *Pointer;
+        assert(_Pointer);
+        return *_Pointer;
     }
 
     T *operator->() const {
-        assert(Pointer);
-        return Pointer;
+        assert(_Pointer);
+        return _Pointer;
     }
 
-    T *get() const { return Pointer; }
+    T *get() const { return _Pointer; }
 
    private:
     void acquire(T *p) {
         Count.acquire(p);
-        Pointer = p;
+        _Pointer = p;
     }
 };
 
