@@ -115,7 +115,7 @@ struct path {
     string _Path;
 
     void unify() {
-        _Path = _Path.replaced_all("\\", "/");
+        _Path.replace_all("\\", "/");
         resolve();
     }
 };

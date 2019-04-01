@@ -11,7 +11,9 @@ path &path::operator=(const memory_view &other) {
 
 string path::get_native() const {
 #if OS == WINDOWS
-    return _Path.replaced_all("/", "\\");
+    string native = _Path;
+    native.replace_all("/", "\\");
+    return native;
 #else
     return Path;
 #endif

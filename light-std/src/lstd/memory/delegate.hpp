@@ -71,7 +71,7 @@ struct delegate<R(A...)> {
         using functor_type = std::decay_t<T>;
 
         StoreSize = sizeof(functor_type);
-        Store = shared_memory<void>(operator new(StoreSize), functor_deleter_stub<functor_type>);
+        Store = shared_memory(operator new(StoreSize), functor_deleter_stub<functor_type>);
 
         ObjectPtr = Store.get();
         new (ObjectPtr) functor_type(std::forward<T>(f));

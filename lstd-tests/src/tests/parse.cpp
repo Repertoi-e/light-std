@@ -24,7 +24,7 @@ TEST(bools) {
     while (!in.EOF) {
         bool value;
         in.read(value);
-        if (!in.FailedParse) results.add(value);
+        if (!in.FailedParse) results.append(value);
     }
     assert_eq(results, to_array(false, true, true, false, true, false, true));
 }
@@ -35,7 +35,7 @@ TEST(integers) {
     while (!in.EOF) {
         s32 value;
         in.read(value);
-        if (!in.FailedParse) results.add(value);
+        if (!in.FailedParse) results.append(value);
     }
     assert_eq(results, to_array(-2305, 2050, 10, -0xff, 0xff, 0202, -240));
 }
@@ -46,7 +46,7 @@ TEST(floats) {
     while (!in.EOF) {
         f64 value;
         in.read(value);
-        if (!in.FailedParse) results.add(value);
+        if (!in.FailedParse) results.append(value);
     }
     assert_eq(results, to_array(-2305.02, 2050.02502, 10e10, -520.20501, 5.2e2));
 }

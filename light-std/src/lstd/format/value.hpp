@@ -205,7 +205,7 @@ struct value {
     value(const byte *value) : String_Value(value, cstring_strlen(value)) {}
 
     value(const string_view &value) : String_Value(value.Data, value.ByteLength) {}
-    value(const string &value) : String_Value(value.Data, value.ByteLength) {}
+    value(const string &value) : String_Value(value.Data.get(), value.ByteLength) {}
     value(const void *value) { Pointer_Value = value; }
 
     template <typename T>

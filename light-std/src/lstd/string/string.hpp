@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../memory/memory.hpp"
+#include "../memory/stack_dynamic_memory.hpp"
 
 #include "string_view.hpp"
 
@@ -108,35 +108,26 @@ struct string {
     using iterator = iterator_impl<true>;
     using const_iterator = iterator_impl<false>;
 
-    static constexpr size_t SMALL_STRING_BUFFER_SIZE = 8;
     // This implementation uses a small stack allocated buffer
     // for small strings instead of dynamically allocating memory.
-    // When the string begins to use more than SMALL_STRING_BUFFER_SIZE
-    // bytes of memory, it allocates a buffer on the heap.
+    // When the string begins to use more than 8 bytes of memory,
+    // it allocates a buffer with operator new.
     //
-    // Note that the "Data" member points to this buffer *or* the dynamically allocated one.
-    byte StackData[SMALL_STRING_BUFFER_SIZE] = {0};
-
-    // This member points to a valid utf-8 string in memory.
+    // This memory is a valid utf-8 string in memory.
     // Each 'char' means one byte, which doesn't guarantee a valid utf-8 code point
     // since they can be multiple bytes. You almost never would want
     // to modify or access characters from this member unless you want
     // something very specific.
-    byte *Data = StackData;
-
-    // The number of reserved bytes in the string. This is used only
-    // if the string is using a dynamically allocated buffer.
-    size_t Reserved = 0;
+    //
+    // The allocator used for expanding the string is Data.Allocator
+    // This value is null until this object allocates memory or the user sets it manually.
+    mutable stack_dynamic_memory<byte, 8> Data;
 
     // The number of code units in the string, >= the number of code points
     size_t ByteLength = 0;
 
     // Length of the string in code points
     size_t Length = 0;
-
-    // The allocator used for expanding the string.
-    // This value is null until this object allocates memory or the user sets it manually.
-    mutable allocator_closure Allocator;
 
     string() {}
     // Create a string with an initial size reserved
@@ -145,19 +136,12 @@ struct string {
     string(const byte *str) : string(memory_view(str)) {}
     string(const byte *str, size_t size) : string(memory_view(str, size)) {}
 
-    string(const string &other);
-    string(string &&other);
-    ~string();
-
     // Releases the memory allocated by this string.
     void release();
 
     // Clears all characters from the string
     // (Sets ByteLength and Length to 0)
     void clear() { ByteLength = Length = 0; }
-
-    // Reserve bytes in string
-    void reserve(size_t size);
 
     // Gets the _index_'th code point in the string
     // Allows negative reversed indexing which begins at
@@ -260,7 +244,7 @@ struct string {
 
     string_view get_view() const {
         string_view view;
-        view.Data = Data;
+        view.Data = Data.get();
         view.ByteLength = ByteLength;
         view.Length = Length;
         return view;
@@ -340,10 +324,10 @@ struct string {
     // removed at the end.
     string_view trim_end() const { return get_view().trim_end(); }
 
-    string removed_all(char32_t ch) const;
-    string removed_all(const string_view &view) const;
-    string replaced_all(char32_t oldCh, char32_t newCh) const;
-    string replaced_all(const string_view &oldView, const string_view &newView) const;
+    void remove_all(char32_t ch);
+    void remove_all(const string_view &view);
+    void replace_all(char32_t oldCh, char32_t newCh);
+    void replace_all(const string_view &oldView, const string_view &newView);
 
     // Converts a utf8 string to a null-terminated wide char string (for use with Windows)
     // The string returned is allocated by this object's allcoator and must be freed by the caller
@@ -368,13 +352,11 @@ struct string {
     bool ends_with(const memory_view &other) const { return get_view().ends_with(other); }
 
     string &operator=(const memory_view &memory);
-    string &operator=(const string &other);
-    string &operator=(string &&other);
 
     operator string_view() const { return get_view(); }
     operator memory_view() const {
         memory_view view;
-        view.Data = Data;
+        view.Data = Data.get();
         view.ByteLength = ByteLength;
         return view;
     }

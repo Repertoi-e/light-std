@@ -202,22 +202,22 @@ extern void os_exit_program(s32 code);
 // A default failed assert callback that logs a message and stops the program
 void os_assert_failed(const byte *file, s32 line, const byte *condition);
 
-class NonCopyable {
+class non_copyable {
    protected:
-    NonCopyable() = default;
-    ~NonCopyable() = default;
+    non_copyable() = default;
+    ~non_copyable() = default;
 
-    NonCopyable(const NonCopyable &) = delete;
-    NonCopyable &operator=(const NonCopyable &) = delete;
+    non_copyable(const non_copyable &) = delete;
+    non_copyable &operator=(const non_copyable &) = delete;
 };
 
-class NonMovable {
+class non_movable {
    protected:
-    NonMovable() {}
-    ~NonMovable() {}
+    non_movable() {}
+    ~non_movable() {}
 
-    NonMovable(NonMovable &&) = delete;
-    NonMovable &operator=(NonMovable &&) = delete;
+    non_movable(non_movable &&) = delete;
+    non_movable &operator=(non_movable &&) = delete;
 };
 
 // Shortcut macros for foreach loops (really up to personal style if you use this)

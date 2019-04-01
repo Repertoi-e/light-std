@@ -72,7 +72,7 @@ void handle::traverse_recursively(const handle &first, visit_func_t func) const 
 
 void handle::traverse_recursively(visit_func_t func) const { traverse_recursively(*this, func); }
 
-handle::handle(const path &path) : Path(path) { _PathUtf16 = shared_memory<wchar_t>(string(path.get()).to_utf16()); }
+handle::handle(const path &path) : Path(path) { _PathUtf16 = shared_memory(string(path.get()).to_utf16()); }
 
 bool handle::is_file() const {
     HANDLE file = CreateFileW(_PathUtf16.get(), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);

@@ -12,7 +12,7 @@ LSTD_BEGIN_NAMESPACE
 template <typename Key, typename Value>
 struct table_iterator;
 
-// Table means hash-map/undordered_map etc.
+// Table means hash-map/unordered_map etc.
 template <typename Key, typename Value>
 struct table {
     using key_t = Key;

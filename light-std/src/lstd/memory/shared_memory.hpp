@@ -16,14 +16,19 @@
 
 LSTD_BEGIN_NAMESPACE
 
+// Manages a block of memory
+// Deletes it when all shared_memory's pointing to it get deleted
+// (implements reference counting)
+//
+// You can provide a custom deleter (the default is operator delete)
 template <typename T>
 struct shared_memory {
     using element_t = T;
-    using deleter_t = void (*)(void *);
+    using deleter_t = void (*)(element_t *);
 
-    static void default_deleter(void *p) {
-        ((T *) p)->~T();
-        delete (T *) p;
+    static void default_deleter(element_t *p) {
+        p->~element_t();
+        delete p;
     }
 
    private:
@@ -67,8 +72,8 @@ struct shared_memory {
    public:
     shared_memory() = default;
 
-    explicit shared_memory(T *p) { acquire(p); }
-    explicit shared_memory(T *p, deleter_t deleter) : Count(shared_memory_count{null, deleter}) { acquire(p); }
+    explicit shared_memory(element_t *p) { acquire(p); }
+    explicit shared_memory(element_t *p, deleter_t deleter) : Count(shared_memory_count{null, deleter}) { acquire(p); }
 
     template <class U>
     explicit shared_memory(const shared_memory<U> &ptr) : Count(ptr.Count) {
@@ -88,22 +93,22 @@ struct shared_memory {
         return *this;
     }
 
-    ~shared_memory() { reset(); }
+    ~shared_memory() { release(); }
 
-    void reset() {
+    void release() {
         Count.release(_Pointer);
         _Pointer = null;
     }
 
-    void reset(T *p) {
+    void reset(element_t *p) {
         assert(p == NULL || _Pointer != p);
-        reset();
+        release();
         acquire(p);
     }
 
-    void reset(T *p, deleter_t deleter) {
+    void reset(element_t *p, deleter_t deleter) {
         assert(p == NULL || _Pointer != p);
-        reset();
+        release();
         Count.Deleter = deleter;
         acquire(p);
     }
@@ -117,21 +122,21 @@ struct shared_memory {
     bool is_unique() const { return ref_count() == 1; }
     s32 ref_count() const { return Count.ref_count(); }
 
-    template <typename U = T>
+    template <typename U = element_t>
     std::enable_if_t<!std::is_same_v<U, void>, U &> operator*() const {
         assert(_Pointer);
         return *_Pointer;
     }
 
-    T *operator->() const {
+    element_t *operator->() const {
         assert(_Pointer);
         return _Pointer;
     }
 
-    T *get() const { return _Pointer; }
+    element_t *get() const { return _Pointer; }
 
    private:
-    void acquire(T *p) {
+    void acquire(element_t *p) {
         Count.acquire(p);
         _Pointer = p;
     }

@@ -37,7 +37,7 @@ void reader::read(byte *buffer, size_t n) {
 
 void reader::read(dynamic_array<byte> &buffer, size_t n) {
     if (!buffer.has_space_for(n)) buffer.grow(n);
-    return read(buffer.Data, n);
+    return read(buffer.Data.get(), n);
 }
 
 void reader::read(byte *buffer, char32_t delim) {
@@ -61,7 +61,7 @@ void reader::read(dynamic_array<byte> &buffer, const string_view &delims) {
         return;
     }
 
-    byte *bufferData = buffer.Data;
+    byte *bufferData = buffer.Data.get();
 
     char32_t cp = 0;
     for (char32_t cp = read_codepoint(true); cp != (char32_t) eof; cp = read_codepoint(true)) {
@@ -70,9 +70,9 @@ void reader::read(dynamic_array<byte> &buffer, const string_view &delims) {
         size_t cpSize = get_size_of_code_point(cp);
 
         if (!buffer.has_space_for(cpSize)) {
-            uptr_t diff = bufferData - buffer.Data;
+            uptr_t diff = bufferData - buffer.Data.get();
             buffer.grow(cpSize);
-            bufferData = buffer.Data + diff;
+            bufferData = buffer.Data.get() + diff;
         }
         encode_code_point(bufferData, cp);
         bufferData += get_size_of_code_point(bufferData);
@@ -88,7 +88,7 @@ void reader::read(dynamic_array<byte> &buffer, char32_t delim) {
 
 void reader::read(string &str, size_t codepoints) {
     str = "";
-    str.reserve(codepoints * 4);
+    str.Data.reserve(codepoints * 4);
     for (char32_t cp = read_codepoint(); cp != (char32_t) eof; cp = read_codepoint(true)) {
         str.append(cp);
     }
@@ -97,13 +97,13 @@ void reader::read(string &str, size_t codepoints) {
 void reader::read(string &str, char32_t delim) {
     dynamic_array<byte> buffer;
     read(buffer, delim);
-    str = string(buffer.Data, buffer.Count);
+    str = string(buffer.Data.get(), buffer.Count);
 }
 
 void reader::read(string &str, const string_view &delims) {
     dynamic_array<byte> buffer;
     read(buffer, delims);
-    str = string(buffer.Data, buffer.Count);
+    str = string(buffer.Data.get(), buffer.Count);
 }
 
 void reader::read(string &str) { return read(str, U'\n'); }

@@ -76,7 +76,7 @@ struct string_writer : writer {
 void console_writer_write(void *data, const memory_view &memory);
 void console_writer_flush(void *data);
 
-struct console_writer : writer, NonCopyable, NonMovable {
+struct console_writer : writer, non_copyable, non_movable {
     // By default, we are thread-safe.
     // If you don't use seperate threads and aim for max
     // performance, set this to false.

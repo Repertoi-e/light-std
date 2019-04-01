@@ -32,7 +32,7 @@ template <typename Signature, typename Collector = collector_default<typename de
 struct signal;
 
 template <typename R, typename... Args, typename Collector>
-struct signal<R(Args...), Collector> : public NonCopyable {
+struct signal<R(Args...), Collector> : public non_copyable {
    protected:
     using result_t = R;
     using callback_t = delegate<R(Args...)>;

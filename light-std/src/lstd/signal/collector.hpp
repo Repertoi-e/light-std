@@ -68,7 +68,7 @@ struct collector_array {
     using result_t = dynamic_array<Result>;
 
     bool operator()(Result r) {
-        _Array.add(r);
+        _Array.append(r);
         return true;
     }
 

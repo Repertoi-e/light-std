@@ -5,6 +5,8 @@
 
 #include "thread.hpp"
 
+#include "file/path.hpp"
+
 #include "format/console_colors.hpp"
 #include "format/core.hpp"
 #include "format/parse.hpp"
@@ -61,6 +63,11 @@ struct formatter<dynamic_array<T>> {
 template <>
 struct formatter<thread::thread::id> {
     void format(const thread::thread::id &value, format_context &f) const { f.write_int(value.Value); }
+};
+
+template <>
+struct formatter<file::path> {
+    void format(const file::path &value, format_context &f) const { f.write(value.get()); }
 };
 
 namespace internal {

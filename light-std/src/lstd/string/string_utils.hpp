@@ -291,20 +291,23 @@ constexpr size_t translate_index_unchecked(s64 index, size_t length) {
 }
 
 // This function checks if the index is in range
-constexpr size_t translate_index(s64 index, size_t length) {
+constexpr size_t translate_index(s64 index, size_t length, bool tolerateLast = false) {
+    size_t checkLength = tolerateLast ? (length + 1) : length;
+    
     if (index < 0) {
         s64 actual = length + index;
         assert(actual >= 0);
-        assert((size_t) actual < length);
+        assert((size_t) actual < checkLength);
         return (size_t) actual;
     }
-    assert((size_t) index < length);
+    assert((size_t) index < checkLength);
     return (size_t) index;
 }
 
 // This returns str advanced to point to the code point at a specified index in a string with a given length.
-constexpr const byte *get_pointer_to_code_point_at(const byte *str, size_t length, s64 index) {
-    For(range(translate_index(index, length))) str += get_size_of_code_point(str);
+constexpr const byte *get_pointer_to_code_point_at(const byte *str, size_t length, s64 index,
+                                                   bool tolerateLast = false) {
+    For(range(translate_index(index, length, tolerateLast))) str += get_size_of_code_point(str);
     return str;
 }
 

@@ -80,7 +80,7 @@ inline void *zero_memory(void *dest, size_t num) { return fill_memory(dest, 0, n
 // Helper template function for copying contents of arrays of the same type.
 // This method does not handle overlapping arrays (for consistency with copy_memory).
 template <typename T>
-T *copy_elements(T *dest, T *src, size_t numberOfElements) {
+T *copy_elements(T *dest, const T *src, size_t numberOfElements) {
     static_assert(!std::is_same_v<T, void>);
 
     For(range(numberOfElements)) { new (&dest[it]) T(src[it]); }
@@ -127,9 +127,21 @@ void *os_allocator(allocator_mode mode, void *data, size_t size, void *oldMemory
 
 struct allocation_info {
     size_t Id = 0;
-    allocator_closure Allocator = {null, null};
+    allocator_closure Allocator;
     size_t Size = 0;
 };
+
+// Gets the ID of the allocation (assumes pointer is allocated with operator new, undefined behaviour otherwise)
+#define GET_ID(pointer) (((allocation_info *) (pointer) - 1)->Id)
+
+// Gets the allocator pointer was allocated with (assumes it was allocated with operator new)
+#define GET_ALLOCATOR(pointer) (((allocation_info *) (pointer) - 1)->Allocator)
+
+// Gets the size of the allocation not including the header (allocation_info)
+#define GET_SIZE(pointer) (((allocation_info *) (pointer) - 1)->Size)
+
+// Gets the size of the allocation including the header (allocation_info)
+#define GET_ACTUAL_SIZE(pointer) (((allocation_info *) (pointer) - 1)->Size + sizeof(allocation_info))
 
 // Used for rezising an array.
 // _newSize_ is automatically multiplied by sizeof(T).

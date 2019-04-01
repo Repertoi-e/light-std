@@ -3,6 +3,8 @@
 #include "../string/string.hpp"
 #include "memory.hpp"
 
+#include "owned_memory.hpp"
+
 LSTD_BEGIN_NAMESPACE
 
 // A temporary allocator. Init with a set size, (wrapper: temporary_storage_init), and it
@@ -15,16 +17,9 @@ LSTD_BEGIN_NAMESPACE
 //
 // Note that calling the allocator with Allocator_Mode::FREE (or the wrapper Delete from memory.hpp) does nothing.
 //
-struct temporary_storage {
-    void *Data = null;
+struct temporary_storage : non_copyable, non_movable {
+    owned_memory<byte> Data;
     size_t Size = 0, Occupied = 0, HighestUsed = 0;
-
-    temporary_storage() {}
-    temporary_storage(const temporary_storage &other) = delete;
-    temporary_storage(temporary_storage &&other) = delete;
-    temporary_storage &operator=(const temporary_storage &other) = delete;
-    temporary_storage &operator=(temporary_storage &&other) = delete;
-    ~temporary_storage() { delete[](byte *) Data; }
 };
 
 inline temporary_storage *g_TemporaryAllocatorData;
@@ -61,7 +56,7 @@ inline void *temporary_allocator(allocator_mode mode, void *allocatorData, size_
                 return g_DefaultAllocator(mode, allocatorData, size, oldMemory, oldSize, 0);
             }
 
-            void *block = (byte *) storage->Data + storage->Occupied;
+            void *block = storage->Data.get() + storage->Occupied;
 
             if (mode == allocator_mode::RESIZE) {
                 copy_memory(block, oldMemory, oldSize);
@@ -85,7 +80,7 @@ inline void *temporary_allocator(allocator_mode mode, void *allocatorData, size_
 inline void temporary_storage_init(size_t allocatorSize) {
     g_TemporaryAllocatorData = new (MALLOC) temporary_storage;
 
-    g_TemporaryAllocatorData->Data = new (MALLOC) byte[allocatorSize];
+    g_TemporaryAllocatorData->Data = owned_memory(new (MALLOC) byte[allocatorSize]);
     g_TemporaryAllocatorData->Size = allocatorSize;
 }
 

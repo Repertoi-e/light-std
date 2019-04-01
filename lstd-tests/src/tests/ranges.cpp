@@ -5,7 +5,7 @@
 template <size_t N>
 void test_expected(array<s32, N> expected, s64 start, s64 stop, s64 step = 1) {
     dynamic_array<s32> result;
-    For(range(start, stop, step)) result.add(it);
+    For(range(start, stop, step)) result.append(it);
     assert_eq(result, expected);
 }
 
@@ -16,7 +16,7 @@ TEST(basic) {
 
 TEST(variable_steps) {
     dynamic_array<s32> result;
-    For(range(2, -3, 2)) result.add(it);
+    For(range(2, -3, 2)) result.append(it);
     assert_eq(result.Count, 0);
 
     test_expected(to_array<s32>(-3, -1, 1), -3, 2, 2);

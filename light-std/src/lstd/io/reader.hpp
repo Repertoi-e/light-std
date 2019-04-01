@@ -282,7 +282,7 @@ inline byte string_reader_request_byte(void *data) {
 // Defined in *platform*.cpp
 byte console_reader_request_byte(void *data);
 
-struct console_reader : reader, NonCopyable, NonMovable {
+struct console_reader : reader, non_copyable, non_movable {
     // By default, we are thread-safe.
     // If you don't use seperate threads and aim for max
     // performance, set this to false.

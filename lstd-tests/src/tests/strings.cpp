@@ -215,31 +215,60 @@ TEST(string_builder) {
 
 TEST(removed_all) {
     string a = "Hello world!";
-    assert_eq(a.removed_all('l'), "Heo word!");
-    assert_eq(a.removed_all("ll"), "Heo world!");
+    string b = a;
 
-    assert_eq(a.removed_all("x"), a);
+    b.remove_all('l');
+    assert_eq(b, "Heo word!");
 
-    a = "llHello world!ll";
-    assert_eq(a.removed_all('l'), "Heo word!");
+    b = a;
+    b.remove_all("ll");
+    assert_eq(b, "Heo world!");
 
-    a = "llHello world!ll";
-    assert_eq(a.removed_all("ll"), "Heo world!");
+    b = a;
+    a.remove_all("x");
+    assert_eq(b, a);
+
+    b = "llHello world!ll";
+    b.remove_all('l');
+    assert_eq(b, "Heo word!");
+
+    b = "llHello world!ll";
+    b.remove_all("ll");
+    assert_eq(b, "Heo world!");
 }
 
 TEST(replaced_all) {
     string a = "Hello world!";
-    assert_eq(a.replaced_all("l", "ll"), "Hellllo worlld!");
-    assert_eq(a.replaced_all("l", ""), a.removed_all('l'));
+    string b = a;
 
-    assert_eq(a.replaced_all("x", ""), a);
+    b.replace_all("l", "ll");
+    assert_eq(b, "Hellllo worlld!");
 
-    assert_eq(a.replaced_all("Hello", "olleH"), "olleH world!");
+    b = a;
+    b.replace_all("l", "");
+    string c = a;
+    c.remove_all('l');
+    assert_eq(b, c);
 
-    a = "llHello world!ll";
-    assert_eq(a.replaced_all("ll", "l"), "lHelo world!l");
-    assert_eq(a.replaced_all("l", "ll"), "llllHellllo worlld!llll");
-    assert_eq(a.replaced_all("l", "K"), "KKHeKKo worKd!KK");
+    b = a;
+    b.replace_all("x", "");
+    assert_eq(b, a);
+
+    b = a;
+    b.replace_all("Hello", "olleH");
+    assert_eq(b, "olleH world!");
+
+    b = a = "llHello world!ll";
+    b.replace_all("ll", "l");
+    assert_eq(b, "lHelo world!l");
+    
+    b = a;
+    b.replace_all("l", "ll");
+    assert_eq(b, "llllHellllo worlld!llll");
+
+    b = a;
+    b.replace_all("l", "K");
+    assert_eq(b, "KKHeKKo worKd!KK");
 }
 
 TEST(find) {

@@ -5,16 +5,16 @@ LSTD_BEGIN_NAMESPACE
 void pool::resize_blocks(size_t blockSize) {
     BlockSize = blockSize;
 
-    if (_CurrentMemblock) _ObsoletedMemblocks.add(_CurrentMemblock);
+    if (_CurrentMemblock) _ObsoletedMemblocks.append(_CurrentMemblock);
 
-    For(_UsedMemblocks) _ObsoletedMemblocks.add(it);
+    For(_UsedMemblocks) _ObsoletedMemblocks.append(it);
 
     _CurrentMemblock = null;
     _UsedMemblocks.Count = 0;
 }
 
 void pool::cycle_new_block() {
-    if (_CurrentMemblock) _UsedMemblocks.add(_CurrentMemblock);
+    if (_CurrentMemblock) _UsedMemblocks.append(_CurrentMemblock);
 
     u8 *newBlock;
     if (_UnusedMemblocks.Count) {
@@ -42,11 +42,11 @@ void pool::ensure_memory_exists(size_t size) {
 
 void pool::reset() {
     if (_CurrentMemblock) {
-        _UnusedMemblocks.add(_CurrentMemblock);
+        _UnusedMemblocks.append(_CurrentMemblock);
         _CurrentMemblock = null;
     }
 
-    For(_UsedMemblocks) { _UnusedMemblocks.add(it); }
+    For(_UsedMemblocks) { _UnusedMemblocks.append(it); }
     _UsedMemblocks.Count = 0;
 
     For(_ObsoletedMemblocks) { delete it; }

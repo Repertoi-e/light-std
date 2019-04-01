@@ -36,7 +36,7 @@ TEST(array) {
 TEST(dynamic_array) {
     dynamic_array<s32> a;
 
-    For(range(10)) { a.add(it); }
+    For(range(10)) { a.append(it); }
     For(range(10)) { assert_eq(a[it], it); }
 
     a.insert(a.begin() + 3, -3);
@@ -115,16 +115,16 @@ TEST(table_pointer_to_value) {
     table<string, dynamic_array<s32> *> t;
 
     dynamic_array<s32> a;
-    a.add(0);
-    a.add(1);
-    a.add(2);
+    a.append(0);
+    a.append(1);
+    a.append(2);
 
     t.put("1", &a);
     {
         auto [found, wasFound] = t.find("1");
         assert_true(wasFound);
-        found->add(3);
-        found->add(4);
+        found->append(3);
+        found->append(4);
     }
     {
         auto [found, wasFound] = t.find("1");

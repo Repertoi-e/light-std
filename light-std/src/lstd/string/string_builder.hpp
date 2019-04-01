@@ -49,7 +49,7 @@ struct string_builder {
     // Merges all buffers and returns a single string.
     string combine() const {
         string result;
-        result.reserve((IndirectionCount + 1) * BUFFER_SIZE);
+        result.Data.reserve((IndirectionCount + 1) * BUFFER_SIZE);
 
         const buffer *buffer = &BaseBuffer;
         while (buffer) {

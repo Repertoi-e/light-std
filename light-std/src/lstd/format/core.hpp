@@ -24,7 +24,7 @@ namespace fmt {
 inline byte *float_callback_for_sprintf(byte *sprintfBuffer, void *user, int len) {
     auto *buffer = (memory_buffer<500> *) user;
     if (!buffer->has_space_for(len)) {
-        buffer->grow(STB_SPRINTF_MIN);
+        buffer->Data.grow(STB_SPRINTF_MIN);
     }
     buffer->append_pointer_and_size_unsafe(sprintfBuffer, len);
     return sprintfBuffer;
@@ -615,23 +615,23 @@ struct format_context : io::writer {
 
         size_t padding = width() - length;
         if (align == alignment::RIGHT) {
-            Out.grow(padding * fillCpSize);
+            Out.Data.grow(padding * fillCpSize);
             For(range(padding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
             func(*this);
         } else if (align == alignment::CENTER) {
             size_t leftPadding = padding / 2;
 
-            Out.grow(leftPadding * fillCpSize);
+            Out.Data.grow(leftPadding * fillCpSize);
             For(range(leftPadding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
 
             func(*this);
 
             size_t rightPadding = padding - leftPadding;
-            Out.grow(rightPadding * fillCpSize);
+            Out.Data.grow(rightPadding * fillCpSize);
             For(range(rightPadding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
         } else {
             func(*this);
-            Out.grow(padding * fillCpSize);
+            Out.Data.grow(padding * fillCpSize);
             For(range(padding)) Out.append_pointer_and_size_unsafe(fillCpData, fillCpSize);
         }
     }
@@ -687,7 +687,7 @@ inline void format_context_write(void *data, const memory_view &memory) {
 
 inline void format_context_flush(void *data) {
     auto context = (format_context *) data;
-    context->FlushOutput.write(context->Out.Data, context->Out.ByteLength);
+    context->FlushOutput.write(context->Out.Data.get(), context->Out.ByteLength);
 }
 
 // :struct Value in value.h

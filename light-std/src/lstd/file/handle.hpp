@@ -10,7 +10,7 @@ namespace file {
 // To change the file/directory this is pointing to, simply create a new one.
 struct handle {
    public:
-    struct iterator : NonCopyable {
+    struct iterator : non_copyable {
        private:
         uptr_t _PlatformHandle = 0;
         byte _PlatformFileInfo[592]{};

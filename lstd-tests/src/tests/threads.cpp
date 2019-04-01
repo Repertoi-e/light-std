@@ -49,7 +49,7 @@ TEST(mutex_lock) {
     g_Count = 0;
 
     dynamic_array<thread::thread *> threads;
-    For(range(100)) { threads.add(new thread::thread(thread_lock, null)); }
+    For(range(100)) { threads.append(new thread::thread(thread_lock, null)); }
 
     For(threads) {
         it->join();
@@ -74,7 +74,7 @@ TEST(fast_mutex_lock) {
     g_Count = 0;
 
     dynamic_array<thread::thread *> threads;
-    For(range(100)) { threads.add(new thread::thread(thread_lock2, null)); }
+    For(range(100)) { threads.append(new thread::thread(thread_lock2, null)); }
 
     For(threads) {
         it->join();
@@ -109,7 +109,7 @@ TEST(condition_variable) {
 
     // These will decrease gCount by 1 when they finish)
     dynamic_array<thread::thread *> threads;
-    For(range(g_Count)) { threads.add(new thread::thread(thread_condition_notifier, null)); }
+    For(range(g_Count)) { threads.append(new thread::thread(thread_condition_notifier, null)); }
 
     t1.join();
 

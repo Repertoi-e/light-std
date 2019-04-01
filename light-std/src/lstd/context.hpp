@@ -3,9 +3,7 @@
 #include "common.hpp"
 #include "memory/allocator.hpp"
 
-#define SHARED_MEMORY_NO_ASSERT
 #include "memory/delegate.hpp"
-#undef SHARED_MEMORY_NO_ASSERT
 
 LSTD_BEGIN_NAMESPACE
 
