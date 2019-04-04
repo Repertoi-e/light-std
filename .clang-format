@@ -3,4 +3,6 @@ BasedOnStyle: Google
 TabWidth: 4
 IndentWidth: 4
 SpaceAfterCStyleCast: true
+DerivePointerAlignment: false
+PointerAlignment: Right
 ColumnLimit: 120
