@@ -145,11 +145,11 @@ struct range {
     constexpr iterator end() const { return _End; }
 };
 
+// @Volatile: README.md
 // User type policy:
 //
 // Aim of this policy:
-// - dramatically reduce (or keep the same) complexity and code size (both library AND user side!)
-// - UNLESS that comes at a cost of run-time overhead i.e. slower code
+// - dramatically reduce (or keep the same) complexity and code size (both library AND user side!) UNLESS that comes at a cost of run-time overhead i.e. slower code
 //
 // - Always provide a default constructor (implicit or by "T() = default")
 // - Every data member should have the same access control (everything should be public or private or protected)
@@ -162,6 +162,13 @@ struct range {
 // should not be expected to be handled properly by containers/functions in this library.
 //
 // "Always provide a default constructor (T() = default)" in order to qualify the type as POD (plain old data)
+//
+// "Every data member should have the same access control" in order to qualify the type as POD (plain old data)
+//   This also provides freedom to the caller and IF they know exactly what they are doing, 
+//   it saves frustration of your container having a limited API.
+//   This comes at a cost of backwards-compatibility though, so that is something to the thought of.
+//   Another benefit is striving away from getter/setters which is one of the most annoying patterns 
+//   in API design in my opinion (if getting/setting doesn't require any extra code).
 //
 // "No user defined copy/move constructors":
 //   A string, for example, may contain allocated memory (when it's not small enough to store on the stack)
