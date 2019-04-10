@@ -67,6 +67,7 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
 void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
                           size_t alignment, uptr_t) {
     auto *data = (temporary_allocator_data *) context;
+    assert(data && "Temporary allocator probably not initialized");
 
     switch (mode) {
         case allocator_mode::ALIGNED_ALLOCATE:
@@ -80,7 +81,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
             } else {
                 // Out of storage.
                 // @TODO Print a warning
-                if (Context.Alloc == TemporaryAlloc) {
+                if (Context.Alloc == Context.TemporaryAlloc) {
                     // @Cleanup Maybe we shouldn't do this...
                     // If the context uses the temporary allocator, switch it forcefully to malloc
                     const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
@@ -115,6 +116,32 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
             // return (void *) -1;
     }
     return null;
+}
+
+inline void init_temporary_allocator(size_t storageSize) {
+    assert(!Context.TemporaryAlloc.Context &&
+           "Temporary allocator already initialized. Destroy it with release_temporary_allocator() first.");
+
+    auto *data = new (Malloc) temporary_allocator_data;
+    data->Storage = new (Malloc) byte[storageSize];
+    data->Reserved = storageSize;
+
+    const_cast<allocator *>(&Context.TemporaryAlloc)->Context = data;
+}
+
+void reset_temporary_allocator() {
+    auto *data = (temporary_allocator_data *) const_cast<allocator *>(&Context.TemporaryAlloc)->Context;
+    data->Used = 0;
+}
+
+inline void release_temporary_allocator() {
+    assert(Context.TemporaryAlloc.Context && "Temporary allocator not initialized");
+
+    auto *tempAlloc = const_cast<allocator *>(&Context.TemporaryAlloc);
+    delete[](temporary_allocator_data *) tempAlloc->Context;
+    delete tempAlloc->Context;
+
+    tempAlloc->Context = null;
 }
 
 LSTD_END_NAMESPACE

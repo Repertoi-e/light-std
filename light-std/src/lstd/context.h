@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include "memory/allocator.h"
 
@@ -11,14 +11,18 @@ struct Implicit_Context {
     // The idea for this comes from the implicit context in Jai.
     allocator Alloc = Malloc;
 
-	// @TODO
+    // This needs to be initialized by calling init_temporary_allocator() before using it in a thread.
+    // It's thread local to prevent data races and to remain fast (thread safety implies overhead)
+    allocator TemporaryAlloc = {temporary_allocator, null};
+
+    // @TODO
     // This variable is useful when you redirect all logging output
     // (provided that the code that logs stuff uses the context!).
     // By default the writer outputs to the console.
     // io::writer *Log = internal::g_ConsoleLog;
-	// 
-	// @Thread
-	// thread::id ThreadID;
+    //
+    // @Thread
+    // thread::id ThreadID;
 };
 
 // Immutable context available everywhere

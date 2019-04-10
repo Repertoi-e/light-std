@@ -221,32 +221,14 @@ struct temporary_allocator_data {
 void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
                           size_t alignment, uptr_t);
 
-// This needs to be initted by calling init_temporary_allocator() before using it in a thread.
-// It's thread local to prevent data races and to remain fast (thread safety implies overhead)
-inline thread_local allocator TemporaryAlloc = {temporary_allocator, null};
-
 // _storageSize_ specifies how many bytes of memory to reserve for the allocator
 // This function always uses the global malloc allocator (and not the context's one)
-inline void init_temporary_allocator(size_t storageSize) {
-    assert(!TemporaryAlloc.Context &&
-           "Temporary allocator already initialized. Destroy it with release_temporary_allocator() first.");
+void init_temporary_allocator(size_t storageSize);
 
-    auto *data = new (Malloc) temporary_allocator_data;
-    data->Storage = new (Malloc) byte[storageSize];
-    data->Reserved = storageSize;
-
-    TemporaryAlloc.Context = data;
-}
+// Sets _Used_ to 0
+void reset_temporary_allocator();
 
 // Frees the memory held by the temporary allocator
-inline void release_temporary_allocator() {
-    assert(TemporaryAlloc.Context && "Temporary allocator not initialized");
-
-    auto *data = (temporary_allocator_data *) TemporaryAlloc.Context;
-    delete[] data->Storage;
-    delete data;
-
-    TemporaryAlloc.Context = null;
-}
+void release_temporary_allocator();
 
 LSTD_END_NAMESPACE
