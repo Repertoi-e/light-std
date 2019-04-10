@@ -24,43 +24,26 @@
 #error Unrecognized platform
 #endif
 
-
 // Architecture defines
+#define VM 1
+#define X86 2
+#define ARM 3
+#define MIPS 4
+#define PPC 5
+
 #if defined __pnacl__ || defined __CLR_VER
-#define ARCH_VM
-#endif
-#if (defined _M_IX86 || defined __i386__) && !defined ARCH_VM
-#define ARCH_X86_32
-#endif
-#if (defined _M_X64 || defined __x86_64__) && !defined ARCH_VM
-#define ARCH_X86_64
-#endif
-#if defined ARCH_X86_32 || defined ARCH_X86_64
-#define ARCH_X86
-#endif
-#if defined __arm__ || defined _M_ARM
-#define ARCH_ARM
-#endif
-#if defined __aarch64__
-#define ARCH_AARCH64
-#endif
-#if defined ARCH_AARCH64 || defined ARCH_ARM
-#define ARCH_ANY_ARM
-#endif
-#if defined __mips64
-#define ARCH_MIPS64
-#endif
-#if defined __mips__ && !defined __mips64  // mips64 also declares __mips__
-#define ARCH_MIPS32
-#endif
-#if defined ARCH_MIPS32 || defined ARCH_MIPS64
-#define ARCH_MIPS
-#endif
-#if defined __powerpc__
-#define ARCH_PPC
+#define ARCH VM
+#elif defined _M_X64 || defined __x86_64__ || defined _M_IX86 || defined __i386__
+#define ARCH X86
+#elif defined __arm__ || defined _M_ARM || __aarch64__
+#define ARCH ARM
+#elif defined __mips__ || defined __mips64
+#define ARCH MIPS
+#elif defined __powerpc__
+#define ARCH PPC
 #endif
 
-#if defined ARCH_X86
+#if ARCH == X86
 #define X86_AES defined __AES__
 #define X86_F16C defined __F16C__
 #define X86_BMI defined __BMI__
@@ -73,19 +56,28 @@
 #define X86_SSE4_2 defined __SSE4_2__
 #define X86_AVX defined __AVX__
 #define x86_AVX2 defined __AVX2__
-#endif
-
-#if defined ARCH_ANY_ARM
+#elif ARCH == ARM
 #define ANY_ARM_NEON defined __ARM_NEON__)
-#endif
-#if defined ARCH_MIPS
+#elif ARCH == MIPS
 #define MIPS_MSA defined __mips_msa)
 #endif
 
-#if defined ARCH_X86_64 || defined ARCH_AARCH64 || defined ARCH_MIPS64 || defined __powerpc64__ || defined __ppc64__ 
+#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ || defined __mips64 || defined __powerpc64__ || \
+    defined __ppc64__
 #define BITS 64
 #else
 #define BITS 32
+#endif
+
+#define POINTER_SIZE (BITS / 4)
+
+// This defines the minimal alignment that the platform's malloc
+// implementation will return. This should be used when writing custom
+// allocators to ensure that the alignment matches that of malloc
+#if OS == APPLE
+#define MIN_MALLOC_ALIGNMENT 16
+#else
+#define MIN_MALLOC_ALIGNMENT (POINTER_SIZE * 2)
 #endif
 
 // Detect endianness
@@ -128,7 +120,6 @@
 #if !defined ENDIAN
 #error Endianness not detected
 #endif
-
 
 // Compiler constants
 #define MSVC 1

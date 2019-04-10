@@ -29,13 +29,6 @@ Replace LE's game loop with a platform inspecific one
 ---------------------------------------------------------------------------------
 Rewrite vendor libraries and reduce to the minimum needed
 ---------------------------------------------------------------------------------
-At the moment every allocation has a 32 byte header (number of allocation, the Allocator it used and the size)
-This is done to make sure delete always uses the right allocator as well as provide convenience for the user.
-(Calling delete no matter the context uses the right allocator etc...)
-
-Maybe those 32 don't matter in today's world where computers have practically infinite RAM,
-but it feels like it's too wasteful.
----------------------------------------------------------------------------------
 Allow users to add more variables to Implicit_Context
 Won't work with headers tho
 ---------------------------------------------------------------------------------

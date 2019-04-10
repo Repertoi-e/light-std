@@ -30,7 +30,8 @@ constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
 //      ...; // Gets called on scope exit
 //  };
 //
-#ifndef defer
+#undef defer
+
 LSTD_BEGIN_NAMESPACE
 struct Defer_Dummy {};
 template <typename F>
@@ -47,6 +48,15 @@ LSTD_END_NAMESPACE
 #define DEFER_INTERNAL_(LINE) LSTD_defer##LINE
 #define DEFER_INTERNAL(LINE) DEFER_INTERNAL_(LINE)
 #define defer auto DEFER_INTERNAL(__LINE__) = LSTD_NAMESPACE ::Defer_Dummy{} *[&]()
+
+#undef assert
+
+void os_assert_failed(const byte *file, s32 line, const byte *message);
+
+#if !defined NDEBUG
+#define assert(condition) (!!(condition)) ? (void) 0 : os_assert_failed(__FILE__, __LINE__, u8## #condition)
+#else
+#define assert(condition) ((void) 0)
 #endif
 
 // Shortcut macros for "for each" loops (really up to personal style if you want to use this)
@@ -91,9 +101,9 @@ struct non_assignable {
 //  for (auto it : range(10, 0, -1)) // reverse [10, 0)
 //
 struct range {
-   private:
     struct iterator {
-        s64 I, Step;
+        s64 I;
+        s64 Step;
 
         constexpr iterator(s64 i, s64 step = 1) : I(i), Step(step) {}
 
@@ -112,9 +122,9 @@ struct range {
         constexpr bool operator!=(const iterator &other) const { return Step < 0 ? (I > other.I) : (I < other.I); }
     };
 
-    iterator _Begin, _End;
+    iterator _Begin;
+    iterator _End;
 
-   public:
     constexpr range(s64 start, s64 stop, s64 step) : _Begin(start, step), _End(stop) {}
     constexpr range(s64 start, s64 stop) : range(start, stop, 1) {}
     constexpr range(u64 stop) : range(0, stop, 1) {}
@@ -134,5 +144,138 @@ struct range {
     constexpr iterator begin() const { return _Begin; }
     constexpr iterator end() const { return _End; }
 };
+
+// User type policy:
+//
+// Aim of this policy:
+// - dramatically reduce (or keep the same) complexity and code size (both library AND user side!)
+// - UNLESS that comes at a cost of run-time overhead i.e. slower code
+//
+// - Always provide a default constructor (implicit or by "T() = default")
+// - Every data member should have the same access control (everything should be public or private or protected)
+// - No user defined copy/move constructors
+// - No virtual or overriden functions
+// - No throwing of exceptions, anywhere
+// - No bit fields
+//
+// Every other type which doesn't comply with one of the above requirements
+// should not be expected to be handled properly by containers/functions in this library.
+//
+// "Always provide a default constructor (T() = default)" in order to qualify the type as POD (plain old data)
+//
+// "No user defined copy/move constructors":
+//   A string, for example, may contain allocated memory (when it's not small enough to store on the stack)
+//   On assignment, a string "view" is created (shallow copy of the string). This means that the new string
+//   doesn't own it's memory so the destructor shouldn't deallocate it. To get around this, string stores
+//   it's data in a "shared_memory" (std::shared_ptr in the C++ std).
+//   In order to do a deep copy of the string, a clone() overload is provided.
+//   clone(T) is a global function that is supposed to ensure a deep copy of the argument passed
+//
+// A type that may contain owned memory is suggested to follow string's design or if it can't - be designed differently.
+//
+// "No virtual or overriden functions":
+//   Unfortunately work-arounds may increase user-side code complexity.
+//   A possible work-around is best shown as an example:
+//   - Using virtual functions:
+//         struct writer {
+//             virtual void write(string str) { /*may also be pure virtual*/
+//             }
+//         };
+//
+//         struct console_writer : writer {
+//             void write(string str) override { /*...*/
+//             }
+//         };
+//
+//   - Work-around:
+//         struct writer {
+//             using write_func_t = void(writer *context, string *str);
+//
+//             static void default_write(writer *context, string *str) {}
+//             write_func_t *WriteFunction = default_write; /*may also be null by default (simulate pure virtual)*/
+//
+//             void writer(string *str) { WriteFunction(this, str); }
+//         };
+//
+//         struct console_writer : writer {
+//             static void console_write(writer *context, string *str) {
+//                 auto *consoleWriter = (console_writer *) console_write;
+//                 /*...*/
+//             }
+//
+//             console_writer() { WriteFunction = console_write; }
+//         };
+//
+// "No throwing of exceptions, anywhere"
+//   Exceptions make your code complicated. They are a good way to handle errors in small examples,
+//   but don't really help in large programs/projects. You can't be 100% sure what can throw where and when
+//   thus you don't really know what your program is doing (you aren't sure it even works 100% of the time).
+//   You should design code in such a way that errors can't occur (or if they do - handle them, not just bail,
+//   and when even that is not possible - stop execution)
+//   For example a read_file() function should return null if it couldn't open the file,
+//   and then the caller can handle that error (try a different file or prompt the user idk)
+//
+// "No bit fields" in order to qualify the type as POD (plain old data)
+//
+// Every type in this library complies with the user type policy
+
+// Global function that is supposed to ensure a deep copy of the argument passed
+// By default, a shallow copy is done (to make sure it can be called on all types)
+template <typename T>
+T clone(T value) {
+    T copy = value;
+    return copy;
+}
+
+//
+// copy_memory, fill_memory, compare_memory and SSE optimized implementations when on x86 architecture
+// (implemenations in memory/memory.cpp)
+//
+
+// In this library, copy_memory works like memmove in the std (handles overlapping buffers)
+// :CopyMemory (declared in types.h also to avoid circular includes)
+extern void (*copy_memory)(void *dest, const void *src, size_t num);
+constexpr void copy_memory_constexpr(void *dest, const void *src, size_t num) {
+    auto *d = (byte *) dest;
+    auto *s = (const byte *) src;
+
+    if (d <= s || d >= (s + num)) {
+        // Non-overlapping
+        while (num--) {
+            *d++ = *s++;
+        }
+    } else {
+        // Overlapping
+        d += num - 1;
+        s += num - 1;
+
+        while (num--) {
+            *d-- = *s--;
+        }
+    }
+}
+
+extern void (*fill_memory)(void *dest, byte value, size_t num);
+constexpr void fill_memory_constexpr(void *dest, byte value, size_t num) {
+    auto d = (byte *) dest;
+    while (num-- > 0) *d++ = value;
+}
+
+// compare_memory returns the index of the first byte that is different
+// e.g: calling with
+//		*ptr1 = 00000011
+//		*ptr1 = 00100001
+//	returns 2
+// If the memory regions are equal, the returned value is npos (-1)
+extern size_t (*compare_memory)(const void *ptr1, const void *ptr2, size_t num);
+constexpr size_t compare_memory_constexpr(const void *ptr1, const void *ptr2, size_t num) {
+    auto *s1 = (const byte *) ptr1;
+    auto *s2 = (const byte *) ptr2;
+
+    for (size_t index = 0; --num; ++index) {
+        if (*s1++ != *s2++) return index;
+    }
+    return npos;
+}
 
 LSTD_END_NAMESPACE

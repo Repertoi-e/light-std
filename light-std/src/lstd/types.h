@@ -1,10 +1,12 @@
+#pragma once
+
 #include "namespace.h"
 #include "platform.h"
 
 /// Provides definitions for common types as well as most stuff from <type_traits> from the std
 
 // The following integral types are defined: s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)
-//		as well as: f32 (float), f64 (double), byte (char), null (nullptr)
+//		as well as: f32 (float), f64 (double), byte (char), null (nullptr), npos ((size_t) -1)
 // Platform dependent types: ptr_t (signed, used for pointer difference)
 //				uptr_t, size_t (32 or 64 bits depending on CPU architecture)
 //
@@ -30,12 +32,12 @@
 // - is_nothrow_destructible
 // - is_nothrow_default_constructible
 // - is_nothrow_move_constructible
-// 
+//
 // - is_polymorphic (we don't care about virtual functions and don't use them anywhere in this library)
-// - has_virtual_destructor 
-// - is_abstract 
-// - is_final 
-// 
+// - has_virtual_destructor
+// - is_abstract
+// - is_final
+//
 // - any type def ending _type ends with _t (e.g. false_t, true_t instead of false_type, true_type)
 //
 // What's implemented here but not part of std:
@@ -623,9 +625,60 @@ using byte = char;
 using f32 = float;
 using f64 = double;
 
+#define F64_DECIMAL_DIG 17                    // # of decimal digits of rounding precision
+#define F64_DIG 15                            // # of decimal digits of precision
+#define F64_EPSILON 2.2204460492503131e-016   // smallest such that 1.0+F64_EPSILON != 1.0
+#define F64_HAS_SUBNORM 1                     // type does support subnormal numbers
+#define F64_MANT_DIG 53                       // # of bits in mantissa
+#define F64_MAX 1.7976931348623158e+308       // max value
+#define F64_MAX_10_EXP 308                    // max decimal exponent
+#define F64_MAX_EXP 1024                      // max binary exponent
+#define F64_MIN 2.2250738585072014e-308       // min positive value
+#define F64_MIN_10_EXP (-307)                 // min decimal exponent
+#define F64_MIN_EXP (-1021)                   // min binary exponent
+#define F64_RADIX 2                           // exponent radix
+#define F64_TRUE_MIN 4.9406564584124654e-324  // min positive value
+
+#define F32_DECIMAL_DIG 9             // # of decimal digits of rounding precision
+#define F32_DIG 6                     // # of decimal digits of precision
+#define F32_EPSILON 1.192092896e-07F  // smallest such that 1.0+F32_EPSILON != 1.0
+#define F32_HAS_SUBNORM 1             // type does support subnormal numbers
+#define F32_GUARD 0
+#define F32_MANT_DIG 24           // # of bits in mantissa
+#define F32_MAX 3.402823466e+38F  // max value
+#define F32_MAX_10_EXP 38         // max decimal exponent
+#define F32_MAX_EXP 128           // max binary exponent
+#define F32_MIN 1.175494351e-38F  // min normalized positive value
+#define F32_MIN_10_EXP (-37)      // min decimal exponent
+#define F32_MIN_EXP (-125)        // min binary exponent
+#define F32_NORMALIZE 0
+#define F32_RADIX 2                    // exponent radix
+#define F32_TRUE_MIN 1.401298464e-45F  // min positive value
+
+#define LONG_F64_DIG F64_DIG                  // # of decimal digits of precision
+#define LONG_F64_EPSILON F64_EPSILON          // smallest such that 1.0+LONG_F64_EPSILON != 1.0
+#define LONG_F64_HAS_SUBNORM F64_HAS_SUBNORM  // type does support subnormal numbers
+#define LONG_F64_MANT_DIG F64_MANT_DIG        // # of bits in mantissa
+#define LONG_F64_MAX F64_MAX                  // max value
+#define LONG_F64_MAX_10_EXP F64_MAX_10_EXP    // max decimal exponent
+#define LONG_F64_MAX_EXP F64_MAX_EXP          // max binary exponent
+#define LONG_F64_MIN F64_MIN                  // min normalized positive value
+#define LONG_F64_MIN_10_EXP F64_MIN_10_EXP    // min decimal exponent
+#define LONG_F64_MIN_EXP F64_MIN_EXP          // min binary exponent
+#define LONG_F64_RADIX F64_RADIX              // exponent radix
+#define LONG_F64_TRUE_MIN F64_TRUE_MIN        // min positive value
+
+#if !defined DECIMAL_DIG
+#define DECIMAL_DIG F64_DECIMAL_DIG
+#endif
+
 // Personal preference
 // I prefer null over nullptr but they are exactly the same
 constexpr auto null = nullptr;
+
+// Used for search results (not found)
+// Inspired by C++'s std
+constexpr auto npos = (size_t) -1;
 
 // uptr_t is the minimum size unsigned integer that can hold the address of any byte in RAM
 // ptr_t is used to represent the difference of addresses (pointers)
@@ -647,7 +700,7 @@ using uptr_t = u32;
 
 // size_t is used to represent any size (or index) in bytes
 using size_t = uptr_t;
-#ifndef SIZE_MAX
+#if !defined SIZE_MAX
 #define SIZE_MAX UPTR_MAX
 #endif
 
@@ -964,7 +1017,7 @@ using remove_all_extents_t = typename remove_all_extents<T>::type;
 //     aligned_storage<sizeof(Widget), alignment_of(Widget)>::type widgetArray[37];
 //     Widget* pWidgetArray = new(widgetArray) Widget[37];
 
-#ifndef offsetof
+#if !defined offsetof
 #define offsetof(type, field) ((size_t)(&((type *) 0)->field))
 #endif
 
@@ -988,7 +1041,8 @@ struct aligned_storage {
 template <size_t N, size_t Align = 8>
 using aligned_storage_t = typename aligned_storage<N, Align>::type;
 
-void *copy_memory(void *dest, void *src, size_t num);
+// :CopyMemory
+extern void (*copy_memory)(void *dest, const void *src, size_t num);
 
 // Safely converts between unrelated types that have a binary equivalency.
 // This appoach is required by strictly conforming C++ compilers because

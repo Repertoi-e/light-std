@@ -1,9 +1,9 @@
 if (WIN32)
-	file(GLOB_RECURSE SOURCES src/windows_*.cpp)
+	file(GLOB_RECURSE SOURCES "src/windows_*.cpp" "src/lstd/*.cpp" "src/vendor/*.cpp")
 else()
-	file(GLOB_RECURSE SOURCES src/posix_*.cpp)
+	file(GLOB_RECURSE SOURCES "src/posix_*.cpp" "src/lstd/*.cpp" "src/vendor/*.cpp")
 endif()
-
+	
 add_library (light-std ${SOURCES})
 
 set_target_properties(light-std
