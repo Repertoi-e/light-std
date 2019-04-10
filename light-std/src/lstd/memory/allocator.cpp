@@ -118,7 +118,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
     return null;
 }
 
-inline void init_temporary_allocator(size_t storageSize) {
+void init_temporary_allocator(size_t storageSize) {
     assert(!Context.TemporaryAlloc.Context &&
            "Temporary allocator already initialized. Destroy it with release_temporary_allocator() first.");
 
@@ -129,16 +129,11 @@ inline void init_temporary_allocator(size_t storageSize) {
     const_cast<allocator *>(&Context.TemporaryAlloc)->Context = data;
 }
 
-void reset_temporary_allocator() {
-    auto *data = (temporary_allocator_data *) const_cast<allocator *>(&Context.TemporaryAlloc)->Context;
-    data->Used = 0;
-}
-
-inline void release_temporary_allocator() {
+void release_temporary_allocator() {
     assert(Context.TemporaryAlloc.Context && "Temporary allocator not initialized");
 
     auto *tempAlloc = const_cast<allocator *>(&Context.TemporaryAlloc);
-    delete[](temporary_allocator_data *) tempAlloc->Context;
+    delete[]((temporary_allocator_data *) tempAlloc->Context)->Storage;
     delete tempAlloc->Context;
 
     tempAlloc->Context = null;
@@ -186,7 +181,7 @@ void *operator new(size_t size, size_t alignment) {
         const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
         alloc = &Malloc;
     }
-    return alloc->allocate_aligned(size, alignment, 0);
+    return alloc->allocate_aligned(size, alignment);
 }
 
 void *operator new[](size_t size, size_t alignment) { return operator new(size, alignment); }
@@ -197,7 +192,7 @@ void *operator new(size_t size, size_t alignment, allocator alloc) {
         const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
         alloc = Malloc;
     }
-    return alloc.allocate_aligned(size, alignment, 0);
+    return alloc.allocate_aligned(size, alignment);
 }
 
 void *operator new[](size_t size, size_t alignment, allocator alloc) { return operator new(size, alignment, alloc); }
@@ -214,5 +209,5 @@ void *operator new(size_t size, size_t alignment, allocator *alloc) {
 
 void *operator new[](size_t size, size_t alignment, allocator *alloc) { return operator new(size, alignment, alloc); }
 
-void operator delete(void *ptr) noexcept { allocator::free(ptr, 0); }
-void operator delete[](void *ptr) noexcept { allocator::free(ptr, 0); }
+void operator delete(void *ptr) noexcept { allocator::free(ptr); }
+void operator delete[](void *ptr) noexcept { allocator::free(ptr); }

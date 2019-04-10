@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <lstd/common.h>
+#include <lstd/context.h>
 
 int main() {
     byte one[20]{};
@@ -24,7 +24,17 @@ int main() {
     std::cout << compare_memory(buffer, buffer_zero, 1000) << '\n';
     std::cout << compare_memory_constexpr(buffer, buffer_zero, 1000) << '\n';
 
-	fill_memory(buffer, 0, 1000);
+    fill_memory(buffer, 0, 1000);
 
     std::cout << compare_memory(buffer, buffer_zero, 1000) << '\n';
+
+    init_temporary_allocator(2000);
+    PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
+        auto *my_buffer = new byte[1500];
+        delete my_buffer;
+
+		Context.TemporaryAlloc.free_all();
+    }
+
+	release_temporary_allocator();
 }

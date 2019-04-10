@@ -57,16 +57,16 @@ struct allocator {
 
     inline static size_t _AllocationCount = 0;
 
-    void *allocate(size_t size, uptr_t userFlags = 0) { return general_allocate(size, false, 0, userFlags); }
-    void *allocate_aligned(size_t size, size_t alignment, uptr_t userFlags = 0) {
+    void *allocate(size_t size, uptr_t userFlags = 0) const { return general_allocate(size, false, 0, userFlags); }
+    void *allocate_aligned(size_t size, size_t alignment, uptr_t userFlags = 0) const {
         return general_allocate(size, true, alignment, userFlags);
     }
 
-    void *reallocate(void *ptr, size_t newSize, uptr_t userFlags = 0) {
+    void *reallocate(void *ptr, size_t newSize, uptr_t userFlags = 0) const {
         return general_reallocate(ptr, newSize, false, 0, userFlags);
     }
 
-    void *reallocate_aligned(void *ptr, size_t newSize, size_t alignment, uptr_t userFlags = 0) {
+    void *reallocate_aligned(void *ptr, size_t newSize, size_t alignment, uptr_t userFlags = 0) const {
         return general_reallocate(ptr, newSize, true, alignment, userFlags);
     }
 
@@ -87,7 +87,7 @@ struct allocator {
 
     // Note that not all allocators must support this.
     // Returns true if the operation was completed successfully.
-    bool free_all(uptr_t userFlags = 0) {
+    bool free_all(uptr_t userFlags = 0) const {
         return Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, 0, userFlags) == null;
     }
 
@@ -100,7 +100,7 @@ struct allocator {
     // @Redundant
     // Currently, temporary allocator doesn't have any use for the header, since it doesn't support freeing.
     // Maybe make it optional for allocator implementations?
-    void *encode_header(void *ptr, size_t size) {
+    void *encode_header(void *ptr, size_t size) const {
         auto *result = (allocation_header *) ptr;
 
         // @Thread Use something like InterlockedIncrement
@@ -115,7 +115,7 @@ struct allocator {
 
     // The main reason for having a combined function is to help debugging because the source of an allocation
     // can be one of the two functions (allocate() and allocate_aligned() below)
-    void *general_allocate(size_t size, bool aligned, size_t alignment, uptr_t userFlags = 0) {
+    void *general_allocate(size_t size, bool aligned, size_t alignment, uptr_t userFlags = 0) const {
         void *result;
         if (!aligned) {
             result =
@@ -129,7 +129,7 @@ struct allocator {
         return encode_header(result, size);
     }
 
-    void *general_reallocate(void *ptr, size_t newSize, bool aligned, size_t alignment, uptr_t userFlags = 0) {
+    void *general_reallocate(void *ptr, size_t newSize, bool aligned, size_t alignment, uptr_t userFlags = 0) const {
         auto *header = (allocation_header *) ptr - 1;
         assert(header->Pointer == ptr &&
                "Calling reallocate on a pointer that doesn't have a header (probably it isn't dynamic memory or"
@@ -152,7 +152,7 @@ struct allocator {
 // Returns an aligned pointer
 // This is used in allocator implementations for supporting aligned allocations
 // If alignment is 4 bytes on 64 bit system, it get set to 8 bytes
-void *get_aligned_pointer(void *ptr, size_t alignment) {
+inline void *get_aligned_pointer(void *ptr, size_t alignment) {
     assert(alignment > 0 && is_power_of_2(alignment));
 
     alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
@@ -224,9 +224,6 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
 // _storageSize_ specifies how many bytes of memory to reserve for the allocator
 // This function always uses the global malloc allocator (and not the context's one)
 void init_temporary_allocator(size_t storageSize);
-
-// Sets _Used_ to 0
-void reset_temporary_allocator();
 
 // Frees the memory held by the temporary allocator
 void release_temporary_allocator();
