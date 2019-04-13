@@ -62,11 +62,11 @@ struct allocator {
         return general_allocate(size, true, alignment, userFlags);
     }
 
-    void *reallocate(void *ptr, size_t newSize, uptr_t userFlags = 0) const {
+    static void *reallocate(void *ptr, size_t newSize, uptr_t userFlags = 0) {
         return general_reallocate(ptr, newSize, false, 0, userFlags);
     }
 
-    void *reallocate_aligned(void *ptr, size_t newSize, size_t alignment, uptr_t userFlags = 0) const {
+    static void *reallocate_aligned(void *ptr, size_t newSize, size_t alignment, uptr_t userFlags = 0) {
         return general_reallocate(ptr, newSize, true, alignment, userFlags);
     }
 
@@ -100,14 +100,14 @@ struct allocator {
     // @Redundant
     // Currently, temporary allocator doesn't have any use for the header, since it doesn't support freeing.
     // Maybe make it optional for allocator implementations?
-    void *encode_header(void *ptr, size_t size) const {
+    static void *encode_header(void *ptr, size_t size, allocator_func_t function, void *context) {
         auto *result = (allocation_header *) ptr;
 
         // @Thread Use something like InterlockedIncrement
         result->ID = _AllocationCount++;
 
-        result->AllocatorFunction = Function;
-        result->AllocatorContext = Context;
+        result->AllocatorFunction = function;
+        result->AllocatorContext = context;
         result->Size = size;
         result->Pointer = result + 1;
         return (void *) result->Pointer;
@@ -126,10 +126,10 @@ struct allocator {
                               alignment, userFlags);
             assert((((uptr_t) result & ~(alignment - 1)) == (uptr_t) result) && "Pointer wasn't properly aligned.");
         }
-        return encode_header(result, size);
+        return encode_header(result, size, Function, Context);
     }
 
-    void *general_reallocate(void *ptr, size_t newSize, bool aligned, size_t alignment, uptr_t userFlags = 0) const {
+    static void *general_reallocate(void *ptr, size_t newSize, bool aligned, size_t alignment, uptr_t userFlags = 0) {
         auto *header = (allocation_header *) ptr - 1;
         assert(header->Pointer == ptr &&
                "Calling reallocate on a pointer that doesn't have a header (probably it isn't dynamic memory or"
@@ -137,15 +137,17 @@ struct allocator {
 
         void *result;
         if (!aligned) {
-            result = Function(allocator_mode::REALLOCATE, Context, newSize + sizeof(allocation_header), header,
-                              header->Size + sizeof(allocation_header), 0, userFlags);
+            result = header->AllocatorFunction(allocator_mode::REALLOCATE, header->AllocatorContext,
+                                               newSize + sizeof(allocation_header), header,
+                                               header->Size + sizeof(allocation_header), 0, userFlags);
         } else {
             assert(alignment > 0 && is_power_of_2(alignment));
-            result = Function(allocator_mode::ALIGNED_REALLOCATE, Context, newSize + sizeof(allocation_header), header,
-                              header->Size + sizeof(allocation_header), alignment, userFlags);
+            result = header->AllocatorFunction(allocator_mode::ALIGNED_REALLOCATE, header->AllocatorContext,
+                                               newSize + sizeof(allocation_header), header,
+                                               header->Size + sizeof(allocation_header), alignment, userFlags);
             assert((((uptr_t) result & ~(alignment - 1)) == (uptr_t) result) && "Pointer wasn't properly aligned.");
         }
-        return encode_header(result, newSize);
+        return encode_header(result, newSize, header->AllocatorFunction, header->AllocatorContext);
     }
 };
 

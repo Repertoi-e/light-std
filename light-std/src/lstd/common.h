@@ -229,9 +229,18 @@ struct range {
 // Global function that is supposed to ensure a deep copy of the argument passed
 // By default, a shallow copy is done (to make sure it can be called on all types)
 template <typename T>
-T clone(T value) {
+T clone(const T &value) {
     T copy = value;
     return copy;
+}
+
+// Global function that is supposed to ensure transfer of ownership without the overhead of cloning
+// By default, a normal copy is done (to make sure it can be called on all types)
+// Returns _dest_
+template <typename T>
+T *move(T* dest, const T &src) {
+	*dest = src;
+	return dest;
 }
 
 //

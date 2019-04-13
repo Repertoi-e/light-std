@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <lstd/context.h>
+#include <lstd/basic.h>
 
 int main() {
     byte one[20]{};
@@ -33,8 +33,11 @@ int main() {
         auto *my_buffer = new byte[1500];
         delete my_buffer;
 
-		Context.TemporaryAlloc.free_all();
+        Context.TemporaryAlloc.free_all();
     }
 
-	release_temporary_allocator();
+    auto *buffer_number_ten_trillion_in_this_main_function = new (Context.TemporaryAlloc) byte[200];
+    auto *buffer_im_running_out_of_names = new (Malloc) byte[20000];
+
+    release_temporary_allocator();
 }
