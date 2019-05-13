@@ -92,27 +92,26 @@ Container API is inspired by Rust and Python
 
 ### Example usage of data structures:
 ```cpp
+// string uses utf8 encoding
 string a = "ЗДРАСТИ";
 for (auto ch : a) {
+    // Here _a_ is non-const so _ch_ is actually a reference to the code point in the string
     ch = to_lower(ch);
 }
-// a == "здрасти", (string is fully utf-8 compatible)
+assert(a == "здрасти"); 
 ```
 ```cpp
+// A negative index means "from the end of string""
 string a = "Hello, world!";
-// Negative index' mean from end of string
-string_view b = a(-6, -1); // world
-// Also substrings don't cause allocations! 
+string b = a(-6, -1);
+assert(b == "world");
+// Also substrings don't cause allocations, because string doesn't allocate
+// unless cloned explicitly (with clone()) or attempted to be modified (by methods like append(), etc.).
 ```
 ```cpp
+array<s32> integers = {0, 1};
 // Python-like range function
-for (s32 i : range(20, 10, -2)) {
-    // ...
-}
-```
-```cpp
-Dynamic_Array<s32> integers;
-for (s32 i : range(5)) {
+for (s32 i : range(2, 5)) {
     integers.add(i);
 }
 assert(integers == to_array(0, 1, 2, 3, 4));
@@ -120,18 +119,28 @@ assert(integers == to_array(0, 1, 2, 3, 4));
 
 ### Example of custom allocations and implicit context:
 ```cpp
-// Fast arena allocator that's available globally; supports only "free all"
-temporary_storage_init(4_MiB);
+// The temporary allocator is provided by the library, it's essentially 
+// a fast arena allocator that's available globally; supports only "free all"
+Context.init_temporary_allocator(4_MiB);
 
-byte *memory1 = new byte[200]; // using default allocator (MALLOC)
+byte *memory1 = new byte[150]; // using default allocator (Malloc)
 
-// (Allocator is a variable inside the Context struct)
-PUSH_CONTEXT(Allocator, TEMPORARY_ALLOC) {
-    byte *memory2 = new byte[200]; // now using the temporary allocator
-    // ... //
+// _Context.Allocator_ is a variable inside the Context struct which can be accessed by anyone
+// or changed within a scope with "PUSH_CONTEXT" like so:
+PUSH_CONTEXT(Allocator, Context.TemporaryAlloc) {
+    // Now using the temporary allocator, because the library overloads operators new/delete.
+    // operator new by default uses _Context.Allocator_
+    byte *memory2 = new byte[150];
+
+    // Allocates with an explicit allocator even though _Context.Allocator_ is the temporary allocator.
+    byte *memory3 = new (Malloc) byte[150];
+    delete[] memory3;
+
+    // ...
 }
 
-// Delete always calls the allocator the memory was allocated with
+// Delete always calls the allocator the memory was allocated with.
+// This information is stored in an allocation header written in memory before every pointer returned by an allocator.
 delete[] memory1;
 ```
 
