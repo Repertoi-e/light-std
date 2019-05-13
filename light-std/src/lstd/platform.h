@@ -69,7 +69,7 @@
 #define BITS 32
 #endif
 
-#define POINTER_SIZE (BITS / 4)
+#define POINTER_SIZE (BITS / 8)
 
 // This defines the minimal alignment that the platform's malloc
 // implementation will return. This should be used when writing custom

@@ -2,7 +2,7 @@
 
 #include "memory/allocator.h"
 
-struct Implicit_Context {
+struct implicit_context {
     // When allocating you should use the context's allocator
     // This makes it so when users call your functions they
     // can specify an allocator beforehand by pushing a new context variable,
@@ -14,6 +14,13 @@ struct Implicit_Context {
     // This needs to be initialized by calling init_temporary_allocator() before using it in a thread.
     // It's thread local to prevent data races and to remain fast (thread safety implies overhead)
     allocator TemporaryAlloc = {temporary_allocator, null};
+
+    // _storageSize_ specifies how many bytes of memory to reserve for the allocator
+    // This function always uses the global malloc allocator (and not the context's one)
+    void init_temporary_allocator(size_t storageSize) const;
+
+    // Frees the memory held by the temporary allocator
+    void release_temporary_allocator() const;
 
     // @TODO
     // This variable is useful when you redirect all logging output
@@ -27,7 +34,7 @@ struct Implicit_Context {
 
 // Immutable context available everywhere
 // The current state gets copied from parent thread to the new thread when creating a thread
-inline thread_local const Implicit_Context Context;
+inline thread_local const implicit_context Context;
 
 #define LSTD_PC_VAR_(x, LINE) LSTD_NAMESPACE_NAME##_lstd_push_context##x##LINE
 #define LSTD_PC_VAR(x, LINE) LSTD_PC_VAR_(x, LINE)
@@ -42,12 +49,12 @@ inline thread_local const Implicit_Context Context;
 #define PUSH_CONTEXT(var, newValue)                                                    \
     auto LSTD_PC_VAR(oldVar, __LINE__) = Context.##var;                                \
     auto LSTD_PC_VAR(restored, __LINE__) = false;                                      \
-    auto LSTD_PC_VAR(context, __LINE__) = const_cast<Implicit_Context *>(&Context);    \
-    defer {                                                                            \
+    auto LSTD_PC_VAR(context, __LINE__) = const_cast<implicit_context *>(&Context);    \
+    defer({                                                                            \
         if (!LSTD_PC_VAR(restored, __LINE__)) {                                        \
             LSTD_PC_VAR(context, __LINE__)->##var = LSTD_PC_VAR(oldVar, __LINE__);     \
         }                                                                              \
-    };                                                                                 \
+    });                                                                                \
     if (true) {                                                                        \
         LSTD_PC_VAR(context, __LINE__)->##var = newValue;                              \
         goto body;                                                                     \

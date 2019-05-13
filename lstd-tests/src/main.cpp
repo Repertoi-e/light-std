@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <lstd/basic.h>
+#include <lstd/io.h>
 
 int main() {
     byte one[20]{};
@@ -28,7 +29,7 @@ int main() {
 
     std::cout << compare_memory(buffer, buffer_zero, 1000) << '\n';
 
-    init_temporary_allocator(2000);
+    Context.init_temporary_allocator(2000);
     PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
         auto *my_buffer = new byte[1500];
         delete my_buffer;
@@ -39,5 +40,21 @@ int main() {
     auto *buffer_number_ten_trillion_in_this_main_function = new (Context.TemporaryAlloc) byte[200];
     auto *buffer_im_running_out_of_names = new (Malloc) byte[20000];
 
-    release_temporary_allocator();
+    Context.release_temporary_allocator();
+
+    string me = "123";
+    string at = "1235";
+
+    array<string> strings = {me, at};
+    array<string> copy;
+    clone(&copy, strings);
+
+    s32 a1 = strings.is_owner();
+    s32 a2 = copy.is_owner();
+    s32 a3 = a1;
+
+    string input, input2;
+    io::cin.read_line(&input)->read_until(&input2, 'a');
+
+    io::cin.ignore();
 }

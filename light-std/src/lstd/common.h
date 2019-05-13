@@ -2,6 +2,7 @@
 
 /// A header which provides type definitions as well as other helper macros
 
+#include "intrinsics/debug_break.h"
 #include "types.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:
@@ -26,9 +27,12 @@ constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
 
 // Go-style defer
 //
-//  defer {
-//      ...; // Gets called on scope exit
-//  };
+//  defer(...);
+//  defer({
+//      ...;
+//  });
+//
+// The statements inside get called on scope exit
 //
 #undef defer
 
@@ -47,14 +51,12 @@ LSTD_END_NAMESPACE
 
 #define DEFER_INTERNAL_(LINE) LSTD_defer##LINE
 #define DEFER_INTERNAL(LINE) DEFER_INTERNAL_(LINE)
-#define defer auto DEFER_INTERNAL(__LINE__) = LSTD_NAMESPACE ::Defer_Dummy{} *[&]()
+#define defer(x) auto DEFER_INTERNAL(__LINE__) = LSTD_NAMESPACE ::Defer_Dummy{} * [&]() { x; }
 
 #undef assert
 
-void os_assert_failed(const byte *file, s32 line, const byte *message);
-
 #if !defined NDEBUG
-#define assert(condition) (!!(condition)) ? (void) 0 : os_assert_failed(__FILE__, __LINE__, u8## #condition)
+#define assert(condition) (!!(condition)) ? (void) 0 : debug_break()
 #else
 #define assert(condition) ((void) 0)
 #endif
@@ -70,19 +72,21 @@ LSTD_BEGIN_NAMESPACE
 
 // Base classes to reduce boiler plate code
 struct non_copyable {
-   private:
+   protected:
     non_copyable() = default;
     ~non_copyable() = default;
 
+   private:
     non_copyable(const non_copyable &) = delete;
     non_copyable &operator=(const non_copyable &) = delete;
 };
 
 struct non_movable {
-   private:
+   protected:
     non_movable() = default;
     ~non_movable() = default;
 
+   private:
     non_movable(non_movable &&) = delete;
     non_movable &operator=(non_movable &&) = delete;
 };
@@ -149,7 +153,8 @@ struct range {
 // User type policy:
 //
 // Aim of this policy:
-// - dramatically reduce (or keep the same) complexity and code size (both library AND user side!) UNLESS that comes at a cost of run-time overhead i.e. slower code
+// - dramatically reduce (or keep the same) complexity and code size (both library AND user side!) UNLESS that comes at
+// a cost of run-time overhead i.e. slower code
 //
 // - Always provide a default constructor (implicit or by "T() = default")
 // - Every data member should have the same access control (everything should be public or private or protected)
@@ -164,10 +169,10 @@ struct range {
 // "Always provide a default constructor (T() = default)" in order to qualify the type as POD (plain old data)
 //
 // "Every data member should have the same access control" in order to qualify the type as POD (plain old data)
-//   This also provides freedom to the caller and IF they know exactly what they are doing, 
+//   This also provides freedom to the caller and IF they know exactly what they are doing,
 //   it saves frustration of your container having a limited API.
 //   This comes at a cost of backwards-compatibility though, so that is something to the thought of.
-//   Another benefit is striving away from getter/setters which is one of the most annoying patterns 
+//   Another benefit is striving away from getter/setters which is one of the most annoying patterns
 //   in API design in my opinion (if getting/setting doesn't require any extra code).
 //
 // "No user defined copy/move constructors":
@@ -176,7 +181,7 @@ struct range {
 //   doesn't own it's memory so the destructor shouldn't deallocate it. To get around this, string stores
 //   it's data in a "shared_memory" (std::shared_ptr in the C++ std).
 //   In order to do a deep copy of the string, a clone() overload is provided.
-//   clone(T) is a global function that is supposed to ensure a deep copy of the argument passed
+//   clone(T *dest, T src) is a global function that is supposed to ensure a deep copy of the argument passed
 //
 // A type that may contain owned memory is suggested to follow string's design or if it can't - be designed differently.
 //
@@ -229,18 +234,18 @@ struct range {
 // Global function that is supposed to ensure a deep copy of the argument passed
 // By default, a shallow copy is done (to make sure it can be called on all types)
 template <typename T>
-T clone(const T &value) {
-    T copy = value;
-    return copy;
+T *clone(T *dest, T src) {
+    *dest = src;
+    return dest;
 }
 
 // Global function that is supposed to ensure transfer of ownership without the overhead of cloning
 // By default, a normal copy is done (to make sure it can be called on all types)
 // Returns _dest_
 template <typename T>
-T *move(T* dest, const T &src) {
-	*dest = src;
-	return dest;
+T *move(T *dest, T src) {
+    *dest = src;
+    return dest;
 }
 
 //

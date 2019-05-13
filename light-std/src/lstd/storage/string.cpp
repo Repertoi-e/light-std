@@ -1,6 +1,6 @@
 #include "string.h"
 
-#include "../memory/allocator.h"
+#include "../context.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -10,6 +10,19 @@ string::code_point &string::code_point::operator=(char32_t other) {
 }
 
 string::code_point::operator char32_t() const { return ((const string *) Parent)->get((s64) Index); }
+
+string::string(char32_t codePoint, size_t repeat, allocator alloc) : string(get_size_of_cp(codePoint) * repeat, alloc) {
+    size_t cpSize = get_size_of_cp(codePoint);
+
+    auto *data = const_cast<byte *>(Data);
+    For(range(repeat)) {
+        encode_cp(data, codePoint);
+        data += cpSize;
+        ++Length;
+    }
+
+    ByteLength = Length * cpSize;
+}
 
 string::string(const wchar_t *str) {
     reserve(2 * cstring_strlen(str));
@@ -25,29 +38,46 @@ string::string(const char32_t *str) {
     }
 }
 
-string::string(size_t size) { reserve(size); }
+string::string(size_t size, allocator alloc) { reserve(size, alloc); }
 
-void string::reserve(size_t bytes) {
-    if (Reserved) {
-        assert(is_owner());
+void string::reserve(size_t size, allocator alloc) {
+    if (size < Reserved) return;
 
-        allocator::reallocate(const_cast<byte *>(Data) - sizeof(string *), bytes);
-    } else {
-        auto *newData = new byte[bytes + sizeof(string *)] + sizeof(string *);
-
-        if (ByteLength) copy_memory(newData, Data, ByteLength);
-
-        Data = newData;
-        change_owner(this);
-
-        Reserved = bytes;
+    if (!Reserved && size < ByteLength) {
+        size += ByteLength;
     }
+
+    size_t reserveTarget = 8;
+    while (reserveTarget < size) {
+        reserveTarget *= 2;
+    }
+
+    if (Reserved) {
+        assert(is_owner() && "Cannot resize a buffer that isn't owned by this string.");
+
+        auto *actualData = const_cast<byte *>(Data) - POINTER_SIZE;
+
+        if (alloc) {
+            auto *header = (allocation_header *) actualData - 1;
+            assert(alloc.Function == header->AllocatorFunction && alloc.Context == header->AllocatorContext &&
+                   "Calling reserve() on a string that already has reserved a buffer but with a different allocator. "
+                   "Call with null allocator to avoid that.");
+        }
+
+        Data = (byte *) allocator::reallocate(actualData, reserveTarget + POINTER_SIZE) + POINTER_SIZE;
+    } else {
+        auto *oldData = Data;
+        Data = encode_owner(new (alloc) byte[reserveTarget + POINTER_SIZE], this);
+        if (ByteLength) copy_memory(const_cast<byte *>(Data), oldData, ByteLength);
+    }
+    Reserved = reserveTarget;
 }
 
 void string::release() {
     if (is_owner()) {
-        delete (Data - sizeof(string *));
+        delete (Data - POINTER_SIZE);
         Data = null;
+        Length = ByteLength = Reserved = 0;
     }
 }
 
@@ -84,7 +114,7 @@ void string::insert(s64 index, char32_t codePoint) {
     ++Length;
 }
 
-void string::insert(s64 index, const string &str) { insert_pointer_and_size(index, str.Data, str.ByteLength); }
+void string::insert(s64 index, string str) { insert_pointer_and_size(index, str.Data, str.ByteLength); }
 
 void string::insert_pointer_and_size(s64 index, const byte *str, size_t size) {
     reserve(ByteLength + size);
@@ -126,29 +156,6 @@ void string::remove(s64 begin, s64 end) {
     ByteLength -= bytes;
 }
 
-void string::append(char32_t codePoint) {
-    size_t cpSize = get_size_of_cp(codePoint);
-    reserve(ByteLength + cpSize);
-
-    encode_cp((byte *) Data + ByteLength, codePoint);
-
-    ByteLength += cpSize;
-    ++Length;
-}
-
-void string::append(const string &str) { append_pointer_and_size(str.Data, str.ByteLength); }
-
-void string::append_pointer_and_size(const byte *data, size_t size) {
-    size_t neededCapacity = ByteLength + size;
-    reserve(neededCapacity);
-
-    copy_memory((byte *) Data + ByteLength, data, size);
-
-    ByteLength = neededCapacity;
-
-    Length += utf8_strlen(data, size);
-}
-
 string string::repeated(size_t n) const {
     string result = *this;
     result.reserve(n * ByteLength);
@@ -179,7 +186,7 @@ void string::remove_all(char32_t cp) {
     }
 }
 
-void string::remove_all(const string &str) {
+void string::remove_all(string str) {
     assert(str.Length);
 
     if (Length == 0) return;
@@ -206,7 +213,7 @@ void string::replace_all(char32_t oldCp, char32_t newCp) {
     }
 }
 
-void string::replace_all(const string &oldStr, const string &newStr) {
+void string::replace_all(string oldStr, string newStr) {
     assert(oldStr.Length != 0);
 
     if (Length == 0) return;
@@ -225,33 +232,22 @@ void string::replace_all(const string &oldStr, const string &newStr) {
     }
 }
 
-string clone(const string &value) {
-    string copy;
-
-    copy.reserve(value.ByteLength);
-    copy_memory(const_cast<byte *>(copy.Data), value.Data, value.ByteLength);
-
-    copy.ByteLength = value.ByteLength;
-    copy.Length = value.Length;
-
-    return copy;
-}
-
-string *move(string *dest, const string &src) {
-    assert(src.is_owner());
-
-    *dest = src;
-
-    // Trasnfer ownership
-    src.change_owner(dest);
-    dest->change_owner(dest);
+string *clone(string *dest, string src) {
+    *dest = {};
+    dest->append(src);
     return dest;
 }
 
-void string::change_owner(string *newOwner) const {
-    *((string **) (const_cast<byte *>(Data) - sizeof(string *))) = newOwner;
-}
+string *move(string *dest, string src) {
+    assert(src.is_owner());
 
-string *string::get_owner() const { return *((string **) Data - sizeof(string *)); }
+    dest->release();
+    *dest = src;
+
+    // Transfer ownership
+    change_owner(src.Data, dest);
+    change_owner(dest->Data, dest);
+    return dest;
+}
 
 LSTD_END_NAMESPACE

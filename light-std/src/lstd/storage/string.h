@@ -4,6 +4,10 @@
 
 #include "string_utils.h"
 
+#include "../memory/allocator.h"
+
+#include "owner_pointers.h"
+
 LSTD_BEGIN_NAMESPACE
 
 // UTF-8 string
@@ -19,142 +23,80 @@ LSTD_BEGIN_NAMESPACE
 // Methods in this object allow negative reversed indexing which begins at
 // the end of the string, so -1 is the last character -2 the one before that, etc. (Python-style)
 //
-// This type is partially constexpr.
-// (allocations, mutability, etc. obviously aren't supported at compile time, but everything else is)
-//
-// @TODO: Small string optimization
+// This type extends the API of string_view (which is entirely constexpr)
+// But constexpr methods in string_view aren't constexpr here. So "string" is runtime only.
 struct string {
     struct code_point {
         string *Parent;
         size_t Index;
 
+        code_point() = default;
         code_point(string *parent, size_t index) : Parent(parent), Index(index) {}
 
         code_point &operator=(char32_t other);
         operator char32_t() const;
     };
 
-    template <bool Mutable>
-    struct iterator_impl {
-        using parent_t = type_select_t<Mutable, string, const string>;
-
-        parent_t *Parent = null;
-        size_t Index = 0;
-
-        constexpr iterator_impl(parent_t *parent, size_t index) : Parent(parent), Index(index) {}
-
-        constexpr iterator_impl &operator+=(s64 amount) { return Index += amount, *this; }
-        constexpr iterator_impl &operator-=(s64 amount) { return Index -= amount, *this; }
-        constexpr iterator_impl &operator++() { return *this += 1; }
-        constexpr iterator_impl &operator--() { return *this -= 1; }
-        constexpr iterator_impl operator++(s32) {
-            iterator_impl temp = *this;
-            return ++(*this), temp;
-        }
-
-        constexpr iterator_impl operator--(s32) {
-            iterator_impl temp = *this;
-            return --(*this), temp;
-        }
-
-        constexpr s64 operator-(const iterator_impl &other) const {
-            size_t lesser = Index, greater = other.Index;
-            if (lesser > greater) {
-                lesser = other.Index;
-                greater = Index;
-            }
-            s64 difference = greater - lesser;
-            return Index <= other.Index ? difference : -difference;
-        }
-
-        constexpr iterator_impl operator+(s64 amount) const { return iterator_impl(Parent, Index + amount); }
-        constexpr iterator_impl operator-(s64 amount) const { return iterator_impl(Parent, Index - amount); }
-
-        friend iterator_impl operator+(s64 amount, const iterator_impl &it) { return it + amount; }
-        friend iterator_impl operator-(s64 amount, const iterator_impl &it) { return it - amount; }
-
-        constexpr bool operator==(const iterator_impl &other) const { return Index == other.Index; }
-        constexpr bool operator!=(const iterator_impl &other) const { return Index != other.Index; }
-        constexpr bool operator>(const iterator_impl &other) const { return Index > other.Index; }
-        constexpr bool operator<(const iterator_impl &other) const { return Index < other.Index; }
-        constexpr bool operator>=(const iterator_impl &other) const { return Index >= other.Index; }
-        constexpr bool operator<=(const iterator_impl &other) const { return Index <= other.Index; }
-
-        template <bool Const = !Mutable>
-        enable_if_t<!Const, code_point> operator*() {
-            return Parent->get(Index);
-        }
-
-        template <bool Const = !Mutable>
-        constexpr enable_if_t<Const, char32_t> operator*() const {
-            return Parent->get(Index);
-        }
-
-        constexpr const byte *to_pointer() const { return get_cp_at_index(Parent->Data, Parent->Length, (s64) Index); }
-    };
-
-    using iterator = iterator_impl<true>;
-    using const_iterator = iterator_impl<false>;
-
-    // This memory is a valid utf-8 string in memory.
-    //
-    // Const so the user doesn't change it accidentally
-    //
-    // A byte doesn't guarantee a valid code point since they can be multiple bytes in utf8.
-    // You almost never would want to modify or access characters from this member unless you want
-    // something very specific.
-    const byte *Data = null;
-
     // Non-zero if Data was allocated by string and needs to be freed
     size_t Reserved = 0;
 
-    // The number of code units (bytes) in the string
-    size_t ByteLength = 0;
+    // This implements API shared with string_view
+    COMMON_STRING_API_IMPL(string, inline)
 
-    // Length of the string in code points
-    size_t Length = 0;
+    string() = default;
 
-    constexpr string() = default;
-
-    // Create a string from a null terminated c-string
-    // Note that this constructor doesn't validate if the passed in string is valid utf8
-    constexpr string(const byte *str) : string(str, cstring_strlen(str)) {}
-
-    // Create a string from a buffer and a length
-    // Note that this constructor doesn't validate if the passed in string is valid utf8
-    constexpr string(const byte *str, size_t size) {
-        Data = str;
-        ByteLength = size;
-        Length = utf8_strlen(str, size);
+    // Create a string from a null terminated c-string.
+    // Note that this constructor doesn't validate if the passed in string is valid utf8.
+    string(const byte *str) : Data(str), ByteLength(cstring_strlen(str)), Length(0), Reserved(0) {
+        Length = utf8_strlen(str, ByteLength);
     }
 
-    // Converts a null-terminated wide char string to utf8
-    // Allocates a buffer
+    // Create a string from a buffer and a length.
+    // Note that this constructor doesn't validate if the passed in string is valid utf8.
+    string(const byte *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)), Reserved(0) {}
+
+    string(const string_view &view) : Data(view.Data), ByteLength(view.ByteLength), Length(view.Length), Reserved(0) {}
+
+    string(char32_t codePoint, size_t repeat, allocator alloc = {null, null});
+    string(wchar_t codePoint, size_t repeat, allocator alloc = {null, null})
+        : string((char32_t) codePoint, repeat, alloc) {}
+
+    // Converts a null-terminated wide char string to utf8.
+    // Allocates a buffer.
     explicit string(const wchar_t *str);
 
-    // Converts a null-terminated utf32 string to utf8
-    // Allocates a buffer
+    // Converts a null-terminated utf32 string to utf8.
+    // Allocates a buffer.
     explicit string(const char32_t *str);
 
-    // Create a string with an initial size reserved
-    // Allocates a buffer
-    explicit string(size_t size);
+    // Create a string with an initial size reserved.
+    // Allocates a buffer (using the Context's allocator by default)
+    explicit string(size_t size, allocator alloc = {null, null});
 
-    // Makes sure string has reserved enough space for at least n bytes
-    // Allocates a buffer if the string doesn't point to reserved memory.
+    ~string() { release(); }
+
+    // Makes sure string has reserved enough space for at least n bytes.
+    // Note that it may reserve way more than required.
+    // Reserves space equal to the next power of two bigger than _size_, starting at 8.
+    //
+    // Allocates a buffer if the string doesn't already point to reserved memory
+    // (using the Context's allocator by default).
+    // You can also use this function to change the allocator of a string before using it.
+    //    reserve(0, ...) is enough to allocate an 8 byte buffer with the passed in allocator.
+    //
+    // For robustness, this function asserts if you pass an allocator, but the string has already
+    // reserved a buffer with a *different* allocator.
+    //
     // If the string points to reserved memory but doesn't own it, this function asserts.
-    void reserve(size_t bytes);
+    void reserve(size_t size, allocator alloc = {null, null});
 
     // Releases the memory allocated by this string.
     // If this string doesn't own the memory it points to, this function does nothing.
     void release();
 
-    // Gets the _index_'th code point in the string
-    // The returned code_point object can be used to modify the code point at that location (by assigning)
+    // Gets the _index_'th code point in the string.
+    // The returned code_point object can be used to modify the code point at that location (by assigning).
     code_point get(s64 index) { return code_point(this, translate_index(index, Length)); }
-
-    // Gets the _index_'th code point in the string
-    constexpr char32_t get(s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
 
     // Sets the _index_'th code point in the string
     void set(s64 index, char32_t codePoint);
@@ -163,28 +105,28 @@ struct string {
     void insert(s64 index, char32_t codePoint);
 
     // Insert a string at a specified index
-    void insert(s64 index, const string &str);
+    void insert(s64 index, string str);
 
     // Insert a buffer of bytes at a specified index
-    void insert_pointer_and_size(s64 index, const byte *begin, size_t size);
+    void insert_pointer_and_size(s64 index, const byte *str, size_t size);
 
     // Removes code point at specified index
     void remove(s64 index);
 
-    // Removes a range of code points
+    // Removes a range of code points.
     // [begin, end)
     void remove(s64 begin, s64 end);
 
     // Append a non encoded character to a string
-    void append(char32_t codePoint);
+    void append(char32_t codePoint) { insert(Length, codePoint); }
 
     // Append one string to another
-    void append(const string &str);
+    void append(string str) { append_pointer_and_size(str.Data, str.ByteLength); }
 
     // Append _size_ bytes of string contained in _data_
-    void append_pointer_and_size(const byte *data, size_t size);
+    void append_pointer_and_size(const byte *str, size_t size) { insert_pointer_and_size(Length, str, size); }
 
-    // Clone this string and copy its contents _n_ times.
+    // Clone this string and copy its contents _n_ times
     string repeated(size_t n) const;
 
     // Clone string and convert it to uppercase characters
@@ -197,287 +139,83 @@ struct string {
     void remove_all(char32_t cp);
 
     // Removes all occurences of _str_
-    void remove_all(const string &str);
+    void remove_all(string str);
 
     // Replaces all occurences of _oldCp_ with _newCp_
     void replace_all(char32_t oldCp, char32_t newCp);
 
     // Replaces all occurences of _oldStr_ with _newStr_
-    void replace_all(const string &oldStr, const string &newStr);
+    void replace_all(string oldStr, string newStr);
 
     // Returns true if this object has any memory allocated by itself
-    bool is_owner() const { return Reserved && get_owner() == this; }
+    bool is_owner() const { return Reserved && decode_owner<string>(Data) == this; }
 
     //
-    // Utility member functions that are constexpr:
+    // Iterator:
     //
+    struct iterator {
+        string *Parent;
+        size_t Index;
 
-    constexpr bool begins_with(char32_t cp) const { return get(0) == cp; }
-    constexpr bool begins_with(const string &str) const {
-        return compare_memory_constexpr(Data, str.Data, str.ByteLength) == npos;
-    }
+        iterator() = default;
+        iterator(string *parent, size_t index) : Parent(parent), Index(index) {}
 
-    constexpr bool ends_with(char32_t cp) const { return get(-1) == cp; }
-    constexpr bool ends_with(const string &str) const {
-        return compare_memory_constexpr(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == npos;
-    }
-
-    // Compares the string to _str_ lexicographically.
-    // The result is less than 0 if this string sorts before the other, 0 if they are equal,
-    // and greater than 0 otherwise.
-    constexpr s32 compare(const string &str) const {
-        // If the memory and the lengths are the same, the strings are equal!
-        if (Data == str.Data && ByteLength == str.ByteLength) return 0;
-
-        if (Length == 0 && str.Length == 0) return 0;
-        if (Length == 0) return -((s32) str.get(0));
-        if (str.Length == 0) return get(0);
-
-        auto s1 = begin(), s2 = str.begin();
-        while (*s1 == *s2) {
-            ++s1, ++s2;
-            if (s1 == end() && s2 == str.end()) return 0;
-            if (s1 == end()) return -((s32) str.get(0));
-            if (s2 == str.end()) return get(0);
+        iterator &operator+=(s64 amount) { return Index += amount, *this; }
+        iterator &operator-=(s64 amount) { return Index -= amount, *this; }
+        iterator &operator++() { return *this += 1; }
+        iterator &operator--() { return *this -= 1; }
+        iterator operator++(s32) {
+            iterator temp = *this;
+            return ++(*this), temp;
         }
-        return ((s32) *s1 - (s32) *s2);
-    }
 
-    // Compares the string to _str_ lexicographically while ignoring case.
-    // The result is less than 0 if this string sorts before the other, 0 if they are equal,
-    // and greater than 0 otherwise.
-    constexpr s32 compare_ignore_case(const string &str) const {
-        // If the memory and the lengths are the same, the views are equal!
-        if (Data == str.Data && ByteLength == str.ByteLength) return 0;
-        if (Length == 0 && str.Length == 0) return 0;
-        if (Length == 0) return -((s32) to_lower(str.get(0)));
-        if (str.Length == 0) return to_lower(get(0));
-
-        auto s1 = begin(), s2 = str.begin();
-        while (to_lower(*s1) == to_lower(*s2)) {
-            ++s1, ++s2;
-            if (s1 == end() && s2 == str.end()) return 0;
-            if (s1 == end()) return -((s32) to_lower(str.get(0)));
-            if (s2 == str.end()) return to_lower(get(0));
+        iterator operator--(s32) {
+            iterator temp = *this;
+            return --(*this), temp;
         }
-        return ((s32) to_lower(*s1) - (s32) to_lower(*s2));
-    }
 
-    // Find the first occurence of a code point that is after a specified index
-    constexpr size_t find(char32_t cp, s64 start = 0) const {
-        assert(Data);
-        if (Length == 0) return npos;
-
-        start = translate_index(start, Length);
-
-        auto p = begin() + start;
-        For(range(start, Length)) if (*p++ == cp) return it;
-        return npos;
-    }
-
-    // Find the first occurence of a substring that is after a specified index
-    constexpr size_t find(const string &str, s64 start = 0) const {
-        assert(Data);
-        assert(str.Data);
-        assert(str.Length);
-        if (Length == 0) return npos;
-
-        start = translate_index(start, Length);
-
-        For(range(start, Length)) {
-            auto progress = str.begin();
-            for (auto search = begin() + it; progress != str.end(); ++search, ++progress) {
-                if (*search != *progress) break;
+        s64 operator-(const iterator &other) const {
+            size_t lesser = Index, greater = other.Index;
+            if (lesser > greater) {
+                lesser = other.Index;
+                greater = Index;
             }
-            if (progress == str.end()) return it;
+            s64 difference = greater - lesser;
+            return Index <= other.Index ? difference : -difference;
         }
-        return npos;
-    }
 
-    // Find the last occurence of a code point that is before a specified index
-    constexpr size_t find_reverse(char32_t cp, s64 start = 0) const {
-        assert(Data);
-        if (Length == 0) return npos;
+        iterator operator+(s64 amount) const { return iterator(Parent, Index + amount); }
+        iterator operator-(s64 amount) const { return iterator(Parent, Index - amount); }
 
-        start = translate_index(start, Length);
-        if (start == 0) start = Length - 1;
+        friend iterator operator+(s64 amount, const iterator &it) { return it + amount; }
+        friend iterator operator-(s64 amount, const iterator &it) { return it - amount; }
 
-        auto p = begin() + start;
-        For(range(start, -1, -1)) if (*p-- == cp) return it;
-        return npos;
-    }
+        bool operator==(const iterator &other) const { return Index == other.Index; }
+        bool operator!=(const iterator &other) const { return Index != other.Index; }
+        bool operator>(const iterator &other) const { return Index > other.Index; }
+        bool operator<(const iterator &other) const { return Index < other.Index; }
+        bool operator>=(const iterator &other) const { return Index >= other.Index; }
+        bool operator<=(const iterator &other) const { return Index <= other.Index; }
 
-    // Find the last occurence of a substring that is before a specified index
-    constexpr size_t find_reverse(const string &str, s64 start = 0) const {
-        assert(Data);
-        assert(str.Data);
-        assert(str.Length);
-        if (Length == 0) return npos;
+        code_point operator*() { return Parent->get(Index); }
+        const byte *to_pointer() const { return get_cp_at_index(Parent->Data, Parent->Length, (s64) Index); }
+    };
 
-        start = translate_index(start, Length);
-        if (start == 0) start = Length - 1;
-
-        For(range(start - str.Length + 1, -1, -1)) {
-            auto progress = str.begin();
-            for (auto search = begin() + it; progress != str.end(); ++search, ++progress) {
-                if (*search != *progress) break;
-            }
-            if (progress == str.end()) return it;
-        }
-        return npos;
-    }
-
-    // Find the first occurence of any code point in the specified view that is after a specified index
-    constexpr size_t find_any_of(const string &cps, s64 start = 0) const {
-        assert(Data);
-        if (Length == 0) return npos;
-
-        start = translate_index(start, Length);
-
-        auto p = begin() + start;
-        For(range(start, Length)) if (cps.has(*p++)) return it;
-        return npos;
-    }
-
-    // Find the last occurence of any code point in the specified view
-    // that is before a specified index (0 means: start from the end)
-    constexpr size_t find_reverse_any_of(const string &cps, s64 start = 0) const {
-        assert(Data);
-        if (Length == 0) return npos;
-
-        start = translate_index(start, Length);
-        if (start == 0) start = Length - 1;
-
-        auto p = begin() + start;
-        For(range(start, -1, -1)) if (cps.has(*p--)) return it;
-        return npos;
-    }
-
-    // Find the first absence of a code point that is after a specified index
-    constexpr size_t find_not(char32_t cp, s64 start = 0) const {
-        assert(Data);
-        if (Length == 0) return npos;
-
-        start = translate_index(start, Length);
-
-        auto p = begin() + start;
-        For(range(start, Length)) if (*p++ != cp) return it;
-        return npos;
-    }
-
-    // Find the last absence of a code point that is before the specified index
-    constexpr size_t find_reverse_not(char32_t cp, s64 start = 0) const {
-        assert(Data);
-        if (Length == 0) return npos;
-
-        start = translate_index(start, Length);
-        if (start == 0) start = Length - 1;
-
-        auto p = begin() + start;
-        For(range(start, 0, -1)) if (*p-- != cp) return it;
-        return npos;
-    }
-
-    // Find the first absence of any code point in the specified view that is after a specified index
-    constexpr size_t find_not_any_of(const string &cps, s64 start = 0) const {
-        assert(Data);
-        if (Length == 0) return npos;
-
-        start = translate_index(start, Length);
-
-        auto p = begin() + start;
-        For(range(start, Length)) if (!cps.has(*p++)) return it;
-        return npos;
-    }
-
-    // Find the first absence of any code point in the specified view that is after a specified index
-    constexpr size_t find_reverse_not_any_of(const string &cps, s64 start = 0) const {
-        assert(Data);
-        if (Length == 0) return npos;
-
-        start = translate_index(start, Length);
-        if (start == 0) start = Length - 1;
-
-        auto p = begin() + start;
-        For(range(start, 0, -1)) if (!cps.has(*p--)) return it;
-        return npos;
-    }
-
-    // Gets [begin, end) range of characters into a new string object.
-    // This function doesn't deep copy, use clone() on the result to do that.
-    constexpr string substring(s64 begin, s64 end) const {
-        // Convert to absolute [begin, end)
-        size_t beginIndex = translate_index(begin, Length);
-        size_t endIndex = translate_index(end, Length, true);
-
-        const byte *beginPtr = get_cp_at_index(Data, Length, beginIndex);
-        const byte *endPtr = beginPtr;
-        For(range(beginIndex, endIndex)) endPtr += get_size_of_cp(endPtr);
-
-        string result;
-        result.Data = beginPtr;
-        result.ByteLength = (uptr_t)(endPtr - beginPtr);
-        result.Length = endIndex - beginIndex;
-        return result;
-    }
-
-    // Returns a substring of _str_ with whitespace removed from both sides.
-    constexpr string trim() const { return trim_start().trim_end(); }
-
-    // Returns a substring of with whitespace removed at the start.
-    constexpr string trim_start() const { return substring(find_not_any_of(" \n\r\t\v\f"), Length); }
-
-    // Returns a substring of with whitespace removed at the end.
-    constexpr string trim_end() const { return substring(0, find_reverse_not_any_of(" \n\r\t\v\f") + 1); }
-
-    // Returns true if the string contains _cp_ anywhere
-    constexpr bool has(char32_t cp) const { return find(cp) != npos; }
-
-    // Returns true if the string contains _str_ anywhere
-    constexpr bool has(const string &str) const { return find(str) != npos; }
-
-    // Counts the number of occurences of _cp_
-    constexpr size_t count(char32_t cp) const {
-        size_t result = 0, index = 0;
-        while ((index = find(cp, index)) != npos) {
-            ++result, ++index;
-            if (index >= Length) break;
-        }
-        return result;
-    }
-
-    // Counts the number of occurences of _str_
-    constexpr size_t count(const string &str) const {
-        size_t result = 0, index = 0;
-        while ((index = find(str, index)) != npos) {
-            ++result, ++index;
-            if (index >= Length) break;
-        }
-        return result;
-    }
+    iterator begin() { return iterator(this, 0); }
+    iterator end() { return iterator(this, Length); }
 
     //
     // Operators:
     //
+    operator string_view() {
+        string_view view;
+        view.Data = Data;
+        view.ByteLength = ByteLength;
+        view.Length = Length;
+        return view;
+    }
 
-    // Read/write [] operator
     code_point operator[](s64 index) { return get(index); }
-
-    // Read-only [] operator
-    constexpr char32_t operator[](s64 index) const { return get(index); }
-
-    iterator begin() { return iterator(this, 0); }
-    iterator end() { return iterator(this, Length); }
-    constexpr const_iterator begin() const { return const_iterator(this, Length); }
-    constexpr const_iterator end() const { return const_iterator(this, Length); }
-
-    // Check two strings for equality
-    bool operator==(const string &other) const { return compare(other) == 0; }
-    bool operator!=(const string &other) const { return !(*this == other); }
-    bool operator<(const string &other) const { return compare(other) < 0; }
-    bool operator>(const string &other) const { return compare(other) > 0; }
-    bool operator<=(const string &other) const { return !(*this > other); }
-    bool operator>=(const string &other) const { return !(*this < other); }
 
     string operator+(char32_t codePoint) const {
         string result = *this;
@@ -485,7 +223,7 @@ struct string {
         return result;
     }
 
-    string operator+(const string &memory) const {
+    string operator+(string memory) const {
         string result = *this;
         result.append(memory);
         return result;
@@ -498,7 +236,7 @@ struct string {
         return *this;
     }
 
-    string &operator+=(const string &memory) {
+    string &operator+=(string memory) {
         append(memory);
         return *this;
     }
@@ -511,16 +249,26 @@ struct string {
         *this = repeated(n);
         return *this;
     }
-
-   private:
-    void change_owner(string *newOwner) const;
-    string *get_owner() const;
-
-    friend string clone(const string &);
-    friend string *move(string *, const string &);
 };
 
-string clone(const string &value);
-string *move(string *dest, const string &src);
+// :ExplicitDeclareIsPod
+// The only reason "string" isn't classified as POD is because of the "non-trivial" destructor.
+// Note that without the destructor, is_pod_v<string> is true.
+// Here we manually declare an overload for is_pod_v (with the helper macro DECLARE_IS_POD from types.h)...
+// I consider this a fine exception for objects that somehow need to manage memory.
+DECLARE_IS_POD(string, true)
+
+inline bool operator==(const byte *one, string other) { return other.compare_lexicographically(one) == 0; }
+inline bool operator!=(const byte *one, string other) { return !(one == other); }
+inline bool operator<(const byte *one, string other) { return other.compare_lexicographically(one) > 0; }
+inline bool operator>(const byte *one, string other) { return other.compare_lexicographically(one) < 0; }
+inline bool operator<=(const byte *one, string other) { return !(one > other); }
+inline bool operator>=(const byte *one, string other) { return !(one < other); }
+
+inline string operator+(const byte *one, string other) { return string(one) + other; }
+inline string operator*(size_t n, string str) { return str.repeated(n); }
+
+string *clone(string *dest, string src);
+string *move(string *dest, string src);
 
 LSTD_END_NAMESPACE

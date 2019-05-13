@@ -52,8 +52,8 @@ struct allocation_header {
 };
 
 struct allocator {
-    allocator_func_t Function;
-    void *Context;
+    allocator_func_t Function = null;
+    void *Context = null;
 
     inline static size_t _AllocationCount = 0;
 
@@ -121,7 +121,7 @@ struct allocator {
             result =
                 Function(allocator_mode::ALLOCATE, Context, size + sizeof(allocation_header), null, 0, 0, userFlags);
         } else {
-            assert(alignment > 0 && is_power_of_2(alignment));
+            assert(alignment > 0 && IS_POW_OF_2(alignment));
             result = Function(allocator_mode::ALIGNED_ALLOCATE, Context, size + sizeof(allocation_header), null, 0,
                               alignment, userFlags);
             assert((((uptr_t) result & ~(alignment - 1)) == (uptr_t) result) && "Pointer wasn't properly aligned.");
@@ -141,7 +141,7 @@ struct allocator {
                                                newSize + sizeof(allocation_header), header,
                                                header->Size + sizeof(allocation_header), 0, userFlags);
         } else {
-            assert(alignment > 0 && is_power_of_2(alignment));
+            assert(alignment > 0 && IS_POW_OF_2(alignment));
             result = header->AllocatorFunction(allocator_mode::ALIGNED_REALLOCATE, header->AllocatorContext,
                                                newSize + sizeof(allocation_header), header,
                                                header->Size + sizeof(allocation_header), alignment, userFlags);
@@ -155,7 +155,7 @@ struct allocator {
 // This is used in allocator implementations for supporting aligned allocations
 // If alignment is 4 bytes on 64 bit system, it get set to 8 bytes
 inline void *get_aligned_pointer(void *ptr, size_t alignment) {
-    assert(alignment > 0 && is_power_of_2(alignment));
+    assert(alignment > 0 && IS_POW_OF_2(alignment));
 
     alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
     return (void *) (((uptr_t) ptr + alignment - 1) & ~(alignment - 1));
@@ -222,12 +222,5 @@ struct temporary_allocator_data {
 //     At the end of the frame when the memory is no longer needed you FREE_ALL and start the next frame.
 void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
                           size_t alignment, uptr_t);
-
-// _storageSize_ specifies how many bytes of memory to reserve for the allocator
-// This function always uses the global malloc allocator (and not the context's one)
-void init_temporary_allocator(size_t storageSize);
-
-// Frees the memory held by the temporary allocator
-void release_temporary_allocator();
 
 LSTD_END_NAMESPACE

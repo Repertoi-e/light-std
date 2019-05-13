@@ -84,7 +84,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
                 if (Context.Alloc == Context.TemporaryAlloc) {
                     // @Cleanup Maybe we shouldn't do this...
                     // If the context uses the temporary allocator, switch it forcefully to malloc
-                    const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
+                    const_cast<implicit_context *>(&Context)->Alloc = Malloc;
                 }
                 result = Malloc.allocate(size);
             }
@@ -118,21 +118,21 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
     return null;
 }
 
-void init_temporary_allocator(size_t storageSize) {
-    assert(!Context.TemporaryAlloc.Context &&
+void implicit_context::init_temporary_allocator(size_t storageSize) const {
+    assert(!TemporaryAlloc.Context &&
            "Temporary allocator already initialized. Destroy it with release_temporary_allocator() first.");
 
     auto *data = new (Malloc) temporary_allocator_data;
     data->Storage = new (Malloc) byte[storageSize];
     data->Reserved = storageSize;
 
-    const_cast<allocator *>(&Context.TemporaryAlloc)->Context = data;
+    const_cast<allocator *>(&TemporaryAlloc)->Context = data;
 }
 
-void release_temporary_allocator() {
-    assert(Context.TemporaryAlloc.Context && "Temporary allocator not initialized");
+void implicit_context::release_temporary_allocator() const {
+    assert(TemporaryAlloc.Context && "Temporary allocator not initialized");
 
-    auto *tempAlloc = const_cast<allocator *>(&Context.TemporaryAlloc);
+    auto *tempAlloc = const_cast<allocator *>(&TemporaryAlloc);
     delete[]((temporary_allocator_data *) tempAlloc->Context)->Storage;
     delete tempAlloc->Context;
 
@@ -144,7 +144,7 @@ LSTD_END_NAMESPACE
 void *operator new(size_t size) {
     auto *alloc = (allocator *) &Context.Alloc;
     if (!alloc) {
-        const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
+        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
         alloc = &Malloc;
     }
     return alloc->allocate(size, 0);
@@ -155,7 +155,7 @@ void *operator new[](size_t size) { return operator new(size); }
 void *operator new(size_t size, allocator alloc) {
     if (!alloc) alloc = Context.Alloc;
     if (!alloc) {
-        const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
+        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
         alloc = Malloc;
     }
     return alloc.allocate(size, 0);
@@ -167,7 +167,7 @@ void *operator new(size_t size, allocator *alloc) {
     assert(alloc);
     if (!(*alloc)) *alloc = Context.Alloc;
     if (!(*alloc)) {
-        const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
+        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
         *alloc = Malloc;
     }
     return alloc->allocate(size, 0);
@@ -178,7 +178,7 @@ void *operator new[](size_t size, allocator *alloc) { return operator new(size, 
 void *operator new(size_t size, size_t alignment) {
     auto *alloc = (allocator *) &Context.Alloc;
     if (!alloc) {
-        const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
+        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
         alloc = &Malloc;
     }
     return alloc->allocate_aligned(size, alignment);
@@ -189,7 +189,7 @@ void *operator new[](size_t size, size_t alignment) { return operator new(size, 
 void *operator new(size_t size, size_t alignment, allocator alloc) {
     if (!alloc) alloc = Context.Alloc;
     if (!alloc) {
-        const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
+        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
         alloc = Malloc;
     }
     return alloc.allocate_aligned(size, alignment);
@@ -201,7 +201,7 @@ void *operator new(size_t size, size_t alignment, allocator *alloc) {
     assert(alloc);
     if (!(*alloc)) *alloc = Context.Alloc;
     if (!(*alloc)) {
-        const_cast<Implicit_Context *>(&Context)->Alloc = Malloc;
+        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
         *alloc = Malloc;
     }
     return alloc->allocate_aligned(size, alignment, 0);
