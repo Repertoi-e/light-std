@@ -17,31 +17,31 @@ constexpr byte eof = (byte) -1;
 struct reader;
 
 template <typename T>
-bool deserialize(T *dest, reader *in);
+bool deserialize(T *dest, reader *r);
 
 // Provides a way to parse types and any bytes with a simple extension API.
-// Holds a pointer to _request_byte_. Every other function
+// Holds a pointer to a _request_byte_t_. Every other function
 // in this class is implemented by calling that function.
 // @TODO: Tests tests tests!
 struct reader {
-    using request_byte_t = byte (*)(reader *data);
+    using request_byte_t = byte (*)(reader *r);
 
     // This is the only method function required for the reader to work, it is called only
     // when there are no more bytes available.
     // If you want to supply a buffer of bytes (not just one), use _Buffer_, _Current_, and _Available_.
-    request_byte_t RequestByteFunction;
+    request_byte_t RequestByteFunction = null;
 
-    const byte *Buffer, *Current;
-    size_t Available;
+    const byte *Buffer = null, *Current = null;
+    size_t Available = 0;
 
     // Whether this reader has reached "end of file"
-    bool EOF;
+    bool EOF = false;
     // If the last call to any parse function has resulted in an error
-    bool LastFailed;
+    bool LastFailed = false;
 
     // By default, when reading code points, integers, floats, etc. any white space is ignored.
     // If you don't want that, set this flag to false.
-    bool SkipWhitespace;
+    bool SkipWhitespace = true;
 
     reader() = default;
     reader(request_byte_t requestByteFunction);
@@ -284,11 +284,12 @@ struct reader {
 
 // Specialize this for custom types that may not be POD or have data that isn't serialized, e.g. pointers
 template <typename T>
-bool deserialize(T *dest, reader *in) {
-    in->read((byte *) dest, sizeof(T));
-    return false;
+bool deserialize(T *dest, reader *r) {
+    r->read((byte *) dest, sizeof(T));
+    return true;
 }
 
 }  // namespace io
 
 LSTD_END_NAMESPACE
+

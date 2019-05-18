@@ -251,13 +251,6 @@ struct string {
     }
 };
 
-// :ExplicitDeclareIsPod
-// The only reason "string" isn't classified as POD is because of the "non-trivial" destructor.
-// Note that without the destructor, is_pod_v<string> is true.
-// Here we manually declare an overload for is_pod_v (with the helper macro DECLARE_IS_POD from types.h)...
-// I consider this a fine exception for objects that somehow need to manage memory.
-DECLARE_IS_POD(string, true)
-
 inline bool operator==(const byte *one, string other) { return other.compare_lexicographically(one) == 0; }
 inline bool operator!=(const byte *one, string other) { return !(one == other); }
 inline bool operator<(const byte *one, string other) { return other.compare_lexicographically(one) > 0; }
@@ -272,3 +265,10 @@ string *clone(string *dest, string src);
 string *move(string *dest, string src);
 
 LSTD_END_NAMESPACE
+
+// :ExplicitDeclareIsPod
+// The only reason "string" isn't classified as POD is because of the "non-trivial" destructor.
+// Note that without the destructor, is_pod_v<string> is true.
+// Here we manually declare an overload for is_pod_v (with the helper macro DECLARE_IS_POD from types.h)...
+// I consider this a fine exception for objects that somehow need to manage memory.
+DECLARE_IS_POD(string, true)

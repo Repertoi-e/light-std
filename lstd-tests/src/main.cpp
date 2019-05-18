@@ -56,5 +56,8 @@ int main() {
     string input, input2;
     io::cin.read_line(&input)->read_until(&input2, 'a');
 
+    io::cout.write("Hello, world!\n");
+    io::cout.flush();
+
     io::cin.ignore();
 }

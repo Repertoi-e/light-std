@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace io {
 
-byte string_reader_request_byte(reader *data);
+byte string_reader_request_byte(reader *r);
 
 struct string_reader : reader {
     string Src;
@@ -15,18 +15,15 @@ struct string_reader : reader {
     explicit string_reader(string src) : reader(string_reader_request_byte), Src(src), Exhausted(false) {}
 };
 
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(string_reader, true);
+inline byte string_reader_request_byte(reader *r) {
+    auto *sr = (string_reader *) r;
 
-inline byte string_reader_request_byte(reader *data) {
-    auto *reader = (string_reader *) data;
-
-    if (reader->Exhausted) return eof;
-    reader->Buffer = reader->Src.Data;
-    reader->Current = reader->Buffer;
-    reader->Available = reader->Src.ByteLength;
-    reader->Exhausted = true;
-    return *reader->Current;
+    if (sr->Exhausted) return eof;
+    sr->Buffer = sr->Src.Data;
+    sr->Current = sr->Buffer;
+    sr->Available = sr->Src.ByteLength;
+    sr->Exhausted = true;
+    return *sr->Current;
 }
 
 }  // namespace io

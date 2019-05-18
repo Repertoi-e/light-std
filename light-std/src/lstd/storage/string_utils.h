@@ -714,9 +714,6 @@ struct string_view {
     constexpr string_view(const byte *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)) {}
 };
 
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(string_view, true);
-
 constexpr bool operator==(const byte *one, const string_view &other) {
     return other.compare_lexicographically(string_view(one)) == 0;
 }
@@ -731,3 +728,6 @@ constexpr bool operator<=(const byte *one, const string_view &other) { return !(
 constexpr bool operator>=(const byte *one, const string_view &other) { return !(one < other); }
 
 LSTD_END_NAMESPACE
+
+// :ExplicitDeclareIsPod
+DECLARE_IS_POD(string_view, true);

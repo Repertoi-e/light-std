@@ -169,19 +169,20 @@ struct range {
 // "Always provide a default constructor (T() = default)" in order to qualify the type as POD (plain old data)
 //
 // "Every data member should have the same access control" in order to qualify the type as POD (plain old data)
-//   This also provides freedom to the caller and IF they know exactly what they are doing,
+//   This also provides freedom to the caller and if they know EXACTLY what they are doing,
 //   it saves frustration of your container having a limited API.
 //   This comes at a cost of backwards-compatibility though, so that is something to the thought of.
 //   Another benefit is striving away from getter/setters which is one of the most annoying patterns
 //   in API design in my opinion (if getting/setting doesn't require any extra code).
 //
 // "No user defined copy/move constructors":
+//   @TODO: Explain this better
 //   A string, for example, may contain allocated memory (when it's not small enough to store on the stack)
 //   On assignment, a string "view" is created (shallow copy of the string). This means that the new string
 //   doesn't own it's memory so the destructor shouldn't deallocate it. To get around this, string stores
 //   it's data in a "shared_memory" (std::shared_ptr in the C++ std).
 //   In order to do a deep copy of the string, a clone() overload is provided.
-//   clone(T *dest, T src) is a global function that is supposed to ensure a deep copy of the argument passed
+//   * clone(T *dest, T src) is a global function that is supposed to ensure a deep copy of the argument passed
 //
 // A type that may contain owned memory is suggested to follow string's design or if it can't - be designed differently.
 //
