@@ -238,14 +238,14 @@ string *clone(string *dest, string src) {
     return dest;
 }
 
-string *move(string *dest, string src) {
-    assert(src.is_owner());
+string *move(string *dest, string *src) {
+    assert(src->is_owner());
 
     dest->release();
-    *dest = src;
+    *dest = *src;
 
     // Transfer ownership
-    change_owner(src.Data, dest);
+    change_owner(src->Data, dest);
     change_owner(dest->Data, dest);
     return dest;
 }

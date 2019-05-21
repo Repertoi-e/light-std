@@ -9,7 +9,7 @@ LSTD_BEGIN_NAMESPACE
 template <typename T>
 struct array {
     static_assert(is_pod_v<T> &&
-                  "arrays can only work with POD types, take a look at the User type policy in common.h");
+                  "arrays can only work with POD types, take a look at the type policy in common.h");
 
     using data_t = T;
 
@@ -393,14 +393,14 @@ array<T> *clone(array<T> *dest, array<T> src) {
 }
 
 template <typename T>
-array<T> *move(array<T> *dest, array<T> src) {
-    assert(src.is_owner());
+array<T> *move(array<T> *dest, array<T> *src) {
+    assert(src->is_owner());
 
     dest->release();
-    *dest = src;
+    *dest = *src;
 
     // Transfer ownership
-    change_owner(src.Data, dest);
+    change_owner(src->Data, dest);
     change_owner(dest->Data, dest);
     return dest;
 }

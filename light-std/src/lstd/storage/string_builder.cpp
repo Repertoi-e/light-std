@@ -77,10 +77,10 @@ string_builder *clone(string_builder *dest, const string_builder &src) {
     return dest;
 }
 
-string_builder *move(string_builder *dest, const string_builder &src) {
-    dest->release();
+string_builder *move(string_builder *dest, string_builder *src) {
+	dest->release();
 
-    *dest = src;
+    *dest = *src;
 
     // Transfer ownership
     auto *b = dest->BaseBuffer.Next;

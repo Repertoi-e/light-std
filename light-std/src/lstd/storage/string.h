@@ -262,7 +262,7 @@ inline string operator+(const byte *one, string other) { return string(one) + ot
 inline string operator*(size_t n, string str) { return str.repeated(n); }
 
 string *clone(string *dest, string src);
-string *move(string *dest, string src);
+string *move(string *dest, string *src);
 
 LSTD_END_NAMESPACE
 
