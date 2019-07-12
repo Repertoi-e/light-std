@@ -14,14 +14,14 @@ Anybody who thinks modern C++ is bananas, you've come to the right place! My vie
 - Always provide a default constructor (implicit or by "T() = default")
 - Every data member should have the same access control (everything should be public or private or protected)
 - No user defined copy/move constructors
-- No virtual or overriden functions
+- No virtual or overridden functions
 - No throwing of exceptions, anywhere
 
 Most of the requirements above are to clasify the type as POD. Templated containers and functions in this library assert that the type is POD. If your type doesn't classify as POD (has bit fields, non-default but parameterless constructor or is a subclass with extended members) you can declare it explictly with `DECLARE_IS_POD(type, true)`
 >Declaring your type as POD explictly means you are sure the type CAN be TREATED as POD without bugs.
 
-### "Every data member should have the same access control" (in order to qualify the type as POD)
-This also provides freedom saves frustration of your type having a limited API.
+### "Every data member should have the same access control"
+Preference thing, getters/setters that do nothing are garbage and should not exist tho.
 > If you really want private members I suggest you prefix them with _.
 
 ### "No user defined copy/move constructors":
@@ -49,8 +49,10 @@ _What is described above happens when the object gets copied around (assigned to
 
 Types that manage memory in this library follow similar design to string and helper functions (as well as an example) are provided in `storage/owner_pointers.h`.
 
-### "No virtual or overriden functions":
-They bring a slight run-time overhead and aren't really a good design (in most cases they can be avoided). I recommend striving away from a design that requires inheritance and overloading (OOP in such sense in general) but I came up with a possible work-around that is best shown with an example:
+### "No virtual or overridden functions":
+> **@TODO** Reconsider this. Historically, I strived away from virtual functions in order to be able to compile
+      without CRT on Windows, but I think we can support virtual functions with stub code from the CRT.
+They bring a slight run-time overhead and aren't really a good design (in most cases they can be avoided). I recommend striving away from a design that requires inheritance and overloading (OOP in such sense in general) but I came up with a possible workaround that is best shown with an example:
 
 *Using virtual functions:*
 ```cpp
@@ -65,7 +67,7 @@ They bring a slight run-time overhead and aren't really a good design (in most c
       };
 ```
 
-*Work-around:*
+*Workaround:*
 ```cpp
       struct writer {
           using write_func_t = void(writer *context, string *str);

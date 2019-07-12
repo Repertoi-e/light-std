@@ -159,7 +159,7 @@ struct range {
 // - Always provide a default constructor (implicit or by "T() = default")
 // - Every data member should have the same access control (everything should be public or private or protected)
 // - No user defined copy/move constructors
-// - No virtual or overriden functions
+// - No virtual or overridden functions
 // - No throwing of exceptions, anywhere
 //
 // Most of the above requirements above are to clasify the type as POD. Templated containers and functions
@@ -168,9 +168,9 @@ struct range {
 // declare it explictly with DECLARE_IS_POD(type, true).
 // Declaring your type as POD explictly means you are sure the type CAN be TREATED as POD without bugs.
 //
-// "Every data member should have the same access control" in order to qualify the type as POD (plain old data)
-//   This also provides freedom saves frustration of your type having a limited API.
-//   If you really want you can prefix your "private" members with _.
+// "Every data member should have the same access control"
+//   Preference thing, getters/setters that do nothing are garbage and should not exist tho.
+//   Note: If you really want you can prefix your "private" members with _.
 //
 // "No user defined copy/move constructors":
 //   This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not 
@@ -213,10 +213,13 @@ struct range {
 //   Types that manage memory in this library follow similar design to string and helper functions (as well as an example)
 //   are provided in _storage/owner_pointers.h_.
 //
-// "No virtual or overriden functions":
+// "No virtual or overridden functions":
+//  @TODO Reconsider this. Historically, I strived away from virtual functions in order to be able to compile
+//        without CRT on Windows, but I think we can support virtual functions with stub code from the CRT.
+//
 //   They bring a slight run-time overhead and aren't really a good design (in most cases they can be avoided).
 //   I recommend striving away from a design that requires inheritance and overloading (OOP in such sense in general)
-//   but I came up with a possible work-around that is best shown with an example:
+//   but I came up with a possible workaround that is best shown with an example:
 //   - Using virtual functions:
 //         struct writer {
 //             virtual void write(string str) { /*may also be pure virtual*/
@@ -228,7 +231,7 @@ struct range {
 //             }
 //         };
 //
-//   - Work-around:
+//   - Workaround:
 //         struct writer {
 //             using write_func_t = void(writer *context, string *str);
 //
