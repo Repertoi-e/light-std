@@ -118,5 +118,6 @@ __attribute__((gnu_inline, always_inline)) __inline__ static void debug_break(vo
 #include <signal.h>
 __attribute__((gnu_inline, always_inline)) __inline__ static void debug_break(void) { raise(SIGTRAP); }
 #endif
+}
 
 #endif

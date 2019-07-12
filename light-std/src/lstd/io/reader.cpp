@@ -93,7 +93,7 @@ reader *io::reader::read_until(byte *out, char32_t delim) {
         if (delimProgress == delimSize) break;
         *out++ = ch;
 
-		ch = next_byte();
+        ch = next_byte();
     }
     return this;
 }
@@ -291,9 +291,21 @@ reader *io::reader::read_while(string *str, string eats) {
 reader *io::reader::read_line(string *str) { return read_until(str, "\n"); }
 
 reader *io::reader::ignore() {
-    string str;
-    Available = 0;
-    read_line(&str);
+    if (EOF) return this;
+
+    byte ch = peek_byte();
+    if (ch == eof) {
+        EOF = true;
+        return this;
+    }
+
+    while (true) {
+        ch = bump_byte();
+        if (ch == eof || ch == '\n') {
+            EOF = true;
+            break;
+        }
+    }
     return this;
 }
 

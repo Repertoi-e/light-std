@@ -2,6 +2,16 @@
 
 #include "memory/allocator.h"
 
+LSTD_BEGIN_NAMESPACE
+
+namespace io {
+struct writer;
+}
+
+namespace internal {
+extern io::writer *g_ConsoleLog;
+}  // namespace internal
+
 struct implicit_context {
     // When allocating you should use the context's allocator
     // This makes it so when users call your functions they
@@ -22,11 +32,11 @@ struct implicit_context {
     // Frees the memory held by the temporary allocator
     void release_temporary_allocator() const;
 
-    // @TODO
     // This variable is useful when you redirect all logging output
     // (provided that the code that logs stuff uses the context!).
-    // By default the writer outputs to the console.
-    // io::writer *Log = internal::g_ConsoleLog;
+    // By default it points to io::cout
+    io::writer *Log = internal::g_ConsoleLog;
+
     //
     // @Thread
     // thread::id ThreadID;
@@ -35,6 +45,8 @@ struct implicit_context {
 // Immutable context available everywhere
 // The current state gets copied from parent thread to the new thread when creating a thread
 inline thread_local const implicit_context Context;
+
+LSTD_END_NAMESPACE
 
 #define LSTD_PC_VAR_(x, LINE) LSTD_NAMESPACE_NAME##_lstd_push_context##x##LINE
 #define LSTD_PC_VAR(x, LINE) LSTD_PC_VAR_(x, LINE)

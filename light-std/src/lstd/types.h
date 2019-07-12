@@ -355,7 +355,7 @@ using remove_volatile_t = typename remove_volatile<T>::type;
 // Remove top-level const/volatile
 template <typename T>
 struct remove_cv {
-    using type = typename remove_volatile_t<typename remove_const_t<T>>;
+    using type = remove_volatile_t<remove_const_t<T>>;
 };
 
 template <typename T>
@@ -387,7 +387,7 @@ using remove_reference_t = typename remove_reference<T>::type;
 // remove_cv<int& volatile>::type is equivalent to int.
 template <typename T>
 struct remove_cvref {
-    using type = typename remove_volatile_t<typename remove_const_t<typename remove_reference_t<T>>>;
+    using type = remove_volatile_t<remove_const_t<remove_reference_t<T>>>;
 };
 
 template <typename T>
@@ -434,7 +434,7 @@ using add_volatile_t = typename add_volatile<T>::type;
 // Add const and volatile
 template <typename T>
 struct add_cv {
-    using type = typename add_const_t<typename add_volatile_t<T>>;
+    using type = add_const_t<add_volatile_t<T>>;
 };
 
 template <typename T>
@@ -739,7 +739,7 @@ template <typename... Args>
 constexpr bool has_void_arg_v = has_void_arg<Args...>::value;
 
 template <typename T>
-struct is_null_pointer : public is_same<typename remove_cv_t<T>, decltype(null)> {};
+struct is_null_pointer : public is_same<remove_cv_t<T>, decltype(null)> {};
 
 template <typename T>
 constexpr bool is_null_pointer_v = is_null_pointer<T>::value;
@@ -785,7 +785,11 @@ struct is_integral_helper<wchar_t> : public true_t {};
 #endif
 
 template <typename T>
-struct is_integral : public is_integral_helper<typename remove_cv_t<T>> {};
+struct is_integral : public is_integral_helper<remove_cv_t<T>> {};
+
+template <typename T>
+using is_integer = integral_constant<bool, is_integral<T>::value && !is_same<T, bool>::value &&
+                                               !is_same<T, byte>::value && !is_same<T, wchar_t>::value>;
 
 // Use this macro to declare your custom type as an integral
 #define DECLARE_INTEGRAL(T)                                  \
@@ -803,6 +807,9 @@ struct is_integral : public is_integral_helper<typename remove_cv_t<T>> {};
 template <typename T>
 constexpr bool is_integral_v = is_integral<T>::value;
 
+template <typename T>
+constexpr bool is_integer_v = is_integer<T>::value;
+
 // true if T is one of the following types: float, double, long double
 template <typename T>
 struct is_floating_point_helper : public false_t {};
@@ -815,7 +822,7 @@ template <>
 struct is_floating_point_helper<long double> : public true_t {};
 
 template <typename T>
-struct is_floating_point : public is_floating_point_helper<typename remove_cv_t<T>> {};
+struct is_floating_point : public is_floating_point_helper<remove_cv_t<T>> {};
 
 // Use this macro to declare your custom type as a floating point
 #define DECLARE_FLOATING_POINT(T)                                  \
@@ -1030,9 +1037,7 @@ struct aligned_storage {
 #else
 template <size_t N, size_t Align = 8>
 struct aligned_storage {
-    typedef struct {
-        alignas(Align) u8 Data[N];
-    } type;
+    using type = struct { alignas(Align) u8 Data[N]; };
 };
 #endif
 
@@ -1049,7 +1054,7 @@ extern void (*copy_memory)(void *dest, const void *src, size_t num);
 //
 // Example usage:
 //    float f32 = 1.234f;
-//    uint32_t n32 = union_cast<uint32_t>(f32);
+//    uint32_t n32 = bit_cast<uint32_t>(f32);
 template <typename DestType, typename SourceType>
 DestType bit_cast(const SourceType &sourceValue) {
     static_assert(sizeof(DestType) == sizeof(SourceType));
@@ -1064,7 +1069,7 @@ DestType bit_cast(const SourceType &sourceValue) {
     } else {
         DestType destValue;
         copy_memory(&destValue, &sourceValue, sizeof(DestType));
-        retrun destValue;
+        return destValue;
     }
 }
 
@@ -1115,7 +1120,7 @@ template <>
 struct is_signed_helper<char> : public true_t {};
 
 template <typename T>
-struct is_signed : public is_signed_helper<typename remove_cv_t<T>> {};
+struct is_signed : public is_signed_helper<remove_cv_t<T>> {};
 
 template <typename T>
 constexpr bool is_signed_v = is_signed<T>::value;
@@ -1153,7 +1158,7 @@ struct is_unsigned_helper<wchar_t> : public true_t {};
 #endif
 
 template <typename T>
-struct is_unsigned : public is_unsigned_helper<typename remove_cv_t<T>> {};
+struct is_unsigned : public is_unsigned_helper<remove_cv_t<T>> {};
 
 template <typename T>
 constexpr bool is_unsigned_v = is_unsigned<T>::value;
@@ -1230,13 +1235,24 @@ constexpr bool is_rvalue_reference_v = is_rvalue_reference<T>::value;
 template <typename>
 struct result_of;
 
+template <typename, typename...>
+struct invoke_result;
+
 template <typename F, typename... ArgTypes>
 struct result_of<F(ArgTypes...)> {
-    typedef decltype(declval<F>()(declval<ArgTypes>()...)) type;
+    using type = decltype(declval<F>()(declval<ArgTypes>()...));
+};
+
+template <typename F, typename... ArgTypes>
+struct invoke_result<F(ArgTypes...)> {
+    using type = decltype(declval<F>()(declval<ArgTypes>()...));
 };
 
 template <typename T>
 using result_of_t = typename result_of<T>::type;
+
+template <typename T, typename... ArgTypes>
+using invoke_result_t = typename invoke_result<T, ArgTypes...>::type;
 
 //  Determines if the specified type can be tested for equality.
 template <typename, typename = void_t<>>
@@ -1431,11 +1447,10 @@ constexpr bool is_compound_v = is_compound<T>::value;
 // all function arguments when passed by value.
 template <typename T>
 struct decay {
-    using U = typename remove_reference_t<T>;
+    using U = remove_reference_t<T>;
 
-    using type = typename type_select_t<
-        is_array_v<U>, typename remove_extent_t<U> *,
-        typename type_select_t<is_function_v<U>, typename add_pointer_t<U>, typename remove_cv_t<U>>>;
+    using type = type_select_t<is_array_v<U>, remove_extent_t<U> *,
+                               type_select_t<is_function_v<U>, add_pointer_t<U>, remove_cv_t<U>>>;
 };
 
 template <typename T>
@@ -1447,7 +1462,7 @@ using decay_t = typename decay<T>::type;
 // It is intended that this be specialized by the user for cases where it
 // is useful to do so. Example specialization:
 //     template <typename Class1, typename Class2>
-//     struct common_type<MyClass1, MyClass2>{ typedef MyBaseClassB type; };
+//     struct common_type<MyClass1, MyClass2>{ using type = MyBaseClassB; };
 template <typename... T>
 struct common_type;
 
@@ -1622,7 +1637,7 @@ constexpr bool is_trivially_copyable_v = is_trivially_copyable<T>::value;
 
 #if !COMPILER == MSVC || COMPILER == CLANG
 template <typename T, typename... Args>
-struct is_constructible : public bool_constant<__is_constructible(T, Args...)> {};
+struct is_constructible : public integral_constant<bool, __is_constructible(T, Args...)> {};
 #else
 template <typename T>
 inline typename remove_reference<T>::type &&move_internal(T &&x) {
@@ -1698,26 +1713,26 @@ template <typename T>
 constexpr bool is_trivial_v = is_trivial<T>::value;
 
 template <typename T>
-struct is_copy_constructible : public is_constructible<T, typename add_lvalue_reference_t<typename add_const_t<T>>> {};
+struct is_copy_constructible : public is_constructible<T, add_lvalue_reference_t<add_const_t<T>>> {};
 
 template <typename T>
 constexpr bool is_copy_constructible_v = is_copy_constructible<T>::value;
 
 template <typename T>
-struct is_trivially_copy_constructible
-    : public is_trivially_constructible<T, typename add_lvalue_reference_t<typename add_const_t<T>>> {};
+struct is_trivially_copy_constructible : public is_trivially_constructible<T, add_lvalue_reference_t<add_const_t<T>>> {
+};
 
 template <typename T>
 constexpr bool is_trivially_copy_constructible_v = is_trivially_copy_constructible<T>::value;
 
 template <typename T>
-struct is_move_constructible : public is_constructible<T, typename add_rvalue_reference_t<T>> {};
+struct is_move_constructible : public is_constructible<T, add_rvalue_reference_t<T>> {};
 
 template <typename T>
 constexpr bool is_move_constructible_v = is_move_constructible<T>::value;
 
 template <typename T>
-struct is_trivially_move_constructible : public is_trivially_constructible<T, typename add_rvalue_reference_t<T>> {};
+struct is_trivially_move_constructible : public is_trivially_constructible<T, add_rvalue_reference_t<T>> {};
 
 template <typename T>
 constexpr bool is_trivially_move_constructible_v = is_trivially_move_constructible<T>::value;
@@ -1778,8 +1793,8 @@ template <typename T, typename U>
 constexpr bool is_assignable_v = is_assignable<T, U>::value;
 
 template <typename T, typename U>
-struct is_lvalue_assignable : public is_assignable<typename add_lvalue_reference_t<T>,
-                                                   typename add_lvalue_reference_t<typename add_const_t<U>>> {};
+struct is_lvalue_assignable : public is_assignable<add_lvalue_reference_t<T>, add_lvalue_reference_t<add_const_t<U>>> {
+};
 
 template <typename T, typename U>
 constexpr bool is_lvalue_assignable_v = is_lvalue_assignable<T, U>::value;
@@ -1813,29 +1828,26 @@ template <typename T, typename U>
 constexpr bool is_trivially_assignable_v = is_trivially_assignable<T, U>::value;
 
 template <typename T>
-struct is_copy_assignable : public is_assignable<typename add_lvalue_reference_t<T>,
-                                                 typename add_lvalue_reference_t<typename add_const_t<T>>> {};
+struct is_copy_assignable : public is_assignable<add_lvalue_reference_t<T>, add_lvalue_reference_t<add_const_t<T>>> {};
 
 template <typename T>
 constexpr bool is_copy_assignable_v = is_copy_assignable<T>::value;
 
 template <typename T>
 struct is_trivially_copy_assignable
-    : public is_trivially_assignable<typename add_lvalue_reference_t<T>,
-                                     typename add_lvalue_reference_t<typename add_const_t<T>>> {};
+    : public is_trivially_assignable<add_lvalue_reference_t<T>, add_lvalue_reference_t<add_const_t<T>>> {};
 
 template <typename T>
 constexpr bool is_trivially_copy_assignable_v = is_trivially_copy_assignable<T>::value;
 
 template <typename T>
-struct is_move_assignable
-    : public is_assignable<typename add_lvalue_reference_t<T>, typename add_rvalue_reference_t<T>> {};
+struct is_move_assignable : public is_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>> {};
 template <class T>
 constexpr bool is_move_assignable_v = is_move_assignable<T>::value;
 
 template <typename T>
 struct is_trivially_move_assignable
-    : public is_trivially_assignable<typename add_lvalue_reference_t<T>, typename add_rvalue_reference_t<T>> {};
+    : public is_trivially_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>> {};
 
 template <typename T>
 constexpr bool is_trivially_move_assignable_v = is_trivially_move_assignable<T>::value;
@@ -1869,7 +1881,7 @@ struct is_trivially_destructible_helper
     : public integral_constant<bool, (is_pod_v<T> || is_scalar_v<T> || is_reference_v<T>) &&!is_void_v<T>> {};
 
 template <typename T>
-struct is_trivially_destructible : public is_trivially_destructible_helper<typename remove_all_extents_t<T>> {};
+struct is_trivially_destructible : public is_trivially_destructible_helper<remove_all_extents_t<T>> {};
 
 template <typename T>
 constexpr bool is_trivially_destructible_v = is_trivially_destructible<T>::value;
@@ -1892,7 +1904,7 @@ struct make_index_sequence_impl<N, integer_sequence<size_t, Is...>> {
 
 template <size_t... Is>
 struct make_index_sequence_impl<0, integer_sequence<size_t, Is...>> {
-    typedef integer_sequence<size_t, Is...> type;
+    using type = integer_sequence<size_t, Is...>;
 };
 
 template <size_t... Is>
@@ -1918,7 +1930,7 @@ struct pair {
     U Second;
 
     pair() = default;
-    pair(const first_t &first, const second_t &second) : First(first), Second(second) {}
+    pair(const typename remove_cvref_t<T> &first, const remove_cvref_t<U> &second) : First(first), Second(second) {}
 };
 LSTD_END_NAMESPACE
 
@@ -1937,7 +1949,7 @@ enum class float_denorm_style {
     Present
 };
 
-struct numeric_info_base {  
+struct numeric_info_base {
     static constexpr float_denorm_style has_denorm = float_denorm_style::Absent;
     static constexpr bool has_denorm_loss = false;
     static constexpr bool has_infinity = false;

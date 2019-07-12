@@ -16,6 +16,16 @@ LSTD_BEGIN_NAMESPACE
 
 enum class allocator_mode { ALLOCATE = 0, ALIGNED_ALLOCATE, REALLOCATE, ALIGNED_REALLOCATE, FREE, FREE_ALL };
 
+// @Temp Move this below together with Malloc, this is up here in order for allocator::general_allocate to
+// use the default allocator if the context hasn't been initialized yet.
+//
+// Default allocator:
+//
+
+// General purpose allocator (like malloc)
+void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
+                        size_t alignment, uptr_t);
+
 // This specifies what the signature of each allocation function should look like.
 //
 // _mode_ is what we are doing currently, allocating, resizing,
@@ -52,7 +62,8 @@ struct allocation_header {
 };
 
 struct allocator {
-    allocator_func_t Function = null;
+    // @Temp mutable, see general_allocate below
+	mutable allocator_func_t Function = null;
     void *Context = null;
 
     inline static size_t _AllocationCount = 0;
@@ -116,6 +127,11 @@ struct allocator {
     // The main reason for having a combined function is to help debugging because the source of an allocation
     // can be one of the two functions (allocate() and allocate_aligned() below)
     void *general_allocate(size_t size, bool aligned, size_t alignment, uptr_t userFlags = 0) const {
+        // @Temp We may allocate memory before the context is initialized, 
+		// and thus the default allocator is null. If that's the case just 
+		// use malloc so this function doesn't fail.
+		if (!Function) Function = default_allocator;
+
         void *result;
         if (!aligned) {
             result =
@@ -190,14 +206,6 @@ void *operator new[](size_t size, size_t alignment, allocator *alloc);
 
 void operator delete(void *ptr) noexcept;
 void operator delete[](void *ptr) noexcept;
-
-//
-// Default allocator:
-//
-
-// General purpose allocator (like malloc)
-void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                        size_t alignment, uptr_t);
 
 inline allocator Malloc = {default_allocator, null};
 

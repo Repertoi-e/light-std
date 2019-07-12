@@ -1,4 +1,4 @@
 #pragma once
 
-#include "instrinsics/math.h"
-#include "instrinsics/debug_break.h"
+#include "intrinsics/math.h"
+#include "intrinsics/debug_break.h"

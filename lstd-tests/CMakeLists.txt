@@ -1,5 +1,5 @@
 file(GLOB_RECURSE SOURCES src/*.cpp)
-add_executable (lstd-tests ${SOURCES})
+add_executable(lstd-tests ${SOURCES})
 
 set_target_properties(lstd-tests
   PROPERTIES
@@ -8,4 +8,5 @@ set_target_properties(lstd-tests
   RUNTIME_OUTPUT_DIRECTORY "${LSTD_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/lstd-tests"
 )
 
-target_link_libraries (lstd-tests LINK_PUBLIC light-std)
+target_link_libraries(lstd-tests LINK_PUBLIC light-std)
+cotire(lstd-tests)

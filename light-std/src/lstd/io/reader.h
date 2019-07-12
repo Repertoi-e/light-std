@@ -251,29 +251,29 @@ struct reader {
 
     bool test_state_and_skip_ws(bool noSkipSingleTime = false);
 
-    const byte *reader::incr() { return --Available, Current++; }
-    const byte *reader::pre_incr() { return --Available, ++Current; }
+    const byte *incr() { return --Available, Current++; }
+    const byte *pre_incr() { return --Available, ++Current; }
 
-    byte reader::peek_byte() {
+    byte peek_byte() {
         if (Available == 0) {
             return RequestByteFunction(this);
         }
         return *Current;
     }
 
-    byte reader::request_byte_and_incr() {
+    byte request_byte_and_incr() {
         if (RequestByteFunction(this) == eof) return eof;
         return *incr();
     }
 
-    byte reader::bump_byte() {
+    byte bump_byte() {
         if (Available == 0) {
             return RequestByteFunction(this);
         }
         return *incr();
     }
 
-    byte reader::next_byte() {
+    byte next_byte() {
         if (Available <= 1) {
             if (bump_byte() == eof) return eof;
             return peek_byte();

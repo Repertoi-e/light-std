@@ -200,7 +200,7 @@ constexpr bool is_lower(char32_t ch) { return ch != to_upper(ch); }
 
 // Returns the size in bytes of the code point that _str_ points to.
 // If the byte pointed by _str_ is a countinuation utf8 byte, this function returns 0
-constexpr size_t get_size_of_cp(const byte *str) {
+constexpr s8 get_size_of_cp(const byte *str) {
     if (!str) return 0;
     if ((*str & 0xc0) == 0x80) return 0;
 
@@ -216,7 +216,7 @@ constexpr size_t get_size_of_cp(const byte *str) {
 }
 
 // Returns the size that the code point would be if it were encoded.
-constexpr size_t get_size_of_cp(char32_t codePoint) {
+constexpr s8 get_size_of_cp(char32_t codePoint) {
     if (((s32) 0xffffff80 & codePoint) == 0) {
         return 1;
     } else if (((s32) 0xfffff800 & codePoint) == 0) {
@@ -273,8 +273,8 @@ constexpr char32_t decode_cp(const byte *str) {
     }
 }
 
-// Returns the index of the code point where byteIndex is pointing to (may be inside a code point)
-constexpr size_t get_index_at_byte(const byte *str, size_t size, size_t byteIndex) {
+// Returns the index of the code point where _byteIndex_ is pointing to (may be inside a code point)
+constexpr size_t get_cp_index_from_byte_index(const byte *str, size_t size, size_t byteIndex) {
     assert(byteIndex < size);
     size_t result = 0;
 
@@ -312,6 +312,12 @@ constexpr size_t translate_index(s64 index, size_t length, bool toleratePastLast
 constexpr const byte *get_cp_at_index(const byte *str, size_t length, s64 index, bool toleratePastLast = false) {
     For(range(translate_index(index, length, toleratePastLast))) str += get_size_of_cp(str);
     return str;
+}
+
+// Returns the index of the first byte of the code point which _cpIndex_ is pointing to
+constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, size_t cpIndex) {
+    assert(cpIndex < length);
+    return get_cp_at_index(str, length, (s64) cpIndex, true) - str;
 }
 
 #define COMMON_STRING_API_IMPL(name, cexpr_keyword)                                                              \
@@ -605,14 +611,14 @@ constexpr const byte *get_cp_at_index(const byte *str, size_t length, s64 index,
         auto *str = Data;                                                                                        \
         auto *p = out;                                                                                           \
         For(range(Length)) {                                                                                     \
-            char32_t it = decode_cp(str);                                                                        \
-            if (it > 0xffff) {                                                                                   \
-                *p++ = (u16)((it >> 10) + (0xd800u - (0x10000 >> 10)));                                          \
-                *p++ = (u16)((it & 0x3ff) + 0xdc00u);                                                            \
+            char32_t cp = decode_cp(str);                                                                        \
+            if (cp > 0xffff) {                                                                                   \
+                *p++ = (u16)((cp >> 10) + (0xd800u - (0x10000 >> 10)));                                          \
+                *p++ = (u16)((cp & 0x3ff) + 0xdc00u);                                                            \
             } else {                                                                                             \
-                *p++ = (u16) it;                                                                                 \
+                *p++ = (u16) cp;                                                                                 \
             }                                                                                                    \
-            str += get_size_of_cp(it);                                                                           \
+            str += get_size_of_cp(cp);                                                                           \
         }                                                                                                        \
         *p = 0;                                                                                                  \
     }                                                                                                            \
@@ -623,9 +629,9 @@ constexpr const byte *get_cp_at_index(const byte *str, size_t length, s64 index,
         auto *str = Data;                                                                                        \
         auto *p = out;                                                                                           \
         For(range(Length)) {                                                                                     \
-            char32_t it = decode_cp(str);                                                                        \
-            *p++ = it;                                                                                           \
-            str += get_size_of_cp(it);                                                                           \
+            char32_t cp = decode_cp(str);                                                                        \
+            *p++ = cp;                                                                                           \
+            str += get_size_of_cp(cp);                                                                           \
         }                                                                                                        \
         *p = 0;                                                                                                  \
     }                                                                                                            \
@@ -680,7 +686,7 @@ constexpr const byte *get_cp_at_index(const byte *str, size_t length, s64 index,
         cexpr_keyword char32_t operator*() const { return Parent->get(Index); }                                  \
                                                                                                                  \
         constexpr const byte *to_pointer() const {                                                               \
-            return get_cp_at_index(Parent->Data, Parent->Length, (s64) Index);                                   \
+            return get_cp_at_index(Parent->Data, Parent->Length, (s64) Index, true);                             \
         }                                                                                                        \
     };                                                                                                           \
                                                                                                                  \
@@ -730,4 +736,4 @@ constexpr bool operator>=(const byte *one, const string_view &other) { return !(
 LSTD_END_NAMESPACE
 
 // :ExplicitDeclareIsPod
-DECLARE_IS_POD(string_view, true);
+DECLARE_IS_POD(string_view, true)

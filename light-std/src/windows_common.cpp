@@ -3,10 +3,11 @@
 #if OS == WINDOWS
 
 #include "lstd/io.h"
+#include "lstd/io/fmt.h"
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+
+LSTD_BEGIN_NAMESPACE
 
 void *os_alloc(size_t size) { return HeapAlloc(GetProcessHeap(), 0, size); }
 
@@ -89,7 +90,7 @@ void io::console_writer_flush(io::writer *w) {
             cw->Buffer = cw->Current = g_CerrBuffer;
         }
 
-        cw->Available = CONSOLE_BUFFER_SIZE;
+        cw->BufferSize = cw->Available = CONSOLE_BUFFER_SIZE;
 
         if (!SetConsoleOutputCP(CP_UTF8)) {
             string warning =
@@ -111,10 +112,17 @@ void io::console_writer_flush(io::writer *w) {
     HANDLE target = cw->OutputType == io::console_writer::COUT ? g_CoutHandle : g_CerrHandle;
 
     DWORD ignored;
-    WriteFile(target, cw->Buffer, (DWORD)(CONSOLE_BUFFER_SIZE - cw->Available), &ignored, null);
+    WriteFile(target, cw->Buffer, (DWORD)(cw->BufferSize - cw->Available), &ignored, null);
 
     cw->Current = cw->Buffer;
     cw->Available = CONSOLE_BUFFER_SIZE;
 }
+
+// This workaround is needed in order to prevent circular inclusion of context.h
+namespace internal {
+io::writer *g_ConsoleLog = &io::cout;
+}
+
+LSTD_END_NAMESPACE
 
 #endif

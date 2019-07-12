@@ -45,6 +45,8 @@ _What is described above happens when the object gets copied around (assigned to
 
 > **Note**: `clone` and `move` work on all types and are the required way to implement functionality normally present in copy/move c-tors.
 
+> **Note**: In c++ the default assignment operator doesn't call the destructor, so assigning to a string that owns a buffer will cause a leak.
+
 Types that manage memory in this library follow similar design to string and helper functions (as well as an example) are provided in `storage/owner_pointers.h`.
 
 ### "No virtual or overriden functions":

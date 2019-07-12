@@ -47,5 +47,6 @@ bin-int/
 cpp-utils-tests_project_suppressions.cfg
 *.diagsession
 CMakeSettings.json
+build/
 
 Makefile

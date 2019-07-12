@@ -26,11 +26,11 @@
     factor * 10, factor * 100, factor * 1000, factor * 10000, factor * 100000, factor * 1000000, factor * 10000000, \
         factor * 100000000, factor * 1000000000
 
-inline constexpr u32 POWERS_OF_10_32[] = {1, POWERS_OF_10(1)};
-inline constexpr u64 POWERS_OF_10_64[] = {1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
+constexpr u32 POWERS_OF_10_32[] = {1, POWERS_OF_10(1)};
+constexpr u64 POWERS_OF_10_64[] = {1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
 
-inline constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
-inline constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull),
+constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
+constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull),
                                                   10000000000000000000ull};
 #undef POWERS_OF_10
 
@@ -92,6 +92,8 @@ INTEGRAL_FUNCTION_CONSTEXPR(T) ABS(T number) {
     auto s = number >> (sizeof(T) * 8 - 1);
     return (number ^ s) - s;
 }
+
+#undef INTEGRAL_FUNCTION_CONSTEXPR
 
 constexpr f32 ABS(f32 number) {
     ieee754_f32 format = {number};
@@ -167,7 +169,7 @@ inline u32 COUNT_DIGITS(u64 n) {
 }
 
 template <u32 Bits, typename T>
-inline u32 COUNT_DIGITS(T value) {
+constexpr u32 COUNT_DIGITS(T value) {
     T n = value;
     u32 numDigits = 0;
     do {
@@ -175,5 +177,3 @@ inline u32 COUNT_DIGITS(T value) {
     } while ((n >>= Bits) != 0);
     return numDigits;
 }
-
-#undef INTEGRAL_FUNCTION_CONSTEXPR

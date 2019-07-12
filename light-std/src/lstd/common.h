@@ -206,6 +206,9 @@ struct range {
 //     
 //     ! Note: _clone_ and _move_ work on all types and are the required way to implement functionality 
 //     normally present in copy/move c-tors.
+//
+//     ! Note: In c++ the default assignment operator doesn't call the destructor, 
+//     so assigning to a string that owns a buffer will cause a leak.
 //	   
 //   Types that manage memory in this library follow similar design to string and helper functions (as well as an example)
 //   are provided in _storage/owner_pointers.h_.
@@ -322,3 +325,10 @@ constexpr size_t compare_memory_constexpr(const void *ptr1, const void *ptr2, si
 }
 
 LSTD_END_NAMESPACE
+
+#if COMPILER != MSVC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#endif

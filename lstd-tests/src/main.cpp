@@ -1,63 +1,41 @@
-#include <iostream>
-
 #include <lstd/basic.h>
 #include <lstd/io.h>
 
+#include <lstd/io/fmt.h>
+
 int main() {
-    byte one[20]{};
-    byte two[20]{};
-
-    std::cout << compare_memory(one + 1, two, 15) << '\n';
-    std::cout << compare_memory_constexpr(one + 1, two, 15) << '\n';
-
-    one[10] = 1;
-    std::cout << compare_memory(one, two + 2, 15) << '\n';
-    std::cout << compare_memory_constexpr(one, two + 2, 15) << '\n';
-
-    two[10] = 1;
-    one[11] = 1;
-    std::cout << compare_memory(one + 1, two + 3, 15) << '\n';
-    std::cout << compare_memory_constexpr(one + 1, two + 3, 15) << '\n';
-
-    byte buffer[1000];
-    byte buffer_zero[1000]{};
-
-    std::cout << compare_memory(buffer, buffer_zero, 1000) << '\n';
-    std::cout << compare_memory_constexpr(buffer, buffer_zero, 1000) << '\n';
-
-    fill_memory(buffer, 0, 1000);
-
-    std::cout << compare_memory(buffer, buffer_zero, 1000) << '\n';
-
-    Context.init_temporary_allocator(2000);
-    PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
-        auto *my_buffer = new byte[1500];
-        delete my_buffer;
-
-        Context.TemporaryAlloc.free_all();
-    }
-
-    auto *buffer_number_ten_trillion_in_this_main_function = new (Context.TemporaryAlloc) byte[200];
-    auto *buffer_im_running_out_of_names = new (Malloc) byte[20000];
-
+    Context.init_temporary_allocator(2_KiB);
+    // PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
+    //     auto *my_buffer = new byte[1500];
+    //     delete[] my_buffer; // Does nothing, temp allocator supports only free all
+    //
+    //     Context.TemporaryAlloc.free_all();
+    // }
     Context.release_temporary_allocator();
 
     string me = "123";
     string at = "1235";
+    me.append("hi");
 
-    array<string> strings = {me, at};
-    array<string> copy;
-    clone(&copy, strings);
+    // Note:
+    // The memory leak below is happening because of a drawback of the user type policy
+    // and because assignment in C++ doesn't call the destructor (the user type policy disallows assignment overloading)
+    me = at;  // @Leak
 
-    s32 a1 = strings.is_owner();
-    s32 a2 = copy.is_owner();
-    s32 a3 = a1;
+    fmt::print(u8">> Hello, this is my formatter running! {:.^20f} {:=+010X}, {{}}, {:a} {:a} {:a} {:f}\n", 0x0p-1, 20,
+               0x1ffp10, 0x1.p0, 0xf.p-1, 0xa.bp10);
 
-    string input, input2;
-    io::cin.read_line(&input)->read_until(&input2, 'a');
+    table<const byte *, s32> hashMap;
+    *hashMap["hello"] = 2;
+    *hashMap["c++"] = 1111;
+    *hashMap["hello"] = 3;
 
-    io::cout.write("Hello, world!\n");
-    io::cout.flush();
+    hashMap.put("25982350238095", -235923859);
 
+    for (auto [k, v] : hashMap) {
+        fmt::print("{}, {}\n", *k, *v);
+    }
+
+    io::cin.read_line(&me);
     io::cin.ignore();
 }

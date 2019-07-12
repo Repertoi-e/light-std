@@ -10,8 +10,9 @@ namespace io {
 struct writer;
 inline void writer_flush_do_nothing(writer *) {}
 
-template <typename T>
-bool serialize(T *src, writer *w);
+// @Temp ??
+// template <typename T>
+// bool serialize(T *src, fmt::foromt*f);
 
 // Provides a way to write types and bytes with a simple extension API.
 // Holds a pointer to _write_t_ and _flush_t_. Every other function
@@ -25,7 +26,7 @@ struct writer {
     flush_t FlushFunction = writer_flush_do_nothing;
 
     byte *Buffer = null, *Current = null;
-    size_t Available = 0;
+    size_t BufferSize = 0, Available = 0;
 
     writer() = default;
     writer(write_t writeFunction, flush_t flushFunction) : WriteFunction(writeFunction), FlushFunction(flushFunction) {}
@@ -42,13 +43,6 @@ struct writer {
 
     void flush() { FlushFunction(this); }
 };
-
-// Specialize this for custom types that may not be POD or have data that isn't serialized, e.g. pointers
-template <typename T>
-bool serialize(T *src, writer *w) {
-    w->write((const byte *) src, sizeof(T));
-    return true;
-}
 
 }  // namespace io
 

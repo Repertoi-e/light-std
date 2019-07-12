@@ -1,8 +1,8 @@
 #include "allocator.h"
 
-#include "../context.h"
-
 #include "../../vendor/stb_malloc.hpp"
+#include "../context.h"
+#include "../io/fmt.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -80,11 +80,16 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
                 data->Used += size;
             } else {
                 // Out of storage.
-                // @TODO Print a warning
+                bool switched = false;
                 if (Context.Alloc == Context.TemporaryAlloc) {
+                    switched = true;
                     // @Cleanup Maybe we shouldn't do this...
                     // If the context uses the temporary allocator, switch it forcefully to malloc
                     const_cast<implicit_context *>(&Context)->Alloc = Malloc;
+                }
+                fmt::print(">> TemporaryAlloc ran out of storage. Using Malloc...\n");
+                if (switched) {
+                    fmt::print("   Note: Context's default allocator is TemporaryAlloc. Switching it to Malloc...\n");
                 }
                 result = Malloc.allocate(size);
             }
@@ -133,8 +138,8 @@ void implicit_context::release_temporary_allocator() const {
     assert(TemporaryAlloc.Context && "Temporary allocator not initialized");
 
     auto *tempAlloc = const_cast<allocator *>(&TemporaryAlloc);
-    delete[]((temporary_allocator_data *) tempAlloc->Context)->Storage;
-    delete tempAlloc->Context;
+    delete[](byte *)((temporary_allocator_data *) tempAlloc->Context)->Storage;
+    delete (temporary_allocator_data *) tempAlloc->Context;
 
     tempAlloc->Context = null;
 }

@@ -47,15 +47,13 @@ struct string {
 
     // Create a string from a null terminated c-string.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const byte *str) : Data(str), ByteLength(cstring_strlen(str)), Length(0), Reserved(0) {
-        Length = utf8_strlen(str, ByteLength);
-    }
+    string(const byte *str) : Data(str), ByteLength(cstring_strlen(str)) { Length = utf8_strlen(str, ByteLength); }
 
     // Create a string from a buffer and a length.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const byte *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)), Reserved(0) {}
+    string(const byte *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)) {}
 
-    string(const string_view &view) : Data(view.Data), ByteLength(view.ByteLength), Length(view.Length), Reserved(0) {}
+    string(string_view view) : Data(view.Data), ByteLength(view.ByteLength), Length(view.Length) {}
 
     string(char32_t codePoint, size_t repeat, allocator alloc = {null, null});
     string(wchar_t codePoint, size_t repeat, allocator alloc = {null, null})
@@ -110,10 +108,10 @@ struct string {
     // Insert a buffer of bytes at a specified index
     void insert_pointer_and_size(s64 index, const byte *str, size_t size);
 
-    // Removes code point at specified index
+    // Remove code point at specified index
     void remove(s64 index);
 
-    // Removes a range of code points.
+    // Remove a range of code points.
     // [begin, end)
     void remove(s64 begin, s64 end);
 
@@ -138,16 +136,16 @@ struct string {
     // Removes all occurences of _cp_
     void remove_all(char32_t cp);
 
-    // Removes all occurences of _str_
+    // Remove all occurences of _str_
     void remove_all(string str);
 
-    // Replaces all occurences of _oldCp_ with _newCp_
+    // Replace all occurences of _oldCp_ with _newCp_
     void replace_all(char32_t oldCp, char32_t newCp);
 
-    // Replaces all occurences of _oldStr_ with _newStr_
+    // Replace all occurences of _oldStr_ with _newStr_
     void replace_all(string oldStr, string newStr);
 
-    // Returns true if this object has any memory allocated by itself
+    // Return true if this object has any memory allocated by itself
     bool is_owner() const { return Reserved && decode_owner<string>(Data) == this; }
 
     //
@@ -214,6 +212,7 @@ struct string {
         view.Length = Length;
         return view;
     }
+    explicit operator bool() const { return ByteLength; }
 
     code_point operator[](s64 index) { return get(index); }
 

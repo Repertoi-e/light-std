@@ -8,8 +8,9 @@ LSTD_BEGIN_NAMESPACE
 
 template <typename T>
 struct array {
-    static_assert(is_pod_v<T> &&
-                  "arrays can only work with POD types, take a look at the type policy in common.h");
+    // If your type can be copied byte by byte correctly,
+    // then you can explicitly declare it as POD in global namespace with DECLARE_IS_POD(type, true)
+    static_assert(is_pod_v<T> && "arrays can only work with POD types, take a look at the type policy in common.h");
 
     using data_t = T;
 
@@ -75,7 +76,7 @@ struct array {
     void release() {
         reset();
         if (is_owner()) {
-            delete ((byte *) Data - POINTER_SIZE);
+            delete[] ((byte *) Data - POINTER_SIZE);
             Data = null;
             Reserved = 0;
         }

@@ -75,7 +75,7 @@ void string::reserve(size_t size, allocator alloc) {
 
 void string::release() {
     if (is_owner()) {
-        delete (Data - POINTER_SIZE);
+        delete[](Data - POINTER_SIZE);
         Data = null;
         Length = ByteLength = Reserved = 0;
     }
