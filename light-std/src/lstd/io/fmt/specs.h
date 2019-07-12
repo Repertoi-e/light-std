@@ -34,7 +34,6 @@ struct format_specs : public align_specs {
     flag Flags = (flag) 0;
     s32 Precision = -1;
     byte Type;
-	color Color;
 
     constexpr format_specs(u32 width = 0, byte type = 0, char32_t fill = ' ')
         : align_specs(width, fill), Type(type) {}

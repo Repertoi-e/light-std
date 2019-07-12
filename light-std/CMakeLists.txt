@@ -19,4 +19,3 @@ set_target_properties(light-std
 )
 
 target_include_directories(light-std PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-cotire(light-std)

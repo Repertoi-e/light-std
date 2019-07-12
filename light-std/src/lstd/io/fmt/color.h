@@ -68,7 +68,7 @@ inline string_view terminal_color_to_string(terminal_color c) {
 // Returns WHITE if not found.
 inline terminal_color string_to_terminal_color(string_view str) {
 #define COLOR_DEF(x, y) \
-    if (str == #x) return color::##x;
+    if (str == #x) return terminal_color::##x;
 #include "terminal_colors.def"
 #undef COLOR_DEF
     return terminal_color::WHITE;

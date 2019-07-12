@@ -28,5 +28,3 @@ if(MSVC)
 	    target_link_libraries(lstd-benchmark LINK_PUBLIC Shlwapi)
 	endif()
 endif()
-
-cotire(lstd-benchmark)

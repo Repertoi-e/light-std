@@ -9,4 +9,3 @@ set_target_properties(lstd-tests
 )
 
 target_link_libraries(lstd-tests LINK_PUBLIC light-std)
-cotire(lstd-tests)
