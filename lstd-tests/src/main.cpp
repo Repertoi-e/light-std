@@ -22,8 +22,10 @@ int main() {
     // and because assignment in C++ doesn't call the destructor (the user type policy disallows assignment overloading)
     me = at;  // @Leak
 
-    fmt::print(u8">> Hello, this is my formatter running! {:.^20f} {:=+010X}, {{}}, {:a} {:a} {:a} {:f}\n", 0x0p-1, 20,
-               0x1ffp10, 0x1.p0, 0xf.p-1, 0xa.bp10);
+    fmt::print(
+        u8">> {!U} Hello, this is my formatter running! {!CORNFLOWER_BLUE} {:.^20f} {:=+010X}, {!} {!CORNFLOWER_BLUE;BG} "
+        u8"{!tBRIGHT_BLACK;BU} {{}}, {:a} {:a} {:a} {:f} {!}\n",
+        0x0p-1, 20, 0x1ffp10, 0x1.p0, 0xf.p-1, 0xa.bp10);
 
     table<const byte *, s32> hashMap;
     *hashMap["hello"] = 2;

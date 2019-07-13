@@ -176,7 +176,7 @@ constexpr const byte *parse_fmt_specs(const byte *begin, const byte *end, SpecHa
     begin = parse_align(begin, end, handler);
     if (begin == end) return begin;
 
-    // Parse sign.
+    // Parse sign
     switch (*begin) {
         case '+':
             handler->on_plus();
@@ -198,7 +198,6 @@ constexpr const byte *parse_fmt_specs(const byte *begin, const byte *end, SpecHa
         if (++begin == end) return begin;
     }
 
-    // Parse zero flag.
     if (*begin == '0') {
         handler->on_zero();
         if (++begin == end) return begin;
@@ -207,13 +206,12 @@ constexpr const byte *parse_fmt_specs(const byte *begin, const byte *end, SpecHa
     begin = parse_width(begin, end, handler);
     if (begin == end) return begin;
 
-    // Parse precision.
     if (*begin == '.') {
         begin = parse_precision(begin, end, handler);
     }
 
-    // Parse type.
     if (begin != end && *begin != '}') handler->on_type(*begin++);
+
     return begin;
 }
 
@@ -241,9 +239,9 @@ struct specs_setter {
     constexpr void on_precision(u32 precision) { Specs->Precision = (s32) precision; }
     constexpr void end_precision() {}
 
-    constexpr void on_type(byte type) { Specs->Type = type; }
+    constexpr void on_text_style(text_style style) { Specs->TextStyle = style; }
 
-    constexpr void on_color(color c) {}
+    constexpr void on_type(byte type) { Specs->Type = type; }
 };
 
 // Format spec handler that saves references to dynamic width and precision arguments.
@@ -349,6 +347,8 @@ struct specs_checker : public Handler {
         Checker.require_numeric_argument();
         Handler::on_zero();
     }
+
+    constexpr void on_text_style(text_style style) { Handler::on_text_style(style); }
 
     constexpr void end_precision() { Checker.check_precision(); }
 };
@@ -456,6 +456,110 @@ constexpr const byte *parse_arg_id(const byte *begin, const byte *end, IDHandler
     } while (it != end && (is_alphanumeric(c = *it) || c == '_'));
     (*handler)(string_view(begin, (size_t)(it - begin)));
     return it;
+}
+
+template <typename Handler>
+constexpr text_style parse_text_style(const byte **begin, const byte *end, Handler *handler) {
+    text_style result;
+
+    if (is_alpha(**begin)) {
+        bool terminal = false;
+        if (**begin == 't') {
+            terminal = true;
+            ++*begin;
+        }
+
+        auto *nameBegin = *begin;
+        while (*begin != end && is_identifier_start(**begin)) ++*begin;
+
+        if (**begin != ';' && **begin != '}') {
+            handler->on_error("Invalid color name - it must be all caps and contain only letters");
+        }
+
+        auto name = string_view(nameBegin, *begin - nameBegin);
+        if (terminal) {
+            terminal_color c = string_to_terminal_color(name);
+            if (c == terminal_color::NONE) {
+                // Color with that name not found, treat it as emphasis
+                *begin -= name.ByteLength;
+                goto handle_emphasis;
+            }
+            result.ColorKind = text_style::color_kind::TERMINAL;
+            result.Color.Terminal = c;
+        } else {
+            color c = string_to_color(name);
+            if (c == color::NONE) {
+                // Color with that name not found, treat it as emphasis
+                *begin -= name.ByteLength;
+                goto handle_emphasis;
+            }
+            result.ColorKind = text_style::color_kind::RGB;
+            result.Color.RGB = (u32) c;
+        }
+
+    } else if (is_digit(**begin)) {
+        // Parse an RGB true color
+        u32 r = parse_nonnegative_int(begin, end, handler);
+        if (**begin != ';') handler->on_error("Expected ';' after parsing red channel");
+        if (*begin == end || **begin == '}') {
+            handler->on_error("Invalid RGB color - expected 3 channels separated by ';'");
+        }
+        ++*begin;
+
+        u32 g = parse_nonnegative_int(begin, end, handler);
+        if (**begin != ';') handler->on_error("Expected ';' after parsing green channel");
+        if (*begin == end || **begin == '}') {
+            handler->on_error("Invalid RGB color - expected 3 channels separated by ';'");
+        }
+        ++*begin;
+
+        u32 b = parse_nonnegative_int(begin, end, handler);
+        if (**begin != '}' && **begin != ';') {
+            handler->on_error("Invalid RGB color - expected '}' or a ';' followed by emphasis or background specifier");
+        }
+
+        result.ColorKind = text_style::color_kind::RGB;
+        result.Color.RGB = (r << 16) | (g << 8) | b;
+    } else if (**begin == '}') {
+        // Empty text style spec means "reset"
+        return result;
+    }
+
+    if (**begin == ';') {
+        ++*begin;
+        if (*begin + 2 < end) {
+            if (**begin == 'B' && *(*begin + 1) == 'G') {
+                result.Background = true;
+                *begin += 2;
+                return result;
+            }
+        }
+    handle_emphasis:
+        // We get here either by failing to match a color name or by parsing a color first and then reaching another ';'
+        while (*begin != end && is_alpha(**begin)) {
+            switch (**begin) {
+                case 'B':
+                    result.Emphasis |= emphasis::BOLD;
+                    break;
+                case 'I':
+                    result.Emphasis |= emphasis::ITALIC;
+                    break;
+                case 'U':
+                    result.Emphasis |= emphasis::UNDERLINE;
+                    break;
+                case 'S':
+                    result.Emphasis |= emphasis::STRIKETHROUGH;
+                    break;
+                default:
+                    // Note, we might have gotten here if we failed to match a color name
+                    handler->on_error(
+                        "Invalid emphasis char - "
+                        "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)");
+            }
+            ++*begin;
+        }
+    }
+    return result;
 }
 }  // namespace fmt
 

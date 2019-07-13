@@ -105,12 +105,6 @@ args_store<Args...> make_fmt_args(const Args &... args) {
     return {args...};
 }
 
-template <typename... Args>
-args_store<Args...> make_fmt_args_checked(string_view fmtString, const Args &... args) {
-    check_format_string<Args...>(fmtString);
-    return {args...};
-}
-
 struct args {
     u64 Types = 0;
     union {

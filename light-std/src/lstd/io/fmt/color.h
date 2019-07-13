@@ -19,7 +19,7 @@ enum class color : u32 {
 #undef COLOR_DEF
 };
 
-inline string_view color_to_string(color c) {
+constexpr string_view color_to_string(color c) {
     switch (c) {
 #define COLOR_DEF(x, y) \
     case color::##x:    \
@@ -33,13 +33,13 @@ inline string_view color_to_string(color c) {
 
 // Colors are defined all-uppercase and this function is case-sensitive
 //   e.g. cornflower_blue doesn't return color::CORNFLOWER_BLUE
-// Returns WHITE if not found.
-inline color string_to_color(string_view str) {
+// Returns color::NONE (with value of black) if not found.
+constexpr color string_to_color(string_view str) {
 #define COLOR_DEF(x, y) \
     if (str == #x) return color::##x;
 #include "colors.def"
 #undef COLOR_DEF
-    return color::WHITE;
+    return color::NONE;
 }
 
 // Colors are defined all-uppercase.
@@ -51,7 +51,7 @@ enum class terminal_color : u32 {
 #undef COLOR_DEF
 };
 
-inline string_view terminal_color_to_string(terminal_color c) {
+constexpr string_view terminal_color_to_string(terminal_color c) {
     switch (c) {
 #define COLOR_DEF(x, y)       \
     case terminal_color::##x: \
@@ -59,29 +59,46 @@ inline string_view terminal_color_to_string(terminal_color c) {
 #include "terminal_colors.def"
 #undef COLOR_DEF
         default:
-            return "UNKNOWN";
+            return "NONE";
     }
 }
 
 // Colors are defined all-uppercase and this function is case-sensitive
 //   e.g. bright_black doesn't return color::BRIGHT_BLACK
-// Returns WHITE if not found.
-inline terminal_color string_to_terminal_color(string_view str) {
+// Returns terminal_color::NONE (invalid) if not found.
+constexpr terminal_color string_to_terminal_color(string_view str) {
 #define COLOR_DEF(x, y) \
     if (str == #x) return terminal_color::##x;
 #include "terminal_colors.def"
 #undef COLOR_DEF
-    return terminal_color::WHITE;
+    return terminal_color::NONE;
 }
 
-struct fmt_color {
-    enum class kind { RGB = 0, TERMINAL };
+enum class emphasis : u8 { BOLD = BIT(0), ITALIC = BIT(1), UNDERLINE = BIT(2), STRIKETHROUGH = BIT(3) };
 
-    kind Kind;
+constexpr emphasis operator|(emphasis lhs, emphasis rhs) {
+    using T = underlying_type_t<emphasis>;
+    return (emphasis)((T) lhs | (T) rhs);
+}
+
+constexpr emphasis &operator|=(emphasis &lhs, emphasis rhs) {
+    using T = underlying_type_t<emphasis>;
+    lhs = (emphasis)((T) lhs | (T) rhs);
+    return lhs;
+}
+
+struct text_style {
+    enum class color_kind { NONE = 0, RGB, TERMINAL };
+
+    color_kind ColorKind = color_kind::NONE;
     union {
-        terminal_color COLOR;
-        u32 RGB;
+        u32 RGB = 0;
+        terminal_color Terminal;
     } Color;
+    bool Background = false;
+    emphasis Emphasis = (emphasis) 0;
+
+    constexpr text_style() = default;
 };
 
 }  // namespace fmt

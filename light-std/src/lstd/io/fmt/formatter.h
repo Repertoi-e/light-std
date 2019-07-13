@@ -127,9 +127,8 @@ struct format_handler {
         Context->Specs = {};
 
         format_specs specs;
-        internal::specs_checker<internal::dynamic_specs_handler> handler(
-            internal::dynamic_specs_handler{&Context->Parse, &Context->Specs}, Context->Parse.ErrorHandlerFunc,
-            Context->Parse.get_error_context(), Arg.Type);
+        internal::specs_checker handler(internal::dynamic_specs_handler{&Context->Parse, &Context->Specs},
+                                        Context->Parse.ErrorHandlerFunc, Context->Parse.get_error_context(), Arg.Type);
         begin = parse_fmt_specs(begin, end, &handler, &Context->Parse);
 
         Context->Parse.advance_to(begin);
@@ -144,7 +143,87 @@ struct format_handler {
         return begin;
     }
 
+    const byte *on_text_style(const byte *begin, const byte *end) {
+        auto textStyle = parse_text_style(&begin, end, this);
+        Context->Parse.advance_to(begin);
+
+        byte buffer[7 + 3 * 4 + 1];
+        byte *p = buffer;
+        if (textStyle.ColorKind != text_style::color_kind::NONE) {
+            if (textStyle.ColorKind == text_style::color_kind::TERMINAL) {
+                // Background terminal colors are 10 more than the foreground ones
+                u32 value = (u32) textStyle.Color.Terminal + (textStyle.Background ? 10 : 0);
+
+                *p++ = '\x1b';
+                *p++ = '[';
+
+                if (value >= 100) {
+                    *p++ = '1';
+                    value %= 100;
+                }
+                *p++ = '0' + value / 10;
+                *p++ = '0' + value % 10;
+
+                *p++ = 'm';
+                *p++ = '\0';
+            } else {
+                if (textStyle.Background) {
+                    copy_memory(p, internal::BG_COLOR, 7);
+                } else {
+                    copy_memory(p, internal::FG_COLOR, 7);
+                }
+
+                u8 r = (u8)((textStyle.Color.RGB >> 16) & 0xFF);
+                u8 g = (u8)((textStyle.Color.RGB >> 8) & 0xFF);
+                u8 b = (u8)((textStyle.Color.RGB) & 0xFF);
+                to_esc(r, buffer + 7, ';');
+                to_esc(g, buffer + 11, ';');
+                to_esc(b, buffer + 15, 'm');
+                p = buffer + 19;
+            }
+        } else if ((u8) textStyle.Emphasis == 0) {
+            // Empty text style spec means "reset"
+            auto size = cstring_strlen(internal::RESET_COLOR);
+            copy_memory(p, internal::RESET_COLOR, size);
+            p += size;
+        }
+        Context->write_no_specs(buffer, p - buffer);
+
+        u8 emBits = (u8) textStyle.Emphasis;
+        if (emBits) {
+            assert(!textStyle.Background);
+
+            u8 codes[4] = {};
+            if (emBits & (u8) emphasis::BOLD) codes[0] = 1;
+            if (emBits & (u8) emphasis::ITALIC) codes[1] = 3;
+            if (emBits & (u8) emphasis::UNDERLINE) codes[2] = 4;
+            if (emBits & (u8) emphasis::STRIKETHROUGH) codes[3] = 9;
+
+            p = buffer;
+            For(range(4)) {
+                if (!codes[it]) continue;
+
+                *p++ = '\x1b';
+                *p++ = '[';
+                *p++ = '0' + codes[it];
+                *p++ = 'm';
+            }
+        }
+        Context->write_no_specs(buffer, p - buffer);
+
+        return begin;
+    }
+
     void on_error(const byte *message) { Context->on_error(message); }
+
+   private:
+    // Used when making ANSI escape codes for text styles
+    void to_esc(u8 c, byte *out, byte delimiter) {
+        out[0] = '0' + c / 100;
+        out[1] = '0' + c / 10 % 10;
+        out[2] = '0' + c % 10;
+        out[3] = delimiter;
+    }
 };
 }  // namespace fmt
 

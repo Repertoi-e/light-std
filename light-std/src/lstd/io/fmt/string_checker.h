@@ -46,6 +46,7 @@ struct fmt_string_checker {
         check_arg_id();
     }
 
+    // @TODO: Let's support named arguments...
     constexpr void on_arg_id(string_view) { on_error("Constexpr checks don't support named arguments, yet"); }
 
     constexpr void on_replacement_field(const byte *) { ++ArgsEncountered; }
@@ -56,6 +57,12 @@ struct fmt_string_checker {
 
         dynamic_format_specs specs;
         return ArgID < NUM_ARGS ? ParseFuncs[ArgID](&Parse, &specs) : begin;
+    }
+
+    constexpr const byte *on_text_style(const byte *begin, const byte *end) {
+        Parse.advance_to(begin);
+        parse_text_style(&begin, end, this);
+        return begin;
     }
 
     // Error location gets filled in the parse context
@@ -139,10 +146,13 @@ constexpr void parse_format_string(parse_context *context, Handler *handler) {
             handler->on_replacement_field(p);
         } else if (*p == '{') {
             handler->on_text(p, p + 1);
+        } else if (*p == '!') {
+            p = handler->on_text_style(p + 1, end);
+            if (p == end || *p != '}') return handler->on_error("Missing '}' in format string");
         } else {
             auto idHandler = internal::id_adapter<Handler>(handler);
             p = parse_arg_id(p, end, &idHandler);
-            char c = p != end ? *p : 0;
+            byte c = p != end ? *p : 0;
             if (c == '}') {
                 handler->on_replacement_field(p);
             } else if (c == ':') {
