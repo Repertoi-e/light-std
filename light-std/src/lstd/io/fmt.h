@@ -111,6 +111,44 @@
 //       's' - Outputs it as an utf-8 encoded string.
 //       '' (None) - the same as 's'
 //
+//
+// There is also a way to specify text styles directly in the format string. Without requiring an argument.
+// Text styles are defined by a opening curly brace ('{') followed by '!', then the text style and a closing brace ('}')
+// An empty text style resets any foreground/background color and text emphasis.
+//    fmt::print("{!}")
+//
+// There are 3 ways to define a text color. The color is optional but it must be the first thing after '!'.
+//    1) Using the name of a color, e.g. {!CORNFLOWER_BLUE}
+//       A full list of recognized colors is available in "lstd/io/fmt/colors.def"
+//       and programatically in the fmt::color enum
+//	        fmt::print("{!DARK_MAGENTA}")
+//    2) Using the name of a "terminal" color. Use these colors if the console you are printing to doesn't support
+//       true color. These are the most basic colors supported by almost any console.
+//           BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
+//           and the bright versions: BRIGHT_BLACK, BRIGHT_RED, ...
+//       In order to distinguish between 24-bit color and 4-bit, a leading 't' is required after the '!'
+//	        fmt::print("{!tBRIGHT_CYAN}")
+//    3) Using RGB. This gives you full control and ability to specify any 24-bit color.
+//       Channels are parsed in the order red - green - blue and must be separated by ';'
+//	        fmt::print("{!50;230;170}")
+//       Values must be in the range [0-255]
+//
+// After the text color you can mark is as background using "BG":
+//	        fmt::print("{!WHITE;BG}")
+// That means the color applies to the background and not the foreground.
+//
+// If you didn't mark the color as background, you can specify a series of 
+// characters that define the emphasis style of the text.
+//	        fmt::print("{!WHITE;BIUS}")
+//    Here "BIUS" specifies all the types of emphasis:
+//      B (bold), I (italic, rarely supported by consoles tho), U (underline) and S (strikethrough)
+//    They can be in any order and are optional.
+//    e.g. valid emphasis strings are: "BI", "U", "B", "SU", "SB", etc...
+//       Note: When parsing, if we fail to find the name of a color, e.g. {!IMAGINARYCOLOR}, we treat
+//             the series of characters as emphasis, although any character encountered that is not a 
+//             valid emphasis gets reported as an error.
+//             This allows specifying emphasis without color: fmt::print("{!BU}");
+
 
 LSTD_BEGIN_NAMESPACE
 

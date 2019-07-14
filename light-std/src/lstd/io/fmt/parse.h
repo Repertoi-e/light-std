@@ -458,6 +458,25 @@ constexpr const byte *parse_arg_id(const byte *begin, const byte *end, IDHandler
     return it;
 }
 
+namespace internal {
+template <typename Handler>
+constexpr u8 parse_rgb_channel(const byte **begin, const byte *end, Handler *handler, bool last) {
+    u32 channel = parse_nonnegative_int(begin, end, handler);
+    if (channel > 255) handler->on_error("Invalid RGB channel value - it must be in the range [0-255]");
+    if (!last) {
+        if (**begin != ';') handler->on_error("Expected ';' after parsing first or second channel");
+        if (*begin == end || **begin == '}') {
+            handler->on_error("Invalid RGB color - expected 3 channels separated by ';'");
+        }
+    } else {
+        if (**begin != '}' && **begin != ';') {
+            handler->on_error("Invalid RGB color - expected '}' or a ';' followed by emphasis or background specifier");
+        }
+    }
+    return (u8) channel;
+}
+}  // namespace internal
+
 template <typename Handler>
 constexpr text_style parse_text_style(const byte **begin, const byte *end, Handler *handler) {
     text_style result;
@@ -496,28 +515,13 @@ constexpr text_style parse_text_style(const byte **begin, const byte *end, Handl
             result.ColorKind = text_style::color_kind::RGB;
             result.Color.RGB = (u32) c;
         }
-
     } else if (is_digit(**begin)) {
         // Parse an RGB true color
-        u32 r = parse_nonnegative_int(begin, end, handler);
-        if (**begin != ';') handler->on_error("Expected ';' after parsing red channel");
-        if (*begin == end || **begin == '}') {
-            handler->on_error("Invalid RGB color - expected 3 channels separated by ';'");
-        }
+        u8 r = internal::parse_rgb_channel(begin, end, handler, false);
         ++*begin;
-
-        u32 g = parse_nonnegative_int(begin, end, handler);
-        if (**begin != ';') handler->on_error("Expected ';' after parsing green channel");
-        if (*begin == end || **begin == '}') {
-            handler->on_error("Invalid RGB color - expected 3 channels separated by ';'");
-        }
+        u8 g = internal::parse_rgb_channel(begin, end, handler, false);
         ++*begin;
-
-        u32 b = parse_nonnegative_int(begin, end, handler);
-        if (**begin != '}' && **begin != ';') {
-            handler->on_error("Invalid RGB color - expected '}' or a ';' followed by emphasis or background specifier");
-        }
-
+        u8 b = internal::parse_rgb_channel(begin, end, handler, true);
         result.ColorKind = text_style::color_kind::RGB;
         result.Color.RGB = (r << 16) | (g << 8) | b;
     } else if (**begin == '}') {
@@ -529,6 +533,9 @@ constexpr text_style parse_text_style(const byte **begin, const byte *end, Handl
         ++*begin;
         if (*begin + 2 < end) {
             if (**begin == 'B' && *(*begin + 1) == 'G') {
+                if (result.ColorKind == text_style::color_kind::NONE) {
+                    handler->on_error("Color specified as background but there is no color");
+                }
                 result.Background = true;
                 *begin += 2;
                 return result;
