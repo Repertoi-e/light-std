@@ -6,6 +6,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
+// @TODO: _sort()_
 template <typename T>
 struct array {
     // If your type can be copied byte by byte correctly,
@@ -49,9 +50,8 @@ struct array {
             reserveTarget *= 2;
         }
 
-        if (Reserved) {
-            assert(is_owner() && "Cannot resize a buffer that isn't owned by this dynamic array.");
-
+        size_t byteSize = reserveTarget * sizeof(data_t) + POINTER_SIZE;
+        if (is_owner()) {
             auto *actualData = (byte *) Data - POINTER_SIZE;
 
             if (alloc) {
@@ -61,12 +61,10 @@ struct array {
                        "allocator. Call with null allocator to avoid that.");
             }
 
-            Data = (data_t *) ((byte *) allocator::reallocate(actualData, reserveTarget + POINTER_SIZE) + POINTER_SIZE);
+            Data = (data_t *) ((byte *) allocator::reallocate(actualData, byteSize) + POINTER_SIZE);
         } else {
-            size_t reserveSize = reserveTarget * sizeof(data_t) + POINTER_SIZE;
-
             auto *oldData = Data;
-            Data = encode_owner((data_t *) new (alloc) byte[reserveSize], this);
+            Data = encode_owner((data_t *) new (alloc) byte[byteSize], this);
             if (Count) copy_memory(Data, oldData, Count * sizeof(data_t));
         }
         Reserved = reserveTarget;
@@ -76,7 +74,7 @@ struct array {
     void release() {
         reset();
         if (is_owner()) {
-            delete[] ((byte *) Data - POINTER_SIZE);
+            delete[]((byte *) Data - POINTER_SIZE);
             Data = null;
             Reserved = 0;
         }
@@ -85,21 +83,25 @@ struct array {
     // Don't free the buffer, just move cursor to 0
     void reset() {
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
-        while (Count--) Data[Count].~data_t();
+        while (Count) {
+            Data[Count].~data_t();
+            --Count;
+        }
     }
 
     data_t &get(size_t index) { return Data[translate_index(index, Count)]; }
     const data_t &get(size_t index) const { return Data[translate_index(index, Count)]; }
 
     // Sets the _index_'th element in the array
-    void set(s64 index, const data_t &element) {
+    array *set(s64 index, const data_t &element) {
         auto i = translate_index(index, Count);
         Data[i].~data_t();
         Data[i] = element;
+        return this;
     }
 
     // Insert an element at a specified index
-    void insert(s64 index, const data_t &element) {
+    data_t *insert(s64 index, const data_t &element) {
         if (Count >= Reserved) {
             reserve(Reserved * 2);
         }
@@ -111,13 +113,14 @@ struct array {
         }
         copy_memory(where, &element, sizeof(data_t));
         Count++;
+        return where;
     }
 
     // Insert an array at a specified index
-    void insert(s64 index, array arr) { insert_pointer_and_size(index, arr.Data, arr.Count); }
+    data_t *insert(s64 index, array arr) { return insert_pointer_and_size(index, arr.Data, arr.Count); }
 
     // Insert a buffer of elements at a specified index
-    void insert_pointer_and_size(s64 index, const data_t *ptr, size_t size) {
+    data_t *insert_pointer_and_size(s64 index, const data_t *ptr, size_t size) {
         size_t required = Reserved;
         while (Count + size >= required) {
             required = 2 * Reserved;
@@ -132,21 +135,29 @@ struct array {
         }
         copy_memory(where, ptr, size * sizeof(data_t));
         Count += size;
+        return where;
     }
 
     // Removes element at specified index and rearranges following elements
-    void remove(s64 index) {
+    array *remove(s64 index) {
+        // If the array is a view, we don't want to modify the original!
+        if (!is_owner()) reserve(0);
+
         size_t offset = translate_index(index, Count);
 
         auto *where = begin() + offset;
         where->~data_t();
         copy_memory(where, where + 1, (Count - offset - 1) * sizeof(data_t));
         Count--;
+        return this;
     }
 
     // Removes a range of elements and rearranges following elements
     // [begin, end)
-    void remove(s64 begin, s64 end) {
+    array *remove(s64 begin, s64 end) {
+        // If the array is a view, we don't want to modify the original!
+        if (!is_owner()) reserve(0);
+
         size_t targetBegin = translate_index(index, Count);
         size_t targetEnd = translate_index(index, Count, true);
 
@@ -158,26 +169,39 @@ struct array {
         size_t elementCount = targetEnd - targetBegin;
         copy_memory(where, where + elementCount, (Count - offset - elementCount) * sizeof(data_t));
         Count -= elementCount;
+        return this;
     }
 
+    // Inserts an empty element
+    data_t *append() { return append(data_t()); }
+
     // Append an element to the end
-    void append(const data_t &element) { insert(Count, element); }
+    // Returns a pointer to the added element
+    data_t *append(const data_t &element) { return insert(Count, element); }
 
     // Append an array to the end
-    void append(array arr) { insert(Count, arr); }
+    // Returns a pointer to the first added element
+    data_t *append(array arr) { return insert(Counts, arr); }
 
     // Append a buffer of elements to the end
-    void append_pointer_and_size(const data_t *ptr, size_t size) { insert_pointer_and_size(Count, ptr, size); }
+    // Returns a pointer to the first added element
+    data_t *append_pointer_and_size(const data_t *ptr, size_t size) {
+        return insert_pointer_and_size(Count, ptr, size);
+    }
 
     // Compares this array to _arr_ and returns the index of the first element that is different.
     // If the arrays are equal, the returned value is npos (-1)
-    constexpr s32 compare(array arr) const {
-        auto s1 = begin(), s2 = arr.begin();
+    template <typename U>
+    constexpr size_t compare(array<U> arr) const {
+        static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
+
+        const T *s1 = begin();
+        const U *s2 = arr.begin();
         while (*s1 == *s2) {
             ++s1, ++s2;
             if (s1 == end() && s2 == arr.end()) return npos;
-            if (s1 == end()) s1 - begin();
-            if (s2 == arr.end()) s2 - arr.begin();
+            if (s1 == end()) return s1 - begin();
+            if (s2 == arr.end()) return s2 - arr.begin();
         }
         return s1 - begin();
     }
@@ -185,8 +209,13 @@ struct array {
     // Compares this array to to _arr_ lexicographically.
     // The result is less than 0 if this array sorts before the other, 0 if they are equal,
     // and greater than 0 otherwise.
-    constexpr s32 compare_lexicographically(array arr) const {
-        auto s1 = begin(), s2 = arr.begin();
+    template <typename U>
+    constexpr s32 compare_lexicographically(array<U> arr) const {
+        static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
+        static_assert(is_less_comparable_v<T, U>, "Types cannot be compared with operator <");
+
+        const T *s1 = begin();
+        const U *s2 = arr.begin();
         while (*s1 == *s2) {
             ++s1, ++s2;
             if (s1 == end() && s2 == arr.end()) return 0;
@@ -370,21 +399,40 @@ struct array {
     const data_t &operator[](s64 index) const { get(index); }
 
     // Check two arrays for equality
-    bool operator==(array other) const { return compare(other) == 0; }
-    bool operator!=(array other) const { return !(*this == other); }
-    bool operator<(array other) const { return compare(other) < 0; }
-    bool operator>(array other) const { return compare(other) > 0; }
-    bool operator<=(array other) const { return !(*this > other); }
-    bool operator>=(array other) const { return !(*this < other); }
+    template <typename U>
+    bool operator==(array<U> other) const {
+        return compare(other) == npos;
+    }
+
+    template <typename U>
+    bool operator!=(array<U> other) const {
+        return !(*this == other);
+    }
+
+    template <typename U>
+    bool operator<(array<U> other) const {
+        return compare(other) < 0;
+    }
+
+    template <typename U>
+    bool operator>(array<U> other) const {
+        return compare(other) > 0;
+    }
+
+    template <typename U>
+    bool operator<=(array<U> other) const {
+        return !(*this > other);
+    }
+
+    template <typename U>
+    bool operator>=(array<U> other) const {
+        return !(*this < other);
+    }
 };
 
 // :ExplicitDeclareIsPod
 template <typename T>
 struct is_pod<array<T>> : public true_t {};
-template <typename T>
-struct is_pod<const array<T>> : public true_t {};
-template <typename T>
-struct is_pod<const volatile array<T>> : public true_t {};
 
 template <typename T>
 array<T> *clone(array<T> *dest, array<T> src) {
@@ -411,18 +459,16 @@ array<T> *move(array<T> *dest, array<T> *src) {
 //
 template <typename T, typename U, size_t N>
 bool operator==(array<T> left, const stack_array<U, N> &right) {
-    if constexpr (!std::is_same_v<T, U>) {
-        return false;
-    } else {
-        if (left.Count != right.Count) return false;
+    static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
 
-        For(range(left.Count)) {
-            if (left.Data[it] != right.Data[it]) {
-                return false;
-            }
+    if (left.Count != right.Count) return false;
+
+    For(range(left.Count)) {
+        if (!(left.Data[it] == right.Data[it])) {
+            return false;
         }
-        return true;
     }
+    return true;
 }
 
 template <typename T, typename U, size_t N>

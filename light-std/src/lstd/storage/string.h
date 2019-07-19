@@ -97,53 +97,53 @@ struct string {
     code_point get(s64 index) { return code_point(this, translate_index(index, Length)); }
 
     // Sets the _index_'th code point in the string
-    void set(s64 index, char32_t codePoint);
+    string *set(s64 index, char32_t codePoint);
 
     // Insert a code point at a specified index
-    void insert(s64 index, char32_t codePoint);
+    string *insert(s64 index, char32_t codePoint);
 
     // Insert a string at a specified index
-    void insert(s64 index, string str);
+    string *insert(s64 index, string str);
 
     // Insert a buffer of bytes at a specified index
-    void insert_pointer_and_size(s64 index, const byte *str, size_t size);
+    string *insert_pointer_and_size(s64 index, const byte *str, size_t size);
 
     // Remove code point at specified index
-    void remove(s64 index);
+    string *remove(s64 index);
 
     // Remove a range of code points.
     // [begin, end)
-    void remove(s64 begin, s64 end);
+    string *remove(s64 begin, s64 end);
 
     // Append a non encoded character to a string
-    void append(char32_t codePoint) { insert(Length, codePoint); }
+    string *append(char32_t codePoint) { return insert(Length, codePoint); }
 
     // Append one string to another
-    void append(string str) { append_pointer_and_size(str.Data, str.ByteLength); }
+    string *append(string str) { return append_pointer_and_size(str.Data, str.ByteLength); }
 
     // Append _size_ bytes of string contained in _data_
-    void append_pointer_and_size(const byte *str, size_t size) { insert_pointer_and_size(Length, str, size); }
+    string *append_pointer_and_size(const byte *str, size_t size) { return insert_pointer_and_size(Length, str, size); }
 
-    // Clone this string and copy its contents _n_ times
-    string repeated(size_t n) const;
+    // Copy this string's contents and append them _n_ times
+    string *repeat(size_t n);
 
-    // Clone string and convert it to uppercase characters
-    string get_upper() const;
+    // Convert this string to uppercase code points
+    string *to_upper();
 
-    // Clone string and convert it to lowercase characters
-    string get_lower() const;
+    // Convert this string to lowercase code points
+    string *to_lower();
 
     // Removes all occurences of _cp_
-    void remove_all(char32_t cp);
+    string *remove_all(char32_t cp);
 
     // Remove all occurences of _str_
-    void remove_all(string str);
+    string *remove_all(string str);
 
     // Replace all occurences of _oldCp_ with _newCp_
-    void replace_all(char32_t oldCp, char32_t newCp);
+    string *replace_all(char32_t oldCp, char32_t newCp);
 
     // Replace all occurences of _oldStr_ with _newStr_
-    void replace_all(string oldStr, string newStr);
+    string *replace_all(string oldStr, string newStr);
 
     // Return true if this object has any memory allocated by itself
     bool is_owner() const { return Reserved && decode_owner<string>(Data) == this; }
@@ -215,39 +215,6 @@ struct string {
     explicit operator bool() const { return ByteLength; }
 
     code_point operator[](s64 index) { return get(index); }
-
-    string operator+(char32_t codePoint) const {
-        string result = *this;
-        result.append(codePoint);
-        return result;
-    }
-
-    string operator+(string memory) const {
-        string result = *this;
-        result.append(memory);
-        return result;
-    }
-
-    string operator+(const byte *str) const { return *this + string(str); }
-
-    string &operator+=(char32_t codePoint) {
-        append(codePoint);
-        return *this;
-    }
-
-    string &operator+=(string memory) {
-        append(memory);
-        return *this;
-    }
-
-    string &operator+=(const byte *str) { return *this += string(str); }
-
-    string operator*(size_t n) { return repeated(n); }
-
-    string &operator*=(size_t n) {
-        *this = repeated(n);
-        return *this;
-    }
 };
 
 inline bool operator==(const byte *one, string other) { return other.compare_lexicographically(one) == 0; }
@@ -256,9 +223,6 @@ inline bool operator<(const byte *one, string other) { return other.compare_lexi
 inline bool operator>(const byte *one, string other) { return other.compare_lexicographically(one) < 0; }
 inline bool operator<=(const byte *one, string other) { return !(one > other); }
 inline bool operator>=(const byte *one, string other) { return !(one < other); }
-
-inline string operator+(const byte *one, string other) { return string(one) + other; }
-inline string operator*(size_t n, string str) { return str.repeated(n); }
 
 string *clone(string *dest, string src);
 string *move(string *dest, string *src);

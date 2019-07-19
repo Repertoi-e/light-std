@@ -331,18 +331,20 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     cexpr_keyword char32_t get(s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }      \
                                                                                                                  \
     cexpr_keyword bool begins_with(char32_t cp) const { return get(0) == cp; }                                   \
-    cexpr_keyword bool begins_with(const name &str) const {                                                      \
+    cexpr_keyword bool begins_with(name str) const {                                                             \
+        assert(str.ByteLength < ByteLength);                                                                     \
         return compare_memory_constexpr(Data, str.Data, str.ByteLength) == npos;                                 \
     }                                                                                                            \
                                                                                                                  \
     cexpr_keyword bool ends_with(char32_t cp) const { return get(-1) == cp; }                                    \
-    cexpr_keyword bool ends_with(const name &str) const {                                                        \
+    cexpr_keyword bool ends_with(name str) const {                                                               \
+        assert(str.ByteLength < ByteLength);                                                                     \
         return compare_memory_constexpr(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == npos;   \
     }                                                                                                            \
                                                                                                                  \
     /* Compares the string to _str_ and returns the index of the first differnt code point */                    \
     /* If the strings are equal, the returned value is npos (-1) */                                              \
-    cexpr_keyword size_t compare(const name &str) {                                                              \
+    cexpr_keyword size_t compare(name str) {                                                                     \
         /* If the memory pointers and the lengths are the same, the strings are equal! */                        \
         if (Data == str.Data && ByteLength == str.ByteLength) return npos;                                       \
                                                                                                                  \
@@ -358,13 +360,13 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
                                                                                                                  \
     /* Compares the string to _str_ (ignoring case) and returns the index of the first different code point */   \
     /* If the strings are equal, the returned value is npos (-1) */                                              \
-    cexpr_keyword size_t compare_ignore_case(const name &str) {                                                  \
+    cexpr_keyword size_t compare_ignore_case(name str) {                                                  \
         /* If the memory pointers and the lengths are the same, the strings are equal! */                        \
         if (Data == str.Data && ByteLength == str.ByteLength) return npos;                                       \
                                                                                                                  \
         auto s1 = begin();                                                                                       \
         auto s2 = str.begin();                                                                                   \
-        while (to_lower(*s1) == to_lower(*s2)) {                                                                 \
+        while (::to_lower(*s1) == ::to_lower(*s2)) {                                                             \
             ++s1, ++s2;                                                                                          \
             if (s1 == end() && s2 == str.end()) return npos;                                                     \
             if (s1 == end() || s2 == str.end()) return s1.Index;                                                 \
@@ -375,7 +377,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     /* Compares the string to _str_ lexicographically. */                                                        \
     /* The result is less than 0 if this string sorts before the other, 0 if they are equal, */                  \
     /* and greater than 0 otherwise. */                                                                          \
-    cexpr_keyword s32 compare_lexicographically(const name &str) const {                                         \
+    cexpr_keyword s32 compare_lexicographically(name str) const {                                         \
         /* If the memory pointers and the lengths are the same, the strings are equal! */                        \
         if (Data == str.Data && ByteLength == str.ByteLength) return 0;                                          \
                                                                                                                  \
@@ -397,22 +399,22 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     /* Compares the string to _str_ lexicographically while ignoring case of code points. */                     \
     /* The result is less than 0 if this string sorts before the other, 0 if they are equal, */                  \
     /* and greater than 0 otherwise. */                                                                          \
-    cexpr_keyword s32 compare_lexicographically_ignore_case(const name &str) const {                             \
+    cexpr_keyword s32 compare_lexicographically_ignore_case(name str) const {                             \
         /* If the memory pointers and the lengths are the same, the strings are equal! */                        \
         if (Data == str.Data && ByteLength == str.ByteLength) return 0;                                          \
         if (Length == 0 && str.Length == 0) return 0;                                                            \
-        if (Length == 0) return -((s32) to_lower(str.get(0)));                                                   \
-        if (str.Length == 0) return to_lower(get(0));                                                            \
+        if (Length == 0) return -((s32)::to_lower(str.get(0)));                                                  \
+        if (str.Length == 0) return ::to_lower(get(0));                                                          \
                                                                                                                  \
         auto s1 = begin();                                                                                       \
         auto s2 = str.begin();                                                                                   \
-        while (to_lower(*s1) == to_lower(*s2)) {                                                                 \
+        while (::to_lower(*s1) == ::to_lower(*s2)) {                                                             \
             ++s1, ++s2;                                                                                          \
             if (s1 == end() && s2 == str.end()) return 0;                                                        \
-            if (s1 == end()) return -((s32) to_lower(str.get(0)));                                               \
-            if (s2 == str.end()) return to_lower(get(0));                                                        \
+            if (s1 == end()) return -((s32)::to_lower(str.get(0)));                                              \
+            if (s2 == str.end()) return ::to_lower(get(0));                                                      \
         }                                                                                                        \
-        return ((s32) to_lower(*s1) - (s32) to_lower(*s2));                                                      \
+        return ((s32)::to_lower(*s1) - (s32)::to_lower(*s2));                                                    \
     }                                                                                                            \
                                                                                                                  \
     /* Find the first occurence of a code point that is after a specified index */                               \
@@ -428,7 +430,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     }                                                                                                            \
                                                                                                                  \
     /* Find the first occurence of a substring that is after a specified index */                                \
-    cexpr_keyword size_t find(const name &str, s64 start = 0) const {                                            \
+    cexpr_keyword size_t find(name str, s64 start = 0) const {                                            \
         assert(Data);                                                                                            \
         assert(str.Data);                                                                                        \
         assert(str.Length);                                                                                      \
@@ -460,7 +462,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     }                                                                                                            \
                                                                                                                  \
     /* Find the last occurence of a substring that is before a specified index */                                \
-    cexpr_keyword size_t find_reverse(const name &str, s64 start = 0) const {                                    \
+    cexpr_keyword size_t find_reverse(name str, s64 start = 0) const {                                    \
         assert(Data);                                                                                            \
         assert(str.Data);                                                                                        \
         assert(str.Length);                                                                                      \
@@ -480,7 +482,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     }                                                                                                            \
                                                                                                                  \
     /* Find the first occurence of any code point in the specified view that is after a specified index */       \
-    cexpr_keyword size_t find_any_of(const name &cps, s64 start = 0) const {                                     \
+    cexpr_keyword size_t find_any_of(name cps, s64 start = 0) const {                                     \
         assert(Data);                                                                                            \
         if (Length == 0) return npos;                                                                            \
                                                                                                                  \
@@ -493,7 +495,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
                                                                                                                  \
     /* Find the last occurence of any code point in the specified view */                                        \
     /* that is before a specified index (0 means: start from the end) */                                         \
-    cexpr_keyword size_t find_reverse_any_of(const name &cps, s64 start = 0) const {                             \
+    cexpr_keyword size_t find_reverse_any_of(name cps, s64 start = 0) const {                             \
         assert(Data);                                                                                            \
         if (Length == 0) return npos;                                                                            \
                                                                                                                  \
@@ -531,7 +533,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     }                                                                                                            \
                                                                                                                  \
     /* Find the first absence of any code point in the specified view that is after a specified index */         \
-    cexpr_keyword size_t find_not_any_of(const name &cps, s64 start = 0) const {                                 \
+    cexpr_keyword size_t find_not_any_of(name cps, s64 start = 0) const {                                 \
         assert(Data);                                                                                            \
         if (Length == 0) return npos;                                                                            \
                                                                                                                  \
@@ -543,7 +545,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     }                                                                                                            \
                                                                                                                  \
     /* Find the first absence of any code point in the specified view that is after a specified index */         \
-    cexpr_keyword size_t find_reverse_not_any_of(const name &cps, s64 start = 0) const {                         \
+    cexpr_keyword size_t find_reverse_not_any_of(name cps, s64 start = 0) const {                         \
         assert(Data);                                                                                            \
         if (Length == 0) return npos;                                                                            \
                                                                                                                  \
@@ -583,7 +585,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     cexpr_keyword bool has(char32_t cp) const { return find(cp) != npos; }                                       \
                                                                                                                  \
     /* Returns true if the string contains _str_ anywhere */                                                     \
-    cexpr_keyword bool has(const name &str) const { return find(str) != npos; }                                  \
+    cexpr_keyword bool has(name str) const { return find(str) != npos; }                                  \
                                                                                                                  \
     /* Counts the number of occurences of _cp_ */                                                                \
     cexpr_keyword size_t count(char32_t cp) const {                                                              \
@@ -596,7 +598,7 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     }                                                                                                            \
                                                                                                                  \
     /* Counts the number of occurences of _str_ */                                                               \
-    cexpr_keyword size_t count(const name &str) const {                                                          \
+    cexpr_keyword size_t count(name str) const {                                                          \
         size_t result = 0, index = 0;                                                                            \
         while ((index = find(str, index)) != npos) {                                                             \
             ++result, ++index;                                                                                   \
@@ -699,12 +701,12 @@ constexpr size_t get_byte_index_from_cp_index(const byte *str, size_t length, si
     cexpr_keyword char32_t operator[](s64 index) const { return get(index); }                                    \
                                                                                                                  \
     /* Check two strings for equality */                                                                         \
-    cexpr_keyword bool operator==(const name &other) const { return compare_lexicographically(other) == 0; }     \
-    cexpr_keyword bool operator!=(const name &other) const { return !(*this == other); }                         \
-    cexpr_keyword bool operator<(const name &other) const { return compare_lexicographically(other) < 0; }       \
-    cexpr_keyword bool operator>(const name &other) const { return compare_lexicographically(other) > 0; }       \
-    cexpr_keyword bool operator<=(const name &other) const { return !(*this > other); }                          \
-    cexpr_keyword bool operator>=(const name &other) const { return !(*this < other); }
+    cexpr_keyword bool operator==(name other) const { return compare_lexicographically(other) == 0; }     \
+    cexpr_keyword bool operator!=(name other) const { return !(*this == other); }                         \
+    cexpr_keyword bool operator<(name other) const { return compare_lexicographically(other) < 0; }       \
+    cexpr_keyword bool operator>(name other) const { return compare_lexicographically(other) > 0; }       \
+    cexpr_keyword bool operator<=(name other) const { return !(*this > other); }                          \
+    cexpr_keyword bool operator>=(name other) const { return !(*this < other); }
 
 // A string object that is entirely constexpr
 struct string_view {

@@ -87,8 +87,8 @@ template <typename T>
 struct formatter<T, enable_if_t<(type) type_constant_v<T> != type::CUSTOM>> {
     void format(T src, format_context *f) {
         internal::handle_dynamic_specs(f);
-        visit_fmt_arg([&](auto value) { f->write(value); }, make_arg(src));
-    };
+        visit_fmt_arg(internal::format_context_visitor(f), make_arg(src));
+    }
 };
 
 struct format_handler {
@@ -116,8 +116,7 @@ struct format_handler {
             auto handle = typename arg::handle(Arg.Value.Custom);
             handle.format(Context);
         } else {
-            auto visitor = internal::format_context_visitor{Context};
-            visit_fmt_arg(visitor, Arg);
+            visit_fmt_arg(internal::format_context_visitor(Context), Arg);
         }
     }
 
@@ -138,8 +137,7 @@ struct format_handler {
 
         internal::handle_dynamic_specs(Context);
 
-        auto visitor = internal::format_context_visitor{Context};
-        visit_fmt_arg(visitor, Arg);
+        visit_fmt_arg(internal::format_context_visitor(Context), Arg);
         return begin;
     }
 

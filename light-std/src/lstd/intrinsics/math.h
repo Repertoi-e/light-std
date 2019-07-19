@@ -30,8 +30,7 @@ constexpr u32 POWERS_OF_10_32[] = {1, POWERS_OF_10(1)};
 constexpr u64 POWERS_OF_10_64[] = {1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
 
 constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
-constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull),
-                                                  10000000000000000000ull};
+constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
 #undef POWERS_OF_10
 
 #if COMPILER == MSVC
@@ -76,6 +75,12 @@ inline u32 LSB_64(u64 x) {
 #define LSB(n) __builtin_ctz(n)
 #define LSB_64(n) __builtin_ctzll(n)
 #endif
+
+constexpr u32 ROTATE_LEFT_32(u32 x, u32 bits) { return (x << bits) | (x >> (32 - bits)); }
+constexpr u64 ROTATE_LEFT_64(u64 x, u32 bits) { return (x << bits) | (x >> (64 - bits)); }
+
+constexpr u32 ROTATE_RIGHT_32(u32 x, u32 bits) { return (x >> bits) | (x << (32 - bits)); }
+constexpr u64 ROTATE_RIGHT_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 - bits)); }
 
 #define INTEGRAL_FUNCTION_CONSTEXPR(return_type) \
     template <typename T>                        \
@@ -159,6 +164,16 @@ constexpr bool IS_NEG(f32 number) {
 constexpr bool IS_NEG(f64 number) {
     ieee754_f64 format = {number};
     return format.ieee.S;
+}
+
+template <typename T>
+T MAX(T x, T y) {
+    return x > y ? x : y;
+}
+
+template <typename T>
+T MIN(T x, T y) {
+    return x < y ? x : y;
 }
 
 // Returns the number of decimal digits in n. Leading zeros are not counted

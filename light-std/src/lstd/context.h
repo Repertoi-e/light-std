@@ -48,9 +48,6 @@ inline thread_local const implicit_context Context;
 
 LSTD_END_NAMESPACE
 
-#define LSTD_PC_VAR_(x, LINE) LSTD_NAMESPACE_NAME##_lstd_push_context##x##LINE
-#define LSTD_PC_VAR(x, LINE) LSTD_PC_VAR_(x, LINE)
-
 // This is a helper macro to safely modify a variable in the implicit context in a block of code.
 // Usage:
 //    PUSH_CONTEXT(variable, newVariableValue) {
@@ -59,22 +56,22 @@ LSTD_END_NAMESPACE
 //    ... old context variable value is restored ...
 //
 #define PUSH_CONTEXT(var, newValue)                                                    \
-    auto LSTD_PC_VAR(oldVar, __LINE__) = Context.##var;                                \
-    auto LSTD_PC_VAR(restored, __LINE__) = false;                                      \
-    auto LSTD_PC_VAR(context, __LINE__) = const_cast<implicit_context *>(&Context);    \
+    auto LINE_NAME(oldVar) = Context.var;                                \
+    auto LINE_NAME(restored) = false;                                      \
+    auto LINE_NAME(context) = const_cast<implicit_context *>(&Context);    \
     defer({                                                                            \
-        if (!LSTD_PC_VAR(restored, __LINE__)) {                                        \
-            LSTD_PC_VAR(context, __LINE__)->##var = LSTD_PC_VAR(oldVar, __LINE__);     \
+        if (!LINE_NAME(restored)) {                                        \
+            LINE_NAME(context)->##var = LINE_NAME(oldVar);     \
         }                                                                              \
     });                                                                                \
     if (true) {                                                                        \
-        LSTD_PC_VAR(context, __LINE__)->##var = newValue;                              \
+        LINE_NAME(context)->##var = newValue;                              \
         goto body;                                                                     \
     } else                                                                             \
         while (true)                                                                   \
             if (true) {                                                                \
-                LSTD_PC_VAR(context, __LINE__)->##var = LSTD_PC_VAR(oldVar, __LINE__); \
-                LSTD_PC_VAR(restored, __LINE__) = true;                                \
+                LINE_NAME(context)->##var = LINE_NAME(oldVar); \
+                LINE_NAME(restored) = true;                                \
                 break;                                                                 \
             } else                                                                     \
             body:

@@ -131,6 +131,33 @@ struct precision_adapter {
     constexpr void on_error(const byte *message) { Handler->on_error(message); }
 };
 
+// Parses the range [begin, end) as an unsigned integer. This function assumes
+// that the range is non-empty and the first character is a digit.
+template <typename Handler>
+constexpr u32 parse_nonnegative_int(const byte **begin, const byte *end, Handler *handler) {
+    assert(*begin != end && '0' <= **begin && **begin <= '9');
+
+    if (**begin == '0') {
+        ++(*begin);
+        return 0;
+    }
+    u32 value = 0;
+    // Convert to unsigned to prevent a warning.
+    u32 maxInt = numeric_info<s32>::max();
+    u32 big = maxInt / 10;
+    do {
+        // Check for overflow.
+        if (value > big) {
+            value = maxInt + 1;
+            break;
+        }
+        value = value * 10 + u32(**begin - '0');
+        ++(*begin);
+    } while (*begin != end && '0' <= **begin && **begin <= '9');
+    if (value > maxInt) handler->on_error("Number is too big");
+    return value;
+}
+
 template <typename Handler>
 constexpr const byte *parse_width(const byte *begin, const byte *end, Handler *handler) {
     assert(begin != end);
@@ -400,33 +427,6 @@ constexpr const byte *parse_fmt_specs(parse_context *context, dynamic_format_spe
     return it;
 }
 
-// Parses the range [begin, end) as an unsigned integer. This function assumes
-// that the range is non-empty and the first character is a digit.
-template <typename Handler>
-constexpr u32 parse_nonnegative_int(const byte **begin, const byte *end, Handler *handler) {
-    assert(*begin != end && '0' <= **begin && **begin <= '9');
-
-    if (**begin == '0') {
-        ++(*begin);
-        return 0;
-    }
-    u32 value = 0;
-    // Convert to unsigned to prevent a warning.
-    u32 maxInt = numeric_info<s32>::max();
-    u32 big = maxInt / 10;
-    do {
-        // Check for overflow.
-        if (value > big) {
-            value = maxInt + 1;
-            break;
-        }
-        value = value * 10 + u32(**begin - '0');
-        ++(*begin);
-    } while (*begin != end && '0' <= **begin && **begin <= '9');
-    if (value > maxInt) handler->on_error("Number is too big");
-    return value;
-}
-
 template <typename IDHandler>
 constexpr const byte *parse_arg_id(const byte *begin, const byte *end, IDHandler *handler) {
     assert(begin != end);
@@ -447,7 +447,7 @@ constexpr const byte *parse_arg_id(const byte *begin, const byte *end, IDHandler
         return begin;
     }
     if (!is_alpha(c) && c != '_') {
-        handler->on_error("invalid format string");
+        handler->on_error("Invalid format string");
         return begin;
     }
     auto it = begin;
@@ -478,6 +478,33 @@ constexpr u8 parse_rgb_channel(const byte **begin, const byte *end, Handler *han
 }  // namespace internal
 
 template <typename Handler>
+constexpr void handle_emphasis(text_style *style, const byte **begin, const byte *end, Handler *handler) {
+    // We get here either by failing to match a color name or by parsing a color first and then reaching another ';'
+    while (*begin != end && is_alpha(**begin)) {
+        switch (**begin) {
+            case 'B':
+                style->Emphasis |= emphasis::BOLD;
+                break;
+            case 'I':
+                style->Emphasis |= emphasis::ITALIC;
+                break;
+            case 'U':
+                style->Emphasis |= emphasis::UNDERLINE;
+                break;
+            case 'S':
+                style->Emphasis |= emphasis::STRIKETHROUGH;
+                break;
+            default:
+                // Note, we might have gotten here if we failed to match a color name
+                handler->on_error(
+                    "Invalid emphasis character - "
+                    "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)");
+        }
+        ++*begin;
+    }
+}
+
+template <typename Handler>
 constexpr text_style parse_text_style(const byte **begin, const byte *end, Handler *handler) {
     text_style result;
 
@@ -501,7 +528,8 @@ constexpr text_style parse_text_style(const byte **begin, const byte *end, Handl
             if (c == terminal_color::NONE) {
                 // Color with that name not found, treat it as emphasis
                 *begin -= name.ByteLength;
-                goto handle_emphasis;
+                handle_emphasis(&result, begin, end, handler);
+                return result;
             }
             result.ColorKind = text_style::color_kind::TERMINAL;
             result.Color.Terminal = c;
@@ -510,7 +538,8 @@ constexpr text_style parse_text_style(const byte **begin, const byte *end, Handl
             if (c == color::NONE) {
                 // Color with that name not found, treat it as emphasis
                 *begin -= name.ByteLength;
-                goto handle_emphasis;
+                handle_emphasis(&result, begin, end, handler);
+                return result;
             }
             result.ColorKind = text_style::color_kind::RGB;
             result.Color.RGB = (u32) c;
@@ -534,37 +563,14 @@ constexpr text_style parse_text_style(const byte **begin, const byte *end, Handl
         if (*begin + 2 < end) {
             if (**begin == 'B' && *(*begin + 1) == 'G') {
                 if (result.ColorKind == text_style::color_kind::NONE) {
-                    handler->on_error("Color specified as background but there is no color");
+                    handler->on_error("Color specified as type background but there is no color");
                 }
                 result.Background = true;
                 *begin += 2;
                 return result;
             }
         }
-    handle_emphasis:
-        // We get here either by failing to match a color name or by parsing a color first and then reaching another ';'
-        while (*begin != end && is_alpha(**begin)) {
-            switch (**begin) {
-                case 'B':
-                    result.Emphasis |= emphasis::BOLD;
-                    break;
-                case 'I':
-                    result.Emphasis |= emphasis::ITALIC;
-                    break;
-                case 'U':
-                    result.Emphasis |= emphasis::UNDERLINE;
-                    break;
-                case 'S':
-                    result.Emphasis |= emphasis::STRIKETHROUGH;
-                    break;
-                default:
-                    // Note, we might have gotten here if we failed to match a color name
-                    handler->on_error(
-                        "Invalid emphasis char - "
-                        "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)");
-            }
-            ++*begin;
-        }
+        handle_emphasis(&result, begin, end, handler);
     }
     return result;
 }

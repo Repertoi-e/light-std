@@ -137,8 +137,8 @@ struct value {
    private:
     template <typename T>
     static void format_custom_arg(const void *arg, format_context *f) {
-        formatter<T> f;
-        f.format(*(const T *) (arg), f);
+        formatter<remove_cvref_t<T>> formatter;
+        formatter.format(*(const T *) (arg), f);
     }
 };  // namespace fmt
 
@@ -205,23 +205,18 @@ struct arg_mapper {
     constexpr u64 map(u64 val) { return val; }
     constexpr bool map(bool val) { return val; }
 
-    template <typename T, enable_if_t<is_same_v<T, byte>> = 0>
-    constexpr byte map(const T &val) {
-        return val;
-    }
-
     constexpr f64 map(f32 val) { return (f64) val; }
     constexpr f64 map(f64 val) { return val; }
 
     constexpr const byte *map(byte *val) { return val; }
     constexpr const byte *map(const byte *val) { return val; }
 
-    template <typename T, enable_if_t<is_constructible_v<string_view, T>, int> = 0>
-    constexpr string_view map(const T &val) {
+    template <typename T>
+    constexpr enable_if_t<is_constructible_v<string_view, T>, string_view> map(const T &val) {
         return string_view(val);
     }
 
-    inline string_view make_value(string val) { return (string_view) val; }
+    string_view map(string val) { return (string_view) val; }
     constexpr const void *map(void *val) { return val; }
     constexpr const void *map(const void *val) { return val; }
 
@@ -233,15 +228,14 @@ struct arg_mapper {
         return 0;
     }
 
-    template <typename T, enable_if_t<is_enum_v<T> && !has_formatter<T>::value> = 0>
-    constexpr s32 map(const T &val) {
-        return (s32)(val);
+    template <typename T>
+    constexpr enable_if_t<!is_constructible_v<string_view, T> && has_formatter<T>::value, const T &> map(const T &val) {
+        return val;
     }
 
-    template <typename T,
-              enable_if_t<!is_constructible_v<string_view, T> && !is_same_v<T, byte> && has_formatter<T>::value> = 0>
-    constexpr const T &map(const T &val) {
-        return val;
+    template <typename T, typename = enable_if_t<is_enum_v<T>>>
+    constexpr auto map(const T &val) {
+        return (underlying_type_t<T>) (val);
     }
 
     template <typename T>

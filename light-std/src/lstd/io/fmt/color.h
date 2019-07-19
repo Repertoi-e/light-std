@@ -22,7 +22,7 @@ enum class color : u32 {
 constexpr string_view color_to_string(color c) {
     switch (c) {
 #define COLOR_DEF(x, y) \
-    case color::##x:    \
+    case color::x:    \
         return #x;
 #include "colors.def"
 #undef COLOR_DEF
@@ -36,7 +36,7 @@ constexpr string_view color_to_string(color c) {
 // Returns color::NONE (with value of black) if not found.
 constexpr color string_to_color(string_view str) {
 #define COLOR_DEF(x, y) \
-    if (str == #x) return color::##x;
+    if (str == #x) return color::x;
 #include "colors.def"
 #undef COLOR_DEF
     return color::NONE;
@@ -54,7 +54,7 @@ enum class terminal_color : u32 {
 constexpr string_view terminal_color_to_string(terminal_color c) {
     switch (c) {
 #define COLOR_DEF(x, y)       \
-    case terminal_color::##x: \
+    case terminal_color::x: \
         return #x;
 #include "terminal_colors.def"
 #undef COLOR_DEF
@@ -68,7 +68,7 @@ constexpr string_view terminal_color_to_string(terminal_color c) {
 // Returns terminal_color::NONE (invalid) if not found.
 constexpr terminal_color string_to_terminal_color(string_view str) {
 #define COLOR_DEF(x, y) \
-    if (str == #x) return terminal_color::##x;
+    if (str == #x) return terminal_color::x;
 #include "terminal_colors.def"
 #undef COLOR_DEF
     return terminal_color::NONE;

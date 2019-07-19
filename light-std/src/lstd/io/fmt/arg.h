@@ -101,26 +101,26 @@ struct args_store {
 // Constructs an _fmt::args_store_ object that contains references to arguments
 // and can be implicitly converted to _fmt::arg_.
 template <typename... Args>
-args_store<Args...> make_fmt_args(const Args &... args) {
+args_store<remove_reference_t<Args>...> make_fmt_args(const remove_reference_t<Args> &... args) {
     return {args...};
 }
 
 struct args {
     u64 Types = 0;
     union {
-        value *Values;
-        arg *Args;
+        const value *Values;
+        const arg *Args;
     };
 
-    args() {}
+    args() = default;
 
     template <typename... Args>
-    args(args_store<Args...> store) : Types(store.TYPES) {
+    args(const args_store<Args...> &store) : Types(store.TYPES) {
         set_data(store.Data);
     }
 
-    void set_data(value *values) { Values = values; }
-    void set_data(arg *ars) { Args = ars; }
+    void set_data(const value *values) { Values = values; }
+    void set_data(const arg *ars) { Args = ars; }
 
     bool is_packed() const { return (Types & internal::IS_UNPACKED_BIT) == 0; }
 
@@ -197,7 +197,7 @@ struct arg_map : non_copyable {
         }
     }
 
-    void add(value value) { Entries[Size++] = entry{value.NamedArg->Name, value.NamedArg->deserialize()}; }
+    void add(const value &value) { Entries[Size++] = entry{value.NamedArg->Name, value.NamedArg->deserialize()}; }
 
     arg find(string_view name) const {
         for (auto *it = Entries, *end = Entries + Size; it != end; ++it) {

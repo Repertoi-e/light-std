@@ -9,6 +9,23 @@ LSTD_BEGIN_NAMESPACE
 template <typename Key, typename Value, bool Const>
 struct table_iterator;
 
+// This hash table stores all entries in a contiguous array, for good perofrmance when looking up things. Some tables
+// work by storing linked lists of entries, but that can lead to many more cache misses.
+//
+// We store 3 arrays, one for the values, one for the keys and one for the hashed keys.
+//
+// When storing a value, we map its hash to a slot index and if that slot is free, we put the key and value there,
+// otherwise we keep incrementing the slot index until we find an empty slot. Because the table can never be full, we
+// are guaranteed to find a slot eventually.
+//
+// When looking up a value we perform the same process to find the correct slot.
+//
+// We use hash values to indicate whether slots are empty of removed. A hash of 0 means that slot is not used, so new
+// values an be put there. A hash of 1 means that slot used to be valid, but has been removed. A hash of 2 or h igher
+// (FIRST_VALID_HASH) means this is a currently used slot.
+//
+// Whether we hash a key, if the result is less than 2, we just add 2 to it to put it in the valid range.
+// This leads to possibly more collisions, but it's a small price to pay.
 template <typename K, typename V>
 struct table {
     // If your type can be copied byte by byte correctly,
@@ -20,19 +37,20 @@ struct table {
     using value_t = V;
 
     static constexpr size_t MINIMUM_SIZE = 32;
+    static constexpr size_t FIRST_VALID_HASH = 2;
 
+    // Number of valid items
     size_t Count = 0;
+
+    // Number of slots allocated
     size_t Reserved = 0;
 
-    // The value that gets returned if a value is not found in _find()_
-    // By default it's a default constructed value_t.
-    // This value may be changed by the user for specific cases.
-    value_t UnfoundValue = value_t();
+    // Number of slots that can't be used (valid or removed items)
+    size_t SlotsFilled = 0;
 
-    bool *_OccupancyMask = null;
-    key_t *_Keys = null;
-    value_t *_Values = null;
-    uptr_t *_Hashes = null;
+    uptr_t *Hashes = null;
+    key_t *Keys = null;
+    value_t *Values = null;
 
     table() = default;
     ~table() { release(); }
@@ -53,53 +71,43 @@ struct table {
     void reserve(size_t size, allocator alloc = {null, null}) {
         if (size < Reserved) return;
 
-        if (!Reserved && size < (Count * 2)) {
-            // Note: This may still not be enough space if the hash function produces a lot of collisions
-            size += Count * 2;
-        }
-
         size_t reserveTarget = MINIMUM_SIZE;
         while (reserveTarget < size) {
             reserveTarget *= 2;
         }
 
-        if (Reserved) {
-            assert(is_owner() && "Cannot resize a buffer that isn't owned by this table.");
-
-            auto *actualOccupancyMask = (byte *) _OccupancyMask - POINTER_SIZE;
+        if (is_owner()) {
+            auto *actualHashes = (byte *) Hashes - POINTER_SIZE;
 
             if (alloc) {
-                auto *header = (allocation_header *) actualOccupancyMask - 1;
+                auto *header = (allocation_header *) Hashes - 1;
                 assert(alloc.Function == header->AllocatorFunction && alloc.Context == header->AllocatorContext &&
                        "Calling reserve() on a table that already has reserved a buffer but with a different "
                        "allocator. Call with null allocator to avoid that.");
             }
         }
 
-        auto *oldOccupancyMask = _OccupancyMask;
-        auto *oldKeys = _Keys;
-        auto *oldValues = _Values;
-        auto *oldHashes = _Hashes;
+        auto *oldHashes = Hashes;
+        auto *oldKeys = Keys;
+        auto *oldValues = Values;
 
-        size_t oldReserve = 0;
-        if (oldOccupancyMask) oldReserve = ((allocation_header *) oldOccupancyMask - 1)->Size;
+        // The owner will change with the next line, but we need it later to decide if we need to delete the old arrays
+        bool wasOwner = is_owner();
 
-        _OccupancyMask = encode_owner((bool *) new (alloc) byte[(reserveTarget + 1) * POINTER_SIZE], this);
-        _Keys = new (alloc) key_t[reserveTarget];
-        _Values = new (alloc) value_t[reserveTarget];
-        _Hashes = new (alloc) uptr_t[reserveTarget];
+        Hashes = encode_owner(new (alloc, DO_INIT_FLAG) uptr_t[reserveTarget + 1], this);
+        Keys = new (alloc) key_t[reserveTarget];
+        Values = new (alloc) value_t[reserveTarget];
 
-        For(range(oldReserve)) {
-            if (oldOccupancyMask[it]) {
-                put(oldKeys[it], oldValues[it]);
-            }
+        // Note: _Reserved_ hasn't been updated yet
+        For(range(Reserved)) {
+            if (Hashes[it] < FIRST_VALID_HASH) continue;
+            add(oldKeys[it], oldValues[it]);
         }
 
-        if (oldReserve) {
-            delete[] oldOccupancyMask;
+        if (wasOwner) {
+            delete[] oldHashes;
             delete[] oldKeys;
             delete[] oldValues;
-            delete[] oldHashes;
         }
 
         Reserved = reserveTarget;
@@ -109,85 +117,101 @@ struct table {
     void release() {
         reset();
         if (is_owner()) {
-            delete[]((byte *) _OccupancyMask - POINTER_SIZE);
-            delete[] _Keys;
-            delete[] _Values;
-            delete[] _Hashes;
+            delete[]((byte *) Hashes - POINTER_SIZE);
+            delete[] Keys;
+            delete[] Values;
 
-            _OccupancyMask = null;
-            _Keys = null;
-            _Values = null;
-            _Hashes = null;
+            Hashes = null;
+            Keys = null;
+            Values = null;
             Reserved = 0;
         }
     }
 
     // Don't free the table, just destroy contents and reset count
     void reset() {
-        bool *p = _OccupancyMask, *end = _OccupancyMask + Reserved;
-        size_t index = 0;
-
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
+        auto *p = Hashes, *end = Hashes + Reserved;
+        size_t index = 0;
         while (p != end) {
             if (*p) {
-                _Keys[index].~key_t();
-                _Values[index].~value_t();
-                *p = false;
+                Keys[index].~key_t();
+                Values[index].~value_t();
+                *p = 0;
             }
             ++index, ++p;
         }
 
-        Count = 0;
+        Count = SlotsFilled = 0;
     }
 
-    pair<value_t *, bool> find(const key_t &key) {
-        uptr_t hashed = hash<key_t>::get(key);
+    value_t *find(const key_t &key) {
+        if (!Reserved) return null;
 
-        s32 index = find_index(key, hashed);
-        if (index == -1) {
-            return {null, false};
-        }
-
-        return {_Values + index, true};
-    }
-
-    bool put(const key_t &key, const value_t &value) {
-        if (find(key).Second) return false;
-
-        uptr_t hashed = hash<key_t>::get(key);
-
-        s32 index = find_index(key, hashed);
-        if (index == -1) {
-            if (Count >= Reserved) {
-                reserve(Reserved * 2);
-            }
-            assert(Count <= Reserved);
-
-            index = (s32)(hashed % Reserved);
-
-            // Resolve collision
-            while (_OccupancyMask[index]) {
-                ++index;
-                if ((size_t) index >= Reserved) {
-                    index = 0;
+        uptr_t hash = get_hash(key);
+        size_t index = hash & (Reserved - 1);
+        For(range(Reserved)) {
+            if (Hashes[index] == hash) {
+                if (Keys[index] == key) {
+                    return Values + index;
                 }
             }
 
-            Count++;
+            ++index;
+            if (index >= Reserved) {
+                index = 0;
+            }
         }
-
-        _OccupancyMask[index] = true;
-        new (_Keys + index) key_t(key);
-        new (_Values + index) value_t(value);
-        _Hashes[index] = hashed;
-
-        return true;
+        return null;
     }
 
-    bool has(const key_t &key) const { return find(key).Second; }
+    value_t *add(const key_t &key, const value_t &value) {
+        // The + 1 here handles the case when the table size is 1 and you add the first item.
+        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled * 2);
+
+        assert(SlotsFilled < Reserved);
+
+        uptr_t hash = get_hash(key);
+        if (hash < FIRST_VALID_HASH) hash += FIRST_VALID_HASH;
+
+        size_t index = hash & (Reserved - 1);
+        while (Hashes[index]) {
+            ++index;
+            if (index >= Reserved) index = 0;
+        }
+
+        ++Count;
+        ++SlotsFilled;
+
+        Hashes[index] = hash;
+        new (Keys + index) key_t(key);
+        new (Values + index) value_t(value);
+        return Values + index;
+    }
+
+    value_t *set(const key_t &key, const value_t &value) {
+        auto *ptr = find(key);
+        if (ptr) {
+            *ptr = value;
+            return ptr;
+        }
+        return add(key, value);
+    }
+
+    bool remove(const key_t &key) {
+        auto *ptr = find(key);
+        if (ptr) {
+            size_t index = ptr - Values;
+            Hashes[index] = 1;
+            return true;
+        }
+        return false;
+    }
+
+    bool has(const key_t &key) const { return find(key) != null; }
 
     // Returns true if this object has any memory allocated by itself
-    bool is_owner() const { return Reserved && decode_owner<table>(_OccupancyMask) == this; }
+    bool is_owner() const { return Reserved && decode_owner<table>(Hashes) == this; }
 
     //
     // Iterator:
@@ -207,57 +231,30 @@ struct table {
     // Returns a pointer to the value associated with _key_.
     // If the key doesn't exist, put a blank value and return a pointer to that.
     value_t *operator[](const key_t &key) {
-        auto found = find(key);
-        if (found.Second) {
-            return found.First;
-        } else {
-            put(key, UnfoundValue);
-            found = find(key);
-            assert(found.Second);
-            return found.First;
-        }
-    }
-
-   private:
-    s32 find_index(const key_t &key, uptr_t hashed) {
-        if (!Reserved) return -1;
-
-        size_t index = hashed % Reserved;
-        while (_OccupancyMask[index]) {
-            if (_Hashes[index] == hashed) {
-                if (_Keys[index] == key) {
-                    return (s32) index;
-                }
-            }
-
-            ++index;
-            if (index >= Reserved) {
-                index = 0;
-            }
-        }
-        return -1;
+        auto *ptr = find(key);
+        if (ptr) return ptr;
+        return add(key, value_t());
     }
 };
 
 template <typename Key, typename Value, bool Const>
 struct table_iterator {
-    table<Key, Value> *Parent;
-    s64 Index = 0;
+    using table_t = type_select_t<Const, const table<Key, Value>, table<Key, Value>>;
 
-    table_iterator(table<Key, Value> *table, s64 index = -1) : Parent(table), Index(index) {
+    table_t *Parent;
+    size_t Index;
+
+    table_iterator(table_t *parent, size_t index = 0) : Parent(parent), Index(index) {
+        assert(parent);
+
         // Find the first pair
-        ++(*this);
+        skip_empty_slots();
     }
 
     table_iterator &operator++() {
-        while (Index < (s64) Parent->Reserved) {
-            Index++;
-            if (Index == Parent->Reserved) break;
-            if (Parent->_OccupancyMask && Parent->_OccupancyMask[Index]) {
-                break;
-            }
-        }
-        return *this;
+        ++Index;
+        skip_empty_slots();
+		return *this;
     }
 
     table_iterator operator++(int) {
@@ -271,12 +268,20 @@ struct table_iterator {
 
     template <bool NotConst = !Const>
     enable_if_t<NotConst, pair<Key *, Value *>> operator*() {
-        return {Parent->_Keys + Index, Parent->_Values + Index};
+        return {Parent->Keys + Index, Parent->Values + Index};
     }
 
     template <bool NotConst = !Const>
     enable_if_t<!NotConst, pair<const Key *, const Value *>> operator*() const {
-        return {Parent->_Keys + Index, Parent->_Values + Index};
+        return {Parent->Keys + Index, Parent->Values + Index};
+    }
+
+   private:
+    void skip_empty_slots() {
+        for (; Index < Parent->Reserved; ++Index) {
+            if (Parent->Hashes[Index] < table_t::FIRST_VALID_HASH) continue;
+            break;
+        }
     }
 };
 
@@ -303,28 +308,14 @@ typename table<K, V>::const_iterator table<K, V>::end() const {
 // :ExplicitDeclareIsPod
 template <typename K, typename V>
 struct is_pod<table<K, V>> : public true_t {};
-template <typename K, typename V>
-struct is_pod<table_iterator<K, V, true>> : public true_t {};
-template <typename K, typename V>
-struct is_pod<table_iterator<K, V, false>> : public true_t {};
-template <typename K, typename V>
-struct is_pod<const table<K, V>> : public true_t {};
-template <typename K, typename V>
-struct is_pod<const table_iterator<K, V, true>> : public true_t {};
-template <typename K, typename V>
-struct is_pod<const table_iterator<K, V, false>> : public true_t {};
-template <typename K, typename V>
-struct is_pod<const volatile table<K, V>> : public true_t {};
-template <typename K, typename V>
-struct is_pod<const volatile table_iterator<K, V, true>> : public true_t {};
-template <typename K, typename V>
-struct is_pod<const volatile table_iterator<K, V, false>> : public true_t {};
+template <typename K, typename V, bool Const>
+struct is_pod<table_iterator<K, V, Const>> : public true_t {};
 
 template <typename K, typename V>
 table<K, V> *clone(table<K, V> *dest, const table<K, V> &src) {
     *dest = {};
-    for (auto [k, v] : src) {
-        dest->put(k, v);
+    for (auto [key, value] : src) {
+        dest->add(*key, *value);
     }
     return dest;
 }
@@ -337,8 +328,8 @@ table<K, V> *move(table<K, V> *dest, table<K, V> *src) {
     *dest = *src;
 
     // Transfer ownership
-    change_owner(src->_OccupancyMask, dest);
-    change_owner(dest->_OccupancyMask, dest);
+    change_owner(src->Hashes, dest);
+    change_owner(dest->Hashes, dest);
     return dest;
 }
 

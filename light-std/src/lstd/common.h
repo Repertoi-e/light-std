@@ -25,6 +25,11 @@ constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
 //
 #define BIT(x) (1 << (x))
 
+// Used in macros to get "unique" variable names
+#define LINE_NAME(name) _LINE_NAME_JOIN(name, __LINE__)
+#define _LINE_NAME_DO_JOIN(s1, s2) s1##s2
+#define _LINE_NAME_JOIN(s1, s2) _LINE_NAME_DO_JOIN(s1, s2)
+
 // Go-style defer
 //
 //  defer(...);
@@ -49,9 +54,7 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 }
 LSTD_END_NAMESPACE
 
-#define DEFER_INTERNAL_(LINE) LSTD_defer##LINE
-#define DEFER_INTERNAL(LINE) DEFER_INTERNAL_(LINE)
-#define defer(x) auto DEFER_INTERNAL(__LINE__) = LSTD_NAMESPACE ::Defer_Dummy{} * [&]() { x; }
+#define defer(x) auto LINE_NAME(LSTD_defer) = LSTD_NAMESPACE ::Defer_Dummy{} * [&]() { x; }
 
 #undef assert
 
@@ -173,45 +176,45 @@ struct range {
 //   Note: If you really want you can prefix your "private" members with _.
 //
 // "No user defined copy/move constructors":
-//   This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not 
+//   This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not
 //   just the pointer when you copy the object?)
 //   This library implements _string_ the following way:
-//     _string_ is a struct that contains a pointer to a byte buffer and 2 fields containing precalculated 
-//     utf8 code unit and code point lengths, as well as a field _Reserved_ that contains the number of 
+//     _string_ is a struct that contains a pointer to a byte buffer and 2 fields containing precalculated
+//     utf8 code unit and code point lengths, as well as a field _Reserved_ that contains the number of
 //     bytes allocated by that string (default is 0).
-//	   
+//
 //     A string may own its allocated memory or it may not, which is determined by encoding the _this_ pointer
 //     before the byte buffer when the string reserves memory.
 //     That way when you shallow copy the string, the _this_ pointer is obviously different (because it is a
 //     different object) and when the copied string gets destructed it doesn't free the memory (it doesn't own it).
 //     Only when the original string gets destructed does the memory get freed and any shallow copies of it
 //     are invalidated (they point to freed memory).
-//     
+//
 //     When a string gets contructed from a literal it doesn't allocate memory.
 //     _Reserved_ is 0 and the object works like a view.
-//     
+//
 //     When you call modifying methods (like appending, inserting code points, etc.):
 //       If the string points to an allocated buffer but from a different string, the method asserts.
 //       If the string was constructed from a literal or a byte buffer that wasn't allocated by a different string,
 //       the string allocates a buffer, copies the old one and becomes an owner.
 //
-//	   
+//
 //     _clone(T *dest, T src)_ is a global function that ensures a deep copy of the argument passed.
-//     There is a string overload for clone() that deep copies the contents to _dest_ (_dest_ now has allocated 
+//     There is a string overload for clone() that deep copies the contents to _dest_ (_dest_ now has allocated
 //     memory and the byte buffer contains the string from _src_).
-//     
+//
 //     _move(T *dest, T *src)_ global function that transfers ownership.
 //     The buffer in _src_ (iff _src_ owns it) is now owned by _dest_ (_src_ becomes simply a view into _dest_).
 //     So _move_ is cheaper than _clone_ when you don't need the old string to remain an owner.
-//     
-//     ! Note: _clone_ and _move_ work on all types and are the required way to implement functionality 
+//
+//     ! Note: _clone_ and _move_ work on all types and are the required way to implement functionality
 //     normally present in copy/move c-tors.
 //
-//     ! Note: In c++ the default assignment operator doesn't call the destructor, 
+//     ! Note: In c++ the default assignment operator doesn't call the destructor,
 //     so assigning to a string that owns a buffer will cause a leak.
-//	   
-//   Types that manage memory in this library follow similar design to string and helper functions (as well as an example)
-//   are provided in _storage/owner_pointers.h_.
+//
+//   Types that manage memory in this library follow similar design to string and helper functions (as well as an
+//   example) are provided in _storage/owner_pointers.h_.
 //
 // "No virtual or overridden functions":
 //  @TODO Reconsider this. Historically, I strived away from virtual functions in order to be able to compile
@@ -321,9 +324,7 @@ constexpr size_t compare_memory_constexpr(const void *ptr1, const void *ptr2, si
     auto *s1 = (const byte *) ptr1;
     auto *s2 = (const byte *) ptr2;
 
-    for (size_t index = 0; --num; ++index) {
-        if (*s1++ != *s2++) return index;
-    }
+    For(range(num)) if (*s1++ != *s2++) return it;
     return npos;
 }
 

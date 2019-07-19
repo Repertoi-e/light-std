@@ -6,6 +6,8 @@
 #include "fmt/formatter.h"
 #include "fmt/string_checker.h"
 
+#include "../storage/array.h"
+
 //
 // Format specification:
 //
@@ -137,7 +139,7 @@
 //	        fmt::print("{!WHITE;BG}")
 // That means the color applies to the background and not the foreground.
 //
-// If you didn't mark the color as background, you can specify a series of 
+// If you didn't mark the color as background, you can specify a series of
 // characters that define the emphasis style of the text.
 //	        fmt::print("{!WHITE;BIUS}")
 //    Here "BIUS" specifies all the types of emphasis:
@@ -145,10 +147,9 @@
 //    They can be in any order and are optional.
 //    e.g. valid emphasis strings are: "BI", "U", "B", "SU", "SB", etc...
 //       Note: When parsing, if we fail to find the name of a color, e.g. {!IMAGINARYCOLOR}, we treat
-//             the series of characters as emphasis, although any character encountered that is not a 
+//             the series of characters as emphasis, although any character encountered that is not a
 //             valid emphasis gets reported as an error.
 //             This allows specifying emphasis without color: fmt::print("{!BU}");
-
 
 LSTD_BEGIN_NAMESPACE
 
@@ -157,9 +158,9 @@ namespace fmt {
 // Formats to writer
 template <typename... Args, typename S>
 enable_if_t<can_be_fmt_string_v<S>> format_to_writer(io::writer *out, S fmtString, Args &&... args) {
-    maybe_compile_time_check_format_string(fmtString);
+    maybe_compile_time_check_format_string<remove_const_t<remove_reference_t<Args>>...>(fmtString);
 
-    auto f = format_context(out, string_view(fmtString), {fmt::make_fmt_args(((Args &&) args)...)});
+    auto f = format_context(out, string_view(fmtString), {fmt::make_fmt_args<Args...>(args...)});
     auto handler = fmt::format_handler(&f);
     parse_format_string<false>(&f.Parse, &handler);
     f.flush();
@@ -175,13 +176,11 @@ enable_if_t<can_be_fmt_string_v<S>, size_t> calculate_formatted_size(S fmtString
 
 // Formats to a string
 template <typename... Args, typename S>
-enable_if_t<can_be_fmt_string_v<S>> sprint(S fmtString, Args &&... args) {
-    string result;
-    result.reserve(calculate_formatted_size(fmtString, ((Args &&) args)...));  // @Speed Is this actually better?
+enable_if_t<can_be_fmt_string_v<S>> sprint(string *out, S fmtString, Args &&... args) {
+    out->reserve(calculate_formatted_size(fmtString, ((Args &&) args)...));  // @Speed Is this actually better?
 
-    auto writer = io::string_writer(&result);
+    auto writer = io::string_writer(out);
     format_to_writer(&writer, fmtString, ((Args &&) args)...);
-    return result;
 }
 
 // Formats to io::cout
@@ -189,6 +188,18 @@ template <typename... Args, typename S>
 enable_if_t<can_be_fmt_string_v<S>> print(S fmtString, Args &&... args) {
     format_to_writer(Context.Log, fmtString, ((Args &&) args)...);
 }
+
+// Formatters for array and stack_array
+
+template <typename T>
+struct formatter<array<T>> {
+    void format(array<T> src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
+};
+
+template <typename T, size_t N>
+struct formatter<stack_array<T, N>> {
+    void format(stack_array<T, N> src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
+};
 
 }  // namespace fmt
 

@@ -16,6 +16,14 @@ LSTD_BEGIN_NAMESPACE
 
 enum class allocator_mode { ALLOCATE = 0, ALIGNED_ALLOCATE, REALLOCATE, ALIGNED_REALLOCATE, FREE, FREE_ALL };
 
+// We need strong typing in order to allow user flags in operator new() overloads
+enum class alignment : size_t;
+
+// This is a user flag when allocating.
+// When specified, the allocated memory is initialized.
+// This is handled internally, so allocator implementations don't need to pay attemption to it.
+constexpr u64 DO_INIT_FLAG = BIT(31);
+
 // @Temp Move this below together with Malloc, this is up here in order for allocator::general_allocate to
 // use the default allocator if the context hasn't been initialized yet.
 //
@@ -24,7 +32,7 @@ enum class allocator_mode { ALLOCATE = 0, ALIGNED_ALLOCATE, REALLOCATE, ALIGNED_
 
 // General purpose allocator (like malloc)
 void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                        size_t alignment, uptr_t);
+                        alignment align, u64);
 
 // This specifies what the signature of each allocation function should look like.
 //
@@ -34,14 +42,14 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
 // _size_ is the size of the allocation
 // _oldMemory_ is used when resizing
 // _oldSize_ is the old size of memory block, used only when resizing
-// _alignment_ and _offset_ are used when calling with ALIGNED_ALLOCATE or ALIGNED_REALLOCATE
+// _align_ is used when calling with ALIGNED_ALLOCATE or ALIGNED_REALLOCATE
 //
-// the last uptr_t is reserved for user flags
+// the last u64 is reserved for user flags
 //
 // !!! When called with FREE_ALL, a return value of null means success!
 //     To signify that the allocator doesn't support FREE_ALL (or the operation failed) return: (void*) -1
 using allocator_func_t = add_pointer_t<void *(allocator_mode mode, void *context, size_t size, void *oldMemory,
-                                              size_t oldSize, size_t alignment, uptr_t)>;
+                                              size_t oldSize, alignment align, u64)>;
 
 struct allocation_header {
     // Useful for debugging (better than file and line, in my opinion, because you can set a breakpoint with the ID
@@ -63,28 +71,31 @@ struct allocation_header {
 
 struct allocator {
     // @Temp mutable, see general_allocate below
-	mutable allocator_func_t Function = null;
+    mutable allocator_func_t Function = null;
     void *Context = null;
 
     inline static size_t _AllocationCount = 0;
 
-    void *allocate(size_t size, uptr_t userFlags = 0) const { return general_allocate(size, false, 0, userFlags); }
-    void *allocate_aligned(size_t size, size_t alignment, uptr_t userFlags = 0) const {
-        return general_allocate(size, true, alignment, userFlags);
+    void *allocate(size_t size, u64 userFlags = 0) const {
+        return general_allocate(size, false, alignment(0), userFlags);
     }
 
-    static void *reallocate(void *ptr, size_t newSize, uptr_t userFlags = 0) {
-        return general_reallocate(ptr, newSize, false, 0, userFlags);
+    void *allocate_aligned(size_t size, alignment align, u64 userFlags = 0) const {
+        return general_allocate(size, true, align, userFlags);
     }
 
-    static void *reallocate_aligned(void *ptr, size_t newSize, size_t alignment, uptr_t userFlags = 0) {
-        return general_reallocate(ptr, newSize, true, alignment, userFlags);
+    static void *reallocate(void *ptr, size_t newSize, u64 userFlags = 0) {
+        return general_reallocate(ptr, newSize, false, alignment(0), userFlags);
+    }
+
+    static void *reallocate_aligned(void *ptr, size_t newSize, alignment align, u64 userFlags = 0) {
+        return general_reallocate(ptr, newSize, true, align, userFlags);
     }
 
     // This is static, because it doesn't depend on the allocator object you call it from.
     // Each pointer has a header which has information about the allocator it was allocated with
     // Calling free on a null pointer doesn't do anything
-    static void free(void *ptr, uptr_t userFlags = 0) {
+    static void free(void *ptr, u64 userFlags = 0) {
         if (!ptr) return;
 
         auto *header = (allocation_header *) ptr - 1;
@@ -93,13 +104,13 @@ struct allocator {
                "it wasn't allocated with an allocator from this library)");
 
         header->AllocatorFunction(allocator_mode::FREE, header->AllocatorContext, 0, header,
-                                  header->Size + sizeof(allocation_header), 0, userFlags);
+                                  header->Size + sizeof(allocation_header), alignment(0), userFlags);
     }
 
     // Note that not all allocators must support this.
     // Returns true if the operation was completed successfully.
-    bool free_all(uptr_t userFlags = 0) const {
-        return Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, 0, userFlags) == null;
+    bool free_all(u64 userFlags = 0) const {
+        return Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, alignment(0), userFlags) == null;
     }
 
     bool operator==(const allocator &other) const { return Function == other.Function && Context == other.Context; }
@@ -126,42 +137,52 @@ struct allocator {
 
     // The main reason for having a combined function is to help debugging because the source of an allocation
     // can be one of the two functions (allocate() and allocate_aligned() below)
-    void *general_allocate(size_t size, bool aligned, size_t alignment, uptr_t userFlags = 0) const {
-        // @Temp We may allocate memory before the context is initialized, 
-		// and thus the default allocator is null. If that's the case just 
-		// use malloc so this function doesn't fail.
-		if (!Function) Function = default_allocator;
+    void *general_allocate(size_t size, bool aligned, alignment align, u64 userFlags = 0) const {
+        // @Temp We may allocate memory before the context is initialized,
+        // and thus the default allocator is null. If that's the case just
+        // use malloc so this function doesn't fail.
+        if (!Function) Function = default_allocator;
 
         void *result;
         if (!aligned) {
-            result =
-                Function(allocator_mode::ALLOCATE, Context, size + sizeof(allocation_header), null, 0, 0, userFlags);
+            result = Function(allocator_mode::ALLOCATE, Context, size + sizeof(allocation_header), null, 0,
+                              alignment(0), userFlags);
         } else {
-            assert(alignment > 0 && IS_POW_OF_2(alignment));
+            assert((size_t) align > 0 && IS_POW_OF_2((size_t) align));
             result = Function(allocator_mode::ALIGNED_ALLOCATE, Context, size + sizeof(allocation_header), null, 0,
-                              alignment, userFlags);
-            assert((((uptr_t) result & ~(alignment - 1)) == (uptr_t) result) && "Pointer wasn't properly aligned.");
+                              align, userFlags);
+            assert((((uptr_t) result & ~((size_t) align - 1)) == (uptr_t) result) &&
+                   "Pointer wasn't properly aligned.");
+        }
+        if (userFlags & DO_INIT_FLAG) {
+            fill_memory((byte *) result + sizeof(allocation_header), 0, size);
         }
         return encode_header(result, size, Function, Context);
     }
 
-    static void *general_reallocate(void *ptr, size_t newSize, bool aligned, size_t alignment, uptr_t userFlags = 0) {
+    static void *general_reallocate(void *ptr, size_t newSize, bool aligned, alignment align, u64 userFlags = 0) {
         auto *header = (allocation_header *) ptr - 1;
         assert(header->Pointer == ptr &&
                "Calling reallocate on a pointer that doesn't have a header (probably it isn't dynamic memory or"
                "it wasn't allocated with an allocator from this library)");
 
+        if (header->Size > newSize) return ptr;
+
         void *result;
         if (!aligned) {
             result = header->AllocatorFunction(allocator_mode::REALLOCATE, header->AllocatorContext,
                                                newSize + sizeof(allocation_header), header,
-                                               header->Size + sizeof(allocation_header), 0, userFlags);
+                                               header->Size + sizeof(allocation_header), alignment(0), userFlags);
         } else {
-            assert(alignment > 0 && IS_POW_OF_2(alignment));
+            assert((size_t) align > 0 && IS_POW_OF_2((size_t) align));
             result = header->AllocatorFunction(allocator_mode::ALIGNED_REALLOCATE, header->AllocatorContext,
                                                newSize + sizeof(allocation_header), header,
-                                               header->Size + sizeof(allocation_header), alignment, userFlags);
-            assert((((uptr_t) result & ~(alignment - 1)) == (uptr_t) result) && "Pointer wasn't properly aligned.");
+                                               header->Size + sizeof(allocation_header), align, userFlags);
+            assert((((uptr_t) result & ~((size_t) align - 1)) == (uptr_t) result) &&
+                   "Pointer wasn't properly aligned.");
+        }
+        if (userFlags & DO_INIT_FLAG) {
+            fill_memory((byte *) result + sizeof(allocation_header) + header->Size, 0, newSize - header->Size);
         }
         return encode_header(result, newSize, header->AllocatorFunction, header->AllocatorContext);
     }
@@ -183,26 +204,22 @@ inline void *get_aligned_pointer(void *ptr, size_t alignment) {
 void *operator new(size_t size);
 void *operator new[](size_t size);
 
-void *operator new(size_t size, allocator alloc);
-void *operator new[](size_t size, allocator alloc);
+void *operator new(size_t size, u64 userFlags);
+void *operator new[](size_t size, u64 userFlags);
 
 // If _alloc_ points to a null allocator, use a default one and store it in _alloc_
-void *operator new(size_t size, allocator *alloc);
+void *operator new(size_t size, allocator *alloc, u64 userFlags = 0);
+void *operator new[](size_t size, allocator *alloc, u64 userFlags = 0);
+
+void *operator new(size_t size, allocator alloc, u64 userFlags = 0);
+void *operator new[](size_t size, allocator alloc, u64 userFlags = 0);
 
 // If _alloc_ points to a null allocator, use a default one and store it in _alloc_
-void *operator new[](size_t size, allocator *alloc);
+void *operator new(size_t size, alignment align, allocator *alloc = null, u64 userFlags = 0);
+void *operator new[](size_t size, alignment align, allocator *alloc = null, u64 userFlags = 0);
 
-void *operator new(size_t size, size_t alignment);
-void *operator new[](size_t size, size_t alignment);
-
-void *operator new(size_t size, size_t alignment, allocator alloc);
-void *operator new[](size_t size, size_t alignment, allocator alloc);
-
-// If _alloc_ points to a null allocator, use a default one and store it in _alloc_
-void *operator new(size_t size, size_t alignment, allocator *alloc);
-
-// If _alloc_ points to a null allocator, use a default one and store it in _alloc_
-void *operator new[](size_t size, size_t alignment, allocator *alloc);
+void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags = 0);
+void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlags = 0);
 
 void operator delete(void *ptr) noexcept;
 void operator delete[](void *ptr) noexcept;
@@ -229,6 +246,6 @@ struct temporary_allocator_data {
 //     using this allocators means having the freedom of calling new/delete without performance implications.
 //     At the end of the frame when the memory is no longer needed you FREE_ALL and start the next frame.
 void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                          size_t alignment, uptr_t);
+                          alignment align, u64);
 
 LSTD_END_NAMESPACE

@@ -1,7 +1,9 @@
 #include "../lstd/common.h"
 
 #define STBM_ASSERT assert
+
 #define STBM_MEMSET LSTD_NAMESPACE ::fill_memory
+#define STBM_MEMCPY LSTD_NAMESPACE ::copy_memory
 
 // @Thread
 // #define STBM_MUTEX_HANDLE LSTD_NAMESPACE_NAME ::thread::mutex*

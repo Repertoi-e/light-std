@@ -17,7 +17,7 @@ static bool g_MallocInitted = false;
 static byte g_Heap[STBM_HEAP_SIZEOF];
 
 void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                        size_t alignment, uptr_t) {
+                        alignment align, u64) {
     if (!g_MallocInitted) {
         stbm_heap_config hc = {};
         {
@@ -39,14 +39,14 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
         case allocator_mode::ALLOCATE:
             return stbm_alloc(null, (stbm_heap *) g_Heap, size, 0);
         case allocator_mode::ALIGNED_ALLOCATE:
-            return stbm_alloc_align(null, (stbm_heap *) g_Heap, size, 0, alignment, 0);
+            return stbm_alloc_align(null, (stbm_heap *) g_Heap, size, 0, (size_t) align, 0);
         case allocator_mode::REALLOCATE:
             return stbm_realloc(null, (stbm_heap *) g_Heap, oldMemory, size, 0);
         case allocator_mode::ALIGNED_REALLOCATE: {
-            if (!oldMemory) return stbm_alloc_align(null, (stbm_heap *) g_Heap, size, 0, alignment, 0);
+            if (!oldMemory) return stbm_alloc_align(null, (stbm_heap *) g_Heap, size, 0, (size_t) align, 0);
             if (size <= oldSize && oldSize < size * 2) return oldMemory;
 
-            void *newPtr = stbm_alloc_align(null, (stbm_heap *) g_Heap, size, 0, alignment, 0);
+            void *newPtr = stbm_alloc_align(null, (stbm_heap *) g_Heap, size, 0, (size_t) align, 0);
             if (!newPtr) return null;
 
             copy_memory(newPtr, oldMemory, oldSize);
@@ -65,13 +65,13 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
 }
 
 void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                          size_t alignment, uptr_t) {
+                          alignment align, u64) {
     auto *data = (temporary_allocator_data *) context;
     assert(data && "Temporary allocator probably not initialized");
 
     switch (mode) {
         case allocator_mode::ALIGNED_ALLOCATE:
-            size += alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
+            size += (size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align;
             [[fallthrough]];
         case allocator_mode::ALLOCATE: {
             void *result = null;
@@ -94,19 +94,19 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
                 result = Malloc.allocate(size);
             }
             if (result && mode == allocator_mode::ALIGNED_ALLOCATE) {
-                result = get_aligned_pointer(result, alignment);
+                result = get_aligned_pointer(result, (size_t) align);
             }
             return result;
         }
         // Reallocations aren't really viable with this allocator
         // so we just copy the old memory into a fresh block
         case allocator_mode::ALIGNED_REALLOCATE: {
-            void *result = temporary_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, alignment, 0);
+            void *result = temporary_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, align, 0);
             copy_memory(result, oldMemory, oldSize);
             return result;
         }
         case allocator_mode::REALLOCATE: {
-            void *result = temporary_allocator(allocator_mode::ALLOCATE, context, size, null, 0, 0, 0);
+            void *result = temporary_allocator(allocator_mode::ALLOCATE, context, size, null, 0, align, 0);
             copy_memory(result, oldMemory, oldSize);
             return result;
         }
@@ -146,73 +146,47 @@ void implicit_context::release_temporary_allocator() const {
 
 LSTD_END_NAMESPACE
 
-void *operator new(size_t size) {
-    auto *alloc = (allocator *) &Context.Alloc;
-    if (!alloc) {
-        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
-        alloc = &Malloc;
-    }
-    return alloc->allocate(size, 0);
-}
+void *operator new(size_t size) { return operator new(size, null, 0); }
+void *operator new[](size_t size) { return operator new(size, null, 0); }
 
-void *operator new[](size_t size) { return operator new(size); }
+void *operator new(size_t size, u64 userFlags) { return operator new(size, null, userFlags); }
+void *operator new[](size_t size, u64 userFlags) { return operator new(size, null, userFlags); }
 
-void *operator new(size_t size, allocator alloc) {
-    if (!alloc) alloc = Context.Alloc;
-    if (!alloc) {
-        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
-        alloc = Malloc;
-    }
-    return alloc.allocate(size, 0);
-}
-
-void *operator new[](size_t size, allocator alloc) { return operator new(size, alloc); }
-
-void *operator new(size_t size, allocator *alloc) {
-    assert(alloc);
+void *operator new(size_t size, allocator *alloc, u64 userFlags) {
+    if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
     if (!(*alloc)) *alloc = Context.Alloc;
     if (!(*alloc)) {
         const_cast<implicit_context *>(&Context)->Alloc = Malloc;
         *alloc = Malloc;
     }
-    return alloc->allocate(size, 0);
+    return alloc->allocate(size, userFlags);
 }
 
-void *operator new[](size_t size, allocator *alloc) { return operator new(size, alloc); }
+void *operator new[](size_t size, allocator *alloc, u64 userFlags) { return operator new(size, alloc, userFlags); }
 
-void *operator new(size_t size, size_t alignment) {
-    auto *alloc = (allocator *) &Context.Alloc;
-    if (!alloc) {
-        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
-        alloc = &Malloc;
-    }
-    return alloc->allocate_aligned(size, alignment);
-}
+void *operator new(size_t size, allocator alloc, u64 userFlags) { return operator new(size, &alloc, userFlags); }
+void *operator new[](size_t size, allocator alloc, u64 userFlags) { return operator new(size, &alloc, userFlags); }
 
-void *operator new[](size_t size, size_t alignment) { return operator new(size, alignment); }
-
-void *operator new(size_t size, size_t alignment, allocator alloc) {
-    if (!alloc) alloc = Context.Alloc;
-    if (!alloc) {
-        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
-        alloc = Malloc;
-    }
-    return alloc.allocate_aligned(size, alignment);
-}
-
-void *operator new[](size_t size, size_t alignment, allocator alloc) { return operator new(size, alignment, alloc); }
-
-void *operator new(size_t size, size_t alignment, allocator *alloc) {
-    assert(alloc);
+void *operator new(size_t size, alignment align, allocator *alloc, u64 userFlags) {
+    if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
     if (!(*alloc)) *alloc = Context.Alloc;
     if (!(*alloc)) {
         const_cast<implicit_context *>(&Context)->Alloc = Malloc;
         *alloc = Malloc;
     }
-    return alloc->allocate_aligned(size, alignment, 0);
+    return alloc->allocate_aligned(size, align, userFlags);
 }
 
-void *operator new[](size_t size, size_t alignment, allocator *alloc) { return operator new(size, alignment, alloc); }
+void *operator new[](size_t size, alignment align, allocator *alloc, u64 userFlags) {
+    return operator new(size, align, alloc, userFlags);
+}
+
+void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags) {
+    return operator new(size, align, &alloc, userFlags);
+}
+void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlags) {
+    return operator new(size, align, &alloc, userFlags);
+}
 
 void operator delete(void *ptr) noexcept { allocator::free(ptr); }
 void operator delete[](void *ptr) noexcept { allocator::free(ptr); }

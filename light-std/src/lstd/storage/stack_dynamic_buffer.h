@@ -55,9 +55,7 @@ struct stack_dynamic_buffer {
             reserveTarget *= 2;
         }
 
-        if (Reserved) {
-            assert(is_owner() && "Cannot resize a buffer that isn't owned by this object.");
-
+        if (is_owner()) {
             auto *actualData = const_cast<byte *>(Data) - POINTER_SIZE;
 
             if (alloc) {
@@ -81,7 +79,7 @@ struct stack_dynamic_buffer {
     // If this buffer doesn't own the memory it points to, this function does nothing.
     void release() {
         if (is_owner()) {
-            delete[] (Data - POINTER_SIZE);
+            delete[](Data - POINTER_SIZE);
             Data = null;
             ByteLength = Reserved = 0;
         }

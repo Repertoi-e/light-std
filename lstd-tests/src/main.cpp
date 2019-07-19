@@ -1,43 +1,71 @@
-#include <lstd/basic.h>
-#include <lstd/io.h>
+#include "test.h"
 
-#include <lstd/io/fmt.h>
+#include <ctime>
+
+void run_tests() {
+    fmt::print("\n");
+    for (auto [fileName, tests] : g_TestTable) {
+        fmt::print("{}:\n", *fileName);
+
+        u32 sucessfulProcs = 0;
+        For(*tests) {
+            auto length = MIN<size_t>(30, it.Name.Length);
+            fmt::print("        {:.{}} {:.^{}} ", it.Name, length, "", 35 - length);
+
+            size_t failedIndexStart = asserts::GlobalFailed.Count;
+
+            // Run the test
+            if (it.Function) {
+                it.Function();
+            } else {
+                fmt::print("{!RED}FAILED {!GRAY}(Function pointer is null){!}\n");
+                continue;
+            }
+
+            // Check if test has failed asserts
+            if (failedIndexStart == asserts::GlobalFailed.Count) {
+                // No failed asserts!
+                fmt::print("{!GREEN}OK{!}\n");
+                sucessfulProcs++;
+            } else {
+                fmt::print("{!RED}FAILED{!}\n");
+
+                auto it = asserts::GlobalFailed.begin() + failedIndexStart;
+                for (; it != asserts::GlobalFailed.end(); ++it) {
+                    fmt::print("          {!GRAY}>>> {}{!}\n", *it);
+                }
+                fmt::print("\n");
+            }
+        }
+
+        f32 successRate = (f32) sucessfulProcs / (f32) tests->Count;
+        fmt::print("{!GRAY}{:.2%} success ({} out of {} procs)\n{!}\n", successRate, sucessfulProcs, tests->Count);
+    }
+    fmt::print("\n\n");
+
+    size_t calledCount = asserts::GlobalCalledCount;
+    size_t failedCount = asserts::GlobalFailed.Count;
+    size_t successCount = calledCount - failedCount;
+
+    f32 successRate = calledCount ? (f32) successCount / (f32) calledCount : 0.0f;
+    fmt::print("[Test Suite] {:.3%} success ({}/{} test asserts)\n", successRate, successCount, calledCount);
+
+    if (failedCount) {
+        fmt::print("[Test Suite] Failed asserts:\n");
+        For(asserts::GlobalFailed) { fmt::print("    >>> {!RED}FAILED:{!GRAY} {}{!}\n", it); }
+    }
+    fmt::print("\n");
+
+    asserts::GlobalCalledCount = 0;
+    asserts::GlobalFailed.release();
+}
 
 int main() {
-    Context.init_temporary_allocator(2_KiB);
-    // PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
-    //     auto *my_buffer = new byte[1500];
-    //     delete[] my_buffer; // Does nothing, temp allocator supports only free all
-    //
-    //     Context.TemporaryAlloc.free_all();
-    // }
-    Context.release_temporary_allocator();
+    Context.init_temporary_allocator(4_MiB);
 
-    string me = "123";
-    string at = "1235";
-    me.append("hi");
-
-    // Note:
-    // The memory leak below is happening because of a drawback of the user type policy
-    // and because assignment in C++ doesn't call the destructor (the user type policy disallows assignment overloading)
-    me = at;  // @Leak
-
-    fmt::print(
-        u8">> {!U} Hello, this is my formatter running! {!50;230;170} {:.^20f} {:=+010X}, {!} {!CORNFLOWER_BLUE;BG} "
-        u8"{!tBRIGHT_BLACK;BU} {{}}, {:a} {:a} {:a} {:f} {!}\n",
-        0x0p-1, 20, 0x1ffp10, 0x1.p0, 0xf.p-1, 0xa.bp10);
-
-    table<const byte *, s32> hashMap;
-    *hashMap["hello"] = 2;
-    *hashMap["c++"] = 1111;
-    *hashMap["hello"] = 3;
-
-    hashMap.put("25982350238095", -235923859);
-
-    for (auto [k, v] : hashMap) {
-        fmt::print("{}, {}\n", *k, *v);
+    while (true) {
+        run_tests();
+        break;
+        // Context.TemporaryAlloc.free_all();
     }
-
-    io::cin.read_line(&me);
-    io::cin.ignore();
 }

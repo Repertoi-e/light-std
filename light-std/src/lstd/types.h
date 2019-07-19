@@ -46,6 +46,12 @@
 // What's implemented here but not part of std:
 // - is_array_of_known_bounds
 // - is_array_of_unknown_bounds
+// - is_equal_comparable - whether two types can be compared with ==
+// - is_not_equal_comparable - whether two types can be compared with !=
+// - is_less_comparable - whether two types can be compared with <
+// - is_greater_comparable - whether two types can be compared with >
+// - is_less_equal_comparable - whether two types can be compared with <=
+// - is_greater_equal_comparable - whether two types can be compared with >=
 
 LSTD_BEGIN_NAMESPACE
 
@@ -617,6 +623,9 @@ using u64 = unsigned long long;
 #define U32_MAX (4294967295U)
 #define U64_MAX (U64_C(18446744073709551615))
 
+#define WCHAR_MIN 0x0000
+#define WCHAR_MAX 0xffff
+
 using byte = char;
 
 #define BYTE_MIN S8_MIN
@@ -673,14 +682,6 @@ using lf64 = long double;
 #define DECIMAL_DIG F64_DECIMAL_DIG
 #endif
 
-// Personal preference
-// I prefer null over nullptr but they are exactly the same
-constexpr auto null = nullptr;
-
-// Used for search results (not found)
-// Inspired by C++'s std
-constexpr auto npos = (size_t) -1;
-
 // uptr_t is the minimum size unsigned integer that can hold the address of any byte in RAM
 // ptr_t is used to represent the difference of addresses (pointers)
 #if BITS == 64
@@ -705,8 +706,16 @@ using size_t = uptr_t;
 #define SIZE_MAX UPTR_MAX
 #endif
 
-#define WCHAR_MIN 0x0000
-#define WCHAR_MAX 0xffff
+// time_t is used to represent the number of seconds since 00:00, Jan 1 1970 UTC, corresponding to POSIX time
+using time_t = ptr_t;
+
+// Personal preference
+// I prefer null over nullptr but they are exactly the same
+constexpr auto null = nullptr;
+
+// Used for search results (not found)
+// Inspired by C++'s std
+constexpr auto npos = (size_t) -1;
 
 template <typename T>
 struct is_void : public false_t {};
@@ -1524,17 +1533,19 @@ template <typename T, size_t N>
 struct is_pod<T[N]> : public is_pod<T> {};
 
 template <typename T>
+struct is_pod<const T> : is_pod<T> {};
+
+template <typename T>
+struct is_pod<const volatile T> : is_pod<T> {};
+
+template <typename T>
 constexpr bool is_pod_v = is_pod<T>::value;
 
 // Use this macro to declare your type as POD or not
-#define DECLARE_IS_POD(T, isPod)                                                \
-    LSTD_BEGIN_NAMESPACE                                                        \
-    template <>                                                                 \
-    struct is_pod<T> : public integral_constant<bool, isPod> {};                \
-    template <>                                                                 \
-    struct is_pod<const T> : public integral_constant<bool, isPod> {};          \
-    template <>                                                                 \
-    struct is_pod<const volatile T> : public integral_constant<bool, isPod> {}; \
+#define DECLARE_IS_POD(T, isPod)                                 \
+    LSTD_BEGIN_NAMESPACE                                         \
+    template <>                                                  \
+    struct is_pod<T> : public integral_constant<bool, isPod> {}; \
     LSTD_END_NAMESPACE
 
 template <typename T>
@@ -1930,7 +1941,7 @@ struct pair {
     U Second;
 
     pair() = default;
-    pair(const typename remove_cvref_t<T> &first, const remove_cvref_t<U> &second) : First(first), Second(second) {}
+    pair(const remove_cvref_t<T> &first, const remove_cvref_t<U> &second) : First(first), Second(second) {}
 };
 LSTD_END_NAMESPACE
 
@@ -2333,3 +2344,84 @@ class numeric_info<lf64> : public numeric_info_float_base {
     static constexpr s32 min_exponent = LONG_F64_MIN_EXP;
     static constexpr s32 min_exponent10 = LONG_F64_MIN_10_EXP;
 };
+
+// ==
+template <typename T, typename U>
+using equal_comparison_t = decltype(declval<T &>() == declval<U &>());
+
+template <typename T, typename U, typename = void_t<>>
+struct is_equal_comparable : false_t {};
+
+template <typename T, typename U>
+struct is_equal_comparable<T, U, void_t<equal_comparison_t<T, U>>> : is_same<equal_comparison_t<T, U>, bool> {};
+
+template <typename T, typename U>
+constexpr bool is_equal_comparable_v = is_equal_comparable<T, U>::value;
+
+// !=
+template <typename T, typename U>
+using not_equal_comparison_t = decltype(declval<T &>() != declval<U &>());
+
+template <typename T, typename U, typename = void_t<>>
+struct is_not_equal_comparable : false_t {};
+
+template <typename T, typename U>
+struct is_not_equal_comparable<T, U, void_t<not_equal_comparison_t<T, U>>>
+    : is_same<not_equal_comparison_t<T, U>, bool> {};
+
+template <typename T, typename U>
+constexpr bool is_not_equal_comparable_v = is_not_equal_comparable<T, U>::value;
+
+// <
+template <typename T, typename U>
+using less_comparison_t = decltype(declval<T &>() < declval<U &>());
+
+template <typename T, typename U, typename = void_t<>>
+struct is_less_comparable : false_t {};
+
+template <typename T, typename U>
+struct is_less_comparable<T, U, void_t<less_comparison_t<T, U>>> : is_same<less_comparison_t<T, U>, bool> {};
+
+template <typename T, typename U>
+constexpr bool is_less_comparable_v = is_less_comparable<T, U>::value;
+
+// >
+template <typename T, typename U>
+using greater_comparison_t = decltype(declval<T &>() > declval<U &>());
+
+template <typename T, typename U, typename = void_t<>>
+struct is_greater_comparable : false_t {};
+
+template <typename T, typename U>
+struct is_greater_comparable<T, U, void_t<greater_comparison_t<T, U>>> : is_same<greater_comparison_t<T, U>, bool> {};
+
+template <typename T, typename U>
+constexpr bool is_greater_comparable_v = is_greater_comparable<T, U>::value;
+
+// <=
+template <typename T, typename U>
+using less_equal_comparison_t = decltype(declval<T &>() <= declval<U &>());
+
+template <typename T, typename U, typename = void_t<>>
+struct is_less_equal_comparable : false_t {};
+
+template <typename T, typename U>
+struct is_less_equal_comparable<T, U, void_t<less_equal_comparison_t<T, U>>>
+    : is_same<less_equal_comparison_t<T, U>, bool> {};
+
+template <typename T, typename U>
+constexpr bool is_less_equal_comparable_v = is_less_equal_comparable<T, U>::value;
+
+// >=
+template <typename T, typename U>
+using greater_equal_comparison_t = decltype(declval<T &>() >= declval<U &>());
+
+template <typename T, typename U, typename = void_t<>>
+struct is_greater_equal_comparable : false_t {};
+
+template <typename T, typename U>
+struct is_greater_equal_comparable<T, U, void_t<greater_equal_comparison_t<T, U>>>
+    : is_same<greater_equal_comparison_t<T, U>, bool> {};
+
+template <typename T, typename U>
+constexpr bool is_greater_equal_comparable_v = is_greater_equal_comparable<T, U>::value;

@@ -5,6 +5,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
+// @TODO: _sort()_
 template <typename T, size_t N>
 struct stack_array {
     static_assert(N > 0, "Cannot have a zero-sized array.");
@@ -60,7 +61,7 @@ struct stack_array {
 
     // Find the first occurence of a subarray that is after a specified index
     template <size_t NN>
-	size_t find(const stack_array<T, NN> &arr, s64 start = 0) const {
+    size_t find(const stack_array<T, NN> &arr, s64 start = 0) const {
         if (Count == 0) return npos;
 
         start = translate_index(start, Count);

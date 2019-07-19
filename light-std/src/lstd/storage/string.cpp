@@ -52,9 +52,7 @@ void string::reserve(size_t size, allocator alloc) {
         reserveTarget *= 2;
     }
 
-    if (Reserved) {
-        assert(is_owner() && "Cannot resize a buffer that isn't owned by this string.");
-
+    if (is_owner()) {
         auto *actualData = const_cast<byte *>(Data) - POINTER_SIZE;
 
         if (alloc) {
@@ -81,7 +79,7 @@ void string::release() {
     }
 }
 
-void string::set(s64 index, char32_t codePoint) {
+string *string::set(s64 index, char32_t codePoint) {
     size_t cpSize = get_size_of_cp(codePoint);
 
     auto *target = get_cp_at_index(Data, Length, index);
@@ -98,9 +96,11 @@ void string::set(s64 index, char32_t codePoint) {
     encode_cp((byte *) Data + offset, codePoint);
 
     ByteLength += diff;
+
+    return this;
 }
 
-void string::insert(s64 index, char32_t codePoint) {
+string *string::insert(s64 index, char32_t codePoint) {
     size_t cpSize = get_size_of_cp(codePoint);
     reserve(ByteLength + cpSize);
 
@@ -112,11 +112,13 @@ void string::insert(s64 index, char32_t codePoint) {
 
     ByteLength += cpSize;
     ++Length;
+
+    return this;
 }
 
-void string::insert(s64 index, string str) { insert_pointer_and_size(index, str.Data, str.ByteLength); }
+string *string::insert(s64 index, string str) { return insert_pointer_and_size(index, str.Data, str.ByteLength); }
 
-void string::insert_pointer_and_size(s64 index, const byte *str, size_t size) {
+string *string::insert_pointer_and_size(s64 index, const byte *str, size_t size) {
     reserve(ByteLength + size);
 
     auto *target = get_cp_at_index(Data, Length, index, true);
@@ -127,9 +129,14 @@ void string::insert_pointer_and_size(s64 index, const byte *str, size_t size) {
 
     ByteLength += size;
     Length += utf8_strlen(str, size);
+
+    return this;
 }
 
-void string::remove(s64 index) {
+string *string::remove(s64 index) {
+    // If this is a view, we don't want to modify the original string!
+    if (!is_owner()) reserve(0);
+
     auto *target = get_cp_at_index(Data, Length, index);
 
     size_t cpSize = get_size_of_cp(target);
@@ -139,9 +146,14 @@ void string::remove(s64 index) {
     copy_memory((byte *) Data + offset, target + cpSize, ByteLength - offset - cpSize);
 
     ByteLength -= cpSize;
+
+    return this;
 }
 
-void string::remove(s64 begin, s64 end) {
+string *string::remove(s64 begin, s64 end) {
+    // If this is a view, we don't want to modify the original string!
+    if (!is_owner()) reserve(0);
+
     auto *targetBegin = get_cp_at_index(Data, Length, begin);
     auto *targetEnd = get_cp_at_index(Data, Length, end, true);
 
@@ -154,29 +166,29 @@ void string::remove(s64 begin, s64 end) {
     copy_memory((byte *) Data + offset, targetEnd, ByteLength - offset - bytes);
 
     ByteLength -= bytes;
+
+    return this;
 }
 
-string string::repeated(size_t n) const {
-    string result = *this;
-    result.reserve(n * ByteLength);
-    For(range(1, n)) { result.append(*this); }
-    return result;
+string *string::repeat(size_t n) {
+    string contents = *this;
+    reserve(n * contents.ByteLength);
+    For(range(1, n)) { append(contents); }
+    return this;
 }
 
-string string::get_upper() const {
-    string result = *this;
-    For(range(Length)) result[it] = to_upper(result[it]);
-    return result;
+string *string::to_lower() {
+    For(range(Length)) set(it, ::to_lower(get(it)));
+    return this;
 }
 
-string string::get_lower() const {
-    string result = *this;
-    For(range(Length)) result[it] = to_lower(result[it]);
-    return result;
+string *string::to_upper() {
+    For(range(Length)) set(it, ::to_upper(get(it)));
+    return this;
 }
 
-void string::remove_all(char32_t cp) {
-    if (Length == 0) return;
+string *string::remove_all(char32_t cp) {
+    if (Length == 0) return this;
 
     ptr_t offset = 0;
     For(range(0, Length)) {
@@ -184,12 +196,13 @@ void string::remove_all(char32_t cp) {
             remove(it - offset++);
         }
     }
+    return this;
 }
 
-void string::remove_all(string str) {
+string *string::remove_all(string str) {
     assert(str.Length);
 
-    if (Length == 0) return;
+    if (Length == 0) return this;
 
     ptr_t offset = 0;
     For(range(0, Length)) {
@@ -204,19 +217,21 @@ void string::remove_all(string str) {
             offset += str.Length;
         }
     }
+    return this;
 }
 
-void string::replace_all(char32_t oldCp, char32_t newCp) {
-    if (Length == 0) return;
+string *string::replace_all(char32_t oldCp, char32_t newCp) {
+    if (Length == 0) return this;
     For(range(0, Length)) {
         if (get(it) == oldCp) set(it, newCp);
     }
+    return this;
 }
 
-void string::replace_all(string oldStr, string newStr) {
+string *string::replace_all(string oldStr, string newStr) {
     assert(oldStr.Length != 0);
 
-    if (Length == 0) return;
+    if (Length == 0) return this;
 
     ptr_t diff = (ptr_t) newStr.Length - (ptr_t) oldStr.Length;
     for (size_t it = 0; it < Length; ++it) {
@@ -230,6 +245,7 @@ void string::replace_all(string oldStr, string newStr) {
             it += diff;
         }
     }
+    return this;
 }
 
 string *clone(string *dest, string src) {

@@ -3,6 +3,7 @@
 #include "../../storage/stack_dynamic_buffer.h"
 #include "../writer.h"
 #include "arg.h"
+#include "debug.h"
 #include "format_float.h"
 #include "format_numeric.h"
 #include "parse.h"
@@ -76,6 +77,7 @@ struct format_context : io::writer, non_copyable, non_movable {
 
     // Write directly, without taking formatting specs into account.
     void write_no_specs(array_view<byte> data) { Out->write(data); }
+    void write_no_specs(const byte *data) { Out->write(data, cstring_strlen(data)); }
     void write_no_specs(const byte *data, size_t count) { Out->write(data, count); }
     void write_no_specs(string str) { Out->write(str); }
     void write_no_specs(char32_t cp) { Out->write(cp); }
@@ -89,6 +91,25 @@ struct format_context : io::writer, non_copyable, non_movable {
     void write_no_specs(u16 value) { write_decimal_no_specs(value); }
     void write_no_specs(u32 value) { write_decimal_no_specs(value); }
     void write_no_specs(u64 value) { write_decimal_no_specs(value); }
+
+    void write_no_specs(bool value) { write_no_specs(value ? 1 : 0); }
+
+    template <typename T>
+    enable_if_t<is_floating_point_v<T>> write_no_specs(T value) {
+        write_f64((f64) value, {});
+    }
+
+    void write_no_specs(const void *value) {
+        auto uptr = bit_cast<uptr_t>(value);
+        u32 numDigits = COUNT_DIGITS<4>(uptr);
+
+        this->write_no_specs(U'0');
+        this->write_no_specs(U'x');
+
+        byte formatBuffer[numeric_info<uptr_t>::digits / 4 + 2];
+        auto *p = format_uint_base<4>(formatBuffer, uptr, numDigits);
+        this->write_no_specs(p, formatBuffer + numDigits - p);
+    }
 
     template <typename Int>
     struct int_writer {
@@ -250,6 +271,10 @@ struct format_context : io::writer, non_copyable, non_movable {
         internal::write_padded_helper(this, specs, f, numDigits);
     }
 
+    debug_struct_helper debug_struct(string name) { return debug_struct_helper(this, name); }
+    debug_tuple_helper debug_tuple(string name) { return debug_tuple_helper(this, name); }
+    debug_list_helper debug_list() { return debug_list_helper(this); }
+
     void on_error(const byte *message) { Parse.on_error(message); }
 
    private:
@@ -372,8 +397,8 @@ struct format_context : io::writer, non_copyable, non_movable {
         if (handler.AsPercentage) value *= 100;
 
         byte type = specs.Type;
+        if (handler.AsPercentage) type = 'f';
         if (!type) type = 'g';
-        if (type == '%') type = 'f';
 
         // @Locale The decimal point written in _internal::format_float_ should be locale-dependent.
         // Also if we decide to add a thousands separator we should do it inside _format_float_
@@ -458,21 +483,81 @@ namespace internal {
 
 struct format_context_visitor {
     format_context *Context;
+    bool NoSpecs;
 
-    void operator()(s32 value) { Context->write(value); }
-    void operator()(u32 value) { Context->write(value); }
-    void operator()(s64 value) { Context->write(value); }
-    void operator()(u64 value) { Context->write(value); }
-    void operator()(bool value) { Context->write(value); }
-    void operator()(f64 value) { Context->write(value); }
-    void operator()(array_view<byte> value) { Context->write(value); }
-    void operator()(string_view value) { Context->write(value); }
-    void operator()(const void *value) { Context->write(value); }
+    format_context_visitor(format_context *context, bool noSpecs = false) : Context(context), NoSpecs(noSpecs) {}
+
+    void operator()(s32 value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
+    void operator()(u32 value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
+    void operator()(s64 value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
+    void operator()(u64 value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
+    void operator()(bool value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
+    void operator()(f64 value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
+    void operator()(array_view<byte> value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
+    void operator()(string_view value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
+    void operator()(const void *value) { NoSpecs ? Context->write_no_specs(value) : Context->write(value); }
 
     void operator()(unused) { Context->on_error("Internal error while formatting"); }
     void operator()(arg::handle handle) { Context->on_error("Internal error while formatting a custom argument"); }
 };
 }  // namespace internal
+
+inline void debug_struct_helper::finish() {
+    Context->write_no_specs(Name);
+    Context->write_no_specs(" {");
+
+    auto *begin = Fields.begin();
+    if (begin != Fields.end()) {
+        Context->write_no_specs(" ");
+        write_field(begin);
+        ++begin;
+        while (begin != Fields.end()) {
+            Context->write_no_specs(", ");
+            write_field(begin);
+            ++begin;
+        }
+    }
+    Context->write_no_specs(" }");
+}
+
+inline void debug_struct_helper::write_field(debug_struct_field_entry *entry) {
+    Context->write_no_specs(entry->Name);
+    Context->write_no_specs(": ");
+    visit_fmt_arg(internal::format_context_visitor(Context, true), entry->Arg);
+}
+
+inline void debug_tuple_helper::finish() {
+    Context->write_no_specs(Name);
+    Context->write_no_specs("(");
+
+    auto *begin = Fields.begin();
+    if (begin != Fields.end()) {
+        visit_fmt_arg(internal::format_context_visitor(Context, true), *begin);
+        ++begin;
+        while (begin != Fields.end()) {
+            Context->write_no_specs(", ");
+            visit_fmt_arg(internal::format_context_visitor(Context, true), *begin);
+            ++begin;
+        }
+    }
+    Context->write_no_specs(")");
+}
+
+inline void fmt::debug_list_helper::finish() {
+    Context->write_no_specs("[");
+
+    auto *begin = Fields.begin();
+    if (begin != Fields.end()) {
+        visit_fmt_arg(internal::format_context_visitor(Context, true), *begin);
+        ++begin;
+        while (begin != Fields.end()) {
+            Context->write_no_specs(", ");
+            visit_fmt_arg(internal::format_context_visitor(Context, true), *begin);
+            ++begin;
+        }
+    }
+    Context->write_no_specs("]");
+}
 
 }  // namespace fmt
 
