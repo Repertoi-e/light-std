@@ -28,11 +28,6 @@ struct table_iterator;
 // This leads to possibly more collisions, but it's a small price to pay.
 template <typename K, typename V>
 struct table {
-    // If your type can be copied byte by byte correctly,
-    // then you can explicitly declare it as POD in global namespace with DECLARE_IS_POD(type, true)
-    static_assert(is_pod_v<K> && is_pod_v<V> &&
-                  "tables can only work with POD types, take a look at the type policy in common.h");
-
     using key_t = K;
     using value_t = V;
 
@@ -304,12 +299,6 @@ template <typename K, typename V>
 typename table<K, V>::const_iterator table<K, V>::end() const {
     return table<K, V>::const_iterator(this, Reserved);
 }
-
-// :ExplicitDeclareIsPod
-template <typename K, typename V>
-struct is_pod<table<K, V>> : public true_t {};
-template <typename K, typename V, bool Const>
-struct is_pod<table_iterator<K, V, Const>> : public true_t {};
 
 template <typename K, typename V>
 table<K, V> *clone(table<K, V> *dest, const table<K, V> &src) {

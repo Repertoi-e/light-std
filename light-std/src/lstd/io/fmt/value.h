@@ -144,6 +144,3 @@ struct value {
 }  // namespace fmt
 
 LSTD_END_NAMESPACE
-
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(fmt::value, true)

@@ -86,8 +86,6 @@ struct test {
     // Required by _array_
     bool operator==(test other) const { return Name == other.Name && Function == other.Function; }
 };
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(test, true);
 
 inline table<string_view, array<test>> g_TestTable;
 

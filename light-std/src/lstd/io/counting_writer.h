@@ -23,6 +23,3 @@ inline void counting_writer_write(writer *w, const byte *, size_t count) {
 }  // namespace io
 
 LSTD_END_NAMESPACE
-
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(io::counting_writer, true)

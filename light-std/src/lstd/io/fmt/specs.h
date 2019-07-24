@@ -62,7 +62,3 @@ struct dynamic_format_specs : format_specs {
 }  // namespace fmt
 
 LSTD_END_NAMESPACE
-
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(fmt::arg_ref, true)
-DECLARE_IS_POD(fmt::format_specs, true)

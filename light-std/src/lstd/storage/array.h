@@ -428,10 +428,6 @@ struct array {
     }
 };
 
-// :ExplicitDeclareIsPod
-template <typename T>
-struct is_pod<array<T>> : public true_t {};
-
 template <typename T>
 array<T> *clone(array<T> *dest, array<T> src) {
     *dest = {};

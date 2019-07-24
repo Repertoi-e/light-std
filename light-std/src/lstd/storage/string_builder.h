@@ -62,6 +62,3 @@ string_builder *clone(string_builder *dest, const string_builder &src);
 string_builder *move(string_builder *dest, string_builder *src);
 
 LSTD_END_NAMESPACE
-
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(string_builder, true)

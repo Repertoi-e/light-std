@@ -736,6 +736,3 @@ constexpr bool operator<=(const byte *one, const string_view &other) { return !(
 constexpr bool operator>=(const byte *one, const string_view &other) { return !(one < other); }
 
 LSTD_END_NAMESPACE
-
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(string_view, true)
