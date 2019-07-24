@@ -1,7 +1,5 @@
 #include "test.h"
 
-#include <ctime>
-
 void run_tests() {
     fmt::print("\n");
     for (auto [fileName, tests] : g_TestTable) {
@@ -12,7 +10,7 @@ void run_tests() {
             auto length = MIN<size_t>(30, it.Name.Length);
             fmt::print("        {:.{}} {:.^{}} ", it.Name, length, "", 35 - length);
 
-            size_t failedIndexStart = asserts::GlobalFailed.Count;
+            auto *failedAssertsStart = asserts::GlobalFailed.end();
 
             // Run the test
             if (it.Function) {
@@ -23,14 +21,13 @@ void run_tests() {
             }
 
             // Check if test has failed asserts
-            if (failedIndexStart == asserts::GlobalFailed.Count) {
-                // No failed asserts!
+            if (failedAssertsStart == asserts::GlobalFailed.end()) {
                 fmt::print("{!GREEN}OK{!}\n");
                 sucessfulProcs++;
             } else {
                 fmt::print("{!RED}FAILED{!}\n");
 
-                auto it = asserts::GlobalFailed.begin() + failedIndexStart;
+                auto it = failedAssertsStart;
                 for (; it != asserts::GlobalFailed.end(); ++it) {
                     fmt::print("          {!GRAY}>>> {}{!}\n", *it);
                 }
@@ -54,13 +51,13 @@ void run_tests() {
         fmt::print("[Test Suite] Failed asserts:\n");
         For(asserts::GlobalFailed) { fmt::print("    >>> {!RED}FAILED:{!GRAY} {}{!}\n", it); }
     }
-    fmt::print("\n");
+    fmt::print("\n{!}");
 
     asserts::GlobalCalledCount = 0;
     asserts::GlobalFailed.release();
 }
 
-int main() {
+s32 main() {
     Context.init_temporary_allocator(4_MiB);
 
     while (true) {
@@ -68,4 +65,5 @@ int main() {
         break;
         // Context.TemporaryAlloc.free_all();
     }
+    return 0;
 }

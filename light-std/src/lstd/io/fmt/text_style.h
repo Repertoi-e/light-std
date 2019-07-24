@@ -5,11 +5,6 @@
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
-namespace internal {
-constexpr byte FG_COLOR[] = "\x1b[38;2;";
-constexpr byte BG_COLOR[] = "\x1b[48;2;";
-constexpr byte RESET_COLOR[] = "\x1b[0m";
-}  // namespace internal
 
 // Colors are defined all-uppercase.
 // This enum contains names for popular colors and values for them in hex.
@@ -22,7 +17,7 @@ enum class color : u32 {
 constexpr string_view color_to_string(color c) {
     switch (c) {
 #define COLOR_DEF(x, y) \
-    case color::x:    \
+    case color::x:      \
         return #x;
 #include "colors.def"
 #undef COLOR_DEF
@@ -53,7 +48,7 @@ enum class terminal_color : u32 {
 
 constexpr string_view terminal_color_to_string(terminal_color c) {
     switch (c) {
-#define COLOR_DEF(x, y)       \
+#define COLOR_DEF(x, y)     \
     case terminal_color::x: \
         return #x;
 #include "terminal_colors.def"
@@ -101,6 +96,70 @@ struct text_style {
     constexpr text_style() = default;
 };
 
+namespace internal {
+// Used when making ANSI escape codes for text styles
+inline byte *u8_to_esc(byte *p, byte delimiter, u8 c) {
+    *p++ = '0' + c / 100;
+    *p++ = '0' + c / 10 % 10;
+    *p++ = '0' + c % 10;
+    *p++ = delimiter;
+    return p;
+}
+
+inline byte *color_to_ansii(byte *buffer, text_style style) {
+    byte *p = buffer;
+    if (style.ColorKind != text_style::color_kind::NONE) {
+        if (style.ColorKind == text_style::color_kind::TERMINAL) {
+            // Background terminal colors are 10 more than the foreground ones
+            u32 value = (u32) style.Color.Terminal + (style.Background ? 10 : 0);
+
+            *p++ = '\x1b';
+            *p++ = '[';
+
+            if (value >= 100) {
+                *p++ = '1';
+                value %= 100;
+            }
+            *p++ = '0' + value / 10;
+            *p++ = '0' + value % 10;
+
+            *p++ = 'm';
+            *p++ = '\0';
+        } else {
+            copy_memory(p, style.Background ? "\x1b[48;2;" : "\x1b[38;2;", 7);
+            p += 7;
+
+            p = u8_to_esc(p, ';', (u8)((style.Color.RGB >> 16) & 0xFF));
+            p = u8_to_esc(p, ';', (u8)((style.Color.RGB >> 8) & 0xFF));
+            p = u8_to_esc(p, 'm', (u8)((style.Color.RGB) & 0xFF));
+        }
+    } else if ((u8) style.Emphasis == 0) {
+        // Empty text style means "reset"
+        copy_memory(p, "\x1b[0m", 4);
+        p += 4;
+    }
+    return p;
+}
+
+inline byte *emphasis_to_ansii(byte *buffer, u8 emphasis) {
+    u8 codes[4] = {};
+    if (emphasis & (u8) emphasis::BOLD) codes[0] = 1;
+    if (emphasis & (u8) emphasis::ITALIC) codes[1] = 3;
+    if (emphasis & (u8) emphasis::UNDERLINE) codes[2] = 4;
+    if (emphasis & (u8) emphasis::STRIKETHROUGH) codes[3] = 9;
+
+    byte *p = buffer;
+    For(range(4)) {
+        if (!codes[it]) continue;
+
+        *p++ = '\x1b';
+        *p++ = '[';
+        *p++ = '0' + codes[it];
+        *p++ = 'm';
+    }
+    return p;
+}
+}  // namespace internal
 }  // namespace fmt
 
 LSTD_END_NAMESPACE

@@ -50,31 +50,6 @@ constexpr bool is_fmt_type_numeric(type type) {
     return type > type::NONE && type <= type::LAST_NUMERIC;
 }
 
-// Specialize this for custom types that may not be POD or have data that isn't serialized, e.g. pointers
-//
-// template <>
-// struct formatter<my_type> {
-//     formatter() = default;
-//
-// 	void format(my_type val, format_context *f) {
-// 		...
-// 	}
-// };
-template <typename T, typename Enable = void>
-struct formatter {
-    formatter() = delete;
-};
-
-template <typename T>
-using has_formatter = is_constructible<formatter<T>>;
-
-struct format_context;
-
-struct custom_value {
-    const void *Data;
-    void (*FormatFunction)(const void *arg, format_context *f);
-};
-
 template <typename T>
 struct type_constant : integral_constant<type, type::CUSTOM> {};
 
@@ -103,7 +78,32 @@ TYPE_CONSTANT(const void *, type::POINTER);
 template <typename T>
 constexpr auto type_constant_v = type_constant<T>::value;
 
+// Specialize this for custom types that may not be POD or have data that isn't serialized, e.g. pointers
+//
+// template <>
+// struct formatter<my_type> {
+//     formatter() = default;
+//
+// 	void format(my_type val, format_context *f) {
+// 		...
+// 	}
+// };
+template <typename T, typename Enable = void>
+struct formatter {
+    formatter() = delete;
+};
+
+template <typename T>
+using has_formatter = is_constructible<formatter<T>>;
+
+struct format_context;
+
 struct value {
+    struct custom {
+        const void *Data;
+        void (*FormatFunction)(const void *arg, format_context *f);
+    };
+
     union {
         s32 S32;
         u32 U32;
@@ -112,7 +112,7 @@ struct value {
         f64 F64;
         const void *Pointer;
         array_view<byte> ByteView;
-        custom_value Custom;
+        custom Custom;
         const internal::named_arg_base *NamedArg;
     };
 
@@ -140,110 +140,6 @@ struct value {
         formatter<remove_cvref_t<T>> formatter;
         formatter.format(*(const T *) (arg), f);
     }
-};  // namespace fmt
-
-struct arg {
-    value Value;
-    type Type = type::NONE;
-
-    struct handle {
-        custom_value Custom;
-
-        handle(custom_value val) : Custom(val) {}
-        void format(format_context *f) const { Custom.FormatFunction(Custom.Data, f); }
-    };
-
-    explicit operator bool() const { return Type != type::NONE; }
-};
-
-namespace internal {
-struct named_arg_base {
-    string_view Name;
-
-    // The serialized argument
-    byte Data[sizeof(arg)];
-
-    named_arg_base(string_view name) : Name(name) {}
-
-    arg deserialize() const {
-        arg result;
-        copy_memory(&result, Data, sizeof(arg));
-        return result;
-    }
-};
-
-template <typename T>
-struct named_arg : named_arg_base {
-    const T &Value;
-
-    using value_t = T;
-    static constexpr auto TypeTag = type_constant_v<value_t>;
-
-    named_arg(string_view name, const T &value) : named_arg_base(name), Value(value) {}
-};
-
-// @TODO Disable construction of nested arguments
-}  // namespace internal
-
-template <typename T>
-constexpr arg make_arg(const T &value);
-
-// Maps formatting arguments to core types.
-struct arg_mapper {
-    using long_t = type_select_t<sizeof(long) == sizeof(int), s32, s64>;
-    using ulong_t = type_select_t<sizeof(long) == sizeof(int), u32, u64>;
-
-    constexpr s32 map(signed char val) { return val; }
-    constexpr u64 map(unsigned char val) { return val; }
-    constexpr s32 map(s16 val) { return val; }
-    constexpr u32 map(u16 val) { return val; }
-    constexpr s32 map(s32 val) { return val; }
-    constexpr u32 map(u32 val) { return val; }
-    constexpr long_t map(long val) { return val; }
-    constexpr ulong_t map(unsigned long val) { return val; }
-    constexpr s64 map(s64 val) { return val; }
-    constexpr u64 map(u64 val) { return val; }
-    constexpr bool map(bool val) { return val; }
-
-    constexpr f64 map(f32 val) { return (f64) val; }
-    constexpr f64 map(f64 val) { return val; }
-
-    constexpr const byte *map(byte *val) { return val; }
-    constexpr const byte *map(const byte *val) { return val; }
-
-    template <typename T>
-    constexpr enable_if_t<is_constructible_v<string_view, T>, string_view> map(const T &val) {
-        return string_view(val);
-    }
-
-    string_view map(string val) { return (string_view) val; }
-    constexpr const void *map(void *val) { return val; }
-    constexpr const void *map(const void *val) { return val; }
-
-    template <typename T>
-    constexpr s32 map(const T *) {
-        // Formatting of arbitrary pointers is disallowed.
-        // If you want to output a pointer cast it to "void *" or "const void *".
-        static_assert(is_same_v<T, void>, "Formatting of non-void pointers is disallowed");
-        return 0;
-    }
-
-    template <typename T>
-    constexpr enable_if_t<!is_constructible_v<string_view, T> && has_formatter<T>::value, const T &> map(const T &val) {
-        return val;
-    }
-
-    template <typename T, typename = enable_if_t<is_enum_v<T>>>
-    constexpr auto map(const T &val) {
-        return (underlying_type_t<T>) (val);
-    }
-
-    template <typename T>
-    constexpr const internal::named_arg_base &map(const internal::named_arg<T> &val) {
-        auto result = make_arg(val.value);
-        copy_memory_constexpr(val.data, &result, sizeof(arg));
-        return val;
-    }
 };
 }  // namespace fmt
 
@@ -251,4 +147,3 @@ LSTD_END_NAMESPACE
 
 // :ExplicitDeclareIsPod
 DECLARE_IS_POD(fmt::value, true)
-DECLARE_IS_POD(fmt::arg, true)

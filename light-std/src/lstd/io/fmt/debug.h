@@ -3,58 +3,39 @@
 #include "arg.h"
 
 #include "../../storage/array.h"
-#include "../../storage/string.h"
-
-LSTD_BEGIN_NAMESPACE
-
-namespace fmt {
-
-struct format_context;
-
-struct debug_struct_field_entry {
-    string Name;
-    arg Arg;
-};
-
-// Kill me now, kill me fast
-// Kill me now, kill me fast
-// Kill me now, kill me fast
-
-}  // namespace fmt
-
-LSTD_END_NAMESPACE
-
-// :ExplicitDeclareIsPod
-DECLARE_IS_POD(fmt::debug_struct_field_entry, true)
 
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
 struct debug_struct_helper {
-    format_context *Context;
-    string Name;
-    array<debug_struct_field_entry> Fields;
+    struct field_entry {
+        string_view Name;
+        arg Arg;
+    };
 
-    debug_struct_helper(format_context *context, string name) : Context(context), Name(name) {}
+    format_context *F;
+    string_view Name;
+    array<field_entry> Fields;
+
+    debug_struct_helper(format_context *f, string_view name) : F(f), Name(name) {}
 
     template <typename T>
-    debug_struct_helper *field(string name, const T &val) {
+    debug_struct_helper *field(string_view name, const T &val) {
         Fields.append({name, make_arg(val)});
         return this;
     }
 
-    // Defined after _format_context_, because C++
     void finish();
-    void write_field(debug_struct_field_entry *entry);
+    void write_field(field_entry *entry);
 };
 
 struct debug_tuple_helper {
-    format_context *Context;
-    string Name;
+    format_context *F;
+    string_view Name;
     array<arg> Fields;
 
-    debug_tuple_helper(format_context *context, string name) : Context(context), Name(name) {}
+    debug_tuple_helper(format_context *f, string_view name) : F(f), Name(name) {}
 
     template <typename T>
     debug_tuple_helper *field(const T &val) {
@@ -62,15 +43,14 @@ struct debug_tuple_helper {
         return this;
     }
 
-    // Defined after _format_context_, because C++
     void finish();
 };
 
 struct debug_list_helper {
-    format_context *Context;
+    format_context *F;
     array<arg> Fields;
 
-    debug_list_helper(format_context *context) : Context(context) {}
+    debug_list_helper(format_context *f) : F(f) {}
 
     template <typename T>
     debug_list_helper *entries(array_view<T> val) {
@@ -88,7 +68,6 @@ struct debug_list_helper {
         return entries(array_view<T>(begin, begin + count));
     }
 
-    // Defined after _format_context_, because C++
     void finish();
 };
 

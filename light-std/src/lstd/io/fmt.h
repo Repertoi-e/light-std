@@ -2,11 +2,9 @@
 
 #include "../context.h"
 #include "../io.h"
-#include "fmt/color.h"
-#include "fmt/formatter.h"
-#include "fmt/string_checker.h"
 
 #include "../storage/array.h"
+#include "fmt/format_context.h"
 
 //
 // Format specification:
@@ -38,7 +36,7 @@
 //    fmt::print("{:<8}", "Jon")  -> "     Jon"
 //
 // The general form of a standard format specifier is:
-//     [[fill]align][sign][#][0][minimumwidth][.precision][type]
+//     [[fill]align][sign][#][0][width][.precision][type]
 // The brackets ([]) indicate an optional element.
 //
 //     The optional align flag is one of the following:
@@ -155,38 +153,38 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-// Formats to writer
-template <typename... Args, typename S>
-enable_if_t<can_be_fmt_string_v<S>> format_to_writer(io::writer *out, S fmtString, Args &&... args) {
-    maybe_compile_time_check_format_string<remove_const_t<remove_reference_t<Args>>...>(fmtString);
+// Defined in fmt.cpp
+void parse_fmt_string(string_view fmtString, format_context *f);
 
-    auto f = format_context(out, string_view(fmtString), {fmt::make_fmt_args<Args...>(args...)});
-    auto handler = fmt::format_handler(&f);
-    parse_format_string<false>(&f.Parse, &handler);
+// Formats to writer
+template <typename... Args>
+void to_writer(io::writer *out, string_view fmtString, Args &&... args) {
+    auto f = format_context(out, fmtString, fmt::args(make_arg_store<Args...>(args...)), default_error_handler);
+    parse_fmt_string(fmtString, &f);
     f.flush();
 }
 
 // Formats to a counting writer and returns the result
-template <typename... Args, typename S>
-enable_if_t<can_be_fmt_string_v<S>, size_t> calculate_formatted_size(S fmtString, Args &&... args) {
+template <typename... Args>
+size_t calculate_formatted_size(string_view fmtString, Args &&... args) {
     io::counting_writer writer;
-    format_to_writer(&writer, fmtString, ((Args &&) args)...);
+    to_writer(&writer, fmtString, ((Args &&) args)...);
     return writer.Count;
 }
 
 // Formats to a string
-template <typename... Args, typename S>
-enable_if_t<can_be_fmt_string_v<S>> sprint(string *out, S fmtString, Args &&... args) {
+template <typename... Args>
+void sprint(string *out, string_view fmtString, Args &&... args) {
     out->reserve(calculate_formatted_size(fmtString, ((Args &&) args)...));  // @Speed Is this actually better?
 
     auto writer = io::string_writer(out);
-    format_to_writer(&writer, fmtString, ((Args &&) args)...);
+    to_writer(&writer, fmtString, ((Args &&) args)...);
 }
 
 // Formats to io::cout
-template <typename... Args, typename S>
-enable_if_t<can_be_fmt_string_v<S>> print(S fmtString, Args &&... args) {
-    format_to_writer(Context.Log, fmtString, ((Args &&) args)...);
+template <typename... Args>
+void print(string_view fmtString, Args &&... args) {
+    to_writer(Context.Log, fmtString, ((Args &&) args)...);
 }
 
 // Formatters for array and stack_array

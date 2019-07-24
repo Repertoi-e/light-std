@@ -6,13 +6,9 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// @TODO: _sort()_
+// _array_ works with types that can be copied byte by byte correctly, take a look at the type policy in common.h
 template <typename T>
 struct array {
-    // If your type can be copied byte by byte correctly,
-    // then you can explicitly declare it as POD in global namespace with DECLARE_IS_POD(type, true)
-    static_assert(is_pod_v<T> && "arrays can only work with POD types, take a look at the type policy in common.h");
-
     using data_t = T;
 
     data_t *Data = null;
@@ -24,6 +20,8 @@ struct array {
     array(array_view<data_t> items) : Data((data_t *) items.begin()), Count(items.size()), Reserved(0) {}
 
     ~array() { release(); }
+
+    // @TODO: _sort()_
 
     // Makes sure the dynamic array has reserved enough space for at least n elements.
     // Note that it may reserve way more than required.

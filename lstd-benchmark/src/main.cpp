@@ -17,44 +17,39 @@ static void stl_cout(benchmark::State &state) {
 static void c_printf(benchmark::State &state) {
     s32 a = 5000;
     f32 b = 1.622f;
-    For(state) { printf("Hello, world! %.*f %x\r", 2, b, a); }
-}
-
-static void lstd_cout_buffer_writer(benchmark::State &state) {
-    s32 a = 5000;
-    f32 b = 1.622f;
     For(state) {
-        stack_dynamic_buffer<512> formatBuffer;
-        auto writer = io::buffer_writer<512>(&formatBuffer);
-
-        auto f =
-            fmt::format_context(&writer, "Hello, world! {:.{}f} {:x}\r", {fmt::make_fmt_args<f32, s32, s32>(b, 2, a)});
-
-        auto handler = fmt::format_handler(&f);
-        fmt::parse_format_string<false>(&f.Parse, &handler);
-        writer.flush();
-
-        io::cout.write(formatBuffer.Data, formatBuffer.ByteLength);
-        io::cout.flush();
+        printf(
+            "Hello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
+            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! "
+            "\rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
+            "world! \rHello, world! \rHello, world! \rHello, world! \r%.*fHello, world! \rHello, world! \rHello, "
+            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! "
+            "\rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
+            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \r "
+            "%x\r",
+            2, b, a);
     }
 }
 
-static void lstd_cout_directly_to_cout(benchmark::State &state) {
+static void lstd_fmt_cout(benchmark::State &state) {
     s32 a = 5000;
     f32 b = 1.622f;
     For(state) {
-        auto f = fmt::format_context(&io::cout, "Hello, world! {:.{}f} {:x}\r",
-                                     {fmt::make_fmt_args<f32, s32, s32>(b, 3, a)});
-
-        auto handler = fmt::format_handler(&f);
-        fmt::parse_format_string<false>(&f.Parse, &handler);
-        io::cout.flush();
+        fmt::print(
+            "Hello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
+            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! "
+            "\rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
+            "world! \rHello, world! \rHello, world! \rHello, world! \r{:.{}f}Hello, world! \rHello, world! \rHello, "
+            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! "
+            "\rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
+            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \r "
+            "{:x}\r",
+            b, 2, a);
     }
 }
 
 BENCHMARK(stl_cout);
-BENCHMARK(lstd_cout_buffer_writer);     // ->Iterations(10000000000);
-BENCHMARK(lstd_cout_directly_to_cout);  // ->Iterations(10000000000);
 BENCHMARK(c_printf);
+BENCHMARK(lstd_fmt_cout);  // ->Iterations(10000000000);
 
 BENCHMARK_MAIN();

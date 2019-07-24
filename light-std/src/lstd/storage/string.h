@@ -205,7 +205,7 @@ struct string {
     //
     // Operators:
     //
-    operator string_view() {
+    operator string_view() const {
         string_view view;
         view.Data = Data;
         view.ByteLength = ByteLength;
