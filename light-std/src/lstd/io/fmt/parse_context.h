@@ -38,8 +38,8 @@ struct parse_context {
     arg_ref parse_arg_id();
 
     // _argType_ the type of the argument for which we are parsing the specs
-    dynamic_format_specs parse_fmt_specs(type argType);
-    text_style parse_text_style();
+    bool parse_fmt_specs(type argType, dynamic_format_specs *specs);
+    bool parse_text_style(text_style *textStyle);
 
     void on_error(const byte *message) const {
         if (ErrorHandlerFunc) ErrorHandlerFunc(message, {string_view(Begin, End - Begin), (size_t)(It - Begin)});
@@ -54,12 +54,12 @@ struct parse_context {
     u32 parse_nonnegative_int();
 
     // Parses _fill_ code point as well
-    void parse_align(type argType, format_specs *specs);
-    void parse_width(dynamic_format_specs *specs);
-    void parse_precision(type argType, dynamic_format_specs *specs);
+    bool parse_align(type argType, format_specs *specs);
+    bool parse_width(dynamic_format_specs *specs);
+    bool parse_precision(type argType, dynamic_format_specs *specs);
 
-    u8 parse_rgb_channel(bool last);
-    void handle_emphasis(text_style *style);
+    u32 parse_rgb_channel(bool last);
+    bool handle_emphasis(text_style *textStyle);
 };
 }  // namespace fmt
 

@@ -91,7 +91,10 @@ void format_context_write(io::writer *w, const byte *data, size_t count) {
             f->write((void *) data);
             return;
         }
-        if (f->Specs->Type != 's') f->on_error("Invalid type specifier");
+        if (f->Specs->Type != 's') {
+            f->on_error("Invalid type specifier");
+            return;
+        }
     }
 
     // 'p' wasn't specified, not treating as formatting a pointer
@@ -114,7 +117,10 @@ void format_context_flush(io::writer *w) {
 static byte U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
 
 void format_context::write(const void *value) {
-    if (Specs && Specs->Type && Specs->Type != 'p') on_error("Invalid type specifier");
+    if (Specs && Specs->Type && Specs->Type != 'p') {
+        on_error("Invalid type specifier");
+        return;
+    }
 
     auto uptr = bit_cast<uptr_t>(value);
     u32 numDigits = COUNT_DIGITS<4>(uptr);
@@ -134,7 +140,7 @@ void format_context::write(const void *value) {
 
     format_specs specs = *Specs;
     if (specs.Align == alignment::DEFAULT) specs.Align = alignment::RIGHT;
-    write_padded_helper(this, specs, f, numDigits);
+    write_padded_helper(this, specs, f, numDigits + 2);
 }
 
 void format_context::write_u64(u64 value, bool negative, format_specs specs) {
@@ -147,10 +153,15 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
     } else if (to_lower(type) == 'b') {
         numDigits = COUNT_DIGITS<1>(value);
     } else if (type == 'o') {
-        numDigits = COUNT_DIGITS<1>(value);
+        numDigits = COUNT_DIGITS<3>(value);
     } else if (to_lower(type) == 'x') {
         numDigits = COUNT_DIGITS<4>(value);
     } else if (type == 'c') {
+        if (specs.Align == alignment::NUMERIC || specs.has_flag(flag::SIGN) || specs.has_flag(flag::PLUS) ||
+            specs.has_flag(flag::MINUS) || specs.has_flag(flag::HASH)) {
+            on_error("Invalid format specifier for code point");
+            return;
+        }
         auto cp = (char32_t) value;
         write_padded_helper(this, specs, [&]() { this->write_no_specs(cp); }, get_size_of_cp(cp));
         return;
@@ -179,7 +190,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
     // so only add it if precision is not greater than the number of digits.
     // Note: Here if _specs.Precision_ is -1 (i.e. not specified)
     // the cast to size_t will overflow it to a really high value
-    if (type == 'o' && (size_t) specs.Precision <= numDigits) {
+    if (type == 'o' && specs.has_flag(flag::HASH) && (size_t) specs.Precision > numDigits) {
         *prefixPointer++ = '0';
     }
 
@@ -243,7 +254,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
                             [&]() {
                                 if (prefix.Length) this->write_no_specs(prefix);
                                 For(range(padding)) this->write_no_specs(specs.Fill);
-                                auto *p = format_uint_decimal(U64_FORMAT_BUFFER, value, formattedSize, "." /*@Locale*/);
+                                auto *p = format_uint_decimal(U64_FORMAT_BUFFER, value, formattedSize, "," /*@Locale*/);
                                 this->write_no_specs(p, U64_FORMAT_BUFFER + formattedSize - p);
                             },
                             formattedSize);
@@ -259,6 +270,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
         byte lower = (byte) to_lower(type);
         if (lower != 'g' && lower != 'e' && lower != '%' && lower != 'f' && lower != 'a') {
             on_error("Invalid type specifier");
+            return;
         }
     } else {
         type = 'g';
@@ -329,6 +341,9 @@ void format_context::write_f64(f64 value, format_specs specs) {
                 if (p != end) copy_memory(where, p, (size_t)(end - p));
                 formatBuffer.ByteLength -= (size_t)(p - where);
             }
+        } else if (p == end) {
+            // There was no dot at all
+            formatBuffer.append_pointer_and_size(".0", 2);
         }
     }
 
@@ -345,11 +360,12 @@ void format_context::write_f64(f64 value, format_specs specs) {
         specs.Align = alignment::RIGHT;
     }
 
-    auto formattedSize = formatBuffer.ByteLength;
-    if (!specs.Width) {
-        formattedSize += sign ? 1 : 0;
-    }
-    write_padded_helper(this, specs, [&, this]() { this->write_no_specs(formatBuffer.Data, formatBuffer.ByteLength); },
+    auto formattedSize = formatBuffer.ByteLength + (sign ? 1 : 0);
+    write_padded_helper(this, specs,
+                        [&, this]() {
+                            if (sign) this->write_no_specs(sign);
+                            this->write_no_specs(formatBuffer.Data, formatBuffer.ByteLength);
+                        },
                         formattedSize);
 }
 
@@ -360,8 +376,10 @@ struct width_checker {
     enable_if_t<is_integer_v<T>, u32> operator()(T value) {
         if (IS_NEG(value)) {
             F->on_error("Negative width");
+            return (u32) -1;
         } else if ((u64) value > numeric_info<s32>::max()) {
             F->on_error("Width value is too big");
+            return (u32) -1;
         }
         return (u32) value;
     }
@@ -369,7 +387,7 @@ struct width_checker {
     template <typename T>
     enable_if_t<!is_integer_v<T>, u32> operator()(T) {
         F->on_error("Width was not an integer");
-        return 0;
+        return (u32) -1;
     }
 };
 
@@ -380,8 +398,10 @@ struct precision_checker {
     enable_if_t<is_integer_v<T>, s32> operator()(T value) {
         if (IS_NEG(value)) {
             F->on_error("Negative precision");
+            return numeric_info<s32>::min();
         } else if ((u64) value > numeric_info<s32>::max()) {
             F->on_error("Precision value is too big");
+            return numeric_info<s32>::min();
         }
         return (s32) value;
     }
@@ -389,7 +409,7 @@ struct precision_checker {
     template <typename T>
     enable_if_t<!is_integer_v<T>, s32> operator()(T) {
         F->on_error("Precision was not an integer");
-        return 0;
+        return numeric_info<s32>::min();
     }
 };
 
@@ -406,6 +426,7 @@ arg format_context::get_arg_from_ref(arg_ref ref) {
             ArgMap.ensure_initted(Args);
             target = ArgMap.find(ref.Name);
             if (target.Type == type::NONE) {
+                --Parse.It;
                 on_error("Argument with this name not found");
             }
         }
@@ -413,14 +434,18 @@ arg format_context::get_arg_from_ref(arg_ref ref) {
     return target;
 }
 
-void format_context::handle_dynamic_specs() {
-    if (!Specs) return;
+bool format_context::handle_dynamic_specs() {
+    assert(Specs);
 
     auto width = get_arg_from_ref(Specs->WidthRef);
     if (width.Type != type::NONE) Specs->Width = visit_fmt_arg(width_checker{this}, width);
+    if (Specs->Width == (u32) -1) return false;
 
     auto precision = get_arg_from_ref(Specs->PrecisionRef);
     if (precision.Type != type::NONE) Specs->Precision = visit_fmt_arg(precision_checker{this}, precision);
+    if (Specs->Precision == numeric_info<s32>::min()) return false;
+
+    return true;
 }
 }  // namespace fmt
 

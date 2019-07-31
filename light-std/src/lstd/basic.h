@@ -4,7 +4,7 @@
 
 #include "context.h"
 
-#include "intrinsics/math.h"
+#include "intrin.h"
 
 #include "storage/array.h"
 #include "storage/stack_dynamic_buffer.h"

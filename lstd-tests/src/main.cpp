@@ -10,7 +10,7 @@ void run_tests() {
             auto length = MIN<size_t>(30, it.Name.Length);
             fmt::print("        {:.{}} {:.^{}} ", it.Name, length, "", 35 - length);
 
-            auto *failedAssertsStart = asserts::GlobalFailed.end();
+            auto failedAssertsStart = asserts::GlobalFailed.Count;
 
             // Run the test
             if (it.Function) {
@@ -21,13 +21,13 @@ void run_tests() {
             }
 
             // Check if test has failed asserts
-            if (failedAssertsStart == asserts::GlobalFailed.end()) {
+            if (failedAssertsStart == asserts::GlobalFailed.Count) {
                 fmt::print("{!GREEN}OK{!}\n");
                 sucessfulProcs++;
             } else {
                 fmt::print("{!RED}FAILED{!}\n");
 
-                auto it = failedAssertsStart;
+                auto it = asserts::GlobalFailed.begin() + failedAssertsStart;
                 for (; it != asserts::GlobalFailed.end(); ++it) {
                     fmt::print("          {!GRAY}>>> {}{!}\n", *it);
                 }
@@ -60,10 +60,13 @@ void run_tests() {
 s32 main() {
     Context.init_temporary_allocator(4_MiB);
 
-    while (true) {
-        run_tests();
-        break;
-        // Context.TemporaryAlloc.free_all();
-    }
+	PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
+        while (true) {
+            run_tests();
+            break;
+            // Context.TemporaryAlloc.free_all();
+        }
+	}
+    
     return 0;
 }

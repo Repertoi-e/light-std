@@ -57,10 +57,10 @@ struct asserts {
 template <typename T, typename U>
 inline void test_assert_failed_binary_operator(const byte *var1, const byte *op, const byte *var2, const byte *file,
                                                s32 line, T *value1, U *value2) {
-    constexpr auto *fmtString = "{}:{} {!YELLOW}{} {} {}{!GRAY}, LHS: {!YELLOW}{}{!GRAY}, RHS: {!YELLOW}{}{!}";
+    constexpr byte *str = "{}:{} {!YELLOW}{} {} {}{!GRAY}, LHS: {!YELLOW}\"{}\"{!GRAY}, RHS: {!YELLOW}\"{}\"{!}";
 
-    string_view shortFile = get_short_file_name(__FILE__);
-    fmt::sprint(asserts::GlobalFailed.append(), fmtString, shortFile, line, var1, op, var2, *value1, *value2);
+    string_view shortFile = get_short_file_name(file);
+    fmt::sprint(asserts::GlobalFailed.append(), str, shortFile, line, var1, op, var2, *value1, *value2);
 }
 
 #define assert_helper(x, y, condition, op)                                                                          \
@@ -80,11 +80,6 @@ using test_func = void (*)();
 struct test {
     string Name;
     test_func Function = null;
-
-    test(string name, test_func function) : Name(name), Function(function) {}
-
-    // Required by _array_
-    bool operator==(test other) const { return Name == other.Name && Function == other.Function; }
 };
 
 inline table<string_view, array<test>> g_TestTable;
@@ -93,7 +88,7 @@ inline table<string_view, array<test>> g_TestTable;
     struct test_##name {                                           \
         test_##name() {                                            \
             string_view shortFile = get_short_file_name(__FILE__); \
-            g_TestTable[shortFile]->append(test(#name, &run));     \
+            g_TestTable[shortFile]->append({#name, &run});         \
         }                                                          \
         static void run();                                         \
     };                                                             \

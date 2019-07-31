@@ -2,7 +2,7 @@
 
 /// A header which provides type definitions as well as other helper macros
 
-#include "intrinsics/debug_break.h"
+#include "intrin/debug_break.h"
 #include "types.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:

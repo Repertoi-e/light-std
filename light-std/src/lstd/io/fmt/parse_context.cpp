@@ -58,86 +58,71 @@ arg_ref parse_context::parse_arg_id() {
     return arg_ref(name);
 }
 
-dynamic_format_specs parse_context::parse_fmt_specs(type argType) {
-    dynamic_format_specs result = {};
-    defer({
-        if (It == End || *It != '}') {
-            on_error("Missing '}' in format string or unknown format specifier");
-        }
-    });
+bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
+    if (It == End || *It == '}') return true;  // No specs to parse, but that's not an error
 
-    if (It == End || *It == '}') return result;
-
-    parse_align(argType, &result);
-    if (It == End) return result;
+    if (!parse_align(argType, specs)) return false;
+    if (It == End) return true;
 
     // Parse sign
     switch (*It) {
         case '+':
             require_signed_arg(argType);
-            result.Flags |= flag::SIGN | flag::PLUS;
+            specs->Flags |= flag::SIGN | flag::PLUS;
             ++It;
             break;
         case '-':
             require_signed_arg(argType);
-            result.Flags |= flag::MINUS;
+            specs->Flags |= flag::MINUS;
             ++It;
             break;
         case ' ':
             require_signed_arg(argType);
-            result.Flags |= flag::SIGN;
+            specs->Flags |= flag::SIGN;
             ++It;
             break;
     }
-    if (It == End) return result;
+    if (It == End) return true;
 
     if (*It == '#') {
         require_numeric_arg(argType);
-        result.Flags |= flag::HASH;
-        if (++It == End) return result;
+        specs->Flags |= flag::HASH;
+        if (++It == End) return true;
     }
 
     if (*It == '0') {
         require_numeric_arg(argType);
-        result.Align = alignment::NUMERIC;
-        result.Fill = '0';
-        if (++It == End) return result;
+        specs->Align = alignment::NUMERIC;
+        specs->Fill = '0';
+        if (++It == End) return true;
     }
 
-    parse_width(&result);
-    if (It == End) return result;
+    if (!parse_width(specs)) return false;
+    if (It == End) return true;
 
     if (*It == '.') {
-        parse_precision(argType, &result);
+        if (!parse_precision(argType, specs)) return false;
     }
 
-    if (It != End && *It != '}') result.Type = *It++;
-    return result;
+    if (It != End && *It != '}') specs->Type = *It++;
+    return true;
 }
 
-text_style parse_context::parse_text_style() {
-    text_style result;
-
+bool parse_context::parse_text_style(text_style *textStyle) {
     if (is_alpha(*It)) {
         bool terminal = false;
         if (*It == 't') {
             terminal = true;
             ++It;
         }
-        if (It == End) {
-            on_error("Invalid format string");
-            return result;
-        }
+
         auto *nameBegin = It;
         while (It != End && is_identifier_start(*It)) ++It;
 
-        if (It == End) {
-            on_error("Invalid format string");
-            return result;
-        }
+        if (It == End) return true;
         if (*It != ';' && *It != '}') {
-            on_error("Invalid color name - it must be all caps and contain only letters");
-            return result;
+            on_error("Invalid color name - it must be a valid identifier");
+            return false;
         }
 
         auto name = string_view(nameBegin, It - nameBegin);
@@ -146,52 +131,53 @@ text_style parse_context::parse_text_style() {
             if (c == terminal_color::NONE) {
                 // Color with that name not found, treat it as emphasis
                 It -= name.ByteLength;
-                handle_emphasis(&result);
-                return result;
+                if (!handle_emphasis(textStyle)) return false;
+                return true;
             }
-            result.ColorKind = text_style::color_kind::TERMINAL;
-            result.Color.Terminal = c;
+            textStyle->ColorKind = text_style::color_kind::TERMINAL;
+            textStyle->Color.Terminal = c;
         } else {
             color c = string_to_color(name);
             if (c == color::NONE) {
                 // Color with that name not found, treat it as emphasis
                 It -= name.ByteLength;
-                handle_emphasis(&result);
-                return result;
+                if (!handle_emphasis(textStyle)) return false;
+                return true;
             }
-            result.ColorKind = text_style::color_kind::RGB;
-            result.Color.RGB = (u32) c;
+            textStyle->ColorKind = text_style::color_kind::RGB;
+            textStyle->Color.RGB = (u32) c;
         }
     } else if (is_digit(*It)) {
         // Parse an RGB true color
-        u8 r = parse_rgb_channel(false);
+        u32 r = parse_rgb_channel(false);
+        if (r == (u32) -1) return false;
         ++It;
-        u8 g = parse_rgb_channel(false);
+        u32 g = parse_rgb_channel(false);
+        if (g == (u32) -1) return false;
         ++It;
-        u8 b = parse_rgb_channel(true);
-        result.ColorKind = text_style::color_kind::RGB;
-        result.Color.RGB = (r << 16) | (g << 8) | b;
+        u32 b = parse_rgb_channel(true);
+        if (b == (u32) -1) return false;
+        textStyle->ColorKind = text_style::color_kind::RGB;
+        textStyle->Color.RGB = (r << 16) | (g << 8) | b;
     } else if (*It == '}') {
         // Empty text style spec means "reset"
-        return result;
+        return true;
     }
 
     if (*It == ';') {
         ++It;
         if (It + 2 < End) {
-            if (*It == 'B' && *(It + 1) == 'G') {
-                if (result.ColorKind == text_style::color_kind::NONE) {
-                    on_error("Color specified as type background but there is no color");
-                    return result;
-                }
-                result.Background = true;
+            if (string_view(It, 2) == "BG") {
+                assert(textStyle->ColorKind != text_style::color_kind::NONE);  // "BG" specifier encountered but there
+                                                                               // was no color parsed before it
+                textStyle->Background = true;
                 It += 2;
-                return result;
+                return true;
             }
         }
-        handle_emphasis(&result);
+        if (!handle_emphasis(textStyle)) return false;
     }
-    return result;
+    return true;
 }
 
 u32 parse_context::parse_nonnegative_int() {
@@ -213,11 +199,15 @@ u32 parse_context::parse_nonnegative_int() {
         value = value * 10 + u32(*It - '0');
         ++It;
     } while (It != End && '0' <= *It && *It <= '9');
-    if (value > maxInt) on_error("Number is too big");
+    if (value > maxInt) {
+        on_error("Number is too big");
+        while (It != End && '0' <= *It && *It <= '9') ++It;
+        return (u32) -1;
+    }
     return value;
 }
 
-void parse_context::parse_align(type argType, format_specs *specs) {
+bool parse_context::parse_align(type argType, format_specs *specs) {
     assert(It != End);
 
     alignment align = alignment::DEFAULT;
@@ -244,11 +234,10 @@ void parse_context::parse_align(type argType, format_specs *specs) {
             if (i > 0) {
                 if (*It == '{') {
                     on_error("Invalid fill character '{'");
-                    return;
+                    return false;
                 }
-                cpSize = get_size_of_cp(It);
                 char32_t fill = decode_cp(It);
-                It += 1 + cpSize;
+                It += 1 + get_size_of_cp(fill);
                 specs->Fill = fill;
             } else {
                 ++It;
@@ -258,25 +247,28 @@ void parse_context::parse_align(type argType, format_specs *specs) {
             break;
         }
     } while (i-- > 0);
+    return true;
 }
 
-void parse_context::parse_width(dynamic_format_specs *specs) {
+bool parse_context::parse_width(dynamic_format_specs *specs) {
     assert(It != End);
 
     if (is_digit(*It)) {
         specs->Width = parse_nonnegative_int();
+        if (specs->Width == (u32) -1) return false;
     } else if (*It == '{') {
         ++It;
         if (It != End) specs->WidthRef = parse_arg_id();
         if (It == End || *It != '}') {
             on_error("Invalid format string");
-            return;
+            return false;
         }
         ++It;
     }
+    return true;
 }
 
-void parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
+bool parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
     assert(It != End);
 
     // Skip the '.'
@@ -284,64 +276,75 @@ void parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
 
     byte c = It != End ? *It : 0;
     if (is_digit(c)) {
-        specs->Precision = parse_nonnegative_int();
+        u32 value = parse_nonnegative_int();
+        if (value == (u32) -1) return false;
+        specs->Precision = (s32) value;
     } else if (c == '{') {
         ++It;
         if (It != End) specs->PrecisionRef = parse_arg_id();
         if (It == End || *It++ != '}') {
             on_error("Invalid format string");
-            return;
+            return false;
         }
     } else {
         on_error("Missing precision specifier");
-        return;
+        return false;
     }
     check_precision_for_arg(argType);
+    return true;
 }
 
-u8 parse_context::parse_rgb_channel(bool last) {
+u32 parse_context::parse_rgb_channel(bool last) {
     u32 channel = parse_nonnegative_int();
-    if (channel > 255) on_error("Invalid RGB channel value - it must be in the range [0-255]");
+    if (channel > 255) {
+        on_error("Invalid channel value - it must be in the range [0-255]");
+        return (u32) -1;
+    }
+    if (It == End) return (u32) -1;
     if (!last) {
-        if (*It != ';') on_error("Expected ';' after parsing first or second channel");
-        if (It == End || *It == '}') {
-            on_error("Invalid RGB color - expected 3 channels separated by ';'");
-            return 0;
+        if (*It != ';') {
+            on_error("';' expected");
+            return (u32) -1;
+        }
+        if (*It == '}' || !is_digit(*(It + 1))) {
+            on_error("Integer expected");
+            return (u32) -1;
         }
     } else {
         if (*It != '}' && *It != ';') {
-            on_error("Invalid RGB color - expected '}' or a ';' followed by emphasis or background specifier");
-            return 0;
+            on_error("'}' or ';' expected");
+            return (u32) -1;
         }
     }
-    return (u8) channel;
+    return channel;
 }
 
-void parse_context::handle_emphasis(text_style *style) {
+bool parse_context::handle_emphasis(text_style *textStyle) {
     // We get here either by failing to match a color name or by parsing a color first and then reaching another ';'
     while (It != End && is_alpha(*It)) {
         switch (*It) {
             case 'B':
-                style->Emphasis |= emphasis::BOLD;
+                textStyle->Emphasis |= emphasis::BOLD;
                 break;
             case 'I':
-                style->Emphasis |= emphasis::ITALIC;
+                textStyle->Emphasis |= emphasis::ITALIC;
                 break;
             case 'U':
-                style->Emphasis |= emphasis::UNDERLINE;
+                textStyle->Emphasis |= emphasis::UNDERLINE;
                 break;
             case 'S':
-                style->Emphasis |= emphasis::STRIKETHROUGH;
+                textStyle->Emphasis |= emphasis::STRIKETHROUGH;
                 break;
             default:
                 // Note: we might have gotten here if we failed to match a color name
                 on_error(
                     "Invalid emphasis character - "
                     "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)");
-                return;
+                return false;
         }
         ++It;
     }
+    return true;
 }
 
 }  // namespace fmt

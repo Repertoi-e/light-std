@@ -5,7 +5,6 @@
 #include <intrin.h>
 
 #include "../common.h"
-#include "float_spec.h"
 
 #define PI 3.1415926535897932384626433832795
 #define PI_OVER_2 1.57079632679489661923   // pi/2
@@ -34,6 +33,122 @@ constexpr u64 POWERS_OF_10_64[] = {1, POWERS_OF_10(1), POWERS_OF_10(1000000000ul
 constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
 constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
 #undef POWERS_OF_10
+
+union ieee754_f32 {
+    f32 F;
+    u32 U;
+
+    // This is the IEEE 754 single-precision format.
+    struct {
+#if ENDIAN == BIG_ENDIAN
+        u32 S : 1;
+        u32 E : 8;
+        u32 M : 23;
+#else
+        u32 M : 23;
+        u32 E : 8;
+        u32 S : 1;
+#endif
+    } ieee;
+
+    // This format makes it easier to see if a NaN is a signalling NaN.
+    struct {
+#if ENDIAN == BIG_ENDIAN
+        u32 S : 1;
+        u32 E : 8;
+        u32 N : 1;
+        u32 M : 22;
+#else
+        u32 M : 22;
+        u32 N : 1;
+        u32 E : 8;
+        u32 S : 1;
+#endif
+    } ieee_nan;
+};
+
+union ieee754_f64 {
+    f64 F;
+    u64 U;
+
+    // This is the IEEE 754 single-precision format.
+    struct {
+#if ENDIAN == BIG_ENDIAN
+        u32 S : 1;
+        u32 E : 11;
+        u32 M0 : 20;
+        u32 M1 : 32;
+#else
+        u32 M1 : 32;
+        u32 M0 : 20;
+        u32 E : 11;
+        u32 S : 1;
+#endif
+    } ieee;
+
+    // This format makes it easier to see if a NaN is a signalling NaN.
+    struct {
+#if ENDIAN == BIG_ENDIAN
+        u32 S : 1;
+        u32 E : 11;
+        u32 N : 1;
+        u32 M0 : 19;
+        u32 M1 : 32;
+#else
+        u32 M1 : 32;
+        u32 M0 : 19;
+        u32 N : 1;
+        u32 E : 11;
+        u32 S : 1;
+#endif
+    } ieee_nan;
+};
+
+// @Wrong
+// This seems wrong, not sure.
+// sizeof(ieee854_lf64) is 16 but sizeof(long double) in MSVC is 8
+union ieee854_lf64 {
+    lf64 F;
+    u64 U;
+
+    // This is the IEEE 854 double-extended-precision format.
+    struct {
+#if ENDIAN == BIG_ENDIAN
+        u32 S : 1;
+        u32 E : 15;
+        u32 Empty : 16;
+        u32 M0 : 32;
+        u32 M1 : 32;
+#else
+        u32 M1 : 32;
+        u32 M0 : 32;
+        u32 E : 15;
+        u32 S : 1;
+        u32 Empty : 16;
+#endif
+    } ieee;
+
+    // This is for NaNs in the IEEE 854 double-extended-precision format.
+    struct {
+#if ENDIAN == BIG_ENDIAN
+        u32 S : 1;
+        u32 E : 15;
+        u32 Empty : 16;
+        u32 One : 1;
+        u32 N : 1;
+        u32 M0 : 30;
+        u32 M1 : 32;
+#else
+        u32 M1 : 32;
+        u32 M0 : 30;
+        u32 N : 1;
+        u32 One : 1;
+        u32 E : 15;
+        u32 S : 1;
+        u32 Empty : 16;
+#endif
+    } ieee_nan;
+};
 
 #if COMPILER == MSVC
 #pragma intrinsic(_BitScanReverse)

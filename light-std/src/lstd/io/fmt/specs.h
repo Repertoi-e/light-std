@@ -23,7 +23,7 @@ constexpr flag &operator|=(flag &lhs, flag rhs) {
 }
 
 struct format_specs {
-    char32_t Fill;
+    char32_t Fill = ' ';
     alignment Align;
 
     flag Flags = (flag) 0;
@@ -44,11 +44,11 @@ struct arg_ref {
         string_view Name;
     };
 
-    constexpr arg_ref() : Index(0) {}
-    constexpr explicit arg_ref(u32 index) : Kind(kind::INDEX), Index(index) {}
-    constexpr explicit arg_ref(string_view name) : Kind(kind::NAME), Name(name) {}
+    arg_ref() : Index(0) {}
+    arg_ref(u32 index) : Kind(kind::INDEX), Index(index) {}
+    arg_ref(string_view name) : Kind(kind::NAME), Name(name) {}
 
-    constexpr arg_ref &operator=(u32 index) {
+    arg_ref &operator=(u32 index) {
         Kind = kind::INDEX;
         Index = index;
         return *this;

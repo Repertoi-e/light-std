@@ -110,7 +110,6 @@ struct table {
 
     // Free any memory allocated by this object and reset count
     void release() {
-        reset();
         if (is_owner()) {
             delete[]((byte *) Hashes - POINTER_SIZE);
             delete[] Keys;
@@ -119,24 +118,25 @@ struct table {
             Hashes = null;
             Keys = null;
             Values = null;
-            Reserved = 0;
+            Count = SlotsFilled = Reserved = 0;
         }
     }
 
     // Don't free the table, just destroy contents and reset count
     void reset() {
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
-        auto *p = Hashes, *end = Hashes + Reserved;
-        size_t index = 0;
-        while (p != end) {
-            if (*p) {
-                Keys[index].~key_t();
-                Values[index].~value_t();
-                *p = 0;
+        if (is_owner()) {
+            auto *p = Hashes, *end = Hashes + Reserved;
+            size_t index = 0;
+            while (p != end) {
+                if (*p) {
+                    Keys[index].~key_t();
+                    Values[index].~value_t();
+                    *p = 0;
+                }
+                ++index, ++p;
             }
-            ++index, ++p;
         }
-
         Count = SlotsFilled = 0;
     }
 
@@ -249,7 +249,7 @@ struct table_iterator {
     table_iterator &operator++() {
         ++Index;
         skip_empty_slots();
-		return *this;
+        return *this;
     }
 
     table_iterator operator++(int) {

@@ -31,7 +31,7 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
 
             if (*(bracket + 1) != '}') {
                 p->It = bracket;
-                f->on_error("Unmatched '}' in format string - use double brackets (}}) to print a literal one");
+                f->on_error("Unmatched '}' in format string - use '}}' to escape");
                 return;
             }
 
@@ -70,6 +70,8 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
         }
         if (*p->It == '}') {
             currentArg = f->get_arg_from_ref(arg_ref(p->next_arg_id()));
+            if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
+
             if (currentArg.Type == type::CUSTOM) {
                 typename arg::handle(currentArg.Value.Custom).format(f);
             } else {
@@ -79,25 +81,28 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
             write(p->It + 1);
         } else if (*p->It == '!') {
             ++p->It;
-            auto textStyle = p->parse_text_style();
-
-            byte ansiBuffer[7 + 3 * 4 + 1];
-            auto *ansiEnd = internal::color_to_ansii(ansiBuffer, textStyle);
-            f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
-
-            u8 emphasis = (u8) textStyle.Emphasis;
-            if (emphasis) {
-                assert(!textStyle.Background);
-                ansiEnd = internal::emphasis_to_ansii(ansiBuffer, emphasis);
-                f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
+            text_style style = {};
+            bool success = p->parse_text_style(&style);
+            if (!success) return;
+            if (p->It == p->End || *p->It != '}') {
+                f->on_error("'}' expected");
+                return;
             }
 
-            if (p->It == p->End || *p->It != '}') {
-                f->on_error("Missing '}' in format string");
-                return;
+            byte ansiiBuffer[7 + 3 * 4 + 1];
+            auto *ansiiEnd = internal::color_to_ansii(ansiiBuffer, style);
+            f->write_no_specs(ansiiBuffer, ansiiEnd - ansiiBuffer);
+
+            u8 emphasis = (u8) style.Emphasis;
+            if (emphasis) {
+                assert(!style.Background);
+                ansiiEnd = internal::emphasis_to_ansii(ansiiBuffer, emphasis);
+                f->write_no_specs(ansiiBuffer, ansiiEnd - ansiiBuffer);
             }
         } else {
             currentArg = f->get_arg_from_ref(p->parse_arg_id());
+            if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
+
             byte c = p->It != p->End ? *p->It : 0;
             if (c == '}') {
                 if (currentArg.Type == type::CUSTOM) {
@@ -108,9 +113,18 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
             } else if (c == ':') {
                 ++p->It;
 
-                dynamic_format_specs specs = p->parse_fmt_specs(currentArg.Type);
+                dynamic_format_specs specs = {};
+                bool success = p->parse_fmt_specs(currentArg.Type, &specs);
+                if (!success) return;
+                if (p->It == p->End || *p->It != '}') {
+                    f->on_error("'}' expected");
+                    return;
+                }
+
                 f->Specs = &specs;
-                f->handle_dynamic_specs();
+                success = f->handle_dynamic_specs();
+                if (!success) return;
+
                 defer(f->Specs = null);
 
                 if (currentArg.Type == type::CUSTOM) {
@@ -119,7 +133,7 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
                     visit_fmt_arg(format_context_visitor(f), currentArg);
                 }
             } else {
-                f->on_error("Missing '}' in format string");
+                f->on_error("'}' expected");
                 return;
             }
         }

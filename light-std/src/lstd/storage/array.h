@@ -70,20 +70,23 @@ struct array {
 
     // Free any memory allocated by this object and reset count
     void release() {
-        reset();
         if (is_owner()) {
             delete[]((byte *) Data - POINTER_SIZE);
             Data = null;
-            Reserved = 0;
+            Count = Reserved = 0;
         }
     }
 
     // Don't free the buffer, just move cursor to 0
     void reset() {
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
-        while (Count) {
-            Data[Count].~data_t();
-            --Count;
+        if (is_owner()) {
+            while (Count) {
+                Data[Count].~data_t();
+                --Count;
+            }
+        } else {
+            Count = 0;
         }
     }
 

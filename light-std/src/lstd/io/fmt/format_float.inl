@@ -492,6 +492,7 @@ static void format_float(format_float_callback_t callback, void *user, byte *buf
             cs = 1 + (3 << 24);  // How many tens
             goto flt_lead;
 
+        case 'F':
         case 'f':
             // Default is 6
             if (pr == -1) pr = 6;

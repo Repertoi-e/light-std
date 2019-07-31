@@ -4,7 +4,7 @@
 /// Provides a default thread-safe global allocator and thread local temporary allocator.
 
 #include "../common.h"
-#include "../intrinsics/math.h"
+#include "../intrin.h"
 
 #include <new>
 

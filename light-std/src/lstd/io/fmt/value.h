@@ -24,7 +24,6 @@ enum class type {
     F64,
     LAST_NUMERIC = F64,
 
-    CSTRING,
     STRING,
     POINTER,
     CUSTOM
@@ -62,16 +61,15 @@ struct named_arg_base;
 }
 
 TYPE_CONSTANT(const internal::named_arg_base &, type::NAMED_ARG);
+TYPE_CONSTANT(byte, type::S32);
 TYPE_CONSTANT(s32, type::S32);
 TYPE_CONSTANT(u32, type::U32);
 TYPE_CONSTANT(s64, type::S64);
 TYPE_CONSTANT(u64, type::U64);
 TYPE_CONSTANT(bool, type::BOOL);
-TYPE_CONSTANT(byte, type::S32);
-TYPE_CONSTANT(f32, type::F64);
 TYPE_CONSTANT(f64, type::F64);
-TYPE_CONSTANT(const byte *, type::STRING);
 TYPE_CONSTANT(string_view, type::STRING);
+TYPE_CONSTANT(const byte *, type::STRING);
 TYPE_CONSTANT(const void *, type::POINTER);
 #undef TYPE_CONSTANT
 
@@ -116,7 +114,7 @@ struct value {
         const internal::named_arg_base *NamedArg;
     };
 
-    constexpr value(s32 value = 0) : S32(value) {}
+    value(s32 value = 0) : S32(value) {}
     value(u32 value) : U32(value) {}
     value(s64 value) : S64(value) {}
     value(u64 value) : U64(value) {}

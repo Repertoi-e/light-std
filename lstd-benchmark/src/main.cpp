@@ -10,7 +10,11 @@ static void stl_cout(benchmark::State &state) {
     s32 a = 5000;
     f32 b = 1.622f;
     For(state) {
-        std::cout << "Hello, world! " << std::fixed << std::setprecision(2) << b << ' ' << std::hex << a << '\r';
+        // What is this, really
+        // "+1.2340000000:002a:+3.1300000000:str:3e8X"
+        std::cout << std::fixed << std::setprecision(10) << 1.234 << ':' << std::setfill('0') << std::setw(4) << 42
+                  << ':' << std::setprecision(2) << std::showpos << 3.13 << ':' << "str" << ':' << std::hex << 1000
+                  << 'X' << '\r';
     }
 }
 
@@ -18,16 +22,8 @@ static void c_printf(benchmark::State &state) {
     s32 a = 5000;
     f32 b = 1.622f;
     For(state) {
-        printf(
-            "Hello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
-            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! "
-            "\rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
-            "world! \rHello, world! \rHello, world! \rHello, world! \r%.*fHello, world! \rHello, world! \rHello, "
-            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! "
-            "\rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
-            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \r "
-            "%x\r",
-            2, b, a);
+        // "1.2340000000:0042:+3.13:str:0x3e8:X:%"
+        printf("%.10f:%04d:%+.2f:%s:%x:%c:%%\r", 1.234, 42, 3.13, "str", 1000, 'X');
     }
 }
 
@@ -35,16 +31,8 @@ static void lstd_fmt_cout(benchmark::State &state) {
     s32 a = 5000;
     f32 b = 1.622f;
     For(state) {
-        fmt::print(
-            "Hello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
-            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! "
-            "\rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
-            "world! \rHello, world! \rHello, world! \rHello, world! \r{:.{}f}Hello, world! \rHello, world! \rHello, "
-            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! "
-            "\rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, "
-            "world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \rHello, world! \r "
-            "{:x}\r",
-            b, 2, a);
+        // "1.2340000000:0042:+3.13:str:0x3e8:X:%"
+        fmt::print("{:0.10f}:{:04}:{:+g}:{}:{}:{:c}:%\r", 1.234, 42, 3.13, "str", (void *) 1000, 'X');
     }
 }
 

@@ -94,7 +94,7 @@ struct format_context : io::writer, non_copyable, non_movable {
         if (Specs && Specs->Type) {
             write(value ? 1 : 0);
         } else {
-            write_no_specs(value ? 1 : 0);
+            write(value ? "true" : "false");
         }
     }
 
@@ -109,8 +109,8 @@ struct format_context : io::writer, non_copyable, non_movable {
     arg get_arg_from_ref(arg_ref ref);
 
     // Checks if fields containing dynamic width/precision (not in-place integers) have been handled and handles them
-    // Called by _parse_format_string_ and _formatter<T>_ for non-custom types
-    void handle_dynamic_specs();
+    // Called by _parse_format_string_ in fmt.cpp
+    bool handle_dynamic_specs();
 
     void on_error(const byte *message) { Parse.on_error(message); }
 
@@ -141,16 +141,6 @@ struct format_context_visitor {
     void operator()(unused) { F->on_error("Internal error while formatting"); }
     void operator()(arg::handle handle) { F->on_error("Internal error while formatting a custom argument"); }
 };
-
-// Implement _formatter_ for non-custom types incase the user calls formatter for generic argument formatting
-template <typename T>
-struct formatter<T, enable_if_t<(type) type_constant_v<T> != type::CUSTOM>> {
-    void format(T src, format_context *f) {
-        f->handle_dynamic_specs();
-        visit_fmt_arg(format_context_visitor(f), make_arg(src));
-    }
-};
-
 }  // namespace fmt
 
 LSTD_END_NAMESPACE

@@ -92,12 +92,10 @@ struct text_style {
     } Color;
     bool Background = false;
     emphasis Emphasis = (emphasis) 0;
-
-    constexpr text_style() = default;
 };
 
 namespace internal {
-// Used when making ANSI escape codes for text styles
+// Used when making ANSII escape codes for text styles
 inline byte *u8_to_esc(byte *p, byte delimiter, u8 c) {
     *p++ = '0' + c / 100;
     *p++ = '0' + c / 10 % 10;
@@ -124,7 +122,6 @@ inline byte *color_to_ansii(byte *buffer, text_style style) {
             *p++ = '0' + value % 10;
 
             *p++ = 'm';
-            *p++ = '\0';
         } else {
             copy_memory(p, style.Background ? "\x1b[48;2;" : "\x1b[38;2;", 7);
             p += 7;

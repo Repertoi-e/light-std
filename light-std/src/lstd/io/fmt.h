@@ -175,7 +175,8 @@ size_t calculate_formatted_size(string_view fmtString, Args &&... args) {
 // Formats to a string
 template <typename... Args>
 void sprint(string *out, string_view fmtString, Args &&... args) {
-    out->reserve(calculate_formatted_size(fmtString, ((Args &&) args)...));  // @Speed Is this actually better?
+    out->reserve(out->ByteLength +
+                 calculate_formatted_size(fmtString, ((Args &&) args)...));  // @Speed Is this actually better?
 
     auto writer = io::string_writer(out);
     to_writer(&writer, fmtString, ((Args &&) args)...);
