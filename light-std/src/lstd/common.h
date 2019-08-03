@@ -3,6 +3,7 @@
 /// A header which provides type definitions as well as other helper macros
 
 #include "intrin/debug_break.h"
+#include "os.h"
 #include "types.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:
@@ -118,15 +119,15 @@ struct range {
         operator s64() const { return I; }
 
         constexpr s64 operator*() const { return (s32) I; }
-        constexpr const iterator &operator++() { return I += Step, *this; }
+        constexpr iterator operator++() { return I += Step, *this; }
 
         constexpr iterator operator++(int) {
             iterator temp(*this);
             return I += Step, temp;
         }
 
-        constexpr bool operator==(const iterator &other) const { return Step < 0 ? (I <= other.I) : (I >= other.I); }
-        constexpr bool operator!=(const iterator &other) const { return Step < 0 ? (I > other.I) : (I < other.I); }
+        constexpr bool operator==(iterator other) const { return Step < 0 ? (I <= other.I) : (I >= other.I); }
+        constexpr bool operator!=(iterator other) const { return Step < 0 ? (I > other.I) : (I < other.I); }
     };
 
     iterator _Begin;

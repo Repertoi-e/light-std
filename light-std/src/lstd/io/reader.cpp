@@ -387,6 +387,7 @@ static f64 pow_10(s32 n) {
     return result;
 }
 
+// @Locale This doesn't parse commas
 pair<f64, bool> reader::parse_float() {
     if (!test_state_and_skip_ws()) return {0.0, false};
 
@@ -402,87 +403,86 @@ pair<f64, bool> reader::parse_float() {
     }
     check_eof(ch);
 
-    f64 integerPart = 0.0, fractionPart = 0.0;
-    bool hasFraction = false, hasExponent = false;
+    byte next = peek_byte();
+    check_eof(next);
 
-    while (true) {
-        if (ch >= '0' && ch <= '9') {
-            integerPart = integerPart * 10 + (ch - '0');
-        } else if (ch == '.') {
-            hasFraction = true;
-            ch = bump_byte();
-            break;
-        } else if (ch == 'e') {
-            hasExponent = true;
-            ch = bump_byte();
-            break;
-        } else {
-            return {(negative ? -1 : 1) * integerPart, false};
-        }
-
-        byte next = peek_byte();
-        if (!is_alphanumeric(next) && next != '.' && next != 'e') break;
+    if (ch == '0' && next == 'x' || next == 'X') {
+        // Parse hex float
+        bump_byte();
         ch = bump_byte();
-    }
-    check_eof(ch);
 
-    if (hasFraction) {
-        f64 fractionExponent = 0.1;
+        assert(false && "Not parsing hex floats yet");
+        return {};
+    } else {
+        // Parse fixed or in scientific notation
+        f64 integerPart = 0.0, fractionPart = 0.0;
+        bool hasFraction = false, hasExponent = false;
 
         while (true) {
             if (ch >= '0' && ch <= '9') {
-                fractionPart += fractionExponent * (ch - '0');
-                fractionExponent *= 0.1;
+                integerPart = integerPart * 10 + (ch - '0');
+            } else if (ch == '.' /*@Locale*/) {
+                hasFraction = true;
+                ch = bump_byte();
+                break;
             } else if (ch == 'e') {
                 hasExponent = true;
                 ch = bump_byte();
                 break;
             } else {
-                return {(negative ? -1 : 1) * (integerPart + fractionPart), true};
+                return {(negative ? -1 : 1) * integerPart, false};
             }
 
             byte next = peek_byte();
-            if (!is_digit(next) && next != '.' && next != 'e') break;
-            ch = bump_byte();
-        }
-    }
-    check_eof(ch);
-
-    f64 exponentPart = 1.0;
-    if (hasExponent) {
-        s32 exponentSign = 1;
-        if (ch == '-') {
-            exponentSign = -1;
-            ch = bump_byte();
-        } else if (ch == '+') {
+            if (!is_alphanumeric(next) && next != '.' && next != 'e') break;
             ch = bump_byte();
         }
         check_eof(ch);
 
-        s32 e = 0;
-        while (ch >= '0' && ch <= '9') {
-            e = e * 10 + ch - '0';
-            if (!is_digit(peek_byte())) break;
-            ch = bump_byte();
+        if (hasFraction) {
+            f64 fractionExponent = 0.1;
+
+            while (true) {
+                if (ch >= '0' && ch <= '9') {
+                    fractionPart += fractionExponent * (ch - '0');
+                    fractionExponent *= 0.1;
+                } else if (ch == 'e') {
+                    hasExponent = true;
+                    ch = bump_byte();
+                    break;
+                } else {
+                    return {(negative ? -1 : 1) * (integerPart + fractionPart), true};
+                }
+
+                byte next = peek_byte();
+                if (!is_digit(next) && next != '.' && next != 'e') break;
+                ch = bump_byte();
+            }
         }
-        exponentPart = pow_10(exponentSign * e);
+        check_eof(ch);
+
+        f64 exponentPart = 1.0;
+        if (hasExponent) {
+            s32 exponentSign = 1;
+            if (ch == '-') {
+                exponentSign = -1;
+                ch = bump_byte();
+            } else if (ch == '+') {
+                ch = bump_byte();
+            }
+            check_eof(ch);
+
+            s32 e = 0;
+            while (ch >= '0' && ch <= '9') {
+                e = e * 10 + ch - '0';
+                if (!is_digit(peek_byte())) break;
+                ch = bump_byte();
+            }
+            exponentPart = pow_10(exponentSign * e);
+        }
+
+        return {(negative ? -1 : 1) * (integerPart + fractionPart) * exponentPart, true};
     }
-
-    return {(negative ? -1 : 1) * (integerPart + fractionPart) * exponentPart, true};
-}
-
-void reader::read(f32 *value) {
-    if (!value) return;
-    auto [parsed, success] = parse_float();
-    LastFailed = !success;
-    *value = (f32) parsed;
-}
-
-void reader::read(f64 *value) {
-    if (!value) return;
-    auto [parsed, success] = parse_float();
-    LastFailed = !success;
-    *value = parsed;
 }
 
 }  // namespace io

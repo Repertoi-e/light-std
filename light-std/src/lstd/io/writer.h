@@ -32,7 +32,7 @@ struct writer {
     writer(write_t writeFunction, flush_t flushFunction) : WriteFunction(writeFunction), FlushFunction(flushFunction) {}
 
     void write(array_view<byte> data) { WriteFunction(this, data.begin(), data.size()); }
-    void write(const byte *data) { WriteFunction(this, data, cstring_strlen(data)); }
+    void write(const byte *data) { WriteFunction(this, data, c_string_strlen(data)); }
     void write(const byte *data, size_t count) { WriteFunction(this, data, count); }
     void write(string str) { WriteFunction(this, str.Data, str.ByteLength); }
 

@@ -100,7 +100,7 @@ struct table {
         }
 
         if (wasOwner) {
-            delete[] oldHashes;
+            delete[]((byte *) oldHashes - POINTER_SIZE);
             delete[] oldKeys;
             delete[] oldValues;
         }

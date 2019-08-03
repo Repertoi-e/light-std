@@ -6,8 +6,8 @@ namespace fmt {
 
 void parse_fmt_string(string_view fmtString, format_context *f) {
     parse_context *p = &f->Parse;
-    p->Begin = p->It = fmtString.begin().to_pointer();
-    p->End = fmtString.end().to_pointer();
+    p->Begin = p->It = fmtString.begin();
+    p->End = fmtString.end();
 
     auto write = [&](const byte *end) {
         if (p->It == end) return;

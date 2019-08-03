@@ -39,7 +39,7 @@ struct string_builder {
     void append(char32_t codePoint);
 
     // Append a string to the builder
-    void append(const string &str);
+    void append(string str);
 
     // Append _size_ bytes from _data_ to the builder
     void append_pointer_and_size(const byte *data, size_t size);

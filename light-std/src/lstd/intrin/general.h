@@ -200,21 +200,21 @@ constexpr u32 ROTATE_RIGHT_32(u32 x, u32 bits) { return (x >> bits) | (x << (32 
 constexpr u64 ROTATE_RIGHT_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 - bits)); }
 
 #define U32_HAS_ZERO(v) (((v) -0x01010101UL) & ~(v) &0x80808080UL)
-#define U32_HAS_VALUE(x, n) (U32_HAS_ZERO((x) ^ (~0UL / 255 * (n))))
+#define U32_HAS_VALUE(x, n) (U32_HAS_ZERO((x) ^ (~0UL / 255 * (u8)(n))))
 
-#define U32_HAS_LESS(x, n) (((x) - ~0UL / 255 * (n)) & ~(x) & ~0UL / 255 * 128)
+#define U32_HAS_LESS(x, n) (((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ~0UL / 255 * 128)
 #define U32_COUNT_LESS(x, n) \
     (((~0UL / 255 * (127 + (n)) - ((x) & ~0UL / 255 * 127)) & ~(x) & ~0UL / 255 * 128) / 128 % 255)
 
-#define U32_HAS_MORE(x, n) (((x) + ~0UL / 255 * (127 - (n)) | (x)) & ~0UL / 255 * 128)
+#define U32_HAS_MORE(x, n) (((x) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128)
 #define U32_COUNT_MORE(x, n) \
-    (((((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (n)) | (x)) & ~0UL / 255 * 128) / 128 % 255)
+    (((((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128) / 128 % 255)
 
 #define U32_LIKELY_HAS_BETWEEN(x, m, n) \
-    ((((x) - ~0UL / 255 * (n)) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (m))) & ~0UL / 255 * 128)
-#define U32_HAS_BETWEEN(x, m, n)                                   \
-    ((~0UL / 255 * (127 + (n)) - ((x) & ~0UL / 255 * 127) & ~(x) & \
-      ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (m))) &       \
+    ((((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(m))) & ~0UL / 255 * 128)
+#define U32_HAS_BETWEEN(x, m, n)                                       \
+    ((~0UL / 255 * (127 + (u8)(n)) - ((x) & ~0UL / 255 * 127) & ~(x) & \
+      ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(m))) &       \
      ~0UL / 255 * 128)
 #define U32_COUNT_BETWEEN(x, m, n) (hasbetween(x, m, n) / 128 % 255)
 

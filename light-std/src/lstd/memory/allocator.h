@@ -113,8 +113,8 @@ struct allocator {
         return Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, alignment(0), userFlags) == null;
     }
 
-    bool operator==(const allocator &other) const { return Function == other.Function && Context == other.Context; }
-    bool operator!=(const allocator &other) const { return Function != other.Function || Context != other.Context; }
+    bool operator==(allocator other) const { return Function == other.Function && Context == other.Context; }
+    bool operator!=(allocator other) const { return Function != other.Function || Context != other.Context; }
 
     operator bool() const { return Function; }
 

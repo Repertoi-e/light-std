@@ -9,22 +9,17 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void *os_alloc(size_t size) { return HeapAlloc(GetProcessHeap(), 0, size); }
+struct win32_state {
+    static constexpr size_t CONSOLE_BUFFER_SIZE = 1_KiB;
 
-void os_free(void *ptr) { HeapFree(GetProcessHeap(), 0, ptr); }
+    byte CinBuffer[CONSOLE_BUFFER_SIZE]{};
+    byte CoutBuffer[CONSOLE_BUFFER_SIZE]{};
+    byte CerrBuffer[CONSOLE_BUFFER_SIZE]{};
+    HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
+    LARGE_INTEGER PerformanceFrequency;
+    byte *ModuleName;
 
-#define CONSOLE_BUFFER_SIZE 1_KiB
-
-static bool g_ConsoleAllocated = false;
-static byte g_CinBuffer[CONSOLE_BUFFER_SIZE]{};
-static byte g_CoutBuffer[CONSOLE_BUFFER_SIZE]{};
-static byte g_CerrBuffer[CONSOLE_BUFFER_SIZE]{};
-static HANDLE g_CinHandle = null, g_CoutHandle = null, g_CerrHandle = null;
-
-static void allocate_console() {
-    if (!g_ConsoleAllocated) {
-        g_ConsoleAllocated = true;
-
+    win32_state() {
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
             AllocConsole();
 
@@ -34,8 +29,61 @@ static void allocate_console() {
             cInfo.dwSize.Y = 500;
             SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), cInfo.dwSize);
         }
+
+        CinHandle = GetStdHandle(STD_INPUT_HANDLE);
+        CoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+        CerrHandle = GetStdHandle(STD_ERROR_HANDLE);
+
+        if (!SetConsoleOutputCP(CP_UTF8)) {
+            string warning =
+                ">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.\n";
+
+            DWORD ignored;
+            WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
+        }
+
+        // Enable ANSII escape sequences
+        DWORD dw = 0;
+        GetConsoleMode(CoutHandle, &dw);
+        SetConsoleMode(CoutHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+        GetConsoleMode(CerrHandle, &dw);
+        SetConsoleMode(CerrHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+        QueryPerformanceFrequency(&PerformanceFrequency);
+
+        // Get the exe name
+        wchar_t stackBuffer[MAX_PATH];
+        size_t written, reserved = MAX_PATH;
+        wchar_t *buffer = stackBuffer;
+
+        while (true) {
+            written = GetModuleFileNameW(null, buffer, (DWORD) reserved);
+            if (written == reserved) {
+                if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+                    reserved *= 2;
+                    if (buffer != stackBuffer) delete[] buffer;
+                    buffer = new wchar_t[reserved];
+                    continue;
+                }
+            }
+            break;
+        }
+        if (buffer != stackBuffer) delete[] buffer;
+
+        ModuleName = new byte[reserved * 2 + 1];
+        auto *target = ModuleName;
+
+        auto *p = buffer, *end = buffer + written;
+        while (p != end) {
+            encode_cp(target, (char32_t) *((wchar_t *) p++));
+            size_t cpSize = get_size_of_cp(target);
+            target += cpSize;
+        }
+        *target++ = '\0';
     }
-}
+};
+static win32_state STATE;
 
 byte io::console_reader_request_byte(io::reader *r) {
     auto *cr = (io::console_reader *) r;
@@ -43,16 +91,11 @@ byte io::console_reader_request_byte(io::reader *r) {
     // @Thread
     // if (cr->LockMutex) {...}
 
-    if (!g_CinHandle) {
-        allocate_console();
-
-        g_CinHandle = GetStdHandle(STD_INPUT_HANDLE);
-        cr->Buffer = cr->Current = g_CinBuffer;
-    }
+    if (!cr->Buffer) cr->Buffer = cr->Current = STATE.CinBuffer;
     assert(cr->Available == 0);
 
     DWORD read;
-    ReadFile(g_CinHandle, const_cast<byte *>(cr->Buffer), (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
+    ReadFile(STATE.CinHandle, const_cast<byte *>(cr->Buffer), (DWORD) STATE.CONSOLE_BUFFER_SIZE, &read, null);
 
     cr->Current = cr->Buffer;
     cr->Available = read;
@@ -78,50 +121,49 @@ void io::console_writer_write(io::writer *w, const byte *data, size_t count) {
 void io::console_writer_flush(io::writer *w) {
     auto *cw = (io::console_writer *) w;
 
-    if (!g_CoutHandle || !g_CerrHandle) {
-        allocate_console();
-
-        g_CoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-        g_CerrHandle = GetStdHandle(STD_ERROR_HANDLE);
-
+    if (!cw->Buffer) {
         if (cw->OutputType == io::console_writer::COUT) {
-            cw->Buffer = cw->Current = g_CoutBuffer;
+            cw->Buffer = cw->Current = STATE.CoutBuffer;
         } else {
-            cw->Buffer = cw->Current = g_CerrBuffer;
+            cw->Buffer = cw->Current = STATE.CerrBuffer;
         }
 
-        cw->BufferSize = cw->Available = CONSOLE_BUFFER_SIZE;
-
-        if (!SetConsoleOutputCP(CP_UTF8)) {
-            string warning =
-                ">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.\n";
-
-            DWORD ignored;
-            WriteFile(g_CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
-        }
-
-        // Enable colors with escape sequences
-        DWORD dw = 0;
-        GetConsoleMode(g_CoutHandle, &dw);
-        SetConsoleMode(g_CoutHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
-        GetConsoleMode(g_CerrHandle, &dw);
-        SetConsoleMode(g_CerrHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+        cw->BufferSize = cw->Available = STATE.CONSOLE_BUFFER_SIZE;
     }
 
-    HANDLE target = cw->OutputType == io::console_writer::COUT ? g_CoutHandle : g_CerrHandle;
+    HANDLE target = cw->OutputType == io::console_writer::COUT ? STATE.CoutHandle : STATE.CerrHandle;
 
     DWORD ignored;
     WriteFile(target, cw->Buffer, (DWORD)(cw->BufferSize - cw->Available), &ignored, null);
 
     cw->Current = cw->Buffer;
-    cw->Available = CONSOLE_BUFFER_SIZE;
+    cw->Available = STATE.CONSOLE_BUFFER_SIZE;
 }
 
 // This workaround is needed in order to prevent circular inclusion of context.h
 namespace internal {
 io::writer *g_ConsoleLog = &io::cout;
 }
+
+void *os_alloc(size_t size) { return HeapAlloc(GetProcessHeap(), 0, size); }
+
+void os_free(void *ptr) { HeapFree(GetProcessHeap(), 0, ptr); }
+
+void os_exit(s32 exitCode) { ExitProcess(exitCode); }
+
+time_t os_get_time() {
+    LARGE_INTEGER count;
+    QueryPerformanceCounter(&count);
+#if BITS == 32
+    return count.LowPart;
+#else
+    return count.QuadPart;
+#endif
+}
+
+f64 os_time_to_seconds(time_t time) { return (f64) time / STATE.PerformanceFrequency.QuadPart; }
+
+byte *os_get_exe_name_c_string() { return STATE.ModuleName; }
 
 LSTD_END_NAMESPACE
 

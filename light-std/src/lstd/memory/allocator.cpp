@@ -6,10 +6,6 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// OS specific functions, defined in *platform*_common.cpp files
-extern void *os_alloc(size_t size);
-extern void os_free(void *ptr);
-
 void *os_alloc_wrapper(void *, size_t size, size_t *) { return os_alloc(size); }
 void os_free_wrapper(void *, void *ptr) { os_free(ptr); }
 

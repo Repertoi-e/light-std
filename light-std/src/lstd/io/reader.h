@@ -48,71 +48,50 @@ struct reader {
 
     reader *read(char32_t *out);
 
-    // Reads _n_ bytes and put them in _out_.
     // Assumes there is enough space in _out_.
     reader *read(byte *out, size_t n);
-
-    // Reads bytes until _delim_ code point is encountered and puts them in _out_.
-    // This function automatically reserves space in the buffer.
     reader *read(array<byte> *out, size_t n);
 
-    // Reads bytes until _delim_ code point is encountered and puts them in _out_.
     // Assumes there is enough space in _out_.
     // _delim_ is not included in the string.
     reader *read_until(byte *out, char32_t delim);
 
-    // Reads bytes until _delim_ code point is encountered and puts them in _out_.
-    // This function automatically reserves space in the buffer.
     // _delim_ is not included in the string.
     reader *read_until(array<byte> *out, char32_t delim);
 
-    // Reads bytes until any code point in _delims_ is encountered and puts them in _out_.
     // Assumes there is enough space in _out_.
     // The delim is not included in the string.
     reader *read_until(byte *out, string delims);
 
-    // Reads bytes until any code point in _delims_ is encountered and puts them in _out_.
-    // This function automatically reserves space in the buffer.
     // The delim is not included in the string.
     reader *read_until(array<byte> *out, string delims);
 
-    // Reads bytes while anything else but the _eat_ code point is encountered and puts them in _out_.
     // Assumes there is enough space in _out_.
     // Doesn't put the terminating byte/s in the buffer.
     reader *read_while(byte *out, char32_t eat);
 
-    // Reads bytes while anything else but the _eat_ code point is encountered and puts them in _out_.
-    // This function automatically reserves space in the buffer.
     // Doesn't put the terminating byte/s in the buffer.
     reader *read_while(array<byte> *out, char32_t eat);
 
-    // Reads bytes while anything else but any of the code points in _eats_ is encountered and puts them in _out_.
     // Assumes there is enough space in _out_.
     // Doesn't put the terminating byte/s in the buffer.
     reader *read_while(byte *out, string eats);
 
-    // Reads bytes while anything else but any of the code points in _eats_ is encountered and puts them in _out_.
-    // This function automatically reserves space in the buffer.
     // Doesn't put the terminating byte/s in the buffer.
     reader *read_while(array<byte> *out, string eats);
 
     // Reads _n_ code points and appends to _str_
     reader *read(string *str, size_t n);
 
-    // Reads codepoints until _delim_ is reached and appends to _str_
     // _delim_ is not included in the string.
     reader *read_until(string *str, char32_t delim);
 
-    // Reads codepoints until _delim_ is reached and appends to _str_
     // The delim is not included in the string.
     reader *read_until(string *str, string delims);
 
-    // Reads codepoints while anything else but the _eat_ code point is encountered and appends to _str_
     // Doesn't include the terminating code point in the string.
     reader *read_while(string *str, char32_t eat);
 
-    // Reads codepoints while anything else but any of the code points in _eats_ is encountered
-    // and appends to _str_.
     // Doesn't include the terminating code point in the string.
     reader *read_while(string *str, string eats);
 
@@ -148,11 +127,21 @@ struct reader {
 
     // Read a float
     // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
-    void read(f32 *value);
+    void reader::read(f32 *value) {
+        if (!value) return;
+        auto [parsed, success] = parse_float();
+        LastFailed = !success;
+        *value = (f32) parsed;
+    }
 
     // Read a float
     // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
-    void read(f64 *value);
+    void reader::read(f64 *value) {
+        if (!value) return;
+        auto [parsed, success] = parse_float();
+        LastFailed = !success;
+        *value = parsed;
+    }
 
     template <typename T>
     enable_if_t<!is_arithmetic_v<T> && !is_same_v<T, string>> read(T *value) {
@@ -198,6 +187,7 @@ struct reader {
         }
         check_eof(ch);
 
+        // @Locale This doesn't parse commas
         T maxValue;
         if constexpr (is_unsigned_v<T>) {
             maxValue = (numeric_info<T>::max)();
@@ -292,4 +282,3 @@ bool deserialize(T *dest, reader *r) {
 }  // namespace io
 
 LSTD_END_NAMESPACE
-

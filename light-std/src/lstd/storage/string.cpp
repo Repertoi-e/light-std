@@ -25,14 +25,14 @@ string::string(char32_t codePoint, size_t repeat, allocator alloc) : string(get_
 }
 
 string::string(const wchar_t *str) {
-    reserve(2 * cstring_strlen(str));
+    reserve(2 * c_string_strlen(str));
     for (; *str; ++str) {
         append((char32_t) *str);
     }
 }
 
 string::string(const char32_t *str) {
-    reserve(4 * cstring_strlen(str));
+    reserve(4 * c_string_strlen(str));
     for (; *str; ++str) {
         append(*str);
     }
@@ -246,6 +246,18 @@ string *string::replace_all(string oldStr, string newStr) {
         }
     }
     return this;
+}
+
+string *string::replace_all(char32_t oldCp, string newStr) {
+    byte encoded[4];
+    encode_cp(encoded, oldCp);
+    return replace_all(string(encoded, get_size_of_cp(encoded)), newStr);
+}
+
+string *string::replace_all(string oldStr, char32_t newCp) {
+    byte encoded[4];
+    encode_cp(encoded, newCp);
+    return replace_all(oldStr, string(encoded, get_size_of_cp(encoded)));
 }
 
 string *clone(string *dest, string src) {

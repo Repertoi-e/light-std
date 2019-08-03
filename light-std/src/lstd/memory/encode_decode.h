@@ -34,7 +34,7 @@ struct base_16 {
 
     static constexpr byte encode(u32 index) {
         const byte *dictionary = "0123456789ABCDEF";
-        assert(index < cstring_strlen(dictionary));
+        assert(index < c_string_strlen(dictionary));
         return dictionary[index];
     }
 
@@ -50,7 +50,7 @@ struct base_32 {
 
     static constexpr byte encode(u32 index) {
         const byte *dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-        assert(index < cstring_strlen(dictionary));
+        assert(index < c_string_strlen(dictionary));
         return dictionary[index];
     }
 
@@ -66,7 +66,7 @@ struct base_64 {
 
     static constexpr byte encode(u32 index) {
         const byte *dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        assert(index < cstring_strlen(dictionary));
+        assert(index < c_string_strlen(dictionary));
         return dictionary[index];
     }
 

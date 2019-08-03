@@ -121,7 +121,7 @@ struct value {
     value(f64 value) : F64(value) {}
     value(bool value) : S32(value) {}
     value(const void *value) : Pointer(value) {}
-    value(const byte *value) : ByteView(value, value + cstring_strlen(value)) {}
+    value(const byte *value) : ByteView(value, value + c_string_strlen(value)) {}
     value(string value) : ByteView(value.Data, value.Data + value.ByteLength) {}
     value(string_view value) : ByteView(value.Data, value.Data + value.ByteLength) {}
     value(const internal::named_arg_base &value) : NamedArg(&value) {}

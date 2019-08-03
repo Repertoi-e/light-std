@@ -706,7 +706,6 @@ using size_t = uptr_t;
 #define SIZE_MAX UPTR_MAX
 #endif
 
-// time_t is used to represent the number of seconds since 00:00, Jan 1 1970 UTC, corresponding to POSIX time
 using time_t = ptr_t;
 
 // Personal preference
@@ -1940,8 +1939,8 @@ struct pair {
     T First;
     U Second;
 
-    pair() = default;
-    pair(const remove_cvref_t<T> &first, const remove_cvref_t<U> &second) : First(first), Second(second) {}
+    constexpr pair() = default;
+    constexpr pair(const remove_cvref_t<T> &first, const remove_cvref_t<U> &second) : First(first), Second(second) {}
 };
 LSTD_END_NAMESPACE
 

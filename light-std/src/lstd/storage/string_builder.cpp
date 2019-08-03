@@ -31,7 +31,7 @@ void string_builder::append(char32_t cp) {
     append_pointer_and_size(encoded, get_size_of_cp(cp));
 }
 
-void string_builder::append(const string &str) { append_pointer_and_size(str.Data, str.ByteLength); }
+void string_builder::append(string str) { append_pointer_and_size(str.Data, str.ByteLength); }
 
 void string_builder::append_pointer_and_size(const byte *data, size_t size) {
     buffer *currentBuffer = CurrentBuffer;

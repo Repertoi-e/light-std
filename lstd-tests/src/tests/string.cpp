@@ -295,8 +295,8 @@ TEST(find) {
     assert_eq(0, a.find_reverse('T'));
 
     assert_eq(13, a.find_reverse('i'));
-    assert_eq(13, a.find_reverse('i', 13));
-    assert_eq(5, a.find_reverse('i', 12));
+    assert_eq(5, a.find_reverse('i', 13));
+    assert_eq(2, a.find_reverse('i', 5));
 
     assert_eq(a.Length - 1, a.find('g'));
     assert_eq(a.Length - 1, a.find_reverse('g'));
@@ -326,17 +326,17 @@ TEST(find) {
     assert_eq(0, a.find_any_of("PQa"));
 
     assert_eq(2, a.find_reverse_any_of("PQa"));
-    assert_eq(2, a.find_reverse_any_of("PQa", 2));
-    assert_eq(1, a.find_reverse_any_of("PQa", 1));
+    assert_eq(1, a.find_reverse_any_of("PQa", 2));
+    assert_eq(0, a.find_reverse_any_of("PQa", 1));
 
     assert_eq(a.find('d'), a.find_not_any_of("abc"));
     assert_eq(0, a.find_not_any_of("bcd"));
     assert_eq(a.find('b'), a.find_not_any_of("ac"));
 
     assert_eq(2, a.find_reverse_not_any_of("bcd"));
-    assert_eq(a.Length - 3, a.find_reverse_not_any_of("bc", -3));
+    assert_eq(2, a.find_reverse_not_any_of("bc", -3));
     assert_eq(2, a.find_reverse_not_any_of("bc", -4));
-    assert_eq(1, a.find_reverse_not_any_of("bcd", 1));
+    assert_eq(0, a.find_reverse_not_any_of("bcd", 1));
 
     assert_eq(a.Length - 1, a.find_reverse_any_of("CdB"));
 
