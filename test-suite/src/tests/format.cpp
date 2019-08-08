@@ -14,14 +14,19 @@ void test_error_handler(const byte *message, fmt::error_context errorContext) { 
 template <typename... Args>
 void format_test_error(string_view fmtString, Args &&... args) {
     io::counting_writer dummy;
+    auto store = fmt::make_arg_store<Args...>(args...);
     auto f =
-        fmt::format_context(&dummy, fmtString, fmt::args(fmt::make_arg_store<Args...>(args...)), test_error_handler);
+        fmt::format_context(&dummy, fmtString, fmt::args(store), test_error_handler);
     fmt::parse_fmt_string(fmtString, &f);
 }
 
-#define EXPECT_ERROR(expected, fmtString, ...)   \
-    format_test_error(fmtString, ##__VA_ARGS__); \
-    assert_eq(expected, LAST_ERROR);             \
+#define EXPECT_ERROR(expected, fmtString, ...)                   \
+    format_test_error(fmtString, ##__VA_ARGS__);                 \
+    if (expected && !LAST_ERROR) {                               \
+        assert_eq(expected, (void *) LAST_ERROR);                \
+    } else {                                                     \
+        assert_eq(compare_c_string(expected, LAST_ERROR), npos); \
+    }                                                            \
     LAST_ERROR = null;
 
 TEST(write_bool) {

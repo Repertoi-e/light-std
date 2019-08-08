@@ -161,9 +161,9 @@ auto visit_fmt_arg(Visitor visitor, arg ar) -> decltype(visitor(0)) {
         case type::F64:
             return visitor(ar.Value.F64);
         case type::STRING:
-            return visitor(string_view(ar.Value.ByteView.begin(), ar.Value.ByteView.size()));
+            return visitor(ar.Value.String);
         case type::POINTER:
-            return visitor(ar.Value.Pointer);
+            return visitor(ar.Value.Ptr);
         case type::CUSTOM:
             return visitor(typename arg::handle(ar.Value.Custom));
     }

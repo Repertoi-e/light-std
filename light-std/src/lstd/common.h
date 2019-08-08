@@ -3,7 +3,6 @@
 /// A header which provides type definitions as well as other helper macros
 
 #include "intrin/debug_break.h"
-#include "os.h"
 #include "types.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:
@@ -59,7 +58,7 @@ LSTD_END_NAMESPACE
 
 #undef assert
 
-#if !defined NDEBUG
+#if defined DEBUG || defined RELEASE
 #define assert(condition) (!!(condition)) ? (void) 0 : debug_break()
 #else
 #define assert(condition) ((void) 0)
@@ -331,9 +330,12 @@ constexpr size_t compare_memory_constexpr(const void *ptr1, const void *ptr2, si
 
 LSTD_END_NAMESPACE
 
+#if COMPILER == MSVC
+#pragma warning(disable : 4291)
+#endif
+
 #if COMPILER != MSVC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
-
 #endif

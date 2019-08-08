@@ -36,6 +36,78 @@ constexpr size_t c_string_strlen(const char32_t *str) {
     return length;
 }
 
+constexpr size_t compare_c_string(const byte *one, const byte *other) {
+    assert(one);
+    assert(other);
+
+    if (!*one && !*other) return npos;
+
+    size_t index = 0;
+    while (*one == *other) {
+        ++one, ++other;
+        if (!*one && !*other) return npos;
+        if (!*one || !*other) return index;
+        ++index;
+    }
+    return index;
+}
+
+constexpr size_t compare_c_string(const wchar_t *one, const wchar_t *other) {
+    assert(one);
+    assert(other);
+
+    if (!*one && !*other) return npos;
+
+    size_t index = 0;
+    while (*one == *other) {
+        ++one, ++other;
+        if (!*one && !*other) return npos;
+        if (!*one || !*other) return index;
+        ++index;
+    }
+    return index;
+}
+
+constexpr size_t compare_c_string(const char32_t *one, const char32_t *other) {
+    assert(one);
+    assert(other);
+
+    if (!*one && !*other) return npos;
+
+    size_t index = 0;
+    while (*one == *other) {
+        ++one, ++other;
+        if (!*one && !*other) return npos;
+        if (!*one || !*other) return index;
+        ++index;
+    }
+    return index;
+}
+
+constexpr s32 compare_c_string_lexicographically(const byte *one, const byte *other) {
+    assert(one);
+    assert(other);
+
+    while (*one && (*one == *other)) ++one, ++other;
+    return (*one > *other) - (*other > *one);
+}
+
+constexpr s32 compare_c_string_lexicographically(const wchar_t *one, const wchar_t *other) {
+    assert(one);
+    assert(other);
+
+    while (*one && (*one == *other)) ++one, ++other;
+    return (*one > *other) - (*other > *one);
+}
+
+constexpr s32 compare_c_string_lexicographically(const char32_t *one, const char32_t *other) {
+    assert(one);
+    assert(other);
+
+    while (*one && (*one == *other)) ++one, ++other;
+    return (*one > *other) - (*other > *one);
+}
+
 // Retrieve the length (in code points) of an encoded utf8 string
 constexpr size_t utf8_strlen(const byte *str, size_t size) {
     if (!str || size == 0) return 0;
@@ -200,6 +272,78 @@ constexpr char32_t to_lower(char32_t cp) {
 
 constexpr bool is_upper(char32_t ch) { return ch != to_lower(ch); }
 constexpr bool is_lower(char32_t ch) { return ch != to_upper(ch); }
+
+constexpr size_t compare_c_string_ignore_case(const byte *one, const byte *other) {
+    assert(one);
+    assert(other);
+
+    if (!*one && !*other) return npos;
+
+    size_t index = 0;
+    while (to_lower(*one) == to_lower(*other)) {
+        ++one, ++other;
+        if (!*one && !*other) return npos;
+        if (!*one || !*other) return index;
+        ++index;
+    }
+    return index;
+}
+
+constexpr size_t compare_c_string_ignore_case(const wchar_t *one, const wchar_t *other) {
+    assert(one);
+    assert(other);
+
+    if (!*one && !*other) return npos;
+
+    size_t index = 0;
+    while (to_lower((char32_t) *one) == to_lower((char32_t) *other)) {
+        ++one, ++other;
+        if (!*one && !*other) return npos;
+        if (!*one || !*other) return index;
+        ++index;
+    }
+    return index;
+}
+
+constexpr size_t compare_c_string_ignore_case(const char32_t *one, const char32_t *other) {
+    assert(one);
+    assert(other);
+
+    if (!*one && !*other) return npos;
+
+    size_t index = 0;
+    while (to_lower(*one) == to_lower(*other)) {
+        ++one, ++other;
+        if (!*one && !*other) return npos;
+        if (!*one || !*other) return index;
+        ++index;
+    }
+    return index;
+}
+
+constexpr s32 compare_c_string_lexicographically_ignore_case(const byte *one, const byte *other) {
+    assert(one);
+    assert(other);
+
+    while (*one && (to_lower(*one) == to_lower(*other))) ++one, ++other;
+    return (*one > *other) - (*other > *one);
+}
+
+constexpr s32 compare_c_string_lexicographically_ignore_case(const wchar_t *one, const wchar_t *other) {
+    assert(one);
+    assert(other);
+
+    while (*one && (to_lower((char32_t) *one) == to_lower((char32_t) *other))) ++one, ++other;
+    return (*one > *other) - (*other > *one);
+}
+
+constexpr s32 compare_c_string_lexicographically_ignore_case(const char32_t *one, const char32_t *other) {
+    assert(one);
+    assert(other);
+
+    while (*one && (to_lower(*one) == to_lower(*other))) ++one, ++other;
+    return (*one > *other) - (*other > *one);
+}
 
 // Returns the size in bytes of the code point that _str_ points to.
 // If the byte pointed by _str_ is a countinuation utf8 byte, this function returns 0
@@ -454,6 +598,8 @@ constexpr const byte *find_substring_utf8_reverse(const byte *haystack, size_t l
             --p;
         }
 
+        if (*p != *needle && p == haystack) return null;
+
         auto *search = p + 1;
         auto *progress = needle + 1;
         while (search != end && progress != needleEnd && *search == *progress) ++search, ++progress;
@@ -559,6 +705,8 @@ constexpr const byte *find_utf8_reverse_not(const byte *str, size_t length, char
             --p;
         }
 
+        if (*p == *encoded && p == str) return null;
+
         auto *search = p + 1;
         auto *progress = encoded + 1;
         while (search != end && progress != encodedEnd && *search != *progress) ++search, ++progress;
@@ -651,11 +799,12 @@ constexpr void utf8_to_utf32(const byte *str, size_t length, char32_t *out) {
 // Converts a null-terminated utf16 to utf8 and stores in _out_ and _outByteLength_ (assumes there is enough space).
 constexpr void utf16_to_utf8(const wchar_t *str, byte *out, size_t *outByteLength) {
     size_t byteLength = 0;
-    while (*str++) {
+    while (*str) {
         encode_cp(out, *str);
         size_t cpSize = get_size_of_cp(out);
         out += cpSize;
         byteLength += cpSize;
+        ++str;
     }
     *outByteLength = byteLength;
 }
@@ -663,11 +812,12 @@ constexpr void utf16_to_utf8(const wchar_t *str, byte *out, size_t *outByteLengt
 // Converts a null-terminated utf32 to utf8 and stores in _out_ and _outByteLength_ (assumes there is enough space).
 constexpr void utf32_to_utf8(const char32_t *str, byte *out, size_t *outByteLength) {
     size_t byteLength = 0;
-    while (*str++) {
+    while (*str) {
         encode_cp(out, *str);
         size_t cpSize = get_size_of_cp(out);
         out += cpSize;
         byteLength += cpSize;
+        ++str;
     }
     *outByteLength = byteLength;
 }

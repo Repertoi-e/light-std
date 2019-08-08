@@ -1,6 +1,8 @@
 #include "format_context.h"
 #include "format_float.inl"
 
+#include <stdio.h>
+
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
@@ -414,7 +416,7 @@ struct precision_checker {
 };
 
 arg format_context::get_arg_from_ref(arg_ref ref) {
-    arg target;
+    arg target = {};
     if (ref.Kind != arg_ref::kind::NONE) {
         if (ref.Kind == arg_ref::kind::INDEX) {
             if (ref.Index < Args.Count) {

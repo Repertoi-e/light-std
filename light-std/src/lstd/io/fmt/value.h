@@ -108,8 +108,8 @@ struct value {
         s64 S64;
         u64 U64;
         f64 F64;
-        const void *Pointer;
-        array_view<byte> ByteView;
+        const void *Ptr;
+        string_view String;
         custom Custom;
         const internal::named_arg_base *NamedArg;
     };
@@ -120,10 +120,10 @@ struct value {
     value(u64 value) : U64(value) {}
     value(f64 value) : F64(value) {}
     value(bool value) : S32(value) {}
-    value(const void *value) : Pointer(value) {}
-    value(const byte *value) : ByteView(value, value + c_string_strlen(value)) {}
-    value(string value) : ByteView(value.Data, value.Data + value.ByteLength) {}
-    value(string_view value) : ByteView(value.Data, value.Data + value.ByteLength) {}
+    value(const void *value) : Ptr(value) {}
+    value(const byte *value) : String(value) {}
+    value(string value) : String(value) {}
+    value(string_view value) : String(value) {}
     value(const internal::named_arg_base &value) : NamedArg(&value) {}
 
     template <typename T>

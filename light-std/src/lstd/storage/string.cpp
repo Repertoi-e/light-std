@@ -40,35 +40,27 @@ string::string(const char32_t *str) {
 
 string::string(size_t size, allocator alloc) { reserve(size, alloc); }
 
-void string::reserve(size_t size, allocator alloc) {
-    if (size < Reserved) return;
+// @TODO Update other reserve functions to match this
+void string::reserve(size_t target, allocator alloc) {
+    if (ByteLength + target < Reserved) return;
 
-    if (!Reserved && size < ByteLength) {
-        size += ByteLength;
-    }
-
-    size_t reserveTarget = 8;
-    while (reserveTarget < size) {
-        reserveTarget *= 2;
-    }
+    target = MAX<size_t>(CEIL_POW_OF_2(target + ByteLength + 1), 8);
 
     if (is_owner()) {
-        auto *actualData = const_cast<byte *>(Data) - POINTER_SIZE;
-
+        Data -= POINTER_SIZE;
         if (alloc) {
-            auto *header = (allocation_header *) actualData - 1;
+            auto *header = (allocation_header *) Data - 1;
             assert(alloc.Function == header->AllocatorFunction && alloc.Context == header->AllocatorContext &&
                    "Calling reserve() on a string that already has reserved a buffer but with a different allocator. "
                    "Call with null allocator to avoid that.");
         }
-
-        Data = (byte *) allocator::reallocate(actualData, reserveTarget + POINTER_SIZE) + POINTER_SIZE;
+        Data = (const byte *) allocator::reallocate(const_cast<byte *>(Data), target + POINTER_SIZE) + POINTER_SIZE;
     } else {
         auto *oldData = Data;
-        Data = encode_owner(new (alloc) byte[reserveTarget + POINTER_SIZE], this);
+        Data = encode_owner(new (alloc) byte[target + POINTER_SIZE], this);
         if (ByteLength) copy_memory(const_cast<byte *>(Data), oldData, ByteLength);
     }
-    Reserved = reserveTarget;
+    Reserved = target;
 }
 
 void string::release() {
@@ -87,8 +79,9 @@ string *string::set(s64 index, char32_t codePoint) {
 
     s64 diff = (s64) cpSize - (s64) cpSizeTarget;
 
+    // Calculate the offset and then reserve (which may move the memory!)
     uptr_t offset = (uptr_t)(target - Data);
-    reserve((size_t)((s64) ByteLength + diff));
+    reserve(ABS(diff));
 
     // We may have moved Data while reserving space!
     target = Data + offset;
@@ -102,7 +95,7 @@ string *string::set(s64 index, char32_t codePoint) {
 
 string *string::insert(s64 index, char32_t codePoint) {
     size_t cpSize = get_size_of_cp(codePoint);
-    reserve(ByteLength + cpSize);
+    reserve(cpSize);
 
     auto *target = get_cp_at_index(Data, Length, index, true);
     uptr_t offset = (uptr_t)(target - Data);
@@ -119,7 +112,10 @@ string *string::insert(s64 index, char32_t codePoint) {
 string *string::insert(s64 index, string str) { return insert_pointer_and_size(index, str.Data, str.ByteLength); }
 
 string *string::insert_pointer_and_size(s64 index, const byte *str, size_t size) {
-    reserve(ByteLength + size);
+    assert(str);
+
+    reserve(size);
+    if (size == 0) return this;
 
     auto *target = get_cp_at_index(Data, Length, index, true);
     uptr_t offset = (uptr_t)(target - Data);
@@ -261,6 +257,7 @@ string *string::replace_all(string oldStr, char32_t newCp) {
 }
 
 string *clone(string *dest, string src) {
+    dest->release();
     *dest = {};
     dest->append(src);
     return dest;

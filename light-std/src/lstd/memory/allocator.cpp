@@ -1,8 +1,13 @@
 #include "allocator.h"
 
-#include "../../vendor/stb_malloc.hpp"
+#include "../os.h"
+
 #include "../context.h"
 #include "../io/fmt.h"
+
+#include "../../vendor/stb_malloc.hpp"
+
+#include <stdio.h>
 
 LSTD_BEGIN_NAMESPACE
 
@@ -145,10 +150,10 @@ LSTD_END_NAMESPACE
 void *operator new(size_t size) { return operator new(size, null, 0); }
 void *operator new[](size_t size) { return operator new(size, null, 0); }
 
-void *operator new(size_t size, u64 userFlags) { return operator new(size, null, userFlags); }
-void *operator new[](size_t size, u64 userFlags) { return operator new(size, null, userFlags); }
+void *operator new(size_t size, u64 userFlags) noexcept { return operator new(size, null, userFlags); }
+void *operator new[](size_t size, u64 userFlags) noexcept { return operator new(size, null, userFlags); }
 
-void *operator new(size_t size, allocator *alloc, u64 userFlags) {
+void *operator new(size_t size, allocator *alloc, u64 userFlags) noexcept {
     if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
     if (!(*alloc)) *alloc = Context.Alloc;
     if (!(*alloc)) {
@@ -158,12 +163,18 @@ void *operator new(size_t size, allocator *alloc, u64 userFlags) {
     return alloc->allocate(size, userFlags);
 }
 
-void *operator new[](size_t size, allocator *alloc, u64 userFlags) { return operator new(size, alloc, userFlags); }
+void *operator new[](size_t size, allocator *alloc, u64 userFlags) noexcept {
+    return operator new(size, alloc, userFlags);
+}
 
-void *operator new(size_t size, allocator alloc, u64 userFlags) { return operator new(size, &alloc, userFlags); }
-void *operator new[](size_t size, allocator alloc, u64 userFlags) { return operator new(size, &alloc, userFlags); }
+void *operator new(size_t size, allocator alloc, u64 userFlags) noexcept {
+    return operator new(size, &alloc, userFlags);
+}
+void *operator new[](size_t size, allocator alloc, u64 userFlags) noexcept {
+    return operator new(size, &alloc, userFlags);
+}
 
-void *operator new(size_t size, alignment align, allocator *alloc, u64 userFlags) {
+void *operator new(size_t size, alignment align, allocator *alloc, u64 userFlags) noexcept {
     if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
     if (!(*alloc)) *alloc = Context.Alloc;
     if (!(*alloc)) {
@@ -173,14 +184,14 @@ void *operator new(size_t size, alignment align, allocator *alloc, u64 userFlags
     return alloc->allocate_aligned(size, align, userFlags);
 }
 
-void *operator new[](size_t size, alignment align, allocator *alloc, u64 userFlags) {
+void *operator new[](size_t size, alignment align, allocator *alloc, u64 userFlags) noexcept {
     return operator new(size, align, alloc, userFlags);
 }
 
-void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags) {
+void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags) noexcept {
     return operator new(size, align, &alloc, userFlags);
 }
-void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlags) {
+void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlags) noexcept {
     return operator new(size, align, &alloc, userFlags);
 }
 

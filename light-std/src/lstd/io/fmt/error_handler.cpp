@@ -1,5 +1,6 @@
 #include "error_handler.h"
 
+#include "../../os.h"
 #include "../fmt.h"
 
 LSTD_BEGIN_NAMESPACE

@@ -66,6 +66,8 @@ struct table {
     void reserve(size_t size, allocator alloc = {null, null}) {
         if (size < Reserved) return;
 
+        if (size < SlotsFilled) size += SlotsFilled;
+
         size_t reserveTarget = MINIMUM_SIZE;
         while (reserveTarget < size) {
             reserveTarget *= 2;
@@ -96,7 +98,7 @@ struct table {
         // Note: _Reserved_ hasn't been updated yet
         For(range(Reserved)) {
             if (Hashes[it] < FIRST_VALID_HASH) continue;
-            add(oldKeys[it], oldValues[it]);
+            move_add(oldKeys + it, oldValues + it);
         }
 
         if (wasOwner) {
@@ -181,6 +183,31 @@ struct table {
         Hashes[index] = hash;
         new (Keys + index) key_t(key);
         new (Values + index) value_t(value);
+        return Values + index;
+    }
+
+    // Same as _add_ but calls _move()_ on _key_ and _value_ when adding them to the array.
+    value_t *move_add(key_t *key, value_t *value) {
+        // The + 1 here handles the case when the table size is 1 and you add the first item.
+        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled * 2);
+
+        assert(SlotsFilled < Reserved);
+
+        uptr_t hash = get_hash(*key);
+        if (hash < FIRST_VALID_HASH) hash += FIRST_VALID_HASH;
+
+        size_t index = hash & (Reserved - 1);
+        while (Hashes[index]) {
+            ++index;
+            if (index >= Reserved) index = 0;
+        }
+
+        ++Count;
+        ++SlotsFilled;
+
+        Hashes[index] = hash;
+        move(Keys + index, key);
+        move(Values + index, value);
         return Values + index;
     }
 

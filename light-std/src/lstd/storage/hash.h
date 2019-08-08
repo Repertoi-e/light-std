@@ -68,9 +68,12 @@ constexpr uptr_t get_hash(string_view value) {
 }
 
 inline uptr_t get_hash(string value) {
-    hasher h(0);
-    h.add(value.Data, value.ByteLength);
-    return h.hash();
+    // hasher h(0);
+    // h.add(value.Data, value.ByteLength);
+    // return h.hash();
+    uptr_t hash = 5381;
+    For(value) hash = ((hash << 5) + hash) + it;
+    return hash;
 }
 
 LSTD_END_NAMESPACE

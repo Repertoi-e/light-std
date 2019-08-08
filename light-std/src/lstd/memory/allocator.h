@@ -6,6 +6,7 @@
 #include "../common.h"
 #include "../intrin.h"
 
+#include <stdio.h>
 #include <new>
 
 LSTD_BEGIN_NAMESPACE
@@ -21,7 +22,7 @@ enum class alignment : size_t;
 
 // This is a user flag when allocating.
 // When specified, the allocated memory is initialized.
-// This is handled internally, so allocator implementations don't need to pay attemption to it.
+// This is handled internally, so allocator implementations don't need to pay attention to it.
 constexpr u64 DO_INIT_FLAG = BIT(31);
 
 // @Temp Move this below together with Malloc, this is up here in order for allocator::general_allocate to
@@ -74,7 +75,7 @@ struct allocator {
     mutable allocator_func_t Function = null;
     void *Context = null;
 
-    inline static size_t _AllocationCount = 0;
+    inline static size_t AllocationCount = 0;
 
     void *allocate(size_t size, u64 userFlags = 0) const {
         return general_allocate(size, false, alignment(0), userFlags);
@@ -126,7 +127,7 @@ struct allocator {
         auto *result = (allocation_header *) ptr;
 
         // @Thread Use something like InterlockedIncrement
-        result->ID = _AllocationCount++;
+        result->ID = AllocationCount++;
 
         result->AllocatorFunction = function;
         result->AllocatorContext = context;
@@ -166,25 +167,27 @@ struct allocator {
                "Calling reallocate on a pointer that doesn't have a header (probably it isn't dynamic memory or"
                "it wasn't allocated with an allocator from this library)");
 
-        if (header->Size > newSize) return ptr;
+        auto oldSize = header->Size;  // The header stores the size without sizeof(allocation_header)
+        if (oldSize > newSize) return ptr;
+
+        auto *allocFunc = header->AllocatorFunction;
+        auto *allocContext = header->AllocatorContext;
 
         void *result;
         if (!aligned) {
-            result = header->AllocatorFunction(allocator_mode::REALLOCATE, header->AllocatorContext,
-                                               newSize + sizeof(allocation_header), header,
-                                               header->Size + sizeof(allocation_header), alignment(0), userFlags);
+            result = allocFunc(allocator_mode::REALLOCATE, allocContext, newSize + sizeof(allocation_header), header,
+                               oldSize + sizeof(allocation_header), alignment(0), userFlags);
         } else {
             assert((size_t) align > 0 && IS_POW_OF_2((size_t) align));
-            result = header->AllocatorFunction(allocator_mode::ALIGNED_REALLOCATE, header->AllocatorContext,
-                                               newSize + sizeof(allocation_header), header,
-                                               header->Size + sizeof(allocation_header), align, userFlags);
+            result = allocFunc(allocator_mode::ALIGNED_REALLOCATE, allocContext, newSize + sizeof(allocation_header),
+                               header, oldSize + sizeof(allocation_header), align, userFlags);
             assert((((uptr_t) result & ~((size_t) align - 1)) == (uptr_t) result) &&
                    "Pointer wasn't properly aligned.");
         }
         if (userFlags & DO_INIT_FLAG) {
-            fill_memory((byte *) result + sizeof(allocation_header) + header->Size, 0, newSize - header->Size);
+            fill_memory((byte *) result + sizeof(allocation_header) + oldSize, 0, newSize - oldSize);
         }
-        return encode_header(result, newSize, header->AllocatorFunction, header->AllocatorContext);
+        return encode_header(result, newSize, allocFunc, allocContext);
     }
 };
 
@@ -204,22 +207,22 @@ inline void *get_aligned_pointer(void *ptr, size_t alignment) {
 void *operator new(size_t size);
 void *operator new[](size_t size);
 
-void *operator new(size_t size, u64 userFlags);
-void *operator new[](size_t size, u64 userFlags);
+void *operator new(size_t size, u64 userFlags) noexcept;
+void *operator new[](size_t size, u64 userFlags) noexcept;
 
 // If _alloc_ points to a null allocator, use a default one and store it in _alloc_
-void *operator new(size_t size, allocator *alloc, u64 userFlags = 0);
-void *operator new[](size_t size, allocator *alloc, u64 userFlags = 0);
+void *operator new(size_t size, allocator *alloc, u64 userFlags = 0) noexcept;
+void *operator new[](size_t size, allocator *alloc, u64 userFlags = 0) noexcept;
 
-void *operator new(size_t size, allocator alloc, u64 userFlags = 0);
-void *operator new[](size_t size, allocator alloc, u64 userFlags = 0);
+void *operator new(size_t size, allocator alloc, u64 userFlags = 0) noexcept;
+void *operator new[](size_t size, allocator alloc, u64 userFlags = 0) noexcept;
 
 // If _alloc_ points to a null allocator, use a default one and store it in _alloc_
-void *operator new(size_t size, alignment align, allocator *alloc = null, u64 userFlags = 0);
-void *operator new[](size_t size, alignment align, allocator *alloc = null, u64 userFlags = 0);
+void *operator new(size_t size, alignment align, allocator *alloc = null, u64 userFlags = 0) noexcept;
+void *operator new[](size_t size, alignment align, allocator *alloc = null, u64 userFlags = 0) noexcept;
 
-void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags = 0);
-void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlags = 0);
+void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags = 0) noexcept;
+void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlags = 0) noexcept;
 
 void operator delete(void *ptr) noexcept;
 void operator delete[](void *ptr) noexcept;

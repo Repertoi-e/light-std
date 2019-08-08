@@ -66,6 +66,9 @@ TEST(insert) {
 
     a.insert(5, " world");
     assert_eq(a, "Hello world Hello");
+
+    string b;
+    clone(&b, a);
 }
 
 TEST(remove) {

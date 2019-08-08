@@ -224,14 +224,16 @@ constexpr u64 ROTATE_RIGHT_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 
 
 INTEGRAL_FUNCTION_CONSTEXPR(bool) IS_POW_OF_2(T number) { return (number & (number - 1)) == 0; }
 
-INTEGRAL_FUNCTION_CONSTEXPR(T) CEIL_TO_POWER_OF_2(T number, T pow2) {
-    static_assert(IS_POW_OF_2(pow2), "Argument is not a power of 2");
-    return (number + pow2 - 1) & ~(pow2 - 1);
-}
-
 INTEGRAL_FUNCTION_CONSTEXPR(T) ABS(T number) {
     auto s = number >> (sizeof(T) * 8 - 1);
     return (number ^ s) - s;
+}
+
+template <typename T>
+enable_if_t<is_integral_v<T> && is_unsigned_v<T>, T> CEIL_POW_OF_2(T v) {
+    v--;
+    for (size_t i = 1; i < sizeof(T) * 8; i *= 2) v |= v >> i;
+    return ++v;
 }
 
 #undef INTEGRAL_FUNCTION_CONSTEXPR

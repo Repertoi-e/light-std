@@ -4,10 +4,39 @@
 
 #include "lstd/io.h"
 #include "lstd/io/fmt.h"
+#include "lstd/memory/dynamic_library.h"
+#include "lstd/os.h"
 
+#undef MAC
+#undef _MAC
 #include <Windows.h>
 
 LSTD_BEGIN_NAMESPACE
+
+bool dynamic_library::load(string name) {
+    auto *buffer = new wchar_t[name.Length];
+    defer(delete buffer);
+
+    utf8_to_utf16(name.Data, name.Length, buffer);
+    Handle = (void *) LoadLibraryW(buffer);
+    return Handle;
+}
+
+void *dynamic_library::get_symbol(string name) {
+    auto *buffer = new byte[name.ByteLength + 1];
+    defer(delete buffer);
+
+    copy_memory(buffer, name.Data, name.ByteLength);
+    buffer[name.ByteLength] = '\0';
+    return (void *) GetProcAddress((HMODULE) Handle, (LPCSTR) buffer);
+}
+
+void dynamic_library::close() {
+    if (Handle) {
+        FreeLibrary((HMODULE) Handle);
+        Handle = null;
+    }
+}
 
 struct win32_state {
     static constexpr size_t CONSOLE_BUFFER_SIZE = 1_KiB;
@@ -17,7 +46,7 @@ struct win32_state {
     byte CerrBuffer[CONSOLE_BUFFER_SIZE]{};
     HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
     LARGE_INTEGER PerformanceFrequency;
-    byte *ModuleName;
+    string_view ModuleName;
 
     win32_state() {
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
@@ -71,16 +100,11 @@ struct win32_state {
         }
         if (buffer != stackBuffer) delete[] buffer;
 
-        ModuleName = new byte[reserved * 2 + 1];
-        auto *target = ModuleName;
+        auto *moduleName = new byte[reserved * 2];
+        size_t byteLength;
+        utf16_to_utf8(buffer, moduleName, &byteLength);
 
-        auto *p = buffer, *end = buffer + written;
-        while (p != end) {
-            encode_cp(target, (char32_t) *((wchar_t *) p++));
-            size_t cpSize = get_size_of_cp(target);
-            target += cpSize;
-        }
-        *target++ = '\0';
+        ModuleName = string_view(moduleName, byteLength);
     }
 };
 static win32_state STATE;
@@ -163,7 +187,7 @@ time_t os_get_time() {
 
 f64 os_time_to_seconds(time_t time) { return (f64) time / STATE.PerformanceFrequency.QuadPart; }
 
-byte *os_get_exe_name_c_string() { return STATE.ModuleName; }
+string_view os_get_exe_name() { return STATE.ModuleName; }
 
 LSTD_END_NAMESPACE
 

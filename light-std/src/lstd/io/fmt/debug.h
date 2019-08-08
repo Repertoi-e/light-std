@@ -27,6 +27,8 @@ struct debug_struct_helper {
     }
 
     void finish();
+
+   private:
     void write_field(field_entry *entry);
 };
 

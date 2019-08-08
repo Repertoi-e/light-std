@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "storage/string_utils.h"
 
 /// Platform specific general functions
 
@@ -22,5 +22,5 @@ f64 os_time_to_seconds(time_t time);
 // Sleep for _ms_ milliseconds
 // void os_sleep(f64 ms);
 
-// Points to a c-style string containing the path of the current exe (full dir + name)
-byte *os_get_exe_name_c_string();
+// Returns the path of the current exe (full dir + name)
+string_view os_get_exe_name();

@@ -159,7 +159,8 @@ void parse_fmt_string(string_view fmtString, format_context *f);
 // Formats to writer
 template <typename... Args>
 void to_writer(io::writer *out, string_view fmtString, Args &&... args) {
-    auto f = format_context(out, fmtString, fmt::args(make_arg_store<Args...>(args...)), default_error_handler);
+    auto store = make_arg_store<Args...>(args...);  // This needs to outlive _parse_fmt_string_
+    auto f = format_context(out, fmtString, fmt::args(store), default_error_handler);
     parse_fmt_string(fmtString, &f);
     f.flush();
 }

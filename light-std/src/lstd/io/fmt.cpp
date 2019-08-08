@@ -12,25 +12,14 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
     auto write = [&](const byte *end) {
         if (p->It == end) return;
         while (true) {
-            // @Cleanup Move this to a _find_ function
-            auto *bracket = p->It;
-            while (end - bracket > 4) {
-                if (U32_HAS_VALUE(*(u32 *) bracket, '}')) break;
-                bracket += 4;
-            }
-
-            while (bracket != end) {
-                if (*bracket == '}') break;
-                ++bracket;
-            }
-
-            if (bracket == end) {
+            auto *bracket = find_cp_utf8(p->It, end - p->It, '}');
+            if (!bracket) {
                 f->write_no_specs(p->It, end - p->It);
                 return;
             }
 
             if (*(bracket + 1) != '}') {
-                p->It = bracket;
+                p->It = bracket;  // To help error reporting at the right place.
                 f->on_error("Unmatched '}' in format string - use '}}' to escape");
                 return;
             }
@@ -44,19 +33,8 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
 
     arg currentArg;
     while (p->It != p->End) {
-        // @Cleanup Move this to a _find_ function
-        auto *bracket = p->It;
-        while (p->End - bracket > 4) {
-            if (U32_HAS_VALUE(*(u32 *) bracket, '{')) break;
-            bracket += 4;
-        }
-
-        while (bracket != p->End) {
-            if (*bracket == '{') break;
-            ++bracket;
-        }
-
-        if (bracket == p->End) {
+        auto *bracket = find_cp_utf8(p->It, p->End - p->It, '{');
+        if (!bracket) {
             write(p->End);
             return;
         }
@@ -69,7 +47,8 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
             return;
         }
         if (*p->It == '}') {
-            currentArg = f->get_arg_from_ref(arg_ref(p->next_arg_id()));
+            auto argId = p->next_arg_id();
+            currentArg = f->get_arg_from_ref(arg_ref(argId));
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
             if (currentArg.Type == type::CUSTOM) {

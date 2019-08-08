@@ -1,5 +1,9 @@
 #include "test.h"
 
+#include <lstd/os.h>
+
+#include <stdio.h>
+
 void run_tests() {
     fmt::print("\n");
     for (auto [fileName, tests] : g_TestTable) {
@@ -58,6 +62,8 @@ void run_tests() {
 }
 
 s32 main() {
+    time_t start = os_get_time();
+
     Context.init_temporary_allocator(4_MiB);
 
     PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
@@ -67,6 +73,8 @@ s32 main() {
             // Context.TemporaryAlloc.free_all();
         }
     }
+
+    fmt::print("\nFinished tests, time taken: {:f} seconds\n\n", os_time_to_seconds(os_get_time() - start));
 
     return 0;
 }
