@@ -8,8 +8,8 @@
 struct game_memory {
     le::window *Window;
     allocator Allocator;
-
-    // Used by the game for first-time run initialization
+	
+	// Any data that must be preserved through reloads.
     void *State = null;
 
     // Gets set to true when the game code has been reloaded during the frame.

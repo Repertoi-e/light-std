@@ -8,16 +8,15 @@
 
 using namespace le;
 
-game_memory *g_GameMemory = null;
-
 struct game_state {
     u32 Counter = 0;
 };
 
+game_memory *g_GameMemory = null;
+
 extern "C" LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *gameMemory) {
-    if (!g_GameMemory) {
+    if (gameMemory->ReloadedThisFrame) {
         g_GameMemory = gameMemory;
-        Context.init_temporary_allocator(1_MiB);
 
         if (!gameMemory->State) {
             auto *allocatorData = new (Malloc) free_list_allocator_data;
@@ -26,9 +25,8 @@ extern "C" LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memor
 
             gameMemory->State = GAME_NEW(game_state);
         }
-    }
 
-    if (gameMemory->ReloadedThisFrame) {
+        Context.init_temporary_allocator(1_MiB);
         fmt::print("Game code reloaded.");
     }
 
