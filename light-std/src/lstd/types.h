@@ -1942,6 +1942,698 @@ struct pair {
     constexpr pair() = default;
     constexpr pair(const remove_cvref_t<T> &first, const remove_cvref_t<U> &second) : First(first), Second(second) {}
 };
+
+template <typename... T>
+struct tuple;
+
+template <typename T1>
+struct tuple<T1> {
+    static constexpr size_t SIZE = 1;
+
+    T1 Item1;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1) : Item1(item1) {}
+};
+
+template <typename T1, typename T2>
+struct tuple<T1, T2> {
+    static constexpr size_t SIZE = 2;
+
+    T1 Item1;
+    T2 Item2;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2) : Item1(item1), Item2(item2) {}
+};
+
+template <typename T1, typename T2, typename T3>
+struct tuple<T1, T2, T3> {
+    static constexpr size_t SIZE = 3;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3)
+        : Item1(item1), Item2(item2), Item3(item3) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4>
+struct tuple<T1, T2, T3, T4> {
+    static constexpr size_t SIZE = 4;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4)
+        : Item1(item1), Item2(item2), Item3(item3), Item4(item4) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5>
+struct tuple<T1, T2, T3, T4, T5> {
+    static constexpr size_t SIZE = 5;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5)
+        : Item1(item1), Item2(item2), Item3(item3), Item4(item4), Item5(item5) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
+struct tuple<T1, T2, T3, T4, T5, T6> {
+    static constexpr size_t SIZE = 6;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6)
+        : Item1(item1), Item2(item2), Item3(item3), Item4(item4), Item5(item5), Item6(item6) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
+struct tuple<T1, T2, T3, T4, T5, T6, T7> {
+    static constexpr size_t SIZE = 7;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7)
+        : Item1(item1), Item2(item2), Item3(item3), Item4(item4), Item5(item5), Item6(item6), Item7(item7) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8> {
+    static constexpr size_t SIZE = 8;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9> {
+    static constexpr size_t SIZE = 9;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
+    static constexpr size_t SIZE = 10;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
+    static constexpr size_t SIZE = 11;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
+    static constexpr size_t SIZE = 12;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12, typename T13>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
+    static constexpr size_t SIZE = 13;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+    T13 Item13;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12),
+          Item13(item13) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
+    static constexpr size_t SIZE = 14;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+    T13 Item13;
+    T14 Item14;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
+                    const remove_cvref_t<T14> &item14)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12),
+          Item13(item13),
+          Item14(item14) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
+    static constexpr size_t SIZE = 15;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+    T13 Item13;
+    T14 Item14;
+    T15 Item15;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
+                    const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12),
+          Item13(item13),
+          Item14(item14),
+          Item15(item15) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
+    static constexpr size_t SIZE = 16;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+    T13 Item13;
+    T14 Item14;
+    T15 Item15;
+    T16 Item16;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
+                    const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15,
+                    const remove_cvref_t<T16> &item16)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12),
+          Item13(item13),
+          Item14(item14),
+          Item15(item15),
+          Item16(item16) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
+          typename T17>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
+    static constexpr size_t SIZE = 17;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+    T13 Item13;
+    T14 Item14;
+    T15 Item15;
+    T16 Item16;
+    T17 Item17;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
+                    const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15,
+                    const remove_cvref_t<T16> &item16, const remove_cvref_t<T17> &item17)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12),
+          Item13(item13),
+          Item14(item14),
+          Item15(item15),
+          Item16(item16),
+          Item17(item17) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
+          typename T17, typename T18>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
+    static constexpr size_t SIZE = 18;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+    T13 Item13;
+    T14 Item14;
+    T15 Item15;
+    T16 Item16;
+    T17 Item17;
+    T18 Item18;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
+                    const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15,
+                    const remove_cvref_t<T16> &item16, const remove_cvref_t<T17> &item17,
+                    const remove_cvref_t<T18> &item18)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12),
+          Item13(item13),
+          Item14(item14),
+          Item15(item15),
+          Item16(item16),
+          Item17(item17),
+          Item18(item18) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
+          typename T17, typename T18, typename T19>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
+    static constexpr size_t SIZE = 19;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+    T13 Item13;
+    T14 Item14;
+    T15 Item15;
+    T16 Item16;
+    T17 Item17;
+    T18 Item18;
+    T19 Item19;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
+                    const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15,
+                    const remove_cvref_t<T16> &item16, const remove_cvref_t<T17> &item17,
+                    const remove_cvref_t<T18> &item18, const remove_cvref_t<T19> &item19)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12),
+          Item13(item13),
+          Item14(item14),
+          Item15(item15),
+          Item16(item16),
+          Item17(item17),
+          Item18(item18),
+          Item19(item19) {}
+};
+
+template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
+          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
+          typename T17, typename T18, typename T19, typename T20>
+struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> {
+    static constexpr size_t SIZE = 20;
+
+    T1 Item1;
+    T2 Item2;
+    T3 Item3;
+    T4 Item4;
+    T5 Item5;
+    T6 Item6;
+    T7 Item7;
+    T8 Item8;
+    T9 Item9;
+    T10 Item10;
+    T11 Item11;
+    T12 Item12;
+    T13 Item13;
+    T14 Item14;
+    T15 Item15;
+    T16 Item16;
+    T17 Item17;
+    T18 Item18;
+    T19 Item19;
+    T20 Item20;
+
+    constexpr tuple() = default;
+    constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
+                    const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
+                    const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
+                    const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
+                    const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
+                    const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15,
+                    const remove_cvref_t<T16> &item16, const remove_cvref_t<T17> &item17,
+                    const remove_cvref_t<T18> &item18, const remove_cvref_t<T19> &item19,
+                    const remove_cvref_t<T20> &item20)
+        : Item1(item1),
+          Item2(item2),
+          Item3(item3),
+          Item4(item4),
+          Item5(item5),
+          Item6(item6),
+          Item7(item7),
+          Item8(item8),
+          Item9(item9),
+          Item10(item10),
+          Item11(item11),
+          Item12(item12),
+          Item13(item13),
+          Item14(item14),
+          Item15(item15),
+          Item16(item16),
+          Item17(item17),
+          Item18(item18),
+          Item19(item19),
+          Item20(item20) {}
+};
+
+/*
+The code for the tuples above was generated by this routine:
+
+void print_tuple(int num) {
+  printf("template <");
+  for (int i = 0; i < num - 1; ++i) {
+     printf("typename T%d, ", i + 1);
+  }
+  printf("typename T%d>\nstruct tuple<", num);
+  for (int i = 0; i < num - 1; ++i) {
+     printf("T%d, ", i + 1);
+  }
+  printf("T%d> {\n    static constexpr size_t SIZE = %d;\n\n", num, num);
+  for (int i = 0; i < num; ++i) {
+     printf("    T%d Item%d;\n", i + 1, i + 1);
+  }
+  printf("\n    constexpr tuple() = default;\n    constexpr tuple(");
+  for (int i = 0; i < num - 1; ++i) {
+     printf("const remove_cvref_t<T%d> &item%d, ", i + 1, i + 1);
+  }
+  printf("const remove_cvref_t<T%d> &item%d) : ", num, num);
+  for (int i = 0; i < num - 1; ++i) {
+     printf("Item%d(item%d), ", i + 1, i + 1);
+  }
+  printf("Item%d(item%d) {}\n};", num, num);
+}
+*/
+
 LSTD_END_NAMESPACE
 
 // See C++11 18.3.2.5

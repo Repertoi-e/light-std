@@ -35,11 +35,10 @@ struct format_context : io::writer, non_copyable, non_movable {
     dynamic_format_specs *Specs = null;
 
     format_context(io::writer *out, string fmtString, args args, error_handler_t errorHandlerFunc)
-        : writer(format_context_write, format_context_flush), Out(out), Args(args), Parse(errorHandlerFunc) {
-        Parse.FmtString = fmtString;
-        Parse.It = fmtString.Data;
-        Parse.End = fmtString.Data + fmtString.ByteLength;
-    }
+        : writer(format_context_write, format_context_flush),
+          Out(out),
+          Args(args),
+          Parse(fmtString, errorHandlerFunc) {}
 
     // Write directly, without taking formatting specs into account.
     void write_no_specs(array_view<byte> data) { Out->write(data); }
@@ -116,7 +115,7 @@ struct format_context : io::writer, non_copyable, non_movable {
     // Called by _parse_format_string_ in fmt.cpp
     bool handle_dynamic_specs();
 
-    void on_error(const byte *message) { Parse.on_error(message); }
+    void on_error(string message) { Parse.on_error(message); }
 
    private:
     // Writes an integer with given formatting specs

@@ -11,14 +11,18 @@ LSTD_BEGIN_NAMESPACE
 namespace fmt {
 
 struct parse_context {
-    s32 NextArgID = 0;
-
     string FmtString;
     const byte *It = null, *End = null;
 
+    s32 NextArgID = 0;
+
     error_handler_t ErrorHandlerFunc = default_error_handler;
 
-    parse_context(error_handler_t errorHandlerFunc) : ErrorHandlerFunc(errorHandlerFunc) {}
+    parse_context(string fmtString, error_handler_t errorHandlerFunc)
+        : FmtString(fmtString), ErrorHandlerFunc(errorHandlerFunc) {
+        It = FmtString.Data;
+        End = FmtString.Data + fmtString.ByteLength;
+    }
 
     u32 next_arg_id() {
         if (NextArgID >= 0) return (u32) NextArgID++;
@@ -37,11 +41,12 @@ struct parse_context {
 
     arg_ref parse_arg_id();
 
-    // _argType_ the type of the argument for which we are parsing the specs
+    // _argType_ is the type of the argument for which we are parsing the specs.
+    // It is used, for example, to check if it's numeric when we encounter numeric-only specs.
     bool parse_fmt_specs(type argType, dynamic_format_specs *specs);
     bool parse_text_style(text_style *textStyle);
 
-    void on_error(const byte *message) const {
+    void on_error(string message) const {
         if (ErrorHandlerFunc) ErrorHandlerFunc(message, {FmtString, (size_t)(It - FmtString.Data)});
     }
 
