@@ -46,7 +46,7 @@ struct arg_ref {
 
     arg_ref() : Index(0) {}
     arg_ref(u32 index) : Kind(kind::INDEX), Index(index) {}
-    arg_ref(string_view name) : Kind(kind::NAME), Name(name) {}
+    arg_ref(string name) : Kind(kind::NAME), Name(name) {}
 
     arg_ref &operator=(u32 index) {
         Kind = kind::INDEX;

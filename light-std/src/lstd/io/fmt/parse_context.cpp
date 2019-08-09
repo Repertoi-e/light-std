@@ -53,7 +53,7 @@ arg_ref parse_context::parse_arg_id() {
         ++it;
     } while (it != End && (is_alphanumeric(c = *it) || c == '_'));
 
-    auto name = string_view(It, (size_t)(it - It));
+    auto name = string(It, (size_t)(it - It));
     It = it;
     return arg_ref(name);
 }
@@ -125,7 +125,7 @@ bool parse_context::parse_text_style(text_style *textStyle) {
             return false;
         }
 
-        auto name = string_view(nameBegin, It - nameBegin);
+        auto name = string(nameBegin, It - nameBegin);
         if (terminal) {
             terminal_color c = string_to_terminal_color(name);
             if (c == terminal_color::NONE) {
@@ -167,7 +167,7 @@ bool parse_context::parse_text_style(text_style *textStyle) {
     if (*It == ';') {
         ++It;
         if (It + 2 < End) {
-            if (string_view(It, 2) == "BG") {
+            if (string(It, 2) == "BG") {
                 assert(textStyle->ColorKind != text_style::color_kind::NONE);  // "BG" specifier encountered but there
                                                                                // was no color parsed before it
                 textStyle->Background = true;

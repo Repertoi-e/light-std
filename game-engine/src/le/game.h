@@ -11,6 +11,11 @@ struct game_memory {
 
     // Used by the game for first-time run initialization
     void *State = null;
+
+    // Gets set to true when the game code has been reloaded during the frame.
+	// Should be handled in _game_update_and_render_.
+	// Gets triggered the first time the game loads as well!
+    bool ReloadedThisFrame = false;
 };
 
 #define GAME_NEW(type) new (g_GameMemory->Allocator) type

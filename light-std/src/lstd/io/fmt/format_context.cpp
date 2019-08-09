@@ -15,7 +15,7 @@ static byte DIGITS[] =
     "8081828384858687888990919293949596979899";
 
 template <typename UInt>
-static byte *format_uint_decimal(byte *buffer, UInt value, size_t formattedSize, string_view thousandsSep = "") {
+static byte *format_uint_decimal(byte *buffer, UInt value, size_t formattedSize, string thousandsSep = "") {
     u32 digitIndex = 0;
 
     buffer += formattedSize;
@@ -196,7 +196,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
         *prefixPointer++ = '0';
     }
 
-    auto prefix = string_view(prefixBuffer, prefixPointer - prefixBuffer);
+    auto prefix = string(prefixBuffer, prefixPointer - prefixBuffer);
 
     size_t formattedSize = prefix.Length + numDigits;
     size_t padding = 0;

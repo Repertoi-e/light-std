@@ -101,6 +101,9 @@ s32 main() {
             if (writeTime != lastDllWriteTime) {
                 reload_game_code();
                 lastDllWriteTime = writeTime;
+                gameMemory.ReloadedThisFrame = true;
+            } else {
+                gameMemory.ReloadedThisFrame = false;
             }
         }
         ++dllCheckTimer;

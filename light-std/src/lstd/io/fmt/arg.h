@@ -20,12 +20,12 @@ struct arg {
 
 namespace internal {
 struct named_arg_base {
-    string_view Name;
+    string Name;
 
     // The serialized argument
     byte Data[sizeof(arg)];
 
-    named_arg_base(string_view name) : Name(name) {}
+    named_arg_base(string name) : Name(name) {}
 
     arg deserialize() const {
         arg result;
@@ -41,20 +41,20 @@ struct named_arg : named_arg_base {
     using value_t = T;
     inline static auto TypeTag = type_constant_v<value_t>;
 
-    named_arg(string_view name, const T &value) : named_arg_base(name), Value(value) {}
+    named_arg(string name, const T &value) : named_arg_base(name), Value(value) {}
 };
 }  // namespace internal
 
 // Returns a named argument to be used in a formatting function.
 // The named argument holds a reference and does not extend the lifetime of its arguments.
 template <typename T>
-auto named(string_view name, const T &arg) {
+auto named(string name, const T &arg) {
     return internal::named_arg<T>(name, arg);
 }
 
 // Disable construction of nested named arguments
 template <typename T>
-void named(string_view, internal::named_arg<T>) = delete;
+void named(string, internal::named_arg<T>) = delete;
 
 template <typename T>
 arg make_arg(const T &value);
@@ -64,6 +64,7 @@ struct arg_mapper {
     using long_t = type_select_t<sizeof(long) == sizeof(int), s32, s64>;
     using ulong_t = type_select_t<sizeof(long) == sizeof(int), u32, u64>;
 
+    s32 map(byte val) { return val; }
     s32 map(signed char val) { return val; }
     u64 map(unsigned char val) { return val; }
     s32 map(s16 val) { return val; }
@@ -80,15 +81,15 @@ struct arg_mapper {
     f64 map(f64 val) { return val; }
     void map(long double val) { assert(false && "Argument of type 'long double' is not supported"); }
 
-    const byte *map(byte *val) { return val; }
-    const byte *map(const byte *val) { return val; }
+    string map(byte *val) { return string(val); }
+    string map(const byte *val) { return string(val); }
 
     template <typename T>
-    enable_if_t<is_constructible_v<string_view, T>, string_view> map(const T &val) {
-        return string_view(val);
+    enable_if_t<is_constructible_v<string, T>, string> map(const T &val) {
+        return string(val);
     }
 
-    string_view map(string val) { return (string_view) val; }
+    string map(string val) { return (string) val; }
     const void *map(void *val) { return val; }
     const void *map(const void *val) { return val; }
 
@@ -101,7 +102,7 @@ struct arg_mapper {
     }
 
     template <typename T>
-    enable_if_t<!is_constructible_v<string_view, T> && has_formatter<T>::value, const T &> map(const T &val) {
+    enable_if_t<!is_constructible_v<string, T> && has_formatter<T>::value, const T &> map(const T &val) {
         return val;
     }
 
@@ -122,11 +123,11 @@ struct arg_mapper {
 // If you get a compiler error here it's probably because you passed in an argument that can't be formatted.
 // !!!
 template <typename T>
-using mapped_type_constant = type_constant<decltype(arg_mapper{}.map(declval<T>()))>;
+constexpr auto mapped_type_constant_v = type_constant_v<decltype(arg_mapper{}.map(declval<T>()))>;
 
 template <typename T>
 arg make_arg(const T &value) {
-    return {mapped_type_constant<T>::value, arg_mapper().map(value)};
+    return {mapped_type_constant_v<T>, arg_mapper().map(value)};
 }
 
 template <bool IsPacked, typename T>
@@ -181,7 +182,7 @@ u64 get_packed_fmt_types() {
 
 template <typename Dummy, typename Arg, typename... Args>
 u64 get_packed_fmt_types() {
-    return (u64) mapped_type_constant<Arg>::value | (get_packed_fmt_types<Dummy, Args...>() << 4);
+    return (u64) mapped_type_constant_v<Arg> | (get_packed_fmt_types<Dummy, Args...>() << 4);
 }
 }  // namespace internal
 
@@ -197,10 +198,11 @@ struct args_store {
     using value_t = type_select_t<IS_PACKED, value, arg>;
     value_t Data[DATA_SIZE];
 
-    inline static u64 TYPES =
-        IS_PACKED ? internal::get_packed_fmt_types<unused, Args...>() : internal::IS_UNPACKED_BIT | NUM_ARGS;
+    u64 Types = 0;
 
-    args_store(const Args &... args) : Data{make_arg<IS_PACKED>(args)...} {}
+    args_store(const Args &... args)
+        : Data{make_arg<IS_PACKED>(args)...},
+          Types(IS_PACKED ? internal::get_packed_fmt_types<unused, Args...>() : internal::IS_UNPACKED_BIT | NUM_ARGS) {}
 };
 
 // Constructs an _args_store_ object that contains references to arguments and can be implicitly converted to _args_.
@@ -220,7 +222,7 @@ struct args {
     args() = default;
 
     template <typename... Args>
-    args(const args_store<Args...> &store) : Types(store.TYPES), Count(sizeof...(Args)) {
+    args(const args_store<Args...> &store) : Types(store.Types), Count(sizeof...(Args)) {
         set_data(store.Data);
     }
 
@@ -260,7 +262,7 @@ struct args {
 struct arg_map : non_copyable {
     // A map from argument names and their values (for named arguments)
     struct entry {
-        string_view Name;
+        string Name;
         arg Arg;
     };
 
@@ -303,7 +305,7 @@ struct arg_map : non_copyable {
 
     void add(const value &value) { Entries[Size++] = {value.NamedArg->Name, value.NamedArg->deserialize()}; }
 
-    arg find(string_view name) const {
+    arg find(string name) const {
         for (auto *it = Entries, *end = Entries + Size; it != end; ++it) {
             if (it->Name == name) return it->Arg;
         }

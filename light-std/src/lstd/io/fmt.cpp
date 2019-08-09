@@ -1,13 +1,13 @@
 #include "fmt.h"
 
+#include "../file.h"
+
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-void parse_fmt_string(string_view fmtString, format_context *f) {
+void parse_fmt_string(string fmtString, format_context *f) {
     parse_context *p = &f->Parse;
-    p->Begin = p->It = fmtString.begin();
-    p->End = fmtString.end();
 
     auto write = [&](const byte *end) {
         if (p->It == end) return;
@@ -32,17 +32,19 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
     };
 
     arg currentArg;
-    while (p->It != p->End) {
-        auto *bracket = find_cp_utf8(p->It, p->End - p->It, '{');
+
+    auto end = fmtString.Data + fmtString.ByteLength;
+    while (p->It != end) {
+        auto *bracket = find_cp_utf8(p->It, end - p->It, '{');
         if (!bracket) {
-            write(p->End);
+            write(end);
             return;
         }
 
         write(bracket);
         p->It = bracket + 1;
 
-        if (p->It == p->End) {
+        if (p->It == end) {
             f->on_error("Invalid format string");
             return;
         }
@@ -63,7 +65,7 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
             text_style style = {};
             bool success = p->parse_text_style(&style);
             if (!success) return;
-            if (p->It == p->End || *p->It != '}') {
+            if (p->It == end || *p->It != '}') {
                 f->on_error("'}' expected");
                 return;
             }
@@ -82,7 +84,7 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
             currentArg = f->get_arg_from_ref(p->parse_arg_id());
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
-            byte c = p->It != p->End ? *p->It : 0;
+            byte c = p->It != end ? *p->It : 0;
             if (c == '}') {
                 if (currentArg.Type == type::CUSTOM) {
                     typename arg::handle(currentArg.Value.Custom).format(f);
@@ -95,7 +97,7 @@ void parse_fmt_string(string_view fmtString, format_context *f) {
                 dynamic_format_specs specs = {};
                 bool success = p->parse_fmt_specs(currentArg.Type, &specs);
                 if (!success) return;
-                if (p->It == p->End || *p->It != '}') {
+                if (p->It == end || *p->It != '}') {
                     f->on_error("'}' expected");
                     return;
                 }

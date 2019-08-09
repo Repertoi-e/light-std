@@ -45,7 +45,6 @@ handle::handle(path path) : Path(path) {
 bool handle::is_file() const {
     HANDLE file = CreateFileW(Utf16Path, 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
     if (file == INVALID_HANDLE_VALUE) {
-        open_handle_fail(Path);
         return false;
     }
     defer(CloseHandle(file));
@@ -61,7 +60,6 @@ bool handle::is_directory() const {
     HANDLE file =
         CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
     if (file == INVALID_HANDLE_VALUE) {
-        open_handle_fail(Path);
         return false;
     }
     defer(CloseHandle(file));

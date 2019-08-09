@@ -34,14 +34,18 @@ struct format_context : io::writer, non_copyable, non_movable {
     // null if no specs were parsed
     dynamic_format_specs *Specs = null;
 
-    format_context(io::writer *out, string_view fmtString, args args, error_handler_t errorHandlerFunc)
-        : writer(format_context_write, format_context_flush), Out(out), Args(args), Parse(errorHandlerFunc) {}
+    format_context(io::writer *out, string fmtString, args args, error_handler_t errorHandlerFunc)
+        : writer(format_context_write, format_context_flush), Out(out), Args(args), Parse(errorHandlerFunc) {
+        Parse.FmtString = fmtString;
+        Parse.It = fmtString.Data;
+        Parse.End = fmtString.Data + fmtString.ByteLength;
+    }
 
     // Write directly, without taking formatting specs into account.
     void write_no_specs(array_view<byte> data) { Out->write(data); }
     void write_no_specs(const byte *data) { Out->write(data, c_string_strlen(data)); }
     void write_no_specs(const byte *data, size_t count) { Out->write(data, count); }
-    void write_no_specs(string_view str) { Out->write(str); }
+    void write_no_specs(string str) { Out->write(str); }
     void write_no_specs(char32_t cp) { Out->write(cp); }
 
     template <typename T>
@@ -101,8 +105,8 @@ struct format_context : io::writer, non_copyable, non_movable {
     // We checks for specs here, so the non-spec version just calls this one...
     void write(const void *value);
 
-    debug_struct_helper debug_struct(string_view name) { return debug_struct_helper(this, name); }
-    debug_tuple_helper debug_tuple(string_view name) { return debug_tuple_helper(this, name); }
+    debug_struct_helper debug_struct(string name) { return debug_struct_helper(this, name); }
+    debug_tuple_helper debug_tuple(string name) { return debug_tuple_helper(this, name); }
     debug_list_helper debug_list() { return debug_list_helper(this); }
 
     // Returns an argument from an arg_ref and reports an error if it doesn't exist
@@ -135,7 +139,7 @@ struct format_context_visitor {
     void operator()(bool value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(f64 value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(array_view<byte> value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
-    void operator()(string_view value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
+    void operator()(string value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const void *value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
 
     void operator()(unused) { F->on_error("Internal error while formatting"); }

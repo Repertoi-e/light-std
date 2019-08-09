@@ -14,7 +14,7 @@ enum class color : u32 {
 #undef COLOR_DEF
 };
 
-constexpr string_view color_to_string(color c) {
+inline string color_to_string(color c) {
     switch (c) {
 #define COLOR_DEF(x, y) \
     case color::x:      \
@@ -29,7 +29,7 @@ constexpr string_view color_to_string(color c) {
 // Colors are defined all-uppercase and this function is case-sensitive
 //   e.g. cornflower_blue doesn't return color::CORNFLOWER_BLUE
 // Returns color::NONE (with value of black) if not found.
-constexpr color string_to_color(string_view str) {
+inline color string_to_color(string str) {
 #define COLOR_DEF(x, y) \
     if (str == #x) return color::x;
 #include "colors.def"
@@ -46,7 +46,7 @@ enum class terminal_color : u32 {
 #undef COLOR_DEF
 };
 
-constexpr string_view terminal_color_to_string(terminal_color c) {
+inline string terminal_color_to_string(terminal_color c) {
     switch (c) {
 #define COLOR_DEF(x, y)     \
     case terminal_color::x: \
@@ -61,7 +61,7 @@ constexpr string_view terminal_color_to_string(terminal_color c) {
 // Colors are defined all-uppercase and this function is case-sensitive
 //   e.g. bright_black doesn't return color::BRIGHT_BLACK
 // Returns terminal_color::NONE (invalid) if not found.
-constexpr terminal_color string_to_terminal_color(string_view str) {
+inline terminal_color string_to_terminal_color(string str) {
 #define COLOR_DEF(x, y) \
     if (str == #x) return terminal_color::x;
 #include "terminal_colors.def"

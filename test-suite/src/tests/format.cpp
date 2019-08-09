@@ -7,27 +7,22 @@
         assert_eq(t, expected);                    \
     }
 
-static const byte *LAST_ERROR = null;
+static string LAST_ERROR;
 
-void test_error_handler(const byte *message, fmt::error_context errorContext) { LAST_ERROR = message; }
+void test_error_handler(string message, fmt::error_context errorContext) { LAST_ERROR = message; }
 
 template <typename... Args>
 void format_test_error(string_view fmtString, Args &&... args) {
     io::counting_writer dummy;
     auto store = fmt::make_arg_store<Args...>(args...);
-    auto f =
-        fmt::format_context(&dummy, fmtString, fmt::args(store), test_error_handler);
+    auto f = fmt::format_context(&dummy, fmtString, fmt::args(store), test_error_handler);
     fmt::parse_fmt_string(fmtString, &f);
 }
 
-#define EXPECT_ERROR(expected, fmtString, ...)                   \
-    format_test_error(fmtString, ##__VA_ARGS__);                 \
-    if (expected && !LAST_ERROR) {                               \
-        assert_eq(expected, (void *) LAST_ERROR);                \
-    } else {                                                     \
-        assert_eq(compare_c_string(expected, LAST_ERROR), npos); \
-    }                                                            \
-    LAST_ERROR = null;
+#define EXPECT_ERROR(expected, fmtString, ...)   \
+    format_test_error(fmtString, ##__VA_ARGS__); \
+    assert_eq(LAST_ERROR, expected);             \
+    LAST_ERROR = "";
 
 TEST(write_bool) {
     CHECK_WRITE("true", "{}", true);

@@ -28,6 +28,10 @@ extern "C" LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memor
         }
     }
 
+    if (gameMemory->ReloadedThisFrame) {
+        fmt::print("Game code reloaded.");
+    }
+
     auto *state = (game_state *) gameMemory->State;
     if (state->Counter % 60 == 0) {
         fmt::print("Counter: {}\n", state->Counter);

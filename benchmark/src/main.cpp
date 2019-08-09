@@ -37,7 +37,7 @@ static void lstd_fmt_cout(benchmark::State &state) {
 }
 
 BENCHMARK(stl_cout);
-BENCHMARK(c_printf);
 BENCHMARK(lstd_fmt_cout);  // ->Iterations(10000000000);
+BENCHMARK(c_printf);
 
 BENCHMARK_MAIN();

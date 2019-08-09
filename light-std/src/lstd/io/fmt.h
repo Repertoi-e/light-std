@@ -154,20 +154,21 @@ LSTD_BEGIN_NAMESPACE
 namespace fmt {
 
 // Defined in fmt.cpp
-void parse_fmt_string(string_view fmtString, format_context *f);
+void parse_fmt_string(string fmtString, format_context *f);
 
 // Formats to writer
 template <typename... Args>
-void to_writer(io::writer *out, string_view fmtString, Args &&... args) {
+void to_writer(io::writer *out, string fmtString, Args &&... args) {
     auto store = make_arg_store<Args...>(args...);  // This needs to outlive _parse_fmt_string_
-    auto f = format_context(out, fmtString, fmt::args(store), default_error_handler);
+    auto bakedArgs = fmt::args(store);
+    auto f = format_context(out, fmtString, bakedArgs, default_error_handler);
     parse_fmt_string(fmtString, &f);
     f.flush();
 }
 
 // Formats to a counting writer and returns the result
 template <typename... Args>
-size_t calculate_formatted_size(string_view fmtString, Args &&... args) {
+size_t calculate_formatted_size(string fmtString, Args &&... args) {
     io::counting_writer writer;
     to_writer(&writer, fmtString, ((Args &&) args)...);
     return writer.Count;
@@ -175,7 +176,7 @@ size_t calculate_formatted_size(string_view fmtString, Args &&... args) {
 
 // Formats to a string
 template <typename... Args>
-void sprint(string *out, string_view fmtString, Args &&... args) {
+void sprint(string *out, string fmtString, Args &&... args) {
     out->reserve(out->ByteLength +
                  calculate_formatted_size(fmtString, ((Args &&) args)...));  // @Speed Is this actually better?
 
@@ -185,7 +186,7 @@ void sprint(string *out, string_view fmtString, Args &&... args) {
 
 // Formats to io::cout
 template <typename... Args>
-void print(string_view fmtString, Args &&... args) {
+void print(string fmtString, Args &&... args) {
     to_writer(Context.Log, fmtString, ((Args &&) args)...);
 }
 

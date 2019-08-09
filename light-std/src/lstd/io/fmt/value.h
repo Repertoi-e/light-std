@@ -68,8 +68,7 @@ TYPE_CONSTANT(s64, type::S64);
 TYPE_CONSTANT(u64, type::U64);
 TYPE_CONSTANT(bool, type::BOOL);
 TYPE_CONSTANT(f64, type::F64);
-TYPE_CONSTANT(string_view, type::STRING);
-TYPE_CONSTANT(const byte *, type::STRING);
+TYPE_CONSTANT(string, type::STRING);
 TYPE_CONSTANT(const void *, type::POINTER);
 #undef TYPE_CONSTANT
 

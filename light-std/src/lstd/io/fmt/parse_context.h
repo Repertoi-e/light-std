@@ -13,8 +13,8 @@ namespace fmt {
 struct parse_context {
     s32 NextArgID = 0;
 
-    const byte *Begin = null, *End = null;
-    const byte *It = null;
+    string FmtString;
+    const byte *It = null, *End = null;
 
     error_handler_t ErrorHandlerFunc = default_error_handler;
 
@@ -42,7 +42,7 @@ struct parse_context {
     bool parse_text_style(text_style *textStyle);
 
     void on_error(const byte *message) const {
-        if (ErrorHandlerFunc) ErrorHandlerFunc(message, {string_view(Begin, End - Begin), (size_t)(It - Begin)});
+        if (ErrorHandlerFunc) ErrorHandlerFunc(message, {FmtString, (size_t)(It - FmtString.Data)});
     }
 
    private:

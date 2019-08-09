@@ -46,7 +46,7 @@ struct win32_state {
     byte CerrBuffer[CONSOLE_BUFFER_SIZE]{};
     HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
     LARGE_INTEGER PerformanceFrequency;
-    string_view ModuleName;
+    string ModuleName;
 
     win32_state() {
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
@@ -100,11 +100,9 @@ struct win32_state {
         }
         if (buffer != stackBuffer) delete[] buffer;
 
-        auto *moduleName = new byte[reserved * 2];
-        size_t byteLength;
-        utf16_to_utf8(buffer, moduleName, &byteLength);
-
-        ModuleName = string_view(moduleName, byteLength);
+        ModuleName.reserve(reserved * 2);
+        utf16_to_utf8(buffer, const_cast<byte *>(ModuleName.Data), &ModuleName.ByteLength);
+        ModuleName.Length = utf8_strlen(ModuleName.Data, ModuleName.ByteLength);
     }
 };
 static win32_state STATE;
@@ -187,7 +185,7 @@ time_t os_get_time() {
 
 f64 os_time_to_seconds(time_t time) { return (f64) time / STATE.PerformanceFrequency.QuadPart; }
 
-string_view os_get_exe_name() { return STATE.ModuleName; }
+string os_get_exe_name() { return STATE.ModuleName; }
 
 LSTD_END_NAMESPACE
 
