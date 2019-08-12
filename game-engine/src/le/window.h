@@ -20,7 +20,7 @@ struct window {
     window() = default;
 
     // Returns this
-    window *init(string title, u32 width, u32 height);
+    window *init(string title, u32 width, u32 height, bool vsync);
 
     void update();
 

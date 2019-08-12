@@ -119,21 +119,21 @@ void d3d_graphics::init(window *targetWindow) {
         DXGI_SWAP_CHAIN_DESC desc;
         zero_memory(&desc, sizeof(desc));
         {
-            desc.BufferCount = 1;  // One back buffer
+            desc.BufferCount = 1;
             desc.BufferDesc.Width = targetWindow->Width;
             desc.BufferDesc.Height = targetWindow->Height;
-            desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;  // Use 32-bit color
+            desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
             desc.BufferDesc.RefreshRate.Numerator = targetWindow->VSyncEnabled ? numerator : 0;
             desc.BufferDesc.RefreshRate.Denominator = targetWindow->VSyncEnabled ? denominator : 1;
             desc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
             desc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
             desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
             desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;           // How the swap chain is going to be used
-            desc.OutputWindow = *((HWND *) &targetWindow->PlatformData);  // The window to be used
-            desc.SampleDesc.Count = 4;                                    // How many multisamples
-            desc.Windowed = true;                                         // Windowed/full-screen mode
-            // @TODO Full-screen, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+            desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            desc.OutputWindow = *((HWND *) &targetWindow->PlatformData);
+            desc.SampleDesc.Count = 4;
+            desc.Windowed = true;
+            desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
         }
 
         // In order to support Direct2D, pass D3D11_CREATE_DEVICE_BGRA_SUPPORT to _Flags_
@@ -236,6 +236,8 @@ void d3d_graphics::set_depth_testing(bool enabled) {
 void d3d_graphics::swap() { DD->SwapChain->Present(DD->TargetWindow->VSyncEnabled ? 1 : 0, 0); }
 
 void d3d_graphics::release() {
+    DD->SwapChain->SetFullscreenState(false, null);
+
     DD->Device->Release();
     DD->DeviceContext->Release();
     DD->SwapChain->Release();

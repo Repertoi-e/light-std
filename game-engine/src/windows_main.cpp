@@ -48,12 +48,6 @@ void reload_game_code(file::path dllPath) {
     }
 }
 
-// It's always fun to use undocumented kernel functions :eyes:
-s32(__stdcall *NtDelayExecutionFunc)(BOOL, PLARGE_INTEGER) = (s32(*)(BOOL, PLARGE_INTEGER))
-    GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
-s32(__stdcall *ZwSetTimerResolutionFunc)(ULONG, BOOLEAN, PULONG) = (s32(*)(ULONG, BOOLEAN, PULONG))
-    GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
-
 f32 calculate_target_seconds_per_frame(HWND hWnd) {
     s32 monitorRefreshHz = 60;  // Default is 60
 
@@ -73,7 +67,7 @@ f32 calculate_target_seconds_per_frame(HWND hWnd) {
 // but I don't think that provides much benefit.
 s32 main() {
     game_memory gameMemory;
-    gameMemory.Window = (new window)->init("Tetris", 1200, 600);
+    gameMemory.Window = (new window)->init("Tetris", 1200, 600, true);
 
     d3d_graphics graphics;
     graphics.init(gameMemory.Window);
@@ -116,49 +110,12 @@ s32 main() {
         if (g_GameUpdateAndRender) g_GameUpdateAndRender(&gameMemory);
 
         f64 workSecondsElapsed = os_time_to_seconds(os_get_time() - lastCounter);
-        f64 compensate = workSecondsElapsed;
-        u32 actualMs, whiles = 0;
-
-        if (compensate < targetSecondsPerFrame) {
-            s64 before = os_get_time();
-            auto ms = (u64)(1000.0f * (targetSecondsPerFrame - compensate));
-
-            // Check for at least 3 ms or we seem to oversleep otherwise
-            if (ms > 3) {
-                ms -= 3;
-
-                LARGE_INTEGER interval;
-                interval.QuadPart = -(s64)(ms * 10000);
-                NtDelayExecutionFunc(false, &interval);
-            }
-            s64 now = os_get_time();
-            actualMs = (u32)(1000.0f * os_time_to_seconds(now - before));
-
-            if (os_time_to_seconds(now - lastCounter) > targetSecondsPerFrame) {
-                fmt::print("(windows_main.cpp): Slept for too long! (Didn't hit target framerate)\n");
-            }
-
-            while (compensate < targetSecondsPerFrame) {
-                ++whiles;
-                compensate = os_time_to_seconds(os_get_time() - lastCounter);
-            }
-        } else {
-            fmt::print("(windows_main.cpp): Frame took too long! (Didn't hit target framerate)\n");
-        }
-
-        // fmt::print("(windows_main.cpp): Target: {:10f} s, work done: {:10f} s, slept: {:4} ms, {:10} whiles\n",
-        //          targetSecondsPerFrame, workSecondsElapsed, actualMs, whiles);
-
-        s64 endCounter = os_get_time();
-        lastCounter = endCounter;
-
+        fmt::print("(windows_main.cpp): Target: {:10f} s, frame time: {:10f} s, frame time (including swap): {:10f}\n",
+                   targetSecondsPerFrame, workSecondsElapsed, os_time_to_seconds(postFlipTime - lastCounter));
+        lastCounter = os_get_time();
         graphics.swap();
-
-        // At the moment postFlipTime is not used for anything,
-        // but will be useful when we do audio
         postFlipTime = os_get_time();
     }
-    os_exit(0);
 }
 
 #endif

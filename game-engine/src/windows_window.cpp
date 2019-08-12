@@ -166,8 +166,10 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-window *window::init(string title, u32 width, u32 height) {
+window *window::init(string title, u32 width, u32 height, bool vsync) {
     static_assert(sizeof(PlatformData) >= sizeof(windows_data));  // Sanity
+
+    VSyncEnabled = vsync;
 
     PDATA->MouseInClient = true;
 
