@@ -15,7 +15,7 @@ struct window {
     bool Closed = false;
 
     // Reserve 256 bytes for any platform data needed by implementations.
-    char PlatformData[256] = {};
+    char PlatformData[256]{};
 
     window() = default;
 

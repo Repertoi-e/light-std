@@ -6,23 +6,6 @@
 
 #include "../common.h"
 
-#define PI 3.1415926535897932384626433832795
-#define PI_OVER_2 1.57079632679489661923   // pi/2
-#define PI_OVER_4 0.785398163397448309616  // pi/4
-
-#define LN_BASE 2.71828182845904523536  // e
-
-#define TAU 6.283185307179586476925286766559
-
-#define LOG2 0.69314718055994530941723212145818
-#define LOG10 2.30258509299404568402
-
-#define LOG2E 1.44269504088896340736    // log2(e)
-#define LOG10E 0.434294481903251827651  // log10(e)
-
-#define SQRT2 1.41421356237309504880       // sqrt(2)
-#define INV_SQRT2 0.707106781186547524401  // 1/sqrt(2)
-
 #define POWERS_OF_10(factor)                                                                                        \
     factor * 10, factor * 100, factor * 1000, factor * 10000, factor * 100000, factor * 1000000, factor * 10000000, \
         factor * 100000000, factor * 1000000000

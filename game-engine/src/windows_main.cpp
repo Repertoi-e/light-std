@@ -8,6 +8,8 @@
 
 #include "le/game.h"
 
+#include "le/graphics.h"
+
 #include <lstd/file.h>
 #include <lstd/io/fmt.h>
 #include <lstd/memory/dynamic_library.h>
@@ -20,7 +22,6 @@
 
 using namespace le;
 
-static HWND g_HWND;
 static dynamic_library g_GameCode;
 static game_update_and_render_func *g_GameUpdateAndRender = null;
 
@@ -53,12 +54,12 @@ s32(__stdcall *NtDelayExecutionFunc)(BOOL, PLARGE_INTEGER) = (s32(*)(BOOL, PLARG
 s32(__stdcall *ZwSetTimerResolutionFunc)(ULONG, BOOLEAN, PULONG) = (s32(*)(ULONG, BOOLEAN, PULONG))
     GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
 
-f32 calculate_target_seconds_per_frame() {
+f32 calculate_target_seconds_per_frame(HWND hWnd) {
     s32 monitorRefreshHz = 60;  // Default is 60
 
-    HDC dc = GetDC(g_HWND);
+    HDC dc = GetDC(hWnd);
     s32 refreshRate = GetDeviceCaps(dc, VREFRESH);
-    ReleaseDC(g_HWND, dc);
+    ReleaseDC(hWnd, dc);
 
     if (refreshRate > 1) monitorRefreshHz = refreshRate;
     return 1.0f / monitorRefreshHz;
@@ -73,8 +74,9 @@ f32 calculate_target_seconds_per_frame() {
 s32 main() {
     game_memory gameMemory;
     gameMemory.Window = (new window)->init("Tetris", 1200, 600);
-    
-	g_HWND = (HWND) gameMemory.Window->PlatformData;
+
+    d3d_graphics graphics;
+    graphics.init(gameMemory.Window);
 
     auto exePath = file::path(os_get_exe_name());
 
@@ -88,10 +90,10 @@ s32 main() {
 
     auto buildLockHandle = file::handle(buildLockPath);
 
-    f32 targetSecondsPerFrame = calculate_target_seconds_per_frame();
+    f32 targetSecondsPerFrame = calculate_target_seconds_per_frame(*((HWND *) &gameMemory.Window->PlatformData));
 
     s64 lastCounter = os_get_time();
-    s64 flipWallClock;
+    s64 postFlipTime = lastCounter;
 
     time_t lastDllWriteTime = 0, dllCheckTimer = 0;
     while (!gameMemory.Window->Closed) {
@@ -108,6 +110,8 @@ s32 main() {
         ++dllCheckTimer;
 
         gameMemory.Window->update();
+
+        graphics.clear_color(vec4(0.2f, 0.3f, 0.8f, 1.0f));
 
         if (g_GameUpdateAndRender) g_GameUpdateAndRender(&gameMemory);
 
@@ -148,11 +152,11 @@ s32 main() {
         s64 endCounter = os_get_time();
         lastCounter = endCounter;
 
-        // @TODO: Swap buffers here!
+        graphics.swap();
 
-        // At the moment flipWallClock is not used for anything,
+        // At the moment postFlipTime is not used for anything,
         // but will be useful when we do audio
-        flipWallClock = os_get_time();
+        postFlipTime = os_get_time();
     }
     os_exit(0);
 }

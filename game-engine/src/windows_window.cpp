@@ -12,27 +12,9 @@
 
 namespace le {
 
-// Returns the last Win32 error, in string format. Returns an empty string if there is no error.
-string get_last_error_as_string() {
-    DWORD errorMessageID = GetLastError();
-    if (errorMessageID == 0) return "";
-
-    LPSTR messageBuffer = null;
-    size_t size = FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, null,
-        errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR) &messageBuffer, 0, null);
-
-    string message(messageBuffer, size);
-
-    // Free the buffer.
-    LocalFree(messageBuffer);
-
-    return message;
-}
-
 struct windows_data {
     HWND hWnd;
-    bool MouseInClient = true;
+    bool MouseInClient;
 
     // Used when handling text input
     u16 Surrogate;
@@ -104,7 +86,7 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
                 }
                 wind->KeyTypedEvent.emit(null, {wind, cp});
             }
-			break;
+            break;
         }
         case WM_UNICHAR:
             // We return 1 the first time to tell Windows we support utf-32 characters
@@ -185,10 +167,12 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 window *window::init(string title, u32 width, u32 height) {
+    static_assert(sizeof(PlatformData) >= sizeof(windows_data));  // Sanity
+
+    PDATA->MouseInClient = true;
+
     // Pray that people aren't insane and going to put such long window titles
     Context.init_temporary_allocator(500_KiB);
-
-    static_assert(sizeof(PlatformData) >= sizeof(windows_data));  // Sanity
 
     constexpr wchar_t CLASS_NAME[] = L"Le engine window class";
 
@@ -208,8 +192,7 @@ window *window::init(string title, u32 width, u32 height) {
     wcex.lpszClassName = CLASS_NAME;
 
     if (!RegisterClassExW(&wcex)) {
-        fmt::print("INTERNAL PLATFORM ERROR (Windows): Couldn't register window class. ({})\n",
-                   get_last_error_as_string());
+        fmt::print("INTERNAL PLATFORM ERROR (Windows): Couldn't register window class.\n");
         os_exit(-1);
     }
 
@@ -221,7 +204,7 @@ window *window::init(string title, u32 width, u32 height) {
                                   WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
                                   rect.right - rect.left, rect.bottom - rect.top, null, null, hInstance, this);
     if (!PDATA->hWnd) {
-        fmt::print("INTERNAL PLATFORM ERROR (Windows): Couldn't create window. ({})\n", get_last_error_as_string());
+        fmt::print("INTERNAL PLATFORM ERROR (Windows): Couldn't create window. ({})\n");
         os_exit(-1);
     }
 

@@ -18,7 +18,7 @@ struct stack_dynamic_buffer {
 
     stack_dynamic_buffer(array_view<char> view) {
         if (sizeof(StackData) > view.size()) {
-            reserve();
+            reserve(view.size());
         }
 
         ByteLength = view.size();

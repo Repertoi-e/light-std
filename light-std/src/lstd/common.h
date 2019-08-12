@@ -3,6 +3,7 @@
 /// A header which provides type definitions as well as other helper macros
 
 #include "intrin/debug_break.h"
+#include "math.h"  // Maybe a mistake? Might increase compile times..
 #include "types.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:

@@ -138,7 +138,7 @@ project "game-engine"
 	common_settings()
 	
 	filter "system:windows"
-		links { "d3d11.lib", "$(DXSDK_DIR)Lib/x64/d3dx11.lib", "$(DXSDK_DIR)Lib/x64/d3dx10.lib" }
+		links { "dxgi.lib", "d3d11.lib", "$(DXSDK_DIR)Lib/x64/d3dx11.lib", "$(DXSDK_DIR)Lib/x64/d3dx10.lib" }
 		includedirs { "$(DXSDK_DIR)Include" }
 
 project "tetris"
