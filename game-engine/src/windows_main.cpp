@@ -16,23 +16,27 @@
 #undef MAC
 #undef _MAC
 #include <Windows.h>
+#define VREFRESH 116
 
 using namespace le;
 
-static file::path g_DLLPath, g_DLLCopyPath;
+static HWND g_HWND;
 static dynamic_library g_GameCode;
 static game_update_and_render_func *g_GameUpdateAndRender = null;
 
-void reload_game_code() {
+void reload_game_code(file::path dllPath) {
     g_GameCode.close();
 
-    auto dllHandle = file::handle(g_DLLPath);
+    auto dllHandle = file::handle(dllPath);
 
-    auto dllCopyHandle = file::handle(g_DLLCopyPath);
+    file::path copyPath = dllHandle.Path.directory();
+    copyPath.combine_with("loaded_game_code.dll");
+
+    auto dllCopyHandle = file::handle(copyPath);
     assert(dllHandle.copy(dllCopyHandle, true));
 
-    if (!g_GameCode.load(g_DLLCopyPath.UnifiedPath)) {
-        fmt::print("Error: Couldn't load {} as the game code for the engine\n", g_DLLCopyPath);
+    if (!g_GameCode.load(copyPath.UnifiedPath)) {
+        fmt::print("Error: Couldn't load {} (copied from {}) as the game code for the engine\n", copyPath, dllPath);
         assert(false);
     }
 
@@ -41,6 +45,23 @@ void reload_game_code() {
         fmt::print("Error: Couldn't load game_update_and_render\n");
         assert(false);
     }
+}
+
+// It's always fun to use undocumented kernel functions :eyes:
+s32(__stdcall *NtDelayExecutionFunc)(BOOL, PLARGE_INTEGER) = (s32(*)(BOOL, PLARGE_INTEGER))
+    GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
+s32(__stdcall *ZwSetTimerResolutionFunc)(ULONG, BOOLEAN, PULONG) = (s32(*)(ULONG, BOOLEAN, PULONG))
+    GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
+
+f32 calculate_target_seconds_per_frame() {
+    s32 monitorRefreshHz = 60;  // Default is 60
+
+    HDC dc = GetDC(g_HWND);
+    s32 refreshRate = GetDeviceCaps(dc, VREFRESH);
+    ReleaseDC(g_HWND, dc);
+
+    if (refreshRate > 1) monitorRefreshHz = refreshRate;
+    return 1.0f / monitorRefreshHz;
 }
 
 // The reason we implement _main_ platform-specifically is so we can get the monitor
@@ -52,54 +73,32 @@ void reload_game_code() {
 s32 main() {
     game_memory gameMemory;
     gameMemory.Window = (new window)->init("Tetris", 1200, 600);
-
-    HWND hWnd = (HWND) gameMemory.Window->PlatformData;
-
-    // It's always fun to use undocumented kernel functions :eyes:
-    s32(__stdcall * NtDelayExecutionFunc)(BOOL, PLARGE_INTEGER) =
-        (s32(*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtDelayExecution");
-    s32(__stdcall * ZwSetTimerResolutionFunc)(ULONG, BOOLEAN, PULONG) =
-        (s32(*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "ZwSetTimerResolution");
-
-    ULONG ignored;
-    ZwSetTimerResolutionFunc(1, true, &ignored);
-
-    s32 monitorRefreshHz = 60;
-
-    HDC dc = GetDC(hWnd);
-    s32 refreshRate = GetDeviceCaps(dc, VREFRESH);
-    ReleaseDC(hWnd, dc);
-
-    if (refreshRate > 1) {
-        monitorRefreshHz = refreshRate;
-    }
-
-    f32 gameUpdateHz = (f32) monitorRefreshHz;
-    f32 targetSecondsPerFrame = (1.0f / (gameUpdateHz));
-
-    s64 lastCounter = os_get_time();
-    s64 flipWallClock;
+    
+	g_HWND = (HWND) gameMemory.Window->PlatformData;
 
     auto exePath = file::path(os_get_exe_name());
 
-    g_DLLPath = exePath.directory();
-    g_DLLPath.combine_with("tetris.dll");
-    auto dllHandle = file::handle(g_DLLPath);
-    time_t lastDllWriteTime = 0, dllCheckTimer = 0;
+    file::path dllPath = exePath.directory();
+    dllPath.combine_with("tetris.dll");
 
-    g_DLLCopyPath = exePath.directory();
-    g_DLLCopyPath.combine_with("tetris_copy.dll");
+    auto dllHandle = file::handle(dllPath);
 
     file::path buildLockPath = exePath.directory();
     buildLockPath.combine_with("buildlock");
 
     auto buildLockHandle = file::handle(buildLockPath);
 
+    f32 targetSecondsPerFrame = calculate_target_seconds_per_frame();
+
+    s64 lastCounter = os_get_time();
+    s64 flipWallClock;
+
+    time_t lastDllWriteTime = 0, dllCheckTimer = 0;
     while (!gameMemory.Window->Closed) {
         if (dllCheckTimer % 20 && !buildLockHandle.exists()) {
             auto writeTime = dllHandle.last_modification_time();
             if (writeTime != lastDllWriteTime) {
-                reload_game_code();
+                reload_game_code(dllPath);
                 lastDllWriteTime = writeTime;
                 gameMemory.ReloadedThisFrame = true;
             } else {

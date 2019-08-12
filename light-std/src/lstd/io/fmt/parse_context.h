@@ -12,7 +12,7 @@ namespace fmt {
 
 struct parse_context {
     string FmtString;
-    const byte *It = null, *End = null;
+    const char *It = null, *End = null;
 
     s32 NextArgID = 0;
 

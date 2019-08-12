@@ -10,7 +10,7 @@ LSTD_BEGIN_NAMESPACE
 // Retrieve the length of a standard cstyle string. Doesn't care about encoding.
 // Note that this calculation does not include the null byte.
 // This function can also be used to determine the size in bytes of a null terminated utf8 string.
-constexpr size_t c_string_strlen(const byte *str) {
+constexpr size_t c_string_strlen(const char *str) {
     if (!str) return 0;
 
     size_t length = 0;
@@ -36,7 +36,7 @@ constexpr size_t c_string_strlen(const char32_t *str) {
     return length;
 }
 
-constexpr size_t compare_c_string(const byte *one, const byte *other) {
+constexpr size_t compare_c_string(const char *one, const char *other) {
     assert(one);
     assert(other);
 
@@ -84,7 +84,7 @@ constexpr size_t compare_c_string(const char32_t *one, const char32_t *other) {
     return index;
 }
 
-constexpr s32 compare_c_string_lexicographically(const byte *one, const byte *other) {
+constexpr s32 compare_c_string_lexicographically(const char *one, const char *other) {
     assert(one);
     assert(other);
 
@@ -109,7 +109,7 @@ constexpr s32 compare_c_string_lexicographically(const char32_t *one, const char
 }
 
 // Retrieve the length (in code points) of an encoded utf8 string
-constexpr size_t utf8_strlen(const byte *str, size_t size) {
+constexpr size_t utf8_strlen(const char *str, size_t size) {
     if (!str || size == 0) return 0;
 
     size_t length = 0;
@@ -273,7 +273,7 @@ constexpr char32_t to_lower(char32_t cp) {
 constexpr bool is_upper(char32_t ch) { return ch != to_lower(ch); }
 constexpr bool is_lower(char32_t ch) { return ch != to_upper(ch); }
 
-constexpr size_t compare_c_string_ignore_case(const byte *one, const byte *other) {
+constexpr size_t compare_c_string_ignore_case(const char *one, const char *other) {
     assert(one);
     assert(other);
 
@@ -321,7 +321,7 @@ constexpr size_t compare_c_string_ignore_case(const char32_t *one, const char32_
     return index;
 }
 
-constexpr s32 compare_c_string_lexicographically_ignore_case(const byte *one, const byte *other) {
+constexpr s32 compare_c_string_lexicographically_ignore_case(const char *one, const char *other) {
     assert(one);
     assert(other);
 
@@ -347,7 +347,7 @@ constexpr s32 compare_c_string_lexicographically_ignore_case(const char32_t *one
 
 // Returns the size in bytes of the code point that _str_ points to.
 // If the byte pointed by _str_ is a countinuation utf8 byte, this function returns 0
-constexpr s8 get_size_of_cp(const byte *str) {
+constexpr s8 get_size_of_cp(const char *str) {
     if (!str) return 0;
     if ((*str & 0xc0) == 0x80) return 0;
 
@@ -376,35 +376,35 @@ constexpr s8 get_size_of_cp(char32_t codePoint) {
 }
 
 // Encodes code point at _str_, assumes there is enough space.
-constexpr void encode_cp(byte *str, char32_t codePoint) {
+constexpr void encode_cp(char *str, char32_t codePoint) {
     size_t size = get_size_of_cp(codePoint);
     if (size == 1) {
         // 1-byte/7-bit ascii
         // (0b0xxxxxxx)
-        str[0] = (byte) codePoint;
+        str[0] = (char) codePoint;
     } else if (size == 2) {
         // 2-byte/11-bit utf8 code point
         // (0b110xxxxx 0b10xxxxxx)
-        str[0] = 0xc0 | (byte)(codePoint >> 6);
-        str[1] = 0x80 | (byte)(codePoint & 0x3f);
+        str[0] = 0xc0 | (char)(codePoint >> 6);
+        str[1] = 0x80 | (char)(codePoint & 0x3f);
     } else if (size == 3) {
         // 3-byte/16-bit utf8 code point
         // (0b1110xxxx 0b10xxxxxx 0b10xxxxxx)
-        str[0] = 0xe0 | (byte)(codePoint >> 12);
-        str[1] = 0x80 | (byte)((codePoint >> 6) & 0x3f);
-        str[2] = 0x80 | (byte)(codePoint & 0x3f);
+        str[0] = 0xe0 | (char)(codePoint >> 12);
+        str[1] = 0x80 | (char)((codePoint >> 6) & 0x3f);
+        str[2] = 0x80 | (char)(codePoint & 0x3f);
     } else {
         // 4-byte/21-bit utf8 code point
         // (0b11110xxx 0b10xxxxxx 0b10xxxxxx 0b10xxxxxx)
-        str[0] = 0xf0 | (byte)(codePoint >> 18);
-        str[1] = 0x80 | (byte)((codePoint >> 12) & 0x3f);
-        str[2] = 0x80 | (byte)((codePoint >> 6) & 0x3f);
-        str[3] = 0x80 | (byte)(codePoint & 0x3f);
+        str[0] = 0xf0 | (char)(codePoint >> 18);
+        str[1] = 0x80 | (char)((codePoint >> 12) & 0x3f);
+        str[2] = 0x80 | (char)((codePoint >> 6) & 0x3f);
+        str[3] = 0x80 | (char)(codePoint & 0x3f);
     }
 }
 
 // Decodes a code point from a data pointer
-constexpr char32_t decode_cp(const byte *str) {
+constexpr char32_t decode_cp(const char *str) {
     if (0xf0 == (0xf8 & str[0])) {
         // 4 byte utf8 code point
         return ((0x07 & str[0]) << 18) | ((0x3f & str[1]) << 12) | ((0x3f & str[2]) << 6) | (0x3f & str[3]);
@@ -443,14 +443,14 @@ constexpr size_t translate_index(s64 index, size_t length, bool toleratePastLast
 
 // This returns a pointer to the code point at a specified index in an utf8 string
 // If _toleratePastLast_ is true, pointing to one past the end is accepted
-constexpr const byte *get_cp_at_index(const byte *str, size_t length, s64 index, bool toleratePastLast = false) {
+constexpr const char *get_cp_at_index(const char *str, size_t length, s64 index, bool toleratePastLast = false) {
     For(range(translate_index(index, length, toleratePastLast))) str += get_size_of_cp(str);
     return str;
 }
 
 // Compares two utf8 encoded strings and returns the index of the code point
 // at which they are different or _npos_ if they are the same.
-constexpr size_t compare_utf8(const byte *one, size_t length1, const byte *two, size_t length2) {
+constexpr size_t compare_utf8(const char *one, size_t length1, const char *two, size_t length2) {
     if (length1 == 0 && length2 == 0) return npos;
     if (length1 == 0 || length2 == 0) return 0;
 
@@ -469,7 +469,7 @@ constexpr size_t compare_utf8(const byte *one, size_t length1, const byte *two, 
 
 // Compares two utf8 encoded strings ignoring case and returns the index of the code point
 // at which they are different or _npos_ if they are the same.
-constexpr size_t compare_utf8_ignore_case(const byte *one, size_t length1, const byte *two, size_t length2) {
+constexpr size_t compare_utf8_ignore_case(const char *one, size_t length1, const char *two, size_t length2) {
     if (length1 == 0 && length2 == 0) return npos;
     if (length1 == 0 || length2 == 0) return 0;
 
@@ -488,7 +488,7 @@ constexpr size_t compare_utf8_ignore_case(const byte *one, size_t length1, const
 
 // Compares two utf8 encoded strings and returns -1 if _one_ is before _two_,
 // 0 if one == two and 1 if _two_ is before _one_.
-constexpr s32 compare_utf8_lexicographically(const byte *one, size_t length1, const byte *two, size_t length2) {
+constexpr s32 compare_utf8_lexicographically(const char *one, size_t length1, const char *two, size_t length2) {
     if (length1 == 0 && length2 == 0) return 0;
     if (length1 == 0) return -1;
     if (length2 == 0) return 1;
@@ -509,7 +509,7 @@ constexpr s32 compare_utf8_lexicographically(const byte *one, size_t length1, co
 
 // Compares two utf8 encoded strings ignorign case and returns -1 if _one_ is before _two_,
 // 0 if one == two and 1 if _two_ is before _one_.
-constexpr s32 compare_utf8_lexicographically_ignore_case(const byte *one, size_t length1, const byte *two,
+constexpr s32 compare_utf8_lexicographically_ignore_case(const char *one, size_t length1, const char *two,
                                                          size_t length2) {
     if (length1 == 0 && length2 == 0) return 0;
     if (length1 == 0) return -1;
@@ -530,7 +530,7 @@ constexpr s32 compare_utf8_lexicographically_ignore_case(const byte *one, size_t
 }
 
 // Find the first occurence of a substring that is after a specified index
-constexpr const byte *find_substring_utf8(const byte *haystack, size_t length1, const byte *needle, size_t length2,
+constexpr const char *find_substring_utf8(const char *haystack, size_t length1, const char *needle, size_t length2,
                                           s64 start = 0) {
     assert(haystack);
     assert(needle);
@@ -566,14 +566,14 @@ constexpr const byte *find_substring_utf8(const byte *haystack, size_t length1, 
 }
 
 // Find the first occurence of a code point that is after a specified index
-constexpr const byte *find_cp_utf8(const byte *str, size_t length, char32_t cp, s64 start = 0) {
-    byte encoded[4]{};
+constexpr const char *find_cp_utf8(const char *str, size_t length, char32_t cp, s64 start = 0) {
+    char encoded[4]{};
     encode_cp(encoded, cp);
     return find_substring_utf8(str, length, encoded, 1, start);
 }
 
 // Find the last occurence of a substring that is before a specified index
-constexpr const byte *find_substring_utf8_reverse(const byte *haystack, size_t length1, const byte *needle,
+constexpr const char *find_substring_utf8_reverse(const char *haystack, size_t length1, const char *needle,
                                                   size_t length2, s64 start = 0) {
     assert(haystack);
     assert(needle);
@@ -610,14 +610,14 @@ constexpr const byte *find_substring_utf8_reverse(const byte *haystack, size_t l
 }
 
 // Find the last occurence of a code point that is before a specified index
-constexpr const byte *find_cp_utf8_reverse(const byte *str, size_t length, char32_t cp, s64 start = 0) {
-    byte encoded[4]{};
+constexpr const char *find_cp_utf8_reverse(const char *str, size_t length, char32_t cp, s64 start = 0) {
+    char encoded[4]{};
     encode_cp(encoded, cp);
     return find_substring_utf8_reverse(str, length, encoded, 1, start);
 }
 
 // Find the first occurence of any code point in _terminators_ that is after a specified index
-constexpr const byte *find_utf8_any_of(const byte *str, size_t length1, const byte *terminators, size_t length2,
+constexpr const char *find_utf8_any_of(const char *str, size_t length1, const char *terminators, size_t length2,
                                        s64 start = 0) {
     assert(str);
     assert(terminators);
@@ -636,7 +636,7 @@ constexpr const byte *find_utf8_any_of(const byte *str, size_t length1, const by
 }
 
 // Find the last occurence of any code point in _terminators_
-constexpr const byte *find_utf8_reverse_any_of(const byte *str, size_t length1, const byte *terminators, size_t length2,
+constexpr const char *find_utf8_reverse_any_of(const char *str, size_t length1, const char *terminators, size_t length2,
                                                s64 start = 0) {
     assert(str);
     assert(terminators);
@@ -656,7 +656,7 @@ constexpr const byte *find_utf8_reverse_any_of(const byte *str, size_t length1, 
 }
 
 // Find the first absence of a code point that is after a specified index
-constexpr const byte *find_utf8_not(const byte *str, size_t length, char32_t cp, s64 start = 0) {
+constexpr const char *find_utf8_not(const char *str, size_t length, char32_t cp, s64 start = 0) {
     assert(str);
 
     if (length == 0) return null;
@@ -664,7 +664,7 @@ constexpr const byte *find_utf8_not(const byte *str, size_t length, char32_t cp,
     auto *p = get_cp_at_index(str, length, translate_index(start, length));
     auto *end = get_cp_at_index(str, length, length, true);
 
-    byte encoded[4]{};
+    char encoded[4]{};
     encode_cp(encoded, cp);
     auto *encodedEnd = encoded + get_size_of_cp(encoded);
 
@@ -686,7 +686,7 @@ constexpr const byte *find_utf8_not(const byte *str, size_t length, char32_t cp,
 }
 
 // Find the last absence of a code point that is before the specified index
-constexpr const byte *find_utf8_reverse_not(const byte *str, size_t length, char32_t cp, s64 start = 0) {
+constexpr const char *find_utf8_reverse_not(const char *str, size_t length, char32_t cp, s64 start = 0) {
     assert(str);
 
     if (length == 0) return null;
@@ -695,7 +695,7 @@ constexpr const byte *find_utf8_reverse_not(const byte *str, size_t length, char
     auto *p = get_cp_at_index(str, length, translate_index(start, length, true) - 1);
     auto *end = get_cp_at_index(str, length, length, true);
 
-    byte encoded[4]{};
+    char encoded[4]{};
     encode_cp(encoded, cp);
     auto *encodedEnd = encoded + get_size_of_cp(encoded);
 
@@ -717,7 +717,7 @@ constexpr const byte *find_utf8_reverse_not(const byte *str, size_t length, char
 }
 
 // Find the first absence of any code point in _terminators_ that is after a specified index
-constexpr const byte *find_utf8_not_any_of(const byte *str, size_t length1, const byte *terminators, size_t length2,
+constexpr const char *find_utf8_not_any_of(const char *str, size_t length1, const char *terminators, size_t length2,
                                            s64 start = 0) {
     assert(str);
     assert(terminators);
@@ -736,7 +736,7 @@ constexpr const byte *find_utf8_not_any_of(const byte *str, size_t length1, cons
 }
 
 // Find the first absence of any code point in _terminators_ that is after a specified index
-constexpr const byte *find_utf8_reverse_not_any_of(const byte *str, size_t length1, const byte *terminators,
+constexpr const char *find_utf8_reverse_not_any_of(const char *str, size_t length1, const char *terminators,
                                                    size_t length2, s64 start = 0) {
     assert(str);
     assert(terminators);
@@ -757,13 +757,13 @@ constexpr const byte *find_utf8_reverse_not_any_of(const byte *str, size_t lengt
 
 // Gets [begin, end) range of characters of a utf8 string.
 // Returns begin-end pointers.
-constexpr pair<const byte *, const byte *> substring_utf8(const byte *str, size_t length, s64 begin, s64 end) {
+constexpr pair<const char *, const char *> substring_utf8(const char *str, size_t length, s64 begin, s64 end) {
     // Convert to absolute [begin, end)
     size_t beginIndex = translate_index(begin, length);
     size_t endIndex = translate_index(end, length, true);
 
-    const byte *beginPtr = get_cp_at_index(str, length, beginIndex);
-    const byte *endPtr = beginPtr;
+    const char *beginPtr = get_cp_at_index(str, length, beginIndex);
+    const char *endPtr = beginPtr;
     For(range(beginIndex, endIndex)) endPtr += get_size_of_cp(endPtr);
 
     return {beginPtr, endPtr};
@@ -771,7 +771,7 @@ constexpr pair<const byte *, const byte *> substring_utf8(const byte *str, size_
 
 // Converts utf8 to utf16 and stores in _out_ (assumes there is enough space).
 // Also adds a null-terminator at the end.
-constexpr void utf8_to_utf16(const byte *str, size_t length, wchar_t *out) {
+constexpr void utf8_to_utf16(const char *str, size_t length, wchar_t *out) {
     For(range(length)) {
         char32_t cp = decode_cp(str);
         if (cp > 0xffff) {
@@ -787,7 +787,7 @@ constexpr void utf8_to_utf16(const byte *str, size_t length, wchar_t *out) {
 
 // Converts utf8 to utf32 and stores in _out_ (assumes there is enough space).
 // Also adds a null-terminator at the end.
-constexpr void utf8_to_utf32(const byte *str, size_t length, char32_t *out) {
+constexpr void utf8_to_utf32(const char *str, size_t length, char32_t *out) {
     For(range(length)) {
         char32_t cp = decode_cp(str);
         *out++ = cp;
@@ -797,7 +797,7 @@ constexpr void utf8_to_utf32(const byte *str, size_t length, char32_t *out) {
 }
 
 // Converts a null-terminated utf16 to utf8 and stores in _out_ and _outByteLength_ (assumes there is enough space).
-constexpr void utf16_to_utf8(const wchar_t *str, byte *out, size_t *outByteLength) {
+constexpr void utf16_to_utf8(const wchar_t *str, char *out, size_t *outByteLength) {
     size_t byteLength = 0;
     while (*str) {
         encode_cp(out, *str);
@@ -810,7 +810,7 @@ constexpr void utf16_to_utf8(const wchar_t *str, byte *out, size_t *outByteLengt
 }
 
 // Converts a null-terminated utf32 to utf8 and stores in _out_ and _outByteLength_ (assumes there is enough space).
-constexpr void utf32_to_utf8(const char32_t *str, byte *out, size_t *outByteLength) {
+constexpr void utf32_to_utf8(const char32_t *str, char *out, size_t *outByteLength) {
     size_t byteLength = 0;
     while (*str) {
         encode_cp(out, *str);
@@ -824,7 +824,7 @@ constexpr void utf32_to_utf8(const char32_t *str, byte *out, size_t *outByteLeng
 
 // A string object that is entirely constexpr
 struct string_view {
-    const byte *Data = null;
+    const char *Data = null;
 
     // Length in bytes
     size_t ByteLength = 0;
@@ -833,10 +833,10 @@ struct string_view {
     size_t Length = 0;
 
     constexpr string_view() = default;
-    constexpr string_view(const byte *str) : Data(str), ByteLength(c_string_strlen(str)), Length(0) {
+    constexpr string_view(const char *str) : Data(str), ByteLength(c_string_strlen(str)), Length(0) {
         Length = utf8_strlen(str, ByteLength);
     }
-    constexpr string_view(const byte *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)) {}
+    constexpr string_view(const char *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)) {}
 
     constexpr char32_t get(s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
 
@@ -1034,7 +1034,7 @@ struct string_view {
 
         constexpr char32_t operator*() const { return Parent->get(Index); }
 
-        constexpr operator const byte *() const {
+        constexpr operator const char *() const {
             return get_cp_at_index(Parent->Data, Parent->Length, (s64) Index, true);
         }
     };
@@ -1055,17 +1055,17 @@ struct string_view {
     constexpr bool operator>=(string_view other) const { return !(*this < other); }
 };
 
-constexpr bool operator==(const byte *one, string_view other) {
+constexpr bool operator==(const char *one, string_view other) {
     return other.compare_lexicographically(string_view(one)) == 0;
 }
-constexpr bool operator!=(const byte *one, string_view other) { return !(one == other); }
-constexpr bool operator<(const byte *one, string_view other) {
+constexpr bool operator!=(const char *one, string_view other) { return !(one == other); }
+constexpr bool operator<(const char *one, string_view other) {
     return other.compare_lexicographically(string_view(one)) > 0;
 }
-constexpr bool operator>(const byte *one, string_view other) {
+constexpr bool operator>(const char *one, string_view other) {
     return other.compare_lexicographically(string_view(one)) < 0;
 }
-constexpr bool operator<=(const byte *one, string_view other) { return !(one > other); }
-constexpr bool operator>=(const byte *one, string_view other) { return !(one < other); }
+constexpr bool operator<=(const char *one, string_view other) { return !(one > other); }
+constexpr bool operator>=(const char *one, string_view other) { return !(one < other); }
 
 LSTD_END_NAMESPACE

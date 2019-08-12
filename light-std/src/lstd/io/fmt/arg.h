@@ -23,7 +23,7 @@ struct named_arg_base {
     string Name;
 
     // The serialized argument
-    byte Data[sizeof(arg)];
+    char Data[sizeof(arg)];
 
     named_arg_base(string name) : Name(name) {}
 
@@ -64,7 +64,7 @@ struct arg_mapper {
     using long_t = type_select_t<sizeof(long) == sizeof(int), s32, s64>;
     using ulong_t = type_select_t<sizeof(long) == sizeof(int), u32, u64>;
 
-    s32 map(byte val) { return val; }
+    s32 map(char val) { return val; }
     s32 map(signed char val) { return val; }
     u64 map(unsigned char val) { return val; }
     s32 map(s16 val) { return val; }
@@ -77,12 +77,15 @@ struct arg_mapper {
     u64 map(u64 val) { return val; }
     bool map(bool val) { return val; }
 
+    u32 map(wchar_t val) { return val; }
+    u32 map(char32_t val) { return val; }
+
     f64 map(f32 val) { return (f64) val; }
     f64 map(f64 val) { return val; }
     void map(long double val) { assert(false && "Argument of type 'long double' is not supported"); }
 
-    string map(byte *val) { return string(val); }
-    string map(const byte *val) { return string(val); }
+    string map(char *val) { return string(val); }
+    string map(const char *val) { return string(val); }
 
     template <typename T>
     enable_if_t<is_constructible_v<string, T>, string> map(const T &val) {
@@ -114,7 +117,7 @@ struct arg_mapper {
     template <typename T>
     const internal::named_arg_base &map(const internal::named_arg<T> &val) {
         auto result = make_arg(val.Value);
-        copy_memory(const_cast<byte *>(val.Data), &result, sizeof(arg));
+        copy_memory(const_cast<char *>(val.Data), &result, sizeof(arg));
         return val;
     }
 };

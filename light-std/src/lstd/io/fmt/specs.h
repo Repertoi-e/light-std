@@ -31,7 +31,7 @@ struct format_specs {
     u32 Width;
     s32 Precision = -1;
 
-    byte Type;
+    char Type;
 
     constexpr bool has_flag(flag flag) const { return ((u32) Flags & (u32) flag) != 0; }
 };

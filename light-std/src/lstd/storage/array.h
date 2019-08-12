@@ -50,7 +50,7 @@ struct array {
 
         size_t byteSize = reserveTarget * sizeof(data_t) + POINTER_SIZE;
         if (is_owner()) {
-            auto *actualData = (byte *) Data - POINTER_SIZE;
+            auto *actualData = (char *) Data - POINTER_SIZE;
 
             if (alloc) {
                 auto *header = (allocation_header *) actualData - 1;
@@ -59,10 +59,10 @@ struct array {
                        "allocator. Call with null allocator to avoid that.");
             }
 
-            Data = (data_t *) ((byte *) allocator::reallocate(actualData, byteSize) + POINTER_SIZE);
+            Data = (data_t *) ((char *) allocator::reallocate(actualData, byteSize) + POINTER_SIZE);
         } else {
             auto *oldData = Data;
-            Data = encode_owner((data_t *) new (alloc) byte[byteSize], this);
+            Data = encode_owner((data_t *) new (alloc) char[byteSize], this);
             if (Count) copy_memory(Data, oldData, Count * sizeof(data_t));
         }
         Reserved = reserveTarget;
@@ -71,7 +71,7 @@ struct array {
     // Free any memory allocated by this object and reset count
     void release() {
         if (is_owner()) {
-            delete[]((byte *) Data - POINTER_SIZE);
+            delete[]((char *) Data - POINTER_SIZE);
             Data = null;
             Count = Reserved = 0;
         }

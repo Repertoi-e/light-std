@@ -4,7 +4,7 @@ LSTD_BEGIN_NAMESPACE
 
 struct free_list_header {
     size_t BlockSize;
-    byte Padding;
+    char Padding;
 };
 
 using node = free_list_allocator_data::node;
@@ -82,7 +82,7 @@ size_t free_list_allocator_data::find_best(size_t size, size_t align, node **pre
 void free_list_allocator_data::init(size_t totalSize, u8 policy) {
     TotalSize = totalSize;
     PlacementPolicy = policy;
-    StartPtr = new (Malloc) byte[totalSize];
+    StartPtr = new (Malloc) char[totalSize];
 
     // Initializes linked list
     allocator{free_list_allocator, this}.free_all();
@@ -142,7 +142,7 @@ void *free_list_allocator_data::allocate(size_t size, size_t align) {
     size_t headerAddress = (size_t) affectedNode + alignmentPadding;
     size_t dataAddress = headerAddress + sizeof(free_list_header);
     ((free_list_header *) headerAddress)->BlockSize = requiredSize;
-    ((free_list_header *) headerAddress)->Padding = (byte) alignmentPadding;
+    ((free_list_header *) headerAddress)->Padding = (char) alignmentPadding;
 
     Used += requiredSize;
     PeakUsed = MAX(Used, PeakUsed);

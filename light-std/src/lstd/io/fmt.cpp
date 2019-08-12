@@ -9,7 +9,7 @@ namespace fmt {
 void parse_fmt_string(string fmtString, format_context *f) {
     parse_context *p = &f->Parse;
 
-    auto write = [&](const byte *end) {
+    auto write = [&](const char *end) {
         if (p->It == end) return;
         while (true) {
             auto *bracket = find_cp_utf8(p->It, end - p->It, '}');
@@ -70,7 +70,7 @@ void parse_fmt_string(string fmtString, format_context *f) {
                 return;
             }
 
-            byte ansiiBuffer[7 + 3 * 4 + 1];
+            char ansiiBuffer[7 + 3 * 4 + 1];
             auto *ansiiEnd = internal::color_to_ansii(ansiiBuffer, style);
             f->write_no_specs(ansiiBuffer, ansiiEnd - ansiiBuffer);
 
@@ -84,7 +84,7 @@ void parse_fmt_string(string fmtString, format_context *f) {
             currentArg = f->get_arg_from_ref(p->parse_arg_id());
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
-            byte c = p->It != end ? *p->It : 0;
+            char c = p->It != end ? *p->It : 0;
             if (c == '}') {
                 if (currentArg.Type == type::CUSTOM) {
                     typename arg::handle(currentArg.Value.Custom).format(f);

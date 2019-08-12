@@ -2,9 +2,9 @@
 
 #include <lstd/basic.h>
 #include <lstd/file.h>
-
 #include <lstd/io.h>
 #include <lstd/io/fmt.h>
+#include <lstd/os.h>
 
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.

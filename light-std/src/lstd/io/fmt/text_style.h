@@ -96,7 +96,7 @@ struct text_style {
 
 namespace internal {
 // Used when making ANSII escape codes for text styles
-inline byte *u8_to_esc(byte *p, byte delimiter, u8 c) {
+inline char *u8_to_esc(char *p, char delimiter, u8 c) {
     *p++ = '0' + c / 100;
     *p++ = '0' + c / 10 % 10;
     *p++ = '0' + c % 10;
@@ -104,8 +104,8 @@ inline byte *u8_to_esc(byte *p, byte delimiter, u8 c) {
     return p;
 }
 
-inline byte *color_to_ansii(byte *buffer, text_style style) {
-    byte *p = buffer;
+inline char *color_to_ansii(char *buffer, text_style style) {
+    char *p = buffer;
     if (style.ColorKind != text_style::color_kind::NONE) {
         if (style.ColorKind == text_style::color_kind::TERMINAL) {
             // Background terminal colors are 10 more than the foreground ones
@@ -138,14 +138,14 @@ inline byte *color_to_ansii(byte *buffer, text_style style) {
     return p;
 }
 
-inline byte *emphasis_to_ansii(byte *buffer, u8 emphasis) {
+inline char *emphasis_to_ansii(char *buffer, u8 emphasis) {
     u8 codes[4] = {};
     if (emphasis & (u8) emphasis::BOLD) codes[0] = 1;
     if (emphasis & (u8) emphasis::ITALIC) codes[1] = 3;
     if (emphasis & (u8) emphasis::UNDERLINE) codes[2] = 4;
     if (emphasis & (u8) emphasis::STRIKETHROUGH) codes[3] = 9;
 
-    byte *p = buffer;
+    char *p = buffer;
     For(range(4)) {
         if (!codes[it]) continue;
 

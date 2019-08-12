@@ -8,15 +8,15 @@ LSTD_BEGIN_NAMESPACE
 // StackSize - the amount of bytes used on the stack
 template <size_t StackSize>
 struct stack_dynamic_buffer {
-    byte StackData[StackSize]{};
-    byte *Data = StackData;
+    char StackData[StackSize]{};
+    char *Data = StackData;
 
     size_t Reserved = 0;
     size_t ByteLength = 0;
 
     stack_dynamic_buffer() = default;
 
-    stack_dynamic_buffer(array_view<byte> view) {
+    stack_dynamic_buffer(array_view<char> view) {
         if (sizeof(StackData) > view.size()) {
             reserve();
         }
@@ -56,7 +56,7 @@ struct stack_dynamic_buffer {
         }
 
         if (is_owner()) {
-            auto *actualData = const_cast<byte *>(Data) - POINTER_SIZE;
+            auto *actualData = const_cast<char *>(Data) - POINTER_SIZE;
 
             if (alloc) {
                 auto *header = (allocation_header *) actualData - 1;
@@ -66,11 +66,11 @@ struct stack_dynamic_buffer {
                     "Call with null allocator to avoid that.");
             }
 
-            Data = (byte *) allocator::reallocate(actualData, reserveTarget + POINTER_SIZE) + POINTER_SIZE;
+            Data = (char *) allocator::reallocate(actualData, reserveTarget + POINTER_SIZE) + POINTER_SIZE;
         } else {
             auto *oldData = Data;
-            Data = encode_owner(new (alloc) byte[reserveTarget + POINTER_SIZE], this);
-            if (ByteLength) copy_memory(const_cast<byte *>(Data), oldData, ByteLength);
+            Data = encode_owner(new (alloc) char[reserveTarget + POINTER_SIZE], this);
+            if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
         }
         Reserved = reserveTarget;
     }
@@ -86,20 +86,20 @@ struct stack_dynamic_buffer {
     }
 
     // Allows negative reversed indexing which begins at the end
-    byte &get(s64 index) { return Data[translate_index(index, ByteLength)]; }
-    byte get(s64 index) const { Data[translate_index(index, ByteLength)]; }
+    char &get(s64 index) { return Data[translate_index(index, ByteLength)]; }
+    char get(s64 index) const { Data[translate_index(index, ByteLength)]; }
 
     // Sets the _index_'th byte in the string
-    void set(s64 index, byte b) { Data[translate_index(index, ByteLength)] = b; }
+    void set(s64 index, char b) { Data[translate_index(index, ByteLength)] = b; }
 
     // Insert a byte at a specified index
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert(s64 index, byte b, bool unsafe = false) {
+    void insert(s64 index, char b, bool unsafe = false) {
         if (!unsafe) reserve(ByteLength + 1);
 
         auto *target = Data + translate_index(index, ByteLength, true);
         uptr_t offset = (uptr_t)(target - Data);
-        copy_memory((byte *) Data + offset + 1, target, ByteLength - (target - Data));
+        copy_memory((char *) Data + offset + 1, target, ByteLength - (target - Data));
         *target = b;
 
         ++ByteLength;
@@ -107,18 +107,18 @@ struct stack_dynamic_buffer {
 
     // Insert data after a specified index
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert(s64 index, array_view<byte> view, bool unsafe = false) {
+    void insert(s64 index, array_view<char> view, bool unsafe = false) {
         insert_pointer_and_size(index, view.begin(), view.size(), unsafe);
     }
 
     // Insert a buffer of bytes at a specified index
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert_pointer_and_size(s64 index, const byte *data, size_t count, bool unsafe = false) {
+    void insert_pointer_and_size(s64 index, const char *data, size_t count, bool unsafe = false) {
         if (!unsafe) reserve(ByteLength + 1);
 
         auto *target = Data + translate_index(index, ByteLength, true);
         uptr_t offset = (uptr_t)(target - Data);
-        copy_memory((byte *) Data + offset + count, target, ByteLength - (target - Data));
+        copy_memory((char *) Data + offset + count, target, ByteLength - (target - Data));
 
         copy_memory(target, data, count);
 
@@ -130,7 +130,7 @@ struct stack_dynamic_buffer {
         auto *targetBegin = Data + translate_index(begin, ByteLength);
 
         uptr_t offset = (uptr_t)(targetBegin - Data);
-        copy_memory((byte *) Data + offset, targetBegin + 1, ByteLength - offset - 1);
+        copy_memory((char *) Data + offset, targetBegin + 1, ByteLength - offset - 1);
 
         --ByteLength;
     }
@@ -145,24 +145,24 @@ struct stack_dynamic_buffer {
 
         size_t bytes = targetEnd - targetBegin;
         uptr_t offset = (uptr_t)(targetBegin - Data);
-        copy_memory((byte *) Data + offset, targetEnd, ByteLength - offset - bytes);
+        copy_memory((char *) Data + offset, targetEnd, ByteLength - offset - bytes);
 
         ByteLength -= bytes;
     }
 
     // Append a byte
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append(byte b, bool unsafe = false) { insert(ByteLength, b, unsafe); }
+    void append(char b, bool unsafe = false) { insert(ByteLength, b, unsafe); }
 
     // Append one view to another
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append(array_view<byte> view, bool unsafe = false) {
+    void append(array_view<char> view, bool unsafe = false) {
         append_pointer_and_size(view.begin(), view.size(), unsafe);
     }
 
     // Append _count_ bytes of string contained in _data_
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append_pointer_and_size(const byte *data, size_t count, bool unsafe = false) {
+    void append_pointer_and_size(const char *data, size_t count, bool unsafe = false) {
         insert_pointer_and_size(ByteLength, data, count, unsafe);
     }
 
@@ -172,8 +172,8 @@ struct stack_dynamic_buffer {
     //
     // Iterator:
     //
-    using iterator = byte *;
-    using const_iterator = const byte *;
+    using iterator = char *;
+    using const_iterator = const char *;
 
     iterator begin() { return Data; }
     iterator end() { return Data + ByteLength; }
@@ -184,13 +184,13 @@ struct stack_dynamic_buffer {
     //
     // Operators:
     //
-    operator array_view<byte>() { return array_view<byte>(Data, Data + ByteLength); }
+    operator array_view<char>() { return array_view<char>(Data, Data + ByteLength); }
     explicit operator bool() const { return ByteLength; }
 
     // Read/write [] operator
-    byte &operator[](s64 index) { return get(index); }
+    char &operator[](s64 index) { return get(index); }
     // Read-only [] operator
-    byte operator[](s64 index) const { return get(index); }
+    char operator[](s64 index) const { return get(index); }
 };
 
 LSTD_END_NAMESPACE

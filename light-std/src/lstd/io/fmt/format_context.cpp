@@ -1,13 +1,11 @@
 #include "format_context.h"
 #include "format_float.inl"
 
-#include <stdio.h>
-
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-static byte DIGITS[] =
+static char DIGITS[] =
     "0001020304050607080910111213141516171819"
     "2021222324252627282930313233343536373839"
     "4041424344454647484950515253545556575859"
@@ -15,19 +13,19 @@ static byte DIGITS[] =
     "8081828384858687888990919293949596979899";
 
 template <typename UInt>
-static byte *format_uint_decimal(byte *buffer, UInt value, size_t formattedSize, string thousandsSep = "") {
+static char *format_uint_decimal(char *buffer, UInt value, size_t formattedSize, string thousandsSep = "") {
     u32 digitIndex = 0;
 
     buffer += formattedSize;
     while (value >= 100) {
         u32 index = (u32)(value % 100) * 2;
         value /= 100;
-        *--buffer = (byte) DIGITS[index + 1];
+        *--buffer = (char) DIGITS[index + 1];
         if (++digitIndex % 3 == 0) {
             buffer -= thousandsSep.ByteLength;
             copy_memory(buffer, thousandsSep.Data, thousandsSep.ByteLength);
         }
-        *--buffer = (byte) DIGITS[index];
+        *--buffer = (char) DIGITS[index];
         if (++digitIndex % 3 == 0) {
             buffer -= thousandsSep.ByteLength;
             copy_memory(buffer, thousandsSep.Data, thousandsSep.ByteLength);
@@ -35,28 +33,28 @@ static byte *format_uint_decimal(byte *buffer, UInt value, size_t formattedSize,
     }
 
     if (value < 10) {
-        *--buffer = (byte)('0' + value);
+        *--buffer = (char) ('0' + value);
         return buffer;
     }
 
     u32 index = (u32) value * 2;
-    *--buffer = (byte) DIGITS[index + 1];
+    *--buffer = (char) DIGITS[index + 1];
     if (++digitIndex % 3 == 0) {
         buffer -= thousandsSep.ByteLength;
         copy_memory(buffer, thousandsSep.Data, thousandsSep.ByteLength);
     }
-    *--buffer = (byte) DIGITS[index];
+    *--buffer = (char) DIGITS[index];
 
     return buffer;
 }
 
 template <u32 BASE_BITS, typename UInt>
-static byte *format_uint_base(byte *buffer, UInt value, size_t formattedSize, bool upper = false) {
+static char *format_uint_base(char *buffer, UInt value, size_t formattedSize, bool upper = false) {
     buffer += formattedSize;
     do {
-        const byte *digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
+        const char *digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
         u32 digit = (value & ((1 << BASE_BITS) - 1));
-        *--buffer = (byte)(BASE_BITS < 4 ? (byte)('0' + digit) : digits[digit]);
+        *--buffer = (char) (BASE_BITS < 4 ? (char) ('0' + digit) : digits[digit]);
     } while ((value >>= BASE_BITS) != 0);
     return buffer;
 }
@@ -80,7 +78,7 @@ static void write_padded_helper(format_context *f, const format_specs &specs, F 
     }
 }
 
-void format_context_write(io::writer *w, const byte *data, size_t count) {
+void format_context_write(io::writer *w, const char *data, size_t count) {
     auto *f = (format_context *) w;
 
     if (!f->Specs) {
@@ -108,7 +106,8 @@ void format_context_write(io::writer *w, const byte *data, size_t count) {
         length = (size_t) f->Specs->Precision;
         count = get_cp_at_index(data, length, length, true) - data;
     }
-    write_padded_helper(f, *f->Specs, [&]() { f->write_no_specs(data, count); }, length);
+    write_padded_helper(
+        f, *f->Specs, [&]() { f->write_no_specs(data, count); }, length);
 }
 
 void format_context_flush(io::writer *w) {
@@ -116,7 +115,7 @@ void format_context_flush(io::writer *w) {
     f->Out->flush();
 }
 
-static byte U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
+static char U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
 
 void format_context::write(const void *value) {
     if (Specs && Specs->Type && Specs->Type != 'p') {
@@ -130,7 +129,7 @@ void format_context::write(const void *value) {
     auto f = [&, this]() {
         this->write_no_specs(U'0');
         this->write_no_specs(U'x');
-        byte formatBuffer[numeric_info<uptr_t>::digits / 4 + 2];
+        char formatBuffer[numeric_info<uptr_t>::digits / 4 + 2];
         auto *p = format_uint_base<4>(formatBuffer, uptr, numDigits);
         this->write_no_specs(p, formatBuffer + numDigits - p);
     };
@@ -146,7 +145,7 @@ void format_context::write(const void *value) {
 }
 
 void format_context::write_u64(u64 value, bool negative, format_specs specs) {
-    byte type = specs.Type;
+    char type = specs.Type;
     if (!type) type = 'd';
 
     size_t numDigits;
@@ -165,15 +164,16 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
             return;
         }
         auto cp = (char32_t) value;
-        write_padded_helper(this, specs, [&]() { this->write_no_specs(cp); }, get_size_of_cp(cp));
+        write_padded_helper(
+            this, specs, [&]() { this->write_no_specs(cp); }, get_size_of_cp(cp));
         return;
     } else {
         on_error("Invalid type specifier");
         return;
     }
 
-    byte prefixBuffer[4];
-    byte *prefixPointer = prefixBuffer;
+    char prefixBuffer[4];
+    char *prefixPointer = prefixBuffer;
 
     if (negative) {
         *prefixPointer++ = '-';
@@ -212,54 +212,58 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
     }
     if (specs.Align == alignment::DEFAULT) specs.Align = alignment::RIGHT;
 
-    type = (byte) to_lower(type);
+    type = (char) to_lower(type);
     if (type == 'd') {
-        write_padded_helper(this, specs,
-                            [&]() {
-                                if (prefix.Length) this->write_no_specs(prefix);
-                                For(range(padding)) this->write_no_specs(specs.Fill);
-                                auto *p = format_uint_decimal(U64_FORMAT_BUFFER, value, numDigits);
-                                this->write_no_specs(p, U64_FORMAT_BUFFER + numDigits - p);
-                            },
-                            formattedSize);
+        write_padded_helper(
+            this, specs,
+            [&]() {
+                if (prefix.Length) this->write_no_specs(prefix);
+                For(range(padding)) this->write_no_specs(specs.Fill);
+                auto *p = format_uint_decimal(U64_FORMAT_BUFFER, value, numDigits);
+                this->write_no_specs(p, U64_FORMAT_BUFFER + numDigits - p);
+            },
+            formattedSize);
     } else if (type == 'b') {
-        write_padded_helper(this, specs,
-                            [&]() {
-                                if (prefix.Length) this->write_no_specs(prefix);
-                                For(range(padding)) this->write_no_specs(specs.Fill);
-                                auto *p = format_uint_base<1>(U64_FORMAT_BUFFER, value, numDigits);
-                                this->write_no_specs(p, U64_FORMAT_BUFFER + numDigits - p);
-                            },
-                            formattedSize);
+        write_padded_helper(
+            this, specs,
+            [&]() {
+                if (prefix.Length) this->write_no_specs(prefix);
+                For(range(padding)) this->write_no_specs(specs.Fill);
+                auto *p = format_uint_base<1>(U64_FORMAT_BUFFER, value, numDigits);
+                this->write_no_specs(p, U64_FORMAT_BUFFER + numDigits - p);
+            },
+            formattedSize);
     } else if (type == 'o') {
-        write_padded_helper(this, specs,
-                            [&]() {
-                                if (prefix.Length) this->write_no_specs(prefix);
-                                For(range(padding)) this->write_no_specs(specs.Fill);
-                                auto *p = format_uint_base<3>(U64_FORMAT_BUFFER, value, numDigits);
-                                this->write_no_specs(p, U64_FORMAT_BUFFER + numDigits - p);
-                            },
-                            formattedSize);
+        write_padded_helper(
+            this, specs,
+            [&]() {
+                if (prefix.Length) this->write_no_specs(prefix);
+                For(range(padding)) this->write_no_specs(specs.Fill);
+                auto *p = format_uint_base<3>(U64_FORMAT_BUFFER, value, numDigits);
+                this->write_no_specs(p, U64_FORMAT_BUFFER + numDigits - p);
+            },
+            formattedSize);
     } else if (type == 'x') {
-        write_padded_helper(this, specs,
-                            [&]() {
-                                if (prefix.Length) this->write_no_specs(prefix);
-                                For(range(padding)) this->write_no_specs(specs.Fill);
-                                auto *p =
-                                    format_uint_base<4>(U64_FORMAT_BUFFER, value, numDigits, is_upper(specs.Type));
-                                this->write_no_specs(p, U64_FORMAT_BUFFER + numDigits - p);
-                            },
-                            formattedSize);
+        write_padded_helper(
+            this, specs,
+            [&]() {
+                if (prefix.Length) this->write_no_specs(prefix);
+                For(range(padding)) this->write_no_specs(specs.Fill);
+                auto *p = format_uint_base<4>(U64_FORMAT_BUFFER, value, numDigits, is_upper(specs.Type));
+                this->write_no_specs(p, U64_FORMAT_BUFFER + numDigits - p);
+            },
+            formattedSize);
     } else if (type == 'n') {
         formattedSize += ((numDigits - 1) / 3);
-        write_padded_helper(this, specs,
-                            [&]() {
-                                if (prefix.Length) this->write_no_specs(prefix);
-                                For(range(padding)) this->write_no_specs(specs.Fill);
-                                auto *p = format_uint_decimal(U64_FORMAT_BUFFER, value, formattedSize, "," /*@Locale*/);
-                                this->write_no_specs(p, U64_FORMAT_BUFFER + formattedSize - p);
-                            },
-                            formattedSize);
+        write_padded_helper(
+            this, specs,
+            [&]() {
+                if (prefix.Length) this->write_no_specs(prefix);
+                For(range(padding)) this->write_no_specs(specs.Fill);
+                auto *p = format_uint_decimal(U64_FORMAT_BUFFER, value, formattedSize, "," /*@Locale*/);
+                this->write_no_specs(p, U64_FORMAT_BUFFER + formattedSize - p);
+            },
+            formattedSize);
     } else {
         assert(false && "Invalid type");  // sanity
     }
@@ -267,9 +271,9 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
 
 // Writes a float with given formatting specs
 void format_context::write_f64(f64 value, format_specs specs) {
-    byte type = specs.Type;
+    char type = specs.Type;
     if (type) {
-        byte lower = (byte) to_lower(type);
+        char lower = (char) to_lower(type);
         if (lower != 'g' && lower != 'e' && lower != '%' && lower != 'f' && lower != 'a') {
             on_error("Invalid type specifier");
             return;
@@ -297,15 +301,15 @@ void format_context::write_f64(f64 value, format_specs specs) {
 
     // Handle INF or NAN
     if (bits.ieee.E == 2047) {
-        write_padded_helper(this, specs,
-                            [&, this]() {
-                                if (sign) this->write_no_specs(sign);
-                                this->write_no_specs((bits.U & ((1ll << 52) - 1))
-                                                         ? (is_upper(specs.Type) ? "NAN" : "nan")
-                                                         : (is_upper(specs.Type) ? "INF" : "inf"));
-                                if (percentage) this->write_no_specs(U'%');
-                            },
-                            3 + (sign ? 1 : 0) + (percentage ? 1 : 0));
+        write_padded_helper(
+            this, specs,
+            [&, this]() {
+                if (sign) this->write_no_specs(sign);
+                this->write_no_specs((bits.U & ((1ll << 52) - 1)) ? (is_upper(specs.Type) ? "NAN" : "nan")
+                                                                  : (is_upper(specs.Type) ? "INF" : "inf"));
+                if (percentage) this->write_no_specs(U'%');
+            },
+            3 + (sign ? 1 : 0) + (percentage ? 1 : 0));
         return;
     }
 
@@ -318,7 +322,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
     // Also if we decide to add a thousands separator we should do it inside _format_float_
     stack_dynamic_buffer<512> formatBuffer;
     format_float(
-        [](void *user, byte *buf, size_t length) {
+        [](void *user, char *buf, size_t length) {
             auto *fb = (stack_dynamic_buffer<512> *) user;
             fb->ByteLength += length;
             return fb->Data + fb->ByteLength;
@@ -363,12 +367,13 @@ void format_context::write_f64(f64 value, format_specs specs) {
     }
 
     auto formattedSize = formatBuffer.ByteLength + (sign ? 1 : 0);
-    write_padded_helper(this, specs,
-                        [&, this]() {
-                            if (sign) this->write_no_specs(sign);
-                            this->write_no_specs(formatBuffer.Data, formatBuffer.ByteLength);
-                        },
-                        formattedSize);
+    write_padded_helper(
+        this, specs,
+        [&, this]() {
+            if (sign) this->write_no_specs(sign);
+            this->write_no_specs(formatBuffer.Data, formatBuffer.ByteLength);
+        },
+        formattedSize);
 }
 
 struct width_checker {

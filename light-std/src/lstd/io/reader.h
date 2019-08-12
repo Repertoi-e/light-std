@@ -12,7 +12,7 @@ LSTD_BEGIN_NAMESPACE
 namespace io {
 
 // Special constant to signify end of file.
-constexpr byte eof = (byte) -1;
+constexpr char eof = (char) -1;
 
 struct reader;
 
@@ -24,14 +24,14 @@ bool deserialize(T *dest, reader *r);
 // in this class is implemented by calling that function.
 // @TODO: Tests tests tests!
 struct reader {
-    using request_byte_t = byte (*)(reader *r);
+    using request_byte_t = char (*)(reader *r);
 
     // This is the only method function required for the reader to work, it is called only
     // when there are no more bytes available.
     // If you want to supply a buffer of bytes (not just one), use _Buffer_, _Current_, and _Available_.
     request_byte_t RequestByteFunction = null;
 
-    const byte *Buffer = null, *Current = null;
+    const char *Buffer = null, *Current = null;
     size_t Available = 0;
 
     // Whether this reader has reached "end of file"
@@ -49,36 +49,36 @@ struct reader {
     reader *read(char32_t *out);
 
     // Assumes there is enough space in _out_.
-    reader *read(byte *out, size_t n);
-    reader *read(array<byte> *out, size_t n);
+    reader *read(char *out, size_t n);
+    reader *read(array<char> *out, size_t n);
 
     // Assumes there is enough space in _out_.
     // _delim_ is not included in the string.
-    reader *read_until(byte *out, char32_t delim);
+    reader *read_until(char *out, char32_t delim);
 
     // _delim_ is not included in the string.
-    reader *read_until(array<byte> *out, char32_t delim);
+    reader *read_until(array<char> *out, char32_t delim);
 
     // Assumes there is enough space in _out_.
     // The delim is not included in the string.
-    reader *read_until(byte *out, string delims);
+    reader *read_until(char *out, string delims);
 
     // The delim is not included in the string.
-    reader *read_until(array<byte> *out, string delims);
+    reader *read_until(array<char> *out, string delims);
 
     // Assumes there is enough space in _out_.
     // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(byte *out, char32_t eat);
+    reader *read_while(char *out, char32_t eat);
 
     // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(array<byte> *out, char32_t eat);
+    reader *read_while(array<char> *out, char32_t eat);
 
     // Assumes there is enough space in _out_.
     // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(byte *out, string eats);
+    reader *read_while(char *out, string eats);
 
     // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(array<byte> *out, string eats);
+    reader *read_while(array<char> *out, string eats);
 
     // Reads _n_ code points and appends to _str_
     reader *read(string *str, size_t n);
@@ -162,7 +162,7 @@ struct reader {
     pair<T, bool> parse_int(s32 base) {
         if (!test_state_and_skip_ws()) return {0, false};
 
-        byte ch = bump_byte();
+        char ch = bump_byte();
         check_eof(ch);
 
         bool negative = false;
@@ -174,7 +174,7 @@ struct reader {
         }
         check_eof(ch);
 
-        byte next = peek_byte();
+        char next = peek_byte();
         check_eof(next);
 
         if ((base == 0 || base == 16) && ch == '0' && (next == 'x' || next == 'X')) {
@@ -226,7 +226,7 @@ struct reader {
     }
 #undef check_eof
 
-    void read_byte(byte *value, bool noSkipWhitespaceSingleTime = false) {
+    void read_byte(char *value, bool noSkipWhitespaceSingleTime = false) {
         if (!test_state_and_skip_ws(noSkipWhitespaceSingleTime)) {
             LastFailed = true;
             *value = eof;
@@ -241,29 +241,29 @@ struct reader {
 
     bool test_state_and_skip_ws(bool noSkipSingleTime = false);
 
-    const byte *incr() { return --Available, Current++; }
-    const byte *pre_incr() { return --Available, ++Current; }
+    const char *incr() { return --Available, Current++; }
+    const char *pre_incr() { return --Available, ++Current; }
 
-    byte peek_byte() {
+    char peek_byte() {
         if (Available == 0) {
             return RequestByteFunction(this);
         }
         return *Current;
     }
 
-    byte request_byte_and_incr() {
+    char request_byte_and_incr() {
         if (RequestByteFunction(this) == eof) return eof;
         return *incr();
     }
 
-    byte bump_byte() {
+    char bump_byte() {
         if (Available == 0) {
             return RequestByteFunction(this);
         }
         return *incr();
     }
 
-    byte next_byte() {
+    char next_byte() {
         if (Available <= 1) {
             if (bump_byte() == eof) return eof;
             return peek_byte();
@@ -275,7 +275,7 @@ struct reader {
 // Specialize this for custom types that may not be POD or have data that isn't serialized, e.g. pointers
 template <typename T>
 bool deserialize(T *dest, reader *r) {
-    r->read((byte *) dest, sizeof(T));
+    r->read((char *) dest, sizeof(T));
     return true;
 }
 

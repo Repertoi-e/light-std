@@ -7,7 +7,7 @@ LSTD_BEGIN_NAMESPACE
 namespace io {
 
 // Defined in *platform*_common.cpp
-byte console_reader_request_byte(reader *r);
+char console_reader_request_byte(reader *r);
 
 struct console_reader : reader, non_copyable, non_movable {
     // @Thread

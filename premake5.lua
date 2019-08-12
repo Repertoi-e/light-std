@@ -16,12 +16,12 @@ function common_settings()
     rtti "Off"
 	characterset "Unicode"
     exceptionhandling "Off"
+	editandcontinue "Off"
 
     defines "_HAS_EXCEPTIONS=0"
 
 	filter "system:windows"
 		excludes "%{prj.name}/src/posix_*.cpp"
-		--debugformat "c7"
 		systemversion "latest"
 		defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
 		buildoptions { "/utf-8" }
@@ -54,6 +54,7 @@ function common_settings()
         defines "DIST"
 		optimize "Full"
 		floatingpoint "Fast"
+	filter {}
 end
 
 
@@ -135,6 +136,10 @@ project "game-engine"
 	dependson { "tetris" }
 
 	common_settings()
+	
+	filter "system:windows"
+		links { "d3d11.lib", "$(DXSDK_DIR)Lib/x64/d3dx11.lib", "$(DXSDK_DIR)Lib/x64/d3dx10.lib" }
+		includedirs { "$(DXSDK_DIR)Include" }
 
 project "tetris"
 	location "game-engine"
@@ -153,8 +158,7 @@ project "tetris"
 	links { "light-std" }
 	includedirs { "light-std/src", "game-engine/src" }
 
-	-- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
-	symbolspath "$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString(\"ddMMyyyy_HHmmss_fff\")).pdb"
-
 	common_settings()
 
+	-- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
+	symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'

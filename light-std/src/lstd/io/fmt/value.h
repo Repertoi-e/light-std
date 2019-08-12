@@ -61,7 +61,7 @@ struct named_arg_base;
 }
 
 TYPE_CONSTANT(const internal::named_arg_base &, type::NAMED_ARG);
-TYPE_CONSTANT(byte, type::S32);
+TYPE_CONSTANT(char, type::S32);
 TYPE_CONSTANT(s32, type::S32);
 TYPE_CONSTANT(u32, type::U32);
 TYPE_CONSTANT(s64, type::S64);
@@ -120,7 +120,7 @@ struct value {
     value(f64 value) : F64(value) {}
     value(bool value) : S32(value) {}
     value(const void *value) : Ptr(value) {}
-    value(const byte *value) : String(value) {}
+    value(const char *value) : String(value) {}
     value(string value) : String(value) {}
     value(string_view value) : String(value) {}
     value(const internal::named_arg_base &value) : NamedArg(&value) {}

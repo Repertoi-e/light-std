@@ -7,7 +7,7 @@ LSTD_BEGIN_NAMESPACE
 namespace io {
 
 // Defined in *platform*_common.cpp
-void console_writer_write(writer *w, const byte *data, size_t count);
+void console_writer_write(writer *w, const char *data, size_t count);
 void console_writer_flush(writer *w);
 
 struct console_writer : writer, non_copyable, non_movable {

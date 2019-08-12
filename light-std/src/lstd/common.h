@@ -288,8 +288,8 @@ T *move(T *dest, T *src) {
 // :CopyMemory (declared in types.h also to avoid circular includes)
 extern void (*copy_memory)(void *dest, const void *src, size_t num);
 constexpr void copy_memory_constexpr(void *dest, const void *src, size_t num) {
-    auto *d = (byte *) dest;
-    auto *s = (const byte *) src;
+    auto *d = (char *) dest;
+    auto *s = (const char *) src;
 
     if (d <= s || d >= (s + num)) {
         // Non-overlapping
@@ -307,11 +307,14 @@ constexpr void copy_memory_constexpr(void *dest, const void *src, size_t num) {
     }
 }
 
-extern void (*fill_memory)(void *dest, byte value, size_t num);
-constexpr void fill_memory_constexpr(void *dest, byte value, size_t num) {
-    auto d = (byte *) dest;
+extern void (*fill_memory)(void *dest, char value, size_t num);
+constexpr void fill_memory_constexpr(void *dest, char value, size_t num) {
+    auto d = (char *) dest;
     while (num-- > 0) *d++ = value;
 }
+
+inline void zero_memory(void *dest, size_t num) { return fill_memory(dest, 0, num); }
+constexpr void zero_memory_constexpr(void *dest, size_t num) { return fill_memory_constexpr(dest, 0, num); }
 
 // compare_memory returns the index of the first byte that is different
 // e.g: calling with
@@ -321,8 +324,8 @@ constexpr void fill_memory_constexpr(void *dest, byte value, size_t num) {
 // If the memory regions are equal, the returned value is npos (-1)
 extern size_t (*compare_memory)(const void *ptr1, const void *ptr2, size_t num);
 constexpr size_t compare_memory_constexpr(const void *ptr1, const void *ptr2, size_t num) {
-    auto *s1 = (const byte *) ptr1;
-    auto *s2 = (const byte *) ptr2;
+    auto *s1 = (const char *) ptr1;
+    auto *s2 = (const char *) ptr2;
 
     For(range(num)) if (*s1++ != *s2++) return it;
     return npos;

@@ -22,7 +22,7 @@ LSTD_BEGIN_NAMESPACE
 template <typename T>
 constexpr uptr_t get_hash(const T &value) {
     hasher h(0);
-    h.add((const byte *) &value, sizeof(T));
+    h.add((const char *) &value, sizeof(T));
     return h.hash();
 }
 
@@ -36,7 +36,7 @@ constexpr enable_if_t<is_pointer_v<T>, uptr_t> get_hash(const T value) {
 template <typename T>
 constexpr enable_if_t<is_array_v<T> && is_array_of_known_bounds_v<T>, uptr_t> get_hash(const T value) {
     hasher h(0);
-    h.add((const byte *) value, sizeof(remove_extent_t<T>) * extent_v<T>);
+    h.add((const char *) value, sizeof(remove_extent_t<T>) * extent_v<T>);
     return h.hash();
 }
 

@@ -17,7 +17,7 @@ struct delegate<R(A...)> {
     void *ObjectPtr = null;
     stub_t StubPtr = null;
 
-    byte *Store;
+    char *Store;
     size_t StoreSize = 0;
 
     using destructor_caller_t = void (*)(void *);
@@ -62,7 +62,7 @@ struct delegate<R(A...)> {
         using functor_type = decay_t<T>;
 
         StoreSize = sizeof(functor_type);
-        ObjectPtr = Store = encode_owner(new byte[StoreSize + POINTER_SIZE], this);
+        ObjectPtr = Store = encode_owner(new char[StoreSize + POINTER_SIZE], this);
         new (ObjectPtr) functor_type((T &&) f);
 
         StubPtr = functor_stub<functor_type>;
@@ -88,7 +88,7 @@ struct delegate<R(A...)> {
             release();
             
 			StoreSize = requiredSize;
-            Store = encode_owner(new byte[StoreSize + POINTER_SIZE], this);
+            Store = encode_owner(new char[StoreSize + POINTER_SIZE], this);
         }
 
         ObjectPtr = Store;

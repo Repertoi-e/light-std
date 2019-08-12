@@ -8,7 +8,7 @@ LSTD_BEGIN_NAMESPACE
 namespace io {
 
 template <size_t N>
-void buffer_writer_write(writer *w, const byte *data, size_t count);
+void buffer_writer_write(writer *w, const char *data, size_t count);
 
 template <size_t N>
 void buffer_writer_flush(writer *w);
@@ -25,7 +25,7 @@ struct buffer_writer : writer {
 };
 
 template <size_t N>
-void buffer_writer_write(writer *w, const byte *data, size_t count) {
+void buffer_writer_write(writer *w, const char *data, size_t count) {
     auto *bw = (buffer_writer<N> *) w;
 
     if (count > bw->Available) {

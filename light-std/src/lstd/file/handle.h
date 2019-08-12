@@ -30,7 +30,7 @@ struct handle {
     handle(path path);
     handle(string str) : handle(path(str)) {}
     ~handle() {
-        if (Utf16Path && decode_owner<handle>(Utf16Path) == this) delete[]((byte *) Utf16Path - POINTER_SIZE);
+        if (Utf16Path && decode_owner<handle>(Utf16Path) == this) delete[]((char *) Utf16Path - POINTER_SIZE);
     }
 
     // is_file() doesn't always equal !is_directory()
@@ -111,7 +111,7 @@ struct handle {
     //
     struct iterator : non_copyable {
         void *Handle = 0;
-        byte PlatformFileInfo[592]{};
+        char PlatformFileInfo[592]{};
         string CurrentFileName;
 
         path Path;

@@ -7,7 +7,7 @@
 /// as well as some stuff from <utility>
 
 // The following integral types are defined: s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)
-//		as well as: f32 (float), f64 (double), byte (char), null (nullptr), npos ((size_t) -1)
+//		as well as: f32 (float), f64 (double), null (nullptr), npos ((size_t) -1)
 // Platform dependent types: ptr_t (signed, used for pointer difference)
 //				uptr_t, size_t (32 or 64 bits depending on CPU architecture)
 //
@@ -626,11 +626,6 @@ using u64 = unsigned long long;
 #define WCHAR_MIN 0x0000
 #define WCHAR_MAX 0xffff
 
-using byte = char;
-
-#define BYTE_MIN S8_MIN
-#define BYTE_MAX S8_MAX
-
 using f32 = float;
 using f64 = double;
 using lf64 = long double;
@@ -677,10 +672,6 @@ using lf64 = long double;
 #define LONG_F64_MIN_EXP F64_MIN_EXP          // min binary exponent
 #define LONG_F64_RADIX F64_RADIX              // exponent radix
 #define LONG_F64_TRUE_MIN F64_TRUE_MIN        // min positive value
-
-#if !defined DECIMAL_DIG
-#define DECIMAL_DIG F64_DECIMAL_DIG
-#endif
 
 // uptr_t is the minimum size unsigned integer that can hold the address of any byte in RAM
 // ptr_t is used to represent the difference of addresses (pointers)
@@ -797,7 +788,7 @@ struct is_integral : public is_integral_helper<remove_cv_t<T>> {};
 
 template <typename T>
 using is_integer = integral_constant<bool, is_integral<T>::value && !is_same<T, bool>::value &&
-                                               !is_same<T, byte>::value && !is_same<T, wchar_t>::value>;
+                                               !is_same<T, char>::value && !is_same<T, wchar_t>::value>;
 
 // Use this macro to declare your custom type as an integral
 #define DECLARE_INTEGRAL(T)                                  \
@@ -2728,20 +2719,20 @@ struct numeric_info_float_base : numeric_info_base {
 };
 
 template <>
-struct numeric_info<byte> : public numeric_info_int_base {
-    static constexpr byte min() { return BYTE_MIN; }
-    static constexpr byte max() { return BYTE_MAX; }
-    static constexpr byte lowest() { return min(); }
-    static constexpr byte epsilon() { return 0; }
-    static constexpr byte round_error() { return 0; }
-    static constexpr byte denorm_min() { return 0; }
-    static constexpr byte infinity() { return 0; }
-    static constexpr byte quiet_NaN() { return 0; }
-    static constexpr byte signaling_NaN() { return 0; }
+struct numeric_info<char> : public numeric_info_int_base {
+    static constexpr char min() { return S8_MIN; }
+    static constexpr char max() { return S8_MAX; }
+    static constexpr char lowest() { return min(); }
+    static constexpr char epsilon() { return 0; }
+    static constexpr char round_error() { return 0; }
+    static constexpr char denorm_min() { return 0; }
+    static constexpr char infinity() { return 0; }
+    static constexpr char quiet_NaN() { return 0; }
+    static constexpr char signaling_NaN() { return 0; }
 
-    static constexpr bool is_signed = BYTE_MIN != 0;
-    static constexpr bool is_modulo = BYTE_MIN == 0;
-    static constexpr s32 digits = 8 - (BYTE_MIN != 0);
+    static constexpr bool is_signed = S8_MIN != 0;
+    static constexpr bool is_modulo = S8_MIN == 0;
+    static constexpr s32 digits = 8 - (S8_MIN != 0);
     static constexpr s32 digits10 = 2;
 };
 

@@ -14,7 +14,7 @@ string::code_point::operator char32_t() const { return ((const string *) Parent)
 string::string(char32_t codePoint, size_t repeat, allocator alloc) : string(get_size_of_cp(codePoint) * repeat, alloc) {
     size_t cpSize = get_size_of_cp(codePoint);
 
-    auto *data = const_cast<byte *>(Data);
+    auto *data = const_cast<char *>(Data);
     For(range(repeat)) {
         encode_cp(data, codePoint);
         data += cpSize;
@@ -54,11 +54,11 @@ void string::reserve(size_t target, allocator alloc) {
                    "Calling reserve() on a string that already has reserved a buffer but with a different allocator. "
                    "Call with null allocator to avoid that.");
         }
-        Data = (const byte *) allocator::reallocate(const_cast<byte *>(Data), target + POINTER_SIZE) + POINTER_SIZE;
+        Data = (const char *) allocator::reallocate(const_cast<char *>(Data), target + POINTER_SIZE) + POINTER_SIZE;
     } else {
         auto *oldData = Data;
-        Data = encode_owner(new (alloc) byte[target + POINTER_SIZE], this);
-        if (ByteLength) copy_memory(const_cast<byte *>(Data), oldData, ByteLength);
+        Data = encode_owner(new (alloc) char[target + POINTER_SIZE], this);
+        if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
     }
     Reserved = target;
 }
@@ -85,8 +85,8 @@ string *string::set(s64 index, char32_t codePoint) {
 
     // We may have moved Data while reserving space!
     target = Data + offset;
-    copy_memory((byte *) Data + offset + cpSize, target + cpSizeTarget, ByteLength - (target - Data) - cpSizeTarget);
-    encode_cp((byte *) Data + offset, codePoint);
+    copy_memory((char *) Data + offset + cpSize, target + cpSizeTarget, ByteLength - (target - Data) - cpSizeTarget);
+    encode_cp((char *) Data + offset, codePoint);
 
     ByteLength += diff;
 
@@ -99,9 +99,9 @@ string *string::insert(s64 index, char32_t codePoint) {
 
     auto *target = get_cp_at_index(Data, Length, index, true);
     uptr_t offset = (uptr_t)(target - Data);
-    copy_memory((byte *) Data + offset + cpSize, target, ByteLength - (target - Data));
+    copy_memory((char *) Data + offset + cpSize, target, ByteLength - (target - Data));
 
-    encode_cp((byte *) Data + offset, codePoint);
+    encode_cp((char *) Data + offset, codePoint);
 
     ByteLength += cpSize;
     ++Length;
@@ -111,7 +111,7 @@ string *string::insert(s64 index, char32_t codePoint) {
 
 string *string::insert(s64 index, string str) { return insert_pointer_and_size(index, str.Data, str.ByteLength); }
 
-string *string::insert_pointer_and_size(s64 index, const byte *str, size_t size) {
+string *string::insert_pointer_and_size(s64 index, const char *str, size_t size) {
     assert(str);
 
     reserve(size);
@@ -119,9 +119,9 @@ string *string::insert_pointer_and_size(s64 index, const byte *str, size_t size)
 
     auto *target = get_cp_at_index(Data, Length, index, true);
     uptr_t offset = (uptr_t)(target - Data);
-    copy_memory((byte *) Data + offset + size, target, ByteLength - (target - Data));
+    copy_memory((char *) Data + offset + size, target, ByteLength - (target - Data));
 
-    copy_memory((byte *) Data + offset, str, size);
+    copy_memory((char *) Data + offset, str, size);
 
     ByteLength += size;
     Length += utf8_strlen(str, size);
@@ -139,7 +139,7 @@ string *string::remove(s64 index) {
     --Length;
 
     uptr_t offset = (uptr_t)(target - Data);
-    copy_memory((byte *) Data + offset, target + cpSize, ByteLength - offset - cpSize);
+    copy_memory((char *) Data + offset, target + cpSize, ByteLength - offset - cpSize);
 
     ByteLength -= cpSize;
 
@@ -159,7 +159,7 @@ string *string::remove(s64 begin, s64 end) {
     Length -= utf8_strlen(targetBegin, targetEnd - targetBegin);
 
     uptr_t offset = (uptr_t)(targetBegin - Data);
-    copy_memory((byte *) Data + offset, targetEnd, ByteLength - offset - bytes);
+    copy_memory((char *) Data + offset, targetEnd, ByteLength - offset - bytes);
 
     ByteLength -= bytes;
 
@@ -245,13 +245,13 @@ string *string::replace_all(string oldStr, string newStr) {
 }
 
 string *string::replace_all(char32_t oldCp, string newStr) {
-    byte encoded[4];
+    char encoded[4];
     encode_cp(encoded, oldCp);
     return replace_all(string(encoded, get_size_of_cp(encoded)), newStr);
 }
 
 string *string::replace_all(string oldStr, char32_t newCp) {
-    byte encoded[4];
+    char encoded[4];
     encode_cp(encoded, newCp);
     return replace_all(oldStr, string(encoded, get_size_of_cp(encoded)));
 }

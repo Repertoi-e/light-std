@@ -1,6 +1,7 @@
 #pragma once
 
 #include <lstd/context.h>
+#include <lstd/os.h>
 
 // LE_GAME_API is used to export functions from the game dll
 #if OS == WINDOWS

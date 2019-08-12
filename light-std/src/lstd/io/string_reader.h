@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace io {
 
-byte string_reader_request_byte(reader *r);
+char string_reader_request_byte(reader *r);
 
 struct string_reader : reader {
     string Src;
@@ -15,7 +15,7 @@ struct string_reader : reader {
     explicit string_reader(string src) : reader(string_reader_request_byte), Src(src), Exhausted(false) {}
 };
 
-inline byte string_reader_request_byte(reader *r) {
+inline char string_reader_request_byte(reader *r) {
     auto *sr = (string_reader *) r;
 
     if (sr->Exhausted) return eof;

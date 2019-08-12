@@ -11,7 +11,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-void format_context_write(io::writer *w, const byte *data, size_t count);
+void format_context_write(io::writer *w, const char *data, size_t count);
 void format_context_flush(io::writer *w);
 
 // This writer is kinda specific.
@@ -41,9 +41,9 @@ struct format_context : io::writer, non_copyable, non_movable {
           Parse(fmtString, errorHandlerFunc) {}
 
     // Write directly, without taking formatting specs into account.
-    void write_no_specs(array_view<byte> data) { Out->write(data); }
-    void write_no_specs(const byte *data) { Out->write(data, c_string_strlen(data)); }
-    void write_no_specs(const byte *data, size_t count) { Out->write(data, count); }
+    void write_no_specs(array_view<char> data) { Out->write(data); }
+    void write_no_specs(const char *data) { Out->write(data, c_string_strlen(data)); }
+    void write_no_specs(const char *data, size_t count) { Out->write(data, count); }
     void write_no_specs(string str) { Out->write(str); }
     void write_no_specs(char32_t cp) { Out->write(cp); }
 
@@ -137,7 +137,7 @@ struct format_context_visitor {
     void operator()(u64 value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(bool value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(f64 value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
-    void operator()(array_view<byte> value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
+    void operator()(array_view<char> value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(string value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const void *value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
 

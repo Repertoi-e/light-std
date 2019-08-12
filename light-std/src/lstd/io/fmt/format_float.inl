@@ -84,7 +84,7 @@ static f64 NEGTOPERR[13] = {3.9565301985100693e-040,  -2.299904345391321e-063,  
 
 static struct {
     u16 Temp;  // Force next field to be 2-byte aligned
-    byte Pair[201];
+    char Pair[201];
 } DIGITPAIR = {0,
                "00010203040506070809101112131415161718192021222324"
                "25262728293031323334353637383940414243444546474849"
@@ -112,7 +112,7 @@ static u64 POWTEN[20] = {1,
                          1000000000000000000ull,
                          10000000000000000000ull};
 
-using format_float_callback_t = byte *(*) (void *user, byte *buf, size_t length);
+using format_float_callback_t = char *(*) (void *user, char *buf, size_t length);
 
 #define MIN_BYTES 512
 
@@ -190,7 +190,7 @@ static void raise_to_power_10(f64 *ohi, f64 *olo, f64 d, s32 power) {
 // Given a float value, returns the significant bits in bits, and the position of the decimal point in _decimal_pos_
 // NAN/INF are ignored and assumed to have been already handled
 // _frac_digits_ is absolute normally, but if you want from first significant digits (got %g and %e), or in 0x80000000
-static void get_float_string_internal(byte **start, u32 *length, byte *out, s32 *decimalPos, f64 value,
+static void get_float_string_internal(char **start, u32 *length, char *out, s32 *decimalPos, f64 value,
                                       u32 fracDigits) {
     s32 e, tens;
 
@@ -329,22 +329,22 @@ static void get_float_string_internal(byte **start, u32 *length, byte *out, s32 
     if (cl > lg) cl = lg;
 
 // Pass -1 for precision for default value
-static void format_float(format_float_callback_t callback, void *user, byte *buf, byte specType, f64 fv, s32 pr,
+static void format_float(format_float_callback_t callback, void *user, char *buf, char specType, f64 fv, s32 pr,
                          bool commas = false) {
     assert(callback);
 
-    byte *bf = buf;
+    char *bf = buf;
 
     s32 tz = 0;
     u32 fl = 0;
 
-    byte num[512];
-    byte lead[8]{};
-    byte tail[8]{};
+    char num[512];
+    char lead[8]{};
+    char tail[8]{};
 
     switch (specType) {
-        byte *s, *sn;
-        const byte *h;
+        char *s, *sn;
+        const char *h;
         u32 l, n, cs;
 
         u64 n64;
@@ -396,7 +396,7 @@ static void format_float(format_float_callback_t callback, void *user, byte *buf
             }
 
             n = (dp >= 1000) ? 6 : ((dp >= 100) ? 5 : ((dp >= 10) ? 4 : 3));
-            tail[0] = (byte) n;
+            tail[0] = (char) n;
             while (true) {
                 tail[n] = '0' + dp % 10;
                 if (n <= 3) break;
@@ -482,7 +482,7 @@ static void format_float(format_float_callback_t callback, void *user, byte *buf
 
             n = (dp >= 100) ? 5 : 4;
 
-            tail[0] = (byte) n;
+            tail[0] = (char) n;
             while (true) {
                 tail[n] = '0' + dp % 10;
                 if (n <= 3) break;
@@ -623,7 +623,7 @@ static void format_float(format_float_callback_t callback, void *user, byte *buf
                 sn = lead + 1;
                 while (lead[0]) {
                     buffer_clamp(i, lead[0]);
-                    lead[0] -= (byte) i;
+                    lead[0] -= (char) i;
                     while (i) {
                         *bf++ = *sn++;
                         --i;
@@ -667,7 +667,7 @@ static void format_float(format_float_callback_t callback, void *user, byte *buf
             while (lead[0]) {
                 s32 i;
                 buffer_clamp(i, lead[0]);
-                lead[0] -= (byte) i;
+                lead[0] -= (char) i;
                 while (i) {
                     *bf++ = *sn++;
                     --i;

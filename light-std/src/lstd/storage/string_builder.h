@@ -8,7 +8,7 @@ struct string_builder {
     static constexpr size_t BUFFER_SIZE = 1_KiB;
 
     struct buffer {
-        byte Data[BUFFER_SIZE]{};
+        char Data[BUFFER_SIZE]{};
         size_t Occupied = 0;
         buffer *Next = null;
 
@@ -42,7 +42,7 @@ struct string_builder {
     void append(string str);
 
     // Append _size_ bytes from _data_ to the builder
-    void append_pointer_and_size(const byte *data, size_t size);
+    void append_pointer_and_size(const char *data, size_t size);
 
     // Execute f on every buffer where f should have the signature: void f(string)
     template <typename Lambda>

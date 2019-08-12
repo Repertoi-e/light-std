@@ -4,7 +4,9 @@
 
 #include <lstd/io/fmt.h>
 
-#include "events.h"
+#include "event/keyboard_event.h"
+#include "event/mouse_event.h"
+#include "event/window_event.h"
 
 template <>
 struct fmt::formatter<le::window_closed_event> {

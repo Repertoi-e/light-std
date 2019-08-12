@@ -15,30 +15,17 @@ LSTD_BEGIN_NAMESPACE
 
 namespace file {
 
-void get_last_error_as_string(string *out) {
-    DWORD errorMessageID = GetLastError();
-    if (errorMessageID == 0) return;
-
-    LPSTR messageBuffer = null;
-    size_t size = FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, null,
-        errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR) &messageBuffer, 0, null);
-
-    string message(messageBuffer, size);
-    clone(out, message);
-
-    // Free the buffer.
-    LocalFree(messageBuffer);
-}
-
-void open_handle_fail(file::path path) {
-    string error;
-    get_last_error_as_string(&error);
-    fmt::print("Couldn't open file handle: \"{}\", error: {}\n", path, error);
-}
+#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                      \
+    HANDLE handleName = call;                                                                           \
+    if (handleName == INVALID_HANDLE_VALUE) {                                                           \
+        string extendedCallSite;                                                                        \
+        fmt::sprint(&extendedCallSite, "{} (and the path was: \"{}\")", #call, Path);                   \
+        report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
+        return returnOnFail;                                                                            \
+    }
 
 handle::handle(path path) : Path(path) {
-    Utf16Path = (wchar_t *) encode_owner(new byte[(path.UnifiedPath.Length + 1) * 2 + POINTER_SIZE], this);
+    Utf16Path = (wchar_t *) encode_owner(new char[(path.UnifiedPath.Length + 1) * 2 + POINTER_SIZE], this);
     utf8_to_utf16(path.UnifiedPath.Data, path.UnifiedPath.Length, Utf16Path);
 }
 
@@ -89,12 +76,9 @@ bool handle::is_symbolic_link() const {
 size_t handle::file_size() const {
     if (is_directory()) return 0;
 
-    HANDLE file =
-        CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null);
-    if (file == INVALID_HANDLE_VALUE) {
-        open_handle_fail(Path);
-        return 0;
-    }
+    CREATE_FILE_HANDLE_CHECKED(
+        file, CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null),
+        0);
     defer(CloseHandle(file));
 
     LARGE_INTEGER size = {0};
@@ -102,31 +86,29 @@ size_t handle::file_size() const {
     return (size_t) size.QuadPart;
 }
 
-#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                \
-    HANDLE x = CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, \
-                           FILE_ATTRIBUTE_NORMAL, NULL);                                                     \
-    if (x == INVALID_HANDLE_VALUE) {                                                                         \
-        open_handle_fail(Path);                                                                              \
-        fail;                                                                                                \
-    }                                                                                                        \
+#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                 \
+    CREATE_FILE_HANDLE_CHECKED(x,                                                                             \
+                               CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, \
+                                           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL),                       \
+                               fail);                                                                         \
     defer(CloseHandle(x));
 
 time_t handle::creation_time() const {
-    GET_READONLY_EXISTING_HANDLE(handle, return 0);
+    GET_READONLY_EXISTING_HANDLE(handle, 0);
     FILETIME time;
     if (!GetFileTime(handle, &time, null, null)) return 0;
     return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
 }
 
 time_t handle::last_access_time() const {
-    GET_READONLY_EXISTING_HANDLE(handle, return 0);
+    GET_READONLY_EXISTING_HANDLE(handle, 0);
     FILETIME time;
     if (!GetFileTime(handle, null, &time, null)) return 0;
     return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
 }
 
 time_t handle::last_modification_time() const {
-    GET_READONLY_EXISTING_HANDLE(handle, return 0);
+    GET_READONLY_EXISTING_HANDLE(handle, 0);
     FILETIME time;
     if (!GetFileTime(handle, null, null, &time)) return 0;
     return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
@@ -223,21 +205,18 @@ bool handle::create_symbolic_link(handle dest) const {
 bool handle::read_entire_file(string *out) const {
     if (!exists()) return false;
 
-    HANDLE handle =
-        CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
-    if (handle == INVALID_HANDLE_VALUE) {
-        open_handle_fail(Path);
-        return null;
-    }
-    defer(CloseHandle(handle));
+    CREATE_FILE_HANDLE_CHECKED(
+        file, CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null),
+        null);
+    defer(CloseHandle(file));
 
     LARGE_INTEGER size = {0};
-    GetFileSizeEx(handle, &size);
+    GetFileSizeEx(file, &size);
 
     out->reserve(out->ByteLength + size.QuadPart);
-    byte *target = const_cast<byte *>(out->Data) + out->ByteLength;
+    char *target = const_cast<char *>(out->Data) + out->ByteLength;
     DWORD bytesRead;
-    if (!ReadFile(handle, target, (u32) size.QuadPart, &bytesRead, null)) return false;
+    if (!ReadFile(file, target, (u32) size.QuadPart, &bytesRead, null)) return false;
     assert(size.QuadPart == bytesRead);
 
     out->ByteLength += bytesRead;
@@ -246,20 +225,17 @@ bool handle::read_entire_file(string *out) const {
 }
 
 bool handle::write_to_file(string contents, write_mode mode) const {
-    HANDLE handle = CreateFileW(Utf16Path, GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null);
-    if (handle == INVALID_HANDLE_VALUE) {
-        open_handle_fail(Path);
-        return false;
-    }
-    defer(CloseHandle(handle));
+    CREATE_FILE_HANDLE_CHECKED(
+        file, CreateFileW(Utf16Path, GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
+    defer(CloseHandle(file));
 
     LARGE_INTEGER pointer = {};
     pointer.QuadPart = 0;
-    if (mode == write_mode::Append) SetFilePointerEx(handle, pointer, null, FILE_END);
-    if (mode == write_mode::Overwrite_Entire) SetEndOfFile(handle);
+    if (mode == write_mode::Append) SetFilePointerEx(file, pointer, null, FILE_END);
+    if (mode == write_mode::Overwrite_Entire) SetEndOfFile(file);
 
     DWORD bytesWritten;
-    if (!WriteFile(handle, contents.Data, (u32) contents.ByteLength, &bytesWritten, null)) return false;
+    if (!WriteFile(file, contents.Data, (u32) contents.ByteLength, &bytesWritten, null)) return false;
     if (bytesWritten != contents.ByteLength) return false;
     return true;
 }
@@ -278,12 +254,8 @@ void handle::iterator::read_next_entry() {
 
             utf8_to_utf16(queryPath.UnifiedPath.Data, queryPath.UnifiedPath.Length, query);
 
-            auto handle = FindFirstFileW(query, (WIN32_FIND_DATAW *) PlatformFileInfo);
-            if (handle == INVALID_HANDLE_VALUE) {
-                open_handle_fail(Path);
-                return;
-            }
-            Handle = (void *) handle;
+            CREATE_FILE_HANDLE_CHECKED(file, FindFirstFileW(query, (WIN32_FIND_DATAW *) PlatformFileInfo), ;);
+            Handle = (void *) file;
         } else {
             if (!FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo)) {
                 FindClose((HANDLE) Handle);
@@ -295,7 +267,7 @@ void handle::iterator::read_next_entry() {
 
         auto *fileName = ((WIN32_FIND_DATAW *) PlatformFileInfo)->cFileName;
         CurrentFileName.reserve(c_string_strlen(fileName));
-        utf16_to_utf8(fileName, const_cast<byte *>(CurrentFileName.Data), &CurrentFileName.ByteLength);
+        utf16_to_utf8(fileName, const_cast<char *>(CurrentFileName.Data), &CurrentFileName.ByteLength);
         CurrentFileName.Length = utf8_strlen(CurrentFileName.Data, CurrentFileName.ByteLength);
     } while (CurrentFileName == ".." || CurrentFileName == ".");
     assert(CurrentFileName != ".." && CurrentFileName != ".");

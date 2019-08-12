@@ -30,7 +30,7 @@ void parse_context::check_precision_for_arg(type argType) {
 arg_ref parse_context::parse_arg_id() {
     assert(It != End);
 
-    byte c = *It;
+    char c = *It;
     if (c == '}' || c == ':') {
         return arg_ref(next_arg_id());
     }
@@ -274,7 +274,7 @@ bool parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
     // Skip the '.'
     ++It;
 
-    byte c = It != End ? *It : 0;
+    char c = It != End ? *It : 0;
     if (is_digit(c)) {
         u32 value = parse_nonnegative_int();
         if (value == (u32) -1) return false;

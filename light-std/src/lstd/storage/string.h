@@ -37,7 +37,7 @@ struct string {
         operator char32_t() const;
     };
 
-    const byte *Data = null;
+    const char *Data = null;
 
     // Length in bytes
     size_t ByteLength = 0;
@@ -52,11 +52,11 @@ struct string {
 
     // Create a string from a null terminated c-string.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const byte *str) : Data(str), ByteLength(c_string_strlen(str)) { Length = utf8_strlen(str, ByteLength); }
+    string(const char *str) : Data(str), ByteLength(c_string_strlen(str)) { Length = utf8_strlen(str, ByteLength); }
 
     // Create a string from a buffer and a length.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const byte *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)) {}
+    string(const char *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)) {}
 
     string(string_view view) : Data(view.Data), ByteLength(view.ByteLength), Length(view.Length) {}
 
@@ -258,7 +258,7 @@ struct string {
     string *insert(s64 index, string str);
 
     // Insert a buffer of bytes at a specified index
-    string *insert_pointer_and_size(s64 index, const byte *str, size_t size);
+    string *insert_pointer_and_size(s64 index, const char *str, size_t size);
 
     // Remove code point at specified index
     string *remove(s64 index);
@@ -274,7 +274,7 @@ struct string {
     string *append(string str) { return append_pointer_and_size(str.Data, str.ByteLength); }
 
     // Append _size_ bytes of string contained in _data_
-    string *append_pointer_and_size(const byte *str, size_t size) { return insert_pointer_and_size(Length, str, size); }
+    string *append_pointer_and_size(const char *str, size_t size) { return insert_pointer_and_size(Length, str, size); }
 
     // Copy this string's contents and append them _n_ times
     string *repeat(size_t n);
@@ -302,6 +302,14 @@ struct string {
 
     // Replace all occurences of _oldStr_ with _newCp_
     string *replace_all(string oldStr, char32_t newCp);
+
+    // The caller is responsible for freeing
+    const char *to_c_string(allocator alloc = {null, null}) {
+        char *result = new (alloc) char[ByteLength + 1];
+        copy_memory(result, Data, ByteLength);
+        result[ByteLength] = '\0';
+        return result;
+    }
 
     // Return true if this object has any memory allocated by itself
     bool is_owner() const { return Reserved && decode_owner<string>(Data) == this; }
@@ -359,7 +367,7 @@ struct string {
 
         auto operator*() { return Parent->get(Index); }
 
-        operator const byte *() const { return get_cp_at_index(Parent->Data, Parent->Length, (s64) Index, true); }
+        operator const char *() const { return get_cp_at_index(Parent->Data, Parent->Length, (s64) Index, true); }
     };
 
    public:
@@ -395,12 +403,12 @@ struct string {
     bool operator>=(string other) const { return !(*this < other); }
 };
 
-inline bool operator==(const byte *one, string other) { return other.compare_lexicographically(one) == 0; }
-inline bool operator!=(const byte *one, string other) { return !(one == other); }
-inline bool operator<(const byte *one, string other) { return other.compare_lexicographically(one) > 0; }
-inline bool operator>(const byte *one, string other) { return other.compare_lexicographically(one) < 0; }
-inline bool operator<=(const byte *one, string other) { return !(one > other); }
-inline bool operator>=(const byte *one, string other) { return !(one < other); }
+inline bool operator==(const char *one, string other) { return other.compare_lexicographically(one) == 0; }
+inline bool operator!=(const char *one, string other) { return !(one == other); }
+inline bool operator<(const char *one, string other) { return other.compare_lexicographically(one) > 0; }
+inline bool operator>(const char *one, string other) { return other.compare_lexicographically(one) < 0; }
+inline bool operator<=(const char *one, string other) { return !(one > other); }
+inline bool operator>=(const char *one, string other) { return !(one < other); }
 
 string *clone(string *dest, string src);
 string *move(string *dest, string *src);

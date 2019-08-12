@@ -15,14 +15,14 @@ reader *reader::read(char32_t *out) {
         return this;
     }
 
-    byte ch = peek_byte();
+    char ch = peek_byte();
     if (ch == eof) {
         EOF = true;
         *out = eof;
         return this;
     }
 
-    byte data[4]{};
+    char data[4]{};
     For(range(get_size_of_cp(Current))) {
         ch = bump_byte();
         if (ch == eof) {
@@ -36,7 +36,7 @@ reader *reader::read(char32_t *out) {
     return this;
 }
 
-reader *reader::read(byte *out, size_t n) {
+reader *reader::read(char *out, size_t n) {
     if (EOF) return this;
 
     while (n > 0) {
@@ -51,7 +51,7 @@ reader *reader::read(byte *out, size_t n) {
             Current += size;
             Available -= size;
         } else {
-            byte ch = request_byte_and_incr();
+            char ch = request_byte_and_incr();
             if (ch == eof) {
                 EOF = true;
                 break;
@@ -64,22 +64,22 @@ reader *reader::read(byte *out, size_t n) {
     return this;
 }
 
-reader *io::reader::read(array<byte> *out, size_t n) {
+reader *io::reader::read(array<char> *out, size_t n) {
     if (EOF) return this;
     out->reserve(n);
     return read(out->Data, n);
 }
 
-reader *io::reader::read_until(byte *out, char32_t delim) {
+reader *io::reader::read_until(char *out, char32_t delim) {
     if (EOF) return this;
 
-    byte delimEnc[4]{};
+    char delimEnc[4]{};
     encode_cp(delimEnc, delim);
 
     size_t delimSize = get_size_of_cp(delim);
     size_t delimProgress = 0;
 
-    byte ch = peek_byte();
+    char ch = peek_byte();
     while (true) {
         if (ch == eof) {
             EOF = true;
@@ -98,16 +98,16 @@ reader *io::reader::read_until(byte *out, char32_t delim) {
     return this;
 }
 
-reader *io::reader::read_until(array<byte> *out, char32_t delim) {
+reader *io::reader::read_until(array<char> *out, char32_t delim) {
     if (EOF) return this;
 
-    byte delimEnc[4]{};
+    char delimEnc[4]{};
     encode_cp(delimEnc, delim);
 
     size_t delimSize = get_size_of_cp(delim);
     size_t delimProgress = 0;
 
-    byte ch = peek_byte();
+    char ch = peek_byte();
     while (true) {
         if (ch == eof) {
             EOF = true;
@@ -126,7 +126,7 @@ reader *io::reader::read_until(array<byte> *out, char32_t delim) {
     return this;
 }
 
-reader *io::reader::read_until(byte *out, string delims) {
+reader *io::reader::read_until(char *out, string delims) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -146,7 +146,7 @@ reader *io::reader::read_until(byte *out, string delims) {
     return this;
 }
 
-reader *io::reader::read_until(array<byte> *out, string delims) {
+reader *io::reader::read_until(array<char> *out, string delims) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -158,7 +158,7 @@ reader *io::reader::read_until(array<byte> *out, string delims) {
         if (cp == eof) break;
 
         if (delims.has(cp)) break;
-        byte cpData[4];
+        char cpData[4];
         encode_cp(cpData, cp);
         out->append_pointer_and_size(cpData, get_size_of_cp(cp));
     }
@@ -167,7 +167,7 @@ reader *io::reader::read_until(array<byte> *out, string delims) {
     return this;
 }
 
-reader *io::reader::read_while(byte *out, char32_t eat) {
+reader *io::reader::read_while(char *out, char32_t eat) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -185,7 +185,7 @@ reader *io::reader::read_while(byte *out, char32_t eat) {
     return this;
 }
 
-reader *io::reader::read_while(array<byte> *out, char32_t eat) {
+reader *io::reader::read_while(array<char> *out, char32_t eat) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -195,7 +195,7 @@ reader *io::reader::read_while(array<byte> *out, char32_t eat) {
     while (true) {
         read(&cp);
         if (cp == eof || cp != eat) break;
-        byte cpData[4];
+        char cpData[4];
         encode_cp(cpData, cp);
         out->append_pointer_and_size(cpData, get_size_of_cp(cp));
     }
@@ -204,7 +204,7 @@ reader *io::reader::read_while(array<byte> *out, char32_t eat) {
     return this;
 }
 
-reader *io::reader::read_while(byte *out, string eats) {
+reader *io::reader::read_while(char *out, string eats) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -222,7 +222,7 @@ reader *io::reader::read_while(byte *out, string eats) {
     return this;
 }
 
-reader *io::reader::read_while(array<byte> *out, string eats) {
+reader *io::reader::read_while(array<char> *out, string eats) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -232,7 +232,7 @@ reader *io::reader::read_while(array<byte> *out, string eats) {
     while (true) {
         read(&cp);
         if (cp == eof || !eats.has(cp)) break;
-        byte cpData[4];
+        char cpData[4];
         encode_cp(cpData, cp);
         out->append_pointer_and_size(cpData, get_size_of_cp(cp));
     }
@@ -261,28 +261,28 @@ reader *io::reader::read(string *str, size_t n) {
 }
 
 reader *io::reader::read_until(string *str, char32_t delim) {
-    array<byte> buffer;
+    array<char> buffer;
     read_until(&buffer, delim);
     str->append_pointer_and_size(buffer.Data, buffer.Count);
     return this;
 }
 
 reader *io::reader::read_until(string *str, string delims) {
-    array<byte> buffer;
+    array<char> buffer;
     read_until(&buffer, delims);
     str->append_pointer_and_size(buffer.Data, buffer.Count);
     return this;
 }
 
 reader *io::reader::read_while(string *str, char32_t eat) {
-    array<byte> buffer;
+    array<char> buffer;
     read_while(&buffer, eat);
     str->append_pointer_and_size(buffer.Data, buffer.Count);
     return this;
 }
 
 reader *io::reader::read_while(string *str, string eats) {
-    array<byte> buffer;
+    array<char> buffer;
     read_while(&buffer, eats);
     str->append_pointer_and_size(buffer.Data, buffer.Count);
     return this;
@@ -293,7 +293,7 @@ reader *io::reader::read_line(string *str) { return read_until(str, "\n"); }
 reader *io::reader::ignore() {
     if (EOF) return this;
 
-    byte ch = peek_byte();
+    char ch = peek_byte();
     if (ch == eof) {
         EOF = true;
         return this;
@@ -313,7 +313,7 @@ bool reader::test_state_and_skip_ws(bool noSkipSingleTime) {
     if (EOF) return false;
 
     if (!noSkipSingleTime && SkipWhitespace) {
-        byte ch = peek_byte();
+        char ch = peek_byte();
         while (true) {
             if (ch == eof) {
                 EOF = true;
@@ -331,7 +331,7 @@ bool reader::test_state_and_skip_ws(bool noSkipSingleTime) {
 pair<bool, bool> reader::parse_bool() {
     if (!test_state_and_skip_ws()) return {false, false};
 
-    byte ch = bump_byte();
+    char ch = bump_byte();
     if (ch == eof) {
         EOF = true;
         return {false, false};
@@ -391,7 +391,7 @@ static f64 pow_10(s32 n) {
 pair<f64, bool> reader::parse_float() {
     if (!test_state_and_skip_ws()) return {0.0, false};
 
-    byte ch = bump_byte();
+    char ch = bump_byte();
     check_eof(ch);
 
     bool negative = false;
@@ -403,7 +403,7 @@ pair<f64, bool> reader::parse_float() {
     }
     check_eof(ch);
 
-    byte next = peek_byte();
+    char next = peek_byte();
     check_eof(next);
 
     if (ch == '0' && next == 'x' || next == 'X') {
@@ -433,7 +433,7 @@ pair<f64, bool> reader::parse_float() {
                 return {(negative ? -1 : 1) * integerPart, false};
             }
 
-            byte next = peek_byte();
+            char next = peek_byte();
             if (!is_alphanumeric(next) && next != '.' && next != 'e') break;
             ch = bump_byte();
         }
@@ -454,7 +454,7 @@ pair<f64, bool> reader::parse_float() {
                     return {(negative ? -1 : 1) * (integerPart + fractionPart), true};
                 }
 
-                byte next = peek_byte();
+                char next = peek_byte();
                 if (!is_digit(next) && next != '.' && next != 'e') break;
                 ch = bump_byte();
             }

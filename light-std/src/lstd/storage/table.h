@@ -74,7 +74,7 @@ struct table {
         }
 
         if (is_owner()) {
-            auto *actualHashes = (byte *) Hashes - POINTER_SIZE;
+            auto *actualHashes = (char *) Hashes - POINTER_SIZE;
 
             if (alloc) {
                 auto *header = (allocation_header *) Hashes - 1;
@@ -102,7 +102,7 @@ struct table {
         }
 
         if (wasOwner) {
-            delete[]((byte *) oldHashes - POINTER_SIZE);
+            delete[]((char *) oldHashes - POINTER_SIZE);
             delete[] oldKeys;
             delete[] oldValues;
         }
@@ -113,7 +113,7 @@ struct table {
     // Free any memory allocated by this object and reset count
     void release() {
         if (is_owner()) {
-            delete[]((byte *) Hashes - POINTER_SIZE);
+            delete[]((char *) Hashes - POINTER_SIZE);
             delete[] Keys;
             delete[] Values;
 

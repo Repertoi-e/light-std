@@ -7,15 +7,13 @@
 
 #include "../../vendor/stb_malloc.hpp"
 
-#include <stdio.h>
-
 LSTD_BEGIN_NAMESPACE
 
 void *os_alloc_wrapper(void *, size_t size, size_t *) { return os_alloc(size); }
 void os_free_wrapper(void *, void *ptr) { os_free(ptr); }
 
 static bool g_MallocInitted = false;
-static byte g_Heap[STBM_HEAP_SIZEOF];
+static char g_Heap[STBM_HEAP_SIZEOF];
 
 void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
                         alignment align, u64) {
@@ -77,7 +75,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
         case allocator_mode::ALLOCATE: {
             void *result = null;
             if (data->Used + size < data->Reserved) {
-                result = (byte *) data->Storage + data->Used;
+                result = (char *) data->Storage + data->Used;
                 data->Used += size;
             } else {
                 // Out of storage.
@@ -129,7 +127,7 @@ void implicit_context::init_temporary_allocator(size_t storageSize) const {
            "Temporary allocator already initialized. Destroy it with release_temporary_allocator() first.");
 
     auto *data = new (Malloc) temporary_allocator_data;
-    data->Storage = new (Malloc) byte[storageSize];
+    data->Storage = new (Malloc) char[storageSize];
     data->Reserved = storageSize;
 
     const_cast<allocator *>(&TemporaryAlloc)->Context = data;
@@ -139,7 +137,7 @@ void implicit_context::release_temporary_allocator() const {
     assert(TemporaryAlloc.Context && "Temporary allocator not initialized");
 
     auto *tempAlloc = const_cast<allocator *>(&TemporaryAlloc);
-    delete[](byte *)((temporary_allocator_data *) tempAlloc->Context)->Storage;
+    delete[](char *)((temporary_allocator_data *) tempAlloc->Context)->Storage;
     delete (temporary_allocator_data *) tempAlloc->Context;
 
     tempAlloc->Context = null;

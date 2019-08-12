@@ -18,9 +18,9 @@ struct hasher {
     // Temporarily store up to 31 bytes between multiple add() calls
     static constexpr size_t MAX_BUFFER_SIZE = 31 + 1;
 
-    byte Buffer[MAX_BUFFER_SIZE]{};
-    byte *BufferPtr = Buffer;
-    byte *BufferEnd = Buffer + MAX_BUFFER_SIZE;
+    char Buffer[MAX_BUFFER_SIZE]{};
+    char *BufferPtr = Buffer;
+    char *BufferEnd = Buffer + MAX_BUFFER_SIZE;
 
     u64 ByteLength = 0;
 
@@ -33,7 +33,7 @@ struct hasher {
         State[3] = seed - 11400714785074694791ULL;
     }
 
-    constexpr bool add(const byte *data, size_t size) {
+    constexpr bool add(const char *data, size_t size) {
         if (!data) return false;
 
         ByteLength += size;
@@ -52,7 +52,7 @@ struct hasher {
             process(Buffer);
         }
 
-        const byte *stop = data + size - MAX_BUFFER_SIZE;
+        const char *stop = data + size - MAX_BUFFER_SIZE;
         while (data <= stop) {
             process(data);
             data += 32;
@@ -134,9 +134,9 @@ struct hasher {
     // Temporarily store up to 31 bytes between multiple add() calls
     static constexpr size_t MAX_BUFFER_SIZE = 15 + 1;
 
-    byte Buffer[MAX_BUFFER_SIZE];
-    byte *BufferPtr = Buffer;
-    byte *BufferEnd = Buffer + MAX_BUFFER_SIZE;
+    char Buffer[MAX_BUFFER_SIZE];
+    char *BufferPtr = Buffer;
+    char *BufferEnd = Buffer + MAX_BUFFER_SIZE;
 
     u32 ByteLength = 0;
 
@@ -150,7 +150,7 @@ struct hasher {
     }
 
     template <typename T>
-    constexpr bool add(const byte *data, size_t size) {
+    constexpr bool add(const char *data, size_t size) {
         if (!data) return false;
 
         ByteLength += size;
@@ -169,7 +169,7 @@ struct hasher {
             process(Buffer);
         }
 
-        const byte *stop = data + size - MAX_BUFFER_SIZE;
+        const char *stop = data + size - MAX_BUFFER_SIZE;
         while (data <= stop) {
             process(data);
             data += 16;

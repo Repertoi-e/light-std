@@ -1,9 +1,5 @@
 #include "test.h"
 
-#include <lstd/os.h>
-
-#include <stdio.h>
-
 void run_tests() {
     fmt::print("\n");
     for (auto [fileName, tests] : g_TestTable) {

@@ -23,7 +23,7 @@ bool dynamic_library::load(string name) {
 }
 
 void *dynamic_library::get_symbol(string name) {
-    auto *buffer = new byte[name.ByteLength + 1];
+    auto *buffer = new char[name.ByteLength + 1];
     defer(delete buffer);
 
     copy_memory(buffer, name.Data, name.ByteLength);
@@ -41,9 +41,9 @@ void dynamic_library::close() {
 struct win32_state {
     static constexpr size_t CONSOLE_BUFFER_SIZE = 1_KiB;
 
-    byte CinBuffer[CONSOLE_BUFFER_SIZE]{};
-    byte CoutBuffer[CONSOLE_BUFFER_SIZE]{};
-    byte CerrBuffer[CONSOLE_BUFFER_SIZE]{};
+    char CinBuffer[CONSOLE_BUFFER_SIZE]{};
+    char CoutBuffer[CONSOLE_BUFFER_SIZE]{};
+    char CerrBuffer[CONSOLE_BUFFER_SIZE]{};
     HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
     LARGE_INTEGER PerformanceFrequency;
     string ModuleName;
@@ -101,13 +101,13 @@ struct win32_state {
         if (buffer != stackBuffer) delete[] buffer;
 
         ModuleName.reserve(reserved * 2);
-        utf16_to_utf8(buffer, const_cast<byte *>(ModuleName.Data), &ModuleName.ByteLength);
+        utf16_to_utf8(buffer, const_cast<char *>(ModuleName.Data), &ModuleName.ByteLength);
         ModuleName.Length = utf8_strlen(ModuleName.Data, ModuleName.ByteLength);
     }
 };
 static win32_state STATE;
 
-byte io::console_reader_request_byte(io::reader *r) {
+char io::console_reader_request_byte(io::reader *r) {
     auto *cr = (io::console_reader *) r;
 
     // @Thread
@@ -117,7 +117,7 @@ byte io::console_reader_request_byte(io::reader *r) {
     assert(cr->Available == 0);
 
     DWORD read;
-    ReadFile(STATE.CinHandle, const_cast<byte *>(cr->Buffer), (DWORD) STATE.CONSOLE_BUFFER_SIZE, &read, null);
+    ReadFile(STATE.CinHandle, const_cast<char *>(cr->Buffer), (DWORD) STATE.CONSOLE_BUFFER_SIZE, &read, null);
 
     cr->Current = cr->Buffer;
     cr->Available = read;
@@ -125,7 +125,7 @@ byte io::console_reader_request_byte(io::reader *r) {
     return (read == 0) ? io::eof : (*cr->Current);
 }
 
-void io::console_writer_write(io::writer *w, const byte *data, size_t count) {
+void io::console_writer_write(io::writer *w, const char *data, size_t count) {
     auto *cw = (io::console_writer *) w;
 
     // @Thread

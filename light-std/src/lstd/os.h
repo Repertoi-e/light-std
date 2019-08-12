@@ -24,3 +24,28 @@ f64 os_time_to_seconds(time_t time);
 
 // Returns the path of the current exe (full dir + name)
 string os_get_exe_name();
+
+// Utility to report hresult errors produces by calling windows functions.
+// Shouldn't be used on other platforms
+#if OS == WINDOWS
+
+// Logs a formatted error message.
+void report_hresult_error(long hresult, string call, string file, s32 line);
+
+// CHECKHR checks the return value of _call_ and if the returned HRESULT is less than zero, reports an error.
+#define CHECKHR(call)                                                            \
+    {                                                                            \
+        long result = call;                                                      \
+        if (result < 0) report_hresult_error(result, #call, __FILE__, __LINE__); \
+    }
+
+// DXCHECK is used for checking e.g. directx calls. The difference is that
+// in Dist configuration, the macro expands to just the call (no error checking)
+// in order to save on performance.
+#if defined DEBUG || defined RELEASE
+#define DXCHECK(call) CHECKHR(call)
+#else
+#define DXCHECK(call) call
+#endif
+
+#endif  // OS == WINDOWS

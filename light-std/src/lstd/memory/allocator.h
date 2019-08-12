@@ -6,7 +6,6 @@
 #include "../common.h"
 #include "../intrin.h"
 
-#include <stdio.h>
 #include <new>
 
 LSTD_BEGIN_NAMESPACE
@@ -156,7 +155,7 @@ struct allocator {
                    "Pointer wasn't properly aligned.");
         }
         if (userFlags & DO_INIT_FLAG) {
-            fill_memory((byte *) result + sizeof(allocation_header), 0, size);
+            zero_memory((char *) result + sizeof(allocation_header), size);
         }
         return encode_header(result, size, Function, Context);
     }
@@ -185,7 +184,7 @@ struct allocator {
                    "Pointer wasn't properly aligned.");
         }
         if (userFlags & DO_INIT_FLAG) {
-            fill_memory((byte *) result + sizeof(allocation_header) + oldSize, 0, newSize - oldSize);
+            zero_memory((char *) result + sizeof(allocation_header) + oldSize, newSize - oldSize);
         }
         return encode_header(result, newSize, allocFunc, allocContext);
     }

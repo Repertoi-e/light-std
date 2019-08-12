@@ -5,6 +5,8 @@
 #include <lstd/io/fmt.h>
 #include <lstd/os.h>
 
+#undef MAC
+#undef _MAC
 #include <Windows.h>
 #include <Windowsx.h>
 
@@ -31,6 +33,9 @@ string get_last_error_as_string() {
 struct windows_data {
     HWND hWnd;
     bool MouseInClient = true;
+
+    // Used when handling text input
+    u16 Surrogate;
 };
 #define PDATA ((windows_data *) PlatformData)
 
@@ -78,14 +83,6 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
         case WM_MOVE:
             wind->WindowMovedEvent.emit(null, {wind, (s32)(s16) LOWORD(lParam), (s32)(s16) HIWORD(lParam)});
             break;
-        case WM_WINDOWPOSCHANGED: {
-            auto *params = (WINDOWPOS *) lParam;
-            if (params->flags & SWP_NOMOVE) {
-                wind->WindowResizedEvent.emit(null, {wind, (u32) params->cx, (u32) params->cy});
-            } else if (params->flags & SWP_NOSIZE) {
-                wind->WindowMovedEvent.emit(null, {wind, params->x, params->y});
-            }
-        } break;
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
             wind->KeyPressedEvent.emit(
@@ -95,6 +92,20 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
         case WM_KEYUP:
             wind->KeyReleasedEvent.emit(null, {wind, g_KeycodeNativeToHid[wParam], KEY_EVENT_GET_MODS});
             break;
+        case WM_CHAR: {
+            auto cp = (char32_t) wParam;
+            if ((cp >= 0xD800) && (cp <= 0xDBFF)) {
+                // First part of a surrogate pair: store it and wait for the second one
+                data->Surrogate = (u16) cp;
+            } else {
+                if ((cp >= 0xDC00) && (cp <= 0xDFFF)) {
+                    cp = ((data->Surrogate - 0xD800) << 10) + (cp - 0xDC00) + 0x0010000;
+                    data->Surrogate = 0;
+                }
+                wind->KeyTypedEvent.emit(null, {wind, cp});
+            }
+			break;
+        }
         case WM_UNICHAR:
             // We return 1 the first time to tell Windows we support utf-32 characters
             if (wParam == UNICODE_NOCHAR) return 1;
@@ -252,7 +263,15 @@ void window::update_title() {
     SetWindowTextW(PDATA->hWnd, titleUtf16);
 }
 
-void window::update_bounds() { SetWindowPos(PDATA->hWnd, null, Left, Top, Width, Height, SWP_NOZORDER); }
+void window::update_bounds() {
+    // SetWindowPos wants the total size of the window (including title bar and borders), so we have to compute it
+    RECT rectangle = {0, 0, (s32) Width, (s32) Height};
+    AdjustWindowRect(&rectangle, GetWindowLong(PDATA->hWnd, GWL_STYLE), false);
+
+    s32 adjustedWidth = rectangle.right - rectangle.left;
+    s32 adjustedHeight = rectangle.bottom - rectangle.top;
+    SetWindowPos(PDATA->hWnd, null, Left, Top, adjustedWidth, adjustedHeight, SWP_NOZORDER);
+}
 }  // namespace le
 
 #endif
