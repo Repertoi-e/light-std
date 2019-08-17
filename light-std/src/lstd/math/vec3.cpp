@@ -5,7 +5,7 @@
 #include "vec3.h"
 #include "vec4.h"
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
 
 vec3::vec3() : x(0.0f), y(0.0f), z(0.0f) {}
 vec3::vec3(f32 scalar) : x(scalar), y(scalar), z(scalar) {}
@@ -130,4 +130,6 @@ f32 vec3::distance(vec3 other) const {
     f32 c = z - other.z;
     return SQRT(a * a + b * b + c * c);
 }
-}  // namespace le
+
+
+LSTD_END_NAMESPACE

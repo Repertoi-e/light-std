@@ -1,11 +1,14 @@
 #pragma once
 
-#include <lstd/basic.h>
+// Cross-platform window
 
-#include "core.h"
-#include "events.h"
+#include "basic.h"
 
-namespace le {
+#include "window/events.h"
+
+LSTD_BEGIN_NAMESPACE
+
+namespace window {
 
 struct window {
     string Title;
@@ -29,9 +32,6 @@ struct window {
 
     // Call this to update the bounds of the window after _Left_ _Top _Width_ or _Height_ has changed
     void update_bounds();
-
-    // Toggle vsync @TODO
-    // void set_vsync(bool enabled);
 
     // Event signals. Connect to these to receive callbacks for this window.
     // Callbacks with return type of bool means whether the event has been handled.
@@ -67,4 +67,6 @@ struct window {
         Top = e.Top;
     }
 };
-}  // namespace le
+}  // namespace window
+
+LSTD_END_NAMESPACE

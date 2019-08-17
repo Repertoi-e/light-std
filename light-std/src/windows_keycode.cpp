@@ -1,9 +1,12 @@
-#include "le/core.h"
+#include "lstd/common.h"
 
 // This file has been automatically generated
 
 #if OS == WINDOWS
-namespace le {
+
+LSTD_BEGIN_NAMESPACE
+
+namespace window::internal {
 u32 g_KeycodeHidToNative[256] = {
     255, 255, 255, 255, 65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,
     83,  84,  85,  86,  87,  88,  89,  90,  49,  50,  51,  52,  53,  54,  55,  56,  57,  48,  13,  27,  8,   9,
@@ -31,5 +34,8 @@ u32 g_KeycodeNativeToHid[256] = {
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 47,
     49,  48,  52,  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
-}  // namespace le
-#endif
+}  // namespace window::internal
+
+LSTD_END_NAMESPACE
+
+#endif  // OS == WINDOWS

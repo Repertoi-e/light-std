@@ -203,8 +203,6 @@ bool handle::create_symbolic_link(handle dest) const {
 }
 
 bool handle::read_entire_file(string *out) const {
-    if (!exists()) return false;
-
     CREATE_FILE_HANDLE_CHECKED(
         file, CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null),
         null);

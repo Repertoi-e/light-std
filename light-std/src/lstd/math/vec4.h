@@ -2,7 +2,7 @@
 
 #include "../types.h"
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
 
 struct mat4;
 struct vec3;
@@ -300,4 +300,5 @@ template <typename T>
 tvec4<T> operator/(tvec4<T> left, T value) {
     return *left.divide(value);
 }
-}  // namespace le
+
+LSTD_END_NAMESPACE

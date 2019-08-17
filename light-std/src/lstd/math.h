@@ -8,7 +8,6 @@
 
 LSTD_BEGIN_NAMESPACE
 
-namespace le {
 using vec2i8 = tvec2<s8>;
 using vec2i16 = tvec2<s16>;
 using vec2i = tvec2<s32>;
@@ -38,6 +37,5 @@ using vec4ui8 = tvec4<u8>;
 using vec4ui16 = tvec4<u16>;
 using vec4ui = tvec4<u32>;
 using vec4ui64 = tvec4<u64>;
-}  // namespace le
 
 LSTD_END_NAMESPACE

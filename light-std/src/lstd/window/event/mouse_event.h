@@ -1,8 +1,18 @@
 #pragma once
 
-#include "../core.h"
+#include "../../common.h"
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
+
+namespace window {
+
+// No better place to define this, should be used by keyboard events as well!
+enum : u32 {
+    Modifier_Shift = BIT(0),
+    Modifier_Control = BIT(1),
+    Modifier_Alt = BIT(2),
+    Modifier_Super = BIT(3),
+};
 
 struct window;
 
@@ -88,4 +98,6 @@ inline string_view mouse_button_name_from_code(u32 code) {
     return "";
 }
 
-}  // namespace le
+}  // namespace window
+
+LSTD_END_NAMESPACE

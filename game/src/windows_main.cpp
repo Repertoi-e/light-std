@@ -1,4 +1,4 @@
-#include "le/core.h"
+#include "game.h"
 
 #if defined LE_BUILDING_GAME
 #error Error
@@ -6,10 +6,7 @@
 
 #if OS == WINDOWS
 
-#include "le/game.h"
-
-#include "le/graphics.h"
-
+#include <lstd/dx_graphics.h>
 #include <lstd/file.h>
 #include <lstd/io/fmt.h>
 #include <lstd/memory/dynamic_library.h>
@@ -20,11 +17,10 @@
 #include <Windows.h>
 #define VREFRESH 116
 
-using namespace le;
-
 static dynamic_library g_GameCode;
 static game_update_and_render_func *g_GameUpdateAndRender = null;
 
+// @TODO: This fails in Dist configuration for some reason
 void reload_game_code(file::path dllPath) {
     g_GameCode.close();
 
@@ -67,10 +63,10 @@ f32 calculate_target_seconds_per_frame(HWND hWnd) {
 // but I don't think that provides much benefit.
 s32 main() {
     game_memory gameMemory;
-    gameMemory.Window = (new window)->init("Tetris", 1200, 600, true);
+    gameMemory.Window = (new window::window)->init("Tetris", 1200, 600, true);
 
-    d3d_graphics graphics;
-    graphics.init(gameMemory.Window);
+    g::dx_graphics g;
+    g.init(gameMemory.Window);
 
     auto exePath = file::path(os_get_exe_name());
 
@@ -105,15 +101,13 @@ s32 main() {
 
         gameMemory.Window->update();
 
-        graphics.clear_color(vec4(0.2f, 0.3f, 0.8f, 1.0f));
-
-        if (g_GameUpdateAndRender) g_GameUpdateAndRender(&gameMemory);
+        if (g_GameUpdateAndRender) g_GameUpdateAndRender(&gameMemory, &g);
 
         f64 workSecondsElapsed = os_time_to_seconds(os_get_time() - lastCounter);
-        fmt::print("(windows_main.cpp): Target: {:10f} s, frame time: {:10f} s, frame time (including swap): {:10f}\n",
-                   targetSecondsPerFrame, workSecondsElapsed, os_time_to_seconds(postFlipTime - lastCounter));
+        // fmt::print("Target: {:10f} s, frame time: {:10f} s, frame time (including swap): {:10f}\n",
+        // targetSecondsPerFrame, workSecondsElapsed, os_time_to_seconds(postFlipTime - lastCounter));
         lastCounter = os_get_time();
-        graphics.swap();
+        g.swap();
         postFlipTime = os_get_time();
     }
 }

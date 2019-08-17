@@ -3,7 +3,8 @@
 #include "../common.h"
 #include "../intrin/math.h"
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
+
 mat4::mat4() {}
 
 mat4::mat4(f32 diagonal) {
@@ -224,4 +225,5 @@ mat4 mat4::transpose(const mat4 &matrix) {
                 vec4(matrix.Rows[0].z, matrix.Rows[1].z, matrix.Rows[2].z, matrix.Rows[3].z),
                 vec4(matrix.Rows[0].w, matrix.Rows[1].w, matrix.Rows[2].w, matrix.Rows[3].w));
 }
-}  // namespace le
+
+LSTD_END_NAMESPACE

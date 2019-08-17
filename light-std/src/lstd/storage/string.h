@@ -304,7 +304,7 @@ struct string {
     string *replace_all(string oldStr, char32_t newCp);
 
     // The caller is responsible for freeing
-    const char *to_c_string(allocator alloc = {null, null}) {
+    const char *to_c_string(allocator alloc = {null, null}) const {
         char *result = new (alloc) char[ByteLength + 1];
         copy_memory(result, Data, ByteLength);
         result[ByteLength] = '\0';

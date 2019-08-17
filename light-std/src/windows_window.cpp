@@ -1,16 +1,19 @@
-#include "le/window.h"
+#include "lstd/common.h"
 
 #if OS == WINDOWS
 
-#include <lstd/io/fmt.h>
-#include <lstd/os.h>
+#include "lstd/io/fmt.h"
+#include "lstd/os.h"
+#include "lstd/window.h"
 
 #undef MAC
 #undef _MAC
 #include <Windows.h>
 #include <Windowsx.h>
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
+
+namespace window {
 
 struct windows_data {
     HWND hWnd;
@@ -68,11 +71,11 @@ ptr_t __stdcall WndProc(HWND hWnd, u32 message, uptr_t wParam, ptr_t lParam) {
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
             wind->KeyPressedEvent.emit(
-                null, {wind, g_KeycodeNativeToHid[wParam], KEY_EVENT_GET_MODS, (bool) (lParam & 0x40000000)});
+                null, {wind, internal::g_KeycodeNativeToHid[wParam], KEY_EVENT_GET_MODS, (bool) (lParam & 0x40000000)});
             break;
         case WM_SYSKEYUP:
         case WM_KEYUP:
-            wind->KeyReleasedEvent.emit(null, {wind, g_KeycodeNativeToHid[wParam], KEY_EVENT_GET_MODS});
+            wind->KeyReleasedEvent.emit(null, {wind, internal::g_KeycodeNativeToHid[wParam], KEY_EVENT_GET_MODS});
             break;
         case WM_CHAR: {
             auto cp = (char32_t) wParam;
@@ -257,6 +260,8 @@ void window::update_bounds() {
     s32 adjustedHeight = rectangle.bottom - rectangle.top;
     SetWindowPos(PDATA->hWnd, null, Left, Top, adjustedWidth, adjustedHeight, SWP_NOZORDER);
 }
-}  // namespace le
+}  // namespace window
 
-#endif
+LSTD_END_NAMESPACE
+
+#endif  // OS == WINDOWS

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../core.h"
+#include "../../common.h"
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
+namespace window {
 
 struct window;
 
@@ -28,4 +29,6 @@ struct window_moved_event {
     const s32 Left, Top;
 };
 
-}  // namespace le
+}  // namespace window
+
+LSTD_END_NAMESPACE

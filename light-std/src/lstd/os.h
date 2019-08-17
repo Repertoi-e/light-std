@@ -48,4 +48,10 @@ void report_hresult_error(long hresult, string call, string file, s32 line);
 #define DXCHECK(call) call
 #endif
 
+#define SAFE_RELEASE(x) \
+    if (x) {            \
+        x->Release();   \
+        x = null;       \
+    }
+
 #endif  // OS == WINDOWS

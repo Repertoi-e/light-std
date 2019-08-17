@@ -3,7 +3,8 @@
 #include "vec3.h"
 #include "vec4.h"
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
+
 struct mat4 {
     union {
         f32 Elements[4 * 4]{};
@@ -43,4 +44,5 @@ struct mat4 {
 
     static mat4 transpose(const mat4 &matrix);
 };
-}  // namespace le
+
+LSTD_END_NAMESPACE

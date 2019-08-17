@@ -5,7 +5,7 @@
 #include "mat4.h"
 #include "vec3.h"
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
 
 vec4::vec4(f32 scalar) : x(scalar), y(scalar), z(scalar), w(scalar) {}
 vec4::vec4(f32 x, f32 y, f32 z, f32 w) : x(x), y(y), z(z), w(w) {}
@@ -72,4 +72,5 @@ bool vec4::operator==(vec4 other) { return x == other.x && y == other.y && z == 
 bool vec4::operator!=(vec4 other) { return !(*this == other); }
 
 f32 vec4::dot(vec4 other) { return x * other.x + y * other.y + z * other.z + w * other.w; }
-}  // namespace le
+
+LSTD_END_NAMESPACE

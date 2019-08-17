@@ -26,6 +26,10 @@ function common_settings()
 		defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
 		buildoptions { "/utf-8" }
 
+	-- Exclude directx files on non-windows platforms since they would cause compilation errors
+	filter "not system:windows"
+		excludes  { "%{prj.name}/src/dx_*.h", "%{prj.name}/src/dx_*.cpp" }
+
     filter { "system:windows", "not options:no-crt" }
         staticruntime "On"
         excludes "%{prj.name}/src/windows_no_crt.cpp"
@@ -113,7 +117,7 @@ project "benchmark"
 	filter "system:linux"
         links { "benchmark" }
 
-project "game-engine"
+project "game"
 	location "%{prj.name}"
 	kind "ConsoleApp"
 
@@ -138,27 +142,28 @@ project "game-engine"
 	common_settings()
 	
 	filter "system:windows"
-		links { "dxgi.lib", "d3d11.lib", "$(DXSDK_DIR)Lib/x64/d3dx11.lib", "$(DXSDK_DIR)Lib/x64/d3dx10.lib" }
-		includedirs { "$(DXSDK_DIR)Include" }
+		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 project "tetris"
-	location "game-engine"
+	location "game"
 	kind "SharedLib"
 
-	targetdir("bin/" .. outputFolder .. "/game-engine")
-	objdir("bin-int/" .. outputFolder .. "/game-engine")
+	targetdir("bin/" .. outputFolder .. "/game")
+	objdir("bin-int/" .. outputFolder .. "/game")
 
 	files {
-		"game-engine/src/tetris/**.h", 
-		"game-engine/src/tetris/**.cpp"
+		"game/src/tetris/**.h", 
+		"game/src/tetris/**.cpp"
 	}
 
 	defines { "LE_BUILDING_GAME" }
 
 	links { "light-std" }
-	includedirs { "light-std/src", "game-engine/src" }
+	includedirs { "light-std/src", "game/src" }
 
 	common_settings()
 
 	-- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
-	symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'
+	filter "system:windows"
+		symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'
+		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }

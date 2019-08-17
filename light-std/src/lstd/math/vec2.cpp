@@ -2,7 +2,8 @@
 
 #include "../intrin/math.h"
 
-namespace le {
+LSTD_BEGIN_NAMESPACE
+
 vec2::vec2() {
     this->x = 0;
     this->y = 0;
@@ -115,4 +116,5 @@ vec2 vec2::normalize() const {
     f32 length = magnitude();
     return vec2(x / length, y / length);
 }
-}  // namespace le
+
+LSTD_END_NAMESPACE
