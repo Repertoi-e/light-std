@@ -1,8 +1,8 @@
-REWRITING LIBRARY IN ORDER TO PRESERVE CONSISTENCY BETTER AND IMPROVE STABILITY
-REWRITING LIBRARY IN ORDER TO PRESERVE CONSISTENCY BETTER AND IMPROVE STABILITY
-REWRITING LIBRARY IN ORDER TO PRESERVE CONSISTENCY BETTER AND IMPROVE STABILITY
+// @TODO Replace with our own math functions in order to not depend on the runtime lib
+
 
 ---------------------------------------------------------------------------------
+- Locale?
 - Time?
 - Random?
 ---------------------------------------------------------------------------------
@@ -11,21 +11,13 @@ File I/O and Reader/Writer implementations
 + Tests
 ---------------------------------------------------------------------------------
 API for watching directory changes
+... and an asset system
 ---------------------------------------------------------------------------------
-Make temporary allocator thread local
----------------------------------------------------------------------------------
-The following things implemented in windows but not on posix yet:
-  LSTD:
-- os wallclock functions
-- changes in console_reader/writer that remove virtual functions
-- threads
-- file handles
-  LE:
-- game loop and windows and events 
+Implement the other part of platform specific functionality and compile on linux.
+Remove comments about posix thread implementation in _context.h_ and _thread.h_
 ---------------------------------------------------------------------------------
 Way to get monitor refresh rate (and possibly other system info)
----------------------------------------------------------------------------------
-Replace LE's game loop with a platform inspecific one
+... and then replace game engine's game loop with a platform inspecific one
 ---------------------------------------------------------------------------------
 Rewrite vendor libraries and reduce to the minimum needed
 ---------------------------------------------------------------------------------

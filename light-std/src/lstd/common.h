@@ -163,18 +163,7 @@ struct range {
 // - Always provide a default constructor (implicit or by "T() = default")
 // - Every data member should have the same access control (everything should be public or private or protected)
 // - No user defined copy/move constructors
-// - No virtual or overridden functions
 // - No throwing of exceptions, anywhere
-//
-// Most of the above requirements above are to clasify the type as POD. Templated containers and functions
-// in this library assert that the type is POD. If your type doesn't classify as POD (has bit fields,
-// non-default but parameterless constructor or is a subclass with extended members) you can
-// declare it explictly with DECLARE_IS_POD(type, true).
-// Declaring your type as POD explictly means you are sure the type CAN be TREATED as POD without bugs.
-//
-// "Every data member should have the same access control"
-//   Preference thing, getters/setters that do nothing are garbage and should not exist tho.
-//   Note: If you really want you can prefix your "private" members with _.
 //
 // "No user defined copy/move constructors":
 //   This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not
@@ -194,10 +183,9 @@ struct range {
 //     When a string gets contructed from a literal it doesn't allocate memory.
 //     _Reserved_ is 0 and the object works like a view.
 //
-//     When you call modifying methods (like appending, inserting code points, etc.):
-//       If the string points to an allocated buffer but from a different string, the method asserts.
-//       If the string was constructed from a literal or a byte buffer that wasn't allocated by a different string,
-//       the string allocates a buffer, copies the old one and becomes an owner.
+//     If the string was constructed from a literal, shallow copy of another string or a byte buffer, 
+//     when you call modifying methods (like appending, inserting code points, etc.) the string allocates a buffer, 
+//     copies the old one and now owns memory.
 //
 //
 //     _clone(T *dest, T src)_ is a global function that ensures a deep copy of the argument passed.
@@ -216,43 +204,6 @@ struct range {
 //
 //   Types that manage memory in this library follow similar design to string and helper functions (as well as an
 //   example) are provided in _storage/owner_pointers.h_.
-//
-// "No virtual or overridden functions":
-//  @TODO Reconsider this. Historically, I strived away from virtual functions in order to be able to compile
-//        without CRT on Windows, but I think we can support virtual functions with stub code from the CRT.
-//
-//   They bring a slight run-time overhead and aren't really a good design (in most cases they can be avoided).
-//   I recommend striving away from a design that requires inheritance and overloading (OOP in such sense in general)
-//   but I came up with a possible workaround that is best shown with an example:
-//   - Using virtual functions:
-//         struct writer {
-//             virtual void write(string str) { /*may also be pure virtual*/
-//             }
-//         };
-//
-//         struct console_writer : writer {
-//             void write(string str) override { /*...*/
-//             }
-//         };
-//
-//   - Workaround:
-//         struct writer {
-//             using write_func_t = void(writer *context, string *str);
-//
-//             static void default_write(writer *context, string *str) {}
-//             write_func_t *WriteFunction = default_write; /*may also be null by default (simulate pure virtual)*/
-//
-//             void write(string *str) { WriteFunction(this, str); }
-//         };
-//
-//         struct console_writer : writer {
-//             static void console_write(writer *context, string *str) {
-//                 auto *consoleWriter = (console_writer *) console_write;
-//                 /*...*/
-//             }
-//
-//             console_writer() { WriteFunction = console_write; }
-//         };
 //
 // "No throwing of exceptions, anywhere"
 //   Exceptions make your code complicated. They are a good way to handle errors in small examples,

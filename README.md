@@ -12,17 +12,8 @@ Anybody who thinks modern C++ is bananas, you've come to the right place! My vie
 
 ### Rules
 - Always provide a default constructor (implicit or by "T() = default")
-- Every data member should have the same access control (everything should be public or private or protected)
 - No user defined copy/move constructors
-- No virtual or overridden functions
 - No throwing of exceptions, anywhere
-
-Most of the requirements above are to clasify the type as POD. Templated containers and functions in this library assert that the type is POD. If your type doesn't classify as POD (has bit fields, non-default but parameterless constructor or is a subclass with extended members) you can declare it explictly with `DECLARE_IS_POD(type, true)`
->Declaring your type as POD explictly means you are sure the type CAN be TREATED as POD without bugs.
-
-### "Every data member should have the same access control"
-Preference thing, getters/setters that do nothing are garbage and should not exist tho.
-> If you really want private members I suggest you prefix them with _.
 
 ### "No user defined copy/move constructors":
 _This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not just the pointer when you copy the object?)_
@@ -31,11 +22,9 @@ This library implements `string` the following way:
 - `string` is a struct that contains a pointer to a byte buffer and 2 fields containing precalculated utf8 code unit and code point lengths, as well as a field `Reserved` that contains the number of bytes allocated by that string (default is 0).
 - A string may own its allocated memory or it may not, which is determined by encoding the `this` pointer before the byte buffer when the string reserves memory. That way when you shallow copy the string, the `this` pointer is obviously different (because it is a different object) and when the copied string gets destructed it doesn't free the memory (it doesn't own it). Only when the original string gets destructed does the memory get freed and any shallow copies of it are invalidated (they point to freed memory).
 - When a string gets contructed from a literal it doesn't allocate memory. `Reserved` is 0 and the object works like a view. 
-- When you call modifying methods (like appending, inserting code points, etc.):
-  - If the string points to an allocated buffer but from a different object, the method asserts.
-  - If the string was constructed from a literal or a byte buffer that wasn't allocated by a different string, the string allocates a buffer, copies the old one and becomes an owner.
+- If the string was constructed from a literal, shallow copy of another string or a byte buffer, when you call modifying methods (like appending, inserting code points, etc.) the string allocates a buffer, copies the old one and now owns memory.
 
-_What is described above happens when the object gets copied around (assigned to variables, passed to functions, etc.) In order to copy the string explicitly the following functions are provided:_
+_What is described above happens when the object gets copied around (assigned to variables, passed to functions, etc.). In order to deep copy the string explicitly the following function is provided:_
 -  `clone(T *dest, T src)` is a global function that ensures a deep copy of the argument passed.
 > There is a string overload for clone() that deep copies the contents to `dest` (`dest` now has allocated memory and the byte buffer contains the string from `src`).
 - `move(T *dest, T *src)` is a global function that transfers ownership.
@@ -48,45 +37,6 @@ _What is described above happens when the object gets copied around (assigned to
 > **Note**: In c++ the default assignment operator doesn't call the destructor, so assigning to a string that owns a buffer will cause a leak.
 
 Types that manage memory in this library follow similar design to string and helper functions (as well as an example) are provided in `storage/owner_pointers.h`.
-
-### "No virtual or overridden functions":
-> **@TODO** Reconsider this. Historically, I strived away from virtual functions in order to be able to compile
-      without CRT on Windows, but I think we can support virtual functions with stub code from the CRT.
-They bring a slight run-time overhead and aren't really a good design (in most cases they can be avoided). I recommend striving away from a design that requires inheritance and overloading (OOP in such sense in general) but I came up with a possible workaround that is best shown with an example:
-
-*Using virtual functions:*
-```cpp
-      struct writer {
-          virtual void write(string str) { /*may also be pure virtual*/
-          }
-      };
-
-      struct console_writer : writer {
-          void write(string str) override { /*...*/
-          }
-      };
-```
-
-*Workaround:*
-```cpp
-      struct writer {
-          using write_func_t = void(writer *context, string *str);
-
-          static void default_write(writer *context, string *str) {}
-          write_func_t *WriteFunction = default_write; /*may also be null by default (simulate pure virtual)*/
-
-          void write(string *str) { WriteFunction(this, str); }
-      };
-
-      struct console_writer : writer {
-          static void console_write(writer *context, string *str) {
-              auto *consoleWriter = (console_writer *) console_write;
-              /*...*/
-          }
-
-          console_writer() { WriteFunction = console_write; }
-      };
-```
 
 ### "No throwing of exceptions, anywhere"
 Exceptions make your code complicated. They are a good way to handle errors in small examples, but don't really help in large programs/projects. You can't be 100% sure what can throw where and when thus you don't really know what your program is doing (you aren't sure it even works 100% of the time).

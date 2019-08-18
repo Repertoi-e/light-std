@@ -24,16 +24,6 @@ enum class alignment : size_t;
 // This is handled internally, so allocator implementations don't need to pay attention to it.
 constexpr u64 DO_INIT_FLAG = BIT(31);
 
-// @Temp Move this below together with Malloc, this is up here in order for allocator::general_allocate to
-// use the default allocator if the context hasn't been initialized yet.
-//
-// Default allocator:
-//
-
-// General purpose allocator (like malloc)
-void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                        alignment align, u64);
-
 //
 // OS allocator:
 //
@@ -65,8 +55,8 @@ struct allocation_header {
     size_t ID;
 
     // The allocator used when allocating the memory
-    allocator_func_t AllocatorFunction;
-    void *AllocatorContext;
+    allocator_func_t Function;
+    void *Context;
 
     // The size of the allocation (NOT including the size of the header)
     size_t Size;
@@ -76,8 +66,7 @@ struct allocation_header {
 };
 
 struct allocator {
-    // @Temp mutable, see general_allocate below
-    mutable allocator_func_t Function = null;
+    allocator_func_t Function = null;
     void *Context = null;
 
     inline static size_t AllocationCount = 0;
@@ -109,8 +98,8 @@ struct allocator {
                "Calling free on a pointer that doesn't have a header (probably it isn't dynamic memory or"
                "it wasn't allocated with an allocator from this library)");
 
-        header->AllocatorFunction(allocator_mode::FREE, header->AllocatorContext, 0, header,
-                                  header->Size + sizeof(allocation_header), alignment(0), userFlags);
+        header->Function(allocator_mode::FREE, header->Context, 0, header, header->Size + sizeof(allocation_header),
+                         alignment(0), userFlags);
     }
 
     // Note that not all allocators must support this.
@@ -134,8 +123,8 @@ struct allocator {
         result->ID = AllocationCount;
         ATOMIC_INC_64((s64 *) &AllocationCount);
 
-        result->AllocatorFunction = function;
-        result->AllocatorContext = context;
+        result->Function = function;
+        result->Context = context;
         result->Size = size;
         result->Pointer = result + 1;
         return (void *) result->Pointer;
@@ -144,11 +133,6 @@ struct allocator {
     // The main reason for having a combined function is to help debugging because the source of an allocation
     // can be one of the two functions (allocate() and allocate_aligned() below)
     void *general_allocate(size_t size, bool aligned, alignment align, u64 userFlags = 0) const {
-        // @Temp We may allocate memory before the context is initialized,
-        // and thus the default allocator is null. If that's the case just
-        // use malloc so this function doesn't fail.
-        if (!Function) Function = default_allocator;
-
         void *result;
         if (!aligned) {
             result = Function(allocator_mode::ALLOCATE, Context, size + sizeof(allocation_header), null, 0,
@@ -175,8 +159,8 @@ struct allocator {
         auto oldSize = header->Size;  // The header stores the size without sizeof(allocation_header)
         if (oldSize > newSize) return ptr;
 
-        auto *allocFunc = header->AllocatorFunction;
-        auto *allocContext = header->AllocatorContext;
+        auto *allocFunc = header->Function;
+        auto *allocContext = header->Context;
 
         void *result;
         if (!aligned) {
@@ -212,9 +196,6 @@ inline void *get_aligned_pointer(void *ptr, size_t alignment) {
 void *operator new(size_t size);
 void *operator new[](size_t size);
 
-void *operator new(size_t size, u64 userFlags) noexcept;
-void *operator new[](size_t size, u64 userFlags) noexcept;
-
 // If _alloc_ points to a null allocator, use a default one and store it in _alloc_
 void *operator new(size_t size, allocator *alloc, u64 userFlags = 0) noexcept;
 void *operator new[](size_t size, allocator *alloc, u64 userFlags = 0) noexcept;
@@ -231,6 +212,14 @@ void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlag
 
 void operator delete(void *ptr) noexcept;
 void operator delete[](void *ptr) noexcept;
+
+//
+// Default allocator:
+//
+
+// General purpose allocator (like malloc)
+void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
+                        alignment align, u64);
 
 inline allocator Malloc = {default_allocator, null};
 

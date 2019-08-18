@@ -190,8 +190,6 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
 
                 data->Storage = new (Malloc) char[targetSize];
                 data->Reserved = targetSize;
-                fmt::print("Allocating new storage with size {}, previous was {}, overall used: {}\n", data->Reserved,
-                           prev, data->OverallUsed);
             }
 
             data->OverallUsed = data->Used = 0;
@@ -220,9 +218,6 @@ LSTD_END_NAMESPACE
 void *operator new(size_t size) { return operator new(size, null, 0); }
 void *operator new[](size_t size) { return operator new(size, null, 0); }
 
-void *operator new(size_t size, u64 userFlags) noexcept { return operator new(size, null, userFlags); }
-void *operator new[](size_t size, u64 userFlags) noexcept { return operator new(size, null, userFlags); }
-
 void *operator new(size_t size, allocator *alloc, u64 userFlags) noexcept {
     if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
     if (!(*alloc)) *alloc = Context.Alloc;
@@ -246,11 +241,8 @@ void *operator new[](size_t size, allocator alloc, u64 userFlags) noexcept {
 
 void *operator new(size_t size, alignment align, allocator *alloc, u64 userFlags) noexcept {
     if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
-    if (!(*alloc)) *alloc = Context.Alloc;
-    if (!(*alloc)) {
-        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
-        *alloc = Malloc;
-    }
+    if (!(*alloc)) *alloc = Context.Alloc; 
+    assert(*alloc);
     return alloc->allocate_aligned(size, align, userFlags);
 }
 

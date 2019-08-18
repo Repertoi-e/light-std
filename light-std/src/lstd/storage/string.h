@@ -60,9 +60,8 @@ struct string {
 
     string(string_view view) : Data(view.Data), ByteLength(view.ByteLength), Length(view.Length) {}
 
-    string(char32_t codePoint, size_t repeat, allocator alloc = {null, null});
-    string(wchar_t codePoint, size_t repeat, allocator alloc = {null, null})
-        : string((char32_t) codePoint, repeat, alloc) {}
+    string(char32_t codePoint, size_t repeat);
+    string(wchar_t codePoint, size_t repeat) : string((char32_t) codePoint, repeat) {}
 
     // Converts a null-terminated wide char string to utf8.
     // Allocates a buffer.
@@ -74,7 +73,7 @@ struct string {
 
     // Create a string with an initial size reserved.
     // Allocates a buffer (using the Context's allocator by default)
-    explicit string(size_t size, allocator alloc = {null, null});
+    explicit string(size_t size);
 
     ~string() { release(); }
 
@@ -83,15 +82,8 @@ struct string {
     // Reserves space equal to the next power of two bigger than _size_, starting at 8.
     //
     // Allocates a buffer if the string doesn't already point to reserved memory
-    // (using the Context's allocator by default).
-    // You can also use this function to change the allocator of a string before using it.
-    //    reserve(0, ...) is enough to allocate an 8 byte buffer with the passed in allocator.
-    //
-    // For robustness, this function asserts if you pass an allocator, but the string has already
-    // reserved a buffer with a *different* allocator.
-    //
-    // If the string points to reserved memory but doesn't own it, this function asserts.
-    void reserve(size_t size, allocator alloc = {null, null});
+    // (using the Context's allocator).
+    void reserve(size_t size);
 
     // Releases the memory allocated by this string.
     // If this string doesn't own the memory it points to, this function does nothing.

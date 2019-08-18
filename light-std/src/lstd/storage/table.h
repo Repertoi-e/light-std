@@ -55,34 +55,10 @@ struct table {
     // Reserves space equal to the next power of two bigger than _size_, starting at _MINIMUM_SIZE_.
     //
     // Allocates a buffer if the table doesn't already point to reserved memory
-    // (using the Context's allocator by default).
-    // You can also use this function to change the allocator of a table before using it.
-    //    reserve(0, ...) is enough to allocate space for _MINIMUM_SIZE_ elements with the passed in allocator.
-    //
-    // For robustness, this function asserts if you pass an allocator, but the table has already
-    // reserved a buffer with a *different* allocator.
-    //
-    // If the table points to reserved memory but doesn't own it, this function asserts.
-    void reserve(size_t size, allocator alloc = {null, null}) {
-        if (size < Reserved) return;
-
-        if (size < SlotsFilled) size += SlotsFilled;
-
-        size_t reserveTarget = MINIMUM_SIZE;
-        while (reserveTarget < size) {
-            reserveTarget *= 2;
-        }
-
-        if (is_owner()) {
-            auto *actualHashes = (char *) Hashes - POINTER_SIZE;
-
-            if (alloc) {
-                auto *header = (allocation_header *) Hashes - 1;
-                assert(alloc.Function == header->AllocatorFunction && alloc.Context == header->AllocatorContext &&
-                       "Calling reserve() on a table that already has reserved a buffer but with a different "
-                       "allocator. Call with null allocator to avoid that.");
-            }
-        }
+    // (using the Context's allocator).
+    void reserve(size_t target) {
+        if (SlotsFilled + target < Reserved) return;
+        target = MAX<size_t>(CEIL_POW_OF_2(target + SlotsFilled + 1), 8);
 
         auto *oldHashes = Hashes;
         auto *oldKeys = Keys;
@@ -91,9 +67,9 @@ struct table {
         // The owner will change with the next line, but we need it later to decide if we need to delete the old arrays
         bool wasOwner = is_owner();
 
-        Hashes = encode_owner(new (alloc, DO_INIT_FLAG) uptr_t[reserveTarget + 1], this);
-        Keys = new (alloc) key_t[reserveTarget];
-        Values = new (alloc) value_t[reserveTarget];
+        Hashes = encode_owner(new (Context.Alloc, DO_INIT_FLAG) uptr_t[target + 1], this);
+        Keys = new key_t[target];
+        Values = new value_t[target];
 
         // Note: _Reserved_ hasn't been updated yet
         For(range(Reserved)) {
@@ -106,8 +82,7 @@ struct table {
             delete[] oldKeys;
             delete[] oldValues;
         }
-
-        Reserved = reserveTarget;
+        Reserved = target;
     }
 
     // Free any memory allocated by this object and reset count

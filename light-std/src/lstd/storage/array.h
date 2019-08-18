@@ -28,44 +28,22 @@ struct array {
     // Reserves space equal to the next power of two bigger than _size_, starting at 8.
     //
     // Allocates a buffer if the dynamic array doesn't already point to reserved memory
-    // (using the Context's allocator by default).
-    // You can also use this function to change the allocator of a dynamic array before using it.
-    //    reserve(0, ...) is enough to allocate an 8 byte buffer with the passed in allocator.
-    //
-    // For robustness, this function asserts if you pass an allocator, but the array has already
-    // reserved a buffer with a *different* allocator.
-    //
-    // If the dynamic array points to reserved memory but doesn't own it, this function asserts.
-    void reserve(size_t size, allocator alloc = {null, null}) {
-        if (size < Reserved) return;
+    // (using the Context's allocator).
+    void reserve(size_t target) {
+        if (Count + target < Reserved) return;
 
-        if (!Reserved && size < Count) {
-            size += Count;
-        }
+        target = MAX<size_t>(CEIL_POW_OF_2(target + Count + 1), 8);
 
-        size_t reserveTarget = 8;
-        while (reserveTarget < size) {
-            reserveTarget *= 2;
-        }
-
-        size_t byteSize = reserveTarget * sizeof(data_t) + POINTER_SIZE;
+        size_t targetBytes = target * sizeof(data_t);
         if (is_owner()) {
-            auto *actualData = (char *) Data - POINTER_SIZE;
-
-            if (alloc) {
-                auto *header = (allocation_header *) actualData - 1;
-                assert(alloc.Function == header->AllocatorFunction && alloc.Context == header->AllocatorContext &&
-                       "Calling reserve() on a dynamic array that already has reserved a buffer but with a different "
-                       "allocator. Call with null allocator to avoid that.");
-            }
-
-            Data = (data_t *) ((char *) allocator::reallocate(actualData, byteSize) + POINTER_SIZE);
+            void *actualData = (char *) Data - POINTER_SIZE;
+            Data = (data_t *) ((char *) allocator::reallocate(actualData, targetBytes + POINTER_SIZE) + POINTER_SIZE);
         } else {
             auto *oldData = Data;
-            Data = encode_owner((data_t *) new (alloc) char[byteSize], this);
+            Data = encode_owner((data_t *) new char[targetBytes + POINTER_SIZE], this);
             if (Count) copy_memory(Data, oldData, Count * sizeof(data_t));
         }
-        Reserved = reserveTarget;
+        Reserved = target;
     }
 
     // Free any memory allocated by this object and reset count

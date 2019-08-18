@@ -13,6 +13,25 @@
 
 LSTD_BEGIN_NAMESPACE
 
+#if COMPILER == MSVC
+// This trick ensures the context gets initialized before any C++ constructors
+// get called which may use the context.
+//
+// How it works is described here:
+// https://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm#page-2
+int initialize_context() {
+    auto *unconstContext = const_cast<implicit_context *>(&Context);
+    *unconstContext = {};
+    unconstContext->ThreadID = thread::id((u64) GetCurrentThreadId());
+    return 0;
+}
+
+using cb = int (*)();
+#pragma data_seg(".CRT$XIU")
+static cb g_ContextInit[] = {initialize_context};
+#pragma data_seg()
+#endif
+
 bool dynamic_library::load(string name) {
     auto *buffer = new wchar_t[name.Length];
     defer(delete buffer);
@@ -47,6 +66,8 @@ struct win32_state {
     HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
     LARGE_INTEGER PerformanceFrequency;
     string ModuleName;
+    thread::recursive_mutex CoutMutex;
+    thread::mutex CinMutex;
 
     win32_state() {
         if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
@@ -103,8 +124,6 @@ struct win32_state {
         ModuleName.reserve(reserved * 2);
         utf16_to_utf8(buffer, const_cast<char *>(ModuleName.Data), &ModuleName.ByteLength);
         ModuleName.Length = utf8_strlen(ModuleName.Data, ModuleName.ByteLength);
-
-        const_cast<implicit_context *>(&Context)->ThreadID = thread::id((u64) GetCurrentThreadId());
     }
 };
 static win32_state STATE;
@@ -112,8 +131,9 @@ static win32_state STATE;
 char io::console_reader_request_byte(io::reader *r) {
     auto *cr = (io::console_reader *) r;
 
-    // @Thread
-    // if (cr->LockMutex) {...}
+    thread::mutex *mutex = null;
+    if (cr->LockMutex) mutex = &STATE.CinMutex;
+    thread::scoped_lock<thread::mutex> _(mutex);
 
     if (!cr->Buffer) cr->Buffer = cr->Current = STATE.CinBuffer;
     assert(cr->Available == 0);
@@ -130,8 +150,9 @@ char io::console_reader_request_byte(io::reader *r) {
 void io::console_writer_write(io::writer *w, const char *data, size_t count) {
     auto *cw = (io::console_writer *) w;
 
-    // @Thread
-    // if (cw->LockMutex) { ... }
+    thread::recursive_mutex *mutex = null;
+    if (cw->LockMutex) mutex = &STATE.CoutMutex;
+    thread::scoped_lock<thread::recursive_mutex> _(mutex);
 
     if (count > cw->Available) {
         cw->flush();
@@ -144,6 +165,10 @@ void io::console_writer_write(io::writer *w, const char *data, size_t count) {
 
 void io::console_writer_flush(io::writer *w) {
     auto *cw = (io::console_writer *) w;
+
+    thread::recursive_mutex *mutex = null;
+    if (cw->LockMutex) mutex = &STATE.CoutMutex;
+    thread::scoped_lock<thread::recursive_mutex> _(mutex);
 
     if (!cw->Buffer) {
         if (cw->OutputType == io::console_writer::COUT) {

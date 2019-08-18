@@ -34,45 +34,21 @@ struct stack_dynamic_buffer {
     // ! Reserves only if there is not enough space on the stack
     //
     // Allocates a buffer if the buffer doesn't already point to reserved memory
-    // (using the Context's allocator by default).
-    //
-    // If you want to prepare an allocator, call reserve() with _size_ == _StackSize_ + 1
-    //
-    // For robustness, this function asserts if you pass an allocator, but the buffer has already
-    // reserved a buffer with a *different* allocator.
-    //
-    // If the buffer points to reserved memory but doesn't own it, this function asserts.
-    void reserve(size_t size, allocator alloc = {null, null}) {
-        if (size < sizeof(StackData)) return;
-        if (size < Reserved) return;
+    // (using the Context's allocator).
+    void reserve(size_t target) {
+        if (target < sizeof(StackData)) return;
+        if (ByteLength + target < Reserved) return;
 
-        if (!Reserved && size < ByteLength) {
-            size += ByteLength;
-        }
-
-        size_t reserveTarget = 8;
-        while (reserveTarget < size) {
-            reserveTarget *= 2;
-        }
+        target = MAX<size_t>(CEIL_POW_OF_2(target + ByteLength + 1), 8);
 
         if (is_owner()) {
-            auto *actualData = const_cast<char *>(Data) - POINTER_SIZE;
-
-            if (alloc) {
-                auto *header = (allocation_header *) actualData - 1;
-                assert(
-                    alloc.Function == header->AllocatorFunction && alloc.Context == header->AllocatorContext &&
-                    "Calling reserve() on an object that already has reserved a buffer but with a different allocator. "
-                    "Call with null allocator to avoid that.");
-            }
-
-            Data = (char *) allocator::reallocate(actualData, reserveTarget + POINTER_SIZE) + POINTER_SIZE;
+            Data = (char *) allocator::reallocate(Data - POINTER_SIZE, target + POINTER_SIZE) + POINTER_SIZE;
         } else {
             auto *oldData = Data;
-            Data = encode_owner(new (alloc) char[reserveTarget + POINTER_SIZE], this);
+            Data = encode_owner(new char[target + POINTER_SIZE], this);
             if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
         }
-        Reserved = reserveTarget;
+        Reserved = target;
     }
 
     // Releases the memory allocated by this buffer.

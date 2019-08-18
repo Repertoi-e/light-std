@@ -63,8 +63,6 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             g->create_buffer(state->IB, g::buffer::type::INDEX_BUFFER, g::buffer::usage::IMMUTABLE,
                              (const char *) indices, sizeof(indices));
         }
-
-        Context.init_temporary_allocator(1_MiB);
     }
 
     auto *state = (game_state *) memory->State;

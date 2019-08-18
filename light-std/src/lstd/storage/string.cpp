@@ -11,7 +11,7 @@ string::code_point &string::code_point::operator=(char32_t other) {
 
 string::code_point::operator char32_t() const { return ((const string *) Parent)->get((s64) Index); }
 
-string::string(char32_t codePoint, size_t repeat, allocator alloc) : string(get_size_of_cp(codePoint) * repeat, alloc) {
+string::string(char32_t codePoint, size_t repeat) : string(get_size_of_cp(codePoint) * repeat) {
     size_t cpSize = get_size_of_cp(codePoint);
 
     auto *data = const_cast<char *>(Data);
@@ -38,26 +38,19 @@ string::string(const char32_t *str) {
     }
 }
 
-string::string(size_t size, allocator alloc) { reserve(size, alloc); }
+string::string(size_t size) { reserve(size); }
 
-// @TODO Update other reserve functions to match this
-void string::reserve(size_t target, allocator alloc) {
+void string::reserve(size_t target) {
     if (ByteLength + target < Reserved) return;
 
     target = MAX<size_t>(CEIL_POW_OF_2(target + ByteLength + 1), 8);
 
     if (is_owner()) {
         Data -= POINTER_SIZE;
-        if (alloc) {
-            auto *header = (allocation_header *) Data - 1;
-            assert(alloc.Function == header->AllocatorFunction && alloc.Context == header->AllocatorContext &&
-                   "Calling reserve() on a string that already has reserved a buffer but with a different allocator. "
-                   "Call with null allocator to avoid that.");
-        }
         Data = (const char *) allocator::reallocate(const_cast<char *>(Data), target + POINTER_SIZE) + POINTER_SIZE;
     } else {
         auto *oldData = Data;
-        Data = encode_owner(new (alloc) char[target + POINTER_SIZE], this);
+        Data = encode_owner(new char[target + POINTER_SIZE], this);
         if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
     }
     Reserved = target;

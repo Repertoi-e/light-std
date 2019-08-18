@@ -129,8 +129,10 @@ struct scoped_lock {
     mutex_t *Mutex = null;
 
     explicit scoped_lock(mutex_t *mutex) {
-        Mutex = mutex;
-        Mutex->lock();
+        if (mutex) {
+            Mutex = mutex;
+            Mutex->lock();
+        }
     }
 
     ~scoped_lock() {
