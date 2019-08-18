@@ -60,13 +60,11 @@ void run_tests() {
 s32 main() {
     time_t start = os_get_time();
 
-    Context.init_temporary_allocator(4_MiB);
-
     PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
         while (true) {
             run_tests();
             break;
-            // Context.TemporaryAlloc.free_all();
+			// Context.TemporaryAlloc.free_all();
         }
     }
 

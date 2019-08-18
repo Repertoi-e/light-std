@@ -297,6 +297,12 @@ T MIN(T x, T y) {
     return x < y ? x : y;
 }
 
+inline s32 FLOOR(f32 x) { return (s32)(x + (f32) numeric_info<s32>::max()) - numeric_info<s32>::max(); }
+inline s32 FLOOR(f64 x) { return (s32)(x + (f64) numeric_info<s32>::max()) - numeric_info<s32>::max(); }
+
+inline s32 CEIL(f32 x) { return numeric_info<s32>::max() - (s32)((f32) numeric_info<s32>::max() - x); }
+inline s32 CEIL(f64 x) { return numeric_info<s32>::max() - (s32)((f64) numeric_info<s32>::max() - x); }
+
 // Returns the number of decimal digits in n. Leading zeros are not counted
 // except for n == 0 in which case count_digits returns 1.
 inline u32 COUNT_DIGITS(u64 n) {
@@ -313,3 +319,11 @@ constexpr u32 COUNT_DIGITS(T value) {
     } while ((n >>= Bits) != 0);
     return numDigits;
 }
+
+#if COMPILER == MSVC
+#define ATOMIC_INC(ptr) _InterlockedIncrement((ptr))
+#define ATOMIC_INC_64(ptr) _InterlockedIncrement64((ptr))
+#else
+#define ATOMIC_INC(ptr) __sync_add_and_fetch((ptr), 1)
+#define ATOMIC_INC_64(ptr) __sync_add_and_fetch((ptr), 1)
+#endif

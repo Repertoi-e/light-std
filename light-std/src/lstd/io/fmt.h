@@ -190,7 +190,7 @@ void print(string fmtString, Args &&... args) {
     to_writer(Context.Log, fmtString, ((Args &&) args)...);
 }
 
-// Formatters for array and stack_array
+// Formatters for array, stack_array and thread::id
 
 template <typename T>
 struct formatter<array<T>> {
@@ -200,6 +200,11 @@ struct formatter<array<T>> {
 template <typename T, size_t N>
 struct formatter<stack_array<T, N>> {
     void format(stack_array<T, N> src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
+};
+
+template <>
+struct formatter<thread::id> {
+    void format(thread::id src, format_context *f) { f->write(src.Value); }
 };
 
 }  // namespace fmt

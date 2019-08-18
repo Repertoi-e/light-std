@@ -29,20 +29,27 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             auto *allocatorData = new (Malloc) free_list_allocator_data;
             allocatorData->init(512_MiB, free_list_allocator_data::Find_First);
             memory->Allocator = {free_list_allocator, allocatorData};
-            memory->State = state = GAME_NEW(game_state);
 
-            state->Shader = GAME_NEW(g::dx_shader);
+            PUSH_CONTEXT(Alloc, g_GameMemory->Allocator) memory->State = state = new game_state;
+        } else {
+            delete state->Shader;
+            delete state->VB;
+            delete state->IB;
+        }
+
+        PUSH_CONTEXT(Alloc, g_GameMemory->Allocator) {
+            state->Shader = new g::dx_shader;
             g->create_shader(state->Shader, file::path("data/Triangle.hlsl"));
             state->Shader->bind();
 
             Vertex triangle[] = {{vec3(0.0f, 0.5f, 0.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f)},
-                                 {vec3(0.45f, -0.5, 0.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f)},
+                                 {vec3(0.0f, -0.5, 0.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f)},
                                  {vec3(-0.45f, -0.5f, 0.0f), vec4(0.0f, 0.0f, 1.0f, 1.0f)}};
 
-            state->VB = GAME_NEW(g::dx_buffer);
+            state->VB = new g::dx_buffer;
             g->create_buffer(state->VB, g::buffer::type::VERTEX_BUFFER, g::buffer::usage::DYNAMIC, sizeof(triangle));
 
-            auto *layout = GAME_NEW(g::buffer_layout);
+            auto *layout = new g::buffer_layout;
             layout->add("POSITION", g::gtype::F32_3);
             layout->add("COLOR", g::gtype::F32_4);
             state->VB->set_input_layout(layout);
@@ -52,10 +59,9 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             state->VB->unmap();
 
             u32 indices[] = {0, 1, 2};
-            state->IB = GAME_NEW(g::dx_buffer);
+            state->IB = new g::dx_buffer;
             g->create_buffer(state->IB, g::buffer::type::INDEX_BUFFER, g::buffer::usage::IMMUTABLE,
                              (const char *) indices, sizeof(indices));
-        } else {
         }
 
         Context.init_temporary_allocator(1_MiB);

@@ -103,6 +103,8 @@ struct win32_state {
         ModuleName.reserve(reserved * 2);
         utf16_to_utf8(buffer, const_cast<char *>(ModuleName.Data), &ModuleName.ByteLength);
         ModuleName.Length = utf8_strlen(ModuleName.Data, ModuleName.ByteLength);
+
+        const_cast<implicit_context *>(&Context)->ThreadID = thread::id((u64) GetCurrentThreadId());
     }
 };
 static win32_state STATE;

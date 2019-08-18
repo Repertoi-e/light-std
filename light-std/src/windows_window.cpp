@@ -176,9 +176,6 @@ window *window::init(string title, u32 width, u32 height, bool vsync) {
 
     PDATA->MouseInClient = true;
 
-    // Pray that people aren't insane and going to put such long window titles
-    Context.init_temporary_allocator(500_KiB);
-
     constexpr wchar_t CLASS_NAME[] = L"Le engine window class";
 
     HINSTANCE hInstance = ((HINSTANCE) &__ImageBase);

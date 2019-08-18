@@ -29,7 +29,7 @@ struct delegate<R(A...)> {
     }
 
     delegate() = default;
-    delegate(nullptr_t) : delegate() {}
+    delegate(nullptr_t) {}
 
     template <typename C, typename = typename enable_if<is_class<C>{}>::type>
     explicit delegate(const C *o) : ObjectPtr((C *) o) {}
@@ -86,8 +86,8 @@ struct delegate<R(A...)> {
         size_t requiredSize = sizeof(functor_type);
         if (requiredSize > StoreSize) {
             release();
-            
-			StoreSize = requiredSize;
+
+            StoreSize = requiredSize;
             Store = encode_owner(new char[StoreSize + POINTER_SIZE], this);
         }
 
@@ -161,7 +161,7 @@ struct delegate<R(A...)> {
     void release() {
         StubPtr = null;
         if (is_owner()) {
-            DestructorCaller();
+            DestructorCaller(ObjectPtr);
             delete[](Store - POINTER_SIZE);
         }
     }
@@ -220,5 +220,29 @@ struct delegate<R(A...)> {
         return (((T *) objectPtr)->First->*((T *) objectPtr)->Second)(((A &&) args)...);
     }
 };
+
+template <typename T>
+delegate<T> *clone(delegate<T> *dest, delegate<T> src) {
+    dest->release();
+    *dest = src;
+    if (src.StoreSize) {
+        dest->Store = encode_owner(new char[src.StoreSize + POINTER_SIZE], dest);
+        copy_memory(dest->Store, src.Store, src.StoreSize);
+    }
+    return dest;
+}
+
+template <typename T>
+delegate<T> *move(delegate<T> *dest, delegate<T> *src) {
+    assert(src->is_owner());
+
+    dest->release();
+    *dest = *src;
+
+    // Transfer ownership
+    if (src->Store) change_owner(src->Store, dest);
+    if (dest->Store) change_owner(dest->Store, dest);
+    return dest;
+}
 
 LSTD_END_NAMESPACE

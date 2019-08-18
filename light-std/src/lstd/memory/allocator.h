@@ -34,6 +34,12 @@ constexpr u64 DO_INIT_FLAG = BIT(31);
 void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
                         alignment align, u64);
 
+//
+// OS allocator:
+//
+void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, alignment align,
+                   u64);
+
 // This specifies what the signature of each allocation function should look like.
 //
 // _mode_ is what we are doing currently, allocating, resizing,
@@ -125,8 +131,8 @@ struct allocator {
     static void *encode_header(void *ptr, size_t size, allocator_func_t function, void *context) {
         auto *result = (allocation_header *) ptr;
 
-        // @Thread Use something like InterlockedIncrement
-        result->ID = AllocationCount++;
+        result->ID = AllocationCount;
+        ATOMIC_INC_64((s64 *) &AllocationCount);
 
         result->AllocatorFunction = function;
         result->AllocatorContext = context;
@@ -233,9 +239,22 @@ inline allocator Malloc = {default_allocator, null};
 //
 
 struct temporary_allocator_data {
+    struct overflow_page {
+        void *Storage = null;
+        size_t Reserved = 0;
+        size_t Used = 0;
+
+        overflow_page *Next = null;
+    };
+
     void *Storage = null;
     size_t Reserved = 0;
     size_t Used = 0;
+
+    // Including overflow pages
+    size_t OverallUsed = 0;
+
+    overflow_page *OverflowPageList;
 };
 
 // This allocator works like an arena allocator.

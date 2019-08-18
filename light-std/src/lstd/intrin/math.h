@@ -83,6 +83,11 @@ enable_if_t<is_floating_point_v<T>, T> ATAN2(T y, T x) {
 }
 
 template <typename T>
+enable_if_t<is_floating_point_v<T>, T> LOG_2(T x) {
+    return (T)::log2(x);
+}
+
+template <typename T>
 enable_if_t<is_floating_point_v<T>, T> CLAMP(T value, T minimum, T maximum) {
     return (value > minimum) ? (value < maximum) ? value : maximum : minimum;
 }
