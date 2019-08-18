@@ -25,8 +25,7 @@ struct implicit_context {
     allocator Alloc = Malloc;
 
     // This allocator gets initialized the first time it gets used in a thread.
-    // The only valid place to define this is here in the implicit context.
-    // Each thread gets a unique temporary allocator to prevent data races and to remain fast .
+    // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
     temporary_allocator_data TemporaryAllocData;
     allocator TemporaryAlloc = {temporary_allocator, &TemporaryAllocData};
 
