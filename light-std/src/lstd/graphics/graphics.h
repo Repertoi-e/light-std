@@ -144,7 +144,7 @@ struct texture_2D : public texture {
     u32 Width, Height;
 
     // Set pixel data
-    virtual void set_data(const char *pixels) = 0;
+    virtual void set_data(const u8 *pixels) = 0;
 
     // Fill the texture with 1 color
     virtual void set_data(u32 color) = 0;
@@ -257,13 +257,11 @@ struct buffer : non_copyable, non_movable {
     type Type = NONE;
     usage Usage = DEFAULT;
     size_t Size = 0;
-
-    // Don't set directly, use _set_input_layout()_, which calls the graphics API.
-    buffer_layout *Layout = null;
+    size_t Stride = 0;  // Determined by the buffer layout
 
     virtual ~buffer() = default;
 
-    virtual void set_input_layout(buffer_layout *layout) = 0;
+    virtual void set_input_layout(buffer_layout layout) = 0;
 
     virtual void *map(map_access access) = 0;
     virtual void unmap() = 0;
@@ -291,9 +289,9 @@ struct graphics : non_copyable, non_movable {
 
     virtual void clear_color(vec4 color) = 0;
 
-    virtual void set_blend(bool enabled) {}
-    virtual void set_depth_testing(bool enabled) {}
-    virtual void set_cull_mode(cull mode){};
+    virtual void set_blend(bool enabled) = 0;
+    virtual void set_depth_testing(bool enabled) = 0;
+    virtual void set_cull_mode(cull mode) = 0;
 
     virtual void create_buffer(buffer *buffer, buffer::type type, buffer::usage usage, size_t size) = 0;
     virtual void create_buffer(buffer *buffer, buffer::type type, buffer::usage usage, const char *initialData,
@@ -311,8 +309,8 @@ struct graphics : non_copyable, non_movable {
                                              bool flipY = false, texture::filter filter = texture::LINEAR,
                                              texture::wrap wrap = texture::CLAMP) = 0;
 
-    virtual void draw(size_t vertices) = 0;
-    virtual void draw_indexed(size_t indices) = 0;
+    virtual void draw(size_t vertices, size_t startVertexLocation = 0) = 0;
+    virtual void draw_indexed(size_t indices, size_t startIndex = 0, size_t baseVertexLocation = 0) = 0;
 
     virtual void swap() = 0;
 

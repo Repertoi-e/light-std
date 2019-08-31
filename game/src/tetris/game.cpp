@@ -69,9 +69,9 @@ void reload(game_memory *memory, graphics *g) {
     state->VB = new dx_buffer;
     g->create_buffer(state->VB, buffer::type::VERTEX_BUFFER, buffer::usage::DYNAMIC, sizeof(triangle));
 
-    auto *layout = new buffer_layout;
-    layout->add("POSITION", gtype::F32_3);
-    layout->add("COLOR", gtype::F32_4);
+    buffer_layout layout;
+    layout.add("POSITION", gtype::F32_3);
+    layout.add("COLOR", gtype::F32_4);
     state->VB->set_input_layout(layout);
 
     auto *data = state->VB->map(buffer::map_access::WRITE_UNSYNCHRONIZED);

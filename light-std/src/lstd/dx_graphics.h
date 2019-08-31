@@ -43,7 +43,7 @@ struct dx_texture_2D : public texture_2D {
     void unbind(u32 slot) override;
 #endif
 
-    void set_data(const char *pixels) override;
+    void set_data(const u8 *pixels) override;
     void set_data(u32 color) override;
 
     void release() override;
@@ -60,7 +60,7 @@ struct dx_buffer : public buffer {
     dx_buffer() = default;
     ~dx_buffer() { release(); }
 
-    void set_input_layout(buffer_layout *layout) override;
+    void set_input_layout(buffer_layout layout) override;
 
     void *map(map_access access) override;
     void unmap() override;
@@ -153,8 +153,8 @@ struct dx_graphics : public graphics {
                                      bool flipY = false, texture::filter filter = texture::LINEAR,
                                      texture::wrap wrap = texture::CLAMP) override;
 
-    void draw(size_t vertices) override;
-    void draw_indexed(size_t indices) override;
+    void draw(size_t vertices, size_t startVertexLocation = 0) override;
+    void draw_indexed(size_t indices, size_t startIndex = 0, size_t baseVertexLocation = 0) override;
 
     void swap() override;
 

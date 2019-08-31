@@ -111,7 +111,7 @@ void dx_texture_2D::unbind(u32 slot) {
 }
 #endif
 
-void dx_texture_2D::set_data(const char *pixels) {
+void dx_texture_2D::set_data(const u8 *pixels) {
     D3D11_MAPPED_SUBRESOURCE mappedData;
     zero_memory(&mappedData, sizeof(mappedData));
 
@@ -133,14 +133,14 @@ void dx_texture_2D::release() {
     SAFE_RELEASE(D3DSamplerState);
 }
 
-void dx_buffer::set_input_layout(buffer_layout *layout) {
-    Layout = layout;
+void dx_buffer::set_input_layout(buffer_layout layout) {
+    Stride = layout.TotalSize;
 
     SAFE_RELEASE(D3DLayout);
 
-    auto *desc = new (Context.TemporaryAlloc) D3D11_INPUT_ELEMENT_DESC[layout->Elements.Count];
+    auto *desc = new (Context.TemporaryAlloc) D3D11_INPUT_ELEMENT_DESC[layout.Elements.Count];
     auto *p = desc;
-    For(layout->Elements) {
+    For(layout.Elements) {
         *p++ = {it.Name.to_c_string(Context.TemporaryAlloc),
                 0,
                 gtype_and_count_to_dxgi_format(it.Type, it.Count, it.Normalized),
@@ -151,7 +151,7 @@ void dx_buffer::set_input_layout(buffer_layout *layout) {
     }
 
     auto *vs = (ID3DBlob *) D3DGraphics->D3DBoundShader->D3DData.VSBlob;
-    DXCHECK(D3DGraphics->D3DDevice->CreateInputLayout(desc, (u32) layout->Elements.Count, vs->GetBufferPointer(),
+    DXCHECK(D3DGraphics->D3DDevice->CreateInputLayout(desc, (u32) layout.Elements.Count, vs->GetBufferPointer(),
                                                       vs->GetBufferSize(), &D3DLayout));
 }
 
@@ -171,7 +171,7 @@ void dx_buffer::unmap() { D3DGraphics->D3DDeviceContext->Unmap(D3DBuffer, 0); }
 
 void dx_buffer::bind(bind_data bindData) {
     if (Type == type::VERTEX_BUFFER) {
-        if (bindData.Stride == 0) bindData.Stride = (u32) Layout->TotalSize;
+        if (bindData.Stride == 0) bindData.Stride = (u32) Stride;
 
         D3D_PRIMITIVE_TOPOLOGY d3dTopology = (D3D_PRIMITIVE_TOPOLOGY) 0;
         if (bindData.Topology == primitive_topology::LineList) d3dTopology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
@@ -604,14 +604,12 @@ static gtype string_to_gtype(string type) {
     if (digit != npos) {
         size_t x = type.find('x');
         string scalarType = type.substring(0, digit);
-        if (scalarType == "bool")
-            return (gtype)((u32) gtype::BOOL_1x1 + (type[digit] - '0') * 4 + (x == npos ? 0 : type[x] - '0'));
-        if (scalarType == "int" || scalarType == "int32")
-            return (gtype)((u32) gtype::S32_1x1 + (type[digit] - '0') * 4 + (x == npos ? 0 : type[x] - '0'));
+        size_t offset = (type[digit] - '0' - 1) * 4 + (x == npos ? 0 : type[x + 1] - '0' - 1);
+        if (scalarType == "bool") return (gtype)((u32) gtype::BOOL_1x1 + offset);
+        if (scalarType == "int" || scalarType == "int32") return (gtype)((u32) gtype::S32_1x1 + offset);
         if (scalarType == "uint" || scalarType == "uint32" || scalarType == "dword")
-            return (gtype)((u32) gtype::U32_1x1 + (type[digit] - '0') * 4 + (x == npos ? 0 : type[x] - '0'));
-        if (scalarType == "float")
-            return (gtype)((u32) gtype::F32_1x1 + (type[digit] - '0') * 4 + (x == npos ? 0 : type[x] - '0'));
+            return (gtype)((u32) gtype::U32_1x1 + offset);
+        if (scalarType == "float") return (gtype)((u32) gtype::F32_1x1 + offset);
     } else {
         if (type == "bool") return gtype::BOOL;
         if (type == "int" || type == "int32") return gtype::S32;
@@ -658,17 +656,18 @@ void dx_graphics::create_shader(shader *shader, string name, file::path path) {
 
     // @TODO Parse shaders structs
 
-    size_t cbuffer;
+    size_t cbuffer = 0;
     // Parse constant buffers and store the metadata
-    while ((cbuffer = source.find("cbuffer")) != npos) {
-        size_t closingBraces = 0;
-        size_t brace = 0;
-        while (true) {
-            brace = source.find('}');
-            if (source.substring(cbuffer, brace).count('{') == closingBraces) break;
-        }
+    while ((cbuffer = source.find("cbuffer", cbuffer)) != npos) {
+        size_t brace = source.find('}');
+        string block = source.substring(cbuffer, brace + 1);
 
-        string block = source.substring(cbuffer, brace);
+        while (true) {
+            if (source.substring(cbuffer, brace).count('{') == block.count('}')) break;
+            brace = source.find('}');
+            block = source.substring(cbuffer, brace + 1);
+        }
+        ++cbuffer;
 
         // Tokenize
         array<string> tokens;
@@ -730,21 +729,25 @@ void dx_graphics::create_shader(shader *shader, string name, file::path path) {
             }
 
             shader::uniform decl;
-            decl.Name = name;
+            clone(&decl.Name, name);
             decl.Type = string_to_gtype(type);
             decl.Offset = uniformBuffer.ByteSize;
             decl.ByteSize = get_size_of_base_gtype_in_bits(decl.Type) / 8;  // Guaranteed not to be 1-bit
             decl.Count = get_count_of_gtype(decl.Type);
             uniformBuffer.ByteSize += decl.ByteSize * decl.Count;
-            uniformBuffer.Uniforms.append(decl);
+            move(uniformBuffer.Uniforms.append(), &decl);
         }
         move(&dxShader->UniformBuffers.append(uniformBuffer)->Uniforms, &uniformBuffer.Uniforms);
     }
 }
 
-void dx_graphics::draw(size_t vertices) { D3DDeviceContext->Draw((u32) vertices, 0); }
+void dx_graphics::draw(size_t vertices, size_t startVertexLocation) {
+    D3DDeviceContext->Draw((u32) vertices, (u32) startVertexLocation);
+}
 
-void dx_graphics::draw_indexed(size_t indices) { D3DDeviceContext->DrawIndexed((u32) indices, 0, 0); }
+void dx_graphics::draw_indexed(size_t indices, size_t startIndex, size_t baseVertexLocation) {
+    D3DDeviceContext->DrawIndexed((u32) indices, (u32) startIndex, (u32) baseVertexLocation);
+}
 
 void dx_graphics::swap() {
     assert(CurrentTargetWindow->Window);  // May be a null target

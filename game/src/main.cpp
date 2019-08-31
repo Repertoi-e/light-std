@@ -10,7 +10,7 @@
 #include <lstd/file.h>
 #include <lstd/graphics/ui/imgui.h>
 #include <lstd/graphics/ui/imgui_impl.h>
-#include <lstd/graphics/ui/imgui_impl_dx11.h>
+#include <lstd/graphics/ui/imgui_renderer.h>
 #include <lstd/io/fmt.h>
 #include <lstd/memory/dynamic_library.h>
 #include <lstd/os.h>
@@ -125,9 +125,10 @@ s32 main() {
     // May get handled by the statement above, but just to be sure!
     defer(g.remove_target_window(&gameMemory.MainWindow));
 
-    // Setup Platform/Renderer bindings
+    imgui_renderer imguiRenderer;
+    imguiRenderer.init(&g);
+
     ImGui_Impl_Init(&gameMemory.MainWindow, &g);
-    ImGui_ImplDX11_Init(g.D3DDevice, g.D3DDeviceContext);
 
     while (true) {
         gameMemory.ReloadedThisFrame = check_for_dll_change();
@@ -137,7 +138,6 @@ s32 main() {
 
         if (GameUpdateAndRender) GameUpdateAndRender(&gameMemory, &g);
 
-        ImGui_ImplDX11_NewFrame();
         ImGui_Impl_NewFrame();
         ImGui::NewFrame();
 
@@ -147,13 +147,13 @@ s32 main() {
 
         g.set_current_target_window(&gameMemory.MainWindow);
         g.set_cull_mode(cull::None);
-        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+        imguiRenderer.draw(ImGui::GetDrawData());
         g.swap();
 
         // Update and Render additional Platform Windows
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
             ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
+            ImGui::RenderPlatformWindowsDefault(null, &imguiRenderer);
         }
     }
 }
