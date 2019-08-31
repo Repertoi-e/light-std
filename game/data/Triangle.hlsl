@@ -12,4 +12,4 @@ VOut VSMain(float3 position : POSITION, float4 color : COLOR) {
     return output;
 }
 
-float4 PSMain(float4 position : SV_POSITION, float4 color : COLOR) : SV_TARGET { return color; }
+float4 PSMain(VOut input) : SV_TARGET { return input.color; }

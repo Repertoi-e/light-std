@@ -59,9 +59,9 @@ void string::reserve(size_t target) {
 void string::release() {
     if (is_owner()) {
         delete[](Data - POINTER_SIZE);
-        Data = null;
-        Length = ByteLength = Reserved = 0;
     }
+    Data = null;
+    Length = ByteLength = Reserved = 0;
 }
 
 string *string::set(s64 index, char32_t codePoint) {

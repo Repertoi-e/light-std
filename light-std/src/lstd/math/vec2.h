@@ -63,15 +63,15 @@ struct tvec2 {
     tvec2<T>(T scalar);
     tvec2<T>(T x, T y);
 
-    tvec2<T> &add(tvec2<T> other);
-    tvec2<T> &subtract(tvec2<T> other);
-    tvec2<T> &multiply(tvec2<T> other);
-    tvec2<T> &divide(tvec2<T> other);
+    tvec2<T> *add(tvec2<T> other);
+    tvec2<T> *subtract(tvec2<T> other);
+    tvec2<T> *multiply(tvec2<T> other);
+    tvec2<T> *divide(tvec2<T> other);
 
-    tvec2<T> &add(T value);
-    tvec2<T> &subtract(T value);
-    tvec2<T> &multiply(T value);
-    tvec2<T> &divide(T value);
+    tvec2<T> *add(T value);
+    tvec2<T> *subtract(T value);
+    tvec2<T> *multiply(T value);
+    tvec2<T> *divide(T value);
 
     bool operator==(tvec2<T> other) const;
     bool operator!=(tvec2<T> other) const;
@@ -111,7 +111,7 @@ tvec2<T>::tvec2(T x, T y) {
 }
 
 template <typename T>
-tvec2<T> &tvec2<T>::add(tvec2<T> other) {
+tvec2<T> *tvec2<T>::add(tvec2<T> other) {
     x += other.x;
     y += other.y;
 
@@ -119,7 +119,7 @@ tvec2<T> &tvec2<T>::add(tvec2<T> other) {
 }
 
 template <typename T>
-tvec2<T> &tvec2<T>::subtract(tvec2<T> other) {
+tvec2<T> *tvec2<T>::subtract(tvec2<T> other) {
     x -= other.x;
     y -= other.y;
 
@@ -127,7 +127,7 @@ tvec2<T> &tvec2<T>::subtract(tvec2<T> other) {
 }
 
 template <typename T>
-tvec2<T> &tvec2<T>::multiply(tvec2<T> other) {
+tvec2<T> *tvec2<T>::multiply(tvec2<T> other) {
     x *= other.x;
     y *= other.y;
 
@@ -135,7 +135,7 @@ tvec2<T> &tvec2<T>::multiply(tvec2<T> other) {
 }
 
 template <typename T>
-tvec2<T> &tvec2<T>::divide(tvec2<T> other) {
+tvec2<T> *tvec2<T>::divide(tvec2<T> other) {
     x /= other.x;
     y /= other.y;
 
@@ -143,7 +143,7 @@ tvec2<T> &tvec2<T>::divide(tvec2<T> other) {
 }
 
 template <typename T>
-tvec2<T> &tvec2<T>::add(T value) {
+tvec2<T> *tvec2<T>::add(T value) {
     x += value;
     y += value;
 
@@ -151,7 +151,7 @@ tvec2<T> &tvec2<T>::add(T value) {
 }
 
 template <typename T>
-tvec2<T> &tvec2<T>::subtract(T value) {
+tvec2<T> *tvec2<T>::subtract(T value) {
     x -= value;
     y -= value;
 
@@ -159,7 +159,7 @@ tvec2<T> &tvec2<T>::subtract(T value) {
 }
 
 template <typename T>
-tvec2<T> &tvec2<T>::multiply(T value) {
+tvec2<T> *tvec2<T>::multiply(T value) {
     x *= value;
     y *= value;
 
@@ -167,7 +167,7 @@ tvec2<T> &tvec2<T>::multiply(T value) {
 }
 
 template <typename T>
-tvec2<T> &tvec2<T>::divide(T value) {
+tvec2<T> *tvec2<T>::divide(T value) {
     x /= value;
     y /= value;
 
@@ -186,42 +186,42 @@ bool tvec2<T>::operator!=(tvec2<T> other) const {
 
 template <typename T>
 tvec2<T> &tvec2<T>::operator+=(tvec2<T> other) {
-    return add(other);
+    return *add(other);
 }
 
 template <typename T>
 tvec2<T> &tvec2<T>::operator-=(tvec2<T> other) {
-    return subtract(other);
+    return *subtract(other);
 }
 
 template <typename T>
 tvec2<T> &tvec2<T>::operator*=(tvec2<T> other) {
-    return multiply(other);
+    return *multiply(other);
 }
 
 template <typename T>
 tvec2<T> &tvec2<T>::operator/=(tvec2<T> other) {
-    return divide(other);
+    return *divide(other);
 }
 
 template <typename T>
 tvec2<T> &tvec2<T>::operator+=(T value) {
-    return add(value);
+    return *add(value);
 }
 
 template <typename T>
 tvec2<T> &tvec2<T>::operator-=(T value) {
-    return subtract(value);
+    return *subtract(value);
 }
 
 template <typename T>
 tvec2<T> &tvec2<T>::operator*=(T value) {
-    return multiply(value);
+    return *multiply(value);
 }
 
 template <typename T>
 tvec2<T> &tvec2<T>::operator/=(T value) {
-    return divide(value);
+    return *divide(value);
 }
 
 template <typename T>
@@ -246,42 +246,42 @@ bool tvec2<T>::operator>=(tvec2<T> other) const {
 
 template <typename T>
 tvec2<T> operator+(tvec2<T> left, tvec2<T> right) {
-    return left.add(right);
+    return *left.add(right);
 }
 
 template <typename T>
 tvec2<T> operator-(tvec2<T> left, tvec2<T> right) {
-    return left.subtract(right);
+    return *left.subtract(right);
 }
 
 template <typename T>
 tvec2<T> operator*(tvec2<T> left, tvec2<T> right) {
-    return left.multiply(right);
+    return *left.multiply(right);
 }
 
 template <typename T>
 tvec2<T> operator/(tvec2<T> left, tvec2<T> right) {
-    return left.divide(right);
+    return *left.divide(right);
 }
 
 template <typename T>
 tvec2<T> operator+(tvec2<T> left, T value) {
-    return left.add(value);
+    return *left.add(value);
 }
 
 template <typename T>
 tvec2<T> operator-(tvec2<T> left, T value) {
-    return left.subtract(value);
+    return *left.subtract(value);
 }
 
 template <typename T>
 tvec2<T> operator*(tvec2<T> left, T value) {
-    return left.multiply(value);
+    return *left.multiply(value);
 }
 
 template <typename T>
 tvec2<T> operator/(tvec2<T> left, T value) {
-    return left.divide(value);
+    return *left.divide(value);
 }
 
 

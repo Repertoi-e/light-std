@@ -25,6 +25,7 @@ function common_settings()
 		systemversion "latest"
 		defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
 		buildoptions { "/utf-8" }
+		links { "Dwmapi.lib" }
 
 	-- Exclude directx files on non-windows platforms since they would cause compilation errors
 	filter "not system:windows"
@@ -73,7 +74,8 @@ project "light-std"
 
 	files {
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.c",
+		"%{prj.name}/src/**.cpp"
 	}
 
 	common_settings()

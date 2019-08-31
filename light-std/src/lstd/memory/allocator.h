@@ -22,7 +22,7 @@ enum class alignment : size_t;
 // This is a user flag when allocating.
 // When specified, the allocated memory is initialized.
 // This is handled internally, so allocator implementations don't need to pay attention to it.
-constexpr u64 DO_INIT_FLAG = BIT(31);
+constexpr u64 DO_INIT_FLAG = 1ull << 31;
 
 //
 // OS allocator:
@@ -228,30 +228,30 @@ inline allocator Malloc = {default_allocator, null};
 //
 
 struct temporary_allocator_data {
-    struct overflow_page {
+    struct page {
         void *Storage = null;
         size_t Reserved = 0;
         size_t Used = 0;
 
-        overflow_page *Next = null;
+        page *Next = null;
     };
 
-    void *Storage = null;
-    size_t Reserved = 0;
-    size_t Used = 0;
-
-    // Including overflow pages
-    size_t OverallUsed = 0;
-
-    overflow_page *OverflowPageList;
+    page Base;
+    size_t TotalUsed = 0;
 };
 
 // This allocator works like an arena allocator.
 // It's super fast because it basically bumps a pointer.
 // It can be used globally to allocate memory that is not meant to last long
 // (e.g. return value of a function that converts utf8 to utf16 to pass to a windows call)
+//
 // With this allocator you don't free individual allocations, but instead FREE_ALL the entire thing
-// when you are use nobody uses the "temporary memory".
+// when you are use nobody uses the "temporary memory" anymore.
+//
+// It initializes itself the first time you allocate with it, the available space is always a multiple of 8 KiB,
+// when we run out of space we allocate "overflow pages" and keep a list of them. The next time you FREE_ALL,
+// these pages are merged and the default buffer is resized (new size is the combined size of all allocated buffers).
+//
 // Example use case: if you are programming a game and you need to calculate a mesh for a frame,
 //     using this allocators means having the freedom of calling new/delete without performance implications.
 //     At the end of the frame when the memory is no longer needed you FREE_ALL and start the next frame.

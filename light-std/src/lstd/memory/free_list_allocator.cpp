@@ -80,9 +80,10 @@ size_t free_list_allocator_data::find_best(size_t size, size_t align, node **pre
 }
 
 void free_list_allocator_data::init(size_t totalSize, u8 policy) {
-    TotalSize = totalSize;
+	Storage = new (Malloc) char[totalSize];
+    Reserved = totalSize;
+
     PlacementPolicy = policy;
-    StartPtr = new (Malloc) char[totalSize];
 
     // Initializes linked list
     allocator{free_list_allocator, this}.free_all();
@@ -209,8 +210,8 @@ void *free_list_allocator(allocator_mode mode, void *context, size_t size, void 
         case allocator_mode::FREE_ALL: {
             data->Used = data->PeakUsed = 0;
 
-            auto *firstNode = (node *) data->StartPtr;
-            firstNode->BlockSize = data->TotalSize;
+            auto *firstNode = (node *) data->Storage;
+            firstNode->BlockSize = data->Reserved;
             firstNode->Next = null;
             data->FreeListHead = firstNode;
             return (void *) -1;

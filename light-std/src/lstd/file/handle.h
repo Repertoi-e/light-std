@@ -27,6 +27,7 @@ struct handle {
     // Only used on Windows
     wchar_t *Utf16Path = null;
 
+    // The constructor clones the path, so handles don't require path objects to be kept valid
     handle(path path);
     handle(string str) : handle(path(str)) {}
     ~handle() {

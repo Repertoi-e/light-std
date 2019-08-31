@@ -5,7 +5,35 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// @TODO: _sort()_
+template <typename T>
+constexpr T *partition(T *first, T *last, T *pivot) {
+    --last;
+    swap(*pivot, *last);
+    pivot = last;
+
+    while (true) {
+        while (*first < *pivot) ++first;
+        --last;
+        while (*pivot < *last) --last;
+        if (first >= last) {
+            swap(*pivot, *first);
+            return first;
+        }
+        swap(*first, *last);
+        ++first;
+    }
+}
+
+template <typename T>
+constexpr void quicksort(T *first, T *last) {
+    if (first >= last) return;
+
+    auto *pivot = first + (last - first) / 2;
+    auto *nextPivot = partition(first, last, pivot);
+    quicksort(first, nextPivot);
+    quicksort(nextPivot + 1, last);
+}
+
 template <typename T, size_t N>
 struct stack_array {
     static_assert(N > 0, "Cannot have a zero-sized array.");
@@ -20,6 +48,8 @@ struct stack_array {
 
     constexpr data_t &get(s64 index) { return Data[translate_index(index, Count)]; }
     constexpr const data_t &get(s64 index) const { return Data[translate_index(index, Count)]; }
+
+    constexpr void sort() { quicksort(Data, Data + Count); }
 
     // Compares this array to _arr_ and returns the index of the first element that is different.
     // If the arrays are equal, the returned value is npos (-1)

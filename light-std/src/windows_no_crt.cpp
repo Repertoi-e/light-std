@@ -74,23 +74,22 @@ extern "C" {
 struct _onexit_table_t {
     _PVFV *_first, *_last, *_end;
 };
-_onexit_table_t g_ExitTable{};
+static _onexit_table_t ExitTable{};
 
-
-static bool g_ExitMutexInitted = false;
-static CRITICAL_SECTION g_AtExitMutex;
+static bool ExitMutexInitted = false;
+static CRITICAL_SECTION AtExitMutex;
 
 int __cdecl atexit(_PVFV function) {
-    if (!g_ExitMutexInitted) {
-        InitializeCriticalSectionEx(&g_AtExitMutex, 4000, 0);
-        g_ExitMutexInitted = true;
+    if (!ExitMutexInitted) {
+        InitializeCriticalSectionEx(&AtExitMutex, 4000, 0);
+        ExitMutexInitted = true;
     }
-    EnterCriticalSection(&g_AtExitMutex);
-    defer{ LeaveCriticalSection(&g_AtExitMutex); };
+    EnterCriticalSection(&AtExitMutex);
+    defer { LeaveCriticalSection(&AtExitMutex); };
 
-    _PVFV *first = g_ExitTable._first;
-    _PVFV *last = g_ExitTable._last;
-    _PVFV *end = g_ExitTable._end;
+    _PVFV *first = ExitTable._first;
+    _PVFV *last = ExitTable._last;
+    _PVFV *end = ExitTable._end;
 
     // If there is no room for the new entry, reallocate a larger table:
     if (last == end) {
@@ -102,7 +101,7 @@ int __cdecl atexit(_PVFV function) {
 
         _PVFV *newFirst = null;
         if (newCount >= oldCount) {
-            if (g_ExitTable._first) {
+            if (ExitTable._first) {
                 newFirst = (_PVFV *) resize(first, newCount);
             } else {
                 newFirst = (_PVFV *) new _PVFV[newCount];
@@ -117,9 +116,9 @@ int __cdecl atexit(_PVFV function) {
 
     *last++ = (_PVFV)(function);
 
-    g_ExitTable._first = first;
-    g_ExitTable._last = last;
-    g_ExitTable._end = end;
+    ExitTable._first = first;
+    ExitTable._last = last;
+    ExitTable._end = end;
 
     return 0;
 }
@@ -229,7 +228,7 @@ static __declspec(allocate(".CRT$XLD")) _tls_callback_type __xl_d = tls_uninit;
 // Access to these variables is guarded in the below functions.  They may only
 // be modified while the lock is held.  _Tss_epoch is readable from user
 // code and is read without taking the lock.
-int g_InitEpoch = INT_MIN;
+static s32 InitEpoch = INT_MIN;
 __declspec(thread) int _Init_thread_epoch = INT_MIN;
 
 static CRITICAL_SECTION g_TssMutex;
@@ -249,7 +248,7 @@ void __cdecl _Init_thread_header(int *const pOnce) {
                 return;
             }
         }
-        _Init_thread_epoch = g_InitEpoch;
+        _Init_thread_epoch = InitEpoch;
     }
 }
 
@@ -258,9 +257,9 @@ void __cdecl _Init_thread_header(int *const pOnce) {
 // initialized, and release waiting threads.
 void __cdecl _Init_thread_footer(int *const pOnce) noexcept {
     EnterCriticalSection(&g_TssMutex);
-    ++g_InitEpoch;
-    *pOnce = g_InitEpoch;
-    _Init_thread_epoch = g_InitEpoch;
+    ++InitEpoch;
+    *pOnce = InitEpoch;
+    _Init_thread_epoch = InitEpoch;
     LeaveCriticalSection(&g_TssMutex);
 
     WakeAllConditionVariable(&g_TssCv);
@@ -335,7 +334,7 @@ extern "C" LPSTR *CommandLineToArgvA(LPWSTR lpCmdLine, INT *pNumArgs) {
 
 extern "C" void execute_on_exit_table() {
     // Execute atexit callbacks
-    _PVFV *first = g_ExitTable._first, *last = g_ExitTable._last;
+    _PVFV *first = ExitTable._first, *last = ExitTable._last;
     if (first) {
         _PVFV *savedFirst = first, *savedLast = last;
         while (true) {
@@ -352,7 +351,7 @@ extern "C" void execute_on_exit_table() {
             *last = null;
 
             // Reset iteration if either the begin or end pointer has changed:
-            _PVFV *newFirst = g_ExitTable._first, *newLast = g_ExitTable._last;
+            _PVFV *newFirst = ExitTable._first, *newLast = ExitTable._last;
             if (newFirst != savedFirst || newLast != savedLast) {
                 first = savedFirst = newFirst;
                 last = savedLast = newLast;
@@ -360,15 +359,15 @@ extern "C" void execute_on_exit_table() {
         }
     }
 
-    if (g_ExitMutexInitted) {
-        DeleteCriticalSection(&g_AtExitMutex);
+    if (ExitMutexInitted) {
+        DeleteCriticalSection(&AtExitMutex);
     }
 }
 
 // This flag is incremented each time DLL_PROCESS_ATTACH is processed successfully
 // and is decremented each time DLL_PROCESS_DETACH is processed (the detach is
 // always assumed to complete successfully).
-static int g_ProcAttached = 0;
+static int ProcAttached = 0;
 
 // The client may define a _pRawDllMain.  This function gets called for attach
 // notifications before any other function is called, and gets called for detach
@@ -453,15 +452,15 @@ static BOOL WINAPI dllmain_crt_dispatch(HINSTANCE const instance, DWORD const re
 
             if (walk_table_of_functions_and_return_result(__xi_a, __xi_z) != 0) return FALSE;
             walk_table_of_functions(__xc_a, __xc_z);
-            ++g_ProcAttached;
+            ++ProcAttached;
             return TRUE;
         }
         case DLL_PROCESS_DETACH: {
             // If the attach did not complete successfully, or if the detach was already
             // executed, do not execute the detach:
-            if (g_ProcAttached <= 0) return FALSE;
+            if (ProcAttached <= 0) return FALSE;
 
-            --g_ProcAttached;
+            --ProcAttached;
 
             execute_on_exit_table();
             walk_table_of_functions(__xp_a, __xp_z);
@@ -530,7 +529,7 @@ extern "C" BOOL WINAPI main_no_crt_dll(HINSTANCE const instance, DWORD const rea
     // If this is a process detach notification, check that there was a prior
     // process attach notification that was processed successfully.  This is
     // to ensure that we don't detach more times than we attach.
-    if (reason == DLL_PROCESS_DETACH && g_ProcAttached <= 0) {
+    if (reason == DLL_PROCESS_DETACH && ProcAttached <= 0) {
         return FALSE;
     }
 

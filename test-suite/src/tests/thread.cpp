@@ -21,30 +21,30 @@ TEST(ids) {
     For(range(45)) fmt::print(" ");
 }
 
-thread_local static s32 g_LocalVar;
-static void thread_tls(void *) { g_LocalVar = 2; }
+thread_local static s32 TLSVar;
+static void thread_tls(void *) { TLSVar = 2; }
 
 TEST(thread_local_storage) {
-    g_LocalVar = 1;
+    TLSVar = 1;
 
     thread::thread t1(thread_tls, null);
     t1.join();
 
-    assert_eq(g_LocalVar, 1);
+    assert_eq(TLSVar, 1);
 }
 
-static thread::mutex g_Mutex;
-static s32 g_Count = 0;
+static thread::mutex Mutex;
+static s32 Count = 0;
 
 static void thread_lock(void *) {
     For(range(10000)) {
-        thread::scoped_lock<thread::mutex> _(&g_Mutex);
-        ++g_Count;
+        thread::scoped_lock<thread::mutex> _(&Mutex);
+        ++Count;
     }
 }
 
 TEST(mutex_lock) {
-    g_Count = 0;
+    Count = 0;
 
     array<thread::thread *> threads;
     For(range(100)) { threads.append(new thread::thread(thread_lock, null)); }
@@ -54,21 +54,20 @@ TEST(mutex_lock) {
         delete it;
     }
 
-    assert_eq(g_Count, 100 * 10000);
+    assert_eq(Count, 100 * 10000);
 }
 
-// This causes crashes
-static thread::fast_mutex g_FastMutex;
+static thread::fast_mutex FastMutex;
 
 static void thread_lock2(void *) {
     For(range(10000)) {
-        thread::scoped_lock<thread::fast_mutex> _(&g_FastMutex);
-        ++g_Count;
+        thread::scoped_lock<thread::fast_mutex> _(&FastMutex);
+        ++Count;
     }
 }
 
 TEST(fast_mutex_lock) {
-    g_Count = 0;
+    Count = 0;
 
     array<thread::thread *> threads;
     For(range(100)) { threads.append(new thread::thread(thread_lock2, null)); }
@@ -78,34 +77,34 @@ TEST(fast_mutex_lock) {
         delete it;
     }
 
-    assert_eq(g_Count, 100 * 10000);
+    assert_eq(Count, 100 * 10000);
 }
 
-static thread::condition_variable g_Cond;
+static thread::condition_variable Cond;
 
 static void thread_condition_notifier(void *) {
-    thread::scoped_lock<thread::mutex> _(&g_Mutex);
-    --g_Count;
-    g_Cond.notify_all();
+    thread::scoped_lock<thread::mutex> _(&Mutex);
+    --Count;
+    Cond.notify_all();
 }
 
 static void thread_condition_waiter(void *) {
-    thread::scoped_lock<thread::mutex> _(&g_Mutex);
-    while (g_Count > 0) {
-        g_Cond.wait(g_Mutex);
+    thread::scoped_lock<thread::mutex> _(&Mutex);
+    while (Count > 0) {
+        Cond.wait(Mutex);
     }
 
-    assert_eq(g_Count, 0);
+    assert_eq(Count, 0);
 }
 
 TEST(condition_variable) {
-    g_Count = 40;
+    Count = 40;
 
     thread::thread t1(thread_condition_waiter, null);
 
-    // These will decrease gCount by 1 when they finish)
+    // These will decrease Count by 1 when they finish)
     array<thread::thread *> threads;
-    For(range(g_Count)) { threads.append(new thread::thread(thread_condition_notifier, null)); }
+    For(range(Count)) { threads.append(new thread::thread(thread_condition_notifier, null)); }
 
     t1.join();
 

@@ -16,9 +16,6 @@ API for watching directory changes
 Implement the other part of platform specific functionality and compile on linux.
 Remove comments about posix thread implementation in _context.h_ and _thread.h_
 ---------------------------------------------------------------------------------
-Way to get monitor refresh rate (and possibly other system info)
-... and then replace game engine's game loop with a platform inspecific one
----------------------------------------------------------------------------------
 Rewrite vendor libraries and reduce to the minimum needed
 ---------------------------------------------------------------------------------
 Allow users to add more variables to Implicit_Context

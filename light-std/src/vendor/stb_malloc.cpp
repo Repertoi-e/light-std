@@ -12,4 +12,4 @@
 #define STBM_ATOMIC_COMPARE_AND_SWAP32
 
 #define STB_MALLOC_IMPLEMENTATION
-#include "stb_malloc.hpp"
+#include "stb_malloc.h"

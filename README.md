@@ -2,7 +2,7 @@
 # light-std
 A performance-oriented C++17 library for general programming that attempts to mimic Jai's context and allocators and provides common data structures that work with them.
 
-This library is supposed to be a lighter replacement of c/c++'s standard library in general but designed almost entirely differently. 
+This library is supposed to be a lighter replacement of C/C++'s standard library in general but designed almost entirely differently. 
 
 Anybody who thinks modern C++ is bananas, you've come to the right place! My view on a lot of C++ features is clearly visible in our type policy.
 ## Type policy
@@ -78,31 +78,42 @@ assert(integers == to_array(0, 1, 2, 3, 4));
 
 ### Example of custom allocations and implicit context:
 ```cpp
-// The temporary allocator is provided by the library, it's essentially 
-// a fast arena allocator that's available globally; supports only "free all"
-Context.init_temporary_allocator(4_MiB);
+memory = new char[150]; // using the default allocator 
+memory = new (Context.Alloc) char[150]; // the same as the line above
 
-byte *memory1 = new byte[150]; // using default allocator (Malloc)
+memory = new (Malloc) char[150];
+memory = new (Context.TemporaryAlloc) char[150];
 
-// _Context.Allocator_ is a variable inside the Context struct which can be accessed by anyone
-// or changed within a scope with "PUSH_CONTEXT" like so:
-PUSH_CONTEXT(Allocator, Context.TemporaryAlloc) {
+// my_allocator_function implements all the functionality of the allocator (allocating, alignment, freeing, etc.)
+// Take a look at _os_allocator_, _default_allocator_, _temporary_allocator_, to see examples on how to implement one.
+allocator myAlloctor = { my_allocator_function, null /*Can also pass user data!*/};
+memory = new (myAlloctor) char[150];
+
+// Passing a pointer to an allocator to new, uses the Context's allocator and stores it in the pointer.
+// This can be used to be absolutely sure you know the allocator the memory was allocated with, although that's not needed when freing (since each allocation stores that information in its header)
+allocator out;
+memory = new (&out) char[150]; 
+```
+
+```cpp
+char *memory = new char[150]; // using default allocator (Malloc)
+
+// The temporary allocator is provided by the library, it's essentially a fast arena allocator that's available globally and supports only "free all".
+// _Context.Alloc_ is a read-only variable inside the Context struct which can be accessed everywhere or changed within a scope with "PUSH_CONTEXT" like so:
+PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
     // Now using the temporary allocator, because the library overloads operators new/delete.
     // operator new by default uses _Context.Allocator_
-    byte *memory2 = new byte[150];
+    char *memory2 = new char[150];
 
     // Allocates with an explicit allocator even though _Context.Allocator_ is the temporary allocator.
-    byte *memory3 = new (Malloc) byte[150];
+    char *memory3 = new (Malloc) char[150];
     delete[] memory3;
 
     // ...
 }
 
-// Delete always calls the allocator the memory was allocated with.
-// This information is stored in an allocation header written in memory before every pointer returned by an allocator.
+// Delete always calls the allocator the memory was allocated with
 delete[] memory1;
 ```
 
 _More examples when the library is in a more solid state and API is finalized!_
-
-

@@ -4,11 +4,9 @@
 /// Implementations of it can be switched dynamically.
 
 #include "../file.h"
-#include "../window.h"
+#include "../video.h"
 
 LSTD_BEGIN_NAMESPACE
-
-namespace g {
 
 enum class gtype {
     Unknown = 0,
@@ -118,6 +116,39 @@ enum class gtype {
 gtype get_scalar_gtype(gtype type);
 size_t get_size_of_base_gtype_in_bits(gtype type);
 size_t get_count_of_gtype(gtype type);
+
+struct texture : non_copyable, non_movable {
+    enum wrap { NONE = 0, REPEAT, CLAMP, MIRRORED_REPEAT, CLAMP_TO_EDGE, CLAMP_TO_BORDER };
+    enum filter { LINEAR, NEAREST };
+
+    // @TODO: _texture_ should be an asset, move these fields when we have a catalog system
+    string Name;
+    file::path FilePath = "No path";  // We may have textures that are not created from disc
+
+    wrap Wrap;
+    filter Filter;
+
+    virtual ~texture() = default;
+
+    virtual void bind(u32 slot) = 0;
+
+// For debugging purposes (to reset state), shouldn't use this in Dist
+#if defined DEBUG || defined RELEASE
+    virtual void unbind(u32 slot) = 0;
+#endif
+
+    virtual void release() = 0;
+};
+
+struct texture_2D : public texture {
+    u32 Width, Height;
+
+    // Set pixel data
+    virtual void set_data(const char *pixels) = 0;
+
+    // Fill the texture with 1 color
+    virtual void set_data(u32 color) = 0;
+};
 
 // Holds both a vertex and a pixel shader (those are the two shader types we support for now!)
 struct shader : non_copyable, non_movable {
@@ -247,15 +278,22 @@ struct buffer : non_copyable, non_movable {
     virtual void release() = 0;
 };
 
+enum class cull : u32 { None = 0, Front, Back };
+
 struct graphics : non_copyable, non_movable {
     virtual ~graphics() = default;
 
-    virtual void init(window::window *targetWindow) = 0;
+    virtual void init() = 0;
+
+    virtual void add_target_window(window *win) = 0;
+    virtual void remove_target_window(window *win) = 0;
+    virtual void set_current_target_window(window *win) = 0;
 
     virtual void clear_color(vec4 color) = 0;
 
     virtual void set_blend(bool enabled) {}
     virtual void set_depth_testing(bool enabled) {}
+    virtual void set_cull_mode(cull mode){};
 
     virtual void create_buffer(buffer *buffer, buffer::type type, buffer::usage usage, size_t size) = 0;
     virtual void create_buffer(buffer *buffer, buffer::type type, buffer::usage usage, const char *initialData,
@@ -264,7 +302,14 @@ struct graphics : non_copyable, non_movable {
         create_buffer(buffer, type, usage, initialData.begin(), initialData.size());
     }
 
-    virtual void create_shader(shader *shader, file::path path) = 0;
+    virtual void create_shader(shader *shader, string name, file::path path) = 0;
+
+    virtual void create_texture_2D(texture_2D *texture, string name, u32 width, u32 height,
+                                   texture::filter filter = texture::LINEAR, texture::wrap wrap = texture::CLAMP) = 0;
+
+    virtual void create_texture_2D_from_file(texture_2D *texture, string name, file::path path, bool flipX = false,
+                                             bool flipY = false, texture::filter filter = texture::LINEAR,
+                                             texture::wrap wrap = texture::CLAMP) = 0;
 
     virtual void draw(size_t vertices) = 0;
     virtual void draw_indexed(size_t indices) = 0;
@@ -273,9 +318,5 @@ struct graphics : non_copyable, non_movable {
 
     virtual void release() = 0;
 };
-
-// @TODO:
-// struct gl_graphics : graphics {};
-}  // namespace g
 
 LSTD_END_NAMESPACE

@@ -5,14 +5,14 @@
 LSTD_BEGIN_NAMESPACE
 
 struct free_list_allocator_data {
-    size_t TotalSize = 0;
-    void *StartPtr = NULL;
+    void *Storage = null;
+    size_t Reserved = 0;
 
     struct node {
-        size_t BlockSize;
-        node *Next;
+        size_t BlockSize = 0;
+        node *Next = null;
     };
-    node *FreeListHead;
+    node *FreeListHead = null;
 
     size_t Used = 0, PeakUsed = 0;
 

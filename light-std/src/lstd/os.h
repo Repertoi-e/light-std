@@ -19,6 +19,9 @@ time_t os_get_time();
 // Converts a time stamp acquired by _os_get_time()_ to seconds
 f64 os_time_to_seconds(time_t time);
 
+string os_get_clipboard_content();
+void os_set_clipboard_content(string content);
+
 // Sleep for _ms_ milliseconds
 // void os_sleep(f64 ms);
 

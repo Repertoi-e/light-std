@@ -183,8 +183,8 @@ struct range {
 //     When a string gets contructed from a literal it doesn't allocate memory.
 //     _Reserved_ is 0 and the object works like a view.
 //
-//     If the string was constructed from a literal, shallow copy of another string or a byte buffer, 
-//     when you call modifying methods (like appending, inserting code points, etc.) the string allocates a buffer, 
+//     If the string was constructed from a literal, shallow copy of another string or a byte buffer,
+//     when you call modifying methods (like appending, inserting code points, etc.) the string allocates a buffer,
 //     copies the old one and now owns memory.
 //
 //
@@ -226,9 +226,22 @@ T *clone(T *dest, T src) {
 // By default, a normal copy is done (to make sure it can be called on all types)
 // Returns _dest_
 template <typename T>
-T *move(T *dest, T *src) {
+constexpr T *move(T *dest, T *src) {
     *dest = *src;
     return dest;
+}
+
+template <typename T>
+constexpr void swap(T &a, T &b) {
+    T c;
+    move(&c, &a);
+    move(&a, &b);
+    move(&b, &c);
+}
+
+template <typename T, size_t N>
+constexpr void swap(T (&a)[N], T (&b)[N]) {
+    For(range(N)) swap(a[it], b[it]);
 }
 
 //
@@ -284,10 +297,6 @@ constexpr size_t compare_memory_constexpr(const void *ptr1, const void *ptr2, si
 }
 
 LSTD_END_NAMESPACE
-
-#if COMPILER == MSVC
-#pragma warning(disable : 4291)
-#endif
 
 #if COMPILER != MSVC
 #pragma GCC diagnostic push

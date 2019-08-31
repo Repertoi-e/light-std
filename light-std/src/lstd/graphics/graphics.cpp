@@ -2,7 +2,6 @@
 
 LSTD_BEGIN_NAMESPACE
 
-namespace g {
 gtype get_scalar_gtype(gtype type) {
     u32 v = (u32) type;
     if (v >= (u32) gtype::BOOL_1x1 && v <= (u32) gtype::BOOL_4x4) return gtype::BOOL;
@@ -111,6 +110,5 @@ void buffer_layout::add(string name, gtype type, size_t count, bool normalized) 
     if (sizeInBits == 1) sizeInBits = 8;
     TotalSize += (sizeInBits / 8) * count;
 }
-}  // namespace g
 
 LSTD_END_NAMESPACE

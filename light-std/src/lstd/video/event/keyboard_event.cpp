@@ -2,10 +2,8 @@
 
 LSTD_BEGIN_NAMESPACE
 
-namespace window {
-
-// This following tables have been automatically generated:
-static const char KEYID_NAME[598] =
+// These following tables have been automatically generated:
+static const char *KEYID_NAME =
     "0\0001\0002\0003\0004\0005\0006\0007\0008\0009\0A\0B\0Backslash\0C\0CapsLoc"
     "k\0Comma\0D\0Delete\0DeleteForward\0Down\0E\0End\0Enter\0Equals\0Escape\0F"
     "\0F1\0F10\0F11\0F12\0F13\0F14\0F15\0F16\0F17\0F18\0F19\0F2\0F20\0F21\0F22\0"
@@ -61,6 +59,5 @@ string key_name_from_code(u32 code) {
     if (off == (u16) -1) return "";
     return string(KEYID_NAME + off);
 }
-}  // namespace window
 
 LSTD_END_NAMESPACE

@@ -170,7 +170,7 @@ u32 __stdcall thread::wrapper_function(void *data) {
 
     auto *unconstContext = const_cast<implicit_context *>(&Context);
     *unconstContext = *ti->ContextPtr;
-    zero_memory(&unconstContext->TemporaryAllocData, sizeof(temporary_allocator_data));
+    unconstContext->TemporaryAllocData = {};
     unconstContext->TemporaryAlloc.Context = &unconstContext->TemporaryAllocData;
     unconstContext->ThreadID = ::thread::id((u64) GetCurrentThreadId());
 

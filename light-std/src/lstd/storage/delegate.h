@@ -17,7 +17,7 @@ struct delegate<R(A...)> {
     void *ObjectPtr = null;
     stub_t StubPtr = null;
 
-    char *Store;
+    char *Store = null;
     size_t StoreSize = 0;
 
     using destructor_caller_t = void (*)(void *);

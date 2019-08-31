@@ -385,21 +385,21 @@ constexpr void encode_cp(char *str, char32_t codePoint) {
     } else if (size == 2) {
         // 2-byte/11-bit utf8 code point
         // (0b110xxxxx 0b10xxxxxx)
-        str[0] = 0xc0 | (char)(codePoint >> 6);
-        str[1] = 0x80 | (char)(codePoint & 0x3f);
+        str[0] = 0xc0 | (char) (codePoint >> 6);
+        str[1] = 0x80 | (char) (codePoint & 0x3f);
     } else if (size == 3) {
         // 3-byte/16-bit utf8 code point
         // (0b1110xxxx 0b10xxxxxx 0b10xxxxxx)
-        str[0] = 0xe0 | (char)(codePoint >> 12);
-        str[1] = 0x80 | (char)((codePoint >> 6) & 0x3f);
-        str[2] = 0x80 | (char)(codePoint & 0x3f);
+        str[0] = 0xe0 | (char) (codePoint >> 12);
+        str[1] = 0x80 | (char) ((codePoint >> 6) & 0x3f);
+        str[2] = 0x80 | (char) (codePoint & 0x3f);
     } else {
         // 4-byte/21-bit utf8 code point
         // (0b11110xxx 0b10xxxxxx 0b10xxxxxx 0b10xxxxxx)
-        str[0] = 0xf0 | (char)(codePoint >> 18);
-        str[1] = 0x80 | (char)((codePoint >> 12) & 0x3f);
-        str[2] = 0x80 | (char)((codePoint >> 6) & 0x3f);
-        str[3] = 0x80 | (char)(codePoint & 0x3f);
+        str[0] = 0xf0 | (char) (codePoint >> 18);
+        str[1] = 0x80 | (char) ((codePoint >> 12) & 0x3f);
+        str[2] = 0x80 | (char) ((codePoint >> 6) & 0x3f);
+        str[3] = 0x80 | (char) (codePoint & 0x3f);
     }
 }
 
@@ -775,8 +775,8 @@ constexpr void utf8_to_utf16(const char *str, size_t length, wchar_t *out) {
     For(range(length)) {
         char32_t cp = decode_cp(str);
         if (cp > 0xffff) {
-            *out++ = (u16)((cp >> 10) + (0xd800u - (0x10000 >> 10)));
-            *out++ = (u16)((cp & 0x3ff) + 0xdc00u);
+            *out++ = (u16)((cp >> 10) + (0xD800u - (0x10000 >> 10)));
+            *out++ = (u16)((cp & 0x3FF) + 0xDC00u);
         } else {
             *out++ = (u16) cp;
         }
@@ -800,7 +800,19 @@ constexpr void utf8_to_utf32(const char *str, size_t length, char32_t *out) {
 constexpr void utf16_to_utf8(const wchar_t *str, char *out, size_t *outByteLength) {
     size_t byteLength = 0;
     while (*str) {
-        encode_cp(out, *str);
+        char32_t cp = *str;
+        if ((cp >= 0xD800) && (cp <= 0xDBFF)) {
+            char32_t trail = cp = *++str;
+            if (!*str) assert(false && "Invalid utf16 string");
+
+            if ((trail >= 0xDC00) && (trail <= 0xDFFF)) {
+                cp = ((cp - 0xD800) << 10) + (trail - 0xDC00) + 0x0010000;
+            } else {
+                assert(false && "Invalid utf16 string");
+            }
+        }
+
+        encode_cp(out, cp);
         size_t cpSize = get_size_of_cp(out);
         out += cpSize;
         byteLength += cpSize;

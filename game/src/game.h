@@ -13,7 +13,7 @@
 #endif
 #else
 #if COMPILER == GCC || COMPILER == CLANG
-#if defined LE_BUILD_DLL
+#if defined LE_BUILDING_GAME
 #define LE_GAME_API __attribute__((visibility("default")))
 #else
 #define LE_GAME_API
@@ -32,10 +32,12 @@
 
 // The permanent state of the game
 struct game_memory {
-    window::window *Window;
+    window MainWindow;
     allocator Allocator;
 
-    // Any data that must be preserved through reloads.
+    void *ImGuiContext = null;
+
+    // Any data that must be preserved through reloads
     void *State = null;
 
     // Gets set to true when the game code has been reloaded during the frame.
@@ -46,5 +48,8 @@ struct game_memory {
 
 #define GAME_NEW(type) new (g_GameMemory->Allocator) type
 
-#define GAME_UPDATE_AND_RENDER(name, ...) void name(game_memory *memory, g::graphics *g)
+#define GAME_UPDATE_AND_RENDER(name, ...) void name(game_memory *memory, graphics *g)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_func);
+
+#define GAME_RENDER_UI(name, ...) void name()
+typedef GAME_RENDER_UI(game_render_ui_func);

@@ -320,10 +320,14 @@ constexpr u32 COUNT_DIGITS(T value) {
     return numDigits;
 }
 
+// All of these return the value after the operation
 #if COMPILER == MSVC
 #define ATOMIC_INC(ptr) _InterlockedIncrement((ptr))
 #define ATOMIC_INC_64(ptr) _InterlockedIncrement64((ptr))
+#define ATOMIC_ADD(ptr, value) _InterlockedAdd((ptr), value)
+#define ATOMIC_ADD_64(ptr, value) _InterlockedAdd64((ptr), value)
 #else
 #define ATOMIC_INC(ptr) __sync_add_and_fetch((ptr), 1)
 #define ATOMIC_INC_64(ptr) __sync_add_and_fetch((ptr), 1)
+#error ATOMIC_ADD and ATOMIC_ADD_64
 #endif

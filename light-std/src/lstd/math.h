@@ -8,6 +8,10 @@
 
 LSTD_BEGIN_NAMESPACE
 
+struct rect {
+    s32 X, Y, Width, Height;
+};
+
 using vec2i8 = tvec2<s8>;
 using vec2i16 = tvec2<s16>;
 using vec2i = tvec2<s32>;

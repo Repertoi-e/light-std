@@ -56,9 +56,9 @@ struct stack_dynamic_buffer {
     void release() {
         if (is_owner()) {
             delete[](Data - POINTER_SIZE);
-            Data = null;
-            ByteLength = Reserved = 0;
         }
+        Data = null;
+        ByteLength = Reserved = 0;
     }
 
     // Allows negative reversed indexing which begins at the end

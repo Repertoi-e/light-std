@@ -63,8 +63,8 @@ s32 main() {
     PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
         while (true) {
             run_tests();
+			Context.TemporaryAlloc.free_all();
             break;
-			// Context.TemporaryAlloc.free_all();
         }
     }
 

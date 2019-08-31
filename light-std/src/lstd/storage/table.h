@@ -91,12 +91,11 @@ struct table {
             delete[]((char *) Hashes - POINTER_SIZE);
             delete[] Keys;
             delete[] Values;
-
-            Hashes = null;
-            Keys = null;
-            Values = null;
-            Count = SlotsFilled = Reserved = 0;
         }
+        Hashes = null;
+        Keys = null;
+        Values = null;
+        Count = SlotsFilled = Reserved = 0;
     }
 
     // Don't free the table, just destroy contents and reset count

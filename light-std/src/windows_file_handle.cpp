@@ -24,7 +24,9 @@ namespace file {
         return returnOnFail;                                                                            \
     }
 
-handle::handle(path path) : Path(path) {
+handle::handle(path path) {
+    clone(const_cast<file::path *>(&Path), path);
+
     Utf16Path = (wchar_t *) encode_owner(new char[(path.UnifiedPath.Length + 1) * 2 + POINTER_SIZE], this);
     utf8_to_utf16(path.UnifiedPath.Data, path.UnifiedPath.Length, Utf16Path);
 }

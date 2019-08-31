@@ -21,8 +21,6 @@ struct array {
 
     ~array() { release(); }
 
-    // @TODO: _sort()_
-
     // Makes sure the dynamic array has reserved enough space for at least n elements.
     // Note that it may reserve way more than required.
     // Reserves space equal to the next power of two bigger than _size_, starting at 8.
@@ -50,9 +48,9 @@ struct array {
     void release() {
         if (is_owner()) {
             delete[]((char *) Data - POINTER_SIZE);
-            Data = null;
-            Count = Reserved = 0;
         }
+        Data = null;
+        Count = Reserved = 0;
     }
 
     // Don't free the buffer, just move cursor to 0
@@ -70,6 +68,8 @@ struct array {
 
     data_t &get(size_t index) { return Data[translate_index(index, Count)]; }
     const data_t &get(size_t index) const { return Data[translate_index(index, Count)]; }
+
+    void sort() { quicksort(Data, Data + Count); }
 
     // Sets the _index_'th element in the array
     array *set(s64 index, const data_t &element) {

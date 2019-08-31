@@ -23,7 +23,7 @@ struct named_arg_base {
     string Name;
 
     // The serialized argument
-    char Data[sizeof(arg)];
+    char Data[sizeof(arg)]{};
 
     named_arg_base(string name) : Name(name) {}
 
