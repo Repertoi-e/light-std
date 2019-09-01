@@ -80,19 +80,6 @@ cursor *CursorsList = null;
 
 wchar_t *g_Win32WindowClassName = null;
 
-struct win32_window_state {
-    ~win32_window_state() {
-        auto *win = WindowsList;
-        while (win) {
-            win->IsDestroying = true;
-            win->WindowClosedEvent.emit(null, {win});
-            win->release();
-            win = win->Next;
-        }
-    }
-};
-static win32_window_state STATE;
-
 void win32_window_init() {
     g_MonitorEvent.connect([](const monitor_event &e) {
         if (e.Action == monitor_event::CONNECTED) return;
@@ -106,6 +93,16 @@ void win32_window_init() {
             win = win->Next;
         }
     });
+}
+
+void win32_destroy_windows() {
+    auto *win = WindowsList;
+    while (win) {
+        win->IsDestroying = true;
+        win->WindowClosedEvent.emit(null, {win});
+        win->release();
+        win = win->Next;
+    }
 }
 
 static DWORD get_window_style(window *win) {

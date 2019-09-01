@@ -16,7 +16,7 @@ TEST(global_function) {
 
     array<s32> result;
     signal.emit(&result, 20);
-    assert_eq(result, to_array<s32>(23, 22, 21, 20));  // Signals are emmitted to connections backwards
+    assert_eq(result, to_array<s32>(20, 21, 22, 23));
 }
 
 struct Member_Test {

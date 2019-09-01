@@ -17,6 +17,7 @@ LSTD_BEGIN_NAMESPACE
 void win32_common_init();
 
 extern void win32_window_init();
+extern void win32_destroy_windows();
 extern void win32_monitor_init();
 
 // This trick ensures the context gets initialized before any C++ constructors
@@ -39,6 +40,11 @@ s32 initialize_win32_state() {
     return 0;
 }
 
+s32 uninitialize_win32_state() {
+    win32_destroy_windows();  // Needs to happend before the global WindowsList variable gets uninitialized
+	return 0;
+}
+
 typedef s32 cb(void);
 #pragma const_seg(".CRT$XIU")
 __declspec(allocate(".CRT$XIU")) cb *g_ContextAutoStart = initialize_context_and_global_state;
@@ -48,6 +54,11 @@ __declspec(allocate(".CRT$XIU")) cb *g_ContextAutoStart = initialize_context_and
 #pragma const_seg(".CRT$XCZ")
 __declspec(allocate(".CRT$XCZ")) cb *g_StateAutoStart = initialize_win32_state;
 #pragma const_seg()
+
+#pragma const_seg(".CRT$XPU")
+__declspec(allocate(".CRT$XPU")) cb *g_StateAutoEnd = uninitialize_win32_state;
+#pragma const_seg()
+
 
 #else
 #error @TODO: See how this works on other compilers!

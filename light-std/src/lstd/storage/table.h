@@ -73,6 +73,8 @@ struct table {
         Values = new value_t[target];
         Reserved = target;
 
+        Count = SlotsFilled = 0;
+
         For(range(oldReserved)) {
             if (oldHashes[it] < FIRST_VALID_HASH) continue;
             move_add(oldKeys + it, oldValues + it);

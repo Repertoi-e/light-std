@@ -118,6 +118,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
             }
 
             if (p->Used + size >= p->Reserved) {
+                assert(!p->Next);
                 p->Next = new (Malloc) temporary_allocator_data::page;
 
                 // Random log-based growth thing I came up at the time, not real science.
@@ -127,6 +128,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
 
                 p->Next->Storage = new (Malloc) char[reserveTarget];
                 p->Next->Reserved = reserveTarget;
+                p = p->Next;
             }
 
             void *result = (char *) p->Storage + p->Used;
