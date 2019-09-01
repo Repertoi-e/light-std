@@ -138,9 +138,7 @@ bool handle::copy(handle dest, bool overwrite) const {
     if (dest.is_directory()) {
         p.combine_with(Path.file_name());
 
-        auto *d = new wchar_t[p.UnifiedPath.Length + 1];
-        defer(delete d);
-
+        auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
         utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
 
         return CopyFileW(Utf16Path, d, !overwrite);
@@ -155,9 +153,7 @@ bool handle::move(handle dest, bool overwrite) const {
     if (dest.is_directory()) {
         p.combine_with(Path.file_name());
 
-        auto *d = new wchar_t[p.UnifiedPath.Length + 1];
-        defer(delete d);
-
+        auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
         utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
 
         if (MoveFileExW(Utf16Path, d, MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
@@ -180,8 +176,7 @@ bool handle::rename(string newName) const {
     auto p = path(Path.directory());
     p.combine_with(newName);
 
-    auto *d = new wchar_t[p.UnifiedPath.Length + 1];
-    defer(delete d);
+    auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
     utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
 
     if (MoveFileW(Utf16Path, d)) {
@@ -241,29 +236,38 @@ bool handle::write_to_file(string contents, write_mode mode) const {
 }
 
 void handle::iterator::read_next_entry() {
-    CurrentFileName.release();
-
     string fileName;
     do {
         if (!Handle) {
-            auto queryPath = Path;
+            file::path queryPath;
+            clone(&queryPath, Path);
             queryPath.combine_with("*");
 
-            auto *query = new wchar_t[queryPath.UnifiedPath.Length + 1];
-            defer(delete query);
-
+            auto *query = new (Context.TemporaryAlloc) wchar_t[queryPath.UnifiedPath.Length + 1];
             utf8_to_utf16(queryPath.UnifiedPath.Data, queryPath.UnifiedPath.Length, query);
 
             CREATE_FILE_HANDLE_CHECKED(file, FindFirstFileW(query, (WIN32_FIND_DATAW *) PlatformFileInfo), ;);
             Handle = (void *) file;
         } else {
             if (!FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo)) {
-                FindClose((HANDLE) Handle);
-                Handle = 0;
+                if (GetLastError() != ERROR_NO_MORE_FILES) {
+                    report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
+                                         "FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo)",
+                                         __FILE__, __LINE__);
+                }
+                if (Handle != INVALID_HANDLE_VALUE) {
+                    if (!FindClose((HANDLE) Handle)) {
+                        report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "FindClose((HANDLE) Handle)", __FILE__,
+                                             __LINE__);
+                    }
+                }
+                Handle = null;
                 return;
             }
         }
         ++Index;
+
+        CurrentFileName.release();
 
         auto *fileName = ((WIN32_FIND_DATAW *) PlatformFileInfo)->cFileName;
         CurrentFileName.reserve(c_string_strlen(fileName));

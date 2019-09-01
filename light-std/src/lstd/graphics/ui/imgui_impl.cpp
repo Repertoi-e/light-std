@@ -23,8 +23,6 @@ static const char *ImGui_Impl_GetClipboardText(void *user_data) {
 
 static void ImGui_Impl_SetClipboardText(void *user_data, const char *text) { os_set_clipboard_content(string(text)); }
 
-#define HAS_HOVERED 1
-
 bool ImGui_Impl_Init(window *win, graphics *g) {
     g_Window = win;
     g_Graphics = g;
@@ -37,10 +35,8 @@ bool ImGui_Impl_Init(window *win, graphics *g) {
         ImGuiBackendFlags_HasSetMousePos;  // We can honor io.WantSetMousePos requests (optional, rarely used)
     io.BackendFlags |=
         ImGuiBackendFlags_PlatformHasViewports;  // We can create multi-viewports on the Platform side (optional)
-#if OS == WINDOWS && HAS_HOVERED
     io.BackendFlags |=
         ImGuiBackendFlags_HasMouseHoveredViewport;  // We can set io.MouseHoveredViewport correctly (optional, not easy)
-#endif
     io.BackendPlatformName = "imgui_impl_glfw";
 
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array.
@@ -162,20 +158,9 @@ static void ImGui_Impl_UpdateMousePosAndButtons() {
             io.MouseDown[4] = win->MouseButtons[Mouse_Button_X2];
         }
 
-// (Optional) When using multiple viewports: set io.MouseHoveredViewport to the viewport the OS mouse cursor is
-// hovering. Important: this information is not easy to provide and many high-level windowing library won't be
-// able to provide it correctly, because
-// - This is _ignoring_ viewports with the ImGuiViewportFlags_NoInputs flag (pass-through windows).
-// - This is _regardless_ of whether another viewport is focused or being dragged from.
-// If ImGuiBackendFlags_HasMouseHoveredViewport is not set by the back-end, imgui will ignore this field and
-// infer the information by relying on the rectangles and last focused time of every viewports it knows about.
-// It will be unaware of other windows that may be sitting between or over your windows. [GLFW] FIXME: This is
-// currently only correct on Win32. See what we do below with the WM_NCHITTEST, missing an equivalent for other
-// systems. See https://github.com/glfw/glfw/issues/1236 if you want to help in making this a GLFW feature.
-#if OS == WINDOWS && HAS_HOVERED
-        if (win->is_hovered() && !(viewport->Flags & ImGuiViewportFlags_NoInputs))
+        if (win->is_hovered() && !(viewport->Flags & ImGuiViewportFlags_NoInputs)) {
             io.MouseHoveredViewport = viewport->ID;
-#endif
+        }
     }
 }
 
@@ -236,7 +221,7 @@ static void ImGui_Impl_CreateWindow(ImGuiViewport *viewport) {
     ImGuiViewportDataGlfw *data = IM_NEW(ImGuiViewportDataGlfw)();
     viewport->PlatformUserData = data;
 
-    u32 flags = window::RESIZABLE | window::VSYNC;
+    u32 flags = window::RESIZABLE | window::VSYNC | window::MOUSE_PASS_THROUGH;
     // @TODO: Window size render target stuff is wrong when we have borders (comment the line below)
     if (viewport->Flags & ImGuiViewportFlags_NoDecoration) flags |= window::BORDERLESS;
     if (viewport->Flags & ImGuiViewportFlags_TopMost) flags |= window::ALWAYS_ON_TOP;
@@ -305,34 +290,11 @@ static void ImGui_Impl_CreateWindow(ImGuiViewport *viewport) {
 static void ImGui_Impl_DestroyWindow(ImGuiViewport *viewport) {
     if (ImGuiViewportDataGlfw *data = (ImGuiViewportDataGlfw *) viewport->PlatformUserData) {
         g_Graphics->remove_target_window(data->Window);
-        if (data->WindowOwned) {
-#if OS == WINDOWS && HAS_HOVERED
-            HWND hwnd = (HWND) viewport->PlatformHandleRaw;
-            ::RemovePropA(hwnd, "IMGUI_VIEWPORT");
-#endif
-        }
         IM_DELETE(data->Window);
         IM_DELETE(data);
     }
     viewport->PlatformUserData = viewport->PlatformHandle = null;
 }
-
-#if OS == WINDOWS && HAS_HOVERED
-// FIXME-VIEWPORT: Implement same work-around for Linux/OSX in the meanwhile.
-static WNDPROC g_GlfwWndProc = NULL;
-static LRESULT CALLBACK WndProcNoInputs(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    if (msg == WM_NCHITTEST) {
-        // Let mouse pass-through the window. This will allow the back-end to set io.MouseHoveredViewport properly
-        // (which is OPTIONAL). The ImGuiViewportFlags_NoInputs flag is set while dragging a viewport, as want to detect
-        // the window behind the one we are dragging. If you cannot easily access those viewport flags from your
-        // windowing/event code: you may manually synchronize its state e.g. in your main loop after calling
-        // UpdatePlatformWindows(). Iterate all viewports/platform windows and pass the flag to your windowing system.
-        ImGuiViewport *viewport = (ImGuiViewport *) ::GetPropA(hWnd, "IMGUI_VIEWPORT");
-        if (viewport && viewport->Flags & ImGuiViewportFlags_NoInputs) return HTTRANSPARENT;
-    }
-    return ::CallWindowProc(g_GlfwWndProc, hWnd, msg, wParam, lParam);
-}
-#endif
 
 static void ImGui_Impl_ShowWindow(ImGuiViewport *viewport) {
     ImGuiViewportDataGlfw *data = (ImGuiViewportDataGlfw *) viewport->PlatformUserData;
@@ -346,12 +308,6 @@ static void ImGui_Impl_ShowWindow(ImGuiViewport *viewport) {
         ex_style |= WS_EX_TOOLWINDOW;
         ::SetWindowLong(hwnd, GWL_EXSTYLE, ex_style);
     }
-#if HAS_HOVERED
-    // @Hack: install hook for WM_NCHITTEST message handler
-    ::SetPropA(hwnd, "IMGUI_VIEWPORT", viewport);
-    if (g_GlfwWndProc == NULL) g_GlfwWndProc = (WNDPROC)::GetWindowLongPtr(hwnd, GWLP_WNDPROC);
-    ::SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR) WndProcNoInputs);
-#endif
 #endif
 
     data->Window->show();

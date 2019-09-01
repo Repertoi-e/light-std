@@ -989,10 +989,9 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
         // This is the message handling for the hidden helper window
         // and for a regular window during its initial creation
         switch (message) {
-            case WM_NCCREATE: {
+            case WM_NCCREATE:
                 if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) EnableNonClientDpiScaling(hWnd);
                 break;
-            }
             case WM_DISPLAYCHANGE:
                 win32_poll_monitors();
                 break;
@@ -1003,13 +1002,12 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
     // win->WindowGenericPlatformMessageEvent.emit(null, {win, message, wParam, lParam});
 
     switch (message) {
-        case WM_MOUSEACTIVATE: {
+        case WM_MOUSEACTIVATE:
             if (HIWORD(lParam) == WM_LBUTTONDOWN) {
                 if (LOWORD(lParam) != HTCLIENT) win->PlatformData.Win32.FrameAction = true;
             }
             break;
-        }
-        case WM_CAPTURECHANGED: {
+        case WM_CAPTURECHANGED:
             // @Hack: Disable the cursor once the caption button action has been completed or cancelled
             if (lParam == 0 && win->PlatformData.Win32.FrameAction) {
                 if (win->CursorMode == window::CURSOR_DISABLED) disable_cursor(win);
@@ -1019,8 +1017,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 if (win->Keys[it]) do_key_input_event(win, (u32) it, Key_Released);
             }
             break;
-        }
-        case WM_SETFOCUS: {
+        case WM_SETFOCUS:
             win->Flags |= window::FOCUSED;
             win->WindowFocusedEvent.emit(null, {win, true});
 
@@ -1028,8 +1025,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             if (win->PlatformData.Win32.FrameAction) break;
             if (win->CursorMode == window::CURSOR_DISABLED) disable_cursor(win);
             return 0;
-        }
-        case WM_KILLFOCUS: {
+        case WM_KILLFOCUS:
             win->Flags &= ~window::FOCUSED;
             if (win->CursorMode == window::CURSOR_DISABLED) enable_cursor(win);
             if (win->Monitor && win->Flags & window::AUTO_MINIMIZE) win->minimize();
@@ -1044,8 +1040,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 if (win->MouseButtons[it]) do_mouse_input_event(win, (u32) it, false);
             }
             return 0;
-        }
-        case WM_SYSCOMMAND: {
+        case WM_SYSCOMMAND:
             switch (wParam & 0xfff0) {
                 case SC_SCREENSAVE:
                 case SC_MONITORPOWER: {
@@ -1059,13 +1054,11 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                     return 0;
             }
             break;
-        }
-        case WM_CLOSE: {
+        case WM_CLOSE:
             win->IsDestroying = true;
             win->WindowClosedEvent.emit(null, {win});
             win->release();
             return 0;
-        }
         case WM_CHAR:
         case WM_UNICHAR: {
             if (message == WM_UNICHAR && wParam == UNICODE_NOCHAR) return true;
@@ -1225,36 +1218,31 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             win->PlatformData.Win32.LastCursorPos.y += dy;
             break;
         }
-        case WM_MOUSELEAVE: {
+        case WM_MOUSELEAVE:
             win->PlatformData.Win32.CursorTracked = false;
             win->MouseLeftEvent.emit(null, {win});
             return 0;
-        }
-        case WM_MOUSEWHEEL: {
+        case WM_MOUSEWHEEL:
             win->MouseScrolledEvent.emit(
                 null, {win, 0, GET_WHEEL_DELTA_WPARAM(wParam) / (f32) WHEEL_DELTA, GET_KEY_MODS,
                        GET_BUTTONS_DOWN_FROM_WINDOW(win), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             return 0;
-        }
-        case WM_MOUSEHWHEEL: {
+        case WM_MOUSEHWHEEL:
             // NOTE: The X-axis is inverted for consistency with macOS and X11
             win->MouseScrolledEvent.emit(
                 null, {win, -(GET_WHEEL_DELTA_WPARAM(wParam) / (f32) WHEEL_DELTA), 0, GET_KEY_MODS,
                        GET_BUTTONS_DOWN_FROM_WINDOW(win), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             return 0;
-        }
         case WM_ENTERSIZEMOVE:
-        case WM_ENTERMENULOOP: {
+        case WM_ENTERMENULOOP:
             if (win->PlatformData.Win32.FrameAction) break;
             if (win->CursorMode == window::CURSOR_DISABLED) enable_cursor(win);
             break;
-        }
         case WM_EXITSIZEMOVE:
-        case WM_EXITMENULOOP: {
+        case WM_EXITMENULOOP:
             if (win->PlatformData.Win32.FrameAction) break;
             if (win->CursorMode == window::CURSOR_DISABLED) disable_cursor(win);
             break;
-        }
         case WM_SIZE: {
             bool minimized = wParam == SIZE_MINIMIZED;
             bool maximized = wParam == SIZE_MAXIMIZED || (win->Flags & window::MAXIMIZED && wParam != SIZE_RESTORED);
@@ -1297,7 +1285,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             }
             return 0;
         }
-        case WM_SHOWWINDOW: {
+        case WM_SHOWWINDOW:
             if (wParam) {
                 win->Flags |= window::SHOWN;
                 win->Flags &= ~window::HIDDEN;
@@ -1305,19 +1293,17 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 win->Flags |= window::HIDDEN;
                 win->Flags &= ~window::SHOWN;
             }
-        }
-        case WM_MOVE: {
+        case WM_MOVE:
             if (DisabledCursorWindow == win) update_clip_rect(win);
             win->WindowMovedEvent.emit(null, {win, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
             return 0;
-        }
-        case WM_SIZING: {
+
+        case WM_SIZING:
             if (win->AspectRatioNumerator == window::DONT_CARE || win->AspectRatioDenominator == window::DONT_CARE) {
                 break;
             }
             apply_aspect_ratio(win, (s32) wParam, (RECT *) lParam);
             return true;
-        }
         case WM_GETMINMAXINFO: {
             if (win->Monitor) break;
 
@@ -1354,15 +1340,16 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
         case WM_ERASEBKGND:
             return true;
         case WM_NCACTIVATE:
-        case WM_NCPAINT: {
+        case WM_NCPAINT:
             // Prevent title bar from being drawn after restoring a minimized undecorated window
             if (win->Flags & window::BORDERLESS) return true;
             break;
-        }
-        case WM_DWMCOMPOSITIONCHANGED: {
+        case WM_NCHITTEST:
+            if (win->Flags & window::MOUSE_PASS_THROUGH) return HTTRANSPARENT;
+            break;
+        case WM_DWMCOMPOSITIONCHANGED:
             if (win->Flags & window::TRANSPARENT) update_framebuffer_transparency(win);
             return 0;
-        }
         case WM_GETDPISCALEDSIZE: {
             // Adjust the window size to keep the content area size constant
             if (IS_WINDOWS_10_CREATORS_UPDATE_OR_GREATER()) {
@@ -1379,7 +1366,6 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 size->cy += (target.bottom - target.top) - (source.bottom - source.top);
                 return true;
             }
-
             break;
         }
         case WM_DPICHANGED: {
@@ -1397,13 +1383,12 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             win->WindowContentScaleChangedEvent.emit(null, {win, {xscale, yscale}});
             break;
         }
-        case WM_SETCURSOR: {
+        case WM_SETCURSOR:
             if (LOWORD(lParam) == HTCLIENT) {
                 update_cursor_image(win);
                 return true;
             }
             break;
-        }
         case WM_DROPFILES: {
             HDROP drop = (HDROP) wParam;
 

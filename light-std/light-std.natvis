@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="allocator">
+    <DisplayString>{{ {Function} }}</DisplayString>
+  </Type>
+  <Type Name="string">
+    <DisplayString>{{ {Data,[ByteLength]s8}, Length = {Length} }}</DisplayString>
+    <StringView>Data,[ByteLength]s8</StringView>
+    <Expand>
+      <Item Name="Length">Length</Item>
+      <Item Name="ByteLength">ByteLength</Item>
+      <Item Name="Data">Data</Item>
+    </Expand>
+  </Type>
+  <Type Name="string_view">
+    <DisplayString>{{ {Data,[ByteLength]s8}, Length = {Length} }}</DisplayString>
+    <StringView>Data,[ByteLength]s8</StringView>
+    <Expand>
+      <Item Name="Length">Length</Item>
+      <Item Name="ByteLength">ByteLength</Item>
+      <Item Name="Data">Data</Item>
+    </Expand>
+  </Type>
+  <Type Name="array&lt;*&gt;">
+    <DisplayString>{{ Count = {Count} }}</DisplayString>
+    <Expand>
+      <Item Name="Data">Data</Item>
+      <Item Name="Reserved">Reserved</Item>
+      <ArrayItems>
+        <Size>Count</Size>
+        <ValuePointer>Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="stack_array&lt;*&gt;">
+    <DisplayString>{{ Count = {Count} }}</DisplayString>
+    <Expand>
+      <Item Name="Data">Data</Item>
+      <ArrayItems>
+        <Size>Count</Size>
+        <ValuePointer>Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="table&lt;*&gt;">
+    <DisplayString>{{ Count = {Count} }}</DisplayString>
+    <Expand>
+      <Item Name="Reserved">Reserved</Item>
+      <CustomListItems Condition="Count != 0">
+        <Variable Name="it" InitialValue="0" />
+        <Loop>
+          <Item Condition="Hashes[it] > 1">Keys[it]</Item>
+          <Item Condition="Hashes[it] > 1">Values[it]</Item>
+
+          <Exec>it += 1</Exec>
+          <Break Condition="it == Reserved"/>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>

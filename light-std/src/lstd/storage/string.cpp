@@ -257,11 +257,11 @@ string *clone(string *dest, string src) {
 }
 
 string *move(string *dest, string *src) {
-    assert(src->is_owner());
-
     dest->release();
     *dest = *src;
 
+    if (!src->is_owner()) return dest;
+	
     // Transfer ownership
     change_owner(src->Data, dest);
     change_owner(dest->Data, dest);

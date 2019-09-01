@@ -54,9 +54,10 @@ pixel_buffer *clone(pixel_buffer *dest, pixel_buffer src) {
 }
 
 pixel_buffer *move(pixel_buffer *dest, pixel_buffer *src) {
-    assert(src->is_owner());
     dest->release();
     *dest = *src;
+
+	if (!src->is_owner()) return dest;
 
     // Transfer ownership
     change_owner(src->Pixels, dest);

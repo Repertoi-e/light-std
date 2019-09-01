@@ -111,7 +111,7 @@ struct handle {
     // Iterator:
     //
     struct iterator : non_copyable {
-        void *Handle = 0;
+        void *Handle = null;
         char PlatformFileInfo[592]{};
         string CurrentFileName;
 

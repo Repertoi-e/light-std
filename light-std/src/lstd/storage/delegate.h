@@ -234,10 +234,10 @@ delegate<T> *clone(delegate<T> *dest, delegate<T> src) {
 
 template <typename T>
 delegate<T> *move(delegate<T> *dest, delegate<T> *src) {
-    assert(src->is_owner());
-
     dest->release();
     *dest = *src;
+
+    if (!src->is_owner()) return;
 
     // Transfer ownership
     if (src->Store) change_owner(src->Store, dest);

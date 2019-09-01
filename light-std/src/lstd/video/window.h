@@ -61,9 +61,14 @@ struct window {
 
         VSYNC = BIT(13),
         CLOSE_ON_ALT_F4 = BIT(14),  // Specify in _init()_ or manually modify _Flags_
+        MOUSE_PASS_THROUGH =
+            BIT(15),  // Specifies that the window is transparent for mouse input (e.g. when testing if
+                      // a background window is hovered, but this one has the flag, it treats this one
+                      // as "transparent" and continues to test on the window behind it). Specify in _init()_ or
+                      // manually modify _Flags_. Note that this flag is unrelated to visual transparency.
 
         CREATION_FLAGS = SHOWN | BORDERLESS | RESIZABLE | AUTO_MINIMIZE | ALWAYS_ON_TOP | FOCUS_ON_SHOW | TRANSPARENT |
-                         VSYNC | CLOSE_ON_ALT_F4
+                         VSYNC | CLOSE_ON_ALT_F4 | MOUSE_PASS_THROUGH
     };
 
     enum cursor_mode : s32 {

@@ -63,6 +63,7 @@ struct table {
         auto *oldHashes = Hashes;
         auto *oldKeys = Keys;
         auto *oldValues = Values;
+        auto oldReserved = Reserved;
 
         // The owner will change with the next line, but we need it later to decide if we need to delete the old arrays
         bool wasOwner = is_owner();
@@ -70,10 +71,10 @@ struct table {
         Hashes = encode_owner(new (Context.Alloc, DO_INIT_FLAG) uptr_t[target + 1], this);
         Keys = new key_t[target];
         Values = new value_t[target];
+        Reserved = target;
 
-        // Note: _Reserved_ hasn't been updated yet
-        For(range(Reserved)) {
-            if (Hashes[it] < FIRST_VALID_HASH) continue;
+        For(range(oldReserved)) {
+            if (oldHashes[it] < FIRST_VALID_HASH) continue;
             move_add(oldKeys + it, oldValues + it);
         }
 
@@ -82,7 +83,6 @@ struct table {
             delete[] oldKeys;
             delete[] oldValues;
         }
-        Reserved = target;
     }
 
     // Free any memory allocated by this object and reset count
@@ -312,10 +312,10 @@ table<K, V> *clone(table<K, V> *dest, const table<K, V> &src) {
 
 template <typename K, typename V>
 table<K, V> *move(table<K, V> *dest, table<K, V> *src) {
-    assert(src->is_owner());
-
     dest->release();
     *dest = *src;
+
+    if (!src->is_owner()) return;
 
     // Transfer ownership
     change_owner(src->Hashes, dest);

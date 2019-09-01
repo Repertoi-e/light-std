@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../memory/allocator.h"
+#include "delegate.h"
 #include "owner_pointers.h"
 #include "stack_array.h"
 
@@ -204,16 +205,21 @@ struct array {
         return s1 < s2 ? -1 : 1;
     }
 
-    // Find the first occurence of an element that is after a specified index
-    size_t find(const T &element, s64 start = 0) const {
+    // Predicate must take a single argument (the current element) and return if it matches
+    size_t find(delegate<bool(const data_t &)> predicate, s64 start = 0) const {
         assert(Data);
         if (Count == 0) return npos;
 
         start = translate_index(start, Count);
 
         auto p = begin() + start;
-        For(range(start, Count)) if (*p++ == element) return it;
+        For(range(start, Count)) if (predicate(*p++)) return it;
         return npos;
+    }
+
+    // Find the first occurence of an element that is after a specified index
+    size_t find(const T &element, s64 start = 0) const {
+        return find([&](auto x) { return x == element; }, start);
     }
 
     // Find the first occurence of a subarray that is after a specified index
@@ -418,10 +424,10 @@ array<T> *clone(array<T> *dest, array<T> src) {
 
 template <typename T>
 array<T> *move(array<T> *dest, array<T> *src) {
-    assert(src->is_owner());
-
     dest->release();
     *dest = *src;
+
+	if (!src->is_owner()) return dest;
 
     // Transfer ownership
     change_owner(src->Data, dest);
