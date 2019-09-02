@@ -79,8 +79,8 @@ struct delegate<R(A...)> {
         return *this = from((const C *) ObjectPtr, rhs);
     }
 
-    template <typename F, typename = enable_if_t<!is_same<delegate, decay_t<F>>{}>>
-    delegate &operator=(F &&f) {
+    template <typename F>
+    enable_if_t<!is_same_v<delegate, decay_t<F>>, delegate &> operator=(F &&f) {
         using functor_type = decay_t<F>;
 
         size_t requiredSize = sizeof(functor_type);

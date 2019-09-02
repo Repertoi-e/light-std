@@ -201,6 +201,20 @@ constexpr u64 ROTATE_RIGHT_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 
      ~0UL / 255 * 128)
 #define U32_COUNT_BETWEEN(x, m, n) (hasbetween(x, m, n) / 128 % 255)
 
+#if COMPILER == MSVC
+#pragma warning(disable : 4146)
+#endif
+
+template <typename T>
+constexpr enable_if_t<is_integer_v<T>> SET_BIT(T *number, T bit, bool value) {
+    auto enabled = (make_unsigned_t<T>) value;
+    *number ^= (-enabled ^ *number) & bit;
+}
+
+#if COMPILER == MSVC
+#pragma warning(default : 4146)
+#endif
+
 #define INTEGRAL_FUNCTION_CONSTEXPR(return_type) \
     template <typename T>                        \
     constexpr enable_if_t<is_integral_v<T>, return_type>

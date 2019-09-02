@@ -78,7 +78,9 @@ bool check_for_dll_change() {
 static void *new_wrapper(size_t size, void *) { return operator new(size, Malloc); }
 static void delete_wrapper(void *ptr, void *) { delete ptr; }
 
-void init_imgui_for_our_windows(window *mainWindow, graphics *g);
+static graphics *Graphics = null;
+
+void init_imgui_for_our_windows(window *mainWindow);
 void imgui_for_our_windows_new_frame(window *mainWindow);
 
 s32 main() {
@@ -89,46 +91,20 @@ s32 main() {
                                 ->init("Tetris", window::DONT_CARE, window::DONT_CARE, 1200, 600,
                                        window::SHOWN | window::RESIZABLE | window::VSYNC | window::CLOSE_ON_ALT_F4);
 
-    dx_graphics g;
-    g.init();
-    g.set_blend(true);
-    g.set_depth_testing(false);
-    g.add_target_window(gameMemory.MainWindow);
-    defer(g.remove_target_window(gameMemory.MainWindow));
+    Graphics = new dx_graphics;
+    Graphics->init();
+    Graphics->set_blend(true);
+    Graphics->set_depth_testing(false);
+    Graphics->add_target_window(gameMemory.MainWindow);
+    defer(Graphics->remove_target_window(gameMemory.MainWindow));
 
-    ImGui::CreateContext();
+    init_imgui_for_our_windows(gameMemory.MainWindow);
     gameMemory.ImGuiContext = ImGui::GetCurrentContext();
-
-    ImGui::SetAllocatorFunctions(new_wrapper, delete_wrapper);
-
-    ImGuiIO &io = ImGui::GetIO();
-    io.Fonts = new ImFontAtlas();
-
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    // io.ConfigViewportsNoAutoMerge = true;
-    // io.ConfigViewportsNoTaskBarIcon = true;
-    // io.ConfigViewportsNoDefaultParent = true;
-    // io.ConfigDockingAlwaysTabBar = true;
-    // io.ConfigDockingTransparentPayload = true;
-
-    ImGui::StyleColorsDark();
-
-    // We tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle &style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-
     // Needs to get called at the end to release any imgui windows
     defer(ImGui::DestroyPlatformWindows());
 
     imgui_renderer imguiRenderer;
-    imguiRenderer.init(&g);
-
-    init_imgui_for_our_windows(gameMemory.MainWindow, &g);
+    imguiRenderer.init(Graphics);
 
     while (true) {
         gameMemory.ReloadedThisFrame = check_for_dll_change();
@@ -136,7 +112,7 @@ s32 main() {
         window::update();
         if (gameMemory.MainWindow->IsDestroying) break;
 
-        if (GameUpdateAndRender) GameUpdateAndRender(&gameMemory, &g);
+        if (GameUpdateAndRender) GameUpdateAndRender(&gameMemory, Graphics);
 
         imgui_for_our_windows_new_frame(gameMemory.MainWindow);
 
@@ -144,10 +120,10 @@ s32 main() {
         if (GameRenderUI) GameRenderUI();
         ImGui::Render();
 
-        g.set_current_target_window(gameMemory.MainWindow);
-        g.set_cull_mode(cull::None);
+        Graphics->set_current_target_window(gameMemory.MainWindow);
+        Graphics->set_cull_mode(cull::None);
         imguiRenderer.draw(ImGui::GetDrawData());
-        g.swap();
+        Graphics->swap();
 
         // Update and Render additional Platform Windows
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -163,7 +139,6 @@ s32 main() {
 #include <Windows.h>  // For IME
 #endif
 
-static graphics *Graphics = null;
 static cursor MouseCursors[ImGuiMouseCursor_COUNT] = {
     cursor(OS_ARROW),     cursor(OS_IBEAM),       cursor(OS_RESIZE_ALL),  cursor(OS_RESIZE_NS),
     cursor(OS_RESIZE_WE), cursor(OS_RESIZE_NESW), cursor(OS_RESIZE_NWSE), cursor(OS_HAND)};
@@ -210,11 +185,12 @@ static bool common_mouse_scrolled_callback(const mouse_scrolled_event &e) {
 static void imgui_set_ime_pos(ImGuiViewport *viewport, ImVec2 pos) {
     COMPOSITIONFORM cf = {
         CFS_FORCE_POSITION, {(s32)(pos.x - viewport->Pos.x), (s32)(pos.y - viewport->Pos.y)}, {0, 0, 0, 0}};
-    if (HWND hWnd = (HWND) viewport->PlatformHandleRaw)
-        if (HIMC himc = ::ImmGetContext(hWnd)) {
-            ::ImmSetCompositionWindow(himc, &cf);
-            ::ImmReleaseContext(hWnd, himc);
+    if (HWND hWnd = (HWND) viewport->PlatformHandleRaw) {
+        if (HIMC himc = ImmGetContext(hWnd)) {
+            ImmSetCompositionWindow(himc, &cf);
+            ImmReleaseContext(hWnd, himc);
         }
+    }
 }
 #else
 #define HAS_WIN32_IME 0
@@ -243,10 +219,100 @@ static void imgui_update_monitors() {
     }
 }
 
-static void init_imgui_for_our_windows(window *mainWindow, graphics *g) {
-    Graphics = g;
+// Slightly modified version of "Photoshop" theme by @Derydoca (https://github.com/ocornut/imgui/issues/707)
+static void imgui_init_photoshop_style() {
+    ImGuiStyle *style = &ImGui::GetStyle();
+
+    ImVec4 *colors = style->Colors;
+    colors[ImGuiCol_Text] = ImVec4(1.000f, 1.000f, 1.000f, 1.000f);
+    colors[ImGuiCol_TextDisabled] = ImVec4(0.500f, 0.500f, 0.500f, 1.000f);
+    colors[ImGuiCol_WindowBg] = ImVec4(0.180f, 0.180f, 0.180f, 1.000f);
+    colors[ImGuiCol_ChildBg] = ImVec4(0.280f, 0.280f, 0.280f, 0.000f);
+    colors[ImGuiCol_PopupBg] = ImVec4(0.313f, 0.313f, 0.313f, 1.000f);
+    colors[ImGuiCol_Border] = ImVec4(0.266f, 0.266f, 0.266f, 1.000f);
+    colors[ImGuiCol_BorderShadow] = ImVec4(0.000f, 0.000f, 0.000f, 0.000f);
+    colors[ImGuiCol_FrameBg] = ImVec4(0.160f, 0.160f, 0.160f, 1.000f);
+    colors[ImGuiCol_FrameBgHovered] = ImVec4(0.200f, 0.200f, 0.200f, 1.000f);
+    colors[ImGuiCol_FrameBgActive] = ImVec4(0.280f, 0.280f, 0.280f, 1.000f);
+    colors[ImGuiCol_TitleBg] = ImVec4(0.09f, 0.09f, 0.09f, 1.000f);
+    colors[ImGuiCol_TitleBgActive] = ImVec4(0.148f, 0.148f, 0.148f, 1.000f);
+    colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.118f, 0.118f, 0.118f, 1.000f);
+    colors[ImGuiCol_MenuBarBg] = ImVec4(0.195f, 0.195f, 0.195f, 1.000f);
+    colors[ImGuiCol_ScrollbarBg] = ImVec4(0.160f, 0.160f, 0.160f, 1.000f);
+    colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.277f, 0.277f, 0.277f, 1.000f);
+    colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.300f, 0.300f, 0.300f, 1.000f);
+    colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_CheckMark] = ImVec4(1.000f, 1.000f, 1.000f, 1.000f);
+    colors[ImGuiCol_SliderGrab] = ImVec4(0.391f, 0.391f, 0.391f, 1.000f);
+    colors[ImGuiCol_SliderGrabActive] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_Button] = ImVec4(1.000f, 1.000f, 1.000f, 0.000f);
+    colors[ImGuiCol_ButtonHovered] = ImVec4(1.000f, 1.000f, 1.000f, 0.156f);
+    colors[ImGuiCol_ButtonActive] = ImVec4(1.000f, 1.000f, 1.000f, 0.391f);
+    colors[ImGuiCol_Header] = ImVec4(0.313f, 0.313f, 0.313f, 1.000f);
+    colors[ImGuiCol_HeaderHovered] = ImVec4(0.469f, 0.469f, 0.469f, 1.000f);
+    colors[ImGuiCol_HeaderActive] = ImVec4(0.469f, 0.469f, 0.469f, 1.000f);
+    colors[ImGuiCol_Separator] = colors[ImGuiCol_Border];
+    colors[ImGuiCol_SeparatorHovered] = ImVec4(0.391f, 0.391f, 0.391f, 1.000f);
+    colors[ImGuiCol_SeparatorActive] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_ResizeGrip] = ImVec4(1.000f, 1.000f, 1.000f, 0.250f);
+    colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.000f, 1.000f, 1.000f, 0.670f);
+    colors[ImGuiCol_ResizeGripActive] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_Tab] = ImVec4(0.098f, 0.098f, 0.098f, 1.000f);
+    colors[ImGuiCol_TabHovered] = ImVec4(0.352f, 0.352f, 0.352f, 1.000f);
+    colors[ImGuiCol_TabActive] = ImVec4(0.195f, 0.195f, 0.195f, 1.000f);
+    colors[ImGuiCol_TabUnfocused] = ImVec4(0.098f, 0.098f, 0.098f, 1.000f);
+    colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.195f, 0.195f, 0.195f, 1.000f);
+    colors[ImGuiCol_DockingPreview] = ImVec4(1.000f, 0.391f, 0.000f, 0.781f);
+    colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.180f, 0.180f, 0.180f, 1.000f);
+    colors[ImGuiCol_PlotLines] = ImVec4(0.469f, 0.469f, 0.469f, 1.000f);
+    colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_PlotHistogram] = ImVec4(0.586f, 0.586f, 0.586f, 1.000f);
+    colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_TextSelectedBg] = ImVec4(1.000f, 1.000f, 1.000f, 0.156f);
+    colors[ImGuiCol_DragDropTarget] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_NavHighlight] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.000f, 0.391f, 0.000f, 1.000f);
+    colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.000f, 0.000f, 0.000f, 0.586f);
+    colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.000f, 0.000f, 0.000f, 0.586f);
+
+    style->ChildRounding = 4.0f;
+    style->FrameBorderSize = 1.0f;
+    style->FrameRounding = 2.0f;
+    style->GrabMinSize = 7.0f;
+    style->PopupRounding = 2.0f;
+    style->ScrollbarRounding = 12.0f;
+    style->ScrollbarSize = 13.0f;
+    style->TabBorderSize = 1.0f;
+    style->TabRounding = 0.0f;
+    style->WindowRounding = 4.0f;
+}
+
+static void init_imgui_for_our_windows(window *mainWindow) {
+    ImGui::CreateContext();
+    ImGui::SetAllocatorFunctions(new_wrapper, delete_wrapper);
 
     ImGuiIO &io = ImGui::GetIO();
+    io.Fonts = new ImFontAtlas();
+
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    //io.ConfigViewportsNoAutoMerge = true;
+    //io.ConfigViewportsNoTaskBarIcon = true;
+    //io.ConfigViewportsNoDefaultParent = true;
+    //io.ConfigDockingAlwaysTabBar = true;
+    //io.ConfigDockingTransparentPayload = true;
+
+    // We tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+    ImGuiStyle &style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    ImGui::StyleColorsDark();
+    imgui_init_photoshop_style();
+
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
     io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
     io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;
@@ -255,7 +321,7 @@ static void init_imgui_for_our_windows(window *mainWindow, graphics *g) {
 
     io.SetClipboardTextFn = [](auto, const char *text) { os_set_clipboard_content(string(text)); };
     io.GetClipboardTextFn = [](auto) {
-        return os_get_clipboard_content().to_c_string();  // Leak
+        return os_get_clipboard_content().to_c_string();  // @Leak
     };
 
     io.KeyMap[ImGuiKey_Tab] = Key_Tab;
@@ -456,11 +522,8 @@ static void imgui_for_our_windows_new_frame(window *mainWindow) {
         }
 
         bool mousePassThrough = it->Flags & ImGuiViewportFlags_NoInputs;
-        if (mousePassThrough) {
-            win->Flags |= window::MOUSE_PASS_THROUGH;
-        } else {
-            win->Flags &= ~window::MOUSE_PASS_THROUGH;
-        }
+
+        if (win->Flags & window::MOUSE_PASS_THROUGH && !mousePassThrough) win->Flags ^= window::MOUSE_PASS_THROUGH;
         if (win->is_hovered() && !mousePassThrough) io.MouseHoveredViewport = it->ID;
     }
 

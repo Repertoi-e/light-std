@@ -914,30 +914,17 @@ static void update_window_style(window *win) {
 }
 
 void window::set_borderless(bool enabled) {
-    if (enabled) {
-        Flags |= window::BORDERLESS;
-    } else {
-        Flags &= ~window::BORDERLESS;
-    }
+    SET_BIT(&Flags, (u32) window::BORDERLESS, enabled);
     if (!Monitor) update_window_style(this);
 }
 
 void window::set_resizable(bool enabled) {
-    if (enabled) {
-        Flags |= window::RESIZABLE;
-    } else {
-        Flags &= ~window::RESIZABLE;
-    }
+    SET_BIT(&Flags, (u32) window::RESIZABLE, enabled);
     if (!Monitor) update_window_style(this);
 }
 
 void window::set_always_on_top(bool enabled) {
-    if (enabled) {
-        Flags |= window::ALWAYS_ON_TOP;
-    } else {
-        Flags &= ~window::ALWAYS_ON_TOP;
-    }
-
+    SET_BIT(&Flags, (u32) window::ALWAYS_ON_TOP, enabled);
     if (!Monitor) {
         HWND after = enabled ? HWND_TOPMOST : HWND_NOTOPMOST;
         SetWindowPos(PlatformData.Win32.hWnd, after, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1283,13 +1270,8 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             return 0;
         }
         case WM_SHOWWINDOW:
-            if (wParam) {
-                win->Flags |= window::SHOWN;
-                win->Flags &= ~window::HIDDEN;
-            } else {
-                win->Flags |= window::HIDDEN;
-                win->Flags &= ~window::SHOWN;
-            }
+            SET_BIT(&win->Flags, (u32) window::SHOWN, wParam);
+            SET_BIT(&win->Flags, (u32) window::HIDDEN, !wParam);
         case WM_MOVE:
             if (DisabledCursorWindow == win) update_clip_rect(win);
             win->WindowMovedEvent.emit(null, {win, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
