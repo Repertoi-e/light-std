@@ -58,7 +58,7 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
         case allocator_mode::FREE_ALL:
             return (void *) -1;
         default:
-            assert(false && "What");
+            assert(false);
     }
     return null;
 }
@@ -66,16 +66,21 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
 void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, alignment align,
                    u64) {
     switch (mode) {
-        case allocator_mode::ALLOCATE:
         case allocator_mode::ALIGNED_ALLOCATE:
-            return os_alloc(size);
-        case allocator_mode::REALLOCATE:
-            return stbm_realloc(null, (stbm_heap *) Heap, oldMemory, size, 0);
-        case allocator_mode::ALIGNED_REALLOCATE: {
-            if (!oldMemory) return os_alloc(size);
+            size += (size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align;
+            [[fallthrough]];
+        case allocator_mode::ALLOCATE: {
+            void *result = os_alloc(size);
+            if (mode == allocator_mode::ALIGNED_ALLOCATE) result = get_aligned_pointer(result, (size_t) align);
+            return result;
+        }
+        case allocator_mode::ALIGNED_REALLOCATE:
+        case allocator_mode::REALLOCATE: {
+            // @Speed: Make an _os_realloc_ and use that..
+            if (!oldMemory) return os_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, align, 0);
             if (size <= oldSize && oldSize < size * 2) return oldMemory;
 
-            auto *newMemory = os_alloc(size);
+            auto *newMemory = os_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, align, 0);
             copy_memory(newMemory, oldMemory, oldSize);
             os_free(oldMemory);
             return newMemory;
@@ -86,7 +91,7 @@ void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMem
         case allocator_mode::FREE_ALL:
             return (void *) -1;
         default:
-            assert(false && "What");
+            assert(false);
     }
     return null;
 }
@@ -185,7 +190,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
             return null;
         }
         default:
-            assert(false && "What");
+            assert(false);
     }
 
 #if COMPILER == MSVC

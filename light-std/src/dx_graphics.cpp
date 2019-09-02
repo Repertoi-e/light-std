@@ -116,12 +116,7 @@ void dx_texture_2D::set_data(const u8 *pixels) {
     zero_memory(&mappedData, sizeof(mappedData));
 
     DXCHECK(D3DGraphics->D3DDeviceContext->Map(D3DTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
-    for (u32 i = 0; i < Width * Height * 4; i += 4) {
-        ((u8 *) mappedData.pData)[i + 0] = 0xff;
-        ((u8 *) mappedData.pData)[i + 1] = 0xff;
-        ((u8 *) mappedData.pData)[i + 2] = 0xff;
-        ((u8 *) mappedData.pData)[i + 3] = ((u8 *) pixels)[i / 2 + 1];
-    }
+    copy_memory(mappedData.pData, pixels, Width * Height * 4);
     D3DGraphics->D3DDeviceContext->Unmap(D3DTexture, 0);
 }
 
@@ -802,10 +797,6 @@ void dx_graphics::window_changed_size(const window_framebuffer_resized_event &e)
 
     set_current_target_window(null);
     D3DDeviceContext->Flush();
-
-    ID3D11Debug *debug;
-    D3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void **) &debug);
-    debug->ReportLiveDeviceObjects(D3D11_RLDO_SUMMARY);
 
     DXCHECK(targetWindow->D3DSwapChain->ResizeBuffers(1, e.Width, e.Height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
 

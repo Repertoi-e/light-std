@@ -32,7 +32,7 @@
 
 // The permanent state of the game
 struct game_memory {
-    window MainWindow;
+    window *MainWindow = null;
     allocator Allocator;
 
     void *ImGuiContext = null;

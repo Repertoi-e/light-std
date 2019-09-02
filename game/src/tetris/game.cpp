@@ -108,7 +108,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         // g->draw_indexed(state->IB->Size / sizeof(u32));
         // g->swap();
 
-        g->set_current_target_window(&memory->MainWindow);
+        g->set_current_target_window(memory->MainWindow);
         g->set_cull_mode(cull::Back);
 
         g->clear_color(state->ClearColor);

@@ -284,5 +284,4 @@ tvec2<T> operator/(tvec2<T> left, T value) {
     return *left.divide(value);
 }
 
-
 LSTD_END_NAMESPACE
