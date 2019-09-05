@@ -27,9 +27,9 @@ function common_settings()
 		buildoptions { "/utf-8" }
 		links { "Dwmapi.lib" }
 
-	-- Exclude directx files on non-windows platforms since they would cause compilation errors
+	-- Exclude directx files on non-windows platforms since they would cause a compilation failure
 	filter "not system:windows"
-		excludes  { "%{prj.name}/src/dx_*.h", "%{prj.name}/src/dx_*.cpp" }
+		excludes  { "%{prj.name}/src/d3d_*.h", "%{prj.name}/src/d3d_*.cpp" }
 
     filter { "system:windows", "not options:no-crt" }
         staticruntime "On"

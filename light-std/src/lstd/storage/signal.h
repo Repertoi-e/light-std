@@ -129,6 +129,9 @@ struct signal<R(Args...), Collector> : public non_copyable {
     array<callback_t> Callbacks;
     internal::collector_invocation<Collector, R(Args...)> Invoker;
 
+    bool CurrentlyEmitting = false;
+    array<size_t> ToRemove;
+
     // Connects default callback if non-null.
     signal(const callback_t &cb = null) {
         if (cb) clone(Callbacks.append(), cb);
@@ -146,23 +149,35 @@ struct signal<R(Args...), Collector> : public non_copyable {
 
     // Remove a callback via connection id. Returns true on success.
     bool disconnect(size_t index) {
-        assert(index <= Callbacks.Count);
-        if (Callbacks[index]) {
-            Callbacks[index].release();
-            return true;
+        if (!CurrentlyEmitting) {
+            assert(index <= Callbacks.Count);
+            if (Callbacks[index]) {
+                Callbacks[index].release();
+                return true;
+            }
+            return false;
+        } else {
+            ToRemove.append(index);
+            return false;  // We will remove the callback once we have finished emitting
         }
-        return false;
     }
 
     // Emit a signal, i.e. invoke all callbacks and collect return types with the Collector.
     // Stores the result in _out_.
     // _out_ must be null if the result type is void, in other cases if _out_ is null the result is just ignored.
     void emit(collector_result_t *out, Args... args) {
-        Collector collector;
-
+        CurrentlyEmitting = true;
+		Collector collector;
         For(Callbacks) {
             if (it && !Invoker.invoke(collector, it, ((Args &&) args)...)) break;
         }
+        CurrentlyEmitting = false;
+
+		For(ToRemove) {
+            assert(it <= Callbacks.Count);
+            if (Callbacks[it]) Callbacks[it].release();
+        }
+        ToRemove.reset();
 
         if constexpr (!is_same_v<collector_result_t, void>) {
             if (out) clone(out, collector.result());

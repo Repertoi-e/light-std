@@ -1,8 +1,115 @@
-#include "graphics.h"
+#pragma once
+
+#include "../types.h"
 
 LSTD_BEGIN_NAMESPACE
 
-gtype get_scalar_gtype(gtype type) {
+enum class gtype {
+    Unknown = 0,
+
+    BOOL,
+
+    U8,
+    U16,
+    U32,
+
+    S8,
+    S16,
+    S32,
+
+    F32,
+
+    BOOL_1x1,
+    BOOL_1x2,
+    BOOL_1x3,
+    BOOL_1x4,
+    BOOL_2x1,
+    BOOL_2x2,
+    BOOL_2x3,
+    BOOL_2x4,
+    BOOL_3x1,
+    BOOL_3x2,
+    BOOL_3x3,
+    BOOL_3x4,
+    BOOL_4x1,
+    BOOL_4x2,
+    BOOL_4x3,
+    BOOL_4x4,
+
+    U32_1x1,
+    U32_1x2,
+    U32_1x3,
+    U32_1x4,
+    U32_2x1,
+    U32_2x2,
+    U32_2x3,
+    U32_2x4,
+    U32_3x1,
+    U32_3x2,
+    U32_3x3,
+    U32_3x4,
+    U32_4x1,
+    U32_4x2,
+    U32_4x3,
+    U32_4x4,
+
+    S32_1x1,
+    S32_1x2,
+    S32_1x3,
+    S32_1x4,
+    S32_2x1,
+    S32_2x2,
+    S32_2x3,
+    S32_2x4,
+    S32_3x1,
+    S32_3x2,
+    S32_3x3,
+    S32_3x4,
+    S32_4x1,
+    S32_4x2,
+    S32_4x3,
+    S32_4x4,
+
+    F32_1x1,
+    F32_1x2,
+    F32_1x3,
+    F32_1x4,
+    F32_2x1,
+    F32_2x2,
+    F32_2x3,
+    F32_2x4,
+    F32_3x1,
+    F32_3x2,
+    F32_3x3,
+    F32_3x4,
+    F32_4x1,
+    F32_4x2,
+    F32_4x3,
+    F32_4x4,
+
+    BOOL_4 = BOOL_4x1,
+    U32_4 = U32_4x1,
+    S32_4 = S32_4x1,
+    F32_4 = F32_4x1,
+
+    BOOL_3 = BOOL_3x1,
+    U32_3 = U32_3x1,
+    S32_3 = S32_3x1,
+    F32_3 = F32_3x1,
+
+    BOOL_2 = BOOL_2x1,
+    U32_2 = U32_2x1,
+    S32_2 = S32_2x1,
+    F32_2 = F32_2x1,
+
+    BOOL_1 = BOOL_1x1,
+    U32_1 = U32_1x1,
+    S32_1 = S32_1x1,
+    F32_1 = F32_1x1
+};
+
+// Returns the size of the scalar type, not the whole type, e.g. returns 32 on F32_4x4
+inline gtype get_scalar_gtype(gtype type) {
     u32 v = (u32) type;
     if (v >= (u32) gtype::BOOL_1x1 && v <= (u32) gtype::BOOL_4x4) return gtype::BOOL;
     if (v >= (u32) gtype::U32_1x1 && v <= (u32) gtype::U32_4x4) return gtype::U32;
@@ -11,7 +118,7 @@ gtype get_scalar_gtype(gtype type) {
     return type;
 }
 
-size_t get_size_of_base_gtype_in_bits(gtype type) {
+inline size_t get_size_of_base_gtype_in_bits(gtype type) {
     if (type == gtype::BOOL) return 1;
     if (type == gtype::U8) return 8;
     if (type == gtype::S8) return 8;
@@ -20,7 +127,7 @@ size_t get_size_of_base_gtype_in_bits(gtype type) {
     return 32;
 }
 
-size_t get_count_of_gtype(gtype type) {
+inline size_t get_count_of_gtype(gtype type) {
     switch (type) {
         case gtype::BOOL_1x2:
         case gtype::U32_1x2:
@@ -99,16 +206,6 @@ size_t get_count_of_gtype(gtype type) {
     }
 }
 
-void buffer_layout::add(string name, gtype type, size_t count, bool normalized) {
-    size_t sizeInBits = get_size_of_base_gtype_in_bits(type);
-
-    count *= get_count_of_gtype(type);
-
-    assert(TotalSize <= numeric_info<u32>::max());
-    Elements.append({name, get_scalar_gtype(type), sizeInBits, normalized, (u32) count, (u32) TotalSize});
-
-    if (sizeInBits == 1) sizeInBits = 8;
-    TotalSize += (sizeInBits / 8) * count;
-}
+enum class shader_type { None = 0, Vertex_Shader, Fragment_Shader };
 
 LSTD_END_NAMESPACE

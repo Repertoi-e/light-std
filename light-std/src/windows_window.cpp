@@ -98,8 +98,6 @@ void win32_window_init() {
 void win32_destroy_windows() {
     auto *win = WindowsList;
     while (win) {
-        win->IsDestroying = true;
-        win->WindowClosedEvent.emit(null, {win});
         win->release();
         win = win->Next;
     }
@@ -305,8 +303,6 @@ void window::update() {
         if (message.message == WM_QUIT) {
             auto *win = WindowsList;
             while (win) {
-                win->IsDestroying = true;
-                win->WindowClosedEvent.emit(null, {win});
                 win->release();
                 win = win->Next;
             }
@@ -375,6 +371,9 @@ static void release_monitor(window *win) {
 
 void window::release() {
     if (ID == INVALID_ID) return;
+
+    IsDestroying = true;
+    WindowClosedEvent.emit(null, {this});
 
     if (Monitor) release_monitor(this);
     if (DisabledCursorWindow == this) DisabledCursorWindow = null;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <lstd/basic.h>
-#include <lstd/graphics/graphics.h>
+#include <lstd/graphics.h>
 #include <lstd/os.h>
 
 // LE_GAME_API is used to export functions from the game dll

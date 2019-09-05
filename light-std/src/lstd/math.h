@@ -9,7 +9,12 @@
 LSTD_BEGIN_NAMESPACE
 
 struct rect {
-    s32 X, Y, Width, Height;
+    s32 X = 0, Y = 0, Width = 0, Height = 0;
+
+    bool operator==(rect other) const {
+        return X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
+    }
+    bool operator!=(rect other) const { return !(*this == other); }
 };
 
 using vec2i8 = tvec2<s8>;

@@ -207,8 +207,7 @@ struct array {
 
     // Predicate must take a single argument (the current element) and return if it matches
     size_t find(delegate<bool(const data_t &)> predicate, s64 start = 0) const {
-        assert(Data);
-        if (Count == 0) return npos;
+        if (!Data || Count == 0) return npos;
 
         start = translate_index(start, Count);
 
@@ -224,10 +223,9 @@ struct array {
 
     // Find the first occurence of a subarray that is after a specified index
     size_t find(array arr, s64 start = 0) const {
-        assert(Data);
+        if (!Data || Count == 0) return npos;
         assert(arr.Data);
         assert(arr.Count);
-        if (Count == 0) return npos;
 
         start = translate_index(start, Count);
 
@@ -243,8 +241,7 @@ struct array {
 
     // Find the last occurence of an element that is before a specified index
     size_t find_reverse(const T &element, s64 start = 0) const {
-        assert(Data);
-        if (Count == 0) return npos;
+        if (!Data || Count == 0) return npos;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
@@ -256,10 +253,9 @@ struct array {
 
     // Find the last occurence of a subarray that is before a specified index
     size_t find_reverse(array arr, s64 start = 0) const {
-        assert(Data);
+        if (!Data || Count == 0) return npos;
         assert(arr.Data);
         assert(arr.Count);
-        if (Count == 0) return npos;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
@@ -276,10 +272,9 @@ struct array {
 
     // Find the first occurence of any element in the specified subarray that is after a specified index
     size_t find_any_of(array allowed, s64 start = 0) const {
-        assert(Data);
+        if (!Data || Count == 0) return npos;
         assert(allowed.Data);
         assert(allowed.Count);
-        if (Count == 0) return npos;
 
         start = translate_index(start, Count);
 
@@ -291,10 +286,9 @@ struct array {
     // Find the last occurence of any element in the specified subarray
     // that is before a specified index (0 means: start from the end)
     size_t find_reverse_any_of(array allowed, s64 start = 0) const {
-        assert(Data);
+        if (!Data || Count == 0) return npos;
         assert(allowed.Data);
         assert(allowed.Count);
-        if (Count == 0) return npos;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
@@ -306,8 +300,7 @@ struct array {
 
     // Find the first absence of an element that is after a specified index
     size_t find_not(const data_t &element, s64 start = 0) const {
-        assert(Data);
-        if (Count == 0) return npos;
+        if (!Data || Count == 0) return npos;
 
         start = translate_index(start, Count);
 
@@ -318,8 +311,7 @@ struct array {
 
     // Find the last absence of an element that is before the specified index
     size_t find_reverse_not(const data_t &element, s64 start = 0) const {
-        assert(Data);
-        if (Count == 0) return npos;
+        if (!Data || Count == 0) return npos;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
@@ -331,10 +323,9 @@ struct array {
 
     // Find the first absence of any element in the specified subarray that is after a specified index
     size_t find_not_any_of(array banned, s64 start = 0) const {
-        assert(Data);
+        if (!Data || Count == 0) return npos;
         assert(banned.Data);
         assert(banned.Count);
-        if (Count == 0) return npos;
 
         start = translate_index(start, Count);
 
@@ -345,10 +336,9 @@ struct array {
 
     // Find the first absence of any element in the specified subarray that is after a specified index
     size_t find_reverse_not_any_of(array banned, s64 start = 0) const {
-        assert(Data);
+        if (!Data || Count == 0) return npos;
         assert(banned.Data);
         assert(banned.Count);
-        if (Count == 0) return npos;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;

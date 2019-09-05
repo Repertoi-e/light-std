@@ -2,24 +2,18 @@
 #error Error
 #endif
 
-#include <lstd/video/monitor.h>
-
-#include <lstd/dx_graphics.h>
-#include <lstd/graphics/ui/imgui.h>
-#include <lstd/io/fmt.h>
-
 #include <game.h>
+
+#include <lstd/io/fmt.h>
 
 static void *new_wrapper(size_t size, void *) { return operator new(size, Malloc); }
 static void delete_wrapper(void *ptr, void *) { delete ptr; }
 
 struct game_state {
-    dx_shader Shader;
-    dx_buffer VB, IB;
+    shader Shader;
+    buffer VB, IB;
 
     vec4 ClearColor = {0.2f, 0.3f, 0.8f, 1.0f};
-
-    // window *TestWindow = null;
 };
 
 game_memory *g_GameMemory = null;
@@ -48,7 +42,7 @@ void reload(game_memory *memory, graphics *g) {
     state->VB.release();
     state->IB.release();
 
-    g->create_shader(&state->Shader, "Triangle Shader", file::path("data/Triangle.hlsl"));
+    state->Shader.init(g, "Triangle Shader", file::path("data/Triangle.hlsl"));
     state->Shader.bind();
 
     struct Vertex {
@@ -59,25 +53,19 @@ void reload(game_memory *memory, graphics *g) {
                          {vec3(0.0f, -0.5, 0.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f)},
                          {vec3(-0.45f, -0.5f, 0.0f), vec4(0.0f, 1.0f, 1.0f, 1.0f)}};
 
-    g->create_buffer(&state->VB, buffer::type::VERTEX_BUFFER, buffer::usage::DYNAMIC, sizeof(triangle));
+    state->VB.init(g, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, sizeof(triangle));
 
     buffer_layout layout;
     layout.add("POSITION", gtype::F32_3);
     layout.add("COLOR", gtype::F32_4);
     state->VB.set_input_layout(layout);
 
-    auto *data = state->VB.map(buffer::map_access::WRITE_UNSYNCHRONIZED);
+    auto *data = state->VB.map(buffer_map_access::Write_Unsynchronized);
     copy_memory(data, triangle, sizeof(triangle));
     state->VB.unmap();
 
     u32 indices[] = {0, 1, 2};
-    g->create_buffer(&state->IB, buffer::type::INDEX_BUFFER, buffer::usage::IMMUTABLE, (const char *) indices,
-                     sizeof(indices));
-
-    // state->TestWindow =
-    //     (new window)
-    //         ->init("Test window", window::DONT_CARE, window::DONT_CARE, 600, 600, window::RESIZABLE | window::SHOWN);
-    // g->add_target_window(state->TestWindow);
+    state->IB.init(g, buffer_type::Index_Buffer, buffer_usage::Immutable, sizeof(indices), (const char *) indices);
 }
 
 LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, graphics *g) {
@@ -87,27 +75,18 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         auto *state = (game_state *) memory->State;
 
         state->Shader.bind();
+        state->VB.bind_vb(primitive_topology::TriangleList);
+        state->IB.bind_ib();
 
-        buffer::bind_data data;
-        data.Topology = primitive_topology::TriangleList;
-        state->VB.bind(data);
-
-        state->IB.bind({});
-
-        // g->set_current_target_window(state->TestWindow);
-        // g->clear_color(state->ClearColor);
-        // g->draw_indexed(state->IB->Size / sizeof(u32));
-        // g->swap();
-
-        g->set_current_target_window(memory->MainWindow);
+        g->set_target_window(memory->MainWindow);
         g->set_cull_mode(cull::Back);
 
         g->clear_color(state->ClearColor);
-        g->draw_indexed(state->IB.Size / sizeof(u32));
-
-        // The main window is swapped at the end of each frame after we draw imgui stuff in the main loop
+        g->draw_indexed((u32) (state->IB.Size / sizeof(u32)));
 
         Context.TemporaryAlloc.free_all();
+
+        // The main window is swapped at the end of each frame in the main loop
     }
 }
 

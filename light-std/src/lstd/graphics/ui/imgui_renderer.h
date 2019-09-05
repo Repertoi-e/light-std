@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../dx_graphics.h"  // @TODO: Currently we use hardcoded dx_* objects, in the future provide a system to switch API during runtime
+#include "../../graphics.h"
 #include "imgui.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -8,9 +8,9 @@ LSTD_BEGIN_NAMESPACE
 struct imgui_renderer {
     graphics *Graphics = null;
 
-    dx_buffer VB, IB, UB;
-    dx_texture_2D FontTexture;
-    dx_shader Shader;
+    buffer VB, IB, UB;
+    texture_2D FontTexture;
+    shader Shader;
     size_t VBSize = 0, IBSize = 0;
 
     imgui_renderer() = default;

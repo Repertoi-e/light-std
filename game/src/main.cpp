@@ -4,10 +4,8 @@
 #error Error
 #endif
 
-#include <lstd/dx_graphics.h>
 #include <lstd/file.h>
-#include <lstd/graphics/ui/imgui.h>
-#include <lstd/graphics/ui/imgui_renderer.h>
+#include <lstd/graphics.h>
 #include <lstd/io/fmt.h>
 #include <lstd/memory/dynamic_library.h>
 #include <lstd/os.h>
@@ -78,7 +76,8 @@ bool check_for_dll_change() {
 static void *new_wrapper(size_t size, void *) { return operator new(size, Malloc); }
 static void delete_wrapper(void *ptr, void *) { delete ptr; }
 
-static graphics *Graphics = null;
+static graphics Graphics;
+static game_memory GameMemory;
 
 void init_imgui_for_our_windows(window *mainWindow);
 void imgui_for_our_windows_new_frame(window *mainWindow);
@@ -86,44 +85,42 @@ void imgui_for_our_windows_new_frame(window *mainWindow);
 s32 main() {
     setup_game_paths();
 
-    game_memory gameMemory;
-    gameMemory.MainWindow = (new window)
+    GameMemory.MainWindow = (new window)
                                 ->init("Tetris", window::DONT_CARE, window::DONT_CARE, 1200, 600,
                                        window::SHOWN | window::RESIZABLE | window::VSYNC | window::CLOSE_ON_ALT_F4);
 
-    Graphics = new dx_graphics;
-    Graphics->init();
-    Graphics->set_blend(true);
-    Graphics->set_depth_testing(false);
-    Graphics->add_target_window(gameMemory.MainWindow);
-    defer(Graphics->remove_target_window(gameMemory.MainWindow));
+    Graphics.init(graphics_api::Direct3D);
+    Graphics.set_blend(true);
+    Graphics.set_depth_testing(false);
+	defer(Graphics.release());
 
-    init_imgui_for_our_windows(gameMemory.MainWindow);
-    gameMemory.ImGuiContext = ImGui::GetCurrentContext();
+    init_imgui_for_our_windows(GameMemory.MainWindow);
+    GameMemory.ImGuiContext = ImGui::GetCurrentContext();
+
     // Needs to get called at the end to release any imgui windows
     defer(ImGui::DestroyPlatformWindows());
 
     imgui_renderer imguiRenderer;
-    imguiRenderer.init(Graphics);
+    imguiRenderer.init(&Graphics);
 
     while (true) {
-        gameMemory.ReloadedThisFrame = check_for_dll_change();
+        GameMemory.ReloadedThisFrame = check_for_dll_change();
 
         window::update();
-        if (gameMemory.MainWindow->IsDestroying) break;
+        if (GameMemory.MainWindow->IsDestroying) break;
 
-        if (GameUpdateAndRender) GameUpdateAndRender(&gameMemory, Graphics);
+        if (GameUpdateAndRender) GameUpdateAndRender(&GameMemory, &Graphics);
 
-        imgui_for_our_windows_new_frame(gameMemory.MainWindow);
+        imgui_for_our_windows_new_frame(GameMemory.MainWindow);
 
         ImGui::NewFrame();
         if (GameRenderUI) GameRenderUI();
         ImGui::Render();
 
-        Graphics->set_current_target_window(gameMemory.MainWindow);
-        Graphics->set_cull_mode(cull::None);
+        Graphics.set_target_window(GameMemory.MainWindow);
+        Graphics.set_cull_mode(cull::None);
         imguiRenderer.draw(ImGui::GetDrawData());
-        Graphics->swap();
+        Graphics.swap();
 
         // Update and Render additional Platform Windows
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -297,11 +294,11 @@ static void init_imgui_for_our_windows(window *mainWindow) {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    //io.ConfigViewportsNoAutoMerge = true;
-    //io.ConfigViewportsNoTaskBarIcon = true;
-    //io.ConfigViewportsNoDefaultParent = true;
-    //io.ConfigDockingAlwaysTabBar = true;
-    //io.ConfigDockingTransparentPayload = true;
+    // io.ConfigViewportsNoAutoMerge = true;
+    // io.ConfigViewportsNoTaskBarIcon = true;
+    // io.ConfigViewportsNoDefaultParent = true;
+    // io.ConfigDockingAlwaysTabBar = true;
+    // io.ConfigDockingTransparentPayload = true;
 
     // We tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle &style = ImGui::GetStyle();
@@ -369,8 +366,6 @@ static void init_imgui_for_our_windows(window *mainWindow) {
             auto *win = (new (Malloc) window)
                             ->init("", window::DONT_CARE, window::DONT_CARE, (s32) viewport->Size.x,
                                    (s32) viewport->Size.y, flags);
-            Graphics->add_target_window(win);
-
             viewport->PlatformUserData = (void *) true;
             viewport->PlatformHandle = (void *) win;
 #if OS == WINDOWS
@@ -393,7 +388,6 @@ static void init_imgui_for_our_windows(window *mainWindow) {
 
         platformIO.Platform_DestroyWindow = [](auto *viewport) {
             if (viewport->PlatformUserData == (void *) true) {
-                Graphics->remove_target_window((window *) viewport->PlatformHandle);
                 delete (window *) viewport->PlatformHandle;
             }
             viewport->PlatformHandle = viewport->PlatformUserData = null;
@@ -445,12 +439,12 @@ static void init_imgui_for_our_windows(window *mainWindow) {
         };
 
         platformIO.Platform_RenderWindow = [](auto *viewport, auto) {
-            Graphics->set_current_target_window((window *) viewport->PlatformHandle);
+            Graphics.set_target_window((window *) viewport->PlatformHandle);
         };
 
         platformIO.Platform_SwapBuffers = [](auto *viewport, auto) {
-            Graphics->set_current_target_window((window *) viewport->PlatformHandle);  // @Redundant?
-            Graphics->swap();
+            Graphics.set_target_window((window *) viewport->PlatformHandle);
+            Graphics.swap();
         };
 
         platformIO.Platform_SetWindowAlpha = [](auto *viewport, f32 alpha) {
