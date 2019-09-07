@@ -196,7 +196,7 @@ LE_GAME_API GAME_RENDER_UI(game_render_ui) {
         ImGui::End();
 
         ImGui::Begin("Scene Properties", null);
-        ImGui::ColorPicker3("Clear color", &state->ClearColor.x);
+        { ImGui::ColorPicker3("Clear color", &state->ClearColor.x); }
         ImGui::End();
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -204,10 +204,25 @@ LE_GAME_API GAME_RENDER_UI(game_render_ui) {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::Begin("Viewport", null);
         ImGui::PopStyleVar(3);
+        {
+            auto *drawList = ImGui::GetWindowDrawList();
 
-        auto *drawList = ImGui::GetWindowDrawList();
-        drawList->AddImage(&state->ViewportTexture, ImGui::GetWindowPos(),
-                           ImGui::GetWindowPos() + ImGui::GetWindowSize());
+            auto windowPos = ImGui::GetWindowPos();
+            auto windowSize = ImGui::GetWindowSize();
+
+            f32 viewportRatio = (f32) state->ViewportTexture.Width / state->ViewportTexture.Height;
+            f32 windowRatio = windowSize.x / windowSize.y;
+
+            vec2 renderableSize = windowSize, offset;
+            if (viewportRatio < windowRatio) {
+                renderableSize.x = (state->ViewportTexture.Width * (windowSize.y / state->ViewportTexture.Height));
+                offset = {(windowSize.x - renderableSize.x) / 2, 0};
+            } else if (viewportRatio > windowRatio) {
+                renderableSize.y = (state->ViewportTexture.Height * (windowSize.x / state->ViewportTexture.Width));
+                offset = {0, (windowSize.y - renderableSize.y) / 2};
+            }
+            drawList->AddImage(&state->ViewportTexture, windowPos + offset, windowPos + offset + renderableSize);
+        }
         ImGui::End();
 
         ImGui::ShowMetricsWindow();
