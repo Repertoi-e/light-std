@@ -1434,6 +1434,11 @@ void optimized_fill_memory(void *dest, char c, size_t num) {
     size_t offset = ((ptr_t) dest) % 16;
     size_t num16bytes = (num - offset) / 16;
     size_t remaining = num - num16bytes * 16 - offset;
+    if (num < offset) {
+        offset = 0;
+        num16bytes = 0;
+        remaining = num;
+    }
 
     fill_memory_constexpr(d, c, offset);
     d += offset;

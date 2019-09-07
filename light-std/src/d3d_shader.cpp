@@ -64,13 +64,13 @@ void d3d_shader_init(shader *s) {
     // Remove comments
     size_t startPos;
     while ((startPos = source.find("/*")) != npos) {
-        size_t endPos = source.find("*/");
+        size_t endPos = source.find("*/", startPos);
         assert(endPos != npos);
         source.remove(startPos, endPos);
     }
 
     while ((startPos = source.find("//")) != npos) {
-        size_t endPos = source.find('\n');
+        size_t endPos = source.find('\n', startPos);
         assert(endPos != npos);
         source.remove(startPos, endPos);
     }

@@ -71,10 +71,12 @@ void d3d_init(graphics *g) {
         blendDest.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
         blendDest.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
         blendDest.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-        blendDest.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+        blendDest.RenderTarget[0].SrcBlendAlpha =
+            D3D11_BLEND_ONE;  // @TODO: Provide more flexibility for choosing the blend function and factors
         blendDest.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
         blendDest.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
         blendDest.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        // @TODO blendDest.RenderTarget is an array of 8 targets
     }
     DXCHECK(g->D3D.Device->CreateBlendState(&blendDest, &g->D3D.BlendStates[0]));
 
@@ -168,11 +170,6 @@ void d3d_init_target_window(graphics *g, graphics::target_window *targetWindow) 
     DXCHECK(factory->CreateSwapChain(g->D3D.Device, &desc, &targetWindow->D3D.SwapChain));
 }
 
-void d3d_set_target_window(graphics *g, graphics::target_window *targetWindow) {
-    assert(targetWindow);
-    g->D3D.DeviceContext->OMSetRenderTargets(1, &targetWindow->D3D.BackBuffer, targetWindow->D3D.DepthStencilView);
-}
-
 void d3d_release_target_window(graphics *g, graphics::target_window *targetWindow) {
     assert(targetWindow);
 
@@ -218,11 +215,8 @@ void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindo
         textureDesc.ArraySize = 1;
         textureDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
         textureDesc.SampleDesc.Count = 1;
-        textureDesc.SampleDesc.Quality = 0;
         textureDesc.Usage = D3D11_USAGE_DEFAULT;
         textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-        textureDesc.CPUAccessFlags = 0;
-        textureDesc.MiscFlags = 0;
     }
 
     DXCHECK(g->D3D.Device->CreateTexture2D(&textureDesc, null, &targetWindow->D3D.DepthStencilBuffer));
@@ -276,9 +270,15 @@ void d3d_set_scissor_rect(graphics *g, rect scissorRect) {
     g->D3D.DeviceContext->RSSetScissorRects(1, &rect);
 }
 
-void d3d_set_custom_render_target(graphics *g, texture_2D *target) {
-    assert(false);  // @TODO
-};
+void d3d_set_render_target(graphics *g, texture_2D *target) {
+    auto *renderTarget = g->CurrentTargetWindow->D3D.BackBuffer;
+    auto *depthStencil = g->CurrentTargetWindow->D3D.DepthStencilView;
+    if (target) {
+        renderTarget = target->D3D.RenderTargetView;
+        depthStencil = target->D3D.DepthStencilView;
+    }
+    g->D3D.DeviceContext->OMSetRenderTargets(1, &renderTarget, depthStencil);
+}
 
 void d3d_set_blend(graphics *g, bool enabled) {
     g->D3D.DeviceContext->OMSetBlendState(enabled ? g->D3D.BlendStates[0] : g->D3D.BlendStates[1], null, 0xffffffff);
@@ -293,21 +293,16 @@ void d3d_set_cull_mode(graphics *g, cull mode) {
     g->D3D.DeviceContext->RSSetState(g->CurrentTargetWindow->D3D.RasterStates[(size_t) mode]);
 }
 
-void (*InitTexture2D)(graphics *g, texture_2D *texture, string name, s32 width, s32 height, texture_filter filter,
-                      texture_wrap wrap) = null;
-void (*InitTexture2DAsRenderTarget)(graphics *g, texture_2D *texture, string name, s32 width, s32 height,
-                                    texture_filter filter, texture_wrap wrap) = null;
-
 void d3d_clear_color(graphics *g, vec4 color) {
-    g->D3D.DeviceContext->ClearRenderTargetView(g->CurrentTargetWindow->D3D.BackBuffer, &color.x);
-    g->D3D.DeviceContext->ClearDepthStencilView(g->CurrentTargetWindow->D3D.DepthStencilView,
-                                                D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+    auto *renderTarget = g->CurrentTargetWindow->D3D.BackBuffer;
+    auto *depthStencil = g->CurrentTargetWindow->D3D.DepthStencilView;
+    if (g->CurrentTargetWindow->CustomRenderTarget) {
+        renderTarget = g->CurrentTargetWindow->CustomRenderTarget->D3D.RenderTargetView;
+        depthStencil = g->CurrentTargetWindow->CustomRenderTarget->D3D.DepthStencilView;
+    }
+    g->D3D.DeviceContext->ClearRenderTargetView(renderTarget, &color.x);
+    g->D3D.DeviceContext->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 }
-
-void (*Draw)(graphics *g, size_t vertices, size_t startVertexLocation) = null;
-void (*DrawIndexed)(graphics *g, size_t indices, size_t startIndex, size_t baseVertexLocation) = null;
-void (*Swap)(graphics *g) = null;
-void (*Release)(graphics *g) = null;
 
 void d3d_draw(graphics *g, u32 vertices, u32 startVertexLocation) {
     g->D3D.DeviceContext->Draw(vertices, startVertexLocation);
@@ -333,12 +328,11 @@ void d3d_release(graphics *g) {
 
 graphics::impl g_D3DImpl = {d3d_init,
                             d3d_init_target_window,
-                            d3d_set_target_window,
                             d3d_release_target_window,
                             d3d_target_window_resized,
                             d3d_set_viewport,
                             d3d_set_scissor_rect,
-                            d3d_set_custom_render_target,
+                            d3d_set_render_target,
                             d3d_set_blend,
                             d3d_set_depth_testing,
                             d3d_set_cull_mode,

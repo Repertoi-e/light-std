@@ -4,7 +4,7 @@ LSTD_BEGIN_NAMESPACE
 
 struct free_list_header {
     size_t BlockSize;
-    char Padding;
+    size_t Padding;
 };
 
 using node = free_list_allocator_data::node;
@@ -21,13 +21,10 @@ static void coalescence(node *previousNode, node *freeNode) {
     }
 }
 
-static size_t calculate_padding(size_t baseAddress, size_t align) {
-    return (baseAddress / align + 1) * align - baseAddress;
-}
+static size_t calculate_padding_with_header(void *ptr, size_t align) {
+    size_t padding = calculate_padding(ptr, align);
 
-static size_t calculate_padding_with_header(size_t baseAddress, size_t align, size_t headerSize) {
-    size_t padding = calculate_padding(baseAddress, align);
-
+    auto headerSize = sizeof(free_list_header);
     if (padding < headerSize) {
         headerSize -= padding;
         if (headerSize % align > 0) {
@@ -43,9 +40,8 @@ size_t free_list_allocator_data::find_first(size_t size, size_t align, node **pr
     size_t padding = 0;
 
     node *it = FreeListHead, *itPrev = null;
-
     while (it) {
-        padding = calculate_padding_with_header((size_t) it, align, sizeof(free_list_header));
+        padding = calculate_padding_with_header(it, align);
 
         size_t requiredSpace = size + padding;
         if (it->BlockSize >= requiredSpace) break;
@@ -66,9 +62,13 @@ size_t free_list_allocator_data::find_best(size_t size, size_t align, node **pre
 
     node *it = FreeListHead, *itPrev = null, *bestBlock = null;
     while (it) {
-        padding = calculate_padding_with_header((size_t) it, align, sizeof(free_list_header));
+        padding = calculate_padding_with_header(it, align);
         size_t requiredSpace = size + padding;
-        if (it->BlockSize >= requiredSpace && (it->BlockSize - requiredSpace < smallestDiff)) bestBlock = it;
+        size_t diff = it->BlockSize - requiredSpace;
+        if (it->BlockSize >= requiredSpace && (diff < smallestDiff)) {
+            bestBlock = it;
+            smallestDiff = diff;
+        }
 
         itPrev = it;
         it = it->Next;
@@ -80,101 +80,68 @@ size_t free_list_allocator_data::find_best(size_t size, size_t align, node **pre
 }
 
 void free_list_allocator_data::init(size_t totalSize, u8 policy) {
-	Storage = new (Malloc) char[totalSize];
+    Storage = new (Malloc) char[totalSize];
     Reserved = totalSize;
-
     PlacementPolicy = policy;
-
-    // Initializes linked list
-    allocator{free_list_allocator, this}.free_all();
+    allocator{free_list_allocator, this}.free_all();  // Initializes linked list
 }
 
 void *free_list_allocator_data::allocate(size_t size, size_t align) {
     assert(size >= sizeof(node) && "Allocation size must be bigger");
-    assert(align >= 8 && "Alignment must be 8 or more");
+    assert(IS_POW_OF_2(align));
+    align = align < sizeof(free_list_header) ? sizeof(free_list_header) : align;
 
-    // search through the free list for a free block that has enough space to allocate our Data
-    node *affectedNode, *previousNode;
-    size_t padding = 0;
-    switch (PlacementPolicy) {
-        case free_list_allocator_data::Find_First:
-            padding = find_first(size, align, &previousNode, &affectedNode);
-            break;
-        case free_list_allocator_data::Find_Best:
-            padding = find_best(size, align, &previousNode, &affectedNode);
-            break;
-        default:
-            assert(false);
-    }
-
-    if (!affectedNode) return null;
+    // Search through the free list for a free block that has enough space to allocate our Data
+    node *previousNode, *foundNode;
+    size_t padding = PlacementPolicy == free_list_allocator_data::Find_First
+                         ? find_first(size, align, &previousNode, &foundNode)
+                         : find_best(size, align, &previousNode, &foundNode);
+    if (!foundNode) return null;
 
     size_t alignmentPadding = padding - sizeof(free_list_header);
-    size_t requiredSize = size + padding;
+    size_t required = size + padding;
 
-    size_t rest = affectedNode->BlockSize - requiredSize;
-
+    size_t rest = foundNode->BlockSize - required;
     if (rest > 0) {
         // We have to split the block into the Data block and a free block of size 'rest'
-        auto *newFreeNode = (node *) ((size_t) affectedNode + requiredSize);
+        auto *newFreeNode = (node *) ((char *) foundNode + required);
         newFreeNode->BlockSize = rest;
-
-        if (!affectedNode) {
-            newFreeNode->Next = FreeListHead;
-            FreeListHead = newFreeNode;
-        } else {
-            if (!affectedNode->Next) {
-                affectedNode->Next = newFreeNode;
-                newFreeNode->Next = null;
-            } else {
-                newFreeNode->Next = affectedNode->Next;
-                affectedNode->Next = newFreeNode;
-            }
-        }
+        newFreeNode->Next = foundNode->Next;
+        foundNode->Next = newFreeNode;
     }
-
-    if (!previousNode) {
-        FreeListHead = affectedNode->Next;
+    if (previousNode) {
+        previousNode->Next = foundNode->Next;
     } else {
-        previousNode->Next = affectedNode->Next;
+        FreeListHead = foundNode->Next;
     }
 
-    // Setup data block
-    size_t headerAddress = (size_t) affectedNode + alignmentPadding;
-    size_t dataAddress = headerAddress + sizeof(free_list_header);
-    ((free_list_header *) headerAddress)->BlockSize = requiredSize;
-    ((free_list_header *) headerAddress)->Padding = (char) alignmentPadding;
-
-    Used += requiredSize;
+    Used += required;
     PeakUsed = MAX(Used, PeakUsed);
 
-    return (void *) dataAddress;
+    auto *header = (free_list_header *) ((char *) foundNode + alignmentPadding);
+    header->BlockSize = required;
+    header->Padding = (char) alignmentPadding;
+
+    return (void *) (header + 1);
 }
 
 void free_list_allocator_data::free(void *memory) {
-    size_t currentAddress = (size_t) memory;
-    size_t headerAddress = currentAddress - sizeof(free_list_header);
-    const free_list_header *allocationHeader{(free_list_header *) headerAddress};
+    auto *header = (free_list_header *) memory - 1;
 
-    auto *freeNode = (node *) headerAddress;
-    freeNode->BlockSize = allocationHeader->BlockSize + allocationHeader->Padding;
+    auto newBlockSize = header->BlockSize + header->Padding;
+    auto *freeNode = (node *) header;
+    freeNode->BlockSize = newBlockSize;
     freeNode->Next = null;
 
     node *it = FreeListHead, *itPrev = null;
     while (it) {
-        if (memory < it) {
+        if (memory < (void *) it) {
             if (!itPrev) {
                 freeNode->Next = FreeListHead;
                 FreeListHead = freeNode;
             } else {
-                if (!itPrev->Next) {
-                    itPrev->Next = freeNode;
-                    freeNode->Next = null;
-                } else {
-                    // It is a middle node
-                    freeNode->Next = itPrev->Next;
-                    itPrev->Next = freeNode;
-                }
+                freeNode->Next = itPrev->Next;
+                itPrev->Next = freeNode;
             }
             break;
         }
@@ -200,7 +167,7 @@ void *free_list_allocator(allocator_mode mode, void *context, size_t size, void 
         case allocator_mode::ALIGNED_REALLOCATE: {
             auto *newMemory = data->allocate(size, (mode == allocator_mode::ALIGNED_REALLOCATE ? (size_t) align : 8));
             copy_memory(newMemory, oldMemory, oldSize);
-            allocator{free_list_allocator, data}.free(oldMemory);
+            free_list_allocator(allocator_mode::FREE, context, 0, oldMemory, 0, alignment(0), 0);
             return newMemory;
         }
         case allocator_mode::FREE: {

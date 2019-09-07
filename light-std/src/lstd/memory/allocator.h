@@ -151,13 +151,15 @@ struct allocator {
     }
 
     static void *general_reallocate(void *ptr, size_t newSize, bool aligned, alignment align, u64 userFlags = 0) {
+        assert(ptr);
+
         auto *header = (allocation_header *) ptr - 1;
         assert(header->Pointer == ptr &&
                "Calling reallocate on a pointer that doesn't have a header (probably it isn't dynamic memory or"
                "it wasn't allocated with an allocator from this library)");
 
-        auto oldSize = header->Size;  // The header stores the size without sizeof(allocation_header)
-        if (oldSize > newSize) return ptr;
+        auto oldSize =
+            header->Size + sizeof(allocation_header);  // The header stores the size without sizeof(allocation_header)
 
         auto *allocFunc = header->Function;
         auto *allocContext = header->Context;
@@ -165,28 +167,30 @@ struct allocator {
         void *result;
         if (!aligned) {
             result = allocFunc(allocator_mode::REALLOCATE, allocContext, newSize + sizeof(allocation_header), header,
-                               oldSize + sizeof(allocation_header), alignment(0), userFlags);
+                               oldSize, alignment(0), userFlags);
         } else {
             assert((size_t) align > 0 && IS_POW_OF_2((size_t) align));
             result = allocFunc(allocator_mode::ALIGNED_REALLOCATE, allocContext, newSize + sizeof(allocation_header),
-                               header, oldSize + sizeof(allocation_header), align, userFlags);
+                               header, oldSize, align, userFlags);
             assert((((uptr_t) result & ~((size_t) align - 1)) == (uptr_t) result) &&
                    "Pointer wasn't properly aligned.");
         }
         if (userFlags & DO_INIT_FLAG) {
-            zero_memory((char *) result + sizeof(allocation_header) + oldSize, newSize - oldSize);
+            zero_memory((char *) result + oldSize, newSize - oldSize - sizeof(allocation_header));
         }
         return encode_header(result, newSize, allocFunc, allocContext);
     }
 };
 
-// Returns an aligned pointer
-// This is used in allocator implementations for supporting aligned allocations
-// If alignment is 4 bytes on 64 bit system, it get set to 8 bytes
+// Calculates the required padding in bytes which needs to be added to _ptr_ in order to be aligned.
+inline size_t calculate_padding(void *ptr, size_t alignment) {
+    assert(alignment > 0 && IS_POW_OF_2(alignment));
+    return ((uptr_t) ptr / alignment + 1) * alignment - (uptr_t) ptr;
+}
+
+// Returns an aligned pointer.
 inline void *get_aligned_pointer(void *ptr, size_t alignment) {
     assert(alignment > 0 && IS_POW_OF_2(alignment));
-
-    alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
     return (void *) (((uptr_t) ptr + alignment - 1) & ~(alignment - 1));
 }
 

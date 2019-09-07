@@ -25,7 +25,7 @@ void d3d_texture_2D_init(texture_2D *t) {
         textureDesc.MipLevels = 1;
         textureDesc.ArraySize = 1;
         textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        textureDesc.Usage = D3D11_USAGE_DYNAMIC;
+        textureDesc.Usage = t->RenderTarget ? D3D11_USAGE_DEFAULT : D3D11_USAGE_DYNAMIC;
         textureDesc.CPUAccessFlags = textureDesc.Usage == D3D11_USAGE_DYNAMIC ? D3D11_CPU_ACCESS_WRITE : 0;
         textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (t->RenderTarget ? D3D11_BIND_RENDER_TARGET : 0);
         textureDesc.SampleDesc.Count = 1;
@@ -50,6 +50,23 @@ void d3d_texture_2D_init(texture_2D *t) {
             rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
         }
         DXCHECK(t->Graphics->D3D.Device->CreateRenderTargetView(t->D3D.Texture, &rtvDesc, &t->D3D.RenderTargetView));
+
+        D3D11_TEXTURE2D_DESC dsbDesc;
+        zero_memory(&dsbDesc, sizeof(dsbDesc));
+        {
+            dsbDesc.Width = t->Width;
+            dsbDesc.Height = t->Height;
+            dsbDesc.MipLevels = 1;
+            dsbDesc.ArraySize = 1;
+            dsbDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            dsbDesc.SampleDesc.Count = 1;
+            dsbDesc.Usage = D3D11_USAGE_DEFAULT;
+            dsbDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+        }
+
+        DXCHECK(t->Graphics->D3D.Device->CreateTexture2D(&dsbDesc, null, &t->D3D.DepthStencilBuffer));
+        DXCHECK(
+            t->Graphics->D3D.Device->CreateDepthStencilView(t->D3D.DepthStencilBuffer, null, &t->D3D.DepthStencilView));
     }
 
     D3D11_TEXTURE_ADDRESS_MODE addressMode;
@@ -61,14 +78,14 @@ void d3d_texture_2D_init(texture_2D *t) {
     D3D11_SAMPLER_DESC samplerDesc;
     zero_memory(&samplerDesc, sizeof(samplerDesc));
     {
+        samplerDesc.Filter =
+            t->Filter == texture_filter::Linear ? D3D11_FILTER_MIN_MAG_MIP_LINEAR : D3D11_FILTER_MIN_MAG_MIP_POINT;
         samplerDesc.AddressU = addressMode;
         samplerDesc.AddressV = addressMode;
         samplerDesc.AddressW = addressMode;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+        samplerDesc.MaxAnisotropy = 1;
         samplerDesc.MinLOD = 0;
-        samplerDesc.MaxLOD = 11;
-        samplerDesc.Filter =
-            t->Filter == texture_filter::Linear ? D3D11_FILTER_MIN_MAG_MIP_LINEAR : D3D11_FILTER_MIN_MAG_MIP_POINT;
-        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
     }
     DXCHECK(t->Graphics->D3D.Device->CreateSamplerState(&samplerDesc, &t->D3D.SamplerState));
@@ -82,7 +99,15 @@ void d3d_texture_2D_set_data(texture_2D *t, pixel_buffer data) {
     zero_memory(&mappedData, sizeof(mappedData));
 
     DXCHECK(t->Graphics->D3D.DeviceContext->Map(t->D3D.Texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
-    copy_memory(mappedData.pData, data.Pixels, t->Width * t->Height * 4);
+
+    size_t sourceRow = t->Width * data.BPP;
+
+    auto *dest = (u8 *) mappedData.pData, *p = data.Pixels;
+    For(range(data.Height)) {
+        copy_memory(dest, p, sourceRow);
+        dest += mappedData.RowPitch;
+        p += sourceRow;
+    }
     t->Graphics->D3D.DeviceContext->Unmap(t->D3D.Texture, 0);
 }
 
@@ -105,6 +130,8 @@ void d3d_texture_2D_release(texture_2D *t) {
     SAFE_RELEASE(t->D3D.ResourceView);
     SAFE_RELEASE(t->D3D.SamplerState);
     SAFE_RELEASE(t->D3D.RenderTargetView);
+    SAFE_RELEASE(t->D3D.DepthStencilBuffer);
+    SAFE_RELEASE(t->D3D.DepthStencilView);
 }
 
 texture_2D::impl g_D3DTexture2DImpl = {d3d_texture_2D_init, d3d_texture_2D_set_data, d3d_texture_2D_bind,

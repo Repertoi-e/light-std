@@ -13,25 +13,28 @@ pixel_buffer::pixel_buffer(u8 *pixels, u32 width, u32 height, pixel_format forma
 }
 
 pixel_buffer::pixel_buffer(file::path path, bool flipVertically, pixel_format format) {
-    auto handle = file::handle(path);
+    // auto handle = file::handle(path);
+    //
+    // string data;
+    // handle.read_entire_file(&data);
+    //
+    // stbi_set_flip_vertically_on_load(flipVertically);
+    //
+    // // @Speed Killmenowkillmefastkillmenowkillmefast
+    // s32 w, h, n;
+    // u8 *loaded = stbi_load_from_memory((const u8 *) data.Data, (s32) data.ByteLength, &w, &h, &n, (s32) format);
+    // size_t allocated = ((allocation_header *) loaded - 1)->Size;
+    //
+    // loaded = (u8 *) allocator::reallocate(loaded, allocated + POINTER_SIZE);
+    // copy_memory(loaded + POINTER_SIZE, loaded, w * h * n);
 
-    string data;
-    handle.read_entire_file(&data);
-
-    stbi_set_flip_vertically_on_load(flipVertically);
-
-    // @Speed Killmenowkillmefastkillmenowkillmefast
     s32 w, h, n;
-    u8 *loaded = stbi_load_from_memory((const u8 *) data.Data, (s32) data.ByteLength, &w, &h, &n, (s32) format);
-    size_t allocated = ((allocation_header *) loaded - 1)->Size;
+    u8 *loaded = stbi_load(path.UnifiedPath.to_c_string(), &w, &h, &n, (s32) format);
 
-    loaded = (u8 *) allocator::reallocate(loaded, allocated + POINTER_SIZE);
-    copy_memory(loaded + POINTER_SIZE, loaded, w * h * n);
-
-    Pixels = encode_owner((u8 *) loaded, this);
+    Pixels = loaded;  // encode_owner((u8 *) loaded, this);
     Width = w;
     Height = h;
-    Reserved = allocated;
+    Reserved = 0;  // allocated;
     Format = (pixel_format) n;
     BPP = (s32) Format;
 }
@@ -57,7 +60,7 @@ pixel_buffer *move(pixel_buffer *dest, pixel_buffer *src) {
     dest->release();
     *dest = *src;
 
-	if (!src->is_owner()) return dest;
+    if (!src->is_owner()) return dest;
 
     // Transfer ownership
     change_owner(src->Pixels, dest);

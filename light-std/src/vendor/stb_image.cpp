@@ -4,11 +4,12 @@
 #define STBI_ASSERT assert
 
 #define STBI_MALLOC(size) operator new(size)
-#define STBI_REALLOC(ptr, newSize) LSTD_NAMESPACE::allocator::reallocate(ptr, newSize)
+#define STBI_REALLOC(ptr, newSize) (ptr ? LSTD_NAMESPACE::allocator::reallocate(ptr, newSize) : operator new(newSize))
+
 #define STBI_FREE(ptr) delete ptr
 
 #define STBI_WINDOWS_UTF8
-#define STBI_NO_STDIO
+// #define STBI_NO_STDIO nocheckin
 #define STBI_FAILURE_USERMSG
 
 // The next 4 defines were added by us (we modified stb_image.h)

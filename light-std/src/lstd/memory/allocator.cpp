@@ -42,8 +42,7 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
         case allocator_mode::REALLOCATE:
             return stbm_realloc(null, (stbm_heap *) Heap, oldMemory, size, 0);
         case allocator_mode::ALIGNED_REALLOCATE: {
-            if (!oldMemory) return stbm_alloc_align(null, (stbm_heap *) Heap, size, 0, (size_t) align, 0);
-            if (size <= oldSize && oldSize < size * 2) return oldMemory;
+            if (size <= oldSize) return oldMemory;
 
             void *newPtr = stbm_alloc_align(null, (stbm_heap *) Heap, size, 0, (size_t) align, 0);
             if (!newPtr) return null;
@@ -67,6 +66,7 @@ void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMem
                    u64) {
     switch (mode) {
         case allocator_mode::ALIGNED_ALLOCATE:
+            align = (alignment)((size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align);
             size += (size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align;
             [[fallthrough]];
         case allocator_mode::ALLOCATE: {
@@ -77,8 +77,7 @@ void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMem
         case allocator_mode::ALIGNED_REALLOCATE:
         case allocator_mode::REALLOCATE: {
             // @Speed: Make an _os_realloc_ and use that..
-            if (!oldMemory) return os_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, align, 0);
-            if (size <= oldSize && oldSize < size * 2) return oldMemory;
+            if (size <= oldSize) return oldMemory;
 
             auto *newMemory = os_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, align, 0);
             copy_memory(newMemory, oldMemory, oldSize);
@@ -112,6 +111,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
 
     switch (mode) {
         case allocator_mode::ALIGNED_ALLOCATE:
+            align = (alignment)((size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align);
             size += (size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align;
             [[fallthrough]];
         case allocator_mode::ALLOCATE: {
@@ -149,11 +149,13 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
         // Reallocations aren't really viable with this allocator
         // so we just copy the old memory into a fresh block
         case allocator_mode::ALIGNED_REALLOCATE: {
+            if (size <= oldSize) return oldMemory;
             void *result = temporary_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, align, 0);
             copy_memory(result, oldMemory, oldSize);
             return result;
         }
         case allocator_mode::REALLOCATE: {
+            if (size <= oldSize) return oldMemory;
             void *result = temporary_allocator(allocator_mode::ALLOCATE, context, size, null, 0, align, 0);
             copy_memory(result, oldMemory, oldSize);
             return result;

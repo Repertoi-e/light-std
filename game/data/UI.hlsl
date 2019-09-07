@@ -16,7 +16,7 @@ VOut VSMain(float2 position : POSITION, float4 color : COLOR0, float2 uv : TEXCO
     return output;
 }
 
-sampler Sampler0;
-Texture2D Texture0;
+Texture2D Texture0 : register(t0);
+sampler Sampler0 : register(s0);
 
 float4 PSMain(VOut input) : SV_Target { return input.color * Texture0.Sample(Sampler0, input.uv); }

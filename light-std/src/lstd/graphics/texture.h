@@ -9,6 +9,7 @@ struct ID3D11Texture2D;
 struct ID3D11ShaderResourceView;
 struct ID3D11SamplerState;
 struct ID3D11RenderTargetView;
+struct ID3D11DepthStencilView;
 #endif
 
 LSTD_BEGIN_NAMESPACE
@@ -24,7 +25,10 @@ struct texture_2D {
         ID3D11Texture2D *Texture = null;
         ID3D11ShaderResourceView *ResourceView = null;
         ID3D11SamplerState *SamplerState = null;
+
         ID3D11RenderTargetView *RenderTargetView = null;
+        ID3D11Texture2D *DepthStencilBuffer = null;
+        ID3D11DepthStencilView *DepthStencilView = null;
     } D3D{};
 #endif
 
@@ -56,7 +60,8 @@ struct texture_2D {
     void init(graphics *g, string name, s32 width, s32 height, texture_filter filter = texture_filter::Linear,
               texture_wrap wrap = texture_wrap::Clamp);
     void init_as_render_target(graphics *g, string name, s32 width, s32 height,
-                               texture_filter filter = texture_filter::Linear, texture_wrap wrap = texture_wrap::Clamp);
+                               texture_filter filter = texture_filter::Linear,
+                               texture_wrap wrap = texture_wrap::Repeat);
 
     void set_data(pixel_buffer data) { Impl.SetData(this, data); }
 

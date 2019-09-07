@@ -20,17 +20,6 @@ struct ID3D11RenderTargetView;
 struct ID3D11Texture2D;
 struct ID3D11DepthStencilView;
 struct ID3D11RasterizerState;
-
-// struct ID3D11Buffer;
-// struct D3D11_MAPPED_SUBRESOURCE;
-// struct ID3D11InputLayout;
-// struct ID3D11VertexShader;
-// struct ID3D11PixelShader;
-// struct ID3D11ShaderResourceView;
-// struct ID3D11SamplerState;
-// struct IDXGIFactory;
-// struct IDXGIAdapter;
-// struct IDXGIDevice;
 #endif
 
 LSTD_BEGIN_NAMESPACE
@@ -52,7 +41,6 @@ struct graphics : non_copyable, non_movable {
 
         ID3D11BlendState *BlendStates[2] = {null, null};
         ID3D11DepthStencilState *DepthStencilStates[2] = {null, null};
-
     } D3D{};
 #endif
 
@@ -62,6 +50,8 @@ struct graphics : non_copyable, non_movable {
 
         cull CullMode = cull::None;
         rect Viewport, ScissorRect;
+
+        texture_2D *CustomRenderTarget = null;
 
 #if OS == WINDOWS
         struct {
@@ -93,14 +83,13 @@ struct graphics : non_copyable, non_movable {
         void (*Init)(graphics *g) = null;
 
         void (*InitTargetWindow)(graphics *g, target_window *targetWindow) = null;
-        void (*SetTargetWindow)(graphics *g, target_window *targetWindow) = null;
         void (*ReleaseTargetWindow)(graphics *g, target_window *targetWindow) = null;
         void (*TargetWindowResized)(graphics *g, target_window *targetWindow, s32 width, s32 height) = null;
 
         void (*SetViewport)(graphics *g, rect viewport) = null;
         void (*SetScissorRect)(graphics *g, rect scissorRect) = null;
 
-        void (*SetCustomRenderTarget)(graphics *g, texture_2D *target) = null;
+        void (*SetRenderTarget)(graphics *g, texture_2D *target);  // null means back buffer
 
         void (*SetBlend)(graphics *g, bool enabled) = null;
         void (*SetDepthTesting)(graphics *g, bool enabled) = null;
@@ -132,18 +121,9 @@ struct graphics : non_copyable, non_movable {
         } else {
             targetWindow = &TargetWindows[index];
         }
-        if (CurrentTargetWindow == targetWindow) return;
 
         CurrentTargetWindow = targetWindow;
-        Impl.SetTargetWindow(this, targetWindow);
-
-        if (win) {
-            set_cull_mode(targetWindow->CullMode);
-
-            vec2i windowSize = win->get_size();
-            set_viewport({0, 0, windowSize.x, windowSize.y});
-            set_scissor_rect({0, 0, windowSize.x, windowSize.y});
-        }
+        if (win) set_custom_render_target(targetWindow->CustomRenderTarget);
     }
 
     rect get_viewport() {
@@ -169,7 +149,18 @@ struct graphics : non_copyable, non_movable {
     }
 
     // Pass _null_ to restore rendering to the back buffer
-    void set_custom_render_target(texture_2D *target) { Impl.SetCustomRenderTarget(this, target); }
+    void set_custom_render_target(texture_2D *target) {
+        assert(CurrentTargetWindow->Window);
+        CurrentTargetWindow->CustomRenderTarget = target;
+        Impl.SetRenderTarget(this, target);
+
+        set_cull_mode(CurrentTargetWindow->CullMode);
+
+        vec2i size = CurrentTargetWindow->Window->get_size();
+        if (target) size = {target->Width, target->Height};
+        set_viewport({0, 0, size.x, size.y});
+        set_scissor_rect({0, 0, size.x, size.y});
+    }
 
     void set_blend(bool enabled) { Impl.SetBlend(this, enabled); }
     void set_depth_testing(bool enabled) { Impl.SetDepthTesting(this, enabled); }

@@ -85,14 +85,15 @@ void imgui_for_our_windows_new_frame(window *mainWindow);
 s32 main() {
     setup_game_paths();
 
-    GameMemory.MainWindow = (new window)
-                                ->init("Tetris", window::DONT_CARE, window::DONT_CARE, 1200, 600,
-                                       window::SHOWN | window::RESIZABLE | window::VSYNC | window::CLOSE_ON_ALT_F4);
+    GameMemory.MainWindow =
+        (new window)
+            ->init("Tetris", window::DONT_CARE, window::DONT_CARE, 1200, 600,
+                   window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4);
 
     Graphics.init(graphics_api::Direct3D);
     Graphics.set_blend(true);
     Graphics.set_depth_testing(false);
-	defer(Graphics.release());
+    defer(Graphics.release());
 
     init_imgui_for_our_windows(GameMemory.MainWindow);
     GameMemory.ImGuiContext = ImGui::GetCurrentContext();
@@ -224,7 +225,7 @@ static void imgui_init_photoshop_style() {
     colors[ImGuiCol_Text] = ImVec4(1.000f, 1.000f, 1.000f, 1.000f);
     colors[ImGuiCol_TextDisabled] = ImVec4(0.500f, 0.500f, 0.500f, 1.000f);
     colors[ImGuiCol_WindowBg] = ImVec4(0.180f, 0.180f, 0.180f, 1.000f);
-    colors[ImGuiCol_ChildBg] = ImVec4(0.280f, 0.280f, 0.280f, 0.000f);
+    colors[ImGuiCol_ChildBg] = ImVec4(0.200f, 0.200f, 0.200f, 1.000f);
     colors[ImGuiCol_PopupBg] = ImVec4(0.313f, 0.313f, 0.313f, 1.000f);
     colors[ImGuiCol_Border] = ImVec4(0.266f, 0.266f, 0.266f, 1.000f);
     colors[ImGuiCol_BorderShadow] = ImVec4(0.000f, 0.000f, 0.000f, 0.000f);
@@ -442,10 +443,7 @@ static void init_imgui_for_our_windows(window *mainWindow) {
             Graphics.set_target_window((window *) viewport->PlatformHandle);
         };
 
-        platformIO.Platform_SwapBuffers = [](auto *viewport, auto) {
-            Graphics.set_target_window((window *) viewport->PlatformHandle);
-            Graphics.swap();
-        };
+        platformIO.Platform_SwapBuffers = [](auto *viewport, auto) { Graphics.swap(); };
 
         platformIO.Platform_SetWindowAlpha = [](auto *viewport, f32 alpha) {
             ((window *) viewport->PlatformHandle)->set_opacity(alpha);

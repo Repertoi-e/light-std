@@ -20,7 +20,6 @@ void imgui_renderer::init(graphics *g) {
     };
 
     Shader.init(g, "UI Shader", file::path("data/UI.hlsl"));
-    Shader.bind();
 
     UB.init(g, buffer_type::Shader_Uniform_Buffer, buffer_usage::Dynamic, sizeof(mat4));
 
@@ -30,6 +29,8 @@ void imgui_renderer::init(graphics *g) {
 
     FontTexture.init(g, "UI Font Texture", width, height);
     FontTexture.set_data(pixel_buffer(pixels, width, height, pixel_format::RGBA));
+
+    io.Fonts->TexID = &FontTexture;
 }
 
 void imgui_renderer::draw(ImDrawData *drawData) {
@@ -105,7 +106,7 @@ void imgui_renderer::draw(ImDrawData *drawData) {
                                 (s32)(it.ClipRect.y - drawData->DisplayPos.y), width, height};
                 Graphics->set_scissor_rect(scissor);
 
-                FontTexture.bind(0);
+                if (it.TextureId) ((texture_2D *) it.TextureId)->bind(0);
                 Graphics->draw_indexed(it.ElemCount, it.IdxOffset + idxOffset, it.VtxOffset + vtxOffset);
             }
         }
@@ -119,6 +120,7 @@ void imgui_renderer::release() {
     VB.release();
     IB.release();
     UB.release();
+    ImGui::GetIO().Fonts->TexID = null;
     FontTexture.release();
     Shader.release();
 }
