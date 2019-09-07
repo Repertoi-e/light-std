@@ -9,6 +9,9 @@
 static void *new_wrapper(size_t size, void *) { return operator new(size, Malloc); }
 static void delete_wrapper(void *ptr, void *) { delete ptr; }
 
+game_memory *g_GameMemory = null;
+graphics *g_Graphics = null;
+
 struct game_state {
     shader TriShader, TexShader;
     buffer TriVB, TriIB, TexVB, TexIB;
@@ -17,12 +20,101 @@ struct game_state {
     vec4 ClearColor = {0.2f, 0.3f, 0.8f, 1.0f};
 
     bool NoGUI = false;
-};
 
-game_memory *g_GameMemory = null;
+    size_t FramebufferResizedCallbackID = npos;
+
+    game_state(game_memory *memory, graphics *g) {
+        if (memory->ImGuiContext) {
+            ImGui::SetCurrentContext((ImGuiContext *) memory->ImGuiContext);
+            ImGui::SetAllocatorFunctions(new_wrapper, delete_wrapper);
+        }
+
+        TriShader.init(g, "Triangle Shader", file::path("data/Triangle.hlsl"));
+        TriShader.bind();
+
+        {
+            struct Vertex {
+                vec3 Position;
+                vec4 Color;
+            };
+            Vertex triangle[] = {{vec3(0.0f, 0.5f, 0.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f)},
+                                 {vec3(0.0f, -0.5, 0.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f)},
+                                 {vec3(-0.45f, -0.5f, 0.0f), vec4(0.0f, 1.0f, 1.0f, 1.0f)}};
+
+            TriVB.init(g, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, sizeof(triangle));
+
+            buffer_layout layout;
+            layout.add("POSITION", gtype::F32_3);
+            layout.add("COLOR", gtype::F32_4);
+            TriVB.set_input_layout(layout);
+
+            auto *data = TriVB.map(buffer_map_access::Write_Unsynchronized);
+            copy_memory(data, triangle, sizeof(triangle));
+            TriVB.unmap();
+
+            u32 indices[] = {0, 1, 2};
+            TriIB.init(g, buffer_type::Index_Buffer, buffer_usage::Immutable, sizeof(indices), (const char *) indices);
+        }
+
+        TexShader.init(g, "Basic Texture Shader", file::path("data/BasicTexture.hlsl"));
+        TexShader.bind();
+
+        {
+            struct Vertex {
+                vec3 Position;
+                vec4 Color;
+                vec2 UV;
+            };
+            Vertex triangle[] = {{vec3(-0.5f, 0.5f, 0.0f), vec4(1.0f, 1.0f, 1.0f, 1.0f), vec2(0, 0)},
+                                 {vec3(0.5f, 0.5f, 0.0f), vec4(1.0f, 1.0f, 1.0f, 1.0f), vec2(1, 0)},
+                                 {vec3(0.5f, -0.5f, 0.0f), vec4(1.0f, 1.0f, 1.0f, 1.0f), vec2(1, 1)},
+                                 {vec3(-0.5f, -0.5f, 0.0f), vec4(1.0f, 1.0f, 1.0f, 1.0f), vec2(0, 1)}};
+
+            TexVB.init(g, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, sizeof(triangle));
+
+            buffer_layout layout;
+            layout.add("POSITION", gtype::F32_3);
+            layout.add("COLOR", gtype::F32_4);
+            layout.add("TEXCOORD", gtype::F32_2);
+            TexVB.set_input_layout(layout);
+
+            auto *data = TexVB.map(buffer_map_access::Write_Unsynchronized);
+            copy_memory(data, triangle, sizeof(triangle));
+            TexVB.unmap();
+
+            u32 indices[] = {0, 1, 2, 2, 3, 0};
+            TexIB.init(g, buffer_type::Index_Buffer, buffer_usage::Immutable, sizeof(indices), (const char *) indices);
+        }
+
+        vec2i windowSize = memory->MainWindow->get_size();
+        ViewportTexture.init_as_render_target(g, "Docked Viewport Render Target", windowSize.x, windowSize.y);
+
+        auto TestTexData = pixel_buffer(file::path("data/chocolate-pancake.bmp"));
+        TestTex.init(g, "Test Image", TestTexData.Width, TestTexData.Height);
+        TestTex.set_data(TestTexData);
+
+        FramebufferResizedCallbackID = memory->MainWindow->WindowFramebufferResizedEvent.connect([&](auto e) {
+            ViewportTexture.release();
+            ViewportTexture.init_as_render_target(g_Graphics, "Docked Viewport Render Target", e.Width, e.Height);
+        });
+    }
+
+    ~game_state() {
+        TriShader.release();
+        TexShader.release();
+        TriVB.release();
+        TriIB.release();
+        TexVB.release();
+        TexIB.release();
+        ViewportTexture.release();
+        TestTex.release();
+        g_GameMemory->MainWindow->WindowFramebufferResizedEvent.disconnect(FramebufferResizedCallbackID);
+    }
+};
 
 void reload(game_memory *memory, graphics *g) {
     g_GameMemory = memory;
+    g_Graphics = g;
 
     auto *state = (game_state *) memory->State;
     if (!state) {
@@ -30,84 +122,10 @@ void reload(game_memory *memory, graphics *g) {
         auto *allocatorData = new (Malloc) free_list_allocator_data;
         allocatorData->init(128_MiB, free_list_allocator_data::Find_First);
         memory->Allocator = {free_list_allocator, allocatorData};
-
-        memory->State = new (memory->Allocator) game_state;
-        PUSH_CONTEXT(Alloc, memory->Allocator) reload(memory, g);
-        return;
     }
 
-    if (memory->ImGuiContext) {
-        ImGui::SetCurrentContext((ImGuiContext *) memory->ImGuiContext);
-        ImGui::SetAllocatorFunctions(new_wrapper, delete_wrapper);
-    }
-
-    state->~game_state();  // @Hack to automatically release any members of the struct
-    *((game_memory *) memory->State) = game_memory();
-
-    state->TriShader.init(g, "Triangle Shader", file::path("data/Triangle.hlsl"));
-    state->TriShader.bind();
-
-    {
-        struct Vertex {
-            vec3 Position;
-            vec4 Color;
-        };
-        Vertex triangle[] = {{vec3(0.0f, 0.5f, 0.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f)},
-                             {vec3(0.0f, -0.5, 0.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f)},
-                             {vec3(-0.45f, -0.5f, 0.0f), vec4(0.0f, 1.0f, 1.0f, 1.0f)}};
-
-        state->TriVB.init(g, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, sizeof(triangle));
-
-        buffer_layout layout;
-        layout.add("POSITION", gtype::F32_3);
-        layout.add("COLOR", gtype::F32_4);
-        state->TriVB.set_input_layout(layout);
-
-        auto *data = state->TriVB.map(buffer_map_access::Write_Unsynchronized);
-        copy_memory(data, triangle, sizeof(triangle));
-        state->TriVB.unmap();
-
-        u32 indices[] = {0, 1, 2};
-        state->TriIB.init(g, buffer_type::Index_Buffer, buffer_usage::Immutable, sizeof(indices),
-                          (const char *) indices);
-    }
-
-    state->TexShader.init(g, "Basic Texture Shader", file::path("data/BasicTexture.hlsl"));
-    state->TexShader.bind();
-
-    {
-        struct Vertex {
-            vec3 Position;
-            vec4 Color;
-            vec2 UV;
-        };
-        Vertex triangle[] = {{vec3(-0.5f, 0.5f, 0.0f), vec4(1.0f, 1.0f, 1.0f, 1.0f), vec2(0, 0)},
-                             {vec3(0.5f, 0.5f, 0.0f), vec4(1.0f, 1.0f, 1.0f, 1.0f), vec2(1, 0)},
-                             {vec3(0.5f, -0.5f, 0.0f), vec4(1.0f, 1.0f, 1.0f, 1.0f), vec2(1, 1)},
-                             {vec3(-0.5f, -0.5f, 0.0f), vec4(1.0f, 1.0f, 1.0f, 1.0f), vec2(0, 1)}};
-
-        state->TexVB.init(g, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, sizeof(triangle));
-
-        buffer_layout layout;
-        layout.add("POSITION", gtype::F32_3);
-        layout.add("COLOR", gtype::F32_4);
-        layout.add("TEXCOORD", gtype::F32_2);
-        state->TexVB.set_input_layout(layout);
-
-        auto *data = state->TexVB.map(buffer_map_access::Write_Unsynchronized);
-        copy_memory(data, triangle, sizeof(triangle));
-        state->TexVB.unmap();
-
-        u32 indices[] = {0, 1, 2, 2, 3, 0};
-        state->TexIB.init(g, buffer_type::Index_Buffer, buffer_usage::Immutable, sizeof(indices),
-                          (const char *) indices);
-    }
-
-    state->ViewportTexture.init_as_render_target(g, "Docked Viewport Render Target", 1600, 900);
-
-    auto TestTexData = pixel_buffer(file::path("data/chocolate-pancake.bmp"));
-    state->TestTex.init(g, "Test Image", TestTexData.Width, TestTexData.Height);
-    state->TestTex.set_data(TestTexData);
+    if (memory->State) delete memory->State;
+    memory->State = new (memory->Allocator) game_state(memory, g);
 }
 
 LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, graphics *g) {
