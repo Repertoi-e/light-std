@@ -12,7 +12,6 @@
 
 static dynamic_library GameLibrary;
 static game_update_and_render_func *GameUpdateAndRender = null;
-static game_render_ui_func *GameRenderUI = null;
 
 static file::handle *DLL = null,
                     *Buildlock = null;  // Allocated dynamically because we can't assign to already constructed
@@ -21,7 +20,7 @@ void setup_game_paths() {
     auto exePath = file::path(os_get_exe_name());
 
     file::path dllPath = exePath.directory();
-    dllPath.combine_with("tetris.dll");
+    dllPath.combine_with("cars.dll");
     DLL = new file::handle(dllPath);
 
     file::path buildLockPath = exePath.directory();
@@ -49,12 +48,6 @@ bool reload_game_code() {
         fmt::print("Error: Couldn't load game_update_and_render\n");
         return false;
     }
-
-    GameRenderUI = (game_render_ui_func *) GameLibrary.get_symbol("game_render_ui");
-    if (!GameRenderUI) {
-        fmt::print("Error: Couldn't load game_render_ui\n");
-        return false;
-    }
     return true;
 }
 
@@ -73,55 +66,51 @@ bool check_for_dll_change() {
     return false;
 }
 
-static void *new_wrapper(size_t size, void *) { return operator new(size, Malloc); }
-static void delete_wrapper(void *ptr, void *) { delete ptr; }
-
-static graphics Graphics;
-static game_memory GameMemory;
-
 void init_imgui_for_our_windows(window *mainWindow);
 void imgui_for_our_windows_new_frame(window *mainWindow);
 
 s32 main() {
     setup_game_paths();
 
-    GameMemory.MainWindow =
+    game_memory gameMemory;
+    gameMemory.ExeMalloc = Malloc.Function;
+    gameMemory.MainWindow =
         (new window)
-            ->init("Tetris", window::DONT_CARE, window::DONT_CARE, 1200, 600,
+            ->init("Cars", window::DONT_CARE, window::DONT_CARE, 1200, 600,
                    window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4);
 
-    Graphics.init(graphics_api::Direct3D);
-    Graphics.set_blend(true);
-    Graphics.set_depth_testing(false);
-    defer(Graphics.release());
+    graphics g;
+    Graphics = &g;
+    g.init(graphics_api::Direct3D);
+    g.set_blend(true);
+    g.set_depth_testing(false);
 
-    init_imgui_for_our_windows(GameMemory.MainWindow);
-    GameMemory.ImGuiContext = ImGui::GetCurrentContext();
+    init_imgui_for_our_windows(gameMemory.MainWindow);
+    gameMemory.ImGuiContext = ImGui::GetCurrentContext();
 
     // Needs to get called at the end to release any imgui windows
     defer(ImGui::DestroyPlatformWindows());
 
     imgui_renderer imguiRenderer;
-    imguiRenderer.init(&Graphics);
+    imguiRenderer.init(&g);
 
     while (true) {
-        GameMemory.ReloadedThisFrame = check_for_dll_change();
+        gameMemory.ReloadedThisFrame = check_for_dll_change();
 
         window::update();
-        if (GameMemory.MainWindow->IsDestroying) break;
+        if (gameMemory.MainWindow->IsDestroying) break;
 
-        if (GameUpdateAndRender) GameUpdateAndRender(&GameMemory, &Graphics);
-
-        imgui_for_our_windows_new_frame(GameMemory.MainWindow);
-
+        imgui_for_our_windows_new_frame(gameMemory.MainWindow);
         ImGui::NewFrame();
-        if (GameRenderUI) GameRenderUI();
+        if (GameUpdateAndRender) GameUpdateAndRender(&gameMemory, &g);
         ImGui::Render();
 
-        Graphics.set_target_window(GameMemory.MainWindow);
-        Graphics.set_cull_mode(cull::None);
-        imguiRenderer.draw(ImGui::GetDrawData());
-        Graphics.swap();
+        if (gameMemory.MainWindow->is_visible()) {
+            g.set_target_window(gameMemory.MainWindow);
+            g.set_cull_mode(cull::None);
+            imguiRenderer.draw(ImGui::GetDrawData());
+            g.swap();
+        }
 
         // Update and Render additional Platform Windows
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -287,7 +276,8 @@ static void imgui_init_photoshop_style() {
 
 static void init_imgui_for_our_windows(window *mainWindow) {
     ImGui::CreateContext();
-    ImGui::SetAllocatorFunctions(new_wrapper, delete_wrapper);
+    ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, Malloc); },
+                                 [](void *ptr, void *) { delete ptr; });
 
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts = new ImFontAtlas();
@@ -440,10 +430,10 @@ static void init_imgui_for_our_windows(window *mainWindow) {
         };
 
         platformIO.Platform_RenderWindow = [](auto *viewport, auto) {
-            Graphics.set_target_window((window *) viewport->PlatformHandle);
+            Graphics->set_target_window((window *) viewport->PlatformHandle);
         };
 
-        platformIO.Platform_SwapBuffers = [](auto *viewport, auto) { Graphics.swap(); };
+        platformIO.Platform_SwapBuffers = [](auto *viewport, auto) { Graphics->swap(); };
 
         platformIO.Platform_SetWindowAlpha = [](auto *viewport, f32 alpha) {
             ((window *) viewport->PlatformHandle)->set_opacity(alpha);

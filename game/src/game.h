@@ -2,6 +2,7 @@
 
 #include <lstd/basic.h>
 #include <lstd/graphics.h>
+#include <lstd/io/fmt.h>
 #include <lstd/os.h>
 
 // LE_GAME_API is used to export functions from the game dll
@@ -32,24 +33,25 @@
 
 // The permanent state of the game
 struct game_memory {
+    allocator_func_t ExeMalloc = null;  // We need this because every time we hotload we construct a different malloc
+                                        // and that doesn't work when freeing
+
     window *MainWindow = null;
     allocator Allocator;
 
     void *ImGuiContext = null;
 
-    // Any data that must be preserved through reloads
-    void *State = null;
-
-    // Gets set to true when the game code has been reloaded during the frame.
-    // Should be handled in _game_update_and_render_.
+    // Gets set to true when the game code has been reloaded during the frame
+    // (automatically set to false the next frame).
     // Gets triggered the first time the game loads as well!
     bool ReloadedThisFrame = false;
 };
 
-#define GAME_NEW(type) new (g_GameMemory->Allocator) type
+#define GAME_NEW(type) new (GameMemory->Allocator) type
 
 #define GAME_UPDATE_AND_RENDER(name, ...) void name(game_memory *memory, graphics *g)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_func);
 
-#define GAME_RENDER_UI(name, ...) void name()
-typedef GAME_RENDER_UI(game_render_ui_func);
+// Global, used in the game
+inline game_memory *GameMemory = null;
+inline graphics *Graphics = null;

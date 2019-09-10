@@ -11,7 +11,7 @@ REM We don't check for the dll write time unless the buildlock file exists,
 REM because in rare cases the handle used for checking for the write file
 REM makes it so the compiler can't write to the dll.
 type nul>bin\Debug-windows-x86_64\game\buildlock
-call msbuild.exe /NOLOGO /VERBOSITY:minimal light-std.sln /t:tetris /p:Configuration="Debug" /p:Platform="x64" /p:BuildProjectReferences=true
+call msbuild.exe /NOLOGO /VERBOSITY:minimal light-std.sln /t:cars /p:Configuration="Debug" /p:Platform="x64" /p:BuildProjectReferences=true
 del bin\Debug-windows-x86_64\game\buildlock >NUL
 
 echo Done compiling game.

@@ -71,11 +71,11 @@ struct window {
                          VSYNC | CLOSE_ON_ALT_F4 | MOUSE_PASS_THROUGH
     };
 
-    enum cursor_mode : s32 {
-        CURSOR_NORMAL,   // Makes the cursor visible and behaving normally
-        CURSOR_HIDDEN,   // Makes the cursor invisible when it is over the content area of the window but does not
-                         // restrict the cursor from leaving.
-        CURSOR_DISABLED  // Hides and grabs the cursor, providing virtual and unlimited cursor movement.
+    enum cursor_mode : u8 {
+        CURSOR_NORMAL = 0,  // Makes the cursor visible and behaving normally
+        CURSOR_HIDDEN,      // Makes the cursor invisible when it is over the content area of the window but does not
+                            // restrict the cursor from leaving.
+        CURSOR_DISABLED     // Hides and grabs the cursor, providing virtual and unlimited cursor movement.
     };
 
     inline static u32 s_NextID = 0;  // @Thread
@@ -86,11 +86,19 @@ struct window {
 
     u32 Flags;
 
-    // The state of the keyboard (true if pressed)
+    // The state of each key (true if pressed)
     bool Keys[Key_Last + 1]{};
+    bool LastFrameKeys[Key_Last + 1]{};  // Internal
+
+    // The state of each key if it got changed this frame (true if pressed), use this to check for non-repeat
+    bool KeysThisFrame[Key_Last + 1]{};
 
     // The state of the mouse buttons (true if clicked)
     bool MouseButtons[Mouse_Button_Last + 1]{};
+    bool LastFrameMouseButtons[Mouse_Button_Last + 1]{};  // Internal
+
+    // The state of each mouse button if it got changed this frame (true if clicked), use this to check for non-repeat
+    bool MouseButtonsThisFrame[Key_Last + 1]{};
 
     // _true_ when the window is closing
     bool IsDestroying = false;

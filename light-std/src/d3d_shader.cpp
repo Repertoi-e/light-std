@@ -60,22 +60,22 @@ void d3d_shader_init(shader *s) {
     auto *ps = (ID3DBlob *) s->D3D.PSBlob;
     s->Graphics->D3D.Device->CreateVertexShader(vs->GetBufferPointer(), vs->GetBufferSize(), null, &s->D3D.VS);
     s->Graphics->D3D.Device->CreatePixelShader(ps->GetBufferPointer(), ps->GetBufferSize(), null, &s->D3D.PS);
-
+    
     // Remove comments
-    size_t startPos;
-    while ((startPos = source.find("/*")) != npos) {
-        size_t endPos = source.find("*/", startPos);
-        assert(endPos != npos);
-        source.remove(startPos, endPos);
-    }
-
-    while ((startPos = source.find("//")) != npos) {
-        size_t endPos = source.find('\n', startPos);
-        assert(endPos != npos);
-        source.remove(startPos, endPos);
-    }
-
+    // size_t startPos;
+    // while ((startPos = source.find("/*")) != npos) {
+    //     size_t endPos = source.find("*/", startPos);
+    //     assert(endPos != npos);
+    //     source.remove(startPos, endPos);
+    // }
+	// 
+    // while ((startPos = source.find("//")) != npos) {
+    //     size_t endPos = source.find('\n', startPos);
+    //     assert(endPos != npos);
+    //     source.remove(startPos, endPos);
+    // }
     // @TODO Parse shaders structs
+    /*
 
     // Parse constant buffers and extract metadata
     size_t cbuffer = 0;
@@ -94,14 +94,14 @@ void d3d_shader_init(shader *s) {
         array<string> tokens;
         {
             size_t start = 0;
-            size_t end = block.find_any_of(" \t\n");
+            size_t end = block.find_any_of(" \t\r\n");
 
             while (end <= npos) {
                 string token = block.substring(start, (end == npos ? block.Length : end));
                 if (token) tokens.append(token);
                 if (end == npos) break;
                 start = end + 1;
-                end = block.find_any_of(" \t\n", start);
+                end = block.find_any_of(" \t\r\n", start);
             }
         }
 
@@ -160,6 +160,7 @@ void d3d_shader_init(shader *s) {
         }
         move(&s->UniformBuffers.append(uniformBuffer)->Uniforms, &uniformBuffer.Uniforms);
     }
+    */
 }
 
 void d3d_shader_bind(shader *s) {

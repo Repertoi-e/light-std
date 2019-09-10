@@ -131,5 +131,4 @@ f32 vec3::distance(vec3 other) const {
     return SQRT(a * a + b * b + c * c);
 }
 
-
 LSTD_END_NAMESPACE

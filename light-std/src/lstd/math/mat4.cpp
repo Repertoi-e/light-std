@@ -1,5 +1,7 @@
 #include "mat4.h"
 
+#include "quat.h"
+
 #include "../common.h"
 #include "../intrin/math.h"
 
@@ -117,7 +119,7 @@ void mat4::set_column(size_t index, const vec4 &column) {
     Elements[index + 3 * 4] = column.w;
 }
 
-mat4 mat4::orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 _near, f32 _far) {
+mat4 mat4::ORTHOGRAPHIC(f32 left, f32 right, f32 bottom, f32 top, f32 _near, f32 _far) {
     mat4 result = IDENTITY();
 
     result.Elements[0 + 0 * 4] = 2.f / (right - left);
@@ -130,7 +132,7 @@ mat4 mat4::orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 _near, f32
     return result;
 }
 
-mat4 mat4::perspective(f32 fov, f32 aspectRatio, f32 _near, f32 _far) {
+mat4 mat4::PERSPECTIVE(f32 fov, f32 aspectRatio, f32 _near, f32 _far) {
     mat4 result = IDENTITY();
 
     f32 q = 1.f / TAN(TO_RAD(0.5f * fov));
@@ -148,7 +150,7 @@ mat4 mat4::perspective(f32 fov, f32 aspectRatio, f32 _near, f32 _far) {
     return result;
 }
 
-mat4 mat4::look_at(const vec3 &camera, const vec3 &object, const vec3 &up) {
+mat4 mat4::LOOK_AT(const vec3 &camera, const vec3 &object, const vec3 &up) {
     mat4 result = IDENTITY();
     vec3 f = (object - camera).normalize();
     vec3 s = f.cross(up.normalize());
@@ -164,10 +166,10 @@ mat4 mat4::look_at(const vec3 &camera, const vec3 &object, const vec3 &up) {
     result.Elements[2 + 1 * 4] = -f.y;
     result.Elements[2 + 2 * 4] = -f.z;
 
-    return result * translate(vec3(-camera.x, -camera.y, -camera.z));
+    return result * TRANSLATE(vec3(-camera.x, -camera.y, -camera.z));
 }
 
-mat4 mat4::translate(const vec3 &translation) {
+mat4 mat4::TRANSLATE(const vec3 &translation) {
     mat4 result = IDENTITY();
 
     result.Elements[3 + 0 * 4] = translation.x;
@@ -177,7 +179,7 @@ mat4 mat4::translate(const vec3 &translation) {
     return result;
 }
 
-mat4 mat4::rotate(f32 angle, const vec3 &axis) {
+mat4 mat4::ROTATE(f32 angle, const vec3 &axis) {
     mat4 result = IDENTITY();
 
     f32 r = TO_RAD(angle);
@@ -204,7 +206,34 @@ mat4 mat4::rotate(f32 angle, const vec3 &axis) {
     return result;
 }
 
-mat4 mat4::scale(const vec3 &scale) {
+mat4 mat4::ROTATE(const quat &quat) {
+    mat4 result = IDENTITY();
+
+    f32 qx, qy, qz, qw, qx2, qy2, qz2, qxqx2, qyqy2, qzqz2, qxqy2, qyqz2, qzqw2, qxqz2, qyqw2, qxqw2;
+    qx = quat.x;
+    qy = quat.y;
+    qz = quat.z;
+    qw = quat.w;
+    qx2 = (qx + qx);
+    qy2 = (qy + qy);
+    qz2 = (qz + qz);
+    qxqx2 = (qx * qx2);
+    qxqy2 = (qx * qy2);
+    qxqz2 = (qx * qz2);
+    qxqw2 = (qw * qx2);
+    qyqy2 = (qy * qy2);
+    qyqz2 = (qy * qz2);
+    qyqw2 = (qw * qy2);
+    qzqz2 = (qz * qz2);
+    qzqw2 = (qw * qz2);
+
+    result.Rows[0] = vec4(((1.0f - qyqy2) - qzqz2), (qxqy2 - qzqw2), (qxqz2 + qyqw2), 0.0f);
+    result.Rows[1] = vec4((qxqy2 + qzqw2), ((1.0f - qxqx2) - qzqz2), (qyqz2 - qxqw2), 0.0f);
+    result.Rows[2] = vec4((qxqz2 - qyqw2), (qyqz2 + qxqw2), ((1.0f - qxqx2) - qyqy2), 0.0f);
+    return result;
+}
+
+mat4 mat4::SCALE(const vec3 &scale) {
     mat4 result = IDENTITY();
 
     result.Elements[0 + 0 * 4] = scale.x;
@@ -214,12 +243,12 @@ mat4 mat4::scale(const vec3 &scale) {
     return result;
 }
 
-mat4 mat4::invert(const mat4 &matrix) {
+mat4 mat4::INVERT(const mat4 &matrix) {
     mat4 result = matrix;
     return *result.invert();
 }
 
-mat4 mat4::transpose(const mat4 &matrix) {
+mat4 mat4::TRANSPOSE(const mat4 &matrix) {
     return mat4(vec4(matrix.Rows[0].x, matrix.Rows[1].x, matrix.Rows[2].x, matrix.Rows[3].x),
                 vec4(matrix.Rows[0].y, matrix.Rows[1].y, matrix.Rows[2].y, matrix.Rows[3].y),
                 vec4(matrix.Rows[0].z, matrix.Rows[1].z, matrix.Rows[2].z, matrix.Rows[3].z),

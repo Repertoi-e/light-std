@@ -132,21 +132,21 @@ project "game"
 	}
 
 	excludes { 
-		"%{prj.name}/src/tetris/**.h", 
-		"%{prj.name}/src/tetris/**.cpp"
+		"%{prj.name}/src/cars/**.h", 
+		"%{prj.name}/src/cars/**.cpp"
 	}
 
 	links { "light-std" }
 	includedirs { "light-std/src" }
 
-	dependson { "tetris" }
+	dependson { "cars" }
 
 	common_settings()
 	
 	filter "system:windows"
 		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
-project "tetris"
+project "cars"
 	location "game"
 	kind "SharedLib"
 
@@ -154,8 +154,8 @@ project "tetris"
 	objdir("bin-int/" .. outputFolder .. "/game")
 
 	files {
-		"game/src/tetris/**.h", 
-		"game/src/tetris/**.cpp"
+		"game/src/cars/**.h", 
+		"game/src/cars/**.cpp"
 	}
 
 	defines { "LE_BUILDING_GAME" }

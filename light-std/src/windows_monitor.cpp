@@ -187,6 +187,8 @@ void win32_monitor_init() {
 
 struct win32_monitor_state {
     ~win32_monitor_state() {
+		DestroyWindow(HelperWindowHandle);
+
         SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, UIntToPtr(ForegroundLockTimeout), SPIF_SENDCHANGE);
 
         if (shcore.hInstance) FreeLibrary(shcore.hInstance);

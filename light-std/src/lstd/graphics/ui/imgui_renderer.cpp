@@ -12,6 +12,8 @@ void imgui_renderer::init(graphics *g) {
 
     ImGuiPlatformIO &platformIO = ImGui::GetPlatformIO();
     platformIO.Renderer_RenderWindow = [](auto *viewport, void *context) {
+        if (!((window *) viewport->PlatformHandle)->is_visible()) return;
+
         auto *renderer = (imgui_renderer *) context;
         if (!(viewport->Flags & ImGuiViewportFlags_NoRendererClear)) {
             renderer->Graphics->clear_color(vec4(0.0f, 0.0f, 0.0f, 1.0f));
@@ -129,7 +131,7 @@ void imgui_renderer::set_render_state() {
     Shader.bind();
     VB.bind_vb(primitive_topology::TriangleList);
     IB.bind_ib();
-    UB.bind_ub(shader_type::Vertex_Shader, Shader.UniformBuffers[0].Position);
+    UB.bind_ub(shader_type::Vertex_Shader, 0);
 }
 
 LSTD_END_NAMESPACE

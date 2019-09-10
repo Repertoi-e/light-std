@@ -5,6 +5,8 @@
 
 LSTD_BEGIN_NAMESPACE
 
+struct quat;
+
 struct mat4 {
     union {
         f32 Elements[4 * 4]{};
@@ -33,16 +35,17 @@ struct mat4 {
     vec4 get_column(size_t index) const;
     void set_column(size_t index, const vec4 &column);
 
-    static mat4 orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far);
-    static mat4 perspective(f32 fov, f32 aspectRatio, f32 near, f32 far);
-    static mat4 look_at(const vec3 &camera, const vec3 &object, const vec3 &up);
+    static mat4 ORTHOGRAPHIC(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far);
+    static mat4 PERSPECTIVE(f32 fov, f32 aspectRatio, f32 near, f32 far);
+    static mat4 LOOK_AT(const vec3 &camera, const vec3 &object, const vec3 &up);
 
-    static mat4 translate(const vec3 &translation);
-    static mat4 rotate(f32 angle, const vec3 &axis);
-    static mat4 scale(const vec3 &scale);
-    static mat4 invert(const mat4 &matrix);
+    static mat4 TRANSLATE(const vec3 &translation);
+    static mat4 ROTATE(f32 angle, const vec3 &axis);
+    static mat4 ROTATE(const quat &quat);
+    static mat4 SCALE(const vec3 &scale);
+    static mat4 INVERT(const mat4 &matrix);
 
-    static mat4 transpose(const mat4 &matrix);
+    static mat4 TRANSPOSE(const mat4 &matrix);
 };
 
 LSTD_END_NAMESPACE

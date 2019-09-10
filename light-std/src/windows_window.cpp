@@ -323,19 +323,32 @@ void window::update() {
             bool lshift = (GetAsyncKeyState(VK_LSHIFT) >> 15) & 1;
             bool rshift = (GetAsyncKeyState(VK_RSHIFT) >> 15) & 1;
 
-            if (!lshift && win->Keys[Key_LeftShift] == Key_Pressed) {
+            if (!lshift && win->Keys[Key_LeftShift]) {
                 do_key_input_event(win, Key_LeftShift, Key_Released, true);
-            } else if (!rshift && win->Keys[Key_RightShift] == Key_Pressed) {
+            } else if (!rshift && win->Keys[Key_RightShift]) {
                 do_key_input_event(win, Key_RightShift, Key_Released, true);
             }
         }
     }
 
-    auto *win = DisabledCursorWindow;
+    auto *win = WindowsList;
+    while (win) {
+        For(range(Key_Last + 1)) { win->KeysThisFrame[it] = win->Keys[it] && !win->LastFrameKeys[it]; }
+        For(range(Mouse_Button_Last + 1)) {
+            win->MouseButtonsThisFrame[it] = win->MouseButtons[it] && !win->LastFrameMouseButtons[it];
+        }
+        copy_memory(win->LastFrameKeys, win->Keys, sizeof(win->Keys));
+        copy_memory(win->LastFrameMouseButtons, win->MouseButtons, sizeof(win->MouseButtons));
+
+        win = win->Next;
+    }
+
+    win = DisabledCursorWindow;
     if (win) {
         vec2i size = win->get_size();
         if (win->PlatformData.Win32.LastCursorPos != size / 2) win->set_cursor_pos(size / 2);
     }
+
     Context.TemporaryAlloc.free_all();
 }
 

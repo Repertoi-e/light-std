@@ -6,6 +6,8 @@
 
 #include "math/mat4.h"
 
+#include "math/quat.h"
+
 LSTD_BEGIN_NAMESPACE
 
 struct rect {

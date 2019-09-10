@@ -18,16 +18,6 @@ struct vec3 {
     vec3(f32 x, f32 y);
     vec3(const vec4 &other);
 
-    static vec3 UP();
-    static vec3 DOWN();
-    static vec3 LEFT();
-    static vec3 RIGHT();
-    static vec3 ZERO();
-
-    static vec3 X();
-    static vec3 Y();
-    static vec3 Z();
-
     vec3 *add(vec3 other);
     vec3 *subtract(vec3 other);
     vec3 *multiply(vec3 other);
@@ -62,6 +52,8 @@ struct vec3 {
     vec3 &operator-=(f32 other);
     vec3 &operator*=(f32 other);
     vec3 &operator/=(f32 other);
+
+    vec3 operator-() const { return vec3(-x, -y, -z); }
 
     bool operator<(vec3 other) const;
     bool operator<=(vec3 other) const;
@@ -315,6 +307,5 @@ template <typename T>
 tvec3<T> operator/(tvec3<T> left, T value) {
     return *left.divide(value);
 }
-
 
 LSTD_END_NAMESPACE
