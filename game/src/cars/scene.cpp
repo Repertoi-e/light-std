@@ -21,6 +21,8 @@ struct scene {
     camera Camera;
 
     size_t FBSizeCBID = npos;
+
+    scene() { Camera.reinit(); }  // Only runs once
 };
 
 static scene *Scene;
@@ -31,11 +33,11 @@ static void release_scene() {
 }
 
 static void framebuffer_resized(const window_framebuffer_resized_event &e) {
-    Scene->Uniforms.ProjectionMatrix = mat4::PERSPECTIVE(84, (f32) e.Width / e.Height, 0.001f, 1000.0f);
+    Scene->Uniforms.ProjectionMatrix = mat4::PERSPECTIVE(84, (f32) e.Width / e.Height, 0.01f, 1000.0f);
 }
 
 static void reload_scene() {
-    if (!Scene) Scene = GAME_NEW(scene);
+    MANAGE_GLOBAL_STATE(Scene);
 
     release_scene();
 
@@ -104,8 +106,6 @@ static void reload_scene() {
     vec2i windowSize = GameMemory->MainWindow->get_size();
     framebuffer_resized({GameMemory->MainWindow, windowSize.x, windowSize.y});
     Scene->FBSizeCBID = GameMemory->MainWindow->WindowFramebufferResizedEvent.connect(framebuffer_resized);
-
-    Scene->Camera.set_type(State->CameraType);
 }
 
 void update_and_render_scene() {
@@ -117,14 +117,13 @@ void update_and_render_scene() {
     if (GameMemory->MainWindow->is_visible()) {
         camera->update();
 
-        auto cameraOrientation = quat::ROTATION_Y(-camera->Yaw) * quat::ROTATION_X(-camera->Pitch);
-        if (State->CameraType == 0) {
-            Scene->Uniforms.ViewMatrix = mat4::TRANSLATE(vec3(0, 0, 1)) * mat4::ROTATE(cameraOrientation.conjugate()) *
-                                         mat4::TRANSLATE(-camera->Position);
-        } else {
-            Scene->Uniforms.ViewMatrix =
-                mat4::ROTATE(cameraOrientation.conjugate()) * mat4::TRANSLATE(-camera->Position);
+        if (State->CameraType == camera_type::Maya) {
+            Scene->Uniforms.ViewMatrix = mat4::TRANSLATE(vec3(0, 0, 1));
+        } else if (State->CameraType == camera_type::FPS) {
+            Scene->Uniforms.ViewMatrix = mat4::IDENTITY();
         }
+        auto cameraOrientation = quat::ROTATION_Y(-camera->Yaw) * quat::ROTATION_X(-camera->Pitch);
+        Scene->Uniforms.ViewMatrix *= mat4::ROTATE(cameraOrientation.conjugate()) * mat4::TRANSLATE(-camera->Position);
 
         g->set_target_window(GameMemory->MainWindow);
 
@@ -182,24 +181,24 @@ void update_and_render_scene() {
     if (!State->NoGUI) {
         ImGui::Begin("Scene Properties", null);
         ImGui::Text("Camera");
-        ImGui::BeginChild("##camera", {0, 156}, true);
+        ImGui::BeginChild("##camera", {0, 180}, true);
         {
-            if (ImGui::RadioButton("Maya", &State->CameraType, 0)) camera->set_type(0);
+            if (ImGui::RadioButton("Maya", (s32 *) &State->CameraType, (s32) camera_type::Maya)) camera->reinit();
             ImGui::SameLine();
-            if (ImGui::RadioButton("FPS", &State->CameraType, 1)) camera->set_type(1);
+            if (ImGui::RadioButton("FPS", (s32 *) &State->CameraType, (s32) camera_type::FPS)) camera->reinit();
 
             ImGui::Text("Position: %.3f, %.3f, %.3f", camera->Position.x, camera->Position.y, camera->Position.z);
             ImGui::Text("Rotation: %.3f, %.3f, %.3f", camera->Rotation.x, camera->Rotation.y, camera->Rotation.z);
             ImGui::Text("Pitch: %.3f, yaw: %.3f", camera->Pitch, camera->Yaw);
 
-            if (State->CameraType == 0) {
+            if (State->CameraType == camera_type::Maya) {
                 ImGui::PushItemWidth(-140);
                 ImGui::SliderFloat("Pan speed", &camera->PanSpeed, 0.0005f, 0.005f);
                 ImGui::PushItemWidth(-140);
                 ImGui::SliderFloat("Rotation speed", &camera->RotationSpeed, 0.0005f, 0.005f);
                 ImGui::PushItemWidth(-140);
                 ImGui::SliderFloat("Zoom speed", &camera->ZoomSpeed, 0.05f, 0.5f);
-            } else {
+            } else if (State->CameraType == camera_type::FPS) {
                 ImGui::PushItemWidth(-140);
                 ImGui::SliderFloat("Speed", &camera->Speed, 0.01f, 10);
                 ImGui::PushItemWidth(-140);
@@ -207,6 +206,7 @@ void update_and_render_scene() {
                 ImGui::PushItemWidth(-140);
                 ImGui::SliderFloat("Mouse sensitivity", &camera->MouseSensitivity, 0.0001f, 0.01f);
             }
+            if (ImGui::Button("Default camera constants")) camera->reset_constants();
 
             ImGui::EndChild();
 

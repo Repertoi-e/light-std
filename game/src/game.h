@@ -39,6 +39,8 @@ struct game_memory {
     window *MainWindow = null;
     allocator Allocator;
 
+    table<string, void *> States;
+
     void *ImGuiContext = null;
 
     // Gets set to true when the game code has been reloaded during the frame
@@ -46,6 +48,17 @@ struct game_memory {
     // Gets triggered the first time the game loads as well!
     bool ReloadedThisFrame = false;
 };
+
+#define MANAGE_GLOBAL_STATE(state)                               \
+    if (!state) {                                                \
+        auto **found = GameMemory->States.find(#state);          \
+        if (!found) {                                            \
+            state = GAME_NEW(remove_pointer_t<decltype(state)>); \
+            GameMemory->States.add(#state, state);               \
+        } else {                                                 \
+            state = (decltype(state)) * found;                   \
+        }                                                        \
+    }
 
 #define GAME_NEW(type) new (GameMemory->Allocator) type
 

@@ -9,7 +9,6 @@ static void framebuffer_resized(const window_framebuffer_resized_event &e) {
 
     State->ViewportTexture.release();
     State->ViewportTexture.init_as_render_target(Graphics, "Docked Viewport Render Target", e.Width, e.Height);
-    // SceneUniforms.ProjectionMatrix = mat4::PERSPECTIVE(84, (f32) newSize.x / newSize.y, 0.01f, 1000.0f);
 }
 
 void release_state() {
@@ -33,25 +32,29 @@ void reload_state() {
 }
 
 void reload(game_memory *memory, graphics *g) {
+    if (Context.Alloc.Function == Malloc.Function) {  // @Hack
+        const_cast<implicit_context *>(&Context)->Alloc.Function = memory->ExeMalloc;
+    }
     Malloc.Function = memory->ExeMalloc;
+
     GameMemory = memory;
     Graphics = g;
 
-    if (!State) {
-        // The first time we load, initialize the allocator
+    if (!memory->Allocator) {
         auto *allocatorData = new (Malloc) free_list_allocator_data;
         allocatorData->init(128_MiB, free_list_allocator_data::Find_First);
         memory->Allocator = {free_list_allocator, allocatorData};
-
-        State = GAME_NEW(game_state);
     }
+
+    MANAGE_GLOBAL_STATE(State);
+
     reload_state();
 }
 
 LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, graphics *g) {
     if (memory->ReloadedThisFrame) reload(memory, g);
 
-    static s32 oldCamera = 0;
+    static camera_type oldCamera = State->CameraType;
 
     auto *win = GameMemory->MainWindow;
     if ((win->Keys[Key_LeftControl] || win->Keys[Key_RightControl]) && win->KeysThisFrame[Key_F]) {
@@ -59,7 +62,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         // Ensure we use the FPS camera when we are not in the editor
         if (State->NoGUI) {
             oldCamera = State->CameraType;
-            State->CameraType = 1;
+            State->CameraType = camera_type::FPS;
         } else {
             State->CameraType = oldCamera;
         }
@@ -121,7 +124,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-                ImGui::TextUnformatted("This is the editor view of the light-std game engine.");
+                ImGui::TextUnformatted("This is the editor view of the light-std game engine...");
                 ImGui::PopTextWrapPos();
                 ImGui::EndTooltip();
             }
@@ -162,7 +165,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             }
         }
 
-        if (State->CameraType == 1 && ImGui::InvisibleButton("##viewport", windowSize)) {
+        if (State->CameraType == camera_type::FPS && ImGui::InvisibleButton("##viewport", windowSize)) {
             State->MouseGrabbed = true;
             win->set_cursor_mode(window::CURSOR_DISABLED);
         }

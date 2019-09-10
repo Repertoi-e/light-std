@@ -1,23 +1,36 @@
 #include "state.h"
 
-void camera::set_type(s32 type) {
+camera::camera() {
+    reinit();
+    reset_constants();
+}
+
+void camera::reinit() {
     Position = vec3(-17.678f, 25.0f, -17.678f);
     Rotation = vec3(-45.0f, -135.0f, 0.0f);
 
     Yaw = 3.0f * PI / 4.0f;
     Pitch = PI / 4.0f;
 
-    if (type == 0) {
-        FocalPoint = vec3(0, 0, 0);
-        Distance = Position.distance(FocalPoint);
-    }
+    FocalPoint = vec3(0, 0, 0);
+    Distance = Position.distance(FocalPoint);
+}
+
+void camera::reset_constants() {
+    PanSpeed = 0.0015f;
+    RotationSpeed = 0.002f;
+    ZoomSpeed = 0.2f;
+
+    MouseSensitivity = 0.002f;
+    Speed = 0.2f;
+    SprintSpeed = Speed * 4;
 }
 
 void camera::update() {
     // @TODO The viewport window may be in an additional imgui window, and we don't handle that yet!
     auto *win = GameMemory->MainWindow;
 
-    if (State->CameraType == 0) {
+    if (State->CameraType == camera_type::Maya) {
         static vec2i lastMouse = {0, 0};
 
         quat orientation = quat::ROTATION_Y(-Yaw) * quat::ROTATION_X(-Pitch);
@@ -49,7 +62,7 @@ void camera::update() {
 
         orientation = quat::ROTATION_Y(-Yaw) * quat::ROTATION_X(-Pitch);
         Rotation = orientation.to_euler_angles() * (180.0f / PI);
-    } else {
+    } else if (State->CameraType == camera_type::FPS) {
         if (State->MouseGrabbed) {
             vec2i windowSize = win->get_size();
 
@@ -85,5 +98,7 @@ void camera::update() {
                 Position -= up * speed;
             }
         }
+    } else {
+        assert(false);
     }
 }

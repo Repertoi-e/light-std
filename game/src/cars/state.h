@@ -2,6 +2,8 @@
 
 #include <game.h>
 
+enum class camera_type : s32 { Maya, FPS };
+
 struct game_state {
     texture_2D ViewportTexture;
     vec4 ClearColor = {0.2f, 0.3f, 0.8f, 1.0f};
@@ -14,7 +16,7 @@ struct game_state {
 
     bool MouseGrabbed = false;
 
-    s32 CameraType = 0;  // 0 - Maya, 1 - FPS
+    camera_type CameraType = camera_type::Maya;
 
     size_t FBSizeCBID = npos;
 };
@@ -26,14 +28,18 @@ struct camera {
     f32 Pitch, Yaw;
 
     f32 Distance;
-    f32 PanSpeed = 0.0015f;
-    f32 RotationSpeed = 0.002f;
-    f32 ZoomSpeed = 0.2f;
+    f32 PanSpeed;
+    f32 RotationSpeed;
+    f32 ZoomSpeed;
 
-    f32 MouseSensitivity = 0.002f;
-    f32 Speed = 0.2f, SprintSpeed = Speed * 4;
+    f32 MouseSensitivity;
+    f32 Speed, SprintSpeed;
 
-    void set_type(s32 type);
+    camera();
+    
+	void reinit();
+    void reset_constants();
+
     void update();
 };
 
