@@ -1,18 +1,15 @@
 #include "state.h"
 
 void camera::set_type(s32 type) {
-    Position = vec3(0.0f, 25.0f, -25.0f);
-    Rotation = vec3(90.0f, 0.0f, 0.0f);
+    Position = vec3(-17.678f, 25.0f, -17.678f);
+    Rotation = vec3(-45.0f, -135.0f, 0.0f);
+
+    Yaw = 3.0f * PI / 4.0f;
+    Pitch = PI / 4.0f;
 
     if (type == 0) {
         FocalPoint = vec3(0, 0, 0);
         Distance = Position.distance(FocalPoint);
-
-        Yaw = 3.0f * PI / 4.0f;
-        Pitch = PI / 4.0f;
-    } else {
-        Pitch = 0.7f;
-        Yaw = 2.4f;
     }
 }
 
