@@ -104,6 +104,8 @@ static void reload_scene() {
     vec2i windowSize = GameMemory->MainWindow->get_size();
     framebuffer_resized({GameMemory->MainWindow, windowSize.x, windowSize.y});
     Scene->FBSizeCBID = GameMemory->MainWindow->WindowFramebufferResizedEvent.connect(framebuffer_resized);
+
+    Scene->Camera.set_type(State->CameraType);
 }
 
 void update_and_render_scene() {
@@ -115,9 +117,14 @@ void update_and_render_scene() {
     if (GameMemory->MainWindow->is_visible()) {
         camera->update();
 
-        Scene->Uniforms.ViewMatrix =
-            mat4::ROTATE((quat::ROTATION_Y(-camera->Yaw) * quat::ROTATION_X(-camera->Pitch)).conjugate()) *
-            mat4::TRANSLATE(-camera->Position);
+        auto cameraOrientation = quat::ROTATION_Y(-camera->Yaw) * quat::ROTATION_X(-camera->Pitch);
+        if (State->CameraType == 0) {
+            Scene->Uniforms.ViewMatrix = mat4::TRANSLATE(vec3(0, 0, 1)) * mat4::ROTATE(cameraOrientation.conjugate()) *
+                                         mat4::TRANSLATE(-camera->Position);
+        } else {
+            Scene->Uniforms.ViewMatrix =
+                mat4::ROTATE(cameraOrientation.conjugate()) * mat4::TRANSLATE(-camera->Position);
+        }
 
         g->set_target_window(GameMemory->MainWindow);
 
@@ -175,18 +182,31 @@ void update_and_render_scene() {
     if (!State->NoGUI) {
         ImGui::Begin("Scene Properties", null);
         ImGui::Text("Camera");
-        ImGui::BeginChild("##camera", {0, 133}, true);
+        ImGui::BeginChild("##camera", {0, 156}, true);
         {
+            if (ImGui::RadioButton("Maya", &State->CameraType, 0)) camera->set_type(0);
+            ImGui::SameLine();
+            if (ImGui::RadioButton("FPS", &State->CameraType, 1)) camera->set_type(1);
+
             ImGui::Text("Position: %.3f, %.3f, %.3f", camera->Position.x, camera->Position.y, camera->Position.z);
             ImGui::Text("Rotation: %.3f, %.3f, %.3f", camera->Rotation.x, camera->Rotation.y, camera->Rotation.z);
             ImGui::Text("Pitch: %.3f, yaw: %.3f", camera->Pitch, camera->Yaw);
 
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Speed", &camera->Speed, 0.01f, 10);
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Sprint speed", &camera->SprintSpeed, 0.01f, 10);
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Mouse sensitivity", &camera->MouseSensitivity, 0.0001f, 0.01f);
+            if (State->CameraType == 0) {
+                ImGui::PushItemWidth(-140);
+                ImGui::SliderFloat("Pan speed", &camera->PanSpeed, 0.0005f, 0.005f);
+                ImGui::PushItemWidth(-140);
+                ImGui::SliderFloat("Rotation speed", &camera->RotationSpeed, 0.0005f, 0.005f);
+                ImGui::PushItemWidth(-140);
+                ImGui::SliderFloat("Zoom speed", &camera->ZoomSpeed, 0.05f, 0.5f);
+            } else {
+                ImGui::PushItemWidth(-140);
+                ImGui::SliderFloat("Speed", &camera->Speed, 0.01f, 10);
+                ImGui::PushItemWidth(-140);
+                ImGui::SliderFloat("Sprint speed", &camera->SprintSpeed, 0.01f, 10);
+                ImGui::PushItemWidth(-140);
+                ImGui::SliderFloat("Mouse sensitivity", &camera->MouseSensitivity, 0.0001f, 0.01f);
+            }
 
             ImGui::EndChild();
 

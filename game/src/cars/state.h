@@ -14,17 +14,26 @@ struct game_state {
 
     bool MouseGrabbed = false;
 
+    s32 CameraType = 0;  // 0 - Maya, 1 - FPS
+
     size_t FBSizeCBID = npos;
 };
 
 struct camera {
-    vec3 Position = vec3(0.0f, 25.0f, -25.0f);
-    vec3 Rotation = vec3(90.0f, 0.0f, 0.0f);
+    vec3 Position;
+    vec3 Rotation;
+    vec3 FocalPoint;
+    f32 Pitch, Yaw;
+
+    f32 Distance;
+    f32 PanSpeed = 0.0015f;
+    f32 RotationSpeed = 0.002f;
+    f32 ZoomSpeed = 0.2f;
 
     f32 MouseSensitivity = 0.002f;
     f32 Speed = 0.2f, SprintSpeed = Speed * 4;
-    f32 Pitch = 0.7f, Yaw = 2.4f;
 
+    void set_type(s32 type);
     void update();
 };
 

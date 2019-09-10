@@ -1009,9 +1009,6 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 if (win->CursorMode == window::CURSOR_DISABLED) disable_cursor(win);
                 win->PlatformData.Win32.FrameAction = false;
             }
-            For(range(Key_Last + 1)) {
-                if (win->Keys[it]) do_key_input_event(win, (u32) it, Key_Released);
-            }
             break;
         case WM_SETFOCUS:
             win->Flags |= window::FOCUSED;

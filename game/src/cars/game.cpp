@@ -51,9 +51,19 @@ void reload(game_memory *memory, graphics *g) {
 LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, graphics *g) {
     if (memory->ReloadedThisFrame) reload(memory, g);
 
+    static s32 oldCamera = 0;
+
     auto *win = GameMemory->MainWindow;
     if ((win->Keys[Key_LeftControl] || win->Keys[Key_RightControl]) && win->KeysThisFrame[Key_F]) {
         State->NoGUI = !State->NoGUI;
+        // Ensure we use the FPS camera when we are not in the editor
+        if (State->NoGUI) {
+            oldCamera = State->CameraType;
+            State->CameraType = 1;
+        } else {
+            State->CameraType = oldCamera;
+        }
+
         if (State->MouseGrabbed) {
             State->MouseGrabbed = false;
             win->set_cursor_mode(window::CURSOR_NORMAL);
@@ -123,7 +133,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::Begin("Viewport", null, ImGuiWindowFlags_NoCollapse);
+        ImGui::Begin("Viewport", null, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNav);
         ImGui::PopStyleVar(3);
 
         auto windowPos = ImGui::GetWindowPos();
@@ -152,7 +162,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             }
         }
 
-        if (ImGui::InvisibleButton("##viewport", windowSize)) {
+        if (State->CameraType == 1 && ImGui::InvisibleButton("##viewport", windowSize)) {
             State->MouseGrabbed = true;
             win->set_cursor_mode(window::CURSOR_DISABLED);
         }
