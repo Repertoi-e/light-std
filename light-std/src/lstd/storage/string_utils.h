@@ -224,7 +224,6 @@ constexpr char32_t to_lower(char32_t cp) {
         return (cp + 1) & ~0x1;
     }
     if (cp == 0x0178) return 0x00ff;
-    if (cp == 0x0178) return 0x00ff;
     if (cp == 0x0243) return 0x0180;
     if (cp == 0x018e) return 0x01dd;
     if (cp == 0x023d) return 0x019a;

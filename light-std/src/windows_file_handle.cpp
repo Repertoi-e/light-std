@@ -134,8 +134,8 @@ bool handle::delete_directory() const {
 bool handle::copy(handle dest, bool overwrite) const {
     if (!is_file()) return false;
 
-    auto p = dest.Path;
     if (dest.is_directory()) {
+        auto p = dest.Path;
         p.combine_with(Path.file_name());
 
         auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];

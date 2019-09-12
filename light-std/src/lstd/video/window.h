@@ -14,7 +14,7 @@ LSTD_BEGIN_NAMESPACE
 struct window {
     union platform_data {
         struct {
-            HWND__ *hWnd;
+            HWND__ *hWnd = null;
             HICON__ *BigIcon = null, *SmallIcon = null;
 
             bool CursorTracked = false;
@@ -84,7 +84,7 @@ struct window {
         (u32) -1;         // _ID_ is set to that when the window is not initialized or destroyed and no longer valid
     u32 ID = INVALID_ID;  // Unique ID for each window
 
-    u32 Flags;
+    u32 Flags = 0;
 
     // The state of each key (true if pressed)
     bool Keys[Key_Last + 1]{};
@@ -222,7 +222,7 @@ struct window {
     void request_attention();
 
     // We keep track of created windows in a linked list
-    window *Next;
+    window *Next = null;
 };
 
 LSTD_END_NAMESPACE

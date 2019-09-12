@@ -192,7 +192,7 @@ window *window::init(string title, s32 x, s32 y, s32 width, s32 height, u32 flag
     s32 xpos = x == DONT_CARE ? CW_USEDEFAULT : x;
     s32 ypos = y == DONT_CARE ? CW_USEDEFAULT : y;
     if (x == CENTERED) xpos = (os_get_primary_monitor()->CurrentMode.Width - fullSize.x) / 2;
-    if (x == CENTERED) xpos = (os_get_primary_monitor()->CurrentMode.Height - fullSize.y) / 2;
+    if (y == CENTERED) ypos = (os_get_primary_monitor()->CurrentMode.Height - fullSize.y) / 2;
 
     PlatformData.Win32.hWnd = CreateWindowExW(exStyle, g_Win32WindowClassName, L"", style, xpos, ypos, fullSize.x,
                                               fullSize.y, null, null, GetModuleHandleW(null), null);
@@ -1123,7 +1123,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             }
 
             bool pressed = message == WM_LBUTTONDOWN || message == WM_LBUTTONDBLCLK || message == WM_RBUTTONDOWN ||
-                           message == WM_MBUTTONDBLCLK || message == WM_MBUTTONDOWN || message == WM_MBUTTONDBLCLK ||
+                           message == WM_RBUTTONDBLCLK || message == WM_MBUTTONDOWN || message == WM_MBUTTONDBLCLK ||
                            message == WM_XBUTTONDOWN || message == WM_XBUTTONDBLCLK;
 
             bool anyPressed = false;
@@ -1281,6 +1281,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
         case WM_SHOWWINDOW:
             SET_BIT(&win->Flags, (u32) window::SHOWN, wParam);
             SET_BIT(&win->Flags, (u32) window::HIDDEN, !wParam);
+            break;
         case WM_MOVE:
             if (DisabledCursorWindow == win) update_clip_rect(win);
             win->WindowMovedEvent.emit(null, {win, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
@@ -1449,7 +1450,7 @@ cursor::cursor(const pixel_buffer &image, vec2i hot) {
 }
 
 cursor::cursor(os_cursor osCursor) {
-    const wchar_t *id = 0;
+    const wchar_t *id = null;
     if (osCursor == OS_APPSTARTING) id = IDC_APPSTARTING;
     if (osCursor == OS_ARROW) id = IDC_ARROW;
     if (osCursor == OS_IBEAM) id = IDC_IBEAM;
@@ -1464,6 +1465,7 @@ cursor::cursor(os_cursor osCursor) {
     if (osCursor == OS_RESIZE_WE) id = IDC_SIZEWE;
     if (osCursor == OS_UP_ARROW) id = IDC_UPARROW;
     if (osCursor == OS_WAIT) id = IDC_WAIT;
+    assert(id);
 
     PlatformData.Win32.hCursor = (HICON) LoadImageW(null, id, IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
     if (!PlatformData.Win32.hCursor) {

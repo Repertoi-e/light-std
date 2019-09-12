@@ -63,7 +63,7 @@ struct stack_dynamic_buffer {
 
     // Allows negative reversed indexing which begins at the end
     char &get(s64 index) { return Data[translate_index(index, ByteLength)]; }
-    char get(s64 index) const { Data[translate_index(index, ByteLength)]; }
+    char get(s64 index) const { return Data[translate_index(index, ByteLength)]; }
 
     // Sets the _index_'th byte in the string
     void set(s64 index, char b) { Data[translate_index(index, ByteLength)] = b; }

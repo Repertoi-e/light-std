@@ -66,8 +66,7 @@ void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMem
                    u64) {
     switch (mode) {
         case allocator_mode::ALIGNED_ALLOCATE:
-            align = (alignment)((size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align);
-            size += (size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align;
+            size += (size_t) align;
             [[fallthrough]];
         case allocator_mode::ALLOCATE: {
             void *result = os_alloc(size);
@@ -98,6 +97,7 @@ void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMem
 void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
                           alignment align, u64) {
 #if COMPILER == MSVC
+#pragma warning(push)
 #pragma warning(disable : 4146)
 #endif
 
@@ -111,8 +111,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
 
     switch (mode) {
         case allocator_mode::ALIGNED_ALLOCATE:
-            align = (alignment)((size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align);
-            size += (size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align;
+            size += (size_t) align;
             [[fallthrough]];
         case allocator_mode::ALLOCATE: {
             auto *p = &data->Base;
@@ -196,7 +195,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
     }
 
 #if COMPILER == MSVC
-#pragma warning(default : 4146)
+#pragma warning(pop)
 #endif
 
     return null;
@@ -219,11 +218,8 @@ void *operator new[](size_t size) { return operator new(size, null, 0); }
 
 void *operator new(size_t size, allocator *alloc, u64 userFlags) noexcept {
     if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
-    if (!(*alloc)) *alloc = Context.Alloc;
-    if (!(*alloc)) {
-        const_cast<implicit_context *>(&Context)->Alloc = Malloc;
-        *alloc = Malloc;
-    }
+    if (!*alloc) *alloc = Context.Alloc;
+    assert(*alloc);
     return alloc->allocate(size, userFlags);
 }
 
@@ -240,7 +236,7 @@ void *operator new[](size_t size, allocator alloc, u64 userFlags) noexcept {
 
 void *operator new(size_t size, alignment align, allocator *alloc, u64 userFlags) noexcept {
     if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
-    if (!(*alloc)) *alloc = Context.Alloc;
+    if (!*alloc) *alloc = Context.Alloc;
     assert(*alloc);
     return alloc->allocate_aligned(size, align, userFlags);
 }

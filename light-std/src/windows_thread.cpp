@@ -24,13 +24,11 @@ void fast_mutex::lock() {
 //
 // Mutexes:
 //
-#define MHANDLE (CRITICAL_SECTION *) Handle
-
-mutex::mutex() : AlreadyLocked(false) { InitializeCriticalSection(MHANDLE); }
-mutex::~mutex() { DeleteCriticalSection(MHANDLE); }
+mutex::mutex() : AlreadyLocked(false) { InitializeCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
+mutex::~mutex() { DeleteCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
 
 void mutex::lock() {
-    EnterCriticalSection(MHANDLE);
+    EnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
 
     // Simulate deadlock...
     while (AlreadyLocked) Sleep(1000);
@@ -38,9 +36,9 @@ void mutex::lock() {
 }
 
 bool mutex::try_lock() {
-    bool result = TryEnterCriticalSection(MHANDLE);
+    bool result = TryEnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
     if (result && AlreadyLocked) {
-        LeaveCriticalSection(MHANDLE);
+        LeaveCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
         result = false;
     }
     return result;
@@ -48,16 +46,18 @@ bool mutex::try_lock() {
 
 void mutex::unlock() {
     AlreadyLocked = false;
-    LeaveCriticalSection(MHANDLE);
+    LeaveCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
 }
 
-recursive_mutex::recursive_mutex() { InitializeCriticalSection(MHANDLE); }
-recursive_mutex::~recursive_mutex() { DeleteCriticalSection(MHANDLE); }
+recursive_mutex::recursive_mutex() { InitializeCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
+recursive_mutex::~recursive_mutex() { DeleteCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
 
-void recursive_mutex::lock() { EnterCriticalSection(MHANDLE); }
-bool recursive_mutex::try_lock() { return TryEnterCriticalSection(MHANDLE) ? true : false; }
+void recursive_mutex::lock() { EnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
+bool recursive_mutex::try_lock() {
+    return TryEnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle) ? true : false;
+}
 
-void recursive_mutex::unlock() { LeaveCriticalSection(MHANDLE); }
+void recursive_mutex::unlock() { LeaveCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
 
 //
 // Condition variable:

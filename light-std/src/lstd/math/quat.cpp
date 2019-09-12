@@ -50,7 +50,7 @@ quat quat::operator/(f32 scalar) const { return quat(x / scalar, y / scalar, z /
 quat quat::operator-() const { return quat(-x, -y, -z, -w); }
 
 bool quat::operator==(const quat &quat) const {
-    return (x == quat.x) && (y == quat.y) && (z == quat.z) && (w == quat.w);
+    return (x == quat.x) && (y == quat.y) && (z == quat.z) && (w == quat.w); // @TODO: ABS(x - quat.x) < Epsilon (and for other math types!)
 }
 
 bool quat::operator!=(const quat &quat) const { return !(*this == quat); }

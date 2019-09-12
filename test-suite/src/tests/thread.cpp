@@ -118,25 +118,21 @@ TEST(context) {
     auto *old = Context.Alloc.Function;
 
     auto osAlloc = allocator{os_allocator, null};
-
     PUSH_CONTEXT(Alloc, osAlloc) {
         thread::thread t1(
             [&](void *) {
                 assert_eq((void *) Context.Alloc.Function, (void *) osAlloc.Function);
-
                 []() {
                     PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
                         assert_eq((void *) Context.Alloc.Function, (void *) Context.TemporaryAlloc.Function);
                         return;
                     }
                 }();
-
                 assert_eq((void *) Context.Alloc.Function, (void *) osAlloc.Function);
             },
             null);
         t1.join();
     }
-
     assert_eq((void *) Context.Alloc.Function, (void *) old);
 }
 #endif

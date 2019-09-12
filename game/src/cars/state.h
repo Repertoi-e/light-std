@@ -5,7 +5,11 @@
 enum class camera_type : s32 { Maya, FPS };
 
 struct game_state {
-    texture_2D ViewportTexture;
+    camera_type CameraType = camera_type::Maya;
+
+    texture_2D ViewportRenderTarget;
+    size_t FBSizeCBID = npos;
+
     vec4 ClearColor = {0.2f, 0.3f, 0.8f, 1.0f};
 
     bool NoGUI = false;
@@ -15,10 +19,6 @@ struct game_state {
     s32 OverlayCorner = 3;
 
     bool MouseGrabbed = false;
-
-    camera_type CameraType = camera_type::Maya;
-
-    size_t FBSizeCBID = npos;
 };
 
 struct camera {
@@ -36,8 +36,8 @@ struct camera {
     f32 Speed, SprintSpeed;
 
     camera();
-    
-	void reinit();
+
+    void reinit();
     void reset_constants();
 
     void update();

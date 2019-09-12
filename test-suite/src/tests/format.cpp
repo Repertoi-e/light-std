@@ -248,7 +248,7 @@ TEST(args_errors) {
     EXPECT_ERROR("Invalid format string", "{00}", 42);
     EXPECT_ERROR("Argument index out of range", "{0}");
 
-    EXPECT_ERROR("Invalid format string", "{");
+    EXPECT_ERROR("Invalid format string", "{"); //-V1002
     EXPECT_ERROR("Unmatched '}' in format string - use '}}' to escape", "}");
     EXPECT_ERROR("Invalid format string", "{0{}");
 }

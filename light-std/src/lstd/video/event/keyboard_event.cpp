@@ -41,7 +41,7 @@ u32 key_code_from_name(string name) {
     while (l < r) {
         auto m = (l + r) / 2;
         auto x = g_KeyidOrder[m];
-        auto c = name.compare(string(KEYID_NAME + g_KeyidOff[x]));
+        auto c = name.compare_lexicographically(string(KEYID_NAME + g_KeyidOff[x]));
         if (c < 0) {
             r = m;
         } else if (c > 0) {
@@ -54,9 +54,9 @@ u32 key_code_from_name(string name) {
 }
 
 string key_name_from_code(u32 code) {
-    if (code < 0 || code > 255) return "";
+    if (code > 255) return "";
     s32 off = g_KeyidOff[code];
-    if (off == (u16) -1) return "";
+    if (off == -1) return "";
     return string(KEYID_NAME + off);
 }
 

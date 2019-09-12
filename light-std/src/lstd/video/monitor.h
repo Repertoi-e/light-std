@@ -45,14 +45,14 @@ struct monitor {
     union platform_data {
         struct {
             HMONITOR__ *hMonitor = null;
-            
-			// 32 matches the static size of DISPLAY_DEVICE.DeviceName
+
+            // 32 matches the static size of DISPLAY_DEVICE.DeviceName
             wchar_t AdapterName[32]{}, DisplayName[32]{};
             char PublicAdapterName[32]{}, PublicDisplayName[32]{};
 
             bool ModesPruned = false, ModeChanged = false;
         } Win32;
-    } PlatformData {};
+    } PlatformData{};
 
     string Name;
 
@@ -60,7 +60,7 @@ struct monitor {
     s32 WidthMM = 0, HeightMM = 0;
 
     // The window whose video mode is current on this monitor
-    window *Window;
+    window *Window = null;
 
     array<display_mode> DisplayModes;
     display_mode CurrentMode;

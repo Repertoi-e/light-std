@@ -89,7 +89,7 @@ struct text_style {
     union {
         u32 RGB = 0;
         terminal_color Terminal;
-    } Color;
+    } Color{};
     bool Background = false;
     emphasis Emphasis = (emphasis) 0;
 };

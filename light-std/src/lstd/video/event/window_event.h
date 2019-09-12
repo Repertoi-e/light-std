@@ -59,6 +59,7 @@ struct window_files_dropped_event {
 inline window_files_dropped_event *clone(window_files_dropped_event *dest, window_files_dropped_event src) {
     dest->Window = src.Window;
     clone(&dest->Paths, src.Paths);
+	return dest;
 }
 
 struct window_generic_platform_message_event {

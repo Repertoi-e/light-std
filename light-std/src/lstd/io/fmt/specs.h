@@ -24,14 +24,14 @@ constexpr flag &operator|=(flag &lhs, flag rhs) {
 
 struct format_specs {
     char32_t Fill = ' ';
-    alignment Align;
+    alignment Align = alignment::DEFAULT;
 
     flag Flags = (flag) 0;
 
-    u32 Width;
+    u32 Width = 0;
     s32 Precision = -1;
 
-    char Type;
+    char Type = 0;
 
     constexpr bool has_flag(flag flag) const { return ((u32) Flags & (u32) flag) != 0; }
 };

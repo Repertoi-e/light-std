@@ -7,12 +7,12 @@
 static void framebuffer_resized(const window_framebuffer_resized_event &e) {
     if (!GameMemory->MainWindow->is_visible()) return;
 
-    State->ViewportTexture.release();
-    State->ViewportTexture.init_as_render_target(Graphics, "Docked Viewport Render Target", e.Width, e.Height);
+    State->ViewportRenderTarget.release();
+    State->ViewportRenderTarget.init_as_render_target(Graphics, "Docked Viewport Render Target", e.Width, e.Height);
 }
 
 void release_state() {
-    State->ViewportTexture.release();
+    State->ViewportRenderTarget.release();
     if (State->FBSizeCBID != npos) {
         GameMemory->MainWindow->WindowFramebufferResizedEvent.disconnect(State->FBSizeCBID);
     }
@@ -144,22 +144,24 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         {
             auto *drawList = ImGui::GetWindowDrawList();
 
-            f32 viewportRatio = (f32) State->ViewportTexture.Width / State->ViewportTexture.Height;
+            f32 viewportRatio = (f32) State->ViewportRenderTarget.Width / State->ViewportRenderTarget.Height;
             f32 windowRatio = windowSize.x / windowSize.y;
 
             vec2 renderableSize = windowSize;
             vec2 offset;
             if (viewportRatio < windowRatio) {
-                renderableSize.x = (State->ViewportTexture.Width * (windowSize.y / State->ViewportTexture.Height));
+                renderableSize.x =
+                    (State->ViewportRenderTarget.Width * (windowSize.y / State->ViewportRenderTarget.Height));
                 offset = {(windowSize.x - renderableSize.x) / 2, 0};
             } else if (viewportRatio > windowRatio) {
-                renderableSize.y = (State->ViewportTexture.Height * (windowSize.x / State->ViewportTexture.Width));
+                renderableSize.y =
+                    (State->ViewportRenderTarget.Height * (windowSize.x / State->ViewportRenderTarget.Width));
                 offset = {0, (windowSize.y - renderableSize.y) / 2};
             }
             offset += vec2(6 * viewportRatio, 6);
             renderableSize -= vec2(18 * viewportRatio, 18);
 
-            drawList->AddImage(&State->ViewportTexture, windowPos + offset, windowPos + offset + renderableSize);
+            drawList->AddImage(&State->ViewportRenderTarget, windowPos + offset, windowPos + offset + renderableSize);
             if (State->MouseGrabbed) {
                 drawList->AddRect(windowPos + offset, windowPos + offset + renderableSize, 0xffffffff);
             }

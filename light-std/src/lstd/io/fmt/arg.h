@@ -273,9 +273,7 @@ struct arg_map : non_copyable {
     u32 Size = 0;
 
     arg_map() = default;
-    ~arg_map() {
-        if (Entries) delete[] Entries;
-    }
+    ~arg_map() { delete[] Entries; }
 
     void ensure_initted(args ars) {
         if (Entries) return;

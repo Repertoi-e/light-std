@@ -3,6 +3,8 @@
 #include "intrin.h"
 #include "storage/delegate.h"
 
+struct _RTL_CRITICAL_SECTION;
+
 LSTD_BEGIN_NAMESPACE
 
 namespace thread {
@@ -32,8 +34,12 @@ struct id {
 // program may deadlock if the thread that owns a mutex object calls lock()
 // on that object).
 struct mutex {
-    char Handle[64] = {0};  // pthread_mutex_t
-    bool AlreadyLocked;
+    union {
+        struct alignas(64) {
+            char Handle[40]{};
+        } Win32;
+    } PlatformData{};
+    volatile bool AlreadyLocked;
 
     // pthread_mutex_init(&mHandle, NULL);
     mutex();
@@ -72,7 +78,11 @@ struct mutex {
 // may lock the mutex several times, as long as it unlocks the mutex the same
 // number of times).
 struct recursive_mutex {
-    char Handle[64] = {0};  // pthread_mutex_t
+    union {
+        struct alignas(64) {
+            char Handle[40]{};
+        } Win32;
+    } PlatformData{};
 
     // pthread_mutexattr_t attr;
     // pthread_mutexattr_init(&attr);
@@ -222,10 +232,10 @@ struct thread {
     // Unique thread ID. Used only on Windows
     u32 Win32ThreadId = 0;
 
+    uptr_t Handle;
+
     // True if this object is not a thread of execution.
     bool NotAThread = true;
-
-    uptr_t Handle;
 
     // Construct without an associated thread of execution (i.e. non-joinable).
     thread() = default;

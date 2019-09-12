@@ -33,7 +33,7 @@ struct texture_2D {
 #endif
 
     struct impl {
-        void (*Init)(texture_2D *t);
+        void (*Init)(texture_2D *t) = null;
         void (*SetData)(texture_2D *t, pixel_buffer data) = null;
 
         void (*Bind)(texture_2D *t) = null;

@@ -76,6 +76,8 @@ struct allocator {
     }
 
     void *allocate_aligned(size_t size, alignment align, u64 userFlags = 0) const {
+        align = (alignment)((size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align);
+        assert(IS_POW_OF_2((size_t) align));
         return general_allocate(size, true, align, userFlags);
     }
 
@@ -84,6 +86,8 @@ struct allocator {
     }
 
     static void *reallocate_aligned(void *ptr, size_t newSize, alignment align, u64 userFlags = 0) {
+        align = (alignment)((size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align);
+        assert(IS_POW_OF_2((size_t) align));
         return general_reallocate(ptr, newSize, true, align, userFlags);
     }
 
@@ -138,7 +142,6 @@ struct allocator {
             result = Function(allocator_mode::ALLOCATE, Context, size + sizeof(allocation_header), null, 0,
                               alignment(0), userFlags);
         } else {
-            assert((size_t) align > 0 && IS_POW_OF_2((size_t) align));
             result = Function(allocator_mode::ALIGNED_ALLOCATE, Context, size + sizeof(allocation_header), null, 0,
                               align, userFlags);
             assert((((uptr_t) result & ~((size_t) align - 1)) == (uptr_t) result) &&
@@ -169,7 +172,6 @@ struct allocator {
             result = allocFunc(allocator_mode::REALLOCATE, allocContext, newSize + sizeof(allocation_header), header,
                                oldSize, alignment(0), userFlags);
         } else {
-            assert((size_t) align > 0 && IS_POW_OF_2((size_t) align));
             result = allocFunc(allocator_mode::ALIGNED_REALLOCATE, allocContext, newSize + sizeof(allocation_header),
                                header, oldSize, align, userFlags);
             assert((((uptr_t) result & ~((size_t) align - 1)) == (uptr_t) result) &&

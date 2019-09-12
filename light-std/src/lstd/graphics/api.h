@@ -89,7 +89,7 @@ struct graphics : non_copyable, non_movable {
         void (*SetViewport)(graphics *g, rect viewport) = null;
         void (*SetScissorRect)(graphics *g, rect scissorRect) = null;
 
-        void (*SetRenderTarget)(graphics *g, texture_2D *target);  // null means back buffer
+        void (*SetRenderTarget)(graphics *g, texture_2D *target) = null;  // target == null means back buffer
 
         void (*SetBlend)(graphics *g, bool enabled) = null;
         void (*SetDepthTesting)(graphics *g, bool enabled) = null;
@@ -113,11 +113,13 @@ struct graphics : non_copyable, non_movable {
         if (index == npos) {
             targetWindow = TargetWindows.append();
             targetWindow->Window = win;
-            targetWindow->ClosedCallbackID = win->WindowClosedEvent.connect({this, &graphics::window_closed});
-            targetWindow->FramebufferResizedCallbackID =
-                win->WindowFramebufferResizedEvent.connect({this, &graphics::window_resized});
-            Impl.InitTargetWindow(this, targetWindow);
-            window_resized({win, win->get_size().x, win->get_size().y});
+            if (win) {
+                targetWindow->ClosedCallbackID = win->WindowClosedEvent.connect({this, &graphics::window_closed});
+                targetWindow->FramebufferResizedCallbackID =
+                    win->WindowFramebufferResizedEvent.connect({this, &graphics::window_resized});
+                Impl.InitTargetWindow(this, targetWindow);
+                window_resized({win, win->get_size().x, win->get_size().y});
+            }
         } else {
             targetWindow = &TargetWindows[index];
         }

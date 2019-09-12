@@ -371,7 +371,7 @@ struct array {
     // Operators:
     //
     data_t &operator[](s64 index) { return get(index); }
-    const data_t &operator[](s64 index) const { get(index); }
+    const data_t &operator[](s64 index) const { return get(index); }
 
     // Check two arrays for equality
     template <typename U>
@@ -386,12 +386,12 @@ struct array {
 
     template <typename U>
     bool operator<(array<U> other) const {
-        return compare(other) < 0;
+        return compare_lexicographically(other) < 0;
     }
 
     template <typename U>
     bool operator>(array<U> other) const {
-        return compare(other) > 0;
+        return compare_lexicographically(other) > 0;
     }
 
     template <typename U>
@@ -407,7 +407,7 @@ struct array {
 
 template <typename T>
 array<T> *clone(array<T> *dest, array<T> src) {
-    *dest = {};
+    dest->reset();
     dest->append_pointer_and_size(src.Data, src.Count);
     return dest;
 }
@@ -417,7 +417,7 @@ array<T> *move(array<T> *dest, array<T> *src) {
     dest->release();
     *dest = *src;
 
-	if (!src->is_owner()) return dest;
+    if (!src->is_owner()) return dest;
 
     // Transfer ownership
     change_owner(src->Data, dest);

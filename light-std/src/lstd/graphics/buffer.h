@@ -73,12 +73,12 @@ struct buffer : non_copyable, non_movable {
         ID3D11InputLayout *Layout = null;
 
         // Based on the definition of _D3D11_MAPPED_SUBRESOURCE_
-        char MappedData[POINTER_SIZE + sizeof(u32) + sizeof(u32)];
+        char MappedData[POINTER_SIZE + sizeof(u32) + sizeof(u32)]{};
     } D3D{};
 #endif
 
     struct impl {
-        void (*Init)(buffer *b, const char *data);
+        void (*Init)(buffer *b, const char *data) = null;
         void (*SetInputLayout)(buffer *b, buffer_layout layout) = null;
 
         void *(*Map)(buffer *b, buffer_map_access access) = null;

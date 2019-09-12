@@ -10,16 +10,16 @@ struct object_uniforms {
 };
 
 struct scene {
+    camera Camera;
+
     shader SceneShader;
     buffer SceneUB, ObjectUB;
 
     buffer CubeVB, CubeIB;
     buffer GridVB;
+	f32 GridSpacing = 1.0f;
 
     scene_uniforms Uniforms;
-
-    camera Camera;
-
     size_t FBSizeCBID = npos;
 
     scene() { Camera.reinit(); }  // Only runs once
@@ -128,7 +128,7 @@ void update_and_render_scene() {
         g->set_target_window(GameMemory->MainWindow);
 
         if (!State->NoGUI) {
-            g->set_custom_render_target(&State->ViewportTexture);
+            g->set_custom_render_target(&State->ViewportRenderTarget);
         }
         g->set_depth_testing(true);
         g->clear_color(State->ClearColor);

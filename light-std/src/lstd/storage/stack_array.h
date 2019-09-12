@@ -217,7 +217,7 @@ struct stack_array {
     //
 
     constexpr data_t &operator[](s64 index) { return get(index); }
-    constexpr const data_t &operator[](s64 index) const { get(index); }
+    constexpr const data_t &operator[](s64 index) const { return get(index); }
 
     constexpr iterator begin() { return Data; }
     constexpr iterator end() { return Data + Count; }
