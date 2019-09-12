@@ -4,7 +4,7 @@
 #if defined DO_THREAD_TESTS
 
 TEST(hardware_concurrency) {
-    fmt::print("\n\t\tNumber of processor cores: {}.\n", thread::get_hardware_concurrency());
+    fmt::print("\n\t\tHardware concurrency: {}.\n", os_get_hardware_concurrency());
     For(range(45)) fmt::print(" ");
 }
 

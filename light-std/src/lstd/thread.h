@@ -279,10 +279,6 @@ struct thread {
 #endif
 };
 
-// The number of threads which can possibly execute concurrently.
-// This value is useful for determining the optimal number of threads to use for a task.
-u32 get_hardware_concurrency();
-
 // This is a mutual exclusion object for synchronizing access to shared
 // memory areas for several threads. It is similar to the thread::Mutex object,
 // but instead of using system level functions, it is implemented as an atomic
@@ -344,5 +340,9 @@ struct fast_mutex {
 };
 
 }  // namespace thread
+
+// The number of threads which can possibly execute concurrently.
+// This value is useful for determining the optimal number of threads to use for a task.
+u32 os_get_hardware_concurrency();
 
 LSTD_END_NAMESPACE

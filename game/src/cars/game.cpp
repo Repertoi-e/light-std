@@ -58,13 +58,13 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
 
     auto *win = GameMemory->MainWindow;
     if ((win->Keys[Key_LeftControl] || win->Keys[Key_RightControl]) && win->KeysThisFrame[Key_F]) {
-        State->NoGUI = !State->NoGUI;
+        State->Editor = !State->Editor;
         // Ensure we use the FPS camera when we are not in the editor
-        if (State->NoGUI) {
+        if (State->Editor) {
+            State->CameraType = oldCamera;
+        } else {
             oldCamera = State->CameraType;
             State->CameraType = camera_type::FPS;
-        } else {
-            State->CameraType = oldCamera;
         }
 
         if (State->MouseGrabbed) {
@@ -73,15 +73,14 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         }
     }
 
-    // @TODO The viewport window may be in an additional imgui window, and we don't handle that yet!
-    win = GameMemory->MainWindow;
-
+    // The viewport window may not be in an additional imgui window since we don't allow moving it,
+    // so assuming it's in the main window's viewport is fine.
     if (State->MouseGrabbed && ImGui::IsKeyPressed(Key_Escape, false)) {
         State->MouseGrabbed = false;
         win->set_cursor_mode(window::CURSOR_NORMAL);
     }
 
-    if (State->NoGUI) {
+    if (!State->Editor) {
         if (win->is_hovered() && win->MouseButtons[Mouse_Button_Left]) {
             State->MouseGrabbed = true;
             win->set_cursor_mode(window::CURSOR_DISABLED);
@@ -91,7 +90,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
     //
     // Draw editor:
     //
-    if (!State->NoGUI) {
+    if (State->Editor) {
         ImGuiViewport *viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
         ImGui::SetNextWindowSize(viewport->Size);
@@ -114,10 +113,16 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             if (ImGui::BeginMenu("Game")) {
                 if (ImGui::MenuItem("VSync", "", GameMemory->MainWindow->Flags & window::VSYNC))
                     GameMemory->MainWindow->Flags ^= window::VSYNC;
-                if (ImGui::MenuItem("No GUI", "Ctrl + F", State->NoGUI)) State->NoGUI = !State->NoGUI;
+                if (ImGui::MenuItem("Editor", "Ctrl + F", State->Editor)) {
+                    State->Editor = !State->Editor;
+                }
                 ImGui::Separator();
-                if (ImGui::MenuItem("Show overlay", "", State->Overlay)) State->Overlay = !State->Overlay;
-                if (ImGui::MenuItem("Show imgui metrics", "", State->Metrics)) State->Metrics = !State->Metrics;
+                if (ImGui::MenuItem("Show overlay", "", State->ShowOverlay)) {
+                    State->ShowOverlay = !State->ShowOverlay;
+                }
+                if (ImGui::MenuItem("Show imgui metrics", "", State->ShowMetrics)) {
+                    State->ShowMetrics = !State->ShowMetrics;
+                }
                 ImGui::EndMenu();
             }
             ImGui::TextDisabled("(?)");
@@ -133,11 +138,9 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         }
         ImGui::End();
 
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::Begin("Viewport", null, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNav);
-        ImGui::PopStyleVar(3);
+        ImGui::Begin("Viewport", null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoNav);
+        ImGui::PopStyleVar(1);
 
         auto windowPos = ImGui::GetWindowPos();
         auto windowSize = ImGui::GetWindowSize();
@@ -172,7 +175,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             win->set_cursor_mode(window::CURSOR_DISABLED);
         }
 
-        if (State->Overlay) {
+        if (State->ShowOverlay) {
             if (State->OverlayCorner != -1) {
                 ImVec2 pivot =
                     ImVec2((State->OverlayCorner & 1) ? 1.0f : 0.0f, (State->OverlayCorner & 2) ? 1.0f : 0.0f);
@@ -183,7 +186,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
             }
 
             ImGui::SetNextWindowBgAlpha(0.35f);
-            if (ImGui::Begin("Overlay", &State->Overlay,
+            if (ImGui::Begin("Overlay", &State->ShowOverlay,
                              (State->OverlayCorner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoDocking |
                                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                                  ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
@@ -196,7 +199,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
                     if (ImGui::MenuItem("Top-right", null, State->OverlayCorner == 1)) State->OverlayCorner = 1;
                     if (ImGui::MenuItem("Bottom-left", null, State->OverlayCorner == 2)) State->OverlayCorner = 2;
                     if (ImGui::MenuItem("Bottom-right", null, State->OverlayCorner == 3)) State->OverlayCorner = 3;
-                    if (State->Overlay && ImGui::MenuItem("Close")) State->Overlay = false;
+                    if (State->ShowOverlay && ImGui::MenuItem("Close")) State->ShowOverlay = false;
                     ImGui::EndPopup();
                 }
             }
@@ -204,7 +207,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         }
         ImGui::End();
 
-        if (State->Metrics) ImGui::ShowMetricsWindow(&State->Metrics);
+        if (State->ShowMetrics) ImGui::ShowMetricsWindow(&State->ShowMetrics);
     }
 
     update_and_render_scene();

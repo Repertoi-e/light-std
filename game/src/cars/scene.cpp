@@ -127,7 +127,7 @@ void update_and_render_scene() {
 
         g->set_target_window(GameMemory->MainWindow);
 
-        if (!State->NoGUI) {
+        if (State->Editor) {
             g->set_custom_render_target(&State->ViewportRenderTarget);
         }
         g->set_depth_testing(true);
@@ -170,7 +170,7 @@ void update_and_render_scene() {
         }
 
         g->set_depth_testing(false);
-        if (!State->NoGUI) {
+        if (State->Editor) {
             g->set_custom_render_target(null);
         }
     }
@@ -178,7 +178,7 @@ void update_and_render_scene() {
     //
     // Draw editor:
     //
-    if (!State->NoGUI) {
+    if (State->Editor) {
         ImGui::Begin("Scene Properties", null);
         ImGui::Text("Camera");
         ImGui::BeginChild("##camera", {0, 180}, true);

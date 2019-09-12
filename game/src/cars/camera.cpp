@@ -27,7 +27,8 @@ void camera::reset_constants() {
 }
 
 void camera::update() {
-    // @TODO The viewport window may be in an additional imgui window, and we don't handle that yet!
+    // The viewport window may not be in an additional imgui window since we don't allow moving it,
+    // so assuming it's in the main window's viewport is fine.
     auto *win = GameMemory->MainWindow;
 
     if (State->CameraType == camera_type::Maya) {

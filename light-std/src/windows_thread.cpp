@@ -255,13 +255,13 @@ void thread::detach() {
     if (!joinable()) return id();
     return id((u64) Win32ThreadId);
 }
+}  // namespace thread
 
-u32 get_hardware_concurrency() {
+u32 os_get_hardware_concurrency() {
     SYSTEM_INFO si;
     GetSystemInfo(&si);
     return (u32) si.dwNumberOfProcessors;
 }
-}  // namespace thread
 
 void implicit_context::thread_yield() const { Sleep(0); }
 void implicit_context::thread_sleep_for(u32 ms) const { Sleep((DWORD) ms); }

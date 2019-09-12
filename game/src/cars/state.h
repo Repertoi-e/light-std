@@ -12,10 +12,10 @@ struct game_state {
 
     vec4 ClearColor = {0.2f, 0.3f, 0.8f, 1.0f};
 
-    bool NoGUI = false;
-    bool Metrics = false;
+    bool Editor = true;
+    bool ShowMetrics = false;
 
-    bool Overlay = true;
+    bool ShowOverlay = true;
     s32 OverlayCorner = 3;
 
     bool MouseGrabbed = false;
