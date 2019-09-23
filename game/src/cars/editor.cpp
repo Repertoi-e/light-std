@@ -131,7 +131,7 @@ static void update_grid() {
     assert(grid);
 
     grid->Mesh.Shader->bind();
-    generate_grid_model(grid->Mesh.Model, "Grid Model", Scene->GridSize, Scene->GridSpacing);
+    generate_grid_model(grid->Mesh.Model, Scene->GridSize, Scene->GridSpacing);
 }
 
 extern s32 ImFormatString(char *buf, size_t buf_size, const char *fmt, ...);
@@ -201,3 +201,40 @@ void editor_scene_properties(camera *cam) {
     }
     ImGui::End();
 }
+
+void editor_assets() {
+    ImGui::Begin("Assets", null);
+    if (ImGui::TreeNode("Shaders")) {
+        auto *b = Shaders->BucketList;
+        while (b) {
+            For(b->Assets) {
+                auto *name = it->Name.to_c_string(Context.TemporaryAlloc);
+                if (ImGui::TreeNode(name)) {
+                    ImGui::Text("Name: %s", name);
+                    ImGui::Text("File path: %s", it->FilePath.UnifiedPath.to_c_string(Context.TemporaryAlloc));
+					ImGui::TreePop();
+                }
+            }
+            b = b->Next;
+        }
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNode("Models")) {
+        auto *b = Models->BucketList;
+        while (b) {
+            For(b->Assets) {
+                auto *name = it->Name.to_c_string(Context.TemporaryAlloc);
+                if (ImGui::TreeNode(name)) {
+                    ImGui::Text("Name: %s", name);
+                    ImGui::Text("File path: %s", it->FilePath.UnifiedPath.to_c_string(Context.TemporaryAlloc));
+                    ImGui::TreePop();
+                }
+            }
+            b = b->Next;
+        }
+        ImGui::TreePop();
+    }
+    ImGui::End();
+}
+

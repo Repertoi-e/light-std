@@ -10,8 +10,7 @@ static void framebuffer_resized(const window_framebuffer_resized_event &e) {
 }
 
 // _p_ represents the center of the cuboid and _s_ is the radius in all axis, _c_ is a list of colors for each vertex
-void generate_cuboid_model(model *m, string name, vec3 p, vec3 s, vec4 c[8]) {
-    m->Name = name;
+void generate_cuboid_model(model *m, vec3 p, vec3 s, vec4 c[8]) {
     m->FilePath = file::path("No path");
 
     vertex vertices[] = {{vec3(p.x - s.x, p.y - s.y, p.z + s.z), c[0]}, {vec3(p.x + s.x, p.y - s.y, p.z + s.z), c[1]},
@@ -37,46 +36,46 @@ void generate_cuboid_model(model *m, string name, vec3 p, vec3 s, vec4 c[8]) {
     m->PrimitiveTopology = primitive_topology::TriangleList;
 }
 
-void generate_grid_model(model *m, string name, vec2i gridSize, f32 gridSpacing) {
-    m->Name = "Grid Model";
+void generate_grid_model(model *m, vec2i gridSize, f32 gridSpacing) {
     m->FilePath = file::path("No path");
 
     vec2 min = {-(f32) gridSize.x * gridSpacing, -(f32) gridSize.y * gridSpacing};
     vec2 max = -min;
 
-    array<vec3> lines;
+    size_t lineCount = (size_t)((max.x - min.x) / gridSpacing + (max.y - min.y) / gridSpacing);
+
+    array<vertex> vertices;
+    vertices.reserve(lineCount * 2);
+
     array<u32> indices;
     u32 index = 0;
+    indices.reserve(lineCount * 2);
 
     for (f32 x = min.x; x <= max.x; x += gridSpacing) {
-        lines.append(vec3(x, 0, min.y));
-        lines.append(vec3(1, 1, 1));
-        lines.append(vec3(x, 0, max.y));
-        lines.append(vec3(1, 1, 1));
+        vertices.append({vec3(x, 0, min.y), vec4(1, 1, 1, 1)});
+        vertices.append({vec3(x, 0, max.y), vec4(1, 1, 1, 1)});
         indices.append(index++);
         indices.append(index++);
     }
 
     for (f32 z = min.y; z <= max.y; z += gridSpacing) {
-        lines.append(vec3(min.x, 0, z));
-        lines.append(vec3(1, 1, 1));
-        lines.append(vec3(max.x, 0, z));
-        lines.append(vec3(1, 1, 1));
+        vertices.append({vec3(min.x, 0, z), vec4(1, 1, 1, 1)});
+        vertices.append({vec3(max.x, 0, z), vec4(1, 1, 1, 1)});
         indices.append(index++);
         indices.append(index++);
     }
 
     m->VB.release();
-    m->VB.init(Graphics, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, lines.Count * sizeof(vec3),
-               (const char *) lines.Data);
+    m->VB.init(Graphics, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, vertices.Count * sizeof(vertex),
+               (const char *) vertices.Data);
 
     buffer_layout layout;
     layout.add("POSITION", gtype::F32_3);
-    layout.add("COLOR", gtype::F32_3);
+    layout.add("COLOR", gtype::F32_4);
     m->VB.set_input_layout(layout);
 
     m->IB.release();
-    m->IB.init(Graphics, buffer_type::Index_Buffer, buffer_usage::Immutable, sizeof(u32) * indices.Count,
+    m->IB.init(Graphics, buffer_type::Index_Buffer, buffer_usage::Immutable, indices.Count * sizeof(u32),
                (const char *) indices.Data);
 
     m->PrimitiveTopology = primitive_topology::LineList;
@@ -93,11 +92,9 @@ static void reload_scene() {
     Scene->SceneUB.init(g, buffer_type::Shader_Uniform_Buffer, buffer_usage::Dynamic, sizeof(scene_uniforms));
     Scene->EntityUB.init(g, buffer_type::Shader_Uniform_Buffer, buffer_usage::Dynamic, sizeof(entity_uniforms));
 
-    auto *sceneShader = Shaders->get("Scene Shader");  // @TODO: Repeating asset names
-    if (!sceneShader) {
-        sceneShader = GAME_NEW(shader);
-        sceneShader->init(g, "Scene Shader", file::path("data/Scene.hlsl"));
-        Shaders->add(sceneShader);
+    auto *sceneShader = Shaders->get("Scene Shader");
+    if (!sceneShader->Graphics) {
+        sceneShader->init(g, file::path("data/Scene.hlsl"));
     }
 
     //
@@ -107,10 +104,8 @@ static void reload_scene() {
         auto *cuboid = Scene->Entities.append();
         cuboid->Mesh.Shader = sceneShader;
 
-        auto *cuboidModel = Models->get("Cuboid Model");  // @TODO: Repeating asset names
-        if (!cuboidModel) {
-            cuboidModel = GAME_NEW(model);
-
+        cuboid->Mesh.Model = Models->get("Cuboid Model");
+        if (!cuboid->Mesh.Model->VB.Graphics) {
             vec4 verticesColors[] = {
                 vec4(1.0f, 0.0f, 0.0f, 1.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f), vec4(0.0f, 0.0f, 1.0f, 1.0f),
                 vec4(1.0f, 1.0f, 1.0f, 1.0f), vec4(1.0f, 0.0f, 0.0f, 1.0f), vec4(0.0f, 1.0f, 0.0f, 1.0f),
@@ -118,11 +113,8 @@ static void reload_scene() {
             };
 
             cuboid->Mesh.Shader->bind();
-            generate_cuboid_model(cuboidModel, "Cuboid Model", {0, 3, 0}, {4, 1, 5}, verticesColors);
-
-            Models->add(cuboidModel);
+            generate_cuboid_model(cuboid->Mesh.Model, {0, 3, 0}, {4, 1, 5}, verticesColors);
         }
-        cuboid->Mesh.Model = cuboidModel;
     }
 
     //
@@ -132,16 +124,11 @@ static void reload_scene() {
         auto *grid = Scene->Entities.append();
         grid->Mesh.Shader = sceneShader;
 
-        auto *gridModel = Models->get("Grid Model");  // @TODO: Repeating asset names
-        if (!gridModel) {
-            gridModel = GAME_NEW(model);
-
+        grid->Mesh.Model = Models->get("Grid Model");
+        if (!grid->Mesh.Model->VB.Graphics) {
             grid->Mesh.Shader->bind();
-            generate_grid_model(gridModel, "Grid Model", Scene->GridSize, Scene->GridSpacing);
-
-            Models->add(gridModel);
+            generate_grid_model(grid->Mesh.Model, Scene->GridSize, Scene->GridSpacing);
         }
-        grid->Mesh.Model = gridModel;
     }
 
     vec2i windowSize = GameMemory->MainWindow->get_size();
@@ -216,5 +203,8 @@ void update_and_render_scene() {
         if (State->Editor) g->set_custom_render_target(null);
     }
 
-    if (State->Editor) editor_scene_properties(cam);
+    if (State->Editor) {
+        editor_scene_properties(cam);
+        editor_assets();
+    }
 }

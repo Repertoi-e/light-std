@@ -60,8 +60,8 @@ struct shader : public asset, non_copyable, non_movable {
     shader() = default;
     ~shader() { release(); }
 
-    void init(graphics *g, string name, file::path filePath);
-    void init(graphics *g, string name, string source);
+    void init(graphics *g, file::path filePath);
+    void init(graphics *g, string source);
 
     void bind() { Impl.Bind(this); }
     void unbind() { Impl.Unbind(this); }

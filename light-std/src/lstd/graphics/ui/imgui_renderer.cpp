@@ -21,7 +21,8 @@ void imgui_renderer::init(graphics *g) {
         renderer->draw(viewport->DrawData);
     };
 
-    Shader.init(g, "UI Shader", file::path("data/UI.hlsl"));
+    Shader.Name = "UI Shader";
+    Shader.init(g, file::path("data/UI.hlsl"));
 
     UB.init(g, buffer_type::Shader_Uniform_Buffer, buffer_usage::Dynamic, sizeof(mat4));
 

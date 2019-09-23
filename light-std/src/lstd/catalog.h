@@ -55,6 +55,7 @@ struct catalog {
         last->Next->Assets.append(asst);
     }
 
+    // Creates a new asset if not found
     T *get(string name) {
         auto *b = BucketList;
         while (b) {
@@ -62,7 +63,10 @@ struct catalog {
             if (index != npos) return (T *) b->Assets[index];
             b = b->Next;
         }
-        return null;
+        T *result = new T;
+        clone(&result->Name, name);
+        add(result);
+        return result;
     }
 };
 

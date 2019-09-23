@@ -34,7 +34,7 @@ void buffer::init(graphics *g, buffer_type type, buffer_usage usage, size_t size
 
 extern shader::impl g_D3DShaderImpl;  // Defined in d3d_shader.cpp
 
-void shader::init(graphics *g, string name, file::path filePath) {
+void shader::init(graphics *g, file::path filePath) {
     clone(&FilePath, filePath);
 
     auto handle = file::handle(filePath);
@@ -42,14 +42,13 @@ void shader::init(graphics *g, string name, file::path filePath) {
     string source;
     if (!handle.read_entire_file(&source)) return;
 
-    init(g, name, source);
+    init(g, source);
 }
 
-void shader::init(graphics *g, string name, string source) {
+void shader::init(graphics *g, string source) {
     Graphics = g;
-
-    clone(&Name, name);
-    clone(&Source, source);
+    
+	clone(&Source, source);
 
     if (g->API == graphics_api::Direct3D) {
         Impl = g_D3DShaderImpl;

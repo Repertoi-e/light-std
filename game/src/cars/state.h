@@ -103,8 +103,9 @@ void update_and_render_scene();
 
 void editor_main();
 void editor_scene_properties(camera *cam);
+void editor_assets();
 
 // _p_ represents the center of the cuboid and _s_ is the radius in all axis, _c_ is a list of colors for each vertex
-void generate_cuboid_model(model *m, string name, vec3 p, vec3 s, vec4 c[8]);
+void generate_cuboid_model(model *m, vec3 p, vec3 s, vec4 c[8]);
 
-void generate_grid_model(model *m, string name, vec2i gridSize, f32 gridSpacing);
+void generate_grid_model(model *m, vec2i gridSize, f32 gridSpacing);
