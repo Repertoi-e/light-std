@@ -275,9 +275,9 @@ static void imgui_init_photoshop_style() {
 }
 
 static void init_imgui_for_our_windows(window *mainWindow) {
-    ImGui::CreateContext();
     ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, Malloc); },
                                  [](void *ptr, void *) { delete ptr; });
+    ImGui::CreateContext();
 
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts = new ImFontAtlas();

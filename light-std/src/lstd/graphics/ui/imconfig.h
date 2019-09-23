@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "../../common.h"
+#include "../../io/fmt.h"
 
 //---- Define assertion handler. Defaults to calling assert().
 #define IM_ASSERT(_EXPR) assert(_EXPR)
@@ -52,6 +52,9 @@
 // ImFabs/ImSqrt/ImPow/ImFmod/ImCos/ImSin/ImAcos/ImAtan2 wrapper so you can implement them yourself. Declare your
 // prototypes in imconfig.h. #define IMGUI_DISABLE_DEFAULT_ALLOCATORS                  // Don't implement default
 // allocators calling malloc()/free() to avoid linking with them. You will need to call ImGui::SetAllocatorFunctions().
+
+#define IMGUI_DISABLE_DEFAULT_ALLOCATORS
+#define IMGUI_USE_STB_SPRINTF
 
 //---- Include imgui_user.h at the end of imgui.h as a convenience
 //#define IMGUI_INCLUDE_IMGUI_USER_H
@@ -107,8 +110,7 @@
 
 //---- Tip: You can add extra functions within the ImGui:: namespace, here or in your own headers files.
 /*
-namespace ImGui
-{
-    void MyFunction(const char* name, const MyMatrix44& v);
-}
+namespace ImGui {
+
+}  // namespace ImGui
 */

@@ -31,6 +31,8 @@ struct vec2 {
     friend vec2 operator*(vec2 left, f32 value);
     friend vec2 operator/(vec2 left, f32 value);
 
+    vec2 operator-() const {return vec2(-x, -y);}
+
     bool operator==(vec2 other) const;
     bool operator!=(vec2 other) const;
 

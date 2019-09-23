@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../file.h"
+#include "../catalog.h"
 #include "../storage/array.h"
 #include "../storage/string.h"
 #include "gtype.h"
@@ -15,7 +15,7 @@ LSTD_BEGIN_NAMESPACE
 struct graphics;
 
 // Holds both a vertex and a pixel shader (those are the two shader types we support for now!)
-struct shader : non_copyable, non_movable {
+struct shader : public asset, non_copyable, non_movable {
 #if OS == WINDOWS
     struct {
         ID3D11VertexShader *VS = null;
@@ -34,8 +34,6 @@ struct shader : non_copyable, non_movable {
 
     graphics *Graphics;
 
-    string Name;  // @TODO: _shader_ should be an asset, move these fields when we have a catalog system
-    file::path FilePath = "No path";
     string Source;
 
     struct uniform {

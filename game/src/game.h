@@ -1,6 +1,7 @@
 #pragma once
 
 #include <lstd/basic.h>
+#include <lstd/catalog.h>
 #include <lstd/graphics.h>
 #include <lstd/io/fmt.h>
 #include <lstd/os.h>
@@ -68,3 +69,5 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render_func);
 // Global, used in the game
 inline game_memory *GameMemory = null;
 inline graphics *Graphics = null;
+
+inline catalog<shader> *Shaders;
