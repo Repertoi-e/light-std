@@ -33,13 +33,13 @@ string os_get_exe_name();
 #if OS == WINDOWS
 
 // Logs a formatted error message.
-void report_hresult_error(long hresult, string call, string file, s32 line);
+void windows_report_hresult_error(long hresult, string call, string file, s32 line);
 
 // CHECKHR checks the return value of _call_ and if the returned HRESULT is less than zero, reports an error.
 #define CHECKHR(call)                                                            \
     {                                                                            \
         long result = call;                                                      \
-        if (result < 0) report_hresult_error(result, #call, __FILE__, __LINE__); \
+        if (result < 0) windows_report_hresult_error(result, #call, __FILE__, __LINE__); \
     }
 
 // DXCHECK is used for checking e.g. directx calls. The difference is that

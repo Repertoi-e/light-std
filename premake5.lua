@@ -23,9 +23,9 @@ function common_settings()
 	filter "system:windows"
 		excludes "%{prj.name}/src/posix_*.cpp"
 		systemversion "latest"
-		defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
+		defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SECURE_NO_WARNINGS" }
 		buildoptions { "/utf-8" }
-		links { "Dwmapi.lib" }
+		links { "dwmapi.lib", "dbghelp.lib" }
 
 	-- Exclude directx files on non-windows platforms since they would cause a compilation failure
 	filter "not system:windows"
@@ -41,7 +41,7 @@ function common_settings()
         buildoptions { "/Gs9999999" }
     filter { "system:windows", "options:no-crt", "not kind:StaticLib" }
         linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
-        links { "Kernel32", "Shell32", "Winmm" }
+        links { "kernel32", "shell32", "winmm" }
         flags { "OmitDefaultLibrary" }
     filter { "system:windows", "options:no-crt", "kind:SharedLib" }
         entrypoint "main_no_crt_dll"
@@ -115,7 +115,7 @@ project "benchmark"
 	common_settings()
 	
 	filter "system:windows"
-		links { "Shlwapi.lib", "%{prj.location}/vendor/benchmark/lib/Windows/%{cfg.buildcfg}/benchmark.lib" }
+		links { "shlwapi.lib", "%{prj.location}/vendor/benchmark/lib/Windows/%{cfg.buildcfg}/benchmark.lib" }
 	filter "system:linux"
         links { "benchmark" }
 
@@ -133,13 +133,15 @@ project "game"
 
 	excludes { 
 		"%{prj.name}/src/cars/**.h", 
-		"%{prj.name}/src/cars/**.cpp"
+		"%{prj.name}/src/cars/**.cpp",
+		"%{prj.name}/src/grapher/**.h", 
+		"%{prj.name}/src/grapher/**.cpp"
 	}
 
 	links { "light-std" }
 	includedirs { "light-std/src" }
 
-	dependson { "cars" }
+	dependson { "cars", "grapher" }
 
 	common_settings()
 	
@@ -156,6 +158,31 @@ project "cars"
 	files {
 		"game/src/cars/**.h", 
 		"game/src/cars/**.cpp"
+	}
+
+	defines { "LE_BUILDING_GAME" }
+
+	links { "light-std" }
+	includedirs { "light-std/src", "game/src" }
+
+	common_settings()
+
+	-- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
+	filter "system:windows"
+		symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'
+		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
+
+
+project "grapher"
+	location "game"
+	kind "SharedLib"
+
+	targetdir("bin/" .. outputFolder .. "/game")
+	objdir("bin-int/" .. outputFolder .. "/game")
+
+	files {
+		"game/src/grapher/**.h", 
+		"game/src/grapher/**.cpp"
 	}
 
 	defines { "LE_BUILDING_GAME" }

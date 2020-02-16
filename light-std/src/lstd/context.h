@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memory/allocator.h"
+#include "storage/string.h"
 #include "thread.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -12,6 +13,35 @@ struct writer;
 namespace internal {
 extern io::writer *g_ConsoleLog;
 }  // namespace internal
+
+// @Cleanup: Move these somewhere else?
+struct os_function_call {
+    string Name;
+    string File;
+    u32 LineNumber;
+};
+
+inline os_function_call *clone(os_function_call *dest, os_function_call src) {
+    clone(&dest->Name, src.Name);
+    clone(&dest->File, src.File);
+    dest->LineNumber = src.LineNumber;
+    return dest;
+}
+
+inline os_function_call *move(os_function_call *dest, os_function_call *src) {
+    move(&dest->Name, &src->Name);
+    move(&dest->File, &src->File);
+    dest->LineNumber = src->LineNumber;
+    return dest;
+}
+//
+
+template <typename T>
+struct array;
+
+typedef void os_unexpected_exception_handler_t(string message, array<os_function_call> callStack);
+
+void default_unexpected_exception_handler(string message, array<os_function_call> callStack);
 
 struct implicit_context {
     ~implicit_context() { release_temporary_allocator(); }
@@ -37,6 +67,11 @@ struct implicit_context {
     // This makes it so users can redirect logging output.
     // By default it points to io::cout (the console).
     io::writer *Log = internal::g_ConsoleLog;
+
+    // Gets called when the program encounters an unhandled expection.
+    // This can be used to view the stack trace before the program terminates.
+    // The default handler prints the crash message and stack trace to _Log_.
+    os_unexpected_exception_handler_t *UnexpectedExceptionHandler = default_unexpected_exception_handler;
 
     // @TODO Posix implementation
     // _pthread_t_to_ID(pthread_self());

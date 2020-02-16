@@ -50,15 +50,17 @@ struct game_memory {
     bool ReloadedThisFrame = false;
 };
 
-#define MANAGE_GLOBAL_STATE(state)                               \
-    if (!state) {                                                \
-        auto **found = GameMemory->States.find(#state);          \
-        if (!found) {                                            \
-            state = GAME_NEW(remove_pointer_t<decltype(state)>); \
-            GameMemory->States.add(#state, state);               \
-        } else {                                                 \
-            state = (decltype(state)) * found;                   \
-        }                                                        \
+#define MANAGE_GLOBAL_STATE(state)                                      \
+    if (!state) {                                                       \
+        string identifier = #state;                                     \
+        identifier.append("Ident");                                     \
+        auto **found = GameMemory->States.find(identifier);             \
+        if (!found) {                                                   \
+            state = GAME_NEW(remove_pointer_t<decltype(state)>);        \
+            GameMemory->States.move_add(&identifier, (void **) &state); \
+        } else {                                                        \
+            state = (decltype(state)) * found;                          \
+        }                                                               \
     }
 
 #define GAME_NEW(type) new (GameMemory->Allocator) type

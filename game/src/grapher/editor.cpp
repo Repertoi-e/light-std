@@ -80,11 +80,6 @@ void editor_main() {
         }
     }
 
-    if (State->CameraType == camera_type::FPS && ImGui::InvisibleButton("##viewport", windowSize)) {
-        State->MouseGrabbed = true;
-        GameMemory->MainWindow->set_cursor_mode(window::CURSOR_DISABLED);
-    }
-
     if (State->ShowOverlay) {
         if (State->OverlayCorner != -1) {
             ImVec2 pivot = ImVec2((State->OverlayCorner & 1) ? 1.0f : 0.0f, (State->OverlayCorner & 2) ? 1.0f : 0.0f);
@@ -151,54 +146,31 @@ inline bool slider_float_with_steps(const char *label, float *v, float v_min, fl
     return value_changed;
 }
 
-void editor_scene_properties(camera *cam) {
-    ImGui::Begin("Scene Properties", null);
-    ImGui::Text("Camera");
-    ImGui::BeginChild("##camera", {0, 180}, true);
+void editor_viewport_properties(viewport *vp) {
+    ImGui::Begin("Properties", null);
+
+    ImGui::Text("Viewport");
+    ImGui::BeginChild("##camera", {0, 253}, true);
     {
-        if (ImGui::RadioButton("Maya", (s32 *) &State->CameraType, (s32) camera_type::Maya)) cam->reinit();
-        ImGui::SameLine();
-        if (ImGui::RadioButton("FPS", (s32 *) &State->CameraType, (s32) camera_type::FPS)) cam->reinit();
+        ImGui::Text("Position: %.3f, %.3f", vp->Position.x, vp->Position.y);
+        ImGui::Text("Rotation: %.3f", vp->Rotation);
+        ImGui::Text("Scale: %.3f", vp->Rotation);
 
-        ImGui::Text("Position: %.3f, %.3f, %.3f", cam->Position.x, cam->Position.y, cam->Position.z);
-        ImGui::Text("Rotation: %.3f, %.3f, %.3f", cam->Rotation.x, cam->Rotation.y, cam->Rotation.z);
-        ImGui::Text("Pitch: %.3f, yaw: %.3f", cam->Pitch, cam->Yaw);
+        ImGui::PushItemWidth(-140);
+        ImGui::SliderFloat("Pan speed", &vp->PanSpeed, 0.0005f, 0.005f);
+        ImGui::PushItemWidth(-140);
+        ImGui::SliderFloat("Rotation speed", &vp->RotationSpeed, 0.0005f, 0.005f);
+        ImGui::PushItemWidth(-140);
+        ImGui::SliderFloat("Zoom speed", &vp->ZoomSpeed, 0.05f, 0.5f);
+        if (ImGui::Button("Reset default constants")) vp->reset_constants();
 
-        if (State->CameraType == camera_type::Maya) {
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Pan speed", &cam->PanSpeed, 0.0005f, 0.005f);
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Rotation speed", &cam->RotationSpeed, 0.0005f, 0.005f);
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Zoom speed", &cam->ZoomSpeed, 0.05f, 0.5f);
-        } else if (State->CameraType == camera_type::FPS) {
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Speed", &cam->Speed, 0.01f, 10);
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Sprint speed", &cam->SprintSpeed, 0.01f, 10);
-            ImGui::PushItemWidth(-140);
-            ImGui::SliderFloat("Mouse sensitivity", &cam->MouseSensitivity, 0.0001f, 0.01f);
-        }
-        if (ImGui::Button("Default camera constants")) cam->reset_constants();
+        ImGui::ColorPicker3("Clear color", &State->ClearColor.x);
 
-        ImGui::EndChild();
+        if (slider_float_with_steps("Grid spacing", &Scene->GridSpacing, 0.5f, 10.0f, 0.5f)) update_grid();
+        if (ImGui::SliderInt2("Grid size", &Scene->GridSize.x, 1, 50)) update_grid();
     }
+    ImGui::EndChild();
 
-    ImGui::ColorPicker3("Clear color", &State->ClearColor.x);
-
-    if (ImGui::Checkbox("Grid follow camera", &Scene->GridFollowCamera)) {
-        if (!Scene->GridFollowCamera) {
-            For_as(it_index, range(Scene->Entities.Count)) {  // @Speed
-                auto *it = &Scene->Entities[it_index];
-                if (it->Mesh.Model->Name == "Grid Model") {
-                    it->Position.x = it->Position.z = 0;
-                    break;
-                }
-            }
-        }
-    }
-    if (slider_float_with_steps("Grid spacing", &Scene->GridSpacing, 0.5f, 10.0f, 0.5f)) update_grid();
-    if (ImGui::SliderInt2("Grid size", &Scene->GridSize.x, 1, 50)) update_grid();
     ImGui::End();
 }
 

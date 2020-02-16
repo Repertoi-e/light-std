@@ -15,13 +15,13 @@ LSTD_BEGIN_NAMESPACE
 
 namespace file {
 
-#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                      \
-    HANDLE handleName = call;                                                                           \
-    if (handleName == INVALID_HANDLE_VALUE) {                                                           \
-        string extendedCallSite;                                                                        \
-        fmt::sprint(&extendedCallSite, "{} (and the path was: \"{}\")", #call, Path);                   \
-        report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
-        return returnOnFail;                                                                            \
+#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                              \
+    HANDLE handleName = call;                                                                                   \
+    if (handleName == INVALID_HANDLE_VALUE) {                                                                   \
+        string extendedCallSite;                                                                                \
+        fmt::sprint(&extendedCallSite, "{} (and the path was: \"{}\")", #call, Path);                           \
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
+        return returnOnFail;                                                                                    \
     }
 
 handle::handle(path path) {
@@ -251,14 +251,14 @@ void handle::iterator::read_next_entry() {
         } else {
             if (!FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo)) {
                 if (GetLastError() != ERROR_NO_MORE_FILES) {
-                    report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
-                                         "FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo)",
-                                         __FILE__, __LINE__);
+                    windows_report_hresult_error(
+                        HRESULT_FROM_WIN32(GetLastError()),
+                        "FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo)", __FILE__, __LINE__);
                 }
                 if (Handle != INVALID_HANDLE_VALUE) {
                     if (!FindClose((HANDLE) Handle)) {
-                        report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "FindClose((HANDLE) Handle)", __FILE__,
-                                             __LINE__);
+                        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "FindClose((HANDLE) Handle)",
+                                                     __FILE__, __LINE__);
                     }
                 }
                 Handle = null;

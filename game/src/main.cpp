@@ -20,7 +20,7 @@ void setup_game_paths() {
     auto exePath = file::path(os_get_exe_name());
 
     file::path dllPath = exePath.directory();
-    dllPath.combine_with("cars.dll");
+    dllPath.combine_with("grapher.dll");
     DLL = new file::handle(dllPath);
 
     file::path buildLockPath = exePath.directory();
@@ -76,7 +76,7 @@ s32 main() {
     gameMemory.ExeMalloc = Malloc.Function;
     gameMemory.MainWindow =
         (new window)
-            ->init("Cars", window::DONT_CARE, window::DONT_CARE, 1200, 600,
+            ->init("Grapher", window::DONT_CARE, window::DONT_CARE, 1200, 600,
                    window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4);
 
     graphics g;

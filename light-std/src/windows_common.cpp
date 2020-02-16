@@ -19,6 +19,7 @@ void win32_common_init();
 extern void win32_window_init();
 extern void win32_destroy_windows();
 extern void win32_monitor_init();
+extern void win32_crash_handler_init();
 
 // This trick ensures the context gets initialized before any C++ constructors
 // get called which may use the context.
@@ -37,6 +38,7 @@ s32 initialize_win32_state() {
     win32_common_init();
     win32_window_init();
     win32_monitor_init();
+    win32_crash_handler_init();
     return 0;
 }
 
