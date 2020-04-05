@@ -34,13 +34,11 @@ void buffer::init(graphics *g, buffer_type type, buffer_usage usage, size_t size
 
 extern shader::impl g_D3DShaderImpl;  // Defined in d3d_shader.cpp
 
-void shader::init(graphics *g, file::path filePath) {
-    clone(&FilePath, filePath);
-
-    auto handle = file::handle(filePath);
+void shader::init(graphics *g, file::handle fileHandle) {
+    clone(&FilePath, fileHandle.Path);
 
     string source;
-    if (!handle.read_entire_file(&source)) return;
+    if (!fileHandle.read_entire_file(&source)) return;
 
     init(g, source);
 }

@@ -39,7 +39,7 @@ struct stack_dynamic_buffer {
         if (target < sizeof(StackData)) return;
         if (ByteLength + target < Reserved) return;
 
-        target = MAX<size_t>(CEIL_POW_OF_2(target + ByteLength + 1), 8);
+        target = max<size_t>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
         if (is_owner()) {
             Data = (char *) allocator::reallocate(Data - POINTER_SIZE, target + POINTER_SIZE) + POINTER_SIZE;

@@ -17,6 +17,7 @@
 #pragma once
 
 #include "../../io/fmt.h"
+#include "../../math.h"
 
 //---- Define assertion handler. Defaults to calling assert().
 #define IM_ASSERT(_EXPR) assert(_EXPR)
@@ -72,20 +73,20 @@
 //---- Define constructor and implicit cast operators to convert back<>forth between your math types and ImVec2/ImVec4.
 // This will be inlined as part of ImVec2 and ImVec4 class declarations.
 #define IM_VEC2_CLASS_EXTRA \
-    ImVec2(const vec2 &f) { \
+    ImVec2(const v2 &f) {   \
         x = f.x;            \
         y = f.y;            \
     }                       \
-    operator vec2() const { return vec2(x, y); }
+    operator v2() const { return v2(x, y); }
 
 #define IM_VEC4_CLASS_EXTRA \
-    ImVec4(const vec4 &f) { \
+    ImVec4(const v4 &f) {   \
         x = f.x;            \
         y = f.y;            \
         z = f.z;            \
         w = f.w;            \
     }                       \
-    operator vec4() const { return vec4(x, y, z, w); }
+    operator v4() const { return v4(x, y, z, w); }
 
 //---- Using 32-bits vertex indices (default is 16-bits) is one way to allow large meshes with more than 64K vertices.
 // Your renderer back-end will need to support it (most example renderer back-ends support both 16/32-bits indices).

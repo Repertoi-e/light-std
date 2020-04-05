@@ -58,7 +58,7 @@ struct table {
     // (using the Context's allocator).
     void reserve(size_t target) {
         if (SlotsFilled + target < Reserved) return;
-        target = MAX<size_t>(CEIL_POW_OF_2(target + SlotsFilled + 1), 8);
+        target = max<size_t>(ceil_pow_of_2(target + SlotsFilled + 1), 8);
 
         auto *oldHashes = Hashes;
         auto *oldKeys = Keys;
@@ -227,10 +227,10 @@ struct table {
     //
 
     // Returns a pointer to the value associated with _key_.
-    // If the key doesn't exist, put a blank value and return a pointer to that.
+    // If the key doesn't exist, this adds a new element and returns it.
     value_t *operator[](const key_t &key) {
-        auto *ptr = find(key);
-        if (ptr) return ptr;
+        auto *p = find(key);
+        if (p) return p;
         return add(key, value_t());
     }
 };

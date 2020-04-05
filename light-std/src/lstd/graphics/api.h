@@ -4,8 +4,8 @@
 /// Implementations of it can be switched dynamically.
 
 #include "../file.h"
+#include "../math.h"
 #include "../video.h"
-
 #include "buffer.h"
 #include "shader.h"
 #include "texture.h"
@@ -95,7 +95,7 @@ struct graphics : non_copyable, non_movable {
         void (*SetDepthTesting)(graphics *g, bool enabled) = null;
         void (*SetCullMode)(graphics *g, cull mode) = null;
 
-        void (*ClearColor)(graphics *g, vec4 color) = null;
+        void (*ClearColor)(graphics *g, v4 color) = null;
         void (*Draw)(graphics *g, u32 vertices, u32 startVertexLocation) = null;
         void (*DrawIndexed)(graphics *g, u32 indices, u32 startIndex, u32 baseVertexLocation) = null;
         void (*Swap)(graphics *g) = null;
@@ -158,7 +158,7 @@ struct graphics : non_copyable, non_movable {
 
         set_cull_mode(CurrentTargetWindow->CullMode);
 
-        vec2i size = CurrentTargetWindow->Window->get_size();
+        vec2<s32> size = CurrentTargetWindow->Window->get_size();
         if (target) size = {target->Width, target->Height};
         set_viewport({0, 0, size.x, size.y});
         set_scissor_rect({0, 0, size.x, size.y});
@@ -173,7 +173,7 @@ struct graphics : non_copyable, non_movable {
         Impl.SetCullMode(this, mode);
     }
 
-    void clear_color(vec4 color) {
+    void clear_color(v4 color) {
         assert(CurrentTargetWindow->Window);
         if (!CurrentTargetWindow->Window->is_visible()) return;
 

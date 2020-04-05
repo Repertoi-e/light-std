@@ -24,8 +24,8 @@ constexpr char OS_PATH_SEPARATOR = '/';
 // Note that this applies mainly for Windows systems,
 // on other platforms to_native() just returns the unified format.
 //
-// ! Passing an ill-formed path results in undefined behaviour
-//   in parsing functions so please don't do that :D
+// ! Passing an ill-formed path to parsing functions 
+//   results in undefined behaviour so please don't do that :D
 struct path {
     string UnifiedPath;
 

@@ -19,7 +19,7 @@ namespace file {
     HANDLE handleName = call;                                                                                   \
     if (handleName == INVALID_HANDLE_VALUE) {                                                                   \
         string extendedCallSite;                                                                                \
-        fmt::sprint(&extendedCallSite, "{} (and the path was: \"{}\")", #call, Path);                           \
+        fmt::sprint(&extendedCallSite, "{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, Path);                           \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
         return returnOnFail;                                                                                    \
     }

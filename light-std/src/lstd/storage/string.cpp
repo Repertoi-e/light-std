@@ -43,7 +43,7 @@ string::string(size_t size) { reserve(size); }
 void string::reserve(size_t target) {
     if (ByteLength + target < Reserved) return;
 
-    target = MAX<size_t>(CEIL_POW_OF_2(target + ByteLength + 1), 8);
+    target = max<size_t>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
     if (is_owner()) {
         Data -= POINTER_SIZE;
@@ -74,7 +74,7 @@ string *string::set(s64 index, char32_t codePoint) {
 
     // Calculate the offset and then reserve (which may move the memory!)
     uptr_t offset = (uptr_t)(target - Data);
-    reserve(ABS(diff));
+    reserve(abs(diff));
 
     // We may have moved Data while reserving space!
     target = Data + offset;

@@ -10,7 +10,7 @@ struct game_state {
     texture_2D ViewportRenderTarget;
     size_t FBSizeCBID = npos, FocusCBID = npos;
 
-    vec4 ClearColor = {0.2f, 0.3f, 0.8f, 1.0f};
+    v4 ClearColor = {0.2f, 0.3f, 0.8f, 1.0f};
 
     bool Editor = true;
     bool ShowMetrics = false;
@@ -22,9 +22,9 @@ struct game_state {
 };
 
 struct camera {
-    vec3 Position;
-    vec3 Rotation;
-    vec3 FocalPoint;
+    v3 Position = {no_init};
+    v3 Rotation = {no_init};
+    v3 FocalPoint = {no_init};
     f32 Pitch, Yaw;
 
     f32 Distance;
@@ -43,21 +43,23 @@ struct camera {
     void update();
 };
 
+void reload_scene();
+void update_and_render_scene();
+
 struct vertex {
-    vec3 Position;
-    vec4 Color;
+    v3 Position;
+    v4 Color;
 };
 
 // Uploaded to the GPU
 struct entity_uniforms {
-    mat4 ModelMatrix;
+    m44 ModelMatrix = identity();
 };
 
 struct model : asset {
     buffer VB, IB;
     primitive_topology PrimitiveTopology;
 };
-inline catalog<model> *Models;
 
 struct mesh {
     shader *Shader = null;
@@ -65,7 +67,7 @@ struct mesh {
 };
 
 struct entity {
-    vec3 Position = vec3(0, 0, 0);
+    v3 Position = v3(0, 0, 0);
     quat Orientation = quat(0, 0, 0, 1);
 
     mesh Mesh;
@@ -73,8 +75,8 @@ struct entity {
 
 // Uploaded to the GPU
 struct scene_uniforms {
-    mat4 ViewMatrix;
-    mat4 ProjectionMatrix;
+    m44 ViewMatrix = identity();
+    m44 ProjectionMatrix = identity();
 };
 
 struct scene {
@@ -85,7 +87,7 @@ struct scene {
 
     bool GridFollowCamera = true;
     f32 GridSpacing = 1.0f;
-    vec2i GridSize = {20, 20};
+    vec2<s32> GridSize = {20, 20};
 
     scene_uniforms Uniforms;
 
@@ -96,16 +98,16 @@ struct scene {
     scene() { Camera.reinit(); }  // Only runs once
 };
 
+inline game_state *GameState = null;
 inline scene *Scene = null;
-inline game_state *State = null;
-
-void update_and_render_scene();
+inline asset_collection<model> *Models = null;
+inline asset_collection<shader> *Shaders = null;
+void reload_global_state();
 
 void editor_main();
 void editor_scene_properties(camera *cam);
 void editor_assets();
 
 // _p_ represents the center of the cuboid and _s_ is the radius in all axis, _c_ is a list of colors for each vertex
-void generate_cuboid_model(model *m, vec3 p, vec3 s, vec4 c[8]);
-
-void generate_grid_model(model *m, vec2i gridSize, f32 gridSpacing);
+void generate_cuboid_model(model *m, v3 p, v3 s, v4 c[8]);
+void generate_grid_model(model *m, vec2<s32> gridSize, f32 gridSpacing);

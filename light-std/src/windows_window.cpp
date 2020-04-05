@@ -11,11 +11,9 @@
 #undef _MAC
 #include <Windows.h>
 #include <Windowsx.h>
-
 #include <dwmapi.h>
-#include <shellapi.h>
-
 #include <objbase.h>
+#include <shellapi.h>
 
 // @Hack
 #undef TRANSPARENT
@@ -73,7 +71,7 @@ static s32 AcquiredMonitorCount = 0;
 static u32 MouseTrailSize = 0;
 
 static window *DisabledCursorWindow = null;
-static vec2i RestoreCursorPos;
+static vec2<s32> RestoreCursorPos = {no_init};
 
 static window *WindowsList = null;
 cursor *CursorsList = null;
@@ -87,7 +85,7 @@ void win32_window_init() {
         window *win = WindowsList;
         while (win) {
             if (win->Monitor == e.Monitor) {
-                vec2i size = win->get_size();
+                vec2<s32> size = win->get_size();
                 win->set_fullscreen(null, size.x, size.y);
             }
             win = win->Next;
@@ -165,7 +163,7 @@ static void update_framebuffer_transparency(window *win) {
     }
 }
 
-static vec2i get_full_window_size(DWORD style, DWORD exStyle, s32 contentWidth, s32 contentHeight, u32 dpi) {
+static vec2<s32> get_full_window_size(DWORD style, DWORD exStyle, s32 contentWidth, s32 contentHeight, u32 dpi) {
     RECT rect = {0, 0, contentWidth, contentHeight};
 
     if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) {
@@ -187,7 +185,7 @@ window *window::init(string title, s32 x, s32 y, s32 width, s32 height, u32 flag
     DWORD style = get_window_style(this);
     DWORD exStyle = get_window_ex_style(this);
 
-    vec2i fullSize = get_full_window_size(style, exStyle, width, height, USER_DEFAULT_SCREEN_DPI);
+    vec2<s32> fullSize = get_full_window_size(style, exStyle, width, height, USER_DEFAULT_SCREEN_DPI);
 
     s32 xpos = x == DONT_CARE ? CW_USEDEFAULT : x;
     s32 ypos = y == DONT_CARE ? CW_USEDEFAULT : y;
@@ -275,7 +273,7 @@ static void do_mouse_input_event(window *win, u32 button, bool pressed, bool dou
     assert(button <= Mouse_Button_Last);
     win->MouseButtons[button] = pressed;
 
-    vec2i pos = win->get_cursor_pos();
+    vec2<s32> pos = win->get_cursor_pos();
     u32 mods = GET_KEY_MODS;
     win->MouseButtonEvent.emit(null, {win, button, mods, pos.x, pos.y, pressed, doubleClick});
 }
@@ -287,10 +285,10 @@ static void do_mouse_input_event(window *win, u32 button, bool pressed, bool dou
      (win->MouseButtons[Mouse_Button_X1] ? Mouse_Button_X1 : 0) |         \
      (win->MouseButtons[Mouse_Button_X2] ? Mouse_Button_X2 : 0))
 
-static void do_mouse_move(window *win, vec2i pos) {
+static void do_mouse_move(window *win, vec2<s32> pos) {
     if (win->VirtualCursorPos == pos) return;
 
-    vec2i delta = pos - win->VirtualCursorPos;
+    vec2<s32> delta = pos - win->VirtualCursorPos;
     win->VirtualCursorPos = pos;
 
     win->MouseMovedEvent.emit(null,
@@ -345,7 +343,7 @@ void window::update() {
 
     win = DisabledCursorWindow;
     if (win) {
-        vec2i size = win->get_size();
+        vec2<s32> size = win->get_size();
         if (win->PlatformData.Win32.LastCursorPos != size / 2) win->set_cursor_pos(size / 2);
     }
 
@@ -591,7 +589,7 @@ static size_t choose_icon(array<pixel_buffer> icons, s32 width, s32 height) {
     size_t closest = npos;
     For(range(icons.Count)) {
         auto icon = icons[it];
-        s32 diff = ABS(icon.Width * icon.Height - width * height);
+        s32 diff = abs((s32) (icon.Width * icon.Height - width * height));
         if (diff < leastDiff) {
             closest = it;
             leastDiff = diff;
@@ -694,17 +692,17 @@ void window::set_cursor(cursor *curs) {
     if (is_hovered()) update_cursor_image(this);
 }
 
-vec2i window::get_cursor_pos() {
+vec2<s32> window::get_cursor_pos() {
     POINT pos;
     if (GetCursorPos(&pos)) {
         ScreenToClient(PlatformData.Win32.hWnd, &pos);
         return {pos.x, pos.y};
     }
     assert(false);
-    return {};
+    return {no_init};
 }
 
-void window::set_cursor_pos(vec2i pos) {
+void window::set_cursor_pos(vec2<s32> pos) {
     if (pos == get_cursor_pos()) return;
 
     PlatformData.Win32.LastCursorPos = pos;
@@ -714,13 +712,13 @@ void window::set_cursor_pos(vec2i pos) {
     SetCursorPos(point.x, point.y);
 }
 
-vec2i window::get_pos() {
+vec2<s32> window::get_pos() {
     POINT pos = {0, 0};
     ClientToScreen(PlatformData.Win32.hWnd, &pos);
     return {pos.x, pos.y};
 }
 
-void window::set_pos(vec2i pos) {
+void window::set_pos(vec2<s32> pos) {
     if (pos == get_pos()) return;
 
     RECT rect = {pos.x, pos.y, pos.x, pos.y};
@@ -734,13 +732,13 @@ void window::set_pos(vec2i pos) {
     SetWindowPos(PlatformData.Win32.hWnd, null, rect.left, rect.top, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
 }
 
-vec2i window::get_size() {
+vec2<s32> window::get_size() {
     RECT area;
     GetClientRect(PlatformData.Win32.hWnd, &area);
     return {area.right, area.bottom};
 }
 
-void window::set_size(vec2i size) {
+void window::set_size(vec2<s32> size) {
     DisplayMode.Width = size.x;
     DisplayMode.Height = size.y;
 
@@ -766,10 +764,10 @@ void window::set_size(vec2i size) {
     }
 }
 
-vec2i window::get_framebuffer_size() { return get_size(); }
+vec2<s32> window::get_framebuffer_size() { return get_size(); }
 
 rect window::get_adjusted_bounds() {
-    vec2i size = get_size();
+    vec2<s32> size = get_size();
 
     RECT rect;
     SetRect(&rect, 0, 0, size.x, size.y);
@@ -784,7 +782,7 @@ rect window::get_adjusted_bounds() {
     return {-rect.left, -rect.top, rect.right, rect.bottom};
 }
 
-void window::set_size_limits(vec2i minDimension, vec2i maxDimension) {
+void window::set_size_limits(vec2<s32> minDimension, vec2<s32> maxDimension) {
     if (minDimension.x != DONT_CARE && minDimension.y != DONT_CARE) {
         if (minDimension.x < 0 || minDimension.y < 0) {
             fmt::print("(windows_window.cpp): Invalid window minimum size ({}x{})\n", minDimension.x, minDimension.y);
@@ -818,7 +816,7 @@ static void apply_aspect_ratio(window *win, s32 edge, RECT *area) {
     u32 dpi = USER_DEFAULT_SCREEN_DPI;
     if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) dpi = GetDpiForWindow(win->PlatformData.Win32.hWnd);
 
-    vec2i off = get_full_window_size(get_window_style(win), get_window_ex_style(win), 0, 0, dpi);
+    vec2<s32> off = get_full_window_size(get_window_style(win), get_window_ex_style(win), 0, 0, dpi);
 
     if (edge == WMSZ_LEFT || edge == WMSZ_BOTTOMLEFT || edge == WMSZ_RIGHT || edge == WMSZ_BOTTOMRIGHT) {
         area->bottom = area->top + off.y + (s32)((area->right - area->left - off.x) / ratio);
@@ -926,17 +924,17 @@ static void update_window_style(window *win) {
 }
 
 void window::set_borderless(bool enabled) {
-    SET_BIT(&Flags, (u32) window::BORDERLESS, enabled);
+    set_bit(&Flags, (u32) window::BORDERLESS, enabled);
     if (!Monitor) update_window_style(this);
 }
 
 void window::set_resizable(bool enabled) {
-    SET_BIT(&Flags, (u32) window::RESIZABLE, enabled);
+    set_bit(&Flags, (u32) window::RESIZABLE, enabled);
     if (!Monitor) update_window_style(this);
 }
 
 void window::set_always_on_top(bool enabled) {
-    SET_BIT(&Flags, (u32) window::ALWAYS_ON_TOP, enabled);
+    set_bit(&Flags, (u32) window::ALWAYS_ON_TOP, enabled);
     if (!Monitor) {
         HWND after = enabled ? HWND_TOPMOST : HWND_NOTOPMOST;
         SetWindowPos(PlatformData.Win32.hWnd, after, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -1153,7 +1151,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             return 0;
         }
         case WM_MOUSEMOVE: {
-            vec2i pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            vec2<s32> pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
 
             if (!win->PlatformData.Win32.CursorTracked) {
                 TRACKMOUSEEVENT tme;
@@ -1173,7 +1171,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 if (DisabledCursorWindow != win) break;
                 if (win->RawMouseMotion) break;
 
-                vec2i delta = pos - win->PlatformData.Win32.LastCursorPos;
+                vec2<s32> delta = pos - win->PlatformData.Win32.LastCursorPos;
                 do_mouse_move(win, win->VirtualCursorPos + delta);
             } else {
                 do_mouse_move(win, pos);
@@ -1205,7 +1203,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 dx = rawInput->data.mouse.lLastX;
                 dy = rawInput->data.mouse.lLastY;
             }
-            do_mouse_move(win, win->VirtualCursorPos + vec2i(dx, dy));
+            do_mouse_move(win, win->VirtualCursorPos + vec2<s32>(dx, dy));
 
             win->PlatformData.Win32.LastCursorPos.x += dx;
             win->PlatformData.Win32.LastCursorPos.y += dy;
@@ -1279,8 +1277,8 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             return 0;
         }
         case WM_SHOWWINDOW:
-            SET_BIT(&win->Flags, (u32) window::SHOWN, wParam);
-            SET_BIT(&win->Flags, (u32) window::HIDDEN, !wParam);
+            set_bit(&win->Flags, (u32) window::SHOWN, wParam);
+            set_bit(&win->Flags, (u32) window::HIDDEN, !wParam);
             break;
         case WM_MOVE:
             if (DisabledCursorWindow == win) update_clip_rect(win);
@@ -1301,7 +1299,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
 
             auto *mmi = (MINMAXINFO *) lParam;
 
-            vec2i off = get_full_window_size(get_window_style(win), get_window_ex_style(win), 0, 0, dpi);
+            vec2<s32> off = get_full_window_size(get_window_style(win), get_window_ex_style(win), 0, 0, dpi);
             if (win->MinH != window::DONT_CARE) mmi->ptMinTrackSize.x = win->MinW + off.x;
             if (win->MinW != window::DONT_CARE) mmi->ptMinTrackSize.y = win->MinH + off.y;
 
@@ -1440,7 +1438,7 @@ void win32_register_window_class() {
     }
 }
 
-cursor::cursor(const pixel_buffer &image, vec2i hot) {
+cursor::cursor(const pixel_buffer &image, vec2<s32> hot) {
     PlatformData.Win32.hCursor = (HCURSOR) create_icon(image, hot.x, hot.y, false);
     if (!PlatformData.Win32.hCursor) return;
     PlatformData.Win32.ShouldDestroy = true;

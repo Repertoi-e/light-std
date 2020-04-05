@@ -73,7 +73,7 @@ Index of this file:
 // Data
 //-------------------------------------------------------------------------
 
-// Those MIN/MAX values are not define because we need to point to them
+// Those min/max values are not define because we need to point to them
 static const signed char    IM_S8_MIN  = -128;
 static const signed char    IM_S8_MAX  = 127;
 static const unsigned char  IM_U8_MIN  = 0;

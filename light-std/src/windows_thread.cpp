@@ -189,7 +189,7 @@ u32 __stdcall thread::wrapper_function(void *data) {
     return 0;
 }
 
-thread::thread(delegate<void(void *)> function, void *userData) {
+void thread::start(delegate<void(void *)> function, void *userData) {
     scoped_lock<mutex> _(&DataMutex);
 
     // Passed to the thread wrapper, which will eventually free it

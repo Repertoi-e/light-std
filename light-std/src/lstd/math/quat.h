@@ -1,68 +1,184 @@
 #pragma once
 
-#include "mat4.h"
-
-#include "../intrin/math.h"
+#include "vec.h"
 
 LSTD_BEGIN_NAMESPACE
 
-struct quat {
-    f32 x = 0, y = 0, z = 0, w = 1;
+// Allows you to do quaternion math and represent rotation in a compact way.
+//
+// If it's packed we disable padding - overalignment in arrays (disables SIMD optimization)
+//
+// These are plain mathematical quaternions, so expect the operations to work as mathematically defined.
+// There are helper functions to represent rotation with quaternions.
+template <typename T, bool Packed = false>
+struct tquat {
+    static constexpr bool SimdAccelerated = has_simd_v<vec<T, 4, Packed>>;
 
-    quat() = default;
-    quat(f32 x, f32 y, f32 z, f32 w);
-    quat(const vec3 &xyz, f32 w);
-    quat(const vec4 &vec);
-    quat(f32 scalar);
+    union {
+        struct {
+            T s, i, j, k;
+        };
+        struct {
+            T w, x, y, z;
+        };
+        vec<T, 4, Packed> Vec;
+    };
 
-    quat &set_xyz(const vec3 &vec);
-    const vec3 get_xyz() const;
+    tquat(no_init_t) {}
+    tquat(const tquat &rhs) : Vec(rhs.Vec) {}
+    tquat(T scalar, T x, T y, T z) : w(scalar), x(x), y(y), z(z) {}
 
-    vec3 get_axis() const;
-    vec3 to_euler_angles() const;
+    // Note: This is not axis angle rotation
+    tquat(T scalar, const vec<T, 3, true> &vector) : w(scalar), x(vector.x), y(vector.y), z(vector.z) {}
 
-    quat operator+(const quat &quat) const;
-    quat operator-(const quat &quat) const;
-    quat operator*(const quat &quat) const;
-    quat operator*(f32 scalar) const;
-    quat operator/(f32 scalar) const;
+    // Note: This is not axis angle rotation
+    tquat(T scalar, const vec<T, 3, false> &vector) : w(scalar), x(vector.x), y(vector.y), z(vector.z) {}
 
-    quat &operator+=(const quat &quat) { return *this = *this + quat; }
-    quat &operator-=(const quat &quat) { return *this = *this - quat; }
-    quat &operator*=(const quat &quat) { return *this = *this * quat; }
-    quat &operator*=(f32 scalar) { return *this = *this * scalar; }
-    quat &operator/=(f32 scalar) { return *this = *this / scalar; }
+    explicit tquat(const vec<T, 3, true> &vector) : tquat(0, vector) {}
+    explicit tquat(const vec<T, 3, false> &vector) : tquat(0, vector) {}
 
-    quat operator-() const;
-    
-	bool operator==(const quat &quaternion) const;
-    bool operator!=(const quat &quaternion) const;
+    template <typename U, bool P>
+    tquat(const tquat<U, P> &rhs) : Vec(rhs.Vec) {}
 
-    f32 dot(const quat &other) const;
-    quat conjugate() const;
-
-    static quat IDENTITY();
-    static quat FROM_EULER_ANGLES(const vec3 &angles);
-
-    static vec3 ROTATE(const quat &quat, const vec3 &vec);
-
-    static const quat ROTATION(const vec3 &unitVec0, const vec3 &unitVec1);
-    static const quat ROTATION(f32 radians, const vec3 &unitVec);
-
-    static const quat ROTATION_X(f32 radians) {
-        f32 angle = radians * 0.5f;
-        return quat(SIN(angle), 0.0f, 0.0f, COS(angle));
+    // Convert a rotation matrix to equivalent quaternion.
+    // Matrix must be in SO(3).
+    template <typename U, bool PackedA>
+    explicit tquat(const mat<U, 3, 3, PackedA> &rhs) {
+        from_mat(rhs);
     }
 
-    static const quat ROTATION_Y(f32 radians) {
-        f32 angle = radians * 0.5f;
-        return quat(0.0f, SIN(angle), 0.0f, COS(angle));
+    // Convert a rotation matrix to equivalent quaternion.
+    // Matrix must be in SO(3). Translation part is ignored.
+    template <typename U, bool PackedA>
+    explicit tquat(const mat<U, 4, 3, PackedA> &rhs) {
+        from_mat(rhs);
     }
 
-    static const quat ROTATION_Z(f32 radians) {
-        f32 angle = radians * 0.5f;
-        return quat(0.0f, 0.0f, SIN(angle), COS(angle));
+    // Convert a rotation matrix to equivalent quaternion.
+    // Matrix must be in SO(3). Translation part is ignored.
+    template <typename U, bool PackedA>
+    explicit tquat(const mat<U, 4, 4, PackedA> &rhs) {
+        from_mat(rhs);
+    }
+
+    explicit tquat(const vec<T, 4, false> &vec) : Vec(vec) {}
+
+    tquat &operator=(const tquat &rhs) {
+        Vec = rhs.Vec;
+        return *this;
+    }
+
+    template <typename U, bool P>
+    tquat &operator=(const tquat<U, P> &rhs) {
+        Vec = rhs.Vec;
+        return *this;
+    }
+
+    // Convert a rotation matrix to equivalent quaternion.
+    // Matrix must be in SO(3).
+    template <typename U, bool PackedA>
+    tquat &operator=(const mat<U, 3, 3, PackedA> &rhs) {
+        from_mat(rhs);
+        return *this;
+    }
+
+    // Convert a rotation matrix to equivalent quaternion.
+    // Matrix must be in SO(3). Translation part is ignored.
+    template <typename U, bool PackedA>
+    tquat &operator=(const mat<U, 4, 3, PackedA> &rhs) {
+        from_mat(rhs);
+        return *this;
+    }
+
+    // Convert a rotation matrix to equivalent quaternion.
+    // Matrix must be in SO(3). Translation part is ignored.
+    template <typename U, bool PackedA>
+    tquat &operator=(const mat<U, 4, 4, PackedA> &rhs) {
+        from_mat(rhs);
+        return *this;
+    }
+
+    const T scalar_part() const { return s; }
+    const vec<T, 3, Packed> vector_part() const { return {x, y, z}; }
+
+    // Returns the angle of the rotation represented by quaternion.
+    // Only valid for unit quaternions.
+    const T angle() const { return (sign_bit(s) ? -1 : 1) * 2 * (T) acos(clamp(abs(s) / len(Vec), T(-1), T(1))); }
+
+    // Returns the axis of rotation represented by quaternion.
+    // Only valid for unit quaternions. Returns (1,0,0) for near 180 degree rotations.
+    const vec<T, 3, Packed> axis() const {
+        auto direction = vector_part();
+        return safe_normalize(direction);
+    }
+
+    template <typename U, bool PackedA>
+    explicit operator mat<U, 3, 3, PackedA>() const {
+        return to_mat<U, 3, 3, PackedA>();
+    }
+
+    // Creates a rotation matrix equivalent to the quaternion.
+    template <typename U, bool PackedA>
+    explicit operator mat<U, 4, 3, PackedA>() const {
+        return to_mat<U, 4, 3, PackedA>();
+    }
+
+    // Creates a rotation matrix equivalent to the quaternion.
+    template <typename U, bool PackedA>
+    explicit operator mat<U, 4, 4, PackedA>() const {
+        return to_mat<U, 4, 4, PackedA>();
+    }
+
+    template <typename U, bool PackedA>
+    explicit operator vec<U, 3, PackedA>() const {
+        return {x, y, z};
+    }
+
+   protected:
+    template <typename U, s64 R, s64 C, bool PackedA>
+    mat<U, R, C, PackedA> to_mat() const {
+        assert(is_normalized(Vec));
+
+        mat<U, R, C, PackedA> result = {no_init};
+        result(0, 0) = 1 - 2 * (j * j + k * k);
+        result(0, 1) = 2 * (i * j - k * s);
+        result(0, 2) = 2 * (i * k + j * s);
+        result(1, 0) = 2 * (i * j + k * s);
+        result(1, 1) = 1 - 2 * (i * i + k * k);
+        result(1, 2) = 2 * (j * k - i * s);
+        result(2, 0) = 2 * (i * k - j * s);
+        result(2, 1) = 2 * (j * k + i * s);
+        result(2, 2) = 1 - 2 * (i * i + j * j);
+
+        For_as(j, range(result.Width)) { For_as(i, range(j < 3 ? 3 : 0, result.Height)) result(i, j) = T(j == i); }
+        return result;
+    }
+
+    template <typename U, s64 R, s64 C, bool PackedA>
+    void from_mat(const mat<U, R, C, PackedA> &m) {
+        assert(is_rotation_mat_3d(m));
+
+        w = (T) sqrt(1 + m(0, 0) + m(1, 1) + m(2, 2)) * T(0.5);
+
+        T div = T(1) / (T(4) * w);
+        x = (m(2, 1) - m(1, 2)) * div;
+        y = (m(0, 2) - m(2, 0)) * div;
+        z = (m(1, 0) - m(0, 1)) * div;
     }
 };
+
+using quat = tquat<f32>;
+using quat32 = tquat<f32>;
+using quat64 = tquat<f64>;
+
+#if !defined LSTD_NO_QUAT_LITERALS
+inline tquat<f64> operator"" _i(unsigned long long int arg) { return tquat<f64>(0, (f64) arg, 0, 0); }
+inline tquat<f64> operator"" _j(unsigned long long int arg) { return tquat<f64>(0, 0, (f64) arg, 0); }
+inline tquat<f64> operator"" _k(unsigned long long int arg) { return tquat<f64>(0, 0, 0, (f64) arg); }
+
+inline tquat<f64> operator"" _i(long double arg) { return tquat<f64>(0, arg, 0, 0); }
+inline tquat<f64> operator"" _j(long double arg) { return tquat<f64>(0, 0, arg, 0); }
+inline tquat<f64> operator"" _k(long double arg) { return tquat<f64>(0, 0, 0, arg); }
+#endif
 
 LSTD_END_NAMESPACE

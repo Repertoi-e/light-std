@@ -544,7 +544,7 @@ constexpr const char *find_substring_utf8(const char *haystack, size_t length1, 
 
     while (p != end) {
         while (end - p > 4) {
-            if (U32_HAS_VALUE(*(u32 *) p, *needle)) break;
+            if (u32_has_value(*(u32 *) p, *needle)) break;
             p += 4;
         }
 
@@ -588,7 +588,7 @@ constexpr const char *find_substring_utf8_reverse(const char *haystack, size_t l
 
     while (p > haystack) {
         while (p - haystack > 4) {
-            if (U32_HAS_VALUE(*((u32 *) (p - 3)), *needle)) break;
+            if (u32_has_value(*((u32 *) (p - 3)), *needle)) break;
             p -= 4;
         }
 

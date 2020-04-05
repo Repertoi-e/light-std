@@ -66,24 +66,24 @@ struct hasher {
     constexpr u64 hash() {
         u64 result = 0;
         if (ByteLength >= MAX_BUFFER_SIZE) {
-            result += ROTATE_LEFT_64(State[0], 1);
-            result += ROTATE_LEFT_64(State[1], 7);
-            result += ROTATE_LEFT_64(State[2], 12);
-            result += ROTATE_LEFT_64(State[3], 18);
+            result += rotate_left_64(State[0], 1);
+            result += rotate_left_64(State[1], 7);
+            result += rotate_left_64(State[2], 12);
+            result += rotate_left_64(State[3], 18);
 
-            result ^= ROTATE_LEFT_64(State[0] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+            result ^= rotate_left_64(State[0] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
             result *= 11400714785074694791ULL;
             result += 9650029242287828579ULL;
 
-            result ^= ROTATE_LEFT_64(State[1] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+            result ^= rotate_left_64(State[1] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
             result *= 11400714785074694791ULL;
             result += 9650029242287828579ULL;
 
-            result ^= ROTATE_LEFT_64(State[2] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+            result ^= rotate_left_64(State[2] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
             result *= 11400714785074694791ULL;
             result += 9650029242287828579ULL;
 
-            result ^= ROTATE_LEFT_64(State[3] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+            result ^= rotate_left_64(State[3] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
             result *= 11400714785074694791ULL;
             result += 9650029242287828579ULL;
         } else {
@@ -94,7 +94,7 @@ struct hasher {
 
         auto *p = Buffer;
         while (p + 8 < BufferPtr) {
-            result = ROTATE_LEFT_64(result ^ (ROTATE_LEFT_64(*(u64 *) p * 14029467366897019727ULL, 31)), 27);
+            result = rotate_left_64(result ^ (rotate_left_64(*(u64 *) p * 14029467366897019727ULL, 31)), 27);
             result *= 11400714785074694791ULL;
             result += 9650029242287828579ULL;
 
@@ -102,14 +102,14 @@ struct hasher {
         }
 
         if (p + 4 <= BufferPtr) {
-            result = ROTATE_LEFT_64(result ^ (*(u32 *) p) * 11400714785074694791ULL, 23);
+            result = rotate_left_64(result ^ (*(u32 *) p) * 11400714785074694791ULL, 23);
             result *= 14029467366897019727ULL;
             result += 1609587929392839161ULL;
             p += 4;
         }
 
         while (p != BufferPtr) {
-            result = ROTATE_LEFT_64(result ^ (*p++) * 2870177450012600261ULL, 11) * 11400714785074694791ULL;
+            result = rotate_left_64(result ^ (*p++) * 2870177450012600261ULL, 11) * 11400714785074694791ULL;
         }
 
         result ^= result >> 33;
@@ -123,10 +123,10 @@ struct hasher {
    private:
     constexpr void process(const void *data) {
         auto *block = (const u64 *) data;
-        State[0] = ROTATE_LEFT_64(State[0] + block[0] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
-        State[1] = ROTATE_LEFT_64(State[1] + block[1] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
-        State[2] = ROTATE_LEFT_64(State[2] + block[2] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
-        State[3] = ROTATE_LEFT_64(State[3] + block[3] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+        State[0] = rotate_left_64(State[0] + block[0] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+        State[1] = rotate_left_64(State[1] + block[1] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+        State[2] = rotate_left_64(State[2] + block[2] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+        State[3] = rotate_left_64(State[3] + block[3] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
     }
 };
 #else
@@ -184,23 +184,23 @@ struct hasher {
         u32 result = ByteLength;
 
         if (totalLength >= MaxBufferSize) {
-            result += ROTATE_LEFT_32(State[0], 1);
-            result += ROTATE_LEFT_32(State[1], 7);
-            result += ROTATE_LEFT_32(State[2], 12);
-            result += ROTATE_LEFT_32(State[3], 18);
+            result += rotate_left_32(State[0], 1);
+            result += rotate_left_32(State[1], 7);
+            result += rotate_left_32(State[2], 12);
+            result += rotate_left_32(State[3], 18);
         } else {
             result += State[2] + 374761393U;
         }
 
         auto *p = Buffer;
         if (p + 4 <= BufferPtr) {
-            result = ROTATE_LEFT_32(result + (*(u32 *) p) * 3266489917U, 17);
+            result = rotate_left_32(result + (*(u32 *) p) * 3266489917U, 17);
             result *= 668265263U;
             p += 4;
         }
 
         while (p != BufferPtr) {
-            result = ROTATE_LEFT_32(result + (*p++) * 374761393U, 11) * 2654435761U;
+            result = rotate_left_32(result + (*p++) * 374761393U, 11) * 2654435761U;
         }
 
         result ^= result >> 15;
@@ -214,10 +214,10 @@ struct hasher {
    private:
     constexpr void process(const void *data) {
         auto *block = (const u32 *) data;
-        State[0] = ROTATE_LEFT_32(State[0] + block[0] * 2246822519U, 13) * 2654435761U;
-        State[1] = ROTATE_LEFT_32(State[1] + block[1] * 2246822519U, 13) * 2654435761U;
-        State[2] = ROTATE_LEFT_32(State[2] + block[2] * 2246822519U, 13) * 2654435761U;
-        State[3] = ROTATE_LEFT_32(State[3] + block[3] * 2246822519U, 13) * 2654435761U;
+        State[0] = rotate_left_32(State[0] + block[0] * 2246822519U, 13) * 2654435761U;
+        State[1] = rotate_left_32(State[1] + block[1] * 2246822519U, 13) * 2654435761U;
+        State[2] = rotate_left_32(State[2] + block[2] * 2246822519U, 13) * 2654435761U;
+        State[3] = rotate_left_32(State[3] + block[3] * 2246822519U, 13) * 2654435761U;
     }
 };
 #endif

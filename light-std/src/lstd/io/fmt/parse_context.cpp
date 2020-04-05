@@ -68,7 +68,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
     switch (*It) {
         case '+':
             require_signed_arg(argType);
-            specs->Flags |= flag::SIGN | flag::PLUS;
+            specs->Flags |= flag::sign | flag::PLUS;
             ++It;
             break;
         case '-':
@@ -78,7 +78,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
             break;
         case ' ':
             require_signed_arg(argType);
-            specs->Flags |= flag::SIGN;
+            specs->Flags |= flag::sign;
             ++It;
             break;
     }

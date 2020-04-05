@@ -3,8 +3,11 @@
 /// Provides common useful short functons (my definition for instrinsics) that work with numbers
 
 #include <intrin.h>
+#include <math.h>  // For any other standard functions
 
 #include "../common.h"
+
+LSTD_BEGIN_NAMESPACE
 
 #define POWERS_OF_10(factor)                                                                                        \
     factor * 10, factor * 100, factor * 1000, factor * 10000, factor * 100000, factor * 1000000, factor * 10000000, \
@@ -19,7 +22,7 @@ constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000
 
 union ieee754_f32 {
     f32 F;
-    u32 U;
+    u32 W;
 
     // This is the IEEE 754 single-precision format.
     struct {
@@ -52,7 +55,17 @@ union ieee754_f32 {
 
 union ieee754_f64 {
     f64 F;
-    u64 U;
+    u64 W;
+
+    struct {
+#if ENDIAN == BIG_ENDIAN
+        u32 MSW;
+        u32 LSW;
+#else
+        u32 LSW;
+        u32 MSW;
+#endif
+    };
 
     // This is the IEEE 754 single-precision format.
     struct {
@@ -92,7 +105,17 @@ union ieee754_f64 {
 // sizeof(ieee854_lf64) is 16 but sizeof(long double) in MSVC is 8
 union ieee854_lf64 {
     lf64 F;
-    u64 U;
+    u64 W;
+
+    struct {
+#if ENDIAN == BIG_ENDIAN
+        u32 MSW;
+        u32 LSW;
+#else
+        u32 LSW;
+        u32 MSW;
+#endif
+    };
 
     // This is the IEEE 854 double-extended-precision format.
     struct {
@@ -135,7 +158,7 @@ union ieee854_lf64 {
 
 #if COMPILER == MSVC
 #pragma intrinsic(_BitScanReverse)
-inline u32 MSB(u32 x) {
+inline u32 msb(u32 x) {
     assert(x != 0);
 
     unsigned long r = 0;
@@ -144,7 +167,7 @@ inline u32 MSB(u32 x) {
 }
 
 #pragma intrinsic(_BitScanReverse64)
-inline u32 MSB_64(u64 x) {
+inline u32 msb_64(u64 x) {
     assert(x != 0);
 
     unsigned long r = 0;
@@ -153,7 +176,7 @@ inline u32 MSB_64(u64 x) {
 }
 
 #pragma intrinsic(_BitScanForward)
-inline u32 LSB(u32 x) {
+inline u32 lsb(u32 x) {
     assert(x != 0);
 
     unsigned long r = 0;
@@ -162,7 +185,7 @@ inline u32 LSB(u32 x) {
 }
 
 #pragma intrinsic(_BitScanForward64)
-inline u32 LSB_64(u64 x) {
+inline u32 lsb_64(u64 x) {
     assert(x != 0);
 
     unsigned long r = 0;
@@ -170,36 +193,38 @@ inline u32 LSB_64(u64 x) {
     return r;
 }
 #else
-#define MSB(n) __builtin_clz(n)
-#define MSB_64(n) __builtin_clzll(n)
-#define LSB(n) __builtin_ctz(n)
-#define LSB_64(n) __builtin_ctzll(n)
+#define msb(n) __builtin_clz(n)
+#define msb_64(n) __builtin_clzll(n)
+#define lsb(n) __builtin_ctz(n)
+#define lsb_64(n) __builtin_ctzll(n)
 #endif
 
-constexpr u32 ROTATE_LEFT_32(u32 x, u32 bits) { return (x << bits) | (x >> (32 - bits)); }
-constexpr u64 ROTATE_LEFT_64(u64 x, u32 bits) { return (x << bits) | (x >> (64 - bits)); }
+constexpr u32 rotate_left_32(u32 x, u32 bits) { return (x << bits) | (x >> (32 - bits)); }
+constexpr u64 rotate_left_64(u64 x, u32 bits) { return (x << bits) | (x >> (64 - bits)); }
 
-constexpr u32 ROTATE_RIGHT_32(u32 x, u32 bits) { return (x >> bits) | (x << (32 - bits)); }
-constexpr u64 ROTATE_RIGHT_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 - bits)); }
+constexpr u32 rotate_right_32(u32 x, u32 bits) { return (x >> bits) | (x << (32 - bits)); }
+constexpr u64 rotate_right_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 - bits)); }
 
-#define U32_HAS_ZERO(v) (((v) -0x01010101UL) & ~(v) &0x80808080UL)
-#define U32_HAS_VALUE(x, n) (U32_HAS_ZERO((x) ^ (~0UL / 255 * (u8)(n))))
+// Useful: http://graphics.stanford.edu/~seander/bithacks.html#CopyIntegerSign
 
-#define U32_HAS_LESS(x, n) (((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ~0UL / 255 * 128)
-#define U32_COUNT_LESS(x, n) \
+#define u32_has_zero(v) (((v) -0x01010101UL) & ~(v) &0x80808080UL)
+#define u32_has_value(x, n) (u32_has_zero((x) ^ (~0UL / 255 * (u8)(n))))
+
+#define u32_has_less(x, n) (((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ~0UL / 255 * 128)
+#define u32_count_less(x, n) \
     (((~0UL / 255 * (127 + (n)) - ((x) & ~0UL / 255 * 127)) & ~(x) & ~0UL / 255 * 128) / 128 % 255)
 
-#define U32_HAS_MORE(x, n) (((x) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128)
-#define U32_COUNT_MORE(x, n) \
+#define u32_has_more(x, n) (((x) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128)
+#define u32_count_more(x, n) \
     (((((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128) / 128 % 255)
 
-#define U32_LIKELY_HAS_BETWEEN(x, m, n) \
+#define u32_likely_has_between(x, m, n) \
     ((((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(m))) & ~0UL / 255 * 128)
-#define U32_HAS_BETWEEN(x, m, n)                                       \
+#define u32_has_between(x, m, n)                                       \
     ((~0UL / 255 * (127 + (u8)(n)) - ((x) & ~0UL / 255 * 127) & ~(x) & \
       ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(m))) &       \
      ~0UL / 255 * 128)
-#define U32_COUNT_BETWEEN(x, m, n) (hasbetween(x, m, n) / 128 % 255)
+#define u32_count_between(x, m, n) (u32_has_between(x, m, n) / 128 % 255)
 
 #if COMPILER == MSVC
 #pragma warning(push)
@@ -207,7 +232,7 @@ constexpr u64 ROTATE_RIGHT_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 
 #endif
 
 template <typename T>
-constexpr enable_if_t<is_integer_v<T>> SET_BIT(T *number, T bit, bool value) {
+constexpr enable_if_t<is_integer_v<T>> set_bit(T *number, T bit, bool value) {
     auto enabled = (make_unsigned_t<T>) value;
     *number ^= (-enabled ^ *number) & bit;
 }
@@ -220,15 +245,116 @@ constexpr enable_if_t<is_integer_v<T>> SET_BIT(T *number, T bit, bool value) {
     template <typename T>                        \
     constexpr enable_if_t<is_integral_v<T>, return_type>
 
-INTEGRAL_FUNCTION_CONSTEXPR(bool) IS_POW_OF_2(T number) { return (number & (number - 1)) == 0; }
+INTEGRAL_FUNCTION_CONSTEXPR(bool) is_pow_of_2(T number) { return (number & (number - 1)) == 0; }
 
-INTEGRAL_FUNCTION_CONSTEXPR(T) ABS(T number) {
+INTEGRAL_FUNCTION_CONSTEXPR(T) const_abs(T number) {
     auto s = number >> (sizeof(T) * 8 - 1);
     return (number ^ s) - s;
 }
 
+constexpr f32 const_abs(f32 number) {
+    ieee754_f32 format = {number};
+    format.ieee.S = 0;
+    return format.F;
+}
+
+constexpr f64 const_abs(f64 number) {
+    ieee754_f64 format = {number};
+    format.ieee.S = 0;
+    return format.F;
+}
+
 template <typename T>
-enable_if_t<is_integral_v<T> && is_unsigned_v<T>, T> CEIL_POW_OF_2(T v) {
+constexpr enable_if_t<is_integral_v<T> && numeric_info<T>::is_signed, bool> sign_bit(T number) {
+    return number < 0;
+}
+
+template <typename T>
+constexpr enable_if_t<is_integral_v<T> && !numeric_info<T>::is_signed, bool> sign_bit(T) {
+    return false;
+}
+
+constexpr bool sign_bit(f32 number) {
+    ieee754_f32 format = {number};
+    return format.ieee.S;
+}
+
+constexpr bool sign_bit(f64 number) {
+    ieee754_f64 format = {number};
+    return format.ieee.S;
+}
+
+// Handles zero as well
+template <typename T>
+constexpr s32 sign(T number) {
+    if (number == T(0)) return 0;
+    return sign_bit(number) ? -1 : 1;
+}
+
+template <typename T>
+constexpr s32 sign_no_zero(T number) {
+    return sign_bit(number) ? -1 : 1;
+}
+
+constexpr bool is_inf(f32 number) {
+    ieee754_f32 format = {number};
+    return format.ieee.E == 0xff && format.ieee.M == 0;
+}
+
+constexpr bool is_inf(f64 number) {
+    ieee754_f64 format = {number};
+#if ENDIAN == BIG_ENDIAN
+    // @Wrong
+    // Haven't tested this
+    return ((u32) format.W & 0xffffff7f) == 0x0000f07f && ((u32)(format.W >> 32) == 0);
+#else
+    return ((u32)(format.W >> 32) & 0x7fffffff) == 0x7ff00000 && ((u32) format.W == 0);
+#endif
+}
+
+constexpr bool is_nan(f32 number) {
+    ieee754_f32 format = {number};
+    return format.ieee.E == 0xff && format.ieee.M != 0;
+}
+
+constexpr bool is_nan(f64 number) {
+    ieee754_f64 format = {number};
+#if ENDIAN == BIG_ENDIAN
+    // @Wrong
+    // Haven't tested this
+    return ((u32) format.W & 0xffffff7f) + ((u32)(format.W >> 32) != 0) > 0x0000f07f;
+#else
+    return ((u32)(format.W >> 32) & 0x7fffffff) + ((u32) format.W != 0) > 0x7ff00000;
+#endif
+}
+
+template <typename T>
+constexpr T const_min(T x, T y) {
+    return x < y ? x : y;
+}
+
+template <typename T>
+constexpr T const_max(T x, T y) {
+    return x > y ? x : y;
+}
+
+template <typename T>
+constexpr T min(T x, T y) {
+    return x < y ? x : y;
+}
+
+template <typename T>
+constexpr T max(T x, T y) {
+    return x > y ? x : y;
+}
+
+inline f32 min(f32 x, f32 y) { return fminf(x, y); }
+inline f32 max(f32 x, f32 y) { return fmaxf(x, y); }
+inline f64 min(f64 x, f64 y) { return fmin(x, y); }
+inline f64 max(f64 x, f64 y) { return fmax(x, y); }
+
+template <typename T>
+enable_if_t<is_integral_v<T> && is_unsigned_v<T>, T> ceil_pow_of_2(T v) {
     v--;
     for (size_t i = 1; i < sizeof(T) * 8; i *= 2) v |= v >> i;
     return ++v;
@@ -236,97 +362,15 @@ enable_if_t<is_integral_v<T> && is_unsigned_v<T>, T> CEIL_POW_OF_2(T v) {
 
 #undef INTEGRAL_FUNCTION_CONSTEXPR
 
-constexpr f32 ABS(f32 number) {
-    ieee754_f32 format = {number};
-    format.ieee.S = 0;
-    return format.F;
-}
-
-constexpr f64 ABS(f64 number) {
-    ieee754_f64 format = {number};
-    format.ieee.S = 0;
-    return format.F;
-}
-
-constexpr bool IS_INF(f32 number) {
-    ieee754_f32 format = {number};
-    return format.ieee.E == 0xff && format.ieee.M == 0;
-}
-
-constexpr bool IS_INF(f64 number) {
-    ieee754_f64 format = {number};
-#if ENDIAN == BIG_ENDIAN
-    // @Wrong
-    // Haven't tested this
-    return ((u32) format.U & 0xffffff7f) == 0x0000f07f && ((u32)(format.U >> 32) == 0);
-#else
-    return ((u32)(format.U >> 32) & 0x7fffffff) == 0x7ff00000 && ((u32) format.U == 0);
-#endif
-}
-
-constexpr bool IS_NAN(f32 number) {
-    ieee754_f32 format = {number};
-    return format.ieee.E == 0xff && format.ieee.M != 0;
-}
-
-constexpr bool IS_NAN(f64 number) {
-    ieee754_f64 format = {number};
-#if ENDIAN == BIG_ENDIAN
-    // @Wrong
-    // Haven't tested this
-    return ((u32) format.U & 0xffffff7f) + ((u32)(format.U >> 32) != 0) > 0x0000f07f;
-#else
-    return ((u32)(format.U >> 32) & 0x7fffffff) + ((u32) format.U != 0) > 0x7ff00000;
-#endif
-}
-
-// Returns true if value is negative, false otherwise.
-// Same as (value < 0) but doesn't produce warnings if T is an unsigned type.
-template <typename T>
-constexpr enable_if_t<is_integral_v<T> && numeric_info<T>::is_signed, bool> IS_NEG(T value) {
-    return value < 0;
-}
-
-template <typename T>
-constexpr enable_if_t<is_integral_v<T> && !numeric_info<T>::is_signed, bool> IS_NEG(T) {
-    return false;
-}
-
-constexpr bool IS_NEG(f32 number) {
-    ieee754_f32 format = {number};
-    return format.ieee.S;
-}
-
-constexpr bool IS_NEG(f64 number) {
-    ieee754_f64 format = {number};
-    return format.ieee.S;
-}
-
-template <typename T>
-T MAX(T x, T y) {
-    return x > y ? x : y;
-}
-
-template <typename T>
-T MIN(T x, T y) {
-    return x < y ? x : y;
-}
-
-inline s32 FLOOR(f32 x) { return (s32)(x + (f32) numeric_info<s32>::max()) - numeric_info<s32>::max(); }
-inline s32 FLOOR(f64 x) { return (s32)(x + (f64) numeric_info<s32>::max()) - numeric_info<s32>::max(); }
-
-inline s32 CEIL(f32 x) { return numeric_info<s32>::max() - (s32)((f32) numeric_info<s32>::max() - x); }
-inline s32 CEIL(f64 x) { return numeric_info<s32>::max() - (s32)((f64) numeric_info<s32>::max() - x); }
-
 // Returns the number of decimal digits in n. Leading zeros are not counted
 // except for n == 0 in which case count_digits returns 1.
-inline u32 COUNT_DIGITS(u64 n) {
-    s32 t = (64 - MSB_64(n | 1)) * 1233 >> 12;
+inline u32 count_digits(u64 n) {
+    s32 t = (64 - msb_64(n | 1)) * 1233 >> 12;
     return (u32) t - (n < ZERO_OR_POWERS_OF_10_64[t]) + 1;
 }
 
 template <u32 Bits, typename T>
-constexpr u32 COUNT_DIGITS(T value) {
+constexpr u32 count_digits(T value) {
     T n = value;
     u32 numDigits = 0;
     do {
@@ -337,12 +381,14 @@ constexpr u32 COUNT_DIGITS(T value) {
 
 // All of these return the value after the operation
 #if COMPILER == MSVC
-#define ATOMIC_INC(ptr) _InterlockedIncrement((ptr))
-#define ATOMIC_INC_64(ptr) _InterlockedIncrement64((ptr))
-#define ATOMIC_ADD(ptr, value) _InterlockedAdd((ptr), value)
-#define ATOMIC_ADD_64(ptr, value) _InterlockedAdd64((ptr), value)
+#define atomic_inc(ptr) _InterlockedIncrement((ptr))
+#define atomic_inc_64(ptr) _InterlockedIncrement64((ptr))
+#define atomic_add(ptr, value) _InterlockedAdd((ptr), value)
+#define atomic_add_64(ptr, value) _InterlockedAdd64((ptr), value)
 #else
-#define ATOMIC_INC(ptr) __sync_add_and_fetch((ptr), 1)
-#define ATOMIC_INC_64(ptr) __sync_add_and_fetch((ptr), 1)
-#error ATOMIC_ADD and ATOMIC_ADD_64
+#define atomic_inc(ptr) __sync_add_and_fetch((ptr), 1)
+#define atomic_inc_64(ptr) __sync_add_and_fetch((ptr), 1)
+#error atomic_add and atomic_add_64
 #endif
+
+LSTD_END_NAMESPACE

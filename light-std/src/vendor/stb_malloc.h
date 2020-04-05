@@ -1,7 +1,7 @@
 // stb_malloc.h 0.01 -- public domain multi-heap malloc -- Sean Barrett, 2012
 //
 // WARNING -- IN THIS VERSION THE STBM_TC STUFF IS UNTESTED AND
-// CROSS-THREAD FREES AREN'T CODED -- IGGY DOESN'T USE THOSE FEATURES
+// cross-THREAD FREES AREN'T CODED -- IGGY DOESN'T USE THOSE FEATURES
 // AND THAT'S ALL I'VE CODED/TESTED
 //
 // A malloc "implementation" that you need to do a bit of configuring

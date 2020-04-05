@@ -3198,7 +3198,7 @@ static const unsigned char *stb__barrier_in_b;
 static unsigned char *stb__dout;
 static void stb__match(const unsigned char *data, unsigned int length)
 {
-    // INVERSE of memmove... write each byte before copying the next...
+    // inverse of memmove... write each byte before copying the next...
     IM_ASSERT(stb__dout + length <= stb__barrier_out_e);
     if (stb__dout + length > stb__barrier_out_e) { stb__dout += length; return; }
     if (data < stb__barrier_out_b) { stb__dout = stb__barrier_out_e+1; return; }

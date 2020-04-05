@@ -133,7 +133,7 @@ void d3d_init_target_window(graphics *g, graphics::target_window *targetWindow) 
     auto *win = targetWindow->Window;
     assert(win);
 
-    vec2i windowSize = win->get_size();
+    vec2<s32> windowSize = win->get_size();
 
     DXGI_SWAP_CHAIN_DESC desc;
     zero_memory(&desc, sizeof(desc));
@@ -293,7 +293,7 @@ void d3d_set_cull_mode(graphics *g, cull mode) {
     g->D3D.DeviceContext->RSSetState(g->CurrentTargetWindow->D3D.RasterStates[(size_t) mode]);
 }
 
-void d3d_clear_color(graphics *g, vec4 color) {
+void d3d_clear_color(graphics *g, v4 color) {
     auto *renderTarget = g->CurrentTargetWindow->D3D.BackBuffer;
     auto *depthStencil = g->CurrentTargetWindow->D3D.DepthStencilView;
     if (g->CurrentTargetWindow->CustomRenderTarget) {

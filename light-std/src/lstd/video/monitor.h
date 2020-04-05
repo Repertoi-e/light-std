@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../math.h"
 #include "../os.h"
 #include "../storage/array.h"
 #include "../storage/signal.h"
@@ -86,8 +87,8 @@ rect os_get_work_area(monitor *mon);
 bool os_set_display_mode(monitor *mon, display_mode desired);
 void os_restore_display_mode(monitor *mon);
 
-vec2i os_get_monitor_pos(monitor *mon);
-vec2 os_get_monitor_content_scale(monitor *mon);
+vec2<s32> os_get_monitor_pos(monitor *mon);
+v2 os_get_monitor_content_scale(monitor *mon);
 //:
 
 monitor *os_monitor_from_window(window *win);

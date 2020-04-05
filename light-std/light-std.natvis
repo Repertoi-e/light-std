@@ -47,15 +47,60 @@
     <Expand>
       <Item Name="Reserved">Reserved</Item>
       <CustomListItems Condition="Count != 0">
-        <Variable Name="it" InitialValue="0" />
+        <Variable Name="bucketIncrement" InitialValue="0" />
         <Loop>
-          <Item Condition="Hashes[it] > 1">Keys[it]</Item>
-          <Item Condition="Hashes[it] > 1">Values[it]</Item>
+          <Item Condition="Hashes[bucketIncrement] > 1">Keys[bucketIncrement]</Item>
+          <Item Condition="Hashes[bucketIncrement] > 1">Values[bucketIncrement]</Item>
 
-          <Exec>it += 1</Exec>
-          <Break Condition="it == Reserved"/>
+          <Exec>bucketIncrement += 1</Exec>
+          <Break Condition="bucketIncrement == Reserved"/>
         </Loop>
       </CustomListItems>
     </Expand>
+  </Type>
+  <Type Name="vec&lt;*&gt;">
+    <DisplayString Condition="$T2==1">[{*Data}]</DisplayString>
+    <DisplayString Condition="$T2==2">[{*Data}, {*(Data+1)}]</DisplayString>
+    <DisplayString Condition="$T2==3">[{*Data}, {*(Data+1)}, {*(Data+2)}]</DisplayString>
+    <DisplayString Condition="$T2==4">[{*Data}, {*(Data+1)}, {*(Data+2)}, {*(Data+3)}]</DisplayString>
+    <DisplayString Condition="$T2==5">[{*Data}, {*(Data+1)}, {*(Data+2)}, {*(Data+3)}, {*(Data+4)}]</DisplayString>
+    <DisplayString Condition="$T2&gt;5">Dim={$T2}  [{*Data}, {*(Data+1)}, ..., {*(Data+$T2-1)}]</DisplayString>
+    <Expand>
+      <Item Name="Dimension" ExcludeView="simple">$T2</Item>
+      <ArrayItems>
+        <Size>$T2</Size>
+        <ValuePointer>Data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="mat&lt;*&gt;">
+    <DisplayString>{{ Rows = {$T2}, Columns = {$T3} }}</DisplayString>
+    <Expand>
+      <Item Name="Rows" ExcludeView="simple">$T2</Item>
+      <Item Name="Columns" ExcludeView="simple">$T3</Item>
+      <ArrayItems Condition="$T5==0">
+        <Size>$T2</Size>
+        <ValuePointer>Stripes._Elems</ValuePointer>
+      </ArrayItems>
+      <ArrayItems Condition="$T5==1">
+        <Size>$T3</Size>
+        <ValuePointer>Stripes._Elems</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="quat&lt;*&gt;">
+    <DisplayString>[{w} + {i} i + {j} j + {k} k]</DisplayString>
+  </Type>
+  <Type Name="hyperplane&lt;*&gt;">
+    <DisplayString Condition="$T2==3">{Normal.x} x + {Normal.y} y + {Normal.z} z = {Scalar}</DisplayString>
+    <DisplayString Condition="$T2==2">{Normal.x} x + {Normal.y} y = {Scalar}</DisplayString>
+    <Expand>
+      <Item Name="Normal">Normal</Item>
+      <Item Name="Scalar">Scalar</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="line&lt;*&gt;">
+    <DisplayString>[v] = {base} + {direction} t</DisplayString>
   </Type>
 </AutoVisualizer>

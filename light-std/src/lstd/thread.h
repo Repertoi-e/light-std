@@ -33,7 +33,7 @@ struct id {
 // memory areas for several threads. The mutex is non-recursive (i.e. a
 // program may deadlock if the thread that owns a mutex object calls lock()
 // on that object).
-struct mutex {
+struct mutex : non_copyable, non_movable, non_assignable {
     union {
         struct alignas(64) {
             char Handle[40]{};
@@ -46,9 +46,6 @@ struct mutex {
 
     // pthread_mutex_destroy(&mHandle);
     ~mutex();
-
-    mutex(const mutex &) = delete;
-    mutex &operator=(const mutex &) = delete;
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
@@ -77,7 +74,7 @@ struct mutex {
 // memory areas for several threads. The mutex is recursive (i.e. a thread
 // may lock the mutex several times, as long as it unlocks the mutex the same
 // number of times).
-struct recursive_mutex {
+struct recursive_mutex : non_copyable, non_movable, non_assignable {
     union {
         struct alignas(64) {
             char Handle[40]{};
@@ -92,9 +89,6 @@ struct recursive_mutex {
 
     // pthread_mutex_destroy(&mHandle);
     ~recursive_mutex();
-
-    recursive_mutex(const recursive_mutex &) = delete;
-    recursive_mutex &operator=(const recursive_mutex &) = delete;
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
@@ -129,7 +123,7 @@ struct recursive_mutex {
 //
 //      void increment()
 //      {
-//        scoped_lock<mutex> guard(m);
+//        scoped_lock<mutex> guard(&m);
 //        ++counter;
 //      }
 template <typename T>
@@ -162,7 +156,7 @@ struct scoped_lock {
 //       // Wait for the counter to reach a certain number
 //       void wait_counter(s32 targetCount)
 //       {
-//         scoped_lock<mutex> guard(m);
+//         scoped_lock<mutex> guard(&m);
 //         while(count < targetCount)
 //           cond.wait(m);
 //       }
@@ -170,11 +164,11 @@ struct scoped_lock {
 //       // Increment the counter, and notify waiting threads
 //       void increment()
 //       {
-//         scoped_lock<mutex> guard(m);
+//         scoped_lock<mutex> guard(&m);
 //         ++count;
 //         cond.notify_all();
 //       }
-struct condition_variable {
+struct condition_variable : non_copyable, non_movable, non_assignable {
    private:
 #if OS == WINDOWS
     // Implement platform specific Windows code for wait() in these functions,
@@ -190,9 +184,6 @@ struct condition_variable {
 
     // pthread_cond_destroy(&mHandle);
     ~condition_variable();
-
-    condition_variable(const condition_variable &) = delete;
-    condition_variable &operator=(const condition_variable &) = delete;
 
     // Wait for the condition.
     // The function will block the calling thread until the condition variable
@@ -226,7 +217,7 @@ struct condition_variable {
     void notify_all();
 };
 
-struct thread {
+struct thread : non_copyable, non_movable, non_assignable {
     mutable mutex DataMutex;
 
     // Unique thread ID. Used only on Windows
@@ -242,14 +233,13 @@ struct thread {
 
     // Thread starting constructor.
     // Construct a thread object with a new thread of execution.
-    thread(delegate<void(void *)> function, void *userData);
-
-    thread(const thread &) = delete;
-    thread &operator=(const thread &) = delete;
+    thread(delegate<void(void *)> function, void *userData) { start(function, userData); }
 
     // If the thread is joinable upon destruction, os_exit_process() will be called, which terminates the process.
     // It is always wise to call join() before deleting a thread object.
     ~thread();
+
+    void start(delegate<void(void *)> function, void *userData);
 
     // Wait for the thread to finish (join execution flows).
     // After calling join(), the thread object is no longer associated with
@@ -280,12 +270,12 @@ struct thread {
 };
 
 // This is a mutual exclusion object for synchronizing access to shared
-// memory areas for several threads. It is similar to the thread::Mutex object,
+// memory areas for several threads. It is similar to the thread::mutex object,
 // but instead of using system level functions, it is implemented as an atomic
 // spin lock with very low CPU overhead.
 //
-// Fast_Mutex is NOT compatible with Condition_Variable (however,
-// it IS compatible with Scoped_Lock). It should also be noted that
+// Fast_Mutex is NOT compatible with condition_variable (however,
+// it IS compatible with scoped_lock). It should also be noted that
 // Fast_Mutex typically does not provide as accurate thread scheduling
 // as a the standard mutex does.
 //
@@ -337,6 +327,68 @@ struct fast_mutex {
 
    private:
     volatile long _Lock;
+};
+
+template <typename T>
+struct future : non_copyable, non_movable, non_assignable {
+    using data_t = T;
+
+    thread Thread;
+
+    future() = default;
+
+    // Future starting constructor.
+    // Construct a future object and begin execution.
+    future(delegate<void(void *)> function, void *userData) { start(function, userData); }
+
+    ~future() { close(); }
+
+    void start(delegate<void(void *)> function, void *userData) { Thread.start(function, userData); }
+
+    void close() {
+        assert(Thread.joinable() && "Thread not started");
+        Thread.join();
+    }
+};
+
+template <typename T, typename MutexType = mutex>
+struct promise : non_copyable, non_movable, non_assignable {
+    using data_t = T;
+
+    condition_variable Cond;
+    MutexType Mutex;
+
+    // Don't access this without locking the mutex (use copy/set_result())
+    T Result;
+    bool Done = false;
+
+    void get_result(T *out) {
+        scoped_lock<MutexType> guard(&Mutex);
+        while (!Done) {
+            Cond.wait(&Mutex);
+        }
+        clone(out, Result);
+        return Result;
+    }
+
+    void set_result(T result) {
+        scoped_lock<MutexType> guard(&Mutex);
+        Done = true;
+        clone(&Result, result);
+        Cond.notify_one();
+    }
+
+    void move_and_set_result(T *result) {
+        scoped_lock<MutexType> guard(&Mutex);
+        Done = true;
+        move(&Result, result);
+        Cond.notify_one();
+    }
+
+    bool is_done() {
+        scoped_lock<MutexType> guard(&Mutex);
+        return Done;
+    }
 };
 
 }  // namespace thread

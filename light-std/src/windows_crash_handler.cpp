@@ -80,7 +80,7 @@ static LONG exception_filter(LPEXCEPTION_POINTERS e) {
 
     auto *desc = CodeDescs.find(exceptionCode);
     string message;
-    fmt::sprint(&message, "{} ({})", desc ? *desc : "Unknown exception", exceptionCode);
+    fmt::sprint(&message, "{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
     Context.UnexpectedExceptionHandler(message, callStack);
 
     return EXCEPTION_EXECUTE_HANDLER;
@@ -89,6 +89,7 @@ static LONG exception_filter(LPEXCEPTION_POINTERS e) {
 void win32_crash_handler_init() {
     wchar_t *processor = _wgetenv(L"PROCESSOR_ARCHITECTURE");  // @NoCRT
     if (processor) {
+        // @NoCRT (wcscmp)
         if ((!wcscmp(L"EM64T", processor)) || !wcscmp(L"AMD64", processor)) {
             MachineType = IMAGE_FILE_MACHINE_AMD64;
         } else if (!wcscmp(L"x86", processor)) {

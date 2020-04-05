@@ -1,10 +1,10 @@
 #pragma once
 
+#include "../math.h"
+#include "../storage/pixel_buffer.h"
 #include "cursor.h"
 #include "monitor.h"
 #include "window_events.h"
-
-#include "../storage/pixel_buffer.h"
 
 struct HWND__;
 struct HICON__;
@@ -23,7 +23,7 @@ struct window {
             u16 Surrogate = 0;  // Used when handling text input
 
             // The last received cursor position, regardless of source
-            vec2i LastCursorPos;
+            vec2<s32> LastCursorPos = {no_init};
         } Win32;
     } PlatformData{};
 
@@ -114,7 +114,7 @@ struct window {
     s32 MinW = DONT_CARE, MinH = DONT_CARE, MaxW = DONT_CARE, MaxH = DONT_CARE;
 
     // Virtual cursor position when cursor is disabled
-    vec2i VirtualCursorPos;
+    vec2<s32> VirtualCursorPos = {no_init};
 
     // Enable raw (unscaled and unaccelerated) mouse motion when the cursor is disabled.
     // May not be supported on some platforms.
@@ -168,26 +168,26 @@ struct window {
 
     void set_cursor(cursor *curs);
 
-    vec2i get_cursor_pos();
-    void set_cursor_pos(vec2i pos);
+    vec2<s32> get_cursor_pos();
+    void set_cursor_pos(vec2<s32> pos);
     void set_cursor_pos(s32 x, s32 y) { set_pos({x, y}); }
 
-    vec2i get_pos();
-    void set_pos(vec2i pos);
+    vec2<s32> get_pos();
+    void set_pos(vec2<s32> pos);
     void set_pos(s32 x, s32 y) { set_pos({x, y}); }
 
-    vec2i get_size();
-    void set_size(vec2i size);
+    vec2<s32> get_size();
+    void set_size(vec2<s32> size);
     void set_size(s32 width, s32 height) { set_size({width, height}); }
 
     // May not map 1:1 with window size (e.g. Retina display on Mac)
-    vec2i get_framebuffer_size();
+    vec2<s32> get_framebuffer_size();
 
     rect get_adjusted_bounds();  // Gets the full area the window occupies (including title bar, borders, etc.),
                                  // relative to window's position
 
     // You can call this with DONT_CARE
-    void set_size_limits(vec2i minDimension, vec2i maxDimension);
+    void set_size_limits(vec2<s32> minDimension, vec2<s32> maxDimension);
     void set_size_limits(s32 minWidth, s32 minHeight, s32 maxWidth, s32 maxHeight) {
         set_size_limits({minWidth, minHeight}, {maxWidth, maxHeight});
     }

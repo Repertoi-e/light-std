@@ -194,7 +194,7 @@ struct reader {
         } else {
             maxValue = negative ? -(numeric_info<T>::min()) : numeric_info<T>::max();
         }
-        T cutoff = ABS(maxValue / base);
+        T cutoff = abs(maxValue / base);
         s32 cutlim = maxValue % (T) base;
 
         T value = 0;

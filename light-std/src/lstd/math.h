@@ -1,15 +1,32 @@
 #pragma once
 
-#include "math/vec2.h"
-#include "math/vec3.h"
-#include "math/vec4.h"
+#include "intrin/math.h"
 
-#include "math/mat4.h"
-
-#include "math/quat.h"
+// @TODO Replace with our own math functions in order to not depend on the runtime lib
 
 LSTD_BEGIN_NAMESPACE
 
+// rad / tau * 360
+// deg * tau / 360
+// @TODO Accurate enough?
+#define TAU 6.2831853f
+#define PI 3.1415926f
+#define EULER 2.7182818f
+#define SQRT2 1.4142135f
+
+template <typename T>
+T clamp(T value, T lower, T upper) {
+    return max(lower, min(upper, value));
+}
+
+template <typename T, int Dim, bool Packed>
+vec<T, Dim, Packed> clamp(const vec<T, Dim, Packed> &arg, T lower, T upper) {
+    vec<T, Dim, Packed> result;
+    For(range(arg.Dimension())) result(i) = clamp(arg(i), lower, upper);
+    return result;
+}
+
+// ! @TODO
 struct rect {
     s32 X = 0, Y = 0, Width = 0, Height = 0;
 
@@ -19,34 +36,19 @@ struct rect {
     bool operator!=(rect other) const { return !(*this == other); }
 };
 
-using vec2i8 = tvec2<s8>;
-using vec2i16 = tvec2<s16>;
-using vec2i = tvec2<s32>;
-using vec2i64 = tvec2<s64>;
-
-using vec2ui8 = tvec2<u8>;
-using vec2ui16 = tvec2<u16>;
-using vec2ui = tvec2<u32>;
-using vec2ui64 = tvec2<u64>;
-
-using vec3i8 = tvec3<s8>;
-using vec3i16 = tvec3<s16>;
-using vec3i = tvec3<s32>;
-using vec3i64 = tvec3<s64>;
-
-using vec3ui8 = tvec3<u8>;
-using vec3ui16 = tvec3<u16>;
-using vec3ui = tvec3<u32>;
-using vec3ui64 = tvec3<u64>;
-
-using vec4i8 = tvec4<s8>;
-using vec4i16 = tvec4<s16>;
-using vec4i = tvec4<s32>;
-using vec4i64 = tvec4<s64>;
-
-using vec4ui8 = tvec4<u8>;
-using vec4ui16 = tvec4<u16>;
-using vec4ui = tvec4<u32>;
-using vec4ui64 = tvec4<u64>;
-
 LSTD_END_NAMESPACE
+
+#include "math/decompose_lu.h"
+#include "math/decompose_qr.h"
+// #include "math/decompose_svd.h"
+#include "math/mat_func.h"
+#include "math/quat_func.h"
+#include "math/transforms/orthographic.h"
+#include "math/transforms/perspective.h"
+#include "math/transforms/rotation_2d.h"
+#include "math/transforms/rotation_3d.h"
+#include "math/transforms/scale.h"
+#include "math/transforms/shear.h"
+#include "math/transforms/translation.h"
+#include "math/transforms/view.h"
+#include "math/vec_func.h"

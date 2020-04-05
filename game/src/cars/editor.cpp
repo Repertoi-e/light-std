@@ -23,15 +23,15 @@ void editor_main() {
         if (ImGui::BeginMenu("Game")) {
             if (ImGui::MenuItem("VSync", "", GameMemory->MainWindow->Flags & window::VSYNC))
                 GameMemory->MainWindow->Flags ^= window::VSYNC;
-            if (ImGui::MenuItem("Editor", "Ctrl + F", State->Editor)) {
-                State->Editor = !State->Editor;
+            if (ImGui::MenuItem("Editor", "Ctrl + F", GameState->Editor)) {
+                GameState->Editor = !GameState->Editor;
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Show overlay", "", State->ShowOverlay)) {
-                State->ShowOverlay = !State->ShowOverlay;
+            if (ImGui::MenuItem("Show overlay", "", GameState->ShowOverlay)) {
+                GameState->ShowOverlay = !GameState->ShowOverlay;
             }
-            if (ImGui::MenuItem("Show imgui metrics", "", State->ShowMetrics)) {
-                State->ShowMetrics = !State->ShowMetrics;
+            if (ImGui::MenuItem("Show imgui metrics", "", GameState->ShowMetrics)) {
+                GameState->ShowMetrics = !GameState->ShowMetrics;
             }
             ImGui::EndMenu();
         }
@@ -57,58 +57,59 @@ void editor_main() {
     {
         auto *drawList = ImGui::GetWindowDrawList();
 
-        f32 viewportRatio = (f32) State->ViewportRenderTarget.Width / State->ViewportRenderTarget.Height;
+        f32 viewportRatio = (f32) GameState->ViewportRenderTarget.Width / GameState->ViewportRenderTarget.Height;
         f32 windowRatio = windowSize.x / windowSize.y;
 
-        vec2 renderableSize = windowSize;
-        vec2 offset;
+        v2 renderableSize = windowSize;
+        v2 offset = {no_init};
         if (viewportRatio < windowRatio) {
             renderableSize.x =
-                (State->ViewportRenderTarget.Width * (windowSize.y / State->ViewportRenderTarget.Height));
-            offset = {(windowSize.x - renderableSize.x) / 2, 0};
+                (GameState->ViewportRenderTarget.Width * (windowSize.y / GameState->ViewportRenderTarget.Height));
+            offset = v2{(windowSize.x - renderableSize.x) / 2, 0.0f};
         } else if (viewportRatio > windowRatio) {
             renderableSize.y =
-                (State->ViewportRenderTarget.Height * (windowSize.x / State->ViewportRenderTarget.Width));
-            offset = {0, (windowSize.y - renderableSize.y) / 2};
+                (GameState->ViewportRenderTarget.Height * (windowSize.x / GameState->ViewportRenderTarget.Width));
+            offset = v2{0, (windowSize.y - renderableSize.y) / 2};
         }
-        offset += vec2(6 * viewportRatio, 6);
-        renderableSize -= vec2(18 * viewportRatio, 18);
+        offset += v2(6 * viewportRatio, 6);
+        renderableSize -= v2(18 * viewportRatio, 18);
 
-        drawList->AddImage(&State->ViewportRenderTarget, windowPos + offset, windowPos + offset + renderableSize);
-        if (State->MouseGrabbed) {
-            drawList->AddRect(windowPos + offset, windowPos + offset + renderableSize, 0xffffffff);
+        drawList->AddImage(&GameState->ViewportRenderTarget, (v2) windowPos + offset,
+                           (v2) windowPos + offset + renderableSize);
+        if (GameState->MouseGrabbed) {
+            drawList->AddRect((v2) windowPos + offset, (v2) windowPos + offset + renderableSize, 0xffffffff);
         }
     }
 
-    if (State->CameraType == camera_type::FPS && ImGui::InvisibleButton("##viewport", windowSize)) {
-        State->MouseGrabbed = true;
+    if (GameState->CameraType == camera_type::FPS && ImGui::InvisibleButton("##viewport", windowSize)) {
+        GameState->MouseGrabbed = true;
         GameMemory->MainWindow->set_cursor_mode(window::CURSOR_DISABLED);
     }
 
-    if (State->ShowOverlay) {
-        if (State->OverlayCorner != -1) {
-            ImVec2 pivot = ImVec2((State->OverlayCorner & 1) ? 1.0f : 0.0f, (State->OverlayCorner & 2) ? 1.0f : 0.0f);
+    if (GameState->ShowOverlay) {
+        if (GameState->OverlayCorner != -1) {
+            ImVec2 pivot = ImVec2((GameState->OverlayCorner & 1) ? 1.0f : 0.0f, (GameState->OverlayCorner & 2) ? 1.0f : 0.0f);
             ImGui::SetNextWindowPos(
-                ImVec2((State->OverlayCorner & 1) ? (windowPos.x + windowSize.x - 25) : (windowPos.x + 10),
-                       (State->OverlayCorner & 2) ? (windowPos.y + windowSize.y - 10) : (windowPos.y + 25)),
+                ImVec2((GameState->OverlayCorner & 1) ? (windowPos.x + windowSize.x - 25) : (windowPos.x + 10),
+                       (GameState->OverlayCorner & 2) ? (windowPos.y + windowSize.y - 10) : (windowPos.y + 25)),
                 ImGuiCond_Always, pivot);
         }
 
         ImGui::SetNextWindowBgAlpha(0.35f);
-        if (ImGui::Begin("Overlay", &State->ShowOverlay,
-                         (State->OverlayCorner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoDocking |
+        if (ImGui::Begin("Overlay", &GameState->ShowOverlay,
+                         (GameState->OverlayCorner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoDocking |
                              ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                              ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav)) {
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
                         ImGui::GetIO().Framerate);
             if (ImGui::BeginPopupContextWindow()) {
-                if (ImGui::MenuItem("Custom", null, State->OverlayCorner == -1)) State->OverlayCorner = -1;
-                if (ImGui::MenuItem("Top-left", null, State->OverlayCorner == 0)) State->OverlayCorner = 0;
-                if (ImGui::MenuItem("Top-right", null, State->OverlayCorner == 1)) State->OverlayCorner = 1;
-                if (ImGui::MenuItem("Bottom-left", null, State->OverlayCorner == 2)) State->OverlayCorner = 2;
-                if (ImGui::MenuItem("Bottom-right", null, State->OverlayCorner == 3)) State->OverlayCorner = 3;
-                if (State->ShowOverlay && ImGui::MenuItem("Close")) State->ShowOverlay = false;
+                if (ImGui::MenuItem("Custom", null, GameState->OverlayCorner == -1)) GameState->OverlayCorner = -1;
+                if (ImGui::MenuItem("Top-left", null, GameState->OverlayCorner == 0)) GameState->OverlayCorner = 0;
+                if (ImGui::MenuItem("Top-right", null, GameState->OverlayCorner == 1)) GameState->OverlayCorner = 1;
+                if (ImGui::MenuItem("Bottom-left", null, GameState->OverlayCorner == 2)) GameState->OverlayCorner = 2;
+                if (ImGui::MenuItem("Bottom-right", null, GameState->OverlayCorner == 3)) GameState->OverlayCorner = 3;
+                if (GameState->ShowOverlay && ImGui::MenuItem("Close")) GameState->ShowOverlay = false;
                 ImGui::EndPopup();
             }
         }
@@ -116,7 +117,7 @@ void editor_main() {
     }
     ImGui::End();
 
-    if (State->ShowMetrics) ImGui::ShowMetricsWindow(&State->ShowMetrics);
+    if (GameState->ShowMetrics) ImGui::ShowMetricsWindow(&GameState->ShowMetrics);
 }
 
 static void update_grid() {
@@ -156,22 +157,22 @@ void editor_scene_properties(camera *cam) {
     ImGui::Text("Camera");
     ImGui::BeginChild("##camera", {0, 180}, true);
     {
-        if (ImGui::RadioButton("Maya", (s32 *) &State->CameraType, (s32) camera_type::Maya)) cam->reinit();
+        if (ImGui::RadioButton("Maya", (s32 *) &GameState->CameraType, (s32) camera_type::Maya)) cam->reinit();
         ImGui::SameLine();
-        if (ImGui::RadioButton("FPS", (s32 *) &State->CameraType, (s32) camera_type::FPS)) cam->reinit();
+        if (ImGui::RadioButton("FPS", (s32 *) &GameState->CameraType, (s32) camera_type::FPS)) cam->reinit();
 
         ImGui::Text("Position: %.3f, %.3f, %.3f", cam->Position.x, cam->Position.y, cam->Position.z);
         ImGui::Text("Rotation: %.3f, %.3f, %.3f", cam->Rotation.x, cam->Rotation.y, cam->Rotation.z);
         ImGui::Text("Pitch: %.3f, yaw: %.3f", cam->Pitch, cam->Yaw);
 
-        if (State->CameraType == camera_type::Maya) {
+        if (GameState->CameraType == camera_type::Maya) {
             ImGui::PushItemWidth(-140);
             ImGui::SliderFloat("Pan speed", &cam->PanSpeed, 0.0005f, 0.005f);
             ImGui::PushItemWidth(-140);
             ImGui::SliderFloat("Rotation speed", &cam->RotationSpeed, 0.0005f, 0.005f);
             ImGui::PushItemWidth(-140);
             ImGui::SliderFloat("Zoom speed", &cam->ZoomSpeed, 0.05f, 0.5f);
-        } else if (State->CameraType == camera_type::FPS) {
+        } else if (GameState->CameraType == camera_type::FPS) {
             ImGui::PushItemWidth(-140);
             ImGui::SliderFloat("Speed", &cam->Speed, 0.01f, 10);
             ImGui::PushItemWidth(-140);
@@ -184,7 +185,7 @@ void editor_scene_properties(camera *cam) {
         ImGui::EndChild();
     }
 
-    ImGui::ColorPicker3("Clear color", &State->ClearColor.x);
+    ImGui::ColorPicker3("Clear color", &GameState->ClearColor.x);
 
     if (ImGui::Checkbox("Grid follow camera", &Scene->GridFollowCamera)) {
         if (!Scene->GridFollowCamera) {

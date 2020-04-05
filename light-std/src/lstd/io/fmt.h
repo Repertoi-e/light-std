@@ -2,7 +2,7 @@
 
 #include "../context.h"
 #include "../io.h"
-
+#include "../math.h"
 #include "../storage/array.h"
 #include "fmt/format_context.h"
 
@@ -205,6 +205,82 @@ struct formatter<stack_array<T, N>> {
 template <>
 struct formatter<thread::id> {
     void format(thread::id src, format_context *f) { f->write(src.Value); }
+};
+
+// Formatters for math types
+
+template <typename T, s32 Dim, bool Packed>
+struct formatter<vec<T, Dim, Packed>> {
+    void format(const vec<T, Dim, Packed> &src, format_context *f) {
+        f->debug_list().entries(src.Data, src.Dim)->finish();
+    }
+};
+
+// Prints in format: [ 1, 2, 3; 4, 5, 6; 7, 8, 9]
+// Alternate (using # specifier):
+// [  1,   2,   3
+//    3,  41,   5
+//  157,   8,   9]
+template <typename T, s32 R, s32 C, bool Packed>
+struct formatter<mat<T, R, C, Packed>> {
+    void format(const mat<T, R, C, Packed> &src, format_context *f) {
+        f->write("[");
+
+        bool alternate = f->Specs && f->Specs->has_flag(flag::HASH);
+        size_t max = 0;
+        if (alternate) {
+            for (s32 i = 0; i < src.Height; ++i) {
+                for (s32 j = 0; j < src.Width; ++j) {
+                    size_t s;
+                    if constexpr (is_floating_point_v<T>) {
+                        s = calculate_formatted_size("{:f}", src(i, j));
+                    } else {
+                        s = calculate_formatted_size("{}", src(i, j));
+                    }
+                    if (s > max) max = s;
+                }
+            }
+        }
+
+        for (s32 i = 0; i < src.Height; ++i) {
+            for (s32 j = 0; j < src.Width; ++j) {
+                if (alternate) {
+                    if constexpr (is_floating_point_v<T>) {
+                        to_writer(f, "{0:<{1}f}", src(i, j), max);
+                    } else {
+                        to_writer(f, "{0:<{1}}", src(i, j), max);
+                    }
+                } else {
+                    if constexpr (is_floating_point_v<T>) {
+                        to_writer(f, "{0:f}", src(i, j));
+                    } else {
+                        to_writer(f, "{0:}", src(i, j));
+                    }
+                }
+                if (j != src.Width - 1) f->write(", ");
+            }
+            if (i < src.R - 1) f->write(alternate ? "\n " : "; ");
+        }
+        f->write("]");
+    }
+};
+
+// Prints in format: quat(1, 0, 0, 0)
+// Alternate (using # specifier): [ 60 deg @ [0, 1, 0] ] (rotation in degrees around axis)
+template <typename T, bool Packed>
+struct formatter<tquat<T, Packed>> {
+    void format(const tquat<T, Packed> &src, format_context *f) {
+        bool alternate = f->Specs && f->Specs->has_flag(flag::HASH);
+        if (alternate) {
+            f->write("[");
+            to_writer(f, "{.f}", src.angle() / TAU * 360);
+            f->write(" deg @ ");
+            to_writer(f, "{}", src.axis());
+            f->write("]");
+        } else {
+            f->debug_tuple("quat").field(src.s)->field(src.i)->field(src.j)->field(src.k)->finish();
+        }
+    }
 };
 
 }  // namespace fmt

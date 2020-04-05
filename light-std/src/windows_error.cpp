@@ -3635,9 +3635,9 @@ void print_error_description(HRESULT hr) {
 }
 
 void windows_report_hresult_error(long hresult, string call, string file, s32 line) {
-    fmt::print("\n{!}(windows_error.cpp): An error occured when calling a function returning an HRESULT.\n");
+    fmt::print("\n{!}(windows_error.cpp): An error occured while calling a function returning an HRESULT.\n");
     fmt::print("    {!GRAY}{}{!}\n", call);
-    fmt::print("        ... was called at {!YELLOW}{}:{}{!} and returned {!GRAY}{:x}\n", file, line, hresult);
+    fmt::print("        ... was called at {!YELLOW}{}:{}{!} and returned {!GRAY}{:#x}\n", file, line, hresult);
     fmt::print("        Error: {!RED}{}\n", get_error_string(hresult));
     fmt::print("               ");
     print_error_description(hresult);

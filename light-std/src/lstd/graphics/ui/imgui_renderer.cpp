@@ -16,7 +16,7 @@ void imgui_renderer::init(graphics *g) {
 
         auto *renderer = (imgui_renderer *) context;
         if (!(viewport->Flags & ImGuiViewportFlags_NoRendererClear)) {
-            renderer->Graphics->clear_color(vec4(0.0f, 0.0f, 0.0f, 1.0f));
+            renderer->Graphics->clear_color(v4(0.0f, 0.0f, 0.0f, 1.0f));
         }
         renderer->draw(viewport->DrawData);
     };
@@ -24,7 +24,7 @@ void imgui_renderer::init(graphics *g) {
     Shader.Name = "UI Shader";
     Shader.init(g, file::path("data/UI.hlsl"));
 
-    UB.init(g, buffer_type::Shader_Uniform_Buffer, buffer_usage::Dynamic, sizeof(mat4));
+    UB.init(g, buffer_type::Shader_Uniform_Buffer, buffer_usage::Dynamic, sizeof(mat<f32, 4, 4>));
 
     s32 width, height;
     u8 *pixels = null;

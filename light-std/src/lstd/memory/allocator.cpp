@@ -1,11 +1,10 @@
 #include "allocator.h"
 
-#include "../os.h"
-
+#include "../../vendor/stb_malloc.h"
 #include "../context.h"
 #include "../io/fmt.h"
-
-#include "../../vendor/stb_malloc.h"
+#include "../math.h"
+#include "../os.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -126,9 +125,9 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
                 p->Next = new (Malloc) temporary_allocator_data::page;
 
                 // Random log-based growth thing I came up at the time, not real science.
-                size_t loggedSize = (size_t) CEIL(p->Reserved * (LOG_2(p->Reserved * 10.0) / 3));
+                size_t loggedSize = (size_t) ceil(p->Reserved * (log2(p->Reserved * 10.0) / 3));
                 size_t reserveTarget =
-                    (MAX<size_t>(CEIL_POW_OF_2(size * 2), CEIL_POW_OF_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
+                    (max<size_t>(ceil_pow_of_2(size * 2), ceil_pow_of_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
 
                 p->Next->Storage = new (Malloc) char[reserveTarget];
                 p->Next->Reserved = reserveTarget;

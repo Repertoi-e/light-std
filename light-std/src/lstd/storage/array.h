@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../intrin.h"
 #include "../memory/allocator.h"
 #include "delegate.h"
 #include "owner_pointers.h"
@@ -31,7 +32,7 @@ struct array {
     void reserve(size_t target) {
         if (Count + target < Reserved) return;
 
-        target = MAX<size_t>(CEIL_POW_OF_2(target + Count + 1), 8);
+        target = max<size_t>(ceil_pow_of_2(target + Count + 1), 8);
 
         size_t targetBytes = target * sizeof(data_t);
         if (is_owner()) {

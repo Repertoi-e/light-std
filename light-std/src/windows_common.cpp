@@ -217,9 +217,9 @@ namespace internal {
 io::writer *g_ConsoleLog = &io::cout;
 }
 
-void *os_alloc(size_t size) { return HeapAlloc(GetProcessHeap(), 0, size); }
+void *os_alloc(size_t size) { return GlobalAlloc(0, size); }
 
-void os_free(void *ptr) { HeapFree(GetProcessHeap(), 0, ptr); }
+void os_free(void *ptr) { GlobalFree(ptr); }
 
 void os_exit(s32 exitCode) { ExitProcess(exitCode); }
 

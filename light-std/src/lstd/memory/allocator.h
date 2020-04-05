@@ -77,7 +77,7 @@ struct allocator {
 
     void *allocate_aligned(size_t size, alignment align, u64 userFlags = 0) const {
         align = (alignment)((size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align);
-        assert(IS_POW_OF_2((size_t) align));
+        assert(is_pow_of_2((size_t) align));
         return general_allocate(size, true, align, userFlags);
     }
 
@@ -87,7 +87,7 @@ struct allocator {
 
     static void *reallocate_aligned(void *ptr, size_t newSize, alignment align, u64 userFlags = 0) {
         align = (alignment)((size_t) align < POINTER_SIZE ? POINTER_SIZE : (size_t) align);
-        assert(IS_POW_OF_2((size_t) align));
+        assert(is_pow_of_2((size_t) align));
         return general_reallocate(ptr, newSize, true, align, userFlags);
     }
 
@@ -125,7 +125,7 @@ struct allocator {
         auto *result = (allocation_header *) ptr;
 
         result->ID = AllocationCount;
-        ATOMIC_INC_64((s64 *) &AllocationCount);
+        atomic_inc_64((s64 *) &AllocationCount);
 
         result->Function = function;
         result->Context = context;
@@ -186,13 +186,13 @@ struct allocator {
 
 // Calculates the required padding in bytes which needs to be added to _ptr_ in order to be aligned.
 inline size_t calculate_padding(void *ptr, size_t alignment) {
-    assert(alignment > 0 && IS_POW_OF_2(alignment));
+    assert(alignment > 0 && is_pow_of_2(alignment));
     return ((uptr_t) ptr / alignment + 1) * alignment - (uptr_t) ptr;
 }
 
 // Returns an aligned pointer.
 inline void *get_aligned_pointer(void *ptr, size_t alignment) {
-    assert(alignment > 0 && IS_POW_OF_2(alignment));
+    assert(alignment > 0 && is_pow_of_2(alignment));
     return (void *) (((uptr_t) ptr + alignment - 1) & ~(alignment - 1));
 }
 

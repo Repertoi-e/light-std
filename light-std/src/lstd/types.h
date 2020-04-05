@@ -52,6 +52,23 @@
 // - is_greater_comparable - whether two types can be compared with >
 // - is_less_equal_comparable - whether two types can be compared with <=
 // - is_greater_equal_comparable - whether two types can be compared with >=
+// - vec_info
+// - mat_info
+// - has_simd
+// - all
+// - any
+// - concat_type_list
+// - repeat_type
+// - is_vec
+// - is_swizzle
+// - is_mat
+// - is_mat_view
+// - is_quat
+// - is_vec_or_swizzle
+// - dim_of
+// - sum_of_dims
+// - merge_integer_sequence
+// - reverse_integer_sequence
 
 LSTD_BEGIN_NAMESPACE
 
@@ -1843,7 +1860,7 @@ constexpr bool is_trivially_copy_assignable_v = is_trivially_copy_assignable<T>:
 
 template <typename T>
 struct is_move_assignable : public is_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>> {};
-template <class T>
+template <typename T>
 constexpr bool is_move_assignable_v = is_move_assignable<T>::value;
 
 template <typename T>
@@ -1895,24 +1912,63 @@ struct integer_sequence {
     static_assert(is_integral_v<T>, "integer_sequence can only be instantiated with an integral type");
 };
 
-template <size_t N, typename IndexSeq>
-struct make_index_sequence_impl;
+template <typename T, size_t N, typename IndexSeq>
+struct make_integer_sequence_impl;
 
-template <size_t N, size_t... Is>
-struct make_index_sequence_impl<N, integer_sequence<size_t, Is...>> {
-    using type = typename make_index_sequence_impl<N - 1, integer_sequence<size_t, N - 1, Is...>>::type;
+template <typename T, size_t N, size_t... Is>
+struct make_integer_sequence_impl<T, N, integer_sequence<T, Is...>> {
+    using type = typename make_integer_sequence_impl<T, N - 1, integer_sequence<T, N - 1, Is...>>::type;
 };
 
-template <size_t... Is>
-struct make_index_sequence_impl<0, integer_sequence<size_t, Is...>> {
-    using type = integer_sequence<size_t, Is...>;
+template <typename T, size_t... Is>
+struct make_integer_sequence_impl<T, 0, integer_sequence<T, Is...>> {
+    using type = integer_sequence<T, Is...>;
 };
 
 template <size_t... Is>
 using index_sequence = integer_sequence<size_t, Is...>;
 
+template <typename T, size_t N>
+using make_integer_sequence = typename make_integer_sequence_impl<T, N, integer_sequence<T>>::type;
+
 template <size_t N>
-using make_index_sequence = typename make_index_sequence_impl<N, integer_sequence<size_t>>::type;
+using make_index_sequence = typename make_integer_sequence_impl<size_t, N, integer_sequence<size_t>>::type;
+
+template <typename IS1, typename IS2>
+struct merge_integer_sequence;
+
+template <typename T, T... Indices1, T... Indices2>
+struct merge_integer_sequence<integer_sequence<T, Indices1...>, integer_sequence<T, Indices2...>> {
+    using type = integer_sequence<T, Indices1..., Indices2...>;
+};
+
+template <typename IS1, typename IS2>
+struct merge_index_sequence;
+
+template <size_t... Indices1, size_t... Indices2>
+struct merge_index_sequence<index_sequence<Indices1...>, index_sequence<Indices2...>> {
+    using type = index_sequence<Indices1..., Indices2...>;
+};
+
+template <typename IS>
+struct reverse_integer_sequence;
+
+template <typename T, T Head, T... Indices>
+struct reverse_integer_sequence<integer_sequence<T, Head, Indices...>> {
+    using type =
+        typename merge_integer_sequence<typename reverse_integer_sequence<integer_sequence<T, Indices...>>::type,
+                                        integer_sequence<T, Head>>::type;
+};
+
+template <typename IS>
+struct reverse_index_sequence;
+
+template <size_t Head, size_t... Indices>
+struct reverse_index_sequence<index_sequence<Head, Indices...>> {
+    using type = typename merge_index_sequence<typename reverse_index_sequence<index_sequence<Indices...>>::type,
+                                        index_sequence<Head>>::type;
+};
+
 
 LSTD_END_NAMESPACE
 
@@ -2822,7 +2878,7 @@ struct numeric_info<u16> : public numeric_info_int_base {
 #endif
 
 template <>
-class numeric_info<char16_t> : public numeric_info_int_base {
+struct numeric_info<char16_t> : public numeric_info_int_base {
     static constexpr char16_t min() { return 0; }
     static constexpr char16_t max() { return U16_MAX; }
     static constexpr char16_t lowest() { return min(); }
@@ -2944,7 +3000,7 @@ struct numeric_info<s64> : public numeric_info_int_base {
 };
 
 template <>
-class numeric_info<u64> : public numeric_info_int_base {
+struct numeric_info<u64> : public numeric_info_int_base {
    public:
     static constexpr u64 min() { return 0; }
     static constexpr u64 max() { return U64_MAX; }
@@ -2962,7 +3018,7 @@ class numeric_info<u64> : public numeric_info_int_base {
 };
 
 template <>
-class numeric_info<f32> : public numeric_info_float_base {
+struct numeric_info<f32> : public numeric_info_float_base {
    public:
     static constexpr f32 min() { return F32_MIN; }
     static constexpr f32 max() { return F32_MAX; }
@@ -2984,7 +3040,7 @@ class numeric_info<f32> : public numeric_info_float_base {
 };
 
 template <>
-class numeric_info<f64> : public numeric_info_float_base {
+struct numeric_info<f64> : public numeric_info_float_base {
    public:
     static constexpr f64 min() { return F64_MIN; }
     static constexpr f64 max() { return F64_MAX; }
@@ -3006,7 +3062,7 @@ class numeric_info<f64> : public numeric_info_float_base {
 };
 
 template <>
-class numeric_info<lf64> : public numeric_info_float_base {
+struct numeric_info<lf64> : public numeric_info_float_base {
    public:
     static constexpr lf64 min() { return LONG_F64_MIN; }
     static constexpr lf64 max() { return LONG_F64_MAX; }
@@ -3107,3 +3163,229 @@ struct is_greater_equal_comparable<T, U, void_t<greater_equal_comparison_t<T, U>
 
 template <typename T, typename U>
 constexpr bool is_greater_equal_comparable_v = is_greater_equal_comparable<T, U>::value;
+
+//
+//
+//
+
+template <typename T, s64 Dim, bool Packed>
+struct vec_data;
+
+template <typename T, s64 Dim, bool Packed>
+struct vec;
+
+template <typename T, s64... Indices>
+struct swizzle;
+
+template <typename T, s64 Rows, s64 Columns, bool Packed>
+struct mat;
+
+template <typename MatrixT, s64 SRows, s64 SColumns>
+struct mat_view;
+
+template <typename T, bool Packed>
+struct tquat;
+
+//
+//
+//
+
+template <typename VectorT>
+struct vec_info_helper {};
+
+template <typename T_, s64 Dim_, bool Packed_>
+struct vec_info_helper<vec<T_, Dim_, Packed_>> {
+    using type = T_;
+
+    static constexpr s64 Dim = Dim_;
+    static constexpr bool Packed = Packed_;
+};
+
+template <typename T_, s64 Dim_, bool Packed_>
+struct vec_info_helper<vec_data<T_, Dim_, Packed_>> {
+    using type = T_;
+
+    static constexpr s64 Dim = Dim_;
+    static constexpr bool Packed = Packed_;
+};
+
+template <typename Vector>
+struct vec_info : public vec_info_helper<typename decay_t<Vector>> {};
+
+template <typename MatrixT>
+struct mat_info_helper {};
+
+template <typename T_, s64 R_, s64 C_, bool Packed_>
+struct mat_info_helper<mat<T_, R_, C_, Packed_>> {
+    using type = T_;
+
+    static constexpr s64 R = R_;
+    static constexpr s64 C = C_;
+    static constexpr bool Packed = Packed_;
+};
+
+template <typename MatrixT>
+struct mat_info : public mat_info_helper<decay_t<MatrixT>> {};
+
+template <typename VectorDataT>
+struct has_simd {
+    template <typename U>
+    static false_t test(...) {
+        return {};
+    }
+
+    template <typename U>
+    static decltype(U::Simd) test(s32) {
+        return {};
+    }
+
+    static constexpr bool value = !is_same_v<false_t, decltype(test<VectorDataT>(0))>;
+};
+
+template <typename VectorDataT>
+constexpr bool has_simd_v = has_simd<VectorDataT>::value;
+
+template <typename T, typename U>
+using mat_mul_elem_t = decltype(T() * U() + T() * U());
+
+template <template <typename> typename Cond, typename... T>
+struct all {
+    static constexpr bool value = (Cond<T>::value && ...);
+};
+
+template <template <typename> typename Cond, typename... T>
+inline constexpr bool all_v = all<Cond, T...>::value;
+
+template <template <typename> typename Cond, typename... T>
+struct any {
+    static constexpr bool value = (Cond<T>::value || ...);
+};
+
+template <template <typename> typename Cond, typename... T>
+inline constexpr bool any_v = any<Cond, T...>::value;
+
+template <typename... T>
+struct type_list {};
+
+template <typename Tl1, typename Tl2>
+struct concat_type_list;
+
+template <typename... T, typename... U>
+struct concat_type_list<type_list<T...>, type_list<U...>> {
+    using type = type_list<T..., U...>;
+};
+
+template <typename T, s32 N>
+struct repeat_type {
+    using type = type_select_t<N <= 0, type_list<>,
+                               typename concat_type_list<type_list<T>, typename repeat_type<T, N - 1>::type>::type>;
+};
+
+// Decide if type is Scalar, Vector or Matrix.
+template <typename T>
+struct is_vec {
+    static constexpr bool value = false;
+};
+
+template <typename T, s64 Dim, bool Packed>
+struct is_vec<vec<T, Dim, Packed>> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+constexpr bool is_vec_v = is_vec<T>::value;
+
+template <typename T>
+struct is_swizzle {
+    static constexpr bool value = false;
+};
+template <typename T, s64... Indices>
+struct is_swizzle<swizzle<T, Indices...>> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+constexpr bool is_swizzle_v = is_swizzle<T>::value;
+
+template <typename T>
+struct is_mat {
+    static constexpr bool value = false;
+};
+
+template <typename T, s64 R, s64 C, bool Packed>
+struct is_mat<mat<T, R, C, Packed>> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+constexpr bool is_mat_v = is_mat<T>::value;
+
+template <typename T>
+struct is_mat_view {
+    static constexpr bool value = false;
+};
+template <typename M, s64 R, s64 C>
+struct is_mat_view<mat_view<M, R, C>> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+constexpr bool is_mat_view_v = is_mat_view<T>::value;
+
+template <typename T>
+struct is_quat {
+    static constexpr bool value = false;
+};
+
+template <typename T, bool Packed>
+struct is_quat<tquat<T, Packed>> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+constexpr bool is_quat_v = is_quat<T>::value;
+
+template <typename T>
+struct is_vec_or_swizzle {
+    static constexpr bool value = is_vec_v<T> || is_swizzle_v<T>;
+};
+
+template <typename T>
+constexpr bool is_vec_or_swizzle_v = is_vec_or_swizzle<T>::value;
+
+// Dimension of an argument
+template <typename U, s32 Along = 0>
+struct dim_of {
+    static constexpr size_t value = 1;
+};
+
+template <typename T, s64 Dim, bool Packed>
+struct dim_of<vec<T, Dim, Packed>, 0> {
+    static constexpr size_t value = (size_t) Dim;
+};
+
+template <typename T, s64... Indices>
+struct dim_of<swizzle<T, Indices...>> {
+    static constexpr size_t value = sizeof...(Indices);
+};
+
+template <typename T>
+constexpr size_t dim_of_v = dim_of<T>::value;
+
+// Sum dimensions of arguments.
+template <typename... Rest>
+struct sum_of_dims;
+
+template <typename Head, typename... Rest>
+struct sum_of_dims<Head, Rest...> {
+    static constexpr size_t value =
+        dim_of_v<Head>> 0 ? dim_of_v<Head> + sum_of_dims<Rest...>::value : -1;  // -1 means error
+};
+
+template <>
+struct sum_of_dims<> {
+    static constexpr size_t value = 0;
+};
+
+template <typename... Rest>
+constexpr size_t sum_of_dims_v = sum_of_dims<Rest...>::value;

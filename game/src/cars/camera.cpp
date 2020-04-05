@@ -6,14 +6,14 @@ camera::camera() {
 }
 
 void camera::reinit() {
-    Position = vec3(-17.678f, 25.0f, -17.678f);
-    Rotation = vec3(-45.0f, -135.0f, 0.0f);
+    Position = v3(-17.678f, 25.0f, -17.678f);
+    Rotation = v3(-45.0f, -135.0f, 0.0f);
 
     Yaw = 3.0f * PI / 4.0f;
     Pitch = PI / 4.0f;
 
-    FocalPoint = vec3(0, 0, 0);
-    Distance = Position.distance(FocalPoint);
+    FocalPoint = v3(0, 0, 0);
+    Distance = len(FocalPoint - Position);
 }
 
 void camera::reset_constants() {
@@ -31,17 +31,17 @@ void camera::update() {
     // so assuming it's in the main window's viewport is fine.
     auto *win = GameMemory->MainWindow;
 
-    if (State->CameraType == camera_type::Maya) {
-        static vec2i lastMouse = {0, 0};
+    if (GameState->CameraType == camera_type::Maya) {
+        static vec2<s32> lastMouse = zero();
 
-        quat orientation = quat::ROTATION_Y(-Yaw) * quat::ROTATION_X(-Pitch);
-        vec3 right = quat::ROTATE(orientation, vec3(1, 0, 0));
-        vec3 up = quat::ROTATE(orientation, vec3(0, 1, 0));
-        vec3 forward = quat::ROTATE(orientation, -vec3(0, 0, 1));
+        quat orientation = rotation_rpy(0.0f, -Pitch, -Yaw);
+        v3 up = rotate_vec(v3(0, 1, 0), orientation);
+        v3 right = rotate_vec(v3(1, 0, 0), orientation);
+        v3 forward = rotate_vec(v3(0, 0, -1), orientation);
 
         if (win->Keys[Key_LeftControl]) {
-            vec2i mouse = win->get_cursor_pos();
-            vec2 delta = {(f32) mouse.x - lastMouse.x, (f32) mouse.y - lastMouse.y};
+            vec2<s32> mouse = win->get_cursor_pos();
+            v2 delta = {(f32) mouse.x - lastMouse.x, (f32) mouse.y - lastMouse.y};
             lastMouse = mouse;
 
             if (win->MouseButtons[Mouse_Button_Middle]) {
@@ -61,23 +61,22 @@ void camera::update() {
         }
         Position = FocalPoint - forward * Distance;
 
-        orientation = quat::ROTATION_Y(-Yaw) * quat::ROTATION_X(-Pitch);
-        Rotation = orientation.to_euler_angles() * (180.0f / PI);
-    } else if (State->CameraType == camera_type::FPS) {
-        if (State->MouseGrabbed) {
-            vec2i windowSize = win->get_size();
-
-            vec2i delta = win->get_cursor_pos() - windowSize / 2;
+        orientation = rotation_rpy(0.0f, -Pitch, -Yaw);
+        Rotation = to_euler_angles(orientation) / TAU * 360;
+    } else if (GameState->CameraType == camera_type::FPS) {
+        if (GameState->MouseGrabbed) {
+            vec2<s32> windowSize = win->get_size();
+            vec2<s32> delta = win->get_cursor_pos() - windowSize / 2;
             Yaw += delta.x * MouseSensitivity;
             Pitch += delta.y * MouseSensitivity;
             win->set_cursor_pos(windowSize / 2);
 
-            quat orientation = quat::ROTATION_Y(-Yaw) * quat::ROTATION_X(-Pitch);
-            Rotation = orientation.to_euler_angles() * (180.0f / PI);
+            quat orientation = rotation_rpy(-Pitch, -Yaw, 0.0f);
+            Rotation = to_euler_angles(orientation) / TAU * 360;
 
-            vec3 right = quat::ROTATE(orientation, vec3(1, 0, 0));
-            vec3 forward = quat::ROTATE(orientation, -vec3(0, 0, 1));
-            vec3 up = vec3(0, 1, 0);
+            v3 up = v3(0, 1, 0);
+            v3 right = rotate_vec(v3(1, 0, 0), orientation);
+            v3 forward = rotate_vec(v3(0, 0, -1), orientation);
 
             f32 speed = win->Keys[Key_LeftShift] ? SprintSpeed : Speed;
 

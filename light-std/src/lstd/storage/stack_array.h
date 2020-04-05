@@ -36,14 +36,12 @@ constexpr void quicksort(T *first, T *last) {
 
 template <typename T, size_t N>
 struct stack_array {
-    static_assert(N > 0, "Cannot have a zero-sized array.");
-
     using data_t = T;
 
     using iterator = data_t *;
     using const_iterator = const data_t *;
 
-    data_t Data[N];
+    data_t Data[N ? N : 1];
     static constexpr size_t Count = N;
 
     constexpr data_t &get(s64 index) { return Data[translate_index(index, Count)]; }

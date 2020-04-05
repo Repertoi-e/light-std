@@ -9,7 +9,7 @@ LSTD_BEGIN_NAMESPACE
 namespace fmt {
 
 enum class alignment { DEFAULT = 0, LEFT, RIGHT, CENTER, NUMERIC };
-enum class flag : u32 { SIGN = BIT(0), PLUS = BIT(1), MINUS = BIT(2), HASH = BIT(3) };
+enum class flag : u32 { sign = BIT(0), PLUS = BIT(1), MINUS = BIT(2), HASH = BIT(3) };
 
 constexpr flag operator|(flag lhs, flag rhs) {
     using T = underlying_type_t<flag>;

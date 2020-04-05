@@ -85,7 +85,7 @@ extern void win32_register_window_class();
 
 static array<monitor *> Monitors;
 
-static DWORD ForegroundLockTimeout;
+static DWORD ForeGROUNDLOCKTIMEOUT;
 
 static HWND HelperWindowHandle;
 static HDEVNOTIFY DeviceNotificationHandle;
@@ -123,7 +123,7 @@ void win32_monitor_init() {
     // To make SetForegroundWindow work as we want, we need to fiddle
     // with the FOREGROUNDLOCKTIMEOUT system setting (we do this as early
     // as possible in the hope of still being the foreground process)
-    SystemParametersInfoW(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, &ForegroundLockTimeout, 0);
+    SystemParametersInfoW(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, &ForeGROUNDLOCKTIMEOUT, 0);
     SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, UIntToPtr(0), SPIF_SENDCHANGE);
 
     shcore.hInstance = LoadLibraryA("shcore.dll");
@@ -189,7 +189,7 @@ struct win32_monitor_state {
     ~win32_monitor_state() {
 		DestroyWindow(HelperWindowHandle);
 
-        SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, UIntToPtr(ForegroundLockTimeout), SPIF_SENDCHANGE);
+        SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, UIntToPtr(ForeGROUNDLOCKTIMEOUT), SPIF_SENDCHANGE);
 
         if (shcore.hInstance) FreeLibrary(shcore.hInstance);
         if (ntdll.hInstance) FreeLibrary(ntdll.hInstance);
@@ -577,7 +577,7 @@ monitor *os_monitor_from_window(window *win) {
     return result;
 }
 
-vec2i os_get_monitor_pos(monitor *mon) {
+vec2<s32> os_get_monitor_pos(monitor *mon) {
     DEVMODEW dm;
     zero_memory(&dm, sizeof(dm));
     dm.dmSize = sizeof(dm);
@@ -587,7 +587,7 @@ vec2i os_get_monitor_pos(monitor *mon) {
     return {dm.dmPosition.x, dm.dmPosition.y};
 }
 
-vec2 os_get_monitor_content_scale(monitor *mon) {
+v2 os_get_monitor_content_scale(monitor *mon) {
     HMONITOR handle = mon->PlatformData.Win32.hMonitor;
 
     u32 xdpi, ydpi;

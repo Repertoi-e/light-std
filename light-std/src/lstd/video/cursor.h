@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../math.h"
 #include "../storage/pixel_buffer.h"
 
 struct HICON__;
@@ -36,7 +37,7 @@ struct cursor {
     } PlatformData{};
 
     cursor() = default;
-    cursor(const pixel_buffer &image, vec2i hot);
+    cursor(const pixel_buffer &image, vec2<s32> hot);
     cursor(os_cursor osCursor);
 
     void release();

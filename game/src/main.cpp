@@ -20,7 +20,7 @@ void setup_game_paths() {
     auto exePath = file::path(os_get_exe_name());
 
     file::path dllPath = exePath.directory();
-    dllPath.combine_with("grapher.dll");
+    dllPath.combine_with("cars.dll");
     DLL = new file::handle(dllPath);
 
     file::path buildLockPath = exePath.directory();
@@ -76,7 +76,7 @@ s32 main() {
     gameMemory.ExeMalloc = Malloc.Function;
     gameMemory.MainWindow =
         (new window)
-            ->init("Grapher", window::DONT_CARE, window::DONT_CARE, 1200, 600,
+            ->init("Cars", window::DONT_CARE, window::DONT_CARE, 1200, 600,
                    window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4);
 
     graphics g;
@@ -188,7 +188,7 @@ static void imgui_update_monitors() {
 
     platformIO.Monitors.resize(0);
     For(os_get_monitors()) {
-        vec2i pos = os_get_monitor_pos(it);
+        vec2<s32> pos = os_get_monitor_pos(it);
         auto displayMode = os_get_current_display_mode(it);
 
         ImGuiPlatformMonitor monitor;
@@ -199,7 +199,7 @@ static void imgui_update_monitors() {
         monitor.WorkPos = ImVec2((f32) workArea.X, (f32) workArea.Y);
         monitor.WorkSize = ImVec2((f32) workArea.Width, (f32) workArea.Height);
 
-        vec2 scale = os_get_monitor_content_scale(it);
+        v2 scale = os_get_monitor_content_scale(it);
         monitor.DpiScale = scale.x;
 
         platformIO.Monitors.push_back(monitor);
@@ -451,8 +451,8 @@ static void imgui_for_our_windows_new_frame(window *mainWindow) {
     ImGuiIO &io = ImGui::GetIO();
     assert(io.Fonts->IsBuilt());
 
-    vec2i windowSize = mainWindow->get_size();
-    vec2i frameBufferSize = mainWindow->get_framebuffer_size();
+    vec2<s32> windowSize = mainWindow->get_size();
+    vec2<s32> frameBufferSize = mainWindow->get_framebuffer_size();
     io.DisplaySize = ImVec2((f32) windowSize.x, (f32) windowSize.y);
     io.DisplayFramebufferScale = ImVec2((f32) frameBufferSize.x / windowSize.x, (f32) frameBufferSize.y / windowSize.y);
 
@@ -483,11 +483,11 @@ static void imgui_for_our_windows_new_frame(window *mainWindow) {
             if (io.WantSetMousePos) {
                 win->set_cursor_pos((s32)(mousePosBackup.x - it->Pos.x), (s32)(mousePosBackup.y - it->Pos.y));
             } else {
-                vec2i mouse = win->get_cursor_pos();
+                vec2<s32> mouse = win->get_cursor_pos();
                 if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
                     // Multi-viewport mode: mouse position in OS absolute coordinates (io.MousePos is (0,0) when the
                     // mouse is on the upper-left of the primary monitor)
-                    vec2i windowPos = win->get_pos();
+                    vec2<s32> windowPos = win->get_pos();
                     io.MousePos = ImVec2((f32)(mouse.x + windowPos.x), (f32)(mouse.y + windowPos.y));
                 } else {
                     // Single viewport mode: mouse position in client window coordinates (io.MousePos is (0,0) when the

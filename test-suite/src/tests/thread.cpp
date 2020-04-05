@@ -1,6 +1,6 @@
 #include "../test.h"
 
-#define DO_THREAD_TESTS
+#define DO_THREAD_TESTS // XXX
 #if defined DO_THREAD_TESTS
 
 TEST(hardware_concurrency) {

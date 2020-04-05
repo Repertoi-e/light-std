@@ -72,4 +72,4 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render_func);
 inline game_memory *GameMemory = null;
 inline graphics *Graphics = null;
 
-inline catalog<shader> *Shaders;
+inline catalog *AssetCatalog;

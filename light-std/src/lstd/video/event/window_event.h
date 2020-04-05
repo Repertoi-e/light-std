@@ -2,6 +2,7 @@
 
 #include "../../file.h"
 #include "../../storage/array.h"
+#include "../../math.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -48,7 +49,7 @@ struct window_refreshed_event {
 
 struct window_content_scale_changed_event {
     window *Window;
-    vec2 Scale;
+    v2 Scale;
 };
 
 struct window_files_dropped_event {

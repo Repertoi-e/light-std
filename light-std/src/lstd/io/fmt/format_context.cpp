@@ -124,7 +124,7 @@ void format_context::write(const void *value) {
     }
 
     auto uptr = bit_cast<uptr_t>(value);
-    u32 numDigits = COUNT_DIGITS<4>(uptr);
+    u32 numDigits = count_digits<4>(uptr);
 
     auto f = [&, this]() {
         this->write_no_specs(U'0');
@@ -150,15 +150,15 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
 
     size_t numDigits;
     if (type == 'd' || type == 'n') {
-        numDigits = COUNT_DIGITS(value);
+        numDigits = count_digits(value);
     } else if (to_lower(type) == 'b') {
-        numDigits = COUNT_DIGITS<1>(value);
+        numDigits = count_digits<1>(value);
     } else if (type == 'o') {
-        numDigits = COUNT_DIGITS<3>(value);
+        numDigits = count_digits<3>(value);
     } else if (to_lower(type) == 'x') {
-        numDigits = COUNT_DIGITS<4>(value);
+        numDigits = count_digits<4>(value);
     } else if (type == 'c') {
-        if (specs.Align == alignment::NUMERIC || specs.has_flag(flag::SIGN) || specs.has_flag(flag::PLUS) ||
+        if (specs.Align == alignment::NUMERIC || specs.has_flag(flag::sign) || specs.has_flag(flag::PLUS) ||
             specs.has_flag(flag::MINUS) || specs.has_flag(flag::HASH)) {
             on_error("Invalid format specifier for code point");
             return;
@@ -179,7 +179,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
         *prefixPointer++ = '-';
     } else if (specs.has_flag(flag::PLUS)) {
         *prefixPointer++ = '+';
-    } else if (specs.has_flag(flag::SIGN)) {
+    } else if (specs.has_flag(flag::sign)) {
         *prefixPointer++ = ' ';
     }
 
@@ -295,7 +295,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
         value = -value;
     } else if (specs.has_flag(flag::PLUS)) {
         sign = '+';
-    } else if (specs.has_flag(flag::SIGN)) {
+    } else if (specs.has_flag(flag::sign)) {
         sign = ' ';
     }
 
@@ -305,7 +305,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
             this, specs,
             [&, this]() {
                 if (sign) this->write_no_specs(sign);
-                this->write_no_specs((bits.U & ((1ll << 52) - 1)) ? (is_upper(specs.Type) ? "NAN" : "nan")
+                this->write_no_specs((bits.W & ((1ll << 52) - 1)) ? (is_upper(specs.Type) ? "NAN" : "nan")
                                                                   : (is_upper(specs.Type) ? "INF" : "inf"));
                 if (percentage) this->write_no_specs(U'%');
             },
@@ -381,7 +381,7 @@ struct width_checker {
 
     template <typename T>
     enable_if_t<is_integer_v<T>, u32> operator()(T value) {
-        if (IS_NEG(value)) {
+        if (sign_bit(value)) {
             F->on_error("Negative width");
             return (u32) -1;
         } else if ((u64) value > numeric_info<s32>::max()) {
@@ -403,7 +403,7 @@ struct precision_checker {
 
     template <typename T>
     enable_if_t<is_integer_v<T>, s32> operator()(T value) {
-        if (IS_NEG(value)) {
+        if (sign_bit(value)) {
             F->on_error("Negative precision");
             return numeric_info<s32>::min();
         } else if ((u64) value > numeric_info<s32>::max()) {

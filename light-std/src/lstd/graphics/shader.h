@@ -14,6 +14,63 @@ LSTD_BEGIN_NAMESPACE
 
 struct graphics;
 
+// @TODO: Move this... please..
+struct asset {
+    string Name;
+    file::path FilePath;
+};
+
+template <typename T>
+struct asset_collection {
+    struct bucket {
+        array<asset *> Assets;
+        bucket *Next = null;
+    };
+    bucket BaseBucket;
+    bucket *BucketList = &BaseBucket;
+
+    asset_collection() { BaseBucket.Assets.reserve(128); }
+    ~asset_collection() {
+        auto *b = BucketList->Next;  // The first bucket is on the stack
+        while (b) {
+            auto *toDelete = b;
+            b = b->Next;
+            delete toDelete;
+        }
+    }
+
+    // Creates a new asset if not found
+    T *get_or_create(string name) {
+        auto *b = BucketList;
+        while (b) {
+            auto index = b->Assets.find([&](auto x) { return x->Name == name; });
+            if (index != npos) return (T *) b->Assets[index];
+            b = b->Next;
+        }
+        T *result = new T;
+        clone(&result->Name, name);
+        add(result);
+        return result;
+    }
+
+   private:
+    void add(T *asst) {
+        auto *b = BucketList, *last = b;
+        while (b) {
+            if (b->Assets.Reserved != b->Assets.Count) {
+                b->Assets.append(asst);
+                return;
+            }
+            last = b;
+            b = b->Next;
+        }
+
+        last->Next = new bucket;
+        last->Next->Assets.reserve(128);
+        last->Next->Assets.append(asst);
+    }
+};
+
 // Holds both a vertex and a pixel shader (those are the two shader types we support for now!)
 struct shader : public asset, non_copyable, non_movable {
 #if OS == WINDOWS
@@ -60,7 +117,7 @@ struct shader : public asset, non_copyable, non_movable {
     shader() = default;
     ~shader() { release(); }
 
-    void init(graphics *g, file::path filePath);
+    void init(graphics *g, file::handle fileHandle);
     void init(graphics *g, string source);
 
     void bind() { Impl.Bind(this); }

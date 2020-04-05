@@ -2,8 +2,7 @@
 
 /// A header which provides type definitions as well as other helper macros
 
-#include "intrin/debug_break.h"
-#include "math.h"  // Maybe a mistake? Might increase compile times..
+#include "debug_break.h"
 #include "types.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:
@@ -27,9 +26,9 @@ constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
 #define BIT(x) (1 << (x))
 
 // Used in macros to get "unique" variable names
-#define LINE_NAME(name) _LINE_NAME_JOIN(name, __LINE__)
-#define _LINE_NAME_DO_JOIN(s1, s2) s1##s2
-#define _LINE_NAME_JOIN(s1, s2) _LINE_NAME_DO_JOIN(s1, s2)
+#define LINE_NAME(name) _MACRO_CONCAT(name, __LINE__)
+#define _MACRO_DO_CONCAT(s1, s2) s1##s2
+#define _MACRO_CONCAT(s1, s2) _MACRO_DO_CONCAT(s1, s2)
 
 // Go-style defer
 //

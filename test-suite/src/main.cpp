@@ -7,7 +7,7 @@ void run_tests() {
 
         u32 sucessfulProcs = 0;
         For(*tests) {
-            auto length = MIN<size_t>(30, it.Name.Length);
+            auto length = min<size_t>(30, it.Name.Length);
             fmt::print("        {:.{}} {:.^{}} ", it.Name, length, "", 35 - length);
 
             auto failedAssertsStart = asserts::GlobalFailed.Count;

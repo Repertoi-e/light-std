@@ -50,7 +50,7 @@ struct format_context : io::writer, non_copyable, non_movable {
     template <typename T>
     enable_if_t<is_integer_v<T>> write_no_specs(T value) {
         u64 absValue = (u64) value;
-        bool negative = IS_NEG(value);
+        bool negative = sign_bit(value);
         if (negative) absValue = 0 - absValue;
         write_u64(absValue, negative, {});
     }
@@ -74,7 +74,7 @@ struct format_context : io::writer, non_copyable, non_movable {
     template <typename T>
     enable_if_t<is_integral_v<T>> write(T value) {
         u64 absValue = (u64) value;
-        bool negative = IS_NEG(value);
+        bool negative = sign_bit(value);
         if (negative) absValue = 0 - absValue;
 
         if (Specs) {

@@ -88,7 +88,7 @@ void free_list_allocator_data::init(size_t totalSize, u8 policy) {
 
 void *free_list_allocator_data::allocate(size_t size, size_t align) {
     assert(size >= sizeof(node) && "Allocation size must be bigger");
-    assert(IS_POW_OF_2(align));
+    assert(is_pow_of_2(align));
     align = align < sizeof(free_list_header) ? sizeof(free_list_header) : align;
 
     // Search through the free list for a free block that has enough space to allocate our Data
@@ -116,7 +116,7 @@ void *free_list_allocator_data::allocate(size_t size, size_t align) {
     }
 
     Used += required;
-    PeakUsed = MAX(Used, PeakUsed);
+    PeakUsed = max(Used, PeakUsed);
 
     auto *header = (free_list_header *) ((char *) foundNode + alignmentPadding);
     header->BlockSize = required;
