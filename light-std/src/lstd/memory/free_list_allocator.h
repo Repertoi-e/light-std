@@ -22,19 +22,18 @@ struct free_list_allocator_data {
     void init(size_t totalSize, u8 policy);
 
    private:
-    void *allocate(size_t size, size_t align = 8);
+    void *allocate(size_t size);
     void free(void *memory);
 
-    size_t find_first(size_t size, size_t align, node **previousNode, node **foundNode);
-    size_t find_best(size_t size, size_t align, node **previousNode, node **foundNode);
+    size_t find_first(size_t size, node **previousNode, node **foundNode);
+    size_t find_best(size_t size, node **previousNode, node **foundNode);
 
-    friend void *free_list_allocator(allocator_mode, void *, size_t, void *, size_t, alignment, u64);
+    friend void *free_list_allocator(allocator_mode, void *, size_t, void *, size_t, u64);
 };
 
 // This allocator uses a pre-allocated large block and book keeps free nodes with a linked list.
 // It's suited for general use.
 // Supports two ways of finding free blocks - FIND_FIRST (faster), FIND_BEST (less memory fragmentation).
-void *free_list_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                          alignment align, u64);
+void *free_list_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64);
 
 LSTD_END_NAMESPACE

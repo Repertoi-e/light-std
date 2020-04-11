@@ -2,11 +2,7 @@
 
 #include <game.h>
 
-enum class camera_type : s32 { Maya, FPS };
-
 struct game_state {
-    camera_type CameraType = camera_type::Maya;
-
     texture_2D ViewportRenderTarget;
     size_t FBSizeCBID = npos, FocusCBID = npos;
 
@@ -21,7 +17,7 @@ struct game_state {
     bool MouseGrabbed = false;
 };
 
-struct camera {
+struct alignas(16) camera {
     v3 Position = {no_init};
     v3 Rotation = {no_init};
     v3 FocalPoint = {no_init};
@@ -35,6 +31,9 @@ struct camera {
     f32 MouseSensitivity;
     f32 Speed, SprintSpeed;
 
+    enum type : s32 { Maya, FPS };
+    type Type = Maya;
+
     camera();
 
     void reinit();
@@ -46,14 +45,15 @@ struct camera {
 void reload_scene();
 void update_and_render_scene();
 
+// @Volatile :vertex
 struct vertex {
-    v3 Position;
-    v4 Color;
+    v3 Position = {no_init};
+    v4 Color = {no_init};
 };
 
 // Uploaded to the GPU
 struct entity_uniforms {
-    m44 ModelMatrix = identity();
+    m44 ModelMatrix = {no_init};
 };
 
 struct model : asset {
@@ -66,7 +66,7 @@ struct mesh {
     model *Model = null;
 };
 
-struct entity {
+struct alignas(16) entity {
     v3 Position = v3(0, 0, 0);
     quat Orientation = quat(0, 0, 0, 1);
 
@@ -75,11 +75,11 @@ struct entity {
 
 // Uploaded to the GPU
 struct scene_uniforms {
-    m44 ViewMatrix = identity();
-    m44 ProjectionMatrix = identity();
+    m44 ViewMatrix = {no_init};
+    m44 ProjectionMatrix = {no_init};
 };
 
-struct scene {
+struct alignas(16) scene {
     camera Camera;
 
     shader SceneShader;
@@ -100,8 +100,11 @@ struct scene {
 
 inline game_state *GameState = null;
 inline scene *Scene = null;
+
 inline asset_collection<model> *Models = null;
 inline asset_collection<shader> *Shaders = null;
+inline asset_collection<texture_2D> *Texture2Ds = null;
+
 void reload_global_state();
 
 void editor_main();

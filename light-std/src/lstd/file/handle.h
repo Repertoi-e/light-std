@@ -1,8 +1,7 @@
 #pragma once
 
-#include "path.h"
-
 #include "../storage/delegate.h"
+#include "path.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -31,7 +30,7 @@ struct handle {
     handle(path path);
     handle(string str) : handle(path(str)) {}
     ~handle() {
-        if (Utf16Path && decode_owner<handle>(Utf16Path) == this) delete[]((char *) Utf16Path - POINTER_SIZE);
+        if (Utf16Path && decode_owner<handle>(Utf16Path) == this) delete Utf16Path;
     }
 
     // is_file() doesn't always equal !is_directory()

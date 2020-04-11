@@ -81,14 +81,16 @@ void editor_main() {
         }
     }
 
-    if (GameState->CameraType == camera_type::FPS && ImGui::InvisibleButton("##viewport", windowSize)) {
+    auto *cam = &Scene->Camera;
+    if (cam->Type == camera::FPS && ImGui::InvisibleButton("##viewport", windowSize)) {
         GameState->MouseGrabbed = true;
         GameMemory->MainWindow->set_cursor_mode(window::CURSOR_DISABLED);
     }
 
     if (GameState->ShowOverlay) {
         if (GameState->OverlayCorner != -1) {
-            ImVec2 pivot = ImVec2((GameState->OverlayCorner & 1) ? 1.0f : 0.0f, (GameState->OverlayCorner & 2) ? 1.0f : 0.0f);
+            ImVec2 pivot =
+                ImVec2((GameState->OverlayCorner & 1) ? 1.0f : 0.0f, (GameState->OverlayCorner & 2) ? 1.0f : 0.0f);
             ImGui::SetNextWindowPos(
                 ImVec2((GameState->OverlayCorner & 1) ? (windowPos.x + windowSize.x - 25) : (windowPos.x + 10),
                        (GameState->OverlayCorner & 2) ? (windowPos.y + windowSize.y - 10) : (windowPos.y + 25)),
@@ -157,22 +159,22 @@ void editor_scene_properties(camera *cam) {
     ImGui::Text("Camera");
     ImGui::BeginChild("##camera", {0, 180}, true);
     {
-        if (ImGui::RadioButton("Maya", (s32 *) &GameState->CameraType, (s32) camera_type::Maya)) cam->reinit();
+        if (ImGui::RadioButton("Maya", (s32 *) &cam->Type, (s32) camera::Maya)) cam->reinit();
         ImGui::SameLine();
-        if (ImGui::RadioButton("FPS", (s32 *) &GameState->CameraType, (s32) camera_type::FPS)) cam->reinit();
+        if (ImGui::RadioButton("FPS", (s32 *) &cam->Type, (s32) camera::FPS)) cam->reinit();
 
         ImGui::Text("Position: %.3f, %.3f, %.3f", cam->Position.x, cam->Position.y, cam->Position.z);
         ImGui::Text("Rotation: %.3f, %.3f, %.3f", cam->Rotation.x, cam->Rotation.y, cam->Rotation.z);
         ImGui::Text("Pitch: %.3f, yaw: %.3f", cam->Pitch, cam->Yaw);
 
-        if (GameState->CameraType == camera_type::Maya) {
+        if (cam->Type == camera::Maya) {
             ImGui::PushItemWidth(-140);
             ImGui::SliderFloat("Pan speed", &cam->PanSpeed, 0.0005f, 0.005f);
             ImGui::PushItemWidth(-140);
             ImGui::SliderFloat("Rotation speed", &cam->RotationSpeed, 0.0005f, 0.005f);
             ImGui::PushItemWidth(-140);
             ImGui::SliderFloat("Zoom speed", &cam->ZoomSpeed, 0.05f, 0.5f);
-        } else if (GameState->CameraType == camera_type::FPS) {
+        } else if (cam->Type == camera::FPS) {
             ImGui::PushItemWidth(-140);
             ImGui::SliderFloat("Speed", &cam->Speed, 0.01f, 10);
             ImGui::PushItemWidth(-140);

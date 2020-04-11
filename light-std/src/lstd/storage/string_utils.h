@@ -854,13 +854,13 @@ struct string_view {
     constexpr bool begins_with(char32_t cp) const { return get(0) == cp; }
     constexpr bool begins_with(string_view str) const {
         assert(str.ByteLength < ByteLength);
-        return compare_memory_constexpr(Data, str.Data, str.ByteLength) == npos;
+        return const_compare_memory(Data, str.Data, str.ByteLength) == npos;
     }
 
     constexpr bool ends_with(char32_t cp) const { return get(-1) == cp; }
     constexpr bool ends_with(string_view str) const {
         assert(str.ByteLength < ByteLength);
-        return compare_memory_constexpr(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == npos;
+        return const_compare_memory(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == npos;
     }
 
     // Compares two utf8 encoded strings and returns the index of the code point

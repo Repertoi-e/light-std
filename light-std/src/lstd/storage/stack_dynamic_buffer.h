@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../context.h"
 #include "string.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -42,10 +43,11 @@ struct stack_dynamic_buffer {
         target = max<size_t>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
         if (is_owner()) {
-            Data = (char *) allocator::reallocate(Data - POINTER_SIZE, target + POINTER_SIZE) + POINTER_SIZE;
+            Data = (char *) allocator::reallocate(Data, target);
         } else {
             auto *oldData = Data;
-            Data = encode_owner(new char[target + POINTER_SIZE], this);
+            Data = (char *) Context.Alloc.allocate(target);
+            encode_owner(Data, this);
             if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
         }
         Reserved = target;
@@ -55,11 +57,14 @@ struct stack_dynamic_buffer {
     // If this buffer doesn't own the memory it points to, this function does nothing.
     void release() {
         if (is_owner()) {
-            delete[](Data - POINTER_SIZE);
+            delete Data;
         }
         Data = null;
         ByteLength = Reserved = 0;
     }
+
+    // Don't free the buffer, just move cursor to 0
+    void reset() { ByteLength = 0; }
 
     // Allows negative reversed indexing which begins at the end
     char &get(s64 index) { return Data[translate_index(index, ByteLength)]; }

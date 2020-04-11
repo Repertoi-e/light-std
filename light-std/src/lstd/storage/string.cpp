@@ -46,11 +46,11 @@ void string::reserve(size_t target) {
     target = max<size_t>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
     if (is_owner()) {
-        Data -= POINTER_SIZE;
-        Data = (const char *) allocator::reallocate(const_cast<char *>(Data), target + POINTER_SIZE) + POINTER_SIZE;
+        Data = (const char *) allocator::reallocate(const_cast<char *>(Data), target);
     } else {
         auto *oldData = Data;
-        Data = encode_owner(new char[target + POINTER_SIZE], this);
+        Data = (const char *) Context.Alloc.allocate(target);
+        encode_owner(Data, this);
         if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
     }
     Reserved = target;
@@ -58,7 +58,7 @@ void string::reserve(size_t target) {
 
 void string::release() {
     if (is_owner()) {
-        delete[](Data - POINTER_SIZE);
+        delete Data;
     }
     Data = null;
     Length = ByteLength = Reserved = 0;
@@ -261,7 +261,7 @@ string *move(string *dest, string *src) {
     *dest = *src;
 
     if (!src->is_owner()) return dest;
-	
+
     // Transfer ownership
     change_owner(src->Data, dest);
     change_owner(dest->Data, dest);

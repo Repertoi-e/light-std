@@ -1409,11 +1409,11 @@ static void dispatcher(void *dest, const void *src, size_t num) {
         // bit slower. So this is for super old (P4) PC's!
         copy_memory = &mithril;
     } else {
-        copy_memory = &copy_memory_constexpr
+        copy_memory = &const_copy_memory
     }
 #endif
 #else
-    copy_memory = &copy_memory_constexpr
+    copy_memory = &const_copy_memory
 #endif
     // Once we set it, actually run it
     copy_memory(dest, src, num);
@@ -1440,7 +1440,7 @@ void optimized_fill_memory(void *dest, char c, size_t num) {
         remaining = num;
     }
 
-    fill_memory_constexpr(d, c, offset);
+    const_fill_memory(d, c, offset);
     d += offset;
 
     __m128i c16 = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
@@ -1448,13 +1448,13 @@ void optimized_fill_memory(void *dest, char c, size_t num) {
         _mm_store_si128((__m128i *) d, c16);
         d += 16;
     }
-    fill_memory_constexpr(d, c, remaining);
+    const_fill_memory(d, c, remaining);
 #else
     size_t offset = ((ptr_t) dest) % 4;
     size_t num4bytes = (num - offset) / 4;
     size_t remaining = num - num16bytes * 4 - offset;
 
-    fill_memory_constexpr(d, c, offset);
+    const_fill_memory(d, c, offset);
     d += offset;
 
     union {
@@ -1466,7 +1466,7 @@ void optimized_fill_memory(void *dest, char c, size_t num) {
         *((u32 *) d) = c4.Word;
         d += 4;
     }
-    fill_memory_constexpr(d, c, remaining);
+    const_fill_memory(d, c, remaining);
 #endif
 }
 

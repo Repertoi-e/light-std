@@ -3,6 +3,11 @@ newoption {
     description = "Disable linking with the Visual C++ Runtime Library on Windows."
 }
 
+newoption {
+    trigger = "dxmath",
+    description = "Include non cross-platform DirectXMath library for fast SIMD linear algebra on MSVC compilers."
+}
+
 workspace "light-std"
 	architecture "x64"
 	configurations { "Debug", "Release", "Dist" }
@@ -79,6 +84,12 @@ project "light-std"
 		"%{prj.name}/src/**.c",
 		"%{prj.name}/src/**.cpp"
 	}
+	filter "not options:dxmath"
+		excludes {
+			"%{prj.name}/src/dxmath/**.h",
+			"%{prj.name}/src/dxmath/**.cpp"
+		}
+	{}
 
 	common_settings()
 

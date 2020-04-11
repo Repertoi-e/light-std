@@ -257,7 +257,7 @@ window *window::init(string title, s32 x, s32 y, s32 width, s32 height, u32 flag
      ((GetAsyncKeyState(VK_NUMLOCK) & 1) ? Modifier_NumLock : 0))
 
 static void do_key_input_event(window *win, u32 key, char action, bool asyncMods = false) {
-    assert(key <= Key_Last);
+    assert(key <= Key_Last); // @TODO: Program asserts here when pressing Windows key 
 
     if (action == Key_Released && !win->Keys[key]) return;
 

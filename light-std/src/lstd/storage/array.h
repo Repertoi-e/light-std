@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../intrin.h"
-#include "../memory/allocator.h"
-#include "delegate.h"
-#include "owner_pointers.h"
+#include "../context.h"
 #include "stack_array.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -29,28 +26,49 @@ struct array {
     //
     // Allocates a buffer if the dynamic array doesn't already point to reserved memory
     // (using the Context's allocator).
-    void reserve(size_t target) {
+    //
+    // Can also specify a specific alignment for the elements.
+    void reserve(size_t target, u32 align = 0) {
         if (Count + target < Reserved) return;
-
         target = max<size_t>(ceil_pow_of_2(target + Count + 1), 8);
 
-        size_t targetBytes = target * sizeof(data_t);
-        if (is_owner()) {
-            void *actualData = (char *) Data - POINTER_SIZE;
-            Data = (data_t *) ((char *) allocator::reallocate(actualData, targetBytes + POINTER_SIZE) + POINTER_SIZE);
-        } else {
-            auto *oldData = Data;
-            Data = encode_owner((data_t *) new char[targetBytes + POINTER_SIZE], this);
-            if (Count) copy_memory(Data, oldData, Count * sizeof(data_t));
+        auto *oldData = Data;
+
+        // The owner will change with the next line, but we need it later to decide if we need to delete the old array
+        bool wasOwner = is_owner();
+
+        if (wasOwner) {
+            auto oldAlignment = ((allocation_header *) oldData - 1)->Alignment;
+            if (align == 0) {
+                align = oldAlignment;
+            } else {
+                assert(align == oldAlignment && "Reserving with different alignment. Specify zero to use the old one.");
+            }
         }
+
+        Data = (data_t *) Context.Alloc.allocate_aligned(target * sizeof(data_t), alignment(align));
+        encode_owner(Data, this);
+
+        // @Speed: We can make this faster if the elements don't have an explicit move/clone (but how do we know?)
+        auto *op = oldData, *p = Data;
+        For(range(Count)) {
+            if (wasOwner) {
+                move(p, op);
+            } else {
+                clone(p, *op);
+            }
+            ++op, ++p;
+        }
+
+        if (wasOwner) delete oldData;
+
         Reserved = target;
     }
 
     // Free any memory allocated by this object and reset count
     void release() {
-        if (is_owner()) {
-            delete[]((char *) Data - POINTER_SIZE);
-        }
+        reset();
+        if (is_owner()) delete Data;
         Data = null;
         Count = Reserved = 0;
     }
@@ -60,7 +78,7 @@ struct array {
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
         if (is_owner()) {
             while (Count) {
-                Data[Count].~data_t();
+                Data[Count - 1].~data_t();
                 --Count;
             }
         } else {

@@ -8,7 +8,7 @@ static void framebuffer_resized(const window_framebuffer_resized_event &e) {
     if (!GameMemory->MainWindow->is_visible()) return;
 
     GameState->ViewportRenderTarget.release();
-    GameState->ViewportRenderTarget.init_as_render_target(Graphics, "Docked Viewport Render Target", e.Width, e.Height);
+    GameState->ViewportRenderTarget.init_as_render_target(Graphics, e.Width, e.Height);
 }
 
 void release_state() {
@@ -49,16 +49,16 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         GameMemory = memory;
         Graphics = g;
 
-        if (!memory->Allocator) {
+        if (!memory->Alloc) {
             auto *allocatorData = new (Malloc) free_list_allocator_data;
             allocatorData->init(128_MiB, free_list_allocator_data::Find_First);
-            memory->Allocator = {free_list_allocator, allocatorData};
+            memory->Alloc = {free_list_allocator, allocatorData};
         }
         reload_global_state();
         reload_game_state();
     }
 
-    static camera_type oldCameraType = GameState->CameraType;
+    static camera::type oldCameraType = Scene->Camera.Type;
 
     auto *win = GameMemory->MainWindow;
     if ((win->Keys[Key_LeftControl] || win->Keys[Key_RightControl]) && win->KeysThisFrame[Key_F]) {
@@ -66,10 +66,10 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         
         // Ensure we use the FPS camera when we are not in the editor
         if (GameState->Editor) {
-            GameState->CameraType = oldCameraType;
+            Scene->Camera.Type = oldCameraType;
         } else {
-            oldCameraType = GameState->CameraType;
-            GameState->CameraType = camera_type::FPS;
+            oldCameraType = Scene->Camera.Type;
+            Scene->Camera.Type = camera::FPS;
         }
         
         if (GameState->MouseGrabbed) {

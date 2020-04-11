@@ -25,6 +25,8 @@ struct buffer_layout {
     size_t TotalSize = 0;  // Calculated in bytes (1-bit values add 7 bits of packing),
                            // generally used internally to calculate the offset for the next element
 
+    void add_padding(size_t bytes) { TotalSize += bytes; }
+
     void add(string name, gtype type, size_t count = 1, bool normalized = false) {
         size_t sizeInBits = get_size_of_base_gtype_in_bits(type);
 

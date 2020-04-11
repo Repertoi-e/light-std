@@ -43,7 +43,7 @@ struct table {
     // Number of slots that can't be used (valid or removed items)
     size_t SlotsFilled = 0;
 
-    uptr_t *Hashes = null;
+    uptr_t *Hashes = null; // @TODO: Why are we doing hashesh with _uptr_t_, what a fucking random type...
     key_t *Keys = null;
     value_t *Values = null;
 
@@ -68,7 +68,9 @@ struct table {
         // The owner will change with the next line, but we need it later to decide if we need to delete the old arrays
         bool wasOwner = is_owner();
 
-        Hashes = encode_owner(new (Context.Alloc, DO_INIT_FLAG) uptr_t[target + 1], this);
+        Hashes = (uptr_t *) Context.Alloc.allocate(target * sizeof(uptr_t), DO_INIT_FLAG);
+        encode_owner(Hashes, this);
+
         Keys = new key_t[target];
         Values = new value_t[target];
         Reserved = target;
@@ -81,7 +83,8 @@ struct table {
         }
 
         if (wasOwner) {
-            delete[]((char *) oldHashes - POINTER_SIZE);
+            // We allocate hashes as a byte buffer to make sure there's no compiler bookkeeping happening
+            delete oldHashes;
             delete[] oldKeys;
             delete[] oldValues;
         }
@@ -90,7 +93,8 @@ struct table {
     // Free any memory allocated by this object and reset count
     void release() {
         if (is_owner()) {
-            delete[]((char *) Hashes - POINTER_SIZE);
+            // We allocate hashes as a byte buffer to make sure there's no compiler bookkeeping happening
+            delete Hashes;
             delete[] Keys;
             delete[] Values;
         }

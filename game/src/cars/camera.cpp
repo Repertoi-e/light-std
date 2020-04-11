@@ -7,10 +7,10 @@ camera::camera() {
 
 void camera::reinit() {
     Position = v3(-17.678f, 25.0f, -17.678f);
-    Rotation = v3(-45.0f, -135.0f, 0.0f);
+    Rotation = v3(45.0f, 135.0f, 0.0f);
 
-    Yaw = 3.0f * PI / 4.0f;
-    Pitch = PI / 4.0f;
+    Yaw = 3 * TAU / 8;  // 135
+    Pitch = TAU / 8;    // 45
 
     FocalPoint = v3(0, 0, 0);
     Distance = len(FocalPoint - Position);
@@ -31,10 +31,10 @@ void camera::update() {
     // so assuming it's in the main window's viewport is fine.
     auto *win = GameMemory->MainWindow;
 
-    if (GameState->CameraType == camera_type::Maya) {
+    if (Type == Maya) {
         static vec2<s32> lastMouse = zero();
 
-        quat orientation = rotation_rpy(0.0f, -Pitch, -Yaw);
+        quat orientation = rotation_rpy(-Pitch, -Yaw, 0.0f);
         v3 up = rotate_vec(v3(0, 1, 0), orientation);
         v3 right = rotate_vec(v3(1, 0, 0), orientation);
         v3 forward = rotate_vec(v3(0, 0, -1), orientation);
@@ -59,11 +59,12 @@ void camera::update() {
                 }
             }
         }
-        Position = FocalPoint - forward * Distance;
+        orientation = rotation_rpy(-Pitch, -Yaw, 0.0f);
+        forward = rotate_vec(v3(0, 0, -1), orientation);
 
-        orientation = rotation_rpy(0.0f, -Pitch, -Yaw);
-        Rotation = to_euler_angles(orientation) / TAU * 360;
-    } else if (GameState->CameraType == camera_type::FPS) {
+        Position = FocalPoint - forward * Distance;
+        Rotation = to_euler_angles(orientation);
+    } else if (Type == FPS) {
         if (GameState->MouseGrabbed) {
             vec2<s32> windowSize = win->get_size();
             vec2<s32> delta = win->get_cursor_pos() - windowSize / 2;
@@ -72,7 +73,6 @@ void camera::update() {
             win->set_cursor_pos(windowSize / 2);
 
             quat orientation = rotation_rpy(-Pitch, -Yaw, 0.0f);
-            Rotation = to_euler_angles(orientation) / TAU * 360;
 
             v3 up = v3(0, 1, 0);
             v3 right = rotate_vec(v3(1, 0, 0), orientation);
@@ -97,6 +97,8 @@ void camera::update() {
             if (win->Keys[Key_LeftControl]) {
                 Position -= up * speed;
             }
+            FocalPoint = Position + forward;
+            Rotation = to_euler_angles(orientation);
         }
     } else {
         assert(false);

@@ -38,7 +38,7 @@ struct game_memory {
                                         // and that doesn't work when freeing
 
     window *MainWindow = null;
-    allocator Allocator;
+    allocator Alloc;
 
     table<string, void *> States;
 
@@ -63,7 +63,7 @@ struct game_memory {
         }                                                               \
     }
 
-#define GAME_NEW(type) new (GameMemory->Allocator) type
+#define GAME_NEW(type) new (alignment(16), GameMemory->Alloc) type
 
 #define GAME_UPDATE_AND_RENDER(name, ...) void name(game_memory *memory, graphics *g)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_func);

@@ -73,7 +73,7 @@ tquat<T, Packed> qmul(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) 
 template <typename T, bool QPacked, bool PackedA>
 vec<T, 3, PackedA> rotate_vec(const vec<T, 3, PackedA> &v, const tquat<T, QPacked> &q) {
     // Sandwich product
-    return vec<T, 3, PackedA>(qmul(q, qmul(tquat<T, QPacked>(v), inverse(q))));
+    return vec<T, 3, PackedA>(qmul(qmul(q, tquat<T, QPacked>(v)), inverse(q)));
 }
 
 // The euclidean length of the vector of the 4 elements of the quaternion

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../common.h"
-
 #include "owner_pointers.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -62,7 +61,8 @@ struct delegate<R(A...)> {
         using functor_type = decay_t<T>;
 
         StoreSize = sizeof(functor_type);
-        ObjectPtr = Store = encode_owner(new char[StoreSize + POINTER_SIZE], this);
+        ObjectPtr = Store = (char *) Context.Alloc.allocate(StoreSize);
+        encode_owner(Store, this);
         new (ObjectPtr) functor_type((T &&) f);
 
         StubPtr = functor_stub<functor_type>;
@@ -88,7 +88,8 @@ struct delegate<R(A...)> {
             release();
 
             StoreSize = requiredSize;
-            Store = encode_owner(new char[StoreSize + POINTER_SIZE], this);
+            Store = (char *) Context.Alloc.allocate(StoreSize);
+            encode_owner(Store, this);
         }
 
         ObjectPtr = Store;
@@ -162,7 +163,7 @@ struct delegate<R(A...)> {
         StubPtr = null;
         if (is_owner()) {
             DestructorCaller(ObjectPtr);
-            delete[](Store - POINTER_SIZE);
+            delete Store;
         }
     }
 
@@ -226,7 +227,8 @@ delegate<T> *clone(delegate<T> *dest, delegate<T> src) {
     dest->release();
     *dest = src;
     if (src.StoreSize) {
-        dest->Store = encode_owner(new char[src.StoreSize + POINTER_SIZE], dest);
+        dest->Store = (char *) Context.Alloc.allocate(src.StoreSize);
+        encode_owner(dest->Store, dest);
         copy_memory(dest->Store, src.Store, src.StoreSize);
     }
     return dest;
@@ -237,7 +239,7 @@ delegate<T> *move(delegate<T> *dest, delegate<T> *src) {
     dest->release();
     *dest = *src;
 
-    if (!src->is_owner()) return;
+    if (!src->is_owner()) return dest;
 
     // Transfer ownership
     if (src->Store) change_owner(src->Store, dest);

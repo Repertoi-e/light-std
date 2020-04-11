@@ -58,10 +58,9 @@ void shader::init(graphics *g, string source) {
 
 extern texture_2D::impl g_D3DTexture2DImpl;  // Defined in d3d_texture.cpp
 
-void texture_2D::init(graphics *g, string name, s32 width, s32 height, texture_filter filter, texture_wrap wrap) {
+void texture_2D::init(graphics *g, s32 width, s32 height, texture_filter filter, texture_wrap wrap) {
     Graphics = g;
 
-    clone(&Name, name);
     Width = width;
     Height = height;
 
@@ -76,10 +75,10 @@ void texture_2D::init(graphics *g, string name, s32 width, s32 height, texture_f
     Impl.Init(this);
 }
 
-void texture_2D::init_as_render_target(graphics *g, string name, s32 width, s32 height, texture_filter filter,
+void texture_2D::init_as_render_target(graphics *g, s32 width, s32 height, texture_filter filter,
                                        texture_wrap wrap) {
     RenderTarget = true;
-    init(g, name, width, height, filter, wrap);
+    init(g, width, height, filter, wrap);
 }
 
 LSTD_END_NAMESPACE

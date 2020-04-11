@@ -1,3 +1,6 @@
+// #include <dxmath/Inc/DirectXMath.h>
+// using namespace DirectX;
+
 #include "state.h"
 
 static void release_scene() {
@@ -6,8 +9,11 @@ static void release_scene() {
 }
 
 static void framebuffer_resized(const window_framebuffer_resized_event &e) {
-    Scene->Uniforms.ProjectionMatrix =
-        perspective(84 * TAU / 360, (f32) e.Width / e.Height, 0.01f, 1000.0f, 0.0f, 1.0f);
+    Scene->Uniforms.ProjectionMatrix = perspective(45 * TAU / 360, (f32) e.Width / e.Height, 0.1f, 1000.0f);
+
+    if (Graphics->API == graphics_api::Direct3D) {
+        Scene->Uniforms.ProjectionMatrix = T(Scene->Uniforms.ProjectionMatrix);
+    }
 }
 
 // _p_ represents the center of the cuboid and _s_ is the radius in all axis, _c_ is a list of colors for each vertex
@@ -23,8 +29,10 @@ void generate_cuboid_model(model *m, v3 p, v3 s, v4 c[8]) {
     m->VB.init(Graphics, buffer_type::Vertex_Buffer, buffer_usage::Immutable, sizeof(vertices),
                (const char *) vertices);
 
+    // @Volatile :vertex
     buffer_layout layout;
     layout.add("POSITION", gtype::F32_3);
+    layout.add_padding(sizeof(f32));
     layout.add("COLOR", gtype::F32_4);
     m->VB.set_input_layout(layout);
 
@@ -70,8 +78,10 @@ void generate_grid_model(model *m, vec2<s32> gridSize, f32 gridSpacing) {
     m->VB.init(Graphics, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, vertices.Count * sizeof(vertex),
                (const char *) vertices.Data);
 
+    // @Volatile :vertex
     buffer_layout layout;
     layout.add("POSITION", gtype::F32_3);
+    layout.add_padding(sizeof(f32));
     layout.add("COLOR", gtype::F32_4);
     m->VB.set_input_layout(layout);
 
@@ -84,6 +94,8 @@ void generate_grid_model(model *m, vec2<s32> gridSize, f32 gridSpacing) {
 
 void reload_scene() {
     release_scene();
+
+    Scene->Entities.reserve(0, 16);  // Allocate aligned entities
 
     auto *g = Graphics;
 
@@ -101,6 +113,8 @@ void reload_scene() {
     //
     {
         auto *cuboid = Scene->Entities.append();
+        cuboid->Position = zero();
+        cuboid->Orientation = identity();
         cuboid->Mesh.Shader = sceneShader;
 
         cuboid->Mesh.Model = Models->get_or_create("Cuboid Model");
@@ -119,12 +133,81 @@ void reload_scene() {
     //
     {
         auto *grid = Scene->Entities.append();
+        grid->Position = zero();
+        grid->Orientation = identity();
         grid->Mesh.Shader = sceneShader;
 
         grid->Mesh.Model = Models->get_or_create("Grid Model");
         grid->Mesh.Shader->bind();
         generate_grid_model(grid->Mesh.Model, Scene->GridSize, Scene->GridSpacing);
     }
+
+    //
+    // Textured quad
+    //
+    /*
+    AssetCatalog->load(
+        {file::path("BasicTexture.hlsl")},
+        [&](array<file::path> f) { Shaders->get_or_create("Basic Texture Shader")->init(g, file::handle(f[0])); },
+        true);
+
+    auto *texShader = Shaders->get_or_create("Basic Texture Shader");
+    auto *tquad = Scene->Entities.append();
+    tquad->Position = zero();
+    tquad->Orientation = identity();
+    tquad->Mesh.Shader = texShader;
+
+    tquad->Mesh.Model = Models->get_or_create("Grid Model");
+    tquad->Mesh.Shader->bind();
+
+    {
+        struct textured_vertex {
+            v3 Position;
+            v4 Color;
+            v2 UV;
+        };
+        textured_vertex vertices[] = {{v3(-0.5f, 0.5f, 0.0f), v4(1.0f, 1.0f, 1.0f, 1.0f), v2(0, 0)},
+                                      {v3(0.5f, 0.5f, 0.0f), v4(1.0f, 1.0f, 1.0f, 1.0f), v2(1, 0)},
+                                      {v3(0.5f, -0.5f, 0.0f), v4(1.0f, 1.0f, 1.0f, 1.0f), v2(1, 1)},
+                                      {v3(-0.5f, -0.5f, 0.0f), v4(1.0f, 1.0f, 1.0f, 1.0f), v2(0, 1)}};
+
+        auto *model = tquad->Mesh.Model;
+
+        model->VB.release();
+        model->VB.init(g, buffer_type::Vertex_Buffer, buffer_usage::Dynamic, sizeof(vertices));
+
+        buffer_layout layout;
+        layout.add("POSITION", gtype::F32_3);
+        layout.add_padding(sizeof(f32));
+        layout.add("COLOR", gtype::F32_4);
+        layout.add("TEXCOORD", gtype::F32_2);
+        layout.add_padding(sizeof(f32) * 2);
+        model->VB.set_input_layout(layout);
+
+        auto *data = model->VB.map(buffer_map_access::Write_Unsynchronized);
+        copy_memory(data, vertices, sizeof(vertices));
+        model->VB.unmap();
+
+        u32 indices[] = {0, 1, 2, 2, 3, 0};
+
+        model->IB.release();
+        model->IB.init(g, buffer_type::Index_Buffer, buffer_usage::Immutable, sizeof(indices), (const char *)
+    indices);
+
+        model->PrimitiveTopology = primitive_topology::TriangleList;
+    }
+
+    auto *tex = Texture2Ds->get_or_create("Cake Texture");
+
+    AssetCatalog->load(
+        {file::path("chocolate-pancake.bmp")},
+        [&](array<file::path> f) {
+            auto texData = pixel_buffer(f[0]);
+            tex->init(g, texData.Width, texData.Height);
+            tex->set_data(texData);
+        },
+        true);
+    */
 
     vec2<s32> windowSize = GameMemory->MainWindow->get_size();
     framebuffer_resized({GameMemory->MainWindow, windowSize.x, windowSize.y});
@@ -155,18 +238,20 @@ void update_and_render_scene() {
             grid->Position.z = (f32)(s64)(cam->Position.z / s) * s + s / 2;
         }
 
-        if (GameState->CameraType == camera_type::Maya) {
-            Scene->Uniforms.ViewMatrix = translation(0, 0, 1);
-        } else if (GameState->CameraType == camera_type::FPS) {
-            Scene->Uniforms.ViewMatrix = identity();
-        }
-        quat cameraOrientation = rotation_rpy(-cam->Pitch, -cam->Yaw, 0.0f);
-        Scene->Uniforms.ViewMatrix *= dot(m44(inverse(cameraOrientation)), (m44) translation(-cam->Position));
+        auto *su = &Scene->Uniforms;
+        su->ViewMatrix = (m44) look_at(cam->Position, cam->FocalPoint, v3(0, 1, 0), false, false, false);
+        su->ViewMatrix = dot((m44) translation(0, 0, 1), su->ViewMatrix);
+
+        if (g->API == graphics_api::Direct3D) su->ViewMatrix = T(su->ViewMatrix);
 
         g->set_target_window(GameMemory->MainWindow);
 
         if (GameState->Editor) g->set_custom_render_target(&GameState->ViewportRenderTarget);
         g->set_depth_testing(true);
+
+        // @Bug: This culls the front of the cuboid (the indices are most probably wrong)
+        // g->set_cull_mode(cull::Back);
+
         g->clear_color(GameState->ClearColor);
 
         auto *sceneUB = Scene->SceneUB.map(buffer_map_access::Write_Discard_Previous);
@@ -179,7 +264,9 @@ void update_and_render_scene() {
                 it.Mesh.Shader->bind();
 
                 entity_uniforms uniforms;
-                uniforms.ModelMatrix = dot((m44) it.Orientation, (m44) translation(it.Position));
+                uniforms.ModelMatrix = translation(it.Position);
+
+                if (g->API == graphics_api::Direct3D) uniforms.ModelMatrix = T(uniforms.ModelMatrix);
 
                 auto *objectUB = Scene->EntityUB.map(buffer_map_access::Write_Discard_Previous);
                 copy_memory(objectUB, &uniforms, sizeof(uniforms));

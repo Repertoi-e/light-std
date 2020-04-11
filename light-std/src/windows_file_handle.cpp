@@ -3,9 +3,8 @@
 #if OS == WINDOWS
 
 #include "lstd/file.h"
-#include "lstd/os.h"
-
 #include "lstd/io/fmt.h"
+#include "lstd/os.h"
 
 #undef MAC
 #undef _MAC
@@ -19,7 +18,7 @@ namespace file {
     HANDLE handleName = call;                                                                                   \
     if (handleName == INVALID_HANDLE_VALUE) {                                                                   \
         string extendedCallSite;                                                                                \
-        fmt::sprint(&extendedCallSite, "{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, Path);                           \
+        fmt::sprint(&extendedCallSite, "{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, Path);    \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
         return returnOnFail;                                                                                    \
     }
@@ -27,7 +26,9 @@ namespace file {
 handle::handle(path path) {
     clone(const_cast<file::path *>(&Path), path);
 
-    Utf16Path = (wchar_t *) encode_owner(new char[(path.UnifiedPath.Length + 1) * 2 + POINTER_SIZE], this);
+    Utf16Path = (wchar_t *) Context.Alloc.allocate((path.UnifiedPath.Length + 1) * sizeof(wchar_t));
+    encode_owner(Utf16Path, this);
+
     utf8_to_utf16(path.UnifiedPath.Data, path.UnifiedPath.Length, Utf16Path);
 }
 

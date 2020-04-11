@@ -39,14 +39,14 @@ struct hasher {
         ByteLength += size;
 
         if (BufferPtr + size < BufferEnd) {
-            copy_memory_constexpr(BufferPtr, data, size);
+            const_copy_memory(BufferPtr, data, size);
             BufferPtr += size;
             return true;
         }
 
         if (BufferPtr != Buffer) {
             size_t available = BufferEnd - BufferPtr;
-            copy_memory_constexpr(BufferPtr, data, available);
+            const_copy_memory(BufferPtr, data, available);
             data += available;
 
             process(Buffer);
@@ -156,14 +156,14 @@ struct hasher {
         ByteLength += size;
 
         if (BufferPtr + size < BufferEnd) {
-            copy_memory_constexpr(BufferPtr, data, size);
+            const_copy_memory(BufferPtr, data, size);
             BufferPtr += size;
             return true;
         }
 
         if (BufferPtr != Buffer) {
             size_t available = BufferEnd - BufferPtr;
-            copy_memory_constexpr(BufferPtr, data, available);
+            const_copy_memory(BufferPtr, data, available);
             data += available;
 
             process(Buffer);

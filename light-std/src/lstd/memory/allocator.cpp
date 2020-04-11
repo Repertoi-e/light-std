@@ -14,8 +14,7 @@ void os_free_wrapper(void *, void *ptr) { os_free(ptr); }
 static bool MallocInitted = false;
 static char Heap[STBM_HEAP_SIZEOF];
 
-void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                        alignment align, u64) {
+void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64) {
     if (!MallocInitted) {
         stbm_heap_config hc;
         zero_memory(&hc, sizeof(hc));
@@ -36,20 +35,8 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
     switch (mode) {
         case allocator_mode::ALLOCATE:
             return stbm_alloc(null, (stbm_heap *) Heap, size, 0);
-        case allocator_mode::ALIGNED_ALLOCATE:
-            return stbm_alloc_align(null, (stbm_heap *) Heap, size, 0, (size_t) align, 0);
         case allocator_mode::REALLOCATE:
             return stbm_realloc(null, (stbm_heap *) Heap, oldMemory, size, 0);
-        case allocator_mode::ALIGNED_REALLOCATE: {
-            if (size <= oldSize) return oldMemory;
-
-            void *newPtr = stbm_alloc_align(null, (stbm_heap *) Heap, size, 0, (size_t) align, 0);
-            if (!newPtr) return null;
-
-            copy_memory(newPtr, oldMemory, oldSize);
-            stbm_free(null, (stbm_heap *) Heap, oldMemory);
-            return newPtr;
-        }
         case allocator_mode::FREE:
             stbm_free(null, (stbm_heap *) Heap, oldMemory);
             return null;
@@ -61,23 +48,17 @@ void *default_allocator(allocator_mode mode, void *context, size_t size, void *o
     return null;
 }
 
-void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, alignment align,
-                   u64) {
+void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64) {
     switch (mode) {
-        case allocator_mode::ALIGNED_ALLOCATE:
-            size += (size_t) align;
-            [[fallthrough]];
         case allocator_mode::ALLOCATE: {
             void *result = os_alloc(size);
-            if (mode == allocator_mode::ALIGNED_ALLOCATE) result = get_aligned_pointer(result, (size_t) align);
             return result;
         }
-        case allocator_mode::ALIGNED_REALLOCATE:
         case allocator_mode::REALLOCATE: {
-            // @Speed: Make an _os_realloc_ and use that..
+            // @Speed: Make an _os_realloc_ and use that
             if (size <= oldSize) return oldMemory;
 
-            auto *newMemory = os_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, align, 0);
+            auto *newMemory = os_allocator(allocator_mode::ALLOCATE, context, size, null, 0, 0);
             copy_memory(newMemory, oldMemory, oldSize);
             os_free(oldMemory);
             return newMemory;
@@ -93,8 +74,7 @@ void *os_allocator(allocator_mode mode, void *context, size_t size, void *oldMem
     return null;
 }
 
-void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize,
-                          alignment align, u64) {
+void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64) {
 #if COMPILER == MSVC
 #pragma warning(push)
 #pragma warning(disable : 4146)
@@ -109,9 +89,6 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
     }
 
     switch (mode) {
-        case allocator_mode::ALIGNED_ALLOCATE:
-            size += (size_t) align;
-            [[fallthrough]];
         case allocator_mode::ALLOCATE: {
             auto *p = &data->Base;
 
@@ -139,22 +116,13 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
 
             p->Used += size;
             data->TotalUsed += size;
-
-            if (mode == allocator_mode::ALIGNED_ALLOCATE) result = get_aligned_pointer(result, (size_t) align);
-
             return result;
         }
         // Reallocations aren't really viable with this allocator
         // so we just copy the old memory into a fresh block
-        case allocator_mode::ALIGNED_REALLOCATE: {
-            if (size <= oldSize) return oldMemory;
-            void *result = temporary_allocator(allocator_mode::ALIGNED_ALLOCATE, context, size, null, 0, align, 0);
-            copy_memory(result, oldMemory, oldSize);
-            return result;
-        }
         case allocator_mode::REALLOCATE: {
             if (size <= oldSize) return oldMemory;
-            void *result = temporary_allocator(allocator_mode::ALLOCATE, context, size, null, 0, align, 0);
+            void *result = temporary_allocator(allocator_mode::ALLOCATE, context, size, null, 0, 0);
             copy_memory(result, oldMemory, oldSize);
             return result;
         }
@@ -200,14 +168,10 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
     return null;
 }
 
-void implicit_context::release_temporary_allocator() const {
-    if (!TemporaryAllocData.Base.Reserved) return;
-
-    // Free any left-over overflow pages!
-    TemporaryAlloc.free_all();
-
-    delete[] TemporaryAllocData.Base.Storage;
-    *const_cast<temporary_allocator_data *>(&TemporaryAllocData) = {};
+void get_an_allocator(allocator **alloc) {
+    if (!*alloc) *alloc = &const_cast<implicit_context *>(&Context)->Alloc;
+    if (!**alloc) **alloc = Context.Alloc;
+    assert(**alloc);
 }
 
 LSTD_END_NAMESPACE
@@ -216,9 +180,7 @@ void *operator new(size_t size) { return operator new(size, null, 0); }
 void *operator new[](size_t size) { return operator new(size, null, 0); }
 
 void *operator new(size_t size, allocator *alloc, u64 userFlags) noexcept {
-    if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
-    if (!*alloc) *alloc = Context.Alloc;
-    assert(*alloc);
+    get_an_allocator(&alloc);
     return alloc->allocate(size, userFlags);
 }
 
@@ -234,9 +196,7 @@ void *operator new[](size_t size, allocator alloc, u64 userFlags) noexcept {
 }
 
 void *operator new(size_t size, alignment align, allocator *alloc, u64 userFlags) noexcept {
-    if (!alloc) alloc = &const_cast<implicit_context *>(&Context)->Alloc;
-    if (!*alloc) *alloc = Context.Alloc;
-    assert(*alloc);
+    get_an_allocator(&alloc);
     return alloc->allocate_aligned(size, align, userFlags);
 }
 

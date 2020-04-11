@@ -30,7 +30,7 @@ void imgui_renderer::init(graphics *g) {
     u8 *pixels = null;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-    FontTexture.init(g, "UI Font Texture", width, height);
+    FontTexture.init(g, width, height);
     FontTexture.set_data(pixel_buffer(pixels, width, height, pixel_format::RGBA));
 
     io.Fonts->TexID = &FontTexture;

@@ -89,7 +89,8 @@ TEST(writing_hello_250_times) {
 // This is just causing more trouble that I want to cope with.
 // Not a good idea for a test at all honestly.
 // It was working the last time I tested it though.
-//                                         - 3.04.2020
+//                                                  - 3.04.2020
+//
 
 /*
 TEST(test_introspection) {

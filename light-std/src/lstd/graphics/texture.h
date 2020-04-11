@@ -3,6 +3,7 @@
 #include "../file.h"
 #include "../storage/pixel_buffer.h"
 #include "gtype.h"
+#include "shader.h"
 
 #if OS == WINDOWS
 struct ID3D11Texture2D;
@@ -19,7 +20,7 @@ enum class texture_filter { Linear, Nearest };
 
 struct graphics;
 
-struct texture_2D {
+struct texture_2D : asset {
 #if OS == WINDOWS
     struct {
         ID3D11Texture2D *Texture = null;
@@ -43,8 +44,6 @@ struct texture_2D {
 
     graphics *Graphics;
 
-    string Name;  // @TODO: _texture_ should be an asset, move this field when we have a catalog system
-
     s32 Width = 0;
     s32 Height = 0;
 
@@ -57,10 +56,9 @@ struct texture_2D {
     texture_2D() = default;
     ~texture_2D() { release(); }
 
-    void init(graphics *g, string name, s32 width, s32 height, texture_filter filter = texture_filter::Linear,
+    void init(graphics *g, s32 width, s32 height, texture_filter filter = texture_filter::Linear,
               texture_wrap wrap = texture_wrap::Clamp);
-    void init_as_render_target(graphics *g, string name, s32 width, s32 height,
-                               texture_filter filter = texture_filter::Linear,
+    void init_as_render_target(graphics *g, s32 width, s32 height, texture_filter filter = texture_filter::Linear,
                                texture_wrap wrap = texture_wrap::Repeat);
 
     void set_data(pixel_buffer data) { Impl.SetData(this, data); }
@@ -69,6 +67,7 @@ struct texture_2D {
         BoundSlot = slot;
         Impl.Bind(this);
     }
+
     void unbind() {
         Impl.Unbind(this);
         BoundSlot = (u32) -1;

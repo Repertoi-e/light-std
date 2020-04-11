@@ -183,11 +183,21 @@ auto rotation_euler(T z1, T x2, T z3) {
     return rotation_axis_3<2, 0, 2>(z1, x2, z3);
 }
 
+template <typename T, bool Packed>
+auto rotation_euler(vec<T, 3, Packed> v) {
+    return rotation_axis_3<2, 0, 2>(v.x, v.y, v.z);
+}
+
 // Rotation matrix from roll-pitch-yaw angles. Rotations are X-Y-Z.
 // Each rotation according to the right (and left) hand rule in right (and left) handed systems.
 template <typename T>
 auto rotation_rpy(T x1, T y2, T z3) {
     return rotation_axis_3<0, 1, 2>(x1, y2, z3);
+}
+
+template <typename T, bool Packed>
+auto rotation_rpy(vec<T, 3, Packed> v) {
+    return rotation_axis_3<0, 1, 2>(v.x, v.y, v.z);
 }
 
 template <typename T, bool Packed>
