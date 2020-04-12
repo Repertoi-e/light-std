@@ -84,12 +84,13 @@ project "light-std"
 		"%{prj.name}/src/**.c",
 		"%{prj.name}/src/**.cpp"
 	}
+
 	filter "not options:dxmath"
-		excludes {
+		excludes  {
 			"%{prj.name}/src/dxmath/**.h",
 			"%{prj.name}/src/dxmath/**.cpp"
 		}
-	{}
+	filter {}
 
 	common_settings()
 

@@ -543,75 +543,6 @@ TEST(transform_translation) {
     vec<f32, 5> vexp(2, 4, 6, 8, 10);
     assert_eq(v, vexp);
 }
-template <typename T>
-struct frustrum {
-    stack_array<vec<T, 3>, 4> Near = make_stack_array_of_uninitialized_math_type<vec<T, 3>, 4>();
-    stack_array<vec<T, 3>, 4> Far = make_stack_array_of_uninitialized_math_type<vec<T, 3>, 4>();
-    stack_array<vec<T, 3>, 16> Middle = make_stack_array_of_uninitialized_math_type<vec<T, 3>, 16>();
-
-    frustrum(T nearPlane, T farPlane, T angle, T aspect) {
-        T dxdz = (T) tan(angle / 2);
-        T dydz = dxdz / aspect;
-        vec<T, 3> dir(dxdz, dydz, 1);
-        For(range(4)) {
-            T xside = x_side(it);
-            T yside = y_side(it);
-            vec<T, 3> side(xside, yside, 1);
-            Near[it] = side * dir * vec<T, 3>(abs(nearPlane), abs(nearPlane), nearPlane);
-            Far[it] = side * dir * vec<T, 3>(abs(farPlane), abs(farPlane), farPlane);
-        }
-
-        For(range(16)) {
-            vec<T, 3> scale(0.3f, 0.3f, 1);
-            f32 t = f32(it + 1) / f32(17);
-            f32 distance = t * farPlane + (1 - t) * nearPlane;
-            Middle[it] = dir * scale * vec<T, 3>(abs(distance), abs(distance), distance);
-        }
-    }
-
-    static T x_side(s64 i) { return (T)((i == 0 || i == 3) ? -1 : 1); }
-    static T y_side(s64 i) { return (T)((i == 0 || i == 1) ? -1 : 1); }
-};
-
-TEST(transform_perspective) {
-    const s32 cases = 5;
-
-    f32 fov = 45 * TAU / 360;
-    f32 ar = 2.0f;
-
-    // "View Z+, NDC 0:1", "View Z-, NDC 0:1", "View Z+, NDC 1:-1", "View Z-, NDC 1:-1", "View Z+, NDC 3:2",
-    f32 nearSet[cases] = {0.5f, -0.5f, 0.5f, -0.5f, 0.5f};
-    f32 farSet[cases] = {10.0f, -10.0f, 10.0f, -10.0f, 10.f};
-    f32 pnearSet[cases] = {0.0f, 0.0f, 1.0f, 1.0f, 2.0f};
-    f32 pfarSet[cases] = {1.0f, 1.0f, -1.0f, -1.0f, 3.0f};
-
-    For(range(cases)) {
-        f32 near = nearSet[it];
-        f32 far = farSet[it];
-        f32 pnear = pnearSet[it];
-        f32 pfar = pfarSet[it];
-
-        frustrum<f32> frustum(near, far, fov, ar);
-        matf<4, 4> m = perspective(fov, ar, near, far, pnear, pfar);
-        For(range(4)) {
-            auto vt = dot(frustum.Near[it], m);
-            assert_eq(vt.z, approx(pnear));
-            assert_eq(vt.x, approx(frustum.x_side(it)));
-            assert_eq(vt.y, approx(frustum.y_side(it)));
-        }
-        For(range(4)) {
-            auto vt = dot(frustum.Far[it], m);
-            assert_eq(vt.z, approx(pfar));
-            assert_eq(vt.x, approx(frustum.x_side(it)));
-            assert_eq(vt.y, approx(frustum.y_side(it)));
-        }
-        For_as(v, frustum.Middle) {
-            auto vt = dot(v, m);
-            assert_le(vt.z, max(pnear, pfar));
-            assert_ge(vt.z, min(pfar, pnear));
-        }
-    }
-}
 
 TEST(transform_orthographic) {
     using Vec = vec<f32, 3>;
@@ -684,16 +615,6 @@ TEST(transform_view) {
     assert_eq(dot(basis.Center + basis.Basis3, mftt), approx_vec(Vec(0, -1, 0)));
 
     For(range(6)) assert_eq(dot(worldVecs[it], m), approx_vec(Vec(viewVecs[it].yzx)));
-}
-
-TEST(transform_perspective_2d) {
-    using Vec = vec<f32, 2>;
-    stack_array<Vec, 4> frustum = {Vec(-2, 2), Vec(2, 2), Vec(-1, 1), Vec(1, 1)};
-
-    matf<3, 3> m = perspective(90 * TAU / 360, 1.0f, 2.0f, 0.0f, 1.0f);
-
-    stack_array<Vec, 4> ndcexp = {Vec(-1, 1), Vec(1, 1), Vec(-1, 0), Vec(1, 0)};
-    For(range(4)) assert_eq(dot(frustum[it], m), approx_vec(ndcexp[it]));
 }
 
 TEST(transform_view_2d) {
