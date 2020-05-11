@@ -5,7 +5,7 @@ newoption {
 
 newoption {
     trigger = "dxmath",
-    description = "Include non cross-platform DirectXMath library for fast SIMD linear algebra on MSVC compilers."
+    description = "Include non cross-platform DirectXMath library for fast SIMD linear algebra on MSVC compiler."
 }
 
 workspace "light-std"
@@ -79,7 +79,6 @@ project "light-std"
 
 	files {
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.hpp", -- XXX
 		"%{prj.name}/src/**.inc",
 		"%{prj.name}/src/**.c",
 		"%{prj.name}/src/**.cpp"

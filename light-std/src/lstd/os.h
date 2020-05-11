@@ -1,8 +1,17 @@
 #pragma once
 
-#include "storage/string.h"
+#include "types.h"
 
-/// Platform specific general functions
+LSTD_BEGIN_NAMESPACE
+
+// @Avoid#include
+template <typename T>
+struct array;
+
+// @Avoid#include
+struct string;
+
+/// General functions related to platform specific tasks - implemented in platform files accordingly
 
 // Allocates memory by calling OS functions
 void *os_alloc(size_t size);
@@ -27,6 +36,8 @@ void os_set_clipboard_content(string content);
 
 // Returns the path of the current exe (full dir + name)
 string os_get_exe_name();
+
+array<string> os_get_command_line_arguments();
 
 // Utility to report hresult errors produces by calling windows functions.
 // Shouldn't be used on other platforms
@@ -58,3 +69,5 @@ void windows_report_hresult_error(long hresult, string call, string file, s32 li
     }
 
 #endif  // OS == WINDOWS
+
+LSTD_END_NAMESPACE

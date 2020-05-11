@@ -13,14 +13,17 @@
 static dynamic_library GameLibrary;
 static game_update_and_render_func *GameUpdateAndRender = null;
 
+static string Target = "cars.dll";
 static file::handle *DLL = null,
                     *Buildlock = null;  // Allocated dynamically because we can't assign to already constructed
 
 void setup_game_paths() {
+    assert(Target != "");
+
     auto exePath = file::path(os_get_exe_name());
 
     file::path dllPath = exePath.directory();
-    dllPath.combine_with("cars.dll");
+    dllPath.combine_with(Target);
     DLL = new file::handle(dllPath);
 
     file::path buildLockPath = exePath.directory();
@@ -70,13 +73,45 @@ void init_imgui_for_our_windows(window *mainWindow);
 void imgui_for_our_windows_new_frame(window *mainWindow);
 
 s32 main() {
+    array<string> usage;
+    usage.append("Usage:\n");
+    usage.append(
+        "    {!YELLOW}-dll <name>{!GRAY}    "
+        "Specifies which dll to hot load in the engine. By default the engine searches for cars.dll{!}\n\n");
+
+    bool seekTarget = false;
+    auto args = os_get_command_line_arguments();
+    For(args) {
+        if (seekTarget) {
+            Target = it;
+            seekTarget = false;
+            continue;
+        }
+
+        if (it == "-dll") {
+            seekTarget = true;
+            continue;
+        } else {
+            fmt::to_writer(&io::cerr, ">>> {!RED}Encountered invalid argument (\"{}\").{!}\n", it);
+            For(usage) fmt::to_writer(&io::cerr, it);
+            break;
+        }
+    }
+    if (seekTarget) {
+        fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-dll\" argument.{!}\n");
+        For(usage) fmt::to_writer(&io::cerr, it);
+    }
+
     setup_game_paths();
+
+    string windowTitle;
+    fmt::sprint(&windowTitle, "Graphics Engine | {}", Target);
 
     game_memory gameMemory;
     gameMemory.ExeMalloc = Malloc.Function;
     gameMemory.MainWindow =
         (new window)
-            ->init("Cars", window::DONT_CARE, window::DONT_CARE, 1200, 600,
+            ->init(windowTitle, window::DONT_CARE, window::DONT_CARE, 1200, 600,
                    window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4);
 
     graphics g;

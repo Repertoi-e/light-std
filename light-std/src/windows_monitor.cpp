@@ -217,9 +217,9 @@ string os_get_clipboard_content() {
     }
     defer(GlobalUnlock(object));
 
-    ClipboardString.reserve(c_string_strlen(buffer));
+    ClipboardString.reserve(c_string_length(buffer));
     utf16_to_utf8(buffer, const_cast<char *>(ClipboardString.Data), &ClipboardString.ByteLength);
-    ClipboardString.Length = utf8_strlen(ClipboardString.Data, ClipboardString.ByteLength);
+    ClipboardString.Length = utf8_length(ClipboardString.Data, ClipboardString.ByteLength);
 
     return ClipboardString;
 }
@@ -278,20 +278,20 @@ static monitor *create_monitor(DISPLAY_DEVICEW *adapter, DISPLAY_DEVICEW *displa
     wchar_t *name = adapter->DeviceString;
     if (display) name = display->DeviceString;
 
-    mon->Name.reserve(c_string_strlen(name) * 2);
+    mon->Name.reserve(c_string_length(name) * 2);
     utf16_to_utf8(name, const_cast<char *>(mon->Name.Data), &mon->Name.ByteLength);
-    mon->Name.Length = utf8_strlen(mon->Name.Data, mon->Name.ByteLength);
+    mon->Name.Length = utf8_length(mon->Name.Data, mon->Name.ByteLength);
 
     if (adapter->StateFlags & DISPLAY_DEVICE_MODESPRUNED) mon->PlatformData.Win32.ModesPruned = true;
 
     copy_memory(mon->PlatformData.Win32.AdapterName, adapter->DeviceName,
-                c_string_strlen(adapter->DeviceName) * sizeof(wchar_t));
+                c_string_length(adapter->DeviceName) * sizeof(wchar_t));
     WideCharToMultiByte(CP_UTF8, 0, adapter->DeviceName, -1, mon->PlatformData.Win32.PublicAdapterName,
                         sizeof(mon->PlatformData.Win32.PublicAdapterName), null, null);
 
     if (display) {
         copy_memory(mon->PlatformData.Win32.DisplayName, display->DeviceName,
-                    c_string_strlen(adapter->DeviceName) * sizeof(wchar_t));
+                    c_string_length(adapter->DeviceName) * sizeof(wchar_t));
         WideCharToMultiByte(CP_UTF8, 0, display->DeviceName, -1, mon->PlatformData.Win32.PublicDisplayName,
                             sizeof(mon->PlatformData.Win32.PublicDisplayName), null, null);
     }

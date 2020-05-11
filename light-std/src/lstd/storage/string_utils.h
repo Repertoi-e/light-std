@@ -10,7 +10,7 @@ LSTD_BEGIN_NAMESPACE
 // Retrieve the length of a standard cstyle string. Doesn't care about encoding.
 // Note that this calculation does not include the null byte.
 // This function can also be used to determine the size in bytes of a null terminated utf8 string.
-constexpr size_t c_string_strlen(const char *str) {
+constexpr size_t c_string_length(const char *str) {
     if (!str) return 0;
 
     size_t length = 0;
@@ -19,7 +19,7 @@ constexpr size_t c_string_strlen(const char *str) {
 }
 
 // Overload for wide chars
-constexpr size_t c_string_strlen(const wchar_t *str) {
+constexpr size_t c_string_length(const wchar_t *str) {
     if (!str) return 0;
 
     size_t length = 0;
@@ -28,7 +28,7 @@ constexpr size_t c_string_strlen(const wchar_t *str) {
 }
 
 // Overload for utf32 chars
-constexpr size_t c_string_strlen(const char32_t *str) {
+constexpr size_t c_string_length(const char32_t *str) {
     if (!str) return 0;
 
     size_t length = 0;
@@ -109,7 +109,7 @@ constexpr s32 compare_c_string_lexicographically(const char32_t *one, const char
 }
 
 // Retrieve the length (in code points) of an encoded utf8 string
-constexpr size_t utf8_strlen(const char *str, size_t size) {
+constexpr size_t utf8_length(const char *str, size_t size) {
     if (!str || size == 0) return 0;
 
     size_t length = 0;
@@ -844,10 +844,10 @@ struct string_view {
     size_t Length = 0;
 
     constexpr string_view() = default;
-    constexpr string_view(const char *str) : Data(str), ByteLength(c_string_strlen(str)), Length(0) {
-        Length = utf8_strlen(str, ByteLength);
+    constexpr string_view(const char *str) : Data(str), ByteLength(c_string_length(str)), Length(0) {
+        Length = utf8_length(str, ByteLength);
     }
-    constexpr string_view(const char *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)) {}
+    constexpr string_view(const char *str, size_t size) : Data(str), ByteLength(size), Length(utf8_length(str, size)) {}
 
     constexpr char32_t get(s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
 
@@ -889,70 +889,70 @@ struct string_view {
     constexpr size_t find(char32_t cp, s64 start = 0) const {
         auto *p = find_cp_utf8(Data, Length, cp, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first occurence of a substring that is after a specified index
     constexpr size_t find(string_view str, s64 start = 0) const {
         auto *p = find_substring_utf8(Data, Length, str.Data, str.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of a code point that is before a specified index
     constexpr size_t find_reverse(char32_t cp, s64 start = 0) const {
         auto *p = find_cp_utf8_reverse(Data, Length, cp, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of a substring that is before a specified index
     constexpr size_t find_reverse(string_view str, s64 start = 0) const {
         auto *p = find_substring_utf8_reverse(Data, Length, str.Data, str.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first occurence of any code point in _terminators_ that is after a specified index
     constexpr size_t find_any_of(string_view terminators, s64 start = 0) const {
         auto *p = find_utf8_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of any code point in _terminators_
     constexpr size_t find_reverse_any_of(string_view terminators, s64 start = 0) const {
         auto *p = find_utf8_reverse_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of a code point that is after a specified index
     constexpr size_t find_not(char32_t cp, s64 start = 0) const {
         auto *p = find_utf8_not(Data, Length, cp, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last absence of a code point that is before the specified index
     constexpr size_t find_reverse_not(char32_t cp, s64 start = 0) const {
         auto *p = find_utf8_reverse_not(Data, Length, cp, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of any code point in _terminators_ that is after a specified index
     constexpr size_t find_not_any_of(string_view terminators, s64 start = 0) const {
         auto *p = find_utf8_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of any code point in _terminators_ that is after a specified index
     constexpr size_t find_reverse_not_any_of(string_view terminators, s64 start = 0) const {
         auto *p = find_utf8_reverse_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Gets [begin, end) range of characters into a new string_view object

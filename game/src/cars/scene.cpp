@@ -3,6 +3,12 @@
 
 #include "state.h"
 
+entity *new_entity() {
+    auto *result = Scene->Entities.append();
+    result->Active = true;
+    return result;
+}
+
 static void release_scene() {
     if (Scene->FBSizeCBID != npos) GameMemory->MainWindow->WindowFramebufferResizedEvent.disconnect(Scene->FBSizeCBID);
     Scene->~scene();
@@ -112,9 +118,7 @@ void reload_scene() {
     // Cuboid:
     //
     {
-        auto *cuboid = Scene->Entities.append();
-        cuboid->Position = zero();
-        cuboid->Orientation = identity();
+        auto *cuboid = new_entity();
         cuboid->Mesh.Shader = sceneShader;
 
         cuboid->Mesh.Model = Models->get_or_create("Cuboid Model");
@@ -132,9 +136,7 @@ void reload_scene() {
     // Grid:
     //
     {
-        auto *grid = Scene->Entities.append();
-        grid->Position = zero();
-        grid->Orientation = identity();
+        auto *grid = Scene->Grid = new_entity();
         grid->Mesh.Shader = sceneShader;
 
         grid->Mesh.Model = Models->get_or_create("Grid Model");
@@ -223,26 +225,13 @@ void update_and_render_scene() {
 
         // Move the grid to match the camera's position
         if (Scene->GridFollowCamera) {
-            entity *grid = null;  // @Speed
-            For_as(it_index, range(Scene->Entities.Count)) {
-                auto *it = &Scene->Entities[it_index];
-                if (it->Mesh.Model->Name == "Grid Model") {
-                    grid = it;
-                    break;
-                }
-            }
+            entity *grid = Scene->Grid;
             assert(grid);
 
             f32 s = Scene->GridSpacing;
             grid->Position.x = (f32)(s64)(cam->Position.x / s) * s + s / 2;
             grid->Position.z = (f32)(s64)(cam->Position.z / s) * s + s / 2;
         }
-
-        auto *su = &Scene->Uniforms;
-        su->ViewMatrix = (m44) look_at(cam->Position, cam->FocalPoint, v3(0, 1, 0), false, false, false);
-        su->ViewMatrix = dot((m44) translation(0, 0, 1), su->ViewMatrix);
-
-        if (g->API == graphics_api::Direct3D) su->ViewMatrix = T(su->ViewMatrix);
 
         g->set_target_window(GameMemory->MainWindow);
 
@@ -254,29 +243,38 @@ void update_and_render_scene() {
 
         g->clear_color(GameState->ClearColor);
 
-        auto *sceneUB = Scene->SceneUB.map(buffer_map_access::Write_Discard_Previous);
-        copy_memory(sceneUB, &Scene->Uniforms, sizeof(scene_uniforms));
-        Scene->SceneUB.unmap();
-        Scene->SceneUB.bind_ub(shader_type::Vertex_Shader, 0);
+        {
+            auto *su = &Scene->Uniforms;
+            su->ViewMatrix = (m44) look_at(cam->Position, cam->FocalPoint, v3(0, 1, 0), false, false, false);
+            su->ViewMatrix = dot((m44) translation(0, 0, 1), su->ViewMatrix);
+
+            if (g->API == graphics_api::Direct3D) su->ViewMatrix = T(su->ViewMatrix);
+
+            auto *sceneUB = Scene->SceneUB.map(buffer_map_access::Write_Discard_Previous);
+            copy_memory(sceneUB, &Scene->Uniforms, sizeof(scene_uniforms));
+            Scene->SceneUB.unmap();
+            Scene->SceneUB.bind_ub(shader_type::Vertex_Shader, 0);
+        }
 
         For(Scene->Entities) {
-            if (it.Mesh.Shader && it.Mesh.Model) {
-                it.Mesh.Shader->bind();
+            if (!it.Active) continue;
+            if (!it.Mesh.Shader || !it.Mesh.Model) continue;
 
-                entity_uniforms uniforms;
-                uniforms.ModelMatrix = translation(it.Position);
+            it.Mesh.Shader->bind();
 
-                if (g->API == graphics_api::Direct3D) uniforms.ModelMatrix = T(uniforms.ModelMatrix);
+            entity_uniforms uniforms;
+            uniforms.ModelMatrix = translation(it.Position);
 
-                auto *objectUB = Scene->EntityUB.map(buffer_map_access::Write_Discard_Previous);
-                copy_memory(objectUB, &uniforms, sizeof(uniforms));
-                Scene->EntityUB.unmap();
-                Scene->EntityUB.bind_ub(shader_type::Vertex_Shader, 1);
+            if (g->API == graphics_api::Direct3D) uniforms.ModelMatrix = T(uniforms.ModelMatrix);
 
-                it.Mesh.Model->VB.bind_vb(it.Mesh.Model->PrimitiveTopology);
-                it.Mesh.Model->IB.bind_ib();
-                g->draw_indexed((u32)(it.Mesh.Model->IB.Size / sizeof(u32)));
-            }
+            auto *objectUB = Scene->EntityUB.map(buffer_map_access::Write_Discard_Previous);
+            copy_memory(objectUB, &uniforms, sizeof(uniforms));
+            Scene->EntityUB.unmap();
+            Scene->EntityUB.bind_ub(shader_type::Vertex_Shader, 1);
+
+            it.Mesh.Model->VB.bind_vb(it.Mesh.Model->PrimitiveTopology);
+            it.Mesh.Model->IB.bind_ib();
+            g->draw_indexed((u32)(it.Mesh.Model->IB.Size / sizeof(u32)));
         }
 
         g->set_depth_testing(false);

@@ -40,9 +40,9 @@ void d3d_init(graphics *g) {
     DXGI_ADAPTER_DESC adapterDesc;
     DXCHECK(adapter->GetDesc(&adapterDesc));
 
-    auto adapterStr = string(c_string_strlen(adapterDesc.Description));
+    auto adapterStr = string(c_string_length(adapterDesc.Description));
     utf16_to_utf8(adapterDesc.Description, const_cast<char *>(adapterStr.Data), &adapterStr.ByteLength);
-    adapterStr.Length = utf8_strlen(adapterStr.Data, adapterStr.ByteLength);
+    adapterStr.Length = utf8_length(adapterStr.Data, adapterStr.ByteLength);
 
     fmt::print("{!YELLOW}----------------------------------\n");
     fmt::print(" Direct3D 11:\n");

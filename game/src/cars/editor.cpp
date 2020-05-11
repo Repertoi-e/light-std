@@ -123,14 +123,7 @@ void editor_main() {
 }
 
 static void update_grid() {
-    entity *grid = null;  // @Speed
-    For_as(it_index, range(Scene->Entities.Count)) {
-        auto *it = &Scene->Entities[it_index];
-        if (it->Mesh.Model->Name == "Grid Model") {
-            grid = it;
-            break;
-        }
-    }
+    entity *grid = Scene->Grid;
     assert(grid);
 
     grid->Mesh.Shader->bind();
@@ -191,13 +184,9 @@ void editor_scene_properties(camera *cam) {
 
     if (ImGui::Checkbox("Grid follow camera", &Scene->GridFollowCamera)) {
         if (!Scene->GridFollowCamera) {
-            For_as(it_index, range(Scene->Entities.Count)) {  // @Speed
-                auto *it = &Scene->Entities[it_index];
-                if (it->Mesh.Model->Name == "Grid Model") {
-                    it->Position.x = it->Position.z = 0;
-                    break;
-                }
-            }
+            entity *grid = Scene->Grid;
+            assert(grid);
+            grid->Position.x = grid->Position.z = 0;
         }
     }
     if (slider_float_with_steps("Grid spacing", &Scene->GridSpacing, 0.5f, 10.0f, 0.5f)) update_grid();
@@ -240,3 +229,5 @@ void editor_assets() {
     }
     ImGui::End();
 }
+
+void editor_entities() {}

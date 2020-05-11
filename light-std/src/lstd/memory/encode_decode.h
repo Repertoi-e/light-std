@@ -34,7 +34,7 @@ struct base_16 {
 
     static constexpr char encode(u32 index) {
         const char *dictionary = "0123456789ABCDEF";
-        assert(index < c_string_strlen(dictionary));
+        assert(index < c_string_length(dictionary));
         return dictionary[index];
     }
 
@@ -50,7 +50,7 @@ struct base_32 {
 
     static constexpr char encode(u32 index) {
         const char *dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-        assert(index < c_string_strlen(dictionary));
+        assert(index < c_string_length(dictionary));
         return dictionary[index];
     }
 
@@ -66,7 +66,7 @@ struct base_64 {
 
     static constexpr char encode(u32 index) {
         const char *dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        assert(index < c_string_strlen(dictionary));
+        assert(index < c_string_length(dictionary));
         return dictionary[index];
     }
 

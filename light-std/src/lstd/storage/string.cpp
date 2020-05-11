@@ -25,14 +25,14 @@ string::string(char32_t codePoint, size_t repeat) : string(get_size_of_cp(codePo
 }
 
 string::string(const wchar_t *str) {
-    reserve(2 * c_string_strlen(str));
+    reserve(2 * c_string_length(str));
     for (; *str; ++str) {
         append((char32_t) *str);
     }
 }
 
 string::string(const char32_t *str) {
-    reserve(4 * c_string_strlen(str));
+    reserve(4 * c_string_length(str));
     for (; *str; ++str) {
         append(*str);
     }
@@ -117,7 +117,7 @@ string *string::insert_pointer_and_size(s64 index, const char *str, size_t size)
     copy_memory((char *) Data + offset, str, size);
 
     ByteLength += size;
-    Length += utf8_strlen(str, size);
+    Length += utf8_length(str, size);
 
     return this;
 }
@@ -149,7 +149,7 @@ string *string::remove(s64 begin, s64 end) {
     assert(targetEnd > targetBegin);
 
     size_t bytes = targetEnd - targetBegin;
-    Length -= utf8_strlen(targetBegin, targetEnd - targetBegin);
+    Length -= utf8_length(targetBegin, targetEnd - targetBegin);
 
     uptr_t offset = (uptr_t)(targetBegin - Data);
     copy_memory((char *) Data + offset, targetEnd, ByteLength - offset - bytes);

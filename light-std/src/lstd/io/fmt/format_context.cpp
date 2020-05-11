@@ -98,7 +98,7 @@ void format_context_write(io::writer *w, const char *data, size_t count) {
     }
 
     // 'p' wasn't specified, not treating as formatting a pointer
-    size_t length = utf8_strlen(data, count);
+    size_t length = utf8_length(data, count);
 
     // Adjust size for specified precision
     if (f->Specs->Precision != -1) {

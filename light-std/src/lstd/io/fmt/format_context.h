@@ -42,7 +42,7 @@ struct format_context : io::writer, non_copyable, non_movable {
 
     // Write directly, without taking formatting specs into account.
     void write_no_specs(array_view<char> data) { Out->write(data); }
-    void write_no_specs(const char *data) { Out->write(data, c_string_strlen(data)); }
+    void write_no_specs(const char *data) { Out->write(data, c_string_length(data)); }
     void write_no_specs(const char *data, size_t count) { Out->write(data, count); }
     void write_no_specs(string str) { Out->write(str); }
     void write_no_specs(char32_t cp) { Out->write(cp); }

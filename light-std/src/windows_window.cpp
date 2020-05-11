@@ -418,7 +418,7 @@ string window::get_title() {
 
         auto result = string(length * 2);
         utf16_to_utf8(titleUtf16, const_cast<char *>(result.Data), &result.ByteLength);
-        result.Length = utf8_strlen(result.Data, result.ByteLength);
+        result.Length = utf8_length(result.Data, result.ByteLength);
         return result;
     }
 }
@@ -1394,7 +1394,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 string utf8Buffer;
                 utf8Buffer.reserve(length * 2);
                 utf16_to_utf8(buffer, const_cast<char *>(utf8Buffer.Data), &utf8Buffer.ByteLength);
-                utf8Buffer.Length = utf8_strlen(utf8Buffer.Data, utf8Buffer.ByteLength);
+                utf8Buffer.Length = utf8_length(utf8Buffer.Data, utf8Buffer.ByteLength);
 
                 auto path = file::path(utf8Buffer);
                 move(paths.append(), &path);

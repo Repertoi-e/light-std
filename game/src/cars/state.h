@@ -67,10 +67,13 @@ struct mesh {
 };
 
 struct alignas(16) entity {
-    v3 Position = v3(0, 0, 0);
-    quat Orientation = quat(0, 0, 0, 1);
+    v3 Position = zero();
+    quat Orientation = identity();
 
     mesh Mesh;
+
+    bool Active = false;
+    entity *Parent = null;
 };
 
 // Uploaded to the GPU
@@ -85,12 +88,12 @@ struct alignas(16) scene {
     shader SceneShader;
     buffer SceneUB, EntityUB;
 
+    entity *Grid = null;
     bool GridFollowCamera = true;
     f32 GridSpacing = 1.0f;
     vec2<s32> GridSize = {20, 20};
 
     scene_uniforms Uniforms;
-
     array<entity> Entities;
 
     size_t FBSizeCBID = npos;
@@ -104,6 +107,8 @@ inline scene *Scene = null;
 inline asset_collection<model> *Models = null;
 inline asset_collection<shader> *Shaders = null;
 inline asset_collection<texture_2D> *Texture2Ds = null;
+
+entity *new_entity();
 
 void reload_global_state();
 

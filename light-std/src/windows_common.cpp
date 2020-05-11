@@ -10,6 +10,7 @@
 #undef MAC
 #undef _MAC
 #include <Windows.h>
+#include <shellapi.h> // @DependencyCleanup: CommandLineToArgvW
 
 LSTD_BEGIN_NAMESPACE
 
@@ -44,7 +45,7 @@ s32 initialize_win32_state() {
 
 s32 uninitialize_win32_state() {
     win32_destroy_windows();  // Needs to happend before the global WindowsList variable gets uninitialized
-	return 0;
+    return 0;
 }
 
 typedef s32 cb(void);
@@ -60,7 +61,6 @@ __declspec(allocate(".CRT$XCZ")) cb *g_StateAutoStart = initialize_win32_state;
 #pragma const_seg(".CRT$XPU")
 __declspec(allocate(".CRT$XPU")) cb *g_StateAutoEnd = uninitialize_win32_state;
 #pragma const_seg()
-
 
 #else
 #error @TODO: See how this works on other compilers!
@@ -98,6 +98,8 @@ static thread::mutex CinMutex;
 
 static LARGE_INTEGER PerformanceFrequency;
 static string ModuleName;
+
+static array<string> Argv;
 
 void win32_common_init() {
     if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
@@ -148,7 +150,34 @@ void win32_common_init() {
     }
     ModuleName.reserve(reserved * 2);
     utf16_to_utf8(buffer, const_cast<char *>(ModuleName.Data), &ModuleName.ByteLength);
-    ModuleName.Length = utf8_strlen(ModuleName.Data, ModuleName.ByteLength);
+    ModuleName.Length = utf8_length(ModuleName.Data, ModuleName.ByteLength);
+
+    // Get the arguments
+    wchar_t **argv;
+    int argc;
+
+    // @Cleanup: Parse the arguments ourselves and use our temp allocator
+    // and don't bother with cleaning up this functions memory.
+    argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv == null) {
+        string warning =
+            ">>> Warning, couldn't parse command line arguments, os_get_command_line_arguments() will return an empty "
+            "array in all cases.\n";
+
+        DWORD ignored;
+        WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
+    } else {
+        For(range(1, argc)) {
+            auto *warg = argv[it];
+
+            auto *arg = Argv.append();
+            arg->reserve(c_string_length(warg) * 2);
+            utf16_to_utf8(warg, const_cast<char *>(arg->Data), &arg->ByteLength);
+            arg->Length = utf8_length(arg->Data, arg->ByteLength);
+        }
+
+        LocalFree(argv);
+    }
 }
 
 char io::console_reader_request_byte(io::reader *r) {
@@ -236,6 +265,9 @@ time_t os_get_time() {
 f64 os_time_to_seconds(time_t time) { return (f64) time / PerformanceFrequency.QuadPart; }
 
 string os_get_exe_name() { return ModuleName; }
+
+// Doesn't include the executable name.
+array<string> os_get_command_line_arguments() { return Argv; }
 
 LSTD_END_NAMESPACE
 

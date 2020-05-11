@@ -52,11 +52,11 @@ struct string {
 
     // Create a string from a null terminated c-string.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const char *str) : Data(str), ByteLength(c_string_strlen(str)) { Length = utf8_strlen(str, ByteLength); }
+    string(const char *str) : Data(str), ByteLength(c_string_length(str)) { Length = utf8_length(str, ByteLength); }
 
     // Create a string from a buffer and a length.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const char *str, size_t size) : Data(str), ByteLength(size), Length(utf8_strlen(str, size)) {}
+    string(const char *str, size_t size) : Data(str), ByteLength(size), Length(utf8_length(str, size)) {}
 
     string(string_view view) : Data(view.Data), ByteLength(view.ByteLength), Length(view.Length) {}
 
@@ -133,70 +133,70 @@ struct string {
     size_t find(char32_t cp, s64 start = 0) const {
         auto *p = find_cp_utf8(Data, Length, cp, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first occurence of a substring that is after a specified index
     size_t find(string str, s64 start = 0) const {
         auto *p = find_substring_utf8(Data, Length, str.Data, str.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of a code point that is before a specified index
     size_t find_reverse(char32_t cp, s64 start = 0) const {
         auto *p = find_cp_utf8_reverse(Data, Length, cp, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of a substring that is before a specified index
     size_t find_reverse(string str, s64 start = 0) const {
         auto *p = find_substring_utf8_reverse(Data, Length, str.Data, str.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first occurence of any code point in _terminators_ that is after a specified index
     size_t find_any_of(string terminators, s64 start = 0) const {
         auto *p = find_utf8_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of any code point in _terminators_
     size_t find_reverse_any_of(string terminators, s64 start = 0) const {
         auto *p = find_utf8_reverse_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of a code point that is after a specified index
     size_t find_not(char32_t cp, s64 start = 0) const {
         auto *p = find_utf8_not(Data, Length, cp, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last absence of a code point that is before the specified index
     size_t find_reverse_not(char32_t cp, s64 start = 0) const {
         auto *p = find_utf8_reverse_not(Data, Length, cp, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of any code point in _terminators_ that is after a specified index
     size_t find_not_any_of(string terminators, s64 start = 0) const {
         auto *p = find_utf8_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of any code point in _terminators_ that is after a specified index
     size_t find_reverse_not_any_of(string terminators, s64 start = 0) const {
         auto *p = find_utf8_reverse_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return npos;
-        return utf8_strlen(Data, p - Data);
+        return utf8_length(Data, p - Data);
     }
 
     // Gets [begin, end) range of characters into a new string object

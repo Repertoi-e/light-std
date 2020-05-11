@@ -216,7 +216,7 @@ bool handle::read_entire_file(string *out) const {
     assert(size.QuadPart == bytesRead);
 
     out->ByteLength += bytesRead;
-    out->Length += utf8_strlen(target, bytesRead);
+    out->Length += utf8_length(target, bytesRead);
     return true;
 }
 
@@ -271,9 +271,9 @@ void handle::iterator::read_next_entry() {
         CurrentFileName.release();
 
         auto *fileName = ((WIN32_FIND_DATAW *) PlatformFileInfo)->cFileName;
-        CurrentFileName.reserve(c_string_strlen(fileName));
+        CurrentFileName.reserve(c_string_length(fileName));
         utf16_to_utf8(fileName, const_cast<char *>(CurrentFileName.Data), &CurrentFileName.ByteLength);
-        CurrentFileName.Length = utf8_strlen(CurrentFileName.Data, CurrentFileName.ByteLength);
+        CurrentFileName.Length = utf8_length(CurrentFileName.Data, CurrentFileName.ByteLength);
     } while (CurrentFileName == ".." || CurrentFileName == ".");
     assert(CurrentFileName != ".." && CurrentFileName != ".");
 }
