@@ -5,6 +5,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
+// @Cleanup Old policy
 // _array_ works with types that can be copied byte by byte correctly, take a look at the type policy in common.h
 template <typename T>
 struct array {

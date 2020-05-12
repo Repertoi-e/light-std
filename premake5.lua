@@ -147,14 +147,14 @@ project "game"
 	excludes { 
 		"%{prj.name}/src/cars/**.h", 
 		"%{prj.name}/src/cars/**.cpp",
-		"%{prj.name}/src/grapher/**.h", 
-		"%{prj.name}/src/grapher/**.cpp"
+		"%{prj.name}/src/physics/**.h", 
+		"%{prj.name}/src/physics/**.cpp"
 	}
 
 	links { "light-std" }
 	includedirs { "light-std/src" }
 
-	dependson { "cars", "grapher" }
+	dependson { "cars", "physics" }
 
 	common_settings()
 	
@@ -186,7 +186,7 @@ project "cars"
 		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 
-project "grapher"
+project "physics"
 	location "game"
 	kind "SharedLib"
 
@@ -194,8 +194,8 @@ project "grapher"
 	objdir("bin-int/" .. outputFolder .. "/game")
 
 	files {
-		"game/src/grapher/**.h", 
-		"game/src/grapher/**.cpp"
+		"game/src/physics/**.h", 
+		"game/src/physics/**.cpp"
 	}
 
 	defines { "LE_BUILDING_GAME" }

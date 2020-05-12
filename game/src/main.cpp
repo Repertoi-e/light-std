@@ -13,17 +13,16 @@
 static dynamic_library GameLibrary;
 static game_update_and_render_func *GameUpdateAndRender = null;
 
-static string Target = "cars.dll";
-static file::handle *DLL = null,
-                    *Buildlock = null;  // Allocated dynamically because we can't assign to already constructed
+static string DLLFileName = "cars.dll";
+static file::handle *DLL = null, *Buildlock = null;  // file::handle is not assignable
 
 void setup_game_paths() {
-    assert(Target != "");
+    assert(DLLFileName != "");
 
     auto exePath = file::path(os_get_exe_name());
 
     file::path dllPath = exePath.directory();
-    dllPath.combine_with(Target);
+    dllPath.combine_with(DLLFileName);
     DLL = new file::handle(dllPath);
 
     file::path buildLockPath = exePath.directory();
@@ -79,17 +78,16 @@ s32 main() {
         "    {!YELLOW}-dll <name>{!GRAY}    "
         "Specifies which dll to hot load in the engine. By default the engine searches for cars.dll{!}\n\n");
 
-    bool seekTarget = false;
+    bool seekDLL = false;
     auto args = os_get_command_line_arguments();
     For(args) {
-        if (seekTarget) {
-            Target = it;
-            seekTarget = false;
+        if (seekDLL) {
+            DLLFileName = it;
+            seekDLL = false;
             continue;
         }
-
         if (it == "-dll") {
-            seekTarget = true;
+            seekDLL = true;
             continue;
         } else {
             fmt::to_writer(&io::cerr, ">>> {!RED}Encountered invalid argument (\"{}\").{!}\n", it);
@@ -97,7 +95,7 @@ s32 main() {
             break;
         }
     }
-    if (seekTarget) {
+    if (seekDLL) {
         fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-dll\" argument.{!}\n");
         For(usage) fmt::to_writer(&io::cerr, it);
     }
@@ -105,7 +103,7 @@ s32 main() {
     setup_game_paths();
 
     string windowTitle;
-    fmt::sprint(&windowTitle, "Graphics Engine | {}", Target);
+    fmt::sprint(&windowTitle, "Graphics Engine | {}", DLLFileName);
 
     game_memory gameMemory;
     gameMemory.ExeMalloc = Malloc.Function;
@@ -344,7 +342,14 @@ static void init_imgui_for_our_windows(window *mainWindow) {
 
     io.SetClipboardTextFn = [](auto, const char *text) { os_set_clipboard_content(string(text)); };
     io.GetClipboardTextFn = [](auto) {
-        return os_get_clipboard_content().to_c_string();  // @Leak
+        static array<char> buffer;
+
+        auto content = os_get_clipboard_content();
+        buffer.reserve(content.ByteLength + 1);
+        copy_memory(buffer.Data, content.Data, content.ByteLength);
+        buffer[content.ByteLength] = 0;
+
+        return (const char *) buffer.Data;
     };
 
     io.KeyMap[ImGuiKey_Tab] = Key_Tab;
@@ -389,9 +394,10 @@ static void init_imgui_for_our_windows(window *mainWindow) {
             if (viewport->Flags & ImGuiViewportFlags_NoDecoration) flags |= window::BORDERLESS;
             if (viewport->Flags & ImGuiViewportFlags_TopMost) flags |= window::ALWAYS_ON_TOP;
 
-            auto *win = (new (Malloc) window)
-                            ->init("", window::DONT_CARE, window::DONT_CARE, (s32) viewport->Size.x,
-                                   (s32) viewport->Size.y, flags);
+            auto width = (s32) viewport->Size.x;
+            auto height = (s32) viewport->Size.y;
+
+            auto *win = (new (Malloc) window)->init("", window::DONT_CARE, window::DONT_CARE, width, height, flags);
             viewport->PlatformUserData = (void *) true;
             viewport->PlatformHandle = (void *) win;
 #if OS == WINDOWS
