@@ -8,6 +8,12 @@ newoption {
     description = "Include non cross-platform DirectXMath library for fast SIMD linear algebra on MSVC compiler."
 }
 
+newoption {
+	trigger = "python",
+	value = "path",
+	description = "Include and link to Python 3.7 C API searching for files in the specified path. e.g. C:/ProgramData/Anaconda3/ (we use C:/ProgramData/Anaconda3/include etc...)"
+}
+
 workspace "light-std"
 	architecture "x64"
 	configurations { "Debug", "Release", "Dist" }
@@ -20,7 +26,11 @@ function common_settings()
 
     rtti "Off"
 	characterset "Unicode"
-    exceptionhandling "Off"
+	
+	if not _OPTIONS["python"] then
+		exceptionhandling "Off"
+	end
+	
 	editandcontinue "Off"
 
     defines "_HAS_EXCEPTIONS=0"
@@ -166,7 +176,7 @@ project "cars"
 	kind "SharedLib"
 
 	targetdir("bin/" .. outputFolder .. "/game")
-	objdir("bin-int/" .. outputFolder .. "/game")
+	objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
 
 	files {
 		"game/src/cars/**.h", 
@@ -191,7 +201,7 @@ project "physics"
 	kind "SharedLib"
 
 	targetdir("bin/" .. outputFolder .. "/game")
-	objdir("bin-int/" .. outputFolder .. "/game")
+	objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
 
 	files {
 		"game/src/physics/**.h", 
@@ -202,6 +212,12 @@ project "physics"
 
 	links { "light-std" }
 	includedirs { "light-std/src", "game/src" }
+
+	if _OPTIONS["python"] then
+		py = path.getabsolute(_OPTIONS["python"])
+		includedirs { py  .. "/include" }
+		links { py .. "/libs/python37.lib" }
+	end
 
 	common_settings()
 
