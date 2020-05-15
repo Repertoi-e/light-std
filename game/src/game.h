@@ -56,14 +56,12 @@ struct game_memory {
         identifier.append("Ident");                                     \
         auto **found = GameMemory->States.find(identifier);             \
         if (!found) {                                                   \
-            state = GAME_NEW(remove_pointer_t<decltype(state)>);        \
+            state = new remove_pointer_t<decltype(state)>;              \
             GameMemory->States.move_add(&identifier, (void **) &state); \
         } else {                                                        \
             state = (decltype(state)) * found;                          \
         }                                                               \
     }
-
-#define GAME_NEW(type) new (alignment(16), GameMemory->Alloc) type
 
 #define GAME_UPDATE_AND_RENDER(name, ...) void name(game_memory *memory, graphics *g)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_func);

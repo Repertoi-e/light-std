@@ -25,6 +25,8 @@ struct free_list_allocator_data {
     void *allocate(size_t size);
     void free(void *memory);
 
+    void sanity();
+
     size_t find_first(size_t size, node **previousNode, node **foundNode);
     size_t find_best(size_t size, node **previousNode, node **foundNode);
 

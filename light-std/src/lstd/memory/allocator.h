@@ -84,14 +84,15 @@ struct allocation_header {
 };
 
 // Calculates the required padding in bytes which needs to be added to _ptr_ in order to be aligned.
-inline size_t calculate_padding(void *ptr, u32 alignment) {
+inline u32 calculate_padding_for_pointer(void *ptr, u32 alignment) {
     assert(alignment > 0 && is_pow_of_2(alignment));
-    return ((uptr_t) ptr / alignment + 1) * alignment - (uptr_t) ptr;
+
+    s32 u = (s32) alignment;
+    return (u32) ((((uptr_t) ptr + (alignment - 1)) & -u) - (uptr_t) ptr);
 }
 
-inline size_t calculate_padding_with_header(void *ptr, u32 alignment, size_t headerSize) {
-    size_t padding = calculate_padding(ptr, alignment);
-
+inline u32 calculate_padding_for_pointer_with_header(void *ptr, u32 alignment, u32 headerSize) {
+    u32 padding = calculate_padding_for_pointer(ptr, alignment);
     if (padding < headerSize) {
         headerSize -= padding;
         if (headerSize % alignment > 0) {
@@ -101,12 +102,6 @@ inline size_t calculate_padding_with_header(void *ptr, u32 alignment, size_t hea
         }
     }
     return padding;
-}
-
-// Returns an aligned pointer.
-inline void *get_aligned_pointer(void *ptr, size_t alignment) {
-    assert(alignment > 0 && is_pow_of_2(alignment));
-    return (void *) (((uptr_t) ptr + alignment - 1) & ~(alignment - 1));
 }
 
 struct allocator {
@@ -166,8 +161,8 @@ struct allocator {
     // freeing.
     static void *encode_header(void *ptr, size_t size, u32 alignment, allocator_func_t function, void *context,
                                void *userData1, void *userData2) {
-        size_t padding = calculate_padding_with_header(ptr, alignment, sizeof(allocation_header));
-        size_t alignmentPadding = padding - sizeof(allocation_header);
+        u32 padding = calculate_padding_for_pointer_with_header(ptr, alignment, sizeof(allocation_header));
+        u32 alignmentPadding = padding - sizeof(allocation_header);
 
         auto *result = (allocation_header *) ((char *) ptr + alignmentPadding);
 
@@ -178,8 +173,8 @@ struct allocator {
         result->Context = context;
         result->Size = size;
 
-        result->Alignment = (u32) alignment;
-        result->AlignmentPadding = (u32) alignmentPadding;
+        result->Alignment = alignment;
+        result->AlignmentPadding = alignmentPadding;
 
         result->UserData1 = userData1;
         result->UserData2 = userData2;
@@ -207,7 +202,7 @@ struct allocator {
     // The main reason for having a combined function is to help debugging because the source of an allocation
     // can be one of the two functions (allocate() and allocate_aligned() below)
     void *general_allocate(size_t size, u32 alignment, u64 userFlags = 0) const {
-        alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
+        alignment = alignment < 16 ? 16 : alignment;
         assert(is_pow_of_2(alignment));
 
         size_t required = size + alignment + sizeof(allocation_header) + (sizeof(allocation_header) % alignment);
@@ -221,7 +216,7 @@ struct allocator {
     static void *general_reallocate(void *ptr, size_t newSize, u32 alignment, u64 userFlags = 0) {
         assert(ptr);
 
-        alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
+        alignment = alignment < 16 ? 16 : alignment;
         assert(is_pow_of_2(alignment));
 
         auto *header = (allocation_header *) ptr - 1;
@@ -253,7 +248,7 @@ struct allocator {
     }
 };
 
-// Ensures that _alloc_ contains the most appropriate allocator. 
+// Ensures that _alloc_ contains the most appropriate allocator.
 // If _alloc_ is null, we set it to the context's allocator.
 // If _alloc_ points to an allocator that doesn't have a function, we set it to the context's allocator.
 void get_an_allocator(allocator **alloc);

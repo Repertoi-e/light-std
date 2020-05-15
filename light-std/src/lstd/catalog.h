@@ -8,6 +8,8 @@ LSTD_BEGIN_NAMESPACE
 
 // Use this to load assets from a folder on disk.
 // You can set this to automatically watch for changes and reload.
+
+// @TODO: This is WIP, no file watching yet.
 struct catalog {
     struct entity {
         bool Loaded;

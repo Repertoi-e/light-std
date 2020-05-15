@@ -43,6 +43,8 @@ typedef void os_unexpected_exception_handler_t(string message, array<os_function
 
 void default_unexpected_exception_handler(string message, array<os_function_call> callStack);
 
+// @TODO: By default our alloc alignment is 16 (simd friendly).
+// Maybe that's too big and we should have a context variable to control it.
 struct implicit_context {
     ~implicit_context() { release_temporary_allocator(); }
 

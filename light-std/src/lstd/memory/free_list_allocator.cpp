@@ -4,7 +4,7 @@ LSTD_BEGIN_NAMESPACE
 
 struct free_list_header {
     size_t BlockSize;
-    size_t Padding;
+    size_t AlignmentPadding;
 };
 
 using node = free_list_allocator_data::node;
@@ -26,7 +26,7 @@ size_t free_list_allocator_data::find_first(size_t size, node **previousNode, no
 
     node *it = FreeListHead, *itPrev = null;
     while (it) {
-        padding = calculate_padding_with_header(it, POINTER_SIZE, sizeof(free_list_header));
+        padding = calculate_padding_for_pointer_with_header(it, 16, sizeof(free_list_header));
 
         size_t requiredSpace = size + padding;
         if (it->BlockSize >= requiredSpace) break;
@@ -47,7 +47,7 @@ size_t free_list_allocator_data::find_best(size_t size, node **previousNode, nod
 
     node *it = FreeListHead, *itPrev = null, *bestBlock = null;
     while (it) {
-        padding = calculate_padding_with_header(it, POINTER_SIZE, sizeof(free_list_header));
+        padding = calculate_padding_for_pointer_with_header(it, 16, sizeof(free_list_header));
         size_t requiredSpace = size + padding;
         size_t diff = it->BlockSize - requiredSpace;
         if (it->BlockSize >= requiredSpace && (diff < smallestDiff)) {
@@ -65,13 +65,17 @@ size_t free_list_allocator_data::find_best(size_t size, node **previousNode, nod
 }
 
 void free_list_allocator_data::init(size_t totalSize, u8 policy) {
-    Storage = new (Malloc) char[totalSize];
+    Storage = new (alignment(16), Malloc) char[totalSize];
     Reserved = totalSize;
     PlacementPolicy = policy;
     allocator{free_list_allocator, this}.free_all();  // Initializes linked list
 }
 
 void *free_list_allocator_data::allocate(size_t size) {
+    if (allocator::AllocationCount == 72) {
+        int k = 42;
+    }
+
     assert(size >= sizeof(node) && "Allocation size must be bigger");
 
     // Search through the free list for a free block that has enough space to allocate our Data
@@ -86,7 +90,7 @@ void *free_list_allocator_data::allocate(size_t size) {
 
     size_t rest = foundNode->BlockSize - required;
     if (rest > 0) {
-        // We have to split the block into the Data block and a free block of size 'rest'
+        // We have to split the block into the Data block and a free block of size _rest_
         auto *newFreeNode = (node *) ((char *) foundNode + required);
         newFreeNode->BlockSize = rest;
         newFreeNode->Next = foundNode->Next;
@@ -97,13 +101,14 @@ void *free_list_allocator_data::allocate(size_t size) {
     } else {
         FreeListHead = foundNode->Next;
     }
+    // sanity();
 
     Used += required;
     PeakUsed = max(Used, PeakUsed);
 
     auto *header = (free_list_header *) ((char *) foundNode + alignmentPadding);
     header->BlockSize = required;
-    header->Padding = (char) alignmentPadding;
+    header->AlignmentPadding = (char) alignmentPadding;
 
     return (void *) (header + 1);
 }
@@ -111,9 +116,10 @@ void *free_list_allocator_data::allocate(size_t size) {
 void free_list_allocator_data::free(void *memory) {
     auto *header = (free_list_header *) memory - 1;
 
-    auto newBlockSize = header->BlockSize + header->Padding;
-    auto *freeNode = (node *) header;
-    freeNode->BlockSize = newBlockSize;
+    size_t alignmentPadding = header->AlignmentPadding;
+
+    auto *freeNode = (node *) ((char *) header - alignmentPadding);
+    freeNode->BlockSize = header->BlockSize; // _BlockSize_ already includes padding
     freeNode->Next = null;
 
     node *it = FreeListHead, *itPrev = null;
@@ -135,6 +141,18 @@ void free_list_allocator_data::free(void *memory) {
 
     // Merge contiguous nodes
     coalescence(itPrev, freeNode);
+    
+    // sanity();
+}
+
+void free_list_allocator_data::sanity() {
+    node *it = FreeListHead;
+    while (it) {
+        if (it->Next) {
+            assert((size_t) it + it->BlockSize <= (size_t) it->Next);
+        }
+        it = it->Next;
+    }
 }
 
 void *free_list_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64) {

@@ -22,19 +22,24 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         Graphics = g;
 
         if (!memory->Alloc) {
-            auto *allocatorData = new (Malloc) free_list_allocator_data;
+            auto *allocatorData = new (alignment(16) , Malloc) free_list_allocator_data;
             allocatorData->init(128_MiB, free_list_allocator_data::Find_First);
             memory->Alloc = {free_list_allocator, allocatorData};
         }
-        reload_global_state();
-        reload_game_state();
+
+        PUSH_CONTEXT(Alloc, GameMemory->Alloc) {
+            reload_global_state();
+            reload_game_state();
+        }
     }
 
-    GameState->Camera.update();
+    PUSH_CONTEXT(Alloc, GameMemory->Alloc) {
+        GameState->Camera.update();
 
-    if (GameMemory->MainWindow->is_visible()) {
-        editor_main();
-        editor_scene_properties();
+        if (GameMemory->MainWindow->is_visible()) {
+            editor_main();
+            editor_scene_properties();
+        }
     }
 
     Context.TemporaryAlloc.free_all();
