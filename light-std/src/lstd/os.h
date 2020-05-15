@@ -37,6 +37,16 @@ void os_set_clipboard_content(string content);
 // Returns the path of the current exe (full dir + name)
 string os_get_exe_name();
 
+// Get the value of an environment variable, returns true if found. 
+// If not found and silent is false, logs error to cerr.
+bool os_get_env(string *out, string name, bool silent = false);
+
+// Sets a variable (creates if it doesn't exist yet) in this process' environment.
+void os_set_env(string name, string value);
+
+// Delete a variable from the current process' environment.
+void os_remove_env(string name);
+
 array<string> os_get_command_line_arguments();
 
 // Utility to report hresult errors produces by calling windows functions.
@@ -47,9 +57,9 @@ array<string> os_get_command_line_arguments();
 void windows_report_hresult_error(long hresult, string call, string file, s32 line);
 
 // CHECKHR checks the return value of _call_ and if the returned HRESULT is less than zero, reports an error.
-#define CHECKHR(call)                                                            \
-    {                                                                            \
-        long result = call;                                                      \
+#define CHECKHR(call)                                                                    \
+    {                                                                                    \
+        long result = call;                                                              \
         if (result < 0) windows_report_hresult_error(result, #call, __FILE__, __LINE__); \
     }
 

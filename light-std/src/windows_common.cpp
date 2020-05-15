@@ -10,7 +10,7 @@
 #undef MAC
 #undef _MAC
 #include <Windows.h>
-#include <shellapi.h> // @DependencyCleanup: CommandLineToArgvW
+#include <shellapi.h>  // @DependencyCleanup: CommandLineToArgvW
 
 LSTD_BEGIN_NAMESPACE
 
@@ -67,6 +67,7 @@ __declspec(allocate(".CRT$XPU")) cb *g_StateAutoEnd = uninitialize_win32_state;
 #endif
 
 bool dynamic_library::load(string name) {
+    // @Bug value.Length is not enough (2 wide chars for one char)
     auto *buffer = new (Context.TemporaryAlloc) wchar_t[name.Length];
     utf8_to_utf16(name.Data, name.Length, buffer);
     Handle = (void *) LoadLibraryW(buffer);
@@ -148,7 +149,7 @@ void win32_common_init() {
         }
         break;
     }
-    ModuleName.reserve(reserved * 2);
+    ModuleName.reserve(reserved * 2);  // @Bug reserved * 2 is not enough
     utf16_to_utf8(buffer, const_cast<char *>(ModuleName.Data), &ModuleName.ByteLength);
     ModuleName.Length = utf8_length(ModuleName.Data, ModuleName.ByteLength);
 
@@ -171,7 +172,7 @@ void win32_common_init() {
             auto *warg = argv[it];
 
             auto *arg = Argv.append();
-            arg->reserve(c_string_length(warg) * 2);
+            arg->reserve(c_string_length(warg) * 2);  // @Bug c_string_length * 2 is not enough
             utf16_to_utf8(warg, const_cast<char *>(arg->Data), &arg->ByteLength);
             arg->Length = utf8_length(arg->Data, arg->ByteLength);
         }
@@ -265,6 +266,78 @@ time_t os_get_time() {
 f64 os_time_to_seconds(time_t time) { return (f64) time / PerformanceFrequency.QuadPart; }
 
 string os_get_exe_name() { return ModuleName; }
+
+bool os_get_env(string *out, string name, bool silent) {
+    // @Bug name.Length is not enough (2 wide chars for one char)
+    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length];
+    utf8_to_utf16(name.Data, name.Length, name16);
+
+    DWORD bufferSize = 65535;  // Limit according to http://msdn.microsoft.com/en-us/library/ms683188.aspx
+
+    auto *buffer = new (Context.TemporaryAlloc) wchar_t[bufferSize];
+    auto r = GetEnvironmentVariableW(name16, buffer, bufferSize);
+
+    if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
+        if (!silent) {
+            PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
+                string warning = ">>> Warning, couldn't find environment variable with value \"";
+                warning.append(name);
+                warning.append("\".\n");
+
+                DWORD ignored;
+                WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
+            }
+        }
+        return false;
+    }
+
+    // 65535 may be the limit but let's not take risks
+    if (r > bufferSize) {
+        buffer = new (Context.TemporaryAlloc) wchar_t[r];
+        GetEnvironmentVariableW(name16, buffer, r);
+        bufferSize = r;
+
+        // Possible to fail a second time ?
+    }
+
+    out->reserve(bufferSize * 2);  // @Bug bufferSize * 2 is not enough
+    utf16_to_utf8(buffer, const_cast<char *>(out->Data), &out->ByteLength);
+    out->Length = utf8_length(out->Data, out->ByteLength);
+
+    return true;
+}
+
+void os_set_env(string name, string value) {
+    // @Bug name.Length is not enough (2 wide chars for one char)
+    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length];
+    utf8_to_utf16(name.Data, name.Length, name16);
+
+    // @Bug value.Length is not enough (2 wide chars for one char)
+    auto *value16 = new (Context.TemporaryAlloc) wchar_t[value.Length];
+    utf8_to_utf16(value.Data, value.Length, value16);
+
+    if (value.Length > 32767) {
+        // assert(false); 
+        // @Cleanup
+        // The docs say windows doesn't allow that but we should test it.
+    }
+
+    if (!SetEnvironmentVariableW(name16, value16)) {
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
+                                     "SetEnvironmentVariableW(LPCTSTR lpName, LPCTSTR lpValue)", __FILE__, __LINE__);
+    }
+}
+
+void os_remove_env(string name) {
+    // @Bug name.Length is not enough (2 wide chars for one char)
+    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length];
+    utf8_to_utf16(name.Data, name.Length, name16);
+
+    if (!SetEnvironmentVariableW(name16, null)) {
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
+                                     "SetEnvironmentVariableW(LPCTSTR lpName, LPCTSTR lpValue)", __FILE__, __LINE__);
+    }
+}
 
 // Doesn't include the executable name.
 array<string> os_get_command_line_arguments() { return Argv; }

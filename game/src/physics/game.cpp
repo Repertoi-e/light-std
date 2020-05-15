@@ -30,15 +30,12 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         reload_game_state();
     }
 
-    auto *win = GameMemory->MainWindow;
-    if ((win->Keys[Key_LeftControl] || win->Keys[Key_RightControl]) && win->KeysThisFrame[Key_F]) {
-        GameState->Editor = !GameState->Editor;
-    }
+    GameState->Camera.update();
 
-    if (GameMemory->MainWindow->is_visible() && GameState->Editor) {
+    if (GameMemory->MainWindow->is_visible()) {
         editor_main();
+        editor_scene_properties();
     }
-    update_and_render_scene();
 
     Context.TemporaryAlloc.free_all();
 }

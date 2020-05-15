@@ -2,19 +2,13 @@
 
 #include <game.h>
 
-struct game_state {
-    v4 ClearColor = {0.2f, 0.3f, 0.8f, 1.0f};
+#include "vendor/pybind11/eval.h"
+#include "vendor/pybind11/numpy.h"
+#include "vendor/pybind11/pybind11.h"
 
-    bool Editor = true;
-    bool ShowMetrics = false;
+namespace py = pybind11;
 
-    bool ShowOverlay = true;
-    s32 OverlayCorner = 3;
-
-    bool MouseGrabbed = false;
-};
-
-struct alignas(16) camera {
+struct camera {
     v2 Position = {no_init};
     v2 Scale = {no_init};
     f32 Roll;
@@ -23,7 +17,9 @@ struct alignas(16) camera {
     f32 RotationSpeed;
     f32 ZoomSpeed;
 
-    camera();
+    f32 ZoomMin, ZoomMax, ZoomSpeedup;
+
+    camera() { reinit(); }
 
     void reinit();
     void reset_constants();
@@ -31,25 +27,28 @@ struct alignas(16) camera {
     void update();
 };
 
-void reload_scene();
-void update_and_render_scene();
+struct game_state {
+    v4 ClearColor = {0.0f, 0.017f, 0.099f, 1.0f};
 
-// Uploaded to the GPU
-struct scene_uniforms {
-    m44 ViewMatrix = {no_init};
-    m44 ProjectionMatrix = {no_init};
+    camera Camera;
+    m33 ViewMatrix = {no_init};
+    ImDrawList *ViewportDrawlist;
+    v2 ViewportPos = {no_init};
+    v2 ViewportSize = {no_init};
+
+    bool ShowOverlay = true;
+    s32 OverlayCorner = 3;
+
+    bool MouseGrabbed = false;
 };
 
-struct alignas(16) scene {
-    camera Camera;
-    
-    scene_uniforms Uniforms;
-
-    scene() { Camera.reinit(); }  // Only runs once
+struct script {
+    file::path FilePath;
+    string Contents;
+    py::module Module;
 };
 
 inline game_state *GameState = null;
-inline scene *Scene = null;
 
 inline asset_collection<shader> *Shaders = null;
 inline asset_collection<texture_2D> *Texture2Ds = null;
@@ -57,6 +56,6 @@ inline asset_collection<texture_2D> *Texture2Ds = null;
 void reload_global_state();
 
 void editor_main();
-void editor_scene_properties(camera *cam);
+void editor_scene_properties();
 
-void viewport_render(ImDrawList *d, v2 windowSize);
+void viewport_render();

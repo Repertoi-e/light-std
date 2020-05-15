@@ -26,6 +26,7 @@ namespace file {
 handle::handle(path path) {
     clone(const_cast<file::path *>(&Path), path);
 
+    // @Bug path.UnifiedPath.Length is not enough (2 wide chars for one char)
     Utf16Path = (wchar_t *) Context.Alloc.allocate((path.UnifiedPath.Length + 1) * sizeof(wchar_t));
     encode_owner(Utf16Path, this);
 
@@ -139,6 +140,7 @@ bool handle::copy(handle dest, bool overwrite) const {
         auto p = dest.Path;
         p.combine_with(Path.file_name());
 
+        // @Bug p.UnifiedPath.Length is not enough (2 wide chars for one char)
         auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
         utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
 
@@ -154,6 +156,7 @@ bool handle::move(handle dest, bool overwrite) const {
     if (dest.is_directory()) {
         p.combine_with(Path.file_name());
 
+        // @Bug p.UnifiedPath.Length is not enough (2 wide chars for one char)
         auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
         utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
 
@@ -177,6 +180,7 @@ bool handle::rename(string newName) const {
     auto p = path(Path.directory());
     p.combine_with(newName);
 
+    // @Bug p.UnifiedPath.Length is not enough (2 wide chars for one char)
     auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
     utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
 
@@ -244,6 +248,7 @@ void handle::iterator::read_next_entry() {
             clone(&queryPath, Path);
             queryPath.combine_with("*");
 
+            // @Bug queryPath.UnifiedPath.Length is not enough (2 wide chars for one char)
             auto *query = new (Context.TemporaryAlloc) wchar_t[queryPath.UnifiedPath.Length + 1];
             utf8_to_utf16(queryPath.UnifiedPath.Data, queryPath.UnifiedPath.Length, query);
 
@@ -271,7 +276,7 @@ void handle::iterator::read_next_entry() {
         CurrentFileName.release();
 
         auto *fileName = ((WIN32_FIND_DATAW *) PlatformFileInfo)->cFileName;
-        CurrentFileName.reserve(c_string_length(fileName));
+        CurrentFileName.reserve(c_string_length(fileName) * 2); // @Bug c_string_length * 2 is not enough
         utf16_to_utf8(fileName, const_cast<char *>(CurrentFileName.Data), &CurrentFileName.ByteLength);
         CurrentFileName.Length = utf8_length(CurrentFileName.Data, CurrentFileName.ByteLength);
     } while (CurrentFileName == ".." || CurrentFileName == ".");

@@ -217,7 +217,7 @@ string os_get_clipboard_content() {
     }
     defer(GlobalUnlock(object));
 
-    ClipboardString.reserve(c_string_length(buffer));
+    ClipboardString.reserve(c_string_length(buffer) * 2); // @Bug c_string_length * 2 is not enough
     utf16_to_utf8(buffer, const_cast<char *>(ClipboardString.Data), &ClipboardString.ByteLength);
     ClipboardString.Length = utf8_length(ClipboardString.Data, ClipboardString.ByteLength);
 
@@ -278,7 +278,7 @@ static monitor *create_monitor(DISPLAY_DEVICEW *adapter, DISPLAY_DEVICEW *displa
     wchar_t *name = adapter->DeviceString;
     if (display) name = display->DeviceString;
 
-    mon->Name.reserve(c_string_length(name) * 2);
+    mon->Name.reserve(c_string_length(name) * 2); // @Bug c_string_length * 2 is not enough
     utf16_to_utf8(name, const_cast<char *>(mon->Name.Data), &mon->Name.ByteLength);
     mon->Name.Length = utf8_length(mon->Name.Data, mon->Name.ByteLength);
 

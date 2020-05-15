@@ -68,7 +68,7 @@ struct table {
         // The owner will change with the next line, but we need it later to decide if we need to delete the old arrays
         bool wasOwner = is_owner();
 
-        Hashes = (uptr_t *) Context.Alloc.allocate(target * sizeof(uptr_t), DO_INIT_FLAG);
+        Hashes = (uptr_t *) Context.Alloc.allocate(target * sizeof(uptr_t), DO_INIT_0);
         encode_owner(Hashes, this);
 
         Keys = new key_t[target];

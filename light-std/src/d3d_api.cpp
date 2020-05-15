@@ -40,7 +40,7 @@ void d3d_init(graphics *g) {
     DXGI_ADAPTER_DESC adapterDesc;
     DXCHECK(adapter->GetDesc(&adapterDesc));
 
-    auto adapterStr = string(c_string_length(adapterDesc.Description));
+    auto adapterStr = string(c_string_length(adapterDesc.Description) * 2); // @Bug c_string_length * 2 is not enough
     utf16_to_utf8(adapterDesc.Description, const_cast<char *>(adapterStr.Data), &adapterStr.ByteLength);
     adapterStr.Length = utf8_length(adapterStr.Data, adapterStr.ByteLength);
 

@@ -1,7 +1,5 @@
 #include "state.h"
 
-camera::camera() { reinit(); }
-
 void camera::reinit() {
     Position = v2(0, 0);
     Roll = 0;
@@ -10,9 +8,11 @@ void camera::reinit() {
 }
 
 void camera::reset_constants() {
-    PanSpeed = 0.0015f;
-    RotationSpeed = 0.002f;
-    ZoomSpeed = 0.2f;
+    PanSpeed = 0.1f;
+    RotationSpeed = 0.003f;
+    ZoomSpeed = 0.005f;
+    ZoomMin = 0.1f;
+    ZoomMax = 10.0f;
 }
 
 void camera::update() {
@@ -31,20 +31,23 @@ void camera::update() {
         v2 delta = {(f32) mouse.x - lastMouse.x, (f32) mouse.y - lastMouse.y};
         lastMouse = mouse;
 
-        f32 maxDelta;
-        if (abs(delta.x) > abs(delta.y)) {
-            maxDelta = delta.x;
-        } else {
-            maxDelta = delta.y;
-        }
-
         if (win->MouseButtons[Mouse_Button_Middle]) {
-            Position += -right * delta.x * PanSpeed;
-            Position += up * delta.y * PanSpeed;
+            f32 speed = PanSpeed * ZoomMax / Scale.x;
+
+            Position += -right * delta.x * speed;
+            Position += -up * delta.y * speed;
         } else if (win->MouseButtons[Mouse_Button_Left]) {
-            Roll += maxDelta * RotationSpeed;
+            Roll += delta.x * RotationSpeed;
         } else if (win->MouseButtons[Mouse_Button_Right]) {
-            Scale += maxDelta * ZoomSpeed;
+            // We map our scale range [ZoomMin, ZoomMax] to the range [1, ZoomSpeedup] 
+            // and then we speedup our scaling by a cubic factor.
+            // (Faster zooming the more zoomed you are.)
+            f32 x = 1 + 1 / (ZoomMax - ZoomMin) * (Scale.x - ZoomMin);
+            f32 speed = x * x * x;
+            Scale += delta.y * ZoomSpeed * speed;
+
+            if (Scale.x < ZoomMin) Scale = v2(ZoomMin, ZoomMin);
+            if (Scale.x > ZoomMax) Scale = v2(ZoomMax, ZoomMax);
         }
     }
     orientation = rotation_rpy(0.0f, 0.0f, -Roll);

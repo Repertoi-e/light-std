@@ -105,7 +105,8 @@ string *string::insert(s64 index, char32_t codePoint) {
 string *string::insert(s64 index, string str) { return insert_pointer_and_size(index, str.Data, str.ByteLength); }
 
 string *string::insert_pointer_and_size(s64 index, const char *str, size_t size) {
-    assert(str);
+    // assert(str);
+    if (!str) return this;
 
     reserve(size);
     if (size == 0) return this;

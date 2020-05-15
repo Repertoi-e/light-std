@@ -21,9 +21,9 @@ enum class allocator_mode { ALLOCATE = 0, REALLOCATE, FREE, FREE_ALL };
 enum class alignment : u32;
 
 // This is a user flag when allocating.
-// When specified, the allocated memory is initialized.
+// When specified, the allocated memory is initialized to 0.
 // This is handled internally, so allocator implementations don't need to pay attention to it.
-constexpr u64 DO_INIT_FLAG = 1ull << 31;
+constexpr u64 DO_INIT_0 = 1ull << 31;
 
 //
 // OS allocator:
@@ -212,7 +212,7 @@ struct allocator {
 
         size_t required = size + alignment + sizeof(allocation_header) + (sizeof(allocation_header) % alignment);
         void *result = Function(allocator_mode::ALLOCATE, Context, required, null, 0, userFlags);
-        if (userFlags & DO_INIT_FLAG) {
+        if (userFlags & DO_INIT_0) {
             zero_memory((char *) result + sizeof(allocation_header), size);
         }
         return encode_header(result, size, alignment, Function, Context, null, null);
@@ -246,7 +246,7 @@ struct allocator {
         auto *allocContext = header->Context;
 
         void *result = allocFunc(allocator_mode::REALLOCATE, allocContext, requiredSize, oldMemory, oldSize, userFlags);
-        if (userFlags & DO_INIT_FLAG) {
+        if (userFlags & DO_INIT_0) {
             zero_memory((char *) result + oldSize, newSize - header->Size);
         }
         return encode_header(result, newSize, alignment, allocFunc, allocContext, oldUserData1, oldUserData2);

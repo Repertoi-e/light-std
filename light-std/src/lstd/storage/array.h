@@ -5,7 +5,9 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// @Cleanup Old policy
+// @Cleanup Not it doesn't. It should work like that but design is constantly changing and I'm still not sure about the API.
+// For now its slow and clones stuff.
+//
 // _array_ works with types that can be copied byte by byte correctly, take a look at the type policy in common.h
 template <typename T>
 struct array {
@@ -47,7 +49,10 @@ struct array {
             }
         }
 
-        Data = (data_t *) Context.Alloc.allocate_aligned(target * sizeof(data_t), alignment(align));
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // @Speed DO_INIT_0 should be optional.
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        Data = (data_t *) Context.Alloc.allocate_aligned(target * sizeof(data_t), alignment(align), DO_INIT_0); 
         encode_owner(Data, this);
 
         // @Speed: We can make this faster if the elements don't have an explicit move/clone (but how do we know?)
@@ -109,9 +114,9 @@ struct array {
         size_t offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
         if (offset < Count) {
-            copy_memory(where + 1, where, (Count - offset) * sizeof(data_t));
+            copy_memory(where + 1, where, (Count - offset) * sizeof(data_t)); // @Bug
         }
-        copy_memory(where, &element, sizeof(data_t));
+        clone(where, element);
         Count++;
         return where;
     }
@@ -131,7 +136,7 @@ struct array {
         size_t offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
         if (offset < Count) {
-            copy_memory(where + size, where, (Count - offset) * sizeof(data_t));
+            copy_memory(where + size, where, (Count - offset) * sizeof(data_t));// @Bug
         }
         copy_memory(where, ptr, size * sizeof(data_t));
         Count += size;
@@ -147,7 +152,7 @@ struct array {
 
         auto *where = begin() + offset;
         where->~data_t();
-        copy_memory(where, where + 1, (Count - offset - 1) * sizeof(data_t));
+        copy_memory(where, where + 1, (Count - offset - 1) * sizeof(data_t)); // @Bug
         Count--;
         return this;
     }
@@ -167,7 +172,7 @@ struct array {
         }
 
         size_t elementCount = targetEnd - targetBegin;
-        copy_memory(where, where + elementCount, (Count - offset - elementCount) * sizeof(data_t));
+        copy_memory(where, where + elementCount, (Count - offset - elementCount) * sizeof(data_t)); // @Bug
         Count -= elementCount;
         return this;
     }

@@ -416,7 +416,7 @@ string window::get_title() {
             GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
         }
 
-        auto result = string(length * 2);
+        auto result = string(length * 2); // @Bug length * 2 is not enough
         utf16_to_utf8(titleUtf16, const_cast<char *>(result.Data), &result.ByteLength);
         result.Length = utf8_length(result.Data, result.ByteLength);
         return result;
@@ -424,7 +424,7 @@ string window::get_title() {
 }
 
 void window::set_title(string title) {
-    auto *titleUtf16 = new (Context.TemporaryAlloc) wchar_t[title.Length];
+    auto *titleUtf16 = new (Context.TemporaryAlloc) wchar_t[title.Length]; // @Bug title.Length is not enough
     utf8_to_utf16(title.Data, title.Length, titleUtf16);
 
     SetWindowTextW(PlatformData.Win32.hWnd, titleUtf16);
@@ -1392,7 +1392,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 DragQueryFileW(drop, (u32) it, buffer, length + 1);
 
                 string utf8Buffer;
-                utf8Buffer.reserve(length * 2);
+                utf8Buffer.reserve(length * 2); // @Bug length * 2 is not enough
                 utf16_to_utf8(buffer, const_cast<char *>(utf8Buffer.Data), &utf8Buffer.ByteLength);
                 utf8Buffer.Length = utf8_length(utf8Buffer.Data, utf8Buffer.ByteLength);
 

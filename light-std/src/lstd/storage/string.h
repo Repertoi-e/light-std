@@ -97,13 +97,13 @@ struct string {
 
     bool begins_with(char32_t cp) const { return get(0) == cp; }
     bool begins_with(string str) const {
-        assert(str.ByteLength < ByteLength);
+        if (str.ByteLength > ByteLength) return false;
         return compare_memory(Data, str.Data, str.ByteLength) == npos;
     }
 
     bool ends_with(char32_t cp) const { return get(-1) == cp; }
     bool ends_with(string str) const {
-        assert(str.ByteLength < ByteLength);
+        if (str.ByteLength > ByteLength) return false;
         return compare_memory(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == npos;
     }
 

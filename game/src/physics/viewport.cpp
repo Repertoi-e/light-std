@@ -1,10 +1,15 @@
 #include "state.h"
 
-void viewport_render(ImDrawList *d, v2 windowSize) {
-    
-    v2 pos(0, 0);
-    v2 size(20, 20);
+#include "vendor/pybind11/pybind11.h"
 
-    d->AddRectFilled(v2(0, 0), windowSize, ImGui::ColorConvertFloat4ToU32(GameState->ClearColor));
+void viewport_render() {
+    auto *d = GameState->ViewportDrawlist;
+    auto viewportSize = GameState->ViewportSize;
+    
+    v2 pos(50, 50);
+    v2 size(20, 20);
+    d->AddRectFilled(pos, pos + size, ImGui::ColorConvertFloat4ToU32(v4(1, 0, 1, 1)));
+
+    // d->AddLine(, 0, 1);
 }
 
