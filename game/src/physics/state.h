@@ -17,7 +17,7 @@ struct camera {
     f32 RotationSpeed;
     f32 ZoomSpeed;
 
-    f32 ZoomMin, ZoomMax, ZoomSpeedup;
+    f32 ZoomMin, ZoomMax;
 
     camera() { reinit(); }
 

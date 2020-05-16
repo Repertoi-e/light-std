@@ -32,24 +32,41 @@
 #pragma warning(disable : 4251)
 #endif
 
-// The permanent state of the game
+// The permanent state of the game.
+// This does not get affected on reload.
 struct game_memory {
-    allocator_func_t ExeMalloc = null;  // We need this because every time we hotload we construct a different malloc
-                                        // and that doesn't work when freeing
-
-    window *MainWindow = null;
-    allocator Alloc;
-
-    table<string, void *> States;
-
-    void *ImGuiContext = null;
-
     // Gets set to true when the game code has been reloaded during the frame
     // (automatically set to false the next frame).
     // Gets triggered the first time the game loads as well!
     bool ReloadedThisFrame = false;
+
+    window *MainWindow = null;
+
+    // The exe provides us with a free list allocator that is faster than malloc and is suited for general purpose
+    // allocations. Historically the game initialized the allocator but it's better if we allow the exe to use it for
+    // imgui and thus we don't use malloc anywhere now. We also support setting the allocated block size with a command
+    // line argument (before you had to edit the game code and reload the entire game anyways).
+    allocator Alloc;
+
+    // You can edit the placement policy for the allocator directly in here - find first or find_best. The first one
+    // finds the first free memory block but might cause fragmentation and waste space, while the second one is slower
+    // and finds a block which best suits the request.
+    free_list_allocator_data *AllocData;
+
+    // Keeps track of allocated pointers with an identifier as a key. This is not slow because we use this
+    // table only when we reload and we need to map the global pointers in the dll to these (if they exists
+    // at all, otherwise we allocate a new one and put it in this table).
+    table<string, void *> States;
+
+    // Our target FPS by default is 60 but if the PC we are running on doesn't manage to hit that and we need to reduce
+    // the FPS when the frame delta must change. So we shouldn't  hardcode 1000/60 ms per frame everywhere and instead
+    // use this variable managed by the exe.
+    f32 FrameDelta;
+
+    void *ImGuiContext = null;
 };
 
+// Call this macro to automatically manage a global pointer using our table of states in game_memory
 #define MANAGE_GLOBAL_STATE(state)                                      \
     if (!state) {                                                       \
         string identifier = #state;                                     \
@@ -63,6 +80,7 @@ struct game_memory {
         }                                                               \
     }
 
+// This is the API with which the exe and the dll interface
 #define GAME_UPDATE_AND_RENDER(name, ...) void name(game_memory *memory, graphics *g)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_func);
 

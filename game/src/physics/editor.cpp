@@ -50,41 +50,13 @@ void editor_main() {
     v2 viewportSize = ImGui::GetWindowSize();
     GameState->ViewportPos = viewportPos;
     GameState->ViewportSize = viewportSize;
-    {
-        auto *d = GameState->ViewportDrawlist = ImGui::GetWindowDrawList();
-        d->AddRectFilled(viewportPos, viewportPos + viewportSize,
-                         ImGui::ColorConvertFloat4ToU32(GameState->ClearColor));
-
-        viewport_render();
-
-        auto *cam = &GameState->Camera;
-
-        // We scale and rotate based on the screen center
-        m33 t = translation(viewportSize / 2 + cam->Position);
-        m33 it = inverse(t);
-
-        auto scaleRotate = dot(it, (m33) scale(cam->Scale));
-        scaleRotate = dot(scaleRotate, (m33) rotation_z(-cam->Roll));
-        scaleRotate = dot(scaleRotate, t);
-
-        // Move origin to top left of viewport, by default it's in the top left of the whole window.
-        auto translate = dot((m33) translation(viewportPos), (m33) translation(-cam->Position));
-
-        GameState->ViewMatrix = dot(scaleRotate, translate);
-
-        auto *p = d->VtxBuffer.Data + 4;  // Don't transform the clear color rect
-        For(range(4, d->VtxBuffer.Size)) {
-            p->pos = dot((v2) p->pos, GameState->ViewMatrix);
-            ++p;
-        }
-    }
 
     if (GameState->ShowOverlay) {
         if (GameState->OverlayCorner != -1) {
             ImVec2 pivot =
                 ImVec2((GameState->OverlayCorner & 1) ? 1.0f : 0.0f, (GameState->OverlayCorner & 2) ? 1.0f : 0.0f);
             ImGui::SetNextWindowPos(
-                ImVec2((GameState->OverlayCorner & 1) ? (viewportPos.x + viewportSize.x - 25) : (viewportPos.x + 10),
+                ImVec2((GameState->OverlayCorner & 1) ? (viewportPos.x + viewportSize.x - 10) : (viewportPos.x + 15),
                        (GameState->OverlayCorner & 2) ? (viewportPos.y + viewportSize.y - 10) : (viewportPos.y + 25)),
                 ImGuiCond_Always, pivot);
         }
@@ -117,7 +89,7 @@ void editor_scene_properties() {
 
     ImGui::Begin("View Properties", null);
     ImGui::Text("Camera");
-    ImGui::BeginChild("##camera", {0, 247}, true);
+    ImGui::BeginChild("##camera", {0, 227}, true);
     {
         if (ImGui::Button("Reset camera")) cam->reinit();
 
@@ -132,10 +104,7 @@ void editor_scene_properties() {
         ImGui::InputFloat("Rotation speed", &cam->RotationSpeed);
         ImGui::PushItemWidth(-140);
         ImGui::InputFloat("Zoom speed", &cam->ZoomSpeed);
-
         ImGui::InputFloat2("Zoom min/max", &cam->ZoomMin);
-        ImGui::InputFloat("Zoom speedup", &cam->ZoomSpeedup);
-
         if (ImGui::Button("Default camera constants")) cam->reset_constants();
 
         ImGui::EndChild();

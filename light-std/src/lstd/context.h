@@ -140,3 +140,5 @@ LSTD_END_NAMESPACE
                 break;                                                  \
             } else                                                      \
                 LINE_NAME(body) :
+
+#define ALLOC(newAlloc) PUSH_CONTEXT(Alloc, newAlloc)

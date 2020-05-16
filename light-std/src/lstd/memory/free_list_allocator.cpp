@@ -65,17 +65,13 @@ size_t free_list_allocator_data::find_best(size_t size, node **previousNode, nod
 }
 
 void free_list_allocator_data::init(size_t totalSize, u8 policy) {
-    Storage = new (alignment(16), Malloc) char[totalSize];
+    Storage = operator new (totalSize, Malloc);
     Reserved = totalSize;
     PlacementPolicy = policy;
     allocator{free_list_allocator, this}.free_all();  // Initializes linked list
 }
 
 void *free_list_allocator_data::allocate(size_t size) {
-    if (allocator::AllocationCount == 72) {
-        int k = 42;
-    }
-
     assert(size >= sizeof(node) && "Allocation size must be bigger");
 
     // Search through the free list for a free block that has enough space to allocate our Data
@@ -101,6 +97,7 @@ void *free_list_allocator_data::allocate(size_t size) {
     } else {
         FreeListHead = foundNode->Next;
     }
+
     // sanity();
 
     Used += required;

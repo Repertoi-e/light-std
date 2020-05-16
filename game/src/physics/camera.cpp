@@ -22,9 +22,11 @@ void camera::update() {
 
     static vec2<s32> lastMouse = zero();
 
-    quat orientation = rotation_rpy(0.0f, 0.0f, -Roll);
-    v2 up = rotate_vec(v3(0, 1, 0), orientation).xy;
-    v2 right = rotate_vec(v3(1, 0, 0), orientation).xy;
+    f32 S = sin(Roll);
+    f32 C = cos(Roll);
+
+    v2 up(-S, C);
+    v2 right(C, S);
 
     if (win->Keys[Key_LeftControl]) {
         vec2<s32> mouse = win->get_cursor_pos();
@@ -39,7 +41,7 @@ void camera::update() {
         } else if (win->MouseButtons[Mouse_Button_Left]) {
             Roll += delta.x * RotationSpeed;
         } else if (win->MouseButtons[Mouse_Button_Right]) {
-            // We map our scale range [ZoomMin, ZoomMax] to the range [1, ZoomSpeedup] 
+            // We map our scale range [ZoomMin, ZoomMax] to the range [1, ZoomSpeedup]
             // and then we speedup our scaling by a cubic factor.
             // (Faster zooming the more zoomed you are.)
             f32 x = 1 + 1 / (ZoomMax - ZoomMin) * (Scale.x - ZoomMin);
@@ -50,5 +52,4 @@ void camera::update() {
             if (Scale.x > ZoomMax) Scale = v2(ZoomMax, ZoomMax);
         }
     }
-    orientation = rotation_rpy(0.0f, 0.0f, -Roll);
 }

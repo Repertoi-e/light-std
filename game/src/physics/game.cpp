@@ -4,43 +4,34 @@
 
 #include "state.h"
 
-void reload_game_state() {
-    assert(GameMemory->ImGuiContext);
-    ImGui::SetCurrentContext((ImGuiContext *) GameMemory->ImGuiContext);
-    ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, Malloc); },
-                                 [](void *ptr, void *) { delete ptr; });
-}
-
 LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, graphics *g) {
     if (memory->ReloadedThisFrame) {
-        if (Context.Alloc.Function == Malloc.Function) {  // @Hack
-            const_cast<implicit_context *>(&Context)->Alloc.Function = memory->ExeMalloc;
-        }
-        Malloc.Function = memory->ExeMalloc;
-
         GameMemory = memory;
         Graphics = g;
 
-        if (!memory->Alloc) {
-            auto *allocatorData = new (alignment(16) , Malloc) free_list_allocator_data;
-            allocatorData->init(128_MiB, free_list_allocator_data::Find_First);
-            memory->Alloc = {free_list_allocator, allocatorData};
-        }
+        // Switch our default allocator from malloc to the one the exe provides us with
+        const_cast<implicit_context *>(&Context)->Alloc = memory->Alloc;  // @Hack
+        Malloc = memory->Alloc;                                           // Should we? Might be a bit confusing..
 
-        PUSH_CONTEXT(Alloc, GameMemory->Alloc) {
-            reload_global_state();
-            reload_game_state();
-        }
+        // We need to use the exe's imgui context, because we submit the geometry to the GPU there
+        assert(GameMemory->ImGuiContext);
+        ImGui::SetCurrentContext((ImGuiContext *) GameMemory->ImGuiContext);
+        
+        // We also tell imgui to use our allocator (by default it uses raw malloc)
+        ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size); },
+                                     [](void *ptr, void *) { delete ptr; });
+
+        reload_global_state();
     }
 
-    PUSH_CONTEXT(Alloc, GameMemory->Alloc) {
-        GameState->Camera.update();
+    GameState->Camera.update();
 
-        if (GameMemory->MainWindow->is_visible()) {
-            editor_main();
-            editor_scene_properties();
-        }
+    if (GameMemory->MainWindow->is_visible()) {
+        editor_main();
+        editor_scene_properties();
     }
+
+    viewport_render();
 
     Context.TemporaryAlloc.free_all();
 }

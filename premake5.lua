@@ -66,10 +66,12 @@ function common_settings()
 	filter "configurations:Debug"
         defines "DEBUG"
         symbols "On"
+		buildoptions { "/FS" }
     filter "configurations:Release"
         defines "RELEASE"
 		optimize "On"
         symbols "On"
+		buildoptions { "/FS" }
     filter "configurations:Dist"
         defines "DIST"
 		optimize "Full"

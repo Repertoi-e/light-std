@@ -10,19 +10,25 @@
 #include <lstd/memory/dynamic_library.h>
 #include <lstd/os.h>
 
-static dynamic_library GameLibrary;
-static game_update_and_render_func *GameUpdateAndRender = null;
+// These can be modified with command line arguments.
+u32 GameMemoryInMiB = 128;
+u32 GameWidth = 1200, GameHeight = 600, GameFPS = 60;
+string GameFileName = "cars.dll";
 
-static string DLLFileName = "cars.dll";
-static file::handle *DLL = null, *Buildlock = null;  // file::handle is not assignable
+allocator GameAlloc;  // Imgui uses this, it needs to be global
+
+dynamic_library GameLibrary;
+game_update_and_render_func *GameUpdateAndRender = null;
+
+file::handle *DLL = null, *Buildlock = null;  // file::handle is not assignable
 
 void setup_game_paths() {
-    assert(DLLFileName != "");
+    assert(GameFileName != "");
 
     auto exePath = file::path(os_get_exe_name());
 
     file::path dllPath = exePath.directory();
-    dllPath.combine_with(DLLFileName);
+    dllPath.combine_with(GameFileName);
     DLL = new file::handle(dllPath);
 
     file::path buildLockPath = exePath.directory();
@@ -71,84 +77,186 @@ bool check_for_dll_change() {
 void init_imgui_for_our_windows(window *mainWindow);
 void imgui_for_our_windows_new_frame(window *mainWindow);
 
-s32 main() {
+void parse_arguments() {
     array<string> usage;
     usage.append("Usage:\n");
     usage.append(
         "    {!YELLOW}-dll <name>{!GRAY}    "
         "Specifies which dll to hot load in the engine. By default the engine searches for cars.dll{!}\n\n");
+    usage.append(
+        "    {!YELLOW}-memory <amount>{!GRAY}    "
+        "Specifies the amount of memory (in MiB) which gets reserved for the game (default is 128 MiB)."
+        "Usage must never cross this.{!}\n\n");
+    usage.append(
+        "    {!YELLOW}-width <value>{!GRAY}    "
+        "Specifies the width of the game window (default is 1200).{!}\n\n");
+    usage.append(
+        "    {!YELLOW}-heigth <value>{!GRAY}    "
+        "Specifies the height of the game window (default is 600).\n\n");
+    usage.append(
+        "    {!YELLOW}-fps <value>{!GRAY}    "
+        "Specifies the target fps (default is 60).\n\n");
 
-    bool seekDLL = false;
+    bool seekFileName = false, seekMemory = false, seekWidth = false, seekHeight = false, seekFPS = false;
     auto args = os_get_command_line_arguments();
     For(args) {
-        if (seekDLL) {
-            DLLFileName = it;
-            seekDLL = false;
+        if (seekFileName) {
+            GameFileName = it;
+            seekFileName = false;
+            continue;
+        }
+        if (seekMemory) {
+            auto old = GameMemoryInMiB;
+            io::string_reader parser(it);
+            parser.read(&GameMemoryInMiB);
+            if (parser.LastFailed) {
+                GameMemoryInMiB = old;
+                fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-memory\" argument. \n");
+                fmt::to_writer(&io::cerr, "Expected a whole number as a parameter (instead got \"{}\").{!}\n", it);
+            }
+            seekMemory = false;
+            continue;
+        }
+        if (seekWidth) {
+            auto old = GameWidth;
+            io::string_reader parser(it);
+            parser.read(&GameWidth);
+            if (parser.LastFailed) {
+                GameWidth = old;
+                fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-width\" argument. \n");
+                fmt::to_writer(&io::cerr, "Expected a whole number as a parameter (instead got \"{}\").{!}\n", it);
+            }
+            seekWidth = false;
+            continue;
+        }
+        if (seekHeight) {
+            auto old = GameHeight;
+            io::string_reader parser(it);
+            parser.read(&GameHeight);
+            if (parser.LastFailed) {
+                GameHeight = old;
+                fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-height\" argument. \n");
+                fmt::to_writer(&io::cerr, "Expected a whole number as a parameter (instead got \"{}\").{!}\n", it);
+            }
+            seekHeight = false;
+            continue;
+        }
+        if (seekFPS) {
+            auto old = GameFPS;
+            io::string_reader parser(it);
+            parser.read(&GameFPS);
+            if (parser.LastFailed) {
+                GameFPS = old;
+                fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-fps\" argument. \n");
+                fmt::to_writer(&io::cerr, "Expected a whole number as a parameter (instead got \"{}\").{!}\n", it);
+            }
+            seekFPS = false;
             continue;
         }
         if (it == "-dll") {
-            seekDLL = true;
-            continue;
+            seekFileName = true;
+        } else if (it == "-memory") {
+            seekMemory = true;
+        } else if (it == "-width") {
+            seekWidth = true;
+        } else if (it == "-height") {
+            seekHeight = true;
+        } else if (it == "-fps") {
+            seekFPS = true;
         } else {
             fmt::to_writer(&io::cerr, ">>> {!RED}Encountered invalid argument (\"{}\").{!}\n", it);
             For(usage) fmt::to_writer(&io::cerr, it);
             break;
         }
     }
-    if (seekDLL) {
-        fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-dll\" argument.{!}\n");
+    if (seekFileName) {
+        fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-dll\" argument. Expected a parameter.{!}\n");
         For(usage) fmt::to_writer(&io::cerr, it);
     }
+    if (seekMemory) {
+        fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-memory\" argument. Expected a parameter.{!}\n");
+        For(usage) fmt::to_writer(&io::cerr, it);
+    }
+    if (seekWidth) {
+        fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-width\" argument. Expected a parameter.{!}\n");
+        For(usage) fmt::to_writer(&io::cerr, it);
+    }
+    if (seekHeight) {
+        fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-height\" argument. Expected a parameter.{!}\n");
+        For(usage) fmt::to_writer(&io::cerr, it);
+    }
+    if (seekFPS) {
+        fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-fps\" argument. Expected a parameter.{!}\n");
+        For(usage) fmt::to_writer(&io::cerr, it);
+    }
+}
 
-    setup_game_paths();
-
-    string windowTitle;
-    fmt::sprint(&windowTitle, "Graphics Engine | {}", DLLFileName);
+s32 main() {
+    parse_arguments();
 
     game_memory gameMemory;
-    gameMemory.ExeMalloc = Malloc.Function;
-    gameMemory.MainWindow =
-        (new window)
-            ->init(windowTitle, window::DONT_CARE, window::DONT_CARE, 1200, 600,
-                   window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4);
 
-    graphics g;
-    Graphics = &g;
-    g.init(graphics_api::Direct3D);
-    g.set_blend(true);
-    g.set_depth_testing(false);
+    auto *allocData = new (Malloc) free_list_allocator_data;
+    allocData->init(GameMemoryInMiB * 1024 * 1024, free_list_allocator_data::Find_First);
+    gameMemory.AllocData = allocData;
+    gameMemory.Alloc = GameAlloc = {free_list_allocator, allocData};
 
-    init_imgui_for_our_windows(gameMemory.MainWindow);
-    gameMemory.ImGuiContext = ImGui::GetCurrentContext();
+    // We tell imgui to use our allocator (by default it uses raw malloc, not operator new)
+    ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, GameAlloc); },
+                                 [](void *ptr, void *) { delete ptr; });
 
-    // Needs to get called at the end to release any imgui windows
-    defer(ImGui::DestroyPlatformWindows());
+    ALLOC(GameAlloc) {
+        string windowTitle;
+        fmt::sprint(&windowTitle, "Graphics Engine | {}", GameFileName);
 
-    imgui_renderer imguiRenderer;
-    imguiRenderer.init(&g);
+        auto windowFlags =
+            window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4;
+        gameMemory.MainWindow =
+            (new window)->init(windowTitle, window::DONT_CARE, window::DONT_CARE, GameWidth, GameHeight, windowFlags);
 
-    while (true) {
-        gameMemory.ReloadedThisFrame = check_for_dll_change();
+        setup_game_paths();
 
-        window::update();
-        if (gameMemory.MainWindow->IsDestroying) break;
+        graphics g;
+        Graphics = &g;
+        g.init(graphics_api::Direct3D);
+        g.set_blend(true);
+        g.set_depth_testing(false);
 
-        imgui_for_our_windows_new_frame(gameMemory.MainWindow);
-        ImGui::NewFrame();
-        if (GameUpdateAndRender) GameUpdateAndRender(&gameMemory, &g);
-        ImGui::Render();
+        init_imgui_for_our_windows(gameMemory.MainWindow);
+        gameMemory.ImGuiContext = ImGui::GetCurrentContext();
 
-        if (gameMemory.MainWindow->is_visible()) {
-            g.set_target_window(gameMemory.MainWindow);
-            g.set_cull_mode(cull::None);
-            imguiRenderer.draw(ImGui::GetDrawData());
-            g.swap();
-        }
+        // Needs to get called at the end of execution to release any imgui windows
+        defer(ImGui::DestroyPlatformWindows());
 
-        // Update and Render additional Platform Windows
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault(null, &imguiRenderer);
+        imgui_renderer imguiRenderer;
+        imguiRenderer.init(&g);
+
+        // @TODO: GameFPS currently does nothing, we rely on g.swap() and vsync to hit target monitor refresh rate
+        // but we should do that ourselves. I don't remember why we changed it (maybe simplicity?) but we should
+        // definetely allow the user to set the target fps.
+
+        while (true) {
+            gameMemory.ReloadedThisFrame = check_for_dll_change();
+
+            window::update();
+            if (gameMemory.MainWindow->IsDestroying) break;
+
+            imgui_for_our_windows_new_frame(gameMemory.MainWindow);
+            ImGui::NewFrame();
+            if (GameUpdateAndRender) GameUpdateAndRender(&gameMemory, &g);
+            ImGui::Render();
+
+            if (gameMemory.MainWindow->is_visible()) {
+                g.set_target_window(gameMemory.MainWindow);
+                g.set_cull_mode(cull::None);
+                imguiRenderer.draw(ImGui::GetDrawData());
+                g.swap();
+            }
+
+            if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+                ImGui::UpdatePlatformWindows();
+                ImGui::RenderPlatformWindowsDefault(null, &imguiRenderer);
+            }
         }
     }
 }
@@ -397,7 +505,7 @@ static void init_imgui_for_our_windows(window *mainWindow) {
             auto width = (s32) viewport->Size.x;
             auto height = (s32) viewport->Size.y;
 
-            auto *win = (new (Malloc) window)->init("", window::DONT_CARE, window::DONT_CARE, width, height, flags);
+            auto *win = (new window)->init("", window::DONT_CARE, window::DONT_CARE, width, height, flags);
             viewport->PlatformUserData = (void *) true;
             viewport->PlatformHandle = (void *) win;
 #if OS == WINDOWS
