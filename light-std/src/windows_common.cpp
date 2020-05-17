@@ -9,6 +9,7 @@
 
 #undef MAC
 #undef _MAC
+#include <Objbase.h>
 #include <Windows.h>
 #include <shellapi.h>  // @DependencyCleanup: CommandLineToArgvW
 
@@ -317,7 +318,7 @@ void os_set_env(string name, string value) {
     utf8_to_utf16(value.Data, value.Length, value16);
 
     if (value.Length > 32767) {
-        // assert(false); 
+        // assert(false);
         // @Cleanup
         // The docs say windows doesn't allow that but we should test it.
     }
@@ -341,6 +342,24 @@ void os_remove_env(string name) {
 
 // Doesn't include the executable name.
 array<string> os_get_command_line_arguments() { return Argv; }
+
+u32 os_get_pid() { return (u32) GetCurrentProcessId(); }
+
+guid new_guid() {
+    GUID g;
+    CoCreateGuid(&g);
+
+    stack_array<char, 16> data = to_array((char) ((g.Data1 >> 24) & 0xFF), (char) ((g.Data1 >> 16) & 0xFF),
+                                          (char) ((g.Data1 >> 8) & 0xFF), (char) ((g.Data1) & 0xff),
+
+                                          (char) ((g.Data2 >> 8) & 0xFF), (char) ((g.Data2) & 0xff),
+
+                                          (char) ((g.Data3 >> 8) & 0xFF), (char) ((g.Data3) & 0xFF),
+
+                                          (char) g.Data4[0], (char) g.Data4[1], (char) g.Data4[2], (char) g.Data4[3],
+                                          (char) g.Data4[4], (char) g.Data4[5], (char) g.Data4[6], (char) g.Data4[7]);
+    return guid(array_view<char>(data.begin(), data.end()));
+}
 
 LSTD_END_NAMESPACE
 

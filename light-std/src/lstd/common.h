@@ -3,6 +3,7 @@
 /// A header which provides type definitions as well as other helper macros
 
 #include "debug_break.h"
+#include "storage/guid.h"
 #include "types.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:

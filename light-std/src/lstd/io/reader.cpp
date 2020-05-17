@@ -411,6 +411,7 @@ pair<f64, bool> reader::parse_float() {
         bump_byte();
         ch = bump_byte();
 
+        // @TODO: Not parsing hex floats yet, but they are the most accurate in serialization!
         assert(false && "Not parsing hex floats yet");
         return {};
     } else {
@@ -482,6 +483,172 @@ pair<f64, bool> reader::parse_float() {
         }
 
         return {(negative ? -1 : 1) * (integerPart + fractionPart) * exponentPart, true};
+    }
+}
+
+#define fail                             \
+    {                                    \
+        fill_memory(result.Data, 0, 16); \
+        return {result, false};          \
+    }
+
+#undef check_eof
+#define check_eof(x) \
+    if (x == eof) {  \
+        EOF = true;  \
+        fail;        \
+    }
+
+char hex_digit_from_char(char ch) {
+    if (ch >= '0' && ch <= '9') return ch - '0';
+    if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+    if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+    return -1;
+}
+
+pair<guid, bool> io::reader::parse_guid() {
+    guid result;
+    if (!test_state_and_skip_ws()) return {result, false};
+
+    bool parenthesis = false;
+    bool curly = false;
+
+    char ch = peek_byte();
+    check_eof(ch);
+
+    if (ch == '(' || ch == '{') {
+        parenthesis = true;
+        curly = ch == '{';
+        bump_byte();
+    }
+
+    ch = bump_byte();
+    check_eof(ch);
+
+    char next = peek_byte();
+    if (ch == '0' && next == 'x' || next == 'X') {
+        // :GuidParseError
+        if (!parenthesis) fail;
+        if (!curly) fail;
+
+        //
+        // Parse following format:
+        // {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
+        //
+        union {
+            char Data[16];
+            struct {
+                u32 D1;
+                u16 D5, D7;
+                char D9, D10, D11, D12, D13, D14, D15, D16;
+            };
+        } u;
+
+// :GuidParseError
+#define EAT_CHAR(c)   \
+    ch = bump_byte(); \
+    check_eof(ch);    \
+    if (ch != c) fail
+
+// :GuidParseError
+#define HANDLE_SECTION(num, size, comma)                \
+    {                                            \
+        auto [d, success] = parse_int<size>(16); \
+        if (!success) fail;                      \
+        if (comma) EAT_CHAR(',');                           \
+        u.D##num = d;                            \
+    }
+        bump_byte(); // We already consumed 0, so when parse_int fires the first char is x which is invalid.
+
+        HANDLE_SECTION(1, u32, true);
+        HANDLE_SECTION(5, u16, true);
+        HANDLE_SECTION(7, u16, true);
+        EAT_CHAR('{');
+        HANDLE_SECTION(9, u8, true);
+        HANDLE_SECTION(10, u8, true);
+        HANDLE_SECTION(11, u8, true);
+        HANDLE_SECTION(12, u8, true);
+        HANDLE_SECTION(13, u8, true);
+        HANDLE_SECTION(14, u8, true);
+        HANDLE_SECTION(15, u8, true);
+        HANDLE_SECTION(16, u8, false);
+        EAT_CHAR('}');
+        EAT_CHAR('}');
+
+        copy_memory(result.Data, u.Data, 16);
+        return {result, true};
+    } else {
+        char c1 = 0, c2 = 0;
+        bool seek1 = true;
+        bool hyphens = false;
+        bool justSkippedHyphen = false;
+
+        u32 p = 0;
+        while (true) {
+            if (!hyphens) {
+                if (ch == '-' && p == 4) {
+                    hyphens = true;
+                    ch = bump_byte();
+                    check_eof(ch);
+                    continue;
+                }
+            } else if (!justSkippedHyphen && (p == 6 || p == 8 || p == 10)) {
+                if (ch != '-') {
+                    // @TODO: We should report parse errors like we do format errors
+                    fail;
+                } else {
+                    justSkippedHyphen = true;
+                    ch = bump_byte();
+                    check_eof(ch);
+                    continue;
+                }
+            }
+
+            if (!is_hex_digit(to_lower(ch))) {
+                fail;  // :GuidParseError
+            }
+
+            if (seek1) {
+                c1 = hex_digit_from_char(ch);
+                if (c1 == -1) {
+                    fail;  // :GuidParseError
+                }
+                seek1 = false;
+            } else {
+                c2 = hex_digit_from_char(ch);
+                if (c2 == -1) {
+                    fail;  // :GuidParseError
+                }
+                u8 uc = c1 * 16 + c2;
+
+                union {
+                    u8 uc;
+                    char sc;
+                } u;
+                u.uc = uc;
+
+                result.Data[p++] = u.sc;
+                seek1 = true;
+
+                justSkippedHyphen = false;
+            }
+
+            if (p == 16) break;
+
+            ch = bump_byte();
+            check_eof(ch);
+        }
+
+        if (parenthesis) {
+            ch = bump_byte();
+            check_eof(ch);
+            if (curly) {
+                if (ch != '}') fail;  // :GuidParseError
+            } else if (ch != ')') {
+                fail;  // :GuidParseError
+            }
+        }
+        return {result, true};
     }
 }
 

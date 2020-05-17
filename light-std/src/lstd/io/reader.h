@@ -19,6 +19,22 @@ struct reader;
 template <typename T>
 bool deserialize(T *dest, reader *r);
 
+//
+// @TODO: We should have a compile time macro to remove strict parsing checks.
+// For example we check for the positions of the hyphens in the GUID and if they don't match we fail parsing.
+// But if the user is parsing a lot of them and perfomance matters while also knowing that they are the right format
+// and just wants to gets them as fast as possible we can have a flag (e.g. PARSE_NO_STRICT_CHECKS).
+// (and "-000000-000--0000000-00000000-0000-00-00" would be considered a valid GUID cause we relax hyphen checking).
+//
+
+//
+// @Locale
+// I thought about something. If the input is the following: 100,141,542 how does our parse_int function know if
+// that's three numbers of one but divided with commas for readibilty. There can be other such cases where the
+// user expects certain behaviour but gets the wrong result because of our functions.
+// We should have a way to force a format when parsing.
+//
+
 // Provides a way to parse types and any bytes with a simple extension API.
 // Holds a pointer to a _request_byte_t_. Every other function
 // in this class is implemented by calling that function.
@@ -114,6 +130,8 @@ struct reader {
     //
     // Note:
     // If T is unsigned, but the buffer contains a '-', the value returned is underflowed
+    //
+    // @Locale This doesn't parse commas
     template <typename T>
     enable_if_t<is_integral_v<T>> read(T *value, s32 base = 0) {
         auto [parsed, success] = parse_int<T>(base);
@@ -143,6 +161,16 @@ struct reader {
         *value = parsed;
     }
 
+    // Read a guid
+    // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
+    // and the guid is set to all 0
+    void reader::read(guid *value) {
+        if (!value) return;
+        auto [parsed, success] = parse_guid();
+        LastFailed = !success;
+        *value = parsed;
+    }
+
     template <typename T>
     enable_if_t<!is_arithmetic_v<T> && !is_same_v<T, string>> read(T *value) {
         LastFailed = !deserialize(value, this);
@@ -151,6 +179,7 @@ struct reader {
    private:
     pair<bool, bool> parse_bool();
     pair<f64, bool> parse_float();
+    pair<guid, bool> parse_guid();
 
 #define check_eof(x)       \
     if (x == eof) {        \
@@ -187,7 +216,6 @@ struct reader {
         }
         check_eof(ch);
 
-        // @Locale This doesn't parse commas
         T maxValue;
         if constexpr (is_unsigned_v<T>) {
             maxValue = (numeric_info<T>::max)();
@@ -208,9 +236,9 @@ struct reader {
             if ((s32) ch >= base) break;
             if (value > cutoff || (value == cutoff && (s32) ch > cutlim)) {
                 if constexpr (is_unsigned_v<T>) {
-                    return {negative ? (0 - maxValue) : maxValue, false};
+                    return {negative ? (T(0 - maxValue)) : maxValue, false};
                 } else {
-                    return {(negative ? -1 : 1) * maxValue, false};
+                    return {(negative ? T(-1) : T(1)) * maxValue, false};
                 }
             }
             value = value * base + ch;
@@ -219,9 +247,9 @@ struct reader {
             ch = bump_byte();
         }
         if constexpr (is_unsigned_v<T>) {
-            return {negative ? (0 - value) : value, true};
+            return {negative ? (T(0 - value)) : value, true};
         } else {
-            return {(negative ? -1 : 1) * value, true};
+            return {(negative ? T(-1) : T(1)) * value, true};
         }
     }
 #undef check_eof

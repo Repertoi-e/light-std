@@ -3,6 +3,7 @@
 #include "../intrin.h"
 #include "hasher.h"
 #include "string.h"
+#include "guid.h"
 
 //
 // This header provides a way to hash types.
@@ -68,12 +69,17 @@ constexpr uptr_t get_hash(string_view value) {
 }
 
 inline uptr_t get_hash(string value) {
-    // hasher h(0);
-    // h.add(value.Data, value.ByteLength);
-    // return h.hash();
     uptr_t hash = 5381;
     For(value) hash = ((hash << 5) + hash) + it;
     return hash;
 }
+
+// Hash for guid
+inline uptr_t get_hash(guid value) {
+    uptr_t hash = 5381;
+    For(value.Data) hash = ((hash << 5) + hash) + it;
+    return hash;
+}
+
 
 LSTD_END_NAMESPACE

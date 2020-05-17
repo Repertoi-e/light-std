@@ -88,7 +88,7 @@ inline u32 calculate_padding_for_pointer(void *ptr, u32 alignment) {
     assert(alignment > 0 && is_pow_of_2(alignment));
 
     s32 u = (s32) alignment;
-    return (u32) ((((uptr_t) ptr + (alignment - 1)) & -u) - (uptr_t) ptr);
+    return (u32)((((uptr_t) ptr + (alignment - 1)) & -u) - (uptr_t) ptr);
 }
 
 inline u32 calculate_padding_for_pointer_with_header(void *ptr, u32 alignment, u32 headerSize) {
@@ -137,6 +137,10 @@ struct allocator {
 
         size_t size = header->Size + sizeof(allocation_header) + header->AlignmentPadding;
 
+        // Cleanup random dangling pointer which might confuse future access to the same memory by chance (thinking it
+        // was allocated dynamically when it's not)
+        header->Pointer = null;
+
         void *memory = (char *) header - header->AlignmentPadding;
         header->Function(allocator_mode::FREE, header->Context, 0, memory, size, userFlags);
     }
@@ -159,25 +163,24 @@ struct allocator {
     //
     // ^ I'm not sure this is relevant. The header contains other useful information that doesn't have to do with
     // freeing.
-    static void *encode_header(void *ptr, size_t size, u32 alignment, allocator_func_t function, void *context,
-                               void *userData1, void *userData2) {
-        u32 padding = calculate_padding_for_pointer_with_header(ptr, alignment, sizeof(allocation_header));
+    static void *encode_header(void *p, size_t size, u32 align, allocator_func_t f, void *c, void *u1, void *u2) {
+        u32 padding = calculate_padding_for_pointer_with_header(p, align, sizeof(allocation_header));
         u32 alignmentPadding = padding - sizeof(allocation_header);
 
-        auto *result = (allocation_header *) ((char *) ptr + alignmentPadding);
+        auto *result = (allocation_header *) ((char *) p + alignmentPadding);
 
         result->ID = AllocationCount;
         atomic_inc_64(&AllocationCount);
 
-        result->Function = function;
-        result->Context = context;
+        result->Function = f;
+        result->Context = c;
         result->Size = size;
 
-        result->Alignment = alignment;
+        result->Alignment = align;
         result->AlignmentPadding = alignmentPadding;
 
-        result->UserData1 = userData1;
-        result->UserData2 = userData2;
+        result->UserData1 = u1;
+        result->UserData2 = u2;
 
         //
         // This is now safe since we handle alignment here (and not in general_(re)allocate).
@@ -194,57 +197,60 @@ struct allocator {
         //                                                                              - 5.04.2020
         result->Pointer = result + 1;
 
-        auto *p = result->Pointer;
-        assert((((uptr_t) p & ~((size_t) alignment - 1)) == (uptr_t) p) && "Pointer wasn't properly aligned.");
+        p = result->Pointer;
+        assert((((uptr_t) p & ~((size_t) align - 1)) == (uptr_t) p) && "Pointer wasn't properly aligned.");
         return p;
     }
 
     // The main reason for having a combined function is to help debugging because the source of an allocation
     // can be one of the two functions (allocate() and allocate_aligned() below)
-    void *general_allocate(size_t size, u32 alignment, u64 userFlags = 0) const {
-        alignment = alignment < 16 ? 16 : alignment;
-        assert(is_pow_of_2(alignment));
+    void *general_allocate(size_t size, u32 align, u64 userFlags = 0) const {
+        align = align < 16 ? 16 : align;
+        assert(is_pow_of_2(align));
 
-        size_t required = size + alignment + sizeof(allocation_header) + (sizeof(allocation_header) % alignment);
+        size_t required = size + align + sizeof(allocation_header) + (sizeof(allocation_header) % align);
         void *result = Function(allocator_mode::ALLOCATE, Context, required, null, 0, userFlags);
         if (userFlags & DO_INIT_0) {
             zero_memory((char *) result + sizeof(allocation_header), size);
         }
-        return encode_header(result, size, alignment, Function, Context, null, null);
+        return encode_header(result, size, align, Function, Context, null, null);
     }
 
-    static void *general_reallocate(void *ptr, size_t newSize, u32 alignment, u64 userFlags = 0) {
+    static void *general_reallocate(void *ptr, size_t newSize, u32 align, u64 userFlags = 0) {
         assert(ptr);
 
-        alignment = alignment < 16 ? 16 : alignment;
-        assert(is_pow_of_2(alignment));
+        align = align < 16 ? 16 : align;
+        assert(is_pow_of_2(align));
 
         auto *header = (allocation_header *) ptr - 1;
         assert(header->Pointer == ptr &&
                "Calling reallocate on a pointer that doesn't have a header (probably it's not dynamic memory or"
                "it wasn't allocated with an allocator from this library)");
         assert(
-            header->Alignment == alignment &&
+            header->Alignment == align &&
             "Calling reallocate with different alignment. I may try to implement this but screw you - be consistent.");
 
         // The header stores the size of the requested allocation
         // (so the user code can look at the header and not be confused with garbage)
         size_t oldSize = header->Size + sizeof(allocation_header) + header->AlignmentPadding;
-        size_t requiredSize = newSize + sizeof(allocation_header) + (sizeof(allocation_header) % alignment);
+        size_t requiredSize = newSize + sizeof(allocation_header) + (sizeof(allocation_header) % align);
 
-        void *oldUserData1 = header->UserData1;
-        void *oldUserData2 = header->UserData2;
+        void *u1 = header->UserData1;
+        void *u2 = header->UserData2;
 
         void *oldMemory = (char *) header - header->AlignmentPadding;
+        size_t oldHeaderSize = header->Size;
 
-        auto *allocFunc = header->Function;
-        auto *allocContext = header->Context;
+        auto *func = header->Function;
+        auto *context = header->Context;
 
-        void *result = allocFunc(allocator_mode::REALLOCATE, allocContext, requiredSize, oldMemory, oldSize, userFlags);
+        void *result = func(allocator_mode::REALLOCATE, context, requiredSize, oldMemory, oldSize, userFlags);
+
+        void *p = encode_header(result, newSize, align, func, context, u1, u2);
         if (userFlags & DO_INIT_0) {
-            zero_memory((char *) result + oldSize, newSize - header->Size);
+            zero_memory((char *) p + oldSize, newSize - oldHeaderSize);
         }
-        return encode_header(result, newSize, alignment, allocFunc, allocContext, oldUserData1, oldUserData2);
+        return p;
     }
 };
 

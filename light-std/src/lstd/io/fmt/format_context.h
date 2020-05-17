@@ -65,8 +65,8 @@ struct format_context : io::writer, non_copyable, non_movable {
     void write_no_specs(const void *value) {
         auto *old = Specs;
         Specs = null;
-        defer(Specs = old);
         write(value);
+        Specs = old;
     }
 
     using writer::write;
@@ -125,6 +125,8 @@ struct format_context : io::writer, non_copyable, non_movable {
     void write_f64(f64 value, format_specs specs);
 };
 
+// @TODO: This should not be visible in fmt namespace (it doesn't have use outside of internal code).
+// Check for other stuff that should be internal?
 struct format_context_visitor {
     format_context *F;
     bool NoSpecs;

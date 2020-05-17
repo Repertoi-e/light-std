@@ -122,7 +122,9 @@ constexpr size_t utf8_length(const char *str, size_t size) {
 // These functions only work for ascii
 constexpr bool is_digit(char32_t x) { return x >= '0' && x <= '9'; }
 // These functions only work for ascii
-constexpr bool is_hex_digit(char32_t x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
+constexpr bool is_hex_digit(char32_t x) {
+    return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f') || (x >= 'A' && x <= 'F');
+}
 
 // These functions only work for ascii
 constexpr bool is_space(char32_t x) { return (x >= 9 && x <= 13) || x == 32; }
@@ -200,7 +202,7 @@ constexpr char32_t to_upper(char32_t cp) {
     if (cp == 0x03f2) return 0x03f9;
     if (cp == 0x03f8) return 0x03f7;
     if (cp == 0x03fb) return 0x03fa;
-    // No upper case!
+    // No uppercase!
     return cp;
 }
 

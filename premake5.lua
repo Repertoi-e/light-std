@@ -56,7 +56,7 @@ function common_settings()
         buildoptions { "/Gs9999999" }
     filter { "system:windows", "options:no-crt", "not kind:StaticLib" }
         linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
-        links { "kernel32", "shell32", "winmm" }
+        links { "kernel32", "shell32", "winmm", "ole32" }
         flags { "OmitDefaultLibrary" }
     filter { "system:windows", "options:no-crt", "kind:SharedLib" }
         entrypoint "main_no_crt_dll"

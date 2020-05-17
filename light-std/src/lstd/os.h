@@ -41,13 +41,17 @@ string os_get_exe_name();
 // If not found and silent is false, logs error to cerr.
 bool os_get_env(string *out, string name, bool silent = false);
 
-// Sets a variable (creates if it doesn't exist yet) in this process' environment.
+// Sets a variable (creates if it doesn't exist yet) in this process' environment
 void os_set_env(string name, string value);
 
-// Delete a variable from the current process' environment.
+// Delete a variable from the current process' environment
 void os_remove_env(string name);
 
+// Get a list of parsed command line arguments excluding the first one (the exe name - you can get that with os_get_exe_name())
 array<string> os_get_command_line_arguments();
+
+// Returns an ID which uniquely identifies the current process on the system
+u32 os_get_pid();
 
 // Utility to report hresult errors produces by calling windows functions.
 // Shouldn't be used on other platforms

@@ -4,6 +4,7 @@
 #include "../io.h"
 #include "../math.h"
 #include "../storage/array.h"
+#include "../storage/guid.h"
 #include "fmt/format_context.h"
 
 //
@@ -88,12 +89,12 @@
 //
 //      Floats:
 //       'e' - Exponent notation. Prints the number in scientific notation using 'e' for the exponent.
-//       'E' - Exponent notation. Same as 'e' except it converts the number to uppercase.
+//       'E' - Uppercase version of 'e'.
 //       'f' - Fixed point. Displays the number as a fixed-point number.
-//       'F' - Fixed point. Same as 'f' except it converts the number to uppercase.
+//       'F' - Uppercase version of 'f'.
 //       'g' - General format. This prints the number as a fixed-point number, unless the number is too large,
 //             in which case it switches to 'e' exponent notation.
-//       'G' - General format. Same as 'g' except switches to 'E' if the number gets to large.
+//       'G' - Uppercase version of 'g'.
 //       '%' - Percentage. Multiplies the number by 100 and displays in fixed ('f') format, followed by a percent sign.
 //       '' (None) - similar to 'g', except that it prints at least one
 //             digit after the decimal point.
@@ -111,6 +112,18 @@
 //       's' - Outputs it as an utf-8 encoded string.
 //       '' (None) - the same as 's'
 //
+//      Guid:
+//       'n' - 00000000000000000000000000000000
+//       'N' - Uppercase version of 'n'
+//       'd' - 00000000-0000-0000-0000-000000000000
+//       'D' - Uppercase version of 'd'
+//       'b' - {00000000-0000-0000-0000-000000000000}
+//       'B' - Uppercase version of 'b'
+//       'p' - (00000000-0000-0000-0000-000000000000)
+//       'P' - Uppercase version of 'p'
+//       'x' - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
+//       'X' - Uppercase version of 'x'
+//       '' (None) - the same as 'd'
 //
 // There is also a way to specify text styles directly in the format string. Without requiring an argument.
 // Text styles are defined by a opening curly brace ('{') followed by '!', then the text style and a closing brace ('}')
@@ -242,6 +255,8 @@ struct formatter<mat<T, R, C, Packed>> {
             }
         }
 
+        auto *old = f->Specs;
+        f->Specs = null;
         for (s32 i = 0; i < src.Height; ++i) {
             for (s32 j = 0; j < src.Width; ++j) {
                 if (alternate) {
@@ -261,6 +276,7 @@ struct formatter<mat<T, R, C, Packed>> {
             }
             if (i < src.R - 1) f->write(alternate ? "\n " : "; ");
         }
+        f->Specs = old;
         f->write("]");
     }
 };
@@ -280,6 +296,86 @@ struct formatter<tquat<T, Packed>> {
         } else {
             f->debug_tuple("quat").field(src.s)->field(src.i)->field(src.j)->field(src.k)->finish();
         }
+    }
+};
+
+// Prints in format: quat(1, 0, 0, 0)
+// Alternate (using # specifier): [ 60 deg @ [0, 1, 0] ] (rotation in degrees around axis)
+template <>
+struct formatter<guid> {
+    void format(const guid &src, format_context *f) {
+        char type = 'd';
+        if (f->Specs) {
+            type = f->Specs->Type;
+        }
+
+        bool upper = is_upper(type);
+        type = (char) to_lower(type);
+
+        if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
+            f->on_error("Invalid type specifier");
+            return;
+        }
+
+        char32_t openParenthesis = 0, closedParenthesis = 0;
+        bool hyphen = true;
+
+        if (type == 'n') {
+            hyphen = false;
+        } else if (type == 'b') {
+            openParenthesis = '{';
+            closedParenthesis = '}';
+        } else if (type == 'p') {
+            openParenthesis = '(';
+            closedParenthesis = ')';
+        } else if (type == 'x') {
+            union {
+                char Data[16];
+                struct {
+                    u32 D1;
+                    u16 D5, D7;
+                    u8 D9, D10, D11, D12, D13, D14, D15, D16;
+                };
+            } u;
+            copy_memory(u.Data, src.Data, 16);
+
+            auto *old = f->Specs;
+            f->Specs = null;
+            if (upper) {
+                to_writer(
+                    f,
+                    "{{{:#010X},{:#06X},{:#06X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}",
+                    u.D1, u.D5, u.D7, u.D9, u.D10, u.D11, u.D12, u.D13, u.D14, u.D15, u.D16);
+            } else {
+                to_writer(
+                    f,
+                    "{{{:#010x},{:#06x},{:#06x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}",
+                    u.D1, u.D5, u.D7, u.D9, u.D10, u.D11, u.D12, u.D13, u.D14, u.D15, u.D16);
+            }
+            f->Specs = old;
+            return;
+        }
+
+        if (openParenthesis) f->write_no_specs(openParenthesis);
+
+        auto *old = f->Specs;
+        f->Specs = null;
+
+        const char *p = src.Data;
+        For(range(16)) {
+            if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
+                f->write_no_specs((char32_t) '-');
+            }
+            if (upper) {
+                to_writer(f, "{:02X}", (u8) *p);
+            } else {
+                to_writer(f, "{:02x}", (u8) *p);
+            }
+            ++p;
+        }
+        f->Specs = old;
+
+        if (closedParenthesis) f->write_no_specs(closedParenthesis);
     }
 };
 

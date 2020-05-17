@@ -46,6 +46,7 @@ struct parse_context {
     bool parse_fmt_specs(type argType, dynamic_format_specs *specs);
     bool parse_text_style(text_style *textStyle);
 
+    // @TODO: Have a way to specify position to be more accurate in the error message.
     void on_error(string message) const {
         if (ErrorHandlerFunc) ErrorHandlerFunc(message, {FmtString, (size_t)(It - FmtString.Data)});
     }

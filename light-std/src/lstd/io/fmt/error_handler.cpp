@@ -20,7 +20,7 @@ void default_error_handler(string message, error_context errorContext) {
         ->replace_all('\t', "\\t")
         ->replace_all('\v', "\\v");
 
-    fmt::print("\n\n {!GRAY} An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
+    fmt::print("\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
     fmt::print("    ... the error happened here:\n");
     fmt::print("        {!}{}{!GRAY}\n", errorContext.FmtString);
     fmt::print("        {: >{}} {!} \n\n", "^", errorContext.Position + 1);
