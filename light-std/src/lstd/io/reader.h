@@ -118,7 +118,7 @@ struct reader {
     // Ignore available characters, read until a newline character and don't return the result
     reader *ignore();
 
-    // Parse an integer from the reader
+    // Parse an integer
     // You can supply a custom base the integer is encoded in.
     // base 0 means this function tries to automatically determine the base by looking for a prefix:
     //     0x - hex, 0 - oct, otherwise - decimal
@@ -139,11 +139,17 @@ struct reader {
         *value = parsed;
     }
 
-    // Read a bool
+    // Parse a bool
     // Valid strings are: "0" "1" "true" "false" (ignoring case)
+    //
+    // @Bug There's an edge case in which this doesn't work. We have to extend the API a whole bunch in order to make
+    // parsing in general easier and fix this. The bug is that sometimes the buffer might get cut of (e.g. "..tru" and
+    // the next chunk would contain "e" but we would fail parsing because we check if the whole word is available
+    // in the current chunk).
+    //
     void read(bool *value);
 
-    // Read a float
+    // Parse a float
     // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
     void reader::read(f32 *value) {
         if (!value) return;
@@ -152,7 +158,7 @@ struct reader {
         *value = (f32) parsed;
     }
 
-    // Read a float
+    // Parse a float
     // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
     void reader::read(f64 *value) {
         if (!value) return;
@@ -161,7 +167,19 @@ struct reader {
         *value = parsed;
     }
 
-    // Read a guid
+    // Parse a guid
+    // Parses the following representations:
+    // - 00000000000000000000000000000000
+    // - 00000000-0000-0000-0000-000000000000
+    // - {00000000-0000-0000-0000-000000000000}
+    // - (00000000-0000-0000-0000-000000000000)
+    // - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
+    //
+    // For the last one, it must start with "{0x" (in order to get recognized),
+    // but the other integers don't have to be in hex.
+    //
+    // Doesn't pay attention to capitalization (both uppercase/lowercase/mixed are valid).
+    //
     // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
     // and the guid is set to all 0
     void reader::read(guid *value) {
