@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../common.h"
+#include "../../internal/common.h"
 
 LSTD_BEGIN_NAMESPACE
 

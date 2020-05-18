@@ -6,8 +6,8 @@
 // e.g usage: encode<base_32>(...)
 //
 
-#include "../context.h"
-#include "../storage/string_utils.h"
+#include "../internal/context.h"
+#include "../memory/string_utils.h"
 
 LSTD_BEGIN_NAMESPACE
 

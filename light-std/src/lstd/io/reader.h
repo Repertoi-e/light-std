@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../storage/array.h"
-#include "../storage/string.h"
+#include "../memory/array.h"
+#include "../memory/string.h"
 
 #if defined EOF
 #undef EOF

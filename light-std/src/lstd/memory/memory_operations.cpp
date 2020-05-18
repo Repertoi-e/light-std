@@ -1,4 +1,4 @@
-#include "../common.h"
+#include "../internal/common.h"
 
 // Implements optimized copy_memory, fill_memory and compare_memory
 

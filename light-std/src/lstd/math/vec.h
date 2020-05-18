@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../storage/array.h"
-#include "../storage/string_utils.h"
+#include "../memory/array.h"
+#include "../memory/string_utils.h"
 #include "no_init.h"
 #include "simd.h"
 

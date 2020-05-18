@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../file.h"
-#include "../storage/pixel_buffer.h"
+#include "../memory/pixel_buffer.h"
 #include "gtype.h"
 #include "shader.h"
 

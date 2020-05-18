@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../catalog.h"
-#include "../storage/array.h"
-#include "../storage/string.h"
+#include "../memory/array.h"
+#include "../memory/string.h"
 #include "gtype.h"
 
 #if OS == WINDOWS

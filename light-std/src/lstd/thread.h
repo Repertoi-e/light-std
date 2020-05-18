@@ -1,7 +1,7 @@
 #pragma once
 
 #include "intrin.h"
-#include "storage/delegate.h"
+#include "memory/delegate.h"
 
 struct _RTL_CRITICAL_SECTION;
 

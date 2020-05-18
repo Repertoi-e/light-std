@@ -1,14 +1,14 @@
 #pragma once
 
-#include "intrin/math.h"
+#include "internal/common.h"
 
-// @TODO Replace with our own math functions in order to not depend on the runtime lib
+// @DependencyCleanup Replace with our own math functions in order to not depend on the runtime lib
 
 LSTD_BEGIN_NAMESPACE
 
 // rad / tau * 360
 // deg * tau / 360
-// @TODO Accurate enough?
+// @Robustness Accurate enough?
 #define TAU 6.2831853f
 #define PI 3.1415926f
 #define EULER 2.7182818f

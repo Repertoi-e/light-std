@@ -1,6 +1,6 @@
 #pragma once
 
-#include "namespace.h"
+#include "internal/namespace.h"
 #include "platform.h"
 
 /// Provides definitions for common types as well as most stuff from the std headers: <type_traits> <limits>

@@ -1,11 +1,11 @@
-#include "lstd/common.h"
+#include "lstd/internal/common.h"
 
 #if OS == WINDOWS
 
 #include "lstd/io.h"
 #include "lstd/io/fmt.h"
 #include "lstd/os.h"
-#include "lstd/storage/table.h"
+#include "lstd/memory/table.h"
 
 #undef MAC
 #undef _MAC

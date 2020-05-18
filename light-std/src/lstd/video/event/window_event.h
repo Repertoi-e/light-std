@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../file.h"
-#include "../../storage/array.h"
+#include "../../memory/array.h"
 #include "../../math.h"
 
 LSTD_BEGIN_NAMESPACE

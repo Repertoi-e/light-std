@@ -2,7 +2,7 @@
 
 #include "file.h"
 #include "io/fmt.h"
-#include "storage/table.h"
+#include "memory/table.h"
 
 LSTD_BEGIN_NAMESPACE
 

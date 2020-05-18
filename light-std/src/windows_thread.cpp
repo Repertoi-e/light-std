@@ -1,8 +1,8 @@
-#include "lstd/common.h"
+#include "lstd/internal/common.h"
 
 #if OS == WINDOWS
 
-#include "lstd/context.h"
+#include "lstd/internal/context.h"
 #include "lstd/io/fmt.h"
 #include "lstd/os.h"
 

@@ -2,7 +2,7 @@
 
 #include "../writer.h"
 
-#include "../../storage/stack_dynamic_buffer.h"
+#include "../../memory/stack_dynamic_buffer.h"
 
 #include "debug.h"
 #include "parse_context.h"

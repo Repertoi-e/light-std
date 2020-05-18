@@ -2,7 +2,7 @@
 
 #include "arg.h"
 
-#include "../../storage/array.h"
+#include "../../memory/array.h"
 
 LSTD_BEGIN_NAMESPACE
 

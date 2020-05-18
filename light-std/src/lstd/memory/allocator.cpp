@@ -1,7 +1,7 @@
 #include "allocator.h"
 
-#include "../../vendor/stb_malloc.h"
-#include "../context.h"
+#include "../../vendor/stb/stb_malloc.h"
+#include "../internal/context.h"
 #include "../io/fmt.h"
 #include "../math.h"
 #include "../os.h"

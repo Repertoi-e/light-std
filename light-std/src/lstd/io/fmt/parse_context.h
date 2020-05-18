@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../intrin.h"
-#include "../../storage/string_utils.h"
+#include "../../internal/common.h"
+#include "../../memory/string_utils.h"
 
 #include "error_handler.h"
 #include "specs.h"

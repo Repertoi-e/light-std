@@ -2,9 +2,9 @@
 
 #include "../math.h"
 #include "../os.h"
-#include "../storage/array.h"
-#include "../storage/signal.h"
-#include "../storage/string.h"
+#include "../memory/array.h"
+#include "../memory/signal.h"
+#include "../memory/string.h"
 
 struct HMONITOR__;
 

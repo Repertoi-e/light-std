@@ -1,5 +1,7 @@
 #include "../test.h"
 
+#include <lstd/memory/string_builder.h>
+
 TEST(code_point_size) {
     string ascii = "abc";
     assert_eq(ascii.ByteLength, 3);

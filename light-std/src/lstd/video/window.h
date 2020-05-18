@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../math.h"
-#include "../storage/pixel_buffer.h"
+#include "../memory/pixel_buffer.h"
 #include "cursor.h"
 #include "monitor.h"
 #include "window_events.h"

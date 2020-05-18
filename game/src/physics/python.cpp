@@ -11,7 +11,8 @@ PYBIND11_MODULE(lstdgraphics, m) {
         [](py::array_t<f64> p1, py::array_t<f64> p2, u32 color, f64 thickness) {
             assert(p1.request().ndim == 2);
             assert(p2.request().ndim == 2);
-            GameState->ViewportDrawlist->AddLine(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), color, thickness);
+            GameState->ViewportDrawlist->AddLine(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), color,
+                                                 (f32) thickness);
         },
         py::arg("p1"), py::arg("p2"), py::arg("color"), py::arg("thickness") = 1.0);
 
@@ -35,8 +36,8 @@ PYBIND11_MODULE(lstdgraphics, m) {
            f64 thickness) {
             assert(p1.request().ndim == 2);
             assert(p2.request().ndim == 2);
-            GameState->ViewportDrawlist->AddRect(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), color, rounding,
-                                                 cornerFlags, thickness);
+            GameState->ViewportDrawlist->AddRect(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), color, (f32) rounding,
+                                                 cornerFlags, (f32) thickness);
         },
         py::arg("p1"), py::arg("p2"), py::arg("color"), py::arg("rounding") = 0.0,
         py::arg("cornerFlags") = ImDrawCornerFlags_None, py::arg("thickness") = 1.0);

@@ -5,8 +5,7 @@
 
 #include <new>
 
-#include "../common.h"
-#include "../intrin.h"
+#include "../internal/common.h"
 
 LSTD_BEGIN_NAMESPACE
 

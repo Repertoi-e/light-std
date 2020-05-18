@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../storage/stack_dynamic_buffer.h"
+#include "../memory/stack_dynamic_buffer.h"
 #include "writer.h"
 
 LSTD_BEGIN_NAMESPACE

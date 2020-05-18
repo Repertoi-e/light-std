@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../storage/delegate.h"
+#include "../memory/delegate.h"
 #include "path.h"
 
 LSTD_BEGIN_NAMESPACE
