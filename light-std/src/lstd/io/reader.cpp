@@ -1,5 +1,7 @@
 #include "reader.h"
 
+#include "../memory/array.h"
+
 LSTD_BEGIN_NAMESPACE
 
 namespace io {
@@ -551,14 +553,14 @@ pair<guid, bool> io::reader::parse_guid() {
     if (ch != c) fail
 
 // :GuidParseError
-#define HANDLE_SECTION(num, size, comma)                \
+#define HANDLE_SECTION(num, size, comma)         \
     {                                            \
         auto [d, success] = parse_int<size>(16); \
         if (!success) fail;                      \
-        if (comma) EAT_CHAR(',');                           \
+        if (comma) EAT_CHAR(',');                \
         u.D##num = d;                            \
     }
-        bump_byte(); // We already consumed 0, so when parse_int fires the first char is x which is invalid.
+        bump_byte();  // We already consumed 0, so when parse_int fires the first char is x which is invalid.
 
         HANDLE_SECTION(1, u32, true);
         HANDLE_SECTION(5, u16, true);

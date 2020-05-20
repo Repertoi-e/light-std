@@ -1,5 +1,8 @@
 #include "imgui_renderer.h"
 
+#include "../memory/pixel_buffer.h"
+#include "../video/window.h"
+
 LSTD_BEGIN_NAMESPACE
 
 void imgui_renderer::init(graphics *g) {

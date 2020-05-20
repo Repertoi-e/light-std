@@ -2,7 +2,6 @@
 
 /// A header which provides type definitions as well as other helper macros
 
-#include "../memory/guid.h"
 #include "../types.h"
 #include "debug_break.h"
 

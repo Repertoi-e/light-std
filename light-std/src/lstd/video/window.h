@@ -55,7 +55,7 @@ struct window {
         ALWAYS_ON_TOP = BIT(10),  // Also called floating, topmost, etc.
                                   // Specify in _init()_ or use _set_always_on_top()_
         FOCUS_ON_SHOW = BIT(11),  // Specify in _init()_ or manually modify _Flags_
-        TRANSPARENT = BIT(12),  // Window contents with alpha value get the color of the thing behind them, can only be
+        ALPHA = BIT(12),  // Window contents with alpha value get the color of the thing behind them, can only be
                                 // specified when creating the window! Can also check this in the _Flags_ after creation
                                 // to see if the window was able to be created with this flag.
 
@@ -67,7 +67,7 @@ struct window {
                       // as "transparent" and continues to test on the window behind it). Specify in _init()_ or
                       // manually modify _Flags_. Note that this flag is unrelated to visual transparency.
 
-        CREATION_FLAGS = SHOWN | BORDERLESS | RESIZABLE | AUTO_MINIMIZE | ALWAYS_ON_TOP | FOCUS_ON_SHOW | TRANSPARENT |
+        CREATION_FLAGS = SHOWN | BORDERLESS | RESIZABLE | AUTO_MINIMIZE | ALWAYS_ON_TOP | FOCUS_ON_SHOW | ALPHA |
                          VSYNC | CLOSE_ON_ALT_F4 | MOUSE_PASS_THROUGH
     };
 

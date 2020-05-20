@@ -4,11 +4,6 @@ newoption {
 }
 
 newoption {
-    trigger = "dxmath",
-    description = "Include non cross-platform DirectXMath library for fast SIMD linear algebra on MSVC compiler."
-}
-
-newoption {
 	trigger = "python",
 	value = "path",
 	description = "Include and link to Python 3.7 C API searching for files in the specified path. e.g. C:/ProgramData/Anaconda3/ (we use C:/ProgramData/Anaconda3/include etc...)"
@@ -34,6 +29,8 @@ function common_settings()
 	editandcontinue "Off"
 
     defines "_HAS_EXCEPTIONS=0"
+
+	includedirs { "%{prj.name}/src" }
 
 	filter "system:windows"
 		excludes "%{prj.name}/src/posix_*.cpp"
@@ -96,12 +93,11 @@ project "light-std"
 		"%{prj.name}/src/**.cpp"
 	}
 
-	filter "not options:dxmath"
-		excludes  {
-			"%{prj.name}/src/dxmath/**.h",
-			"%{prj.name}/src/dxmath/**.cpp"
-		}
 	filter {}
+
+	pchheader "pch.h"
+	pchsource "%{prj.name}/src/pch.cpp"
+	forceincludes { "pch.h" }
 
 	common_settings()
 
@@ -119,6 +115,10 @@ project "test-suite"
 
 	links { "light-std" }
 	includedirs { "light-std/src" }
+
+	pchheader "test.h"
+	pchsource "%{prj.name}/src/test.cpp"
+	forceincludes { "test.h" }
 
 	common_settings()
 
@@ -168,6 +168,10 @@ project "game"
 
 	dependson { "cars", "physics" }
 
+	pchheader "game.h"
+	pchsource "game/src/game.cpp"
+	forceincludes { "game.h" }
+
 	common_settings()
 	
 	filter "system:windows"
@@ -189,6 +193,11 @@ project "cars"
 
 	links { "light-std" }
 	includedirs { "light-std/src", "game/src" }
+
+	includedirs { "game/src" }
+	pchheader "game.h"
+	pchsource "game/src/game.cpp"
+	forceincludes { "game.h" }
 
 	common_settings()
 
@@ -220,6 +229,11 @@ project "physics"
 		includedirs { py  .. "/include" }
 		links { py .. "/libs/python37.lib" }
 	end
+
+	includedirs { "game/src" }
+	pchheader "pch.h"
+	pchsource "game/src/physics/pch.cpp"
+	forceincludes { "pch.h" }
 
 	common_settings()
 

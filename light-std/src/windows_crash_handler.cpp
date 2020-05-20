@@ -7,11 +7,6 @@
 #include "lstd/os.h"
 #include "lstd/memory/table.h"
 
-#undef MAC
-#undef _MAC
-#include <Windows.h>
-#include <dbghelp.h>
-
 LSTD_BEGIN_NAMESPACE
 
 #define CALLSTACK_DEPTH 6

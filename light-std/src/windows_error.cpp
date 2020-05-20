@@ -5,13 +5,6 @@
 #include "lstd/io/fmt.h"
 #include "lstd/os.h"
 
-#include <d2d1.h>
-#include <d3d10_1.h>
-#include <d3d11.h>
-#include <ddraw.h>
-#include <dwrite.h>
-#include <wincodec.h>
-
 #define XAUDIO2_E_INVALID_CALL 0x88960001
 #define XAUDIO2_E_XMA_DECODER_ERROR 0x88960002
 #define XAUDIO2_E_XAPO_CREATION_FAILED 0x88960003

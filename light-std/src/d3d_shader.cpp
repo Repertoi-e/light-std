@@ -3,17 +3,9 @@
 #if OS == WINDOWS
 
 #include "lstd/graphics/api.h"
+#include "lstd/graphics/shader.h"
+#include "lstd/io/fmt.h"
 #include "lstd/os.h"
-
-#undef MAC
-#undef _MAC
-#include <Windows.h>
-
-#include <d3d10_1.h>
-#include <d3d11.h>
-#include <d3dcommon.h>
-#include <d3dcompiler.h>
-#include <dxgidebug.h>
 
 LSTD_BEGIN_NAMESPACE
 
@@ -60,7 +52,7 @@ void d3d_shader_init(shader *s) {
     auto *ps = (ID3DBlob *) s->D3D.PSBlob;
     s->Graphics->D3D.Device->CreateVertexShader(vs->GetBufferPointer(), vs->GetBufferSize(), null, &s->D3D.VS);
     s->Graphics->D3D.Device->CreatePixelShader(ps->GetBufferPointer(), ps->GetBufferSize(), null, &s->D3D.PS);
-    
+
     // Remove comments
     // size_t startPos;
     // while ((startPos = source.find("/*")) != npos) {
@@ -68,7 +60,7 @@ void d3d_shader_init(shader *s) {
     //     assert(endPos != npos);
     //     source.remove(startPos, endPos);
     // }
-	// 
+    //
     // while ((startPos = source.find("//")) != npos) {
     //     size_t endPos = source.find('\n', startPos);
     //     assert(endPos != npos);

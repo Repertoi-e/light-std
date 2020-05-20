@@ -3,16 +3,10 @@
 #if OS == WINDOWS
 
 #include "lstd/graphics/api.h"
+#include "lstd/graphics/texture.h"
+#include "lstd/io/fmt.h"
 #include "lstd/os.h"
-
-#undef MAC
-#undef _MAC
-#include <Windows.h>
-
-#include <d3d10_1.h>
-#include <d3d11.h>
-#include <d3dcommon.h>
-#include <dxgidebug.h>
+#include "lstd/video.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -40,7 +34,7 @@ void d3d_init(graphics *g) {
     DXGI_ADAPTER_DESC adapterDesc;
     DXCHECK(adapter->GetDesc(&adapterDesc));
 
-    auto adapterStr = string(c_string_length(adapterDesc.Description) * 2); // @Bug c_string_length * 2 is not enough
+    auto adapterStr = string(c_string_length(adapterDesc.Description) * 2);  // @Bug c_string_length * 2 is not enough
     utf16_to_utf8(adapterDesc.Description, const_cast<char *>(adapterStr.Data), &adapterStr.ByteLength);
     adapterStr.Length = utf8_length(adapterStr.Data, adapterStr.ByteLength);
 
@@ -250,10 +244,10 @@ void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindo
 
 void d3d_set_viewport(graphics *g, rect viewport) {
     D3D11_VIEWPORT rect;
-    rect.TopLeftX = (f32) viewport.X;
-    rect.TopLeftY = (f32) viewport.Y;
-    rect.Width = (f32) viewport.Width;
-    rect.Height = (f32) viewport.Height;
+    rect.TopLeftX = (f32) viewport.Top;
+    rect.TopLeftY = (f32) viewport.Left;
+    rect.Width = (f32) viewport.width();
+    rect.Height = (f32) viewport.height();
     rect.MinDepth = 0.0f;
     rect.MaxDepth = 1.0f;
 
@@ -262,10 +256,10 @@ void d3d_set_viewport(graphics *g, rect viewport) {
 
 void d3d_set_scissor_rect(graphics *g, rect scissorRect) {
     D3D11_RECT rect;
-    rect.left = scissorRect.X;
-    rect.top = scissorRect.Y;
-    rect.right = scissorRect.X + scissorRect.Width;
-    rect.bottom = scissorRect.Y + scissorRect.Height;
+    rect.top = scissorRect.Top;
+    rect.left = scissorRect.Left;
+    rect.bottom = scissorRect.Bot;
+    rect.right = scissorRect.Right;
 
     g->D3D.DeviceContext->RSSetScissorRects(1, &rect);
 }

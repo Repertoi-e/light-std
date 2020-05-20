@@ -1,7 +1,10 @@
 #pragma once
 
-#include "api.h"
 #include "../../vendor/imgui/imgui.h"
+#include "api.h"
+#include "buffer.h"
+#include "shader.h"
+#include "texture.h"
 
 LSTD_BEGIN_NAMESPACE
 

@@ -26,16 +26,6 @@ vec<T, Dim, Packed> clamp(const vec<T, Dim, Packed> &arg, T lower, T upper) {
     return result;
 }
 
-// ! @TODO
-struct rect {
-    s32 X = 0, Y = 0, Width = 0, Height = 0;
-
-    bool operator==(rect other) const {
-        return X == other.X && Y == other.Y && Width == other.Width && Height == other.Height;
-    }
-    bool operator!=(rect other) const { return !(*this == other); }
-};
-
 LSTD_END_NAMESPACE
 
 #include "math/decompose_lu.h"
@@ -43,6 +33,7 @@ LSTD_END_NAMESPACE
 // #include "math/decompose_svd.h"
 #include "math/mat_func.h"
 #include "math/quat_func.h"
+#include "math/rect.h"
 #include "math/transforms/orthographic.h"
 #include "math/transforms/perspective.h"
 #include "math/transforms/rotation_2d.h"

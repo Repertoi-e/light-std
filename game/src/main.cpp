@@ -337,8 +337,8 @@ static void imgui_update_monitors() {
         monitor.MainSize = ImVec2((f32) displayMode.Width, (f32) displayMode.Height);
 
         rect workArea = os_get_work_area(it);
-        monitor.WorkPos = ImVec2((f32) workArea.X, (f32) workArea.Y);
-        monitor.WorkSize = ImVec2((f32) workArea.Width, (f32) workArea.Height);
+        monitor.WorkPos = ImVec2((f32) workArea.Top, (f32) workArea.Left);
+        monitor.WorkSize = ImVec2((f32) workArea.width(), (f32) workArea.height());
 
         v2 scale = os_get_monitor_content_scale(it);
         monitor.DpiScale = scale.x;

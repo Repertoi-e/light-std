@@ -6,11 +6,6 @@
 #include "lstd/io/fmt.h"
 #include "lstd/os.h"
 
-#undef MAC
-#undef _MAC
-#include <Windows.h>
-#include <process.h>
-
 LSTD_BEGIN_NAMESPACE
 
 namespace thread {

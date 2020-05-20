@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../memory/array.h"
+#include "../memory/guid.h"
 #include "../memory/string.h"
 
 #if defined EOF
@@ -8,6 +8,10 @@
 #endif
 
 LSTD_BEGIN_NAMESPACE
+
+// @Avoid#include
+template <typename T>
+struct array;
 
 namespace io {
 

@@ -50,8 +50,8 @@ struct script {
 
 inline game_state *GameState = null;
 
-inline asset_collection<shader> *Shaders = null;
-inline asset_collection<texture_2D> *Texture2Ds = null;
+inline bucket_array<shader> *Shaders = null;
+inline bucket_array<texture_2D> *Texture2Ds = null;
 
 void reload_global_state();
 

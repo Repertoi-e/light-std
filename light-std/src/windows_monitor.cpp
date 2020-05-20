@@ -7,19 +7,10 @@
 #include "lstd/video/window.h"
 
 #include <initguid.h>
-
-#undef MAC
-#undef _MAC
-#include <Windows.h>
-#include <Windowsx.h>
-#include <Xinput.h>
-#include <dbt.h>
-#include <wctype.h>
-
 #include <hidclass.h>
 
 #if WINVER < 0x0601
-typedef struct {
+    typedef struct {
     DWORD cbSize;
     DWORD ExtStatus;
 } CHANGEFILTERSTRUCT;
@@ -187,7 +178,7 @@ void win32_monitor_init() {
 
 struct win32_monitor_state {
     ~win32_monitor_state() {
-		DestroyWindow(HelperWindowHandle);
+        DestroyWindow(HelperWindowHandle);
 
         SystemParametersInfoW(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, UIntToPtr(ForeGROUNDLOCKTIMEOUT), SPIF_SENDCHANGE);
 
@@ -217,7 +208,7 @@ string os_get_clipboard_content() {
     }
     defer(GlobalUnlock(object));
 
-    ClipboardString.reserve(c_string_length(buffer) * 2); // @Bug c_string_length * 2 is not enough
+    ClipboardString.reserve(c_string_length(buffer) * 2);  // @Bug c_string_length * 2 is not enough
     utf16_to_utf8(buffer, const_cast<char *>(ClipboardString.Data), &ClipboardString.ByteLength);
     ClipboardString.Length = utf8_length(ClipboardString.Data, ClipboardString.ByteLength);
 
@@ -278,7 +269,7 @@ static monitor *create_monitor(DISPLAY_DEVICEW *adapter, DISPLAY_DEVICEW *displa
     wchar_t *name = adapter->DeviceString;
     if (display) name = display->DeviceString;
 
-    mon->Name.reserve(c_string_length(name) * 2); // @Bug c_string_length * 2 is not enough
+    mon->Name.reserve(c_string_length(name) * 2);  // @Bug c_string_length * 2 is not enough
     utf16_to_utf8(name, const_cast<char *>(mon->Name.Data), &mon->Name.ByteLength);
     mon->Name.Length = utf8_length(mon->Name.Data, mon->Name.ByteLength);
 

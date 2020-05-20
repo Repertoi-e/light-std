@@ -1,12 +1,14 @@
 #pragma once
 
-#include <lstd/catalog.h>
+#include <lstd/file/catalog.h>
 #include <lstd/graphics.h>
+#include <lstd/io.h>
 #include <lstd/io/fmt.h>
 #include <lstd/memory/array.h>
 #include <lstd/memory/free_list_allocator.h>
 #include <lstd/memory/table.h>
 #include <lstd/os.h>
+#include <lstd/video.h>
 
 // LE_GAME_API is used to export functions from the game dll
 #if OS == WINDOWS

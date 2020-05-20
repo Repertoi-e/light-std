@@ -7,12 +7,6 @@
 #include "lstd/memory/dynamic_library.h"
 #include "lstd/os.h"
 
-#undef MAC
-#undef _MAC
-#include <Objbase.h>
-#include <Windows.h>
-#include <shellapi.h>  // @DependencyCleanup: CommandLineToArgvW
-
 LSTD_BEGIN_NAMESPACE
 
 #if COMPILER == MSVC

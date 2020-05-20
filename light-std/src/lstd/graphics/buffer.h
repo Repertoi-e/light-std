@@ -25,19 +25,8 @@ struct buffer_layout {
     size_t TotalSize = 0;  // Calculated in bytes (1-bit values add 7 bits of packing),
                            // generally used internally to calculate the offset for the next element
 
-    void add_padding(size_t bytes) { TotalSize += bytes; }
-
-    void add(string name, gtype type, size_t count = 1, bool normalized = false) {
-        size_t sizeInBits = get_size_of_base_gtype_in_bits(type);
-
-        count *= get_count_of_gtype(type);
-
-        assert(TotalSize <= numeric_info<u32>::max());
-        Elements.append({name, get_scalar_gtype(type), sizeInBits, normalized, (u32) count, (u32) TotalSize});
-
-        if (sizeInBits == 1) sizeInBits = 8;
-        TotalSize += (sizeInBits / 8) * count;
-    }
+    void add(string name, gtype type, size_t count = 1, bool normalized = false);
+    void add_padding(size_t bytes);
 };
 
 enum class primitive_topology { PointList = 0, LineList, LineStrip, TriangleList, TriangleStrip };
@@ -104,26 +93,18 @@ struct buffer : non_copyable, non_movable {
 
     void init(graphics *g, buffer_type type, buffer_usage usage, size_t size, const char *data = null);
 
-    void set_input_layout(buffer_layout layout) { Impl.SetInputLayout(this, layout); }
+    void set_input_layout(buffer_layout layout);
 
-    void *map(buffer_map_access access) { return Impl.Map(this, access); }
-    void unmap() { Impl.Unmap(this); }
+    void *map(buffer_map_access access);
+    void unmap();
 
-    void bind_vb(primitive_topology topology, u32 offset = 0, u32 customStride = 0) {
-        Impl.Bind(this, topology, offset, customStride, (shader_type) 0, 0);
-    }
+    void bind_vb(primitive_topology topology, u32 offset = 0, u32 customStride = 0);
+    void bind_ib(u32 offset = 0);
+    void bind_ub(shader_type shaderType, u32 position);
 
-    void bind_ib(u32 offset = 0) { Impl.Bind(this, (primitive_topology) 0, offset, 0, (shader_type) 0, 0); }
+    void unbind();
 
-    void bind_ub(shader_type shaderType, u32 position) {
-        Impl.Bind(this, (primitive_topology) 0, 0, 0, shaderType, position);
-    }
-
-    void unbind() { Impl.Unbind(this); }
-
-    void release() {
-        if (Impl.Release) Impl.Release(this);
-    }
+    void release();
 };
 
 LSTD_END_NAMESPACE

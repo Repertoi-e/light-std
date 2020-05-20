@@ -3,16 +3,9 @@
 #if OS == WINDOWS
 
 #include "lstd/graphics/api.h"
+#include "lstd/graphics/texture.h"
+#include "lstd/memory/pixel_buffer.h"
 #include "lstd/os.h"
-
-#undef MAC
-#undef _MAC
-#include <Windows.h>
-
-#include <d3d10_1.h>
-#include <d3d11.h>
-#include <d3dcommon.h>
-#include <dxgidebug.h>
 
 LSTD_BEGIN_NAMESPACE
 

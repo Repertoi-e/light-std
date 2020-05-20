@@ -7,14 +7,6 @@
 #include "lstd/os.h"
 #include "lstd/video/window.h"
 
-#undef MAC
-#undef _MAC
-#include <Windows.h>
-#include <Windowsx.h>
-#include <dwmapi.h>
-#include <objbase.h>
-#include <shellapi.h>
-
 // @Hack
 #undef TRANSPARENT
 
@@ -225,13 +217,13 @@ window *window::init(string title, s32 x, s32 y, s32 width, s32 height, u32 flag
     wp.showCmd = SW_HIDE;
     SetWindowPlacement(PlatformData.Win32.hWnd, &wp);
 
-    if (Flags & window::TRANSPARENT) update_framebuffer_transparency(this);
+    if (Flags & window::ALPHA) update_framebuffer_transparency(this);
     if (Flags & SHOWN) show();
 
     // If we couldn't get transparent, remove the flag
     BOOL enabled;
     if (FAILED(DwmIsCompositionEnabled(&enabled)) || !enabled) {
-        Flags &= ~window::TRANSPARENT;
+        Flags &= ~window::ALPHA;
     }
 
     ID = s_NextID++;  // @Thread
@@ -1335,7 +1327,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             if (win->Flags & window::MOUSE_PASS_THROUGH) return HTTRANSPARENT;
             break;
         case WM_DWMCOMPOSITIONCHANGED:
-            if (win->Flags & window::TRANSPARENT) update_framebuffer_transparency(win);
+            if (win->Flags & window::ALPHA) update_framebuffer_transparency(win);
             return 0;
         case WM_GETDPISCALEDSIZE: {
             // Adjust the window size to keep the content area size constant

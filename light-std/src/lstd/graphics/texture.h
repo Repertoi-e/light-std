@@ -1,9 +1,7 @@
 #pragma once
 
-#include "../file.h"
-#include "../memory/pixel_buffer.h"
+#include "asset.h"
 #include "gtype.h"
-#include "shader.h"
 
 #if OS == WINDOWS
 struct ID3D11Texture2D;
@@ -18,6 +16,8 @@ LSTD_BEGIN_NAMESPACE
 enum class texture_wrap { None = 0, Repeat, Clamp, Mirrored_Repeat, Clamp_To_Border };
 enum class texture_filter { Linear, Nearest };
 
+// @Avoid#include
+struct pixel_buffer;
 struct graphics;
 
 struct texture_2D : asset {
@@ -61,21 +61,12 @@ struct texture_2D : asset {
     void init_as_render_target(graphics *g, s32 width, s32 height, texture_filter filter = texture_filter::Linear,
                                texture_wrap wrap = texture_wrap::Repeat);
 
-    void set_data(pixel_buffer data) { Impl.SetData(this, data); }
+    void set_data(pixel_buffer data);
 
-    void bind(u32 slot) {
-        BoundSlot = slot;
-        Impl.Bind(this);
-    }
+    void bind(u32 slot);
+    void unbind();
 
-    void unbind() {
-        Impl.Unbind(this);
-        BoundSlot = (u32) -1;
-    }
-
-    void release() {
-        if (Impl.Release) Impl.Release(this);
-    }
+    void release();
 };
 
 LSTD_END_NAMESPACE
