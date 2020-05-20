@@ -408,7 +408,7 @@ void window::release() {
 string window::get_title() {
     constexpr size_t tempLength = 30;
 
-    PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
+    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
         auto *titleUtf16 = new wchar_t[tempLength];
         s32 length = GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
         if (length >= tempLength - 1) {

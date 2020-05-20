@@ -10,13 +10,13 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         Graphics = g;
 
         // Switch our default allocator from malloc to the one the exe provides us with
-        const_cast<implicit_context *>(&Context)->Alloc = memory->Alloc;  // @Hack
-        Malloc = memory->Alloc;                                           // Should we? Might be a bit confusing..
+        Context.Alloc = memory->Alloc;
+        Malloc = memory->Alloc;  // Should we? Might be a bit confusing..
 
         // We need to use the exe's imgui context, because we submit the geometry to the GPU there
         assert(GameMemory->ImGuiContext);
         ImGui::SetCurrentContext((ImGuiContext *) GameMemory->ImGuiContext);
-        
+
         // We also tell imgui to use our allocator (by default it uses raw malloc)
         ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size); },
                                      [](void *ptr, void *) { delete ptr; });

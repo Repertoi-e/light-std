@@ -172,7 +172,10 @@ void parse_fmt_string(string fmtString, format_context *f);
 // Formats to writer
 template <typename... Args>
 void to_writer(io::writer *out, string fmtString, Args &&... args) {
-    auto store = make_arg_store<Args...>(args...);  // This needs to outlive _parse_fmt_string_
+    
+    args_store<remove_reference_t<Args>...> store;  // This needs to outlive _parse_fmt_string_
+    store.populate(args...);
+
     auto bakedArgs = fmt::args(store);
     auto f = format_context(out, fmtString, bakedArgs, default_error_handler);
     parse_fmt_string(fmtString, &f);
@@ -193,8 +196,9 @@ void sprint(string *out, string fmtString, Args &&... args) {
     out->reserve(out->ByteLength +
                  calculate_formatted_size(fmtString, ((Args &&) args)...));  // @Speed Is this actually better?
 
-    auto writer = io::string_writer(out);
+    auto writer = io::string_builder_writer();
     to_writer(&writer, fmtString, ((Args &&) args)...);
+    writer.Builder.combine(out);
 }
 
 // Formats to io::cout

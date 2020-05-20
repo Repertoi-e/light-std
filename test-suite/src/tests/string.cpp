@@ -216,7 +216,8 @@ TEST(builder) {
     builder.append(string(" world"));
     builder.append('!');
 
-    string result = builder.combine();
+    string result;
+    builder.combine(&result);
     assert_eq(result, "Hello, world!");
 }
 

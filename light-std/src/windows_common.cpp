@@ -29,10 +29,9 @@ extern void win32_crash_handler_init();
 // How it works is described here:
 // https://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm#page-2
 s32 initialize_context_and_global_state() {
-    auto *unconstContext = const_cast<implicit_context *>(&Context);
-    *unconstContext = {};
-    unconstContext->TemporaryAlloc.Context = &unconstContext->TemporaryAllocData;
-    unconstContext->ThreadID = thread::id((u64) GetCurrentThreadId());
+    Context = {};
+    Context.TemporaryAlloc.Context = &Context.TemporaryAllocData;
+    Context.ThreadID = thread::id((u64) GetCurrentThreadId());
     return 0;
 }
 
@@ -95,7 +94,7 @@ static char CinBuffer[CONSOLE_BUFFER_SIZE]{};
 static char CoutBuffer[CONSOLE_BUFFER_SIZE]{};
 static char CerrBuffer[CONSOLE_BUFFER_SIZE]{};
 static HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
-static thread::recursive_mutex CoutMutex;
+static thread::mutex CoutMutex;
 static thread::mutex CinMutex;
 
 static LARGE_INTEGER PerformanceFrequency;
@@ -204,15 +203,17 @@ char io::console_reader_request_byte(io::reader *r) {
 void io::console_writer_write(io::writer *w, const char *data, size_t count) {
     auto *cw = (io::console_writer *) w;
 
-    thread::recursive_mutex *mutex = null;
-    if (cw->LockMutex) mutex = &CoutMutex;
-    thread::scoped_lock<thread::recursive_mutex> _(mutex);
-
     if (count > cw->Available) {
         cw->flush();
     }
 
+    thread::mutex *mutex = null;
+    if (cw->LockMutex) mutex = &CoutMutex;
+
+    thread::scoped_lock<thread::mutex> _(mutex);
+
     copy_memory(cw->Current, data, count);
+
     cw->Current += count;
     cw->Available -= count;
 }
@@ -220,9 +221,10 @@ void io::console_writer_write(io::writer *w, const char *data, size_t count) {
 void io::console_writer_flush(io::writer *w) {
     auto *cw = (io::console_writer *) w;
 
-    thread::recursive_mutex *mutex = null;
+    thread::mutex *mutex = null;
     if (cw->LockMutex) mutex = &CoutMutex;
-    thread::scoped_lock<thread::recursive_mutex> _(mutex);
+
+    thread::scoped_lock<thread::mutex> _(mutex);
 
     if (!cw->Buffer) {
         if (cw->OutputType == io::console_writer::COUT) {
@@ -248,9 +250,79 @@ namespace internal {
 io::writer *g_ConsoleLog = &io::cout;
 }
 
-void *os_alloc(size_t size) { return GlobalAlloc(0, size); }
+void *os_allocate_block(size_t size) {
+    assert(size < MAX_ALLOCATION_REQUEST);
+    return HeapAlloc(GetProcessHeap(), 0, size);
+}
 
-void os_free(void *ptr) { GlobalFree(ptr); }
+// Tests whether the allocation contraction is possible
+static bool is_contraction_possible(size_t oldSize) {
+    // Check if object allocated on low fragmentation heap.
+    // The LFH can only allocate blocks up to 16KB in size.
+    if (oldSize <= 0x4000) {
+        LONG heapType = -1;
+        if (!HeapQueryInformation(GetProcessHeap(), HeapCompatibilityInformation, &heapType, sizeof(heapType), null)) {
+            return false;
+        }
+        return heapType != 2;
+    }
+
+    // Contraction possible for objects not on the LFH
+    return true;
+}
+
+static void *try_heap_realloc(void *ptr, size_t newSize, bool *reportError) {
+    void *result = null;
+    __try {
+        result = HeapReAlloc(GetProcessHeap(), HEAP_REALLOC_IN_PLACE_ONLY | HEAP_GENERATE_EXCEPTIONS, ptr, newSize);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        // We specify HEAP_REALLOC_IN_PLACE_ONLY, so STATUS_NO_MEMORY is a valid error.
+        // We don't need to report it.
+        *reportError = GetExceptionCode() != STATUS_NO_MEMORY;
+    }
+    return result;
+}
+
+void *os_resize_block(void *ptr, size_t newSize) {
+    assert(ptr);
+    assert(newSize < MAX_ALLOCATION_REQUEST);
+
+    size_t oldSize = os_get_block_size(ptr);
+    if (newSize == 0) newSize = 1;
+
+    bool reportError = false;
+    void *result = try_heap_realloc(ptr, newSize, &reportError);
+    
+    if (result) return result;
+
+    // If a failure to contract was caused by platform limitations, just return the original block
+    if (newSize < oldSize && !is_contraction_possible(oldSize)) return ptr;
+
+    if (reportError) {
+        windows_report_hresult_error(
+            HRESULT_FROM_WIN32(GetLastError()),
+            "HeapReAlloc(GetProcessHeap(), HEAP_REALLOC_IN_PLACE_ONLY | HEAP_GENERATE_EXCEPTIONS, ptr, newSize)",
+            __FILE__, __LINE__);
+    }
+    return null;
+}
+
+size_t os_get_block_size(void *ptr) {
+    size_t result = HeapSize(GetProcessHeap(), 0, ptr);
+    if (result == npos) {
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "HeapSize(GetProcessHeap(), 0, ptr)", __FILE__,
+                                     __LINE__);
+        return 0;
+    }
+    return result;
+}
+
+void os_free_block(void *ptr) {
+    if (!HeapFree(GetProcessHeap(), 0, ptr)) {
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "HeapFree(GetProcessHeap(), 0, ptr)", __FILE__,
+                                     __LINE__);
+    }
+}
 
 void os_exit(s32 exitCode) { ExitProcess(exitCode); }
 
@@ -280,7 +352,7 @@ bool os_get_env(string *out, string name, bool silent) {
 
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
         if (!silent) {
-            PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
+            WITH_ALLOC(Context.TemporaryAlloc) {
                 string warning = ">>> Warning, couldn't find environment variable with value \"";
                 warning.append(name);
                 warning.append("\".\n");

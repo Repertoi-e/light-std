@@ -4,6 +4,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
+// This is good for large strings because it doesn't have to constantly reallocate
 struct string_builder {
     static constexpr size_t BUFFER_SIZE = 1_KiB;
 
@@ -54,8 +55,8 @@ struct string_builder {
         }
     }
 
-    // Merges all buffers and returns a single string.
-    string combine() const;
+    // Merges all buffers and appends to _out_.
+    void combine(string *out) const;
 };
 
 string_builder *clone(string_builder *dest, const string_builder &src);

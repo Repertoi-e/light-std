@@ -105,7 +105,7 @@ struct value {
         s64 S64;
         u64 U64;
         f64 F64;
-        const void *Ptr;
+        const void *Pointer;
         string_view String;
         custom Custom;
         const internal::named_arg_base *NamedArg;
@@ -117,7 +117,7 @@ struct value {
     value(u64 value) : U64(value) {}
     value(f64 value) : F64(value) {}
     value(bool value) : S32(value) {}
-    value(const void *value) : Ptr(value) {}
+    value(const void *value) : Pointer(value) {}
     value(const char *value) : String(value) {}
     value(string value) : String(value) {}
     value(string_view value) : String(value) {}

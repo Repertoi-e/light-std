@@ -445,8 +445,8 @@ array<T> *move(array<T> *dest, array<T> *src) {
     if (!src->is_owner()) return dest;
 
     // Transfer ownership
-    change_owner(src->Data, dest);
-    change_owner(dest->Data, dest);
+    encode_owner(src->Data, dest);
+    encode_owner(dest->Data, dest);
     return dest;
 }
 

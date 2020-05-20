@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../memory/stack_array.h"
 #include "parse_context.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -14,7 +15,7 @@ struct arg {
         value::custom Custom;
 
         handle(value::custom val) : Custom(val) {}
-        void format(format_context *f) const { Custom.FormatFunction(Custom.Data, f); }
+        void format(format_context *f) { Custom.FormatFunction(Custom.Data, f); }
     };
 };
 
@@ -122,28 +123,48 @@ struct arg_mapper {
     }
 };
 
+namespace internal {
+
+template <typename>
+struct sfinae_true : true_t {};
+
+template <typename T>
+static auto test_formatting(int) -> sfinae_true<decltype(arg_mapper{}.map(declval<T>()))>;
+template <typename>
+static auto test_formatting(long) -> false_t;
+}  // namespace internal
+
+template <typename T>
+struct can_be_formatted : decltype(internal::test_formatting<T>(0)) {};
+
+template <typename T>
+constexpr bool can_be_formatted_v = can_be_formatted<T>::value;
+
 // !!!
-// If you get a compiler error here it's probably because you passed in an argument that can't be formatted.
+// If you get a compiler error here it's probably because you passed in an argument that can't be formatted
 // !!!
 template <typename T>
 constexpr auto mapped_type_constant_v = type_constant_v<decltype(arg_mapper{}.map(declval<T>()))>;
 
 template <typename T>
 arg make_arg(const T &value) {
+    static_assert(can_be_formatted_v<T>, "Argument doesn't have a formatter.");
     return {mapped_type_constant_v<T>, arg_mapper().map(value)};
 }
 
 template <bool IsPacked, typename T>
 enable_if_t<IsPacked, value> make_arg(const T &value) {
+    static_assert(can_be_formatted_v<T>, "Argument doesn't have a formatter.");
     return arg_mapper().map(value);
 }
 
 template <bool IsPacked, typename T>
 enable_if_t<!IsPacked, arg> make_arg(const T &value) {
+    static_assert(can_be_formatted_v<T>, "Argument doesn't have a formatter.");
     return make_arg(value);
 }
 
-// Visits an argument dispatching to the appropriate visit method based on the argument type.
+// Visits an argument dispatching to the appropriate visit method based on the argument type
 template <typename Visitor>
 auto visit_fmt_arg(Visitor visitor, arg ar) -> decltype(visitor(0)) {
     switch (ar.Type) {
@@ -167,7 +188,7 @@ auto visit_fmt_arg(Visitor visitor, arg ar) -> decltype(visitor(0)) {
         case type::STRING:
             return visitor(ar.Value.String);
         case type::POINTER:
-            return visitor(ar.Value.Ptr);
+            return visitor(ar.Value.Pointer);
         case type::CUSTOM:
             return visitor(typename arg::handle(ar.Value.Custom));
     }
@@ -199,20 +220,15 @@ struct args_store {
     static constexpr size_t DATA_SIZE = NUM_ARGS + (IS_PACKED && NUM_ARGS != 0 ? 0 : 1);
 
     using value_t = type_select_t<IS_PACKED, value, arg>;
-    value_t Data[DATA_SIZE];
+    stack_array<value_t, DATA_SIZE> Data;
 
     u64 Types = 0;
 
-    args_store(const Args &... args)
-        : Data{make_arg<IS_PACKED>(args)...},
-          Types(IS_PACKED ? internal::get_packed_fmt_types<unused, Args...>() : internal::IS_UNPACKED_BIT | NUM_ARGS) {}
+    void populate(const Args &... args) {
+        Data = {make_arg<IS_PACKED>(args)...};
+        Types = IS_PACKED ? internal::get_packed_fmt_types<unused, Args...>() : internal::IS_UNPACKED_BIT | NUM_ARGS;
+    }
 };
-
-// Constructs an _args_store_ object that contains references to arguments and can be implicitly converted to _args_.
-template <typename... Args>
-args_store<remove_reference_t<Args>...> make_arg_store(const remove_reference_t<Args> &... args) {
-    return {args...};
-}
 
 struct args {
     u64 Types = 0;
@@ -226,24 +242,22 @@ struct args {
 
     template <typename... Args>
     args(const args_store<Args...> &store) : Types(store.Types), Count(sizeof...(Args)) {
-        set_data(store.Data);
+        set_data(store.Data.Data);
     }
 
     void set_data(const value *values) { Values = values; }
     void set_data(const arg *ars) { Args = ars; }
 
-    bool is_packed() const { return !(Types & internal::IS_UNPACKED_BIT); }
+    bool is_packed() { return !(Types & internal::IS_UNPACKED_BIT); }
 
-    type get_type(size_t index) const {
+    type get_type(size_t index) {
         u64 shift = index * 4;
         return (type)((Types & (0xfull << shift)) >> shift);
     }
 
-    size_t max_size() const {
-        return (size_t)(is_packed() ? internal::MAX_PACKED_ARGS : Types & ~internal::IS_UNPACKED_BIT);
-    }
+    size_t max_size() { return (size_t)(is_packed() ? internal::MAX_PACKED_ARGS : Types & ~internal::IS_UNPACKED_BIT); }
 
-    arg get_arg(size_t index) const {
+    arg get_arg(size_t index) {
         arg result;
         if (!is_packed()) {
             if (index < max_size()) result = Args[index];
@@ -306,7 +320,7 @@ struct arg_map : non_copyable {
 
     void add(const value &value) { Entries[Size++] = {value.NamedArg->Name, value.NamedArg->deserialize()}; }
 
-    arg find(string name) const {
+    arg find(string name) {
         for (auto *it = Entries, *end = Entries + Size; it != end; ++it) {
             if (it->Name == name) return it->Arg;
         }

@@ -324,8 +324,8 @@ table<K, V> *move(table<K, V> *dest, table<K, V> *src) {
     if (!src->is_owner()) return;
 
     // Transfer ownership
-    change_owner(src->Hashes, dest);
-    change_owner(dest->Hashes, dest);
+    encode_owner(src->Hashes, dest);
+    encode_owner(dest->Hashes, dest);
     return dest;
 }
 

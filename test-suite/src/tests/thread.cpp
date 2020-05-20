@@ -1,6 +1,6 @@
 #include "../test.h"
 
-#define DO_THREAD_TESTS // XXX
+#define DO_THREAD_TESTS  // XXX
 #if defined DO_THREAD_TESTS
 
 TEST(hardware_concurrency) {
@@ -117,18 +117,18 @@ TEST(condition_variable) {
 TEST(context) {
     auto *old = Context.Alloc.Function;
 
-    auto osAlloc = allocator{os_allocator, null};
-    PUSH_CONTEXT(Alloc, osAlloc) {
+    auto differentAlloc = Context.TemporaryAlloc;
+    WITH_CONTEXT_VAR(Alloc, differentAlloc) {
         thread::thread t1(
             [&](void *) {
-                assert_eq((void *) Context.Alloc.Function, (void *) osAlloc.Function);
+                assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
                 []() {
-                    PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
+                    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
                         assert_eq((void *) Context.Alloc.Function, (void *) Context.TemporaryAlloc.Function);
                         return;
                     }
                 }();
-                assert_eq((void *) Context.Alloc.Function, (void *) osAlloc.Function);
+                assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
             },
             null);
         t1.join();

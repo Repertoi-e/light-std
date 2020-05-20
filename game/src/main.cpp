@@ -205,7 +205,7 @@ s32 main() {
     ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, GameAlloc); },
                                  [](void *ptr, void *) { delete ptr; });
 
-    ALLOC(GameAlloc) {
+    WITH_ALLOC(GameAlloc) {
         string windowTitle;
         fmt::sprint(&windowTitle, "Graphics Engine | {}", GameFileName);
 

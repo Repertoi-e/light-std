@@ -13,13 +13,31 @@ struct string;
 
 /// General functions related to platform specific tasks - implemented in platform files accordingly
 
+//
+// @TODO: Have a memory heap API for creating new heaps and choosing which one is used for allocations.
+// Also by default we should have different heaps for small/medium/large objects to prevent memory fragmentation.
+// Right now we rely on the user being thoughtful about memory management and not calling new/delete left and right.
+//
+
 // Allocates memory by calling OS functions
-void *os_alloc(size_t size);
+void *os_allocate_block(size_t size);
+
+// Expands/shrinks a memory block allocated by _os_alloc()_
+// This is NOT realloc in the general sense where when this fails it returns null instead of allocating a new block.
+// That's why it's not called realloc.
+void *os_resize_block(void *ptr, size_t newSize);
+
+// Returns the size of a memory block allocated by _os_alloc()_ in bytes.
+size_t os_get_block_size(void *ptr);
 
 // Frees a memory block allocated by _os_alloc()_
-void os_free(void *ptr);
+void os_free_block(void *ptr);
 
 // Exits the application with the given exit code
+
+// @TODO: Have a "at_exit" function which adds callbacks that are called when the program exits (very useful when
+// handling resources and we ensure if the program crashes for some reason we don't block them!).
+
 void os_exit(s32 exitCode = 0);
 
 // Returns a time stamp that can be used for time-interval measurements
@@ -37,7 +55,7 @@ void os_set_clipboard_content(string content);
 // Returns the path of the current exe (full dir + name)
 string os_get_exe_name();
 
-// Get the value of an environment variable, returns true if found. 
+// Get the value of an environment variable, returns true if found.
 // If not found and silent is false, logs error to cerr.
 bool os_get_env(string *out, string name, bool silent = false);
 
@@ -47,7 +65,8 @@ void os_set_env(string name, string value);
 // Delete a variable from the current process' environment
 void os_remove_env(string name);
 
-// Get a list of parsed command line arguments excluding the first one (the exe name - you can get that with os_get_exe_name())
+// Get a list of parsed command line arguments excluding the first one (the exe name - you can get that with
+// os_get_exe_name())
 array<string> os_get_command_line_arguments();
 
 // Returns an ID which uniquely identifies the current process on the system

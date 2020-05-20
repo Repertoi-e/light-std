@@ -28,7 +28,7 @@ TEST(deterministic_default_initializer) {
     For(rawData) assert_eq(it, u8(0xCC));
     new (rawData.Data) quat{no_init};
 
-#if DEBUG
+#if defined DEBUG
     For(rawData) assert_eq(it, u8(0xCC));
 #else
     auto *q = (quat *) rawData.Data;

@@ -14,7 +14,10 @@ void test_error_handler(string message, fmt::error_context errorContext) { LAST_
 template <typename... Args>
 void format_test_error(string_view fmtString, Args &&... args) {
     io::counting_writer dummy;
-    auto store = fmt::make_arg_store<Args...>(args...);
+    
+    fmt::args_store<remove_reference_t<Args>...> store;
+    store.populate(args...);
+    
     auto f = fmt::format_context(&dummy, fmtString, fmt::args(store), test_error_handler);
     fmt::parse_fmt_string(fmtString, &f);
 }
@@ -248,7 +251,7 @@ TEST(args_errors) {
     EXPECT_ERROR("Invalid format string", "{00}", 42);
     EXPECT_ERROR("Argument index out of range", "{0}");
 
-    EXPECT_ERROR("Invalid format string", "{"); //-V1002
+    EXPECT_ERROR("Invalid format string", "{");  //-V1002
     EXPECT_ERROR("Unmatched '}' in format string - use '}}' to escape", "}");
     EXPECT_ERROR("Invalid format string", "{0{}");
 }

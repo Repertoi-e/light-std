@@ -161,18 +161,17 @@ struct Thread_Start_Info {
 
     // Pointer to the implicit context in the "parent" thread.
     // We copy its members to the newly created thread.
-    const implicit_context *ContextPtr = null;
+    implicit_context *ContextPtr = null;
 };
 
 u32 __stdcall thread::wrapper_function(void *data) {
     auto *ti = (Thread_Start_Info *) data;
     defer(delete ti);
 
-    auto *unconstContext = const_cast<implicit_context *>(&Context);
-    *unconstContext = *ti->ContextPtr;
-    unconstContext->TemporaryAllocData = {};
-    unconstContext->TemporaryAlloc.Context = &unconstContext->TemporaryAllocData;
-    unconstContext->ThreadID = ::thread::id((u64) GetCurrentThreadId());
+    Context = *ti->ContextPtr;
+    Context.TemporaryAllocData = {};
+    Context.TemporaryAlloc.Context = &Context.TemporaryAllocData;
+    Context.ThreadID = ::thread::id((u64) GetCurrentThreadId());
 
     ti->Function(ti->UserData);
 

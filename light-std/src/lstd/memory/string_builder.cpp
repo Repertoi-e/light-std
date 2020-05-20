@@ -58,17 +58,13 @@ void string_builder::append_pointer_and_size(const char *data, size_t size) {
     }
 }
 
-// Merges all buffers and returns a single string.
-string string_builder::combine() const {
-    string result;
-    result.reserve((IndirectionCount + 1) * BUFFER_SIZE);
-
+void string_builder::combine(string *out) const {
+    out->reserve((IndirectionCount + 1) * BUFFER_SIZE);
     auto *b = &BaseBuffer;
     while (b) {
-        result.append_pointer_and_size(b->Data, b->Occupied);
+        out->append_pointer_and_size(b->Data, b->Occupied);
         b = b->Next;
     }
-    return result;
 }
 
 string_builder *clone(string_builder *dest, const string_builder &src) {

@@ -63,8 +63,8 @@ pixel_buffer *move(pixel_buffer *dest, pixel_buffer *src) {
     if (!src->is_owner()) return dest;
 
     // Transfer ownership
-    change_owner(src->Pixels, dest);
-    change_owner(dest->Pixels, dest);
+    encode_owner(src->Pixels, dest);
+    encode_owner(dest->Pixels, dest);
     return dest;
 }
 

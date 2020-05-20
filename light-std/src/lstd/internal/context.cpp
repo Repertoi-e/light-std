@@ -16,7 +16,7 @@ void default_unexpected_exception_handler(string message, array<os_function_call
     fmt::print("\n\n");
 }
 
-void implicit_context::release_temporary_allocator() const {
+void implicit_context::release_temporary_allocator() {
     if (!TemporaryAllocData.Base.Reserved) return;
 
     // Free any left-over overflow pages!

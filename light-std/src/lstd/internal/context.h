@@ -34,7 +34,6 @@ inline os_function_call *move(os_function_call *dest, os_function_call *src) {
     dest->LineNumber = src->LineNumber;
     return dest;
 }
-//
 
 template <typename T>
 struct array;
@@ -55,6 +54,7 @@ struct implicit_context {
     //
     // The idea for this comes from the implicit context in Jai.
     allocator Alloc = Malloc;
+    u16 AllocAlignment = POINTER_SIZE;  // By default
 
     // This allocator gets initialized the first time it gets used in a thread.
     // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
@@ -63,7 +63,7 @@ struct implicit_context {
 
     // Frees the memory held by the temporary allocator (if any).
     // Gets called by the context's destructor.
-    void release_temporary_allocator() const;
+    void release_temporary_allocator();
 
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.
@@ -109,36 +109,44 @@ struct implicit_context {
 
 // Immutable context available everywhere
 // The current state gets copied from parent thread to the new thread when creating a thread
-inline thread_local const implicit_context Context;
+//
+// This used to be const, but with casting and stuff in C++ I don't it's worth the hassle honestly.
+// Const just fights the programmer more than it helps him.
+// Now that allows us to modify the context cleanly without ugly casting without restricting to scope.
+// Even though I really really recommend using WITH_CONTEXT_VAR, WITH_ALLOC, WITH_ALIGNMENT
+// since these restore the old value at the end of the scope and in most cases that's what you want.
+inline thread_local implicit_context Context;
 
 LSTD_END_NAMESPACE
 
 // This is a helper macro to safely modify a variable in the implicit context in a block of code.
 // Usage:
-//    PUSH_CONTEXT(variable, newVariableValue) {
+//    WITH_CONTEXT_VAR(variable, newVariableValue) {
 //        ... code with new context variable ...
 //    }
 //    ... old context variable value is restored ...
 //
-#define PUSH_CONTEXT(var, newValue)                                     \
-    auto LINE_NAME(oldVar) = Context.var;                               \
-    auto LINE_NAME(restored) = false;                                   \
-    auto LINE_NAME(context) = const_cast<implicit_context *>(&Context); \
-    defer({                                                             \
-        if (!LINE_NAME(restored)) {                                     \
-            LINE_NAME(context)->##var = LINE_NAME(oldVar);              \
-        }                                                               \
-    });                                                                 \
-    if (true) {                                                         \
-        LINE_NAME(context)->##var = newValue;                           \
-        goto LINE_NAME(body);                                           \
-    } else                                                              \
-        while (true)                                                    \
-            if (true) {                                                 \
-                LINE_NAME(context)->##var = LINE_NAME(oldVar);          \
-                LINE_NAME(restored) = true;                             \
-                break;                                                  \
-            } else                                                      \
+#define WITH_CONTEXT_VAR(var, newValue)            \
+    auto LINE_NAME(oldVar) = Context.var;          \
+    auto LINE_NAME(restored) = false;              \
+    defer({                                        \
+        if (!LINE_NAME(restored)) {                \
+            Context.##var = LINE_NAME(oldVar);     \
+        }                                          \
+    });                                            \
+    if (true) {                                    \
+        Context.##var = newValue;                  \
+        goto LINE_NAME(body);                      \
+    } else                                         \
+        while (true)                               \
+            if (true) {                            \
+                Context.##var = LINE_NAME(oldVar); \
+                LINE_NAME(restored) = true;        \
+                break;                             \
+            } else                                 \
                 LINE_NAME(body) :
 
-#define ALLOC(newAlloc) PUSH_CONTEXT(Alloc, newAlloc)
+// Shortcuts
+#define WITH_ALLOC(newAlloc) WITH_CONTEXT_VAR(Alloc, newAlloc)
+#define WITH_ALIGNMENT(newAlignment) WITH_CONTEXT_VAR(AllocAlignment, newAlignment)
+#define WITH_LOG(newLog) WITH_CONTEXT_VAR(Log, newLog)

@@ -242,8 +242,8 @@ delegate<T> *move(delegate<T> *dest, delegate<T> *src) {
     if (!src->is_owner()) return dest;
 
     // Transfer ownership
-    if (src->Store) change_owner(src->Store, dest);
-    if (dest->Store) change_owner(dest->Store, dest);
+    if (src->Store) encode_owner(src->Store, dest);
+    if (dest->Store) encode_owner(dest->Store, dest);
     return dest;
 }
 
