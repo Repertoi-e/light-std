@@ -54,11 +54,11 @@ void reload_global_state() {
     // a.calloc = [](void *, size_t n, size_t s) { return (void *) new (Context.Alloc, DO_INIT_0) char[n * s]; };
     // a.realloc = [](void *, void *ptr, size_t size) { return allocator::reallocate(ptr, size == 0 ? 1 : size); };
     // a.free = [](void *, void *ptr) { delete ptr; };
-    // 
+    //
     // PyMem_SetAllocator(PYMEM_DOMAIN_RAW, &a);
     // PyMem_SetAllocator(PYMEM_DOMAIN_MEM, &a);  // @Speed These can be different thread-unsafe allocators.
     // PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &a);  // @Speed These can be different thread-unsafe allocators.
-    // 
+    //
     // // @Speed This can be an arena allocator
     // PyObjectArenaAllocator aa;
     // aa.ctx = null;
@@ -87,6 +87,8 @@ void reload_python_script() {
             ">>> There must be a file named {!YELLOW}data/scripts/physics_main.py{!} relative to the current working "
             "directory in order to run.\n>>>\n");
     } else {
+        GameState->PyLoaded = false;
+
         if (GameState->PyFirstTime) {
             PyObject *sysPath = PySys_GetObject("path");
 
@@ -103,6 +105,8 @@ void reload_python_script() {
                 GameState->PyReload((u64) GameState);
 
                 GameState->PyFrame = (py::function) module->attr("frame");
+
+                GameState->PyLoaded = true;
             } catch (py::error_already_set e) {
                 report_python_error(e);
             }
@@ -116,11 +120,12 @@ void reload_python_script() {
                 GameState->PyReload((u64) GameState);
 
                 GameState->PyFrame = (py::function) module->attr("frame");
+
+                GameState->PyLoaded = true;
             } catch (py::error_already_set e) {
                 report_python_error(e);
             }
         }
-        GameState->PyLoaded = true;
     }
 }
 

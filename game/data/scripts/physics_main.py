@@ -1,11 +1,10 @@
 import lstdgraphics as g
-import numpy as np
+import numpy as np 
 
-def init():
-	'''
-	Called once when the application starts
-	'''
-	pass
+from drawing import draw_shape 
+import shape
+
+poly = None
 
 def reload(state):
 	'''
@@ -13,11 +12,22 @@ def reload(state):
 	'''
 	g.state(state)
 
+	global poly
+
+	vertices = [
+		[-20, -20],
+		[0, 20],
+		[20, -20]
+	]
+	poly = shape.ConvexPolygon(vertices, 0xffff00ff)
+
+
 def frame():
 	'''
 	Called each frame from C++ side. Import 'lstdgraphics' module to draw primitives.
 	'''
-	pos = np.array([50, 50]);
-	size = np.array([40, 40]);
-	g.rect(pos, pos + size, color = 0xffff00ff);
+	global poly
+
+	pos = np.array([50, 50])
+	draw_shape(pos, poly, normals_color = 0xffffffff)
 

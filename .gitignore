@@ -51,3 +51,5 @@ build/
 
 Makefile
 *.suppress
+*.pyc
+*/__pycache__/*
