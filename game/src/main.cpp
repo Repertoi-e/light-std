@@ -205,6 +205,8 @@ s32 main() {
     ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, GameAlloc); },
                                  [](void *ptr, void *) { delete ptr; });
 
+    setup_game_paths();
+
     WITH_ALLOC(GameAlloc) {
         string windowTitle;
         fmt::sprint(&windowTitle, "Graphics Engine | {}", GameFileName);
@@ -213,8 +215,6 @@ s32 main() {
             window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4;
         gameMemory.MainWindow =
             (new window)->init(windowTitle, window::DONT_CARE, window::DONT_CARE, GameWidth, GameHeight, windowFlags);
-
-        setup_game_paths();
 
         graphics g;
         Graphics = &g;
@@ -259,6 +259,7 @@ s32 main() {
             }
         }
     }
+    GameFileName.release();
 }
 
 #if OS == WINDOWS

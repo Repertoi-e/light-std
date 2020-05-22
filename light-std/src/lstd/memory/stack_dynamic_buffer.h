@@ -8,7 +8,7 @@ LSTD_BEGIN_NAMESPACE
 // A buffer that uses a stack allocated buffer before dynamically allocating.
 // StackSize - the amount of bytes used on the stack
 template <size_t StackSize>
-struct stack_dynamic_buffer {
+struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     char StackData[StackSize]{};
     char *Data = StackData;
 

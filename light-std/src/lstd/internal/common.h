@@ -156,24 +156,28 @@ struct range {
 // Type policy:
 //
 // Aim of this policy:
-// - dramatically reduce (or keep the same) complexity and code size (both library AND user side!) UNLESS that comes at
-// a cost of run-time overhead
+// - Dramatically reduce complexity and code size (both library AND user side!) UNLESS that comes at a run-time cost
 //
 // - Always provide a default constructor (implicit or by "T() = default")
 // - Every data member should have the same access control (everything should be public or private or protected)
+// - Strive to make classes/structures/objects (whatever you wanna call them) data oriented.
+//   Programs work with data. Design your data so it makes the solution straightforward and minimize abstraction layers.
 // - No user defined copy/move constructors
 // - No throwing of exceptions, anywhere
 //
 // "No user defined copy/move constructors":
 //   This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not
-//   just the pointer when you copy the object?)
-//   This library implements _string_ the following way:
-//     _string_ is a struct that contains a pointer to a byte buffer and 2 fields containing precalculated
+//   just the pointer when you copy the object?).
+//   All allocations in this library contain a header with some information about the allocation.
+//   One of the pieces of information is a pointer to the object that owns the memory.
+//   That pointer is set manually using functions from "memory/owner_pointers.h".
+//   So _string_ is implemented the following way:
+//     _string_ is a struct that contains a pointer to a byte buffer and 2 fields containing pre-calculated
 //     utf8 code unit and code point lengths, as well as a field _Reserved_ that contains the number of
 //     bytes allocated by that string (default is 0).
 //
 //     A string may own its allocated memory or it may not, which is determined by encoding the _this_ pointer
-//     before the byte buffer when the string reserves memory.
+//     in the allocation header when the string reserves a buffer.
 //     That way when you shallow copy the string, the _this_ pointer is obviously different (because it is a
 //     different object) and when the copied string gets destructed it doesn't free the memory (it doesn't own it).
 //     Only when the original string gets destructed does the memory get freed and any shallow copies of it
@@ -188,21 +192,15 @@ struct range {
 //
 //
 //     _clone(T *dest, T src)_ is a global function that ensures a deep copy of the argument passed.
-//     There is a string overload for clone() that deep copies the contents to _dest_ (_dest_ now has allocated
-//     memory and the byte buffer contains the string from _src_).
+//     Objects that own memory (like string) overload clone() and make sure the copy reserves a buffer and copies
+//     the data to it.
 //
-//     _move(T *dest, T *src)_ global function that transfers ownership.
+//     _move(T *dest, T *src)_ is global function that transfers ownership.
 //     The buffer in _src_ (iff _src_ owns it) is now owned by _dest_ (_src_ becomes simply a view into _dest_).
-//     So _move_ is cheaper than _clone_ when you don't need the old string to remain an owner.
+//     So _move_ is cheaper than _clone_ and is used for example when inserting objects into an array.
 //
-//     ! Note: _clone_ and _move_ work on all types and are the required way to implement functionality
-//     normally present in copy/move c-tors.
-//
-//     ! Note: In c++ the default assignment operator doesn't call the destructor,
-//     so assigning to a string that owns a buffer will cause a leak.
-//
-//   Types that manage memory in this library follow similar design to string and helper functions (as well as an
-//   example) are provided in _storage/owner_pointers.h_.
+//     ! Note: _clone_ and _move_ work on all types (unless overloaded they do a shallow copy).
+//     They are the recommended way to implement functionality normally done in copy/move c-tors.
 //
 // "No throwing of exceptions, anywhere"
 //   Exceptions make your code complicated. They are a good way to handle errors in small examples,

@@ -43,7 +43,7 @@ bool deserialize(T *dest, reader *r);
 // Holds a pointer to a _request_byte_t_. Every other function
 // in this class is implemented by calling that function.
 // @TODO: Tests tests tests!
-struct reader {
+struct reader : non_copyable, non_movable, non_assignable {
     using request_byte_t = char (*)(reader *r);
 
     // This is the only method function required for the reader to work, it is called only

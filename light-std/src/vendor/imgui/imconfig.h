@@ -76,8 +76,8 @@
 // By default the embedded implementations are declared static and not available outside of imgui cpp files.
 #define IMGUI_STB_TRUETYPE_FILENAME "../stb/stb_truetype.h"
 #define IMGUI_STB_RECT_PACK_FILENAME "../stb/stb_rect_pack.h"
-#define IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
-#define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
+// #define IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
+// #define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
 
 //---- Define constructor and implicit cast operators to convert back<>forth between your math types and ImVec2/ImVec4.
 // This will be inlined as part of ImVec2 and ImVec4 class declarations.

@@ -2,6 +2,7 @@
 
 #if OS == WINDOWS
 
+#include "lstd/file/path.h"
 #include "lstd/io.h"
 #include "lstd/io/fmt.h"
 #include "lstd/memory/dynamic_library.h"
@@ -62,7 +63,7 @@ __declspec(allocate(".CRT$XPU")) cb *g_StateAutoEnd = uninitialize_win32_state;
 
 bool dynamic_library::load(string name) {
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *buffer = new (Context.TemporaryAlloc) wchar_t[name.Length];
+    auto *buffer = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, buffer);
     Handle = (void *) LoadLibraryW(buffer);
     return Handle;
@@ -93,7 +94,8 @@ static thread::mutex CinMutex;
 
 static LARGE_INTEGER PerformanceFrequency;
 static string ModuleName;
-
+static string WorkingDir;
+static thread::mutex WorkingDirMutex;
 static array<string> Argv;
 
 void win32_common_init() {
@@ -146,6 +148,8 @@ void win32_common_init() {
     ModuleName.reserve(reserved * 2);  // @Bug reserved * 2 is not enough
     utf16_to_utf8(buffer, const_cast<char *>(ModuleName.Data), &ModuleName.ByteLength);
     ModuleName.Length = utf8_length(ModuleName.Data, ModuleName.ByteLength);
+
+    os_get_working_dir();  // @Hack Put somethin in _WorkingDir_ to ensure the proper allocator
 
     // Get the arguments
     wchar_t **argv;
@@ -286,7 +290,7 @@ void *os_resize_block(void *ptr, size_t newSize) {
 
     bool reportError = false;
     void *result = try_heap_realloc(ptr, newSize, &reportError);
-    
+
     if (result) return result;
 
     // If a failure to contract was caused by platform limitations, just return the original block
@@ -309,6 +313,52 @@ size_t os_get_block_size(void *ptr) {
         return 0;
     }
     return result;
+}
+
+#define CREATE_MAPPING_CHECKED(handleName, call, returnOnFail)                                                  \
+    HANDLE handleName = call;                                                                                   \
+    if (!handleName) {                                                                                          \
+        string extendedCallSite;                                                                                \
+        fmt::sprint(&extendedCallSite, "{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name);    \
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
+        return returnOnFail;                                                                                    \
+    }
+
+void os_write_shared_block(string name, void *data, size_t size) {
+    // @Bug name.Length is not enough (2 wide chars for one char)
+    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
+    utf8_to_utf16(name.Data, name.Length, name16);
+
+    CREATE_MAPPING_CHECKED(h, CreateFileMappingW(INVALID_HANDLE_VALUE, null, PAGE_READWRITE, 0, (DWORD) size, name16), );
+    defer(CloseHandle(h));
+
+    void *result = MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size);
+    if (!result) {
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
+                                     "MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size)", __FILE__, __LINE__);
+        return;
+    }
+    copy_memory(result, data, size);
+    UnmapViewOfFile(result);
+}
+
+void os_read_shared_block(string name, void *out, size_t size) {
+    // @Bug name.Length is not enough (2 wide chars for one char)
+    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
+    utf8_to_utf16(name.Data, name.Length, name16);
+
+    CREATE_MAPPING_CHECKED(h, OpenFileMappingW(FILE_MAP_READ, false, name16), );
+    defer(CloseHandle(h));
+
+    void *result = MapViewOfFile(h, FILE_MAP_READ, 0, 0, size);
+    if (!result) {
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
+                                     "MapViewOfFile(h, FILE_MAP_READ, 0, 0, size)", __FILE__, __LINE__);
+        return;
+    }
+
+    copy_memory(out, result, size);
+    UnmapViewOfFile(result);
 }
 
 void os_free_block(void *ptr) {
@@ -334,9 +384,41 @@ f64 os_time_to_seconds(time_t time) { return (f64) time / PerformanceFrequency.Q
 
 string os_get_exe_name() { return ModuleName; }
 
+string os_get_working_dir() {
+    thread::scoped_lock _(&WorkingDirMutex);
+
+    DWORD required = GetCurrentDirectoryW(0, null);
+    auto *dir16 = new (Context.TemporaryAlloc) wchar_t[required + 1];
+
+    if (!GetCurrentDirectoryW(required + 1, dir16)) {
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW(required, dir16)",
+                                     __FILE__, __LINE__);
+        return "";
+    }
+    WorkingDir.reserve(required * 2);  // @Bug required * 2 is not enough
+    utf16_to_utf8(dir16, const_cast<char *>(WorkingDir.Data), &WorkingDir.ByteLength);
+    WorkingDir.Length = utf8_length(WorkingDir.Data, WorkingDir.ByteLength);
+    return WorkingDir;
+}
+
+void os_set_working_dir(string dir) {
+    file::path path(dir);
+    assert(path.is_absolute());
+
+    thread::scoped_lock _(&WorkingDirMutex);
+
+    auto *dir16 = new (Context.TemporaryAlloc) wchar_t[dir.Length + 1];
+    utf8_to_utf16(dir.Data, dir.Length, dir16);
+
+    if (!SetCurrentDirectoryW(dir16)) {
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW(required, dir16)",
+                                     __FILE__, __LINE__);
+    }
+}
+
 bool os_get_env(string *out, string name, bool silent) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length];
+    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
     DWORD bufferSize = 65535;  // Limit according to http://msdn.microsoft.com/en-us/library/ms683188.aspx
@@ -376,11 +458,11 @@ bool os_get_env(string *out, string name, bool silent) {
 
 void os_set_env(string name, string value) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length];
+    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *value16 = new (Context.TemporaryAlloc) wchar_t[value.Length];
+    auto *value16 = new (Context.TemporaryAlloc) wchar_t[value.Length + 1];
     utf8_to_utf16(value.Data, value.Length, value16);
 
     if (value.Length > 32767) {
@@ -397,7 +479,7 @@ void os_set_env(string name, string value) {
 
 void os_remove_env(string name) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length];
+    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
     if (!SetEnvironmentVariableW(name16, null)) {

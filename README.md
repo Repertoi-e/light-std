@@ -5,65 +5,63 @@ It attempts to mimic some of Jai's (Jonathan Blow's new language) features (impl
 
 This library is supposed to be a replacement of C/C++'s standard library in but designed entirely differently. 
 
-Anybody who thinks modern C++ is bananas, you've come to the right place! std:: is way too complicated and messy and a lot of C++'s features add unnecessary complications to the library code.
+Anybody who thinks modern C++ is stupid, you've come to the right place! std:: is way too complicated and messy and a lot of C++'s features add unnecessary complications to the library code.
 My view on some of those features and simpler solutions are visible in the type policy.
 
 ## Type policy
 
 ### Aim of this policy
-- Reduce complexity and code size (both library AND user side!) UNLESS that comes at a cost of run-time overhead
+- Dramatically reduce complexity and code size (both library AND user side!) UNLESS that comes at a run-time cost
 
 ### Rules
-- Always provide a default constructor (implicit or by "T() = default"), so we can default construct everything.
-- No user defined copy/move constructors
+- Always provide a default constructor (implicit or by "T() = default")
+- Every data member should have the same access control (everything should be public or private or protected)
+- Strive to make classes/structures/objects (whatever you wanna call them) data oriented.
+  Programs work with data. Design your data so it makes the solution straightforward and minimize abstraction layers.
+- No user defined copy/move constructors (reduces bloat and forces you to program in a way that's centralized around data, not objects).
 - No throwing of exceptions, anywhere
 
 ### "No user defined copy/move constructors":
-_This may sound crazy if you have a type like `string` that owns memory (how would you deep copy the contents and not just the pointer when you copy the object?)_
+_This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not just the pointer when you copy the object?)_
 
-This library implements `string` the following way:
-- `string` is a struct that contains a pointer to a byte buffer and 2 fields containing precalculated utf8 code unit and code point lengths, as well as a field `Reserved` that contains the number of bytes allocated by that string (default is 0).
-- A string may own its allocated memory or it may not, which is determined by encoding the `this` pointer before the byte buffer when the string reserves memory. That way when you shallow copy the string, the `this` pointer is obviously different (because it is a different object) and when the copied string gets destructed it doesn't free the memory (it doesn't own it). Only when the original string gets destructed does the memory get freed and any shallow copies of it are invalidated (they point to freed memory).
+All allocations in this library contain a header with some information about the allocation. One of the pieces of information is a pointer to the object that owns the memory. That pointer is set manually using functions from `memory/owner_pointers.h`.
+
+So this library implements `string` the following way:
+- `string` is a struct that contains a pointer to a byte buffer and 2 fields containing pre-calculated utf8 code unit and code point lengths, as well as a field `Reserved` that contains the number of bytes allocated by that string (default is 0).
+- A string may own its allocated memory or it may not, which is determined by encoding the _this_ pointer in the allocation header when the string reserves a buffer. That way when you shallow copy the string, the _this_ pointer is obviously different (because it is a different object) and when the copied string gets destructed it doesn't free the memory (it doesn't own it). Only when the original string gets destructed does the memory get freed and any shallow copies of it are invalidated (they point to freed memory).
 - When a string gets contructed from a literal it doesn't allocate memory. `Reserved` is 0 and the object works like a view. 
 - If the string was constructed from a literal, shallow copy of another string or a byte buffer, when you call modifying methods (like appending, inserting code points, etc.) the string allocates a buffer, copies the old one and now owns memory.
 
-_What is described above happens when the object gets copied around (assigned to variables, passed to functions, etc.). In order to deep copy the string explicitly the following function is provided:_
--  `clone(T *dest, T src)` is a global function that ensures a deep copy of the argument passed.
-> There is a string overload for clone() that deep copies the contents to `dest` (`dest` now has allocated memory and the byte buffer contains the string from `src`).
+_What is described above is essentially this. strings by default are "string views" - they don't own memory, they point to existing memory. There are methods which modify the contents of the string, in that case a new string is created that allocates a buffer and frees it when it gets destructed. Copies of that string are, again, views that point to that string's memory (they are super light and do no allocations/deallocations when they get constructed/destroyed). If the first string gets destroyed, all views of it are pointing to freed memory. In order to deep copy the string explicitly the following function is provided:_
+-  `clone(T *dest, T src)` is a global function that ensures a deep copy of the argument passed. Objects that own memory (like `string`) overload `clone()` and make sure the copy reserves a buffer and copies. It is the recommended way to deep clone any kind of object in this library (and not by using a copy constructor). Using a function is more explicit and you know when can a copy happen.
 - `move(T *dest, T *src)` is a global function that transfers ownership.
-> The buffer in `src` (iff `src` owns it) is now owned by `dest` (`src` becomes simply a view into `dest`).
+> The buffer in `src` (iff `src` owns it) is now owned by `dest` (`src` becomes simply a view into `dest`). So `move` is cheaper than `clone` and is used for example when inserting objects into an array.
 
-> So `move` is cheaper than `clone` when you don't need the old string to remain an owner.
+> **Note**: In C++ the default assignment operator doesn't call the destructor, so assigning to a string that owns a buffer will cause a leak.
 
-> **Note**: `clone` and `move` work on all types and are the required way to implement functionality normally present in copy/move c-tors.
-
-> **Note**: In c++ the default assignment operator doesn't call the destructor, so assigning to a string that owns a buffer will cause a leak.
-
-Types that manage memory in this library follow similar design to string and helper functions (as well as an example) are provided in `storage/owner_pointers.h`.
-
-Now you might think that's not a simpler way to handle things. But doing things this way has certain benenits. For example, you can stop thinking about `const &` in function parameters. Code like: `parse(string contents)` doesn't deep copy the string and it's really cheap to pass it as a parameter (string is represented by couple of pointer-sized members). When you start doing this a lot you can appreciate the simplicity in not having to write `const string &` everywhere... 
+Doing things this way has certain benenits. For example, you can stop thinking about `const &` in function parameters. Code like: `parse(string contents)` doesn't deep copy the string and it's really cheap to pass it as a parameter (string is represented by couple of pointer-sized members). When you start doing this a lot you can appreciate the simplicity in not having to write `const string &` everywhere... 
 The same thing applies for `array<T>`, `table<K, V>`, etc. 
 
-One thing to watch out for is that you can't return those kinds of objects as results from functions. For example, 
+It also has some downsides. One thing to really watch out for is that you can't return these kinds of objects as results from functions. For example, 
 ```cpp
-string add_strings(string s1, string s2) { 
-	string result;
-	clone(&result, s1);
-	result.append(s2);
-	return result;
+array<token> parse_input(string input) { 
+    array<token> result;
+    result.append(...);
+    // ... implement something .. //
+    return result;
 }
 ```
-might look right, but when returning, `result` gets shallow-copied and then destroyed at the end of the scope.
+might look right, but when returning, `result` gets shallow-copied and then destroyed at the end of the scope of the function.
+The caller receives a view into freed memory.
 
 A corrent way to write such a function might be:
 ```cpp
-void add_strings(string *out, string s1, string s2) { 
-	// Optionally clear the contents of _out_, this example as a whole is really stupid and unrealistic but it's just to demonstrate a point...
-	out->append(s1);
-	out->append(s2);
+void parse_input(array<token> *out, string input) { 
+    out->append(...);
+    // ... implement something .. //
 }
 ```
-You might argue that doesn't look very nice, but in my opinion it's better, because it encourages to reuse objects. Generally people are used to writing functions that copy and return new objects right and left all the time without really having to. Managing the returned object from the call site efficiently might actually result in faster code (although C++ has the so-called copy elision for returns values, it doesn't work all the time, e.g. when the function has conditions...)
+You might argue that doesn't look very nice, but in my opinion it's better, because it encourages a certain coding style. Generally in C++ it's very easy to fall into a trap where we write functions that copy and return new objects right and left all the time and paying that cost without having to. Our excuse is that "the compiler will optimize it anyway" (although C++'s copy elision for return values doesn't work all the time, e.g. when the function has conditions...), but the problem is that with that kind of mindset a large program becomes infeasible to run in debug. That really creates friction when developing. Managing data more carefully from the call site produces much faster code, even in debug.
 
 ### "No throwing of exceptions, anywhere"
 Exceptions make your code complicated. 
@@ -101,9 +99,36 @@ for (s32 i : range(2, 5)) {
 assert(integers == to_array(0, 1, 2, 3, 4));
 ```
 
-### Example of custom allocations and implicit context:
+### Example of custom allocators and implicit context:
+
+```
+    // When allocating you should use the context's allocator
+    // This makes it so when users call your functions they
+    // can specify an allocator beforehand by pushing a new context variable,
+    // without having to pass you anything as a parameter for example.
+    //
+    // The idea for this comes from the implicit context in Jai.
+    allocator Alloc = Malloc;
+
+    // The default alignment size 
+    u16 AllocAlignment = POINTER_SIZE;  // By default
+
+    // This allocator gets initialized the first time it gets used in a thread.
+    // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
+    temporary_allocator_data TemporaryAllocData;
+    allocator TemporaryAlloc = {temporary_allocator, &TemporaryAllocData};
+
+    // Frees the memory held by the temporary allocator (if any). // Gets called by the context's destructor.
+    void release_temporary_allocator();
+
+    io::writer *Log = internal::g_ConsoleLog;
+    os_unexpected_exception_handler_t *UnexpectedExceptionHandler = default_unexpected_exception_handler;
+    
+    thread::id ThreadID; // The current thread's ID
+```
+
 ```cpp
-memory = new char[150]; // using the default allocator 
+memory = new char[150]; // Using the default allocator 
 memory = new (Context.Alloc) char[150]; // the same as the line above
 
 memory = new (Malloc) char[150];
@@ -113,11 +138,6 @@ memory = new (Context.TemporaryAlloc) char[150];
 // Take a look at _os_allocator_, _default_allocator_, _temporary_allocator_, to see examples on how to implement one.
 allocator myAlloctor = { my_allocator_function, null /*Can also pass user data!*/};
 memory = new (myAlloctor) char[150];
-
-// Passing a pointer to an allocator to new, uses the Context's allocator and stores it in the pointer.
-// This can be used to be absolutely sure you know the allocator the memory was allocated with, although that's not needed when freing (since each allocation stores that information in its header)
-allocator out;
-memory = new (&out) char[150]; 
 ```
 
 ```cpp

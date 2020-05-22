@@ -9,7 +9,7 @@ namespace io {
 // Defined in *platform*_common.cpp
 char console_reader_request_byte(reader *r);
 
-struct console_reader : reader, non_copyable, non_movable {
+struct console_reader : reader {
     // By default, we are thread-safe.
     // If you don't use seperate threads and aim for max performance, set this to false.
     bool LockMutex = true;

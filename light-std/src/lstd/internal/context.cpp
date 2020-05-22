@@ -23,7 +23,7 @@ void implicit_context::release_temporary_allocator() {
     TemporaryAlloc.free_all();
 
     delete[] TemporaryAllocData.Base.Storage;
-    *const_cast<temporary_allocator_data *>(&TemporaryAllocData) = {};
+    Context.TemporaryAllocData = {};
 }
 
 LSTD_END_NAMESPACE

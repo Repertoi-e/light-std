@@ -106,11 +106,11 @@ void imgui_renderer::draw(ImDrawData *drawData) {
                     it.UserCallback(cmdList, &it);
                 }
             } else {
-                s32 width = (s32)(it.ClipRect.z - it.ClipRect.x);
-                s32 height = (s32)(it.ClipRect.w - it.ClipRect.y);
-                rect scissor = {(s32)(it.ClipRect.x - drawData->DisplayPos.x),
-                                (s32)(it.ClipRect.y - drawData->DisplayPos.y), width, height};
-                Graphics->set_scissor_rect(scissor);
+                s32 left = (s32)(it.ClipRect.x - drawData->DisplayPos.x);
+                s32 top = (s32) (it.ClipRect.y - drawData->DisplayPos.y);
+                s32 right = (s32)(it.ClipRect.z - drawData->DisplayPos.x);
+                s32 bot = (s32)(it.ClipRect.w - drawData->DisplayPos.y);
+                Graphics->set_scissor_rect({left, top, right, bot});
 
                 if (it.TextureId) ((texture_2D *) it.TextureId)->bind(0);
                 Graphics->draw_indexed(it.ElemCount, it.IdxOffset + idxOffset, it.VtxOffset + vtxOffset);

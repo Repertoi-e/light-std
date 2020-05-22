@@ -4,7 +4,7 @@
 #include "delegate.h"
 
 template <typename T, size_t ElementsPerBucket = 128>
-struct bucket_array {
+struct bucket_array : non_copyable, non_movable, non_assignable {
     struct bucket {
         T *Elements = null;
         size_t Count = 0, Reserved = 0;

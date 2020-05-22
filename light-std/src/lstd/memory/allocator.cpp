@@ -10,27 +10,30 @@ LSTD_BEGIN_NAMESPACE
 #if defined DEBUG_MEMORY
 void allocator::DEBUG_unlink_header(allocation_header *header) {
     thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
-    auto *prev = header->DEBUG_Previous;
-    if (!prev) {
+
+    assert(header);
+    assert(DEBUG_Head);
+
+    if (header == DEBUG_Head) {
         DEBUG_Head = header->DEBUG_Next;
-        DEBUG_Head->DEBUG_Previous = 0;
-    } else {
-        auto *next = header->DEBUG_Next;
-        prev->DEBUG_Next = next;
-        if (next) {
-            next->DEBUG_Previous = prev;
-        }
+    }
+    
+    if (header->DEBUG_Next) {
+        header->DEBUG_Next->DEBUG_Previous = header->DEBUG_Previous;
+    }
+    
+    if (header->DEBUG_Previous) {
+        header->DEBUG_Previous->DEBUG_Next = header->DEBUG_Next;
     }
 }
 void allocator::DEBUG_add_header(allocation_header *header) {
     thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
+
+    header->DEBUG_Next = DEBUG_Head;
     if (DEBUG_Head) {
         DEBUG_Head->DEBUG_Previous = header;
-        header->DEBUG_Next = DEBUG_Head;
-        DEBUG_Head = header;
-    } else {
-        DEBUG_Head = header;
     }
+    DEBUG_Head = header;
 }
 void allocator::DEBUG_swap_header(allocation_header *oldHeader, allocation_header *newHeader) {
     auto *prev = oldHeader->DEBUG_Previous;
@@ -43,7 +46,7 @@ void allocator::DEBUG_swap_header(allocation_header *oldHeader, allocation_heade
         prev->DEBUG_Next = newHeader;
         newHeader->DEBUG_Previous = prev;
     } else {
-        DEBUG_Head = newHeader;
+        DEBUG_Head = newHeader; 
     }
 
     if (next) {
@@ -88,7 +91,7 @@ void allocator::verify_heap() {
 #if defined DEBUG_MEMORY
     // We need to lock here because another thread can free a header while we are reading from it.
     thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
-    
+
     auto *it = DEBUG_Head;
     while (it) {
         verify_header(it);
@@ -169,6 +172,8 @@ void *allocator::general_allocate(size_t userSize, u32 align, u64 userFlags) con
         assert(is_pow_of_2(contextAlignment));
         align = contextAlignment;
     }
+
+    size_t id = AllocationCount;
 
     align = align < POINTER_SIZE ? POINTER_SIZE : align;
     assert(is_pow_of_2(align));

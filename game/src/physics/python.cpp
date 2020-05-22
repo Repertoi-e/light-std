@@ -7,10 +7,36 @@ PYBIND11_MODULE(lstdgraphics, m) {
     // - For rectangular primitives, "p_min" and "p_max" represent the upper-left and lower-right corners.
 
     m.def(
+        "state",
+        [](u64 pointer) {
+            GameState = (game_state *) pointer;
+
+            // Switch our default allocator from malloc to the one the exe provides us with
+            Context.Alloc = GameState->Memory->Alloc;
+
+        // @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack
+#if defined DEBUG_MEMORY
+            allocator::DEBUG_Head = GameState->DEBUG_Head;
+            clone(&allocator::DEBUG_Mutex, *GameState->DEBUG_Mutex);
+#endif
+            allocator::AllocationCount = GameState->AllocationCount;
+
+            // I'm not sure if we need this, but just incase
+            assert(GameState->Memory->ImGuiContext);
+            ImGui::SetCurrentContext((ImGuiContext *) GameState->Memory->ImGuiContext);
+
+            // We also tell imgui to use our allocator
+            ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size); },
+                                         [](void *ptr, void *) { delete ptr; });
+        },
+        py::arg("pointer"));
+
+    m.def(
         "line",
         [](py::array_t<f64> p1, py::array_t<f64> p2, u32 color, f64 thickness) {
-            assert(p1.request().ndim == 2);
-            assert(p2.request().ndim == 2);
+            assert(GameState && "State not initialized");
+            assert(p1.request().size == 2 && "line requires p1 to be an array of size 2");
+            assert(p2.request().size == 2 && "line requires p2 to be an array of size 2");
             GameState->ViewportDrawlist->AddLine(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), color,
                                                  (f32) thickness);
         },
@@ -34,8 +60,9 @@ PYBIND11_MODULE(lstdgraphics, m) {
         "rect",
         [](py::array_t<f64> p1, py::array_t<f64> p2, u32 color, f64 rounding, ImDrawCornerFlags_ cornerFlags,
            f64 thickness) {
-            assert(p1.request().ndim == 2);
-            assert(p2.request().ndim == 2);
+            assert(GameState && "State not initialized");
+            assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
             GameState->ViewportDrawlist->AddRect(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), color, (f32) rounding,
                                                  cornerFlags, (f32) thickness);
         },
@@ -44,8 +71,6 @@ PYBIND11_MODULE(lstdgraphics, m) {
 }
 
 /*
-
-
     IMGUI_API void AddRectFilled(const ImVec2 &p_min, const ImVec2 &p_max, ImU32 col, float rounding = 0.0f,
                                  ImDrawCornerFlags rounding_corners =
                                      ImDrawCornerFlags_All);  // a: upper-left, b: lower-right (== upper-left + size)

@@ -18,7 +18,7 @@ inline void writer_flush_do_nothing(writer *) {}
 // Holds a pointer to _write_t_ and _flush_t_. Every other function
 // in this class is implemented by calling those functions.
 // By default _FlushFunction_ points to a stub that does nothing.
-struct writer {
+struct writer : non_copyable, non_movable, non_assignable {
     using write_t = void (*)(writer *w, const char *data, size_t count);
     using flush_t = void (*)(writer *w);
 

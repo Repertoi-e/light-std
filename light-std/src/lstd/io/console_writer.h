@@ -10,7 +10,7 @@ namespace io {
 void console_writer_write(writer *w, const char *data, size_t count);
 void console_writer_flush(writer *w);
 
-struct console_writer : writer, non_copyable, non_movable {
+struct console_writer : writer {
     // By default, we are thread-safe.
     // If you don't use seperate threads and aim for max
     // performance, set this to false.

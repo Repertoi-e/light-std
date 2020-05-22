@@ -25,7 +25,7 @@ void format_context_flush(io::writer *w);
 // but if use _format_context_ with _Out_ being a writer where write/flush does specific stuff and such optimization
 // actually breaks behaviour, set the _CannotDoFastFlushToOut_ flag to true.
 // That way this object actually writes the formatted string to _Out_ before flushing.
-struct format_context : io::writer, non_copyable, non_movable {
+struct format_context : io::writer {
     io::writer *Out;
     args Args;
     arg_map ArgMap;

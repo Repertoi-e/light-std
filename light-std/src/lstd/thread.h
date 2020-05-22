@@ -33,13 +33,14 @@ struct id {
 // memory areas for several threads. The mutex is non-recursive (i.e. a
 // program may deadlock if the thread that owns a mutex object calls lock()
 // on that object).
-struct mutex : non_copyable, non_movable, non_assignable {
+struct mutex : non_assignable {
     union {
         struct alignas(64) {
             char Handle[40]{};
         } Win32;
     } PlatformData{};
     volatile bool AlreadyLocked;
+    mutex *Owner = null;
 
     // pthread_mutex_init(&mHandle, NULL);
     mutex();
@@ -70,16 +71,32 @@ struct mutex : non_copyable, non_movable, non_assignable {
     friend struct condition_variable;
 };
 
+inline mutex *clone(mutex *dest, const mutex &src) {
+    dest->~mutex();
+    copy_memory(&dest->PlatformData, &src.PlatformData, sizeof(dest->PlatformData));
+    return dest;
+}
+
+inline mutex *move(mutex *dest, mutex *src) {
+    dest->~mutex();
+    copy_memory(&dest->PlatformData, &src->PlatformData, sizeof(dest->PlatformData));
+    zero_memory(&src->PlatformData, sizeof(src->PlatformData));
+    src->Owner = dest;
+    dest->Owner = dest;
+    return dest;
+}
+
 // This is a mutual exclusion object for synchronizing access to shared
 // memory areas for several threads. The mutex is recursive (i.e. a thread
 // may lock the mutex several times, as long as it unlocks the mutex the same
 // number of times).
-struct recursive_mutex : non_copyable, non_movable, non_assignable {
+struct recursive_mutex : non_assignable {
     union {
         struct alignas(64) {
             char Handle[40]{};
         } Win32;
     } PlatformData{};
+    recursive_mutex *Owner = null;
 
     // pthread_mutexattr_t attr;
     // pthread_mutexattr_init(&attr);
@@ -112,6 +129,21 @@ struct recursive_mutex : non_copyable, non_movable, non_assignable {
 
     friend struct condition_variable;
 };
+
+inline recursive_mutex *clone(recursive_mutex *dest, const recursive_mutex &src) {
+    dest->~recursive_mutex();
+    copy_memory(&dest->PlatformData, &src.PlatformData, sizeof(dest->PlatformData));
+    return dest;
+}
+
+inline recursive_mutex *move(recursive_mutex *dest, recursive_mutex *src) {
+    dest->~recursive_mutex();
+    copy_memory(&dest->PlatformData, &src->PlatformData, sizeof(dest->PlatformData));
+    zero_memory(&src->PlatformData, sizeof(src->PlatformData));
+    src->Owner = dest;
+    dest->Owner = dest;
+    return dest;
+}
 
 // Scoped lock.
 // The constructor locks the mutex, and the destructor unlocks the mutex, so
@@ -178,6 +210,7 @@ struct condition_variable : non_copyable, non_movable, non_assignable {
 #endif
    public:
     char Handle[64] = {0};  // pthread_cond_t
+    condition_variable *Owner = null;
 
     // pthread_cond_init(&mHandle, NULL);
     condition_variable();
@@ -216,6 +249,21 @@ struct condition_variable : non_copyable, non_movable, non_assignable {
     //  pthread_cond_broadcast(&mHandle);
     void notify_all();
 };
+
+inline condition_variable *clone(condition_variable *dest, const condition_variable &src) {
+    dest->~condition_variable();
+    copy_memory(&dest->Handle, &src.Handle, sizeof(dest->Handle));
+    return dest;
+}
+
+inline condition_variable *move(condition_variable *dest, condition_variable *src) {
+    dest->~condition_variable();
+    copy_memory(&dest->Handle, &src->Handle, sizeof(dest->Handle));
+    zero_memory(&src->Handle, sizeof(src->Handle));
+    src->Owner = null;
+    dest->Owner = dest;
+    return dest;
+}
 
 struct thread : non_copyable, non_movable, non_assignable {
     mutable mutex DataMutex;

@@ -33,6 +33,12 @@ size_t os_get_block_size(void *ptr);
 // Frees a memory block allocated by _os_alloc()_
 void os_free_block(void *ptr);
 
+// Creates/opens a shared memory block and writes data to it (use this for communication between processes)
+void os_write_shared_block(string name, void *data, size_t size);
+
+// Read data from a shared memory block (use this for communication between processes)
+void os_read_shared_block(string name, void *out, size_t size);
+
 // Exits the application with the given exit code
 
 // @TODO: Have a "at_exit" function which adds callbacks that are called when the program exits (very useful when
@@ -52,8 +58,18 @@ void os_set_clipboard_content(string content);
 // Sleep for _ms_ milliseconds
 // void os_sleep(f64 ms);
 
-// Returns the path of the current exe (full dir + name)
+// Returns the path of the current executable (full dir + name)
 string os_get_exe_name();
+
+// Returns the current directory of the current process.
+// [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory 
+//           are not thread-safe but we use a lock so these are.
+string os_get_working_dir();
+
+// Sets the current directory of the current process (needs to be absolute).
+// [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory
+//           are not thread-safe but we use a lock so these are.
+void os_set_working_dir(string dir);
 
 // Get the value of an environment variable, returns true if found.
 // If not found and silent is false, logs error to cerr.

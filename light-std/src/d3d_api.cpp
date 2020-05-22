@@ -256,10 +256,10 @@ void d3d_set_viewport(graphics *g, rect viewport) {
 
 void d3d_set_scissor_rect(graphics *g, rect scissorRect) {
     D3D11_RECT rect;
-    rect.top = scissorRect.Top;
     rect.left = scissorRect.Left;
-    rect.bottom = scissorRect.Bot;
+    rect.top = scissorRect.Top;
     rect.right = scissorRect.Right;
+    rect.bottom = scissorRect.Bot;
 
     g->D3D.DeviceContext->RSSetScissorRects(1, &rect);
 }

@@ -416,7 +416,7 @@ string window::get_title() {
 }
 
 void window::set_title(string title) {
-    auto *titleUtf16 = new (Context.TemporaryAlloc) wchar_t[title.Length]; // @Bug title.Length is not enough
+    auto *titleUtf16 = new (Context.TemporaryAlloc) wchar_t[title.Length + 1]; // @Bug title.Length is not enough
     utf8_to_utf16(title.Data, title.Length, titleUtf16);
 
     SetWindowTextW(PlatformData.Win32.hWnd, titleUtf16);

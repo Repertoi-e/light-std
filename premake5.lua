@@ -6,7 +6,7 @@ newoption {
 newoption {
 	trigger = "python",
 	value = "path",
-	description = "Include and link to Python 3.7 C API searching for files in the specified path. e.g. C:/ProgramData/Anaconda3/ (we use C:/ProgramData/Anaconda3/include etc...)"
+	description = "Path to Python 3.7 (e.g. C:/ProgramData/Anaconda3/, we use C:/ProgramData/Anaconda3/include etc...)"
 }
 
 workspace "light-std"
@@ -207,6 +207,47 @@ project "cars"
 		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 
+function query_terminal(command)
+    local success, handle = pcall(io.popen, command)
+    if not success then 
+        return ""
+    end
+
+    result = handle:read("*a")
+    handle:close()
+    result = string.gsub(result, "\n$", "") -- Remove trailing whitespace
+    return result
+end
+
+function get_python_path()
+    local p = query_terminal('python -c "import sys; import os; print(os.path.dirname(sys.executable))"')
+    p = string.gsub(p, "\\\\", "\\")
+    p = string.gsub(p, "\\", "/")
+    return p
+end
+
+function get_python_lib()
+    return query_terminal("python -c \"import sys; import os; import glob; path = os.path.dirname(sys.executable); libs = glob.glob(path + '/libs/python*'); print(os.path.splitext(os.path.basename(libs[-1]))[0]);\"")
+end
+
+function get_python_lib_from_option()
+	py = path.getabsolute(_OPTIONS["python"])
+
+    return query_terminal(py .. "/python -c \"import sys; import os; import glob; path = os.path.dirname(sys.executable); libs = glob.glob(path + '/libs/python*'); print(os.path.splitext(os.path.basename(libs[-1]))[0]);\"")
+end
+
+py = get_python_path()
+py_lib = get_python_lib()
+
+if _OPTIONS["python"] then
+	py = path.getabsolute(_OPTIONS["python"])
+	py_lib = get_python_lib_from_option()
+end
+
+if (pythonPath == "" or pythonLib == "") and not _OPTIONS["python"] then
+	error("Failed to find python! Please specify a path manually using the --python option.")
+end
+
 project "physics"
 	location "game"
 	kind "SharedLib"
@@ -224,16 +265,20 @@ project "physics"
 	links { "light-std" }
 	includedirs { "light-std/src", "game/src" }
 
-	if _OPTIONS["python"] then
-		py = path.getabsolute(_OPTIONS["python"])
-		includedirs { py  .. "/include" }
-		links { py .. "/libs/python37.lib" }
-	end
+	excludes { "game/src/physics/python.cpp"}
+
+	includedirs { py  .. "/include" }
+	libdirs { py  .. "/libs" }
+	links { py_lib }
+
+	links { lstdgraphics }
 
 	includedirs { "game/src" }
 	pchheader "pch.h"
 	pchsource "game/src/physics/pch.cpp"
 	forceincludes { "pch.h" }
+
+	dependson { "lstdgraphics" }
 
 	common_settings()
 
@@ -241,3 +286,29 @@ project "physics"
 	filter "system:windows"
 		symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'
 		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
+
+-- This is the python module used in physics
+project "lstdgraphics"
+    kind "SharedLib"
+    targetdir("temp/build")
+
+	targetdir("bin/" .. outputFolder .. "/game")
+	objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
+
+    targetname("lstdgraphics")
+    targetextension(".pyd")
+
+	includedirs { py  .. "/include" }
+	libdirs { py  .. "/libs" }
+	links { py_lib }
+
+	defines { "LE_BUILDING_GAME" }
+
+	links { "light-std" }
+	includedirs { "light-std/src", "game/src" }
+
+    files {
+		"game/src/physics/python.cpp"
+	}
+
+	common_settings()

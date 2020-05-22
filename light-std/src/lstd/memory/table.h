@@ -27,7 +27,7 @@ struct table_iterator;
 // Whether we hash a key, if the result is less than 2, we just add 2 to it to put it in the valid range.
 // This leads to possibly more collisions, but it's a small price to pay.
 template <typename K, typename V>
-struct table {
+struct table : non_assignable {
     using key_t = K;
     using value_t = V;
 

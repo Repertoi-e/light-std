@@ -17,9 +17,13 @@ void viewport_render() {
         // Here we render everything
         //
         {
-            v2 pos(50, 50);
-            v2 size(20, 20);
-            d->AddRectFilled(pos, pos + size, ImGui::ColorConvertFloat4ToU32(v4(1, 0, 1, 1)));
+            if (GameState->PyLoaded) {
+                try {
+                    GameState->PyFrame();
+                } catch (py::error_already_set &e) {
+                    report_python_error(e);
+                }
+            }
         }
 
         // We now build our view transformation matrix
@@ -40,7 +44,7 @@ void viewport_render() {
 
         auto *p = d->VtxBuffer.Data + 4;  // Don't transform the first 4 vertices (the background rectangle)
         For(range(4, d->VtxBuffer.Size)) {
-            p->pos = dot((v2) p->pos, GameState->ViewMatrix); // Apply the view matrix to each vertex
+            p->pos = dot((v2) p->pos, GameState->ViewMatrix);  // Apply the view matrix to each vertex
             ++p;
         }
     }

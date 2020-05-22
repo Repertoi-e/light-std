@@ -36,10 +36,25 @@ struct game_state {
     v2 ViewportPos = {no_init};
     v2 ViewportSize = {no_init};
 
+    bool PyFirstTime = true;
+    bool PyLoaded = false;
+    py::module PyModule;
+    py::function PyReload;
+    py::function PyFrame;
+
+// We need these in python.pyd
+// @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack
+#if defined DEBUG_MEMORY
+
+    allocation_header *DEBUG_Head;
+    thread::mutex *DEBUG_Mutex;
+#endif
+    u64 AllocationCount;
+    game_memory *Memory;
+    // End of dirty hack
+
     bool ShowOverlay = true;
     s32 OverlayCorner = 3;
-
-    bool MouseGrabbed = false;
 };
 
 struct script {
@@ -54,6 +69,9 @@ inline bucket_array<shader> *Shaders = null;
 inline bucket_array<texture_2D> *Texture2Ds = null;
 
 void reload_global_state();
+
+void reload_python_script();
+void report_python_error(py::error_already_set &e);
 
 void editor_main();
 void editor_scene_properties();

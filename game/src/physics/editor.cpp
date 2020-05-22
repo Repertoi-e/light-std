@@ -87,7 +87,10 @@ void editor_main() {
 void editor_scene_properties() {
     auto *cam = &GameState->Camera;
 
-    ImGui::Begin("View Properties", null);
+    ImGui::Begin("Scene", null);
+    
+    if (ImGui::Button("Reload python script")) reload_python_script();
+
     ImGui::Text("Camera");
     ImGui::BeginChild("##camera", {0, 227}, true);
     {

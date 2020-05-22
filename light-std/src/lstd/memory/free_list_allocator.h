@@ -4,21 +4,16 @@
 
 LSTD_BEGIN_NAMESPACE
 
-struct free_list_allocator_data {
+struct free_list_allocator_data : non_copyable, non_movable, non_assignable {
     void *Storage = null;
     size_t Reserved = 0;
 
-    static constexpr u32 FREE_BLOCK_FLAG = 0xBADBAD;
-    static constexpr u32 USED_BLOCK_FLAG = 0xFAFAFA;
-
     struct node {
-        u32 Flag;  // Memory partially shared with _header_
         size_t BlockSize = 0;
         node *Next = null;
     };
 
     struct block_header {
-        u32 Flag;  // Memory partially shared with _node_
         size_t Size;
         u16 AlignmentPadding;  // This might move _Flag_ but its ok, we save it before the padding anyways
     };

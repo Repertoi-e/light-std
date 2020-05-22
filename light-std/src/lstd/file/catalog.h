@@ -9,7 +9,7 @@ LSTD_BEGIN_NAMESPACE
 // You can set this to automatically watch for changes and reload.
 
 // @TODO: This is WIP, no file watching yet.
-struct catalog {
+struct catalog : non_copyable, non_movable, non_assignable {
     struct entity {
         bool Loaded;
 

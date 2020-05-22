@@ -104,22 +104,19 @@ void *free_list_allocator_data::allocate(size_t size) {
     Used += required;
     PeakUsed = max(Used, PeakUsed);
 
-    auto *header = (block_header *) foundNode;
-    // We write the flag before the padding!
-    header->Flag = USED_BLOCK_FLAG;
-
-    header = (block_header *) ((char *) foundNode + alignmentPadding);
+    auto *header = (block_header *) ((char *) foundNode + alignmentPadding);
     header->Size = userSize;
     header->AlignmentPadding = alignmentPadding;
 
     return (void *) (header + 1);
 }
 
+/*
 void *free_list_allocator_data::resize(void *block, size_t newSize) {
     auto *header = (block_header *) block - 1;
 
 #if defined DEBUG_MEMORY
-    auto *p = (u32 *) (char *) header - header->AlignmentPadding;
+    auto *p = (u32 *) ((char *) header - header->AlignmentPadding);
     assert(*p == USED_BLOCK_FLAG);  // Sanity
 #endif
 
@@ -159,6 +156,7 @@ void *free_list_allocator_data::resize(void *block, size_t newSize) {
         return null;  // We can't resize it, next node is not free
     }
 }
+*/
 
 void free_list_allocator_data::free(void *block) {
     auto *header = (block_header *) block - 1;
@@ -166,7 +164,6 @@ void free_list_allocator_data::free(void *block) {
     size_t alignmentPadding = header->AlignmentPadding;
 
     auto *freeNode = (node *) ((char *) header - alignmentPadding);
-    freeNode->Flag = free_list_allocator_data::FREE_BLOCK_FLAG;
     freeNode->BlockSize = header->Size + header->AlignmentPadding + sizeof(block_header);
     freeNode->Next = null;
 
@@ -213,7 +210,8 @@ void *free_list_allocator(allocator_mode mode, void *context, size_t size, void 
             return data->allocate(size);
         }
         case allocator_mode::RESIZE: {
-            return data->resize(oldMemory, size);
+            return null;
+            // return data->resize(oldMemory, size);
         }
         case allocator_mode::FREE: {
             data->free(oldMemory);
@@ -238,12 +236,11 @@ void *free_list_allocator(allocator_mode mode, void *context, size_t size, void 
             data->Used = data->PeakUsed = 0;
 
             auto *firstNode = (node *) data->Storage;
-            firstNode->Flag = free_list_allocator_data::FREE_BLOCK_FLAG;
             firstNode->BlockSize = data->Reserved;
             firstNode->Next = null;
             data->FreeListHead = firstNode;
 
-            return (void *) -1;
+            return null;
         }
         default:
             assert(false);

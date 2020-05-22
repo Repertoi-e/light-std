@@ -20,7 +20,10 @@ void fast_mutex::lock() {
 // Mutexes:
 //
 mutex::mutex() : AlreadyLocked(false) { InitializeCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
-mutex::~mutex() { DeleteCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
+mutex::~mutex() {
+    auto *p = (CRITICAL_SECTION *) PlatformData.Win32.Handle;
+    if (Owner == this && p) DeleteCriticalSection(p);
+}
 
 void mutex::lock() {
     EnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
@@ -45,7 +48,10 @@ void mutex::unlock() {
 }
 
 recursive_mutex::recursive_mutex() { InitializeCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
-recursive_mutex::~recursive_mutex() { DeleteCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
+recursive_mutex::~recursive_mutex() {
+    auto *p = (CRITICAL_SECTION *) PlatformData.Win32.Handle;
+    if (Owner == this && p) DeleteCriticalSection(p);
+}
 
 void recursive_mutex::lock() { EnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
 bool recursive_mutex::try_lock() {
@@ -82,10 +88,11 @@ condition_variable::condition_variable() {
 
 condition_variable::~condition_variable() {
     auto *data = (CV_Data *) Handle;
-
-    CloseHandle(data->Events[_CONDITION_EVENT_ONE]);
-    CloseHandle(data->Events[_CONDITION_EVENT_ALL]);
-    DeleteCriticalSection(&data->WaitersCountLock);
+    if (Owner == this && data) {
+        CloseHandle(data->Events[_CONDITION_EVENT_ONE]);
+        CloseHandle(data->Events[_CONDITION_EVENT_ALL]);
+        DeleteCriticalSection(&data->WaitersCountLock);
+    }
 }
 
 void condition_variable::pre_wait() {

@@ -3,8 +3,8 @@
 #include "../types.h"
 
 struct rect {
-    s32 Top = 0, Left = 0;
-    s32 Bot = 0, Right = 0;
+    s32 Left = 0, Top = 0;
+    s32 Right = 0, Bot = 0;
 
     s32 width() { return Right - Left; }
     s32 height() { return Bot - Top; }

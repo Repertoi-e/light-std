@@ -16,6 +16,10 @@ LSTD_BEGIN_NAMESPACE
 // You can read the comments in this file (around where DEBUG_MEMORY is mentioned)
 // and see what extra stuff we do.
 
+// XXX There is a bug in the debug memory routines that I can't be bothered to hunt down at the moment
+// because I have a dead line for the project I need to finish.
+#define FORCE_NO_DEBUG_MEMORY
+
 #if defined DEBUG || defined RELEASE
 #if !defined DEBUG_MEMORY && !defined FORCE_NO_DEBUG_MEMORY
 #define DEBUG_MEMORY
@@ -59,7 +63,7 @@ constexpr u64 DO_INIT_0 = 1ull << 31;
 // the last u64 is reserved for user flags
 //
 // !!! When called with FREE_ALL, a return value of null means success!
-//     To signify that the allocator doesn't support FREE_ALL (or the operation failed) return: (void*) -1\
+//     To signify that the allocator doesn't support FREE_ALL (or the operation failed) return: (void*) -1.
 //
 // !!! When called with RESIZE, this doesn't mean "reallocate"!
 //     Only valid return here is _oldMemory_ (memory was grown/shrank in place)
