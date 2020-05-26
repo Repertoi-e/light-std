@@ -3,47 +3,75 @@ import lstdgraphics as g
 
 from vec import normalized
 
+from constants import *
+
 #
 # This file implements basic shapes which our demo uses.
-# As convention we consider the vertices of polygons to be ordered counter-clockwise (this affects calculations).
+# As convention we consider the vertices of polygons to be ordered clockwise (this affects calculations).
 #
 
 class Shape:
-    def __init__(self, color):
-        self.color = color
-        self.recache_constants()
-
-    def recache_constants(self):
-        '''
-        After changing shape properties, this method recalculates constants (e.g. center of mass)
-        '''
-        pass
+    def __init__(self): pass
 
 class Circle(Shape):
     def __init__(self, radius, color = 0xffff00ff):
-        self.radius = radius
-        super().__init__(color)
+        self.radius = float(radius)
+        self.area = radius ** 2 * np.pi
+        self.color = color
 
-    def recache_constants(self):
-        self.centroid = np.array([0, 0]) # A circle's center of mass is its center :D
+def edges(vertices):
+    result = np.empty((len(vertices), 2, 2))
+    a = vertices[0]
+    for i in range(1, len(vertices) + 1):
+        b = vertices[i % len(vertices)] # At the end we cycle back to the first vertex
+        result[i - 1] = np.array([a, b])
+        a = b
+    return result
+
+def shoelace(es):
+    area = 0
+    for e in es:
+        area += 0.5 * np.cross(e[0], e[1])
+    return abs(area)
+
+def centroid(es):
+    result = np.array([0.0, 0.0])
+    
+    area_sum = 0.0
+    for e in es:
+        tri_area = 0.5 * np.cross(e[0], e[1])
+        area_sum += tri_area
+        result += (e[0] + e[1]) / 3 * tri_area
+    return result / area_sum
 
 class ConvexPolygon(Shape):
     def __init__(self, vertices, color = 0xffff00ff):
-        self.vertices = np.array(vertices)
-        self.normals = np.empty((len(vertices), 2))
-        super().__init__(color)
+        self.vertices = np.array(vertices).astype(float)
+        self.normals = np.empty((len(vertices), 2)).astype(float)
+        self.edges = np.empty((len(vertices), 2, 2)).astype(float)
 
-    def recache_constants(self):
-        self.centroid = np.array([0, 0])
-        
-        # Save the previous vertex
-        a = self.vertices[0]
-        for i in range(1, len(self.vertices) + 1):
-            b = self.vertices[i % len(self.vertices)] # At the end we cycle back to the first vertex
+        es = edges(self.vertices)
 
+        self.area = shoelace(es)
+        self.vertices -= centroid(es)
+
+        # Recalculate edges after translating the vertices
+        self.edges = edges(self.vertices)
+
+        for i, e in enumerate(self.edges):
+            a, b = e[0], e[1]
             n = [-(b[1] - a[1]), (b[0] - a[0])]
-            n = normalized(n)
+            self.normals[i] = normalized(n)
 
-            self.normals[i - 1] = n
+        self.color = color
 
-            a = b
+
+# Returns a centered rectangle with half_width, half_height extents
+def make_rect(half_width, half_height, color = 0xffffffff):
+    vertices = [
+        [-half_width, -half_height],
+        [-half_width, half_height],
+        [half_width, half_height],
+        [half_width, -half_height]
+    ]
+    return ConvexPolygon(vertices, color = color)

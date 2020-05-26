@@ -48,37 +48,62 @@ void reload_global_state() {
         }
     }
 
-    // PyMemAllocatorEx a;
-    // a.ctx = null;
-    // a.malloc = [](void *, size_t size) { return (void *) new char[size == 0 ? 1 : size]; };
-    // a.calloc = [](void *, size_t n, size_t s) { return (void *) new (Context.Alloc, DO_INIT_0) char[n * s]; };
-    // a.realloc = [](void *, void *ptr, size_t size) { return allocator::reallocate(ptr, size == 0 ? 1 : size); };
-    // a.free = [](void *, void *ptr) { delete ptr; };
-    //
-    // PyMem_SetAllocator(PYMEM_DOMAIN_RAW, &a);
-    // PyMem_SetAllocator(PYMEM_DOMAIN_MEM, &a);  // @Speed These can be different thread-unsafe allocators.
-    // PyMem_SetAllocator(PYMEM_DOMAIN_OBJ, &a);  // @Speed These can be different thread-unsafe allocators.
-    //
-    // // @Speed This can be an arena allocator
-    // PyObjectArenaAllocator aa;
-    // aa.ctx = null;
-    // a.malloc = [](void *, size_t size) { return (void *) new char[size == 0 ? 1 : size]; };
-    // a.realloc = [](void *, void *ptr, size_t size) { return allocator::reallocate(ptr, size == 0 ? 1 : size); };
-    // a.free = [](void *, void *ptr) { delete ptr; };
-    // PyObject_SetArenaAllocator(&aa);
+    GameState->PyLoaded = false;
 
-    // PyMem_SetupDebugHooks();
-
-    Py_Initialize();
-    reload_python_script();
-    GameState->PyFirstTime = false;
+    refresh_python_demo_files();
+    if (GameState->PyCurrentDemo) {
+        load_python_demo(GameState->PyCurrentDemo);
+    } else {
+        if (GameState->PyDemoFiles.Count) load_python_demo(GameState->PyDemoFiles[0]);
+    }
 }
 
-void reload_python_script() {
+void load_python_demo(string demo) {
+    clone(&GameState->PyCurrentDemo, demo);
+
+    if (GameState->PyLoaded) {
+        GameState->PyModule.attr("unload")();
+
+        GameMemory->RequestReloadNextFrame = true;
+        return;
+    }
+
+    Py_Initialize();
+
+    PyObject *sysPath = PySys_GetObject("path");
+
+    file::path scripts = os_get_working_dir();
+    scripts.combine_with("data/scripts");
+    const char *scriptsPath = scripts.UnifiedPath.to_c_string(Context.TemporaryAlloc);
+    PyList_Append(sysPath, PyUnicode_FromString(scriptsPath));
+
+    auto filePath = scripts;
+    filePath.combine_with(demo); 
+    if (!file::handle(filePath).is_file()) {
+        fmt::print(">>>\n>>> Couldn't find file {!YELLOW}\"{}\"{!}.({!GRAY}\"{}\"{!})\n", filePath);
+        return;
+    }
+
+    try {
+        auto main = py::module::import(filePath.base_name().to_c_string(Context.TemporaryAlloc));
+        GameState->PyModule = main;
+        main.attr("load")((u64) GameState);
+        GameState->PyFrame = (py::function) main.attr("frame");
+    } catch (py::error_already_set e) {
+        report_python_error(e);
+    }
+
+    GameState->PyLoaded = true;
+}
+
+void refresh_python_demo_files() {
     file::path scripts = os_get_working_dir();
     scripts.combine_with("data/scripts");
 
-    if (!file::handle(scripts).is_directory()) {
+    GameState->PyDemoFiles.reset();
+
+    auto h = file::handle(scripts);
+    if (!h.is_directory()) {
         GameState->PyLoaded = false;
         fmt::print(
             ">>>\n>>> Couldn't find {!YELLOW}\"data/scripts\"{!} folder in current working dir ({!GRAY}\"{}\"{!})\n",
@@ -86,46 +111,18 @@ void reload_python_script() {
         fmt::print(
             ">>> There must be a file named {!YELLOW}data/scripts/physics_main.py{!} relative to the current working "
             "directory in order to run.\n>>>\n");
-    } else {
-        GameState->PyLoaded = false;
+        return;
+    }
 
-        if (GameState->PyFirstTime) {
-            PyObject *sysPath = PySys_GetObject("path");
+    h.traverse([](file::path file) {
+        if (file.base_name().begins_with("demo_") && file.extension() == ".py")
+            clone(GameState->PyDemoFiles.append(), file.file_name());
+    });
 
-            const char *path = scripts.UnifiedPath.to_c_string(Context.TemporaryAlloc);
-            PyList_Append(sysPath, PyUnicode_FromString(path));
-
-            try {
-                GameState->PyModule = py::module::import("physics_main");
-
-                auto *module = &GameState->PyModule;
-                module->attr("init")();
-
-                GameState->PyReload = (py::function) module->attr("reload");
-                GameState->PyReload((u64) GameState);
-
-                GameState->PyFrame = (py::function) module->attr("frame");
-
-                GameState->PyLoaded = true;
-            } catch (py::error_already_set e) {
-                report_python_error(e);
-            }
-        } else {
-            try {
-                GameState->PyModule.reload();
-
-                auto *module = &GameState->PyModule;
-
-                GameState->PyReload = (py::function) module->attr("reload");
-                GameState->PyReload((u64) GameState);
-
-                GameState->PyFrame = (py::function) module->attr("frame");
-
-                GameState->PyLoaded = true;
-            } catch (py::error_already_set e) {
-                report_python_error(e);
-            }
-        }
+    if (GameState->PyDemoFiles.Count == 0) {
+        fmt::print(">>>\n>>> Couldn't find any demo files in {!YELLOW}\"data/scripts\"{!}. ({!GRAY}\"{}\"{!})\n",
+                   scripts);
+        fmt::print(">>> Demo files must be named like so: \"data/scripts/demo_*something*.py\"\n>>>\n");
     }
 }
 

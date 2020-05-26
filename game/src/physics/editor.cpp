@@ -88,8 +88,27 @@ void editor_scene_properties() {
     auto *cam = &GameState->Camera;
 
     ImGui::Begin("Scene", null);
-    
-    if (ImGui::Button("Reload python script")) reload_python_script();
+
+    ImGui::Text("Python");
+    ImGui::BeginChild("##python", {0, 127}, true);
+    {
+        auto demoFiles = GameState->PyDemoFiles;
+
+        ImGui::Text("Select demo file:");
+        if (ImGui::BeginCombo("##combo", GameState->PyCurrentDemo.to_c_string(Context.TemporaryAlloc))) {
+            For(demoFiles) {
+                bool isSelected = GameState->PyCurrentDemo == it;
+                if (ImGui::Selectable(it.to_c_string(Context.TemporaryAlloc), &isSelected)) {
+                    GameState->PyCurrentDemo = it;
+                    load_python_demo(it);
+                }
+                if (isSelected) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        if (ImGui::Button("Refresh demo files")) refresh_python_demo_files();
+        ImGui::EndChild();
+    }
 
     ImGui::Text("Camera");
     ImGui::BeginChild("##camera", {0, 227}, true);

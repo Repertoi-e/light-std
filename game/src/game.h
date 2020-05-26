@@ -44,6 +44,9 @@ struct game_memory {
     // Gets triggered the first time the game loads as well!
     bool ReloadedThisFrame = false;
 
+    // This gets set by the dll
+    bool RequestReloadNextFrame = false;
+
     window *MainWindow = null;
 
     // The exe provides us with a free list allocator that is faster than malloc and is suited for general purpose

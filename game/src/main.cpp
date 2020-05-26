@@ -235,8 +235,15 @@ s32 main() {
         // but we should do that ourselves. I don't remember why we changed it (maybe simplicity?) but we should
         // definetely allow the user to set the target fps.
 
+        // This is affecting any physics time steps though
+        gameMemory.FrameDelta = 1.0f / GameFPS;
+
         while (true) {
             gameMemory.ReloadedThisFrame = check_for_dll_change();
+            if (gameMemory.RequestReloadNextFrame) {
+                gameMemory.ReloadedThisFrame = reload_game_code();
+                gameMemory.RequestReloadNextFrame = false;
+            }
 
             window::update();
             if (gameMemory.MainWindow->IsDestroying) break;

@@ -17,9 +17,9 @@ void viewport_render() {
         // Here we render everything
         //
         {
-            if (GameState->PyLoaded) {
+            if (GameState->PyLoaded && !GameMemory->RequestReloadNextFrame) {
                 try {
-                    GameState->PyFrame();
+                    GameState->PyFrame(GameMemory->FrameDelta);
                 } catch (py::error_already_set &e) {
                     report_python_error(e);
                 }

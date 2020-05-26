@@ -36,10 +36,11 @@ struct game_state {
     v2 ViewportPos = {no_init};
     v2 ViewportSize = {no_init};
 
-    bool PyFirstTime = true;
+    string PyCurrentDemo;
+    array<string> PyDemoFiles;
+
     bool PyLoaded = false;
     py::module PyModule;
-    py::function PyReload;
     py::function PyFrame;
 
 // We need these in python.pyd
@@ -57,12 +58,6 @@ struct game_state {
     s32 OverlayCorner = 3;
 };
 
-struct script {
-    file::path FilePath;
-    string Contents;
-    py::module Module;
-};
-
 inline game_state *GameState = null;
 
 inline bucket_array<shader> *Shaders = null;
@@ -70,7 +65,9 @@ inline bucket_array<texture_2D> *Texture2Ds = null;
 
 void reload_global_state();
 
-void reload_python_script();
+void load_python_demo(string fileName);
+void refresh_python_demo_files();
+
 void report_python_error(py::error_already_set &e);
 
 void editor_main();

@@ -88,12 +88,23 @@ struct handle {
     bool create_symbolic_link(handle dest) const;
 
     // If this handle is pointing to a directory,
+    // call _func_ on each file/directory inside of it.
+    void traverse(const delegate<void(path)> &func) const {
+        assert(is_directory());
+        if (!Path.is_pointing_to_content()) {
+            const_cast<file::path *>(&Path)->UnifiedPath.append("/");
+        }
+        traverse_impl(func);
+    }
+
+    // If this handle is pointing to a directory,
     // call _func_ on each file/subdirectory recursively.
-    //
-    // (To traverse non-recursively, just use for(auto it: handle) {...})
     void traverse_recursively(const delegate<void(path)> &func) const {
         assert(is_directory());
-        traverse_recursively(Path, Path, func);
+        if (!Path.is_pointing_to_content()) {
+            const_cast<file::path *>(&Path)->UnifiedPath.append("/");
+        }
+        traverse_recursively_impl(Path, Path, func);
     }
 
     // Read entire file to _out_.
@@ -144,7 +155,8 @@ struct handle {
     iterator end() const { return iterator(); }
 
    private:
-    void traverse_recursively(path first, path currentDirectory, const delegate<void(path)> &func) const;
+    void traverse_impl(const delegate<void(path)> &func) const;
+    void traverse_recursively_impl(path first, path currentDirectory, const delegate<void(path)> &func) const;
 };
 
 }  // namespace file

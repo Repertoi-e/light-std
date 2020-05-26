@@ -272,14 +272,23 @@ void handle::iterator::read_next_entry() {
         CurrentFileName.release();
 
         auto *fileName = ((WIN32_FIND_DATAW *) PlatformFileInfo)->cFileName;
-        CurrentFileName.reserve(c_string_length(fileName) * 2); // @Bug c_string_length * 2 is not enough
+        CurrentFileName.reserve(c_string_length(fileName) * 2);  // @Bug c_string_length * 2 is not enough
         utf16_to_utf8(fileName, const_cast<char *>(CurrentFileName.Data), &CurrentFileName.ByteLength);
         CurrentFileName.Length = utf8_length(CurrentFileName.Data, CurrentFileName.ByteLength);
     } while (CurrentFileName == ".." || CurrentFileName == ".");
     assert(CurrentFileName != ".." && CurrentFileName != ".");
 }
 
-void handle::traverse_recursively(path first, path currentDirectory, const delegate<void(path)> &func) const {
+void handle::traverse_impl(const delegate<void(path)> &func) const {
+    for (auto it = begin(); it != end(); ++it) {
+        file::path relativeFileName;
+        clone(&relativeFileName, Path);
+        relativeFileName.combine_with(*it);
+        func(relativeFileName);
+    }
+}
+
+void handle::traverse_recursively_impl(path first, path currentDirectory, const delegate<void(path)> &func) const {
     for (auto it = begin(); it != end(); ++it) {
         file::path relativeFileName;
         clone(&relativeFileName, currentDirectory);
@@ -292,7 +301,7 @@ void handle::traverse_recursively(path first, path currentDirectory, const deleg
             p.combine_with(*it);
             p.combine_with("./");
 
-            handle(p).traverse_recursively(first, p, func);
+            handle(p).traverse_recursively_impl(first, p, func);
         }
     }
 }
