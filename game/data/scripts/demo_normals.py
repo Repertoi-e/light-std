@@ -4,7 +4,7 @@ import numpy as np
 from drawing import draw_shape 
 import shape
 
-from constants import *
+from constants import gravity
 
 from body import Body
 
@@ -21,7 +21,16 @@ def load(state):
 	]
 	poly = shape.ConvexPolygon(vertices, 0xffff00ff)
 	b = Body(poly, 10)
+	b.pos += [4, 4]
 	bodies.append(b)
+
+	rect = shape.make_rect(2, 1, 0xff00ffff)
+	b = Body(rect, 1, static = True)
+	b.pos += [8, 4]
+	bodies.append(b)
+	
+	global gravity
+	gravity = 0
 
 def unload():
 	bodies.clear()
