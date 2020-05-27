@@ -23,8 +23,7 @@ LSTD_BEGIN_NAMESPACE
 
 // @Avoid#include
 struct window;
-struct window_closed_event;
-struct window_framebuffer_resized_event;
+struct event;
 
 struct shader;
 struct texture_2D;
@@ -51,7 +50,7 @@ struct graphics : non_copyable, non_movable {
 
     struct target_window {
         window *Window = null;
-        size_t ClosedCallbackID = npos, FramebufferResizedCallbackID = npos;
+        size_t CallbackID = npos;
 
         cull CullMode = cull::None;
         rect Viewport, ScissorRect;
@@ -138,8 +137,7 @@ struct graphics : non_copyable, non_movable {
     void release();
 
    private:
-    void window_closed(const window_closed_event &e);
-    void window_resized(const window_framebuffer_resized_event &e);
+    bool window_event_handler(const event &e);
 };
 
 LSTD_END_NAMESPACE

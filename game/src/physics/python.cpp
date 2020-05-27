@@ -3,9 +3,6 @@
 PYBIND11_MODULE(lstdgraphics, m) {
     m.doc() = "A module which exposes 2D draw functions from our graphics engine to python and interlops with C++.";
 
-    // Primitives
-    // - For rectangular primitives, "p_min" and "p_max" represent the upper-left and lower-right corners.
-
     m.def(
         "state",
         [](u64 pointer) {

@@ -91,6 +91,9 @@ struct game_memory {
 #define GAME_UPDATE_AND_RENDER(name, ...) void name(game_memory *memory, graphics *g)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render_func);
 
+#define GAME_MAIN_WINDOW_EVENT(name, ...) bool name(const event &e)
+typedef GAME_MAIN_WINDOW_EVENT(game_main_window_event_func);
+
 // Global, used in the game
 inline game_memory *GameMemory = null;
 inline graphics *Graphics = null;

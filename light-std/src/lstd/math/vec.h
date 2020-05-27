@@ -138,7 +138,7 @@ struct vec_data<T, 4, Packed> {
 
 // Small SIMD fp32 vectors
 template <>
-struct vec_data<f32, 2, false> {
+struct alignas(16) vec_data<f32, 2, false> {
     using ST = f32;
     using SimdT = simd<ST, 2>;
 
@@ -162,7 +162,7 @@ struct vec_data<f32, 2, false> {
 };
 
 template <>
-struct vec_data<f32, 3, false> {
+struct alignas(16) vec_data<f32, 3, false> {
     using ST = f32;
     using SimdT = simd<ST, 4>;
 
@@ -186,7 +186,7 @@ struct vec_data<f32, 3, false> {
 };
 
 template <>
-struct vec_data<f32, 4, false> {
+struct alignas(16) vec_data<f32, 4, false> {
     using ST = f32;
     using SimdT = simd<ST, 4>;
 
@@ -210,7 +210,7 @@ struct vec_data<f32, 4, false> {
 };
 
 template <>
-struct vec_data<f32, 8, false> {
+struct alignas(16) vec_data<f32, 8, false> {
     using ST = f32;
     using SimdT = simd<f32, 8>;
 
@@ -231,7 +231,7 @@ struct vec_data<f32, 8, false> {
 
 // Small SIMD fp64 vectors
 template <>
-struct vec_data<f64, 2, false> {
+struct alignas(16) vec_data<f64, 2, false> {
     using ST = f64;
     using SimdT = simd<ST, 2>;
 
@@ -256,7 +256,7 @@ struct vec_data<f64, 2, false> {
 };
 
 template <>
-struct vec_data<f64, 3, false> {
+struct alignas(16) vec_data<f64, 3, false> {
     using ST = f64;
     using SimdT = simd<ST, 4>;
 
@@ -282,7 +282,7 @@ struct vec_data<f64, 3, false> {
 };
 
 template <>
-struct vec_data<f64, 4, false> {
+struct alignas(16) vec_data<f64, 4, false> {
     using ST = f64;
     using SimdT = simd<ST, 4>;
 

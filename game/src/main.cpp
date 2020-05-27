@@ -19,6 +19,7 @@ allocator GameAlloc;  // Imgui uses this, it needs to be global
 
 dynamic_library GameLibrary;
 game_update_and_render_func *GameUpdateAndRender = null;
+game_main_window_event_func *GameMainWindowEvent = null;
 
 file::handle *DLL = null, *Buildlock = null;  // file::handle is not assignable
 
@@ -54,6 +55,12 @@ bool reload_game_code() {
     GameUpdateAndRender = (game_update_and_render_func *) GameLibrary.get_symbol("game_update_and_render");
     if (!GameUpdateAndRender) {
         fmt::print("Error: Couldn't load game_update_and_render\n");
+        return false;
+    }
+
+    GameMainWindowEvent = (game_main_window_event_func *) GameLibrary.get_symbol("game_main_window_event");
+    if (!GameMainWindowEvent) {
+        fmt::print("Error: Couldn't load game_main_window_event\n");
         return false;
     }
     return true;
@@ -216,6 +223,11 @@ s32 main() {
         gameMemory.MainWindow =
             (new window)->init(windowTitle, window::DONT_CARE, window::DONT_CARE, GameWidth, GameHeight, windowFlags);
 
+        gameMemory.MainWindow->Event.connect([](const event &e) {
+            if (GameMainWindowEvent) return GameMainWindowEvent(e);
+            return false;
+        });
+
         graphics g;
         Graphics = &g;
         g.init(graphics_api::Direct3D);
@@ -281,32 +293,45 @@ static cursor MouseCursors[ImGuiMouseCursor_COUNT] = {
 
 static bool MouseButtons[Mouse_Button_Last + 1]{};
 
-static bool common_key_callback(const key_event &e) {
+static void update_modifiers() {
     ImGuiIO &io = ImGui::GetIO();
-    if (e.Action == Key_Pressed) io.KeysDown[e.KeyCode] = true;
-    if (e.Action == Key_Released) io.KeysDown[e.KeyCode] = false;
-
     io.KeyCtrl = io.KeysDown[Key_LeftControl] || io.KeysDown[Key_RightControl];
     io.KeyShift = io.KeysDown[Key_LeftShift] || io.KeysDown[Key_RightShift];
     io.KeyAlt = io.KeysDown[Key_LeftAlt] || io.KeysDown[Key_RightAlt];
     io.KeySuper = io.KeysDown[Key_LeftGUI] || io.KeysDown[Key_RightGUI];
+}
+
+static bool common_event_callback(const event &e) {
+    ImGuiIO &io = ImGui::GetIO();
+    if (e.Type == event::Keyboard_Pressed) {
+        io.KeysDown[e.KeyCode] = true;
+        update_modifiers();
+    } else if (e.Type == event::Keyboard_Released) {
+        io.KeysDown[e.KeyCode] = false;
+        update_modifiers();
+    } else if (e.Type == event::Code_Point_Typed) {
+        ImGuiIO &io = ImGui::GetIO();
+        io.AddInputCharacter(e.CP);
+    } else if (e.Type == event::Mouse_Button_Pressed) {
+        MouseButtons[e.Button] = true;
+    } else if (e.Type == event::Mouse_Wheel_Scrolled) {
+        io.MouseWheelH += e.ScrollX;
+        io.MouseWheel += e.ScrollY;
+    }
     return false;
 }
 
-static void common_code_point_callback(const code_point_typed_event &e) {
+static bool platform_event_callback(const event &e) {
     ImGuiIO &io = ImGui::GetIO();
-    io.AddInputCharacter(e.CP);
-}
 
-static bool common_mouse_button_callback(const mouse_button_event &e) {
-    if (e.Pressed) MouseButtons[e.Button] = true;
-    return false;
-}
-
-static bool common_mouse_scrolled_callback(const mouse_scrolled_event &e) {
-    ImGuiIO &io = ImGui::GetIO();
-    io.MouseWheelH += e.ScrollX;
-    io.MouseWheel += e.ScrollY;
+    auto *viewport = ImGui::FindViewportByPlatformHandle(e.Window);
+    if (e.Type == event::Window_Closed) {
+        viewport->PlatformRequestClose = true;
+    } else if (e.Type == event::Window_Moved) {
+        viewport->PlatformRequestMove = true;
+    } else if (e.Type == event::Window_Resized) {
+        viewport->PlatformRequestResize = true;
+    }
     return false;
 }
 
@@ -491,10 +516,7 @@ static void init_imgui_for_our_windows(window *mainWindow) {
     io.KeyMap[ImGuiKey_Y] = Key_Y;
     io.KeyMap[ImGuiKey_Z] = Key_Z;
 
-    mainWindow->KeyEvent.connect(common_key_callback);
-    mainWindow->CodePointTypedEvent.connect(common_code_point_callback);
-    mainWindow->MouseButtonEvent.connect(common_mouse_button_callback);
-    mainWindow->MouseScrolledEvent.connect(common_mouse_scrolled_callback);
+    mainWindow->Event.connect(common_event_callback);
 
     ImGuiViewport *mainViewport = ImGui::GetMainViewport();
     mainViewport->PlatformHandle = (void *) mainWindow;
@@ -521,17 +543,8 @@ static void init_imgui_for_our_windows(window *mainWindow) {
 #endif
             win->set_pos((s32) viewport->Pos.x, (s32) viewport->Pos.y);
 
-            win->KeyEvent.connect(common_key_callback);
-            win->CodePointTypedEvent.connect(common_code_point_callback);
-            win->MouseButtonEvent.connect(common_mouse_button_callback);
-            win->MouseScrolledEvent.connect(common_mouse_scrolled_callback);
-
-            win->WindowClosedEvent.connect(
-                [](const auto &e) { ImGui::FindViewportByPlatformHandle(e.Window)->PlatformRequestClose = true; });
-            win->WindowMovedEvent.connect(
-                [](const auto &e) { ImGui::FindViewportByPlatformHandle(e.Window)->PlatformRequestMove = true; });
-            win->WindowResizedEvent.connect(
-                [](const auto &e) { ImGui::FindViewportByPlatformHandle(e.Window)->PlatformRequestResize = true; });
+            win->Event.connect(common_event_callback);
+            win->Event.connect(platform_event_callback);
         };
 
         platformIO.Platform_DestroyWindow = [](auto *viewport) {
@@ -647,8 +660,8 @@ static void imgui_for_our_windows_new_frame(window *mainWindow) {
                     vec2<s32> windowPos = win->get_pos();
                     io.MousePos = ImVec2((f32)(mouse.x + windowPos.x), (f32)(mouse.y + windowPos.y));
                 } else {
-                    // Single viewport mode: mouse position in client window coordinates (io.MousePos is (0,0) when the
-                    // mouse is on the upper-left corner of the app window)
+                    // Single viewport mode: mouse position in client window coordinates (io.MousePos is (0,0) when
+                    // the mouse is on the upper-left corner of the app window)
                     io.MousePos = ImVec2((f32) mouse.x, (f32) mouse.y);
                 }
             }

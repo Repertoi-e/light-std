@@ -34,11 +34,15 @@ void graphics::set_target_window(window *win) {
         targetWindow = TargetWindows.append();
         targetWindow->Window = win;
         if (win) {
-            targetWindow->ClosedCallbackID = win->WindowClosedEvent.connect({this, &graphics::window_closed});
-            targetWindow->FramebufferResizedCallbackID =
-                win->WindowFramebufferResizedEvent.connect({this, &graphics::window_resized});
+            targetWindow->CallbackID = win->Event.connect({this, &graphics::window_event_handler});
             Impl.InitTargetWindow(this, targetWindow);
-            window_resized({win, win->get_size().x, win->get_size().y});
+            
+            event e;
+            e.Window = win;
+            e.Type = event::Window_Resized;
+            e.Width = win->get_size().x;
+            e.Height = win->get_size().y;
+            window_event_handler(e);
         }
     } else {
         targetWindow = &TargetWindows[index];
@@ -115,24 +119,24 @@ void graphics::swap() {
     Impl.Swap(this);
 }
 
-void graphics::window_closed(const window_closed_event &e) {
-    size_t index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
-    assert(index != npos);
+bool graphics::window_event_handler(const event &e) {
+    if (e.Type == event::Window_Closed) {
+        size_t index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
+        assert(index != npos);
 
-    target_window *targetWindow = &TargetWindows[index];
-    targetWindow->Window->WindowClosedEvent.disconnect(targetWindow->ClosedCallbackID);
-    targetWindow->Window->WindowFramebufferResizedEvent.disconnect(targetWindow->FramebufferResizedCallbackID);
-    Impl.ReleaseTargetWindow(this, targetWindow);
+        target_window *targetWindow = &TargetWindows[index];
+        targetWindow->Window->Event.disconnect(targetWindow->CallbackID);
+        Impl.ReleaseTargetWindow(this, targetWindow);
 
-    TargetWindows.remove(index);
-}
+        TargetWindows.remove(index);
+    } else if (e.Type == event::Window_Resized) {
+        size_t index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
+        assert(index != npos);
 
-void graphics::window_resized(const window_framebuffer_resized_event &e) {
-    size_t index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
-    assert(index != npos);
-
-    if (!e.Window->is_visible()) return;
-    Impl.TargetWindowResized(this, &TargetWindows[index], e.Width, e.Height);
+        if (!e.Window->is_visible()) return false;
+        Impl.TargetWindowResized(this, &TargetWindows[index], e.Width, e.Height);
+    }
+    return false;
 }
 
 void graphics::release() {
@@ -140,8 +144,7 @@ void graphics::release() {
         For_as(it_index, range(TargetWindows.Count)) {
             auto *it = &TargetWindows[it_index];
             if (it->Window) {
-                it->Window->WindowClosedEvent.disconnect(it->ClosedCallbackID);
-                it->Window->WindowFramebufferResizedEvent.disconnect(it->FramebufferResizedCallbackID);
+                it->Window->Event.disconnect(it->CallbackID);
                 Impl.ReleaseTargetWindow(this, it);
             }
         }

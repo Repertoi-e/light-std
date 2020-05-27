@@ -13,11 +13,25 @@ class Body:
         self.vel = np.array([0.0, 0.0])
         self.ang_vel  = 0.0
 
+        self.model_mat = np.identity(3)
+        self.inv_model_mat = np.identity(3)
+
         self.force = np.array([0.0, 0.0])
         self.torque = 0.0
 
         self.shape = shape
         self.static = static
+
+        if isinstance(shape, sh.Circle):
+            self.AABB = np.array([[-shape.radius, -shape.radius], [shape.radius, shape.radius]])
+        elif isinstance(shape, sh.ConvexPolygon):
+            x = shape.vertices[:, 0]
+            y = shape.vertices[:, 1]
+            mx = np.min(x)
+            nx = np.max(x)
+            my = np.min(y)
+            ny = np.max(y)
+            self.AABB = np.array([[mx, my], [nx, ny]])
 
         if not static:
             self.mass = density * shape.area

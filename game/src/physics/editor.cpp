@@ -23,10 +23,6 @@ void editor_main() {
         if (ImGui::BeginMenu("Game")) {
             if (ImGui::MenuItem("VSync", "", GameMemory->MainWindow->Flags & window::VSYNC))
                 GameMemory->MainWindow->Flags ^= window::VSYNC;
-            ImGui::Separator();
-            if (ImGui::MenuItem("Show overlay", "", GameState->ShowOverlay)) {
-                GameState->ShowOverlay = !GameState->ShowOverlay;
-            }
             ImGui::EndMenu();
         }
         ImGui::TextDisabled("(?)");
@@ -41,47 +37,6 @@ void editor_main() {
         ImGui::EndMenuBar();
     }
     ImGui::End();
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Viewport", null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoNav);
-    ImGui::PopStyleVar(1);
-
-    v2 viewportPos = ImGui::GetWindowPos();
-    v2 viewportSize = ImGui::GetWindowSize();
-    GameState->ViewportPos = viewportPos;
-    GameState->ViewportSize = viewportSize;
-
-    if (GameState->ShowOverlay) {
-        if (GameState->OverlayCorner != -1) {
-            ImVec2 pivot =
-                ImVec2((GameState->OverlayCorner & 1) ? 1.0f : 0.0f, (GameState->OverlayCorner & 2) ? 1.0f : 0.0f);
-            ImGui::SetNextWindowPos(
-                ImVec2((GameState->OverlayCorner & 1) ? (viewportPos.x + viewportSize.x - 10) : (viewportPos.x + 15),
-                       (GameState->OverlayCorner & 2) ? (viewportPos.y + viewportSize.y - 10) : (viewportPos.y + 25)),
-                ImGuiCond_Always, pivot);
-        }
-
-        ImGui::SetNextWindowBgAlpha(0.35f);
-        if (ImGui::Begin("Overlay", &GameState->ShowOverlay,
-                         (GameState->OverlayCorner != -1 ? ImGuiWindowFlags_NoMove : 0) | ImGuiWindowFlags_NoDocking |
-                             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                             ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
-                             ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav)) {
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-                        ImGui::GetIO().Framerate);
-            if (ImGui::BeginPopupContextWindow()) {
-                if (ImGui::MenuItem("Custom", null, GameState->OverlayCorner == -1)) GameState->OverlayCorner = -1;
-                if (ImGui::MenuItem("Top-left", null, GameState->OverlayCorner == 0)) GameState->OverlayCorner = 0;
-                if (ImGui::MenuItem("Top-right", null, GameState->OverlayCorner == 1)) GameState->OverlayCorner = 1;
-                if (ImGui::MenuItem("Bottom-left", null, GameState->OverlayCorner == 2)) GameState->OverlayCorner = 2;
-                if (ImGui::MenuItem("Bottom-right", null, GameState->OverlayCorner == 3)) GameState->OverlayCorner = 3;
-                if (GameState->ShowOverlay && ImGui::MenuItem("Close")) GameState->ShowOverlay = false;
-                ImGui::EndPopup();
-            }
-        }
-        ImGui::End();
-    }
-    ImGui::End();
 }
 
 void editor_scene_properties() {
@@ -89,8 +44,11 @@ void editor_scene_properties() {
 
     ImGui::Begin("Scene", null);
 
+    ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Text("");
+
     ImGui::Text("Python");
-    ImGui::BeginChild("##python", {0, 127}, true);
+    ImGui::BeginChild("##python", {0, 75}, true);
     {
         auto demoFiles = GameState->PyDemoFiles;
 

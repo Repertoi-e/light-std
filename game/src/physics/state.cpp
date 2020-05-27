@@ -78,7 +78,7 @@ void load_python_demo(string demo) {
     PyList_Append(sysPath, PyUnicode_FromString(scriptsPath));
 
     auto filePath = scripts;
-    filePath.combine_with(demo); 
+    filePath.combine_with(demo);
     if (!file::handle(filePath).is_file()) {
         fmt::print(">>>\n>>> Couldn't find file {!YELLOW}\"{}\"{!}.({!GRAY}\"{}\"{!})\n", filePath);
         return;
@@ -89,6 +89,10 @@ void load_python_demo(string demo) {
         GameState->PyModule = main;
         main.attr("load")((u64) GameState);
         GameState->PyFrame = (py::function) main.attr("frame");
+
+        if (py::hasattr(main, "mouse_click")) GameState->PyMouseClick = (py::function) main.attr("mouse_click");
+        if (py::hasattr(main, "mouse_release")) GameState->PyMouseRelease = (py::function) main.attr("mouse_release");
+        if (py::hasattr(main, "mouse_move")) GameState->PyMouseMove = (py::function) main.attr("mouse_move");
     } catch (py::error_already_set e) {
         report_python_error(e);
     }

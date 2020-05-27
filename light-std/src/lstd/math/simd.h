@@ -11,7 +11,7 @@ LSTD_BEGIN_NAMESPACE
 // 2,4 or 8 dimension f32 or f64 parameters accepted.
 // Uses SSE2 or AVX acceleration if enabled in the compiler.
 template <typename T, s64 Dim>
-union simd {
+union alignas(16) simd {
     static_assert(Dim == 2 || Dim == 4 || Dim == 8, "Dimension must be 2, 4, or 8.");
     static_assert(is_same_v<T, f32> || is_same_v<T, f64> || is_same_v<T, s32> || is_same_v<T, s64>,
                   "Type must be f32, f64, s32 or s64.");

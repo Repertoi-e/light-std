@@ -10,7 +10,7 @@
 // @Hack
 #undef TRANSPARENT
 
-// @Hack Define macros that some Windows.h variants don't
+// @Hack: Define macros that some Windows.h variants don't
 #ifndef WM_MOUSEHWHEEL
 #define WM_MOUSEHWHEEL 0x020E
 #endif
@@ -226,7 +226,8 @@ window *window::init(string title, s32 x, s32 y, s32 width, s32 height, u32 flag
         Flags &= ~window::ALPHA;
     }
 
-    ID = s_NextID++;  // @Thread
+    ID = s_NextID;
+    atomic_inc(&s_NextID);
 
     Next = WindowsList;
     WindowsList = this;
@@ -234,31 +235,26 @@ window *window::init(string title, s32 x, s32 y, s32 width, s32 height, u32 flag
     return this;
 }
 
-#define GET_KEY_MODS                                                                                                  \
-    (((GetKeyState(VK_CONTROL) & 0x8000) ? Modifier_Control : 0) |                                                    \
-     ((GetKeyState(VK_SHIFT) & 0x8000) ? Modifier_Shift : 0) | ((GetKeyState(VK_MENU) & 0x8000) ? Modifier_Alt : 0) | \
-     (((GetKeyState(VK_RWIN) | GetKeyState(VK_LWIN)) & 0x8000) ? Modifier_Super : 0) |                                \
-     ((GetKeyState(VK_CAPITAL) & 1) ? Modifier_CapsLock : 0) | ((GetKeyState(VK_NUMLOCK) & 1) ? Modifier_NumLock : 0))
+static void do_key_input_event(window *win, u32 key, bool pressed, bool asyncMods = false) {
+    assert(key <= Key_Last);
 
-#define GET_KEY_MODS_ASYNC                                                                       \
-    (((GetAsyncKeyState(VK_CONTROL) & 0x8000) ? Modifier_Control : 0) |                          \
-     ((GetAsyncKeyState(VK_SHIFT) & 0x8000) ? Modifier_Shift : 0) |                              \
-     ((GetAsyncKeyState(VK_MENU) & 0x8000) ? Modifier_Alt : 0) |                                 \
-     (((GetAsyncKeyState(VK_RWIN) | GetAsyncKeyState(VK_LWIN)) & 0x8000) ? Modifier_Super : 0) | \
-     ((GetAsyncKeyState(VK_CAPITAL) & 1) ? Modifier_CapsLock : 0) |                              \
-     ((GetAsyncKeyState(VK_NUMLOCK) & 1) ? Modifier_NumLock : 0))
+    if (!pressed && !win->Keys[key]) return;
 
-static void do_key_input_event(window *win, u32 key, char action, bool asyncMods = false) {
-    assert(key <= Key_Last); // @TODO: Program asserts here when pressing Windows key 
-
-    if (action == Key_Released && !win->Keys[key]) return;
+    bool repeated = false;
 
     bool wasPressed = win->Keys[key];
-    win->Keys[key] = action == Key_Pressed;
-    if (action == Key_Pressed && wasPressed) action = Key_Repeated;
+    win->Keys[key] = pressed;
+    if (pressed && wasPressed) repeated = true;
 
-    u32 mods = asyncMods ? GET_KEY_MODS_ASYNC : GET_KEY_MODS;
-    win->KeyEvent.emit(null, {null, key, mods, action});
+    event e;
+    e.Window = win;
+    if (pressed) {
+        e.Type = repeated ? event::Keyboard_Repeated : event::Keyboard_Pressed;
+    } else {
+        e.Type = event::Keyboard_Released;
+    }
+    e.KeyCode = key;
+    win->Event.emit(null, e);
 }
 
 static void do_mouse_input_event(window *win, u32 button, bool pressed, bool doubleClick = false) {
@@ -266,16 +262,14 @@ static void do_mouse_input_event(window *win, u32 button, bool pressed, bool dou
     win->MouseButtons[button] = pressed;
 
     vec2<s32> pos = win->get_cursor_pos();
-    u32 mods = GET_KEY_MODS;
-    win->MouseButtonEvent.emit(null, {win, button, mods, pos.x, pos.y, pressed, doubleClick});
-}
 
-#define GET_BUTTONS_DOWN_FROM_WINDOW(win)                                 \
-    ((win->MouseButtons[Mouse_Button_Left] ? Mouse_Button_Left : 0) |     \
-     (win->MouseButtons[Mouse_Button_Middle] ? Mouse_Button_Middle : 0) | \
-     (win->MouseButtons[Mouse_Button_Right] ? Mouse_Button_Right : 0) |   \
-     (win->MouseButtons[Mouse_Button_X1] ? Mouse_Button_X1 : 0) |         \
-     (win->MouseButtons[Mouse_Button_X2] ? Mouse_Button_X2 : 0))
+    event e;
+    e.Window = win;
+    e.Type = pressed ? event::Mouse_Button_Pressed : event::Mouse_Button_Released;
+    e.Button = button;
+    e.DoubleClicked = doubleClick;
+    win->Event.emit(null, e);
+}
 
 static void do_mouse_move(window *win, vec2<s32> pos) {
     if (win->VirtualCursorPos == pos) return;
@@ -283,8 +277,14 @@ static void do_mouse_move(window *win, vec2<s32> pos) {
     vec2<s32> delta = pos - win->VirtualCursorPos;
     win->VirtualCursorPos = pos;
 
-    win->MouseMovedEvent.emit(null,
-                              {win, GET_KEY_MODS, GET_BUTTONS_DOWN_FROM_WINDOW(win), pos.x, pos.y, delta.x, delta.y});
+    event e;
+    e.Window = win;
+    e.Type = event::Mouse_Moved;
+    e.X = pos.x;
+    e.Y = pos.y;
+    e.DX = delta.x;
+    e.DY = delta.y;
+    win->Event.emit(null, e);
 }
 
 void window::update() {
@@ -304,7 +304,7 @@ void window::update() {
 
     HWND handle = GetActiveWindow();
     if (handle) {
-        // @Hack  Shift keys on Windows tend to "stick" when both are pressed as
+        // @Hack: Shift keys on Windows tend to "stick" when both are pressed as
         //        no key up message is generated by the first key release
         //        The other half of this is in the handling of WM_KEYUP
         // :ShiftHack The other half of this is in WM_SYSKEYUP
@@ -314,9 +314,9 @@ void window::update() {
             bool rshift = (GetAsyncKeyState(VK_RSHIFT) >> 15) & 1;
 
             if (!lshift && win->Keys[Key_LeftShift]) {
-                do_key_input_event(win, Key_LeftShift, Key_Released, true);
+                do_key_input_event(win, Key_LeftShift, false, true);
             } else if (!rshift && win->Keys[Key_RightShift]) {
-                do_key_input_event(win, Key_RightShift, Key_Released, true);
+                do_key_input_event(win, Key_RightShift, false, true);
             }
         }
     }
@@ -327,8 +327,8 @@ void window::update() {
         For(range(Mouse_Button_Last + 1)) {
             win->MouseButtonsThisFrame[it] = win->MouseButtons[it] && !win->LastFrameMouseButtons[it];
         }
-        copy_memory(win->LastFrameKeys, win->Keys, sizeof(win->Keys));
-        copy_memory(win->LastFrameMouseButtons, win->MouseButtons, sizeof(win->MouseButtons));
+        win->LastFrameKeys = win->Keys;
+        win->LastFrameMouseButtons = win->MouseButtons;
 
         win = win->Next;
     }
@@ -376,7 +376,11 @@ void window::release() {
     if (ID == INVALID_ID) return;
 
     IsDestroying = true;
-    WindowClosedEvent.emit(null, {this});
+
+    event e;
+    e.Window = this;
+    e.Type = event::Window_Closed;
+    Event.emit(null, e);
 
     if (Monitor) release_monitor(this);
     if (DisabledCursorWindow == this) DisabledCursorWindow = null;
@@ -408,7 +412,7 @@ string window::get_title() {
             GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
         }
 
-        auto result = string(length * 2); // @Bug length * 2 is not enough
+        auto result = string(length * 2);  // @Bug length * 2 is not enough
         utf16_to_utf8(titleUtf16, const_cast<char *>(result.Data), &result.ByteLength);
         result.Length = utf8_length(result.Data, result.ByteLength);
         return result;
@@ -416,7 +420,7 @@ string window::get_title() {
 }
 
 void window::set_title(string title) {
-    auto *titleUtf16 = new (Context.TemporaryAlloc) wchar_t[title.Length + 1]; // @Bug title.Length is not enough
+    auto *titleUtf16 = new (Context.TemporaryAlloc) wchar_t[title.Length + 1];  // @Bug title.Length is not enough
     utf8_to_utf16(title.Data, title.Length, titleUtf16);
 
     SetWindowTextW(PlatformData.Win32.hWnd, titleUtf16);
@@ -581,7 +585,7 @@ static size_t choose_icon(array<pixel_buffer> icons, s32 width, s32 height) {
     size_t closest = npos;
     For(range(icons.Count)) {
         auto icon = icons[it];
-        s32 diff = abs((s32) (icon.Width * icon.Height - width * height));
+        s32 diff = abs((s32)(icon.Width * icon.Height - width * height));
         if (diff < leastDiff) {
             closest = it;
             leastDiff = diff;
@@ -985,7 +989,13 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
         return DefWindowProcW(hWnd, message, wParam, lParam);
     }
 
-    // win->WindowGenericPlatformMessageEvent.emit(null, {win, message, wParam, lParam});
+    event e;
+    e.Window = win;
+    e.Type = event::Window_Platform_Message_Sent;
+    e.Message = message;
+    e.Param1 = wParam;
+    e.Param2 = lParam;
+    win->Event.emit(null, e);
 
     switch (message) {
         case WM_MOUSEACTIVATE:
@@ -1002,7 +1012,14 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             break;
         case WM_SETFOCUS:
             win->Flags |= window::FOCUSED;
-            win->WindowFocusedEvent.emit(null, {win, true});
+
+            {
+                event e;
+                e.Window = win;
+                e.Type = event::Window_Focused;
+                e.Focused = true;
+                win->Event.emit(null, e);
+            }
 
             // @Hack: Do not disable cursor while the user is interacting with a caption button
             if (win->PlatformData.Win32.FrameAction) break;
@@ -1013,10 +1030,16 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             if (win->CursorMode == window::CURSOR_DISABLED) enable_cursor(win);
             if (win->Monitor && win->Flags & window::AUTO_MINIMIZE) win->minimize();
 
-            win->WindowFocusedEvent.emit(null, {win, false});
+            {
+                event e;
+                e.Window = win;
+                e.Type = event::Window_Focused;
+                e.Focused = false;
+                win->Event.emit(null, e);
+            }
 
             For(range(Key_Last + 1)) {
-                if (win->Keys[it]) do_key_input_event(win, (u32) it, Key_Released);
+                if (win->Keys[it]) do_key_input_event(win, (u32) it, false);
             }
 
             For(range(Mouse_Button_Last + 1)) {
@@ -1039,7 +1062,12 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             break;
         case WM_CLOSE:
             win->IsDestroying = true;
-            win->WindowClosedEvent.emit(null, {win});
+            {
+                event e;
+                e.Window = win;
+                e.Type = event::Window_Closed;
+                win->Event.emit(null, e);
+            }
             win->release();
             return 0;
         case WM_CHAR:
@@ -1057,7 +1085,11 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                     cp = ((win->PlatformData.Win32.Surrogate - 0xD800) << 10) + (cp - 0xDC00) + 0x0010000;
                     win->PlatformData.Win32.Surrogate = 0;
                 }
-                win->CodePointTypedEvent.emit(null, {win, cp});
+                event e;
+                e.Window = win;
+                e.Type = event::Code_Point_Typed;
+                e.CP = cp;
+                win->Event.emit(null, e);
             }
             return 0;
         }
@@ -1065,24 +1097,27 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
         case WM_SYSKEYDOWN:
         case WM_KEYUP:
         case WM_SYSKEYUP: {
-            u32 key = internal::g_KeycodeNativeToHid[wParam];
-            char action = ((lParam >> 31) & 1) ? Key_Released : Key_Pressed;
+            u32 key = ((lParam >> 16) & 0x7f) | ((lParam & (1 << 24)) != 0 ? 0x80 : 0);
+            if (key >= 256) break;
 
-            if (action == Key_Released && wParam == VK_SHIFT) {
-                // @Hack Release both Shift keys on Shift up event, as when both
-                //       are pressed the first release does not emit any event
+            u32 keyHid = internal::g_KeycodeNativeToHid[key];
+            bool pressed = ((lParam >> 31) & 1) ? false : true;
+
+            if (!pressed && wParam == VK_SHIFT) {
+                // @Hack: Release both Shift keys on Shift up event, as when both
+                //        are pressed the first release does not emit any event
                 // :ShiftHack The other half of this is in window::update
-                do_key_input_event(win, Key_LeftShift, action);
-                do_key_input_event(win, Key_RightShift, action);
+                do_key_input_event(win, Key_LeftShift, false);
+                do_key_input_event(win, Key_RightShift, false);
             } else if (wParam == VK_SNAPSHOT) {
                 // @Hack: Key down is not reported for the Print Screen key
-                do_key_input_event(win, Key_PrintScreen, Key_Pressed);
-                do_key_input_event(win, Key_PrintScreen, Key_Released);
+                do_key_input_event(win, Key_PrintScreen, true);
+                do_key_input_event(win, Key_PrintScreen, false);
             } else {
-                do_key_input_event(win, key, action);
+                do_key_input_event(win, keyHid, pressed);
             }
 
-            if (win->Flags & window::CLOSE_ON_ALT_F4 && message == WM_SYSKEYDOWN && key == Key_F4) {
+            if (win->Flags & window::CLOSE_ON_ALT_F4 && message == WM_SYSKEYDOWN && keyHid == Key_F4) {
                 SendMessageW(win->PlatformData.Win32.hWnd, WM_CLOSE, 0, 0);
             }
             break;
@@ -1156,7 +1191,11 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 TrackMouseEvent(&tme);
 
                 win->PlatformData.Win32.CursorTracked = true;
-                win->MouseEnteredEvent.emit(null, {win});
+
+                event e;
+                e.Window = win;
+                e.Type = event::Mouse_Entered_Window;
+                win->Event.emit(null, e);
             }
 
             if (win->CursorMode == window::CURSOR_DISABLED) {
@@ -1203,18 +1242,30 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
         }
         case WM_MOUSELEAVE:
             win->PlatformData.Win32.CursorTracked = false;
-            win->MouseLeftEvent.emit(null, {win});
+            {
+                event e;
+                e.Window = win;
+                e.Type = event::Mouse_Left_Window;
+                win->Event.emit(null, e);
+            }
             return 0;
-        case WM_MOUSEWHEEL:
-            win->MouseScrolledEvent.emit(
-                null, {win, 0, GET_WHEEL_DELTA_WPARAM(wParam) / (f32) WHEEL_DELTA, GET_KEY_MODS,
-                       GET_BUTTONS_DOWN_FROM_WINDOW(win), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+        case WM_MOUSEWHEEL: {
+            event e;
+            e.Window = win;
+            e.Type = event::Mouse_Wheel_Scrolled;
+            e.ScrollY = (u32)(GET_WHEEL_DELTA_WPARAM(wParam) / (f32) WHEEL_DELTA);
+            win->Event.emit(null, e);
             return 0;
+        }
         case WM_MOUSEHWHEEL:
             // NOTE: The X-axis is inverted for consistency with macOS and X11
-            win->MouseScrolledEvent.emit(
-                null, {win, -(GET_WHEEL_DELTA_WPARAM(wParam) / (f32) WHEEL_DELTA), 0, GET_KEY_MODS,
-                       GET_BUTTONS_DOWN_FROM_WINDOW(win), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            {
+                event e;
+                e.Window = win;
+                e.Type = event::Mouse_Wheel_Scrolled;
+                e.ScrollX = (u32)(-(GET_WHEEL_DELTA_WPARAM(wParam) / (f32) WHEEL_DELTA));
+                win->Event.emit(null, e);
+            }
             return 0;
         case WM_ENTERSIZEMOVE:
         case WM_ENTERMENULOOP:
@@ -1238,25 +1289,51 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             if (minimized && !windowMinimized) {
                 win->Flags |= window::MINIMIZED;
                 win->minimize();
-                win->WindowMinimizedEvent.emit(null, {win, true});
+
+                event e;
+                e.Window = win;
+                e.Type = event::Window_Minimized;
+                e.Minimized = true;
+                win->Event.emit(null, e);
             }
             if (windowMinimized && !minimized) {
                 win->Flags &= ~window::MINIMIZED;
-                win->WindowMinimizedEvent.emit(null, {win, false});
+
+                event e;
+                e.Window = win;
+                e.Type = event::Window_Minimized;
+                e.Minimized = false;
+                win->Event.emit(null, e);
             }
 
             if (maximized && !windowMaximized) {
                 win->Flags |= window::MAXIMIZED;
                 win->maximize();
-                win->WindowMaximizedEvent.emit(null, {win, true});
+
+                event e;
+                e.Window = win;
+                e.Type = event::Window_Maximized;
+                e.Maximized = true;
+                win->Event.emit(null, e);
             }
             if (windowMaximized && !maximized) {
                 win->Flags &= ~window::MAXIMIZED;
-                win->WindowMaximizedEvent.emit(null, {win, false});
+
+                event e;
+                e.Window = win;
+                e.Type = event::Window_Maximized;
+                e.Maximized = false;
+                win->Event.emit(null, e);
             }
 
-            win->WindowFramebufferResizedEvent.emit(null, {win, LOWORD(lParam), HIWORD(lParam)});
-            win->WindowResizedEvent.emit(null, {win, LOWORD(lParam), HIWORD(lParam)});
+            event e;
+            e.Window = win;
+            e.Type = event::Window_Framebuffer_Resized;
+            e.Width = LOWORD(lParam);
+            e.Height = HIWORD(lParam);
+            win->Event.emit(null, e);
+            e.Type = event::Window_Resized;
+            win->Event.emit(null, e);
 
             if (win->Monitor && windowMinimized != minimized) {
                 if (minimized) {
@@ -1274,7 +1351,14 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             break;
         case WM_MOVE:
             if (DisabledCursorWindow == win) update_clip_rect(win);
-            win->WindowMovedEvent.emit(null, {win, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            {
+                event e;
+                e.Window = win;
+                e.Type = event::Window_Moved;
+                e.X = GET_X_LPARAM(lParam);
+                e.Y = GET_Y_LPARAM(lParam);
+                win->Event.emit(null, e);
+            }
             return 0;
 
         case WM_SIZING:
@@ -1313,9 +1397,12 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             }
             return 0;
         }
-        case WM_PAINT:
-            win->WindowRefreshedEvent.emit(null, {win});
-            break;
+        case WM_PAINT: {
+            event e;
+            e.Window = win;
+            e.Type = event::Window_Refreshed;
+            win->Event.emit(null, e);
+        } break;
         case WM_ERASEBKGND:
             return true;
         case WM_NCACTIVATE:
@@ -1359,7 +1446,11 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                              suggested->right - suggested->left, suggested->bottom - suggested->top,
                              SWP_NOACTIVATE | SWP_NOZORDER);
             }
-            win->WindowContentScaleChangedEvent.emit(null, {win, {xscale, yscale}});
+            event e;
+            e.Window = win;
+            e.Type = event::Window_Content_Scale_Changed;
+            e.Scale = {xscale, yscale};
+            win->Event.emit(null, e);
             break;
         }
         case WM_SETCURSOR:
@@ -1384,14 +1475,19 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 DragQueryFileW(drop, (u32) it, buffer, length + 1);
 
                 string utf8Buffer;
-                utf8Buffer.reserve(length * 2); // @Bug length * 2 is not enough
+                utf8Buffer.reserve(length * 2);  // @Bug length * 2 is not enough
                 utf16_to_utf8(buffer, const_cast<char *>(utf8Buffer.Data), &utf8Buffer.ByteLength);
                 utf8Buffer.Length = utf8_length(utf8Buffer.Data, utf8Buffer.ByteLength);
 
                 auto path = file::path(utf8Buffer);
                 move(paths.append(), &path);
             }
-            win->WindowFilesDroppedEvent.emit(null, {win, paths});
+
+            event e;
+            e.Window = win;
+            e.Type = event::Window_Files_Dropped;
+            e.Paths = paths;
+            win->Event.emit(null, e);
 
             DragFinish(drop);
             return 0;

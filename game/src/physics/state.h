@@ -31,7 +31,10 @@ struct game_state {
     v4 ClearColor = {0.0f, 0.017f, 0.099f, 1.0f};
 
     camera Camera;
+
     m33 ViewMatrix = {no_init};
+    m33 InverseViewMatrix = {no_init};
+
     ImDrawList *ViewportDrawlist;
     v2 ViewportPos = {no_init};
     v2 ViewportSize = {no_init};
@@ -41,7 +44,7 @@ struct game_state {
 
     bool PyLoaded = false;
     py::module PyModule;
-    py::function PyFrame;
+    py::function PyFrame, PyMouseClick, PyMouseRelease, PyMouseMove;
 
 // We need these in python.pyd
 // @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack
@@ -52,10 +55,6 @@ struct game_state {
 #endif
     u64 AllocationCount;
     game_memory *Memory;
-    // End of dirty hack
-
-    bool ShowOverlay = true;
-    s32 OverlayCorner = 3;
 };
 
 inline game_state *GameState = null;

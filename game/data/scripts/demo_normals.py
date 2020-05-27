@@ -55,6 +55,15 @@ def frame(dt):
 			b.force = [0.0, 0.0]
 			b.torque = 0
 
-		draw_shape(b.pos, b.shape, normals_color = 0xff0000ff, thickness = 3)
+		c, s = np.cos(b.rot), np.sin(b.rot)
+		R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+		T = np.array([[0, 0, b.pos[0]], [0, 0, b.pos[1]], [0, 0, 1]])
+		
+		b.model_mat = T @ R
+		print(b.model_mat)
+		b.inv_model_mat = np.linalg.inv(b.model_mat)
+
+		draw_shape(b.model_mat, b.shape, normals_color = 0xff0000ff, thickness = 3)
+		
 
 

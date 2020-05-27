@@ -11,4 +11,6 @@ def sqr_magnitude(v):
     return v[0] ** 2 + v[1] ** 2
     
 def normalized(v):
-    return np.array(v) / magnitude(v)
+    m = magnitude(v)
+    if np.isclose(m, 0): return [0, 0]
+    return np.array(v) / m

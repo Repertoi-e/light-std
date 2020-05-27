@@ -3,8 +3,8 @@
 #include "../math.h"
 #include "../memory/pixel_buffer.h"
 #include "cursor.h"
+#include "event.h"
 #include "monitor.h"
-#include "window_events.h"
 
 struct HWND__;
 struct HICON__;
@@ -56,8 +56,8 @@ struct window {
                                   // Specify in _init()_ or use _set_always_on_top()_
         FOCUS_ON_SHOW = BIT(11),  // Specify in _init()_ or manually modify _Flags_
         ALPHA = BIT(12),  // Window contents with alpha value get the color of the thing behind them, can only be
-                                // specified when creating the window! Can also check this in the _Flags_ after creation
-                                // to see if the window was able to be created with this flag.
+                          // specified when creating the window! Can also check this in the _Flags_ after creation
+                          // to see if the window was able to be created with this flag.
 
         VSYNC = BIT(13),
         CLOSE_ON_ALT_F4 = BIT(14),  // Specify in _init()_ or manually modify _Flags_
@@ -78,7 +78,7 @@ struct window {
         CURSOR_DISABLED     // Hides and grabs the cursor, providing virtual and unlimited cursor movement.
     };
 
-    inline static u32 s_NextID = 0;  // @Thread
+    inline static u32 s_NextID = 0;
 
     static constexpr u32 INVALID_ID =
         (u32) -1;         // _ID_ is set to that when the window is not initialized or destroyed and no longer valid
@@ -87,18 +87,18 @@ struct window {
     u32 Flags = 0;
 
     // The state of each key (true if pressed)
-    bool Keys[Key_Last + 1]{};
-    bool LastFrameKeys[Key_Last + 1]{};  // Internal
+    stack_array<bool, Key_Last + 1> Keys;
+    stack_array<bool, Key_Last + 1> LastFrameKeys;  // Needed internally
 
     // The state of each key if it got changed this frame (true if pressed), use this to check for non-repeat
-    bool KeysThisFrame[Key_Last + 1]{};
+    stack_array<bool, Key_Last + 1> KeysThisFrame;
 
     // The state of the mouse buttons (true if clicked)
-    bool MouseButtons[Mouse_Button_Last + 1]{};
-    bool LastFrameMouseButtons[Mouse_Button_Last + 1]{};  // Internal
+    stack_array<bool, Mouse_Button_Last + 1> MouseButtons;
+    stack_array<bool, Mouse_Button_Last + 1> LastFrameMouseButtons;  // Needed internally
 
     // The state of each mouse button if it got changed this frame (true if clicked), use this to check for non-repeat
-    bool MouseButtonsThisFrame[Key_Last + 1]{};
+    stack_array<bool, Mouse_Button_Last + 1> MouseButtonsThisFrame;
 
     // _true_ when the window is closing
     bool IsDestroying = false;
@@ -120,6 +120,9 @@ struct window {
     // May not be supported on some platforms.
     bool RawMouseMotion = false;
 
+    // We keep track of created windows in a linked list
+    window *Next = null;
+
     window() = default;
     ~window() { release(); }
 
@@ -132,27 +135,7 @@ struct window {
 
     static void update();
 
-    signal<void(const window_closed_event &)> WindowClosedEvent;
-    signal<void(const window_resized_event &)> WindowResizedEvent;
-    signal<void(const window_framebuffer_resized_event &)> WindowFramebufferResizedEvent;
-    signal<void(const window_focused_event &)> WindowFocusedEvent;
-    signal<void(const window_minimized_event &)> WindowMinimizedEvent;
-    signal<void(const window_maximized_event &)> WindowMaximizedEvent;
-    signal<void(const window_moved_event &)> WindowMovedEvent;
-    signal<void(const window_refreshed_event &)> WindowRefreshedEvent;
-    signal<void(const window_content_scale_changed_event &)> WindowContentScaleChangedEvent;
-    signal<bool(const window_files_dropped_event &), collector_while0<bool>> WindowFilesDroppedEvent;
-    signal<bool(const window_generic_platform_message_event &), collector_while0<bool>>
-        WindowGenericPlatformMessageEvent;
-
-    signal<bool(const key_event &), collector_while0<bool>> KeyEvent;
-    signal<void(const code_point_typed_event &)> CodePointTypedEvent;
-
-    signal<bool(const mouse_button_event &), collector_while0<bool>> MouseButtonEvent;
-    signal<bool(const mouse_scrolled_event &), collector_while0<bool>> MouseScrolledEvent;
-    signal<bool(const mouse_moved_event &), collector_while0<bool>> MouseMovedEvent;
-    signal<void(const mouse_entered_event &)> MouseEnteredEvent;
-    signal<void(const mouse_left_event &)> MouseLeftEvent;
+    signal<bool(const event &), collector_while0<bool>> Event;
 
     string get_title();  // Gets temporarily allocated. Invalidated the next time _window::update_ is called..
     void set_title(string title);
@@ -198,6 +181,7 @@ struct window {
     void set_raw_mouse(bool enabled);
     void set_cursor_mode(cursor_mode mode);
 
+    // 0.0f - 1.0f
     f32 get_opacity();
     // 0.0f - 1.0f
     void set_opacity(f32 opacity);
@@ -220,9 +204,6 @@ struct window {
 
     // Flashes the window
     void request_attention();
-
-    // We keep track of created windows in a linked list
-    window *Next = null;
 };
 
 LSTD_END_NAMESPACE
