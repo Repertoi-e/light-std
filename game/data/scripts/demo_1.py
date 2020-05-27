@@ -6,7 +6,7 @@ import shape
 
 from constants import *
 
-from body import Body
+from body import Body, apply_force, set_static
 
 from hit import point_in_aabb
 
@@ -22,7 +22,7 @@ def load(state):
 		[0, 1]
 	]
 	poly = shape.ConvexPolygon(vertices, 0xffff00ff)
-	b = Body(poly, 10, static = True)
+	b = Body(poly, 10)
 	b.pos = [10, 0]
 	bodies.append(b)
 
@@ -36,28 +36,57 @@ def unload():
 
 test_line = False
 mouse_pos_start = None
-mouse_pos = None
+mouse_pos, mouse_pos_last = None, None
+grabbed_body = None
+body_offset = None
+body_rot = None
+was_static = False
 
 def mouse_click(x, y, rightButton):
+	if rightButton: return
+
 	global test_line, mouse_pos_start
 	if not test_line and not rightButton:
 		test_line = True
 		mouse_pos_start = [x, y]
 	
-	global bodies
+	global body_offset, grabbed_body, was_static, body_rot
 	for b in bodies:
 		p = t_vert(b.inv_model_mat, np.array([x, y]) / pixels_per_meter)
 		if point_in_aabb(p, b.AABB):
-			print("Hit!")
+			body_offset = p
+			c, s = np.cos(b.rot), np.sin(b.rot)
+			body_rot = np.array([
+				[c, -s, 0], 
+				[s, c, 0],
+				[0, 0, 1]]).astype(float)
+			grabbed_body = b
+			was_static = b.static
+			set_static(b, True)
+			break
 
 def mouse_release(rightButton):
+	if rightButton: return
+
 	global test_line, mouse_pos_start
 	if test_line and not rightButton:
 		test_line = False
 
+	global grabbed_body
+	if grabbed_body:
+		if not was_static:
+			set_static(grabbed_body, False)
+		F = (np.array(mouse_pos_last) - mouse_pos) * 100
+		apply_force(grabbed_body, -F, body_offset)
+		grabbed_body = None
+
+
 def mouse_move(x, y):
-	global mouse_pos
+	global mouse_pos, mouse_pos_last
+	mouse_pos_last = mouse_pos
 	mouse_pos = [x, y]
+	if grabbed_body:
+		grabbed_body.pos = np.array([x, y]) / pixels_per_meter - t_vert(body_rot, body_offset)
 
 def frame(dt):
 	'''

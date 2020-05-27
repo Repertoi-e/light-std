@@ -45,10 +45,15 @@ bool reload_game_code() {
     copyPath.combine_with("loaded_game_code.dll");
 
     auto dllCopyHandle = file::handle(copyPath);
-    assert(DLL->copy(dllCopyHandle, true));
+    if (!DLL->copy(dllCopyHandle, true)) {
+        fmt::print("Error: Couldn't write to {!YELLOW}\"{}\"{!}. Game already running?\n", dllCopyHandle);
+        return false;
+    }
 
     if (!GameLibrary.load(copyPath.UnifiedPath)) {
-        fmt::print("Error: Couldn't load {} (copied from {}) as the game code for the engine\n", copyPath, *DLL);
+        fmt::print(
+            "Error: Couldn't load {!YELLOW}\"{}\"{!} (copied from {!GRAY}\"{}\"{}) as the game code for the engine\n",
+            copyPath, *DLL);
         return false;
     }
 

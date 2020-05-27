@@ -42,7 +42,7 @@ void imgui_renderer::init(graphics *g) {
 void imgui_renderer::draw(ImDrawData *drawData) {
     if (drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f) return;
 
-    if (VBSize < drawData->TotalVtxCount) {
+    if (VBSize <= drawData->TotalVtxCount) {
         VB.release();
 
         VBSize = drawData->TotalVtxCount + 5000;
@@ -56,7 +56,7 @@ void imgui_renderer::draw(ImDrawData *drawData) {
         VB.set_input_layout(layout);
     }
 
-    if (IBSize < drawData->TotalIdxCount) {
+    if (IBSize <= drawData->TotalIdxCount) {
         IBSize = drawData->TotalIdxCount + 10000;
         IB.init(Graphics, buffer_type::Index_Buffer, buffer_usage::Dynamic, IBSize * sizeof(u32));
     }
@@ -107,7 +107,7 @@ void imgui_renderer::draw(ImDrawData *drawData) {
                 }
             } else {
                 s32 left = (s32)(it.ClipRect.x - drawData->DisplayPos.x);
-                s32 top = (s32) (it.ClipRect.y - drawData->DisplayPos.y);
+                s32 top = (s32)(it.ClipRect.y - drawData->DisplayPos.y);
                 s32 right = (s32)(it.ClipRect.z - drawData->DisplayPos.x);
                 s32 bot = (s32)(it.ClipRect.w - drawData->DisplayPos.y);
                 Graphics->set_scissor_rect({left, top, right, bot});

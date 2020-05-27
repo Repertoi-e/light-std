@@ -59,3 +59,12 @@ def apply_impulse(body, impulse, point = [0.0, 0.0]):
     if not body.static: 
         body.vel += impulse * (1 / body.mass)
         body.ang_vel += np.cross(point, impulse) * (1 / body.rot_inertia)
+
+def set_static(body, static):
+    if body.static == static: return
+    if not body.static:
+        body.vel = [0.0, 0.0]
+        body.ang_vel = 0.0
+        body.force = [0.0, 0.0]
+        body.torque = 0.0
+    body.static = static
