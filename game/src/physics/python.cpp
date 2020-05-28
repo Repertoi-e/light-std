@@ -28,10 +28,6 @@ PYBIND11_MODULE(lstdgraphics, m) {
             // I'm not sure if we need this, but just incase
             assert(GameState->Memory->ImGuiContext);
             ImGui::SetCurrentContext((ImGuiContext *) GameState->Memory->ImGuiContext);
-
-            // We also tell imgui to use our allocator
-            ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size); },
-                                         [](void *ptr, void *) { delete ptr; });
         },
         py::arg("pointer"));
 
@@ -42,9 +38,9 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(p1.request().size == 2 && "line requires p1 to be an array of size 2");
             assert(p2.request().size == 2 && "line requires p2 to be an array of size 2");
 
-            GameState->ViewportDrawlist->AddLine(v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter,
-                                                 v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
-                                                 rgb_to_imgui(color), (f32) thickness);
+            GameState->ViewportAddLine(v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter,
+                                       v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter, rgb_to_imgui(color),
+                                       (f32) thickness);
         },
         py::arg("p1"), py::arg("p2"), py::arg("color"), py::arg("thickness") = 1.0);
 
@@ -69,9 +65,9 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(GameState && "State not initialized");
             assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddRect(v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter,
-                                                 v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
-                                                 rgb_to_imgui(color), (f32) rounding, cornerFlags, (f32) thickness);
+            GameState->ViewportAddRect(v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter,
+                                       v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter, rgb_to_imgui(color),
+                                       (f32) rounding, cornerFlags, (f32) thickness);
         },
         py::arg("p1"), py::arg("p2"), py::arg("color"), py::arg("rounding") = 0.0,
         py::arg("corner_flags") = ImDrawCornerFlags_None, py::arg("thickness") = 1.0);
@@ -82,9 +78,9 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(GameState && "State not initialized");
             assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddRectFilled(v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter,
-                                                       v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
-                                                       rgb_to_imgui(color), (f32) rounding, cornerFlags);
+            GameState->ViewportAddRectFilled(v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter,
+                                             v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter, rgb_to_imgui(color),
+                                             (f32) rounding, cornerFlags);
         },
         py::arg("p1"), py::arg("p2"), py::arg("color"), py::arg("rounding") = 0.0,
         py::arg("corner_flags") = ImDrawCornerFlags_None);
@@ -95,7 +91,7 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(GameState && "State not initialized");
             assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddRectFilledMultiColor(
+            GameState->ViewportAddRectFilledMultiColor(
                 v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter, v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
                 rgb_to_imgui(color_ul), rgb_to_imgui(color_ur), rgb_to_imgui(color_dr), rgb_to_imgui(color_dl));
         },
@@ -111,7 +107,7 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p3.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p4.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddQuad(
+            GameState->ViewportAddQuad(
                 v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter, v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
                 v2(p3.at(0), p3.at(1)) * GameState->PixelsPerMeter, v2(p4.at(0), p4.at(1)) * GameState->PixelsPerMeter,
                 rgb_to_imgui(color), (f32) thickness);
@@ -126,10 +122,10 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p3.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p4.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddQuadFilled(
-                v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter, v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
-                v2(p3.at(0), p3.at(1)) * GameState->PixelsPerMeter, v2(p4.at(0), p4.at(1)) * GameState->PixelsPerMeter,
-                rgb_to_imgui(color));
+            GameState->ViewportAddQuadFilled(v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter,
+                                             v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
+                                             v2(p3.at(0), p3.at(1)) * GameState->PixelsPerMeter,
+                                             v2(p4.at(0), p4.at(1)) * GameState->PixelsPerMeter, rgb_to_imgui(color));
         },
         py::arg("p1"), py::arg("p2"), py::arg("p3"), py::arg("p4"), py::arg("color"));
 
@@ -140,7 +136,7 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p3.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddTriangle(
+            GameState->ViewportAddTriangle(
                 v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter, v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
                 v2(p3.at(0), p3.at(1)) * GameState->PixelsPerMeter, rgb_to_imgui(color), (f32) thickness);
         },
@@ -153,7 +149,7 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p3.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddTriangleFilled(
+            GameState->ViewportAddTriangleFilled(
                 v2(p1.at(0), p1.at(1)) * GameState->PixelsPerMeter, v2(p2.at(0), p2.at(1)) * GameState->PixelsPerMeter,
                 v2(p3.at(0), p3.at(1)) * GameState->PixelsPerMeter, rgb_to_imgui(color));
         },
@@ -164,9 +160,9 @@ PYBIND11_MODULE(lstdgraphics, m) {
         [](py::array_t<f64> center, f64 radius, u32 color, s32 numSegments, f64 thickness) {
             assert(GameState && "State not initialized");
             assert(center.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddCircle(v2(center.at(0), center.at(1)) * GameState->PixelsPerMeter,
-                                                   (f32) radius * GameState->PixelsPerMeter, rgb_to_imgui(color),
-                                                   numSegments, (f32) thickness);
+            GameState->ViewportAddCircle(v2(center.at(0), center.at(1)) * GameState->PixelsPerMeter,
+                                         (f32) radius * GameState->PixelsPerMeter, rgb_to_imgui(color), numSegments,
+                                         (f32) thickness);
         },
         py::arg("center"), py::arg("radius"), py::arg("color"), py::arg("num_segments") = 12,
         py::arg("thickness") = 1.0);
@@ -176,9 +172,9 @@ PYBIND11_MODULE(lstdgraphics, m) {
         [](py::array_t<f64> center, f64 radius, u32 color, s32 numSegments) {
             assert(GameState && "State not initialized");
             assert(center.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddCircleFilled(v2(center.at(0), center.at(1)) * GameState->PixelsPerMeter,
-                                                         (f32) radius * GameState->PixelsPerMeter, rgb_to_imgui(color),
-                                                         numSegments);
+            GameState->ViewportAddCircleFilled(v2(center.at(0), center.at(1)) * GameState->PixelsPerMeter,
+                                               (f32) radius * GameState->PixelsPerMeter, rgb_to_imgui(color),
+                                               numSegments);
         },
         py::arg("center"), py::arg("radius"), py::arg("color"), py::arg("num_segments") = 12);
 }

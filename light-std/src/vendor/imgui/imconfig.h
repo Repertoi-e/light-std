@@ -60,7 +60,7 @@
 // Don't implement ImFabs/ImSqrt/ImPow/ImFmod/ImCos/ImSin/ImAcos/ImAtan2 wrapper so you can implement them yourself.
 // Declare your prototypes in imconfig.h.
 //
-#define IMGUI_DISABLE_DEFAULT_ALLOCATORS
+// #define IMGUI_DISABLE_DEFAULT_ALLOCATORS
 // Don't implement default allocators calling malloc()/free() to avoid linking with them.
 // You will need to call ImGui::SetAllocatorFunctions().
 

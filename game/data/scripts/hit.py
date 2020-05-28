@@ -1,6 +1,8 @@
 import numpy as np 
 
-from shape import edges
+from shape import ConvexPolygon, Circle, edges
+
+from vec import sqr_magnitude
 
 # Returns the point at which two lines intersect (or None if they don't)
 def line_vs_line(line1, line2):
@@ -53,16 +55,28 @@ def ray_vs_segment(ray, segment):
         return None
     return k
 
+
+# Returns whether a point is inside a given circle (p is in local space)
+def point_in_circle(p, center, radius):
+    v = np.array(p).astype(float) - center
+    return sqr_magnitude(v) < radius ** 2
+
 # Returns whether a point is inside a given convex polygon (p is in local space)
-def point_in_polygon(p, vertices):
+def point_in_polygon(p, vertices, es = None):
     p = np.array(p).astype(float)
 
-    es = edges(vertices)
+    if es is None: es = edges(vertices)
     u = es[:, 0] - p
     v = es[:, 1] - p
-    return np.less(np.cross(u, v), 0).all()
+    return np.greater(np.cross(u, v), 0).all()
 
-# Returns whether a point is inside a given convex polygon (p is in local space)
+# Returns whether a point is inside a given AABB (p is in local space)
 def point_in_aabb(p, aabb):
     p = np.array(p).astype(float)
     return np.greater(p, aabb[0]).all() and np.less(p, aabb[1]).all()
+
+def point_in_shape(p, shape):
+    if isinstance(shape, Circle):
+        return point_in_circle(p, [0, 0], shape.radius)
+    elif isinstance(shape, ConvexPolygon):
+        return point_in_polygon(p, None, shape.edges)

@@ -50,6 +50,9 @@ void reload_global_state() {
 
     GameState->PyLoaded = false;
 
+    void load_imgui_bindings_for_python();
+    load_imgui_bindings_for_python();
+
     refresh_python_demo_files();
     if (GameState->PyCurrentDemo) {
         load_python_demo(GameState->PyCurrentDemo);
@@ -140,4 +143,39 @@ void report_python_error(py::error_already_set &e) {
     fmt::print(">>> An {!RED}error{!} occured in python. Here is the stack trace:\n");
     PyErr_Print();
     fmt::print("\n");
+}
+
+void load_imgui_bindings_for_python() {
+    GameState->ViewportAddLine = [](v2 p1, v2 p2, u32 color, f32 thickness) {
+        GameState->ViewportDrawlist->AddLine(p1, p2, color, thickness);
+    };
+    GameState->ViewportAddRect = [](v2 p1, v2 p2, u32 color, f32 rounding, ImDrawCornerFlags_ cornerFlags,
+                                    f32 thickness) {
+        GameState->ViewportDrawlist->AddRect(p1, p2, color, rounding, cornerFlags, thickness);
+    };
+    GameState->ViewportAddRectFilled = [](v2 p1, v2 p2, u32 color, f32 rounding, ImDrawCornerFlags_ cornerFlags) {
+        GameState->ViewportDrawlist->AddRectFilled(p1, p2, color, rounding, cornerFlags);
+    };
+    GameState->ViewportAddRectFilledMultiColor = [](v2 p1, v2 p2, u32 color_ul, u32 color_ur, u32 color_dr,
+                                                    u32 color_dl) {
+        GameState->ViewportDrawlist->AddRectFilledMultiColor(p1, p2, color_ul, color_ur, color_dr, color_dl);
+    };
+    GameState->ViewportAddQuad = [](v2 p1, v2 p2, v2 p3, v2 p4, u32 color, f32 thickness) {
+        GameState->ViewportDrawlist->AddQuad(p1, p2, p3, p4, color, thickness);
+    };
+    GameState->ViewportAddQuadFilled = [](v2 p1, v2 p2, v2 p3, v2 p4, u32 color) {
+        GameState->ViewportDrawlist->AddQuadFilled(p1, p2, p3, p4, color);
+    };
+    GameState->ViewportAddTriangle = [](v2 p1, v2 p2, v2 p3, u32 color, f32 thickness) {
+        GameState->ViewportDrawlist->AddTriangle(p1, p2, p3, color, thickness);
+    };
+    GameState->ViewportAddTriangleFilled = [](v2 p1, v2 p2, v2 p3, u32 color) {
+        GameState->ViewportDrawlist->AddTriangleFilled(p1, p2, p3, color);
+    };
+    GameState->ViewportAddCircle = [](v2 center, f32 radius, u32 color, s32 numSegments, f32 thickness) {
+        GameState->ViewportDrawlist->AddCircle(center, radius, color, numSegments, thickness);
+    };
+    GameState->ViewportAddCircleFilled = [](v2 center, f32 radius, u32 color, s32 numSegments) {
+        GameState->ViewportDrawlist->AddCircleFilled(center, radius, color, numSegments);
+    };
 }

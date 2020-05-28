@@ -226,6 +226,13 @@ window *window::init(string title, s32 x, s32 y, s32 width, s32 height, u32 flag
         Flags &= ~window::ALPHA;
     }
 
+    zero_memory(Keys.Data, sizeof(Keys.Data));
+    zero_memory(LastFrameKeys.Data, sizeof(LastFrameKeys.Data));
+    zero_memory(KeysThisFrame.Data, sizeof(KeysThisFrame.Data));
+    zero_memory(MouseButtons.Data, sizeof(MouseButtons.Data));
+    zero_memory(LastFrameMouseButtons.Data, sizeof(LastFrameMouseButtons.Data));
+    zero_memory(MouseButtonsThisFrame.Data, sizeof(MouseButtonsThisFrame.Data));
+
     ID = s_NextID;
     atomic_inc(&s_NextID);
 

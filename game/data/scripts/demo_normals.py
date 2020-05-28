@@ -13,8 +13,8 @@ def load(state):
 	g.state(state)
 
 	vertices = [
-		[1, -1],
 		[-1, -1],
+		[1, -1],
 		[0, 1]
 	]
 	poly = shape.ConvexPolygon(vertices, 0xed37d8)
@@ -36,15 +36,13 @@ def unload():
 	'''
 	Called when the script is unloaded
 	'''
-	pass
+	bodies.clear()
 
 def frame(dt):
 	'''
 	Called each frame from C++ side. Use 'lstdgraphics' module to draw primitives.
 	We also have some helper functions in 'drawing.py' (which also use 'lstdgraphics').
 	'''
-	global bodies
-
 	for b in bodies:
 		if not b.static:
 			acc = b.force / b.mass # - np.array([0, -1]) * constants.gravity

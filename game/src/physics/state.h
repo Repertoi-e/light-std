@@ -36,6 +36,17 @@ struct game_state {
     v2 ViewportPos = {no_init};
     v2 ViewportSize = {no_init};
 
+    void (*ViewportAddLine)(v2 p1, v2 p2, u32 color, f32 thickness);
+    void (*ViewportAddRect)(v2 p1, v2 p2, u32 color, f32 rounding, ImDrawCornerFlags_ cornerFlags, f32 thickness);
+    void (*ViewportAddRectFilled)(v2 p1, v2 p2, u32 color, f32 rounding, ImDrawCornerFlags_ cornerFlags);
+    void (*ViewportAddRectFilledMultiColor)(v2 p1, v2 p2, u32 color_ul, u32 color_ur, u32 color_dr, u32 color_dl);
+    void (*ViewportAddQuad)(v2 p1, v2 p2, v2 p3, v2 p4, u32 color, f32 thickness);
+    void (*ViewportAddQuadFilled)(v2 p1, v2 p2, v2 p3, v2 p4, u32 color);
+    void (*ViewportAddTriangle)(v2 p1, v2 p2, v2 p3, u32 color, f32 thickness);
+    void (*ViewportAddTriangleFilled)(v2 p1, v2 p2, v2 p3, u32 color);
+    void (*ViewportAddCircle)(v2 center, f32 radius, u32 color, s32 numSegments, f32 thickness);
+    void (*ViewportAddCircleFilled)(v2 center, f32 radius, u32 color, s32 numSegments);
+
     // We scale coordinates by this amount to appear better on the screen
     f32 PixelsPerMeter = 50;
 

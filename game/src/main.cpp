@@ -211,7 +211,7 @@ s32 main() {
     auto *allocData = new (Malloc) free_list_allocator_data;
     allocData->init(GameMemoryInMiB * 1024 * 1024, free_list_allocator_data::Find_First);
     gameMemory.AllocData = allocData;
-    gameMemory.Alloc = GameAlloc = {free_list_allocator, allocData};
+    gameMemory.Alloc = GameAlloc = Malloc;  // = {free_list_allocator, allocData};
 
     // We tell imgui to use our allocator (by default it uses raw malloc, not operator new)
     ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, GameAlloc); },

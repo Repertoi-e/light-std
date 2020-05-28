@@ -3,6 +3,8 @@ import lstdgraphics as g
 import numpy as np
 import shape as sh
 
+import cProfile, pstats
+
 #
 # Since there is no better place, here is a list of functions supported by 'lstdgraphics'
 # line(p1, p2, color, thickness = 1.0)
@@ -26,7 +28,7 @@ import shape as sh
 
 def dot(mat, v):
     '''
-    Helper function to multiply 2D vector by 3x3 transformation matrix
+    Helper function to transform a 2D vector by a 3x3 matrix
     '''
     return (mat @ [v[0], v[1], 1])[:2]
 
@@ -40,23 +42,17 @@ def draw_shape(model_mat, shape, normals_color = 0, thickness = 3, aabb = None):
     '''
 
     if isinstance(shape, sh.Circle):
-        center = dot(model_mat, [0, 0])
-        g.circle(center, shape.radius, num_segments = 20, color = shape.color, thickness = thickness)
+        g.circle(dot(model_mat, [0, 0]), shape.radius, num_segments = 20, color = shape.color, thickness = thickness)
     elif isinstance(shape, sh.ConvexPolygon):
-        a = dot(model_mat, shape.vertices[0])
-        for i in range(1, len(shape.vertices) + 1):
-            b = dot(model_mat, shape.vertices[i % len(shape.vertices)]) # At the end we cycle back to the first vertex
+        for i, e in enumerate(shape.edges):
+            a = dot(model_mat, e[0])
+            b = dot(model_mat, e[1])
 
             if normals_color != 0:        
                 mid = np.array([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])
-                n = shape.normals[i - 1] 
+                n = shape.normals[i] 
                 g.line(mid, (mid + n), color = normals_color, thickness = thickness)
+
             g.line(a, b, color = shape.color, thickness = thickness)
-            
-            if aabb is not None:
-                m = dot(model_mat, aabb[0])
-                n = dot(model_mat, aabb[1])
-                g.rect(m, n, color = normals_color, rounding = 1.0, corner_flags = g.Corner.ALL)
-            a = b
     else:
         print(shape)

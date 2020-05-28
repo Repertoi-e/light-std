@@ -20,17 +20,6 @@ class Body:
         self.shape = shape
         self.static = static
 
-        if isinstance(shape, sh.Circle):
-            self.AABB = np.array([[-shape.radius, -shape.radius], [shape.radius, shape.radius]])
-        elif isinstance(shape, sh.ConvexPolygon):
-            x = shape.vertices[:, 0]
-            y = shape.vertices[:, 1]
-            mx = np.min(x)
-            nx = np.max(x)
-            my = np.min(y)
-            ny = np.max(y)
-            self.AABB = np.array([[mx, my], [nx, ny]])
-
         if not static:
             self.mass = density * shape.area
 
