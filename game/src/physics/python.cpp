@@ -1,5 +1,12 @@
 #include "state.h"
 
+static u32 rgb_to_imgui(u32 x) {
+    auto r = (x >> 16) & 0xFF;
+    auto g = (x >> 8) & 0xFF;
+    auto b = (x >> 0) & 0xFF;
+    return IM_COL32(r, g, b, 0xff);
+}
+
 PYBIND11_MODULE(lstdgraphics, m) {
     m.doc() = "A module which exposes 2D draw functions from our graphics engine to python and interlops with C++.";
 
@@ -34,7 +41,7 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(GameState && "State not initialized");
             assert(p1.request().size == 2 && "line requires p1 to be an array of size 2");
             assert(p2.request().size == 2 && "line requires p2 to be an array of size 2");
-            GameState->ViewportDrawlist->AddLine(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), color,
+            GameState->ViewportDrawlist->AddLine(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), rgb_to_imgui(color),
                                                  (f32) thickness);
         },
         py::arg("p1"), py::arg("p2"), py::arg("color"), py::arg("thickness") = 1.0);
@@ -60,27 +67,112 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(GameState && "State not initialized");
             assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
             assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
-            GameState->ViewportDrawlist->AddRect(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), color, (f32) rounding,
-                                                 cornerFlags, (f32) thickness);
+            GameState->ViewportDrawlist->AddRect(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), rgb_to_imgui(color),
+                                                 (f32) rounding, cornerFlags, (f32) thickness);
         },
         py::arg("p1"), py::arg("p2"), py::arg("color"), py::arg("rounding") = 0.0,
         py::arg("cornerFlags") = ImDrawCornerFlags_None, py::arg("thickness") = 1.0);
+
+    m.def(
+        "rect_filled",
+        [](py::array_t<f64> p1, py::array_t<f64> p2, u32 color, f64 rounding, ImDrawCornerFlags_ cornerFlags) {
+            assert(GameState && "State not initialized");
+            assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
+            GameState->ViewportDrawlist->AddRectFilled(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)),
+                                                       rgb_to_imgui(color), (f32) rounding, cornerFlags);
+        },
+        py::arg("p1"), py::arg("p2"), py::arg("color"), py::arg("rounding") = 0.0,
+        py::arg("cornerFlags") = ImDrawCornerFlags_None);
+
+    m.def(
+        "rect_filled_multi_color",
+        [](py::array_t<f64> p1, py::array_t<f64> p2, u32 color_ul, u32 color_ur, u32 color_dr, u32 color_dl) {
+            assert(GameState && "State not initialized");
+            assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
+            GameState->ViewportDrawlist->AddRectFilledMultiColor(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)),
+                                                                 rgb_to_imgui(color_ul), rgb_to_imgui(color_ur),
+                                                                 rgb_to_imgui(color_dr), rgb_to_imgui(color_dl));
+        },
+        py::arg("p1"), py::arg("p2"), py::arg("color_ul"), py::arg("color_ur"), py::arg("color_dr"),
+        py::arg("color_dl"));
+
+    m.def(
+        "quad",
+        [](py::array_t<f64> p1, py::array_t<f64> p2, py::array_t<f64> p3, py::array_t<f64> p4, u32 color,
+           f64 thickness) {
+            assert(GameState && "State not initialized");
+            assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p3.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p4.request().size == 2 && "rect requires p1 to be an array of size 2");
+            GameState->ViewportDrawlist->AddQuad(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)), v2(p3.at(0), p3.at(1)),
+                                                 v2(p4.at(0), p4.at(1)), rgb_to_imgui(color), (f32) thickness);
+        },
+        py::arg("p1"), py::arg("p2"), py::arg("p3"), py::arg("p4"), py::arg("color"), py::arg("thickess") = 1.0);
+
+    m.def(
+        "quad_filled",
+        [](py::array_t<f64> p1, py::array_t<f64> p2, py::array_t<f64> p3, py::array_t<f64> p4, u32 color) {
+            assert(GameState && "State not initialized");
+            assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p3.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p4.request().size == 2 && "rect requires p1 to be an array of size 2");
+            GameState->ViewportDrawlist->AddQuadFilled(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)),
+                                                       v2(p3.at(0), p3.at(1)), v2(p4.at(0), p4.at(1)),
+                                                       rgb_to_imgui(color));
+        },
+        py::arg("p1"), py::arg("p2"), py::arg("p3"), py::arg("p4"), py::arg("color"));
+
+    m.def(
+        "triangle",
+        [](py::array_t<f64> p1, py::array_t<f64> p2, py::array_t<f64> p3, u32 color, f64 thickness) {
+            assert(GameState && "State not initialized");
+            assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p3.request().size == 2 && "rect requires p1 to be an array of size 2");
+            GameState->ViewportDrawlist->AddTriangle(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)),
+                                                     v2(p3.at(0), p3.at(1)), rgb_to_imgui(color), (f32) thickness);
+        },
+        py::arg("p1"), py::arg("p2"), py::arg("p3"), py::arg("color"), py::arg("thickess") = 1.0);
+
+    m.def(
+        "triangle_filled",
+        [](py::array_t<f64> p1, py::array_t<f64> p2, py::array_t<f64> p3, u32 color) {
+            assert(GameState && "State not initialized");
+            assert(p1.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p2.request().size == 2 && "rect requires p1 to be an array of size 2");
+            assert(p3.request().size == 2 && "rect requires p1 to be an array of size 2");
+            GameState->ViewportDrawlist->AddTriangleFilled(v2(p1.at(0), p1.at(1)), v2(p2.at(0), p2.at(1)),
+                                                           v2(p3.at(0), p3.at(1)), rgb_to_imgui(color));
+        },
+        py::arg("p1"), py::arg("p2"), py::arg("p3"), py::arg("color"));
+
+    m.def(
+        "circle",
+        [](py::array_t<f64> center, f64 radius, u32 color, s32 numSegments, f64 thickness) {
+            assert(GameState && "State not initialized");
+            assert(center.request().size == 2 && "rect requires p1 to be an array of size 2");
+            GameState->ViewportDrawlist->AddCircle(v2(center.at(0), center.at(1)), (f32) radius, rgb_to_imgui(color),
+                                                   numSegments, (f32) thickness);
+        },
+        py::arg("center"), py::arg("radius"), py::arg("color"), py::arg("num_segments") = 12,
+        py::arg("thickness") = 1.0);
+
+    m.def(
+        "circle_filled",
+        [](py::array_t<f64> center, f64 radius, u32 color, s32 numSegments) {
+            assert(GameState && "State not initialized");
+            assert(center.request().size == 2 && "rect requires p1 to be an array of size 2");
+            GameState->ViewportDrawlist->AddCircleFilled(v2(center.at(0), center.at(1)), (f32) radius,
+                                                         rgb_to_imgui(color), numSegments);
+        },
+        py::arg("center"), py::arg("radius"), py::arg("color"), py::arg("num_segments") = 12);
 }
 
 /*
-    IMGUI_API void AddRectFilled(const ImVec2 &p_min, const ImVec2 &p_max, ImU32 col, float rounding = 0.0f,
-                                 ImDrawCornerFlags rounding_corners =
-                                     ImDrawCornerFlags_All);  // a: upper-left, b: lower-right (== upper-left + size)
-    IMGUI_API void AddRectFilledMultiColor(const ImVec2 &p_min, const ImVec2 &p_max, ImU32 col_upr_left,
-                                           ImU32 col_upr_right, ImU32 col_bot_right, ImU32 col_bot_left);
-    IMGUI_API void AddQuad(const ImVec2 &p1, const ImVec2 &p2, const ImVec2 &p3, const ImVec2 &p4, ImU32 col,
-                           float thickness = 1.0f);
-    IMGUI_API void AddQuadFilled(const ImVec2 &p1, const ImVec2 &p2, const ImVec2 &p3, const ImVec2 &p4, ImU32 col);
-    IMGUI_API void AddTriangle(const ImVec2 &p1, const ImVec2 &p2, const ImVec2 &p3, ImU32 col, float thickness = 1.0f);
-    IMGUI_API void AddTriangleFilled(const ImVec2 &p1, const ImVec2 &p2, const ImVec2 &p3, ImU32 col);
-    IMGUI_API void AddCircle(const ImVec2 &center, float radius, ImU32 col, int num_segments = 12,
-                             float thickness = 1.0f);
-    IMGUI_API void AddCircleFilled(const ImVec2 &center, float radius, ImU32 col, int num_segments = 12);
     IMGUI_API void AddText(const ImVec2 &pos, ImU32 col, const char *text_begin, const char *text_end = NULL);
     IMGUI_API void AddText(const ImFont *font, float font_size, const ImVec2 &pos, ImU32 col, const char *text_begin,
                            const char *text_end = NULL, float wrap_width = 0.0f,

@@ -52,7 +52,7 @@ bool reload_game_code() {
 
     if (!GameLibrary.load(copyPath.UnifiedPath)) {
         fmt::print(
-            "Error: Couldn't load {!YELLOW}\"{}\"{!} (copied from {!GRAY}\"{}\"{}) as the game code for the engine\n",
+            "Error: Couldn't load {!YELLOW}\"{}\"{!} (copied from {!GRAY}\"{}\"{}) as the game code for the engine.\n",
             copyPath, *DLL);
         return false;
     }
@@ -94,7 +94,7 @@ void parse_arguments() {
     usage.append("Usage:\n");
     usage.append(
         "    {!YELLOW}-dll <name>{!GRAY}    "
-        "Specifies which dll to hot load in the engine. By default the engine searches for cars.dll{!}\n\n");
+        "Specifies which dll to hot load in the engine. By default it searches for cars.dll{!}\n\n");
     usage.append(
         "    {!YELLOW}-memory <amount>{!GRAY}    "
         "Specifies the amount of memory (in MiB) which gets reserved for the game (default is 128 MiB)."

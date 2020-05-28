@@ -1,5 +1,7 @@
 import numpy as np 
 
+from shape import edges
+
 # Returns the point at which two lines intersect (or None if they don't)
 def line_vs_line(line1, line2):
     p1 = np.array(line1[0]).astype(float)

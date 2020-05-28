@@ -7,16 +7,16 @@ from constants import *
 
 class Body:
     def __init__(self, shape, density, static = False):
-        self.pos = np.array([0.0, 0.0])
+        self.pos = np.array([0, 0]).astype(float)
         self.rot = 0.0
         
-        self.vel = np.array([0.0, 0.0])
+        self.vel = np.array([0, 0]).astype(float)
         self.ang_vel  = 0.0
 
         self.model_mat = np.identity(3)
         self.inv_model_mat = np.identity(3)
 
-        self.force = np.array([0.0, 0.0])
+        self.force = np.array([0, 0]).astype(float)
         self.torque = 0.0
 
         self.shape = shape

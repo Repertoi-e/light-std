@@ -1,5 +1,6 @@
-import numpy as np
 import lstdgraphics as g
+
+import numpy as np
 
 from vec import normalized
 
@@ -14,7 +15,7 @@ class Shape:
     def __init__(self): pass
 
 class Circle(Shape):
-    def __init__(self, radius, color = 0xffff00ff):
+    def __init__(self, radius, color = 0x4254f5):
         self.radius = float(radius)
         self.area = radius ** 2 * np.pi
         self.color = color
@@ -45,7 +46,7 @@ def centroid(es):
     return result / area_sum
 
 class ConvexPolygon(Shape):
-    def __init__(self, vertices, color = 0xffff00ff):
+    def __init__(self, vertices, color = 0x4254f5):
         self.vertices = np.array(vertices).astype(float)
         self.normals = np.empty((len(vertices), 2)).astype(float)
         self.edges = np.empty((len(vertices), 2, 2)).astype(float)
@@ -67,7 +68,7 @@ class ConvexPolygon(Shape):
 
 
 # Returns a centered rectangle with half_width, half_height extents
-def make_rect(half_width, half_height, color = 0xffffffff):
+def make_rect(half_width, half_height, color = 0x4254f5):
     vertices = [
         [-half_width, -half_height],
         [-half_width, half_height],

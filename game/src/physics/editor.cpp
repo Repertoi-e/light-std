@@ -57,8 +57,10 @@ void editor_scene_properties() {
             For(demoFiles) {
                 bool isSelected = GameState->PyCurrentDemo == it;
                 if (ImGui::Selectable(it.to_c_string(Context.TemporaryAlloc), &isSelected)) {
-                    GameState->PyCurrentDemo = it;
-                    load_python_demo(it);
+                    if (GameState->PyCurrentDemo != it) {
+                        GameState->PyCurrentDemo = it;
+                        load_python_demo(it);
+                    }
                 }
                 if (isSelected) ImGui::SetItemDefaultFocus();
             }
