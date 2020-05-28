@@ -18,14 +18,11 @@ struct camera {
     f32 ZoomSpeed;
 
     f32 ZoomMin, ZoomMax;
-
-    camera() { reinit(); }
-
-    void reinit();
-    void reset_constants();
-
-    void update();
 };
+
+void camera_reinit(camera *cam);
+void camera_reset_constants(camera *cam);
+void camera_update(camera *cam);
 
 struct game_state {
     v4 ClearColor = {0.0f, 0.017f, 0.099f, 1.0f};
@@ -38,6 +35,9 @@ struct game_state {
     ImDrawList *ViewportDrawlist;
     v2 ViewportPos = {no_init};
     v2 ViewportSize = {no_init};
+
+    // We scale coordinates by this amount to appear better on the screen
+    f32 PixelsPerMeter = 50;
 
     string PyCurrentDemo;
     array<string> PyDemoFiles;
@@ -57,11 +57,6 @@ struct game_state {
     game_memory *Memory;
 };
 
-inline game_state *GameState = null;
-
-inline bucket_array<shader> *Shaders = null;
-inline bucket_array<texture_2D> *Texture2Ds = null;
-
 void reload_global_state();
 
 void load_python_demo(string fileName);
@@ -73,3 +68,8 @@ void editor_main();
 void editor_scene_properties();
 
 void viewport_render();
+
+inline game_state *GameState = null;
+
+inline bucket_array<shader> *Shaders = null;
+inline bucket_array<texture_2D> *Texture2Ds = null;

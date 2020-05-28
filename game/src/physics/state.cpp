@@ -62,8 +62,9 @@ void load_python_demo(string demo) {
     clone(&GameState->PyCurrentDemo, demo);
 
     if (GameState->PyLoaded) {
-        GameState->PyModule.attr("unload")();
-
+        if (GameState->PyModule) {
+            if (py::hasattr(GameState->PyModule, "unload")) GameState->PyModule.attr("unload")();
+        }
         GameMemory->RequestReloadNextFrame = true;
         return;
     }
@@ -98,6 +99,9 @@ void load_python_demo(string demo) {
     }
 
     GameState->PyLoaded = true;
+
+    auto *cam = &GameState->Camera;
+    camera_reinit(cam);
 }
 
 void refresh_python_demo_files() {

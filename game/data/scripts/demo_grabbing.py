@@ -3,12 +3,13 @@ import lstdgraphics as g
 import numpy as np 
 import shape
 
-from constants import *
 from drawing import draw_shape, dot
 from body import Body, apply_force, set_static
 from hit import point_in_aabb
 
-import data_demo_1 as data
+import data_demo_grabbing as data
+
+gravity = 9.8
 
 bodies = list()
 triangle, floor = None, None
@@ -46,7 +47,7 @@ def mouse_click(x, y, rightButton):
 
 	if not data.mouse_line:
 		data.mouse_line = True
-		data.mouse_start = np.array([x, y]) / pixels_per_meter
+		data.mouse_start = np.array([x, y])
 
 	for b in bodies:
 		mouse_in_local_space = dot(b.inv_model_mat, data.mouse)
@@ -85,7 +86,7 @@ def mouse_release(rightButton):
 
 def mouse_move(x, y):
 	data.mouse_last = data.mouse
-	data.mouse = np.array([x, y]) / pixels_per_meter
+	data.mouse = np.array([x, y])
 	if data.grabbed is not None:
 		data.grabbed.pos = data.mouse - data.grabbed_offset
 
@@ -125,7 +126,7 @@ def frame(dt):
 		draw_shape(b.model_mat, b.shape, thickness = 3)
 
 	if data.mouse_line:
-		g.line(data.mouse_start * pixels_per_meter, data.mouse * pixels_per_meter, color = 0xffe62b)
+		g.line(data.mouse_start, data.mouse, color = 0xffe62b)
 
 	floor_upper_edge = floor.pos[1] + floor.AABB[0][1]
 	if triangle.pos[1] > floor_upper_edge:

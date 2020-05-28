@@ -3,8 +3,6 @@ import shape as sh
 
 from vec import sqr_magnitude
 
-from constants import *
-
 class Body:
     def __init__(self, shape, density, static = False):
         self.pos = np.array([0, 0]).astype(float)
@@ -63,8 +61,8 @@ def apply_impulse(body, impulse, point = [0.0, 0.0]):
 def set_static(body, static):
     if body.static == static: return
     if not body.static:
-        body.vel = [0.0, 0.0]
+        body.vel = np.array([0, 0]).astype(float)
         body.ang_vel = 0.0
-        body.force = [0.0, 0.0]
+        body.force = np.array([0, 0]).astype(float)
         body.torque = 0.0
     body.static = static

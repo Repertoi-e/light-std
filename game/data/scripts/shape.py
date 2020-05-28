@@ -4,8 +4,6 @@ import numpy as np
 
 from vec import normalized
 
-from constants import *
-
 #
 # This file implements basic shapes which our demo uses.
 # As convention we consider the vertices of polygons to be ordered clockwise (this affects calculations).

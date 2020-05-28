@@ -6,8 +6,6 @@ import shape
 from body import Body
 from drawing import draw_shape 
 
-import constants
-
 bodies = list()
 
 # Called from C++ side. Sets the state which 'lstdgraphics' uses for drawing.
@@ -34,8 +32,6 @@ def load(state):
 	b.pos += [13, 4]
 	bodies.append(b)
 	
-	constants.gravity = 0
-
 def unload():
 	'''
 	Called when the script is unloaded
@@ -51,7 +47,7 @@ def frame(dt):
 
 	for b in bodies:
 		if not b.static:
-			acc = b.force / b.mass - np.array([0, -1]) * constants.gravity
+			acc = b.force / b.mass # - np.array([0, -1]) * constants.gravity
 			b.vel += acc * dt
 			b.pos += b.vel * dt
 

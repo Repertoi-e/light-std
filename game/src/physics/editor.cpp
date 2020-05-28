@@ -29,7 +29,15 @@ void editor_main() {
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-            ImGui::TextUnformatted("This is the editor view of the light-std graphics engine...");
+            ImGui::TextUnformatted("This is the editor view of the light-std game engine.");
+            ImGui::TextUnformatted("");
+            ImGui::TextUnformatted("* Here are the controls for the camera:");
+            ImGui::TextUnformatted("      Ctrl + Left Mouse -> rotate");
+            ImGui::TextUnformatted("      Ctrl + Middle Mouse -> pan");
+            ImGui::TextUnformatted("      Ctrl + Right Mouse -> zoom");
+            ImGui::TextUnformatted("");
+            ImGui::TextUnformatted("This project is licensed under MIT.");
+            ImGui::TextUnformatted("Source code: github.com/Repertoi-e/light-std/");
             ImGui::PopTextWrapPos();
             ImGui::EndTooltip();
         }
@@ -42,13 +50,7 @@ void editor_main() {
 void editor_scene_properties() {
     auto *cam = &GameState->Camera;
 
-    ImGui::Begin("Scene", null);
-
-    ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::Text("");
-
-    ImGui::Text("Python");
-    ImGui::BeginChild("##python", {0, 75}, true);
+    ImGui::Begin("Python", null);
     {
         auto demoFiles = GameState->PyDemoFiles;
 
@@ -67,13 +69,12 @@ void editor_scene_properties() {
             ImGui::EndCombo();
         }
         if (ImGui::Button("Refresh demo files")) refresh_python_demo_files();
-        ImGui::EndChild();
     }
+    ImGui::End();
 
-    ImGui::Text("Camera");
-    ImGui::BeginChild("##camera", {0, 227}, true);
+    ImGui::Begin("Camera", null);
     {
-        if (ImGui::Button("Reset camera")) cam->reinit();
+        if (ImGui::Button("Reset camera")) camera_reinit(cam);
 
         ImGui::Text("Position: %.3f, %.3f", cam->Position.x, cam->Position.y);
         ImGui::Text("Roll: %.3f", cam->Roll);
@@ -87,11 +88,16 @@ void editor_scene_properties() {
         ImGui::PushItemWidth(-140);
         ImGui::InputFloat("Zoom speed", &cam->ZoomSpeed);
         ImGui::InputFloat2("Zoom min/max", &cam->ZoomMin);
-        if (ImGui::Button("Default camera constants")) cam->reset_constants();
-
-        ImGui::EndChild();
+        if (ImGui::Button("Default camera constants")) camera_reset_constants(cam);
     }
-    ImGui::ColorPicker3("Clear color", &GameState->ClearColor.x, ImGuiColorEditFlags_NoAlpha);
+    ImGui::End();
+
+    ImGui::Begin("Scene", null);
+    ImGui::InputFloat("PPM", &GameState->PixelsPerMeter);
+    ImGui::Text("Frame information:");
+    ImGui::Text("  %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Text("Clear color:");
+    ImGui::ColorPicker3("", &GameState->ClearColor.x, ImGuiColorEditFlags_NoAlpha);
     if (ImGui::Button("Reset color")) GameState->ClearColor = {0.0f, 0.017f, 0.099f, 1.0f};
     ImGui::End();
 }

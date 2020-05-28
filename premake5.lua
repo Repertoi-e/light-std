@@ -22,10 +22,6 @@ function common_settings()
     rtti "Off"
 	characterset "Unicode"
 	
-	if not _OPTIONS["python"] then
-		exceptionhandling "Off"
-	end
-	
 	editandcontinue "Off"
 
     defines "_HAS_EXCEPTIONS=0"
@@ -99,6 +95,8 @@ project "light-std"
 	pchsource "%{prj.name}/src/pch.cpp"
 	forceincludes { "pch.h" }
 
+	exceptionhandling "Off"
+	
 	common_settings()
 
 project "test-suite"
@@ -120,6 +118,8 @@ project "test-suite"
 	pchsource "%{prj.name}/src/test.cpp"
 	forceincludes { "test.h" }
 
+	exceptionhandling "Off"
+	
 	common_settings()
 
 project "benchmark"
@@ -137,6 +137,8 @@ project "benchmark"
 	links { "light-std" }
 	includedirs { "light-std/src", "%{prj.name}/vendor/benchmark/include" }
 
+	exceptionhandling "Off"
+	
 	common_settings()
 	
 	filter "system:windows"
@@ -171,7 +173,9 @@ project "game"
 	pchheader "game.h"
 	pchsource "game/src/game.cpp"
 	forceincludes { "game.h" }
-
+	
+	exceptionhandling "Off"
+	
 	common_settings()
 	
 	filter "system:windows"
@@ -199,6 +203,8 @@ project "cars"
 	pchsource "game/src/game.cpp"
 	forceincludes { "game.h" }
 
+	exceptionhandling "Off"
+	
 	common_settings()
 
 	-- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
