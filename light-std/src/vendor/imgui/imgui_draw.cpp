@@ -963,6 +963,33 @@ void ImDrawList::AddConvexPolyFilled(const ImVec2 *points, const int points_coun
     }
 }
 
+// We intentionally avoid using ImVec2 and its math operators here to reduce cost to a minimum for debug/non-inlined
+// builds.
+void ImDrawList::CUSTOM_AddConvexPolyFilled(const ImVec2 *points, const int points_count, ImU32 col, f32 xscale, f32 yscale) {
+    if (points_count < 3) return;
+
+    const ImVec2 uv = _Data->TexUvWhitePixel;
+
+    // Non Anti-aliased Fill
+    const int idx_count = (points_count - 2) * 3;
+    const int vtx_count = points_count;
+    PrimReserve(idx_count, vtx_count);
+    for (int i = 0; i < vtx_count; i++) {
+        _VtxWritePtr[0].pos.x = points[i].x * xscale;
+        _VtxWritePtr[0].pos.y = points[i].y * yscale;
+        _VtxWritePtr[0].uv = uv;
+        _VtxWritePtr[0].col = col;
+        _VtxWritePtr++;
+    }
+    for (int i = 2; i < points_count; i++) {
+        _IdxWritePtr[0] = (ImDrawIdx)(_VtxCurrentIdx);
+        _IdxWritePtr[1] = (ImDrawIdx)(_VtxCurrentIdx + i - 1);
+        _IdxWritePtr[2] = (ImDrawIdx)(_VtxCurrentIdx + i);
+        _IdxWritePtr += 3;
+    }
+    _VtxCurrentIdx += (ImDrawIdx) vtx_count;
+}
+
 void ImDrawList::PathArcToFast(const ImVec2 &center, float radius, int a_min_of_12, int a_max_of_12) {
     if (radius == 0.0f || a_min_of_12 > a_max_of_12) {
         _Path.push_back(center);

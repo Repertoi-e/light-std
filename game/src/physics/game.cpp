@@ -52,9 +52,9 @@ LE_GAME_API GAME_MAIN_WINDOW_EVENT(game_main_window_event, const event &e) {
             auto mouseInWorld = dot(mouse, GameState->InverseViewMatrix) / GameState->PixelsPerMeter;
             try {
                 if (e.Button == Mouse_Button_Left) {
-                    if (GameState->PyMouseClick) GameState->PyMouseClick(mouseInWorld.x, mouseInWorld.y, false);
+                    if (GameState->PyMouseClick) GameState->PyMouseClick(mouseInWorld.x, -mouseInWorld.y, false);
                 } else if (e.Button == Mouse_Button_Right) {
-                    if (GameState->PyMouseClick) GameState->PyMouseClick(mouseInWorld.x, mouseInWorld.y, true);
+                    if (GameState->PyMouseClick) GameState->PyMouseClick(mouseInWorld.x, -mouseInWorld.y, true);
                 }
             } catch (py::error_already_set &e) {
                 report_python_error(e);
@@ -76,7 +76,7 @@ LE_GAME_API GAME_MAIN_WINDOW_EVENT(game_main_window_event, const event &e) {
 
         auto mouseInWorld = dot(mouse, GameState->InverseViewMatrix) / GameState->PixelsPerMeter;
         try {
-            if (GameState->PyMouseMove) GameState->PyMouseMove(mouseInWorld.x, mouseInWorld.y);
+            if (GameState->PyMouseMove) GameState->PyMouseMove(mouseInWorld.x, -mouseInWorld.y);
         } catch (py::error_already_set &e) {
             report_python_error(e);
         }

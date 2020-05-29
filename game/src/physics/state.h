@@ -46,6 +46,7 @@ struct game_state {
     void (*ViewportAddTriangleFilled)(v2 p1, v2 p2, v2 p3, u32 color);
     void (*ViewportAddCircle)(v2 center, f32 radius, u32 color, s32 numSegments, f32 thickness);
     void (*ViewportAddCircleFilled)(v2 center, f32 radius, u32 color, s32 numSegments);
+    void (*ViewportAddConvexPolyFilled)(const f32 *data, s32 count, u32 color);
 
     // We scale coordinates by this amount to appear better on the screen
     f32 PixelsPerMeter = 50;

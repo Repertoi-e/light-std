@@ -8,7 +8,7 @@ from drawing import draw_shape
 
 bodies = list()
 
-# Called from C++ side. Sets the state which 'lstdgraphics' uses for drawing.
+# Called from C++ side. Sets the state which "lstdgraphics" uses for drawing.
 def load(state):
 	g.state(state)
 
@@ -33,19 +33,19 @@ def load(state):
 	bodies.append(b)
 	
 def unload():
-	'''
+	"""
 	Called when the script is unloaded
-	'''
+	"""
 	bodies.clear()
 
 def frame(dt):
-	'''
-	Called each frame from C++ side. Use 'lstdgraphics' module to draw primitives.
-	We also have some helper functions in 'drawing.py' (which also use 'lstdgraphics').
-	'''
+	"""
+	Called each frame from C++ side. Use "lstdgraphics" module to draw primitives.
+	We also have some helper functions in "drawing.py" (which also use "lstdgraphics").
+	"""
 	for b in bodies:
 		if not b.static:
-			acc = b.force / b.mass # - np.array([0, -1]) * constants.gravity
+			acc = b.force / b.mass # - np.array([0, 1]) * constants.gravity
 			b.vel += acc * dt
 			b.pos += b.vel * dt
 

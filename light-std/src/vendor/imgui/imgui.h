@@ -1727,8 +1727,8 @@ enum ImGuiCol_ {
     ,
     ImGuiCol_ChildWindowBg = ImGuiCol_ChildBg  // [renamed in 1.53]
 // ImGuiCol_CloseButton, ImGuiCol_CloseButtonActive, ImGuiCol_CloseButtonHovered, // [unused since 1.60+] the close
-// button now uses regular button colors. ImGuiCol_ComboBg, // [unused since 1.53+] ComboBg has been merged with PopupBg,
-// so a redirect isn't accurate.
+// button now uses regular button colors. ImGuiCol_ComboBg, // [unused since 1.53+] ComboBg has been merged with
+// PopupBg, so a redirect isn't accurate.
 #endif
 };
 
@@ -3020,6 +3020,7 @@ struct ImDrawList {
     IMGUI_API void AddConvexPolyFilled(
         const ImVec2 *points, int num_points,
         ImU32 col);  // Note: Anti-aliased filling requires points to be in clockwise order.
+    IMGUI_API void CUSTOM_AddConvexPolyFilled(const ImVec2 *points, int num_points, ImU32 col, f32 xscale = 1, f32 yscale = 1);
     IMGUI_API void AddBezierCurve(const ImVec2 &pos0, const ImVec2 &cp0, const ImVec2 &cp1, const ImVec2 &pos1,
                                   ImU32 col, float thickness, int num_segments = 0);
 

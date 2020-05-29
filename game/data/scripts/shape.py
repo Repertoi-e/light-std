@@ -3,19 +3,30 @@ import lstdgraphics as g
 import numpy as np
 
 from vec import normalized
+from enum import Enum
 
 #
 # This file implements basic shapes which our demo uses.
 # As convention we consider the vertices of polygons to be ordered counter-clockwise (this affects calculations).
 #
 
+class Type(Enum):
+    CIRCLE = 1
+    POLY = 2
+
 class Shape:
     def __init__(self): pass
 
 class Circle(Shape):
-    def __init__(self, radius, color = 0x4254f5):
+    def __init__(self, radius, color = 0x4254f5, center = [0, 0]):
+        self.type = Type.CIRCLE
         self.radius = float(radius)
+
         self.area = radius ** 2 * np.pi
+        self.centroid = np.array(center).astype(float)
+
+        self.aabb = np.array([self.centroid, [self.radius, self.radius]])
+
         self.color = color
 
 def edges(vertices):
@@ -44,7 +55,9 @@ def centroid(es):
     return result / area_sum
 
 class ConvexPolygon(Shape):
-    def __init__(self, vertices, color = 0x4254f5):
+    def __init__(self, vertices, color = 0x4254f5, recenter = True):
+        self.type = Type.POLY
+
         self.vertices = np.array(vertices).astype(float)
         self.normals = np.empty((len(vertices), 2)).astype(float)
         self.edges = np.empty((len(vertices), 2, 2)).astype(float)
@@ -52,7 +65,9 @@ class ConvexPolygon(Shape):
         es = edges(self.vertices)
 
         self.area = shoelace(es)
-        self.vertices -= centroid(es)
+        self.centroid = centroid(es)
+        
+        if recenter: self.vertices -= self.centroid
 
         # Recalculate edges after translating the vertices
         self.edges = edges(self.vertices)
@@ -61,6 +76,19 @@ class ConvexPolygon(Shape):
             a, b = e[0], e[1]
             n = [(b[1] - a[1]), -(b[0] - a[0])]
             self.normals[i] = normalized(n)
+
+        mx, nx = float("Inf"), float("-Inf")
+        my, ny = float("Inf"), float("-Inf")
+        
+        for v in self.vertices:
+            mx = min(v[0], mx)
+            my = min(v[1], my)
+            nx = max(v[0], nx)
+            ny = max(v[1], ny)
+        hx = (nx - mx) / 2
+        hy = (ny - my) / 2
+   
+        self.aabb = np.array([[mx + hx, my + hy], [abs(hx), abs(hy)]])
 
         self.color = color
 

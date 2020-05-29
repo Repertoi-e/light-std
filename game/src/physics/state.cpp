@@ -178,4 +178,8 @@ void load_imgui_bindings_for_python() {
     GameState->ViewportAddCircleFilled = [](v2 center, f32 radius, u32 color, s32 numSegments) {
         GameState->ViewportDrawlist->AddCircleFilled(center, radius, color, numSegments);
     };
+    GameState->ViewportAddConvexPolyFilled = [](const f32 *data, s32 count, u32 color) {
+        GameState->ViewportDrawlist->CUSTOM_AddConvexPolyFilled((const ImVec2 *) data, count, color,
+                                                                GameState->PixelsPerMeter, -GameState->PixelsPerMeter);
+    };
 }

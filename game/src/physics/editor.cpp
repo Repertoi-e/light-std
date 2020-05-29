@@ -36,7 +36,7 @@ void editor_main() {
             ImGui::TextUnformatted("      Ctrl + Middle Mouse -> pan");
             ImGui::TextUnformatted("      Ctrl + Right Mouse -> zoom");
             ImGui::TextUnformatted("");
-            ImGui::TextUnformatted("This project is licensed under MIT.");
+            ImGui::TextUnformatted("This project is licensed under the MIT license.");
             ImGui::TextUnformatted("Source code: github.com/Repertoi-e/light-std/");
             ImGui::PopTextWrapPos();
             ImGui::EndTooltip();
