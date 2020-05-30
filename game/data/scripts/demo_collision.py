@@ -15,6 +15,7 @@ from hit import point_in_shape, aabb_vs_aabb, push_vector
 from vec import clamp_magnitude, magnitude, sqr_magnitude, normalized, dot
 
 import data_grabbing as data
+import data_editor as editor
 
 gravity = 9.8
 drag = 0.7
@@ -26,7 +27,7 @@ def load(state):
 	"""
 	Called from C++ side. Sets the state which "lstdgraphics" uses for drawing.
 	"""
-	g.state(state)
+	g.state(state, editor_spawn_shape_type = True, editor_impulse_resolution = True)
 
 	global triangle, floor
 	vertices = [
@@ -44,13 +45,32 @@ def load(state):
 	floor.pos = np.array([10.0, -10.0])
 	bodies.append(floor)
 
+def editor_variable(var, value): 
+	s = '"' + value + '"' if isinstance(value, str) else str(value)
+	exec("editor." + var + " = " + s)
+
 def unload():
 	"""
 	Called when the script is unloaded
 	"""
 	bodies.clear()
 
+def spawn_shape(pos):
+	sh = None
+	if editor.shape_spawn_type == "polygon":
+		vs = random_convex_polygon(np.random.randint(3, 8)) * 5
+		sh = shape.ConvexPolygon(vs, np.random.randint(0x1000000))
+	else:
+		sh = shape.Circle(np.random.randint(10) * 0.05 + 1)
+	b = Body(sh, 10)
+	b.pos = pos
+	bodies.append(b)
+
 def mouse_click(x, y, rightButton):
+	if rightButton:
+		spawn_shape(np.copy(data.mouse))
+		return
+
 	if not data.mouse_line:
 		data.mouse_line = True
 		data.mouse_start = np.array([x, y])
@@ -124,11 +144,51 @@ def frame(dt):
 			b.dirty_transform = True
 		# Ensure we have a cached transformed shape
 		ensure_transformed_shape(b)
+	
+	for i in range(len(bodies)):
+		a = bodies[i]
+		for j in range(i + 1, len(bodies)):
+			b = bodies[j]
 
-	floor_y = floor.pos[1]
-	if triangle.pos[1] < floor_y:
-		triangle.pos[1] = floor_y
-		triangle.vel[1] = 0
+			# Broad phase (cheaper to calculate)
+			if not aabb_vs_aabb(a.transformed_shape.aabb, b.transformed_shape.aabb):
+				continue
+
+			# Narrow phase
+			pv = push_vector(a.transformed_shape, b.transformed_shape)
+			if pv is not None:
+				if editor.impulse_resolution:
+					# Resolve collision using impulses
+					rv = b.vel - a.vel
+
+					collision_normal = normalized(pv)
+					vel_along_normal = np.dot(rv, collision_normal)
+
+					if math.isclose(sqr_magnitude(collision_normal), 0):
+						continue
+
+					e = min(a.restitution, b.restitution)
+					j = -(1 + e) * vel_along_normal
+					j /= a.inv_mass + b.inv_mass
+
+					mass_sum = a.mass + b.mass
+
+					impulse = j * collision_normal
+					apply_impulse(a, -(a.mass / mass_sum) * impulse)
+					apply_impulse(b, (b.mass / mass_sum) * impulse)
+
+					# Positional correction
+					correction = magnitude(pv) / (a.inv_mass + b.inv_mass) * 0.2 * collision_normal
+					a.pos -= a.inv_mass * correction
+					b.pos += b.inv_mass * correction
+				else:
+					# If not using impulse based resolution just move one body out of the other
+					non_static = a
+					if a.static:
+						if b.static: continue # If both are static, ignore collision :(
+						non_static = b
+					non_static.pos -= pv
+					non_static.vel = 0
 
 	for b in bodies:
 		draw_shape(b.transformed_shape, thickness = 3)

@@ -12,8 +12,12 @@ PYBIND11_MODULE(lstdgraphics, m) {
 
     m.def(
         "state",
-        [](u64 pointer) {
+        [](u64 pointer, bool editorSpawnShapeType, bool editorImpulseResolution, bool editorContinousCollision) {
             GameState = (game_state *) pointer;
+
+            GameState->EditorShowShapeType = editorSpawnShapeType;
+            GameState->EditorShowImpulseResolution = editorImpulseResolution;
+            GameState->EditorShowContinuousCollision = editorContinousCollision;
 
             // Switch our default allocator from malloc to the one the exe provides us with
             Context.Alloc = GameState->Memory->Alloc;
@@ -29,7 +33,8 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(GameState->Memory->ImGuiContext);
             ImGui::SetCurrentContext((ImGuiContext *) GameState->Memory->ImGuiContext);
         },
-        py::arg("pointer"));
+        py::arg("pointer"), py::arg("editor_spawn_shape_type") = false, py::arg("editor_impulse_resolution") = false,
+        py::arg("editor_continuous_collision") = false);
 
     m.def(
         "line",
@@ -186,7 +191,7 @@ PYBIND11_MODULE(lstdgraphics, m) {
         "convex_poly_filled",
         [](py::array_t<f32> points, u32 color) {
             assert(GameState && "State not initialized");
-          
+
             auto b = points.request();
             assert(b.shape.size() == 2 && "convex_poly_filled requires a 2D array for points");
             assert(b.shape[1] == 2 && "convex_poly_filled requires a list of 2D points as vertices");

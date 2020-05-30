@@ -48,6 +48,14 @@ struct game_state {
     void (*ViewportAddCircleFilled)(v2 center, f32 radius, u32 color, s32 numSegments);
     void (*ViewportAddConvexPolyFilled)(const f32 *data, s32 count, u32 color);
 
+    bool EditorShowShapeType = false;
+    bool EditorShowImpulseResolution = false;
+    bool EditorShowContinuousCollision = false;
+
+    s32 EditorShapeCircle = false;
+    bool EditorImpulseResolution = true;
+    bool EditorContinuousCollision = false;
+
     // We scale coordinates by this amount to appear better on the screen
     f32 PixelsPerMeter = 50;
 
@@ -56,7 +64,7 @@ struct game_state {
 
     bool PyLoaded = false;
     py::module PyModule;
-    py::function PyFrame, PyMouseClick, PyMouseRelease, PyMouseMove;
+    py::function PyFrame, PyEditorVariable, PyMouseClick, PyMouseRelease, PyMouseMove;
 
 // We need these in python.pyd
 // @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack

@@ -32,6 +32,7 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
     if (GameMemory->MainWindow->is_visible()) {
         editor_main();
         editor_scene_properties();
+        if (memory->ReloadedThisFrame) ImGui::SetWindowFocus("Python");
     }
 
     viewport_render();

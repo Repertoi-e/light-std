@@ -69,6 +69,37 @@ void editor_scene_properties() {
             ImGui::EndCombo();
         }
         if (ImGui::Button("Refresh demo files")) refresh_python_demo_files();
+        ImGui::Text("");
+
+        try {
+            if (GameState->EditorShowShapeType) {
+                ImGui::Text("Spawn shape (Right-Click):");
+                if (ImGui::RadioButton("Polygon", &GameState->EditorShapeCircle, 0)) {
+                    if (GameState->PyEditorVariable) GameState->PyEditorVariable("shape_spawn_type", "polygon");
+                }
+                if (ImGui::RadioButton("Circle", &GameState->EditorShapeCircle, 1)) {
+                    if (GameState->PyEditorVariable) GameState->PyEditorVariable("shape_spawn_type", "circle");
+                }
+            }
+
+            if (GameState->EditorShowImpulseResolution) {
+                if (ImGui::Checkbox("Impulse based resolution", &GameState->EditorImpulseResolution)) {
+                    if (GameState->PyEditorVariable) {
+                        GameState->PyEditorVariable("impulse_resolution", GameState->EditorImpulseResolution);
+                    }
+                }
+            }
+
+            if (GameState->EditorShowContinuousCollision) {
+                if (ImGui::Checkbox("Continuous collision detection", &GameState->EditorContinuousCollision)) {
+                    if (GameState->PyEditorVariable) {
+                        GameState->PyEditorVariable("continuous_collision", GameState->EditorContinuousCollision);
+                    }
+                }
+            }
+        } catch (py::error_already_set &e) {
+            report_python_error(e);
+        }
     }
     ImGui::End();
 

@@ -94,6 +94,10 @@ void load_python_demo(string demo) {
         main.attr("load")((u64) GameState);
         GameState->PyFrame = (py::function) main.attr("frame");
 
+        if (py::hasattr(main, "editor_variable")) {
+            GameState->PyEditorVariable = (py::function) main.attr("editor_variable");
+        }
+
         if (py::hasattr(main, "mouse_click")) GameState->PyMouseClick = (py::function) main.attr("mouse_click");
         if (py::hasattr(main, "mouse_release")) GameState->PyMouseRelease = (py::function) main.attr("mouse_release");
         if (py::hasattr(main, "mouse_move")) GameState->PyMouseMove = (py::function) main.attr("mouse_move");
