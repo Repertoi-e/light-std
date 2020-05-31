@@ -51,10 +51,14 @@ struct game_state {
     bool EditorShowShapeType = false;
     bool EditorShowImpulseResolution = false;
     bool EditorShowContinuousCollision = false;
+    bool EditorShowCalculateContactPoints = false;
+    bool EditorShowShowContactPoints = false;
 
     s32 EditorShapeCircle = false;
-    bool EditorImpulseResolution = true;
+    bool EditorImpulseResolution = false;
     bool EditorContinuousCollision = false;
+    bool EditorCalculateContactPoints = false;
+    bool EditorShowContactPoints = false;
 
     // We scale coordinates by this amount to appear better on the screen
     f32 PixelsPerMeter = 50;
@@ -89,7 +93,6 @@ void editor_scene_properties();
 
 void viewport_render();
 
-inline game_state *GameState = null;
+// @TODO: #define global inline? (just for annotation)
 
-inline bucket_array<shader> *Shaders = null;
-inline bucket_array<texture_2D> *Texture2Ds = null;
+inline game_state *GameState = null;

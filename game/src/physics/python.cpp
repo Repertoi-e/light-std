@@ -12,13 +12,15 @@ PYBIND11_MODULE(lstdgraphics, m) {
 
     m.def(
         "state",
-        [](u64 pointer, bool editorSpawnShapeType, bool editorImpulseResolution, bool editorContinousCollision) {
+        [](u64 pointer, bool editorSpawnShapeType, bool editorImpulseResolution, bool editorContinousCollision, bool editorCalculateContactPoints, bool editorShowContactPoints) {
             GameState = (game_state *) pointer;
 
             GameState->EditorShowShapeType = editorSpawnShapeType;
             GameState->EditorShowImpulseResolution = editorImpulseResolution;
             GameState->EditorShowContinuousCollision = editorContinousCollision;
-
+            GameState->EditorShowCalculateContactPoints = editorCalculateContactPoints;
+            GameState->EditorShowShowContactPoints = editorShowContactPoints;
+            
             // Switch our default allocator from malloc to the one the exe provides us with
             Context.Alloc = GameState->Memory->Alloc;
 
@@ -34,7 +36,7 @@ PYBIND11_MODULE(lstdgraphics, m) {
             ImGui::SetCurrentContext((ImGuiContext *) GameState->Memory->ImGuiContext);
         },
         py::arg("pointer"), py::arg("editor_spawn_shape_type") = false, py::arg("editor_impulse_resolution") = false,
-        py::arg("editor_continuous_collision") = false);
+        py::arg("editor_continuous_collision") = false, py::arg("editor_calculate_contact_points") = false, py::arg("editor_show_contact_points") = false);
 
     m.def(
         "line",

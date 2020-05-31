@@ -120,7 +120,7 @@ def point_in_shape(p, shape):
 def is_separating_axis_polygons(axis, v1, v2):
     """
     Returns True and None if "axis" is a separating axis of v1 and v2 (v1 and v2 are vertices).
-    Return False and the the push vector otherwise.
+    Return False and the the overlapping amount otherwise.
     """
     m1, n1 = float("Inf"), float("-Inf")
     m2, n2 = float("Inf"), float("-Inf")
@@ -137,17 +137,18 @@ def is_separating_axis_polygons(axis, v1, v2):
 
     if n1 >= m2 and n2 >= m1:
         d = min(n2 - m1, n1 - m2)
-
-        # Push a bit more than needed so the shapes do not overlap in future tests due to float precision
-        d_over_axis_squared = d / np.dot(axis, axis) + 1e-10
-        return False, d_over_axis_squared * axis
+        # Since we calculate the projection above without diving by 
+        # the squared magnitude (saves time) we need to do that now.
+        # We also push a bit more than needed so the shapes don't 
+        # overlap in future tests due to float precision
+        return False, (d / sqr_magnitude(axis) + 1e-10)
     else:
         return True, None
 
 def is_separating_axis_polygon_and_circle(axis, v1, center, radius):
     """
     Returns True and None if "axis" is a separating axis of v1 and a circle (v1 are vertices).
-    Return False and the the push vector otherwise.
+    Return False and the the overlapping amount otherwise.
     """
     m1, n1 = float("Inf"), float("-Inf")
 
@@ -162,37 +163,34 @@ def is_separating_axis_polygon_and_circle(axis, v1, center, radius):
 
     if n1 >= m2 and n2 >= m1:
         d = min(n2 - m1, n1 - m2)
-
-        # Push a bit more than needed so the shapes do not overlap in future tests due to float precision
-        d_over_axis_squared = d / np.dot(axis, axis) + 1e-10
-        return False, d_over_axis_squared * axis
+        # Since we calculate the projection above without diving by 
+        # the squared magnitude (saves time) we need to do that now.
+        # We also push a bit more than needed so the shapes don't 
+        # overlap in future tests due to float precision
+        return False, (d / sqr_magnitude(axis) + 1e-10)
     else:
         return True, None
 
-def polygon_vs_polygon_push_vector(polygon_a, polygon_b):
+def polygon_vs_polygon_overlap(polygon_a, polygon_b):
     """
-    Returns the minimum push vector of two polygons (None if they don't intersect).
+    Returns the axis of minimum translation and the overlap of the two polygons (None if they don't intersect).
     "polygon_a" and "polygon_b" must be instances of ConvexPolygon.
     """
     axes = np.concatenate((polygon_a.normals, polygon_b.normals), axis = 0)
 
-    push_vectors = []
+    overlaps = []
     for axis in axes:
-        separating, pv = is_separating_axis_polygons(axis, polygon_a.vertices, polygon_b.vertices)
+        separating, overlap = is_separating_axis_polygons(axis, polygon_a.vertices, polygon_b.vertices)
         if separating:
             return None # The polygons don't overlap if there exists at least one axis of separation
-        push_vectors.append(pv)
+        overlaps.append([axis, overlap])
 
-    mpv = min(push_vectors, key = (lambda v: sqr_magnitude(v)))
+    m = min(overlaps, key = (lambda v: sqr_magnitude(v[0] * v[1])))
+    return m[0], m[1]
 
-    d = polygon_b.centroid - polygon_a.centroid
-    if np.dot(d, mpv) > 0:
-        mpv = -mpv
-    return -mpv
-
-def polygon_vs_circle_push_vector(polygon, circle):
+def polygon_vs_circle_overlap(polygon, circle):
     """
-    Return the minimum push vector of a polygon and a circle (None if they don't intersect).
+    Returns the axis of minimum translation and the overlap of a polygon and a circle (None if they don't intersect).
     "polygon" and "circle" must be instances of ConvexPolygon and Circle respectively.
     """
     closest, closest_dist = None, float("Inf")
@@ -204,23 +202,19 @@ def polygon_vs_circle_push_vector(polygon, circle):
             closest_dist = d
     axes = np.concatenate((polygon.normals, [normalized(closest)]), axis = 0)
 
-    push_vectors = []
+    overlaps = []
     for axis in axes:
-        separating, pv = is_separating_axis_polygon_and_circle(axis, polygon.vertices, circle.centroid, circle.radius)
+        separating, overlap = is_separating_axis_polygon_and_circle(axis, polygon.vertices, circle.centroid, circle.radius)
         if separating:
             return None # The polygon and circle don't overlap if there exists at least one axis of separation
-        push_vectors.append(pv)
+        overlaps.append([axis, overlap])
 
-    mpv = min(push_vectors, key = (lambda v: sqr_magnitude(v)))
+    m = min(overlaps, key = (lambda v: sqr_magnitude(v[0] * v[1])))
+    return m[0], m[1]
 
-    d = circle.centroid - polygon.centroid
-    if np.dot(d, mpv) > 0:
-        mpv = -mpv
-    return -mpv
-
-def push_vector(shape_a, shape_b):
+def minimum_translation_vector(shape_a, shape_b):
     """
-    Return the minimum push vector of a two shapes. (None if they don't intersect).
+    Returns the minimum translation axis and the overlap of a two shapes. (None if they don't intersect).
     """
     a_circle, b_circle = shape_a.type == sh.Type.CIRCLE, shape_b.type == sh.Type.CIRCLE
     
@@ -230,18 +224,44 @@ def push_vector(shape_a, shape_b):
         if sqr_magnitude(a_to_b) > r ** 2:
             return None
         d = magnitude(a_to_b)
-        if d != 0:
-            return a_to_b / d * (r - d)
+        if not math.isclose(d, 0):
+            return a_to_b, (r - d)
         else:
-            return np.array([1.0, 0.0]) * max(shape_a.radius, shape_b.radius)
-    swap = False
+            return np.array([1.0, 0.0]), max(shape_a.radius, shape_b.radius)
     if a_circle != b_circle:
-        if a_circle: 
-            shape_a, shape_b = shape_b, shape_a
-            swap = True
+        # We need to feed polygon_vs_circle_overlap first the polygon and the circle second 
+        if a_circle:
+            return polygon_vs_circle_overlap(shape_b, shape_a)
+        else:
+            return polygon_vs_circle_overlap(shape_a, shape_b)
+    else:
+        return polygon_vs_polygon_overlap(shape_a, shape_b)
 
-        result = polygon_vs_circle_push_vector(shape_a, shape_b)
-        if result is not None and swap: result = -result
-        return result
+def get_average_contact_point(shape, mta):
+    """
+    Returns a very very crude approximation of the contact point of a shape when a collision occurs.
+    It is used to calculate the angular velocity the shape recieves after the collision.
+    Calculates the two vertices with the largest projection onto "mta" 
+    and returns the max or their average using some specified tolerance. 
+    For circles it returns the center (we don't even bother, you can't tell if they are rotating haha).
+    """
+    if shape.type == sh.Type.CIRCLE: return shape.centroid
 
-    return polygon_vs_polygon_push_vector(shape_a, shape_b)
+    n1, n2 = float("-Inf"), float("-Inf")
+    n1_v, n2_v = None, None
+
+    for v in shape.vertices:
+        proj = np.dot(v, mta)
+        if proj > n2:
+            if proj >= n1:
+                n1, n2 = proj, n1
+                n1_v, n2_v = v, n1_v
+            else:
+                n2 = proj
+                n2_v = v
+    
+    tolerance = 0.1
+    if n1 - n2 < tolerance:
+        return (n1_v + n2_v) / 2
+    else:
+        return n1_v

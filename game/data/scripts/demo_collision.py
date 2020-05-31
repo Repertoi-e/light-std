@@ -10,7 +10,7 @@ import cProfile, pstats
 from drawing import draw_shape
 from shape import random_convex_polygon
 from body import Body, ensure_transformed_shape, apply_force, apply_impulse, set_static
-from hit import point_in_shape, aabb_vs_aabb, push_vector
+from hit import point_in_shape, aabb_vs_aabb, minimum_translation_vector, get_average_contact_point
 
 from vec import clamp_magnitude, magnitude, sqr_magnitude, normalized, dot
 
@@ -27,7 +27,12 @@ def load(state):
 	"""
 	Called from C++ side. Sets the state which "lstdgraphics" uses for drawing.
 	"""
-	g.state(state, editor_spawn_shape_type = True, editor_impulse_resolution = True)
+	g.state(state,
+		editor_spawn_shape_type = True,
+		editor_impulse_resolution = True,
+		editor_calculate_contact_points = True,
+		editor_show_contact_points = True
+	)
 
 	global triangle, floor
 	vertices = [
@@ -38,6 +43,7 @@ def load(state):
 	poly = shape.ConvexPolygon(vertices, 0xed37d8)
 	triangle = Body(poly, 10)
 	triangle.pos = np.array([10.0, 0.0])
+	triangle.restitution = 0.5
 	bodies.append(triangle)
 
 	rect = shape.make_rect(100, 0.2, 0x42f5d7)
@@ -144,6 +150,8 @@ def frame(dt):
 			b.dirty_transform = True
 		# Ensure we have a cached transformed shape
 		ensure_transformed_shape(b)
+							
+		b.contact = None
 	
 	for i in range(len(bodies)):
 		a = bodies[i]
@@ -155,43 +163,60 @@ def frame(dt):
 				continue
 
 			# Narrow phase
-			pv = push_vector(a.transformed_shape, b.transformed_shape)
-			if pv is not None:
-				if editor.impulse_resolution:
-					# Resolve collision using impulses
-					rv = b.vel - a.vel
+			collision_result = minimum_translation_vector(a.transformed_shape, b.transformed_shape)
+			if collision_result is not None:
+				mta, overlap = collision_result
+				
+				d = b.transformed_shape.centroid - a.transformed_shape.centroid
+				if np.dot(d, mta) < 0:
+					mta = -mta
 
-					collision_normal = normalized(pv)
+				collision_normal = normalized(mta)
+				# There are rare cases where the collision normal is zero,
+				# because normalized() returns zero if the input vector has near zero length.
+				# This happens with collisions with a really really small depth.
+				# So we just ignore them.
+				if math.isclose(sqr_magnitude(collision_normal), 0):
+					continue
+
+				if editor.impulse_resolution:					
+					rv = b.vel - a.vel
 					vel_along_normal = np.dot(rv, collision_normal)
 
-					if math.isclose(sqr_magnitude(collision_normal), 0):
-						continue
-
 					e = min(a.restitution, b.restitution)
-					j = -(1 + e) * vel_along_normal
+					j = (1 + e) * vel_along_normal
 					j /= a.inv_mass + b.inv_mass
 
-					mass_sum = a.mass + b.mass
-
 					impulse = j * collision_normal
-					apply_impulse(a, -(a.mass / mass_sum) * impulse)
-					apply_impulse(b, (b.mass / mass_sum) * impulse)
+
+					mass_sum = a.mass + b.mass
+					impulse_a = (a.mass / mass_sum) * impulse
+					impulse_b = -(b.mass / mass_sum) * impulse
+
+					contact_a = a.transformed_shape.centroid
+					contact_b = b.transformed_shape.centroid
+					if editor.calculate_contact_points:
+						contact_a = get_average_contact_point(a.transformed_shape, mta)
+						contact_b = get_average_contact_point(b.transformed_shape, -mta)
+					a.contact = contact_a
+					b.contact = contact_b
+
+					apply_impulse(a, impulse_a, point = contact_a - a.transformed_shape.centroid)
+					apply_impulse(b, impulse_b, point = contact_b - b.transformed_shape.centroid)
 
 					# Positional correction
-					correction = magnitude(pv) / (a.inv_mass + b.inv_mass) * 0.2 * collision_normal
+					correction = overlap / (a.inv_mass + b.inv_mass) * 0.2 * collision_normal
 					a.pos -= a.inv_mass * correction
 					b.pos += b.inv_mass * correction
 				else:
-					# If not using impulse based resolution just move one body out of the other
-					non_static = a
-					if a.static:
-						if b.static: continue # If both are static, ignore collision :(
-						non_static = b
-					non_static.pos -= pv
-					non_static.vel = 0
+					t = overlap / (a.inv_mass + b.inv_mass) * collision_normal
+					a.pos += a.inv_mass * t
+					b.pos -= b.inv_mass * t
 
 	for b in bodies:
 		draw_shape(b.transformed_shape, thickness = 3)
+		if editor.show_contact_points and b.contact is not None:
+			g.circle_filled(b.contact, 0.1, num_segments = 3, color = 0x35fc03)
 		#draw_shape(b.transformed_shape, thickness = 3, aabb = b.transformed_shape.aabb)
 
 	if data.mouse_line and data.mouse_start is not None and data.mouse is not None:

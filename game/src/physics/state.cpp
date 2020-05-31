@@ -4,11 +4,7 @@ void reload_global_state() {
     Context.AllocAlignment = 16;  // For SIMD
 
     MANAGE_GLOBAL_STATE(GameState);
-
     MANAGE_GLOBAL_STATE(AssetCatalog);
-
-    MANAGE_GLOBAL_STATE(Shaders);
-    MANAGE_GLOBAL_STATE(Texture2Ds);
 
     // We need these in python.pyb
     GameState->Memory = GameMemory;

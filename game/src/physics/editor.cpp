@@ -97,6 +97,22 @@ void editor_scene_properties() {
                     }
                 }
             }
+
+            if (GameState->EditorShowCalculateContactPoints) {
+                if (ImGui::Checkbox("Calculate contact points", &GameState->EditorCalculateContactPoints)) {
+                    if (GameState->PyEditorVariable) {
+                        GameState->PyEditorVariable("calculate_contact_points", GameState->EditorCalculateContactPoints);
+                    }
+                }
+            }
+
+            if (GameState->EditorShowShowContactPoints) {
+                if (ImGui::Checkbox("Show contact points", &GameState->EditorShowContactPoints)) {
+                    if (GameState->PyEditorVariable) {
+                        GameState->PyEditorVariable("show_contact_points", GameState->EditorShowContactPoints);
+                    }
+                }
+            }
         } catch (py::error_already_set &e) {
             report_python_error(e);
         }
