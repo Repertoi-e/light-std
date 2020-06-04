@@ -237,6 +237,7 @@ def minimum_translation_vector(shape_a, shape_b):
 	else:
 		return polygon_vs_polygon_minimum_translation_vector(shape_a, shape_b)
 
+# OLD. Don't use this.
 def get_contact_points(shape, mtv):
 	if shape.type == sh.Type.CIRCLE: return [shape.centroid]
 
@@ -259,6 +260,7 @@ def get_contact_points(shape, mtv):
 	else:
 		return [n1_v]
 
+# OLD. Don't use this.
 def get_average_contact_point(shape, mtv):
 	"""
 	Returns a very very crude approximation of the contact point of a shape when a collision occurs.

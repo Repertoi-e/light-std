@@ -53,7 +53,7 @@ void reload_global_state() {
     if (GameState->PyCurrentDemo) {
         load_python_demo(GameState->PyCurrentDemo);
     } else {
-        if (GameState->PyDemoFiles.Count) load_python_demo(GameState->PyDemoFiles[0]);
+        if (GameState->PyDemoFiles.Count) load_python_demo("demo_grabbing.py");
     }
 }
 

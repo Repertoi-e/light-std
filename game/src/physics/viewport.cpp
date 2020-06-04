@@ -3,7 +3,7 @@
 
 void viewport_render() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Viewport", null, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoNav);
+    ImGui::Begin("Viewport", null, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoNav);
     ImGui::PopStyleVar(1);
 
     v2 viewportPos = ImGui::GetWindowPos();

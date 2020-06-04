@@ -11,9 +11,9 @@
 #include <lstd/os.h>
 
 // These can be modified with command line arguments.
-u32 GameMemoryInMiB = 128;
+u32 GameMemoryInMiB = 32;
 u32 GameWidth = 1200, GameHeight = 600, GameFPS = 60;
-string GameFileName = "cars.dll";
+string GameFileName = "physics.dll";
 
 allocator GameAlloc;  // Imgui uses this, it needs to be global
 

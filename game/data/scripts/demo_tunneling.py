@@ -23,32 +23,46 @@ drag = 0.7
 
 bodies = []
 
+bullet = None
+timer = 0
+
+def launch_bullet():
+	global bullet
+	bullet.pos = np.array([-10.0, -5.0])
+	bullet.vel = np.array([0.0, 0.0])
+	apply_impulse(bullet, np.array([80.0, 0.0]))
+
 def load(state):
 	"""
 	Called from C++ side. Sets the state which "lstdgraphics" uses for drawing.
 	"""
 	g.state(state,
-		editor_spawn_shape_type = True,
 		editor_draw_aabb = True,
 		editor_positional_correction = True,
 		editor_debug_intersections = True,
 		editor_iterations = True
 	)
 
-	vertices = [
-		[-1, -1],
-		[1, -1],
-		[0, 1]
-	]
-	poly = shape.ConvexPolygon(vertices, 0xed37d8)
-	tri = Body(poly, 10)
-	tri.pos = np.array([10.0, 0.0])
-	bodies.append(tri)
+	global bullet
+	circle = shape.Circle(0.2, 0xed37d8)
+	bullet = Body(circle, 10)
+	launch_bullet()
+	bodies.append(bullet)
 
 	rect = shape.make_rect(100, 0.2, 0x42f5d7)
 	floor = Body(rect, 1, static = True)
 	floor.pos = np.array([10.0, -10.0])
 	bodies.append(floor)
+
+	rect = shape.make_rect(0.2, 5, 0x42f5d7)
+	thin_wall = Body(rect, 1, static = True)
+	thin_wall.pos = np.array([13.0, -5.0])
+	bodies.append(thin_wall)
+
+	rect = shape.make_rect(10, 5, 0x42f5d7)
+	thick_wall = Body(rect, 1, static = True)
+	thick_wall.pos = np.array([27.0, -5.0])
+	bodies.append(thick_wall)
 
 def editor_variable(var, value): 
 	s = '"' + value + '"' if isinstance(value, str) else str(value)
@@ -60,24 +74,7 @@ def unload():
 	"""
 	bodies.clear()
 
-def spawn_shape(pos):
-	sh = None
-	if editor.shape_spawn_type == "polygon":
-		vs = random_convex_polygon(np.random.randint(3, 8)) * 5
-		sh = shape.ConvexPolygon(vs, np.random.randint(0x1000000))
-	elif editor.shape_spawn_type == "circle":
-		sh = shape.Circle(np.random.randint(10) * 0.05 + 1, np.random.randint(0x1000000))
-	else:
-		sh = shape.make_rect(np.random.randint(10) / 10 + 1, np.random.randint(10) / 10 + 1, np.random.randint(0x1000000))
-	b = Body(sh, np.random.randint(10) + 5)
-	b.pos = pos
-	bodies.append(b)
-
 def mouse_click(x, y, rightButton):
-	if rightButton:
-		spawn_shape(np.copy(data.mouse))
-		return
-
 	if not data.mouse_line:
 		data.mouse_line = True
 		data.mouse_start = np.array([x, y])
@@ -95,9 +92,6 @@ def mouse_click(x, y, rightButton):
 			break
 
 def mouse_release(rightButton):
-	if rightButton:
-		return
-
 	if data.mouse_line:
 		data.mouse_line = False
 
@@ -129,6 +123,13 @@ def frame(dt):
 	Called each frame from C++ side. Use "lstdgraphics" module to draw primitives.
 	We also have some helper functions in "drawing.py" (which also use "lstdgraphics").
 	"""
+
+	global timer
+	timer += dt
+
+	if timer > 3:
+		launch_bullet()
+		timer = 0 
 
 	#profile = cProfile.Profile()
 	#profile.enable()
