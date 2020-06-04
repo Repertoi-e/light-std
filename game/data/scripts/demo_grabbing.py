@@ -10,34 +10,37 @@ import cProfile, pstats
 from drawing import draw_shape
 from shape import random_convex_polygon
 from body import Body, ensure_transformed_shape, apply_force, apply_impulse, set_static
-from hit import point_in_shape, aabb_vs_aabb, push_vector
+from hit import point_in_shape, aabb_vs_aabb
 
-from vec import clamp_magnitude, magnitude, sqr_magnitude, normalized, dot
+from vec import clamp_magnitude, magnitude, sqr_magnitude, normalized, dot_mat
 
+import data_editor as editor
 import data_grabbing as data
 
 gravity = 9.8
 drag = 0.7
 
 bodies = []
-triangle, floor = None, None
+tri, floor = None, None
 
 def load(state):
 	"""
 	Called from C++ side. Sets the state which "lstdgraphics" uses for drawing.
 	"""
-	g.state(state)
+	g.state(state,
+		editor_draw_aabb = True
+	)
 
-	global triangle, floor
+	global tri, floor
 	vertices = [
 		[-1, -1],
 		[1, -1],
 		[0, 1]
 	]
 	poly = shape.ConvexPolygon(vertices, 0xed37d8)
-	triangle = Body(poly, 10)
-	triangle.pos = np.array([10.0, 0.0])
-	bodies.append(triangle)
+	tri = Body(poly, 10)
+	tri.pos = np.array([10.0, 0.0])
+	bodies.append(tri)
 
 	rect = shape.make_rect(100, 0.2, 0x42f5d7)
 	floor = Body(rect, 1, static = True)
@@ -51,12 +54,14 @@ def unload():
 	bodies.clear()
 
 def mouse_click(x, y, rightButton):
+	if rightButton: return
+	
 	if not data.mouse_line:
 		data.mouse_line = True
 		data.mouse_start = np.array([x, y])
 
 	for b in bodies:
-		mouse_in_local_space = dot(b.inv_model_mat, data.mouse)
+		mouse_in_local_space = dot_mat(b.inv_model_mat, data.mouse)
 
 		if point_in_shape(mouse_in_local_space, b.shape):
 			data.grabbed = b
@@ -126,13 +131,12 @@ def frame(dt):
 		ensure_transformed_shape(b)
 
 	floor_y = floor.pos[1]
-	if triangle.pos[1] < floor_y:
-		triangle.pos[1] = floor_y
-		triangle.vel[1] = 0
+	if tri.pos[1] < floor_y:
+		tri.pos[1] = floor_y
+		tri.vel[1] = 0
 
 	for b in bodies:
-		draw_shape(b.transformed_shape, thickness = 3)
-		#draw_shape(b.transformed_shape, thickness = 3, aabb = b.transformed_shape.aabb)
+		draw_shape(b.transformed_shape, thickness = 3, aabb = b.transformed_shape.aabb if editor.draw_aabb else None)
 
 	if data.mouse_line and data.mouse_start is not None and data.mouse is not None:
 		g.line(data.mouse_start, data.mouse, color = 0xffe62b)

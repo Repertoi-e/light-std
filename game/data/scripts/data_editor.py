@@ -1,8 +1,9 @@
 
 shape_spawn_type = "polygon"
 
-impulse_resolution = True
-continuous_collision = False
+draw_aabb = False
 
-calculate_contact_points = False
-show_contact_points = False
+positional_correction = True
+
+debug_intersections = False
+iterations = 5

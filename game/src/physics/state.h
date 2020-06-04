@@ -49,16 +49,16 @@ struct game_state {
     void (*ViewportAddConvexPolyFilled)(const f32 *data, s32 count, u32 color);
 
     bool EditorShowShapeType = false;
-    bool EditorShowImpulseResolution = false;
-    bool EditorShowContinuousCollision = false;
-    bool EditorShowCalculateContactPoints = false;
-    bool EditorShowShowContactPoints = false;
+    bool EditorShowDrawAABB = false;
+    bool EditorShowPositionalCorrection = false;
+    bool EditorShowDebugIntersections = false;
+    bool EditorShowIterations = false;
 
-    s32 EditorShapeCircle = false;
-    bool EditorImpulseResolution = false;
-    bool EditorContinuousCollision = false;
-    bool EditorCalculateContactPoints = false;
-    bool EditorShowContactPoints = false;
+    s32 EditorShapeType = false;
+    bool EditorDrawAABB = false;
+    bool EditorPositionalCorrection = false;
+    bool EditorDebugIntersections = false;
+    s32 EditorIterations = 5;
 
     // We scale coordinates by this amount to appear better on the screen
     f32 PixelsPerMeter = 50;

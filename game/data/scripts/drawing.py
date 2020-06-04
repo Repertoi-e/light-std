@@ -26,31 +26,31 @@ import cProfile, pstats
 # This file implements drawing of different types of objects
 #
 
-def draw_shape(shape, normals_color = 0, thickness = 3, aabb = None):
-    """
-    Draws polygon with lines connecting each vertex.
-    The color is stored in "shape" .
-    The shape is transformed by "model_mat".
-    Use "normals_color" to specify the color of the normals (if "shape" is a polygon).
-    Use "aabb" to draw a bounding box (also gets transformed by model_mat).
-    """
+def draw_shape(shape, normals_color = 0, aabb = None, thickness = 3):
+	"""
+	Draws polygon with lines connecting each vertex.
+	The color is stored in "shape" .
+	The shape is transformed by "model_mat".
+	Use "normals_color" to specify the color of the normals (if "shape" is a polygon).
+	Use "aabb" to draw a bounding box (also gets transformed by model_mat).
+	"""
 
-    if shape.type == sh.Type.CIRCLE:
-        g.circle_filled(shape.centroid, shape.radius, num_segments = 20, color = shape.color)
-    else:
-        g.convex_poly_filled(shape.vertices, color = shape.color)
-        #for i, e in enumerate(shape.edges):
-        #    a = dot(model_mat, e[0])
-        #    b = dot(model_mat, e[1])
+	if shape.type == sh.Type.CIRCLE:
+		g.circle_filled(shape.centroid, shape.radius, num_segments = 20, color = shape.color)
+	else:
+		g.convex_poly_filled(shape.vertices, color = shape.color)
+		#for i, e in enumerate(shape.edges):
+		#	a = dot_mat(model_mat, e[0])
+		#	b = dot_mat(model_mat, e[1])
 
-        #    if normals_color != 0:        
-        #        mid = np.array([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])
-        #        n = shape.normals[i] 
-        #        g.line(mid, (mid + n), color = normals_color, thickness = thickness)
+		#	if normals_color != 0:		
+		#		mid = np.array([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])
+		#		n = shape.normals[i] 
+		#		g.line(mid, (mid + n), color = normals_color, thickness = thickness)
 
-        #    g.line(a, b, color = shape.color, thickness = thickness)
+		#	g.line(a, b, color = shape.color, thickness = thickness)
 
-    if aabb is not None:
-        m = aabb[0] - aabb[1]
-        n = aabb[0] + aabb[1]
-        g.rect(m, n, 0xff0000, thickness = thickness)
+	if aabb is not None:
+		m = aabb[0] - aabb[1]
+		n = aabb[0] + aabb[1]
+		g.rect(m, n, 0xff0000, thickness = thickness)

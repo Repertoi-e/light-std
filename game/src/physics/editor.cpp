@@ -74,42 +74,79 @@ void editor_scene_properties() {
         try {
             if (GameState->EditorShowShapeType) {
                 ImGui::Text("Spawn shape (Right-Click):");
-                if (ImGui::RadioButton("Polygon", &GameState->EditorShapeCircle, 0)) {
-                    if (GameState->PyEditorVariable) GameState->PyEditorVariable("shape_spawn_type", "polygon");
-                }
-                if (ImGui::RadioButton("Circle", &GameState->EditorShapeCircle, 1)) {
-                    if (GameState->PyEditorVariable) GameState->PyEditorVariable("shape_spawn_type", "circle");
-                }
-            }
-
-            if (GameState->EditorShowImpulseResolution) {
-                if (ImGui::Checkbox("Impulse based resolution", &GameState->EditorImpulseResolution)) {
+                if (ImGui::RadioButton("Polygon", &GameState->EditorShapeType, 0)) {
                     if (GameState->PyEditorVariable) {
-                        GameState->PyEditorVariable("impulse_resolution", GameState->EditorImpulseResolution);
+                        GameState->PyEditorVariable("shape_spawn_type", "polygon");
+                    } else {
+                        fmt::print(
+                            ">>> Attempting to set editor variable but demo file has no {!YELLOW}\"def "
+                            "editor_variable(var, value): ...\"{!}.");
+                    }
+                }
+                if (ImGui::RadioButton("Circle", &GameState->EditorShapeType, 1)) {
+                    if (GameState->PyEditorVariable) {
+                        GameState->PyEditorVariable("shape_spawn_type", "circle");
+                    } else {
+                        fmt::print(
+                            ">>> Attempting to set editor variable but demo file has no {!YELLOW}\"def "
+                            "editor_variable(var, value): ...\"{!}.");
+                    }
+                }
+                if (ImGui::RadioButton("Rectangle", &GameState->EditorShapeType, 2)) {
+                    if (GameState->PyEditorVariable) {
+                        GameState->PyEditorVariable("shape_spawn_type", "rectangle");
+                    } else {
+                        fmt::print(
+                            ">>> Attempting to set editor variable but demo file has no {!YELLOW}\"def "
+                            "editor_variable(var, value): ...\"{!}.");
                     }
                 }
             }
 
-            if (GameState->EditorShowContinuousCollision) {
-                if (ImGui::Checkbox("Continuous collision detection", &GameState->EditorContinuousCollision)) {
+            if (GameState->EditorShowDrawAABB) {
+                if (ImGui::Checkbox("Draw AABB", &GameState->EditorDrawAABB)) {
                     if (GameState->PyEditorVariable) {
-                        GameState->PyEditorVariable("continuous_collision", GameState->EditorContinuousCollision);
+                        GameState->PyEditorVariable("draw_aabb", GameState->EditorDrawAABB);
+                    } else {
+                        fmt::print(
+                            ">>> Attempting to set editor variable but demo file has no {!YELLOW}\"def "
+                            "editor_variable(var, value): ...\"{!}.");
                     }
                 }
             }
 
-            if (GameState->EditorShowCalculateContactPoints) {
-                if (ImGui::Checkbox("Calculate contact points", &GameState->EditorCalculateContactPoints)) {
+            if (GameState->EditorShowPositionalCorrection) {
+                if (ImGui::Checkbox("Positional correction", &GameState->EditorPositionalCorrection)) {
                     if (GameState->PyEditorVariable) {
-                        GameState->PyEditorVariable("calculate_contact_points", GameState->EditorCalculateContactPoints);
+                        GameState->PyEditorVariable("positional_correction", GameState->EditorPositionalCorrection);
+                    } else {
+                        fmt::print(
+                            ">>> Attempting to set editor variable but demo file has no {!YELLOW}\"def "
+                            "editor_variable(var, value): ...\"{!}.");
                     }
                 }
             }
 
-            if (GameState->EditorShowShowContactPoints) {
-                if (ImGui::Checkbox("Show contact points", &GameState->EditorShowContactPoints)) {
+            if (GameState->EditorShowDebugIntersections) {
+                if (ImGui::Checkbox("Debug intersections", &GameState->EditorDebugIntersections)) {
                     if (GameState->PyEditorVariable) {
-                        GameState->PyEditorVariable("show_contact_points", GameState->EditorShowContactPoints);
+                        GameState->PyEditorVariable("debug_intersections", GameState->EditorDebugIntersections);
+                    } else {
+                        fmt::print(
+                            ">>> Attempting to set editor variable but demo file has no {!YELLOW}\"def "
+                            "editor_variable(var, value): ...\"{!}.");
+                    }
+                }
+            }
+
+            if (GameState->EditorShowIterations) {
+                if (ImGui::SliderInt("Iterations", &GameState->EditorIterations, 1, 20)) {
+                    if (GameState->PyEditorVariable) {
+                        GameState->PyEditorVariable("iterations", GameState->EditorIterations);
+                    } else {
+                        fmt::print(
+                            ">>> Attempting to set editor variable but demo file has no {!YELLOW}\"def "
+                            "editor_variable(var, value): ...\"{!}.");
                     }
                 }
             }

@@ -12,15 +12,16 @@ PYBIND11_MODULE(lstdgraphics, m) {
 
     m.def(
         "state",
-        [](u64 pointer, bool editorSpawnShapeType, bool editorImpulseResolution, bool editorContinousCollision, bool editorCalculateContactPoints, bool editorShowContactPoints) {
+        [](u64 pointer, bool editorSpawnShapeType, bool editorDrawAABB, bool editorPositionalCorrection,
+           bool editorDebugIntersections, bool editorIterations) {
             GameState = (game_state *) pointer;
 
             GameState->EditorShowShapeType = editorSpawnShapeType;
-            GameState->EditorShowImpulseResolution = editorImpulseResolution;
-            GameState->EditorShowContinuousCollision = editorContinousCollision;
-            GameState->EditorShowCalculateContactPoints = editorCalculateContactPoints;
-            GameState->EditorShowShowContactPoints = editorShowContactPoints;
-            
+            GameState->EditorShowDrawAABB = editorDrawAABB;
+            GameState->EditorShowPositionalCorrection = editorPositionalCorrection;
+            GameState->EditorShowDebugIntersections = editorDebugIntersections;
+            GameState->EditorShowIterations = editorIterations;
+
             // Switch our default allocator from malloc to the one the exe provides us with
             Context.Alloc = GameState->Memory->Alloc;
 
@@ -35,8 +36,9 @@ PYBIND11_MODULE(lstdgraphics, m) {
             assert(GameState->Memory->ImGuiContext);
             ImGui::SetCurrentContext((ImGuiContext *) GameState->Memory->ImGuiContext);
         },
-        py::arg("pointer"), py::arg("editor_spawn_shape_type") = false, py::arg("editor_impulse_resolution") = false,
-        py::arg("editor_continuous_collision") = false, py::arg("editor_calculate_contact_points") = false, py::arg("editor_show_contact_points") = false);
+        py::arg("pointer"), py::arg("editor_spawn_shape_type") = false, py::arg("editor_draw_aabb") = false,
+        py::arg("editor_positional_correction") = false, py::arg("editor_debug_intersections") = false,
+        py::arg("editor_iterations") = false);
 
     m.def(
         "line",

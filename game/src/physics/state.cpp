@@ -92,6 +92,15 @@ void load_python_demo(string demo) {
 
         if (py::hasattr(main, "editor_variable")) {
             GameState->PyEditorVariable = (py::function) main.attr("editor_variable");
+
+            if (GameState->EditorShowPositionalCorrection) {
+                GameState->EditorPositionalCorrection = true;
+                GameState->PyEditorVariable("positional_correction", true);
+            }
+            if (GameState->EditorShowIterations) {
+                GameState->EditorIterations = 5;
+                GameState->PyEditorVariable("iterations", 5);
+            }
         }
 
         if (py::hasattr(main, "mouse_click")) GameState->PyMouseClick = (py::function) main.attr("mouse_click");
