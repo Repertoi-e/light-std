@@ -1,4 +1,4 @@
-import lstdgraphics as h
+import lstdgraphics as g
 import numpy as np
 
 import math
