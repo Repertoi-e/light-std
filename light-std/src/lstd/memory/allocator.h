@@ -107,17 +107,17 @@ struct allocation_header {
 #endif
 
     // Useful for debugging (better than file and line, in my opinion, because you can set a breakpoint with the ID
-    // in allocate() below). Every allocation has an unique ID equal to the ID of the previous allocation + 1.
+    // in general_allocate()). Every allocation has an unique ID equal to the ID of the previous allocation + 1.
     // This is useful for debugging bugs related to allocations because (assuming your program isn't multithreaded)
     // each time you run your program the ID of each allocation is easily reproducible
     // (assuming no randomness from the user side).
-    u32 ID;
+    s64 ID;
 
-    // This is used to keep track of how many times this block has been reallocated.
-    // When reallocate is called we check if the block can be directly resized in place (using allocation_mode::RESIZE).
-    // If not, we allocate a new block and transfer all the information to it there.
-    // In both cases the ID above stays the same and this "local" ID is incremented.
-    u32 RID;
+    // This ID is used to keep track of how many times this block has been reallocated.
+    // When reallocate() is called we check if the block can be directly resized in place (using
+    // allocation_mode::RESIZE). If not, we allocate a new block and transfer all the information to it there. In both
+    // cases the ID above stays the same and this local ID is incremented. This starts at 0.
+    s64 RID;
 
     // The allocator used when allocating the memory
     allocator_func_t Function;
@@ -126,7 +126,8 @@ struct allocation_header {
     // The size of the allocation (NOT including the size of the header and padding)
     s64 Size;
 
-    void *Owner;  // Points to the object that owns the block. Manage this with functions from "owner_pointers.h".
+    void *Owner;  // Points to the object that owns the block (null is valid, this is mainly used by containers). Manage
+                  // this with functions from "owner_pointers.h".
 
 #if defined DEBUG_MEMORY
     // The pointer allocated (this is used to verify if the header exists at all).

@@ -25,13 +25,6 @@ PYBIND11_MODULE(lstdgraphics, m) {
             // Switch our default allocator from malloc to the one the exe provides us with
             Context.Alloc = GameState->Memory->Alloc;
 
-        // @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack
-#if defined DEBUG_MEMORY
-            allocator::DEBUG_Head = GameState->DEBUG_Head;
-            clone(&allocator::DEBUG_Mutex, *GameState->DEBUG_Mutex);
-#endif
-            allocator::AllocationCount = GameState->AllocationCount;
-
             // I'm not sure if we need this, but just incase
             assert(GameState->Memory->ImGuiContext);
             ImGui::SetCurrentContext((ImGuiContext *) GameState->Memory->ImGuiContext);

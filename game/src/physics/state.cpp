@@ -8,11 +8,6 @@ void reload_global_state() {
 
     // We need these in python.pyb
     GameState->Memory = GameMemory;
-#if defined DEBUG_MEMORY
-    GameState->DEBUG_Head = allocator::DEBUG_Head;
-    GameState->DEBUG_Mutex = &allocator::DEBUG_Mutex;
-#endif
-    GameState->AllocationCount = allocator::AllocationCount;
 
     AssetCatalog->ensure_initted(file::path("data/"));
 

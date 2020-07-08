@@ -70,14 +70,6 @@ struct game_state {
     py::module PyModule;
     py::function PyFrame, PyEditorVariable, PyMouseClick, PyMouseRelease, PyMouseMove;
 
-// We need these in python.pyd
-// @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack @Hack
-#if defined DEBUG_MEMORY
-
-    allocation_header *DEBUG_Head;
-    thread::mutex *DEBUG_Mutex;
-#endif
-    u64 AllocationCount;
     game_memory *Memory;
 };
 
