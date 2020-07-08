@@ -1,8 +1,8 @@
 #include "ImGradient.h"
 
-#include <stdint.h> // @DependencyCleanup
+#include <stdint.h>  // @DependencyCleanup
 
-#include <set> // @DependencyCleanup
+#include <set>  // @DependencyCleanup
 
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_internal.h"

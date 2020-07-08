@@ -73,7 +73,7 @@ bool handle::is_symbolic_link() const {
     return false;
 }
 
-size_t handle::file_size() const {
+s64 handle::file_size() const {
     if (is_directory()) return 0;
 
     CREATE_FILE_HANDLE_CHECKED(
@@ -83,7 +83,7 @@ size_t handle::file_size() const {
 
     LARGE_INTEGER size = {0};
     GetFileSizeEx(file, &size);
-    return (size_t) size.QuadPart;
+    return size.QuadPart;
 }
 
 #define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                 \

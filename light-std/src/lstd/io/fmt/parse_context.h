@@ -2,7 +2,6 @@
 
 #include "../../internal/common.h"
 #include "../../memory/string_utils.h"
-
 #include "error_handler.h"
 #include "specs.h"
 
@@ -48,7 +47,7 @@ struct parse_context {
 
     // @TODO: Have a way to specify position to be more accurate in the error message.
     void on_error(string message) const {
-        if (ErrorHandlerFunc) ErrorHandlerFunc(message, {FmtString, (size_t)(It - FmtString.Data)});
+        if (ErrorHandlerFunc) ErrorHandlerFunc(message, {FmtString, (s64)(It - FmtString.Data)});
     }
 
    private:

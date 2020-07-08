@@ -134,8 +134,6 @@ union alignas(16) simd {
     }
 };
 
-#if X86_SSE2 || BITS == 64
 #include "simd_sse2.h"
-#endif
 
 LSTD_END_NAMESPACE

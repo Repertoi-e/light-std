@@ -7,7 +7,7 @@ void run_tests() {
 
         u32 sucessfulProcs = 0;
         For(*tests) {
-            auto length = min<size_t>(30, it.Name.Length);
+            auto length = min<s64>(30, it.Name.Length);
             fmt::print("        {:.{}} {:.^{}} ", it.Name, length, "", 35 - length);
 
             auto failedAssertsStart = asserts::GlobalFailed.Count;
@@ -40,9 +40,9 @@ void run_tests() {
     }
     fmt::print("\n\n");
 
-    size_t calledCount = asserts::GlobalCalledCount;
-    size_t failedCount = asserts::GlobalFailed.Count;
-    size_t successCount = calledCount - failedCount;
+    s64 calledCount = asserts::GlobalCalledCount;
+    s64 failedCount = asserts::GlobalFailed.Count;
+    s64 successCount = calledCount - failedCount;
 
     f32 successRate = calledCount ? (f32) successCount / (f32) calledCount : 0.0f;
     fmt::print("[Test Suite] {:.3%} success ({}/{} test asserts)\n", successRate, successCount, calledCount);

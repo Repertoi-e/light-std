@@ -7,13 +7,13 @@ LSTD_BEGIN_NAMESPACE
 
 namespace io {
 
-template <size_t N>
-void buffer_writer_write(writer *w, const char *data, size_t count);
+template <s64 N>
+void buffer_writer_write(writer *w, const char *data, s64 count);
 
-template <size_t N>
+template <s64 N>
 void buffer_writer_flush(writer *w);
 
-template <size_t N>
+template <s64 N>
 struct buffer_writer : writer {
     stack_dynamic_buffer<N> *StackDynamicBuffer;
 
@@ -24,8 +24,8 @@ struct buffer_writer : writer {
     }
 };
 
-template <size_t N>
-void buffer_writer_write(writer *w, const char *data, size_t count) {
+template <s64 N>
+void buffer_writer_write(writer *w, const char *data, s64 count) {
     auto *bw = (buffer_writer<N> *) w;
 
     if (count > bw->Available) {
@@ -41,7 +41,7 @@ void buffer_writer_write(writer *w, const char *data, size_t count) {
     bw->Available -= count;
 }
 
-template <size_t N>
+template <s64 N>
 void buffer_writer_flush(writer *w) {
     auto *bw = (buffer_writer<N> *) w;
 

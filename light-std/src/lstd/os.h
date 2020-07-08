@@ -20,24 +20,24 @@ struct string;
 //
 
 // Allocates memory by calling OS functions
-void *os_allocate_block(size_t size);
+void *os_allocate_block(s64 size);
 
 // Expands/shrinks a memory block allocated by _os_alloc()_
 // This is NOT realloc in the general sense where when this fails it returns null instead of allocating a new block.
 // That's why it's not called realloc.
-void *os_resize_block(void *ptr, size_t newSize);
+void *os_resize_block(void *ptr, s64 newSize);
 
 // Returns the size of a memory block allocated by _os_alloc()_ in bytes.
-size_t os_get_block_size(void *ptr);
+s64 os_get_block_size(void *ptr);
 
 // Frees a memory block allocated by _os_alloc()_
 void os_free_block(void *ptr);
 
 // Creates/opens a shared memory block and writes data to it (use this for communication between processes)
-void os_write_shared_block(string name, void *data, size_t size);
+void os_write_shared_block(string name, void *data, s64 size);
 
 // Read data from a shared memory block (use this for communication between processes)
-void os_read_shared_block(string name, void *out, size_t size);
+void os_read_shared_block(string name, void *out, s64 size);
 
 // Exits the application with the given exit code
 
@@ -62,7 +62,7 @@ void os_set_clipboard_content(string content);
 string os_get_exe_name();
 
 // Returns the current directory of the current process.
-// [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory 
+// [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory
 //           are not thread-safe but we use a lock so these are.
 string os_get_working_dir();
 

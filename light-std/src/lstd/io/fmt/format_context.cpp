@@ -1,4 +1,5 @@
 #include "format_context.h"
+
 #include "format_float.inl"
 
 LSTD_BEGIN_NAMESPACE
@@ -13,7 +14,7 @@ static char DIGITS[] =
     "8081828384858687888990919293949596979899";
 
 template <typename UInt>
-static char *format_uint_decimal(char *buffer, UInt value, size_t formattedSize, string thousandsSep = "") {
+static char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, string thousandsSep = "") {
     u32 digitIndex = 0;
 
     buffer += formattedSize;
@@ -49,7 +50,7 @@ static char *format_uint_decimal(char *buffer, UInt value, size_t formattedSize,
 }
 
 template <u32 BASE_BITS, typename UInt>
-static char *format_uint_base(char *buffer, UInt value, size_t formattedSize, bool upper = false) {
+static char *format_uint_base(char *buffer, UInt value, s64 formattedSize, bool upper = false) {
     buffer += formattedSize;
     do {
         const char *digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
@@ -62,7 +63,7 @@ static char *format_uint_base(char *buffer, UInt value, size_t formattedSize, bo
 // Writes pad code points and the actual contents with f(),
 // _fSize_ needs to be the size of the output from _f_ in code points (in order to calculate padding properly)
 template <typename F>
-static void write_padded_helper(format_context *f, const format_specs &specs, F &&func, size_t fSize) {
+static void write_padded_helper(format_context *f, const format_specs &specs, F &&func, s64 fSize) {
     u32 padding = (u32)(specs.Width > fSize ? specs.Width - fSize : 0);
     if (specs.Align == alignment::RIGHT) {
         For(range(padding)) f->write_no_specs(specs.Fill);
@@ -78,7 +79,7 @@ static void write_padded_helper(format_context *f, const format_specs &specs, F 
     }
 }
 
-void format_context_write(io::writer *w, const char *data, size_t count) {
+void format_context_write(io::writer *w, const char *data, s64 count) {
     auto *f = (format_context *) w;
 
     if (!f->Specs) {
@@ -98,12 +99,12 @@ void format_context_write(io::writer *w, const char *data, size_t count) {
     }
 
     // 'p' wasn't specified, not treating as formatting a pointer
-    size_t length = utf8_length(data, count);
+    s64 length = utf8_length(data, count);
 
     // Adjust size for specified precision
     if (f->Specs->Precision != -1) {
         assert(f->Specs->Precision >= 0);
-        length = (size_t) f->Specs->Precision;
+        length = f->Specs->Precision;
         count = get_cp_at_index(data, length, length, true) - data;
     }
     write_padded_helper(
@@ -123,13 +124,13 @@ void format_context::write(const void *value) {
         return;
     }
 
-    auto uptr = bit_cast<uptr_t>(value);
+    auto uptr = bit_cast<u64>(value);
     u32 numDigits = count_digits<4>(uptr);
 
     auto f = [&, this]() {
         this->write_no_specs(U'0');
         this->write_no_specs(U'x');
-        char formatBuffer[numeric_info<uptr_t>::digits / 4 + 2];
+        char formatBuffer[numeric_info<u64>::digits / 4 + 2];
         auto *p = format_uint_base<4>(formatBuffer, uptr, numDigits);
         this->write_no_specs(p, formatBuffer + numDigits - p);
     };
@@ -148,7 +149,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
     char type = specs.Type;
     if (!type) type = 'd';
 
-    size_t numDigits;
+    s64 numDigits;
     if (type == 'd' || type == 'n') {
         numDigits = count_digits(value);
     } else if (to_lower(type) == 'b') {
@@ -158,7 +159,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
     } else if (to_lower(type) == 'x') {
         numDigits = count_digits<4>(value);
     } else if (type == 'c') {
-        if (specs.Align == alignment::NUMERIC || specs.has_flag(flag::sign) || specs.has_flag(flag::PLUS) ||
+        if (specs.Align == alignment::NUMERIC || specs.has_flag(flag::SIGN) || specs.has_flag(flag::PLUS) ||
             specs.has_flag(flag::MINUS) || specs.has_flag(flag::HASH)) {
             on_error("Invalid format specifier for code point");
             return;
@@ -179,7 +180,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
         *prefixPointer++ = '-';
     } else if (specs.has_flag(flag::PLUS)) {
         *prefixPointer++ = '+';
-    } else if (specs.has_flag(flag::sign)) {
+    } else if (specs.has_flag(flag::SIGN)) {
         *prefixPointer++ = ' ';
     }
 
@@ -190,16 +191,14 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
 
     // Octal prefix '0' is counted as a digit,
     // so only add it if precision is not greater than the number of digits.
-    // Note: Here if _specs.Precision_ is -1 (i.e. not specified)
-    // the cast to size_t will overflow it to a really high value
-    if (type == 'o' && specs.has_flag(flag::HASH) && (size_t) specs.Precision > numDigits) {
-        *prefixPointer++ = '0';
+    if (type == 'o' && specs.has_flag(flag::HASH)) {
+        if (specs.Precision == -1 || specs.Precision > numDigits) *prefixPointer++ = '0';
     }
 
     auto prefix = string(prefixBuffer, prefixPointer - prefixBuffer);
 
-    size_t formattedSize = prefix.Length + numDigits;
-    size_t padding = 0;
+    s64 formattedSize = prefix.Length + numDigits;
+    s64 padding = 0;
     if (specs.Align == alignment::NUMERIC) {
         if (specs.Width > formattedSize) {
             padding = specs.Width - formattedSize;
@@ -295,7 +294,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
         value = -value;
     } else if (specs.has_flag(flag::PLUS)) {
         sign = '+';
-    } else if (specs.has_flag(flag::sign)) {
+    } else if (specs.has_flag(flag::SIGN)) {
         sign = ' ';
     }
 
@@ -322,7 +321,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
     // Also if we decide to add a thousands separator we should do it inside _format_float_
     stack_dynamic_buffer<512> formatBuffer;
     format_float(
-        [](void *user, char *buf, size_t length) {
+        [](void *user, char *buf, s64 length) {
             auto *fb = (stack_dynamic_buffer<512> *) user;
             fb->ByteLength += length;
             return fb->Data + fb->ByteLength;
@@ -344,8 +343,8 @@ void format_context::write_f64(f64 value, format_specs specs) {
             while (p != end && *p == '0') ++p;
 
             if (p == end || !is_digit(*p)) {
-                if (p != end) copy_memory(where, p, (size_t)(end - p));
-                formatBuffer.ByteLength -= (size_t)(p - where);
+                if (p != end) copy_memory(where, p, (s64)(end - p));
+                formatBuffer.ByteLength -= (s64)(p - where);
             }
         } else if (p == end) {
             // There was no dot at all

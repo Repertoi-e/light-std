@@ -23,11 +23,11 @@ static ID3DBlob *compile_shader(string source, const char *profile, const char *
 }
 
 static gtype string_to_gtype(string type) {
-    size_t digit = type.find_any_of("0123456789");
-    if (digit != npos) {
-        size_t x = type.find('x');
+    s64 digit = type.find_any_of("0123456789");
+    if (digit != -1) {
+        s64 x = type.find('x');
         string scalarType = type.substring(0, digit);
-        size_t offset = (type[digit] - '0' - 1) * 4 + (x == npos ? 0 : type[x + 1] - '0' - 1);
+        s64 offset = (type[digit] - '0' - 1) * 4 + (x == -1 ? 0 : type[x + 1] - '0' - 1);
         if (scalarType == "bool") return (gtype)((u32) gtype::BOOL_1x1 + offset);
         if (scalarType == "int" || scalarType == "int32") return (gtype)((u32) gtype::S32_1x1 + offset);
         if (scalarType == "uint" || scalarType == "uint32" || scalarType == "dword")
@@ -54,25 +54,25 @@ void d3d_shader_init(shader *s) {
     s->Graphics->D3D.Device->CreatePixelShader(ps->GetBufferPointer(), ps->GetBufferSize(), null, &s->D3D.PS);
 
     // Remove comments
-    // size_t startPos;
-    // while ((startPos = source.find("/*")) != npos) {
-    //     size_t endPos = source.find("*/", startPos);
-    //     assert(endPos != npos);
+    // s64 startPos;
+    // while ((startPos = source.find("/*")) != -1) {
+    //     s64 endPos = source.find("*/", startPos);
+    //     assert(endPos != -1);
     //     source.remove(startPos, endPos);
     // }
     //
-    // while ((startPos = source.find("//")) != npos) {
-    //     size_t endPos = source.find('\n', startPos);
-    //     assert(endPos != npos);
+    // while ((startPos = source.find("//")) != -1) {
+    //     s64 endPos = source.find('\n', startPos);
+    //     assert(endPos != -1);
     //     source.remove(startPos, endPos);
     // }
     // @TODO Parse shaders structs
     /*
 
     // Parse constant buffers and extract metadata
-    size_t cbuffer = 0;
-    while ((cbuffer = source.find("cbuffer", cbuffer)) != npos) {
-        size_t brace = source.find('}');
+    s64 cbuffer = 0;
+    while ((cbuffer = source.find("cbuffer", cbuffer)) != -1) {
+        s64 brace = source.find('}');
         string block = source.substring(cbuffer, brace + 1);
 
         while (true) {
@@ -85,19 +85,19 @@ void d3d_shader_init(shader *s) {
         // Tokenize
         array<string> tokens;
         {
-            size_t start = 0;
-            size_t end = block.find_any_of(" \t\r\n");
+            s64 start = 0;
+            s64 end = block.find_any_of(" \t\r\n");
 
-            while (end <= npos) {
-                string token = block.substring(start, (end == npos ? block.Length : end));
+            while (end <= -1) {
+                string token = block.substring(start, (end == -1 ? block.Length : end));
                 if (token) tokens.append(token);
-                if (end == npos) break;
+                if (end == -1) break;
                 start = end + 1;
                 end = block.find_any_of(" \t\r\n", start);
             }
         }
 
-        size_t tokenIndex = 1;
+        s64 tokenIndex = 1;
 
         shader::uniform_buffer uniformBuffer;
         clone(&uniformBuffer.Name, tokens[tokenIndex++]);

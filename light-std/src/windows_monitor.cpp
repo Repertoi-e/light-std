@@ -2,15 +2,16 @@
 
 #if OS == WINDOWS
 
+#include <initguid.h>
+// CLANG FORMAT NO
+#include <hidclass.h>
+
 #include "lstd/io/fmt.h"
 #include "lstd/video/monitor.h"
 #include "lstd/video/window.h"
 
-#include <initguid.h>
-#include <hidclass.h>
-
 #if WINVER < 0x0601
-    typedef struct {
+typedef struct {
     DWORD cbSize;
     DWORD ExtStatus;
 } CHANGEFILTERSTRUCT;
@@ -302,7 +303,7 @@ static monitor *create_monitor(DISPLAY_DEVICEW *adapter, DISPLAY_DEVICEW *displa
 
             if (GetMonitorInfoW(handle, (MONITORINFO *) &mi)) {
                 auto *mon = (monitor *) data;
-                if (compare_c_string(mi.szDevice, mon->PlatformData.Win32.AdapterName) == npos) {
+                if (compare_c_string(mi.szDevice, mon->PlatformData.Win32.AdapterName) == -1) {
                     mon->PlatformData.Win32.hMonitor = handle;
                 }
             }
@@ -510,7 +511,7 @@ void win32_poll_monitors() {
             bool toContinue = false;
             For_as(index, range(disconnected.Count)) {
                 auto *it = disconnected[index];
-                if (it && compare_c_string(it->PlatformData.Win32.DisplayName, display.DeviceName) == npos) {
+                if (it && compare_c_string(it->PlatformData.Win32.DisplayName, display.DeviceName) == -1) {
                     disconnected[index] = null;
                     toContinue = true;
                     break;
@@ -528,7 +529,7 @@ void win32_poll_monitors() {
             bool toContinue = false;
             For_as(index, range(disconnected.Count)) {
                 auto *it = disconnected[index];
-                if (it && compare_c_string(it->PlatformData.Win32.AdapterName, adapter.DeviceName) == npos) {
+                if (it && compare_c_string(it->PlatformData.Win32.AdapterName, adapter.DeviceName) == -1) {
                     disconnected[index] = null;
                     toContinue = true;
                     break;

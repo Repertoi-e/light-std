@@ -24,8 +24,8 @@
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
-#include "ImGuizmo.h"
 #include "../imgui/imgui_internal.h"
+#include "ImGuizmo.h"
 
 // includes patches for multiview from
 // https://github.com/CedricGuillemet/ImGuizmo/issues/15

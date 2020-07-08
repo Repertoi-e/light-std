@@ -22,7 +22,6 @@ inline auto small_product_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, 
 
 template <typename T, typename U, s64 R1, s64 Match, s64 C2, bool Packed>
 inline mat<T, R1, C2, Packed> dot(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs) {
-#if X86_SSE2 || BITS == 64
     if constexpr (R1 == 2 && Match == 2 && C2 == 2 && is_same_v<T, f32> && is_same_v<U, f32>) {
         using V = mat_mul_elem_t<T, U>;
         using Vec4T = vec<V, 4>;
@@ -48,9 +47,7 @@ inline mat<T, R1, C2, Packed> dot(const mat<T, R1, Match, Packed> &lhs, const ma
         }
         for (s32 i = 0; i < 4; i++) _mm_store_ps((f32 *) &result.Stripes[i], sum[i]);
         return result;
-    } else
-#endif
-    {
+    } else {
         if constexpr (R1 <= 4 && Match <= 4 && C2 <= 4) {
             return impl::small_product_rr(lhs, rhs, make_integer_sequence<s64, R1>{});
         } else {

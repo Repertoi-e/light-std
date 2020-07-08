@@ -5,8 +5,8 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// @Cleanup Not it doesn't. It should work like that but design is constantly changing and I'm still not sure about the API.
-// For now its slow and clones stuff.
+// @Cleanup Not it doesn't. It should work like that but design is constantly changing and I'm still not sure about the
+// API. For now its slow and clones stuff.
 //
 // _array_ works with types that can be copied byte by byte correctly, take a look at the type policy in common.h
 template <typename T>
@@ -14,11 +14,11 @@ struct array {
     using data_t = T;
 
     data_t *Data = null;
-    size_t Count = 0;
-    size_t Reserved = 0;
+    s64 Count = 0;
+    s64 Reserved = 0;
 
     array() = default;
-    array(data_t *data, size_t count) : Data(data), Count(count), Reserved(0) {}
+    array(data_t *data, s64 count) : Data(data), Count(count), Reserved(0) {}
     array(array_view<data_t> items) : Data((data_t *) items.begin()), Count(items.size()), Reserved(0) {}
 
     ~array() { release(); }
@@ -31,9 +31,9 @@ struct array {
     // (using the Context's allocator).
     //
     // Can also specify a specific alignment for the elements.
-    void reserve(size_t target, u32 align = 0) {
+    void reserve(s64 target, u32 align = 0) {
         if (Count + target < Reserved) return;
-        target = max<size_t>(ceil_pow_of_2(target + Count + 1), 8);
+        target = max<s64>(ceil_pow_of_2(target + Count + 1), 8);
 
         auto *oldData = Data;
 
@@ -52,7 +52,7 @@ struct array {
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         // @Speed DO_INIT_0 should be optional.
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        Data = (data_t *) Context.Alloc.allocate_aligned(target * sizeof(data_t), alignment(align), DO_INIT_0); 
+        Data = (data_t *) Context.Alloc.allocate_aligned(target * sizeof(data_t), alignment(align), DO_INIT_0);
         encode_owner(Data, this);
 
         // @Speed: We can make this faster if the elements don't have an explicit move/clone (but how do we know?)
@@ -92,8 +92,8 @@ struct array {
         }
     }
 
-    data_t &get(size_t index) { return Data[translate_index(index, Count)]; }
-    const data_t &get(size_t index) const { return Data[translate_index(index, Count)]; }
+    data_t &get(s64 index) { return Data[translate_index(index, Count)]; }
+    const data_t &get(s64 index) const { return Data[translate_index(index, Count)]; }
 
     void sort() { quicksort(Data, Data + Count); }
 
@@ -111,10 +111,10 @@ struct array {
             reserve(Reserved * 2);
         }
 
-        size_t offset = translate_index(index, Count, true);
+        s64 offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
         if (offset < Count) {
-            copy_memory(where + 1, where, (Count - offset) * sizeof(data_t)); // @Bug
+            copy_memory(where + 1, where, (Count - offset) * sizeof(data_t));  // @Bug
         }
         clone(where, element);
         Count++;
@@ -125,18 +125,18 @@ struct array {
     data_t *insert(s64 index, array arr) { return insert_pointer_and_size(index, arr.Data, arr.Count); }
 
     // Insert a buffer of elements at a specified index
-    data_t *insert_pointer_and_size(s64 index, const data_t *ptr, size_t size) {
-        size_t required = Reserved;
+    data_t *insert_pointer_and_size(s64 index, const data_t *ptr, s64 size) {
+        s64 required = Reserved;
         while (Count + size >= required) {
             required = 2 * Reserved;
             if (required < 8) required = 8;
         }
         reserve(required);
 
-        size_t offset = translate_index(index, Count, true);
+        s64 offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
         if (offset < Count) {
-            copy_memory(where + size, where, (Count - offset) * sizeof(data_t));// @Bug
+            copy_memory(where + size, where, (Count - offset) * sizeof(data_t));  // @Bug
         }
         copy_memory(where, ptr, size * sizeof(data_t));
         Count += size;
@@ -148,11 +148,11 @@ struct array {
         // If the array is a view, we don't want to modify the original!
         if (!is_owner()) reserve(0);
 
-        size_t offset = translate_index(index, Count);
+        s64 offset = translate_index(index, Count);
 
         auto *where = begin() + offset;
         where->~data_t();
-        copy_memory(where, where + 1, (Count - offset - 1) * sizeof(data_t)); // @Bug
+        copy_memory(where, where + 1, (Count - offset - 1) * sizeof(data_t));  // @Bug
         Count--;
         return this;
     }
@@ -163,16 +163,16 @@ struct array {
         // If the array is a view, we don't want to modify the original!
         if (!is_owner()) reserve(0);
 
-        size_t targetBegin = translate_index(index, Count);
-        size_t targetEnd = translate_index(index, Count, true);
+        s64 targetBegin = translate_index(index, Count);
+        s64 targetEnd = translate_index(index, Count, true);
 
         auto where = begin() + targetBegin;
         for (auto *destruct = where; destruct != (begin() + targetEnd); ++destruct) {
             destruct->~data_t();
         }
 
-        size_t elementCount = targetEnd - targetBegin;
-        copy_memory(where, where + elementCount, (Count - offset - elementCount) * sizeof(data_t)); // @Bug
+        s64 elementCount = targetEnd - targetBegin;
+        copy_memory(where, where + elementCount, (Count - offset - elementCount) * sizeof(data_t));  // @Bug
         Count -= elementCount;
         return this;
     }
@@ -190,21 +190,19 @@ struct array {
 
     // Append a buffer of elements to the end
     // Returns a pointer to the first added element
-    data_t *append_pointer_and_size(const data_t *ptr, size_t size) {
-        return insert_pointer_and_size(Count, ptr, size);
-    }
+    data_t *append_pointer_and_size(const data_t *ptr, s64 size) { return insert_pointer_and_size(Count, ptr, size); }
 
     // Compares this array to _arr_ and returns the index of the first element that is different.
-    // If the arrays are equal, the returned value is npos (-1)
+    // If the arrays are equal, the returned value is -1
     template <typename U>
-    constexpr size_t compare(array<U> arr) const {
+    constexpr s64 compare(array<U> arr) const {
         static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
 
         const T *s1 = begin();
         const U *s2 = arr.begin();
         while (*s1 == *s2) {
             ++s1, ++s2;
-            if (s1 == end() && s2 == arr.end()) return npos;
+            if (s1 == end() && s2 == arr.end()) return -1;
             if (s1 == end()) return s1 - begin();
             if (s2 == arr.end()) return s2 - arr.begin();
         }
@@ -231,24 +229,24 @@ struct array {
     }
 
     // Predicate must take a single argument (the current element) and return if it matches
-    size_t find(delegate<bool(const data_t &)> predicate, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find(delegate<bool(const data_t &)> predicate, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
 
         auto p = begin() + start;
         For(range(start, Count)) if (predicate(*p++)) return it;
-        return npos;
+        return -1;
     }
 
     // Find the first occurence of an element that is after a specified index
-    size_t find(const T &element, s64 start = 0) const {
+    s64 find(const T &element, s64 start = 0) const {
         return find([&](auto x) { return x == element; }, start);
     }
 
     // Find the first occurence of a subarray that is after a specified index
-    size_t find(array arr, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find(array arr, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
         assert(arr.Data);
         assert(arr.Count);
 
@@ -261,24 +259,24 @@ struct array {
             }
             if (progress == arr.end()) return it;
         }
-        return npos;
+        return -1;
     }
 
     // Find the last occurence of an element that is before a specified index
-    size_t find_reverse(const T &element, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find_reverse(const T &element, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
 
         auto p = begin() + start;
         For(range(start, -1, -1)) if (*p-- == element) return it;
-        return npos;
+        return -1;
     }
 
     // Find the last occurence of a subarray that is before a specified index
-    size_t find_reverse(array arr, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find_reverse(array arr, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
         assert(arr.Data);
         assert(arr.Count);
 
@@ -292,12 +290,12 @@ struct array {
             }
             if (progress == arr.end()) return it;
         }
-        return npos;
+        return -1;
     }
 
     // Find the first occurence of any element in the specified subarray that is after a specified index
-    size_t find_any_of(array allowed, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find_any_of(array allowed, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
         assert(allowed.Data);
         assert(allowed.Count);
 
@@ -305,13 +303,13 @@ struct array {
 
         auto p = begin() + start;
         For(range(start, Count)) if (allowed.has(*p++)) return it;
-        return npos;
+        return -1;
     }
 
     // Find the last occurence of any element in the specified subarray
     // that is before a specified index (0 means: start from the end)
-    size_t find_reverse_any_of(array allowed, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find_reverse_any_of(array allowed, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
         assert(allowed.Data);
         assert(allowed.Count);
 
@@ -320,35 +318,35 @@ struct array {
 
         auto p = begin() + start;
         For(range(start, -1, -1)) if (allowed.has(*p--)) return it;
-        return npos;
+        return -1;
     }
 
     // Find the first absence of an element that is after a specified index
-    size_t find_not(const data_t &element, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find_not(const data_t &element, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
 
         auto p = begin() + start;
         For(range(start, Count)) if (*p++ != element) return it;
-        return npos;
+        return -1;
     }
 
     // Find the last absence of an element that is before the specified index
-    size_t find_reverse_not(const data_t &element, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find_reverse_not(const data_t &element, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
 
         auto p = begin() + start;
         For(range(start, 0, -1)) if (*p-- != element) return it;
-        return npos;
+        return -1;
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    size_t find_not_any_of(array banned, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find_not_any_of(array banned, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
         assert(banned.Data);
         assert(banned.Count);
 
@@ -356,12 +354,12 @@ struct array {
 
         auto p = begin() + start;
         For(range(start, Count)) if (!banned.has(*p++)) return it;
-        return npos;
+        return -1;
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    size_t find_reverse_not_any_of(array banned, s64 start = 0) const {
-        if (!Data || Count == 0) return npos;
+    s64 find_reverse_not_any_of(array banned, s64 start = 0) const {
+        if (!Data || Count == 0) return -1;
         assert(banned.Data);
         assert(banned.Count);
 
@@ -370,13 +368,13 @@ struct array {
 
         auto p = begin() + start;
         For(range(start, 0, -1)) if (!banned.has(*p--)) return it;
-        return npos;
+        return -1;
     }
 
     // Checks if there is enough reserved space for _size_ elements
-    bool has_space_for(size_t size) { return (Count + size) <= Reserved; }
+    bool has_space_for(s64 size) { return (Count + size) <= Reserved; }
 
-    bool has(const data_t &item) const { return find(item) != npos; }
+    bool has(const data_t &item) const { return find(item) != -1; }
 
     // Returns true if this object has any memory allocated by itself
     bool is_owner() const { return Reserved && decode_owner<array>(Data) == this; }
@@ -401,7 +399,7 @@ struct array {
     // Check two arrays for equality
     template <typename U>
     bool operator==(array<U> other) const {
-        return compare(other) == npos;
+        return compare(other) == -1;
     }
 
     template <typename U>
@@ -453,7 +451,7 @@ array<T> *move(array<T> *dest, array<T> *src) {
 //
 // == and != for stack_array and array
 //
-template <typename T, typename U, size_t N>
+template <typename T, typename U, s64 N>
 bool operator==(array<T> left, const stack_array<U, N> &right) {
     static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
 
@@ -467,17 +465,17 @@ bool operator==(array<T> left, const stack_array<U, N> &right) {
     return true;
 }
 
-template <typename T, typename U, size_t N>
+template <typename T, typename U, s64 N>
 bool operator==(const stack_array<U, N> &left, array<T> right) {
     return right == left;
 }
 
-template <typename T, typename U, size_t N>
+template <typename T, typename U, s64 N>
 bool operator!=(array<T> left, const stack_array<U, N> &right) {
     return !(left == right);
 }
 
-template <typename T, typename U, size_t N>
+template <typename T, typename U, s64 N>
 bool operator!=(const stack_array<U, N> &left, array<T> right) {
     return right != left;
 }

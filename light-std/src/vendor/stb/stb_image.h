@@ -5445,7 +5445,7 @@ static void *stbi__bmp_load(stbi__context *s, int *x, int *y, int *comp, int req
 
     if (flip_vertically) {
         stbi_uc t;
-        for (j = 0; j<(int) s->img_y>> 1; ++j) {
+        for (j = 0; j < (int) s->img_y>>1; ++j) {
             stbi_uc *p1 = out + j * s->img_x * target;
             stbi_uc *p2 = out + (s->img_y - 1 - j) * s->img_x * target;
             for (i = 0; i < (int) s->img_x * target; ++i) {

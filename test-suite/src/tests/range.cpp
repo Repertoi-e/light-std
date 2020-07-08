@@ -1,6 +1,6 @@
 #include "../test.h"
 
-template <typename U, size_t N>
+template <typename U, s64 N>
 void test_expected(stack_array<U, N> expected, s64 start, s64 stop, s64 step = 1) {
     array<s64> result;
     For(range(start, stop, step)) result.append(it);

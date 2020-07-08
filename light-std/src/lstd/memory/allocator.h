@@ -33,11 +33,7 @@ LSTD_BEGIN_NAMESPACE
 //
 
 // Maximum size of an allocation we will attemp to request
-#if BITS == 64
 #define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0  // Around 16384 PiB
-#else
-#define MAX_ALLOCATION_REQUEST 0xFFFFFFE0  // Around 4 GiB
-#endif
 
 enum class allocator_mode { ALLOCATE = 0, RESIZE, FREE, FREE_ALL };
 
@@ -70,7 +66,7 @@ constexpr u64 DO_INIT_0 = 1ull << 31;
 //     or null - memory can't be resized and needs to be moved.
 //     In the second case we allocate a new block and copy the old data there.
 using allocator_func_t =
-    add_pointer_t<void *(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64)>;
+    add_pointer_t<void *(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64)>;
 
 #if defined DEBUG_MEMORY
 //
@@ -91,7 +87,7 @@ using allocator_func_t =
 //   these locations, the memory integrity checker will detect it.
 //
 
-inline constexpr size_t NO_MANS_LAND_SIZE = 4;
+inline constexpr s64 NO_MANS_LAND_SIZE = 4;
 
 // _NO_MANS_LAND_SIZE_ (4) extra bytes with this value before and after the allocation block
 // which help detect reading out of range errors
@@ -128,7 +124,7 @@ struct allocation_header {
     void *Context;
 
     // The size of the allocation (NOT including the size of the header and padding)
-    size_t Size;
+    s64 Size;
 
     void *Owner;  // Points to the object that owns the block. Manage this with functions from "owner_pointers.h".
 
@@ -167,7 +163,7 @@ struct allocation_header {
 // Calculates the required padding in bytes which needs to be added to _ptr_ in order to be aligned
 inline u16 calculate_padding_for_pointer(void *ptr, s32 alignment) {
     assert(alignment > 0 && is_pow_of_2(alignment));
-    return (u16)((((uptr_t) ptr + (alignment - 1)) & -alignment) - (uptr_t) ptr);
+    return (u16)((((u64) ptr + (alignment - 1)) & -alignment) - (u64) ptr);
 }
 
 // Like calculate_padding_for_pointer but padding must be at least the header size
@@ -214,10 +210,10 @@ struct allocator {
     static void DEBUG_swap_header(allocation_header *oldHeader, allocation_header *newHeader);
 #endif
 
-    void *allocate(size_t size, u64 userFlags = 0) const { return general_allocate(size, 0, userFlags); }
+    void *allocate(s64 size, u64 userFlags = 0) const { return general_allocate(size, 0, userFlags); }
 
-    void *allocate_aligned(size_t size, alignment align, u64 userFlags = 0) const {
-        return general_allocate(size, (size_t) align, userFlags);
+    void *allocate_aligned(s64 size, alignment align, u64 userFlags = 0) const {
+        return general_allocate(size, (s64) align, userFlags);
     }
 
     // Resizes the memory block. If it can't do that it allocates a new one and copies the old memory.
@@ -225,7 +221,7 @@ struct allocator {
     // Calling reallocate with newSize == 0 frees the memory.
     // Calling reallocate on a null pointer doesn't do anything.
     // _userFlags_ gets passed to allocate/free if this function calls them
-    static void *reallocate(void *ptr, size_t newSize, u64 userFlags = 0) {
+    static void *reallocate(void *ptr, s64 newSize, u64 userFlags = 0) {
         if (!ptr) return null;
         if (newSize == 0) free(ptr, userFlags);
         return general_reallocate(ptr, newSize, userFlags);
@@ -258,12 +254,12 @@ struct allocator {
     static void verify_header(allocation_header *header);
 
    private:
-    static void *encode_header(void *p, size_t userSize, u32 align, allocator_func_t f, void *c, bool initToZero);
+    static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, bool initToZero);
 
     // The main reason for having a combined function is to help debugging because the source of an allocation
     // can be one of the two functions (allocate() and allocate_aligned() above)
-    void *general_allocate(size_t userSize, u32 align, u64 userFlags = 0) const;
-    static void *general_reallocate(void *ptr, size_t newSize, u64 userFlags = 0);
+    void *general_allocate(s64 userSize, u32 align, u64 userFlags = 0) const;
+    static void *general_reallocate(void *ptr, s64 newSize, u64 userFlags = 0);
 };
 
 //
@@ -271,7 +267,7 @@ struct allocator {
 //
 
 // General purpose allocator (like malloc)
-void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64);
+void *default_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64);
 
 inline allocator Malloc = {default_allocator, null};
 
@@ -282,14 +278,14 @@ inline allocator Malloc = {default_allocator, null};
 struct temporary_allocator_data {
     struct page {
         void *Storage = null;
-        size_t Reserved = 0;
-        size_t Used = 0;
+        s64 Reserved = 0;
+        s64 Used = 0;
 
         page *Next = null;
     };
 
     page Base;
-    size_t TotalUsed = 0;
+    s64 TotalUsed = 0;
 };
 
 // This allocator works like an arena allocator.
@@ -307,7 +303,7 @@ struct temporary_allocator_data {
 // Example use case: if you are programming a game and you need to calculate some stuff for a mesh for a given frame,
 //     using this allocator means having the freedom of calling new/delete without performance implications.
 //     At the end of the frame when the memory is no longer used you FREE_ALL and start the next frame.
-void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64);
+void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64);
 
 LSTD_END_NAMESPACE
 

@@ -1,6 +1,6 @@
-#include "../test.h"
-
 #include <lstd/memory/signal.h>
+
+#include "../test.h"
 
 static s32 my_callback(s32 a) { return a; }
 static s32 my_callback1(s32 a) { return a + 1; }

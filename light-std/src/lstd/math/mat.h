@@ -22,14 +22,14 @@ struct mat_data {
 
    protected:
     inline T &get_element(s64 row, s64 col) {
-        size_t r = translate_index(row, R);
-        size_t c = translate_index(col, C);
+        s64 r = translate_index(row, R);
+        s64 c = translate_index(col, C);
         return Stripes[r][c];
     }
 
     inline T get_element(s64 row, s64 col) const {
-        size_t r = translate_index(row, R);
-        size_t c = translate_index(col, C);
+        s64 r = translate_index(row, R);
+        s64 c = translate_index(col, C);
         return Stripes[r][c];
     }
 };
@@ -60,7 +60,7 @@ struct mat_view : non_copyable {
         s64 k = 0;
         For_as(i, range(SR)) {
             For_as(j, range(SC)) {
-                v[k] = (U) (*this)(i, j);
+                v[k] = (U)(*this)(i, j);
                 ++k;
             }
         }
@@ -187,20 +187,20 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
 
     template <s64 SR, s64 SC>
     mat_view<mat, SR, SC> get_view(s64 row, s64 col) {
-        size_t r = translate_index(row, R);
-        size_t c = translate_index(col, C);
+        s64 r = translate_index(row, R);
+        s64 c = translate_index(col, C);
         assert(SR + r <= R);
         assert(SC + c <= C);
-        return mat_view<mat, SR, SC>(*this, (s64) r, (s64) c);
+        return mat_view<mat, SR, SC>(*this, r, c);
     }
 
     template <s64 SR, s64 SC>
     mat_view<const mat, SR, SC> get_view(s64 row, s64 col) const {
-        size_t r = translate_index(row, R);
-        size_t c = translate_index(col, C);
+        s64 r = translate_index(row, R);
+        s64 c = translate_index(col, C);
         assert(SR + r <= R);
         assert(SC + c <= C);
-        return mat_view<const mat, SR, SC>(*this, (s64) r, (s64) c);
+        return mat_view<const mat, SR, SC>(*this, r, c);
     }
 
     auto col(s64 col) { return get_view<R, 1>(0, col); }

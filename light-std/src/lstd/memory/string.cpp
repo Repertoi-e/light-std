@@ -5,14 +5,14 @@
 LSTD_BEGIN_NAMESPACE
 
 string::code_point &string::code_point::operator=(char32_t other) {
-    Parent->set((s64) Index, other);
+    Parent->set(Index, other);
     return *this;
 }
 
-string::code_point::operator char32_t() const { return ((const string *) Parent)->get((s64) Index); }
+string::code_point::operator char32_t() const { return ((const string *) Parent)->get(Index); }
 
-string::string(char32_t codePoint, size_t repeat) : string(get_size_of_cp(codePoint) * repeat) {
-    size_t cpSize = get_size_of_cp(codePoint);
+string::string(char32_t codePoint, s64 repeat) : string(get_size_of_cp(codePoint) * repeat) {
+    s64 cpSize = get_size_of_cp(codePoint);
 
     auto *data = const_cast<char *>(Data);
     For(range(repeat)) {
@@ -38,12 +38,12 @@ string::string(const char32_t *str) {
     }
 }
 
-string::string(size_t size) { reserve(size); }
+string::string(s64 size) { reserve(size); }
 
-void string::reserve(size_t target) {
+void string::reserve(s64 target) {
     if (ByteLength + target < Reserved) return;
 
-    target = max<size_t>(ceil_pow_of_2(target + ByteLength + 1), 8);
+    target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
     if (is_owner()) {
         Data = (const char *) allocator::reallocate(const_cast<char *>(Data), target);
@@ -65,15 +65,15 @@ void string::release() {
 }
 
 string *string::set(s64 index, char32_t codePoint) {
-    size_t cpSize = get_size_of_cp(codePoint);
+    s64 cpSize = get_size_of_cp(codePoint);
 
     auto *target = get_cp_at_index(Data, Length, index);
-    size_t cpSizeTarget = get_size_of_cp(target);
+    s64 cpSizeTarget = get_size_of_cp(target);
 
-    s64 diff = (s64) cpSize - (s64) cpSizeTarget;
+    s64 diff = cpSize - cpSizeTarget;
 
     // Calculate the offset and then reserve (which may move the memory!)
-    uptr_t offset = (uptr_t)(target - Data);
+    u64 offset = (u64)(target - Data);
     reserve(abs(diff));
 
     // We may have moved Data while reserving space!
@@ -87,11 +87,11 @@ string *string::set(s64 index, char32_t codePoint) {
 }
 
 string *string::insert(s64 index, char32_t codePoint) {
-    size_t cpSize = get_size_of_cp(codePoint);
+    s64 cpSize = get_size_of_cp(codePoint);
     reserve(cpSize);
 
     auto *target = get_cp_at_index(Data, Length, index, true);
-    uptr_t offset = (uptr_t)(target - Data);
+    u64 offset = (u64)(target - Data);
     copy_memory((char *) Data + offset + cpSize, target, ByteLength - (target - Data));
 
     encode_cp((char *) Data + offset, codePoint);
@@ -104,7 +104,7 @@ string *string::insert(s64 index, char32_t codePoint) {
 
 string *string::insert(s64 index, string str) { return insert_pointer_and_size(index, str.Data, str.ByteLength); }
 
-string *string::insert_pointer_and_size(s64 index, const char *str, size_t size) {
+string *string::insert_pointer_and_size(s64 index, const char *str, s64 size) {
     // assert(str);
     if (!str) return this;
 
@@ -112,7 +112,7 @@ string *string::insert_pointer_and_size(s64 index, const char *str, size_t size)
     if (size == 0) return this;
 
     auto *target = get_cp_at_index(Data, Length, index, true);
-    uptr_t offset = (uptr_t)(target - Data);
+    u64 offset = (u64)(target - Data);
     copy_memory((char *) Data + offset + size, target, ByteLength - (target - Data));
 
     copy_memory((char *) Data + offset, str, size);
@@ -129,10 +129,10 @@ string *string::remove(s64 index) {
 
     auto *target = get_cp_at_index(Data, Length, index);
 
-    size_t cpSize = get_size_of_cp(target);
+    s64 cpSize = get_size_of_cp(target);
     --Length;
 
-    uptr_t offset = (uptr_t)(target - Data);
+    u64 offset = (u64)(target - Data);
     copy_memory((char *) Data + offset, target + cpSize, ByteLength - offset - cpSize);
 
     ByteLength -= cpSize;
@@ -149,10 +149,10 @@ string *string::remove(s64 begin, s64 end) {
 
     assert(targetEnd > targetBegin);
 
-    size_t bytes = targetEnd - targetBegin;
+    s64 bytes = targetEnd - targetBegin;
     Length -= utf8_length(targetBegin, targetEnd - targetBegin);
 
-    uptr_t offset = (uptr_t)(targetBegin - Data);
+    u64 offset = (u64)(targetBegin - Data);
     copy_memory((char *) Data + offset, targetEnd, ByteLength - offset - bytes);
 
     ByteLength -= bytes;
@@ -160,7 +160,7 @@ string *string::remove(s64 begin, s64 end) {
     return this;
 }
 
-string *string::repeat(size_t n) {
+string *string::repeat(s64 n) {
     string contents = *this;
     reserve(n * contents.ByteLength);
     For(range(1, n)) { append(contents); }
@@ -180,7 +180,7 @@ string *string::to_upper() {
 string *string::remove_all(char32_t cp) {
     if (Length == 0) return this;
 
-    ptr_t offset = 0;
+    s64 offset = 0;
     For(range(0, Length)) {
         if (get(it - offset) == cp) {
             remove(it - offset++);
@@ -194,7 +194,7 @@ string *string::remove_all(string str) {
 
     if (Length == 0) return this;
 
-    ptr_t offset = 0;
+    s64 offset = 0;
     For(range(0, Length)) {
         auto realIt = it - offset;
 
@@ -223,8 +223,8 @@ string *string::replace_all(string oldStr, string newStr) {
 
     if (Length == 0) return this;
 
-    ptr_t diff = (ptr_t) newStr.Length - (ptr_t) oldStr.Length;
-    for (size_t it = 0; it < Length; ++it) {
+    s64 diff = newStr.Length - oldStr.Length;
+    for (s64 it = 0; it < Length; ++it) {
         auto progress = oldStr.begin();
         for (auto search = begin() + it; search != end() && progress != oldStr.end(); ++search, ++progress) {
             if (*search != *progress) break;

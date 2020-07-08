@@ -18,8 +18,8 @@ constexpr string_view get_short_file_name(string_view str) {
     char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATOR, '\0'};
     string_view src = srcData;
 
-    size_t findResult = str.find_reverse(src);
-    if (findResult == npos) {
+    s64 findResult = str.find_reverse(src);
+    if (findResult == -1) {
         findResult = str.find_reverse(file::OS_PATH_SEPARATOR);
         assert(findResult != str.Length - 1);
         // Skip the slash
@@ -34,7 +34,7 @@ constexpr string_view get_short_file_name(string_view str) {
 }
 
 struct asserts {
-    inline static size_t GlobalCalledCount;
+    inline static s64 GlobalCalledCount;
     inline static array<string> GlobalFailed;
 };
 

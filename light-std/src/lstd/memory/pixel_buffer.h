@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../internal/common.h"
 #include "../file.h"
+#include "../internal/common.h"
 #include "owner_pointers.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -13,7 +13,7 @@ struct pixel_buffer {
     u32 Width = 0, Height = 0;
     s32 BPP = (s32) Format;  // BPP is == (s32) Format, but we set it anyway
     u8 *Pixels = null;
-    size_t Reserved = 0;
+    s64 Reserved = 0;
 
     pixel_buffer() = default;
 

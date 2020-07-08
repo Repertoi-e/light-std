@@ -27,23 +27,23 @@ struct table_iterator;
 // Whether we hash a key, if the result is less than 2, we just add 2 to it to put it in the valid range.
 // This leads to possibly more collisions, but it's a small price to pay.
 template <typename K, typename V>
-struct table : non_assignable {
+struct table {
     using key_t = K;
     using value_t = V;
 
-    static constexpr size_t MINIMUM_SIZE = 32;
-    static constexpr size_t FIRST_VALID_HASH = 2;
+    static constexpr s64 MINIMUM_SIZE = 32;
+    static constexpr s64 FIRST_VALID_HASH = 2;
 
     // Number of valid items
-    size_t Count = 0;
+    s64 Count = 0;
 
     // Number of slots allocated
-    size_t Reserved = 0;
+    s64 Reserved = 0;
 
     // Number of slots that can't be used (valid or removed items)
-    size_t SlotsFilled = 0;
+    s64 SlotsFilled = 0;
 
-    uptr_t *Hashes = null; // @TODO: Why are we doing hashesh with _uptr_t_, what a fucking random type...
+    u64 *Hashes = null;  // @TODO: Why are we doing hashesh with _uptr_t_, what a fucking random type...
     key_t *Keys = null;
     value_t *Values = null;
 
@@ -56,9 +56,9 @@ struct table : non_assignable {
     //
     // Allocates a buffer if the table doesn't already point to reserved memory
     // (using the Context's allocator).
-    void reserve(size_t target) {
+    void reserve(s64 target) {
         if (SlotsFilled + target < Reserved) return;
-        target = max<size_t>(ceil_pow_of_2(target + SlotsFilled + 1), 8);
+        target = max<s64>(ceil_pow_of_2(target + SlotsFilled + 1), 8);
 
         auto *oldHashes = Hashes;
         auto *oldKeys = Keys;
@@ -68,7 +68,7 @@ struct table : non_assignable {
         // The owner will change with the next line, but we need it later to decide if we need to delete the old arrays
         bool wasOwner = is_owner();
 
-        Hashes = (uptr_t *) Context.Alloc.allocate(target * sizeof(uptr_t), DO_INIT_0);
+        Hashes = (u64 *) Context.Alloc.allocate(target * sizeof(u64), DO_INIT_0);
         encode_owner(Hashes, this);
 
         Keys = new key_t[target];
@@ -109,7 +109,7 @@ struct table : non_assignable {
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
         if (is_owner()) {
             auto *p = Hashes, *end = Hashes + Reserved;
-            size_t index = 0;
+            s64 index = 0;
             while (p != end) {
                 if (*p) {
                     Keys[index].~key_t();
@@ -125,8 +125,8 @@ struct table : non_assignable {
     value_t *find(const key_t &key) {
         if (!Reserved) return null;
 
-        uptr_t hash = get_hash(key);
-        size_t index = hash & (Reserved - 1);
+        u64 hash = get_hash(key);
+        s64 index = hash & (Reserved - 1);
         For(range(Reserved)) {
             if (Hashes[index] == hash) {
                 if (Keys[index] == key) {
@@ -148,10 +148,10 @@ struct table : non_assignable {
 
         assert(SlotsFilled < Reserved);
 
-        uptr_t hash = get_hash(key);
+        u64 hash = get_hash(key);
         if (hash < FIRST_VALID_HASH) hash += FIRST_VALID_HASH;
 
-        size_t index = hash & (Reserved - 1);
+        s64 index = hash & (Reserved - 1);
         while (Hashes[index]) {
             ++index;
             if (index >= Reserved) index = 0;
@@ -173,10 +173,10 @@ struct table : non_assignable {
 
         assert(SlotsFilled < Reserved);
 
-        uptr_t hash = get_hash(*key);
+        u64 hash = get_hash(*key);
         if (hash < FIRST_VALID_HASH) hash += FIRST_VALID_HASH;
 
-        size_t index = hash & (Reserved - 1);
+        s64 index = hash & (Reserved - 1);
         while (Hashes[index]) {
             ++index;
             if (index >= Reserved) index = 0;
@@ -203,7 +203,7 @@ struct table : non_assignable {
     bool remove(const key_t &key) {
         auto *ptr = find(key);
         if (ptr) {
-            size_t index = ptr - Values;
+            s64 index = ptr - Values;
             Hashes[index] = 1;
             return true;
         }
@@ -244,9 +244,9 @@ struct table_iterator {
     using table_t = type_select_t<Const, const table<Key, Value>, table<Key, Value>>;
 
     table_t *Parent;
-    size_t Index;
+    s64 Index;
 
-    table_iterator(table_t *parent, size_t index = 0) : Parent(parent), Index(index) {
+    table_iterator(table_t *parent, s64 index = 0) : Parent(parent), Index(index) {
         assert(parent);
 
         // Find the first pair

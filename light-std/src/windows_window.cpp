@@ -409,7 +409,7 @@ void window::release() {
 }
 
 string window::get_title() {
-    constexpr size_t tempLength = 30;
+    constexpr s64 tempLength = 30;
 
     WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
         auto *titleUtf16 = new wchar_t[tempLength];
@@ -586,10 +586,10 @@ static HICON create_icon(const pixel_buffer &image, int xhot, int yhot, bool ico
     return handle;
 }
 
-static size_t choose_icon(array<pixel_buffer> icons, s32 width, s32 height) {
+static s64 choose_icon(array<pixel_buffer> icons, s32 width, s32 height) {
     s32 leastDiff = numeric_info<s32>::max();
 
-    size_t closest = npos;
+    s64 closest = -1;
     For(range(icons.Count)) {
         auto icon = icons[it];
         s32 diff = abs((s32)(icon.Width * icon.Height - width * height));
@@ -605,8 +605,8 @@ void window::set_icon(array<pixel_buffer> icons) {
     HICON bigIcon = null, smallIcon = null;
 
     if (icons.Count) {
-        size_t closestBig = choose_icon(icons, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
-        size_t closestSmall = choose_icon(icons, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
+        s64 closestBig = choose_icon(icons, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+        s64 closestSmall = choose_icon(icons, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
 
         bigIcon = create_icon(icons[closestBig], 0, 0, true);
         smallIcon = create_icon(icons[closestSmall], 0, 0, true);

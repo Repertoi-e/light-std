@@ -12,8 +12,8 @@ void test_guid_case(guid id, char f) {
     r.read(&result);
     assert(!r.LastFailed);
 
-    size_t diff = compare_memory(id.Data, result.Data, 16);
-    assert(diff == npos);
+    s64 diff = compare_memory(id.Data, result.Data, 16);
+    assert(diff == -1);
 }
 
 TEST(guid_write_read) {

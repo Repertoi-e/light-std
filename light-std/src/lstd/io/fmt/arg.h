@@ -212,12 +212,12 @@ u64 get_packed_fmt_types() {
 
 template <typename... Args>
 struct args_store {
-    static constexpr size_t NUM_ARGS = sizeof...(Args);
+    static constexpr s64 NUM_ARGS = sizeof...(Args);
 
     static constexpr bool IS_PACKED = NUM_ARGS < internal::MAX_PACKED_ARGS;
 
     // If the arguments are not packed, add one more element to mark the end.
-    static constexpr size_t DATA_SIZE = NUM_ARGS + (IS_PACKED && NUM_ARGS != 0 ? 0 : 1);
+    static constexpr s64 DATA_SIZE = NUM_ARGS + (IS_PACKED && NUM_ARGS != 0 ? 0 : 1);
 
     using value_t = type_select_t<IS_PACKED, value, arg>;
     stack_array<value_t, DATA_SIZE> Data;
@@ -236,7 +236,7 @@ struct args {
         const value *Values;
         const arg *Args;
     };
-    size_t Count = 0;
+    s64 Count = 0;
 
     args() = default;
 
@@ -250,14 +250,15 @@ struct args {
 
     bool is_packed() { return !(Types & internal::IS_UNPACKED_BIT); }
 
-    type get_type(size_t index) {
-        u64 shift = index * 4;
+    type get_type(s64 index) {
+        u64 shift = (u64) index * 4;
         return (type)((Types & (0xfull << shift)) >> shift);
     }
 
-    size_t max_size() { return (size_t)(is_packed() ? internal::MAX_PACKED_ARGS : Types & ~internal::IS_UNPACKED_BIT); }
+    s64 max_size() { return (s64)(is_packed() ? internal::MAX_PACKED_ARGS : Types & ~internal::IS_UNPACKED_BIT); }
 
-    arg get_arg(size_t index) {
+    // Doesn't support negative indexing
+    arg get_arg(s64 index) {
         arg result;
         if (!is_packed()) {
             if (index < max_size()) result = Args[index];
@@ -295,7 +296,7 @@ struct arg_map : non_copyable {
         Entries = new entry[ars.max_size()];
 
         if (ars.is_packed()) {
-            size_t i = 0;
+            s64 i = 0;
             while (true) {
                 auto type = ars.get_type(i);
 
@@ -306,7 +307,7 @@ struct arg_map : non_copyable {
                 ++i;
             }
         } else {
-            size_t i = 0;
+            s64 i = 0;
             while (true) {
                 auto type = ars.Args[i].Type;
                 if (type == type::NONE) break;

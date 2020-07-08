@@ -7,13 +7,13 @@ LSTD_BEGIN_NAMESPACE
 
 // A buffer that uses a stack allocated buffer before dynamically allocating.
 // StackSize - the amount of bytes used on the stack
-template <size_t StackSize>
+template <s64 StackSize>
 struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     char StackData[StackSize]{};
     char *Data = StackData;
 
-    size_t Reserved = 0;
-    size_t ByteLength = 0;
+    s64 Reserved = 0;
+    s64 ByteLength = 0;
 
     stack_dynamic_buffer() = default;
 
@@ -36,11 +36,11 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     //
     // Allocates a buffer if the buffer doesn't already point to reserved memory
     // (using the Context's allocator).
-    void reserve(size_t target) {
+    void reserve(s64 target) {
         if (target < sizeof(StackData)) return;
         if (ByteLength + target < Reserved) return;
 
-        target = max<size_t>(ceil_pow_of_2(target + ByteLength + 1), 8);
+        target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
         if (is_owner()) {
             Data = (char *) allocator::reallocate(Data, target);
@@ -79,7 +79,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
         if (!unsafe) reserve(ByteLength + 1);
 
         auto *target = Data + translate_index(index, ByteLength, true);
-        uptr_t offset = (uptr_t)(target - Data);
+        u64 offset = (u64)(target - Data);
         copy_memory((char *) Data + offset + 1, target, ByteLength - (target - Data));
         *target = b;
 
@@ -94,11 +94,11 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 
     // Insert a buffer of bytes at a specified index
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert_pointer_and_size(s64 index, const char *data, size_t count, bool unsafe = false) {
+    void insert_pointer_and_size(s64 index, const char *data, s64 count, bool unsafe = false) {
         if (!unsafe) reserve(ByteLength + 1);
 
         auto *target = Data + translate_index(index, ByteLength, true);
-        uptr_t offset = (uptr_t)(target - Data);
+        u64 offset = (u64)(target - Data);
         copy_memory((char *) Data + offset + count, target, ByteLength - (target - Data));
 
         copy_memory(target, data, count);
@@ -110,7 +110,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     void remove(s64 index) {
         auto *targetBegin = Data + translate_index(begin, ByteLength);
 
-        uptr_t offset = (uptr_t)(targetBegin - Data);
+        u64 offset = (u64)(targetBegin - Data);
         copy_memory((char *) Data + offset, targetBegin + 1, ByteLength - offset - 1);
 
         --ByteLength;
@@ -124,8 +124,8 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 
         assert(targetEnd > targetBegin);
 
-        size_t bytes = targetEnd - targetBegin;
-        uptr_t offset = (uptr_t)(targetBegin - Data);
+        s64 bytes = targetEnd - targetBegin;
+        u64 offset = (u64)(targetBegin - Data);
         copy_memory((char *) Data + offset, targetEnd, ByteLength - offset - bytes);
 
         ByteLength -= bytes;
@@ -143,7 +143,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 
     // Append _count_ bytes of string contained in _data_
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append_pointer_and_size(const char *data, size_t count, bool unsafe = false) {
+    void append_pointer_and_size(const char *data, s64 count, bool unsafe = false) {
         insert_pointer_and_size(ByteLength, data, count, unsafe);
     }
 

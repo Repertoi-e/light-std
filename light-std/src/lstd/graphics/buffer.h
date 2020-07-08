@@ -15,18 +15,18 @@ struct buffer_layout {
     struct element {
         string Name;
         gtype Type = gtype::Unknown;
-        size_t SizeInBits = 0;
+        s64 SizeInBits = 0;
         bool Normalized = false;
-        size_t Count = 0;
+        s64 Count = 0;
         u32 AlignedByteOffset = 0;  // 1-bit values add 7 bits of packing for the next element
     };
 
     array<element> Elements;
-    size_t TotalSize = 0;  // Calculated in bytes (1-bit values add 7 bits of packing),
-                           // generally used internally to calculate the offset for the next element
+    s64 TotalSize = 0;  // Calculated in bytes (1-bit values add 7 bits of packing),
+                        // generally used internally to calculate the offset for the next element
 
-    void add(string name, gtype type, size_t count = 1, bool normalized = false);
-    void add_padding(size_t bytes);
+    void add(string name, gtype type, s64 count = 1, bool normalized = false);
+    void add_padding(s64 bytes);
 };
 
 enum class primitive_topology { PointList = 0, LineList, LineStrip, TriangleList, TriangleStrip };
@@ -85,13 +85,13 @@ struct buffer : non_copyable, non_movable {
 
     buffer_type Type = buffer_type::None;
     buffer_usage Usage = buffer_usage::Default;
-    size_t Size = 0;
-    size_t Stride = 0;  // Determined by the buffer layout
+    s64 Size = 0;
+    s64 Stride = 0;  // Determined by the buffer layout
 
     buffer() = default;
     ~buffer() { release(); }
 
-    void init(graphics *g, buffer_type type, buffer_usage usage, size_t size, const char *data = null);
+    void init(graphics *g, buffer_type type, buffer_usage usage, s64 size, const char *data = null);
 
     void set_input_layout(buffer_layout layout);
 

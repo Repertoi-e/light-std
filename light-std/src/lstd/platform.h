@@ -138,5 +138,3 @@
 #else
 #warning Compiler not detected
 #endif
-
-

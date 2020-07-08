@@ -53,7 +53,7 @@ arg_ref parse_context::parse_arg_id() {
         ++it;
     } while (it != End && (is_alphanumeric(c = *it) || c == '_'));
 
-    auto name = string(It, (size_t)(it - It));
+    auto name = string(It, (s64)(it - It));
     It = it;
     return arg_ref(name);
 }
@@ -68,7 +68,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
     switch (*It) {
         case '+':
             require_signed_arg(argType);
-            specs->Flags |= flag::sign | flag::PLUS;
+            specs->Flags |= flag::SIGN | flag::PLUS;
             ++It;
             break;
         case '-':
@@ -78,7 +78,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
             break;
         case ' ':
             require_signed_arg(argType);
-            specs->Flags |= flag::sign;
+            specs->Flags |= flag::SIGN;
             ++It;
             break;
     }

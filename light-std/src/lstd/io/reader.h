@@ -52,7 +52,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     request_byte_t RequestByteFunction = null;
 
     const char *Buffer = null, *Current = null;
-    size_t Available = 0;
+    s64 Available = 0;
 
     // Whether this reader has reached "end of file"
     bool EOF = false;
@@ -69,8 +69,8 @@ struct reader : non_copyable, non_movable, non_assignable {
     reader *read(char32_t *out);
 
     // Assumes there is enough space in _out_.
-    reader *read(char *out, size_t n);
-    reader *read(array<char> *out, size_t n);
+    reader *read(char *out, s64 n);
+    reader *read(array<char> *out, s64 n);
 
     // Assumes there is enough space in _out_.
     // _delim_ is not included in the string.
@@ -101,7 +101,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     reader *read_while(array<char> *out, string eats);
 
     // Reads _n_ code points and appends to _str_
-    reader *read(string *str, size_t n);
+    reader *read(string *str, s64 n);
 
     // _delim_ is not included in the string.
     reader *read_until(string *str, char32_t delim);

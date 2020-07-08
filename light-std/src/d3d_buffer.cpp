@@ -42,7 +42,7 @@ void d3d_buffer_init(buffer *b, const char *data) {
     DXCHECK(b->Graphics->D3D.Device->CreateBuffer(&desc, srDataPtr, &b->D3D.Buffer));
 }
 
-DXGI_FORMAT gtype_and_count_to_dxgi_format(gtype type, size_t count, bool normalized) {
+DXGI_FORMAT gtype_and_count_to_dxgi_format(gtype type, s64 count, bool normalized) {
     switch (type) {
         case gtype::BOOL:
             assert(count == 1);

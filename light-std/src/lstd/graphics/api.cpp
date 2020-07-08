@@ -19,7 +19,7 @@ void graphics::init(graphics_api api) {
     }
     Impl.Init(this);
 
-    if (TargetWindows.find([](auto x) { return !x.Window; }) == npos) TargetWindows.append();  // Add a null target
+    if (TargetWindows.find([](auto x) { return !x.Window; }) == -1) TargetWindows.append();  // Add a null target
     set_target_window(null);
 }
 
@@ -28,15 +28,15 @@ void graphics::init(graphics_api api) {
 // target window, and that window is associated with the resources which get created.
 
 void graphics::set_target_window(window *win) {
-    size_t index = TargetWindows.find([&](auto x) { return x.Window == win; });
+    s64 index = TargetWindows.find([&](auto x) { return x.Window == win; });
     target_window *targetWindow;
-    if (index == npos) {
+    if (index == -1) {
         targetWindow = TargetWindows.append();
         targetWindow->Window = win;
         if (win) {
             targetWindow->CallbackID = win->Event.connect({this, &graphics::window_event_handler});
             Impl.InitTargetWindow(this, targetWindow);
-            
+
             event e;
             e.Window = win;
             e.Type = event::Window_Resized;
@@ -121,8 +121,8 @@ void graphics::swap() {
 
 bool graphics::window_event_handler(const event &e) {
     if (e.Type == event::Window_Closed) {
-        size_t index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
-        assert(index != npos);
+        s64 index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
+        assert(index != -1);
 
         target_window *targetWindow = &TargetWindows[index];
         targetWindow->Window->Event.disconnect(targetWindow->CallbackID);
@@ -130,8 +130,8 @@ bool graphics::window_event_handler(const event &e) {
 
         TargetWindows.remove(index);
     } else if (e.Type == event::Window_Resized) {
-        size_t index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
-        assert(index != npos);
+        s64 index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
+        assert(index != -1);
 
         if (!e.Window->is_visible()) return false;
         Impl.TargetWindowResized(this, &TargetWindows[index], e.Width, e.Height);

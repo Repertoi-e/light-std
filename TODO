@@ -1,13 +1,6 @@
-Entity system
-PBR
-OBJ loading
-Dungeon generation
-Player movement and nav surface
 
-
-// @TODO Replace with our own math functions in order to not depend on the runtime lib
-
-
+---------------------------------------------------------------------------------
+Replace with our own math functions in order to not depend on the runtime lib
 ---------------------------------------------------------------------------------
 - Locale?
 - Time?
@@ -22,8 +15,6 @@ API for watching directory changes
 ---------------------------------------------------------------------------------
 Implement the other part of platform specific functionality and compile on linux.
 Remove comments about posix thread implementation in _context.h_ and _thread.h_
----------------------------------------------------------------------------------
-Rewrite vendor libraries and reduce to the minimum needed
 ---------------------------------------------------------------------------------
 Allow users to add more variables to Implicit_Context
 Won't work with headers tho

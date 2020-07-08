@@ -6,18 +6,18 @@ LSTD_BEGIN_NAMESPACE
 
 // This is good for large strings because it doesn't have to constantly reallocate
 struct string_builder {
-    static constexpr size_t BUFFER_SIZE = 1_KiB;
+    static constexpr s64 BUFFER_SIZE = 1_KiB;
 
     struct buffer {
         char Data[BUFFER_SIZE]{};
-        size_t Occupied = 0;
+        s64 Occupied = 0;
         buffer *Next = null;
 
         string_builder *Owner = null;
     };
 
     // Counts how many buffers have been dynamically allocated.
-    size_t IndirectionCount = 0;
+    s64 IndirectionCount = 0;
 
     buffer BaseBuffer;
     buffer *CurrentBuffer = &BaseBuffer;
@@ -43,7 +43,7 @@ struct string_builder {
     void append(string str);
 
     // Append _size_ bytes from _data_ to the builder
-    void append_pointer_and_size(const char *data, size_t size);
+    void append_pointer_and_size(const char *data, s64 size);
 
     // Execute f on every buffer where f should have the signature: void f(string)
     template <typename Lambda>

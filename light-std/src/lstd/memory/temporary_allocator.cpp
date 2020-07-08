@@ -4,7 +4,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void *temporary_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64) {
+void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64) {
 #if COMPILER == MSVC
 #pragma warning(push)
 #pragma warning(disable : 4146)
@@ -13,7 +13,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
     auto *data = (temporary_allocator_data *) context;
     // The temporary allocator hasn't been initialized yet.
     if (!data->Base.Reserved) {
-        size_t startingSize = (size * 2 + 8_KiB - 1) & -8_KiB;  // Round up to a multiple of 8 KiB
+        s64 startingSize = (size * 2 + 8_KiB - 1) & -8_KiB;  // Round up to a multiple of 8 KiB
         data->Base.Storage = new (Malloc) char[startingSize];
         data->Base.Reserved = startingSize;
     }
@@ -32,9 +32,8 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
                 p->Next = new (Malloc) temporary_allocator_data::page;
 
                 // Random log-based growth thing I came up at the time, not real science.
-                size_t loggedSize = (size_t) ceil(p->Reserved * (log2(p->Reserved * 10.0) / 3));
-                size_t reserveTarget =
-                    (max<size_t>(ceil_pow_of_2(size * 2), ceil_pow_of_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
+                s64 loggedSize = (s64) ceil(p->Reserved * (log2(p->Reserved * 10.0) / 3));
+                s64 reserveTarget = (max<s64>(ceil_pow_of_2(size * 2), ceil_pow_of_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
 
                 p->Next->Storage = new (Malloc) char[reserveTarget];
                 p->Next->Reserved = reserveTarget;
@@ -55,7 +54,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
                 p = p->Next;
             }
 
-            s64 diff = (s64) size - (s64) oldSize;
+            s64 diff = size - oldSize;
 
             void *possiblyThisBlock = (char *) p->Storage + p->Used - oldSize;
 
@@ -87,7 +86,7 @@ void *temporary_allocator(allocator_mode mode, void *context, size_t size, void 
             }
 #endif
 
-            size_t targetSize = data->Base.Reserved;
+            s64 targetSize = data->Base.Reserved;
 
             // Check if any overflow pages were used
             auto *page = data->Base.Next;

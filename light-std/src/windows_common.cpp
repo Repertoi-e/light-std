@@ -83,7 +83,7 @@ void dynamic_library::close() {
     }
 }
 
-static constexpr size_t CONSOLE_BUFFER_SIZE = 1_KiB;
+static constexpr s64 CONSOLE_BUFFER_SIZE = 1_KiB;
 
 static char CinBuffer[CONSOLE_BUFFER_SIZE]{};
 static char CoutBuffer[CONSOLE_BUFFER_SIZE]{};
@@ -132,10 +132,10 @@ void win32_common_init() {
 
     // Get the exe name
     wchar_t *buffer = new (Context.TemporaryAlloc) wchar_t[MAX_PATH];
-    size_t reserved = MAX_PATH;
+    s64 reserved = MAX_PATH;
 
     while (true) {
-        size_t written = GetModuleFileNameW(null, buffer, (DWORD) reserved);
+        s64 written = GetModuleFileNameW(null, buffer, (DWORD) reserved);
         if (written == reserved) {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
                 reserved *= 2;
@@ -198,7 +198,7 @@ char io::console_reader_request_byte(io::reader *r) {
     return (read == 0) ? io::eof : (*cr->Current);
 }
 
-void io::console_writer_write(io::writer *w, const char *data, size_t count) {
+void io::console_writer_write(io::writer *w, const char *data, s64 count) {
     auto *cw = (io::console_writer *) w;
 
     if (count > cw->Available) {
@@ -248,13 +248,13 @@ namespace internal {
 io::writer *g_ConsoleLog = &io::cout;
 }
 
-void *os_allocate_block(size_t size) {
+void *os_allocate_block(s64 size) {
     assert(size < MAX_ALLOCATION_REQUEST);
     return HeapAlloc(GetProcessHeap(), 0, size);
 }
 
 // Tests whether the allocation contraction is possible
-static bool is_contraction_possible(size_t oldSize) {
+static bool is_contraction_possible(s64 oldSize) {
     // Check if object allocated on low fragmentation heap.
     // The LFH can only allocate blocks up to 16KB in size.
     if (oldSize <= 0x4000) {
@@ -269,7 +269,7 @@ static bool is_contraction_possible(size_t oldSize) {
     return true;
 }
 
-static void *try_heap_realloc(void *ptr, size_t newSize, bool *reportError) {
+static void *try_heap_realloc(void *ptr, s64 newSize, bool *reportError) {
     void *result = null;
     __try {
         result = HeapReAlloc(GetProcessHeap(), HEAP_REALLOC_IN_PLACE_ONLY | HEAP_GENERATE_EXCEPTIONS, ptr, newSize);
@@ -281,11 +281,11 @@ static void *try_heap_realloc(void *ptr, size_t newSize, bool *reportError) {
     return result;
 }
 
-void *os_resize_block(void *ptr, size_t newSize) {
+void *os_resize_block(void *ptr, s64 newSize) {
     assert(ptr);
     assert(newSize < MAX_ALLOCATION_REQUEST);
 
-    size_t oldSize = os_get_block_size(ptr);
+    s64 oldSize = os_get_block_size(ptr);
     if (newSize == 0) newSize = 1;
 
     bool reportError = false;
@@ -305,9 +305,9 @@ void *os_resize_block(void *ptr, size_t newSize) {
     return null;
 }
 
-size_t os_get_block_size(void *ptr) {
-    size_t result = HeapSize(GetProcessHeap(), 0, ptr);
-    if (result == npos) {
+s64 os_get_block_size(void *ptr) {
+    s64 result = HeapSize(GetProcessHeap(), 0, ptr);
+    if (result == -1) {
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "HeapSize(GetProcessHeap(), 0, ptr)", __FILE__,
                                      __LINE__);
         return 0;
@@ -324,25 +324,26 @@ size_t os_get_block_size(void *ptr) {
         return returnOnFail;                                                                                    \
     }
 
-void os_write_shared_block(string name, void *data, size_t size) {
+void os_write_shared_block(string name, void *data, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
     auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
-    CREATE_MAPPING_CHECKED(h, CreateFileMappingW(INVALID_HANDLE_VALUE, null, PAGE_READWRITE, 0, (DWORD) size, name16), );
+    CREATE_MAPPING_CHECKED(h,
+                           CreateFileMappingW(INVALID_HANDLE_VALUE, null, PAGE_READWRITE, 0, (DWORD) size, name16), );
     defer(CloseHandle(h));
 
     void *result = MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size);
     if (!result) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
-                                     "MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size)", __FILE__, __LINE__);
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size)",
+                                     __FILE__, __LINE__);
         return;
     }
     copy_memory(result, data, size);
     UnmapViewOfFile(result);
 }
 
-void os_read_shared_block(string name, void *out, size_t size) {
+void os_read_shared_block(string name, void *out, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
     auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
@@ -352,8 +353,8 @@ void os_read_shared_block(string name, void *out, size_t size) {
 
     void *result = MapViewOfFile(h, FILE_MAP_READ, 0, 0, size);
     if (!result) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
-                                     "MapViewOfFile(h, FILE_MAP_READ, 0, 0, size)", __FILE__, __LINE__);
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "MapViewOfFile(h, FILE_MAP_READ, 0, 0, size)",
+                                     __FILE__, __LINE__);
         return;
     }
 
@@ -373,11 +374,7 @@ void os_exit(s32 exitCode) { ExitProcess(exitCode); }
 time_t os_get_time() {
     LARGE_INTEGER count;
     QueryPerformanceCounter(&count);
-#if BITS == 32
-    return count.LowPart;
-#else
     return count.QuadPart;
-#endif
 }
 
 f64 os_time_to_seconds(time_t time) { return (f64) time / PerformanceFrequency.QuadPart; }

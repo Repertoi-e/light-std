@@ -210,7 +210,7 @@ void thread::start(delegate<void(void *)> function, void *userData) {
     ti->NoCrt = true;
     GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR) wrapper_function, &ti->Module);
 
-    Handle = (uptr_t) CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, (DWORD *) &Win32ThreadID);
+    Handle = (u64) CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, (DWORD *) &Win32ThreadID);
 #endif
     if (!Handle || (HANDLE) Handle == INVALID_HANDLE_VALUE) {
         NotAThread = true;

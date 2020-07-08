@@ -271,7 +271,7 @@ struct thread : non_copyable, non_movable, non_assignable {
     // Unique thread ID. Used only on Windows
     u32 Win32ThreadId = 0;
 
-    uptr_t Handle;
+    u64 Handle;
 
     // True if this object is not a thread of execution.
     bool NotAThread = true;

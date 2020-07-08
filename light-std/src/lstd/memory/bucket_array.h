@@ -3,11 +3,11 @@
 #include "array.h"
 #include "delegate.h"
 
-template <typename T, size_t ElementsPerBucket = 128>
+template <typename T, s64 ElementsPerBucket = 128>
 struct bucket_array : non_copyable, non_movable, non_assignable {
     struct bucket {
         T *Elements = null;
-        size_t Count = 0, Reserved = 0;
+        s64 Count = 0, Reserved = 0;
         bucket *Next = null;
     };
     bucket BaseBucket;
@@ -28,7 +28,7 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
         auto *b = BucketList;
         while (b) {
             auto index = b->Assets.find(predicate);
-            if (index != npos) return (T *) b->Assets[index];
+            if (index != -1) return (T *) b->Assets[index];
             b = b->Next;
         }
         return null;

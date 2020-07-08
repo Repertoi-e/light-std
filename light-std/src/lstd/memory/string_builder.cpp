@@ -33,10 +33,10 @@ void string_builder::append(char32_t cp) {
 
 void string_builder::append(string str) { append_pointer_and_size(str.Data, str.ByteLength); }
 
-void string_builder::append_pointer_and_size(const char *data, size_t size) {
+void string_builder::append_pointer_and_size(const char *data, s64 size) {
     buffer *currentBuffer = CurrentBuffer;
 
-    size_t availableSpace = BUFFER_SIZE - currentBuffer->Occupied;
+    s64 availableSpace = BUFFER_SIZE - currentBuffer->Occupied;
     if (availableSpace >= size) {
         copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, size);
         currentBuffer->Occupied += size;
@@ -69,12 +69,12 @@ void string_builder::combine(string *out) const {
 
 string_builder *clone(string_builder *dest, const string_builder &src) {
     *dest = {};
-	src.traverse([&](const string &str) { dest->append(str); });
+    src.traverse([&](const string &str) { dest->append(str); });
     return dest;
 }
 
 string_builder *move(string_builder *dest, string_builder *src) {
-	dest->release();
+    dest->release();
 
     *dest = *src;
 

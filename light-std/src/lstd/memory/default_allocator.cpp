@@ -3,7 +3,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void *default_allocator(allocator_mode mode, void *context, size_t size, void *oldMemory, size_t oldSize, u64) {
+void *default_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64) {
     switch (mode) {
         case allocator_mode::ALLOCATE:
             return os_allocate_block(size);

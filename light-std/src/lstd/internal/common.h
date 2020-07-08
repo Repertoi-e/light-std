@@ -6,13 +6,13 @@
 #include "debug_break.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:
-//  size_t a = 10_MiB;
+//  s64 a = 10_MiB;
 
 // _B For completeness
-constexpr size_t operator"" _B(u64 i) { return (size_t)(i); }
-constexpr size_t operator"" _KiB(u64 i) { return (size_t)(i) << 10; }
-constexpr size_t operator"" _MiB(u64 i) { return (size_t)(i) << 20; }
-constexpr size_t operator"" _GiB(u64 i) { return (size_t)(i) << 30; }
+constexpr s64 operator"" _B(u64 i) { return (s64)(i); }
+constexpr s64 operator"" _KiB(u64 i) { return (s64)(i) << 10; }
+constexpr s64 operator"" _MiB(u64 i) { return (s64)(i) << 20; }
+constexpr s64 operator"" _GiB(u64 i) { return (s64)(i) << 30; }
 
 // Helper macro for, e.g flag enums
 //
@@ -236,7 +236,7 @@ constexpr void swap(T &a, T &b) {
     move(&b, &c);
 }
 
-template <typename T, size_t N>
+template <typename T, s64 N>
 constexpr void swap(T (&a)[N], T (&b)[N]) {
     For(range(N)) swap(a[it], b[it]);
 }
@@ -248,8 +248,8 @@ constexpr void swap(T (&a)[N], T (&b)[N]) {
 
 // In this library, copy_memory works like memmove in the std (handles overlapping buffers)
 // :CopyMemory (declared in types.h also to avoid circular includes)
-extern void (*copy_memory)(void *dest, const void *src, size_t num);
-constexpr void const_copy_memory(void *dest, const void *src, size_t num) {
+extern void (*copy_memory)(void *dest, const void *src, s64 num);
+constexpr void const_copy_memory(void *dest, const void *src, s64 num) {
     auto *d = (char *) dest;
     auto *s = (const char *) src;
 
@@ -269,28 +269,28 @@ constexpr void const_copy_memory(void *dest, const void *src, size_t num) {
     }
 }
 
-extern void (*fill_memory)(void *dest, char value, size_t num);
-constexpr void const_fill_memory(void *dest, char value, size_t num) {
+extern void (*fill_memory)(void *dest, char value, s64 num);
+constexpr void const_fill_memory(void *dest, char value, s64 num) {
     auto d = (char *) dest;
     while (num-- > 0) *d++ = value;
 }
 
-inline void zero_memory(void *dest, size_t num) { return fill_memory(dest, 0, num); }
-constexpr void const_zero_memory(void *dest, size_t num) { return const_fill_memory(dest, 0, num); }
+inline void zero_memory(void *dest, s64 num) { return fill_memory(dest, 0, num); }
+constexpr void const_zero_memory(void *dest, s64 num) { return const_fill_memory(dest, 0, num); }
 
 // compare_memory returns the index of the first byte that is different
 // e.g: calling with
 //		*ptr1 = 00000011
 //		*ptr1 = 00100001
 //	returns 2
-// If the memory regions are equal, the returned value is npos (-1)
-extern size_t (*compare_memory)(const void *ptr1, const void *ptr2, size_t num);
-constexpr size_t const_compare_memory(const void *ptr1, const void *ptr2, size_t num) {
+// If the memory regions are equal, the returned value is -1
+extern s64 (*compare_memory)(const void *ptr1, const void *ptr2, s64 num);
+constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, s64 num) {
     auto *s1 = (const char *) ptr1;
     auto *s2 = (const char *) ptr2;
 
     For(range(num)) if (*s1++ != *s2++) return it;
-    return npos;
+    return -1;
 }
 
 #define POWERS_OF_10(factor)                                                                                        \
@@ -639,9 +639,9 @@ f64 min(f64 x, f64 y);
 f64 max(f64 x, f64 y);
 
 template <typename T>
-enable_if_t<is_integral_v<T> && is_unsigned_v<T>, T> ceil_pow_of_2(T v) {
+enable_if_t<is_integral_v<T>, T> ceil_pow_of_2(T v) {
     v--;
-    for (size_t i = 1; i < sizeof(T) * 8; i *= 2) v |= v >> i;
+    for (s64 i = 1; i < sizeof(T) * 8; i *= 2) v |= v >> i;
     return ++v;
 }
 

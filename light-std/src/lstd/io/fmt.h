@@ -172,7 +172,6 @@ void parse_fmt_string(string fmtString, format_context *f);
 // Formats to writer
 template <typename... Args>
 void to_writer(io::writer *out, string fmtString, Args &&... args) {
-    
     args_store<remove_reference_t<Args>...> store;  // This needs to outlive _parse_fmt_string_
     store.populate(args...);
 
@@ -184,7 +183,7 @@ void to_writer(io::writer *out, string fmtString, Args &&... args) {
 
 // Formats to a counting writer and returns the result
 template <typename... Args>
-size_t calculate_formatted_size(string fmtString, Args &&... args) {
+s64 calculate_formatted_size(string fmtString, Args &&... args) {
     io::counting_writer writer;
     to_writer(&writer, fmtString, ((Args &&) args)...);
     return writer.Count;
@@ -214,7 +213,7 @@ struct formatter<array<T>> {
     void format(array<T> src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
 };
 
-template <typename T, size_t N>
+template <typename T, s64 N>
 struct formatter<stack_array<T, N>> {
     void format(stack_array<T, N> src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
 };
@@ -244,11 +243,11 @@ struct formatter<mat<T, R, C, Packed>> {
         f->write("[");
 
         bool alternate = f->Specs && f->Specs->has_flag(flag::HASH);
-        size_t max = 0;
+        s64 max = 0;
         if (alternate) {
             for (s32 i = 0; i < src.Height; ++i) {
                 for (s32 j = 0; j < src.Width; ++j) {
-                    size_t s;
+                    s64 s;
                     if constexpr (is_floating_point_v<T>) {
                         s = calculate_formatted_size("{:f}", src(i, j));
                     } else {

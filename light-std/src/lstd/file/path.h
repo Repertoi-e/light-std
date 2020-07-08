@@ -24,7 +24,7 @@ constexpr char OS_PATH_SEPARATOR = '/';
 // Note that this applies mainly for Windows systems,
 // on other platforms to_native() just returns the unified format.
 //
-// ! Passing an ill-formed path to parsing functions 
+// ! Passing an ill-formed path to parsing functions
 //   results in undefined behaviour so please don't do that :D
 struct path {
     string UnifiedPath;
@@ -41,7 +41,7 @@ struct path {
     void get_path_from_here_to(path other, path *out) const {
         assert(is_pointing_to_content() && other.is_pointing_to_content());
 
-        if (UnifiedPath.find(other.UnifiedPath) == npos) {
+        if (UnifiedPath.find(other.UnifiedPath) == -1) {
             clone(out, other);
         } else {
             if (UnifiedPath.Length == other.UnifiedPath.Length) {

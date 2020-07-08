@@ -1,10 +1,10 @@
 #pragma once
 
 #include "../math.h"
-#include "../os.h"
 #include "../memory/array.h"
 #include "../memory/signal.h"
 #include "../memory/string.h"
+#include "../os.h"
 
 struct HMONITOR__;
 

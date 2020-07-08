@@ -93,7 +93,7 @@ void d3d_texture_2D_set_data(texture_2D *t, pixel_buffer data) {
 
     DXCHECK(t->Graphics->D3D.DeviceContext->Map(t->D3D.Texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
 
-    size_t sourceRow = t->Width * data.BPP;
+    s64 sourceRow = t->Width * data.BPP;
 
     auto *dest = (u8 *) mappedData.pData, *p = data.Pixels;
     For(range(data.Height)) {

@@ -112,7 +112,7 @@ static u64 POWTEN[20] = {1,
                          1000000000000000000ull,
                          10000000000000000000ull};
 
-using format_float_callback_t = char *(*) (void *user, char *buf, size_t length);
+using format_float_callback_t = char *(*) (void *user, char *buf, s64 length);
 
 #define MIN_BYTES 512
 
@@ -311,7 +311,7 @@ static void get_float_string_internal(char **start, u32 *length, char *out, s32 
 
 #define check_buffer_length(bytes)                                        \
     {                                                                     \
-        size_t length = (size_t)(bf - buf);                               \
+        s64 length = (s64)(bf - buf);                                     \
         if ((length + (bytes)) >= MIN_BYTES) {                            \
             if (0 == (bf = buf = callback(user, buf, length))) goto done; \
         }                                                                 \
@@ -513,7 +513,7 @@ static void format_float(format_float_callback_t callback, void *user, char *buf
                 if ((s32) n > pr) n = pr;
                 i = n;
                 while (i) {
-                    if ((((uptr_t) s) & 3) == 0) break;
+                    if ((((u64) s) & 3) == 0) break;
                     *s++ = '0';
                     --i;
                 }
@@ -553,7 +553,7 @@ static void format_float(format_float_callback_t callback, void *user, char *buf
                         n = dp - n;
                         if (!commas) {
                             while (n) {
-                                if ((((uptr_t) s) & 3) == 0) break;
+                                if ((((u64) s) & 3) == 0) break;
                                 *s++ = '0';
                                 --n;
                             }
@@ -640,7 +640,7 @@ static void format_float(format_float_callback_t callback, void *user, char *buf
                     pr -= i;
                     if (!commas) {
                         while (i) {
-                            if ((((uptr_t) bf) & 3) == 0) break;
+                            if ((((u64) bf) & 3) == 0) break;
                             *bf++ = '0';
                             --i;
                         }
@@ -700,7 +700,7 @@ static void format_float(format_float_callback_t callback, void *user, char *buf
                 buffer_clamp(i, tz);
                 tz -= i;
                 while (i) {
-                    if ((((uptr_t) bf) & 3) == 0) break;
+                    if ((((u64) bf) & 3) == 0) break;
                     *bf++ = '0';
                     --i;
                 }

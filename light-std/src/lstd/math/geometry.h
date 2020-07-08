@@ -65,7 +65,7 @@ struct hyperplane {
     using VectorT = vec<T, Dim>;
     VectorT Normal;
     T Scalar;
-    
+
     hyperplane() : Normal(0), Scalar(0) { normal(0) = 1; }
     hyperplane(const VectorT &base, const VectorT &normal) : normal(normal) {
         assert(IsNormalized(normal));

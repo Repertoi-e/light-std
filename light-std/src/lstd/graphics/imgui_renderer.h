@@ -14,7 +14,7 @@ struct imgui_renderer {
     buffer VB, IB, UB;
     texture_2D FontTexture;
     shader Shader;
-    size_t VBSize = 0, IBSize = 0;
+    s64 VBSize = 0, IBSize = 0;
 
     imgui_renderer() = default;
     ~imgui_renderer() { release(); }

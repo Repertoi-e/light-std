@@ -134,15 +134,15 @@ TEST(read_every_file_in_project) {
     file::path rootFolder = thisFile.directory();
     rootFolder.combine_with("../../../");
 
-    table<string, size_t> files;
+    table<string, s64> files;
     file::handle(rootFolder).traverse_recursively([&](file::path it) {
         file::path p;
         clone(&p, rootFolder);
         p.combine_with(it);
 
-        size_t *counter = files.find(p.UnifiedPath);
+        s64 *counter = files.find(p.UnifiedPath);
         if (!counter) {
-            size_t zero = 0;
+            s64 zero = 0;
             counter = files.move_add(&p.UnifiedPath, &zero);
         }
         ++*counter;

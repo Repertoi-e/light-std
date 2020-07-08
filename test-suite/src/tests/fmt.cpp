@@ -14,10 +14,10 @@ void test_error_handler(string message, fmt::error_context errorContext) { LAST_
 template <typename... Args>
 void format_test_error(string_view fmtString, Args &&... args) {
     io::counting_writer dummy;
-    
+
     fmt::args_store<remove_reference_t<Args>...> store;
     store.populate(args...);
-    
+
     auto f = fmt::format_context(&dummy, fmtString, fmt::args(store), test_error_handler);
     fmt::parse_fmt_string(fmtString, &f);
 }

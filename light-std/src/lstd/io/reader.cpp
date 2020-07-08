@@ -38,11 +38,11 @@ reader *reader::read(char32_t *out) {
     return this;
 }
 
-reader *reader::read(char *out, size_t n) {
+reader *reader::read(char *out, s64 n) {
     if (EOF) return this;
 
     while (n > 0) {
-        size_t size = Available;
+        s64 size = Available;
         if (size > 0) {
             if (n < size) {
                 size = n;
@@ -66,7 +66,7 @@ reader *reader::read(char *out, size_t n) {
     return this;
 }
 
-reader *io::reader::read(array<char> *out, size_t n) {
+reader *io::reader::read(array<char> *out, s64 n) {
     if (EOF) return this;
     out->reserve(n);
     return read(out->Data, n);
@@ -78,8 +78,8 @@ reader *io::reader::read_until(char *out, char32_t delim) {
     char delimEnc[4]{};
     encode_cp(delimEnc, delim);
 
-    size_t delimSize = get_size_of_cp(delim);
-    size_t delimProgress = 0;
+    s64 delimSize = get_size_of_cp(delim);
+    s64 delimProgress = 0;
 
     char ch = peek_byte();
     while (true) {
@@ -106,8 +106,8 @@ reader *io::reader::read_until(array<char> *out, char32_t delim) {
     char delimEnc[4]{};
     encode_cp(delimEnc, delim);
 
-    size_t delimSize = get_size_of_cp(delim);
-    size_t delimProgress = 0;
+    s64 delimSize = get_size_of_cp(delim);
+    s64 delimProgress = 0;
 
     char ch = peek_byte();
     while (true) {
@@ -243,7 +243,7 @@ reader *io::reader::read_while(array<char> *out, string eats) {
     return this;
 }
 
-reader *io::reader::read(string *str, size_t n) {
+reader *io::reader::read(string *str, s64 n) {
     if (EOF) return this;
 
     str->reserve(n);
@@ -343,14 +343,14 @@ pair<bool, bool> reader::parse_bool() {
 
     // "true", "false"
     if (Available >= 3) {
-        if (string(Current - 1, 4).compare_ignore_case("true") == npos) {
+        if (string(Current - 1, 4).compare_ignore_case("true") == -1) {
             For(range(3)) bump_byte();
             return {true, true};
         }
     }
 
     if (Available >= 4) {
-        if (string(Current - 1, 5).compare_ignore_case("false") == npos) {
+        if (string(Current - 1, 5).compare_ignore_case("false") == -1) {
             For(range(4)) bump_byte();
             return {false, true};
         }

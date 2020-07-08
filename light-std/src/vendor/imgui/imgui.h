@@ -3020,7 +3020,8 @@ struct ImDrawList {
     IMGUI_API void AddConvexPolyFilled(
         const ImVec2 *points, int num_points,
         ImU32 col);  // Note: Anti-aliased filling requires points to be in clockwise order.
-    IMGUI_API void CUSTOM_AddConvexPolyFilled(const ImVec2 *points, int num_points, ImU32 col, f32 xscale = 1, f32 yscale = 1);
+    IMGUI_API void CUSTOM_AddConvexPolyFilled(const ImVec2 *points, int num_points, ImU32 col, f32 xscale = 1,
+                                              f32 yscale = 1);
     IMGUI_API void AddBezierCurve(const ImVec2 &pos0, const ImVec2 &cp0, const ImVec2 &cp1, const ImVec2 &pos1,
                                   ImU32 col, float thickness, int num_segments = 0);
 

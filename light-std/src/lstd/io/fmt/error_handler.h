@@ -8,7 +8,7 @@ namespace fmt {
 
 struct error_context {
     string FmtString;
-    size_t Position;
+    s64 Position;
 };
 
 using error_handler_t = void (*)(string, error_context);

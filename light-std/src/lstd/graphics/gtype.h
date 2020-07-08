@@ -118,7 +118,7 @@ inline gtype get_scalar_gtype(gtype type) {
     return type;
 }
 
-inline size_t get_size_of_base_gtype_in_bits(gtype type) {
+inline s64 get_size_of_base_gtype_in_bits(gtype type) {
     if (type == gtype::BOOL) return 1;
     if (type == gtype::U8) return 8;
     if (type == gtype::S8) return 8;
@@ -127,7 +127,7 @@ inline size_t get_size_of_base_gtype_in_bits(gtype type) {
     return 32;
 }
 
-inline size_t get_count_of_gtype(gtype type) {
+inline s64 get_count_of_gtype(gtype type) {
     switch (type) {
         case gtype::BOOL_1x2:
         case gtype::U32_1x2:

@@ -1,9 +1,7 @@
 #pragma once
 
-#include "../writer.h"
-
 #include "../../memory/stack_dynamic_buffer.h"
-
+#include "../writer.h"
 #include "debug.h"
 #include "parse_context.h"
 
@@ -11,7 +9,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-void format_context_write(io::writer *w, const char *data, size_t count);
+void format_context_write(io::writer *w, const char *data, s64 count);
 void format_context_flush(io::writer *w);
 
 // This writer is kinda specific.
@@ -43,7 +41,7 @@ struct format_context : io::writer {
     // Write directly, without taking formatting specs into account.
     void write_no_specs(array_view<char> data) { Out->write(data); }
     void write_no_specs(const char *data) { Out->write(data, c_string_length(data)); }
-    void write_no_specs(const char *data, size_t count) { Out->write(data, count); }
+    void write_no_specs(const char *data, s64 count) { Out->write(data, count); }
     void write_no_specs(string str) { Out->write(str); }
     void write_no_specs(char32_t cp) { Out->write(cp); }
 

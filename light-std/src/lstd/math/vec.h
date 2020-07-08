@@ -410,18 +410,18 @@ struct vec : public vec_data<T, Dim_, Packed_> {
 
     template <typename T2, s64 D2, bool P2>
     struct get_element<vec<T2, D2, P2>> {
-        static T2 get(const vec<T2, D2, P2> &u, size_t index) { return u.Data[index]; }
+        static T2 get(const vec<T2, D2, P2> &u, s64 index) { return u.Data[index]; }
     };
 
     template <typename VectorDataU, s64... Indices>
     struct get_element<swizzle<VectorDataU, Indices...>> {
-        static auto get(const swizzle<VectorDataU, Indices...> &u, size_t index) {
+        static auto get(const swizzle<VectorDataU, Indices...> &u, s64 index) {
             return ((typename vec_info<VectorDataU>::type *) &u)[u.IndexTable[index]];
         }
     };
 
     template <typename Head, typename... Scalars>
-    void assign(size_t index, Head &&head, Scalars &&... scalars) {
+    void assign(s64 index, Head &&head, Scalars &&... scalars) {
         if constexpr (is_scalar_v<remove_cvref_t<Head>> && (... && is_scalar_v<remove_cvref_t<Scalars>>) ) {
             Data[index] = (T) head;
             assign(index + 1, ((Scalars &&) scalars)...);
@@ -434,7 +434,7 @@ struct vec : public vec_data<T, Dim_, Packed_> {
         }
     }
 
-    void assign(size_t index) {
+    void assign(s64 index) {
         // terminator
         for (; index < Dim; index++) {
             Data[index] = T(0);

@@ -1,6 +1,6 @@
-#include "../test.h"
-
 #include <lstd/memory/string_builder.h>
+
+#include "../test.h"
 
 TEST(code_point_size) {
     string ascii = "abc";
@@ -312,7 +312,7 @@ TEST(find) {
     assert_eq(a.Length - 1, a.find_reverse_not('Q'));
     assert_eq(a.Length - 2, a.find_reverse_not('g'));
 
-    assert_eq(npos, a.find('Q'));
+    assert_eq(-1, a.find('Q'));
 
     a = u8"Това е низ от букви";
     assert_eq(8, a.find(u8"и"));
@@ -324,7 +324,7 @@ TEST(find) {
     assert_eq(14, a.find(U'б'));
     assert_eq(14, a.find_reverse(U'б'));
 
-    assert_eq(npos, a.find(U'я'));
+    assert_eq(-1, a.find(U'я'));
 
     a = "aaabbbcccddd";
     assert_eq(3, a.find_any_of("DCb"));
@@ -346,5 +346,5 @@ TEST(find) {
 
     assert_eq(a.Length - 1, a.find_reverse_any_of("CdB"));
 
-    assert_eq(npos, a.find_any_of("QRT"));
+    assert_eq(-1, a.find_any_of("QRT"));
 }

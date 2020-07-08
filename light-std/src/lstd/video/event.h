@@ -282,9 +282,9 @@ struct event {
         bool Focused;    // Only set on Window_Focused
 
         struct {
-            u32 Message;    // Only set on Window_Platform_Message_Sent
-            uptr_t Param1;  // Only set on Window_Platform_Message_Sent
-            ptr_t Param2;   // Only set on Window_Platform_Message_Sent
+            u32 Message;  // Only set on Window_Platform_Message_Sent
+            u64 Param1;   // Only set on Window_Platform_Message_Sent
+            s64 Param2;   // Only set on Window_Platform_Message_Sent
         };
     };
 

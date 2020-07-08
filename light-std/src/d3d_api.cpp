@@ -225,21 +225,21 @@ void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindo
         rDesc.ScissorEnable = true;
         rDesc.DepthClipEnable = true;
     }
-    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(size_t) cull::None]));
+    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::None]));
     {
         rDesc.FillMode = D3D11_FILL_SOLID;
         rDesc.CullMode = D3D11_CULL_FRONT;
         rDesc.ScissorEnable = true;
         rDesc.DepthClipEnable = true;
     }
-    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(size_t) cull::Front]));
+    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::Front]));
     {
         rDesc.FillMode = D3D11_FILL_SOLID;
         rDesc.CullMode = D3D11_CULL_BACK;
         rDesc.ScissorEnable = true;
         rDesc.DepthClipEnable = true;
     }
-    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(size_t) cull::Back]));
+    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::Back]));
 }
 
 void d3d_set_viewport(graphics *g, rect viewport) {
@@ -284,7 +284,7 @@ void d3d_set_depth_testing(graphics *g, bool enabled) {
 }
 
 void d3d_set_cull_mode(graphics *g, cull mode) {
-    g->D3D.DeviceContext->RSSetState(g->CurrentTargetWindow->D3D.RasterStates[(size_t) mode]);
+    g->D3D.DeviceContext->RSSetState(g->CurrentTargetWindow->D3D.RasterStates[(s64) mode]);
 }
 
 void d3d_clear_color(graphics *g, v4 color) {

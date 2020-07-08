@@ -965,7 +965,8 @@ void ImDrawList::AddConvexPolyFilled(const ImVec2 *points, const int points_coun
 
 // We intentionally avoid using ImVec2 and its math operators here to reduce cost to a minimum for debug/non-inlined
 // builds.
-void ImDrawList::CUSTOM_AddConvexPolyFilled(const ImVec2 *points, const int points_count, ImU32 col, f32 xscale, f32 yscale) {
+void ImDrawList::CUSTOM_AddConvexPolyFilled(const ImVec2 *points, const int points_count, ImU32 col, f32 xscale,
+                                            f32 yscale) {
     if (points_count < 3) return;
 
     const ImVec2 uv = _Data->TexUvWhitePixel;

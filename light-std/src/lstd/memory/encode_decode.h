@@ -30,7 +30,7 @@ constexpr char extract_overlapping_bits(char previous, char next, u32 startBit, 
 }  // namespace internal
 
 struct base_16 {
-    static constexpr size_t GROUP_LENGTH = 4;
+    static constexpr s64 GROUP_LENGTH = 4;
 
     static constexpr char encode(u32 index) {
         const char *dictionary = "0123456789ABCDEF";
@@ -46,7 +46,7 @@ struct base_16 {
 };
 
 struct base_32 {
-    static constexpr size_t GROUP_LENGTH = 5;
+    static constexpr s64 GROUP_LENGTH = 5;
 
     static constexpr char encode(u32 index) {
         const char *dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -62,7 +62,7 @@ struct base_32 {
 };
 
 struct base_64 {
-    static constexpr size_t GROUP_LENGTH = 6;
+    static constexpr s64 GROUP_LENGTH = 6;
 
     static constexpr char encode(u32 index) {
         const char *dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -100,7 +100,7 @@ constexpr void decode(const char *start, const char *end, char *out) {
             ++iter;
             continue;
         }
-        u32 bits = min<size_t>(outputCurrentBit + Traits::GROUP_LENGTH, 8) - outputCurrentBit;
+        u32 bits = min<s64>(outputCurrentBit + Traits::GROUP_LENGTH, 8) - outputCurrentBit;
         if (bits == Traits::GROUP_LENGTH) {
             // The value fits within current byte, so we can extract it directly.
             buffer |= value << (8 - outputCurrentBit - Traits::GROUP_LENGTH);
@@ -130,7 +130,7 @@ constexpr void decode(const char *start, const char *end, char *out) {
 }
 
 template <typename Traits>
-constexpr size_t encode(const char *start, const char *end, char *out) {
+constexpr s64 encode(const char *start, const char *end, char *out) {
     auto *begin = out;
     auto *iter = start;
 

@@ -27,7 +27,7 @@ void reload_global_state() {
             array<string> paths;
 
             size_t semicolon, beginning = 0;
-            while ((semicolon = path.find(";", beginning)) != npos) {
+            while ((semicolon = path.find(";", beginning)) != -1) {
                 // @Bug Big one... we can't store an array of substrings because when we resize the container and
                 // move the elements, old ones attempt to get freed.
                 paths.append(path.substring(beginning, semicolon));

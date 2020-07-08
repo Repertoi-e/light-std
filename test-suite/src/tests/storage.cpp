@@ -32,7 +32,7 @@ TEST(array) {
     a.remove(4);
     assert_eq(a, to_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
-    size_t count = a.Count;
+    s64 count = a.Count;
     For(range(count)) { a.remove(-1); }
     assert_eq(a.Count, 0);
 
@@ -75,7 +75,7 @@ TEST(table) {
     assert_eq(*t.find("9"), 20202);
     t.set("9", 9);
 
-	size_t loopIterations = 0;
+    s64 loopIterations = 0;
     for (auto [key, value] : t) {
         string str;
         fmt::sprint(&str, "{}", *value);
@@ -84,7 +84,8 @@ TEST(table) {
     }
     assert_eq(loopIterations, t.Count)
 
-    table<string, s32> empty;
+        table<string, s32>
+            empty;
     for (auto [key, value] : empty) {
         assert(false);
     }
@@ -100,7 +101,7 @@ TEST(table_clone) {
     clone(&copy, t);
     copy.set("11", 20);
 
-	size_t loopIterations = 0;
+    s64 loopIterations = 0;
     for (auto [key, value] : t) {
         string str;
         fmt::sprint(&str, "{}", *value);
@@ -109,6 +110,6 @@ TEST(table_clone) {
     }
     assert_eq(loopIterations, t.Count)
 
-    assert_eq(t.Count, 3);
+        assert_eq(t.Count, 3);
     assert_eq(copy.Count, 4);
 }

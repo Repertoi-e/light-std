@@ -40,14 +40,14 @@ struct shader : public asset, non_copyable, non_movable {
         string Name;
         gtype Type = gtype::Unknown;
 
-        size_t ByteSize = 0;
-        size_t Offset = 0;
-        size_t Count = 0;  // _Count_ * _Size_ gives the total size
+        s64 ByteSize = 0;
+        s64 Offset = 0;
+        s64 Count = 0;  // _Count_ * _Size_ gives the total size
     };
 
     struct uniform_buffer {
         string Name;
-        size_t ByteSize = 0;
+        s64 ByteSize = 0;
         array<uniform> Uniforms;
 
         shader_type ShaderType = shader_type::None;

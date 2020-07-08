@@ -17,11 +17,11 @@ void allocator::DEBUG_unlink_header(allocation_header *header) {
     if (header == DEBUG_Head) {
         DEBUG_Head = header->DEBUG_Next;
     }
-    
+
     if (header->DEBUG_Next) {
         header->DEBUG_Next->DEBUG_Previous = header->DEBUG_Previous;
     }
-    
+
     if (header->DEBUG_Previous) {
         header->DEBUG_Previous->DEBUG_Next = header->DEBUG_Next;
     }
@@ -46,7 +46,7 @@ void allocator::DEBUG_swap_header(allocation_header *oldHeader, allocation_heade
         prev->DEBUG_Next = newHeader;
         newHeader->DEBUG_Previous = prev;
     } else {
-        DEBUG_Head = newHeader; 
+        DEBUG_Head = newHeader;
     }
 
     if (next) {
@@ -60,7 +60,7 @@ void allocator::verify_header(allocation_header *header) {
 #if defined DEBUG_MEMORY
     char freedHeader[sizeof(allocation_header)];
     fill_memory(freedHeader, DEAD_LAND_FILL, sizeof(allocation_header));
-    if (compare_memory(header, freedHeader, sizeof(allocation_header)) == npos) {
+    if (compare_memory(header, freedHeader, sizeof(allocation_header)) == -1) {
         assert(false && "Trying to access freed memory!");
     }
 
@@ -74,10 +74,10 @@ void allocator::verify_header(allocation_header *header) {
 
     char noMansLand[NO_MANS_LAND_SIZE];
     fill_memory(noMansLand, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
-    assert(compare_memory((char *) user - NO_MANS_LAND_SIZE, noMansLand, NO_MANS_LAND_SIZE) == npos &&
+    assert(compare_memory((char *) user - NO_MANS_LAND_SIZE, noMansLand, NO_MANS_LAND_SIZE) == -1 &&
            "No man's land was modified. This means that you wrote before the allocated block.");
 
-    assert(compare_memory((char *) header->DEBUG_Pointer + header->Size, noMansLand, NO_MANS_LAND_SIZE) == npos &&
+    assert(compare_memory((char *) header->DEBUG_Pointer + header->Size, noMansLand, NO_MANS_LAND_SIZE) == -1 &&
            "No man's land was modified. This means that you wrote after the allocated block.");
 
     //
@@ -100,7 +100,7 @@ void allocator::verify_heap() {
 #endif
 }
 
-void *allocator::encode_header(void *p, size_t userSize, u32 align, allocator_func_t f, void *c, bool initToZero) {
+void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, bool initToZero) {
     u32 padding = calculate_padding_for_pointer_with_header(p, align, sizeof(allocation_header));
     u32 alignmentPadding = padding - sizeof(allocation_header);
 
@@ -147,7 +147,7 @@ void *allocator::encode_header(void *p, size_t userSize, u32 align, allocator_fu
     //                                                                              - 18.05.2020
     //
     p = result + 1;
-    assert((((uptr_t) p & ~((size_t) align - 1)) == (uptr_t) p) && "Pointer wasn't properly aligned.");
+    assert((((u64) p & ~((s64) align - 1)) == (u64) p) && "Pointer wasn't properly aligned.");
 
     if (initToZero) {
         zero_memory(p, userSize);
@@ -166,19 +166,19 @@ void *allocator::encode_header(void *p, size_t userSize, u32 align, allocator_fu
     return p;
 }
 
-void *allocator::general_allocate(size_t userSize, u32 align, u64 userFlags) const {
+void *allocator::general_allocate(s64 userSize, u32 align, u64 userFlags) const {
     if (align == 0) {
         auto contextAlignment = ::Context.AllocAlignment;
         assert(is_pow_of_2(contextAlignment));
         align = contextAlignment;
     }
 
-    size_t id = AllocationCount;
+    s64 id = AllocationCount;
 
     align = align < POINTER_SIZE ? POINTER_SIZE : align;
     assert(is_pow_of_2(align));
 
-    size_t required = userSize + align + sizeof(allocation_header) + (sizeof(allocation_header) % align);
+    s64 required = userSize + align + sizeof(allocation_header) + (sizeof(allocation_header) % align);
 #if defined DEBUG_MEMORY
     required += NO_MANS_LAND_SIZE;  // This is for the bytes after the requested block
 #endif
@@ -198,7 +198,7 @@ void *allocator::general_allocate(size_t userSize, u32 align, u64 userFlags) con
     return result;
 }
 
-void *allocator::general_reallocate(void *ptr, size_t newUserSize, u64 userFlags) {
+void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
     auto *header = (allocation_header *) ptr - 1;
     verify_header(header);
 
@@ -208,12 +208,12 @@ void *allocator::general_reallocate(void *ptr, size_t newUserSize, u64 userFlags
 
     // The header stores the size of the requested allocation
     // (so the user code can look at the header and not be confused with garbage)
-    size_t extra = sizeof(allocation_header) + header->Alignment + (sizeof(allocation_header) % header->Alignment);
+    s64 extra = sizeof(allocation_header) + header->Alignment + (sizeof(allocation_header) % header->Alignment);
 
-    size_t oldUserSize = header->Size;
+    s64 oldUserSize = header->Size;
 
-    size_t oldSize = oldUserSize + extra;
-    size_t newSize = newUserSize + extra;
+    s64 oldSize = oldUserSize + extra;
+    s64 newSize = newUserSize + extra;
 
 #if defined DEBUG_MEMORY
     oldSize += NO_MANS_LAND_SIZE;
@@ -295,8 +295,8 @@ void allocator::free(void *ptr, u64 userFlags) {
 
     auto id = header->ID;
 
-    size_t extra = header->Alignment + sizeof(allocation_header) + (sizeof(allocation_header) % header->Alignment);
-    size_t size = header->Size + extra;
+    s64 extra = header->Alignment + sizeof(allocation_header) + (sizeof(allocation_header) % header->Alignment);
+    s64 size = header->Size + extra;
 #if defined DEBUG_MEMORY
     size += NO_MANS_LAND_SIZE;
 #endif

@@ -10,10 +10,10 @@ struct view_helper : non_copyable {
 
     VectorT Eye;
     VectorT Target;
-    stack_array<VectorT, size_t(Dim - 2)> Bases;
+    stack_array<VectorT, s64(Dim - 2)> Bases;
     stack_array<bool, Dim> FlipAxes;
 
-    view_helper(const VectorT &eye, const VectorT &target, const stack_array<VectorT, size_t(Dim - 2)> &bases,
+    view_helper(const VectorT &eye, const VectorT &target, const stack_array<VectorT, s64(Dim - 2)> &bases,
                 const stack_array<bool, Dim> &flipAxes)
         : Eye(eye), Target(target), Bases(bases), FlipAxes(flipAxes) {}
 
@@ -82,7 +82,7 @@ struct view_helper : non_copyable {
 // To fix the rotation, an "up" vector must be provided in 3 dimensions. In higher dimensions, we need multiple up
 // vectors. Unfortunately I can't remember how these basis vectors are used, but they are orthogonalized to each-other
 // and to the look vector. I can't remember the order of orthogonalization.
-template <typename T, s64 Dim, bool Packed, size_t BaseDim, size_t FlipDim>
+template <typename T, s64 Dim, bool Packed, s64 BaseDim, s64 FlipDim>
 auto look_at(const vec<T, Dim, Packed> &eye, const vec<T, Dim, Packed> &target,
              const stack_array<vec<T, Dim, Packed>, BaseDim> &bases, const stack_array<bool, FlipDim> &flipAxes) {
     static_assert(BaseDim == Dim - 2, "You must provide 2 fewer bases than the dimension of the transform.");

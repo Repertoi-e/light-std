@@ -11,12 +11,11 @@ LSTD_BEGIN_NAMESPACE
 //    hasher h(..seed..);
 //    h.add(&value);
 //    ...
-//    uptr_t result = h.get_hash();
+//    u64 result = h.get_hash();
 
-#if BITS == 64
 struct hasher {
     // Temporarily store up to 31 bytes between multiple add() calls
-    static constexpr size_t MAX_BUFFER_SIZE = 31 + 1;
+    static constexpr s64 MAX_BUFFER_SIZE = 31 + 1;
 
     char Buffer[MAX_BUFFER_SIZE]{};
     char *BufferPtr = Buffer;
@@ -33,7 +32,7 @@ struct hasher {
         State[3] = seed - 11400714785074694791ULL;
     }
 
-    constexpr bool add(const char *data, size_t size) {
+    constexpr bool add(const char *data, s64 size) {
         if (!data) return false;
 
         ByteLength += size;
@@ -45,7 +44,7 @@ struct hasher {
         }
 
         if (BufferPtr != Buffer) {
-            size_t available = BufferEnd - BufferPtr;
+            s64 available = BufferEnd - BufferPtr;
             const_copy_memory(BufferPtr, data, available);
             data += available;
 
@@ -129,97 +128,5 @@ struct hasher {
         State[3] = rotate_left_64(State[3] + block[3] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
     }
 };
-#else
-struct hasher {
-    // Temporarily store up to 31 bytes between multiple add() calls
-    static constexpr size_t MAX_BUFFER_SIZE = 15 + 1;
-
-    char Buffer[MAX_BUFFER_SIZE];
-    char *BufferPtr = Buffer;
-    char *BufferEnd = Buffer + MAX_BUFFER_SIZE;
-
-    u32 ByteLength = 0;
-
-    u32 State[4];
-
-    constexpr hasher(u32 seed) {
-        State[0] = seed + 2654435761U + 2246822519U;
-        State[1] = seed + 2246822519U;
-        State[2] = seed;
-        State[3] = seed - 2654435761U;
-    }
-
-    template <typename T>
-    constexpr bool add(const char *data, size_t size) {
-        if (!data) return false;
-
-        ByteLength += size;
-
-        if (BufferPtr + size < BufferEnd) {
-            const_copy_memory(BufferPtr, data, size);
-            BufferPtr += size;
-            return true;
-        }
-
-        if (BufferPtr != Buffer) {
-            size_t available = BufferEnd - BufferPtr;
-            const_copy_memory(BufferPtr, data, available);
-            data += available;
-
-            process(Buffer);
-        }
-
-        const char *stop = data + size - MAX_BUFFER_SIZE;
-        while (data <= stop) {
-            process(data);
-            data += 16;
-        }
-
-        copy_memory(Buffer, data, size);
-        BufferPtr = Buffer + size;
-        return true;
-    }
-
-    constexpr u64 hash() {
-        u32 result = ByteLength;
-
-        if (totalLength >= MaxBufferSize) {
-            result += rotate_left_32(State[0], 1);
-            result += rotate_left_32(State[1], 7);
-            result += rotate_left_32(State[2], 12);
-            result += rotate_left_32(State[3], 18);
-        } else {
-            result += State[2] + 374761393U;
-        }
-
-        auto *p = Buffer;
-        if (p + 4 <= BufferPtr) {
-            result = rotate_left_32(result + (*(u32 *) p) * 3266489917U, 17);
-            result *= 668265263U;
-            p += 4;
-        }
-
-        while (p != BufferPtr) {
-            result = rotate_left_32(result + (*p++) * 374761393U, 11) * 2654435761U;
-        }
-
-        result ^= result >> 15;
-        result *= 2246822519U;
-        result ^= result >> 13;
-        result *= 3266489917U;
-        result ^= result >> 16;
-        return result;
-    }
-
-   private:
-    constexpr void process(const void *data) {
-        auto *block = (const u32 *) data;
-        State[0] = rotate_left_32(State[0] + block[0] * 2246822519U, 13) * 2654435761U;
-        State[1] = rotate_left_32(State[1] + block[1] * 2246822519U, 13) * 2654435761U;
-        State[2] = rotate_left_32(State[2] + block[2] * 2246822519U, 13) * 2654435761U;
-        State[3] = rotate_left_32(State[3] + block[3] * 2246822519U, 13) * 2654435761U;
-    }
-};
-#endif
 
 LSTD_END_NAMESPACE

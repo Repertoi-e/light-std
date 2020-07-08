@@ -7,9 +7,7 @@
 /// as well as some stuff from <utility>
 
 // The following integral types are defined: s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)
-//		as well as: f32 (float), f64 (double), null (nullptr), npos ((size_t) -1)
-// Platform dependent types: ptr_t (signed, used for pointer difference)
-//				uptr_t, size_t (32 or 64 bits depending on CPU architecture)
+//		as well as: f32 (float), f64 (double), null (nullptr)
 //
 // Min/max values are also defined (S8_MIN, S8_MAX, etc...)
 //
@@ -71,6 +69,93 @@
 // - reverse_integer_sequence
 
 LSTD_BEGIN_NAMESPACE
+
+//
+// Fundamental types:
+//
+using s8 = char;
+using s16 = short;
+using s32 = int;
+using s64 = long long;
+
+using u8 = unsigned char;
+using u16 = unsigned short;
+using u32 = unsigned;
+using u64 = unsigned long long;
+
+#define S64_C(c) c##L
+#define U64_C(c) c##UL
+
+#define S8_MIN (-128)
+#define S16_MIN (-32767 - 1)
+#define S32_MIN (-2147483647 - 1)
+#define S64_MIN (-S64_C(9223372036854775807L) - 1)
+
+#define S8_MAX (127)
+#define S16_MAX (32767)
+#define S32_MAX (2147483647)
+#define S64_MAX (S64_C(9223372036854775807))
+
+#define U8_MAX (255)
+#define U16_MAX (65535)
+#define U32_MAX (4294967295U)
+#define U64_MAX (U64_C(18446744073709551615))
+
+#define WCHAR_MIN 0x0000
+#define WCHAR_MAX 0xffff
+
+using f32 = float;
+using f64 = double;
+using lf64 = long double;
+
+#define F64_DECIMAL_DIG 17                    // # of decimal digits of rounding precision
+#define F64_DIG 15                            // # of decimal digits of precision
+#define F64_EPSILON 2.2204460492503131e-016   // smallest such that 1.0+F64_EPSILON != 1.0
+#define F64_HAS_SUBNORM 1                     // type does support subnormal numbers
+#define F64_MANT_DIG 53                       // # of bits in mantissa
+#define F64_MAX 1.7976931348623158e+308       // max value
+#define F64_MAX_10_EXP 308                    // max decimal exponent
+#define F64_MAX_EXP 1024                      // max binary exponent
+#define F64_MIN 2.2250738585072014e-308       // min positive value
+#define F64_MIN_10_EXP (-307)                 // min decimal exponent
+#define F64_MIN_EXP (-1021)                   // min binary exponent
+#define F64_RADIX 2                           // exponent radix
+#define F64_TRUE_MIN 4.9406564584124654e-324  // min positive value
+
+#define F32_DECIMAL_DIG 9             // # of decimal digits of rounding precision
+#define F32_DIG 6                     // # of decimal digits of precision
+#define F32_EPSILON 1.192092896e-07F  // smallest such that 1.0+F32_EPSILON != 1.0
+#define F32_HAS_SUBNORM 1             // type does support subnormal numbers
+#define F32_GUARD 0
+#define F32_MANT_DIG 24           // # of bits in mantissa
+#define F32_MAX 3.402823466e+38F  // max value
+#define F32_MAX_10_EXP 38         // max decimal exponent
+#define F32_MAX_EXP 128           // max binary exponent
+#define F32_MIN 1.175494351e-38F  // min normalized positive value
+#define F32_MIN_10_EXP (-37)      // min decimal exponent
+#define F32_MIN_EXP (-125)        // min binary exponent
+#define F32_NORMALIZE 0
+#define F32_RADIX 2                    // exponent radix
+#define F32_TRUE_MIN 1.401298464e-45F  // min positive value
+
+#define LONG_F64_DIG F64_DIG                  // # of decimal digits of precision
+#define LONG_F64_EPSILON F64_EPSILON          // smallest such that 1.0+LONG_F64_EPSILON != 1.0
+#define LONG_F64_HAS_SUBNORM F64_HAS_SUBNORM  // type does support subnormal numbers
+#define LONG_F64_MANT_DIG F64_MANT_DIG        // # of bits in mantissa
+#define LONG_F64_MAX F64_MAX                  // max value
+#define LONG_F64_MAX_10_EXP F64_MAX_10_EXP    // max decimal exponent
+#define LONG_F64_MAX_EXP F64_MAX_EXP          // max binary exponent
+#define LONG_F64_MIN F64_MIN                  // min normalized positive value
+#define LONG_F64_MIN_10_EXP F64_MIN_10_EXP    // min decimal exponent
+#define LONG_F64_MIN_EXP F64_MIN_EXP          // min binary exponent
+#define LONG_F64_RADIX F64_RADIX              // exponent radix
+#define LONG_F64_TRUE_MIN F64_TRUE_MIN        // min positive value
+
+using time_t = s64;
+
+// Personal preference
+// I prefer null over nullptr but they are exactly the same
+constexpr auto null = nullptr;
 
 // Used internally to denote a special template argument that means it's an unused argument.
 struct unused {};
@@ -291,30 +376,11 @@ constexpr bool is_reference_v = is_reference<T>::value;
 template <typename>
 struct is_function : public false_t {};
 
-#if BITS == 32 && COMPILER == MSVC
-// __cdecl specialization
-template <typename ReturnValue, typename... ArgPack>
-struct is_function<ReturnValue __cdecl(ArgPack...)> : public true_t {};
-
-template <typename ReturnValue, typename... ArgPack>
-struct is_function<ReturnValue __cdecl(ArgPack..., ...)> : public true_t {};
-
-// __stdcall specialization
-template <typename ReturnValue, typename... ArgPack>
-struct is_function<ReturnValue __stdcall(ArgPack...)> : public true_t {};
-
-// When functions use a variable number of arguments, it is the caller that cleans the stack (cf. cdecl).
-//
-// template <typename ReturnValue, typename... ArgPack>
-// struct is_function<ReturnValue __stdcall (ArgPack..., ...)>
-//     : public true_t {};
-#else
 template <typename ReturnValue, typename... ArgPack>
 struct is_function<ReturnValue(ArgPack...)> : public true_t {};
 
 template <typename ReturnValue, typename... ArgPack>
 struct is_function<ReturnValue(ArgPack..., ...)> : public true_t {};
-#endif
 
 template <typename T>
 constexpr bool is_function_v = is_function<T>::value;
@@ -339,7 +405,7 @@ template <typename T>
 struct remove_const<const T[]> {
     using type = T[];
 };
-template <typename T, size_t N>
+template <typename T, s64 N>
 struct remove_const<const T[N]> {
     using type = T[N];
 };
@@ -367,7 +433,7 @@ template <typename T>
 struct remove_volatile<volatile T[]> {
     using type = T[];
 };
-template <typename T, size_t N>
+template <typename T, s64 N>
 struct remove_volatile<volatile T[N]> {
     using type = T[N];
 };
@@ -569,160 +635,40 @@ template <typename T>
 typename add_rvalue_reference<T>::type declval() noexcept;
 
 // These are primarily useful in templated code for meta programming.
-// Currently we are limited to size_t, as C++ doesn't allow integral
+// Currently we are limited to s64, as C++ doesn't allow integral
 // template parameters to be generic. We can expand the supported types
 // to include additional integers if needed.
-template <size_t I0, size_t... in>
+template <s64 I0, s64... in>
 struct static_min;
 
-template <size_t I0>
+template <s64 I0>
 struct static_min<I0> {
     static constexpr auto value = I0;
 };
 
-template <size_t I0, size_t I1, size_t... in>
+template <s64 I0, s64 I1, s64... in>
 struct static_min<I0, I1, in...> {
     static constexpr auto value = ((I0 <= I1) ? static_min<I0, in...>::value : static_min<I1, in...>::value);
 };
 
-template <size_t I0, size_t... in>
-inline size_t static_min_v = static_min<I0, in...>::value;
+template <s64 I0, s64... in>
+inline s64 static_min_v = static_min<I0, in...>::value;
 
-template <size_t I0, size_t... in>
+template <s64 I0, s64... in>
 struct static_max;
 
-template <size_t I0>
+template <s64 I0>
 struct static_max<I0> {
     static constexpr auto value = I0;
 };
 
-template <size_t I0, size_t I1, size_t... in>
+template <s64 I0, s64 I1, s64... in>
 struct static_max<I0, I1, in...> {
     static constexpr auto value = ((I0 >= I1) ? static_max<I0, in...>::value : static_max<I1, in...>::value);
 };
 
-template <size_t I0, size_t... in>
-inline size_t static_max_v = static_max<I0, in...>::value;
-
-//
-// Fundamental types:
-//
-using s8 = char;
-using s16 = short;
-using s32 = int;
-using s64 = long long;
-
-using u8 = unsigned char;
-using u16 = unsigned short;
-using u32 = unsigned;
-using u64 = unsigned long long;
-
-#if BITS == 64
-#define S64_C(c) c##L
-#define U64_C(c) c##UL
-#else
-#define S64_C(c) c##LL
-#define U64_C(c) c##ULL
-#endif
-
-#define S8_MIN (-128)
-#define S16_MIN (-32767 - 1)
-#define S32_MIN (-2147483647 - 1)
-#define S64_MIN (-S64_C(9223372036854775807L) - 1)
-
-#define S8_MAX (127)
-#define S16_MAX (32767)
-#define S32_MAX (2147483647)
-#define S64_MAX (S64_C(9223372036854775807))
-
-#define U8_MAX (255)
-#define U16_MAX (65535)
-#define U32_MAX (4294967295U)
-#define U64_MAX (U64_C(18446744073709551615))
-
-#define WCHAR_MIN 0x0000
-#define WCHAR_MAX 0xffff
-
-using f32 = float;
-using f64 = double;
-using lf64 = long double;
-
-#define F64_DECIMAL_DIG 17                    // # of decimal digits of rounding precision
-#define F64_DIG 15                            // # of decimal digits of precision
-#define F64_EPSILON 2.2204460492503131e-016   // smallest such that 1.0+F64_EPSILON != 1.0
-#define F64_HAS_SUBNORM 1                     // type does support subnormal numbers
-#define F64_MANT_DIG 53                       // # of bits in mantissa
-#define F64_MAX 1.7976931348623158e+308       // max value
-#define F64_MAX_10_EXP 308                    // max decimal exponent
-#define F64_MAX_EXP 1024                      // max binary exponent
-#define F64_MIN 2.2250738585072014e-308       // min positive value
-#define F64_MIN_10_EXP (-307)                 // min decimal exponent
-#define F64_MIN_EXP (-1021)                   // min binary exponent
-#define F64_RADIX 2                           // exponent radix
-#define F64_TRUE_MIN 4.9406564584124654e-324  // min positive value
-
-#define F32_DECIMAL_DIG 9             // # of decimal digits of rounding precision
-#define F32_DIG 6                     // # of decimal digits of precision
-#define F32_EPSILON 1.192092896e-07F  // smallest such that 1.0+F32_EPSILON != 1.0
-#define F32_HAS_SUBNORM 1             // type does support subnormal numbers
-#define F32_GUARD 0
-#define F32_MANT_DIG 24           // # of bits in mantissa
-#define F32_MAX 3.402823466e+38F  // max value
-#define F32_MAX_10_EXP 38         // max decimal exponent
-#define F32_MAX_EXP 128           // max binary exponent
-#define F32_MIN 1.175494351e-38F  // min normalized positive value
-#define F32_MIN_10_EXP (-37)      // min decimal exponent
-#define F32_MIN_EXP (-125)        // min binary exponent
-#define F32_NORMALIZE 0
-#define F32_RADIX 2                    // exponent radix
-#define F32_TRUE_MIN 1.401298464e-45F  // min positive value
-
-#define LONG_F64_DIG F64_DIG                  // # of decimal digits of precision
-#define LONG_F64_EPSILON F64_EPSILON          // smallest such that 1.0+LONG_F64_EPSILON != 1.0
-#define LONG_F64_HAS_SUBNORM F64_HAS_SUBNORM  // type does support subnormal numbers
-#define LONG_F64_MANT_DIG F64_MANT_DIG        // # of bits in mantissa
-#define LONG_F64_MAX F64_MAX                  // max value
-#define LONG_F64_MAX_10_EXP F64_MAX_10_EXP    // max decimal exponent
-#define LONG_F64_MAX_EXP F64_MAX_EXP          // max binary exponent
-#define LONG_F64_MIN F64_MIN                  // min normalized positive value
-#define LONG_F64_MIN_10_EXP F64_MIN_10_EXP    // min decimal exponent
-#define LONG_F64_MIN_EXP F64_MIN_EXP          // min binary exponent
-#define LONG_F64_RADIX F64_RADIX              // exponent radix
-#define LONG_F64_TRUE_MIN F64_TRUE_MIN        // min positive value
-
-// uptr_t is the minimum size unsigned integer that can hold the address of any byte in RAM
-// ptr_t is used to represent the difference of addresses (pointers)
-#if BITS == 64
-using uptr_t = u64;
-using ptr_t = s64;
-
-#define PTR_MIN S64_MIN
-#define PTR_MAX S64_MAX
-#define UPTR_MAX U64_MAX
-#else
-using ptr_t = s32;
-using uptr_t = u32;
-
-#define PTR_MIN S32_MIN
-#define PTR_MAX S32_MAX
-#define UPTR_MAX U32_MAX
-#endif
-
-// size_t is used to represent any size (or index) in bytes
-using size_t = uptr_t;
-#if !defined SIZE_MAX
-#define SIZE_MAX UPTR_MAX
-#endif
-
-using time_t = ptr_t;
-
-// Personal preference
-// I prefer null over nullptr but they are exactly the same
-constexpr auto null = nullptr;
-
-// Used for search results (not found)
-// Inspired by C++'s std
-constexpr auto npos = (size_t) -1;
+template <s64 I0, s64... in>
+inline s64 static_max_v = static_max<I0, in...>::value;
 
 template <typename T>
 struct is_void : public false_t {};
@@ -998,7 +944,7 @@ template <typename T>
 struct remove_extent<T[]> {
     using type = T;
 };
-template <typename T, size_t N>
+template <typename T, s64 N>
 struct remove_extent<T[N]> {
     using type = T;
 };
@@ -1015,7 +961,7 @@ template <typename T>
 struct remove_all_extents {
     using type = T;
 };
-template <typename T, size_t N>
+template <typename T, s64 N>
 struct remove_all_extents<T[N]> {
     using type = typename remove_all_extents<T>::type;
 };
@@ -1044,24 +990,24 @@ using remove_all_extents_t = typename remove_all_extents<T>::type;
 //     Widget* pWidgetArray = new(widgetArray) Widget[37];
 #if COMPILER == GCC || COMPILER == CLANG
 // New versions of GCC do not support using 'alignas' with a value greater than 128.
-template <size_t N, size_t Align = 8>
+template <s64 N, s64 Align = 8>
 struct aligned_storage {
     struct type {
         u8 Data[N];
     } __attribute__((aligned(Align)));
 };
 #else
-template <size_t N, size_t Align = 8>
+template <s64 N, s64 Align = 8>
 struct aligned_storage {
     using type = struct { alignas(Align) u8 Data[N]; };
 };
 #endif
 
-template <size_t N, size_t Align = 8>
+template <s64 N, s64 Align = 8>
 using aligned_storage_t = typename aligned_storage<N, Align>::type;
 
 // :CopyMemory
-extern void (*copy_memory)(void *dest, const void *src, size_t num);
+extern void (*copy_memory)(void *dest, const void *src, s64 num);
 
 // Safely converts between unrelated types that have a binary equivalency.
 // This appoach is required by strictly conforming C++ compilers because
@@ -1194,14 +1140,14 @@ constexpr bool is_unsigned_v = is_unsigned<T>::value;
 
 template <typename T>
 struct alignment_of_value {
-    static const size_t value = alignof(T);
+    static const s64 value = alignof(T);
 };
 
 template <typename T>
-struct alignment_of : public integral_constant<size_t, alignment_of_value<T>::value> {};
+struct alignment_of : public integral_constant<s64, alignment_of_value<T>::value> {};
 
 template <typename T>
-constexpr size_t alignment_of_v = alignment_of<T>::value;
+constexpr s64 alignment_of_v = alignment_of<T>::value;
 
 template <typename T>
 struct is_aligned_value {
@@ -1212,19 +1158,19 @@ template <typename T>
 struct is_aligned : public integral_constant<bool, is_aligned_value<T>::value> {};
 
 template <typename T>
-constexpr size_t is_aligned_v = is_aligned<T>::value;
+constexpr s64 is_aligned_v = is_aligned<T>::value;
 
 template <typename T>
-struct rank : public integral_constant<size_t, 0> {};
+struct rank : public integral_constant<s64, 0> {};
 
 template <typename T>
-struct rank<T[]> : public integral_constant<size_t, rank<T>::value + 1> {};
+struct rank<T[]> : public integral_constant<s64, rank<T>::value + 1> {};
 
-template <typename T, size_t N>
-struct rank<T[N]> : public integral_constant<size_t, rank<T>::value + 1> {};
+template <typename T, s64 N>
+struct rank<T[N]> : public integral_constant<s64, rank<T>::value + 1> {};
 
 template <typename T>
-constexpr size_t rank_v = rank<T>::value;
+constexpr s64 rank_v = rank<T>::value;
 
 template <typename Base, typename Derived>
 struct is_base_of : public integral_constant<bool, __is_base_of(Base, Derived) || is_same<Base, Derived>::value> {};
@@ -1289,10 +1235,10 @@ constexpr auto has_equality_v = has_equality<T>::value;
 // For a given array type of unknown extent T[], extent<T[], 0>::value == 0.
 // For a given non-array type T and an arbitrary dimension I, extent<T, I>::value == 0.
 template <typename T, u32 N>
-struct extent_help : public integral_constant<size_t, 0> {};
+struct extent_help : public integral_constant<s64, 0> {};
 
 template <typename T, u32 I>
-struct extent_help<T[I], 0> : public integral_constant<size_t, I> {};
+struct extent_help<T[I], 0> : public integral_constant<s64, I> {};
 
 template <typename T, u32 N, u32 I>
 struct extent_help<T[I], N> : public extent_help<T, N - 1> {};
@@ -1312,7 +1258,7 @@ struct is_array : public false_t {};
 template <typename T>
 struct is_array<T[]> : public true_t {};
 
-template <typename T, size_t N>
+template <typename T, s64 N>
 struct is_array<T[N]> : public true_t {};
 
 template <typename T>
@@ -1536,7 +1482,7 @@ template <typename T>
 struct is_pod : public integral_constant<bool, __is_pod(T) || is_void_v<T> || is_scalar_v<T>> {};
 #endif
 
-template <typename T, size_t N>
+template <typename T, s64 N>
 struct is_pod<T[N]> : public is_pod<T> {};
 
 template <typename T>
@@ -1705,12 +1651,12 @@ struct is_constructible
                                        T, Args...> {};
 
 // Array types are constructible if constructed with no arguments and if their element type is default-constructible
-template <typename Array, size_t N>
+template <typename Array, s64 N>
 struct is_constructible_helper_2<false, Array[N]> : public is_constructible<typename remove_all_extents<Array>::type> {
 };
 
 // Arrays with arguments are not constructible. e.g. the following is an invalid expression: int[3](37, 34, 12)
-template <typename Array, size_t N, typename... Args>
+template <typename Array, s64 N, typename... Args>
 struct is_constructible_helper_2<false, Array[N], Args...> : public false_t {};
 #endif
 
@@ -1907,32 +1853,32 @@ constexpr bool is_trivially_destructible_v = is_trivially_destructible<T>::value
 template <typename T, T... Ints>
 struct integer_sequence {
     using value_t = T;
-    static constexpr size_t size = sizeof...(Ints);
+    static constexpr s64 size = sizeof...(Ints);
 
     static_assert(is_integral_v<T>, "integer_sequence can only be instantiated with an integral type");
 };
 
-template <typename T, size_t N, typename IndexSeq>
+template <typename T, s64 N, typename IndexSeq>
 struct make_integer_sequence_impl;
 
-template <typename T, size_t N, size_t... Is>
+template <typename T, s64 N, s64... Is>
 struct make_integer_sequence_impl<T, N, integer_sequence<T, Is...>> {
     using type = typename make_integer_sequence_impl<T, N - 1, integer_sequence<T, N - 1, Is...>>::type;
 };
 
-template <typename T, size_t... Is>
+template <typename T, s64... Is>
 struct make_integer_sequence_impl<T, 0, integer_sequence<T, Is...>> {
     using type = integer_sequence<T, Is...>;
 };
 
-template <size_t... Is>
-using index_sequence = integer_sequence<size_t, Is...>;
+template <s64... Is>
+using index_sequence = integer_sequence<s64, Is...>;
 
-template <typename T, size_t N>
+template <typename T, s64 N>
 using make_integer_sequence = typename make_integer_sequence_impl<T, N, integer_sequence<T>>::type;
 
-template <size_t N>
-using make_index_sequence = typename make_integer_sequence_impl<size_t, N, integer_sequence<size_t>>::type;
+template <s64 N>
+using make_index_sequence = typename make_integer_sequence_impl<s64, N, integer_sequence<s64>>::type;
 
 template <typename IS1, typename IS2>
 struct merge_integer_sequence;
@@ -1945,7 +1891,7 @@ struct merge_integer_sequence<integer_sequence<T, Indices1...>, integer_sequence
 template <typename IS1, typename IS2>
 struct merge_index_sequence;
 
-template <size_t... Indices1, size_t... Indices2>
+template <s64... Indices1, s64... Indices2>
 struct merge_index_sequence<index_sequence<Indices1...>, index_sequence<Indices2...>> {
     using type = index_sequence<Indices1..., Indices2...>;
 };
@@ -1963,12 +1909,11 @@ struct reverse_integer_sequence<integer_sequence<T, Head, Indices...>> {
 template <typename IS>
 struct reverse_index_sequence;
 
-template <size_t Head, size_t... Indices>
+template <s64 Head, s64... Indices>
 struct reverse_index_sequence<index_sequence<Head, Indices...>> {
     using type = typename merge_index_sequence<typename reverse_index_sequence<index_sequence<Indices...>>::type,
-                                        index_sequence<Head>>::type;
+                                               index_sequence<Head>>::type;
 };
-
 
 LSTD_END_NAMESPACE
 
@@ -1995,7 +1940,7 @@ struct tuple;
 
 template <typename T1>
 struct tuple<T1> {
-    static constexpr size_t SIZE = 1;
+    static constexpr s64 SIZE = 1;
 
     T1 Item1;
 
@@ -2005,7 +1950,7 @@ struct tuple<T1> {
 
 template <typename T1, typename T2>
 struct tuple<T1, T2> {
-    static constexpr size_t SIZE = 2;
+    static constexpr s64 SIZE = 2;
 
     T1 Item1;
     T2 Item2;
@@ -2016,7 +1961,7 @@ struct tuple<T1, T2> {
 
 template <typename T1, typename T2, typename T3>
 struct tuple<T1, T2, T3> {
-    static constexpr size_t SIZE = 3;
+    static constexpr s64 SIZE = 3;
 
     T1 Item1;
     T2 Item2;
@@ -2029,7 +1974,7 @@ struct tuple<T1, T2, T3> {
 
 template <typename T1, typename T2, typename T3, typename T4>
 struct tuple<T1, T2, T3, T4> {
-    static constexpr size_t SIZE = 4;
+    static constexpr s64 SIZE = 4;
 
     T1 Item1;
     T2 Item2;
@@ -2044,7 +1989,7 @@ struct tuple<T1, T2, T3, T4> {
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
 struct tuple<T1, T2, T3, T4, T5> {
-    static constexpr size_t SIZE = 5;
+    static constexpr s64 SIZE = 5;
 
     T1 Item1;
     T2 Item2;
@@ -2060,7 +2005,7 @@ struct tuple<T1, T2, T3, T4, T5> {
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
 struct tuple<T1, T2, T3, T4, T5, T6> {
-    static constexpr size_t SIZE = 6;
+    static constexpr s64 SIZE = 6;
 
     T1 Item1;
     T2 Item2;
@@ -2077,7 +2022,7 @@ struct tuple<T1, T2, T3, T4, T5, T6> {
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
 struct tuple<T1, T2, T3, T4, T5, T6, T7> {
-    static constexpr size_t SIZE = 7;
+    static constexpr s64 SIZE = 7;
 
     T1 Item1;
     T2 Item2;
@@ -2096,7 +2041,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7> {
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8> {
-    static constexpr size_t SIZE = 8;
+    static constexpr s64 SIZE = 8;
 
     T1 Item1;
     T2 Item2;
@@ -2124,7 +2069,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
           typename T9>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9> {
-    static constexpr size_t SIZE = 9;
+    static constexpr s64 SIZE = 9;
 
     T1 Item1;
     T2 Item2;
@@ -2154,7 +2099,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
           typename T9, typename T10>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
-    static constexpr size_t SIZE = 10;
+    static constexpr s64 SIZE = 10;
 
     T1 Item1;
     T2 Item2;
@@ -2187,7 +2132,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
           typename T9, typename T10, typename T11>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
-    static constexpr size_t SIZE = 11;
+    static constexpr s64 SIZE = 11;
 
     T1 Item1;
     T2 Item2;
@@ -2222,7 +2167,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
           typename T9, typename T10, typename T11, typename T12>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
-    static constexpr size_t SIZE = 12;
+    static constexpr s64 SIZE = 12;
 
     T1 Item1;
     T2 Item2;
@@ -2260,7 +2205,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
           typename T9, typename T10, typename T11, typename T12, typename T13>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
-    static constexpr size_t SIZE = 13;
+    static constexpr s64 SIZE = 13;
 
     T1 Item1;
     T2 Item2;
@@ -2300,7 +2245,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
           typename T9, typename T10, typename T11, typename T12, typename T13, typename T14>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
-    static constexpr size_t SIZE = 14;
+    static constexpr s64 SIZE = 14;
 
     T1 Item1;
     T2 Item2;
@@ -2343,7 +2288,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
           typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
-    static constexpr size_t SIZE = 15;
+    static constexpr s64 SIZE = 15;
 
     T1 Item1;
     T2 Item2;
@@ -2388,7 +2333,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
           typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
-    static constexpr size_t SIZE = 16;
+    static constexpr s64 SIZE = 16;
 
     T1 Item1;
     T2 Item2;
@@ -2437,7 +2382,7 @@ template <typename T1, typename T2, typename T3, typename T4, typename T5, typen
           typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
           typename T17>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
-    static constexpr size_t SIZE = 17;
+    static constexpr s64 SIZE = 17;
 
     T1 Item1;
     T2 Item2;
@@ -2488,7 +2433,7 @@ template <typename T1, typename T2, typename T3, typename T4, typename T5, typen
           typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
           typename T17, typename T18>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
-    static constexpr size_t SIZE = 18;
+    static constexpr s64 SIZE = 18;
 
     T1 Item1;
     T2 Item2;
@@ -2542,7 +2487,7 @@ template <typename T1, typename T2, typename T3, typename T4, typename T5, typen
           typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
           typename T17, typename T18, typename T19>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
-    static constexpr size_t SIZE = 19;
+    static constexpr s64 SIZE = 19;
 
     T1 Item1;
     T2 Item2;
@@ -2598,7 +2543,7 @@ template <typename T1, typename T2, typename T3, typename T4, typename T5, typen
           typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
           typename T17, typename T18, typename T19, typename T20>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> {
-    static constexpr size_t SIZE = 20;
+    static constexpr s64 SIZE = 20;
 
     T1 Item1;
     T2 Item2;
@@ -2665,7 +2610,7 @@ void print_tuple(int num) {
   for (int i = 0; i < num - 1; ++i) {
      printf("T%d, ", i + 1);
   }
-  printf("T%d> {\n    static constexpr size_t SIZE = %d;\n\n", num, num);
+  printf("T%d> {\n    static constexpr s64 SIZE = %d;\n\n", num, num);
   for (int i = 0; i < num; ++i) {
      printf("    T%d Item%d;\n", i + 1, i + 1);
   }
@@ -3356,21 +3301,21 @@ constexpr bool is_vec_or_swizzle_v = is_vec_or_swizzle<T>::value;
 // Dimension of an argument
 template <typename U, s32 Along = 0>
 struct dim_of {
-    static constexpr size_t value = 1;
+    static constexpr s64 value = 1;
 };
 
 template <typename T, s64 Dim, bool Packed>
 struct dim_of<vec<T, Dim, Packed>, 0> {
-    static constexpr size_t value = (size_t) Dim;
+    static constexpr s64 value = Dim;
 };
 
 template <typename T, s64... Indices>
 struct dim_of<swizzle<T, Indices...>> {
-    static constexpr size_t value = sizeof...(Indices);
+    static constexpr s64 value = sizeof...(Indices);
 };
 
 template <typename T>
-constexpr size_t dim_of_v = dim_of<T>::value;
+constexpr s64 dim_of_v = dim_of<T>::value;
 
 // Sum dimensions of arguments.
 template <typename... Rest>
@@ -3378,14 +3323,14 @@ struct sum_of_dims;
 
 template <typename Head, typename... Rest>
 struct sum_of_dims<Head, Rest...> {
-    static constexpr size_t value =
-        dim_of_v<Head>> 0 ? dim_of_v<Head> + sum_of_dims<Rest...>::value : -1;  // -1 means error
+    static constexpr s64 value =
+        dim_of_v<Head> > 0 ? dim_of_v<Head> + sum_of_dims<Rest...>::value : -1;  // -1 means error
 };
 
 template <>
 struct sum_of_dims<> {
-    static constexpr size_t value = 0;
+    static constexpr s64 value = 0;
 };
 
 template <typename... Rest>
-constexpr size_t sum_of_dims_v = sum_of_dims<Rest...>::value;
+constexpr s64 sum_of_dims_v = sum_of_dims<Rest...>::value;

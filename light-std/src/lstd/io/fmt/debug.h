@@ -1,8 +1,7 @@
 #pragma once
 
-#include "arg.h"
-
 #include "../../memory/array.h"
+#include "arg.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -66,7 +65,7 @@ struct debug_list_helper {
     }
 
     template <typename T>
-    debug_list_helper *entries(T *begin, size_t count) {
+    debug_list_helper *entries(T *begin, s64 count) {
         return entries(array_view<T>(begin, begin + count));
     }
 

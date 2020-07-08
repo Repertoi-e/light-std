@@ -42,7 +42,7 @@ struct handle {
 
     bool is_symbolic_link() const;
 
-    size_t file_size() const;
+    s64 file_size() const;
 
     time_t creation_time() const;
     time_t last_access_time() const;
@@ -126,7 +126,7 @@ struct handle {
         string CurrentFileName;
 
         path Path;
-        size_t Index = 0;
+        s64 Index = 0;
 
         iterator() = default;
         iterator(path path) : Path(path) { read_next_entry(); }

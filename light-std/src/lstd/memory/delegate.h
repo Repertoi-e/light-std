@@ -17,7 +17,7 @@ struct delegate<R(A...)> {
     stub_t StubPtr = null;
 
     char *Store = null;
-    size_t StoreSize = 0;
+    s64 StoreSize = 0;
 
     using destructor_caller_t = void (*)(void *);
     destructor_caller_t DestructorCaller = null;
@@ -83,7 +83,7 @@ struct delegate<R(A...)> {
     enable_if_t<!is_same_v<delegate, decay_t<F>>, delegate &> operator=(F &&f) {
         using functor_type = decay_t<F>;
 
-        size_t requiredSize = sizeof(functor_type);
+        s64 requiredSize = sizeof(functor_type);
         if (requiredSize > StoreSize) {
             release();
 

@@ -50,7 +50,7 @@ struct graphics : non_copyable, non_movable {
 
     struct target_window {
         window *Window = null;
-        size_t CallbackID = npos;
+        s64 CallbackID = -1;
 
         cull CullMode = cull::None;
         rect Viewport, ScissorRect;

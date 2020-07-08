@@ -2,11 +2,9 @@
 
 /// Provides a string type
 
-#include "string_utils.h"
-
 #include "../memory/allocator.h"
-
 #include "owner_pointers.h"
+#include "string_utils.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -28,10 +26,10 @@ LSTD_BEGIN_NAMESPACE
 struct string {
     struct code_point {
         string *Parent;
-        size_t Index;
+        s64 Index;
 
         code_point() = default;
-        code_point(string *parent, size_t index) : Parent(parent), Index(index) {}
+        code_point(string *parent, s64 index) : Parent(parent), Index(index) {}
 
         code_point &operator=(char32_t other);
         operator char32_t() const;
@@ -40,13 +38,13 @@ struct string {
     const char *Data = null;
 
     // Length in bytes
-    size_t ByteLength = 0;
+    s64 ByteLength = 0;
 
     // Length in code points
-    size_t Length = 0;
+    s64 Length = 0;
 
     // Non-zero if Data was allocated by string and needs to be freed
-    size_t Reserved = 0;
+    s64 Reserved = 0;
 
     string() = default;
 
@@ -56,12 +54,12 @@ struct string {
 
     // Create a string from a buffer and a length.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const char *str, size_t size) : Data(str), ByteLength(size), Length(utf8_length(str, size)) {}
+    string(const char *str, s64 size) : Data(str), ByteLength(size), Length(utf8_length(str, size)) {}
 
     string(string_view view) : Data(view.Data), ByteLength(view.ByteLength), Length(view.Length) {}
 
-    string(char32_t codePoint, size_t repeat);
-    string(wchar_t codePoint, size_t repeat) : string((char32_t) codePoint, repeat) {}
+    string(char32_t codePoint, s64 repeat);
+    string(wchar_t codePoint, s64 repeat) : string((char32_t) codePoint, repeat) {}
 
     // Converts a null-terminated wide char string to utf8.
     // Allocates a buffer.
@@ -73,7 +71,7 @@ struct string {
 
     // Create a string with an initial size reserved.
     // Allocates a buffer (using the Context's allocator by default)
-    explicit string(size_t size);
+    explicit string(s64 size);
 
     ~string() { release(); }
 
@@ -83,7 +81,7 @@ struct string {
     //
     // Allocates a buffer if the string doesn't already point to reserved memory
     // (using the Context's allocator).
-    void reserve(size_t size);
+    void reserve(s64 size);
 
     // Releases the memory allocated by this string.
     // If this string doesn't own the memory it points to, this function does nothing.
@@ -98,24 +96,22 @@ struct string {
     bool begins_with(char32_t cp) const { return get(0) == cp; }
     bool begins_with(string str) const {
         if (str.ByteLength > ByteLength) return false;
-        return compare_memory(Data, str.Data, str.ByteLength) == npos;
+        return compare_memory(Data, str.Data, str.ByteLength) == -1;
     }
 
     bool ends_with(char32_t cp) const { return get(-1) == cp; }
     bool ends_with(string str) const {
         if (str.ByteLength > ByteLength) return false;
-        return compare_memory(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == npos;
+        return compare_memory(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == -1;
     }
 
     // Compares two utf8 encoded strings and returns the index of the code point
-    // at which they are different or _npos_ if they are the same.
-    size_t compare(string str) const { return compare_utf8(Data, Length, str.Data, str.Length); }
+    // at which they are different or _-1_ if they are the same.
+    s64 compare(string str) const { return compare_utf8(Data, Length, str.Data, str.Length); }
 
     // Compares two utf8 encoded strings ignoring case and returns the index of the code point
-    // at which they are different or _npos_ if they are the same.
-    size_t compare_ignore_case(string str) const {
-        return compare_utf8_ignore_case(Data, Length, str.Data, str.Length);
-    }
+    // at which they are different or _-1_ if they are the same.
+    s64 compare_ignore_case(string str) const { return compare_utf8_ignore_case(Data, Length, str.Data, str.Length); }
 
     // Compares two utf8 encoded strings and returns -1 if _one_ is before _two_,
     // 0 if one == two and 1 if _two_ is before _one_.
@@ -130,72 +126,72 @@ struct string {
     }
 
     // Find the index of the first occurence of a code point that is after a specified index
-    size_t find(char32_t cp, s64 start = 0) const {
+    s64 find(char32_t cp, s64 start = 0) const {
         auto *p = find_cp_utf8(Data, Length, cp, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first occurence of a substring that is after a specified index
-    size_t find(string str, s64 start = 0) const {
+    s64 find(string str, s64 start = 0) const {
         auto *p = find_substring_utf8(Data, Length, str.Data, str.Length, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of a code point that is before a specified index
-    size_t find_reverse(char32_t cp, s64 start = 0) const {
+    s64 find_reverse(char32_t cp, s64 start = 0) const {
         auto *p = find_cp_utf8_reverse(Data, Length, cp, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of a substring that is before a specified index
-    size_t find_reverse(string str, s64 start = 0) const {
+    s64 find_reverse(string str, s64 start = 0) const {
         auto *p = find_substring_utf8_reverse(Data, Length, str.Data, str.Length, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first occurence of any code point in _terminators_ that is after a specified index
-    size_t find_any_of(string terminators, s64 start = 0) const {
+    s64 find_any_of(string terminators, s64 start = 0) const {
         auto *p = find_utf8_any_of(Data, Length, terminators.Data, terminators.Length, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of any code point in _terminators_
-    size_t find_reverse_any_of(string terminators, s64 start = 0) const {
+    s64 find_reverse_any_of(string terminators, s64 start = 0) const {
         auto *p = find_utf8_reverse_any_of(Data, Length, terminators.Data, terminators.Length, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of a code point that is after a specified index
-    size_t find_not(char32_t cp, s64 start = 0) const {
+    s64 find_not(char32_t cp, s64 start = 0) const {
         auto *p = find_utf8_not(Data, Length, cp, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last absence of a code point that is before the specified index
-    size_t find_reverse_not(char32_t cp, s64 start = 0) const {
+    s64 find_reverse_not(char32_t cp, s64 start = 0) const {
         auto *p = find_utf8_reverse_not(Data, Length, cp, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of any code point in _terminators_ that is after a specified index
-    size_t find_not_any_of(string terminators, s64 start = 0) const {
+    s64 find_not_any_of(string terminators, s64 start = 0) const {
         auto *p = find_utf8_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of any code point in _terminators_ that is after a specified index
-    size_t find_reverse_not_any_of(string terminators, s64 start = 0) const {
+    s64 find_reverse_not_any_of(string terminators, s64 start = 0) const {
         auto *p = find_utf8_reverse_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
-        if (!p) return npos;
+        if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
@@ -215,15 +211,15 @@ struct string {
     string trim() const { return trim_start().trim_end(); }
 
     // Returns true if the string contains _cp_ anywhere
-    bool has(char32_t cp) const { return find(cp) != npos; }
+    bool has(char32_t cp) const { return find(cp) != -1; }
 
     // Returns true if the string contains _str_ anywhere
-    bool has(string str) const { return find(str) != npos; }
+    bool has(string str) const { return find(str) != -1; }
 
     // Counts the number of occurences of _cp_
-    size_t count(char32_t cp) const {
-        size_t result = 0, index = 0;
-        while ((index = find(cp, index)) != npos) {
+    s64 count(char32_t cp) const {
+        s64 result = 0, index = 0;
+        while ((index = find(cp, index)) != -1) {
             ++result, ++index;
             if (index >= Length) break;
         }
@@ -231,9 +227,9 @@ struct string {
     }
 
     // Counts the number of occurences of _str_
-    size_t count(string str) const {
-        size_t result = 0, index = 0;
-        while ((index = find(str, index)) != npos) {
+    s64 count(string str) const {
+        s64 result = 0, index = 0;
+        while ((index = find(str, index)) != -1) {
             ++result, ++index;
             if (index >= Length) break;
         }
@@ -250,7 +246,7 @@ struct string {
     string *insert(s64 index, string str);
 
     // Insert a buffer of bytes at a specified index
-    string *insert_pointer_and_size(s64 index, const char *str, size_t size);
+    string *insert_pointer_and_size(s64 index, const char *str, s64 size);
 
     // Remove code point at specified index
     string *remove(s64 index);
@@ -266,10 +262,10 @@ struct string {
     string *append(string str) { return append_pointer_and_size(str.Data, str.ByteLength); }
 
     // Append _size_ bytes of string contained in _data_
-    string *append_pointer_and_size(const char *str, size_t size) { return insert_pointer_and_size(Length, str, size); }
+    string *append_pointer_and_size(const char *str, s64 size) { return insert_pointer_and_size(Length, str, size); }
 
     // Copy this string's contents and append them _n_ times
-    string *repeat(size_t n);
+    string *repeat(s64 n);
 
     // Convert this string to uppercase code points
     string *to_upper();
@@ -315,10 +311,10 @@ struct string {
         using string_t = type_select_t<Const, const string, string>;
 
         string_t *Parent;
-        size_t Index;
+        s64 Index;
 
         string_iterator() = default;
-        string_iterator(string_t *parent, size_t index) : Parent(parent), Index(index) {}
+        string_iterator(string_t *parent, s64 index) : Parent(parent), Index(index) {}
 
         string_iterator &operator+=(s64 amount) { return Index += amount, *this; }
         string_iterator &operator-=(s64 amount) { return Index -= amount, *this; }
@@ -335,7 +331,7 @@ struct string {
         }
 
         s64 operator-(string_iterator other) const {
-            size_t lesser = Index, greater = other.Index;
+            s64 lesser = Index, greater = other.Index;
             if (lesser > greater) {
                 lesser = other.Index;
                 greater = Index;
@@ -359,7 +355,7 @@ struct string {
 
         auto operator*() { return Parent->get(Index); }
 
-        operator const char *() const { return get_cp_at_index(Parent->Data, Parent->Length, (s64) Index, true); }
+        operator const char *() const { return get_cp_at_index(Parent->Data, Parent->Length, Index, true); }
     };
 
    public:
@@ -387,7 +383,7 @@ struct string {
     code_point operator[](s64 index) { return get(index); }
     char32_t operator[](s64 index) const { return get(index); }
 
-    bool operator==(string other) const { return compare(other) == npos; }
+    bool operator==(string other) const { return compare(other) == -1; }
     bool operator!=(string other) const { return !(*this == other); }
     bool operator<(string other) const { return compare_lexicographically(other) < 0; }
     bool operator>(string other) const { return compare_lexicographically(other) > 0; }

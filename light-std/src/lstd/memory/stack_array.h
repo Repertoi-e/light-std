@@ -34,7 +34,7 @@ constexpr void quicksort(T *first, T *last) {
     quicksort(nextPivot + 1, last);
 }
 
-template <typename T, size_t N>
+template <typename T, s64 N>
 struct stack_array {
     using data_t = T;
 
@@ -42,7 +42,7 @@ struct stack_array {
     using const_iterator = const data_t *;
 
     data_t Data[N ? N : 1];
-    static constexpr size_t Count = N;
+    static constexpr s64 Count = N;
 
     constexpr data_t &get(s64 index) { return Data[translate_index(index, Count)]; }
     constexpr const data_t &get(s64 index) const { return Data[translate_index(index, Count)]; }
@@ -50,12 +50,12 @@ struct stack_array {
     constexpr void sort() { quicksort(Data, Data + Count); }
 
     // Compares this array to _arr_ and returns the index of the first element that is different.
-    // If the arrays are equal, the returned value is npos (-1)
+    // If the arrays are equal, the returned value is -1
     constexpr s32 compare(const stack_array &arr) const {
         auto s1 = begin(), s2 = arr.begin();
         while (*s1 == *s2) {
             ++s1, ++s2;
-            if (s1 == end() && s2 == arr.end()) return npos;
+            if (s1 == end() && s2 == arr.end()) return -1;
             if (s1 == end()) return s1 - begin();
             if (s2 == arr.end()) return s2 - arr.begin();
         }
@@ -77,20 +77,20 @@ struct stack_array {
     }
 
     // Find the first occurence of an element that is after a specified index
-    size_t find(const T &element, s64 start = 0) const {
-        if (Count == 0) return npos;
+    s64 find(const T &element, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
 
         auto p = begin() + start;
         For(range(start, Count)) if (*p++ == element) return it;
-        return npos;
+        return -1;
     }
 
     // Find the first occurence of a subarray that is after a specified index
-    template <size_t NN>
-    size_t find(const stack_array<T, NN> &arr, s64 start = 0) const {
-        if (Count == 0) return npos;
+    template <s64 NN>
+    s64 find(const stack_array<T, NN> &arr, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
 
@@ -101,25 +101,25 @@ struct stack_array {
             }
             if (progress == arr.end()) return it;
         }
-        return npos;
+        return -1;
     }
 
     // Find the last occurence of an element that is before a specified index
-    size_t find_reverse(const T &element, s64 start = 0) const {
-        if (Count == 0) return npos;
+    s64 find_reverse(const T &element, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
 
         auto p = begin() + start;
         For(range(start, -1, -1)) if (*p-- == element) return it;
-        return npos;
+        return -1;
     }
 
     // Find the last occurence of a subarray that is before a specified index
-    template <size_t NN>
-    size_t find_reverse(const stack_array<T, NN> &arr, s64 start = 0) const {
-        if (Count == 0) return npos;
+    template <s64 NN>
+    s64 find_reverse(const stack_array<T, NN> &arr, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
@@ -131,84 +131,84 @@ struct stack_array {
             }
             if (progress == arr.end()) return it;
         }
-        return npos;
+        return -1;
     }
 
     // Find the first occurence of any element in the specified subarray that is after a specified index
-    template <size_t NN>
-    size_t find_any_of(const stack_array<T, NN> &allowed, s64 start = 0) const {
-        if (Count == 0) return npos;
+    template <s64 NN>
+    s64 find_any_of(const stack_array<T, NN> &allowed, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
 
         auto p = begin() + start;
         For(range(start, Count)) if (allowed.has(*p++)) return it;
-        return npos;
+        return -1;
     }
 
     // Find the last occurence of any element in the specified subarray
     // that is before a specified index (0 means: start from the end)
-    template <size_t NN>
-    size_t find_reverse_any_of(const stack_array<T, NN> &allowed, s64 start = 0) const {
-        if (Count == 0) return npos;
+    template <s64 NN>
+    s64 find_reverse_any_of(const stack_array<T, NN> &allowed, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
 
         auto p = begin() + start;
         For(range(start, -1, -1)) if (allowed.has(*p--)) return it;
-        return npos;
+        return -1;
     }
 
     // Find the first absence of an element that is after a specified index
-    size_t find_not(const data_t &element, s64 start = 0) const {
-        if (Count == 0) return npos;
+    s64 find_not(const data_t &element, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
 
         auto p = begin() + start;
         For(range(start, Count)) if (*p++ != element) return it;
-        return npos;
+        return -1;
     }
 
     // Find the last absence of an element that is before the specified index
-    size_t find_reverse_not(const data_t &element, s64 start = 0) const {
-        if (Count == 0) return npos;
+    s64 find_reverse_not(const data_t &element, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
 
         auto p = begin() + start;
         For(range(start, 0, -1)) if (*p-- != element) return it;
-        return npos;
+        return -1;
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    template <size_t NN>
-    size_t find_not_any_of(const stack_array<T, NN> &banned, s64 start = 0) const {
-        if (Count == 0) return npos;
+    template <s64 NN>
+    s64 find_not_any_of(const stack_array<T, NN> &banned, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
 
         auto p = begin() + start;
         For(range(start, Count)) if (!banned.has(*p++)) return it;
-        return npos;
+        return -1;
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    template <size_t NN>
-    size_t find_reverse_not_any_of(const stack_array<T, NN> &banned, s64 start = 0) const {
-        if (Count == 0) return npos;
+    template <s64 NN>
+    s64 find_reverse_not_any_of(const stack_array<T, NN> &banned, s64 start = 0) const {
+        if (Count == 0) return -1;
 
         start = translate_index(start, Count);
         if (start == 0) start = Count - 1;
 
         auto p = begin() + start;
         For(range(start, 0, -1)) if (!banned.has(*p--)) return it;
-        return npos;
+        return -1;
     }
 
-    constexpr bool has(const data_t &item) const { return find(item) != npos; }
+    constexpr bool has(const data_t &item) const { return find(item) != -1; }
 
     //
     // Operators:
@@ -239,7 +239,7 @@ struct return_type_helper {
 template <typename... Types>
 struct return_type_helper<void, Types...> : common_type<Types...> {};
 
-template <class T, size_t N, size_t... I>
+template <class T, s64 N, s64... I>
 constexpr stack_array<remove_cv_t<T>, N> to_array_impl(T (&a)[N], index_sequence<I...>) {
     return {{a[I]...}};
 }
@@ -251,7 +251,7 @@ constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, 
     return {(Types &&)(t)...};
 }
 
-template <typename T, size_t N>
+template <typename T, s64 N>
 constexpr stack_array<remove_cv_t<T>, N> to_array(T (&a)[N]) {
     return internal::to_array_impl(a, make_index_sequence<N>{});
 }

@@ -91,7 +91,7 @@ auto decompose_lu(const mat<T, Dim, Dim, Packed> &m) {
 
     for (s64 j = 1; j < n - 1; ++j) {
         for (s64 i = j; i < n; ++i) {
-            T Lij =  A(i, j);
+            T Lij = A(i, j);
             for (s64 k = 0; k <= j - 1; ++k) {
                 Lij -= L(i, k) * U(k, j);
             }

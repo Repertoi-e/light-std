@@ -4,8 +4,8 @@
 
 #include "lstd/io.h"
 #include "lstd/io/fmt.h"
-#include "lstd/os.h"
 #include "lstd/memory/table.h"
+#include "lstd/os.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -26,15 +26,9 @@ static LONG exception_filter(LPEXCEPTION_POINTERS e) {
 
     STACKFRAME64 sf;
     memset(&sf, 0, sizeof(STACKFRAME));
-#if BITS == 64
     sf.AddrPC.Offset = c->Rip;
     sf.AddrStack.Offset = c->Rsp;
     sf.AddrFrame.Offset = c->Rbp;
-#else
-    sf.AddrPC.Offset = c->Eip;
-    sf.AddrStack.Offset = c->Esp;
-    sf.AddrFrame.Offset = c->Ebp;
-#endif
     sf.AddrPC.Mode = AddrModeFlat;
     sf.AddrStack.Mode = AddrModeFlat;
     sf.AddrFrame.Mode = AddrModeFlat;
