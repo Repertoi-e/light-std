@@ -2,7 +2,7 @@
 
 #include "internal/common.h"
 
-// @DependencyCleanup Replace with our own math functions in order to not depend on the runtime lib
+// @NoCRT @DependencyCleanup Replace with our own math functions in order to not depend on the runtime lib
 
 LSTD_BEGIN_NAMESPACE
 

@@ -175,6 +175,10 @@ void *allocator::general_allocate(s64 userSize, u32 align, u64 userFlags) const 
 
     s64 id = AllocationCount;
 
+    if (id == 1170) {
+        s32 k = 42;
+    }
+
     align = align < POINTER_SIZE ? POINTER_SIZE : align;
     assert(is_pow_of_2(align));
 

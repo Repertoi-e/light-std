@@ -58,7 +58,11 @@ void reload_global_state() {
 }
 
 void load_python_demo(string demo) {
-    clone(&GameState->PyCurrentDemo, demo);
+    if (GameState->PyCurrentDemo != demo) {
+        // Calling clone() with A as the destination string and a copy of A as a source string doesn't work,
+        // because we destroy the previous string at the destination (which in terms invalidates the copy).
+        clone(&GameState->PyCurrentDemo, demo);
+    }
 
     if (GameState->PyLoaded) {
         if (GameState->PyModule) {

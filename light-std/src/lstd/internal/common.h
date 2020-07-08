@@ -681,6 +681,13 @@ constexpr T const_exp10(s32 exponent) {
     return exponent == 0 ? T(1) : T(10) * const_exp10<T>(exponent - 1);
 }
 
+template <typename T>
+struct delegate;
+
+// Schedule a function to run when this library uninitializes - before any global C++ destructors are called
+// and before the CRT (if we are using it) unitializes
+void run_at_exit(delegate<void()> function);
+
 LSTD_END_NAMESPACE
 
 #if COMPILER != MSVC

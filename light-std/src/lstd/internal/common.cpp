@@ -1188,6 +1188,7 @@ s64 optimized_compare_memory(const void *ptr1, const void *ptr2, s64 num) {
 
 s64 (*compare_memory)(const void *ptr1, const void *ptr2, s64 num) = optimized_compare_memory;
 
+// @NoCRT
 f32 min(f32 x, f32 y) { return fminf(x, y); }
 f32 max(f32 x, f32 y) { return fmaxf(x, y); }
 f64 min(f64 x, f64 y) { return fmin(x, y); }

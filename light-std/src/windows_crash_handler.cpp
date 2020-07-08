@@ -112,6 +112,8 @@ void win32_crash_handler_init() {
     CodeDescs.add(CODE_DESCR(EXCEPTION_INVALID_HANDLE));
     // CodeDescs.add(CODE_DESCR(EXCEPTION_POSSIBLE_DEADLOCK));
 
+    run_at_exit([]() { CodeDescs.release(); });
+
     SetUnhandledExceptionFilter(exception_filter);
 }
 

@@ -5,12 +5,23 @@
 #include "lstd/file/path.h"
 #include "lstd/io.h"
 #include "lstd/io/fmt.h"
+#include "lstd/memory/delegate.h"
 #include "lstd/memory/dynamic_library.h"
 #include "lstd/os.h"
 
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+
 LSTD_BEGIN_NAMESPACE
 
-#if COMPILER == MSVC
+// We must ensure that the context gets initialized before any global
+// C++ constructors get called which may use the context.
+s32 initialize_context() {
+    Context = {};
+    Context.TemporaryAlloc.Context = &Context.TemporaryAllocData;
+    Context.ThreadID = thread::id((u64) GetCurrentThreadId());
+    return 0;
+}
+
 void win32_common_init();
 
 extern void win32_window_init();
@@ -18,43 +29,113 @@ extern void win32_destroy_windows();
 extern void win32_monitor_init();
 extern void win32_crash_handler_init();
 
-// This trick ensures the context gets initialized before any C++ constructors
-// get called which may use the context.
-//
-// How it works is described here:
-// https://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm#page-2
-s32 initialize_context_and_global_state() {
-    Context = {};
-    Context.TemporaryAlloc.Context = &Context.TemporaryAllocData;
-    Context.ThreadID = thread::id((u64) GetCurrentThreadId());
-    return 0;
-}
-
-s32 initialize_win32_state() {
+// Needs to happen after global C++ constructors are initialized.
+void initialize_win32_state() {
     win32_common_init();
     win32_window_init();
     win32_monitor_init();
     win32_crash_handler_init();
+}
+
+static array<delegate<void()>> ExitFunctions;
+
+void run_at_exit(delegate<void()> function) { clone(ExitFunctions.append(), function); }
+
+// Needs to happen just before the global C++ destructors get called.
+void call_exit_functions() { For(ExitFunctions) it(); }
+
+// Needs to happend before the global WindowsList variable gets uninitialized.
+void uninitialize_win32_state() { win32_destroy_windows(); }
+
+void debug_memory_check_heap() {
+#if defined DEBUG_MEMORY
+    // If there are any left over allocations, we check their integrity.
+    allocator::verify_heap();
+
+    // Now we check for memory leaks.
+    // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
+    // which make even program termination slow, we are just providing this information to the user because they might
+    // want to load/unload DLLs during the runtime of the application, and those DLLs might use all kinds of complex
+    // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
+    if (Context.CheckForLeaksAtTermination) {
+        allocation_header **leaks;
+        // We want to ignore the allocation below since it's not the user's fault and we shouldn't count it as a leak
+        s64 leaksID;
+
+        s64 leaksCount = 0;
+        {
+            thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
+            auto *it = allocator::DEBUG_Head;
+            while (it) {
+                ++leaksCount;
+                it = it->DEBUG_Next;
+            }
+        }
+        leaks = new allocation_header *[leaksCount];
+        leaksID = ((allocation_header *) leaks - 1)->ID;
+
+        {
+            thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
+            auto *p = leaks;
+            auto *it = allocator::DEBUG_Head;
+            while (it) {
+                if (it->ID != leaksID) *p++ = it;
+                it = it->DEBUG_Next;
+            }
+        }
+
+        if (leaksCount) {
+            fmt::print(
+                ">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still had some allocations which were "
+                "unfreed. Here they are:\n",
+                os_get_current_module());
+        }
+        For_as(i, range(leaksCount)) {
+            auto *it = leaks[i];
+            fmt::print("    * {:>10} requested bytes, {{ID: {}, RID: {}}}\n", it->Size, it->ID, it->RID);
+        }
+    }
+#endif
+}
+
+//
+// This trick makes all of the above requirements work on the MSVC compiler.
+//
+// How it works is described in this awesome article:
+// https://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm#page-2
+#if COMPILER == MSVC
+s32 c_init() {
+    initialize_context();
     return 0;
 }
 
-s32 uninitialize_win32_state() {
-    win32_destroy_windows();  // Needs to happend before the global WindowsList variable gets uninitialized
+s32 cpp_init() {
+    initialize_win32_state();
+    return 0;
+}
+
+s32 pre_termination() {
+    debug_memory_check_heap();
+    call_exit_functions();
+    uninitialize_win32_state();
     return 0;
 }
 
 typedef s32 cb(void);
-#pragma const_seg(".CRT$XIU")
-__declspec(allocate(".CRT$XIU")) cb *g_ContextAutoStart = initialize_context_and_global_state;
+#pragma const_seg(".CRT$XIUSER_LSTD")
+__declspec(allocate(".CRT$XIUSER_LSTD")) cb *g_CInit = c_init;
 #pragma const_seg()
 
-// @Hack It should end in U (source: the link) but then it doesn't get called after all other C++ constructors...
-#pragma const_seg(".CRT$XCZ")
-__declspec(allocate(".CRT$XCZ")) cb *g_StateAutoStart = initialize_win32_state;
+#pragma const_seg(".CRT$XCUSER_LSTD")
+__declspec(allocate(".CRT$XCUSER_LSTD")) cb *g_CPPInit = cpp_init;
 #pragma const_seg()
 
-#pragma const_seg(".CRT$XPU")
-__declspec(allocate(".CRT$XPU")) cb *g_StateAutoEnd = uninitialize_win32_state;
+#pragma const_seg(".CRT$XPA")
+__declspec(allocate(".CRT$XPA")) cb *g_PreTermination = pre_termination;
+#pragma const_seg()
+
+#pragma const_seg(".CRT$XTUSER_LSTD")
+__declspec(allocate(".CRT$XTUSER_LSTD")) cb *g_Termination = NULL;
 #pragma const_seg()
 
 #else
@@ -114,7 +195,7 @@ void win32_common_init() {
     CerrHandle = GetStdHandle(STD_ERROR_HANDLE);
 
     if (!SetConsoleOutputCP(CP_UTF8)) {
-        string warning = ">>> Warning, couldn't set console code page to UTF-8. Some characters might be messed up.\n";
+        string warning = ">>> Warning: Couldn't set console code page to UTF-8. Some characters might be messed up.\n";
 
         DWORD ignored;
         WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
@@ -130,12 +211,12 @@ void win32_common_init() {
 
     QueryPerformanceFrequency(&PerformanceFrequency);
 
-    // Get the exe name
+    // Get the module name
     wchar_t *buffer = new (Context.TemporaryAlloc) wchar_t[MAX_PATH];
     s64 reserved = MAX_PATH;
 
     while (true) {
-        s64 written = GetModuleFileNameW(null, buffer, (DWORD) reserved);
+        s64 written = GetModuleFileNameW((HMODULE) &__ImageBase, buffer, (DWORD) reserved);
         if (written == reserved) {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
                 reserved *= 2;
@@ -160,7 +241,7 @@ void win32_common_init() {
     argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (argv == null) {
         string warning =
-            ">>> Warning, couldn't parse command line arguments, os_get_command_line_arguments() will return an empty "
+            ">>> Warning: Couldn't parse command line arguments, os_get_command_line_arguments() will return an empty "
             "array in all cases.\n";
 
         DWORD ignored;
@@ -379,7 +460,7 @@ time_t os_get_time() {
 
 f64 os_time_to_seconds(time_t time) { return (f64) time / PerformanceFrequency.QuadPart; }
 
-string os_get_exe_name() { return ModuleName; }
+string os_get_current_module() { return ModuleName; }
 
 string os_get_working_dir() {
     thread::scoped_lock _(&WorkingDirMutex);
@@ -426,7 +507,7 @@ bool os_get_env(string *out, string name, bool silent) {
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
         if (!silent) {
             WITH_ALLOC(Context.TemporaryAlloc) {
-                string warning = ">>> Warning, couldn't find environment variable with value \"";
+                string warning = ">>> Warning: Couldn't find environment variable with value \"";
                 warning.append(name);
                 warning.append("\".\n");
 
@@ -485,7 +566,7 @@ void os_remove_env(string name) {
     }
 }
 
-// Doesn't include the executable name.
+// Doesn't include the exe name.
 array<string> os_get_command_line_arguments() { return Argv; }
 
 u32 os_get_pid() { return (u32) GetCurrentProcessId(); }

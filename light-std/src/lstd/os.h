@@ -58,8 +58,8 @@ void os_set_clipboard_content(string content);
 // Sleep for _ms_ milliseconds
 // void os_sleep(f64 ms);
 
-// Returns the path of the current executable (full dir + name)
-string os_get_exe_name();
+// Returns the path of the current executable or dynamic library (full dir + name)
+string os_get_current_module();
 
 // Returns the current directory of the current process.
 // [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory
@@ -81,8 +81,8 @@ void os_set_env(string name, string value);
 // Delete a variable from the current process' environment
 void os_remove_env(string name);
 
-// Get a list of parsed command line arguments excluding the first one (the exe name - you can get that with
-// os_get_exe_name())
+// Get a list of parsed command line arguments excluding the first one.
+// Normally the first one is the exe name - you can get that with os_get_current_module().
 array<string> os_get_command_line_arguments();
 
 // Returns an ID which uniquely identifies the current process on the system

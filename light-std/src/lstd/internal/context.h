@@ -94,6 +94,9 @@ struct implicit_context {
     // The current thread's ID
     thread::id ThreadID;
 
+    // Set this to true to print a list of unfreed memory blocks when the library uninitializes.
+    bool CheckForLeaksAtTermination = false;
+
     // Yield execution to another thread.
     // Offers the operating system the opportunity to schedule another thread
     // that is ready to run on the current processor.

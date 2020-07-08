@@ -60,7 +60,7 @@ void editor_scene_properties() {
                 bool isSelected = GameState->PyCurrentDemo == it;
                 if (ImGui::Selectable(it.to_c_string(Context.TemporaryAlloc), &isSelected)) {
                     if (GameState->PyCurrentDemo != it) {
-                        GameState->PyCurrentDemo = it;
+                        clone(&GameState->PyCurrentDemo, it);
                         load_python_demo(it);
                     }
                 }

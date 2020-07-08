@@ -18,7 +18,7 @@ LSTD_BEGIN_NAMESPACE
 
 // XXX There is a bug in the debug memory routines that I can't be bothered to hunt down at the moment
 // because I have a dead line for the project I need to finish.
-#define FORCE_NO_DEBUG_MEMORY
+// #define FORCE_NO_DEBUG_MEMORY
 
 #if defined DEBUG || defined RELEASE
 #if !defined DEBUG_MEMORY && !defined FORCE_NO_DEBUG_MEMORY

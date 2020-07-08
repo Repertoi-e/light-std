@@ -26,7 +26,7 @@ file::handle *DLL = null, *Buildlock = null;  // file::handle is not assignable
 void setup_game_paths() {
     assert(GameFileName != "");
 
-    auto exePath = file::path(os_get_exe_name());
+    auto exePath = file::path(os_get_current_module());
 
     file::path dllPath = exePath.directory();
     dllPath.combine_with(GameFileName);
@@ -39,6 +39,8 @@ void setup_game_paths() {
 
 // @TODO: This fails in Dist configuration for some reason
 bool reload_game_code() {
+    GameUpdateAndRender = null;
+    GameMainWindowEvent = null;
     if (GameLibrary.Handle) GameLibrary.close();
 
     file::path copyPath = DLL->Path.directory();
