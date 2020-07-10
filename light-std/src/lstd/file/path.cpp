@@ -40,8 +40,8 @@ string path::drive_letter() const {
     return "";
 }
 
-void path::combine_with(string str) {
-    if (!UnifiedPath.is_owner()) {
+void path::combine_with(const string &str) {
+    if (!UnifiedPath.Reserved) {
         UnifiedPath.reserve(0);  // Trigger a reserve
     }
 

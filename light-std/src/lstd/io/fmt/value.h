@@ -119,7 +119,7 @@ struct value {
     value(bool value) : S32(value) {}
     value(const void *value) : Pointer(value) {}
     value(const char *value) : String(value) {}
-    value(string value) : String(value) {}
+    value(const string &value) : String(value) {}
     value(string_view value) : String(value) {}
     value(const internal::named_arg_base &value) : NamedArg(&value) {}
 

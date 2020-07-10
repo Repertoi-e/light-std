@@ -17,10 +17,10 @@ struct debug_struct_helper {
     string Name;
     array<field_entry> Fields;
 
-    debug_struct_helper(format_context *f, string name) : F(f), Name(name) {}
+    debug_struct_helper(format_context *f, const string &name) : F(f), Name(name) {}
 
     template <typename T>
-    debug_struct_helper *field(string name, const T &val) {
+    debug_struct_helper *field(const string &name, const T &val) {
         Fields.append({name, make_arg(val)});
         return this;
     }
@@ -36,7 +36,7 @@ struct debug_tuple_helper {
     string Name;
     array<arg> Fields;
 
-    debug_tuple_helper(format_context *f, string name) : F(f), Name(name) {}
+    debug_tuple_helper(format_context *f, const string &name) : F(f), Name(name) {}
 
     template <typename T>
     debug_tuple_helper *field(const T &val) {

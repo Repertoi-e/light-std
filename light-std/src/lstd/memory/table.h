@@ -48,7 +48,9 @@ struct table {
     value_t *Values = null;
 
     table() = default;
-    ~table() { release(); }
+
+    // We don't use destructors for freeing memory anymore.
+    // ~table() { release(); }
 
     // Makes sure the table has reserved enough space for at least n elements.
     // Note that it may reserve way more than required.

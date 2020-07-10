@@ -5,4 +5,4 @@ IndentWidth: 4
 SpaceAfterCStyleCast: true
 DerivePointerAlignment: false
 PointerAlignment: Right
-ColumnLimit: 120
+ColumnLimit: 0

@@ -1,10 +1,22 @@
 #include "state.h"
 
 void reload_global_state() {
-    Context.AllocAlignment = 16;  // For SIMD
+    Context.CheckForLeaksAtTermination = true;
 
-    MANAGE_GLOBAL_STATE(GameState);
-    MANAGE_GLOBAL_STATE(AssetCatalog);
+    Context.Alloc = GameMemory->Alloc;  // Switch our default allocator from malloc to the one the exe provides us with
+    Context.AllocAlignment = 16;        // For SIMD
+
+    // We need to use the exe's imgui context, because we submit the geometry to the GPU there
+    assert(GameMemory->ImGuiContext);
+    ImGui::SetCurrentContext((ImGuiContext *) GameMemory->ImGuiContext);
+
+    // We also tell imgui to use our allocator (we tell imgui to not implement default ones)
+    // We mark allocations as LEAK because any leftover are handled by the exe and we don't to report them when this .dll terminates.
+    ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, GameMemory->Alloc, LEAK); },
+                                 [](void *ptr, void *) { delete ptr; });
+
+    MANAGE_STATE(GameState);
+    MANAGE_STATE(AssetCatalog);
 
     // We need these in python.pyb
     GameState->Memory = GameMemory;
@@ -16,8 +28,11 @@ void reload_global_state() {
     // The problem is that Py_Initialize doesn't find "encodings" module even though we have python in our path.
     // Setting PYTHONPATH and PYTHONHOME seems to fix the problem.
     //
-    string path;
-    if (os_get_env(&path, "PATH")) {
+
+    auto [success, path] = os_get_env("PATH");
+    defer(path.release());
+
+    if (success) {
         if (path.Length) {
             array<string> paths;
 
@@ -36,6 +51,8 @@ void reload_global_state() {
             }
             os_set_env("PYTHONPATH", found);
             os_set_env("PYTHONHOME", found);
+
+            For(paths) it.release();
         }
     }
 
@@ -52,10 +69,8 @@ void reload_global_state() {
     }
 }
 
-void load_python_demo(string demo) {
+void load_python_demo(const string &demo) {
     if (GameState->PyCurrentDemo != demo) {
-        // Calling clone() with A as the destination string and a copy of A as a source string doesn't work,
-        // because we destroy the previous string at the destination (which in terms invalidates the copy).
         clone(&GameState->PyCurrentDemo, demo);
     }
 
@@ -73,7 +88,13 @@ void load_python_demo(string demo) {
 
     file::path scripts = os_get_working_dir();
     scripts.combine_with("data/scripts");
-    const char *scriptsPath = scripts.UnifiedPath.to_c_string(Context.TemporaryAlloc);
+
+    const char *scriptsPath = null;
+    WITH_ALLOC(Context.TemporaryAlloc) {
+        scriptsPath = scripts.UnifiedPath.to_c_string();
+    }
+    defer(delete scriptsPath);
+
     PyList_Append(sysPath, PyUnicode_FromString(scriptsPath));
 
     auto filePath = scripts;
@@ -84,7 +105,13 @@ void load_python_demo(string demo) {
     }
 
     try {
-        auto main = py::module::import(filePath.base_name().to_c_string(Context.TemporaryAlloc));
+        const char *moduleName = null;
+        WITH_ALLOC(Context.TemporaryAlloc) {
+            moduleName = filePath.base_name().to_c_string();
+        }
+        defer(delete moduleName);
+
+        auto main = py::module::import(moduleName);
         GameState->PyModule = main;
         main.attr("load")((u64) GameState);
         GameState->PyFrame = (py::function) main.attr("frame");
@@ -157,15 +184,13 @@ void load_imgui_bindings_for_python() {
     GameState->ViewportAddLine = [](v2 p1, v2 p2, u32 color, f32 thickness) {
         GameState->ViewportDrawlist->AddLine(p1, p2, color, thickness);
     };
-    GameState->ViewportAddRect = [](v2 p1, v2 p2, u32 color, f32 rounding, ImDrawCornerFlags_ cornerFlags,
-                                    f32 thickness) {
+    GameState->ViewportAddRect = [](v2 p1, v2 p2, u32 color, f32 rounding, ImDrawCornerFlags_ cornerFlags, f32 thickness) {
         GameState->ViewportDrawlist->AddRect(p1, p2, color, rounding, cornerFlags, thickness);
     };
     GameState->ViewportAddRectFilled = [](v2 p1, v2 p2, u32 color, f32 rounding, ImDrawCornerFlags_ cornerFlags) {
         GameState->ViewportDrawlist->AddRectFilled(p1, p2, color, rounding, cornerFlags);
     };
-    GameState->ViewportAddRectFilledMultiColor = [](v2 p1, v2 p2, u32 color_ul, u32 color_ur, u32 color_dr,
-                                                    u32 color_dl) {
+    GameState->ViewportAddRectFilledMultiColor = [](v2 p1, v2 p2, u32 color_ul, u32 color_ur, u32 color_dr, u32 color_dl) {
         GameState->ViewportDrawlist->AddRectFilledMultiColor(p1, p2, color_ul, color_ur, color_dr, color_dl);
     };
     GameState->ViewportAddQuad = [](v2 p1, v2 p2, v2 p3, v2 p4, u32 color, f32 thickness) {
@@ -187,7 +212,6 @@ void load_imgui_bindings_for_python() {
         GameState->ViewportDrawlist->AddCircleFilled(center, radius, color, numSegments);
     };
     GameState->ViewportAddConvexPolyFilled = [](const f32 *data, s32 count, u32 color) {
-        GameState->ViewportDrawlist->CUSTOM_AddConvexPolyFilled((const ImVec2 *) data, count, color,
-                                                                GameState->PixelsPerMeter, -GameState->PixelsPerMeter);
+        GameState->ViewportDrawlist->CUSTOM_AddConvexPolyFilled((const ImVec2 *) data, count, color, GameState->PixelsPerMeter, -GameState->PixelsPerMeter);
     };
 }

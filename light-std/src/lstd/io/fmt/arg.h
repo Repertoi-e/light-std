@@ -26,7 +26,7 @@ struct named_arg_base {
     // The serialized argument
     char Data[sizeof(arg)]{};
 
-    named_arg_base(string name) : Name(name) {}
+    named_arg_base(const string &name) : Name(name) {}
 
     arg deserialize() const {
         arg result;
@@ -42,20 +42,20 @@ struct named_arg : named_arg_base {
     using value_t = T;
     inline static auto TypeTag = type_constant_v<value_t>;
 
-    named_arg(string name, const T &value) : named_arg_base(name), Value(value) {}
+    named_arg(const string &name, const T &value) : named_arg_base(name), Value(value) {}
 };
 }  // namespace internal
 
 // Returns a named argument to be used in a formatting function.
 // The named argument holds a reference and does not extend the lifetime of its arguments.
 template <typename T>
-auto named(string name, const T &arg) {
+auto named(const string &name, const T &arg) {
     return internal::named_arg<T>(name, arg);
 }
 
 // Disable construction of nested named arguments
 template <typename T>
-void named(string, internal::named_arg<T>) = delete;
+void named(const string &, internal::named_arg<T>) = delete;
 
 template <typename T>
 arg make_arg(const T &value);
@@ -321,7 +321,7 @@ struct arg_map : non_copyable {
 
     void add(const value &value) { Entries[Size++] = {value.NamedArg->Name, value.NamedArg->deserialize()}; }
 
-    arg find(string name) {
+    arg find(const string &name) {
         for (auto *it = Entries, *end = Entries + Size; it != end; ++it) {
             if (it->Name == name) return it->Arg;
         }

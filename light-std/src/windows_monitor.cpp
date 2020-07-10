@@ -216,7 +216,7 @@ string os_get_clipboard_content() {
     return ClipboardString;
 }
 
-void os_set_clipboard_content(string content) {
+void os_set_clipboard_content(const string &content) {
     HANDLE object = GlobalAlloc(GMEM_MOVEABLE, content.Length * 2 * sizeof(wchar_t));
     if (!object) {
         fmt::print("(windows_monitor.cpp): Failed to open clipboard\n");

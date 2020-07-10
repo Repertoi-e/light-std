@@ -25,11 +25,15 @@ struct buffer_layout {
     s64 TotalSize = 0;  // Calculated in bytes (1-bit values add 7 bits of packing),
                         // generally used internally to calculate the offset for the next element
 
-    void add(string name, gtype type, s64 count = 1, bool normalized = false);
+    void add(const string &name, gtype type, s64 count = 1, bool normalized = false);
     void add_padding(s64 bytes);
 };
 
-enum class primitive_topology { PointList = 0, LineList, LineStrip, TriangleList, TriangleStrip };
+enum class primitive_topology { PointList = 0,
+                                LineList,
+                                LineStrip,
+                                TriangleList,
+                                TriangleStrip };
 
 enum class buffer_type {
     None = 0,

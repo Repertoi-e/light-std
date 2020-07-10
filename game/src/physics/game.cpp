@@ -9,17 +9,6 @@ LE_GAME_API GAME_UPDATE_AND_RENDER(game_update_and_render, game_memory *memory, 
         GameMemory = memory;
         Graphics = g;
 
-        // Switch our default allocator from malloc to the one the exe provides us with
-        Context.Alloc = GameMemory->Alloc;
-
-        // We need to use the exe's imgui context, because we submit the geometry to the GPU there
-        assert(GameMemory->ImGuiContext);
-        ImGui::SetCurrentContext((ImGuiContext *) GameMemory->ImGuiContext);
-
-        // We also tell imgui to use our allocator (we tell imgui to not implement default ones)
-        ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, GameMemory->Alloc); },
-                                     [](void *ptr, void *) { delete ptr; });
-
         reload_global_state();
 
         auto *cam = &GameState->Camera;

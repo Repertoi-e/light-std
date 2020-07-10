@@ -11,14 +11,14 @@ void string_builder::release() {
         if (old->Owner == this) delete old;
     }
 
-    CurrentBuffer = &BaseBuffer;
+    CurrentBuffer = null;  // null means BaseBuffer
     BaseBuffer.Occupied = 0;
 }
 
 void string_builder::reset() {
-    auto *b = &BaseBuffer;
-    CurrentBuffer = b;
+    CurrentBuffer = null;  // null means BaseBuffer
 
+    auto *b = &BaseBuffer;
     while (b) {
         b->Occupied = 0;
         b = b->Next;
@@ -31,10 +31,10 @@ void string_builder::append(char32_t cp) {
     append_pointer_and_size(encoded, get_size_of_cp(cp));
 }
 
-void string_builder::append(string str) { append_pointer_and_size(str.Data, str.ByteLength); }
+void string_builder::append(const string &str) { append_pointer_and_size(str.Data, str.ByteLength); }
 
 void string_builder::append_pointer_and_size(const char *data, s64 size) {
-    buffer *currentBuffer = CurrentBuffer;
+    buffer *currentBuffer = get_current_buffer();
 
     s64 availableSpace = BUFFER_SIZE - currentBuffer->Occupied;
     if (availableSpace >= size) {
@@ -46,10 +46,10 @@ void string_builder::append_pointer_and_size(const char *data, s64 size) {
 
         // If the entire string doesn't fit inside the available space,
         // allocate the next buffer and continue appending.
-        buffer *b = new (&Alloc) buffer;
+        buffer *b = new (Alloc) buffer;
         b->Owner = this;
 
-        CurrentBuffer->Next = b;
+        currentBuffer->Next = b;
         CurrentBuffer = b;
 
         IndirectionCount++;
@@ -58,13 +58,20 @@ void string_builder::append_pointer_and_size(const char *data, s64 size) {
     }
 }
 
-void string_builder::combine(string *out) const {
-    out->reserve((IndirectionCount + 1) * BUFFER_SIZE);
+string_builder::buffer *string_builder::get_current_buffer() {
+    if (CurrentBuffer == null) return &BaseBuffer;
+    return CurrentBuffer;
+}
+
+string string_builder::combine() const {
+    string result;
+    result.reserve((IndirectionCount + 1) * BUFFER_SIZE);
     auto *b = &BaseBuffer;
     while (b) {
-        out->append_pointer_and_size(b->Data, b->Occupied);
+        result.append_pointer_and_size(b->Data, b->Occupied);
         b = b->Next;
     }
+    return result;
 }
 
 string_builder *clone(string_builder *dest, const string_builder &src) {
@@ -73,18 +80,18 @@ string_builder *clone(string_builder *dest, const string_builder &src) {
     return dest;
 }
 
-string_builder *move(string_builder *dest, string_builder *src) {
-    dest->release();
-
-    *dest = *src;
-
-    // Transfer ownership
-    auto *b = dest->BaseBuffer.Next;
-    while (b) {
-        b->Owner = dest;
-        b = b->Next;
-    }
-    return dest;
-}
+// string_builder *move(string_builder *dest, string_builder *src) {
+//     dest->release();
+//
+//     *dest = *src;
+//
+//     // Transfer ownership
+//     auto *b = dest->BaseBuffer.Next;
+//     while (b) {
+//         b->Owner = dest;
+//         b = b->Next;
+//     }
+//     return dest;
+// }
 
 LSTD_END_NAMESPACE

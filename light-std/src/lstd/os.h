@@ -34,10 +34,10 @@ s64 os_get_block_size(void *ptr);
 void os_free_block(void *ptr);
 
 // Creates/opens a shared memory block and writes data to it (use this for communication between processes)
-void os_write_shared_block(string name, void *data, s64 size);
+void os_write_shared_block(const string &name, void *data, s64 size);
 
 // Read data from a shared memory block (use this for communication between processes)
-void os_read_shared_block(string name, void *out, s64 size);
+void os_read_shared_block(const string &name, void *out, s64 size);
 
 // Exits the application with the given exit code
 
@@ -53,7 +53,7 @@ time_t os_get_time();
 f64 os_time_to_seconds(time_t time);
 
 string os_get_clipboard_content();
-void os_set_clipboard_content(string content);
+void os_set_clipboard_content(const string &content);
 
 // Sleep for _ms_ milliseconds
 // void os_sleep(f64 ms);
@@ -69,17 +69,17 @@ string os_get_working_dir();
 // Sets the current directory of the current process (needs to be absolute).
 // [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory
 //           are not thread-safe but we use a lock so these are.
-void os_set_working_dir(string dir);
+void os_set_working_dir(const string &dir);
 
 // Get the value of an environment variable, returns true if found.
 // If not found and silent is false, logs error to cerr.
-bool os_get_env(string *out, string name, bool silent = false);
+pair<bool, string> os_get_env(const string &name, bool silent = false);
 
 // Sets a variable (creates if it doesn't exist yet) in this process' environment
-void os_set_env(string name, string value);
+void os_set_env(const string &name, const string &value);
 
 // Delete a variable from the current process' environment
-void os_remove_env(string name);
+void os_remove_env(const string &name);
 
 // Get a list of parsed command line arguments excluding the first one.
 // Normally the first one is the exe name - you can get that with os_get_current_module().
@@ -93,7 +93,7 @@ u32 os_get_pid();
 #if OS == WINDOWS
 
 // Logs a formatted error message.
-void windows_report_hresult_error(long hresult, string call, string file, s32 line);
+void windows_report_hresult_error(long hresult, const string &call, const string &file, s32 line);
 
 // CHECKHR checks the return value of _call_ and if the returned HRESULT is less than zero, reports an error.
 #define CHECKHR(call)                                                                    \

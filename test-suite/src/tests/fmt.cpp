@@ -1,18 +1,18 @@
 #include "../test.h"
 
-#define CHECK_WRITE(expected, fmtString, ...)      \
-    {                                              \
-        string t;                                  \
-        fmt::sprint(&t, fmtString, ##__VA_ARGS__); \
-        assert_eq(t, expected);                    \
+#define CHECK_WRITE(expected, fmtString, ...)             \
+    {                                                     \
+        string t = fmt::sprint(fmtString, ##__VA_ARGS__); \
+        assert_eq(t, expected);                           \
+        t.release();                                      \
     }
 
 static string LAST_ERROR;
 
-void test_error_handler(string message, fmt::error_context errorContext) { LAST_ERROR = message; }
+void test_error_handler(const string &message, fmt::error_context errorContext) { LAST_ERROR = message; }
 
 template <typename... Args>
-void format_test_error(string_view fmtString, Args &&... args) {
+void format_test_error(const string &fmtString, Args &&... args) {
     io::counting_writer dummy;
 
     fmt::args_store<remove_reference_t<Args>...> store;
@@ -80,10 +80,9 @@ void check_unknown_types(T value, string_view types) {
     For(range(1, CHAR_MAX)) {
         if (special.has((char32_t) it) || types.has((char32_t) it)) continue;
 
-        string fmtString;
-        fmt::sprint(&fmtString, "{{0:10{:c}}}", it);
-
+        string fmtString = fmt::sprint("{{0:10{:c}}}", it);
         EXPECT_ERROR("Invalid type specifier", fmtString, value);
+        fmtString.release();
     }
 }
 

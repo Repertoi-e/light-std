@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-void parse_fmt_string(string fmtString, format_context *f) {
+void parse_fmt_string(const string &fmtString, format_context *f) {
     parse_context *p = &f->Parse;
 
     auto write = [&](const char *end) {

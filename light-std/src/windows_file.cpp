@@ -10,13 +10,13 @@ LSTD_BEGIN_NAMESPACE
 
 namespace file {
 
-#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                              \
-    HANDLE handleName = call;                                                                                   \
-    if (handleName == INVALID_HANDLE_VALUE) {                                                                   \
-        string extendedCallSite;                                                                                \
-        fmt::sprint(&extendedCallSite, "{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, Path);    \
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
-        return returnOnFail;                                                                                    \
+#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                                  \
+    HANDLE handleName = call;                                                                                       \
+    if (handleName == INVALID_HANDLE_VALUE) {                                                                       \
+        string extendedCallSite = fmt::sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, Path); \
+        defer(extendedCallSite.release());                                                                          \
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);     \
+        return returnOnFail;                                                                                        \
     }
 
 handle::handle(path path) {
@@ -170,7 +170,7 @@ bool handle::move(handle dest, bool overwrite) const {
     return false;
 }
 
-bool handle::rename(string newName) const {
+bool handle::rename(const string &newName) const {
     if (!exists()) return false;
 
     auto p = path(Path.directory());
@@ -200,27 +200,33 @@ bool handle::create_symbolic_link(handle dest) const {
     return CreateSymbolicLinkW(dest.Utf16Path, Utf16Path, dest.is_directory() ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0);
 }
 
-bool handle::read_entire_file(string *out) const {
-    CREATE_FILE_HANDLE_CHECKED(
-        file, CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null),
-        null);
+pair<bool, string> handle::read_entire_file() const {
+    // CREATE_FILE_HANDLE_CHECKED
+    HANDLE file = CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    if (file == INVALID_HANDLE_VALUE) {
+        string extendedCallSite = fmt::sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", "CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null)", Path);
+        defer(extendedCallSite.release());
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);
+        return {false, ""};
+    }
     defer(CloseHandle(file));
 
     LARGE_INTEGER size = {0};
     GetFileSizeEx(file, &size);
 
-    out->reserve(out->ByteLength + size.QuadPart);
-    char *target = const_cast<char *>(out->Data) + out->ByteLength;
+    string result;
+    result.reserve(size.QuadPart);
+    char *target = const_cast<char *>(result.Data);
     DWORD bytesRead;
-    if (!ReadFile(file, target, (u32) size.QuadPart, &bytesRead, null)) return false;
+    if (!ReadFile(file, target, (u32) size.QuadPart, &bytesRead, null)) return {false, ""};
     assert(size.QuadPart == bytesRead);
 
-    out->ByteLength += bytesRead;
-    out->Length += utf8_length(target, bytesRead);
-    return true;
+    result.ByteLength += bytesRead;
+    result.Length += utf8_length(target, bytesRead);
+    return {true, result};
 }
 
-bool handle::write_to_file(string contents, write_mode mode) const {
+bool handle::write_to_file(const string &contents, write_mode mode) const {
     CREATE_FILE_HANDLE_CHECKED(
         file, CreateFileW(Utf16Path, GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
     defer(CloseHandle(file));

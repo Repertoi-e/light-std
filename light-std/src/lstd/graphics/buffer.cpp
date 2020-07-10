@@ -4,7 +4,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void buffer_layout::add(string name, gtype type, s64 count, bool normalized) {
+void buffer_layout::add(const string &name, gtype type, s64 count, bool normalized) {
     s64 sizeInBits = get_size_of_base_gtype_in_bits(type);
 
     count *= get_count_of_gtype(type);

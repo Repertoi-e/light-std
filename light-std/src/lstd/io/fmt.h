@@ -167,11 +167,11 @@ LSTD_BEGIN_NAMESPACE
 namespace fmt {
 
 // Defined in fmt.cpp
-void parse_fmt_string(string fmtString, format_context *f);
+void parse_fmt_string(const string &fmtString, format_context *f);
 
 // Formats to writer
 template <typename... Args>
-void to_writer(io::writer *out, string fmtString, Args &&... args) {
+void to_writer(io::writer *out, const string &fmtString, Args &&... args) {
     args_store<remove_reference_t<Args>...> store;  // This needs to outlive _parse_fmt_string_
     store.populate(args...);
 
@@ -183,26 +183,23 @@ void to_writer(io::writer *out, string fmtString, Args &&... args) {
 
 // Formats to a counting writer and returns the result
 template <typename... Args>
-s64 calculate_formatted_size(string fmtString, Args &&... args) {
+s64 calculate_formatted_size(const string &fmtString, Args &&... args) {
     io::counting_writer writer;
     to_writer(&writer, fmtString, ((Args &&) args)...);
     return writer.Count;
 }
 
-// Formats to a string
+// Formats to a string. The caller is responsible for freeing.
 template <typename... Args>
-void sprint(string *out, string fmtString, Args &&... args) {
-    out->reserve(out->ByteLength +
-                 calculate_formatted_size(fmtString, ((Args &&) args)...));  // @Speed Is this actually better?
-
+string sprint(const string &fmtString, Args &&... args) {
     auto writer = io::string_builder_writer();
     to_writer(&writer, fmtString, ((Args &&) args)...);
-    writer.Builder.combine(out);
+    return writer.Builder.combine();
 }
 
 // Formats to io::cout
 template <typename... Args>
-void print(string fmtString, Args &&... args) {
+void print(const string &fmtString, Args &&... args) {
     to_writer(Context.Log, fmtString, ((Args &&) args)...);
 }
 

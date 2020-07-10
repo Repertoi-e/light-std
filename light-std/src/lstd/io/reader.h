@@ -81,10 +81,10 @@ struct reader : non_copyable, non_movable, non_assignable {
 
     // Assumes there is enough space in _out_.
     // The delim is not included in the string.
-    reader *read_until(char *out, string delims);
+    reader *read_until(char *out, const string & delims);
 
     // The delim is not included in the string.
-    reader *read_until(array<char> *out, string delims);
+    reader *read_until(array<char> *out, const string & delims);
 
     // Assumes there is enough space in _out_.
     // Doesn't put the terminating byte/s in the buffer.
@@ -95,10 +95,10 @@ struct reader : non_copyable, non_movable, non_assignable {
 
     // Assumes there is enough space in _out_.
     // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(char *out, string eats);
+    reader *read_while(char *out, const string & eats);
 
     // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(array<char> *out, string eats);
+    reader *read_while(array<char> *out, const string & eats);
 
     // Reads _n_ code points and appends to _str_
     reader *read(string *str, s64 n);
@@ -107,13 +107,13 @@ struct reader : non_copyable, non_movable, non_assignable {
     reader *read_until(string *str, char32_t delim);
 
     // The delim is not included in the string.
-    reader *read_until(string *str, string delims);
+    reader *read_until(string *str, const string & delims);
 
     // Doesn't include the terminating code point in the string.
     reader *read_while(string *str, char32_t eat);
 
     // Doesn't include the terminating code point in the string.
-    reader *read_while(string *str, string eats);
+    reader *read_while(string *str, const string & eats);
 
     // Reads bytes until a newline character and puts them in _str_.
     // '\n' is not included in the string.

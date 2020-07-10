@@ -5,7 +5,7 @@
 
 LSTD_BEGIN_NAMESPACE
 namespace fmt {
-void default_error_handler(string message, error_context errorContext) {
+void default_error_handler(const string &message, error_context errorContext) {
     // An error during formatting occured.
     // If you are running a debugger it has now hit a breakpoint.
 

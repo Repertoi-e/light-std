@@ -55,18 +55,19 @@ struct asserts {
 #define assert_gt(x, y) assert_helper(x, y, LINE_NAME(a) > LINE_NAME(b), ">")
 #define assert_ge(x, y) assert_helper(x, y, LINE_NAME(a) >= LINE_NAME(b), ">=")
 
-#define assert_helper(x, y, condition, op)                                                                             \
-    {                                                                                                                  \
-        ++asserts::GlobalCalledCount;                                                                                  \
-        auto LINE_NAME(a) = x;                                                                                         \
-        auto LINE_NAME(b) = y;                                                                                         \
-        if (!(condition)) {                                                                                            \
-            fmt::sprint(                                                                                               \
-                asserts::GlobalFailed.append(),                                                                        \
-                "{}:{} {!YELLOW}{} {} {}{!GRAY},\n                LHS: {!YELLOW}\"{}\"{!GRAY},\n                RHS: " \
-                "{!YELLOW}\"{}\"{!}",                                                                                  \
-                get_short_file_name(__FILE__), __LINE__, u8## #x, op, u8## #y, LINE_NAME(a), LINE_NAME(b));            \
-        }                                                                                                              \
+#define assert_helper(x, y, condition, op)                                                                  \
+    {                                                                                                       \
+        ++asserts::GlobalCalledCount;                                                                       \
+        auto LINE_NAME(a) = x;                                                                              \
+        auto LINE_NAME(b) = y;                                                                              \
+        if (!(condition)) {                                                                                 \
+            string message = fmt::sprint(                                                                   \
+                "{}:{} {!YELLOW}{} {} {}{!GRAY},\n"                                                         \
+                "                LHS : { !YELLOW }\"{}\"{!GRAY},\n"                                         \
+                "                RHS: {!YELLOW}\"{}\"{!}",                                                  \
+                get_short_file_name(__FILE__), __LINE__, u8## #x, op, u8## #y, LINE_NAME(a), LINE_NAME(b)); \
+            asserts::GlobalFailed.append(message);                                                          \
+        }                                                                                                   \
     }
 
 //
@@ -84,7 +85,8 @@ inline table<string_view, array<test>> g_TestTable;
 
 #define _TEST(name)                                                     \
     struct _MACRO_CONCAT(test_, __LINE__)##_##name {                    \
-        _MACRO_CONCAT(test_, __LINE__)##_##name() {                     \
+        _MACRO_CONCAT(test_, __LINE__)                                  \
+        ##_##name() {                                                   \
             string_view shortFile = get_short_file_name(__FILE__);      \
             g_TestTable[shortFile]->append({#name, &run});              \
         }                                                               \

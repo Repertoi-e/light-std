@@ -6,16 +6,24 @@
 LSTD_BEGIN_NAMESPACE
 
 extern shader::impl g_D3DShaderImpl;  // Defined in d3d_shader.cpp
-void shader::init(graphics *g, file::handle fileHandle) {
+void shader::init(graphics *g, const file::handle &fileHandle) {
     clone(&FilePath, fileHandle.Path);
 
-    string source;
-    if (!fileHandle.read_entire_file(&source)) return;
+    auto [sucess, source] = fileHandle.read_entire_file();
+    if (!sucess) return;
 
-    init(g, source);
+    Graphics = g;
+    Source = source;
+
+    if (g->API == graphics_api::Direct3D) {
+        Impl = g_D3DShaderImpl;
+    } else {
+        assert(false);
+    }
+    Impl.Init(this);
 }
 
-void shader::init(graphics *g, string source) {
+void shader::init(graphics *g, const string &source) {
     Graphics = g;
 
     clone(&Source, source);

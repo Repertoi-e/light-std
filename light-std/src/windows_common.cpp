@@ -25,9 +25,10 @@ s32 initialize_context() {
 void win32_common_init();
 
 extern void win32_window_init();
-extern void win32_destroy_windows();
 extern void win32_monitor_init();
 extern void win32_crash_handler_init();
+
+extern void win32_window_uninit();
 
 // Needs to happen after global C++ constructors are initialized.
 void initialize_win32_state() {
@@ -43,9 +44,6 @@ void run_at_exit(delegate<void()> function) { clone(ExitFunctions.append(), func
 
 // Needs to happen just before the global C++ destructors get called.
 void call_exit_functions() { For(ExitFunctions) it(); }
-
-// Needs to happend before the global WindowsList variable gets uninitialized.
-void uninitialize_win32_state() { win32_destroy_windows(); }
 
 void debug_memory_check_heap() {
 #if defined DEBUG_MEMORY
@@ -67,10 +65,11 @@ void debug_memory_check_heap() {
             thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
             auto *it = allocator::DEBUG_Head;
             while (it) {
-                ++leaksCount;
+                if (!it->MarkedAsLeak) ++leaksCount;
                 it = it->DEBUG_Next;
             }
         }
+        // @Cleanup: We can mark this as LEAK?
         leaks = new allocation_header *[leaksCount];
         leaksID = ((allocation_header *) leaks - 1)->ID;
 
@@ -79,16 +78,13 @@ void debug_memory_check_heap() {
             auto *p = leaks;
             auto *it = allocator::DEBUG_Head;
             while (it) {
-                if (it->ID != leaksID) *p++ = it;
+                if (!it->MarkedAsLeak && it->ID != leaksID) *p++ = it;
                 it = it->DEBUG_Next;
             }
         }
 
         if (leaksCount) {
-            fmt::print(
-                ">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still had some allocations which were "
-                "unfreed. Here they are:\n",
-                os_get_current_module());
+            fmt::print(">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still had {!YELLOW}{}{!} allocations which were unfreed. Here they are:\n", os_get_current_module(), leaksCount);
         }
         For_as(i, range(leaksCount)) {
             auto *it = leaks[i];
@@ -96,6 +92,15 @@ void debug_memory_check_heap() {
         }
     }
 #endif
+}
+
+// Needs to happend before the global WindowsList variable gets uninitialized.
+void uninitialize_win32_state() {
+    Context.release_temporary_allocator();
+    call_exit_functions();
+
+    debug_memory_check_heap();
+    win32_window_uninit();
 }
 
 //
@@ -115,34 +120,32 @@ s32 cpp_init() {
 }
 
 s32 pre_termination() {
-    debug_memory_check_heap();
-    call_exit_functions();
     uninitialize_win32_state();
     return 0;
 }
 
 typedef s32 cb(void);
-#pragma const_seg(".CRT$XIUSER_LSTD")
-__declspec(allocate(".CRT$XIUSER_LSTD")) cb *g_CInit = c_init;
+#pragma const_seg(".CRT$XIUSER")
+__declspec(allocate(".CRT$XIUSER")) cb *g_CInit = c_init;
 #pragma const_seg()
 
-#pragma const_seg(".CRT$XCUSER_LSTD")
-__declspec(allocate(".CRT$XCUSER_LSTD")) cb *g_CPPInit = cpp_init;
+#pragma const_seg(".CRT$XCUSER")
+__declspec(allocate(".CRT$XCUSER")) cb *g_CPPInit = cpp_init;
 #pragma const_seg()
 
-#pragma const_seg(".CRT$XPA")
-__declspec(allocate(".CRT$XPA")) cb *g_PreTermination = pre_termination;
+#pragma const_seg(".CRT$XPUSER")
+__declspec(allocate(".CRT$XPUSER")) cb *g_PreTermination = pre_termination;
 #pragma const_seg()
 
-#pragma const_seg(".CRT$XTUSER_LSTD")
-__declspec(allocate(".CRT$XTUSER_LSTD")) cb *g_Termination = NULL;
+#pragma const_seg(".CRT$XTUSER")
+__declspec(allocate(".CRT$XTUSER")) cb *g_Termination = NULL;
 #pragma const_seg()
 
 #else
 #error @TODO: See how this works on other compilers!
 #endif
 
-bool dynamic_library::load(string name) {
+bool dynamic_library::load(const string &name) {
     // @Bug value.Length is not enough (2 wide chars for one char)
     auto *buffer = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, buffer);
@@ -150,7 +153,7 @@ bool dynamic_library::load(string name) {
     return Handle;
 }
 
-void *dynamic_library::get_symbol(string name) {
+void *dynamic_library::get_symbol(const string &name) {
     auto *buffer = new (Context.TemporaryAlloc) char[name.ByteLength + 1];
     copy_memory(buffer, name.Data, name.ByteLength);
     buffer[name.ByteLength] = '\0';
@@ -212,7 +215,7 @@ void win32_common_init() {
     QueryPerformanceFrequency(&PerformanceFrequency);
 
     // Get the module name
-    wchar_t *buffer = new (Context.TemporaryAlloc) wchar_t[MAX_PATH];
+    wchar_t *buffer = new (Context.TemporaryAlloc, LEAK) wchar_t[MAX_PATH];
     s64 reserved = MAX_PATH;
 
     while (true) {
@@ -220,7 +223,7 @@ void win32_common_init() {
         if (written == reserved) {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
                 reserved *= 2;
-                buffer = new (Context.TemporaryAlloc) wchar_t[reserved];
+                buffer = new (Context.TemporaryAlloc, LEAK) wchar_t[reserved];
                 continue;
             }
         }
@@ -396,18 +399,18 @@ s64 os_get_block_size(void *ptr) {
     return result;
 }
 
-#define CREATE_MAPPING_CHECKED(handleName, call, returnOnFail)                                                  \
-    HANDLE handleName = call;                                                                                   \
-    if (!handleName) {                                                                                          \
-        string extendedCallSite;                                                                                \
-        fmt::sprint(&extendedCallSite, "{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name);    \
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
-        return returnOnFail;                                                                                    \
+#define CREATE_MAPPING_CHECKED(handleName, call, returnOnFail)                                                      \
+    HANDLE handleName = call;                                                                                       \
+    if (!handleName) {                                                                                              \
+        string extendedCallSite = fmt::sprint("{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name); \
+        defer(extendedCallSite.release());                                                                          \
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);     \
+        return returnOnFail;                                                                                        \
     }
 
-void os_write_shared_block(string name, void *data, s64 size) {
+void os_write_shared_block(const string &name, void *data, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
+    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
     CREATE_MAPPING_CHECKED(h,
@@ -424,9 +427,9 @@ void os_write_shared_block(string name, void *data, s64 size) {
     UnmapViewOfFile(result);
 }
 
-void os_read_shared_block(string name, void *out, s64 size) {
+void os_read_shared_block(const string &name, void *out, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
+    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
     CREATE_MAPPING_CHECKED(h, OpenFileMappingW(FILE_MAP_READ, false, name16), );
@@ -466,7 +469,7 @@ string os_get_working_dir() {
     thread::scoped_lock _(&WorkingDirMutex);
 
     DWORD required = GetCurrentDirectoryW(0, null);
-    auto *dir16 = new (Context.TemporaryAlloc) wchar_t[required + 1];
+    auto *dir16 = new (Context.TemporaryAlloc, LEAK) wchar_t[required + 1];
 
     if (!GetCurrentDirectoryW(required + 1, dir16)) {
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW(required, dir16)",
@@ -479,13 +482,13 @@ string os_get_working_dir() {
     return WorkingDir;
 }
 
-void os_set_working_dir(string dir) {
+void os_set_working_dir(const string &dir) {
     file::path path(dir);
     assert(path.is_absolute());
 
     thread::scoped_lock _(&WorkingDirMutex);
 
-    auto *dir16 = new (Context.TemporaryAlloc) wchar_t[dir.Length + 1];
+    auto *dir16 = new (Context.TemporaryAlloc, LEAK) wchar_t[dir.Length + 1];
     utf8_to_utf16(dir.Data, dir.Length, dir16);
 
     if (!SetCurrentDirectoryW(dir16)) {
@@ -494,14 +497,14 @@ void os_set_working_dir(string dir) {
     }
 }
 
-bool os_get_env(string *out, string name, bool silent) {
+pair<bool, string> os_get_env(const string &name, bool silent) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
+    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
     DWORD bufferSize = 65535;  // Limit according to http://msdn.microsoft.com/en-us/library/ms683188.aspx
 
-    auto *buffer = new (Context.TemporaryAlloc) wchar_t[bufferSize];
+    auto *buffer = new (Context.TemporaryAlloc, LEAK) wchar_t[bufferSize];
     auto r = GetEnvironmentVariableW(name16, buffer, bufferSize);
 
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
@@ -515,32 +518,33 @@ bool os_get_env(string *out, string name, bool silent) {
                 WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
             }
         }
-        return false;
+        return {false, ""};
     }
 
     // 65535 may be the limit but let's not take risks
     if (r > bufferSize) {
-        buffer = new (Context.TemporaryAlloc) wchar_t[r];
+        buffer = new (Context.TemporaryAlloc, LEAK) wchar_t[r];
         GetEnvironmentVariableW(name16, buffer, r);
         bufferSize = r;
 
         // Possible to fail a second time ?
     }
 
-    out->reserve(bufferSize * 2);  // @Bug bufferSize * 2 is not enough
-    utf16_to_utf8(buffer, const_cast<char *>(out->Data), &out->ByteLength);
-    out->Length = utf8_length(out->Data, out->ByteLength);
+    string result;
+    result.reserve(bufferSize * 2);  // @Bug bufferSize * 2 is not enough
+    utf16_to_utf8(buffer, const_cast<char *>(result.Data), &result.ByteLength);
+    result.Length = utf8_length(result.Data, result.ByteLength);
 
-    return true;
+    return {true, result};
 }
 
-void os_set_env(string name, string value) {
+void os_set_env(const string &name, const string &value) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
+    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *value16 = new (Context.TemporaryAlloc) wchar_t[value.Length + 1];
+    auto *value16 = new (Context.TemporaryAlloc, LEAK) wchar_t[value.Length + 1];
     utf8_to_utf16(value.Data, value.Length, value16);
 
     if (value.Length > 32767) {
@@ -555,9 +559,9 @@ void os_set_env(string name, string value) {
     }
 }
 
-void os_remove_env(string name) {
+void os_remove_env(const string &name) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
+    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
     utf8_to_utf16(name.Data, name.Length, name16);
 
     if (!SetEnvironmentVariableW(name16, null)) {

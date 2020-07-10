@@ -68,7 +68,7 @@ LSTD_END_NAMESPACE
 //
 //  For(array) print(it);
 //
-#define For_as(x, in) for (const auto &x : in)
+#define For_as(x, in) for (auto &&x : in)
 #define For(in) For_as(it, in)
 
 LSTD_BEGIN_NAMESPACE
@@ -152,6 +152,8 @@ struct range {
     constexpr iterator end() const { return _End; }
 };
 
+// @TODO This needs updating...
+//
 // @Volatile: README.md
 // Type policy:
 //
@@ -529,9 +531,11 @@ constexpr enable_if_t<is_integer_v<T>> set_bit(T *number, T bit, bool value) {
     template <typename T>                        \
     constexpr enable_if_t<is_integral_v<T>, return_type>
 
-INTEGRAL_FUNCTION_CONSTEXPR(bool) is_pow_of_2(T number) { return (number & (number - 1)) == 0; }
+INTEGRAL_FUNCTION_CONSTEXPR(bool)
+is_pow_of_2(T number) { return (number & (number - 1)) == 0; }
 
-INTEGRAL_FUNCTION_CONSTEXPR(T) const_abs(T number) {
+INTEGRAL_FUNCTION_CONSTEXPR(T)
+const_abs(T number) {
     auto s = number >> (sizeof(T) * 8 - 1);
     return (number ^ s) - s;
 }

@@ -65,6 +65,20 @@ struct game_memory {
     // at all, otherwise we allocate a new one and put it in this table).
     table<string, void *> States;
 
+    // We need states to be allocated in the .exe, since the .exe is gonna free them in the end.
+    void *(*GetStateImpl)(const string &name, s64 size, bool *created);
+
+    // Call this function to manage a global pointer using our table of states above.
+    // If the thing with type T doesn't exist in the table, we allocate it and insert it
+    // otherwise we return whatever is stored with that name.
+    template <typename T>
+    T *get_state(const string &name) {
+        bool created = false;
+        auto *result = (T *) GetStateImpl(name, sizeof(T), &created);
+        if (created) new (result) T;  // initialize
+        return result;
+    }
+
     // Our target FPS by default is 60 but if the PC we are running on doesn't manage to hit that and we need to reduce
     // the FPS when the frame delta must change. So we shouldn't  hardcode 1000/60 ms per frame everywhere and instead
     // use this variable managed by the exe.
@@ -73,19 +87,8 @@ struct game_memory {
     void *ImGuiContext = null;
 };
 
-// Call this macro to automatically manage a global pointer using our table of states in game_memory
-#define MANAGE_GLOBAL_STATE(state)                                      \
-    if (!state) {                                                       \
-        string identifier = #state;                                     \
-        identifier.append("Ident");                                     \
-        auto **found = GameMemory->States.find(identifier);             \
-        if (!found) {                                                   \
-            state = new remove_pointer_t<decltype(state)>;              \
-            GameMemory->States.move_add(&identifier, (void **) &state); \
-        } else {                                                        \
-            state = (decltype(state)) * found;                          \
-        }                                                               \
-    }
+// Makes get_state less error-prone and less verbose. The name used is just a string version of the variable name.
+#define MANAGE_STATE(variable) variable = GameMemory->get_state<remove_pointer_t<decltype(variable)>>(#variable)
 
 // This is the API with which the exe and the dll interface
 #define GAME_UPDATE_AND_RENDER(name, ...) void name(game_memory *memory, graphics *g)

@@ -14,7 +14,7 @@ static char DIGITS[] =
     "8081828384858687888990919293949596979899";
 
 template <typename UInt>
-static char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, string thousandsSep = "") {
+static char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, const string &thousandsSep = "") {
     u32 digitIndex = 0;
 
     buffer += formattedSize;

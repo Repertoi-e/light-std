@@ -107,7 +107,12 @@ void d3d_buffer_set_input_layout(buffer *b, buffer_layout layout) {
     auto *desc = new (Context.TemporaryAlloc) D3D11_INPUT_ELEMENT_DESC[layout.Elements.Count];
     auto *p = desc;
     For(layout.Elements) {
-        *p++ = {it.Name.to_c_string(Context.TemporaryAlloc),
+        const char *name;
+        WITH_ALLOC(Context.TemporaryAlloc) {
+            name = it.Name.to_c_string();
+        }
+
+        *p++ = {name,
                 0,
                 gtype_and_count_to_dxgi_format(it.Type, it.Count, it.Normalized),
                 0,
@@ -185,8 +190,8 @@ void d3d_buffer_release(buffer *b) {
     SAFE_RELEASE(b->D3D.Layout);
 }
 
-buffer::impl g_D3DBufferImpl = {d3d_buffer_init, d3d_buffer_set_input_layout, d3d_buffer_map,    d3d_buffer_unmap,
-                                d3d_buffer_bind, d3d_buffer_unbind,           d3d_buffer_release};
+buffer::impl g_D3DBufferImpl = {d3d_buffer_init, d3d_buffer_set_input_layout, d3d_buffer_map, d3d_buffer_unmap,
+                                d3d_buffer_bind, d3d_buffer_unbind, d3d_buffer_release};
 
 LSTD_END_NAMESPACE
 

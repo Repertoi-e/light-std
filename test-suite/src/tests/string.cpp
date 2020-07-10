@@ -217,8 +217,9 @@ TEST(builder) {
     builder.append('!');
 
     string result;
-    builder.combine(&result);
+    result = builder.combine();
     assert_eq(result, "Hello, world!");
+    result.release();
 }
 
 TEST(remove_all) {

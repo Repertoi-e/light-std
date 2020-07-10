@@ -1,11 +1,11 @@
 #include "../test.h"
 
 void test_guid_case(guid id, char f) {
-    string format;
-    fmt::sprint(&format, "{{:{:c}}}", f);
+    string format = fmt::sprint("{{:{:c}}}", f);
+    defer(format.release());
 
-    string buffer;
-    fmt::sprint(&buffer, format, id);
+    string buffer = fmt::sprint(format, id);
+    defer(buffer.release());
 
     io::string_reader r(buffer);
     guid result;

@@ -55,9 +55,9 @@ struct window {
         ALWAYS_ON_TOP = BIT(10),  // Also called floating, topmost, etc.
                                   // Specify in _init()_ or use _set_always_on_top()_
         FOCUS_ON_SHOW = BIT(11),  // Specify in _init()_ or manually modify _Flags_
-        ALPHA = BIT(12),  // Window contents with alpha value get the color of the thing behind them, can only be
-                          // specified when creating the window! Can also check this in the _Flags_ after creation
-                          // to see if the window was able to be created with this flag.
+        ALPHA = BIT(12),          // Window contents with alpha value get the color of the thing behind them, can only be
+                                  // specified when creating the window! Can also check this in the _Flags_ after creation
+                                  // to see if the window was able to be created with this flag.
 
         VSYNC = BIT(13),
         CLOSE_ON_ALT_F4 = BIT(14),  // Specify in _init()_ or manually modify _Flags_
@@ -128,7 +128,7 @@ struct window {
 
     // You can use _DONT_CARE_ or _CENTERED_ for _x_ and _y_.
     // Returns _this_.
-    window *init(string title, s32 x, s32 y, s32 width, s32 height, u32 flags);
+    window *init(const string &title, s32 x, s32 y, s32 width, s32 height, u32 flags);
 
     // Destroys the window
     void release();
@@ -137,8 +137,9 @@ struct window {
 
     signal<bool(const event &), collector_while0<bool>> Event;
 
-    string get_title();  // Gets temporarily allocated. Invalidated the next time _window::update_ is called..
-    void set_title(string title);
+    // The caller is responsible for freeing
+    string get_title();
+    void set_title(const string &title);
 
     void set_fullscreen(monitor *mon, s32 width, s32 height, s32 refreshRate = DONT_CARE);
     bool is_fullscreen() { return Monitor; }

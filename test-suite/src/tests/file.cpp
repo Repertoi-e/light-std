@@ -78,9 +78,10 @@ TEST(writing_hello_250_times) {
     assert(file.write_to_file(contents));
     assert_eq(250 * 6, file.file_size());
 
-    string out;
-    file.read_entire_file(&out);
-    assert_eq(contents, out);
+    auto [sucess, read] = file.read_entire_file();
+    assert(sucess);
+    assert_eq(contents, read);
+    read.release();
 
     assert(file.delete_file());
 }

@@ -77,15 +77,15 @@ TEST(table) {
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
-        string str;
-        fmt::sprint(&str, "{}", *value);
+        string str = fmt::sprint("{}", *value);
         assert_eq(*key, str);
+        str.release();
+
         ++loopIterations;
     }
-    assert_eq(loopIterations, t.Count)
+    assert_eq(loopIterations, t.Count);
 
-        table<string, s32>
-            empty;
+    table<string, s32> empty;
     for (auto [key, value] : empty) {
         assert(false);
     }
@@ -103,9 +103,10 @@ TEST(table_clone) {
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
-        string str;
-        fmt::sprint(&str, "{}", *value);
+        string str = fmt::sprint("{}", *value);
         assert_eq(*key, str);
+        str.release();
+
         ++loopIterations;
     }
     assert_eq(loopIterations, t.Count)

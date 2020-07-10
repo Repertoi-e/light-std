@@ -128,7 +128,7 @@ reader *io::reader::read_until(array<char> *out, char32_t delim) {
     return this;
 }
 
-reader *io::reader::read_until(char *out, string delims) {
+reader *io::reader::read_until(char *out, const string &delims) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -148,7 +148,7 @@ reader *io::reader::read_until(char *out, string delims) {
     return this;
 }
 
-reader *io::reader::read_until(array<char> *out, string delims) {
+reader *io::reader::read_until(array<char> *out, const string & delims) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -206,7 +206,7 @@ reader *io::reader::read_while(array<char> *out, char32_t eat) {
     return this;
 }
 
-reader *io::reader::read_while(char *out, string eats) {
+reader *io::reader::read_while(char *out, const string &eats) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -224,7 +224,7 @@ reader *io::reader::read_while(char *out, string eats) {
     return this;
 }
 
-reader *io::reader::read_while(array<char> *out, string eats) {
+reader *io::reader::read_while(array<char> *out, const string & eats) {
     if (EOF) return this;
 
     bool skipWS = SkipWhitespace;
@@ -269,7 +269,7 @@ reader *io::reader::read_until(string *str, char32_t delim) {
     return this;
 }
 
-reader *io::reader::read_until(string *str, string delims) {
+reader *io::reader::read_until(string *str, const string & delims) {
     array<char> buffer;
     read_until(&buffer, delims);
     str->append_pointer_and_size(buffer.Data, buffer.Count);
@@ -283,7 +283,7 @@ reader *io::reader::read_while(string *str, char32_t eat) {
     return this;
 }
 
-reader *io::reader::read_while(string *str, string eats) {
+reader *io::reader::read_while(string *str, const string & eats) {
     array<char> buffer;
     read_while(&buffer, eats);
     str->append_pointer_and_size(buffer.Data, buffer.Count);

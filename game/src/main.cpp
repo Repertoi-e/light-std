@@ -11,7 +11,7 @@
 #include <lstd/os.h>
 
 // These can be modified with command line arguments.
-u32 GameMemoryInMiB = 32;
+s64 GameMemoryInMiB = 32;
 u32 GameWidth = 1200, GameHeight = 600, GameFPS = 60;
 string GameFileName = "physics.dll";
 
@@ -123,10 +123,10 @@ void parse_arguments() {
             auto old = GameMemoryInMiB;
             io::string_reader parser(it);
             parser.read(&GameMemoryInMiB);
-            if (parser.LastFailed) {
+            if (parser.LastFailed || GameMemoryInMiB < 0) {
                 GameMemoryInMiB = old;
                 fmt::to_writer(&io::cerr, ">>> {!RED}Invalid use of \"-memory\" argument. \n");
-                fmt::to_writer(&io::cerr, "Expected a whole number as a parameter (instead got \"{}\").{!}\n", it);
+                fmt::to_writer(&io::cerr, "Expected a positive whole number as a parameter (instead got \"{}\").{!}\n", it);
             }
             seekMemory = false;
             continue;
@@ -209,6 +209,7 @@ s32 main() {
     parse_arguments();
 
     game_memory gameMemory;
+    GameMemory = &gameMemory;
 
     auto *allocData = new (Malloc) free_list_allocator_data;
     allocData->init(GameMemoryInMiB * 1024 * 1024, free_list_allocator_data::Find_First);
@@ -222,8 +223,7 @@ s32 main() {
     setup_game_paths();
 
     WITH_ALLOC(GameAlloc) {
-        string windowTitle;
-        fmt::sprint(&windowTitle, "Graphics Engine | {}", GameFileName);
+        string windowTitle = fmt::sprint("Graphics Engine | {}", GameFileName);
 
         auto windowFlags =
             window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4;
@@ -235,27 +235,48 @@ s32 main() {
             return false;
         });
 
+        gameMemory.GetStateImpl = [](const string &name, s64 size, bool *created) {
+            string identifier = name;
+            identifier.append("Ident");
+
+            auto **found = GameMemory->States.find(identifier);
+            if (!found) {
+                // We allocate with alignment 16 because the game uses SIMD in structs (game_state is one struct which we handle with this function).
+                void *result = new (alignment(16)) char[size];
+                GameMemory->States.move_add(&identifier, (void **) &result);
+                *created = true;
+                return result;
+            }
+
+            identifier.release();
+            return *found;
+        };
+
+        // @TODO: GameFPS currently does nothing, we rely on g.swap() and vsync to hit target monitor refresh
+        // rate
+        // but we should do that ourselves. I don't remember why we changed it (maybe simplicity?) but we should
+        // definitely allow the user to set the target fps.
+
+        // This is affecting any physics time steps though
+        gameMemory.FrameDelta = 1.0f / GameFPS;
+
         graphics g;
         Graphics = &g;
+
         g.init(graphics_api::Direct3D);
         g.set_blend(true);
         g.set_depth_testing(false);
 
         init_imgui_for_our_windows(gameMemory.MainWindow);
         gameMemory.ImGuiContext = ImGui::GetCurrentContext();
-
-        // Needs to get called at the end of execution to release any imgui windows
-        defer(ImGui::DestroyPlatformWindows());
+        run_at_exit([]() {
+            // Needs to get called at the end of execution to release any imgui windows
+            ImGui::DestroyPlatformWindows();
+            ImGui::DestroyContext();
+        });
 
         imgui_renderer imguiRenderer;
         imguiRenderer.init(&g);
-
-        // @TODO: GameFPS currently does nothing, we rely on g.swap() and vsync to hit target monitor refresh rate
-        // but we should do that ourselves. I don't remember why we changed it (maybe simplicity?) but we should
-        // definetely allow the user to set the target fps.
-
-        // This is affecting any physics time steps though
-        gameMemory.FrameDelta = 1.0f / GameFPS;
 
         while (true) {
             gameMemory.ReloadedThisFrame = check_for_dll_change();
@@ -285,7 +306,6 @@ s32 main() {
             }
         }
     }
-    GameFileName.release();
 }
 
 #if OS == WINDOWS
@@ -295,7 +315,7 @@ s32 main() {
 #endif
 
 static cursor MouseCursors[ImGuiMouseCursor_COUNT] = {
-    cursor(OS_ARROW),     cursor(OS_IBEAM),       cursor(OS_RESIZE_ALL),  cursor(OS_RESIZE_NS),
+    cursor(OS_ARROW), cursor(OS_IBEAM), cursor(OS_RESIZE_ALL), cursor(OS_RESIZE_NS),
     cursor(OS_RESIZE_WE), cursor(OS_RESIZE_NESW), cursor(OS_RESIZE_NWSE), cursor(OS_HAND)};
 
 static bool MouseButtons[Mouse_Button_Last + 1]{};

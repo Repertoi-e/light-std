@@ -1,5 +1,6 @@
 #include "allocator.h"
 
+#include "../file.h"
 #include "../internal/context.h"
 #include "../io/fmt.h"
 #include "../math.h"
@@ -64,9 +65,9 @@ void allocator::verify_header(allocation_header *header) {
         assert(false && "Trying to access freed memory!");
     }
 
-    assert(header->Alignment && "Alignment is zero. Definetely corrupted.");
-    assert(header->Alignment >= POINTER_SIZE && "Alignment smaller than pointer size. Definetely corrupted.");
-    assert(is_pow_of_2(header->Alignment) && "Alignment not a power of 2. Definetely corrupted.");
+    assert(header->Alignment && "Alignment is zero. Definitely corrupted.");
+    assert(header->Alignment >= POINTER_SIZE && "Alignment smaller than pointer size. Definitely corrupted.");
+    assert(is_pow_of_2(header->Alignment) && "Alignment not a power of 2. Definitely corrupted.");
 
     assert(header->DEBUG_Pointer == header + 1 && "Debug pointer doesn't match. They should always match.");
 
@@ -100,7 +101,7 @@ void allocator::verify_heap() {
 #endif
 }
 
-void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, bool initToZero) {
+void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, u64 flags) {
     u32 padding = calculate_padding_for_pointer_with_header(p, align, sizeof(allocation_header));
     u32 alignmentPadding = padding - sizeof(allocation_header);
 
@@ -109,12 +110,12 @@ void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_
 #if defined DEBUG_MEMORY
     result->DEBUG_Next = null;
     result->DEBUG_Previous = null;
-#endif
 
     result->ID = (u32) AllocationCount;
     atomic_inc_64(&AllocationCount);
 
     result->RID = 0;
+#endif
 
     result->Function = f;
     result->Context = c;
@@ -123,7 +124,6 @@ void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_
     result->Alignment = align;
     result->AlignmentPadding = alignmentPadding;
 
-    result->UserData = null;
     result->Owner = null;
 
     //
@@ -149,7 +149,7 @@ void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_
     p = result + 1;
     assert((((u64) p & ~((s64) align - 1)) == (u64) p) && "Pointer wasn't properly aligned.");
 
-    if (initToZero) {
+    if (flags & DO_INIT_0) {
         zero_memory(p, userSize);
     }
 #if defined DEBUG_MEMORY
@@ -161,6 +161,8 @@ void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_
     fill_memory((char *) p + userSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
 
     result->DEBUG_Pointer = result + 1;
+
+    result->MarkedAsLeak = flags & LEAK;
 #endif
 
     return p;
@@ -173,11 +175,13 @@ void *allocator::general_allocate(s64 userSize, u32 align, u64 userFlags) const 
         align = contextAlignment;
     }
 
+#if defined DEBUG_MEMORY
     s64 id = AllocationCount;
 
-    if (id == 1170) {
+    if (id == 7) {
         s32 k = 42;
     }
+#endif
 
     align = align < POINTER_SIZE ? POINTER_SIZE : align;
     assert(is_pow_of_2(align));
@@ -187,10 +191,8 @@ void *allocator::general_allocate(s64 userSize, u32 align, u64 userFlags) const 
     required += NO_MANS_LAND_SIZE;  // This is for the bytes after the requested block
 #endif
 
-    bool initToZero = userFlags & DO_INIT_0;
-
     void *block = Function(allocator_mode::ALLOCATE, Context, required, null, 0, userFlags);
-    auto *result = encode_header(block, userSize, align, Function, Context, initToZero);
+    auto *result = encode_header(block, userSize, align, Function, Context, userFlags);
 
 #if defined DEBUG_MEMORY
     auto *header = (allocation_header *) result - 1;
@@ -208,7 +210,9 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
 
     if (header->Size == newUserSize) return ptr;
 
+#if defined DEBUG_MEMORY
     auto id = header->ID;
+#endif
 
     // The header stores the size of the requested allocation
     // (so the user code can look at the header and not be confused with garbage)
@@ -229,8 +233,6 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
 
     void *block = (char *) header - header->AlignmentPadding;
 
-    bool initToZero = userFlags & DO_INIT_0;
-
     void *p;
 
     // Try to resize the block, this returns null if the block can't be resized and we need to move it.
@@ -238,19 +240,21 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
     if (!newBlock) {
         // Memory needs to be moved
         void *newBlock = func(allocator_mode::ALLOCATE, context, newSize, null, 0, userFlags);
-        auto *newPointer = encode_header(newBlock, newUserSize, header->Alignment, func, context, initToZero);
+        auto *newPointer = encode_header(newBlock, newUserSize, header->Alignment, func, context, userFlags);
 
         auto *newHeader = (allocation_header *) newPointer - 1;
 
-        newHeader->ID = id;
-        newHeader->RID = header->RID + 1;
         newHeader->Owner = header->Owner;
-        newHeader->UserData = header->UserData;
         copy_memory(newPointer, ptr, header->Size);
 
 #if defined DEBUG_MEMORY
+        newHeader->ID = id;
+        newHeader->RID = header->RID + 1;
+
         DEBUG_swap_header(header, newHeader);
         fill_memory(block, DEAD_LAND_FILL, oldSize);
+
+        newHeader->MarkedAsLeak = header->MarkedAsLeak;
 #endif
         func(allocator_mode::FREE, context, 0, block, oldSize, userFlags);
 
@@ -259,14 +263,16 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
         // The block was resized sucessfully and it doesn't need moving
         assert(block == newBlock);  // Sanity
 
+#if defined DEBUG_MEMORY
         ++header->RID;
+#endif
         header->Size = newUserSize;
 
         p = (void *) (header + 1);
     }
 
     if (oldSize < newSize) {
-        if (initToZero) {
+        if (userFlags & DO_INIT_0) {
             fill_memory((char *) p + oldUserSize, 0, newSize - oldSize);
         }
 #if defined DEBUG_MEMORY
@@ -297,7 +303,9 @@ void allocator::free(void *ptr, u64 userFlags) {
     auto *header = (allocation_header *) ptr - 1;
     verify_header(header);
 
+#if defined DEBUG_MEMORY
     auto id = header->ID;
+#endif
 
     s64 extra = header->Alignment + sizeof(allocation_header) + (sizeof(allocation_header) % header->Alignment);
     s64 size = header->Size + extra;
@@ -339,6 +347,14 @@ void *operator new[](size_t size, allocator alloc, u64 userFlags) noexcept {
     return operator new(size, alloc, userFlags);
 }
 
+void *operator new(size_t size, alignment align, u64 userFlags) noexcept {
+    return Context.Alloc.allocate_aligned(size, align, userFlags);
+}
+
+void *operator new[](size_t size, alignment align, u64 userFlags) noexcept {
+    return operator new(size, align, userFlags);
+}
+
 void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags) noexcept {
     assert(alloc);
     return alloc.allocate_aligned(size, align, userFlags);
@@ -353,6 +369,9 @@ void operator delete[](void *ptr) noexcept { allocator::free(ptr); }
 
 void operator delete(void *ptr, allocator alloc, u64 userFlags) noexcept { allocator::free(ptr); }
 void operator delete[](void *ptr, allocator alloc, u64 userFlags) noexcept { allocator::free(ptr); }
+
+void operator delete(void *ptr, alignment align, u64 userFlags) noexcept { allocator::free(ptr); }
+void operator delete[](void *ptr, alignment align, u64 userFlags) noexcept { allocator::free(ptr); }
 
 void operator delete(void *ptr, alignment align, allocator alloc, u64 userFlags) noexcept { allocator::free(ptr); }
 void operator delete[](void *ptr, alignment align, allocator alloc, u64 userFlags) noexcept { allocator::free(ptr); }

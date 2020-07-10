@@ -17,7 +17,7 @@ struct parse_context {
 
     error_handler_t ErrorHandlerFunc = default_error_handler;
 
-    parse_context(string fmtString, error_handler_t errorHandlerFunc)
+    parse_context(const string &fmtString, error_handler_t errorHandlerFunc)
         : FmtString(fmtString), ErrorHandlerFunc(errorHandlerFunc) {
         It = FmtString.Data;
         End = FmtString.Data + fmtString.ByteLength;
@@ -46,7 +46,7 @@ struct parse_context {
     bool parse_text_style(text_style *textStyle);
 
     // @TODO: Have a way to specify position to be more accurate in the error message.
-    void on_error(string message) const {
+    void on_error(const string &message) const {
         if (ErrorHandlerFunc) ErrorHandlerFunc(message, {FmtString, (s64)(It - FmtString.Data)});
     }
 

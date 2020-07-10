@@ -32,7 +32,7 @@ struct format_context : io::writer {
     // null if no specs were parsed
     dynamic_format_specs *Specs = null;
 
-    format_context(io::writer *out, string fmtString, args args, error_handler_t errorHandlerFunc)
+    format_context(io::writer *out, const string &fmtString, args args, error_handler_t errorHandlerFunc)
         : writer(format_context_write, format_context_flush),
           Out(out),
           Args(args),
@@ -42,7 +42,7 @@ struct format_context : io::writer {
     void write_no_specs(array_view<char> data) { Out->write(data); }
     void write_no_specs(const char *data) { Out->write(data, c_string_length(data)); }
     void write_no_specs(const char *data, s64 count) { Out->write(data, count); }
-    void write_no_specs(string str) { Out->write(str); }
+    void write_no_specs(const string &str) { Out->write(str); }
     void write_no_specs(char32_t cp) { Out->write(cp); }
 
     template <typename T>
@@ -102,8 +102,8 @@ struct format_context : io::writer {
     // We checks for specs here, so the non-spec version just calls this one...
     void write(const void *value);
 
-    debug_struct_helper debug_struct(string name) { return debug_struct_helper(this, name); }
-    debug_tuple_helper debug_tuple(string name) { return debug_tuple_helper(this, name); }
+    debug_struct_helper debug_struct(const string &name) { return debug_struct_helper(this, name); }
+    debug_tuple_helper debug_tuple(const string &name) { return debug_tuple_helper(this, name); }
     debug_list_helper debug_list() { return debug_list_helper(this); }
 
     // Returns an argument from an arg_ref and reports an error if it doesn't exist
@@ -113,7 +113,7 @@ struct format_context : io::writer {
     // Called by _parse_format_string_ in fmt.cpp
     bool handle_dynamic_specs();
 
-    void on_error(string message) { Parse.on_error(message); }
+    void on_error(const string &message) { Parse.on_error(message); }
 
    private:
     // Writes an integer with given formatting specs
@@ -138,7 +138,7 @@ struct format_context_visitor {
     void operator()(bool value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(f64 value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(array_view<char> value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
-    void operator()(string value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
+    void operator()(const string &value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const void *value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
 
     void operator()(unused) { F->on_error("Internal error while formatting"); }

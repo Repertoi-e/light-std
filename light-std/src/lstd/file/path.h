@@ -30,7 +30,7 @@ struct path {
     string UnifiedPath;
 
     path() = default;
-    path(string path) : UnifiedPath(path) { unify(); }
+    path(const string &path) : UnifiedPath(path) { unify(); }
 
     // Returns the the relative path to get from this path to _other_.
     // e.g.
@@ -95,13 +95,13 @@ struct path {
     }
 
     void combine_with(path other) { combine_with(other.UnifiedPath); }
-    void combine_with(string str);
+    void combine_with(const string &str);
 
     bool operator==(path other) const { return UnifiedPath == other.UnifiedPath; }
     bool operator!=(path other) const { return UnifiedPath != other.UnifiedPath; }
 
-    bool operator==(string other) const { return UnifiedPath == other; }
-    bool operator!=(string other) const { return UnifiedPath != other; }
+    bool operator==(const string &other) const { return UnifiedPath == other; }
+    bool operator!=(const string &other) const { return UnifiedPath != other; }
 
     // Remove any occurences of ".." (that aren't the first one)
     // e.g.  ../data/my_data/../my_other_data
@@ -115,8 +115,8 @@ struct path {
 };
 }  // namespace file
 
-inline bool operator==(string one, file::path other) { return one == other.UnifiedPath; }
-inline bool operator!=(string one, file::path other) { return one != other.UnifiedPath; }
+inline bool operator==(const string &one, file::path other) { return one == other.UnifiedPath; }
+inline bool operator!=(const string &one, file::path other) { return one != other.UnifiedPath; }
 
 file::path *clone(file::path *dest, file::path src);
 file::path *move(file::path *dest, file::path *src);

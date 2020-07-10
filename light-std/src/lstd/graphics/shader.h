@@ -58,10 +58,10 @@ struct shader : public asset, non_copyable, non_movable {
     array<uniform_buffer> UniformBuffers;
 
     shader() = default;
-    ~shader() { release(); }
+    // ~shader() { release(); }
 
-    void init(graphics *g, file::handle fileHandle);
-    void init(graphics *g, string source);
+    void init(graphics *g, const file::handle &fileHandle);
+    void init(graphics *g, const string &source);
 
     void bind();
     void unbind();

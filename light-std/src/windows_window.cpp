@@ -85,12 +85,13 @@ void win32_window_init() {
     });
 }
 
-void win32_destroy_windows() {
+void win32_window_uninit() {
     auto *win = WindowsList;
     while (win) {
         win->release();
         win = win->Next;
     }
+    g_MonitorEvent.release();
 }
 
 static DWORD get_window_style(window *win) {
@@ -166,7 +167,7 @@ static vec2<s32> get_full_window_size(DWORD style, DWORD exStyle, s32 contentWid
     return {rect.right - rect.left, rect.bottom - rect.top};
 }
 
-window *window::init(string title, s32 x, s32 y, s32 width, s32 height, u32 flags) {
+window *window::init(const string &title, s32 x, s32 y, s32 width, s32 height, u32 flags) {
     DisplayMode.Width = width;
     DisplayMode.Height = height;
     DisplayMode.RedBits = DisplayMode.GreenBits = DisplayMode.BlueBits = 8;
@@ -411,22 +412,20 @@ void window::release() {
 string window::get_title() {
     constexpr s64 tempLength = 30;
 
-    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
-        auto *titleUtf16 = new wchar_t[tempLength];
-        s32 length = GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
-        if (length >= tempLength - 1) {
-            titleUtf16 = new wchar_t[length + 1];
-            GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
-        }
-
-        auto result = string(length * 2);  // @Bug length * 2 is not enough
-        utf16_to_utf8(titleUtf16, const_cast<char *>(result.Data), &result.ByteLength);
-        result.Length = utf8_length(result.Data, result.ByteLength);
-        return result;
+    auto *titleUtf16 = new wchar_t[tempLength];
+    s32 length = GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
+    if (length >= tempLength - 1) {
+        titleUtf16 = new wchar_t[length + 1];
+        GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
     }
+
+    auto result = string(length * 2);  // @Bug length * 2 is not enough
+    utf16_to_utf8(titleUtf16, const_cast<char *>(result.Data), &result.ByteLength);
+    result.Length = utf8_length(result.Data, result.ByteLength);
+    return result;
 }
 
-void window::set_title(string title) {
+void window::set_title(const string &title) {
     auto *titleUtf16 = new (Context.TemporaryAlloc) wchar_t[title.Length + 1];  // @Bug title.Length is not enough
     utf8_to_utf16(title.Data, title.Length, titleUtf16);
 

@@ -28,9 +28,10 @@ struct handle {
 
     // The constructor clones the path, so handles don't require path objects to be kept valid
     handle(path path);
-    handle(string str) : handle(path(str)) {}
-    ~handle() {
-        if (Utf16Path && decode_owner<handle>(Utf16Path) == this) delete Utf16Path;
+    handle(const string &str) : handle(path(str)) {}
+
+    void release() {
+        if (Utf16Path) delete Utf16Path;
     }
 
     // is_file() doesn't always equal !is_directory()
@@ -68,7 +69,7 @@ struct handle {
     bool move(handle dest, bool overwrite = true) const;
 
     // Renames file/directory
-    bool rename(string newName) const;
+    bool rename(const string &newName) const;
 
     // A hard link is a way to represent a single file by more than one path.
     // Hard links continue to work fine if you delete the source file since they use reference counting.
@@ -107,15 +108,14 @@ struct handle {
         traverse_recursively_impl(Path, Path, func);
     }
 
-    // Read entire file to _out_.
-    // Returns true on success.
+    // Reads entire file. Caller is responsible for freeing the string.
     // (no async variant at the moment)
-    bool read_entire_file(string *out) const;
+    pair<bool, string> read_entire_file() const;
 
     // Write the data memory points to to a file.
     // Returns true on success.
     // (no async variant at the moment)
-    bool write_to_file(string contents, write_mode policy = write_mode::Overwrite_Entire) const;
+    bool write_to_file(const string &contents, write_mode policy = write_mode::Overwrite_Entire) const;
 
     //
     // Iterator:

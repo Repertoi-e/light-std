@@ -184,7 +184,7 @@ enum : u32 {
 };
 
 // Returns 0 on error
-inline u32 key_code_from_name(string name);
+inline u32 key_code_from_name(const string &name);
 inline string key_name_from_code(u32 code);
 
 namespace internal {

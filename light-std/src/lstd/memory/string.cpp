@@ -4,12 +4,12 @@
 
 LSTD_BEGIN_NAMESPACE
 
-string::code_point &string::code_point::operator=(char32_t other) {
+string::code_point_ref &string::code_point_ref::operator=(char32_t other) {
     Parent->set(Index, other);
     return *this;
 }
 
-string::code_point::operator char32_t() const { return ((const string *) Parent)->get(Index); }
+string::code_point_ref::operator char32_t() const { return ((const string *) Parent)->get(Index); }
 
 string::string(char32_t codePoint, s64 repeat) : string(get_size_of_cp(codePoint) * repeat) {
     s64 cpSize = get_size_of_cp(codePoint);
@@ -45,21 +45,20 @@ void string::reserve(s64 target) {
 
     target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
-    if (is_owner()) {
+    if (Reserved) {
         Data = (const char *) allocator::reallocate(const_cast<char *>(Data), target);
     } else {
         auto *oldData = Data;
-        Data = (const char *) Context.Alloc.allocate(target);
-        encode_owner(Data, this);
+        Data = new char[target];
+        // We removed the ownership system.
+        // encode_owner(Data, this);
         if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
     }
     Reserved = target;
 }
 
 void string::release() {
-    if (is_owner()) {
-        delete Data;
-    }
+    if (Reserved) delete Data;
     Data = null;
     Length = ByteLength = Reserved = 0;
 }
@@ -102,13 +101,15 @@ string *string::insert(s64 index, char32_t codePoint) {
     return this;
 }
 
-string *string::insert(s64 index, string str) { return insert_pointer_and_size(index, str.Data, str.ByteLength); }
+string *string::insert(s64 index, const string &str) {
+    return insert_pointer_and_size(index, str.Data, str.ByteLength);
+}
 
 string *string::insert_pointer_and_size(s64 index, const char *str, s64 size) {
+    reserve(size);
+
     // assert(str);
     if (!str) return this;
-
-    reserve(size);
     if (size == 0) return this;
 
     auto *target = get_cp_at_index(Data, Length, index, true);
@@ -124,8 +125,7 @@ string *string::insert_pointer_and_size(s64 index, const char *str, s64 size) {
 }
 
 string *string::remove(s64 index) {
-    // If this is a view, we don't want to modify the original string!
-    if (!is_owner()) reserve(0);
+    if (!Reserved) reserve(0);
 
     auto *target = get_cp_at_index(Data, Length, index);
 
@@ -141,8 +141,7 @@ string *string::remove(s64 index) {
 }
 
 string *string::remove(s64 begin, s64 end) {
-    // If this is a view, we don't want to modify the original string!
-    if (!is_owner()) reserve(0);
+    if (!Reserved) reserve(0);
 
     auto *targetBegin = get_cp_at_index(Data, Length, begin);
     auto *targetEnd = get_cp_at_index(Data, Length, end, true);
@@ -189,7 +188,7 @@ string *string::remove_all(char32_t cp) {
     return this;
 }
 
-string *string::remove_all(string str) {
+string *string::remove_all(const string &str) {
     assert(str.Length);
 
     if (Length == 0) return this;
@@ -218,7 +217,7 @@ string *string::replace_all(char32_t oldCp, char32_t newCp) {
     return this;
 }
 
-string *string::replace_all(string oldStr, string newStr) {
+string *string::replace_all(const string &oldStr, const string &newStr) {
     assert(oldStr.Length != 0);
 
     if (Length == 0) return this;
@@ -238,35 +237,36 @@ string *string::replace_all(string oldStr, string newStr) {
     return this;
 }
 
-string *string::replace_all(char32_t oldCp, string newStr) {
+string *string::replace_all(char32_t oldCp, const string &newStr) {
     char encoded[4];
     encode_cp(encoded, oldCp);
     return replace_all(string(encoded, get_size_of_cp(encoded)), newStr);
 }
 
-string *string::replace_all(string oldStr, char32_t newCp) {
+string *string::replace_all(const string &oldStr, char32_t newCp) {
     char encoded[4];
     encode_cp(encoded, newCp);
     return replace_all(oldStr, string(encoded, get_size_of_cp(encoded)));
 }
 
-string *clone(string *dest, string src) {
+string *clone(string *dest, const string &src) {
     dest->release();
     *dest = {};
     dest->append(src);
     return dest;
 }
 
-string *move(string *dest, string *src) {
-    dest->release();
-    *dest = *src;
-
-    if (!src->is_owner()) return dest;
-
-    // Transfer ownership
-    encode_owner(src->Data, dest);
-    encode_owner(dest->Data, dest);
-    return dest;
-}
+// Obsolete.
+// string *move(string *dest, string *src) {
+//     dest->release();
+//     *dest = *src;
+//
+//     if (!src->is_owner()) return dest;
+//
+//     // Transfer ownership
+//     encode_owner(src->Data, dest);
+//     encode_owner(dest->Data, dest);
+//     return dest;
+// }
 
 LSTD_END_NAMESPACE

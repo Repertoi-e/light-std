@@ -20,7 +20,7 @@ struct string_builder {
     s64 IndirectionCount = 0;
 
     buffer BaseBuffer;
-    buffer *CurrentBuffer = &BaseBuffer;
+    buffer *CurrentBuffer = null;  // null means BaseBuffer. We don't point directly to BaseBuffer because if we copy this object by value then the copy has the base buffer of the original buffer.
 
     // The allocator used for allocating new buffers past the first one (which is stack allocated).
     // This value is null until this object allocates memory (in which case it sets it to the Context's allocator)
@@ -28,7 +28,7 @@ struct string_builder {
     allocator Alloc;
 
     string_builder() = default;
-    ~string_builder() { release(); }
+    // ~string_builder() { release(); }
 
     // Free any memory allocated by this object and reset cursor
     void release();
@@ -40,7 +40,7 @@ struct string_builder {
     void append(char32_t codePoint);
 
     // Append a string to the builder
-    void append(string str);
+    void append(const string &str);
 
     // Append _size_ bytes from _data_ to the builder
     void append_pointer_and_size(const char *data, s64 size);
@@ -55,11 +55,13 @@ struct string_builder {
         }
     }
 
-    // Merges all buffers and appends to _out_.
-    void combine(string *out) const;
+    buffer *get_current_buffer();
+
+    // Merges all buffers in one string. The caller is responsible for freeing.
+    string combine() const;
 };
 
 string_builder *clone(string_builder *dest, const string_builder &src);
-string_builder *move(string_builder *dest, string_builder *src);
+// string_builder *move(string_builder *dest, string_builder *src);
 
 LSTD_END_NAMESPACE

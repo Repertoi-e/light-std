@@ -68,8 +68,10 @@ static LONG exception_filter(LPEXCEPTION_POINTERS e) {
     }
 
     auto *desc = CodeDescs.find(exceptionCode);
-    string message;
-    fmt::sprint(&message, "{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
+    
+    string message = fmt::sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
+    defer(message.release());
+
     Context.UnexpectedExceptionHandler(message, callStack);
 
     return EXCEPTION_EXECUTE_HANDLER;

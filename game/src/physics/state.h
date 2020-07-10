@@ -75,7 +75,7 @@ struct game_state {
 
 void reload_global_state();
 
-void load_python_demo(string fileName);
+void load_python_demo(const string &fileName);
 void refresh_python_demo_files();
 
 void report_python_error(py::error_already_set &e);

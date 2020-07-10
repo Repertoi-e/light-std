@@ -35,7 +35,10 @@ LSTD_BEGIN_NAMESPACE
 // Maximum size of an allocation we will attemp to request
 #define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0  // Around 16384 PiB
 
-enum class allocator_mode { ALLOCATE = 0, RESIZE, FREE, FREE_ALL };
+enum class allocator_mode { ALLOCATE = 0,
+                            RESIZE,
+                            FREE,
+                            FREE_ALL };
 
 // We need strong typing in order to allow user flags in operator new() overloads.
 // Alignment is handled internally, so allocator implementations don't need to pay attention to it.
@@ -44,7 +47,12 @@ enum class alignment : u32;
 // This is a user flag when allocating.
 // When specified, the allocated memory is initialized to 0.
 // This is handled internally, so allocator implementations don't need to pay attention to it.
-constexpr u64 DO_INIT_0 = 1ull << 31;
+constexpr u64 DO_INIT_0 = 1ull << 63;
+
+// This is a user flag when allocating.
+// Allocations marked explicitly as leaks don't get reported when the program terminates and Context.CheckForLeaksAtTermination is true.
+// This is handled internally, so allocator implementations don't need to pay attention to it.
+constexpr u64 LEAK = 1ull << 62;
 
 // This specifies what the signature of each allocation function should look like.
 //
@@ -104,7 +112,6 @@ inline constexpr u8 CLEAN_LAND_FILL = 0xCD;
 struct allocation_header {
 #if defined DEBUG_MEMORY
     allocation_header *DEBUG_Next, *DEBUG_Previous;
-#endif
 
     // Useful for debugging (better than file and line, in my opinion, because you can set a breakpoint with the ID
     // in general_allocate()). Every allocation has an unique ID equal to the ID of the previous allocation + 1.
@@ -118,6 +125,7 @@ struct allocation_header {
     // allocation_mode::RESIZE). If not, we allocate a new block and transfer all the information to it there. In both
     // cases the ID above stays the same and this local ID is incremented. This starts at 0.
     s64 RID;
+#endif
 
     // The allocator used when allocating the memory
     allocator_func_t Function;
@@ -130,8 +138,8 @@ struct allocation_header {
                   // this with functions from "owner_pointers.h".
 
 #if defined DEBUG_MEMORY
-    // The pointer allocated (this is used to verify if the header exists at all).
-    // I mean... I guess it's not perfectly reproducible but good enough to catch bugs in dev...
+    // This is another guard to check that the header is valid.
+    // This points to (allocation_header *) header + 1 (the pointer we return after the allocation).
     void *DEBUG_Pointer;
 #endif
 
@@ -148,9 +156,12 @@ struct allocation_header {
     u16 Alignment;         // We allow a maximum of 65536 bit (8192 byte) alignment
     u16 AlignmentPadding;  // Offset from the block that needs to be there in order for the result to be aligned
 
-    void *UserData;
-
 #if defined DEBUG_MEMORY
+    // When allocating we can mark the next allocation as a leak.
+    // That means that it's irrelevant if we don't free it before the end of the program (since the OS claims back the memory anyway).
+    // When the Context has CheckForLeaksAtTermination set to true we log a list of unfreed allocations. Headers with this marked get skipped.
+    bool MarkedAsLeak;
+
     // There may be padding after this (because we have modified this struct before but forgot)
     // but it's ok, we just need at least 4 bytes free. We always set the last 4 bytes of the header.
     char DEBUG_NoMansLand[NO_MANS_LAND_SIZE];
@@ -255,7 +266,7 @@ struct allocator {
     static void verify_header(allocation_header *header);
 
    private:
-    static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, bool initToZero);
+    static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, u64 flags);
 
     // The main reason for having a combined function is to help debugging because the source of an allocation
     // can be one of the two functions (allocate() and allocate_aligned() above)
@@ -317,6 +328,9 @@ void *operator new[](size_t size);
 void *operator new(size_t size, allocator alloc, u64 userFlags = 0) noexcept;
 void *operator new[](size_t size, allocator alloc, u64 userFlags = 0) noexcept;
 
+void *operator new(size_t size, alignment align, u64 userFlags = 0) noexcept;
+void *operator new[](size_t size, alignment align, u64 userFlags = 0) noexcept;
+
 void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags = 0) noexcept;
 void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlags = 0) noexcept;
 
@@ -325,6 +339,9 @@ void operator delete[](void *ptr) noexcept;
 
 void operator delete(void *ptr, allocator alloc, u64 userFlags) noexcept;
 void operator delete[](void *ptr, allocator alloc, u64 userFlags) noexcept;
+
+void operator delete(void *ptr, alignment align, u64 userFlags) noexcept;
+void operator delete[](void *ptr, alignment align, u64 userFlags) noexcept;
 
 void operator delete(void *ptr, alignment align, allocator alloc, u64 userFlags) noexcept;
 void operator delete[](void *ptr, alignment align, allocator alloc, u64 userFlags) noexcept;
