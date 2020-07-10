@@ -13,7 +13,7 @@ LSTD_BEGIN_NAMESPACE
 //
 // This object may represent a non-owning pointer to to a byte buffer (interpretted as a utf-8 encoded string)
 // or a pointer to an allocated memory block. In the latter case the memory must be released by the user with release().
-// Copying it does a shallow copy since we don't do C++ copy constructors in this library. 
+// Copying it does a shallow copy since we don't do C++ copy constructors in this library.
 // In order to get a deep copy use clone().
 //
 // Contains the pre-calculated amount of bytes used to represent the string, as well as the the length in code points.
@@ -21,8 +21,8 @@ LSTD_BEGIN_NAMESPACE
 // Methods in this object allow negative reversed indexing which begins at
 // the end of the string, so -1 is the last character -2 the one before that, etc. (Python-style)
 //
-// This type extends the API of _string_view_ (which is entirely constexpr)
-// But constexpr methods in _string_view_ aren't constexpr here. So _string_ is runtime only.
+// This type is partially constexpr. Everything except methods that modify the contents of the string can be used compile-time.
+// e.g. substring, searching, trimming etc.
 struct string {
     struct code_point_ref {
         string *Parent;
@@ -46,27 +46,28 @@ struct string {
     // Non-zero if Data was allocated by string and needs to be freed
     s64 Reserved = 0;
 
-    string() = default;
+    constexpr string() = default;
 
     // Create a string from a null terminated c-string.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const char *str) : Data(str), ByteLength(c_string_length(str)) { Length = utf8_length(str, ByteLength); }
+    constexpr string(const char *str) : Data(str), ByteLength(c_string_length(str)) { Length = utf8_length(str, ByteLength); }
 
     // Create a string from a buffer and a length.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
-    string(const char *str, s64 size) : Data(str), ByteLength(size), Length(utf8_length(str, size)) {}
+    constexpr string(const char *str, s64 size) : Data(str), ByteLength(size), Length(utf8_length(str, size)) {}
 
-    string(string_view view) : Data(view.Data), ByteLength(view.ByteLength), Length(view.Length) {}
-
+    // Allocates a buffer (using the Context's allocator by default)
     string(char32_t codePoint, s64 repeat);
+
+    // Allocates a buffer (using the Context's allocator by default)
     string(wchar_t codePoint, s64 repeat) : string((char32_t) codePoint, repeat) {}
 
     // Converts a null-terminated wide char string to utf8.
-    // Allocates a buffer.
+    // Allocates a buffer (using the Context's allocator by default)
     explicit string(const wchar_t *str);
 
     // Converts a null-terminated utf32 string to utf8.
-    // Allocates a buffer.
+    // Allocates a buffer (using the Context's allocator by default)
     explicit string(const char32_t *str);
 
     // Create a string with an initial size reserved.
@@ -92,107 +93,107 @@ struct string {
     // The returned code_point_ref object can be used to modify the code point at that location (by simply =).
     code_point_ref get(s64 index) { return code_point_ref(this, translate_index(index, Length)); }
 
-    char32_t get(s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
+    constexpr char32_t get(s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
 
-    bool begins_with(char32_t cp) const { return get(0) == cp; }
-    bool begins_with(const string &str) const {
+    constexpr bool begins_with(char32_t cp) const { return get(0) == cp; }
+    constexpr bool begins_with(const string &str) const {
         if (str.ByteLength > ByteLength) return false;
         return compare_memory(Data, str.Data, str.ByteLength) == -1;
     }
 
-    bool ends_with(char32_t cp) const { return get(-1) == cp; }
-    bool ends_with(const string &str) const {
+    constexpr bool ends_with(char32_t cp) const { return get(-1) == cp; }
+    constexpr bool ends_with(const string &str) const {
         if (str.ByteLength > ByteLength) return false;
         return compare_memory(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == -1;
     }
 
     // Compares two utf8 encoded strings and returns the index of the code point
     // at which they are different or _-1_ if they are the same.
-    s64 compare(const string &str) const { return compare_utf8(Data, Length, str.Data, str.Length); }
+    constexpr s64 compare(const string &str) const { return compare_utf8(Data, Length, str.Data, str.Length); }
 
     // Compares two utf8 encoded strings ignoring case and returns the index of the code point
     // at which they are different or _-1_ if they are the same.
-    s64 compare_ignore_case(const string &str) const {
+    constexpr s64 compare_ignore_case(const string &str) const {
         return compare_utf8_ignore_case(Data, Length, str.Data, str.Length);
     }
 
     // Compares two utf8 encoded strings and returns -1 if _one_ is before _two_,
     // 0 if one == two and 1 if _two_ is before _one_.
-    s32 compare_lexicographically(const string &str) const {
+    constexpr s32 compare_lexicographically(const string &str) const {
         return compare_utf8_lexicographically(Data, Length, str.Data, str.Length);
     }
 
     // Compares two utf8 encoded strings ignorign case and returns -1 if _one_ is before _two_,
     // 0 if one == two and 1 if _two_ is before _one_.
-    s32 compare_lexicographically_ignore_case(const string &str) const {
+    constexpr s32 compare_lexicographically_ignore_case(const string &str) const {
         return compare_utf8_lexicographically_ignore_case(Data, Length, str.Data, str.Length);
     }
 
     // Find the index of the first occurence of a code point that is after a specified index
-    s64 find(char32_t cp, s64 start = 0) const {
+    constexpr s64 find(char32_t cp, s64 start = 0) const {
         auto *p = find_cp_utf8(Data, Length, cp, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first occurence of a substring that is after a specified index
-    s64 find(const string &str, s64 start = 0) const {
+    constexpr s64 find(const string &str, s64 start = 0) const {
         auto *p = find_substring_utf8(Data, Length, str.Data, str.Length, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of a code point that is before a specified index
-    s64 find_reverse(char32_t cp, s64 start = 0) const {
+    constexpr s64 find_reverse(char32_t cp, s64 start = 0) const {
         auto *p = find_cp_utf8_reverse(Data, Length, cp, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of a substring that is before a specified index
-    s64 find_reverse(const string &str, s64 start = 0) const {
+    constexpr s64 find_reverse(const string &str, s64 start = 0) const {
         auto *p = find_substring_utf8_reverse(Data, Length, str.Data, str.Length, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first occurence of any code point in _terminators_ that is after a specified index
-    s64 find_any_of(const string &terminators, s64 start = 0) const {
+    constexpr s64 find_any_of(const string &terminators, s64 start = 0) const {
         auto *p = find_utf8_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last occurence of any code point in _terminators_
-    s64 find_reverse_any_of(const string &terminators, s64 start = 0) const {
+    constexpr s64 find_reverse_any_of(const string &terminators, s64 start = 0) const {
         auto *p = find_utf8_reverse_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of a code point that is after a specified index
-    s64 find_not(char32_t cp, s64 start = 0) const {
+    constexpr s64 find_not(char32_t cp, s64 start = 0) const {
         auto *p = find_utf8_not(Data, Length, cp, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the last absence of a code point that is before the specified index
-    s64 find_reverse_not(char32_t cp, s64 start = 0) const {
+    constexpr s64 find_reverse_not(char32_t cp, s64 start = 0) const {
         auto *p = find_utf8_reverse_not(Data, Length, cp, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of any code point in _terminators_ that is after a specified index
-    s64 find_not_any_of(const string &terminators, s64 start = 0) const {
+    constexpr s64 find_not_any_of(const string &terminators, s64 start = 0) const {
         auto *p = find_utf8_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
     }
 
     // Find the index of the first absence of any code point in _terminators_ that is after a specified index
-    s64 find_reverse_not_any_of(const string &terminators, s64 start = 0) const {
+    constexpr s64 find_reverse_not_any_of(const string &terminators, s64 start = 0) const {
         auto *p = find_utf8_reverse_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
         if (!p) return -1;
         return utf8_length(Data, p - Data);
@@ -200,31 +201,31 @@ struct string {
 
     // Gets [begin, end) range of characters into a new string object.
     // This function doesn't allocate, but just returns a "view".
-    string substring(s64 begin, s64 end) const {
+    constexpr string substring(s64 begin, s64 end) const {
         auto sub = substring_utf8(Data, Length, begin, end);
         return string(sub.First, sub.Second - sub.First);
     }
 
     // Returns a substring with whitespace removed at the start.
     // This function doesn't allocate, but just returns a "view".
-    string trim_start() const { return substring(find_not_any_of(" \n\r\t\v\f"), Length); }
+    constexpr string trim_start() const { return substring(find_not_any_of(" \n\r\t\v\f"), Length); }
 
     // Returns a substring with whitespace removed at the end.
     // This function doesn't allocate, but just returns a "view".
-    string trim_end() const { return substring(0, find_reverse_not_any_of(" \n\r\t\v\f") + 1); }
+    constexpr string trim_end() const { return substring(0, find_reverse_not_any_of(" \n\r\t\v\f") + 1); }
 
     // Returns a substring with whitespace removed from both sides.
     // This function doesn't allocate, but just returns a "view".
-    string trim() const { return trim_start().trim_end(); }
+    constexpr string trim() const { return trim_start().trim_end(); }
 
     // Returns true if the string contains _cp_ anywhere
-    bool has(char32_t cp) const { return find(cp) != -1; }
+    constexpr bool has(char32_t cp) const { return find(cp) != -1; }
 
     // Returns true if the string contains _str_ anywhere
-    bool has(const string &str) const { return find(str) != -1; }
+    constexpr bool has(const string &str) const { return find(str) != -1; }
 
     // Counts the number of occurences of _cp_
-    s64 count(char32_t cp) const {
+    constexpr s64 count(char32_t cp) const {
         s64 result = 0, index = 0;
         while ((index = find(cp, index)) != -1) {
             ++result, ++index;
@@ -234,7 +235,7 @@ struct string {
     }
 
     // Counts the number of occurences of _str_
-    s64 count(const string &str) const {
+    constexpr s64 count(const string &str) const {
         s64 result = 0, index = 0;
         while ((index = find(str, index)) != -1) {
             ++result, ++index;
@@ -398,35 +399,28 @@ struct string {
     //
     // Operators:
     //
-    operator string_view() const {
-        string_view view;
-        view.Data = Data;
-        view.ByteLength = ByteLength;
-        view.Length = Length;
-        return view;
-    }
 
     // Returns true if the string contains any characters
     explicit operator bool() const { return ByteLength; }
 
     // The non-const version allows to modify the character by simply =.
     code_point_ref operator[](s64 index) { return get(index); }
-    char32_t operator[](s64 index) const { return get(index); }
+    constexpr char32_t operator[](s64 index) const { return get(index); }
 
-    bool operator==(const string &other) const { return compare(other) == -1; }
-    bool operator!=(const string &other) const { return !(*this == other); }
-    bool operator<(const string &other) const { return compare_lexicographically(other) < 0; }
-    bool operator>(const string &other) const { return compare_lexicographically(other) > 0; }
-    bool operator<=(const string &other) const { return !(*this > other); }
-    bool operator>=(const string &other) const { return !(*this < other); }
+    constexpr bool operator==(const string &other) const { return compare(other) == -1; }
+    constexpr bool operator!=(const string &other) const { return !(*this == other); }
+    constexpr bool operator<(const string &other) const { return compare_lexicographically(other) < 0; }
+    constexpr bool operator>(const string &other) const { return compare_lexicographically(other) > 0; }
+    constexpr bool operator<=(const string &other) const { return !(*this > other); }
+    constexpr bool operator>=(const string &other) const { return !(*this < other); }
 };
 
-inline bool operator==(const char *one, const string &other) { return other.compare_lexicographically(one) == 0; }
-inline bool operator!=(const char *one, const string &other) { return !(one == other); }
-inline bool operator<(const char *one, const string &other) { return other.compare_lexicographically(one) > 0; }
-inline bool operator>(const char *one, const string &other) { return other.compare_lexicographically(one) < 0; }
-inline bool operator<=(const char *one, const string &other) { return !(one > other); }
-inline bool operator>=(const char *one, const string &other) { return !(one < other); }
+constexpr bool operator==(const char *one, const string &other) { return other.compare_lexicographically(one) == 0; }
+constexpr bool operator!=(const char *one, const string &other) { return !(one == other); }
+constexpr bool operator<(const char *one, const string &other) { return other.compare_lexicographically(one) > 0; }
+constexpr bool operator>(const char *one, const string &other) { return other.compare_lexicographically(one) < 0; }
+constexpr bool operator<=(const char *one, const string &other) { return !(one > other); }
+constexpr bool operator>=(const char *one, const string &other) { return !(one < other); }
 
 string *clone(string *dest, const string &src);
 

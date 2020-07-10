@@ -14,9 +14,9 @@
 //      /home/.../lstd-tests/src/tests/string.cpp ---> tests/string.cpp
 //      /home/.../lstd-tests/string.cpp           ---> string.cpp
 //
-constexpr string_view get_short_file_name(string_view str) {
+constexpr string get_short_file_name(const string &str) {
     char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATOR, '\0'};
-    string_view src = srcData;
+    string src = srcData;
 
     s64 findResult = str.find_reverse(src);
     if (findResult == -1) {
@@ -29,7 +29,7 @@ constexpr string_view get_short_file_name(string_view str) {
         findResult += src.Length;
     }
 
-    string_view result = str;
+    string result = str;
     return result.substring(findResult, result.Length);
 }
 
@@ -81,13 +81,13 @@ struct test {
     test_func Function = null;
 };
 
-inline table<string_view, array<test>> g_TestTable;
+inline table<string, array<test>> g_TestTable;
 
 #define _TEST(name)                                                     \
     struct _MACRO_CONCAT(test_, __LINE__)##_##name {                    \
         _MACRO_CONCAT(test_, __LINE__)                                  \
         ##_##name() {                                                   \
-            string_view shortFile = get_short_file_name(__FILE__);      \
+            string shortFile = get_short_file_name(__FILE__);           \
             g_TestTable[shortFile]->append({#name, &run});              \
         }                                                               \
         static void run();                                              \

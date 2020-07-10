@@ -106,7 +106,7 @@ struct value {
         u64 U64;
         f64 F64;
         const void *Pointer;
-        string_view String;
+        string String;
         custom Custom;
         const internal::named_arg_base *NamedArg;
     };
@@ -120,7 +120,6 @@ struct value {
     value(const void *value) : Pointer(value) {}
     value(const char *value) : String(value) {}
     value(const string &value) : String(value) {}
-    value(string_view value) : String(value) {}
     value(const internal::named_arg_base &value) : NamedArg(&value) {}
 
     template <typename T>

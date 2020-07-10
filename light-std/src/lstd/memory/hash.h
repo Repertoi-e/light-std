@@ -64,12 +64,6 @@ TRIVIAL_HASH(bool);
 #undef TRIVIAL_HASH
 
 // Hash for strings
-constexpr u64 get_hash(string_view value) {
-    hasher h(0);
-    h.add(value.Data, value.ByteLength);
-    return h.hash();
-}
-
 inline u64 get_hash(const string &value) {
     u64 hash = 5381;
     For(value) hash = ((hash << 5) + hash) + it;

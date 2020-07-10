@@ -108,7 +108,7 @@
 //       's' - Outputs it as an utf-8 encoded string.
 //       '' (None) - the same as 's'
 //
-//      Strings (string, string_view, etc.):
+//      Strings:
 //       's' - Outputs it as an utf-8 encoded string.
 //       '' (None) - the same as 's'
 //

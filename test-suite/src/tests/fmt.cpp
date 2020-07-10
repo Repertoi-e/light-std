@@ -74,8 +74,8 @@ TEST(write_f64) {
 TEST(write_code_point) { CHECK_WRITE("X", "{:c}", 'X'); }
 
 template <typename T>
-void check_unknown_types(T value, string_view types) {
-    string_view special = ".0123456789}";
+void check_unknown_types(T value, const string &types) {
+    string special = ".0123456789}";
 
     For(range(1, CHAR_MAX)) {
         if (special.has((char32_t) it) || types.has((char32_t) it)) continue;

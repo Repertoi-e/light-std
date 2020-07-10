@@ -118,26 +118,28 @@ constexpr s64 utf8_length(const char *str, s64 size) {
     return length;
 }
 
-// These functions only work for ascii
+// This function only works for ascii
 constexpr bool is_digit(char32_t x) { return x >= '0' && x <= '9'; }
-// These functions only work for ascii
-constexpr bool is_hex_digit(char32_t x) {
-    return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f') || (x >= 'A' && x <= 'F');
-}
 
-// These functions only work for ascii
+// This function only works for ascii
+constexpr bool is_hex_digit(char32_t x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f') || (x >= 'A' && x <= 'F'); }
+
+// This function only works for ascii
 constexpr bool is_space(char32_t x) { return (x >= 9 && x <= 13) || x == 32; }
-// These functions only work for ascii
+
+// This function only works for ascii
 constexpr bool is_blank(char32_t x) { return x == 9 || x == 32; }
 
-// These functions only work for ascii
+// This function only works for ascii
 constexpr bool is_alpha(char32_t x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
-// These functions only work for ascii
+
+// This function only works for ascii
 constexpr bool is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
 
+// This function only works for ascii
 constexpr bool is_identifier_start(char32_t x) { return is_alpha(x) || x == '_'; }
 
-// These functions only work for ascii
+// This function only works for ascii
 constexpr bool is_print(char32_t x) { return x > 31 && x != 127; }
 
 // Convert code point to uppercase
@@ -425,9 +427,9 @@ constexpr char32_t decode_cp(const char *str) {
 // but -5 maps to length - 5
 // This function is used to support python-like negative indexing.
 //
-// This function checks if the index is in range
+// This function checks if the index is in range.
 //
-// If _toleratePastLast_ is true, pointing to one past the end is accepted
+// If _toleratePastLast_ is true, pointing to one past the end is accepted.
 constexpr s64 translate_index(s64 index, s64 length, bool toleratePastLast = false) {
     s64 checkLength = toleratePastLast ? (length + 1) : length;
 
@@ -441,15 +443,15 @@ constexpr s64 translate_index(s64 index, s64 length, bool toleratePastLast = fal
     return index;
 }
 
-// This returns a pointer to the code point at a specified index in an utf8 string
-// If _toleratePastLast_ is true, pointing to one past the end is accepted
+// This returns a pointer to the code point at a specified index in an utf8 string.
+// If _toleratePastLast_ is true, pointing to one past the end is accepted.
 constexpr const char *get_cp_at_index(const char *str, s64 length, s64 index, bool toleratePastLast = false) {
     For(range(translate_index(index, length, toleratePastLast))) str += get_size_of_cp(str);
     return str;
 }
 
 // Compares two utf8 encoded strings and returns the index of the code point
-// at which they are different or _npos_ if they are the same.
+// at which they are different or -1 if they are the same.
 constexpr s64 compare_utf8(const char *one, s64 length1, const char *two, s64 length2) {
     if (length1 == 0 && length2 == 0) return -1;
     if (length1 == 0 || length2 == 0) return 0;
@@ -468,7 +470,7 @@ constexpr s64 compare_utf8(const char *one, s64 length1, const char *two, s64 le
 }
 
 // Compares two utf8 encoded strings ignoring case and returns the index of the code point
-// at which they are different or _npos_ if they are the same.
+// at which they are different or -1 if they are the same.
 constexpr s64 compare_utf8_ignore_case(const char *one, s64 length1, const char *two, s64 length2) {
     if (length1 == 0 && length2 == 0) return -1;
     if (length1 == 0 || length2 == 0) return 0;
@@ -833,249 +835,5 @@ constexpr void utf32_to_utf8(const char32_t *str, char *out, s64 *outByteLength)
     }
     *outByteLength = byteLength;
 }
-
-// A string object that is entirely constexpr
-struct string_view {
-    const char *Data = null;
-
-    // Length in bytes
-    s64 ByteLength = 0;
-
-    // Length in code points
-    s64 Length = 0;
-
-    constexpr string_view() = default;
-    constexpr string_view(const char *str) : Data(str), ByteLength(c_string_length(str)), Length(0) {
-        Length = utf8_length(str, ByteLength);
-    }
-    constexpr string_view(const char *str, s64 size) : Data(str), ByteLength(size), Length(utf8_length(str, size)) {}
-
-    constexpr char32_t get(s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
-
-    constexpr bool begins_with(char32_t cp) const { return get(0) == cp; }
-    constexpr bool begins_with(string_view str) const {
-        assert(str.ByteLength < ByteLength);
-        return const_compare_memory(Data, str.Data, str.ByteLength) == -1;
-    }
-
-    constexpr bool ends_with(char32_t cp) const { return get(-1) == cp; }
-    constexpr bool ends_with(string_view str) const {
-        assert(str.ByteLength < ByteLength);
-        return const_compare_memory(Data + ByteLength - str.ByteLength, str.Data, str.ByteLength) == -1;
-    }
-
-    // Compares two utf8 encoded strings and returns the index of the code point
-    // at which they are different or _npos_ if they are the same.
-    constexpr s64 compare(string_view str) const { return compare_utf8(Data, Length, str.Data, str.Length); }
-
-    // Compares two utf8 encoded strings ignoring case and returns the index of the code point
-    // at which they are different or _npos_ if they are the same.
-    constexpr s64 compare_ignore_case(string_view str) const {
-        return compare_utf8_ignore_case(Data, Length, str.Data, str.Length);
-    }
-
-    // Compares two utf8 encoded strings and returns -1 if _one_ is before _two_,
-    // 0 if one == two and 1 if _two_ is before _one_.
-    constexpr s32 compare_lexicographically(string_view str) const {
-        return compare_utf8_lexicographically(Data, Length, str.Data, str.Length);
-    }
-
-    // Compares two utf8 encoded strings ignorign case and returns -1 if _one_ is before _two_,
-    // 0 if one == two and 1 if _two_ is before _one_.
-    constexpr s32 compare_lexicographically_ignore_case(string_view str) const {
-        return compare_utf8_lexicographically_ignore_case(Data, Length, str.Data, str.Length);
-    }
-
-    // Find the index of the first occurence of a code point that is after a specified index
-    constexpr s64 find(char32_t cp, s64 start = 0) const {
-        auto *p = find_cp_utf8(Data, Length, cp, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the first occurence of a substring that is after a specified index
-    constexpr s64 find(string_view str, s64 start = 0) const {
-        auto *p = find_substring_utf8(Data, Length, str.Data, str.Length, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the last occurence of a code point that is before a specified index
-    constexpr s64 find_reverse(char32_t cp, s64 start = 0) const {
-        auto *p = find_cp_utf8_reverse(Data, Length, cp, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the last occurence of a substring that is before a specified index
-    constexpr s64 find_reverse(string_view str, s64 start = 0) const {
-        auto *p = find_substring_utf8_reverse(Data, Length, str.Data, str.Length, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the first occurence of any code point in _terminators_ that is after a specified index
-    constexpr s64 find_any_of(string_view terminators, s64 start = 0) const {
-        auto *p = find_utf8_any_of(Data, Length, terminators.Data, terminators.Length, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the last occurence of any code point in _terminators_
-    constexpr s64 find_reverse_any_of(string_view terminators, s64 start = 0) const {
-        auto *p = find_utf8_reverse_any_of(Data, Length, terminators.Data, terminators.Length, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the first absence of a code point that is after a specified index
-    constexpr s64 find_not(char32_t cp, s64 start = 0) const {
-        auto *p = find_utf8_not(Data, Length, cp, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the last absence of a code point that is before the specified index
-    constexpr s64 find_reverse_not(char32_t cp, s64 start = 0) const {
-        auto *p = find_utf8_reverse_not(Data, Length, cp, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the first absence of any code point in _terminators_ that is after a specified index
-    constexpr s64 find_not_any_of(string_view terminators, s64 start = 0) const {
-        auto *p = find_utf8_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Find the index of the first absence of any code point in _terminators_ that is after a specified index
-    constexpr s64 find_reverse_not_any_of(string_view terminators, s64 start = 0) const {
-        auto *p = find_utf8_reverse_not_any_of(Data, Length, terminators.Data, terminators.Length, start);
-        if (!p) return -1;
-        return utf8_length(Data, p - Data);
-    }
-
-    // Gets [begin, end) range of characters into a new string_view object
-    constexpr string_view substring(s64 begin, s64 end) const {
-        auto sub = substring_utf8(Data, Length, begin, end);
-        return string_view(sub.First, sub.Second - sub.First);
-    }
-
-    // Returns a substring with whitespace removed at the start
-    constexpr string_view trim_start() const { return substring(find_not_any_of(" \n\r\t\v\f"), Length); }
-
-    // Returns a substring with whitespace removed at the end
-    constexpr string_view trim_end() const { return substring(0, find_reverse_not_any_of(" \n\r\t\v\f") + 1); }
-
-    // Returns a substring with whitespace removed from both sides
-    constexpr string_view trim() const { return trim_start().trim_end(); }
-
-    // Returns true if the string contains _cp_ anywhere
-    constexpr bool has(char32_t cp) const { return find(cp) != -1; }
-
-    // Returns true if the string contains _str_ anywhere
-    constexpr bool has(string_view str) const { return find(str) != -1; }
-
-    // Counts the number of occurences of _cp_
-    constexpr s64 count(char32_t cp) const {
-        s64 result = 0, index = 0;
-        while ((index = find(cp, index)) != -1) {
-            ++result, ++index;
-            if (index >= Length) break;
-        }
-        return result;
-    }
-
-    // Counts the number of occurences of _str_
-    constexpr s64 count(string_view str) const {
-        s64 result = 0, index = 0;
-        while ((index = find(str, index)) != -1) {
-            ++result, ++index;
-            if (index >= Length) break;
-        }
-        return result;
-    }
-
-    //
-    // Iterator:
-    //
-    struct const_iterator {
-        const string_view *Parent;
-        s64 Index;
-
-        const_iterator() = default;
-        constexpr const_iterator(const string_view *parent, s64 index) : Parent(parent), Index(index) {}
-
-        constexpr const_iterator &operator+=(s64 amount) { return Index += amount, *this; }
-        constexpr const_iterator &operator-=(s64 amount) { return Index -= amount, *this; }
-        constexpr const_iterator &operator++() { return *this += 1; }
-        constexpr const_iterator &operator--() { return *this -= 1; }
-        constexpr const_iterator operator++(s32) {
-            const_iterator temp = *this;
-            return ++(*this), temp;
-        }
-
-        constexpr const_iterator operator--(s32) {
-            const_iterator temp = *this;
-            return --(*this), temp;
-        }
-
-        constexpr s64 operator-(const_iterator other) const {
-            s64 lesser = Index, greater = other.Index;
-            if (lesser > greater) {
-                lesser = other.Index;
-                greater = Index;
-            }
-            s64 difference = greater - lesser;
-            return Index <= other.Index ? difference : -difference;
-        }
-
-        constexpr const_iterator operator+(s64 amount) const { return const_iterator(Parent, Index + amount); }
-        constexpr const_iterator operator-(s64 amount) const { return const_iterator(Parent, Index - amount); }
-
-        friend constexpr const_iterator operator+(s64 amount, const_iterator it) { return it + amount; }
-        friend constexpr const_iterator operator-(s64 amount, const_iterator it) { return it - amount; }
-
-        constexpr bool operator!=(const_iterator other) const { return Index != other.Index; }
-        constexpr bool operator==(const_iterator other) const { return Index == other.Index; }
-        constexpr bool operator>(const_iterator other) const { return Index > other.Index; }
-        constexpr bool operator<(const_iterator other) const { return Index < other.Index; }
-        constexpr bool operator>=(const_iterator other) const { return Index >= other.Index; }
-        constexpr bool operator<=(const_iterator other) const { return Index <= other.Index; }
-
-        constexpr char32_t operator*() const { return Parent->get(Index); }
-
-        constexpr operator const char *() const { return get_cp_at_index(Parent->Data, Parent->Length, Index, true); }
-    };
-
-    constexpr const_iterator begin() const { return const_iterator(this, 0); }
-    constexpr const_iterator end() const { return const_iterator(this, Length); }
-
-    //
-    // Operators:
-    //
-    constexpr char32_t operator[](s64 index) const { return get(index); }
-
-    constexpr bool operator==(string_view other) const { return compare(other) == -1; }
-    constexpr bool operator!=(string_view other) const { return !(*this == other); }
-    constexpr bool operator<(string_view other) const { return compare_lexicographically(other) < 0; }
-    constexpr bool operator>(string_view other) const { return compare_lexicographically(other) > 0; }
-    constexpr bool operator<=(string_view other) const { return !(*this > other); }
-    constexpr bool operator>=(string_view other) const { return !(*this < other); }
-};
-
-constexpr bool operator==(const char *one, string_view other) {
-    return other.compare_lexicographically(string_view(one)) == 0;
-}
-constexpr bool operator!=(const char *one, string_view other) { return !(one == other); }
-constexpr bool operator<(const char *one, string_view other) {
-    return other.compare_lexicographically(string_view(one)) > 0;
-}
-constexpr bool operator>(const char *one, string_view other) {
-    return other.compare_lexicographically(string_view(one)) < 0;
-}
-constexpr bool operator<=(const char *one, string_view other) { return !(one > other); }
-constexpr bool operator>=(const char *one, string_view other) { return !(one < other); }
 
 LSTD_END_NAMESPACE

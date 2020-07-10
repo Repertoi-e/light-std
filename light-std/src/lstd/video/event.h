@@ -22,7 +22,7 @@ enum : u32 {
 };
 
 // Convert a mouse button from it's name to code
-inline u32 mouse_button_code_from_name(string_view name) {
+inline u32 mouse_button_code_from_name(const string &name) {
     if (name == "Left") {
         return Mouse_Button_Left;
     } else if (name == "Right") {
@@ -39,7 +39,7 @@ inline u32 mouse_button_code_from_name(string_view name) {
 }
 
 // Convert a mouse button from it's code to name
-inline string_view mouse_button_name_from_code(u32 code) {
+inline const string &mouse_button_name_from_code(u32 code) {
     if (code == Mouse_Button_Left) {
         return "Left";
     } else if (code == Mouse_Button_Right) {

@@ -41,7 +41,7 @@ struct arg_ref {
     kind Kind = kind::NONE;
     union {
         u32 Index;
-        string_view Name;
+        string Name;
     };
 
     arg_ref() : Index(0) {}
