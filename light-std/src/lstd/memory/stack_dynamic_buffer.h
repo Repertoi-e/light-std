@@ -43,10 +43,10 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
         target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
         if (is_owner()) {
-            Data = (char *) allocator::reallocate(Data, target);
+            Data = reallocate_array(Data, target);
         } else {
             auto *oldData = Data;
-            Data = (char *) Context.Alloc.allocate(target);
+            Data = allocate_array(char, target);
             encode_owner(Data, this);
             if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
         }
@@ -57,7 +57,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     // If this buffer doesn't own the memory it points to, this function does nothing.
     void release() {
         if (is_owner()) {
-            delete Data;
+            free(Data);
         }
         Data = null;
         ByteLength = Reserved = 0;

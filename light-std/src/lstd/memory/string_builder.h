@@ -12,8 +12,6 @@ struct string_builder {
         char Data[BUFFER_SIZE]{};
         s64 Occupied = 0;
         buffer *Next = null;
-
-        string_builder *Owner = null;
     };
 
     // Counts how many buffers have been dynamically allocated.

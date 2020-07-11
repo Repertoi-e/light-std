@@ -22,7 +22,7 @@ void implicit_context::release_temporary_allocator() {
     // Free any left-over overflow pages!
     TemporaryAlloc.free_all();
 
-    delete[] TemporaryAllocData.Base.Storage;
+    free(TemporaryAllocData.Base.Storage);
     Context.TemporaryAllocData = {};
 }
 

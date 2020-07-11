@@ -19,18 +19,15 @@ namespace file {
         return returnOnFail;                                                                                        \
     }
 
-handle::handle(path path) {
-    clone(const_cast<file::path *>(&Path), path);
-
-    // @Bug path.UnifiedPath.Length is not enough (2 wide chars for one char)
-    Utf16Path = (wchar_t *) Context.Alloc.allocate((path.UnifiedPath.Length + 1) * sizeof(wchar_t));
-    encode_owner(Utf16Path, this);
-
-    utf8_to_utf16(path.UnifiedPath.Data, path.UnifiedPath.Length, Utf16Path);
+static wchar_t *utf8_path_to_utf16(const file::path &path) {
+    // @Bug path.Str.Length is not enough (2 wide chars for one char)
+    auto *result = allocate_array(wchar_t, path.Str.Length + 1, Context.TemporaryAlloc);
+    utf8_to_utf16(path.Str.Data, path.Str.Length, result);
+    return result;
 }
 
 bool handle::is_file() const {
-    HANDLE file = CreateFileW(Utf16Path, 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    HANDLE file = CreateFileW(utf8_path_to_utf16(Path), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
     if (file == INVALID_HANDLE_VALUE) {
         return false;
     }
@@ -44,8 +41,7 @@ bool handle::is_file() const {
 }
 
 bool handle::is_directory() const {
-    HANDLE file =
-        CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
+    HANDLE file = CreateFileW(utf8_path_to_utf16(Path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
     if (file == INVALID_HANDLE_VALUE) {
         return false;
     }
@@ -59,14 +55,14 @@ bool handle::is_directory() const {
 }
 
 bool handle::exists() const {
-    HANDLE file = CreateFileW(Utf16Path, 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    HANDLE file = CreateFileW(utf8_path_to_utf16(Path), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
     if (file == INVALID_HANDLE_VALUE) return false;
     CloseHandle(file);
     return true;
 }
 
 bool handle::is_symbolic_link() const {
-    auto attribs = GetFileAttributesW(Utf16Path);
+    auto attribs = GetFileAttributesW(utf8_path_to_utf16(Path));
     if (attribs != INVALID_FILE_ATTRIBUTES) {
         return (attribs & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
     }
@@ -76,9 +72,7 @@ bool handle::is_symbolic_link() const {
 s64 handle::file_size() const {
     if (is_directory()) return 0;
 
-    CREATE_FILE_HANDLE_CHECKED(
-        file, CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null),
-        0);
+    CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_path_to_utf16(Path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null), 0);
     defer(CloseHandle(file));
 
     LARGE_INTEGER size = {0};
@@ -86,11 +80,8 @@ s64 handle::file_size() const {
     return size.QuadPart;
 }
 
-#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                 \
-    CREATE_FILE_HANDLE_CHECKED(x,                                                                             \
-                               CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, \
-                                           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL),                       \
-                               fail);                                                                         \
+#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                                                                                       \
+    CREATE_FILE_HANDLE_CHECKED(x, CreateFileW(utf8_path_to_utf16(Path), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL), fail); \
     defer(CloseHandle(x));
 
 time_t handle::creation_time() const {
@@ -116,33 +107,35 @@ time_t handle::last_modification_time() const {
 
 bool handle::create_directory() const {
     if (exists()) return false;
-    return CreateDirectoryW(Utf16Path, null);
+    return CreateDirectoryW(utf8_path_to_utf16(Path), null);
 }
 
 bool handle::delete_file() const {
     if (!is_file()) return false;
-    return DeleteFileW(Utf16Path);
+    return DeleteFileW(utf8_path_to_utf16(Path));
 }
 
 bool handle::delete_directory() const {
     if (!is_directory()) return false;
-    return RemoveDirectoryW(Utf16Path);
+    return RemoveDirectoryW(utf8_path_to_utf16(Path));
 }
 
 bool handle::copy(handle dest, bool overwrite) const {
     if (!is_file()) return false;
 
+    auto *utf16 = utf8_path_to_utf16(Path);
+
     if (dest.is_directory()) {
         auto p = dest.Path;
         p.combine_with(Path.file_name());
 
-        // @Bug p.UnifiedPath.Length is not enough (2 wide chars for one char)
-        auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
-        utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
+        // @Bug p.Str.Length is not enough (2 wide chars for one char)
+        auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.TemporaryAlloc);
+        utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
-        return CopyFileW(Utf16Path, d, !overwrite);
+        return CopyFileW(utf16, d, !overwrite);
     }
-    return CopyFileW(Utf16Path, dest.Utf16Path, !overwrite);
+    return CopyFileW(utf16, utf8_path_to_utf16(dest.Path), !overwrite);
 }
 
 bool handle::move(handle dest, bool overwrite) const {
@@ -152,16 +145,16 @@ bool handle::move(handle dest, bool overwrite) const {
     if (dest.is_directory()) {
         p.combine_with(Path.file_name());
 
-        // @Bug p.UnifiedPath.Length is not enough (2 wide chars for one char)
-        auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
-        utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
+        // @Bug p.Str.Length is not enough (2 wide chars for one char)
+        auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.TemporaryAlloc);
+        utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
-        if (MoveFileExW(Utf16Path, d, MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
+        if (MoveFileExW(utf8_path_to_utf16(Path), d, MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
             ::move(const_cast<path *>(&Path), &p);
             return true;
         }
     } else {
-        if (MoveFileExW(Utf16Path, dest.Utf16Path,
+        if (MoveFileExW(utf8_path_to_utf16(Path), utf8_path_to_utf16(dest.Path),
                         MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
             ::clone(const_cast<path *>(&Path), p);
             return true;
@@ -176,11 +169,11 @@ bool handle::rename(const string &newName) const {
     auto p = path(Path.directory());
     p.combine_with(newName);
 
-    // @Bug p.UnifiedPath.Length is not enough (2 wide chars for one char)
-    auto *d = new (Context.TemporaryAlloc) wchar_t[p.UnifiedPath.Length + 1];
-    utf8_to_utf16(p.UnifiedPath.Data, p.UnifiedPath.Length, d);
+    // @Bug p.Str.Length is not enough (2 wide chars for one char)
+    auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.TemporaryAlloc);
+    utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
-    if (MoveFileW(Utf16Path, d)) {
+    if (MoveFileW(utf8_path_to_utf16(Path), d)) {
         ::move(const_cast<path *>(&Path), &p);
         return true;
     }
@@ -191,24 +184,19 @@ bool handle::rename(const string &newName) const {
 bool handle::create_hard_link(handle dest) const {
     if (!is_directory()) return false;
     if (!dest.is_directory()) return false;
-    return CreateHardLinkW(dest.Utf16Path, Utf16Path, null);
+    return CreateHardLinkW(utf8_path_to_utf16(dest.Path), utf8_path_to_utf16(Path), null);
 }
 
 bool handle::create_symbolic_link(handle dest) const {
     if (!exists()) return false;
     if (!dest.exists()) return false;
-    return CreateSymbolicLinkW(dest.Utf16Path, Utf16Path, dest.is_directory() ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0);
+    return CreateSymbolicLinkW(utf8_path_to_utf16(dest.Path), utf8_path_to_utf16(Path), dest.is_directory() ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0);
 }
 
 pair<bool, string> handle::read_entire_file() const {
-    // CREATE_FILE_HANDLE_CHECKED
-    HANDLE file = CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
-    if (file == INVALID_HANDLE_VALUE) {
-        string extendedCallSite = fmt::sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", "CreateFileW(Utf16Path, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null)", Path);
-        defer(extendedCallSite.release());
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);
-        return {false, ""};
-    }
+    pair<bool, string> failReturn = {false, ""};  // Hack, because specifying directly in the macro below doesn't work
+
+    CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_path_to_utf16(Path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), failReturn);
     defer(CloseHandle(file));
 
     LARGE_INTEGER size = {0};
@@ -227,8 +215,7 @@ pair<bool, string> handle::read_entire_file() const {
 }
 
 bool handle::write_to_file(const string &contents, write_mode mode) const {
-    CREATE_FILE_HANDLE_CHECKED(
-        file, CreateFileW(Utf16Path, GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
+    CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_path_to_utf16(Path), GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
     defer(CloseHandle(file));
 
     LARGE_INTEGER pointer = {};
@@ -249,10 +236,11 @@ void handle::iterator::read_next_entry() {
             file::path queryPath;
             clone(&queryPath, Path);
             queryPath.combine_with("*");
+            defer(queryPath.release());
 
-            // @Bug queryPath.UnifiedPath.Length is not enough (2 wide chars for one char)
-            auto *query = new (Context.TemporaryAlloc) wchar_t[queryPath.UnifiedPath.Length + 1];
-            utf8_to_utf16(queryPath.UnifiedPath.Data, queryPath.UnifiedPath.Length, query);
+            // @Bug queryPath.Str.Length is not enough (2 wide chars for one char)
+            auto *query = allocate_array(wchar_t, queryPath.Str.Length + 1, Context.TemporaryAlloc);
+            utf8_to_utf16(queryPath.Str.Data, queryPath.Str.Length, query);
 
             CREATE_FILE_HANDLE_CHECKED(file, FindFirstFileW(query, (WIN32_FIND_DATAW *) PlatformFileInfo), ;);
             Handle = (void *) file;
@@ -285,30 +273,37 @@ void handle::iterator::read_next_entry() {
     assert(CurrentFileName != ".." && CurrentFileName != ".");
 }
 
-void handle::traverse_impl(const delegate<void(path)> &func) const {
+void handle::traverse_impl(const delegate<void(const path &)> &func) const {
     for (auto it = begin(); it != end(); ++it) {
-        file::path relativeFileName;
-        clone(&relativeFileName, Path);
+        file::path relativeFileName = Path;
         relativeFileName.combine_with(*it);
+
         func(relativeFileName);
+
+        relativeFileName.release();
     }
 }
 
-void handle::traverse_recursively_impl(path first, path currentDirectory, const delegate<void(path)> &func) const {
+void handle::traverse_recursively_impl(const path &first, const path &currentDirectory, const delegate<void(const path &)> &func) const {
     for (auto it = begin(); it != end(); ++it) {
         file::path relativeFileName;
         clone(&relativeFileName, currentDirectory);
         relativeFileName.combine_with(*it);
+
         func(relativeFileName);
 
         if ((((WIN32_FIND_DATA *) it.PlatformFileInfo)->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
             file::path p;
-            first.get_path_from_here_to(currentDirectory, &p);
+            clone(&p, first.get_path_from_here_to(currentDirectory));
+
             p.combine_with(*it);
             p.combine_with("./");
 
             handle(p).traverse_recursively_impl(first, p, func);
+
+            p.release();
         }
+        relativeFileName.release();
     }
 }
 

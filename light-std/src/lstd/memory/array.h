@@ -31,7 +31,7 @@ struct array {
     // (using the Context's allocator).
     //
     // Can also specify a specific alignment for the elements.
-    void reserve(s64 target, u32 align = 0) {
+    void reserve(s64 target, u32 alignment = 0) {
         if (Count + target < Reserved) return;
         target = max<s64>(ceil_pow_of_2(target + Count + 1), 8);
 
@@ -42,17 +42,14 @@ struct array {
 
         if (wasOwner) {
             auto oldAlignment = ((allocation_header *) oldData - 1)->Alignment;
-            if (align == 0) {
-                align = oldAlignment;
+            if (alignment == 0) {
+                alignment = oldAlignment;
             } else {
-                assert(align == oldAlignment && "Reserving with different alignment. Specify zero to use the old one.");
+                assert(alignment == oldAlignment && "Reserving with different alignment. Specify zero to use the old one.");
             }
         }
 
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // @Speed DO_INIT_0 should be optional.
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        Data = (data_t *) Context.Alloc.allocate_aligned(target * sizeof(data_t), alignment(align), DO_INIT_0);
+        Data = allocate_array_aligned(data_t, target, alignment);
         encode_owner(Data, this);
 
         // @Speed: We can make this faster if the elements don't have an explicit move/clone (but how do we know?)
@@ -66,7 +63,7 @@ struct array {
             ++op, ++p;
         }
 
-        if (wasOwner) delete oldData;
+        if (wasOwner) free(oldData);
 
         Reserved = target;
     }
@@ -74,7 +71,7 @@ struct array {
     // Free any memory allocated by this object and reset count
     void release() {
         reset();
-        if (is_owner()) delete Data;
+        if (is_owner()) free(Data);
         Data = null;
         Count = Reserved = 0;
     }

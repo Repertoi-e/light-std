@@ -1,8 +1,17 @@
 #include "ImGradient.h"
 
+#if COMPILER == MSVC || COMPILER == GCC
+#pragma push_macro("allocate")
+#undef allocate
+#endif
+
 #include <stdint.h>  // @DependencyCleanup
 
 #include <set>  // @DependencyCleanup
+
+#if COMPILER == MSVC || COMPILER == GCC
+#pragma pop_macro("allocate")
+#endif
 
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_internal.h"

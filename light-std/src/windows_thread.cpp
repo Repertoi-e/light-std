@@ -149,7 +149,7 @@ void condition_variable::notify_all() {
 //
 
 // Information to pass to the new thread (what to run).
-struct Thread_Start_Info {
+struct thread_start_info {
     delegate<void(void *)> Function;
     void *UserData = null;
     thread *ThreadPtr = null;
@@ -167,8 +167,8 @@ struct Thread_Start_Info {
 };
 
 u32 __stdcall thread::wrapper_function(void *data) {
-    auto *ti = (Thread_Start_Info *) data;
-    defer(delete ti);
+    auto *ti = (thread_start_info *) data;
+    defer(free(ti));
 
     Context = *ti->ContextPtr;
     Context.TemporaryAllocData = {};
@@ -194,7 +194,7 @@ void thread::start(delegate<void(void *)> function, void *userData) {
     scoped_lock<mutex> _(&DataMutex);
 
     // Passed to the thread wrapper, which will eventually free it
-    auto *ti = new Thread_Start_Info;
+    auto *ti = allocate(thread_start_info);
     clone(&ti->Function, function);
     ti->UserData = userData;
     ti->ThreadPtr = this;
@@ -214,7 +214,7 @@ void thread::start(delegate<void(void *)> function, void *userData) {
 #endif
     if (!Handle || (HANDLE) Handle == INVALID_HANDLE_VALUE) {
         NotAThread = true;
-        delete ti;
+        free(ti);
     }
 }
 

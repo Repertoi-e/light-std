@@ -101,7 +101,7 @@ void allocator::verify_heap() {
 #endif
 }
 
-void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, u64 flags) {
+static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, u64 flags) {
     u32 padding = calculate_padding_for_pointer_with_header(p, align, sizeof(allocation_header));
     u32 alignmentPadding = padding - sizeof(allocation_header);
 
@@ -111,8 +111,8 @@ void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_
     result->DEBUG_Next = null;
     result->DEBUG_Previous = null;
 
-    result->ID = (u32) AllocationCount;
-    atomic_inc_64(&AllocationCount);
+    result->ID = (u32) allocator::AllocationCount;
+    atomic_inc_64(&allocator::AllocationCount);
 
     result->RID = 0;
 #endif
@@ -168,34 +168,38 @@ void *allocator::encode_header(void *p, s64 userSize, u32 align, allocator_func_
     return p;
 }
 
-void *allocator::general_allocate(s64 userSize, u32 align, u64 userFlags) const {
-    if (align == 0) {
+void *allocator::general_allocate(s64 userSize, u32 alignment, u64 userFlags, const char *fileName, s64 fileLine) const {
+    if (alignment == 0) {
         auto contextAlignment = ::Context.AllocAlignment;
         assert(is_pow_of_2(contextAlignment));
-        align = contextAlignment;
+        alignment = contextAlignment;
     }
 
 #if defined DEBUG_MEMORY
     s64 id = AllocationCount;
 
-    if (id == 7) {
+    if (id == 100) {
         s32 k = 42;
     }
 #endif
 
-    align = align < POINTER_SIZE ? POINTER_SIZE : align;
-    assert(is_pow_of_2(align));
+    alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
+    assert(is_pow_of_2(alignment));
 
-    s64 required = userSize + align + sizeof(allocation_header) + (sizeof(allocation_header) % align);
+    s64 required = userSize + alignment + sizeof(allocation_header) + (sizeof(allocation_header) % alignment);
 #if defined DEBUG_MEMORY
     required += NO_MANS_LAND_SIZE;  // This is for the bytes after the requested block
 #endif
 
-    void *block = Function(allocator_mode::ALLOCATE, Context, required, null, 0, userFlags);
-    auto *result = encode_header(block, userSize, align, Function, Context, userFlags);
+    void *block = Function(allocator_mode::ALLOCATE, Context, required, null, 0, &userFlags);
+    auto *result = encode_header(block, userSize, alignment, Function, Context, userFlags);
 
 #if defined DEBUG_MEMORY
     auto *header = (allocation_header *) result - 1;
+
+    header->FileName = fileName;
+    header->FileLine = fileLine;
+
     DEBUG_add_header(header);
 #endif
 
@@ -204,7 +208,7 @@ void *allocator::general_allocate(s64 userSize, u32 align, u64 userFlags) const 
     return result;
 }
 
-void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
+void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags, const char *fileName, s64 fileLine) {
     auto *header = (allocation_header *) ptr - 1;
     verify_header(header);
 
@@ -236,10 +240,10 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
     void *p;
 
     // Try to resize the block, this returns null if the block can't be resized and we need to move it.
-    void *newBlock = func(allocator_mode::RESIZE, context, newSize, block, oldSize, userFlags);
+    void *newBlock = func(allocator_mode::RESIZE, context, newSize, block, oldSize, &userFlags);
     if (!newBlock) {
         // Memory needs to be moved
-        void *newBlock = func(allocator_mode::ALLOCATE, context, newSize, null, 0, userFlags);
+        void *newBlock = func(allocator_mode::ALLOCATE, context, newSize, null, 0, &userFlags);
         auto *newPointer = encode_header(newBlock, newUserSize, header->Alignment, func, context, userFlags);
 
         auto *newHeader = (allocation_header *) newPointer - 1;
@@ -254,9 +258,12 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
         DEBUG_swap_header(header, newHeader);
         fill_memory(block, DEAD_LAND_FILL, oldSize);
 
+        newHeader->FileName = fileName;
+        newHeader->FileLine = fileLine;
+
         newHeader->MarkedAsLeak = header->MarkedAsLeak;
 #endif
-        func(allocator_mode::FREE, context, 0, block, oldSize, userFlags);
+        func(allocator_mode::FREE, context, 0, block, oldSize, &userFlags);
 
         p = (void *) (newHeader + 1);
     } else {
@@ -265,6 +272,9 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
 
 #if defined DEBUG_MEMORY
         ++header->RID;
+
+        header->FileName = fileName;
+        header->FileLine = fileLine;
 #endif
         header->Size = newUserSize;
 
@@ -297,7 +307,7 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags) {
     return p;
 }
 
-void allocator::free(void *ptr, u64 userFlags) {
+void allocator::general_free(void *ptr, u64 userFlags) {
     if (!ptr) return;
 
     auto *header = (allocation_header *) ptr - 1;
@@ -323,55 +333,26 @@ void allocator::free(void *ptr, u64 userFlags) {
     fill_memory(block, DEAD_LAND_FILL, size);
 #endif
 
-    func(allocator_mode::FREE, context, 0, block, size, userFlags);
+    func(allocator_mode::FREE, context, 0, block, size, &userFlags);
 
     verify_heap();
 }
 
 void allocator::free_all(u64 userFlags) const {
-    auto result = Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, userFlags);
+    auto result = Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, &userFlags);
     assert((result != (void *) -1) && "Allocator doesn't support FREE_ALL");
 }
 
 LSTD_END_NAMESPACE
 
-void *operator new(size_t size) { return operator new(size, Context.Alloc, 0); }
-void *operator new[](size_t size) { return operator new(size, Context.Alloc, 0); }
+void *operator new(std::size_t size) { return allocate_impl<char>(size, 0, Malloc); }
+void *operator new[](std::size_t size) { return allocate_impl<char>(size, 0, Malloc); }
 
-void *operator new(size_t size, allocator alloc, u64 userFlags) noexcept {
-    assert(alloc);
-    return alloc.allocate(size, userFlags);
-}
+void *operator new(std::size_t size, std::align_val_t alignment) { return allocate_impl<char>(size, (u32) alignment, Malloc); }
+void *operator new[](std::size_t size, std::align_val_t alignment) { return allocate_impl<char>(size, (u32) alignment, Malloc); }
 
-void *operator new[](size_t size, allocator alloc, u64 userFlags) noexcept {
-    return operator new(size, alloc, userFlags);
-}
+void operator delete(void *ptr) noexcept { allocator::general_free(ptr); }
+void operator delete[](void *ptr) noexcept { allocator::general_free(ptr); }
 
-void *operator new(size_t size, alignment align, u64 userFlags) noexcept {
-    return Context.Alloc.allocate_aligned(size, align, userFlags);
-}
-
-void *operator new[](size_t size, alignment align, u64 userFlags) noexcept {
-    return operator new(size, align, userFlags);
-}
-
-void *operator new(size_t size, alignment align, allocator alloc, u64 userFlags) noexcept {
-    assert(alloc);
-    return alloc.allocate_aligned(size, align, userFlags);
-}
-
-void *operator new[](size_t size, alignment align, allocator alloc, u64 userFlags) noexcept {
-    return operator new(size, align, alloc, userFlags);
-}
-
-void operator delete(void *ptr) noexcept { allocator::free(ptr); }
-void operator delete[](void *ptr) noexcept { allocator::free(ptr); }
-
-void operator delete(void *ptr, allocator alloc, u64 userFlags) noexcept { allocator::free(ptr); }
-void operator delete[](void *ptr, allocator alloc, u64 userFlags) noexcept { allocator::free(ptr); }
-
-void operator delete(void *ptr, alignment align, u64 userFlags) noexcept { allocator::free(ptr); }
-void operator delete[](void *ptr, alignment align, u64 userFlags) noexcept { allocator::free(ptr); }
-
-void operator delete(void *ptr, alignment align, allocator alloc, u64 userFlags) noexcept { allocator::free(ptr); }
-void operator delete[](void *ptr, alignment align, allocator alloc, u64 userFlags) noexcept { allocator::free(ptr); }
+void operator delete(void *ptr, std::align_val_t alignment) noexcept { allocator::general_free(ptr); }
+void operator delete[](void *ptr, std::align_val_t alignment) noexcept { allocator::general_free(ptr); }

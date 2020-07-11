@@ -288,12 +288,12 @@ struct arg_map : non_copyable {
     u32 Size = 0;
 
     arg_map() = default;
-    ~arg_map() { delete[] Entries; }
+    ~arg_map() { free(Entries); }
 
     void ensure_initted(args ars) {
         if (Entries) return;
 
-        Entries = new entry[ars.max_size()];
+        Entries = allocate_array(entry, ars.max_size());
 
         if (ars.is_packed()) {
             s64 i = 0;

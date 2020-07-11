@@ -8,7 +8,7 @@ void string_builder::release() {
     while (b) {
         auto *old = b;
         b = b->Next;
-        if (old->Owner == this) delete old;
+        free(old);
     }
 
     CurrentBuffer = null;  // null means BaseBuffer
@@ -46,8 +46,7 @@ void string_builder::append_pointer_and_size(const char *data, s64 size) {
 
         // If the entire string doesn't fit inside the available space,
         // allocate the next buffer and continue appending.
-        buffer *b = new (Alloc) buffer;
-        b->Owner = this;
+        buffer *b = allocate(buffer, Alloc);
 
         currentBuffer->Next = b;
         CurrentBuffer = b;

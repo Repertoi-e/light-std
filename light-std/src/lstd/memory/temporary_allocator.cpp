@@ -4,7 +4,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64) {
+void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *userFlags) {
 #if COMPILER == MSVC
 #pragma warning(push)
 #pragma warning(disable : 4146)
@@ -14,7 +14,7 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
     // The temporary allocator hasn't been initialized yet.
     if (!data->Base.Reserved) {
         s64 startingSize = (size * 2 + 8_KiB - 1) & -8_KiB;  // Round up to a multiple of 8 KiB
-        data->Base.Storage = new (Malloc) char[startingSize];
+        data->Base.Storage = allocate_array(char, startingSize, Malloc);
         data->Base.Reserved = startingSize;
     }
 
@@ -29,13 +29,13 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 
             if (p->Used + size >= p->Reserved) {
                 assert(!p->Next);
-                p->Next = new (Malloc) temporary_allocator_data::page;
+                p->Next = allocate(temporary_allocator_data::page, Malloc);
 
                 // Random log-based growth thing I came up at the time, not real science.
                 s64 loggedSize = (s64) ceil(p->Reserved * (log2(p->Reserved * 10.0) / 3));
                 s64 reserveTarget = (max<s64>(ceil_pow_of_2(size * 2), ceil_pow_of_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
 
-                p->Next->Storage = new (Malloc) char[reserveTarget];
+                p->Next->Storage = allocate_array(char, reserveTarget, Malloc);
                 p->Next->Reserved = reserveTarget;
                 p = p->Next;
             }
@@ -45,6 +45,9 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 
             p->Used += size;
             data->TotalUsed += size;
+
+            *userFlags |= LEAK;
+
             return result;
         }
         case allocator_mode::RESIZE: {
@@ -94,17 +97,17 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
                 targetSize += page->Reserved;
 
                 auto *next = page->Next;
-                delete[] page->Storage;
-                delete page;
+                free(page->Storage);
+                free(page);
                 page = next;
             }
             data->Base.Next = null;
 
             // Resize _Storage_ to fit all allocations which previously required overflow pages
             if (targetSize != data->Base.Reserved) {
-                delete[] data->Base.Storage;
+                free(data->Base.Storage);
 
-                data->Base.Storage = new (Malloc) char[targetSize];
+                data->Base.Storage = allocate_array(char, targetSize, Malloc);
                 data->Base.Reserved = targetSize;
             }
 

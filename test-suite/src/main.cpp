@@ -58,9 +58,12 @@ void run_tests() {
 }
 
 s32 main() {
+    Context.CheckForLeaksAtTermination = true;
+
     time_t start = os_get_time();
 
-    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
+    // WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc)
+    {
         while (true) {
             run_tests();
             Context.TemporaryAlloc.free_all();

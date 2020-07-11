@@ -46,10 +46,10 @@ void string::reserve(s64 target) {
     target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
     if (Reserved) {
-        Data = (const char *) allocator::reallocate(const_cast<char *>(Data), target);
+        Data = (const char *) reallocate_array((char *) Data, target);
     } else {
         auto *oldData = Data;
-        Data = new char[target];
+        Data = allocate_array(char, target);
         // We removed the ownership system.
         // encode_owner(Data, this);
         if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
@@ -58,7 +58,7 @@ void string::reserve(s64 target) {
 }
 
 void string::release() {
-    if (Reserved) delete Data;
+    if (Reserved) free((char *) Data);
     Data = null;
     Length = ByteLength = Reserved = 0;
 }

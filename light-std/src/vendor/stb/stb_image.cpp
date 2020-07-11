@@ -3,8 +3,8 @@
 
 #define STBI_ASSERT assert
 
-#define STBI_MALLOC(size) operator new(size)
-#define STBI_REALLOC(ptr, newSize) (ptr ? LSTD_NAMESPACE::allocator::reallocate(ptr, newSize) : operator new(newSize))
+#define STBI_MALLOC(size) (void *) allocate_array(char, size)
+#define STBI_REALLOC(ptr, newSize) (ptr ? (void *) reallocate_array(ptr, newSize) : (void *) allocate_array(char, newSize))
 
 #define STBI_FREE(ptr) delete ptr
 

@@ -7,8 +7,6 @@ LSTD_BEGIN_NAMESPACE
 
 namespace file {
 
-// This structure is immutable.
-// To change the file/directory this is pointing to, simply create a new one.
 struct handle {
     // The mode used when writing to a file
     enum write_mode {
@@ -21,18 +19,11 @@ struct handle {
         Overwrite_Entire,
     };
 
-    const path Path;
+    mutable path Path;
 
-    // Only used on Windows
-    wchar_t *Utf16Path = null;
-
-    // The constructor clones the path, so handles don't require path objects to be kept valid
-    handle(path path);
+    handle() = default;
+    handle(const path &path) : Path(path) {}
     handle(const string &str) : handle(path(str)) {}
-
-    void release() {
-        if (Utf16Path) delete Utf16Path;
-    }
 
     // is_file() doesn't always equal !is_directory()
     bool is_file() const;
@@ -90,20 +81,20 @@ struct handle {
 
     // If this handle is pointing to a directory,
     // call _func_ on each file/directory inside of it.
-    void traverse(const delegate<void(path)> &func) const {
+    void traverse(const delegate<void(const path &)> &func) const {
         assert(is_directory());
         if (!Path.is_pointing_to_content()) {
-            const_cast<file::path *>(&Path)->UnifiedPath.append("/");
+            Path.combine_with("./");
         }
         traverse_impl(func);
     }
 
     // If this handle is pointing to a directory,
     // call _func_ on each file/subdirectory recursively.
-    void traverse_recursively(const delegate<void(path)> &func) const {
+    void traverse_recursively(const delegate<void(const path &)> &func) const {
         assert(is_directory());
         if (!Path.is_pointing_to_content()) {
-            const_cast<file::path *>(&Path)->UnifiedPath.append("/");
+            Path.combine_with("./");
         }
         traverse_recursively_impl(Path, Path, func);
     }
@@ -122,14 +113,15 @@ struct handle {
     //
     struct iterator : non_copyable {
         void *Handle = null;
-        char PlatformFileInfo[592]{};
+        char PlatformFileInfo[592]{};  // This is the size of the Windows structure. We don't want to include Windows.h here..
+
         string CurrentFileName;
 
         path Path;
         s64 Index = 0;
 
         iterator() = default;
-        iterator(path path) : Path(path) { read_next_entry(); }
+        iterator(const path &path) : Path(path) { read_next_entry(); }
 
         void operator++() { (*this)++; }
         void operator++(s32) { read_next_entry(); }
@@ -155,8 +147,8 @@ struct handle {
     iterator end() const { return iterator(); }
 
    private:
-    void traverse_impl(const delegate<void(path)> &func) const;
-    void traverse_recursively_impl(path first, path currentDirectory, const delegate<void(path)> &func) const;
+    void traverse_impl(const delegate<void(const path &)> &func) const;
+    void traverse_recursively_impl(const path &first, const path &currentDirectory, const delegate<void(const path &)> &func) const;
 };
 
 }  // namespace file

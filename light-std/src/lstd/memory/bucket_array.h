@@ -19,7 +19,7 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
         while (b) {
             auto *toDelete = b;
             b = b->Next;
-            delete toDelete;
+            free(toDelete);
         }
     }
 
@@ -41,7 +41,7 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
         T *result = find([&](T *element) { return map(element) == toMatch; });
         if (result) return result;
 
-        result = new (alloc) T;
+        result = allocate(T, alloc);
         add(*result);
         return result;
     }
@@ -60,8 +60,8 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
             b = b->Next;
         }
 
-        b = last->Next = new (alloc) bucket;
-        b->Elements = new (alloc) T[ElementsPerBucket];
+        b = last->Next = allocate(bucket, alloc);
+        b->Elements = allocate_array(T, ElementsPerBucket, alloc);
         b->Reserved = ElementsPerBucket;
         clone(b->Elements, element);
         b->Count = 1;

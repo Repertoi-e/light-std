@@ -62,13 +62,20 @@ u16 free_list_allocator_data::find_best(s64 size, node **previousNode, node **fo
 }
 
 void free_list_allocator_data::init(s64 totalSize, u8 policy) {
-    Storage = operator new(totalSize, Malloc);
+    Storage = allocate_array(char, totalSize, Malloc);
     Reserved = totalSize;
     PlacementPolicy = policy;
     allocator{free_list_allocator, this}.free_all();  // Initializes linked list
 }
 
-void *free_list_allocator_data::allocate(s64 size) {
+void free_list_allocator_data::release() {
+    free((char *) Storage);
+    Reserved = 0;
+    FreeListHead = null;
+    Storage = null;
+}
+
+void *free_list_allocator_data::allocate_block(s64 size) {
     auto userSize = size;
 
     assert(userSize >= sizeof(node) && "Allocation size must be bigger");
@@ -112,7 +119,7 @@ void *free_list_allocator_data::allocate(s64 size) {
 }
 
 /*
-void *free_list_allocator_data::resize(void *block, s64 newSize) {
+void *free_list_allocator_data::resize_block(void *block, s64 newSize) {
     auto *header = (block_header *) block - 1;
 
 #if defined DEBUG_MEMORY
@@ -158,7 +165,7 @@ void *free_list_allocator_data::resize(void *block, s64 newSize) {
 }
 */
 
-void free_list_allocator_data::free(void *block) {
+void free_list_allocator_data::free_block(void *block) {
     auto *header = (block_header *) block - 1;
 
     s64 alignmentPadding = header->AlignmentPadding;
@@ -202,19 +209,19 @@ void free_list_allocator_data::sanity() {
     }
 }
 
-void *free_list_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64) {
+void *free_list_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *) {
     auto *data = (free_list_allocator_data *) context;
 
     switch (mode) {
         case allocator_mode::ALLOCATE: {
-            return data->allocate(size);
+            return data->allocate_block(size);
         }
         case allocator_mode::RESIZE: {
             return null;
             // return data->resize(oldMemory, size);
         }
         case allocator_mode::FREE: {
-            data->free(oldMemory);
+            data->free_block(oldMemory);
             return null;
         }
         case allocator_mode::FREE_ALL: {

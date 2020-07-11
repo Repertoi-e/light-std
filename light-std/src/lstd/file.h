@@ -11,12 +11,20 @@ namespace fmt {
 
 template <>
 struct formatter<file::path> {
-    void format(file::path path, format_context *f) { f->write(path.UnifiedPath); }
+    void format(const file::path &path, format_context *f) {
+        string displayWorthy = path.unified();
+        f->write(displayWorthy);
+        displayWorthy.release();
+    }
 };
 
 template <>
 struct formatter<file::handle> {
-    void format(file::handle handle, format_context *f) { f->write(handle.Path.UnifiedPath); }
+    void format(const file::handle &handle, format_context *f) { 
+        string displayWorthy = handle.Path.unified();
+        f->write(displayWorthy);
+        displayWorthy.release();
+    }
 };
 }  // namespace fmt
 

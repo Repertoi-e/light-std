@@ -61,7 +61,9 @@ struct delegate<R(A...)> {
         using functor_type = decay_t<T>;
 
         StoreSize = sizeof(functor_type);
-        ObjectPtr = Store = (char *) Context.Alloc.allocate(StoreSize);
+
+        // We can't include allocator.h here without creating a circular dependency.
+        ObjectPtr = Store = (char *) Context.Alloc.general_allocate(StoreSize, 0, 0, __FILE__, __LINE__);
         encode_owner(Store, this);
         new (ObjectPtr) functor_type((T &&) f);
 
@@ -88,7 +90,9 @@ struct delegate<R(A...)> {
             release();
 
             StoreSize = requiredSize;
-            Store = (char *) Context.Alloc.allocate(StoreSize);
+
+            // We can't include allocator.h here without creating a circular dependency.
+            Store = (char *) Context.Alloc.general_allocate(StoreSize, 0, 0, __FILE__, __LINE__);
             encode_owner(Store, this);
         }
 
@@ -163,7 +167,7 @@ struct delegate<R(A...)> {
         StubPtr = null;
         if (is_owner()) {
             DestructorCaller(ObjectPtr);
-            delete Store;
+            free(Store);
         }
     }
 
@@ -227,7 +231,8 @@ delegate<T> *clone(delegate<T> *dest, delegate<T> src) {
     dest->release();
     *dest = src;
     if (src.StoreSize) {
-        dest->Store = (char *) Context.Alloc.allocate(src.StoreSize);
+        // We can't include allocator.h here without creating a circular dependency.
+        dest->Store = (char *) Context.Alloc.general_allocate(src.StoreSize, 0, 0, __FILE__, __LINE__);
         encode_owner(dest->Store, dest);
         copy_memory(dest->Store, src.Store, src.StoreSize);
     }

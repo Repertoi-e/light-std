@@ -263,7 +263,7 @@ static monitor *create_monitor(DISPLAY_DEVICEW *adapter, DISPLAY_DEVICEW *displa
         heightMM = (s32)(dm.dmPelsHeight * 25.4f / GetDeviceCaps(dc, LOGPIXELSY));
     }
 
-    auto *mon = new monitor;
+    auto *mon = allocate(monitor);
     mon->WidthMM = widthMM;
     mon->HeightMM = heightMM;
 
@@ -320,7 +320,7 @@ static void do_monitor_event(monitor *mon, monitor_event::action action, bool in
         Monitors.insert(insertLast ? Monitors.Count : 0, mon);
     } else {
         Monitors.remove(Monitors.find(mon));
-        delete mon;
+        free(mon);
     }
 
     g_MonitorEvent.emit(null, {mon, action});

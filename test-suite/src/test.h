@@ -15,12 +15,12 @@
 //      /home/.../lstd-tests/string.cpp           ---> string.cpp
 //
 constexpr string get_short_file_name(const string &str) {
-    char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATOR, '\0'};
+    char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATORS[0], '\0'};
     string src = srcData;
 
     s64 findResult = str.find_reverse(src);
     if (findResult == -1) {
-        findResult = str.find_reverse(file::OS_PATH_SEPARATOR);
+        findResult = str.find_reverse(file::OS_PATH_SEPARATORS[0]);
         assert(findResult != str.Length - 1);
         // Skip the slash
         findResult++;
@@ -63,7 +63,7 @@ struct asserts {
         if (!(condition)) {                                                                                 \
             string message = fmt::sprint(                                                                   \
                 "{}:{} {!YELLOW}{} {} {}{!GRAY},\n"                                                         \
-                "                LHS : { !YELLOW }\"{}\"{!GRAY},\n"                                         \
+                "                LHS : {!YELLOW}\"{}\"{!GRAY},\n"                                           \
                 "                RHS: {!YELLOW}\"{}\"{!}",                                                  \
                 get_short_file_name(__FILE__), __LINE__, u8## #x, op, u8## #y, LINE_NAME(a), LINE_NAME(b)); \
             asserts::GlobalFailed.append(message);                                                          \

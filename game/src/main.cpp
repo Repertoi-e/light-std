@@ -21,7 +21,7 @@ dynamic_library GameLibrary;
 game_update_and_render_func *GameUpdateAndRender = null;
 game_main_window_event_func *GameMainWindowEvent = null;
 
-file::handle *DLL = null, *Buildlock = null;  // file::handle is not assignable
+file::handle DLL, Buildlock;
 
 void setup_game_paths() {
     assert(GameFileName != "");
@@ -30,11 +30,11 @@ void setup_game_paths() {
 
     file::path dllPath = exePath.directory();
     dllPath.combine_with(GameFileName);
-    DLL = new file::handle(dllPath);
+    DLL.reassign(dllPath);
 
     file::path buildLockPath = exePath.directory();
     buildLockPath.combine_with("buildlock");
-    Buildlock = new file::handle(buildLockPath);
+    Buildlock.reassign(buildLockPath);
 }
 
 // @TODO: This fails in Dist configuration for some reason
@@ -43,19 +43,18 @@ bool reload_game_code() {
     GameMainWindowEvent = null;
     if (GameLibrary.Handle) GameLibrary.close();
 
-    file::path copyPath = DLL->Path.directory();
+    file::path copyPath = DLL.Path.directory();
     copyPath.combine_with("loaded_game_code.dll");
 
     auto dllCopyHandle = file::handle(copyPath);
-    if (!DLL->copy(dllCopyHandle, true)) {
+    if (!DLL.copy(dllCopyHandle, true)) {
         fmt::print("Error: Couldn't write to {!YELLOW}\"{}\"{!}. Game already running?\n", dllCopyHandle);
         return false;
     }
 
-    if (!GameLibrary.load(copyPath.UnifiedPath)) {
+    if (!GameLibrary.load(copyPath.Str)) {
         fmt::print(
-            "Error: Couldn't load {!YELLOW}\"{}\"{!} (copied from {!GRAY}\"{}\"{}) as the game code for the engine.\n",
-            copyPath, *DLL);
+            "Error: Couldn't load {!YELLOW}\"{}\"{!} (copied from {!GRAY}\"{}\"{}) as the game code for the engine.\n", copyPath, DLL);
         return false;
     }
 
@@ -77,8 +76,8 @@ bool reload_game_code() {
 bool check_for_dll_change() {
     static time_t checkTimer = 0, lastTime = 0;
 
-    if (!Buildlock->exists() && (checkTimer % 20 == 0)) {
-        auto writeTime = DLL->last_modification_time();
+    if (!Buildlock.exists() && (checkTimer % 20 == 0)) {
+        auto writeTime = DLL.last_modification_time();
         if (writeTime != lastTime) {
             lastTime = writeTime;
             return reload_game_code();
@@ -211,24 +210,22 @@ s32 main() {
     game_memory gameMemory;
     GameMemory = &gameMemory;
 
-    auto *allocData = new (Malloc) free_list_allocator_data;
+    auto *allocData = allocate(free_list_allocator_data, Malloc);
     allocData->init(GameMemoryInMiB * 1024 * 1024, free_list_allocator_data::Find_First);
     gameMemory.AllocData = allocData;
     gameMemory.Alloc = GameAlloc = Malloc;  // = {free_list_allocator, allocData};
 
     // We tell imgui to use our allocator (by default it uses raw malloc, not operator new)
-    ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, GameAlloc); },
-                                 [](void *ptr, void *) { delete ptr; });
+    ImGui::SetAllocatorFunctions([](size_t size, void *) { return (void *) allocate_array(char, size, GameAlloc); },
+                                 [](void *ptr, void *) { free(ptr); });
 
     setup_game_paths();
 
     WITH_ALLOC(GameAlloc) {
         string windowTitle = fmt::sprint("Graphics Engine | {}", GameFileName);
 
-        auto windowFlags =
-            window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4;
-        gameMemory.MainWindow =
-            (new window)->init(windowTitle, window::DONT_CARE, window::DONT_CARE, GameWidth, GameHeight, windowFlags);
+        auto windowFlags = window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4;
+        gameMemory.MainWindow = (new window)->init(windowTitle, window::DONT_CARE, window::DONT_CARE, GameWidth, GameHeight, windowFlags);
 
         gameMemory.MainWindow->Event.connect([](const event &e) {
             if (GameMainWindowEvent) return GameMainWindowEvent(e);
@@ -242,7 +239,7 @@ s32 main() {
             auto **found = GameMemory->States.find(identifier);
             if (!found) {
                 // We allocate with alignment 16 because the game uses SIMD in structs (game_state is one struct which we handle with this function).
-                void *result = new (alignment(16)) char[size];
+                void *result = allocate_array_aligned(char, size, 16);
                 GameMemory->States.move_add(&identifier, (void **) &result);
                 *created = true;
                 return result;
@@ -476,12 +473,10 @@ static void imgui_init_photoshop_style() {
 }
 
 static void init_imgui_for_our_windows(window *mainWindow) {
-    ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, Malloc); },
-                                 [](void *ptr, void *) { delete ptr; });
     ImGui::CreateContext();
 
     ImGuiIO &io = ImGui::GetIO();
-    io.Fonts = new ImFontAtlas();
+    io.Fonts = allocate(ImFontAtlas);
 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -576,7 +571,7 @@ static void init_imgui_for_our_windows(window *mainWindow) {
 
         platformIO.Platform_DestroyWindow = [](auto *viewport) {
             if (viewport->PlatformUserData == (void *) true) {
-                delete (window *) viewport->PlatformHandle;
+                free((window *) viewport->PlatformHandle);
             }
             viewport->PlatformHandle = viewport->PlatformUserData = null;
         };

@@ -51,7 +51,7 @@ TEST(mutex_lock) {
 
     For(threads) {
         it->join();
-        delete it;
+        free(it);
     }
 
     assert_eq(Count, 100 * 10000);
@@ -74,7 +74,7 @@ TEST(fast_mutex_lock) {
 
     For(threads) {
         it->join();
-        delete it;
+        free(it);
     }
 
     assert_eq(Count, 100 * 10000);
@@ -110,7 +110,7 @@ TEST(condition_variable) {
 
     For(threads) {
         it->join();
-        delete it;
+        free(it);
     }
 }
 

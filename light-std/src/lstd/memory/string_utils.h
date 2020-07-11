@@ -538,7 +538,8 @@ constexpr const char *find_substring_utf8(const char *haystack, s64 length1, con
     assert(length2);
 
     if (length1 == 0) return null;
-    if (start >= length1) return null;
+
+    if (start >= length1 || start <= -length1) return null;
 
     auto *p = get_cp_at_index(haystack, length1, translate_index(start, length1));
     auto *end = get_cp_at_index(haystack, length1, length1, true);
@@ -583,7 +584,9 @@ constexpr const char *find_substring_utf8_reverse(const char *haystack, s64 leng
 
     if (length1 == 0) return null;
 
+    if (start >= length1 || start <= -length1) return null;
     if (start == 0) start = length1;
+
     auto *p = get_cp_at_index(haystack, length1, translate_index(start, length1, true) - 1);
     auto *end = get_cp_at_index(haystack, length1, length1, true);
 
@@ -626,6 +629,7 @@ constexpr const char *find_utf8_any_of(const char *str, s64 length1, const char 
     assert(length2);
 
     if (length1 == 0) return null;
+    if (start >= length1 || start <= -length1) return null;
 
     start = translate_index(start, length1);
     str = get_cp_at_index(str, length1, start);
@@ -645,6 +649,7 @@ constexpr const char *find_utf8_reverse_any_of(const char *str, s64 length1, con
     assert(length2);
 
     if (length1 == 0) return null;
+    if (start >= length1 || start <= -length1) return null;
 
     if (start == 0) start = length1;
     start = translate_index(start, length1, true) - 1;
@@ -662,6 +667,7 @@ constexpr const char *find_utf8_not(const char *str, s64 length, char32_t cp, s6
     assert(str);
 
     if (length == 0) return null;
+    if (start >= length || start <= -length) return null;
 
     auto *p = get_cp_at_index(str, length, translate_index(start, length));
     auto *end = get_cp_at_index(str, length, length, true);
@@ -693,7 +699,9 @@ constexpr const char *find_utf8_reverse_not(const char *str, s64 length, char32_
 
     if (length == 0) return null;
 
+    if (start >= length || start <= -length) return null;
     if (start == 0) start = length;
+
     auto *p = get_cp_at_index(str, length, translate_index(start, length, true) - 1);
     auto *end = get_cp_at_index(str, length, length, true);
 
@@ -719,14 +727,14 @@ constexpr const char *find_utf8_reverse_not(const char *str, s64 length, char32_
 }
 
 // Find the first absence of any code point in _terminators_ that is after a specified index
-constexpr const char *find_utf8_not_any_of(const char *str, s64 length1, const char *terminators, s64 length2,
-                                           s64 start = 0) {
+constexpr const char *find_utf8_not_any_of(const char *str, s64 length1, const char *terminators, s64 length2, s64 start = 0) {
     assert(str);
     assert(terminators);
     assert(length2);
 
     if (length1 == 0) return null;
 
+    if (start >= length1 || start <= -length1) return null;
     start = translate_index(start, length1);
     str = get_cp_at_index(str, length1, start);
 
@@ -738,13 +746,14 @@ constexpr const char *find_utf8_not_any_of(const char *str, s64 length1, const c
 }
 
 // Find the first absence of any code point in _terminators_ that is after a specified index
-constexpr const char *find_utf8_reverse_not_any_of(const char *str, s64 length1, const char *terminators, s64 length2,
-                                                   s64 start = 0) {
+constexpr const char *find_utf8_reverse_not_any_of(const char *str, s64 length1, const char *terminators, s64 length2, s64 start = 0) {
     assert(str);
     assert(terminators);
     assert(length2);
 
     if (length1 == 0) return null;
+
+    if (start >= length1 || start <= -length1) return null;
     if (start == 0) start = length1;
 
     start = translate_index(start, length1, true) - 1;

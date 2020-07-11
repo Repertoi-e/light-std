@@ -29,7 +29,7 @@ TEST(path_manipulation) {
         b.combine_with("lstd/");
         assert_eq(b, "/home/data/bin/lstd/");
         a.combine_with("C:/User");
-        assert_eq(a.UnifiedPath, "C:/User");
+        assert_eq(a.Str, "C:/User");
     }
 
     {
@@ -37,8 +37,8 @@ TEST(path_manipulation) {
         assert(!a.is_pointing_to_content());
         assert(!a.is_absolute());
 
-        a.resolve();
-        assert_eq(a.UnifiedPath, "../../data/bin/debug/lstd.exe");
+        a = file::path(a.resolved());
+        assert_eq(a.Str, "../../data/bin/debug/lstd.exe");
 
         assert_eq(a.file_name(), "lstd.exe");
         assert_eq(a.base_name(), "lstd");
@@ -51,13 +51,16 @@ TEST(file_size) {
     auto thisFile = file::path(__FILE__);
     file::path dataFolder = thisFile.directory();
     dataFolder.combine_with("data");
+    defer(dataFolder.release());
 
     file::path fiveBytes;
     clone(&fiveBytes, dataFolder);
+    defer(fiveBytes.release());
     fiveBytes.combine_with("five_bytes");
 
     file::path text;
     clone(&text, dataFolder);
+    defer(text.release());
     text.combine_with("text");
 
     assert_eq(file::handle(fiveBytes).file_size(), 5);
@@ -68,6 +71,7 @@ TEST(writing_hello_250_times) {
     auto thisFile = file::path(__FILE__);
     file::path filePath = thisFile.directory();
     filePath.combine_with("data/write_test");
+    defer(filePath.release());
 
     auto file = file::handle(filePath);
     assert(!file.exists());
@@ -112,7 +116,7 @@ TEST(test_introspection) {
         assert_eq(contents.ByteLength, test.file_size());
 
         string nativePath;
-        clone(&nativePath, testPath.UnifiedPath);
+        clone(&nativePath, testPath.Str);
 #if OS == WINDOWS
         nativePath.replace_all('/', '\\');
 #endif
@@ -134,17 +138,19 @@ TEST(read_every_file_in_project) {
     auto thisFile = file::path(__FILE__);
     file::path rootFolder = thisFile.directory();
     rootFolder.combine_with("../../../");
+    defer(rootFolder.release());
 
     table<string, s64> files;
     file::handle(rootFolder).traverse_recursively([&](file::path it) {
         file::path p;
         clone(&p, rootFolder);
         p.combine_with(it);
+        defer(p.release());
 
-        s64 *counter = files.find(p.UnifiedPath);
+        s64 *counter = files.find(p.Str);
         if (!counter) {
             s64 zero = 0;
-            counter = files.move_add(&p.UnifiedPath, &zero);
+            counter = files.move_add(&p.Str, &zero);
         }
         ++*counter;
     });

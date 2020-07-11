@@ -412,10 +412,10 @@ void window::release() {
 string window::get_title() {
     constexpr s64 tempLength = 30;
 
-    auto *titleUtf16 = new wchar_t[tempLength];
+    auto *titleUtf16 = allocate_array(wchar_t, tempLength, Context.TemporaryAlloc);
     s32 length = GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
     if (length >= tempLength - 1) {
-        titleUtf16 = new wchar_t[length + 1];
+        titleUtf16 = allocate_array(wchar_t, length + 1, Context.TemporaryAlloc);
         GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
     }
 
@@ -426,7 +426,7 @@ string window::get_title() {
 }
 
 void window::set_title(const string &title) {
-    auto *titleUtf16 = new (Context.TemporaryAlloc) wchar_t[title.Length + 1];  // @Bug title.Length is not enough
+    auto *titleUtf16 = allocate_array(wchar_t, title.Length + 1, Context.TemporaryAlloc);  // @Bug title.Length is not enough
     utf8_to_utf16(title.Data, title.Length, titleUtf16);
 
     SetWindowTextW(PlatformData.Win32.hWnd, titleUtf16);
@@ -1226,7 +1226,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             u32 size = 0;
             GetRawInputData(ri, RID_INPUT, null, &size, sizeof(RAWINPUTHEADER));
 
-            auto *rawInput = (RAWINPUT *) new (Context.TemporaryAlloc) char[size];
+            auto *rawInput = allocate_array(RAWINPUT, size / sizeof(RAWINPUT), Context.TemporaryAlloc);
             if (GetRawInputData(ri, RID_INPUT, rawInput, &size, sizeof(RAWINPUTHEADER)) == (u32) -1) {
                 fmt::print("(windows_window.cpp): Failed to retrieve raw input data\n");
                 break;
@@ -1477,7 +1477,8 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             s32 count = DragQueryFileW(drop, 0xffffffff, null, 0);
             For(range(count)) {
                 u32 length = DragQueryFileW(drop, (u32) it, null, 0);
-                wchar_t *buffer = new (Context.TemporaryAlloc) wchar_t[length + 1];
+                // @Bug ?
+                wchar_t *buffer = allocate_array(wchar_t, length + 1, Context.TemporaryAlloc);
                 DragQueryFileW(drop, (u32) it, buffer, length + 1);
 
                 string utf8Buffer;

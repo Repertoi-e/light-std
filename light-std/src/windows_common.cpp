@@ -45,6 +45,33 @@ void run_at_exit(delegate<void()> function) { clone(ExitFunctions.append(), func
 // Needs to happen just before the global C++ destructors get called.
 void call_exit_functions() { For(ExitFunctions) it(); }
 
+// Copied from test.h
+//
+// We check if the path contains src/ and use the rest after that.
+// Otherwise we just take the file name. Possible results are:
+//
+//      /home/.../game/src/some_dir/a/string.cpp ---> some_dir/a/localization.cpp
+//      /home/.../game/some_dir/string.cpp       ---> localization.cpp
+//
+constexpr string get_short_file_name(const string &str) {
+    char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATORS[0], '\0'};
+    string src = srcData;
+
+    s64 findResult = str.find_reverse(src);
+    if (findResult == -1) {
+        findResult = str.find_reverse(file::OS_PATH_SEPARATORS[0]);
+        assert(findResult != str.Length - 1);
+        // Skip the slash
+        findResult++;
+    } else {
+        // Skip the src directory
+        findResult += src.Length;
+    }
+
+    string result = str;
+    return result.substring(findResult, result.Length);
+}
+
 void debug_memory_check_heap() {
 #if defined DEBUG_MEMORY
     // If there are any left over allocations, we check their integrity.
@@ -70,7 +97,7 @@ void debug_memory_check_heap() {
             }
         }
         // @Cleanup: We can mark this as LEAK?
-        leaks = new allocation_header *[leaksCount];
+        leaks = allocate_array(allocation_header *, leaksCount);
         leaksID = ((allocation_header *) leaks - 1)->ID;
 
         {
@@ -86,9 +113,16 @@ void debug_memory_check_heap() {
         if (leaksCount) {
             fmt::print(">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still had {!YELLOW}{}{!} allocations which were unfreed. Here they are:\n", os_get_current_module(), leaksCount);
         }
+
         For_as(i, range(leaksCount)) {
             auto *it = leaks[i];
-            fmt::print("    * {:>10} requested bytes, {{ID: {}, RID: {}}}\n", it->Size, it->ID, it->RID);
+
+            string fileName = "Unknown";
+            if (compare_c_string(it->FileName, "") != -1) {
+                fileName = get_short_file_name(it->FileName);
+            }
+
+            fmt::print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", fileName, it->FileLine, it->Size, it->ID, it->RID);
         }
     }
 #endif
@@ -124,6 +158,9 @@ s32 pre_termination() {
     return 0;
 }
 
+#pragma push_macro("allocate")
+#undef allocate
+
 typedef s32 cb(void);
 #pragma const_seg(".CRT$XIUSER")
 __declspec(allocate(".CRT$XIUSER")) cb *g_CInit = c_init;
@@ -141,20 +178,22 @@ __declspec(allocate(".CRT$XPUSER")) cb *g_PreTermination = pre_termination;
 __declspec(allocate(".CRT$XTUSER")) cb *g_Termination = NULL;
 #pragma const_seg()
 
+#pragma pop_macro("allocate")
+
 #else
 #error @TODO: See how this works on other compilers!
 #endif
 
 bool dynamic_library::load(const string &name) {
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *buffer = new (Context.TemporaryAlloc) wchar_t[name.Length + 1];
+    auto *buffer = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(name.Data, name.Length, buffer);
     Handle = (void *) LoadLibraryW(buffer);
     return Handle;
 }
 
 void *dynamic_library::get_symbol(const string &name) {
-    auto *buffer = new (Context.TemporaryAlloc) char[name.ByteLength + 1];
+    auto *buffer = allocate_array(char, name.ByteLength + 1, Context.TemporaryAlloc);
     copy_memory(buffer, name.Data, name.ByteLength);
     buffer[name.ByteLength] = '\0';
     return (void *) GetProcAddress((HMODULE) Handle, (LPCSTR) buffer);
@@ -215,7 +254,7 @@ void win32_common_init() {
     QueryPerformanceFrequency(&PerformanceFrequency);
 
     // Get the module name
-    wchar_t *buffer = new (Context.TemporaryAlloc, LEAK) wchar_t[MAX_PATH];
+    wchar_t *buffer = allocate_array(wchar_t, MAX_PATH, Context.TemporaryAlloc);
     s64 reserved = MAX_PATH;
 
     while (true) {
@@ -223,7 +262,7 @@ void win32_common_init() {
         if (written == reserved) {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
                 reserved *= 2;
-                buffer = new (Context.TemporaryAlloc, LEAK) wchar_t[reserved];
+                buffer = allocate_array(wchar_t, reserved, Context.TemporaryAlloc);
                 continue;
             }
         }
@@ -410,7 +449,7 @@ s64 os_get_block_size(void *ptr) {
 
 void os_write_shared_block(const string &name, void *data, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     CREATE_MAPPING_CHECKED(h,
@@ -429,7 +468,7 @@ void os_write_shared_block(const string &name, void *data, s64 size) {
 
 void os_read_shared_block(const string &name, void *out, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     CREATE_MAPPING_CHECKED(h, OpenFileMappingW(FILE_MAP_READ, false, name16), );
@@ -469,7 +508,7 @@ string os_get_working_dir() {
     thread::scoped_lock _(&WorkingDirMutex);
 
     DWORD required = GetCurrentDirectoryW(0, null);
-    auto *dir16 = new (Context.TemporaryAlloc, LEAK) wchar_t[required + 1];
+    auto *dir16 = allocate_array(wchar_t, required + 1, Context.TemporaryAlloc);
 
     if (!GetCurrentDirectoryW(required + 1, dir16)) {
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW(required, dir16)",
@@ -488,7 +527,8 @@ void os_set_working_dir(const string &dir) {
 
     thread::scoped_lock _(&WorkingDirMutex);
 
-    auto *dir16 = new (Context.TemporaryAlloc, LEAK) wchar_t[dir.Length + 1];
+    // @Bug
+    auto *dir16 = allocate_array(wchar_t, dir.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(dir.Data, dir.Length, dir16);
 
     if (!SetCurrentDirectoryW(dir16)) {
@@ -499,12 +539,12 @@ void os_set_working_dir(const string &dir) {
 
 pair<bool, string> os_get_env(const string &name, bool silent) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     DWORD bufferSize = 65535;  // Limit according to http://msdn.microsoft.com/en-us/library/ms683188.aspx
 
-    auto *buffer = new (Context.TemporaryAlloc, LEAK) wchar_t[bufferSize];
+    auto *buffer = allocate_array(wchar_t, bufferSize, Context.TemporaryAlloc);
     auto r = GetEnvironmentVariableW(name16, buffer, bufferSize);
 
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
@@ -523,7 +563,7 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
 
     // 65535 may be the limit but let's not take risks
     if (r > bufferSize) {
-        buffer = new (Context.TemporaryAlloc, LEAK) wchar_t[r];
+        buffer = allocate_array(wchar_t, r, Context.TemporaryAlloc);
         GetEnvironmentVariableW(name16, buffer, r);
         bufferSize = r;
 
@@ -540,11 +580,11 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
 
 void os_set_env(const string &name, const string &value) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *value16 = new (Context.TemporaryAlloc, LEAK) wchar_t[value.Length + 1];
+    auto *value16 = allocate_array(wchar_t, value.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(value.Data, value.Length, value16);
 
     if (value.Length > 32767) {
@@ -561,7 +601,7 @@ void os_set_env(const string &name, const string &value) {
 
 void os_remove_env(const string &name) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = new (Context.TemporaryAlloc, LEAK) wchar_t[name.Length + 1];
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     if (!SetEnvironmentVariableW(name16, null)) {

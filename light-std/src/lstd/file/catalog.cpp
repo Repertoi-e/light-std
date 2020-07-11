@@ -7,7 +7,7 @@ LSTD_BEGIN_NAMESPACE
 catalog::catalog(file::path root) { ensure_initted(root); }
 
 void catalog::ensure_initted(file::path root) {
-    if (Root.UnifiedPath.Length) return;
+    if (Root.Str.Length) return;
     assert(root.is_pointing_to_content() && "Create a catalog which points to a folder, not a file");
     clone(&Root, root);
 }

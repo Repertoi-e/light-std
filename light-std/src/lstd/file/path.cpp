@@ -5,11 +5,11 @@ LSTD_BEGIN_NAMESPACE
 namespace file {
 
 string path::file_name() const {
-    if (UnifiedPath.Length == 0) return "";
+    if (Str.Length == 0) return "";
 
-    s64 last = UnifiedPath.find_reverse('/', is_pointing_to_content() ? -2 : 0);
+    s64 last = Str.find_reverse_any_of(OS_PATH_SEPARATORS, is_pointing_to_content() ? -2 : 0);
     if (last == -1) return "";
-    return UnifiedPath.substring(last + 1, UnifiedPath.Length + (is_pointing_to_content() ? -1 : 0));
+    return Str.substring(last + 1, Str.Length + (is_pointing_to_content() ? -1 : 0));
 }
 
 string path::base_name() const {
@@ -27,72 +27,94 @@ string path::extension() const {
 }
 
 string path::directory() const {
-    if (UnifiedPath.Length == 0) return "";
+    if (Str.Length == 0) return "";
 
-    s64 last = UnifiedPath.find_reverse('/', is_pointing_to_content() ? -2 : 0);
+    s64 last = Str.find_reverse_any_of(OS_PATH_SEPARATORS, is_pointing_to_content() ? -2 : 0);
     if (last == -1) return "";
-    return UnifiedPath.substring(0, last + 1);
+    return Str.substring(0, last + 1);
 }
 
 string path::drive_letter() const {
-    if (UnifiedPath.Length < 2) return "";
-    if (UnifiedPath[1] == ':') return UnifiedPath.substring(0, 2);
+    if (Str.Length < 2) return "";
+    if (Str[1] == ':') return Str.substring(0, 2);
     return "";
 }
 
 void path::combine_with(const string &str) {
-    if (!UnifiedPath.Reserved) {
-        UnifiedPath.reserve(0);  // Trigger a reserve
+    if (!Reserved) {
+        string old = Str;
+        Str = "";
+        Str.append(old);
+        Reserved = true;
     }
 
     auto other = path(str);
     if (!is_pointing_to_content()) {
-        UnifiedPath.append("/");
+        Str.append("/");
     }
     if (other.is_absolute()) {
-        UnifiedPath.ByteLength = UnifiedPath.Length = 0;
+        Str.ByteLength = Str.Length = 0;
     }
-    UnifiedPath.append(str);
-    resolve();
+    Str.append(str);
 }
 
-void path::resolve() {
+string path::resolved() const {
+    string result;
+    clone(&result, Str);
+
     s64 dots, beginning = 0;
-    while ((dots = UnifiedPath.find("../", beginning)) != -1) {
+    while ((dots = result.find("..", beginning)) != -1) {
+        if (dots + 2 >= result.Length) break;  // Invalid path
+
+        auto slash = result[dots + 2];
+        if (slash != '/' && slash != '\\') {
+            beginning += 3;
+            continue;
+        }
+
         if (dots != beginning) break;
         beginning += 3;
-        if (beginning == UnifiedPath.Length) return;
+        if (beginning == result.Length) return result;
     }
-    if (beginning == UnifiedPath.Length) return;
+    if (beginning == result.Length) return result;
 
     s64 progress = beginning;
-    while ((dots = UnifiedPath.find("..", progress)) != -1) {
-        s64 previousSlash = UnifiedPath.find_reverse('/', dots - 2);
-        UnifiedPath.remove(previousSlash, dots + 2);
+    while ((dots = result.find("..", progress)) != -1) {
+        s64 previousSlash = result.find_reverse_any_of(OS_PATH_SEPARATORS, dots - 2);
+        result.remove(previousSlash, dots + 2);
         progress = previousSlash + 1;
-        if (progress >= UnifiedPath.Length) break;
+        if (progress >= result.Length) break;
     }
 
     progress = beginning;
-    while ((dots = UnifiedPath.find("./", progress)) != -1) {
-        UnifiedPath.remove(dots, dots + 2);
+    while ((dots = result.find(".", progress)) != -1) {
+        if (dots + 1 >= result.Length) break;  // Invalid path
+
+        auto next = result[dots + 1];
+        if (next != '/' && next != '\\') {
+            progress = dots + 1;
+            continue;
+        }
+
+        result.remove(dots, dots + 2);
         progress = dots + 1;
-        if (progress >= UnifiedPath.Length) break;
+        if (progress >= result.Length) break;
     }
+    return result;
 }
 }  // namespace file
 
-file::path *clone(file::path *dest, file::path src) {
-    dest->UnifiedPath.release();
-    clone(&dest->UnifiedPath, src.UnifiedPath);
-    dest->unify();
+file::path *clone(file::path *dest, const file::path &src) {
+    dest->release();
+    clone(&dest->Str, src.Str);
+    dest->Reserved = true;
     return dest;
 }
 
-file::path *move(file::path *dest, file::path *src) {
-    dest->UnifiedPath.release();
-    move(&dest->UnifiedPath, &src->UnifiedPath);
-    return dest;
-}
+// file::path *move(file::path *dest, file::path *src) {
+//     dest->UnifiedPath.release();
+//     move(&dest->UnifiedPath, &src->UnifiedPath);
+//     return dest;
+// }
 
 LSTD_END_NAMESPACE

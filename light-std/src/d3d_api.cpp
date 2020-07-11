@@ -27,7 +27,7 @@ void d3d_init(graphics *g) {
     DXCHECK(adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, null));
     assert(numModes);
 
-    DXGI_MODE_DESC *displayModeList = new (Context.TemporaryAlloc) DXGI_MODE_DESC[numModes];
+    DXGI_MODE_DESC *displayModeList = allocate_array(DXGI_MODE_DESC, numModes, Context.TemporaryAlloc);
     DXCHECK(adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes,
                                               displayModeList));
 

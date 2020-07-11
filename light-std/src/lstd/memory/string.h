@@ -318,8 +318,8 @@ struct string {
 
     // Allocates a buffer and copies this string's contents and also appends a zero terminator.
     // The caller is responsible for freeing.
-    const char *to_c_string() const {
-        char *result = new char[ByteLength + 1];
+    const char *to_c_string(allocator alloc = {}) const {
+        char *result = allocate_array(char, ByteLength + 1, alloc);
         copy_memory(result, Data, ByteLength);
         result[ByteLength] = '\0';
         return result;

@@ -12,8 +12,8 @@ void reload_global_state() {
 
     // We also tell imgui to use our allocator (we tell imgui to not implement default ones)
     // We mark allocations as LEAK because any leftover are handled by the exe and we don't to report them when this .dll terminates.
-    ImGui::SetAllocatorFunctions([](size_t size, void *) { return operator new(size, GameMemory->Alloc, LEAK); },
-                                 [](void *ptr, void *) { delete ptr; });
+    ImGui::SetAllocatorFunctions([](size_t size, void *) { return (void *) allocate_array(char, size, GameMemory->Alloc, LEAK); },
+                                 [](void *ptr, void *) { free(ptr); });
 
     MANAGE_STATE(GameState);
     MANAGE_STATE(AssetCatalog);
@@ -89,27 +89,23 @@ void load_python_demo(const string &demo) {
     file::path scripts = os_get_working_dir();
     scripts.combine_with("data/scripts");
 
-    const char *scriptsPath = null;
-    WITH_ALLOC(Context.TemporaryAlloc) {
-        scriptsPath = scripts.UnifiedPath.to_c_string();
-    }
-    defer(delete scriptsPath);
+    const char *scriptsPath = scripts.Str.to_c_string(Context.TemporaryAlloc);
 
     PyList_Append(sysPath, PyUnicode_FromString(scriptsPath));
 
     auto filePath = scripts;
     filePath.combine_with(demo);
-    if (!file::handle(filePath).is_file()) {
+
+    auto handle = file::handle(filePath);
+    defer(handle.release());
+
+    if (!handle.is_file()) {
         fmt::print(">>>\n>>> Couldn't find file {!YELLOW}\"{}\"{!}.({!GRAY}\"{}\"{!})\n", filePath);
         return;
     }
 
     try {
-        const char *moduleName = null;
-        WITH_ALLOC(Context.TemporaryAlloc) {
-            moduleName = filePath.base_name().to_c_string();
-        }
-        defer(delete moduleName);
+        const char *moduleName = filePath.base_name().to_c_string(Context.TemporaryAlloc);
 
         auto main = py::module::import(moduleName);
         GameState->PyModule = main;
@@ -149,6 +145,7 @@ void refresh_python_demo_files() {
     GameState->PyDemoFiles.reset();
 
     auto h = file::handle(scripts);
+    defer(h.release());
     if (!h.is_directory()) {
         GameState->PyLoaded = false;
         fmt::print(

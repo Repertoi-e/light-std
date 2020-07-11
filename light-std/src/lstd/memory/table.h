@@ -70,11 +70,11 @@ struct table {
         // The owner will change with the next line, but we need it later to decide if we need to delete the old arrays
         bool wasOwner = is_owner();
 
-        Hashes = (u64 *) Context.Alloc.allocate(target * sizeof(u64), DO_INIT_0);
+        Hashes = allocate_array(u64, target, DO_INIT_0);
         encode_owner(Hashes, this);
 
-        Keys = new key_t[target];
-        Values = new value_t[target];
+        Keys = allocate_array(key_t, target);
+        Values = allocate_array(value_t, target);
         Reserved = target;
 
         Count = SlotsFilled = 0;
@@ -86,9 +86,9 @@ struct table {
 
         if (wasOwner) {
             // We allocate hashes as a byte buffer to make sure there's no compiler bookkeeping happening
-            delete oldHashes;
-            delete[] oldKeys;
-            delete[] oldValues;
+            free(oldHashes);
+            free(oldKeys);
+            free(oldValues);
         }
     }
 
@@ -96,9 +96,9 @@ struct table {
     void release() {
         if (is_owner()) {
             // We allocate hashes as a byte buffer to make sure there's no compiler bookkeeping happening
-            delete Hashes;
-            delete[] Keys;
-            delete[] Values;
+            free(Hashes);
+            free(Keys);
+            free(Values);
         }
         Hashes = null;
         Keys = null;
@@ -110,6 +110,7 @@ struct table {
     void reset() {
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
         if (is_owner()) {
+            // @TODO: Factor this into uninitialize_block() function and use it in free() as well
             auto *p = Hashes, *end = Hashes + Reserved;
             s64 index = 0;
             while (p != end) {

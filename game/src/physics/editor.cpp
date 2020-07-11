@@ -56,20 +56,12 @@ void editor_scene_properties() {
 
         ImGui::Text("Select demo file:");
 
-        const char *comboLabel;
-        WITH_ALLOC(Context.TemporaryAlloc) {
-            comboLabel = GameState->PyCurrentDemo.to_c_string();
-        }
-
+        const char *comboLabel = GameState->PyCurrentDemo.to_c_string(Context.TemporaryAlloc);
         if (ImGui::BeginCombo("##combo", comboLabel)) {
             For(demoFiles) {
                 bool isSelected = GameState->PyCurrentDemo == it;
 
-                const char *selectableLabel;
-                WITH_ALLOC(Context.TemporaryAlloc) {
-                    selectableLabel = it.to_c_string();
-                }
-
+                const char *selectableLabel = it.to_c_string(Context.TemporaryAlloc);
                 if (ImGui::Selectable(selectableLabel, &isSelected)) {
                     if (GameState->PyCurrentDemo != it) {
                         load_python_demo(it);
