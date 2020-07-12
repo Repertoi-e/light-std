@@ -272,7 +272,8 @@ void handle::iterator::read_next_entry() {
 
 void handle::traverse_impl(const delegate<void(const path &)> &func) const {
     for (auto it = begin(); it != end(); ++it) {
-        file::path relativeFileName = Path;
+        file::path relativeFileName;
+        clone(&relativeFileName, Path);
         relativeFileName.combine_with(*it);
 
         func(relativeFileName);
