@@ -167,7 +167,7 @@ struct delegate<R(A...)> {
         StubPtr = null;
         if (is_owner()) {
             DestructorCaller(ObjectPtr);
-            free(Store);
+            allocator::general_free(Store);
         }
     }
 

@@ -11,7 +11,7 @@ LSTD_BEGIN_NAMESPACE
 
 static ID3DBlob *compile_shader(const string &source, const char *profile, const char *main) {
     ID3DBlob *shaderBlob = null, *errorBlob = null;
-    DXCHECK(D3DCompile(source.Data, source.ByteLength, null, null, null, main, profile, D3DCOMPILE_DEBUG, 0,
+    DX_CHECK(D3DCompile(source.Data, source.ByteLength, null, null, null, main, profile, D3DCOMPILE_DEBUG, 0,
                        &shaderBlob, &errorBlob));
     if (errorBlob) {
         fmt::print("... shader compile errors (profile = {!GRAY}{}{!}):\n{!YELLOW}{}\n{!}\n", profile,

@@ -123,6 +123,10 @@ struct handle {
         iterator() = default;
         iterator(const path &path) : Path(path) { read_next_entry(); }
 
+        // I know we are against hidden freeing but having this destructor is actually really fine.
+        // Things would be a whole lot more ugly and complicated without it.
+        ~iterator() { CurrentFileName.release(); }
+
         void operator++() { (*this)++; }
         void operator++(s32) { read_next_entry(); }
 

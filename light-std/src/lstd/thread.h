@@ -281,13 +281,13 @@ struct thread : non_copyable, non_movable, non_assignable {
 
     // Thread starting constructor.
     // Construct a thread object with a new thread of execution.
-    thread(delegate<void(void *)> function, void *userData) { start(function, userData); }
+    thread(const delegate<void(void *)> &function, void *userData) { start(function, userData); }
 
     // If the thread is joinable upon destruction, os_exit_process() will be called, which terminates the process.
     // It is always wise to call join() before deleting a thread object.
     ~thread();
 
-    void start(delegate<void(void *)> function, void *userData);
+    void start(const delegate<void(void *)> &function, void *userData);
 
     // Wait for the thread to finish (join execution flows).
     // After calling join(), the thread object is no longer associated with
@@ -376,69 +376,6 @@ struct fast_mutex {
    private:
     volatile long _Lock;
 };
-
-template <typename T>
-struct future : non_copyable, non_movable, non_assignable {
-    using data_t = T;
-
-    thread Thread;
-
-    future() = default;
-
-    // Future starting constructor.
-    // Construct a future object and begin execution.
-    future(delegate<void(void *)> function, void *userData) { start(function, userData); }
-
-    ~future() { close(); }
-
-    void start(delegate<void(void *)> function, void *userData) { Thread.start(function, userData); }
-
-    void close() {
-        assert(Thread.joinable() && "Thread not started");
-        Thread.join();
-    }
-};
-
-template <typename T, typename MutexType = mutex>
-struct promise : non_copyable, non_movable, non_assignable {
-    using data_t = T;
-
-    condition_variable Cond;
-    MutexType Mutex;
-
-    // Don't access this without locking the mutex (use copy/set_result())
-    T Result;
-    bool Done = false;
-
-    void get_result(T *out) {
-        scoped_lock<MutexType> guard(&Mutex);
-        while (!Done) {
-            Cond.wait(&Mutex);
-        }
-        clone(out, Result);
-        return Result;
-    }
-
-    void set_result(T result) {
-        scoped_lock<MutexType> guard(&Mutex);
-        Done = true;
-        clone(&Result, result);
-        Cond.notify_one();
-    }
-
-    void move_and_set_result(T *result) {
-        scoped_lock<MutexType> guard(&Mutex);
-        Done = true;
-        move(&Result, result);
-        Cond.notify_one();
-    }
-
-    bool is_done() {
-        scoped_lock<MutexType> guard(&Mutex);
-        return Done;
-    }
-};
-
 }  // namespace thread
 
 // The number of threads which can possibly execute concurrently.

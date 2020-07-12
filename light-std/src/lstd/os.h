@@ -96,19 +96,25 @@ u32 os_get_pid();
 void windows_report_hresult_error(long hresult, const string &call, const string &file, s32 line);
 
 // CHECKHR checks the return value of _call_ and if the returned HRESULT is less than zero, reports an error.
-#define CHECKHR(call)                                                                    \
+#define WINDOWS_CHECKHR(call)                                                            \
     {                                                                                    \
         long result = call;                                                              \
         if (result < 0) windows_report_hresult_error(result, #call, __FILE__, __LINE__); \
     }
 
-// DXCHECK is used for checking e.g. directx calls. The difference is that
-// in Dist configuration, the macro expands to just the call (no error checking)
-// in order to save on performance.
+// CHECKHR_BOOL checks the return value of _call_ and if the returned is false, reports an error.
+#define WINDOWS_CHECKBOOL(call)                                                                                   \
+    {                                                                                                             \
+        bool result = call;                                                                                       \
+        if (!result) windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), #call, __FILE__, __LINE__); \
+    }
+
+// DX_CHECK is used for checking directx calls. The difference from WINDOWS_CHECKHR is that
+// in Dist configuration, the macro expands to just the call (no error checking).
 #if defined DEBUG || defined RELEASE
-#define DXCHECK(call) CHECKHR(call)
+#define DX_CHECK(call) WINDOWS_CHECKHR(call)
 #else
-#define DXCHECK(call) call
+#define DX_CHECK(call) call
 #endif
 
 #define SAFE_RELEASE(x) \

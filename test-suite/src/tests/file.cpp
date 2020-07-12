@@ -79,13 +79,16 @@ TEST(writing_hello_250_times) {
     auto contents = string("Hello ");
     contents.repeat(250);
 
+    defer(contents.release());
+
     assert(file.write_to_file(contents));
     assert_eq(250 * 6, file.file_size());
 
     auto [sucess, read] = file.read_entire_file();
+    defer(read.release());
+
     assert(sucess);
     assert_eq(contents, read);
-    read.release();
 
     assert(file.delete_file());
 }
@@ -135,9 +138,9 @@ TEST(test_introspection) {
 
 #if defined DO_READ_EVERY_FILE
 TEST(read_every_file_in_project) {
-    auto thisFile = file::path(__FILE__);
-    file::path rootFolder = thisFile.directory();
+    file::path rootFolder = file::path(__FILE__).directory();
     rootFolder.combine_with("../../../");
+
     defer(rootFolder.release());
 
     table<string, s64> files;

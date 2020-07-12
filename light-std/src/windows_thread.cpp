@@ -176,6 +176,7 @@ u32 __stdcall thread::wrapper_function(void *data) {
     Context.ThreadID = ::thread::id((u64) GetCurrentThreadId());
 
     ti->Function(ti->UserData);
+    ti->Function.release();
 
     // The thread is no longer executing
     scoped_lock<mutex> _(&ti->ThreadPtr->DataMutex);
@@ -190,7 +191,7 @@ u32 __stdcall thread::wrapper_function(void *data) {
     return 0;
 }
 
-void thread::start(delegate<void(void *)> function, void *userData) {
+void thread::start(const delegate<void(void *)> &function, void *userData) {
     scoped_lock<mutex> _(&DataMutex);
 
     // Passed to the thread wrapper, which will eventually free it
@@ -214,6 +215,7 @@ void thread::start(delegate<void(void *)> function, void *userData) {
 #endif
     if (!Handle || (HANDLE) Handle == INVALID_HANDLE_VALUE) {
         NotAThread = true;
+        ti->Function.release();
         free(ti);
     }
 }

@@ -12,27 +12,27 @@ LSTD_BEGIN_NAMESPACE
 
 void d3d_init(graphics *g) {
     IDXGIFactory *factory;
-    DXCHECK(CreateDXGIFactory(__uuidof(IDXGIFactory), (void **) &factory));
+    DX_CHECK(CreateDXGIFactory(__uuidof(IDXGIFactory), (void **) &factory));
     defer(SAFE_RELEASE(factory));
 
     IDXGIAdapter *adapter;
-    DXCHECK(factory->EnumAdapters(0, &adapter));
+    DX_CHECK(factory->EnumAdapters(0, &adapter));
     defer(SAFE_RELEASE(adapter));
 
     IDXGIOutput *adapterOutput;
     defer(SAFE_RELEASE(adapterOutput));
-    DXCHECK(adapter->EnumOutputs(0, &adapterOutput));
+    DX_CHECK(adapter->EnumOutputs(0, &adapterOutput));
 
     u32 numModes = 0;
-    DXCHECK(adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, null));
+    DX_CHECK(adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes, null));
     assert(numModes);
 
     DXGI_MODE_DESC *displayModeList = allocate_array(DXGI_MODE_DESC, numModes, Context.TemporaryAlloc);
-    DXCHECK(adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes,
+    DX_CHECK(adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes,
                                               displayModeList));
 
     DXGI_ADAPTER_DESC adapterDesc;
-    DXCHECK(adapter->GetDesc(&adapterDesc));
+    DX_CHECK(adapter->GetDesc(&adapterDesc));
 
     auto adapterStr = string(c_string_length(adapterDesc.Description) * 2);  // @Bug c_string_length * 2 is not enough
     utf16_to_utf8(adapterDesc.Description, const_cast<char *>(adapterStr.Data), &adapterStr.ByteLength);
@@ -72,14 +72,14 @@ void d3d_init(graphics *g) {
         blendDest.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
         // @TODO blendDest.RenderTarget is an array of 8 targets
     }
-    DXCHECK(g->D3D.Device->CreateBlendState(&blendDest, &g->D3D.BlendStates[0]));
+    DX_CHECK(g->D3D.Device->CreateBlendState(&blendDest, &g->D3D.BlendStates[0]));
 
     zero_memory(&blendDest, sizeof(blendDest));
     {
         blendDest.RenderTarget[0].BlendEnable = false;
         blendDest.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     }
-    DXCHECK(g->D3D.Device->CreateBlendState(&blendDest, &g->D3D.BlendStates[1]));
+    DX_CHECK(g->D3D.Device->CreateBlendState(&blendDest, &g->D3D.BlendStates[1]));
 
     D3D11_DEPTH_STENCIL_DESC stencilDesc;
     zero_memory(&stencilDesc, sizeof(stencilDesc));
@@ -102,7 +102,7 @@ void d3d_init(graphics *g) {
         stencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
         stencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
     }
-    DXCHECK(g->D3D.Device->CreateDepthStencilState(&stencilDesc, &g->D3D.DepthStencilStates[0]));
+    DX_CHECK(g->D3D.Device->CreateDepthStencilState(&stencilDesc, &g->D3D.DepthStencilStates[0]));
 
     zero_memory(&stencilDesc, sizeof(stencilDesc));
     {
@@ -118,7 +118,7 @@ void d3d_init(graphics *g) {
         stencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
         stencilDesc.BackFace = stencilDesc.FrontFace;
     }
-    DXCHECK(g->D3D.Device->CreateDepthStencilState(&stencilDesc, &g->D3D.DepthStencilStates[1]));
+    DX_CHECK(g->D3D.Device->CreateDepthStencilState(&stencilDesc, &g->D3D.DepthStencilStates[1]));
 }
 
 void d3d_init_target_window(graphics *g, graphics::target_window *targetWindow) {
@@ -150,7 +150,7 @@ void d3d_init_target_window(graphics *g, graphics::target_window *targetWindow) 
     }
 
     IDXGIDevice *device;
-    DXCHECK(g->D3D.Device->QueryInterface(__uuidof(IDXGIDevice), (void **) &device));
+    DX_CHECK(g->D3D.Device->QueryInterface(__uuidof(IDXGIDevice), (void **) &device));
     defer(SAFE_RELEASE(device));
 
     IDXGIAdapter *adapter;
@@ -161,7 +161,7 @@ void d3d_init_target_window(graphics *g, graphics::target_window *targetWindow) 
     adapter->GetParent(__uuidof(IDXGIFactory), (void **) &factory);
     defer(SAFE_RELEASE(factory));
 
-    DXCHECK(factory->CreateSwapChain(g->D3D.Device, &desc, &targetWindow->D3D.SwapChain));
+    DX_CHECK(factory->CreateSwapChain(g->D3D.Device, &desc, &targetWindow->D3D.SwapChain));
 }
 
 void d3d_release_target_window(graphics *g, graphics::target_window *targetWindow) {
@@ -193,11 +193,11 @@ void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindo
     g->set_target_window(null);
     g->D3D.DeviceContext->Flush();
 
-    DXCHECK(targetWindow->D3D.SwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
+    DX_CHECK(targetWindow->D3D.SwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
 
     ID3D11Texture2D *swapChainBackBuffer;
-    DXCHECK(targetWindow->D3D.SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &swapChainBackBuffer));
-    DXCHECK(g->D3D.Device->CreateRenderTargetView(swapChainBackBuffer, null, &targetWindow->D3D.BackBuffer));
+    DX_CHECK(targetWindow->D3D.SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &swapChainBackBuffer));
+    DX_CHECK(g->D3D.Device->CreateRenderTargetView(swapChainBackBuffer, null, &targetWindow->D3D.BackBuffer));
     SAFE_RELEASE(swapChainBackBuffer);
 
     D3D11_TEXTURE2D_DESC textureDesc;
@@ -213,8 +213,8 @@ void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindo
         textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     }
 
-    DXCHECK(g->D3D.Device->CreateTexture2D(&textureDesc, null, &targetWindow->D3D.DepthStencilBuffer));
-    DXCHECK(g->D3D.Device->CreateDepthStencilView(targetWindow->D3D.DepthStencilBuffer, null,
+    DX_CHECK(g->D3D.Device->CreateTexture2D(&textureDesc, null, &targetWindow->D3D.DepthStencilBuffer));
+    DX_CHECK(g->D3D.Device->CreateDepthStencilView(targetWindow->D3D.DepthStencilBuffer, null,
                                                   &targetWindow->D3D.DepthStencilView));
 
     D3D11_RASTERIZER_DESC rDesc;
@@ -225,21 +225,21 @@ void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindo
         rDesc.ScissorEnable = true;
         rDesc.DepthClipEnable = true;
     }
-    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::None]));
+    DX_CHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::None]));
     {
         rDesc.FillMode = D3D11_FILL_SOLID;
         rDesc.CullMode = D3D11_CULL_FRONT;
         rDesc.ScissorEnable = true;
         rDesc.DepthClipEnable = true;
     }
-    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::Front]));
+    DX_CHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::Front]));
     {
         rDesc.FillMode = D3D11_FILL_SOLID;
         rDesc.CullMode = D3D11_CULL_BACK;
         rDesc.ScissorEnable = true;
         rDesc.DepthClipEnable = true;
     }
-    DXCHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::Back]));
+    DX_CHECK(g->D3D.Device->CreateRasterizerState(&rDesc, &targetWindow->D3D.RasterStates[(s64) cull::Back]));
 }
 
 void d3d_set_viewport(graphics *g, rect viewport) {

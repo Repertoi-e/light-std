@@ -178,7 +178,7 @@ void *allocator::general_allocate(s64 userSize, u32 alignment, u64 userFlags, co
 #if defined DEBUG_MEMORY
     s64 id = AllocationCount;
 
-    if (id == 100) {
+    if (id == 7136) {
         s32 k = 42;
     }
 #endif

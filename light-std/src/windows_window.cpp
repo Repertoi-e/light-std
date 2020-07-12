@@ -185,8 +185,7 @@ window *window::init(const string &title, s32 x, s32 y, s32 width, s32 height, u
     if (x == CENTERED) xpos = (os_get_primary_monitor()->CurrentMode.Width - fullSize.x) / 2;
     if (y == CENTERED) ypos = (os_get_primary_monitor()->CurrentMode.Height - fullSize.y) / 2;
 
-    PlatformData.Win32.hWnd = CreateWindowExW(exStyle, g_Win32WindowClassName, L"", style, xpos, ypos, fullSize.x,
-                                              fullSize.y, null, null, GetModuleHandleW(null), null);
+    PlatformData.Win32.hWnd = CreateWindowExW(exStyle, g_Win32WindowClassName, L"", style, xpos, ypos, fullSize.x, fullSize.y, null, null, GetModuleHandleW(null), null);
 
     if (!PlatformData.Win32.hWnd) {
         fmt::print("(windows_window.cpp): Failed to create window\n");
@@ -435,9 +434,7 @@ void window::set_title(const string &title) {
 static void fit_to_monitor(window *win) {
     MONITORINFO mi = {sizeof(mi)};
     GetMonitorInfo(win->Monitor->PlatformData.Win32.hMonitor, &mi);
-    SetWindowPos(win->PlatformData.Win32.hWnd, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top,
-                 mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top,
-                 SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS);
+    SetWindowPos(win->PlatformData.Win32.hWnd, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS);
 }
 
 void window::set_fullscreen(monitor *mon, s32 width, s32 height, s32 refreshRate) {
@@ -455,14 +452,12 @@ void window::set_fullscreen(monitor *mon, s32 width, s32 height, s32 refreshRate
             RECT rect = {0, 0, width, height};
 
             if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) {
-                AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this),
-                                         GetDpiForWindow(PlatformData.Win32.hWnd));
+                AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this), GetDpiForWindow(PlatformData.Win32.hWnd));
             } else {
                 AdjustWindowRectEx(&rect, get_window_style(this), false, get_window_ex_style(this));
             }
 
-            SetWindowPos(PlatformData.Win32.hWnd, HWND_TOP, rect.left, rect.top, rect.right - rect.left,
-                         rect.bottom - rect.top, SWP_NOCOPYBITS | SWP_NOACTIVATE | SWP_NOZORDER);
+            SetWindowPos(PlatformData.Win32.hWnd, HWND_TOP, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOCOPYBITS | SWP_NOACTIVATE | SWP_NOZORDER);
         }
         return;
     }
@@ -485,8 +480,7 @@ void window::set_fullscreen(monitor *mon, s32 width, s32 height, s32 refreshRate
 
         MONITORINFO mi = {sizeof(mi)};
         GetMonitorInfoW(Monitor->PlatformData.Win32.hMonitor, &mi);
-        SetWindowPos(PlatformData.Win32.hWnd, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top,
-                     mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, flags);
+        SetWindowPos(PlatformData.Win32.hWnd, HWND_TOPMOST, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, flags);
     } else {
         UINT flags = SWP_NOACTIVATE | SWP_NOCOPYBITS;
         if (!(Flags & BORDERLESS)) {
@@ -507,14 +501,12 @@ void window::set_fullscreen(monitor *mon, s32 width, s32 height, s32 refreshRate
 
         RECT rect = {0, 0, width, height};
         if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) {
-            AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this),
-                                     GetDpiForWindow(PlatformData.Win32.hWnd));
+            AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this), GetDpiForWindow(PlatformData.Win32.hWnd));
         } else {
             AdjustWindowRectEx(&rect, get_window_style(this), false, get_window_ex_style(this));
         }
 
-        SetWindowPos(PlatformData.Win32.hWnd, after, rect.left, rect.top, rect.right - rect.left,
-                     rect.bottom - rect.top, flags);
+        SetWindowPos(PlatformData.Win32.hWnd, after, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, flags);
     }
 }
 
@@ -726,8 +718,7 @@ void window::set_pos(vec2<s32> pos) {
     RECT rect = {pos.x, pos.y, pos.x, pos.y};
 
     if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) {
-        AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this),
-                                 GetDpiForWindow(PlatformData.Win32.hWnd));
+        AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this), GetDpiForWindow(PlatformData.Win32.hWnd));
     } else {
         AdjustWindowRectEx(&rect, get_window_style(this), false, get_window_ex_style(this));
     }
@@ -755,14 +746,12 @@ void window::set_size(vec2<s32> size) {
         RECT rect = {0, 0, size.x, size.y};
 
         if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) {
-            AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this),
-                                     GetDpiForWindow(PlatformData.Win32.hWnd));
+            AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this), GetDpiForWindow(PlatformData.Win32.hWnd));
         } else {
             AdjustWindowRectEx(&rect, get_window_style(this), false, get_window_ex_style(this));
         }
 
-        SetWindowPos(PlatformData.Win32.hWnd, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top,
-                     SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
+        SetWindowPos(PlatformData.Win32.hWnd, HWND_TOP, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOZORDER);
     }
 }
 
@@ -775,8 +764,7 @@ rect window::get_adjusted_bounds() {
     SetRect(&rect, 0, 0, size.x, size.y);
 
     if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) {
-        AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this),
-                                 GetDpiForWindow(PlatformData.Win32.hWnd));
+        AdjustWindowRectExForDpi(&rect, get_window_style(this), false, get_window_ex_style(this), GetDpiForWindow(PlatformData.Win32.hWnd));
     } else {
         AdjustWindowRectEx(&rect, get_window_style(this), false, get_window_ex_style(this));
     }
@@ -912,8 +900,7 @@ static void update_window_style(window *win) {
     GetClientRect(win->PlatformData.Win32.hWnd, &rect);
 
     if (IS_WINDOWS_10_ANNIVERSARY_UPDATE_OR_GREATER()) {
-        AdjustWindowRectExForDpi(&rect, style, false, get_window_ex_style(win),
-                                 GetDpiForWindow(win->PlatformData.Win32.hWnd));
+        AdjustWindowRectExForDpi(&rect, style, false, get_window_ex_style(win), GetDpiForWindow(win->PlatformData.Win32.hWnd));
     } else {
         AdjustWindowRectEx(&rect, style, false, get_window_ex_style(win));
     }
@@ -921,8 +908,7 @@ static void update_window_style(window *win) {
     ClientToScreen(win->PlatformData.Win32.hWnd, (POINT *) &rect.left);
     ClientToScreen(win->PlatformData.Win32.hWnd, (POINT *) &rect.right);
     SetWindowLongW(win->PlatformData.Win32.hWnd, GWL_STYLE, style);
-    SetWindowPos(win->PlatformData.Win32.hWnd, HWND_TOP, rect.left, rect.top, rect.right - rect.left,
-                 rect.bottom - rect.top, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER);
+    SetWindowPos(win->PlatformData.Win32.hWnd, HWND_TOP, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOZORDER);
 }
 
 void window::set_borderless(bool enabled) {
@@ -1166,9 +1152,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             }
             if (!anyPressed) SetCapture(hWnd);
 
-            do_mouse_input_event(win, button, pressed,
-                                 message == WM_LBUTTONDBLCLK || message == WM_RBUTTONDBLCLK ||
-                                     message == WM_MBUTTONDBLCLK || message == WM_XBUTTONDBLCLK);
+            do_mouse_input_event(win, button, pressed, message == WM_LBUTTONDBLCLK || message == WM_RBUTTONDBLCLK || message == WM_MBUTTONDBLCLK || message == WM_XBUTTONDBLCLK);
 
             anyPressed = false;
             For(range(Mouse_Button_Last + 1)) {
@@ -1429,10 +1413,8 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 RECT target{};
                 SIZE *size = (SIZE *) lParam;
 
-                AdjustWindowRectExForDpi(&source, get_window_style(win), false, get_window_ex_style(win),
-                                         GetDpiForWindow(win->PlatformData.Win32.hWnd));
-                AdjustWindowRectExForDpi(&target, get_window_style(win), false, get_window_ex_style(win),
-                                         LOWORD(wParam));
+                AdjustWindowRectExForDpi(&source, get_window_style(win), false, get_window_ex_style(win), GetDpiForWindow(win->PlatformData.Win32.hWnd));
+                AdjustWindowRectExForDpi(&target, get_window_style(win), false, get_window_ex_style(win), LOWORD(wParam));
 
                 size->cx += (target.right - target.left) - (source.right - source.left);
                 size->cy += (target.bottom - target.top) - (source.bottom - source.top);
@@ -1448,9 +1430,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             // sent a WM_GETDPISCALEDSIZE before this
             if (IS_WINDOWS_10_CREATORS_UPDATE_OR_GREATER()) {
                 RECT *suggested = (RECT *) lParam;
-                SetWindowPos(win->PlatformData.Win32.hWnd, HWND_TOP, suggested->left, suggested->top,
-                             suggested->right - suggested->left, suggested->bottom - suggested->top,
-                             SWP_NOACTIVATE | SWP_NOZORDER);
+                SetWindowPos(win->PlatformData.Win32.hWnd, HWND_TOP, suggested->left, suggested->top, suggested->right - suggested->left, suggested->bottom - suggested->top, SWP_NOACTIVATE | SWP_NOZORDER);
             }
             event e;
             e.Window = win;
@@ -1505,8 +1485,8 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
 
 void win32_register_window_class() {
     GUID guid;
-    CHECKHR(CoCreateGuid(&guid));
-    CHECKHR(StringFromCLSID(guid, &g_Win32WindowClassName));
+    WINDOWS_CHECKHR(CoCreateGuid(&guid));
+    WINDOWS_CHECKHR(StringFromCLSID(guid, &g_Win32WindowClassName));
 
     WNDCLASSEXW wc;
     zero_memory(&wc, sizeof(wc));
@@ -1519,8 +1499,7 @@ void win32_register_window_class() {
         wc.lpszClassName = g_Win32WindowClassName;
 
         // Load user-provided icon if available
-        wc.hIcon =
-            (HICON) LoadImageW(GetModuleHandleW(null), L"WINDOW ICON", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+        wc.hIcon = (HICON) LoadImageW(GetModuleHandleW(null), L"WINDOW ICON", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
         if (!wc.hIcon) {
             // No user-provided icon found, load default icon
             wc.hIcon = (HICON) LoadImageW(null, IDI_APPLICATION, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);

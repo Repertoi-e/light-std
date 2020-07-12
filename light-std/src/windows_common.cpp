@@ -420,10 +420,7 @@ void *os_resize_block(void *ptr, s64 newSize) {
     if (newSize < oldSize && !is_contraction_possible(oldSize)) return ptr;
 
     if (reportError) {
-        windows_report_hresult_error(
-            HRESULT_FROM_WIN32(GetLastError()),
-            "HeapReAlloc(GetProcessHeap(), HEAP_REALLOC_IN_PLACE_ONLY | HEAP_GENERATE_EXCEPTIONS, ptr, newSize)",
-            __FILE__, __LINE__);
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "HeapReAlloc", __FILE__, __LINE__);
     }
     return null;
 }
@@ -431,8 +428,7 @@ void *os_resize_block(void *ptr, s64 newSize) {
 s64 os_get_block_size(void *ptr) {
     s64 result = HeapSize(GetProcessHeap(), 0, ptr);
     if (result == -1) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "HeapSize(GetProcessHeap(), 0, ptr)", __FILE__,
-                                     __LINE__);
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "HeapSize", __FILE__, __LINE__);
         return 0;
     }
     return result;
@@ -458,8 +454,7 @@ void os_write_shared_block(const string &name, void *data, s64 size) {
 
     void *result = MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size);
     if (!result) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size)",
-                                     __FILE__, __LINE__);
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "MapViewOfFile", __FILE__, __LINE__);
         return;
     }
     copy_memory(result, data, size);
@@ -476,8 +471,7 @@ void os_read_shared_block(const string &name, void *out, s64 size) {
 
     void *result = MapViewOfFile(h, FILE_MAP_READ, 0, 0, size);
     if (!result) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "MapViewOfFile(h, FILE_MAP_READ, 0, 0, size)",
-                                     __FILE__, __LINE__);
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "MapViewOfFile", __FILE__, __LINE__);
         return;
     }
 
@@ -486,10 +480,7 @@ void os_read_shared_block(const string &name, void *out, s64 size) {
 }
 
 void os_free_block(void *ptr) {
-    if (!HeapFree(GetProcessHeap(), 0, ptr)) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "HeapFree(GetProcessHeap(), 0, ptr)", __FILE__,
-                                     __LINE__);
-    }
+    WINDOWS_CHECKBOOL(HeapFree(GetProcessHeap(), 0, ptr));
 }
 
 void os_exit(s32 exitCode) { ExitProcess(exitCode); }
@@ -511,8 +502,7 @@ string os_get_working_dir() {
     auto *dir16 = allocate_array(wchar_t, required + 1, Context.TemporaryAlloc);
 
     if (!GetCurrentDirectoryW(required + 1, dir16)) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW(required, dir16)",
-                                     __FILE__, __LINE__);
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW", __FILE__, __LINE__);
         return "";
     }
     WorkingDir.reserve(required * 2);  // @Bug required * 2 is not enough
@@ -531,10 +521,7 @@ void os_set_working_dir(const string &dir) {
     auto *dir16 = allocate_array(wchar_t, dir.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(dir.Data, dir.Length, dir16);
 
-    if (!SetCurrentDirectoryW(dir16)) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW(required, dir16)",
-                                     __FILE__, __LINE__);
-    }
+    WINDOWS_CHECKBOOL(SetCurrentDirectoryW(dir16));
 }
 
 pair<bool, string> os_get_env(const string &name, bool silent) {
@@ -593,10 +580,7 @@ void os_set_env(const string &name, const string &value) {
         // The docs say windows doesn't allow that but we should test it.
     }
 
-    if (!SetEnvironmentVariableW(name16, value16)) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
-                                     "SetEnvironmentVariableW(LPCTSTR lpName, LPCTSTR lpValue)", __FILE__, __LINE__);
-    }
+    WINDOWS_CHECKBOOL(SetEnvironmentVariableW(name16, value16));
 }
 
 void os_remove_env(const string &name) {
@@ -604,10 +588,7 @@ void os_remove_env(const string &name) {
     auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(name.Data, name.Length, name16);
 
-    if (!SetEnvironmentVariableW(name16, null)) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
-                                     "SetEnvironmentVariableW(LPCTSTR lpName, LPCTSTR lpValue)", __FILE__, __LINE__);
-    }
+    WINDOWS_CHECKBOOL(SetEnvironmentVariableW(name16, null));
 }
 
 // Doesn't include the exe name.

@@ -24,7 +24,7 @@ void d3d_texture_2D_init(texture_2D *t) {
         textureDesc.SampleDesc.Count = 1;
         textureDesc.SampleDesc.Quality = 0;
     }
-    DXCHECK(t->Graphics->D3D.Device->CreateTexture2D(&textureDesc, null, &t->D3D.Texture));
+    DX_CHECK(t->Graphics->D3D.Device->CreateTexture2D(&textureDesc, null, &t->D3D.Texture));
 
     D3D11_SHADER_RESOURCE_VIEW_DESC rvDesc;
     zero_memory(&rvDesc, sizeof(rvDesc));
@@ -33,7 +33,7 @@ void d3d_texture_2D_init(texture_2D *t) {
         rvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         rvDesc.Texture2D.MipLevels = 1;
     }
-    DXCHECK(t->Graphics->D3D.Device->CreateShaderResourceView(t->D3D.Texture, &rvDesc, &t->D3D.ResourceView));
+    DX_CHECK(t->Graphics->D3D.Device->CreateShaderResourceView(t->D3D.Texture, &rvDesc, &t->D3D.ResourceView));
 
     if (t->RenderTarget) {
         D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
@@ -42,7 +42,7 @@ void d3d_texture_2D_init(texture_2D *t) {
             rtvDesc.Format = textureDesc.Format;
             rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
         }
-        DXCHECK(t->Graphics->D3D.Device->CreateRenderTargetView(t->D3D.Texture, &rtvDesc, &t->D3D.RenderTargetView));
+        DX_CHECK(t->Graphics->D3D.Device->CreateRenderTargetView(t->D3D.Texture, &rtvDesc, &t->D3D.RenderTargetView));
 
         D3D11_TEXTURE2D_DESC dsbDesc;
         zero_memory(&dsbDesc, sizeof(dsbDesc));
@@ -57,8 +57,8 @@ void d3d_texture_2D_init(texture_2D *t) {
             dsbDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
         }
 
-        DXCHECK(t->Graphics->D3D.Device->CreateTexture2D(&dsbDesc, null, &t->D3D.DepthStencilBuffer));
-        DXCHECK(
+        DX_CHECK(t->Graphics->D3D.Device->CreateTexture2D(&dsbDesc, null, &t->D3D.DepthStencilBuffer));
+        DX_CHECK(
             t->Graphics->D3D.Device->CreateDepthStencilView(t->D3D.DepthStencilBuffer, null, &t->D3D.DepthStencilView));
     }
 
@@ -81,7 +81,7 @@ void d3d_texture_2D_init(texture_2D *t) {
         samplerDesc.MinLOD = 0;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
     }
-    DXCHECK(t->Graphics->D3D.Device->CreateSamplerState(&samplerDesc, &t->D3D.SamplerState));
+    DX_CHECK(t->Graphics->D3D.Device->CreateSamplerState(&samplerDesc, &t->D3D.SamplerState));
 }
 
 void d3d_texture_2D_set_data(texture_2D *t, pixel_buffer data) {
@@ -91,7 +91,7 @@ void d3d_texture_2D_set_data(texture_2D *t, pixel_buffer data) {
     D3D11_MAPPED_SUBRESOURCE mappedData;
     zero_memory(&mappedData, sizeof(mappedData));
 
-    DXCHECK(t->Graphics->D3D.DeviceContext->Map(t->D3D.Texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
+    DX_CHECK(t->Graphics->D3D.DeviceContext->Map(t->D3D.Texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedData));
 
     s64 sourceRow = t->Width * data.BPP;
 

@@ -68,9 +68,7 @@ TEST(insert) {
 
     a.insert(5, " world");
     assert_eq(a, "Hello world Hello");
-
-    string b;
-    clone(&b, a);
+    a.release();
 }
 
 TEST(remove) {
@@ -87,10 +85,12 @@ TEST(remove) {
     assert_eq(a, "lo worl");
     a.remove(-2);
     assert_eq(a, "lo wol");
+    a.release();
 
     a = "Hello world";
     a.remove(0, 5);
     assert_eq(a, " world");
+    a.release();
 }
 
 TEST(trim) {
@@ -125,6 +125,7 @@ TEST(set) {
     assert_eq(a.get(0), 'a');
     assert_eq(a.get(1), 'b');
     assert_eq(a.get(2), 'c');
+    a.release();
 
     a = "aDc";
     a[-2] = 'b';
@@ -141,6 +142,7 @@ TEST(set) {
     a[-2] = U'\U00020731';
     a[-1] = U'\U00020779';
     assert_eq(a, u8"\U0002070E\U00020731\U00020779");
+    a.release();
 }
 
 TEST(iterator) {
@@ -177,6 +179,7 @@ TEST(append) {
         result.append(" world!");
 
         assert_eq(result, "Hello, world!");
+        result.release();
     }
     {
         string a = "Hello";
@@ -186,6 +189,7 @@ TEST(append) {
         result.append(a)->append(b)->append(c);
 
         assert_eq(result, "Hello, world!");
+        result.release();
     }
 
     string result;
@@ -200,6 +204,7 @@ TEST(append) {
         assert_eq(result.ByteLength, 2 * (it + 1));
         assert_eq(result.Length, it + 1);
     }
+    result.release();
 }
 
 TEST(count) {
@@ -215,11 +220,12 @@ TEST(builder) {
     builder.append_pointer_and_size(",THIS IS GARBAGE", 1);
     builder.append(string(" world"));
     builder.append('!');
+    defer(builder.release());
 
     string result;
     result = builder.combine();
+    defer(result.release());
     assert_eq(result, "Hello, world!");
-    result.release();
 }
 
 TEST(remove_all) {
@@ -228,22 +234,27 @@ TEST(remove_all) {
 
     b.remove_all('l');
     assert_eq(b, "Heo word!");
+    b.release();
 
     b = a;
     b.remove_all("ll");
     assert_eq(b, "Heo world!");
+    b.release();
 
     b = a;
     a.remove_all("x");
     assert_eq(b, a);
+    b.release();
 
     b = "llHello world!ll";
     b.remove_all('l');
     assert_eq(b, "Heo word!");
+    b.release();
 
     b = "llHello world!ll";
     b.remove_all("ll");
     assert_eq(b, "Heo world!");
+    b.release();
 }
 
 TEST(replace_all) {
@@ -252,32 +263,41 @@ TEST(replace_all) {
 
     b.replace_all("l", "ll");
     assert_eq(b, "Hellllo worlld!");
+    b.release();
 
     b = a;
     b.replace_all("l", "");
+
     string c = a;
     c.remove_all('l');
     assert_eq(b, c);
+    b.release();
+    c.release();
 
     b = a;
     b.replace_all("x", "");
     assert_eq(b, a);
+    b.release();
 
     b = a;
     b.replace_all("Hello", "olleH");
     assert_eq(b, "olleH world!");
+    b.release();
 
     b = a = "llHello world!ll";
     b.replace_all("ll", "l");
     assert_eq(b, "lHelo world!l");
+    b.release();
 
     b = a;
     b.replace_all("l", "ll");
     assert_eq(b, "llllHellllo worlld!llll");
+    b.release();
 
     b = a;
     b.replace_all("l", "K");
     assert_eq(b, "KKHeKKo worKd!KK");
+    b.release();
 }
 
 TEST(find) {

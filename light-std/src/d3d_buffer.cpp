@@ -39,7 +39,7 @@ void d3d_buffer_init(buffer *b, const char *data) {
 
     auto *srDataPtr = &srData;
     if (!data) srDataPtr = null;
-    DXCHECK(b->Graphics->D3D.Device->CreateBuffer(&desc, srDataPtr, &b->D3D.Buffer));
+    DX_CHECK(b->Graphics->D3D.Device->CreateBuffer(&desc, srDataPtr, &b->D3D.Buffer));
 }
 
 DXGI_FORMAT gtype_and_count_to_dxgi_format(gtype type, s64 count, bool normalized) {
@@ -118,7 +118,7 @@ void d3d_buffer_set_input_layout(buffer *b, buffer_layout layout) {
     }
 
     auto *vs = (ID3DBlob *) b->Graphics->CurrentlyBoundShader->D3D.VSBlob;
-    DXCHECK(b->Graphics->D3D.Device->CreateInputLayout(desc, (u32) layout.Elements.Count, vs->GetBufferPointer(),
+    DX_CHECK(b->Graphics->D3D.Device->CreateInputLayout(desc, (u32) layout.Elements.Count, vs->GetBufferPointer(),
                                                        vs->GetBufferSize(), &b->D3D.Layout));
 }
 
@@ -130,7 +130,7 @@ void *d3d_buffer_map(buffer *b, buffer_map_access access) {
     if (access == buffer_map_access::Write_Discard_Previous) d3dMap = D3D11_MAP_WRITE_DISCARD;
     if (access == buffer_map_access::Write_Unsynchronized) d3dMap = D3D11_MAP_WRITE_NO_OVERWRITE;
 
-    DXCHECK(b->Graphics->D3D.DeviceContext->Map(b->D3D.Buffer, 0, d3dMap, 0,
+    DX_CHECK(b->Graphics->D3D.DeviceContext->Map(b->D3D.Buffer, 0, d3dMap, 0,
                                                 (D3D11_MAPPED_SUBRESOURCE *) &b->D3D.MappedData));
     return ((D3D11_MAPPED_SUBRESOURCE *) (&b->D3D.MappedData))->pData;
 }

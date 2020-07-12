@@ -59,6 +59,8 @@ TEST(array) {
 
 TEST(table) {
     table<string, s32> t;
+    defer(t.release());
+
     t.set("1", 1);
     t.set("4", 4);
     t.set("9", 10101);
@@ -93,12 +95,16 @@ TEST(table) {
 
 TEST(table_clone) {
     table<string, s32> t;
+    defer(t.release());
+
     t.set("1", 1);
     t.set("4", 4);
     t.set("9", 9);
 
     table<string, s32> copy;
     clone(&copy, t);
+    defer(copy.release());
+
     copy.set("11", 20);
 
     s64 loopIterations = 0;
@@ -109,8 +115,8 @@ TEST(table_clone) {
 
         ++loopIterations;
     }
-    assert_eq(loopIterations, t.Count)
+    assert_eq(loopIterations, t.Count);
 
-        assert_eq(t.Count, 3);
+    assert_eq(t.Count, 3);
     assert_eq(copy.Count, 4);
 }

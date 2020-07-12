@@ -230,7 +230,6 @@ bool handle::write_to_file(const string &contents, write_mode mode) const {
 }
 
 void handle::iterator::read_next_entry() {
-    string fileName;
     do {
         if (!Handle) {
             file::path queryPath;
@@ -245,21 +244,19 @@ void handle::iterator::read_next_entry() {
             CREATE_FILE_HANDLE_CHECKED(file, FindFirstFileW(query, (WIN32_FIND_DATAW *) PlatformFileInfo), ;);
             Handle = (void *) file;
         } else {
-            if (!FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo)) {
-                if (GetLastError() != ERROR_NO_MORE_FILES) {
-                    windows_report_hresult_error(
-                        HRESULT_FROM_WIN32(GetLastError()),
-                        "FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo)", __FILE__, __LINE__);
-                }
-                if (Handle != INVALID_HANDLE_VALUE) {
-                    if (!FindClose((HANDLE) Handle)) {
-                        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "FindClose((HANDLE) Handle)",
-                                                     __FILE__, __LINE__);
-                    }
-                }
-                Handle = null;
-                return;
-            }
+#define CHECK_FIND_NEXT(call)                                                                            \
+    if (!call) {                                                                                         \
+        if (GetLastError() != ERROR_NO_MORE_FILES) {                                                     \
+            windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), #call, __FILE__, __LINE__); \
+        }                                                                                                \
+        if (Handle != INVALID_HANDLE_VALUE) {                                                            \
+            WINDOWS_CHECKBOOL(FindClose((HANDLE) Handle));                                               \
+        }                                                                                                \
+                                                                                                         \
+        Handle = null;                                                                                   \
+        return;                                                                                          \
+    }
+            CHECK_FIND_NEXT(FindNextFileW((HANDLE) Handle, (WIN32_FIND_DATAW *) PlatformFileInfo));
         }
         ++Index;
 
