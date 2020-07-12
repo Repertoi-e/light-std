@@ -97,8 +97,6 @@ void load_python_demo(const string &demo) {
     filePath.combine_with(demo);
 
     auto handle = file::handle(filePath);
-    defer(handle.release());
-
     if (!handle.is_file()) {
         fmt::print(">>>\n>>> Couldn't find file {!YELLOW}\"{}\"{!}.({!GRAY}\"{}\"{!})\n", filePath);
         return;
@@ -145,7 +143,6 @@ void refresh_python_demo_files() {
     GameState->PyDemoFiles.reset();
 
     auto h = file::handle(scripts);
-    defer(h.release());
     if (!h.is_directory()) {
         GameState->PyLoaded = false;
         fmt::print(
@@ -157,10 +154,11 @@ void refresh_python_demo_files() {
         return;
     }
 
-    h.traverse([](file::path file) {
+    auto callback = [](file::path file) {
         if (file.base_name().begins_with("demo_") && file.extension() == ".py")
             clone(GameState->PyDemoFiles.append(), file.file_name());
-    });
+    };
+    h.traverse(&callback);
 
     if (GameState->PyDemoFiles.Count == 0) {
         fmt::print(">>>\n>>> Couldn't find any demo files in {!YELLOW}\"data/scripts\"{!}. ({!GRAY}\"{}\"{!})\n",

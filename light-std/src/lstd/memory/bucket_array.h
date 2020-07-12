@@ -1,7 +1,6 @@
 #pragma once
 
 #include "array.h"
-#include "delegate.h"
 
 template <typename T, s64 ElementsPerBucket = 128>
 struct bucket_array : non_copyable, non_movable, non_assignable {
@@ -24,7 +23,7 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
     }
 
     // Search based on predicate
-    T *find(delegate<bool(T *)> predicate) {
+    T *find(const delegate<bool(T *)> &predicate) {
         auto *b = BucketList;
         while (b) {
             auto index = b->Assets.find(predicate);
@@ -35,7 +34,7 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
     }
 
     template <typename U>
-    T *find_or_create(const U &toMatch, delegate<U(T *)> map, allocator alloc = {}) {
+    T *find_or_create(const U &toMatch, const delegate<U(T *)> &map, allocator alloc = {}) {
         if (!alloc) alloc = Context.Alloc;
 
         T *result = find([&](T *element) { return map(element) == toMatch; });

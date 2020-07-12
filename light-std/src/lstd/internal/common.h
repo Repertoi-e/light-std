@@ -690,7 +690,7 @@ struct delegate;
 
 // Schedule a function to run when this library uninitializes - before any global C++ destructors are called
 // and before the CRT (if we are using it) unitializes
-void run_at_exit(delegate<void()> function);
+void run_at_exit(const delegate<void()> &function);
 
 LSTD_END_NAMESPACE
 

@@ -3,7 +3,6 @@
 /// Provides a string type
 
 #include "../memory/allocator.h"
-#include "owner_pointers.h"
 #include "string_utils.h"
 
 LSTD_BEGIN_NAMESPACE

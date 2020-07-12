@@ -19,7 +19,8 @@ void graphics::init(graphics_api api) {
     }
     Impl.Init(this);
 
-    if (TargetWindows.find([](auto x) { return !x.Window; }) == -1) TargetWindows.append();  // Add a null target
+    auto predicate = [](auto x) { return !x.Window; };
+    if (TargetWindows.find(&predicate) == -1) TargetWindows.append();  // Add a null target
     set_target_window(null);
 }
 
@@ -28,7 +29,9 @@ void graphics::init(graphics_api api) {
 // target window, and that window is associated with the resources which get created.
 
 void graphics::set_target_window(window *win) {
-    s64 index = TargetWindows.find([&](auto x) { return x.Window == win; });
+    auto predicate = [&](auto x) { return x.Window == win; };
+    s64 index = TargetWindows.find(&predicate);
+
     target_window *targetWindow;
     if (index == -1) {
         targetWindow = TargetWindows.append();
@@ -121,7 +124,8 @@ void graphics::swap() {
 
 bool graphics::window_event_handler(const event &e) {
     if (e.Type == event::Window_Closed) {
-        s64 index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
+        auto predicate = [&](auto x) { return x.Window == e.Window; };
+        s64 index = TargetWindows.find(&predicate);
         assert(index != -1);
 
         target_window *targetWindow = &TargetWindows[index];
@@ -130,7 +134,8 @@ bool graphics::window_event_handler(const event &e) {
 
         TargetWindows.remove(index);
     } else if (e.Type == event::Window_Resized) {
-        s64 index = TargetWindows.find([&](auto x) { return x.Window == e.Window; });
+        auto predicate = [&](auto x) { return x.Window == e.Window; };
+        s64 index = TargetWindows.find(&predicate);
         assert(index != -1);
 
         if (!e.Window->is_visible()) return false;

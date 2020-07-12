@@ -119,18 +119,18 @@ TEST(context) {
 
     auto differentAlloc = Context.TemporaryAlloc;
     WITH_CONTEXT_VAR(Alloc, differentAlloc) {
-        thread::thread t1(
-            [&](void *) {
-                assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
-                []() {
-                    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
-                        assert_eq((void *) Context.Alloc.Function, (void *) Context.TemporaryAlloc.Function);
-                        return;
-                    }
-                }();
-                assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
-            },
-            null);
+        auto threadFunction = [&](void *) {
+            assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
+            []() {
+                WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
+                    assert_eq((void *) Context.Alloc.Function, (void *) Context.TemporaryAlloc.Function);
+                    return;
+                }
+            }();
+            assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
+        };
+
+        thread::thread t1(&threadFunction, null);
         t1.join();
     }
     assert_eq((void *) Context.Alloc.Function, (void *) old);

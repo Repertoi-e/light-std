@@ -57,11 +57,18 @@ TEST(member_function_delegate) {
     assert_eq(delegate0(20), myStruct.value + 20);
 }
 
-TEST(lambda_delegate) {
+struct functor_test {
     s32 i = 0;
-    auto delegate0 = delegate<s32()>([&]() {
+
+    s32 operator()() {
         i = 20;
         return i;
-    });
-    assert_eq(delegate0(), i);
+    }
+};
+
+TEST(functor_delegate) {
+    functor_test functor;
+
+    auto delegate0 = delegate<s32()>(&functor);
+    assert_eq(delegate0(), functor.i);
 }

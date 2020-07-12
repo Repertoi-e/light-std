@@ -66,23 +66,25 @@ static window *DisabledCursorWindow = null;
 static vec2<s32> RestoreCursorPos = {no_init};
 
 static window *WindowsList = null;
-cursor *CursorsList = null;
+static cursor *CursorsList = null;
 
 wchar_t *g_Win32WindowClassName = null;
 
-void win32_window_init() {
-    g_MonitorEvent.connect([](const monitor_event &e) {
-        if (e.Action == monitor_event::CONNECTED) return;
+static auto MonitorCallback = [](const monitor_event &e) {
+    if (e.Action == monitor_event::CONNECTED) return;
 
-        window *win = WindowsList;
-        while (win) {
-            if (win->Monitor == e.Monitor) {
-                vec2<s32> size = win->get_size();
-                win->set_fullscreen(null, size.x, size.y);
-            }
-            win = win->Next;
+    window *win = WindowsList;
+    while (win) {
+        if (win->Monitor == e.Monitor) {
+            vec2<s32> size = win->get_size();
+            win->set_fullscreen(null, size.x, size.y);
         }
-    });
+        win = win->Next;
+    }
+};
+
+void win32_window_init() {
+    g_MonitorEvent.connect(&MonitorCallback);
 }
 
 void win32_window_uninit() {

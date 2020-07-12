@@ -1,255 +1,166 @@
 #pragma once
 
 #include "../internal/common.h"
-#include "owner_pointers.h"
 
 LSTD_BEGIN_NAMESPACE
+
+//
+// This file is a modified implementation of a delegate by Vadim Karkhin.
+// https://github.com/tarigo/delegate
+//
+// Here is the license that came with it:
+//
+// The MIT License (MIT)
+//
+// Copyright (c) 2015 Vadim Karkhin
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
 
 template <typename T>
 struct delegate;
 
+// This is an object which can store a global function, a method (binded to some instance), or a functor / lambda.
+// It doesn't allocate any dynamic memory.
 template <typename R, typename... A>
 struct delegate<R(A...)> {
-    using stub_t = R (*)(void *, A &&...);
     using return_t = R;
 
-    void *ObjectPtr = null;
-    stub_t StubPtr = null;
+    template <typename Class, typename Signature>
+    struct target {
+        Class *InstancePtr;
+        Signature FunctionPtr;
+    };
 
-    char *Store = null;
-    s64 StoreSize = 0;
+    struct default_class;                                          // Unknown default class (undefined)
+    using default_function = void (default_class::*)(void);        // Unknown default function (undefined)
+    using default_type = target<default_class, default_function>;  // Default target type
 
-    using destructor_caller_t = void (*)(void *);
-    destructor_caller_t DestructorCaller = null;
+    static const s64 TargetSize = sizeof(default_type);  // Size of default target data
 
-    template <typename T>
-    static void destructor_caller_stub(void *p) {
-        ((T *) p)->~T();
+    alignas(default_type) char Storage[TargetSize]{};
+
+    using stub_t = R (*)(void *, A &&...);
+    alignas(stub_t) stub_t Invoker = null;
+
+    // Invoke static method / free function
+    template <nullptr_t, typename Signature>
+    static R invoke(void *data, A &&... args) {
+        return (*reinterpret_cast<const target<nullptr_t, Signature> *>(data)->FunctionPtr)((A &&)(args)...);
+    }
+
+    // Invoke method
+    template <typename Class, typename Signature>
+    static R invoke(void *data, A &&... args) {
+        return (reinterpret_cast<const target<Class, Signature> *>(data)->InstancePtr->*reinterpret_cast<const target<Class, Signature> *>(data)->FunctionPtr)((A &&)(args)...);
+    }
+
+    // Invoke function object (functor)
+    template <typename Class, nullptr_t>
+    static R invoke(void *data, A &&... args) {
+        return (*reinterpret_cast<const target<Class, nullptr_t> *>(data)->InstancePtr)((A &&)(args)...);
     }
 
     delegate() = default;
+
+    // Construct from null
     delegate(nullptr_t) {}
 
-    template <typename C, typename = typename enable_if<is_class<C>{}>::type>
-    explicit delegate(const C *o) : ObjectPtr((C *) o) {}
+    // Construct delegate with static method / free function
+    delegate(R (*function)(A...)) {
+        using Signature = decltype(function);
 
-    template <typename C, typename = typename enable_if<is_class<C>{}>::type>
-    explicit delegate(const C &o) : ObjectPtr((C *) &o) {}
-
-    template <typename C>
-    delegate(C *objectPtr, R (C::*const method_ptr)(A...)) {
-        *this = from(objectPtr, method_ptr);
+        auto storage = (target<nullptr_t, Signature> *) &Storage[0];
+        storage->InstancePtr = null;
+        storage->FunctionPtr = function;
+        Invoker = &delegate::invoke<null, Signature>;
     }
 
-    template <typename C>
-    delegate(C *objectPtr, R (C::*const method_ptr)(A...) const) {
-        *this = from(objectPtr, method_ptr);
+    // Construct delegate with method
+    template <typename Class, typename Signature>
+    delegate(Class *object, Signature method) {
+        auto storage = (target<Class, Signature> *) &Storage[0];
+        storage->InstancePtr = object;
+        storage->FunctionPtr = method;
+        Invoker = &delegate::invoke<Class, Signature>;
     }
 
-    template <typename C>
-    delegate(C &object, R (C::*const method_ptr)(A...)) {
-        *this = from(object, method_ptr);
+    // Construct delegate with function object (functor) / lambda
+    template <typename Class>
+    delegate(Class *functor) {
+        auto storage = (target<Class, nullptr_t> *) &Storage[0];
+        storage->InstancePtr = functor;
+        storage->FunctionPtr = null;
+        Invoker = &delegate::invoke<Class, null>;
     }
 
-    template <typename C>
-    delegate(const C &object, R (C::*const method_ptr)(A...) const) {
-        *this = from(object, method_ptr);
-    }
-
-    template <typename T, typename = typename enable_if<!is_same<delegate, decay_t<T>>{}>::type>
-    delegate(T &&f) {
-        using functor_type = decay_t<T>;
-
-        StoreSize = sizeof(functor_type);
-
-        // We can't include allocator.h here without creating a circular dependency.
-        ObjectPtr = Store = (char *) Context.Alloc.general_allocate(StoreSize, 0, 0, __FILE__, __LINE__);
-        encode_owner(Store, this);
-        new (ObjectPtr) functor_type((T &&) f);
-
-        StubPtr = functor_stub<functor_type>;
-        DestructorCaller = destructor_caller_stub<functor_type>;
-    }
-
-    template <typename C>
-    delegate &operator=(R (C::*const rhs)(A...)) {
-        return *this = from((C *) ObjectPtr, rhs);
-    }
-
-    template <typename C>
-    delegate &operator=(R (C::*const rhs)(A...) const) {
-        return *this = from((const C *) ObjectPtr, rhs);
-    }
-
-    template <typename F>
-    enable_if_t<!is_same_v<delegate, decay_t<F>>, delegate &> operator=(F &&f) {
-        using functor_type = decay_t<F>;
-
-        s64 requiredSize = sizeof(functor_type);
-        if (requiredSize > StoreSize) {
-            release();
-
-            StoreSize = requiredSize;
-
-            // We can't include allocator.h here without creating a circular dependency.
-            Store = (char *) Context.Alloc.general_allocate(StoreSize, 0, 0, __FILE__, __LINE__);
-            encode_owner(Store, this);
-        }
-
-        ObjectPtr = Store;
-        new (ObjectPtr) functor_type((F &&) f);
-
-        StubPtr = functor_stub<functor_type>;
-        DestructorCaller = destructor_caller_stub<functor_type>;
-
+    // Assign null pointer
+    delegate &operator=(nullptr_t) {
+        zero_memory(Storage, TargetSize);
+        Invoker = null;
         return *this;
     }
 
-    template <R (*const function_ptr)(A...)>
-    static delegate from() {
-        return {null, function_stub<function_ptr>};
-    }
-
-    template <typename C, R (C::*const method_ptr)(A...)>
-    static delegate from(C *objectPtr) {
-        return {objectPtr, method_stub<C, method_ptr>};
-    }
-
-    template <typename C, R (C::*const method_ptr)(A...) const>
-    static delegate from(const C *objectPtr) {
-        return {const_cast<C *>(objectPtr), const_method_stub<C, method_ptr>};
-    }
-
-    template <typename C, R (C::*const method_ptr)(A...)>
-    static delegate from(C &object) {
-        return {&object, method_stub<C, method_ptr>};
-    }
-
-    template <typename C, R (C::*const method_ptr)(A...) const>
-    static delegate from(const C &object) {
-        return {(C *) &object, const_method_stub<C, method_ptr>};
-    }
-
-    template <typename F>
-    static delegate from(F &&f) {
-        return (F &&) f;
-    }
-
-    static delegate from(R (*function_ptr)(A...)) { return function_ptr; }
-
-    template <typename C>
-    using member_pair = pair<C *, R (C::*const)(A...)>;
-
-    template <typename C>
-    using const_member_pair = pair<const C *, R (C::*const)(A...) const>;
-
-    template <typename C>
-    static delegate from(C *objectPtr, R (C::*const method_ptr)(A...)) {
-        return member_pair<C>(objectPtr, method_ptr);
-    }
-
-    template <typename C>
-    static delegate from(const C *objectPtr, R (C::*const method_ptr)(A...) const) {
-        return const_member_pair<C>(objectPtr, method_ptr);
-    }
-
-    template <typename C>
-    static delegate from(C &object, R (C::*const method_ptr)(A...)) {
-        return member_pair<C>(&object, method_ptr);
-    }
-
-    template <typename C>
-    static delegate from(const C &object, R (C::*const method_ptr)(A...) const) {
-        return const_member_pair<C>(&object, method_ptr);
-    }
-
-    void release() {
-        StubPtr = null;
-        if (is_owner()) {
-            DestructorCaller(ObjectPtr);
-            allocator::general_free(Store);
+    // Compare storages
+    s32 compare(void *storage) const {
+        For(range(TargetSize)) {
+            if (Storage[it] < storage[it]) {
+                return -1;
+            } else if (Storage[it] > storage[it]) {
+                return 1;
+            }
         }
+        return 0;
     }
 
-    bool is_owner() const { return StoreSize && decode_owner<delegate>(Store) == this; }
+    bool operator==(const delegate &rhs) const { return compare(&rhs.Storage[0]) == 0; }
+    bool operator!=(const delegate &rhs) const { return compare(&rhs.Storage[0]) != 0; }
 
-    bool operator==(delegate rhs) const { return (ObjectPtr == rhs.ObjectPtr) && (StubPtr == rhs.StubPtr); }
-    bool operator!=(delegate rhs) const { return !operator==(rhs); }
-    bool operator<(delegate rhs) const {
-        return (ObjectPtr < rhs.ObjectPtr) || ((ObjectPtr == rhs.ObjectPtr) && (StubPtr < rhs.StubPtr));
+    bool operator<(const delegate &rhs) const {
+        return compare(&rhs.Storage[0]) == -1;
     }
 
-    bool operator==(nullptr_t) const { return !StubPtr; }
-    bool operator!=(nullptr_t) const { return StubPtr; }
-    explicit operator bool() const { return StubPtr; }
+    bool operator<=(const delegate &rhs) const {
+        auto result = compare(&rhs.Storage[0]);
+        return result == -1 || result == 0;
+    }
 
-    R operator()(A... args) const { return StubPtr(ObjectPtr, ((A &&) args)...); }
+    bool operator>(const delegate &rhs) const {
+        return compare(&rhs.Storage[0]) == 1;
+    }
+
+    bool operator>=(const delegate &rhs) const {
+        auto result = compare(&rhs.Storage[0]);
+        return result == 1 || result == 0;
+    }
+
+    bool operator==(nullptr_t) const { return !Invoker; }
+    bool operator!=(nullptr_t) const { return Invoker; }
+
+    operator bool() const { return Invoker; }
+
+    // Call delegate
+    R operator()(A... args) const {
+        return (*Invoker)((void *) &Storage[0], (A &&)(args)...);
+    }
 
    private:
-    template <R (*function_ptr)(A...)>
-    static R function_stub(void *, A &&... args) {
-        return function_ptr(((A &&) args)...);
-    }
-
-    template <typename C, R (C::*method_ptr)(A...)>
-    static R method_stub(void *objectPtr, A &&... args) {
-        return (((C *) objectPtr)->*method_ptr)(((A &&) args)...);
-    }
-
-    template <typename C, R (C::*method_ptr)(A...) const>
-    static R const_method_stub(void *objectPtr, A &&... args) {
-        return (((const C *) objectPtr)->*method_ptr)(((A &&) args)...);
-    }
-
-    template <typename>
-    struct is_member_pair : false_t {};
-
-    template <typename C>
-    struct is_member_pair<pair<C *, R (C::*const)(A...)>> : true_t {};
-
-    template <typename>
-    struct is_const_member_pair : false_t {};
-
-    template <typename C>
-    struct is_const_member_pair<pair<const C *, R (C::*const)(A...) const>> : true_t {};
-
-    template <typename T>
-    static enable_if_t<!(is_member_pair<T>::value || is_const_member_pair<T>::value), R> functor_stub(void *objectPtr,
-                                                                                                      A &&... args) {
-        return (*static_cast<T *>(objectPtr))(((A &&) args)...);
-    }
-
-    template <typename T>
-    static enable_if_t<is_member_pair<T>::value || is_const_member_pair<T>::value, R> functor_stub(void *objectPtr,
-                                                                                                   A &&... args) {
-        return (((T *) objectPtr)->First->*((T *) objectPtr)->Second)(((A &&) args)...);
-    }
 };
-
-template <typename T>
-delegate<T> *clone(delegate<T> *dest, delegate<T> src) {
-    dest->release();
-    *dest = src;
-    if (src.StoreSize) {
-        // We can't include allocator.h here without creating a circular dependency.
-        dest->Store = (char *) Context.Alloc.general_allocate(src.StoreSize, 0, 0, __FILE__, __LINE__);
-        encode_owner(dest->Store, dest);
-        copy_memory(dest->Store, src.Store, src.StoreSize);
-    }
-    return dest;
-}
-
-template <typename T>
-delegate<T> *move(delegate<T> *dest, delegate<T> *src) {
-    dest->release();
-    *dest = *src;
-
-    if (!src->is_owner()) return dest;
-
-    // Transfer ownership
-    if (src->Store) encode_owner(src->Store, dest);
-    if (dest->Store) encode_owner(dest->Store, dest);
-    return dest;
-}
 
 LSTD_END_NAMESPACE

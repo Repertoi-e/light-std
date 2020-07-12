@@ -1,7 +1,6 @@
 #pragma once
 
 #include "array.h"
-#include "delegate.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -134,7 +133,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
 
     // Connects default callback if non-null.
     signal(const callback_t &cb = null) {
-        if (cb) clone(Callbacks.append(), cb);
+        if (cb) Callbacks.append(cb);
     }
 
     ~signal() { release(); }
@@ -143,7 +142,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
     // Add a new callback, returns a handler ID which you can use to remove the callback later
     template <typename... CBArgs>
     s64 connect(const callback_t &cb) {
-        if (cb) clone(Callbacks.append(), cb);
+        if (cb) Callbacks.append(cb);
         return Callbacks.Count - 1;
     }
 
@@ -152,7 +151,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
         if (!CurrentlyEmitting) {
             assert(index <= Callbacks.Count);
             if (Callbacks[index]) {
-                Callbacks[index].release();
+                Callbacks[index] = null;
                 return true;
             }
             return false;
@@ -175,7 +174,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
 
         For(ToRemove) {
             assert(it <= Callbacks.Count);
-            if (Callbacks[it]) Callbacks[it].release();
+            if (Callbacks[it]) Callbacks[it] = null;
         }
         ToRemove.reset();
 

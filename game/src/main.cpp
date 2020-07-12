@@ -23,22 +23,22 @@ game_main_window_event_func *GameMainWindowEvent = null;
 
 file::handle DLL, Buildlock;
 
-void setup_game_paths() {
+static void setup_game_paths() {
     assert(GameFileName != "");
 
     auto exePath = file::path(os_get_current_module());
 
     file::path dllPath = exePath.directory();
     dllPath.combine_with(GameFileName);
-    DLL.reassign(dllPath);
+    DLL = file::handle(dllPath);
 
     file::path buildLockPath = exePath.directory();
     buildLockPath.combine_with("buildlock");
-    Buildlock.reassign(buildLockPath);
+    Buildlock = file::handle(buildLockPath);
 }
 
 // @TODO: This fails in Dist configuration for some reason
-bool reload_game_code() {
+static bool reload_game_code() {
     GameUpdateAndRender = null;
     GameMainWindowEvent = null;
     if (GameLibrary.Handle) GameLibrary.close();
@@ -73,7 +73,7 @@ bool reload_game_code() {
 }
 
 // Returns true if the game was reloaded
-bool check_for_dll_change() {
+static bool check_for_dll_change() {
     static time_t checkTimer = 0, lastTime = 0;
 
     if (!Buildlock.exists() && (checkTimer % 20 == 0)) {
@@ -90,7 +90,7 @@ bool check_for_dll_change() {
 void init_imgui_for_our_windows(window *mainWindow);
 void imgui_for_our_windows_new_frame(window *mainWindow);
 
-void parse_arguments() {
+static void parse_arguments() {
     array<string> usage;
     usage.append("Usage:\n");
     usage.append(
@@ -204,6 +204,16 @@ void parse_arguments() {
     }
 }
 
+static bool main_window_event(const event &e) {
+    if (GameMainWindowEvent) return GameMainWindowEvent(e);
+    return false;
+}
+
+static void destroy_imgui() {
+    ImGui::DestroyPlatformWindows();
+    ImGui::DestroyContext();
+}
+
 s32 main() {
     parse_arguments();
 
@@ -227,10 +237,7 @@ s32 main() {
         auto windowFlags = window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4;
         gameMemory.MainWindow = (new window)->init(windowTitle, window::DONT_CARE, window::DONT_CARE, GameWidth, GameHeight, windowFlags);
 
-        gameMemory.MainWindow->Event.connect([](const event &e) {
-            if (GameMainWindowEvent) return GameMainWindowEvent(e);
-            return false;
-        });
+        gameMemory.MainWindow->Event.connect(main_window_event);
 
         gameMemory.GetStateImpl = [](const string &name, s64 size, bool *created) {
             string identifier = name;
@@ -266,11 +273,7 @@ s32 main() {
 
         init_imgui_for_our_windows(gameMemory.MainWindow);
         gameMemory.ImGuiContext = ImGui::GetCurrentContext();
-        run_at_exit([]() {
-            // Needs to get called at the end of execution to release any imgui windows
-            ImGui::DestroyPlatformWindows();
-            ImGui::DestroyContext();
-        });
+        run_at_exit(destroy_imgui);
 
         imgui_renderer imguiRenderer;
         imguiRenderer.init(&g);
@@ -472,6 +475,10 @@ static void imgui_init_photoshop_style() {
     style->WindowRounding = 4.0f;
 }
 
+static void update_monitors(const monitor_event &e) {
+    imgui_update_monitors();
+}
+
 static void init_imgui_for_our_windows(window *mainWindow) {
     ImGui::CreateContext();
 
@@ -635,7 +642,7 @@ static void init_imgui_for_our_windows(window *mainWindow) {
 #endif
 
         imgui_update_monitors();
-        g_MonitorEvent.connect([](auto) { imgui_update_monitors(); });
+        g_MonitorEvent.connect(update_monitors);
     }
 }
 

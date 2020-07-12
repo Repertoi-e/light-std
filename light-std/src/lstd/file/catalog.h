@@ -28,7 +28,7 @@ struct catalog : non_copyable, non_movable, non_assignable {
 
     void ensure_initted(file::path root);
 
-    void load(array<file::path> files, delegate<void(array<file::path>)> callback, bool watch, allocator alloc = {});
+    void load(array<file::path> files, const delegate<void(array<file::path>)> &callback, bool watch, allocator alloc = {});
 };
 
 LSTD_END_NAMESPACE

@@ -144,7 +144,8 @@ TEST(read_every_file_in_project) {
     defer(rootFolder.release());
 
     table<string, s64> files;
-    file::handle(rootFolder).traverse_recursively([&](file::path it) {
+
+    auto callback = [&](file::path it) {
         file::path p;
         clone(&p, rootFolder);
         p.combine_with(it);
@@ -156,7 +157,8 @@ TEST(read_every_file_in_project) {
             counter = files.move_add(&p.Str, &zero);
         }
         ++*counter;
-    });
+    };
+    file::handle(rootFolder).traverse_recursively(&callback);
 
     for (auto [file, count] : files) {
         assert_eq(*count, 1);

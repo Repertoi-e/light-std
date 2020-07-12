@@ -68,13 +68,17 @@ static LONG exception_filter(LPEXCEPTION_POINTERS e) {
     }
 
     auto *desc = CodeDescs.find(exceptionCode);
-    
+
     string message = fmt::sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
     defer(message.release());
 
     Context.UnexpectedExceptionHandler(message, callStack);
 
     return EXCEPTION_EXECUTE_HANDLER;
+}
+
+void release_code_descs() {
+    CodeDescs.release();
 }
 
 void win32_crash_handler_init() {
@@ -88,6 +92,8 @@ void win32_crash_handler_init() {
         }
     }
     assert(MachineType && "Machine type not supported");
+
+    run_at_exit(release_code_descs);
 
 #define CODE_DESCR(code) code, #code
     CodeDescs.add(CODE_DESCR(EXCEPTION_ACCESS_VIOLATION));
@@ -113,8 +119,6 @@ void win32_crash_handler_init() {
     CodeDescs.add(CODE_DESCR(EXCEPTION_GUARD_PAGE));
     CodeDescs.add(CODE_DESCR(EXCEPTION_INVALID_HANDLE));
     // CodeDescs.add(CODE_DESCR(EXCEPTION_POSSIBLE_DEADLOCK));
-
-    run_at_exit([]() { CodeDescs.release(); });
 
     SetUnhandledExceptionFilter(exception_filter);
 }

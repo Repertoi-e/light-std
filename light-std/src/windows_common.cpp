@@ -5,7 +5,6 @@
 #include "lstd/file/path.h"
 #include "lstd/io.h"
 #include "lstd/io/fmt.h"
-#include "lstd/memory/delegate.h"
 #include "lstd/memory/dynamic_library.h"
 #include "lstd/os.h"
 
@@ -40,7 +39,9 @@ void initialize_win32_state() {
 
 static array<delegate<void()>> ExitFunctions;
 
-void run_at_exit(delegate<void()> function) { clone(ExitFunctions.append(), function); }
+void run_at_exit(const delegate<void()> &function) {
+    ExitFunctions.append(function);
+}
 
 // Needs to happen just before the global C++ destructors get called.
 void call_exit_functions() { For(ExitFunctions) it(); }

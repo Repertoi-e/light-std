@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../internal/context.h"
+#include "owner_pointers.h"
 #include "stack_array.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -226,7 +227,7 @@ struct array {
     }
 
     // Predicate must take a single argument (the current element) and return if it matches
-    s64 find(delegate<bool(const data_t &)> predicate, s64 start = 0) const {
+    s64 find(const delegate<bool(const data_t &)> &predicate, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
@@ -238,7 +239,13 @@ struct array {
 
     // Find the first occurence of an element that is after a specified index
     s64 find(const T &element, s64 start = 0) const {
-        return find([&](auto x) { return x == element; }, start);
+        if (!Data || Count == 0) return -1;
+
+        start = translate_index(start, Count);
+
+        auto p = begin() + start;
+        For(range(start, Count)) if (*p++ == element) return it;
+        return -1;
     }
 
     // Find the first occurence of a subarray that is after a specified index
