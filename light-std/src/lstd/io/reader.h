@@ -9,7 +9,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// @Avoid#include
+// @AvoidInclude
 template <typename T>
 struct array;
 

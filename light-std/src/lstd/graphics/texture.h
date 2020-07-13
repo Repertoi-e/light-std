@@ -16,7 +16,7 @@ LSTD_BEGIN_NAMESPACE
 enum class texture_wrap { None = 0, Repeat, Clamp, Mirrored_Repeat, Clamp_To_Border };
 enum class texture_filter { Linear, Nearest };
 
-// @Avoid#include
+// @AvoidInclude
 struct pixel_buffer;
 struct graphics;
 

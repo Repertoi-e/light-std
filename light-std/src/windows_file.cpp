@@ -250,7 +250,7 @@ void handle::iterator::read_next_entry() {
             windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), #call, __FILE__, __LINE__); \
         }                                                                                                \
         if (Handle != INVALID_HANDLE_VALUE) {                                                            \
-            WINDOWS_CHECKBOOL(FindClose((HANDLE) Handle));                                               \
+            WIN32_CHECKBOOL(FindClose((HANDLE) Handle));                                               \
         }                                                                                                \
                                                                                                          \
         Handle = null;                                                                                   \

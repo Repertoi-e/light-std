@@ -481,7 +481,7 @@ void os_read_shared_block(const string &name, void *out, s64 size) {
 }
 
 void os_free_block(void *ptr) {
-    WINDOWS_CHECKBOOL(HeapFree(GetProcessHeap(), 0, ptr));
+    WIN32_CHECKBOOL(HeapFree(GetProcessHeap(), 0, ptr));
 }
 
 void os_exit(s32 exitCode) { ExitProcess(exitCode); }
@@ -522,7 +522,7 @@ void os_set_working_dir(const string &dir) {
     auto *dir16 = allocate_array(wchar_t, dir.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(dir.Data, dir.Length, dir16);
 
-    WINDOWS_CHECKBOOL(SetCurrentDirectoryW(dir16));
+    WIN32_CHECKBOOL(SetCurrentDirectoryW(dir16));
 }
 
 pair<bool, string> os_get_env(const string &name, bool silent) {
@@ -581,7 +581,7 @@ void os_set_env(const string &name, const string &value) {
         // The docs say windows doesn't allow that but we should test it.
     }
 
-    WINDOWS_CHECKBOOL(SetEnvironmentVariableW(name16, value16));
+    WIN32_CHECKBOOL(SetEnvironmentVariableW(name16, value16));
 }
 
 void os_remove_env(const string &name) {
@@ -589,7 +589,7 @@ void os_remove_env(const string &name) {
     auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(name.Data, name.Length, name16);
 
-    WINDOWS_CHECKBOOL(SetEnvironmentVariableW(name16, null));
+    WIN32_CHECKBOOL(SetEnvironmentVariableW(name16, null));
 }
 
 // Doesn't include the exe name.

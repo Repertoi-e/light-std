@@ -1487,8 +1487,8 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
 
 void win32_register_window_class() {
     GUID guid;
-    WINDOWS_CHECKHR(CoCreateGuid(&guid));
-    WINDOWS_CHECKHR(StringFromCLSID(guid, &g_Win32WindowClassName));
+    WIN32_CHECKHR(CoCreateGuid(&guid));
+    WIN32_CHECKHR(StringFromCLSID(guid, &g_Win32WindowClassName));
 
     WNDCLASSEXW wc;
     zero_memory(&wc, sizeof(wc));

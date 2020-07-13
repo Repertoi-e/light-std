@@ -21,7 +21,7 @@ struct ID3D11RasterizerState;
 
 LSTD_BEGIN_NAMESPACE
 
-// @Avoid#include
+// @AvoidInclude
 struct window;
 struct event;
 
