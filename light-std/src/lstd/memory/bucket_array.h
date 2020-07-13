@@ -10,11 +10,12 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
         bucket *Next = null;
     };
     bucket BaseBucket;
-    bucket *BucketList = &BaseBucket;
+    bucket *BucketHead = null;  // null means BaseBucket
 
     bucket_array() = default;
-    ~bucket_array() {
-        auto *b = BucketList->Next;  // The first bucket is on the stack
+
+    void release() {
+        auto *b = BucketHead->Next;  // The first bucket is on the stack
         while (b) {
             auto *toDelete = b;
             b = b->Next;
@@ -22,9 +23,14 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
         }
     }
 
+    bucket *get_bucket_head() {
+        if (!BucketHead) return &BaseBucket;
+        return BucketHead;
+    }
+
     // Search based on predicate
     T *find(const delegate<bool(T *)> &predicate) {
-        auto *b = BucketList;
+        auto *b = get_bucket_head();
         while (b) {
             auto index = b->Assets.find(predicate);
             if (index != -1) return (T *) b->Assets[index];
@@ -48,7 +54,7 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
     T *add(const T &element, allocator alloc = {}) {
         if (!alloc) alloc = Context.Alloc;
 
-        auto *b = BucketList, *last = b;
+        auto *b = get_bucket_head(), *last = b;
         while (b) {
             if (b->Reserved != b->Count) {
                 clone(b->Elements + b->Count, element);

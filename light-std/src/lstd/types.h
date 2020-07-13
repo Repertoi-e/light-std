@@ -1933,6 +1933,9 @@ struct pair {
 
     constexpr pair() = default;
     constexpr pair(const remove_cvref_t<T> &first, const remove_cvref_t<U> &second) : First(first), Second(second) {}
+
+    constexpr T &key() { return First; }
+    constexpr U &value() { return Second; }
 };
 
 template <typename... T>
@@ -2630,7 +2633,11 @@ LSTD_END_NAMESPACE
 
 // See C++11 18.3.2.5
 // Naming style changed
-enum class float_round_style { Indeterminate = -1, ToZero, ToNearest, ToInfinity, ToNegativeInfinity };
+enum class float_round_style { Indeterminate = -1,
+                               ToZero,
+                               ToNearest,
+                               ToInfinity,
+                               ToNegativeInfinity };
 
 // See C++11 18.3.2.6
 // Naming style changed

@@ -151,10 +151,10 @@ TEST(read_every_file_in_project) {
         p.combine_with(it);
         defer(p.release());
 
-        s64 *counter = files.find(p.Str);
+        auto *counter = files.find(p.Str).value();
         if (!counter) {
             s64 zero = 0;
-            counter = files.move_add(&p.Str, &zero);
+            counter = files.add(p.Str, zero).value();
         }
         ++*counter;
     };

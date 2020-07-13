@@ -320,6 +320,8 @@ void format_context::write_f64(f64 value, format_specs specs) {
     // @Locale The decimal point written in _internal::format_float_ should be locale-dependent.
     // Also if we decide to add a thousands separator we should do it inside _format_float_
     stack_dynamic_buffer<512> formatBuffer;
+    defer(formatBuffer.release());
+
     format_float(
         [](void *user, char *buf, s64 length) {
             auto *fb = (stack_dynamic_buffer<512> *) user;

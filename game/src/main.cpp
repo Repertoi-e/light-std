@@ -245,11 +245,11 @@ s32 main() {
             string identifier = name;
             identifier.append("Ident");
 
-            auto **found = GameMemory->States.find(identifier);
+            auto **found = GameMemory->States.find(identifier).value();
             if (!found) {
                 // We allocate with alignment 16 because the game uses SIMD in structs (game_state is one struct which we handle with this function).
                 void *result = allocate_array_aligned(char, size, 16);
-                GameMemory->States.move_add(&identifier, (void **) &result);
+                GameMemory->States.add(identifier, result);
                 *created = true;
                 return result;
             }

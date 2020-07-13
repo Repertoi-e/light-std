@@ -2,14 +2,13 @@
 
 #include "../memory/allocator.h"
 #include "hash.h"
-#include "owner_pointers.h"
 
 LSTD_BEGIN_NAMESPACE
 
 template <typename Key, typename Value, bool Const>
 struct table_iterator;
 
-// This hash table stores all entries in a contiguous array, for good perofrmance when looking up things. Some tables
+// This hash table stores all entries in a contiguous array, for good performance when looking up things. Some tables
 // work by storing linked lists of entries, but that can lead to many more cache misses.
 //
 // We store 3 arrays, one for the values, one for the keys and one for the hashed keys.
@@ -43,7 +42,7 @@ struct table {
     // Number of slots that can't be used (valid or removed items)
     s64 SlotsFilled = 0;
 
-    u64 *Hashes = null;  // @TODO: Why are we doing hashesh with _uptr_t_, what a fucking random type...
+    u64 *Hashes = null;
     key_t *Keys = null;
     value_t *Values = null;
 
@@ -67,35 +66,25 @@ struct table {
         auto *oldValues = Values;
         auto oldReserved = Reserved;
 
-        // The owner will change with the next line, but we need it later to decide if we need to delete the old arrays
-        bool wasOwner = is_owner();
+        if (Reserved) {
+            Hashes = reallocate_array(Hashes, target, DO_INIT_0);
+            Keys = reallocate_array(Keys, target);
+            Values = reallocate_array(Values, target);
+        } else {
+            // It's impossible to have a view into a table (currently).
+            // So there were no previous elements.
+            assert(!Count);
 
-        Hashes = allocate_array(u64, target, DO_INIT_0);
-        encode_owner(Hashes, this);
-
-        Keys = allocate_array(key_t, target);
-        Values = allocate_array(value_t, target);
+            Hashes = allocate_array(u64, target, DO_INIT_0);
+            Keys = allocate_array(key_t, target);
+            Values = allocate_array(value_t, target);
+        }
         Reserved = target;
-
-        Count = SlotsFilled = 0;
-
-        For(range(oldReserved)) {
-            if (oldHashes[it] < FIRST_VALID_HASH) continue;
-            move_add(oldKeys + it, oldValues + it);
-        }
-
-        if (wasOwner) {
-            // We allocate hashes as a byte buffer to make sure there's no compiler bookkeeping happening
-            free(oldHashes);
-            free(oldKeys);
-            free(oldValues);
-        }
     }
 
     // Free any memory allocated by this object and reset count
     void release() {
-        if (is_owner()) {
-            // We allocate hashes as a byte buffer to make sure there's no compiler bookkeeping happening
+        if (Reserved) {
             free(Hashes);
             free(Keys);
             free(Values);
@@ -109,7 +98,7 @@ struct table {
     // Don't free the table, just destroy contents and reset count
     void reset() {
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
-        if (is_owner()) {
+        if (Reserved) {
             // @TODO: Factor this into uninitialize_block() function and use it in free() as well
             auto *p = Hashes, *end = Hashes + Reserved;
             s64 index = 0;
@@ -125,15 +114,22 @@ struct table {
         Count = SlotsFilled = 0;
     }
 
-    value_t *find(const key_t &key) {
-        if (!Reserved) return null;
+    // We calculate the hash of the key using the global get_hash() specialized functions.
+    pair<key_t *, value_t *> find(const key_t &key) {
+        return find_prehashed(get_hash(key), key);
+    }
 
-        u64 hash = get_hash(key);
+    // Looks for key in the table using the given hash.
+    // In normal _find_ we calculate the hash of the key using the global get_hash() specialized functions.
+    // This method is useful if you have cached the hash.
+    pair<key_t *, value_t *> find_prehashed(u64 hash, const key_t &key) {
+        if (!Reserved) return {null, null};
+
         s64 index = hash & (Reserved - 1);
         For(range(Reserved)) {
             if (Hashes[index] == hash) {
                 if (Keys[index] == key) {
-                    return Values + index;
+                    return {Keys + index, Values + index};
                 }
             }
 
@@ -142,16 +138,45 @@ struct table {
                 index = 0;
             }
         }
-        return null;
+        return {null, null};
     }
 
-    value_t *add(const key_t &key, const value_t &value) {
+    // Inserts an empty value at a specified key and returns pointers to the key and value in the buffers.
+    //
+    // This is useful for the following way to clone add an object (because by default we just shallow-copy the object).
+    //
+    // value_t toBeCloned = ...;
+    // auto [kp, vp] = table.add(key);
+    // clone(vp, toBeCloned);
+    //
+    // Because _add_ returns a pointer where the object is placed, clone() can place the deep copy there directly.
+    //
+    // We calculate the hash of the key using the global get_hash() specialized functions.
+    pair<key_t *, value_t *> add(const key_t &key) { return add(key, value_t()); }
+
+    // Inserts an empty key/value pair with a given hash.
+    // Use the returned pointers to fill out the slots.
+    // This is useful if you want to clone() the key and value and not just shallow copy them.
+    pair<key_t *, value_t *> add(u64 hash) {
+        return add_prehashed(has, key_t(), value_t());
+    }
+
+    // We calculate the hash of the key using the global get_hash() specialized functions.
+    // Returns pointers to the added key and value.
+    pair<key_t *, value_t *> add(const key_t &key, const value_t &value) {
+        return add_prehashed(get_hash(key), key, value);
+    }
+
+    // Adds key and value to the table using the given hash.
+    // In normal _add_ we calculate the hash of the key using the global get_hash() specialized functions.
+    // This method is useful if you have cached the hash.
+    // Returns pointers to the added key and value.
+    pair<key_t *, value_t *> add_prehashed(u64 hash, const key_t &key, const value_t &value) {
         // The + 1 here handles the case when the table size is 1 and you add the first item.
         if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled * 2);
 
         assert(SlotsFilled < Reserved);
 
-        u64 hash = get_hash(key);
         if (hash < FIRST_VALID_HASH) hash += FIRST_VALID_HASH;
 
         s64 index = hash & (Reserved - 1);
@@ -166,45 +191,36 @@ struct table {
         Hashes[index] = hash;
         new (Keys + index) key_t(key);
         new (Values + index) value_t(value);
-        return Values + index;
+        return {Keys + index, Values + index};
     }
 
-    // Same as _add_ but calls _move()_ on _key_ and _value_ when adding them to the array.
-    value_t *move_add(key_t *key, value_t *value) {
-        // The + 1 here handles the case when the table size is 1 and you add the first item.
-        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled * 2);
-
-        assert(SlotsFilled < Reserved);
-
-        u64 hash = get_hash(*key);
-        if (hash < FIRST_VALID_HASH) hash += FIRST_VALID_HASH;
-
-        s64 index = hash & (Reserved - 1);
-        while (Hashes[index]) {
-            ++index;
-            if (index >= Reserved) index = 0;
-        }
-
-        ++Count;
-        ++SlotsFilled;
-
-        Hashes[index] = hash;
-        move(Keys + index, key);
-        move(Values + index, value);
-        return Values + index;
+    // We calculate the hash of the key using the global get_hash() specialized functions.
+    pair<key_t *, value_t *> set(const key_t &key, const value_t &value) {
+        return set_prehashed(get_hash(key), key, value);
     }
 
-    value_t *set(const key_t &key, const value_t &value) {
-        auto *ptr = find(key);
-        if (ptr) {
-            *ptr = value;
-            return ptr;
+    // In normal _set_ we calculate the hash of the key using the global get_hash() specialized functions.
+    // This method is useful if you have cached the hash.
+    pair<key_t *, value_t *> set_prehashed(u64 hash, const key_t &key, const value_t &value) {
+        auto [kp, vp] = find_prehashed(hash, key);
+        if (vp) {
+            *vp = value;
+            return {kp, vp};
         }
         return add(key, value);
     }
 
+    // Returns true if the key was found and removed.
+    // We calculate the hash of the key using the global get_hash() specialized functions.
     bool remove(const key_t &key) {
-        auto *ptr = find(key);
+        return remove_prehashed(get_hash(key), key);
+    }
+
+    // Returns true if the key was found and removed.
+    // In normal _remove_ we calculate the hash of the key using the global get_hash() specialized functions.
+    // This method is useful if you have cached the hash.
+    bool remove_prehashed(u64 hash, const key_t &key) {
+        auto *ptr = find(hash, key);
         if (ptr) {
             s64 index = ptr - Values;
             Hashes[index] = 1;
@@ -213,10 +229,14 @@ struct table {
         return false;
     }
 
+    // Returns true if the table has the given key.
+    // We calculate the hash of the key using the global get_hash() specialized functions.
     bool has(const key_t &key) const { return find(key) != null; }
 
-    // Returns true if this object has any memory allocated by itself
-    bool is_owner() const { return Reserved && decode_owner<table>(Hashes) == this; }
+    // Returns true if the table has the given key.
+    // In normal _hash_ we calculate the hash of the key using the global get_hash() specialized functions.
+    // This method is useful if you have cached the hash.
+    bool has_prehashed(u64 hash, const key_t &key) const { return find_prehashed(hash, key) != null; }
 
     //
     // Iterator:
@@ -236,9 +256,9 @@ struct table {
     // Returns a pointer to the value associated with _key_.
     // If the key doesn't exist, this adds a new element and returns it.
     value_t *operator[](const key_t &key) {
-        auto *p = find(key);
-        if (p) return p;
-        return add(key, value_t());
+        auto [kp, vp] = find(key);
+        if (vp) return vp;
+        return add(key, value_t()).Second;
     }
 };
 
@@ -268,8 +288,8 @@ struct table_iterator {
         return pre;
     }
 
-    bool operator==(table_iterator other) const { return Parent == other.Parent && Index == other.Index; }
-    bool operator!=(table_iterator other) const { return !(*this == other); }
+    bool operator==(const table_iterator &other) const { return Parent == other.Parent && Index == other.Index; }
+    bool operator!=(const table_iterator &other) const { return !(*this == other); }
 
     template <bool NotConst = !Const>
     enable_if_t<NotConst, pair<Key *, Value *>> operator*() {
@@ -319,17 +339,18 @@ table<K, V> *clone(table<K, V> *dest, const table<K, V> &src) {
     return dest;
 }
 
-template <typename K, typename V>
-table<K, V> *move(table<K, V> *dest, table<K, V> *src) {
-    dest->release();
-    *dest = *src;
-
-    if (!src->is_owner()) return;
-
-    // Transfer ownership
-    encode_owner(src->Hashes, dest);
-    encode_owner(dest->Hashes, dest);
-    return dest;
-}
+// Since we longer do the ownership thing, the move() function is obsolete.
+// template <typename K, typename V>
+// table<K, V> *move(table<K, V> *dest, table<K, V> *src) {
+//     dest->release();
+//     *dest = *src;
+//
+//     if (!src->is_owner()) return;
+//
+//     // Transfer ownership
+//     encode_owner(src->Hashes, dest);
+//     encode_owner(dest->Hashes, dest);
+//     return dest;
+// }
 
 LSTD_END_NAMESPACE

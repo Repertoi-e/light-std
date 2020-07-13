@@ -2,16 +2,19 @@
 
 #include "../file.h"
 #include "../internal/common.h"
-#include "owner_pointers.h"
 
 LSTD_BEGIN_NAMESPACE
 
-enum class pixel_format : s32 { Unknown = 0, Grey = 1, Grey_Alpha = 2, RGB = 3, RGBA = 4 };
+enum class pixel_format : s32 { Unknown = 0,
+                                Grey = 1,
+                                Grey_Alpha = 2,
+                                RGB = 3,
+                                RGBA = 4 };
 
 struct pixel_buffer {
     pixel_format Format = pixel_format::Unknown;
     u32 Width = 0, Height = 0;
-    s32 BPP = (s32) Format;  // BPP is == (s32) Format, but we set it anyway
+    s32 BPP = (s32) Format;  // BPP is equal to (s32) Format
     u8 *Pixels = null;
     s64 Reserved = 0;
 
@@ -25,17 +28,15 @@ struct pixel_buffer {
     //
     // If _format_ is not passed as _Unknown_, the file is loaded and converted to the requested one.
     // The _Format_ member is set at _Unknown_ if the load failed.
-    pixel_buffer(file::path path, bool flipVertically = false, pixel_format format = pixel_format::Unknown);
+    pixel_buffer(const file::path &path, bool flipVertically = false, pixel_format format = pixel_format::Unknown);
 
-    ~pixel_buffer() { release(); }
+    // We don't use destructors for freeing memory anymore.
+    // ~pixel_buffer() { release(); }
 
     void release();
-
-    // Returns true if this object has any memory allocated by itself
-    bool is_owner() const { return Reserved && decode_owner<pixel_buffer>(Pixels) == this; }
 };
 
 pixel_buffer *clone(pixel_buffer *dest, pixel_buffer src);
-pixel_buffer *move(pixel_buffer *dest, pixel_buffer *src);
+// pixel_buffer *move(pixel_buffer *dest, pixel_buffer *src);
 
 LSTD_END_NAMESPACE

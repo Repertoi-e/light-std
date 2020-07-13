@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../internal/context.h"
-#include "owner_pointers.h"
 #include "string.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -27,28 +26,27 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
         copy_memory(StackData, view.begin(), ByteLength);
     }
 
-    ~stack_dynamic_buffer() { release(); }
+    // We no longer use destructors for deallocation.
+    // ~stack_dynamic_buffer() { release(); }
 
-    // Makes sure string has reserved enough space for at least n bytes.
+    // Makes sure buffer has reserved enough space for at least n bytes.
     // Note that it may reserve way more than required.
     // Reserves space equal to the next power of two bigger than _size_, starting at 8.
     //
     // ! Reserves only if there is not enough space on the stack
-    //
-    // Allocates a buffer if the buffer doesn't already point to reserved memory
-    // (using the Context's allocator).
     void reserve(s64 target) {
         if (target < sizeof(StackData)) return;
         if (ByteLength + target < Reserved) return;
 
         target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
-        if (is_owner()) {
+        if (Reserved) {
             Data = reallocate_array(Data, target);
         } else {
             auto *oldData = Data;
             Data = allocate_array(char, target);
-            encode_owner(Data, this);
+            // We removed the ownership system.
+            // encode_owner(Data, this);
             if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
         }
         Reserved = target;
@@ -57,9 +55,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     // Releases the memory allocated by this buffer.
     // If this buffer doesn't own the memory it points to, this function does nothing.
     void release() {
-        if (is_owner()) {
-            free(Data);
-        }
+        if (Reserved) free(Data);
         Data = null;
         ByteLength = Reserved = 0;
     }
@@ -147,9 +143,6 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     void append_pointer_and_size(const char *data, s64 count, bool unsafe = false) {
         insert_pointer_and_size(ByteLength, data, count, unsafe);
     }
-
-    // Returns true if this object has any memory allocated by itself
-    bool is_owner() const { return Reserved && decode_owner<stack_dynamic_buffer>(Data) == this; }
 
     //
     // Iterator:

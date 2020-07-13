@@ -26,6 +26,11 @@ struct catalog : non_copyable, non_movable, non_assignable {
     catalog() = default;
     catalog(file::path root);
 
+    void release() {
+        Root.release();
+        Entities.release();
+    }
+
     void ensure_initted(file::path root);
 
     void load(array<file::path> files, const delegate<void(const array<file::path> &)> &callback, bool watch, allocator alloc = {});

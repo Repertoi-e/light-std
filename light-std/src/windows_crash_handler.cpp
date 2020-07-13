@@ -67,7 +67,7 @@ static LONG exception_filter(LPEXCEPTION_POINTERS e) {
         callStack.append(call);
     }
 
-    auto *desc = CodeDescs.find(exceptionCode);
+    auto desc = CodeDescs.find(exceptionCode).value();
 
     string message = fmt::sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
     defer(message.release());
