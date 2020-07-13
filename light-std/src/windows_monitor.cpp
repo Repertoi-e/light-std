@@ -440,7 +440,7 @@ void os_restore_display_mode(monitor *mon) {
 }
 
 // Doesn't add duplicates and doesn't sort _out_
-static void get_display_modes(array<display_mode> *out, monitor *mon) {
+static void get_display_modes(array<display_mode> *modes, monitor *mon) {
     s32 modeIndex = 0;
     while (true) {
         DEVMODEW dm;
@@ -460,7 +460,7 @@ static void get_display_modes(array<display_mode> *out, monitor *mon) {
         split_bpp(dm.dmBitsPerPel, &mode.RedBits, &mode.GreenBits, &mode.BlueBits);
 
         bool toContinue = false;
-        For(*out) {
+        For(*modes) {
             if (it == mode) {
                 toContinue = true;
                 break;
@@ -475,12 +475,12 @@ static void get_display_modes(array<display_mode> *out, monitor *mon) {
                 continue;
             }
         }
-        out->append(mode);
+        modes->append(mode);
     }
 
-    if (!out->Count) {
+    if (!modes->Count) {
         // @Hack Report the current mode if no valid modes were found
-        out->append(os_get_current_display_mode(mon));
+        modes->append(os_get_current_display_mode(mon));
     }
 }
 
