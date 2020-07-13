@@ -277,14 +277,14 @@ project "physics"
 	libdirs { py  .. "/libs" }
 	links { py_lib }
 
-	links { lstdgraphics }
+	links { "lstd-python-graphics" }
 
 	includedirs { "game/src" }
 	pchheader "pch.h"
 	pchsource "game/src/physics/pch.cpp"
 	forceincludes { "pch.h" }
 
-	dependson { "lstdgraphics" }
+	dependson { "lstd-python-graphics" }
 
 	common_settings()
 
@@ -294,10 +294,10 @@ project "physics"
 		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 -- This is the python module used in physics
-project "lstdgraphics"
+project "lstd-python-graphics"
+	location "game"
     kind "SharedLib"
-    targetdir("temp/build")
-
+    
 	targetdir("bin/" .. outputFolder .. "/game")
 	objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
 
