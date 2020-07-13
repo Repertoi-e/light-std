@@ -54,6 +54,7 @@ void imgui_renderer::draw(ImDrawData *drawData) {
         layout.add("TEXCOORD", gtype::F32_2);
         layout.add("COLOR", gtype::U32, 1, true);
         VB.set_input_layout(layout);
+        layout.release();
     }
 
     if (IBSize <= drawData->TotalIdxCount) {

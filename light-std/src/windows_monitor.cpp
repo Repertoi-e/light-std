@@ -323,7 +323,7 @@ static void do_monitor_event(monitor *mon, monitor_event::action action, bool in
         free(mon);
     }
 
-    g_MonitorEvent.emit(null, {mon, action});
+    g_MonitorEvent.emit({mon, action});
 }
 
 // Splits a color depth into red, green and blue bit depths
@@ -488,6 +488,7 @@ static void get_display_modes(array<display_mode> *out, monitor *mon) {
 void win32_poll_monitors() {
     array<monitor *> disconnected;
     clone(&disconnected, Monitors);
+    defer(disconnected.release());
 
     DISPLAY_DEVICEW adapter, display;
     for (DWORD adapterIndex = 0;; adapterIndex++) {
@@ -547,7 +548,7 @@ void win32_poll_monitors() {
 
     For(Monitors) {
         get_display_modes(&it->DisplayModes, it);
-        quicksort(it->DisplayModes.Data, it->DisplayModes.Data + it->DisplayModes.Count);
+        quick_sort(it->DisplayModes.Data, it->DisplayModes.Data + it->DisplayModes.Count);
     }
 }
 

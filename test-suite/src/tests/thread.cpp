@@ -53,6 +53,7 @@ TEST(mutex_lock) {
         it->join();
         free(it);
     }
+    threads.release();
 
     assert_eq(Count, 100 * 10000);
 }
@@ -76,6 +77,7 @@ TEST(fast_mutex_lock) {
         it->join();
         free(it);
     }
+    threads.release();
 
     assert_eq(Count, 100 * 10000);
 }
@@ -112,6 +114,7 @@ TEST(condition_variable) {
         it->join();
         free(it);
     }
+    threads.release();
 }
 
 TEST(context) {

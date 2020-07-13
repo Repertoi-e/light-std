@@ -19,6 +19,10 @@ struct debug_struct_helper {
 
     debug_struct_helper(format_context *f, const string &name) : F(f), Name(name) {}
 
+    // I know we are against hidden freeing but having this destructor is actually really fine.
+    // Things would be a whole more ugly and complicated without it.
+    ~debug_struct_helper() { Fields.release(); }
+
     template <typename T>
     debug_struct_helper *field(const string &name, const T &val) {
         Fields.append({name, make_arg(val)});
@@ -38,6 +42,10 @@ struct debug_tuple_helper {
 
     debug_tuple_helper(format_context *f, const string &name) : F(f), Name(name) {}
 
+    // I know we are against hidden freeing but having this destructor is actually really fine.
+    // Things would be a whole more ugly and complicated without it.
+    ~debug_tuple_helper() { Fields.release(); }
+
     template <typename T>
     debug_tuple_helper *field(const T &val) {
         Fields.append(make_arg(val));
@@ -52,6 +60,10 @@ struct debug_list_helper {
     array<arg> Fields;
 
     debug_list_helper(format_context *f) : F(f) {}
+
+    // I know we are against hidden freeing but having this destructor is actually really fine.
+    // Things would be a whole more ugly and complicated without it.
+    ~debug_list_helper() { Fields.release(); }
 
     template <typename T>
     debug_list_helper *entries(array_view<T> val) {

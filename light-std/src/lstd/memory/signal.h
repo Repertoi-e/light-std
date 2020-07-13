@@ -101,13 +101,13 @@ template <typename, typename>
 struct collector_invocation;
 
 // Specialization for regular signals.
-template <class Collector, class R, class... Args>
+template <typename Collector, typename R, typename... Args>
 struct collector_invocation<Collector, R(Args...)> {
     bool invoke(Collector &collector, const delegate<R(Args...)> &cb, Args... args) { return collector(cb(args...)); }
 };
 
 // Specialization for signals with void return type.
-template <class Collector, class... Args>
+template <typename Collector, typename... Args>
 struct collector_invocation<Collector, void(Args...)> {
     bool invoke(Collector &collector, const delegate<void(Args...)> &cb, Args... args) {
         cb(args...);
@@ -136,8 +136,13 @@ struct signal<R(Args...), Collector> : public non_copyable {
         if (cb) Callbacks.append(cb);
     }
 
-    ~signal() { release(); }
-    void release() { Callbacks.release(); }
+    // We no longer use destructors for deallocation.
+    // ~signal() { release(); }
+
+    void release() {
+        Callbacks.release();
+        ToRemove.release();
+    }
 
     // Add a new callback, returns a handler ID which you can use to remove the callback later
     template <typename... CBArgs>
@@ -162,9 +167,10 @@ struct signal<R(Args...), Collector> : public non_copyable {
     }
 
     // Emit a signal, i.e. invoke all callbacks and collect return types with the Collector.
-    // Stores the result in _out_.
-    // _out_ must be null if the result type is void, in other cases if _out_ is null the result is just ignored.
-    void emit(collector_result_t *out, Args... args) {
+    // If the result is an array, the caller is responsible for freeing the memory.
+    //
+    // [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
+    [[nodiscard]] collector_result_t emit(Args... args) {
         CurrentlyEmitting = true;
         Collector collector;
         For(Callbacks) {
@@ -179,7 +185,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
         ToRemove.reset();
 
         if constexpr (!is_same_v<collector_result_t, void>) {
-            if (out) clone(out, collector.result());
+            return collector.result();
         }
     }
 };

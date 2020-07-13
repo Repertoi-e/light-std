@@ -13,11 +13,11 @@ struct catalog : non_copyable, non_movable, non_assignable {
     struct entity {
         bool Loaded;
 
-        array<file::path> FilesAssociated;
-        delegate<void(array<file::path>)> Callback;
+        array<file::path> FilesAssociated;  // @Leak
+        delegate<void(const array<file::path> &)> Callback;
 
         bool Watched;
-        array<time_t> LastWriteTimes;
+        array<time_t> LastWriteTimes;  // @Leak
     };
 
     file::path Root;
@@ -28,7 +28,7 @@ struct catalog : non_copyable, non_movable, non_assignable {
 
     void ensure_initted(file::path root);
 
-    void load(array<file::path> files, const delegate<void(array<file::path>)> &callback, bool watch, allocator alloc = {});
+    void load(array<file::path> files, const delegate<void(const array<file::path> &)> &callback, bool watch, allocator alloc = {});
 };
 
 LSTD_END_NAMESPACE

@@ -68,7 +68,8 @@ struct monitor {
 };
 
 struct monitor_event {
-    enum action { CONNECTED, DISCONNECTED };
+    enum action { CONNECTED,
+                  DISCONNECTED };
 
     monitor *Monitor = null;
     action Action;
@@ -77,8 +78,6 @@ struct monitor_event {
 // Connect a callback to this signal for monitor connect/disconnect events.
 inline signal<void(const monitor_event &)> g_MonitorEvent;
 
-// @TODO: Move these to _monitor_
-// :
 display_mode os_get_current_display_mode(monitor *mon);
 
 // Work area is the screen excluding taskbar and other docked bars
@@ -89,11 +88,14 @@ void os_restore_display_mode(monitor *mon);
 
 vec2<s32> os_get_monitor_pos(monitor *mon);
 v2 os_get_monitor_content_scale(monitor *mon);
-//:
 
+// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 monitor *os_monitor_from_window(window *win);
 
+// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 array<monitor *> os_get_monitors();
+
+// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 monitor *os_get_primary_monitor();
 
 LSTD_END_NAMESPACE

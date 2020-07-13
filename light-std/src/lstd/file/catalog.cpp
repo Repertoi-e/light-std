@@ -12,7 +12,7 @@ void catalog::ensure_initted(file::path root) {
     clone(&Root, root);
 }
 
-void catalog::load(array<file::path> files, const delegate<void(array<file::path>)> &callback, bool watch, allocator alloc) {
+void catalog::load(array<file::path> files, const delegate<void(const array<file::path> &)> &callback, bool watch, allocator alloc) {
     entity *e = Entities.add({}, alloc);
     e->FilesAssociated.reserve(files.Count);
     e->Callback = callback;

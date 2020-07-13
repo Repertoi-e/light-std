@@ -22,6 +22,7 @@ TEST(stack_array) {
 
 TEST(array) {
     array<s64> a;
+    defer(a.release());
 
     For(range(10)) { a.append(it); }
     For(range(10)) { assert_eq(a[it], it); }

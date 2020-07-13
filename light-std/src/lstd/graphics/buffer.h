@@ -27,6 +27,8 @@ struct buffer_layout {
 
     void add(const string &name, gtype type, s64 count = 1, bool normalized = false);
     void add_padding(s64 bytes);
+
+    void release() { Elements.release(); }
 };
 
 enum class primitive_topology { PointList = 0,
@@ -74,13 +76,12 @@ struct buffer : non_copyable, non_movable {
 
     struct impl {
         void (*Init)(buffer *b, const char *data) = null;
-        void (*SetInputLayout)(buffer *b, buffer_layout layout) = null;
+        void (*SetInputLayout)(buffer *b, const buffer_layout &layout) = null;
 
         void *(*Map)(buffer *b, buffer_map_access access) = null;
         void (*Unmap)(buffer *b) = null;
 
-        void (*Bind)(buffer *b, primitive_topology topology, u32 offset, u32 stride, shader_type shaderType,
-                     u32 position) = null;
+        void (*Bind)(buffer *b, primitive_topology topology, u32 offset, u32 stride, shader_type shaderType, u32 position) = null;
         void (*Unbind)(buffer *b) = null;
         void (*Release)(buffer *b) = null;
     } Impl{};
@@ -93,11 +94,13 @@ struct buffer : non_copyable, non_movable {
     s64 Stride = 0;  // Determined by the buffer layout
 
     buffer() = default;
-    ~buffer() { release(); }
+
+    // We no longer use destructors for deallocation.
+    // ~buffer() { release(); }
 
     void init(graphics *g, buffer_type type, buffer_usage usage, s64 size, const char *data = null);
 
-    void set_input_layout(buffer_layout layout);
+    void set_input_layout(const buffer_layout &layout);
 
     void *map(buffer_map_access access);
     void unmap();

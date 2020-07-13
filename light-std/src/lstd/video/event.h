@@ -288,18 +288,6 @@ struct event {
         };
     };
 
-    // Gets temporarily allocated, the event doesn't own this (unless cloned)
+    // Gets temporarily allocated, the event doesn't own this
     array<file::path> Paths;  // Only set on Window_Files_Dropped
 };
-
-inline event *clone(event *dest, event src) {
-    dest->Window = src.Window;
-    if (src.Type == event::Window_Files_Dropped) clone(&dest->Paths, src.Paths);
-    return dest;
-}
-
-inline event *move(event *dest, event src) {
-    dest->Window = src.Window;
-    if (src.Type == event::Window_Files_Dropped) move(&dest->Paths, &src.Paths);
-    return dest;
-}

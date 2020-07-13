@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../internal/context.h"
+#include "owner_pointers.h"
 #include "string.h"
 
 LSTD_BEGIN_NAMESPACE

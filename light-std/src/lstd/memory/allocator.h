@@ -362,8 +362,8 @@ T *reallocate_array_impl(T *block, s64 newCount, u64 userFlags, const char *file
 
     if constexpr (!is_scalar_v<T>) {
         if (newCount < oldCount) {
-            auto *p = result + newCount;
-            auto *end = result + oldCount;
+            auto *p = block + newCount;
+            auto *end = block + oldCount;
             while (p != end) {
                 p->~T();
                 ++p;

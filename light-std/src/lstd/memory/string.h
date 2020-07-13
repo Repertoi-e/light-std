@@ -85,7 +85,10 @@ struct string {
     // preferred alignment in the Context.
     void reserve(s64 size);
 
-    // Releases the memory allocated by this string and resets its members.
+    // Resets ByteLength and Length without freeing memory
+    void reset();
+
+    // Releases the memory allocated by this string and resets its members
     void release();
 
     // Gets the _index_'th code point in the string.
@@ -324,11 +327,6 @@ struct string {
         return result;
     }
 
-    // Return true if this object has any memory allocated by itself.
-    // We no longer do that for our containers in order to reduce complexity and bugs.
-    // The caller is now responsible for calling release() explicitly (take a look at the defer macro!).
-    // bool is_owner() const { return Reserved && decode_owner<string>(Data) == this; }
-
     //
     // Iterator:
     //
@@ -421,6 +419,8 @@ constexpr bool operator>(const char *one, const string &other) { return other.co
 constexpr bool operator<=(const char *one, const string &other) { return !(one > other); }
 constexpr bool operator>=(const char *one, const string &other) { return !(one < other); }
 
+// Be careful not to call this with _dest_ pointing to _src_!
+// Returns just _dest_.
 string *clone(string *dest, const string &src);
 
 // Since we longer do the ownership thing, the move() function is obsolete.

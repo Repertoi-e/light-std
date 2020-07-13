@@ -190,8 +190,10 @@ s64 calculate_formatted_size(const string &fmtString, Args &&... args) {
 }
 
 // Formats to a string. The caller is responsible for freeing.
+//
+// [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
 template <typename... Args>
-string sprint(const string &fmtString, Args &&... args) {
+[[nodiscard]] string sprint(const string &fmtString, Args &&... args) {
     auto writer = io::string_builder_writer();
     to_writer(&writer, fmtString, ((Args &&) args)...);
     return writer.Builder.combine();
@@ -207,12 +209,12 @@ void print(const string &fmtString, Args &&... args) {
 
 template <typename T>
 struct formatter<array<T>> {
-    void format(array<T> src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
+    void format(const array<T> &src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
 };
 
 template <typename T, s64 N>
 struct formatter<stack_array<T, N>> {
-    void format(stack_array<T, N> src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
+    void format(const stack_array<T, N> &src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
 };
 
 template <>

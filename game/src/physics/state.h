@@ -81,8 +81,8 @@ struct game_state {
     // We scale coordinates by this amount to appear better on the screen
     f32 PixelsPerMeter = 50;
 
-    string PyCurrentDemo;
-    array<string> PyDemoFiles;
+    string PyCurrentDemo;       // @Leak
+    array<string> PyDemoFiles;  // @Leak
 
     bool PyLoaded = false;
     py::module PyModule;

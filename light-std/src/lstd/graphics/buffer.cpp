@@ -32,7 +32,7 @@ void buffer::init(graphics *g, buffer_type type, buffer_usage usage, s64 size, c
     Impl.Init(this, data);
 }
 
-void buffer::set_input_layout(buffer_layout layout) { Impl.SetInputLayout(this, layout); }
+void buffer::set_input_layout(const buffer_layout &layout) { Impl.SetInputLayout(this, layout); }
 
 void *buffer::map(buffer_map_access access) { return Impl.Map(this, access); }
 

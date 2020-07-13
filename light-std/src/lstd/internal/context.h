@@ -38,9 +38,9 @@ inline os_function_call *move(os_function_call *dest, os_function_call *src) {
 template <typename T>
 struct array;
 
-typedef void os_unexpected_exception_handler_t(const string &message, array<os_function_call> callStack);
+typedef void os_unexpected_exception_handler_t(const string &message, const array<os_function_call> &callStack);
 
-void default_unexpected_exception_handler(const string &message, array<os_function_call> callStack);
+void default_unexpected_exception_handler(const string &message, const array<os_function_call> &callStack);
 
 // @TODO: By default our alloc alignment is 16 (simd friendly).
 // Maybe that's too big and we should have a context variable to control it.

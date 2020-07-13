@@ -64,7 +64,7 @@ static LONG exception_filter(LPEXCEPTION_POINTERS e) {
             call.LineNumber = lineInfo.LineNumber;
         }
 
-        move(callStack.append(), &call);
+        callStack.append(call);
     }
 
     auto *desc = CodeDescs.find(exceptionCode);
@@ -73,6 +73,12 @@ static LONG exception_filter(LPEXCEPTION_POINTERS e) {
     defer(message.release());
 
     Context.UnexpectedExceptionHandler(message, callStack);
+
+    For(callStack) {
+        it.Name.release();
+        it.File.release();
+    }
+    callStack.release();
 
     return EXCEPTION_EXECUTE_HANDLER;
 }

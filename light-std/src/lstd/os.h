@@ -20,12 +20,16 @@ struct string;
 //
 
 // Allocates memory by calling OS functions
-void *os_allocate_block(s64 size);
+//
+// [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
+[[nodiscard]] void *os_allocate_block(s64 size);
 
 // Expands/shrinks a memory block allocated by _os_alloc()_
 // This is NOT realloc in the general sense where when this fails it returns null instead of allocating a new block.
 // That's why it's not called realloc.
-void *os_resize_block(void *ptr, s64 newSize);
+//
+// [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
+[[nodiscard]] void *os_resize_block(void *ptr, s64 newSize);
 
 // Returns the size of a memory block allocated by _os_alloc()_ in bytes.
 s64 os_get_block_size(void *ptr);
@@ -52,18 +56,23 @@ time_t os_get_time();
 // Converts a time stamp acquired by _os_get_time()_ to seconds
 f64 os_time_to_seconds(time_t time);
 
+// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 string os_get_clipboard_content();
 void os_set_clipboard_content(const string &content);
 
 // Sleep for _ms_ milliseconds
 // void os_sleep(f64 ms);
 
-// Returns the path of the current executable or dynamic library (full dir + name)
+// Returns the path of the current executable or dynamic library (full dir + name).
+//
+// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 string os_get_current_module();
 
 // Returns the current directory of the current process.
 // [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory
 //           are not thread-safe but we use a lock so these are.
+//
+// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 string os_get_working_dir();
 
 // Sets the current directory of the current process (needs to be absolute).
@@ -73,7 +82,9 @@ void os_set_working_dir(const string &dir);
 
 // Get the value of an environment variable, returns true if found.
 // If not found and silent is false, logs error to cerr.
-pair<bool, string> os_get_env(const string &name, bool silent = false);
+//
+// [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
+[[nodiscard]] pair<bool, string> os_get_env(const string &name, bool silent = false);
 
 // Sets a variable (creates if it doesn't exist yet) in this process' environment
 void os_set_env(const string &name, const string &value);
@@ -83,6 +94,8 @@ void os_remove_env(const string &name);
 
 // Get a list of parsed command line arguments excluding the first one.
 // Normally the first one is the exe name - you can get that with os_get_current_module().
+//
+// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 array<string> os_get_command_line_arguments();
 
 // Returns an ID which uniquely identifies the current process on the system

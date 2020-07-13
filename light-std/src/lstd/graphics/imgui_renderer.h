@@ -17,7 +17,6 @@ struct imgui_renderer {
     s64 VBSize = 0, IBSize = 0;
 
     imgui_renderer() = default;
-    ~imgui_renderer() { release(); }
 
     void init(graphics *g);
     void draw(ImDrawData *drawData);

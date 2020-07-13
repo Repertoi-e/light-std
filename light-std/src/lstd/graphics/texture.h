@@ -13,8 +13,13 @@ struct ID3D11DepthStencilView;
 
 LSTD_BEGIN_NAMESPACE
 
-enum class texture_wrap { None = 0, Repeat, Clamp, Mirrored_Repeat, Clamp_To_Border };
-enum class texture_filter { Linear, Nearest };
+enum class texture_wrap { None = 0,
+                          Repeat,
+                          Clamp,
+                          Mirrored_Repeat,
+                          Clamp_To_Border };
+enum class texture_filter { Linear,
+                            Nearest };
 
 // @AvoidInclude
 struct pixel_buffer;
@@ -54,7 +59,9 @@ struct texture_2D : asset {
     bool RenderTarget = false;  // When true, the texture can be used as a framebuffer
 
     texture_2D() = default;
-    ~texture_2D() { release(); }
+
+    // We no longer use destructors for deallocation.
+    // ~texture_2D() { release(); }
 
     void init(graphics *g, s32 width, s32 height, texture_filter filter = texture_filter::Linear,
               texture_wrap wrap = texture_wrap::Clamp);

@@ -55,9 +55,13 @@ struct shader : public asset, non_copyable, non_movable {
     };
 
     // We parse the shader source and extract metadata (not really sophisticated...)
+    // !!! We actually removed parsing a long time ago because it wasn't working
+    // @TODO
     array<uniform_buffer> UniformBuffers;
 
     shader() = default;
+
+    // We no longer use destructors for deallocation.
     // ~shader() { release(); }
 
     void init(graphics *g, const file::handle &fileHandle);

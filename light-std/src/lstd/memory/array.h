@@ -1,15 +1,18 @@
 #pragma once
 
 #include "../internal/context.h"
-#include "owner_pointers.h"
 #include "stack_array.h"
 
 LSTD_BEGIN_NAMESPACE
 
-// @Cleanup Not it doesn't. It should work like that but design is constantly changing and I'm still not sure about the
-// API. For now its slow and clones stuff.
+// _array_ works with types that can be copied byte by byte correctly, we don't handle C++'s messy copy constructors.
+// Take a look at the type policy in "internal/common.h".
 //
-// _array_ works with types that can be copied byte by byte correctly, take a look at the type policy in common.h
+// We also don't free this with a destructor anymore (we used to in a past review of our design).
+// The user manually manages the memory with release(), which frees the allocated block (if the object has allocated) and resets the object.
+// The defer macro helps a lot (e.g. defer(arr.release()) calls release at any scope exit).
+//
+// Python-style negative indexing is supported (just like string). -1 means the last element (at index Count - 1).
 template <typename T>
 struct array {
     using data_t = T;
@@ -22,65 +25,53 @@ struct array {
     array(data_t *data, s64 count) : Data(data), Count(count), Reserved(0) {}
     array(array_view<data_t> items) : Data((data_t *) items.begin()), Count(items.size()), Reserved(0) {}
 
-    ~array() { release(); }
+    // We no longer use destructors for deallocation. Call release() explicitly (take a look at the defer macro!).
+    // ~array() { release(); }
 
-    // Makes sure the dynamic array has reserved enough space for at least n elements.
+    // Makes sure the array has reserved enough space for at least _target_ new elements.
     // Note that it may reserve way more than required.
-    // Reserves space equal to the next power of two bigger than _size_, starting at 8.
+    // Final reserve amount is equal to the next power of two bigger than (_target_ + Count), starting at 8.
     //
-    // Allocates a buffer if the dynamic array doesn't already point to reserved memory
-    // (using the Context's allocator).
+    // Allocates a buffer (using the Context's allocator) if the array hasn't already allocated.
+    // If this object is just a view (Reserved == 0) i.e. this is the first time it is allocating, the old
+    // elements are copied (again, we do a simple memcpy, we don't handle copy constructors).
     //
-    // Can also specify a specific alignment for the elements.
+    // You can also specify a specific alignment for the elements directly (instead of using the Context variable).
     void reserve(s64 target, u32 alignment = 0) {
         if (Count + target < Reserved) return;
+
         target = max<s64>(ceil_pow_of_2(target + Count + 1), 8);
 
-        auto *oldData = Data;
-
-        // The owner will change with the next line, but we need it later to decide if we need to delete the old array
-        bool wasOwner = is_owner();
-
-        if (wasOwner) {
-            auto oldAlignment = ((allocation_header *) oldData - 1)->Alignment;
+        if (Reserved) {
+            auto oldAlignment = ((allocation_header *) Data - 1)->Alignment;
             if (alignment == 0) {
                 alignment = oldAlignment;
             } else {
-                assert(alignment == oldAlignment && "Reserving with different alignment. Specify zero to use the old one.");
+                assert(alignment == oldAlignment && "Reserving with an alignment but the object already has a buffer with a different alignment. Use alignment 0 to use the old one.");
             }
+
+            Data = reallocate_array(Data, target);
+        } else {
+            auto *oldData = Data;
+            Data = allocate_array_aligned(data_t, target, alignment);
+            // We removed the ownership system.
+            // encode_owner(Data, this);
+            if (Count) copy_memory(Data, oldData, Count * sizeof(data_t));
         }
-
-        Data = allocate_array_aligned(data_t, target, alignment);
-        encode_owner(Data, this);
-
-        // @Speed: We can make this faster if the elements don't have an explicit move/clone (but how do we know?)
-        auto *op = oldData, *p = Data;
-        For(range(Count)) {
-            if (wasOwner) {
-                move(p, op);
-            } else {
-                clone(p, *op);
-            }
-            ++op, ++p;
-        }
-
-        if (wasOwner) free(oldData);
-
         Reserved = target;
     }
 
-    // Free any memory allocated by this object and reset count
+    // Call destructor on each element if the buffer is allocated, free any memory and reset count
     void release() {
         reset();
-        if (is_owner()) free(Data);
+        if (Reserved) free(Data);
         Data = null;
         Count = Reserved = 0;
     }
 
-    // Don't free the buffer, just move cursor to 0
+    // Call destructor on each element if the buffer is allocated, don't free the buffer, just move Count to 0
     void reset() {
-        // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
-        if (is_owner()) {
+        if (Reserved) {
             while (Count) {
                 Data[Count - 1].~data_t();
                 --Count;
@@ -90,12 +81,14 @@ struct array {
         }
     }
 
+    // We don't have bounds checking (for speed)
     data_t &get(s64 index) { return Data[translate_index(index, Count)]; }
     const data_t &get(s64 index) const { return Data[translate_index(index, Count)]; }
 
-    void sort() { quicksort(Data, Data + Count); }
+    // Calls our quick_sort() on the elements.
+    void sort() { quick_sort(Data, Data + Count); }
 
-    // Sets the _index_'th element in the array
+    // Sets the _index_'th element in the array (also calls the destructor on the old one)
     array *set(s64 index, const data_t &element) {
         auto i = translate_index(index, Count);
         Data[i].~data_t();
@@ -103,7 +96,17 @@ struct array {
         return this;
     }
 
-    // Insert an element at a specified index
+    // Inserts an empty element at a specified index and returns a pointer to it in the buffer.
+    //
+    // This is useful for the following way to clone insert an object (because the default insert just shallow-copies the object).
+    //
+    // data_t toBeCloned = ...;
+    // clone(arr.insert(index), toBeCloned);
+    //
+    // Because _insert_ returns a pointer where the object is placed, clone() can place the deep copy there directly.
+    data_t *insert(s64 index) { return insert(index, data_t()); }
+
+    // Inserts an element at a specified index and returns a pointer to it in the buffer
     data_t *insert(s64 index, const data_t &element) {
         if (Count >= Reserved) {
             reserve(Reserved * 2);
@@ -112,17 +115,17 @@ struct array {
         s64 offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
         if (offset < Count) {
-            copy_memory(where + 1, where, (Count - offset) * sizeof(data_t));  // @Bug
+            copy_memory(where + 1, where, (Count - offset) * sizeof(data_t));
         }
-        clone(where, element);
-        Count++;
+        *where = element;
+        ++Count;
         return where;
     }
 
-    // Insert an array at a specified index
-    data_t *insert(s64 index, array arr) { return insert_pointer_and_size(index, arr.Data, arr.Count); }
+    // Insert an array at a specified index and returns a pointer to the beginning of it in the buffer
+    data_t *insert(s64 index, const array &arr) { return insert_pointer_and_size(index, arr.Data, arr.Count); }
 
-    // Insert a buffer of elements at a specified index
+    // Insert a buffer of elements at a specified index.
     data_t *insert_pointer_and_size(s64 index, const data_t *ptr, s64 size) {
         s64 required = Reserved;
         while (Count + size >= required) {
@@ -134,32 +137,32 @@ struct array {
         s64 offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
         if (offset < Count) {
-            copy_memory(where + size, where, (Count - offset) * sizeof(data_t));  // @Bug
+            copy_memory(where + size, where, (Count - offset) * sizeof(data_t));
         }
         copy_memory(where, ptr, size * sizeof(data_t));
         Count += size;
         return where;
     }
 
-    // Removes element at specified index and rearranges following elements
+    // Removes element at specified index and moves following elements back
     array *remove(s64 index) {
         // If the array is a view, we don't want to modify the original!
-        if (!is_owner()) reserve(0);
+        if (!Reserved) reserve(0);
 
         s64 offset = translate_index(index, Count);
 
         auto *where = begin() + offset;
         where->~data_t();
-        copy_memory(where, where + 1, (Count - offset - 1) * sizeof(data_t));  // @Bug
-        Count--;
+        copy_memory(where, where + 1, (Count - offset - 1) * sizeof(data_t));
+        --Count;
         return this;
     }
 
-    // Removes a range of elements and rearranges following elements
+    // Removes a range of elements and moves following elements back
     // [begin, end)
     array *remove(s64 begin, s64 end) {
         // If the array is a view, we don't want to modify the original!
-        if (!is_owner()) reserve(0);
+        if (!Reserved) reserve(0);
 
         s64 targetBegin = translate_index(index, Count);
         s64 targetEnd = translate_index(index, Count, true);
@@ -170,31 +173,35 @@ struct array {
         }
 
         s64 elementCount = targetEnd - targetBegin;
-        copy_memory(where, where + elementCount, (Count - offset - elementCount) * sizeof(data_t));  // @Bug
+        copy_memory(where, where + elementCount, (Count - offset - elementCount) * sizeof(data_t));
         Count -= elementCount;
         return this;
     }
 
-    // Inserts an empty element
+    // Inserts an empty element at the end of the array and returns a pointer to it in the buffer.
+    //
+    // This is useful for the following way to clone append an object (because the default append just shallow-copies the object).
+    //
+    // data_t toBeCloned = ...;
+    // clone(arr.append(), toBeCloned);
+    //
+    // Because _append_ returns a pointer where the object is placed, clone() can place the deep copy there directly.
     data_t *append() { return append(data_t()); }
 
-    // Append an element to the end
-    // Returns a pointer to the added element
+    // Appends an element to the end and returns a pointer to it in the buffer
     data_t *append(const data_t &element) { return insert(Count, element); }
 
-    // Append an array to the end
-    // Returns a pointer to the first added element
+    // Appends an array to the end and returns a pointer to it in the buffer
     data_t *append(array arr) { return insert(Counts, arr); }
 
-    // Append a buffer of elements to the end
-    // Returns a pointer to the first added element
+    // Appends a buffer of elements to the end and returns a pointer to it in the buffer
     data_t *append_pointer_and_size(const data_t *ptr, s64 size) { return insert_pointer_and_size(Count, ptr, size); }
 
     // Compares this array to _arr_ and returns the index of the first element that is different.
-    // If the arrays are equal, the returned value is -1
+    // If the arrays are equal, the returned value is -1.
     template <typename U>
     constexpr s64 compare(array<U> arr) const {
-        static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
+        static_assert(is_equal_comparable_v<T, U>, "Arrays have types which cannot be compared with operator ==");
 
         const T *s1 = begin();
         const U *s2 = arr.begin();
@@ -208,12 +215,11 @@ struct array {
     }
 
     // Compares this array to to _arr_ lexicographically.
-    // The result is less than 0 if this array sorts before the other, 0 if they are equal,
-    // and greater than 0 otherwise.
+    // The result is less than 0 if this array sorts before the other, 0 if they are equal, and greater than 0 otherwise.
     template <typename U>
     constexpr s32 compare_lexicographically(array<U> arr) const {
-        static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
-        static_assert(is_less_comparable_v<T, U>, "Types cannot be compared with operator <");
+        static_assert(is_equal_comparable_v<T, U>, "Arrays have types which cannot be compared with operator ==");
+        static_assert(is_less_comparable_v<T, U>, "Arrays have types which cannot be compared with operator <");
 
         const T *s1 = begin();
         const U *s2 = arr.begin();
@@ -226,7 +232,8 @@ struct array {
         return s1 < s2 ? -1 : 1;
     }
 
-    // Predicate must take a single argument (the current element) and return if it matches
+    // Find the first occurence of an element which matches the predicate and is after a specified index.
+    // Predicate must take a single argument (the current element) and return if it matches.
     s64 find(const delegate<bool(const data_t &)> &predicate, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
 
@@ -375,13 +382,11 @@ struct array {
         return -1;
     }
 
-    // Checks if there is enough reserved space for _size_ elements
-    bool has_space_for(s64 size) { return (Count + size) <= Reserved; }
-
+    // Checks if _item_ is contained in the array
     bool has(const data_t &item) const { return find(item) != -1; }
 
-    // Returns true if this object has any memory allocated by itself
-    bool is_owner() const { return Reserved && decode_owner<array>(Data) == this; }
+    // Checks if there is enough reserved space for _n_ elements
+    bool has_space_for(s64 n) { return (Count + size) <= Reserved; }
 
     //
     // Iterator:
@@ -432,25 +437,28 @@ struct array {
     }
 };
 
+// Be careful not to call this with _dest_ pointing to _src_!
+// Returns just _dest_.
 template <typename T>
-array<T> *clone(array<T> *dest, array<T> src) {
+array<T> *clone(array<T> *dest, const array<T> &src) {
     dest->reset();
     dest->append_pointer_and_size(src.Data, src.Count);
     return dest;
 }
 
-template <typename T>
-array<T> *move(array<T> *dest, array<T> *src) {
-    dest->release();
-    *dest = *src;
-
-    if (!src->is_owner()) return dest;
-
-    // Transfer ownership
-    encode_owner(src->Data, dest);
-    encode_owner(dest->Data, dest);
-    return dest;
-}
+// Since we longer do the ownership thing, the move() function is obsolete.
+// template <typename T>
+// array<T> *move(array<T> *dest, array<T> *src) {
+//     dest->release();
+//     *dest = *src;
+//
+//     if (!src->is_owner()) return dest;
+//
+//     // Transfer ownership
+//     encode_owner(src->Data, dest);
+//     encode_owner(dest->Data, dest);
+//     return dest;
+// }
 
 //
 // == and != for stack_array and array

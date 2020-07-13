@@ -14,9 +14,11 @@ TEST(global_function) {
     signal.connect(my_callback2);
     signal.connect(my_callback3);
 
-    array<s32> result;
-    signal.emit(&result, 20);
+    array<s32> result = signal.emit(20);
     assert_eq(result, to_array<s32>(20, 21, 22, 23));
+    result.release();
+
+    signal.release();
 }
 
 struct Member_Test {
@@ -33,10 +35,10 @@ TEST(member_function) {
     Member_Test myStruct;
     signal.connect({&myStruct, &Member_Test::member_callback});
 
-    s32 result;
-    signal.emit(&result, 20);
+    s32 result = signal.emit(20);
 
     assert_eq(result, myStruct.value + 20);
+    signal.release();
 }
 
 TEST(global_function_delegate) {

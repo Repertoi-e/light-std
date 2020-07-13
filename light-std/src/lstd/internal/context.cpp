@@ -5,7 +5,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void default_unexpected_exception_handler(const string &message, array<os_function_call> callStack) {
+void default_unexpected_exception_handler(const string &message, const array<os_function_call> &callStack) {
     fmt::print("\n{!}(context.cpp / default_crash_handler): An exception occured and the program must terminate.\n");
     fmt::print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
     fmt::print("        ... and here is the call stack:\n");

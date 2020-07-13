@@ -57,6 +57,10 @@ void string::reserve(s64 target) {
     Reserved = target;
 }
 
+void string::reset() {
+    Length = ByteLength = 0;
+}
+
 void string::release() {
     if (Reserved) free((char *) Data);
     Data = null;
@@ -250,8 +254,7 @@ string *string::replace_all(const string &oldStr, char32_t newCp) {
 }
 
 string *clone(string *dest, const string &src) {
-    dest->release();
-    *dest = {};
+    dest->reset();
     dest->append(src);
     return dest;
 }

@@ -263,7 +263,7 @@ static void do_key_input_event(window *win, u32 key, bool pressed, bool asyncMod
         e.Type = event::Keyboard_Released;
     }
     e.KeyCode = key;
-    win->Event.emit(null, e);
+    (void) win->Event.emit(e);
 }
 
 static void do_mouse_input_event(window *win, u32 button, bool pressed, bool doubleClick = false) {
@@ -277,7 +277,7 @@ static void do_mouse_input_event(window *win, u32 button, bool pressed, bool dou
     e.Type = pressed ? event::Mouse_Button_Pressed : event::Mouse_Button_Released;
     e.Button = button;
     e.DoubleClicked = doubleClick;
-    win->Event.emit(null, e);
+    (void) win->Event.emit(e);
 }
 
 static void do_mouse_move(window *win, vec2<s32> pos) {
@@ -293,7 +293,7 @@ static void do_mouse_move(window *win, vec2<s32> pos) {
     e.Y = pos.y;
     e.DX = delta.x;
     e.DY = delta.y;
-    win->Event.emit(null, e);
+    (void) win->Event.emit(e);
 }
 
 void window::update() {
@@ -389,7 +389,7 @@ void window::release() {
     event e;
     e.Window = this;
     e.Type = event::Window_Closed;
-    Event.emit(null, e);
+    (void) Event.emit(e);
 
     if (Monitor) release_monitor(this);
     if (DisabledCursorWindow == this) DisabledCursorWindow = null;
@@ -402,6 +402,8 @@ void window::release() {
 
     if (PlatformData.Win32.BigIcon) DestroyIcon(PlatformData.Win32.BigIcon);
     if (PlatformData.Win32.SmallIcon) DestroyIcon(PlatformData.Win32.SmallIcon);
+
+    Event.release();
 
     window **prev = &WindowsList;
     while (*prev != this) prev = &((*prev)->Next);
@@ -989,7 +991,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
     e.Message = message;
     e.Param1 = wParam;
     e.Param2 = lParam;
-    win->Event.emit(null, e);
+    (void) win->Event.emit(e);
 
     switch (message) {
         case WM_MOUSEACTIVATE:
@@ -1012,7 +1014,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Window = win;
                 e.Type = event::Window_Focused;
                 e.Focused = true;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
 
             // @Hack: Do not disable cursor while the user is interacting with a caption button
@@ -1029,7 +1031,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Window = win;
                 e.Type = event::Window_Focused;
                 e.Focused = false;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
 
             For(range(Key_Last + 1)) {
@@ -1060,7 +1062,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 event e;
                 e.Window = win;
                 e.Type = event::Window_Closed;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
             win->release();
             return 0;
@@ -1083,7 +1085,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Window = win;
                 e.Type = event::Code_Point_Typed;
                 e.CP = cp;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
             return 0;
         }
@@ -1187,7 +1189,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 event e;
                 e.Window = win;
                 e.Type = event::Mouse_Entered_Window;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
 
             if (win->CursorMode == window::CURSOR_DISABLED) {
@@ -1238,7 +1240,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 event e;
                 e.Window = win;
                 e.Type = event::Mouse_Left_Window;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
             return 0;
         case WM_MOUSEWHEEL: {
@@ -1246,7 +1248,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             e.Window = win;
             e.Type = event::Mouse_Wheel_Scrolled;
             e.ScrollY = (u32)(GET_WHEEL_DELTA_WPARAM(wParam) / (f32) WHEEL_DELTA);
-            win->Event.emit(null, e);
+            (void) win->Event.emit(e);
             return 0;
         }
         case WM_MOUSEHWHEEL:
@@ -1256,7 +1258,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Window = win;
                 e.Type = event::Mouse_Wheel_Scrolled;
                 e.ScrollX = (u32)(-(GET_WHEEL_DELTA_WPARAM(wParam) / (f32) WHEEL_DELTA));
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
             return 0;
         case WM_ENTERSIZEMOVE:
@@ -1286,7 +1288,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Window = win;
                 e.Type = event::Window_Minimized;
                 e.Minimized = true;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
             if (windowMinimized && !minimized) {
                 win->Flags &= ~window::MINIMIZED;
@@ -1295,7 +1297,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Window = win;
                 e.Type = event::Window_Minimized;
                 e.Minimized = false;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
 
             if (maximized && !windowMaximized) {
@@ -1306,7 +1308,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Window = win;
                 e.Type = event::Window_Maximized;
                 e.Maximized = true;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
             if (windowMaximized && !maximized) {
                 win->Flags &= ~window::MAXIMIZED;
@@ -1315,7 +1317,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Window = win;
                 e.Type = event::Window_Maximized;
                 e.Maximized = false;
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
 
             event e;
@@ -1323,9 +1325,9 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             e.Type = event::Window_Framebuffer_Resized;
             e.Width = LOWORD(lParam);
             e.Height = HIWORD(lParam);
-            win->Event.emit(null, e);
+            (void) win->Event.emit(e);
             e.Type = event::Window_Resized;
-            win->Event.emit(null, e);
+            (void) win->Event.emit(e);
 
             if (win->Monitor && windowMinimized != minimized) {
                 if (minimized) {
@@ -1349,7 +1351,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 e.Type = event::Window_Moved;
                 e.X = GET_X_LPARAM(lParam);
                 e.Y = GET_Y_LPARAM(lParam);
-                win->Event.emit(null, e);
+                (void) win->Event.emit(e);
             }
             return 0;
 
@@ -1393,7 +1395,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             event e;
             e.Window = win;
             e.Type = event::Window_Refreshed;
-            win->Event.emit(null, e);
+            (void) win->Event.emit(e);
         } break;
         case WM_ERASEBKGND:
             return true;
@@ -1438,7 +1440,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             e.Window = win;
             e.Type = event::Window_Content_Scale_Changed;
             e.Scale = {xscale, yscale};
-            win->Event.emit(null, e);
+            (void) win->Event.emit(e);
             break;
         }
         case WM_SETCURSOR:
@@ -1476,7 +1478,7 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             e.Window = win;
             e.Type = event::Window_Files_Dropped;
             e.Paths = paths;
-            win->Event.emit(null, e);
+            (void) win->Event.emit(e);
 
             DragFinish(drop);
             return 0;

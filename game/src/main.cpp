@@ -109,8 +109,10 @@ static void parse_arguments() {
     usage.append(
         "    {!YELLOW}-fps <value>{!GRAY}    "
         "Specifies the target fps (default is 60).\n\n");
+    defer(usage.release());
 
-    bool seekFileName = false, seekMemory = false, seekWidth = false, seekHeight = false, seekFPS = false;
+    bool seekFileName = false,
+         seekMemory = false, seekWidth = false, seekHeight = false, seekFPS = false;
     auto args = os_get_command_line_arguments();
     For(args) {
         if (seekFileName) {
@@ -277,6 +279,7 @@ s32 main() {
 
         imgui_renderer imguiRenderer;
         imguiRenderer.init(&g);
+        defer(imguiRenderer.release());
 
         while (true) {
             gameMemory.ReloadedThisFrame = check_for_dll_change();

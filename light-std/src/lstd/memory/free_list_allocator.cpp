@@ -229,6 +229,8 @@ void *free_list_allocator(allocator_mode mode, void *context, s64 size, void *ol
             // Remove our allocations from the linked list
             WITH_ALLOC(Malloc) {
                 array<allocation_header *> toUnlink;
+                defer(toUnlink.release());
+
                 auto *h = allocator::DEBUG_Head;
                 while (h) {
                     if (h->Function == free_list_allocator && h->Context == data) {

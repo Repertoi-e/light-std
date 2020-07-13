@@ -146,20 +146,18 @@ bool graphics::window_event_handler(const event &e) {
 
 void graphics::release() {
     if (Impl.Release) {
-        For_as(it_index, range(TargetWindows.Count)) {
-            auto *it = &TargetWindows[it_index];
-            if (it->Window) {
-                it->Window->Event.disconnect(it->CallbackID);
-                Impl.ReleaseTargetWindow(this, it);
-            }
-        }
-        TargetWindows.reset();
-
         Impl.Release(this);
-
         API = graphics_api::None;
     }
-    assert(API == graphics_api::None);
+
+    For_as(it_index, range(TargetWindows.Count)) {
+        auto *it = &TargetWindows[it_index];
+        if (it->Window) {
+            it->Window->Event.disconnect(it->CallbackID);
+            Impl.ReleaseTargetWindow(this, it);
+        }
+    }
+    TargetWindows.release();
 }
 
 LSTD_END_NAMESPACE

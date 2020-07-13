@@ -96,7 +96,7 @@ DXGI_FORMAT gtype_and_count_to_dxgi_format(gtype type, s64 count, bool normalize
     }
 }
 
-void d3d_buffer_set_input_layout(buffer *b, buffer_layout layout) {
+void d3d_buffer_set_input_layout(buffer *b, const buffer_layout &layout) {
     assert(b->Graphics->CurrentlyBoundShader);
     assert(b->Graphics->CurrentlyBoundShader->D3D.VSBlob);
 
@@ -118,8 +118,7 @@ void d3d_buffer_set_input_layout(buffer *b, buffer_layout layout) {
     }
 
     auto *vs = (ID3DBlob *) b->Graphics->CurrentlyBoundShader->D3D.VSBlob;
-    DX_CHECK(b->Graphics->D3D.Device->CreateInputLayout(desc, (u32) layout.Elements.Count, vs->GetBufferPointer(),
-                                                       vs->GetBufferSize(), &b->D3D.Layout));
+    DX_CHECK(b->Graphics->D3D.Device->CreateInputLayout(desc, (u32) layout.Elements.Count, vs->GetBufferPointer(), vs->GetBufferSize(), &b->D3D.Layout));
 }
 
 void *d3d_buffer_map(buffer *b, buffer_map_access access) {
@@ -131,7 +130,7 @@ void *d3d_buffer_map(buffer *b, buffer_map_access access) {
     if (access == buffer_map_access::Write_Unsynchronized) d3dMap = D3D11_MAP_WRITE_NO_OVERWRITE;
 
     DX_CHECK(b->Graphics->D3D.DeviceContext->Map(b->D3D.Buffer, 0, d3dMap, 0,
-                                                (D3D11_MAPPED_SUBRESOURCE *) &b->D3D.MappedData));
+                                                 (D3D11_MAPPED_SUBRESOURCE *) &b->D3D.MappedData));
     return ((D3D11_MAPPED_SUBRESOURCE *) (&b->D3D.MappedData))->pData;
 }
 

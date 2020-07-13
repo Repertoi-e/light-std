@@ -25,13 +25,13 @@ constexpr T *partition(T *first, T *last, T *pivot) {
 }
 
 template <typename T>
-constexpr void quicksort(T *first, T *last) {
+constexpr void quick_sort(T *first, T *last) {
     if (first >= last) return;
 
     auto *pivot = first + (last - first) / 2;
     auto *nextPivot = partition(first, last, pivot);
-    quicksort(first, nextPivot);
-    quicksort(nextPivot + 1, last);
+    quick_sort(first, nextPivot);
+    quick_sort(nextPivot + 1, last);
 }
 
 template <typename T, s64 N>
