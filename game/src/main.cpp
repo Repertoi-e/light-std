@@ -237,7 +237,7 @@ s32 main() {
         string windowTitle = fmt::sprint("Graphics Engine | {}", GameFileName);
 
         auto windowFlags = window::SHOWN | window::RESIZABLE | window::VSYNC | window::FOCUS_ON_SHOW | window::CLOSE_ON_ALT_F4;
-        gameMemory.MainWindow = (new window)->init(windowTitle, window::DONT_CARE, window::DONT_CARE, GameWidth, GameHeight, windowFlags);
+        gameMemory.MainWindow = allocate(window)->init(windowTitle, window::DONT_CARE, window::DONT_CARE, GameWidth, GameHeight, windowFlags);
 
         gameMemory.MainWindow->Event.connect(main_window_event);
 

@@ -35,10 +35,7 @@ function common_settings()
 		buildoptions { "/utf-8" }
 		links { "dwmapi.lib", "dbghelp.lib" }
 
-	-- Exclude directx files on non-windows platforms since they would cause a compilation failure
-	filter "not system:windows"
-		excludes  { "%{prj.name}/src/d3d_*.h", "%{prj.name}/src/d3d_*.cpp" }
-
+	-- Exclude windows files on non-windows platforms since they would cause a compilation failure
     filter { "system:windows", "not options:no-crt" }
         staticruntime "On"
         excludes "%{prj.name}/src/windows_no_crt.cpp"
@@ -75,7 +72,7 @@ end
 
 outputFolder = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
-project "light-std"
+project "lstd"
 	location "%{prj.name}"
 	kind "StaticLib"
 
@@ -99,6 +96,37 @@ project "light-std"
 	
 	common_settings()
 
+project "lstd-graphics"
+	location "%{prj.name}"
+	kind "StaticLib"
+
+	targetdir("bin/" .. outputFolder .. "/%{prj.name}")
+	objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+
+	files {
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.inc",
+		"%{prj.name}/src/**.c",
+		"%{prj.name}/src/**.cpp"
+	}
+
+	filter {}
+
+	-- Exclude directx files on non-windows platforms since they would cause a compilation failure
+	filter "not system:windows"
+		excludes  { "%{prj.name}/src/d3d_*.h", "%{prj.name}/src/d3d_*.cpp" }
+
+	links { "lstd" }
+	includedirs { "lstd/src" }
+
+	pchheader "pch.h"
+	pchsource "%{prj.name}/src/pch.cpp"
+	forceincludes { "pch.h" }
+
+	exceptionhandling "Off"
+	
+	common_settings()
+
 project "test-suite"
 	location "%{prj.name}"
 	kind "ConsoleApp"
@@ -111,8 +139,8 @@ project "test-suite"
 		"%{prj.name}/src/**.cpp",
 	}
 
-	links { "light-std" }
-	includedirs { "light-std/src" }
+	links { "lstd" }
+	includedirs { "lstd/src" }
 
 	pchheader "test.h"
 	pchsource "%{prj.name}/src/test.cpp"
@@ -134,8 +162,8 @@ project "benchmark"
 		"%{prj.name}/src/**.cpp",
 	}
 
-	links { "light-std" }
-	includedirs { "light-std/src", "%{prj.name}/vendor/benchmark/include" }
+	links { "lstd" }
+	includedirs { "lstd/src", "%{prj.name}/vendor/benchmark/include" }
 
 	exceptionhandling "Off"
 	
@@ -165,8 +193,8 @@ project "game"
 		"%{prj.name}/src/physics/**.cpp"
 	}
 
-	links { "light-std" }
-	includedirs { "light-std/src" }
+	links { "lstd", "lstd-graphics" }
+	includedirs { "lstd/src", "lstd-graphics/src" }
 
 	dependson { "cars", "physics" }
 
@@ -195,8 +223,8 @@ project "cars"
 
 	defines { "LE_BUILDING_GAME" }
 
-	links { "light-std" }
-	includedirs { "light-std/src", "game/src" }
+	links { "lstd", "lstd-graphics" }
+	includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
 
 	includedirs { "game/src" }
 	pchheader "game.h"
@@ -268,8 +296,8 @@ project "physics"
 
 	defines { "LE_BUILDING_GAME" }
 
-	links { "light-std" }
-	includedirs { "light-std/src", "game/src" }
+	links { "lstd", "lstd-graphics" }
+	includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
 
 	excludes { "game/src/physics/python.cpp"}
 
@@ -310,8 +338,8 @@ project "lstd-python-graphics"
 
 	defines { "LE_BUILDING_GAME" }
 
-	links { "light-std" }
-	includedirs { "light-std/src", "game/src" }
+	links { "lstd", "lstd-graphics" }
+	includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
 
     files {
 		"game/src/physics/python.cpp"
