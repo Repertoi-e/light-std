@@ -589,12 +589,6 @@ void *memcpy(void *dest, const void *src, size_t count) {
     copy_memory(dest, src, count);
     return dest;
 }
-
-#pragma function(memcpy)
-void *memmove(void *dest, const void *src, size_t count) {
-    copy_memory(dest, src, count);
-    return dest;
-}
 }
 
 #endif

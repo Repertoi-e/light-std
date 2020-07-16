@@ -4,38 +4,39 @@ newoption {
 }
 
 newoption {
-	trigger = "python",
-	value = "path",
-	description = "Path to Python 3.7 (e.g. C:/ProgramData/Anaconda3/, we use C:/ProgramData/Anaconda3/include etc...)"
+    trigger = "python",
+    value = "path",
+    description = "Path to Python 3.7 (e.g. C:/ProgramData/Anaconda3/, we use C:/ProgramData/Anaconda3/include etc...)"
 }
 
 workspace "light-std"
-	architecture "x64"
-	configurations { "Debug", "Release", "Dist" }
+    architecture "x64"
+    configurations { "Debug", "Release", "Dist" }
 
 function common_settings()
     architecture "x64"
 
-	language "C++"
-	cppdialect "C++17"
+    language "C++"
+    cppdialect "C++17"
 
     rtti "Off"
-	characterset "Unicode"
-	
-	editandcontinue "Off"
+    characterset "Unicode"
+    
+    editandcontinue "Off"
 
     defines "_HAS_EXCEPTIONS=0"
 
-	includedirs { "%{prj.name}/src" }
+    includedirs { "%{prj.name}/src" }
 
-	filter "system:windows"
-		excludes "%{prj.name}/src/posix_*.cpp"
-		systemversion "latest"
-		defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SECURE_NO_WARNINGS" }
-		buildoptions { "/utf-8" }
-		links { "dwmapi.lib", "dbghelp.lib" }
+    filter "system:windows"
+        excludes "%{prj.name}/src/posix_*.cpp"
+        systemversion "latest"
+        buildoptions { "/utf-8" }
+        
+        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SECURE_NO_WARNINGS" }
+        links { "dwmapi.lib", "dbghelp.lib" }
 
-	-- Exclude windows files on non-windows platforms since they would cause a compilation failure
+    -- Exclude windows files on non-windows platforms since they would cause a compilation failure
     filter { "system:windows", "not options:no-crt" }
         staticruntime "On"
         excludes "%{prj.name}/src/windows_no_crt.cpp"
@@ -53,192 +54,192 @@ function common_settings()
     filter { "system:windows", "options:no-crt", "kind:ConsoleApp or WindowedApp" }
         entrypoint "main_no_crt"
 
-	filter "configurations:Debug"
+    filter "configurations:Debug"
         defines "DEBUG"
         symbols "On"
-		buildoptions { "/FS" }
+        buildoptions { "/FS" }
     filter "configurations:Release"
         defines "RELEASE"
-		optimize "On"
+        optimize "On"
         symbols "On"
-		buildoptions { "/FS" }
+        buildoptions { "/FS" }
     filter "configurations:Dist"
         defines "DIST"
-		optimize "Full"
-		floatingpoint "Fast"
-	filter {}
+        optimize "Full"
+        floatingpoint "Fast"
+    filter {}
 end
 
 
 outputFolder = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 project "lstd"
-	location "%{prj.name}"
-	kind "StaticLib"
+    location "%{prj.name}"
+    kind "StaticLib"
 
-	targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-	objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+    targetdir("bin/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
 
-	files {
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.inc",
-		"%{prj.name}/src/**.c",
-		"%{prj.name}/src/**.cpp"
-	}
+    files {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.inc",
+        "%{prj.name}/src/**.c",
+        "%{prj.name}/src/**.cpp"
+    }
 
-	filter {}
+    filter {}
 
-	pchheader "pch.h"
-	pchsource "%{prj.name}/src/pch.cpp"
-	forceincludes { "pch.h" }
+    pchheader "pch.h"
+    pchsource "%{prj.name}/src/pch.cpp"
+    forceincludes { "pch.h" }
 
-	exceptionhandling "Off"
-	
-	common_settings()
+    exceptionhandling "Off"
+    
+    common_settings()
 
 project "lstd-graphics"
-	location "%{prj.name}"
-	kind "StaticLib"
+    location "%{prj.name}"
+    kind "StaticLib"
 
-	targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-	objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+    targetdir("bin/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
 
-	files {
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.inc",
-		"%{prj.name}/src/**.c",
-		"%{prj.name}/src/**.cpp"
-	}
+    files {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.inc",
+        "%{prj.name}/src/**.c",
+        "%{prj.name}/src/**.cpp"
+    }
 
-	filter {}
+    filter {}
 
-	-- Exclude directx files on non-windows platforms since they would cause a compilation failure
-	filter "not system:windows"
-		excludes  { "%{prj.name}/src/d3d_*.h", "%{prj.name}/src/d3d_*.cpp" }
+    -- Exclude directx files on non-windows platforms since they would cause a compilation failure
+    filter "not system:windows"
+        excludes  { "%{prj.name}/src/d3d_*.h", "%{prj.name}/src/d3d_*.cpp" }
 
-	links { "lstd" }
-	includedirs { "lstd/src" }
+    links { "lstd" }
+    includedirs { "lstd/src" }
 
-	pchheader "pch.h"
-	pchsource "%{prj.name}/src/pch.cpp"
-	forceincludes { "pch.h" }
+    pchheader "pch.h"
+    pchsource "%{prj.name}/src/pch.cpp"
+    forceincludes { "pch.h" }
 
-	exceptionhandling "Off"
-	
-	common_settings()
+    exceptionhandling "Off"
+    
+    common_settings()
 
 project "test-suite"
-	location "%{prj.name}"
-	kind "ConsoleApp"
+    location "%{prj.name}"
+    kind "ConsoleApp"
 
-	targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-	objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+    targetdir("bin/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
 
-	files {
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
-	}
+    files {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.cpp",
+    }
 
-	links { "lstd" }
-	includedirs { "lstd/src" }
+    links { "lstd" }
+    includedirs { "lstd/src" }
 
-	pchheader "test.h"
-	pchsource "%{prj.name}/src/test.cpp"
-	forceincludes { "test.h" }
+    pchheader "test.h"
+    pchsource "%{prj.name}/src/test.cpp"
+    forceincludes { "test.h" }
 
-	exceptionhandling "Off"
-	
-	common_settings()
+    exceptionhandling "Off"
+    
+    common_settings()
 
 project "benchmark"
-	location "%{prj.name}"
-	kind "ConsoleApp"
+    location "%{prj.name}"
+    kind "ConsoleApp"
 
-	targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-	objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+    targetdir("bin/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
 
-	files {
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
-	}
+    files {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.cpp",
+    }
 
-	links { "lstd" }
-	includedirs { "lstd/src", "%{prj.name}/vendor/benchmark/include" }
+    links { "lstd" }
+    includedirs { "lstd/src", "%{prj.name}/vendor/benchmark/include" }
 
-	exceptionhandling "Off"
-	
-	common_settings()
-	
-	filter "system:windows"
-		links { "shlwapi.lib", "%{prj.location}/vendor/benchmark/lib/Windows/%{cfg.buildcfg}/benchmark.lib" }
-	filter "system:linux"
+    exceptionhandling "Off"
+    
+    common_settings()
+    
+    filter "system:windows"
+        links { "shlwapi.lib", "%{prj.location}/vendor/benchmark/lib/Windows/%{cfg.buildcfg}/benchmark.lib" }
+    filter "system:linux"
         links { "benchmark" }
 
 project "game"
-	location "%{prj.name}"
-	kind "ConsoleApp"
+    location "%{prj.name}"
+    kind "ConsoleApp"
 
-	targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-	objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+    targetdir("bin/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
 
-	files {
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
-	}
+    files {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.cpp",
+    }
 
-	excludes { 
-		"%{prj.name}/src/cars/**.h", 
-		"%{prj.name}/src/cars/**.cpp",
-		"%{prj.name}/src/physics/**.h", 
-		"%{prj.name}/src/physics/**.cpp"
-	}
+    excludes { 
+        "%{prj.name}/src/cars/**.h", 
+        "%{prj.name}/src/cars/**.cpp",
+        "%{prj.name}/src/physics/**.h", 
+        "%{prj.name}/src/physics/**.cpp"
+    }
 
-	links { "lstd", "lstd-graphics" }
-	includedirs { "lstd/src", "lstd-graphics/src" }
+    links { "lstd", "lstd-graphics" }
+    includedirs { "lstd/src" }
 
-	dependson { "cars", "physics" }
+    dependson { "cars", "physics" }
 
-	pchheader "game.h"
-	pchsource "game/src/game.cpp"
-	forceincludes { "game.h" }
-	
-	exceptionhandling "Off"
-	
-	common_settings()
-	
-	filter "system:windows"
-		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
+    pchheader "game.h"
+    pchsource "game/src/game.cpp"
+    forceincludes { "game.h" }
+    
+    exceptionhandling "Off"
+    
+    common_settings()
+    
+    filter "system:windows"
+        links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 project "cars"
-	location "game"
-	kind "SharedLib"
+    location "game"
+    kind "SharedLib"
 
-	targetdir("bin/" .. outputFolder .. "/game")
-	objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
+    targetdir("bin/" .. outputFolder .. "/game")
+    objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
 
-	files {
-		"game/src/cars/**.h", 
-		"game/src/cars/**.cpp"
-	}
+    files {
+        "game/src/cars/**.h", 
+        "game/src/cars/**.cpp"
+    }
 
-	defines { "LE_BUILDING_GAME" }
+    defines { "LE_BUILDING_GAME" }
 
-	links { "lstd", "lstd-graphics" }
-	includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
+    links { "lstd", "lstd-graphics" }
+    includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
 
-	includedirs { "game/src" }
-	pchheader "game.h"
-	pchsource "game/src/game.cpp"
-	forceincludes { "game.h" }
+    includedirs { "game/src" }
+    pchheader "game.h"
+    pchsource "game/src/game.cpp"
+    forceincludes { "game.h" }
 
-	exceptionhandling "Off"
-	
-	common_settings()
+    exceptionhandling "Off"
+    
+    common_settings()
 
-	-- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
-	filter "system:windows"
-		symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'
-		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
+    -- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
+    filter "system:windows"
+        symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'
+        links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 
 function query_terminal(command)
@@ -265,7 +266,7 @@ function get_python_lib()
 end
 
 function get_python_lib_from_option()
-	py = path.getabsolute(_OPTIONS["python"])
+    py = path.getabsolute(_OPTIONS["python"])
 
     return query_terminal(py .. "/python -c \"import sys; import os; import glob; path = os.path.dirname(sys.executable); libs = glob.glob(path + '/libs/python*'); print(os.path.splitext(os.path.basename(libs[-1]))[0]);\"")
 end
@@ -274,75 +275,131 @@ py = get_python_path()
 py_lib = get_python_lib()
 
 if _OPTIONS["python"] then
-	py = path.getabsolute(_OPTIONS["python"])
-	py_lib = get_python_lib_from_option()
+    py = path.getabsolute(_OPTIONS["python"])
+    py_lib = get_python_lib_from_option()
 end
 
 if (pythonPath == "" or pythonLib == "") and not _OPTIONS["python"] then
-	error("Failed to find python! Please specify a path manually using the --python option.")
+    error("Failed to find python! Please specify a path manually using the --python option.")
 end
 
 project "physics"
-	location "game"
-	kind "SharedLib"
+    location "game"
+    kind "SharedLib"
 
-	targetdir("bin/" .. outputFolder .. "/game")
-	objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
+    targetdir("bin/" .. outputFolder .. "/game")
+    objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
 
-	files {
-		"game/src/physics/**.h", 
-		"game/src/physics/**.cpp"
-	}
+    files {
+        "game/src/physics/**.h", 
+        "game/src/physics/**.cpp"
+    }
 
-	defines { "LE_BUILDING_GAME" }
+    defines { "LE_BUILDING_GAME" }
 
-	links { "lstd", "lstd-graphics" }
-	includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
+    links { "lstd", "lstd-graphics" }
+    includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
 
-	excludes { "game/src/physics/python.cpp"}
+    excludes { "game/src/physics/python.cpp"}
 
-	includedirs { py  .. "/include" }
-	libdirs { py  .. "/libs" }
-	links { py_lib }
+    includedirs { py  .. "/include" }
+    libdirs { py  .. "/libs" }
+    links { py_lib }
 
-	links { "lstd-python-graphics" }
+    links { "lstd-python-graphics" }
 
-	includedirs { "game/src" }
-	pchheader "pch.h"
-	pchsource "game/src/physics/pch.cpp"
-	forceincludes { "pch.h" }
+    includedirs { "game/src" }
+    pchheader "pch.h"
+    pchsource "game/src/physics/pch.cpp"
+    forceincludes { "pch.h" }
 
-	dependson { "lstd-python-graphics" }
+    dependson { "lstd-python-graphics" }
 
-	common_settings()
+    common_settings()
 
-	-- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
-	filter "system:windows"
-		symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'
-		links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
+    -- Unique PDB name each time we build (in order to support debugging while hot-swapping the game dll)
+    filter "system:windows"
+        symbolspath '$(OutDir)$(TargetName)-$([System.DateTime]::Now.ToString("ddMMyyyy_HHmmss_fff")).pdb'
+        links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 -- This is the python module used in physics
 project "lstd-python-graphics"
-	location "game"
+    location "game"
     kind "SharedLib"
     
-	targetdir("bin/" .. outputFolder .. "/game")
-	objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
+    targetdir("bin/" .. outputFolder .. "/game")
+    objdir("bin-int/" .. outputFolder .. "/game/%{prj.name}")
 
     targetname("lstdgraphics")
     targetextension(".pyd")
 
-	includedirs { py  .. "/include" }
-	libdirs { py  .. "/libs" }
-	links { py_lib }
+    includedirs { py  .. "/include" }
+    libdirs { py  .. "/libs" }
+    links { py_lib }
 
-	defines { "LE_BUILDING_GAME" }
+    defines { "LE_BUILDING_GAME" }
 
-	links { "lstd", "lstd-graphics" }
-	includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
+    links { "lstd", "lstd-graphics" }
+    includedirs { "lstd/src", "lstd-graphics/src", "game/src" }
 
     files {
-		"game/src/physics/python.cpp"
-	}
+        "game/src/physics/python.cpp"
+    }
 
-	common_settings()
+    common_settings()
+
+
+project "bootloader"
+    location "os/bootloader"
+    kind "ConsoleApp"
+
+    architecture "x64"
+    language "C++"
+    cppdialect "C++17"
+
+    systemversion "latest"
+
+    targetdir("bin/" .. outputFolder .. "/os")
+    objdir("bin-int/" .. outputFolder .. "/os/%{prj.name}")
+
+    targetname("x64_boot")
+    targetextension(".efi")
+
+    files {
+        "os/%{prj.name}/src/**.h",
+        "os/%{prj.name}/src/**.inc",
+        "os/%{prj.name}/src/**.c",
+        "os/%{prj.name}/src/**.cpp"
+    }
+
+    includedirs { "os/%{prj.name}/src/vendor/Uefi" }
+    includedirs { "os/%{prj.name}/src/vendor/Uefi/X64" }
+
+    exceptionhandling "Off"
+    defines "_HAS_EXCEPTIONS=0"
+
+    editandcontinue "Off"
+
+    rtti "Off"
+    characterset "Unicode"
+
+    buildoptions { "/TC", "/Gs9999999", "/utf-8" }
+    linkoptions { "/SUBSYSTEM:EFI_APPLICATION", "/MANIFESTUAC:NO", "/DYNAMICBASE:NO", "/INCREMENTAL:NO", "/NXCOMPAT:NO", "/nodefaultlib", "/stack:\"0x100000\",\"0x100000\"" }
+
+    defines { "BUILD_NO_CRT", "HAVE_USE_MS_ABI", "GNU_EFI_USE_EXTERNAL_STDARG" }
+
+    flags { "NoRuntimeChecks", "NoBufferSecurityCheck" }
+    flags { "OmitDefaultLibrary" }
+
+    entrypoint "efi_main"
+
+    filter "configurations:Debug"
+        buildoptions { "BUILD_ONLY_IN_DIST" }
+    filter "configurations:Release"
+        buildoptions { "BUILD_ONLY_IN_DIST" }
+    filter "configurations:Dist"
+        defines "DIST"
+        optimize "Full"
+        symbols "Off"
+    filter {}
+

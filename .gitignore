@@ -54,3 +54,5 @@ Makefile
 **.pyc
 */__pycache__/*
 
+os/bootloader/image.fat
+
