@@ -45,7 +45,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
   @param  Size  The expected size for the TYPE.
 
 **/
-#define VERIFY_SIZE_OF(TYPE, Size) extern UINT8 _VerifySizeof##TYPE[(sizeof(TYPE) == (Size)) / (sizeof(TYPE) == (Size))]
+#define VERIFY_SIZE_OF(TYPE, Size) extern UINT8 _VerifySizeof##TYPE[(int) (sizeof(TYPE) == (Size)) / (int) (sizeof(TYPE) == (Size))]
 
 //
 // Verify that ProcessorBind.h produced UEFI Data Types that are compliant with
@@ -1262,7 +1262,7 @@ typedef UINTN RETURN_STATUS;
     (SIGNATURE_32 (A, B, C, D) | ((UINT64) (SIGNATURE_32 (E, F, G, H)) << 32))
 
 #if defined(_MSC_EXTENSIONS) && !defined (__INTEL_COMPILER) && !defined (MDE_CPU_EBC)
-  void * _ReturnAddress(void);
+  extern "C" void * _ReturnAddress(void);
   #pragma intrinsic(_ReturnAddress)
   /**
     Get the return address of the calling function.

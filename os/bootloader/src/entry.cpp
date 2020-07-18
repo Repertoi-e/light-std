@@ -1,34 +1,29 @@
 #include "vendor/Uefi/Uefi.h"
 
-EFI_STATUS EFIAPI efi_main(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable) {
-    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *conOut = SystemTable->ConOut;
+extern "C" EFI_STATUS EFIAPI efi_main(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable) {
+    auto *out = SystemTable->ConOut;
 
-    conOut->ClearScreen(conOut);
+    out->ClearScreen(out);
 
-    conOut->SetCursorPosition(conOut, 0, 0);
-    conOut->OutputString(conOut, (CHAR16 *) u"Tova mai e operacionna sistema ! S O T I  E  H A K E R");
+    out->SetCursorPosition(out, 0, 0);
+    out->OutputString(out, (CHAR16 *) u"This is an EFI application running... Bye Windows soon TM I guess? ");
 
-    conOut->SetCursorPosition(conOut, 0, 1);
-    conOut->OutputString(conOut, (CHAR16 *) u"Press any key to type.");
+    out->SetCursorPosition(out, 0, 1);
+    out->OutputString(out, (CHAR16 *) u"Press F12 to quit. Or don't..");
 
-    conOut->SetCursorPosition(conOut, 0, 2);
-    conOut->OutputString(conOut, (CHAR16 *) u"Or press F12 to quit. Or don't.. I DON'T CARE I AM SO HAPPY LOL. BYE WINDOWS.");
+    out->SetCursorPosition(out, 0, 3);
+    out->EnableCursor(out, TRUE);
 
-    conOut->SetCursorPosition(conOut, 0, 4);
-    conOut->EnableCursor(conOut, TRUE);
-
-    EFI_SIMPLE_TEXT_INPUT_PROTOCOL *conIn = SystemTable->ConIn;
-
-    for (;;) {
+    auto *in = SystemTable->ConIn;
+    while (true) {
         UINTN index = 0;
-        EFI_EVENT keyEvent = conIn->WaitForKey;
+        auto keyEvent = in->WaitForKey;
         SystemTable->BootServices->WaitForEvent(1, &keyEvent, &index);
 
         EFI_INPUT_KEY key;
         key.ScanCode = 0;
         key.UnicodeChar = 0;
-        if (conIn->ReadKeyStroke(conIn, &key) != EFI_SUCCESS)
-            continue;
+        if (in->ReadKeyStroke(in, &key) != EFI_SUCCESS) continue;
 
         if (key.UnicodeChar == 0) {
             // Non-printable character
@@ -46,8 +41,7 @@ EFI_STATUS EFIAPI efi_main(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *Syste
         }
 
         CHAR16 text[2] = {key.UnicodeChar, L'\0'};
-        conOut->OutputString(conOut, text);
+        out->OutputString(out, text);
     }
-
     return EFI_SUCCESS;
 }

@@ -383,7 +383,7 @@ project "bootloader"
     rtti "Off"
     characterset "Unicode"
 
-    buildoptions { "/TC", "/Gs9999999", "/utf-8" }
+    buildoptions { "/Gs9999999", "/utf-8" }
     linkoptions { "/SUBSYSTEM:EFI_APPLICATION", "/MANIFESTUAC:NO", "/DYNAMICBASE:NO", "/INCREMENTAL:NO", "/NXCOMPAT:NO", "/nodefaultlib", "/stack:\"0x100000\",\"0x100000\"" }
 
     defines { "BUILD_NO_CRT", "HAVE_USE_MS_ABI", "GNU_EFI_USE_EXTERNAL_STDARG" }
@@ -403,3 +403,4 @@ project "bootloader"
         symbols "Off"
     filter {}
 
+     
