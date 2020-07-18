@@ -309,8 +309,6 @@ void win32_common_init() {
     utf16_to_utf8(buffer, const_cast<char *>(ModuleName.Data), &ModuleName.ByteLength);
     ModuleName.Length = utf8_length(ModuleName.Data, ModuleName.ByteLength);
 
-    os_get_working_dir();  // @Hack Put somethin in _WorkingDir_ to ensure the proper allocator
-
     // Get the arguments
     wchar_t **argv;
     int argc;

@@ -58,7 +58,7 @@ void allocator::DEBUG_swap_header(allocation_header *oldHeader, allocation_heade
 }
 #endif
 
-void allocator::verify_header(allocation_header *header) {
+void verify_header_unlocked(allocation_header *header) {
 #if defined DEBUG_MEMORY
     char freedHeader[sizeof(allocation_header)];
     fill_memory(freedHeader, DEAD_LAND_FILL, sizeof(allocation_header));
@@ -89,6 +89,14 @@ void allocator::verify_header(allocation_header *header) {
 #endif
 }
 
+void allocator::verify_header(allocation_header *header) {
+#if defined DEBUG_MEMORY
+    // We need to lock here because another thread can free a header while we are reading from it.
+    thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
+    verify_header_unlocked(header);
+#endif
+}
+
 void allocator::verify_heap() {
 #if defined DEBUG_MEMORY
     // We need to lock here because another thread can free a header while we are reading from it.
@@ -96,7 +104,7 @@ void allocator::verify_heap() {
 
     auto *it = DEBUG_Head;
     while (it) {
-        verify_header(it);
+        verify_header_unlocked(it);
         it = it->DEBUG_Next;
     }
 #endif

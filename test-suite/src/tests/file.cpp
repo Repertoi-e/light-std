@@ -2,7 +2,7 @@
 
 #include "../test.h"
 
-#define DO_READ_EVERY_FILE
+// #define DO_READ_EVERY_FILE
 
 TEST(path_manipulation) {
     {

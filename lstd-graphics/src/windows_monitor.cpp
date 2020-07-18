@@ -371,7 +371,7 @@ static void get_display_modes(array<display_mode> *modes, monitor *mon) {
     }
 
     if (!modes->Count) {
-        // @Hack Report the current mode if no valid modes were found
+        // Hack: Report the current mode if no valid modes were found
         modes->append(os_get_current_display_mode(mon));
     }
 }

@@ -111,11 +111,11 @@ project "lstd-graphics"
         "%{prj.name}/src/**.cpp"
     }
 
-    filter {}
-
     -- Exclude directx files on non-windows platforms since they would cause a compilation failure
     filter "not system:windows"
         excludes  { "%{prj.name}/src/d3d_*.h", "%{prj.name}/src/d3d_*.cpp" }
+
+    filter {}
 
     links { "lstd" }
     includedirs { "lstd/src" }
