@@ -2,10 +2,10 @@
 
 /// A header which provides type definitions as well as other helper macros
 
+#include <intrin.h>
+
 #include "../types.h"
 #include "debug_break.h"
-
-#include <intrin.h>
 
 // Convenience storage literal operators, allows for specifying sizes like this:
 //  s64 a = 10_MiB;
@@ -223,21 +223,22 @@ T *clone(T *dest, T src) {
     return dest;
 }
 
+// Since we longer do the ownership thing, the move() function is obsolete.
+//
 // Global function that is supposed to ensure transfer of ownership without the overhead of cloning
 // By default, a normal copy is done (to make sure it can be called on all types)
 // Returns _dest_
-template <typename T>
-constexpr T *move(T *dest, T *src) {
-    *dest = *src;
-    return dest;
-}
+// template <typename T>
+// constexpr T *move(T *dest, T *src) {
+//     *dest = *src;
+//     return dest;
+// }
 
 template <typename T>
 constexpr void swap(T &a, T &b) {
-    T c;
-    move(&c, &a);
-    move(&a, &b);
-    move(&b, &c);
+    T c = a;
+    a = b;
+    b = c;
 }
 
 template <typename T, s64 N>

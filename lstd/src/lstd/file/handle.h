@@ -7,6 +7,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace file {
 
+// @BadAPI Honestly this whole struct shouldn't exist
 struct handle {
     // The mode used when writing to a file
     enum write_mode {
@@ -57,9 +58,15 @@ struct handle {
     // Moves a file to destination.
     // Destination can point to another file (in which case it gets overwritten if it exists and the parameter is true)
     // or a directory (in which case the file name is kept the same or determined by the OS)
+    //
+    // @Leak Currently these functions replace the _Path_
+    // @TODO Move these outside _handle_ since it's a strange API decision anyway. Honestly this whole struct shouldn't exist.
     bool move(handle dest, bool overwrite = true) const;
 
     // Renames file/directory
+    //
+    // @Leak Currently these functions replace the _Path_
+    // @TODO Move these outside _handle_ since it's a strange API decision anyway. Honestly this whole struct shouldn't exist.
     bool rename(const string &newName) const;
 
     // A hard link is a way to represent a single file by more than one path.

@@ -22,8 +22,7 @@ void catalog::load(array<file::path> files, const delegate<void(const array<file
     For(files) {
         file::path path = Root;
         path.combine_with(it);
-        move(e->FilesAssociated.append(), &path);
-
+        e->FilesAssociated.append(path);
         e->LastWriteTimes.append(file::handle(path).last_modification_time());
     }
     callback(e->FilesAssociated);

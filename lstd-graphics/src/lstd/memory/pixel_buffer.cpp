@@ -58,6 +58,7 @@ pixel_buffer *clone(pixel_buffer *dest, pixel_buffer src) {
     return dest;
 }
 
+// Since we longer do the ownership thing, the move() function is obsolete.
 // pixel_buffer *move(pixel_buffer *dest, pixel_buffer *src) {
 //     dest->release();
 //     *dest = *src;

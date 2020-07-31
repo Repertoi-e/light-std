@@ -1472,13 +1472,12 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
                 wchar_t *buffer = allocate_array(wchar_t, length + 1, Context.TemporaryAlloc);
                 DragQueryFileW(drop, (u32) it, buffer, length + 1);
 
-                string utf8Buffer;
-                utf8Buffer.reserve(length * 2);  // @Bug length * 2 is not enough
-                utf16_to_utf8(buffer, const_cast<char *>(utf8Buffer.Data), &utf8Buffer.ByteLength);
-                utf8Buffer.Length = utf8_length(utf8Buffer.Data, utf8Buffer.ByteLength);
+                string utf8;
+                utf8.reserve(length * 2);  // @Bug length * 2 is not enough
+                utf16_to_utf8(buffer, const_cast<char *>(utf8.Data), &utf8.ByteLength);
+                utf8.Length = utf8_length(utf8.Data, utf8.ByteLength);
 
-                auto path = file::path(utf8Buffer);
-                move(paths.append(), &path);
+                paths.append(file::path(utf8));
             }
 
             event e;
@@ -1486,6 +1485,9 @@ static LRESULT __stdcall wnd_proc(HWND hWnd, u32 message, WPARAM wParam, LPARAM 
             e.Type = event::Window_Files_Dropped;
             e.Paths = paths;
             (void) win->Event.emit(e);
+
+            For(paths) it.release();
+            paths.release();
 
             DragFinish(drop);
             return 0;

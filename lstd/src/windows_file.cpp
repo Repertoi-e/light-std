@@ -150,12 +150,11 @@ bool handle::move(handle dest, bool overwrite) const {
         utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
         if (MoveFileExW(utf8_path_to_utf16(Path), d, MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
-            ::move(const_cast<path *>(&Path), &p);
+            Path = p;
             return true;
         }
     } else {
-        if (MoveFileExW(utf8_path_to_utf16(Path), utf8_path_to_utf16(dest.Path),
-                        MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
+        if (MoveFileExW(utf8_path_to_utf16(Path), utf8_path_to_utf16(dest.Path), MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
             ::clone(const_cast<path *>(&Path), p);
             return true;
         }
@@ -174,7 +173,7 @@ bool handle::rename(const string &newName) const {
     utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
     if (MoveFileW(utf8_path_to_utf16(Path), d)) {
-        ::move(const_cast<path *>(&Path), &p);
+        Path = p;
         return true;
     }
 
@@ -250,7 +249,7 @@ void handle::iterator::read_next_entry() {
             windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), #call, __FILE__, __LINE__); \
         }                                                                                                \
         if (Handle != INVALID_HANDLE_VALUE) {                                                            \
-            WIN32_CHECKBOOL(FindClose((HANDLE) Handle));                                               \
+            WIN32_CHECKBOOL(FindClose((HANDLE) Handle));                                                 \
         }                                                                                                \
                                                                                                          \
         Handle = null;                                                                                   \
