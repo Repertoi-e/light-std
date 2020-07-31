@@ -39,110 +39,113 @@ struct mutex : non_assignable {
             char Handle[40]{};
         } Win32;
     } PlatformData{};
-    volatile bool AlreadyLocked;
-    mutex *Owner = null;
+    volatile bool AlreadyLocked = false;
 
-    // pthread_mutex_init(&mHandle, NULL);
-    mutex();
+    // This mutex won't work until init() is called.
+    //
+    // @POSIX pthread_mutex_init(&mHandle, NULL);
+    void init();
 
-    // pthread_mutex_destroy(&mHandle);
-    ~mutex();
+    // @POSIX pthread_mutex_destroy(&mHandle);
+    void release();
+
+    // We no longer use destructors for releasing handles/memory etc.
+    // ~mutex();
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
-
-    // pthread_mutex_lock(&mHandle);
+    //
+    // If the mutex is currently locked by the calling thread, the function asserts false and produces a deadlock.
+    // See recursive_mutex for a mutex type that allows multiple locks from the same thread.
+    //
+    // @POSIX pthread_mutex_lock(&mHandle);
     void lock();
 
-    // Try to lock the mutex. If it fails, the function will
-    // return immediately (non-blocking).
+    // Try to lock the mutex.
     //
-    // Returns true if the lock was acquired
-
-    // return (pthread_mutex_trylock(&mHandle) == 0) ? true : false;
+    // If the mutex isn't currently locked by any thread, the calling thread locks it and owns it until unlock() is called. The function returns true.
+    // If the mutex is currently locked by another thread, the function fails and returns false, without blocking
+    // (the calling thread continues its execution).
+    //
+    // If the mutex is currently locked by the calling thread, the function asserts false and produces a deadlock.
+    // See recursive_mutex for a mutex type that allows multiple locks from the same thread.
+    //
+    // @POSIX return (pthread_mutex_trylock(&mHandle) == 0) ? true : false;
     bool try_lock();
 
     // Unlock the mutex.
     // If any threads are waiting for the lock on this mutex, one of them will be unblocked.
 
-    // pthread_mutex_unlock(&mHandle);
+    // @POSIX pthread_mutex_unlock(&mHandle);
     void unlock();
 
     friend struct condition_variable;
 };
 
+// @Pedantic We want to make sure the user doesn't clone things that don't make sense.
 inline mutex *clone(mutex *dest, const mutex &src) {
-    dest->~mutex();
-    copy_memory(&dest->PlatformData, &src.PlatformData, sizeof(dest->PlatformData));
-    return dest;
-}
-
-inline mutex *move(mutex *dest, mutex *src) {
-    dest->~mutex();
-    copy_memory(&dest->PlatformData, &src->PlatformData, sizeof(dest->PlatformData));
-    zero_memory(&src->PlatformData, sizeof(src->PlatformData));
-    src->Owner = dest;
-    dest->Owner = dest;
-    return dest;
+    assert(false && "We don't deep copy mutexes");
+    return null;
 }
 
 // This is a mutual exclusion object for synchronizing access to shared
 // memory areas for several threads. The mutex is recursive (i.e. a thread
 // may lock the mutex several times, as long as it unlocks the mutex the same
 // number of times).
+//
+// You should generally try to design your code in a way that doesn't need recursive locking.
+// In any way, we provide the functionality (but we strongly discourage it).
+// If you need recursive locking it may be a sign that you are locking more than needed.
 struct recursive_mutex : non_assignable {
     union {
         struct alignas(64) {
             char Handle[40]{};
         } Win32;
     } PlatformData{};
-    recursive_mutex *Owner = null;
 
-    // pthread_mutexattr_t attr;
-    // pthread_mutexattr_init(&attr);
-    // pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    // pthread_mutex_init(&mHandle, &attr);
-    recursive_mutex();
+    // This mutex won't work until init() is called.
+    //
+    // @POSIX
+    //   pthread_mutexattr_t attr;
+    //   pthread_mutexattr_init(&attr);
+    //   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    //   pthread_mutex_init(&mHandle, &attr);
+    void init();
 
-    // pthread_mutex_destroy(&mHandle);
-    ~recursive_mutex();
+    // @POSIX pthread_mutex_destroy(&mHandle);
+    void release();
+
+    // We no longer use destructors for releasing handles/memory etc.
+    // ~recursive_mutex();
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
-
-    // pthread_mutex_lock(&mHandle);
+    //
+    // @POSIX pthread_mutex_lock(&mHandle);
     void lock();
 
-    // Try to lock the mutex. If it fails, the function will
-    // return immediately (non-blocking).
+    // Try to lock the mutex.
     //
-    // Returns true if the lock was acquired
-
-    // return (pthread_mutex_trylock(&mHandle) == 0) ? true : false;
+    // If the mutex isn't currently locked by any thread, the calling thread locks it and owns it until unlock() is called. The function returns true.
+    // If the mutex is currently locked by another thread, the function fails and returns false, without blocking
+    // (the calling thread continues its execution).
+    //
+    // @POSIX return (pthread_mutex_trylock(&mHandle) == 0) ? true : false;
     bool try_lock();
 
     // Unlock the mutex.
     // If any threads are waiting for the lock on this mutex, one of them will be unblocked.
 
-    // pthread_mutex_unlock(&mHandle);
+    // @POSIX pthread_mutex_unlock(&mHandle);
     void unlock();
 
     friend struct condition_variable;
 };
 
+// @Pedantic We want to make sure the user doesn't clone things that don't make sense.
 inline recursive_mutex *clone(recursive_mutex *dest, const recursive_mutex &src) {
-    dest->~recursive_mutex();
-    copy_memory(&dest->PlatformData, &src.PlatformData, sizeof(dest->PlatformData));
-    return dest;
-}
-
-inline recursive_mutex *move(recursive_mutex *dest, recursive_mutex *src) {
-    dest->~recursive_mutex();
-    copy_memory(&dest->PlatformData, &src->PlatformData, sizeof(dest->PlatformData));
-    zero_memory(&src->PlatformData, sizeof(src->PlatformData));
-    src->Owner = dest;
-    dest->Owner = dest;
-    return dest;
+    assert(false && "We don't deep copy mutexes");
+    return null;
 }
 
 // Scoped lock.
@@ -159,7 +162,7 @@ inline recursive_mutex *move(recursive_mutex *dest, recursive_mutex *src) {
 //        ++counter;
 //      }
 template <typename T>
-struct scoped_lock {
+struct scoped_lock : non_assignable {
     using mutex_t = T;
 
     mutex_t *Mutex = null;
@@ -175,6 +178,13 @@ struct scoped_lock {
         if (Mutex) Mutex->unlock();
     }
 };
+
+// @Pedantic We want to make sure the user doesn't clone things that don't make sense.
+template <typename T>
+inline scoped_lock<T> *clone(scoped_lock<T> *dest, const scoped_lock<T> &src) {
+    assert(false && "We don't deep copy scoped locks");
+    return null;
+}
 
 // Condition variable.
 // This is a signalling object for synchronizing the execution flow for
@@ -200,7 +210,7 @@ struct scoped_lock {
 //         ++count;
 //         cond.notify_all();
 //       }
-struct condition_variable : non_copyable, non_movable, non_assignable {
+struct condition_variable : non_assignable {
    private:
 #if OS == WINDOWS
     // Implement platform specific Windows code for wait() in these functions,
@@ -210,28 +220,32 @@ struct condition_variable : non_copyable, non_movable, non_assignable {
 #endif
    public:
     char Handle[64] = {0};  // pthread_cond_t
-    condition_variable *Owner = null;
 
-    // pthread_cond_init(&mHandle, NULL);
-    condition_variable();
+    // This condition variable won't work until init() is called.
+    //
+    // @POSIX pthread_cond_init(&mHandle, NULL);
+    void init();
 
-    // pthread_cond_destroy(&mHandle);
-    ~condition_variable();
+    // We no longer use destructors for releasing handles/memory etc.
+    // ~condition_variable();
+
+    // @POSIX pthread_cond_destroy(&mHandle);
+    void release();
 
     // Wait for the condition.
     // The function will block the calling thread until the condition variable
     // is woken by notify_one(), notify_all() or a spurious wake up.
 
-    // pthread_cond_wait(&mHandle, &aMutex.mHandle);
+    // @POSIX pthread_cond_wait(&mHandle, &aMutex.mHandle);
     template <typename MutexT>
-    void wait(MutexT &mutex) {
+    void wait(MutexT *mutex) {
         pre_wait();
 
         // Release the mutex while waiting for the condition (will decrease
         // the number of waiters when done)...
-        mutex.unlock();
+        mutex->unlock();
         do_wait();
-        mutex.lock();
+        mutex->lock();
     }
 
     // Notify one thread that is waiting for the condition.
@@ -239,76 +253,58 @@ struct condition_variable : non_copyable, non_movable, non_assignable {
     //
     // Only threads that started waiting prior to this call will be woken up.
 
-    // pthread_cond_signal(&mHandle);
+    // @POSIX pthread_cond_signal(&mHandle);
     void notify_one();
 
     // Wake up all threads that are blocked waiting for this condition variable.
     //
     // Only threads that started waiting prior to this call will be woken up.
 
-    //  pthread_cond_broadcast(&mHandle);
+    // @POSIX pthread_cond_broadcast(&mHandle);
     void notify_all();
 };
 
+// @Pedantic We want to make sure the user doesn't clone things that don't make sense.
 inline condition_variable *clone(condition_variable *dest, const condition_variable &src) {
-    dest->~condition_variable();
-    copy_memory(&dest->Handle, &src.Handle, sizeof(dest->Handle));
-    return dest;
+    assert(false && "We don't deep copy condition variables");
+    return null;
 }
 
-inline condition_variable *move(condition_variable *dest, condition_variable *src) {
-    dest->~condition_variable();
-    copy_memory(&dest->Handle, &src->Handle, sizeof(dest->Handle));
-    zero_memory(&src->Handle, sizeof(src->Handle));
-    src->Owner = null;
-    dest->Owner = dest;
-    return dest;
-}
-
-struct thread : non_copyable, non_movable, non_assignable {
-    mutable mutex DataMutex;
-
-    // Unique thread ID. Used only on Windows
-    u32 Win32ThreadId = 0;
-
-    u64 Handle;
+struct thread : non_assignable {
+    // Don't read this directly, use atomic operations - atomic_compare_exchange_pointer(&Handle, null, null).
+    void *Handle;
 
     // True if this object is not a thread of execution.
-    bool NotAThread = true;
+    // Don't read this directly, use atomic operations - atomic_compare_exchange(&Finished, 0, 0).
+    u32 Finished = true;
 
     // Construct without an associated thread of execution (i.e. non-joinable).
     thread() = default;
 
     // Thread starting constructor.
     // Construct a thread object with a new thread of execution.
-    thread(const delegate<void(void *)> &function, void *userData) { start(function, userData); }
+    thread(const delegate<void(void *)> &function, void *userData) { init(function, userData); }
 
-    // If the thread is joinable upon destruction, os_exit_process() will be called, which terminates the process.
-    // It is always wise to call join() before deleting a thread object.
-    ~thread();
+    // We no longer use destructors for releasing handles/memory etc.
+    // ~thread();
 
-    void start(const delegate<void(void *)> &function, void *userData);
+    void init(const delegate<void(void *)> &function, void *userData);
 
     // Wait for the thread to finish (join execution flows).
-    // After calling join(), the thread object is no longer associated with
-    // a thread of execution (i.e. it is not joinable, and you may not join
-    // with it nor detach from it).
+    // Releases the mutex and the handle.
     void join();
 
-    // Check if the thread is joinable.
-    // A thread object is joinable if it has an associated thread of execution.
-    bool joinable() const;
-
-    // After calling detach(), the thread object is no longer assicated with
-    // a thread of execution (i.e. it is not joinable). The thread continues
-    // execution without the calling thread blocking, and when the thread
-    // ends execution, any owned resources are released.
+    // After calling detach(), the thread object is no longer assicated with a thread of execution (i.e. it is not joinable).
+    // _Finished_ is set to true but the thread may still continue execution without the calling thread blocking.
     void detach();
 
     // Return the thread ID of a thread object.
     id get_id() const;
 
    private:
+    // Unique thread ID. Used only on Windows.
+    u32 Win32ThreadId = 0;
+
     // This is the internal thread wrapper function.
 #if OS == WINDOWS
     static u32 __stdcall wrapper_function(void *data);
@@ -317,21 +313,25 @@ struct thread : non_copyable, non_movable, non_assignable {
 #endif
 };
 
+// @Pedantic We want to make sure the user doesn't clone things that don't make sense.
+inline thread *clone(thread *dest, const thread &src) {
+    assert(false && "We don't deep copy threads");
+    return null;
+}
+
 // This is a mutual exclusion object for synchronizing access to shared
 // memory areas for several threads. It is similar to the thread::mutex object,
 // but instead of using system level functions, it is implemented as an atomic
 // spin lock with very low CPU overhead.
 //
-// Fast_Mutex is NOT compatible with condition_variable (however,
-// it IS compatible with scoped_lock). It should also be noted that
-// Fast_Mutex typically does not provide as accurate thread scheduling
-// as a the standard mutex does.
+// fast_mutex is NOT compatible with condition_variable.
+// It should also be noted that fast_mutex typically does not provide as
+// accurate thread scheduling as the standard mutex does.
 //
 // Because of the limitations of this object, it should only be used in
 // situations where the mutex needs to be locked/unlocked very frequently.
-struct fast_mutex {
-   public:
-    fast_mutex() : _Lock(0) {}
+struct fast_mutex : non_assignable {
+    volatile long _Lock = 0;
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
@@ -372,14 +372,25 @@ struct fast_mutex {
             : "%eax", "memory");
 #endif
     }
-
-   private:
-    volatile long _Lock;
 };
+
+// @Pedantic We want to make sure the user doesn't clone things that don't make sense.
+inline fast_mutex *clone(fast_mutex *dest, const fast_mutex &src) {
+    assert(false && "We don't deep copy mutexes");
+    return null;
+}
+
+// Yield execution to another thread.
+// Offers the operating system the opportunity to schedule another thread
+// that is ready to run on the current processor.
+void yield();
+
+// Blocks the calling thread for at least a given period of time in ms.
+void sleep(u32 ms);
+
 }  // namespace thread
 
-// The number of threads which can possibly execute concurrently.
-// This value is useful for determining the optimal number of threads to use for a task.
+// The number of threads which can execute concurrently on the current hardware (may be different from the number of cores because of hyperthreads).
 u32 os_get_hardware_concurrency();
 
 LSTD_END_NAMESPACE

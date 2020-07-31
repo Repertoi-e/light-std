@@ -13,16 +13,17 @@ namespace thread {
 // Block the calling thread until a lock on the mutex can
 // be obtained. The mutex remains locked until unlock() is called.
 void fast_mutex::lock() {
-    while (!try_lock()) Context.thread_yield();
+    while (!try_lock()) yield();
 }
 
 //
 // Mutexes:
 //
-mutex::mutex() : AlreadyLocked(false) { InitializeCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
-mutex::~mutex() {
+void mutex::init() { InitializeCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
+
+void mutex::release() {
     auto *p = (CRITICAL_SECTION *) PlatformData.Win32.Handle;
-    if (Owner == this && p) DeleteCriticalSection(p);
+    if (p) DeleteCriticalSection(p);
 }
 
 void mutex::lock() {
@@ -35,28 +36,33 @@ void mutex::lock() {
 
 bool mutex::try_lock() {
     bool result = TryEnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
-    if (result && AlreadyLocked) {
-        LeaveCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
-        result = false;
+    if (result) {
+        if (AlreadyLocked) {
+            LeaveCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
+            result = false;
+        } else {
+            AlreadyLocked = true;
+        }
     }
     return result;
 }
 
 void mutex::unlock() {
+    assert(AlreadyLocked);
     AlreadyLocked = false;
     LeaveCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle);
 }
 
-recursive_mutex::recursive_mutex() { InitializeCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
-recursive_mutex::~recursive_mutex() {
+void recursive_mutex::init() { InitializeCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
+
+void recursive_mutex::release() {
     auto *p = (CRITICAL_SECTION *) PlatformData.Win32.Handle;
-    if (Owner == this && p) DeleteCriticalSection(p);
+    if (p) DeleteCriticalSection(p);
 }
 
 void recursive_mutex::lock() { EnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
-bool recursive_mutex::try_lock() {
-    return TryEnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle) ? true : false;
-}
+
+bool recursive_mutex::try_lock() { return TryEnterCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
 
 void recursive_mutex::unlock() { LeaveCriticalSection((CRITICAL_SECTION *) PlatformData.Win32.Handle); }
 
@@ -78,7 +84,7 @@ struct CV_Data {
 #define _CONDITION_EVENT_ONE 0
 #define _CONDITION_EVENT_ALL 1
 
-condition_variable::condition_variable() {
+void condition_variable::init() {
     auto *data = (CV_Data *) Handle;
 
     data->Events[_CONDITION_EVENT_ONE] = CreateEvent(null, FALSE, FALSE, null);
@@ -86,9 +92,9 @@ condition_variable::condition_variable() {
     InitializeCriticalSection(&data->WaitersCountLock);
 }
 
-condition_variable::~condition_variable() {
+void condition_variable::release() {
     auto *data = (CV_Data *) Handle;
-    if (Owner == this && data) {
+    if (data) {
         CloseHandle(data->Events[_CONDITION_EVENT_ONE]);
         CloseHandle(data->Events[_CONDITION_EVENT_ALL]);
         DeleteCriticalSection(&data->WaitersCountLock);
@@ -152,13 +158,12 @@ void condition_variable::notify_all() {
 struct thread_start_info {
     delegate<void(void *)> Function;
     void *UserData = null;
+
     thread *ThreadPtr = null;
 
-    // This may be null. It's used only when we don't link with the CRT,
-    // because we have to make sure the module the thread is executing in
+    // We have to make sure the module the thread is executing in
     // doesn't get unloaded while the thread is still doing work.
-    // (The CRT usually does that for us.)
-    bool NoCrt = false;
+    // The CRT usually does that for us but we avoid using the CRT.
     HMODULE Module = null;
 
     // Pointer to the implicit context in the "parent" thread.
@@ -170,6 +175,7 @@ u32 __stdcall thread::wrapper_function(void *data) {
     auto *ti = (thread_start_info *) data;
     defer(free(ti));
 
+    // Copy the context from the parent thread
     Context = *ti->ContextPtr;
     Context.TemporaryAllocData = {};
     Context.TemporaryAlloc.Context = &Context.TemporaryAllocData;
@@ -177,22 +183,19 @@ u32 __stdcall thread::wrapper_function(void *data) {
 
     ti->Function(ti->UserData);
 
-    // The thread is no longer executing
-    scoped_lock<mutex> _(&ti->ThreadPtr->DataMutex);
-    ti->ThreadPtr->NotAThread = true;
-
-    if (ti->NoCrt) {
-        CloseHandle((HANDLE) ti->ThreadPtr->Handle);
-        ti->ThreadPtr->Handle = 0;
-
-        if (ti->Module) FreeLibrary(ti->Module);
+    void *handle = atomic_compare_exchange_pointer(&ti->ThreadPtr->Handle, null, null);
+    if (handle && handle != INVALID_HANDLE_VALUE) {
+        atomic_exchange_64((long long *) &ti->ThreadPtr->Handle, 0);
+        atomic_exchange(&ti->ThreadPtr->Finished, 1);
+        CloseHandle(handle);
     }
+
+    if (ti->Module) FreeLibrary(ti->Module);
+
     return 0;
 }
 
-void thread::start(const delegate<void(void *)> &function, void *userData) {
-    scoped_lock<mutex> _(&DataMutex);
-
+void thread::init(const delegate<void(void *)> &function, void *userData) {
     // Passed to the thread wrapper, which will eventually free it
     auto *ti = allocate(thread_start_info);
     ti->Function = function;
@@ -200,62 +203,58 @@ void thread::start(const delegate<void(void *)> &function, void *userData) {
     ti->ThreadPtr = this;
     ti->ContextPtr = &Context;
 
-    NotAThread = false;
+    Finished = false;
 
     // Create the thread
-    // if (pthread_create(&mHandle, NULL, wrapper_function, (void *) ti) != 0) mHandle = 0;
-#if !defined BUILD_NO_CRT
-    Handle = _beginthreadex(null, 0, wrapper_function, (void *) ti, /*Creation Flags*/ 0, &Win32ThreadId);
-#else
-    ti->NoCrt = true;
     GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR) wrapper_function, &ti->Module);
+    auto handle = CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, (DWORD *) &Win32ThreadId);
+    Handle = handle;
 
-    Handle = (u64) CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, (DWORD *) &Win32ThreadId);
-#endif
-    if (!Handle || (HANDLE) Handle == INVALID_HANDLE_VALUE) {
-        NotAThread = true;
+    if (!handle || handle == INVALID_HANDLE_VALUE) {
+        // We can access this diretly since thread wrapper never even ran
+        Finished = true;
         free(ti);
     }
 }
 
-thread::~thread() {
-    if (joinable()) os_exit(-1);
-}
-
 void thread::join() {
-    if (joinable()) {
-        // pthread_join(mHandle, NULL);
-        if (Handle && (HANDLE) Handle != INVALID_HANDLE_VALUE) {
-            WaitForSingleObject((HANDLE) Handle, INFINITE);
-            CloseHandle((HANDLE) Handle);
+    u32 finished = atomic_compare_exchange(&Finished, 0, 0);
 
-            scoped_lock<mutex> _(&DataMutex);
-            Handle = 0;
-            NotAThread = true;
+    if (!finished) {
+        // pthread_join(mHandle, NULL);
+
+        void *handle = atomic_compare_exchange_pointer(&Handle, null, null);
+        if (handle && handle != INVALID_HANDLE_VALUE) {
+            WaitForSingleObject(handle, INFINITE);
         }
     }
 }
 
-bool thread::joinable() const {
-    scoped_lock<mutex> _(&DataMutex);
-    bool result = !NotAThread;
-    return result;
-}
-
 void thread::detach() {
-    scoped_lock<mutex> _(&DataMutex);
-    if (!NotAThread) {
-        // pthread_detach(mHandle);
-        CloseHandle((HANDLE) Handle);
-        NotAThread = true;
+    u32 finished = atomic_compare_exchange((u32 *) &Finished, 0, 0);
+
+    if (!finished) {
+        // pthread_join(mHandle, NULL);
+
+        void *handle = atomic_compare_exchange_pointer(&Handle, null, null);
+        if (handle && handle != INVALID_HANDLE_VALUE) {
+            atomic_exchange_pointer(&Handle, null);
+            atomic_exchange(&Finished, 1);
+            CloseHandle(handle);
+        }
     }
 }
 
 // return _pthread_t_to_ID(mHandle);
 ::thread::id thread::get_id() const {
-    if (!joinable()) return id();
+    u32 finished = atomic_compare_exchange((u32 *) &Finished, 0, 0);
+    if (!finished) return id();
     return id((u64) Win32ThreadId);
 }
+
+void yield() { Sleep(0); }
+void sleep(u32 ms) { Sleep((DWORD) ms); }
+
 }  // namespace thread
 
 u32 os_get_hardware_concurrency() {
@@ -263,9 +262,6 @@ u32 os_get_hardware_concurrency() {
     GetSystemInfo(&si);
     return (u32) si.dwNumberOfProcessors;
 }
-
-void implicit_context::thread_yield() const { Sleep(0); }
-void implicit_context::thread_sleep_for(u32 ms) const { Sleep((DWORD) ms); }
 
 LSTD_END_NAMESPACE
 

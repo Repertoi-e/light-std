@@ -1,6 +1,6 @@
 #include "pixel_buffer.h"
 
-#include "lstd/vendor/stb/stb_image.h"
+#include "vendor/stb/stb_image.h"
 
 LSTD_BEGIN_NAMESPACE
 

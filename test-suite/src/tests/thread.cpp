@@ -1,8 +1,5 @@
 #include "../test.h"
 
-#define DO_THREAD_TESTS  // XXX
-#if defined DO_THREAD_TESTS
-
 TEST(hardware_concurrency) {
     fmt::print("\n\t\tHardware concurrency: {}.\n", os_get_hardware_concurrency());
     For(range(45)) fmt::print(" ");
@@ -38,22 +35,25 @@ static s32 Count = 0;
 
 static void thread_lock(void *) {
     For(range(10000)) {
-        thread::scoped_lock<thread::mutex> _(&Mutex);
+        Mutex.lock();
         ++Count;
+        Mutex.unlock();
     }
 }
 
 TEST(mutex_lock) {
     Count = 0;
 
-    array<thread::thread *> threads;
-    For(range(100)) { threads.append(new thread::thread(thread_lock, null)); }
+    Mutex.init();
+
+    array<thread::thread> threads;
+    defer(threads.release());
+
+    For(range(100)) { threads.append(thread::thread(thread_lock, null)); }
 
     For(threads) {
-        it->join();
-        free(it);
+        it.join();
     }
-    threads.release();
 
     assert_eq(Count, 100 * 10000);
 }
@@ -62,22 +62,22 @@ static thread::fast_mutex FastMutex;
 
 static void thread_lock2(void *) {
     For(range(10000)) {
-        thread::scoped_lock<thread::fast_mutex> _(&FastMutex);
+        FastMutex.lock();
         ++Count;
+        FastMutex.unlock();
     }
 }
 
 TEST(fast_mutex_lock) {
     Count = 0;
 
-    array<thread::thread *> threads;
-    For(range(100)) { threads.append(new thread::thread(thread_lock2, null)); }
+    array<thread::thread> threads;
+    defer(threads.release());
+    For(range(100)) { threads.append(thread::thread(thread_lock2, null)); }
 
     For(threads) {
-        it->join();
-        free(it);
+        it.join();
     }
-    threads.release();
 
     assert_eq(Count, 100 * 10000);
 }
@@ -85,57 +85,63 @@ TEST(fast_mutex_lock) {
 static thread::condition_variable Cond;
 
 static void thread_condition_notifier(void *) {
-    thread::scoped_lock<thread::mutex> _(&Mutex);
+    Mutex.lock();
     --Count;
     Cond.notify_all();
+    Mutex.unlock();
 }
 
 static void thread_condition_waiter(void *) {
-    thread::scoped_lock<thread::mutex> _(&Mutex);
+    Mutex.lock();
     while (Count > 0) {
-        Cond.wait(Mutex);
+        Cond.wait(&Mutex);
     }
-
     assert_eq(Count, 0);
+    Mutex.unlock();
 }
 
 TEST(condition_variable) {
     Count = 40;
 
+    Cond.init();
+    defer(Cond.release());
+
     thread::thread t1(thread_condition_waiter, null);
 
     // These will decrease Count by 1 when they finish)
-    array<thread::thread *> threads;
-    For(range(Count)) { threads.append(new thread::thread(thread_condition_notifier, null)); }
+    array<thread::thread> threads;
+    threads.release();
+    For(range(Count)) { threads.append(thread::thread(thread_condition_notifier, null)); }
 
     t1.join();
 
     For(threads) {
-        it->join();
-        free(it);
+        it.join();
     }
-    threads.release();
+
+    Mutex.release();
 }
 
 TEST(context) {
-    auto *old = Context.Alloc.Function;
+    WITH_CONTEXT_VAR(Alloc, Malloc) {
+        auto *old = Context.Alloc.Function;
 
-    auto differentAlloc = Context.TemporaryAlloc;
-    WITH_CONTEXT_VAR(Alloc, differentAlloc) {
-        auto threadFunction = [&](void *) {
-            assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
-            []() {
-                WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
-                    assert_eq((void *) Context.Alloc.Function, (void *) Context.TemporaryAlloc.Function);
-                    return;
-                }
-            }();
-            assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
-        };
+        auto differentAlloc = Context.TemporaryAlloc;
+        WITH_CONTEXT_VAR(Alloc, differentAlloc) {
+            auto threadFunction = [&](void *) {
+                assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
+                []() {
+                    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
+                        assert_eq((void *) Context.Alloc.Function, (void *) Context.TemporaryAlloc.Function);
+                        return;
+                    }
+                }();
+                assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
+            };
 
-        thread::thread t1(&threadFunction, null);
-        t1.join();
+            thread::thread t1(&threadFunction, null);
+            t1.join();
+        }
+        assert_eq((void *) Context.Alloc.Function, (void *) old);
     }
-    assert_eq((void *) Context.Alloc.Function, (void *) old);
 }
-#endif

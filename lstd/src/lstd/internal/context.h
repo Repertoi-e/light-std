@@ -28,13 +28,6 @@ inline os_function_call *clone(os_function_call *dest, os_function_call src) {
     return dest;
 }
 
-inline os_function_call *move(os_function_call *dest, os_function_call *src) {
-    move(&dest->Name, &src->Name);
-    move(&dest->File, &src->File);
-    dest->LineNumber = src->LineNumber;
-    return dest;
-}
-
 template <typename T>
 struct array;
 
@@ -47,14 +40,6 @@ void default_unexpected_exception_handler(const string &message, const array<os_
 struct implicit_context {
     // The current thread's ID
     thread::id ThreadID;
-
-    // Yield execution to another thread.
-    // Offers the operating system the opportunity to schedule another thread
-    // that is ready to run on the current processor.
-    void thread_yield() const;
-
-    // Blocks the calling thread for at least a given period of time in ms.
-    void thread_sleep_for(u32 ms) const;
 
     // When allocating you should use the context's allocator
     // This makes it so when users call your functions they

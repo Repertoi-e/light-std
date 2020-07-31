@@ -12,11 +12,11 @@ void console_writer_flush(writer *w);
 
 struct console_writer : writer {
     // By default, we are thread-safe.
-    // If you don't use seperate threads and aim for max
-    // performance, set this to false.
+    // If you don't use seperate threads and aim for maximum console output performance, set this to false.
     bool LockMutex = true;
 
-    enum output_type { COUT, CERR };
+    enum output_type { COUT,
+                       CERR };
     output_type OutputType;
 
     console_writer(output_type type) : writer(console_writer_write, console_writer_flush), OutputType(type) {}

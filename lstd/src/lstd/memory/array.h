@@ -117,7 +117,7 @@ struct array {
         if (offset < Count) {
             copy_memory(where + 1, where, (Count - offset) * sizeof(data_t));
         }
-        *where = element;
+        copy_memory(where, &element, sizeof(data_t));
         ++Count;
         return where;
     }

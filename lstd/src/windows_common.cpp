@@ -23,7 +23,7 @@ static char CinBuffer[CONSOLE_BUFFER_SIZE]{};
 static char CoutBuffer[CONSOLE_BUFFER_SIZE]{};
 static char CerrBuffer[CONSOLE_BUFFER_SIZE]{};
 static HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
-static thread::mutex CoutMutex;
+static thread::recursive_mutex CoutMutex;  // @Cleanup: recursive mutex
 static thread::mutex CinMutex;
 
 static LARGE_INTEGER PerformanceFrequency;
@@ -40,6 +40,15 @@ s32 initialize_context() {
     Context = {};
     Context.TemporaryAlloc.Context = &Context.TemporaryAllocData;
     Context.ThreadID = thread::id((u64) GetCurrentThreadId());
+
+#if defined DEBUG_MEMORY
+    allocator::DEBUG_Mutex.init();
+#endif
+
+    CinMutex.init();
+    CoutMutex.init();
+    WorkingDirMutex.init();
+
     return 0;
 }
 
@@ -149,7 +158,16 @@ void debug_memory_check_heap() {
 void uninitialize_win32_state() {
     call_exit_functions();
     Context.release_temporary_allocator();
+
     debug_memory_check_heap();
+
+    CinMutex.release();
+    CoutMutex.release();
+    WorkingDirMutex.release();
+
+#if defined DEBUG_MEMORY
+    allocator::DEBUG_Mutex.release();
+#endif
 }
 
 //
@@ -400,14 +418,13 @@ char io::console_reader_request_byte(io::reader *r) {
 void io::console_writer_write(io::writer *w, const char *data, s64 count) {
     auto *cw = (io::console_writer *) w;
 
+    thread::recursive_mutex *mutex = null;
+    if (cw->LockMutex) mutex = &CoutMutex;
+    thread::scoped_lock<thread::recursive_mutex> _(mutex);
+
     if (count > cw->Available) {
         cw->flush();
     }
-
-    thread::mutex *mutex = null;
-    if (cw->LockMutex) mutex = &CoutMutex;
-
-    thread::scoped_lock<thread::mutex> _(mutex);
 
     copy_memory(cw->Current, data, count);
 
@@ -418,10 +435,9 @@ void io::console_writer_write(io::writer *w, const char *data, s64 count) {
 void io::console_writer_flush(io::writer *w) {
     auto *cw = (io::console_writer *) w;
 
-    thread::mutex *mutex = null;
+    thread::recursive_mutex *mutex = null;
     if (cw->LockMutex) mutex = &CoutMutex;
-
-    thread::scoped_lock<thread::mutex> _(mutex);
+    thread::scoped_lock<thread::recursive_mutex> _(mutex);
 
     if (!cw->Buffer) {
         if (cw->OutputType == io::console_writer::COUT) {

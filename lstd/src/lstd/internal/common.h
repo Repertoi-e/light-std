@@ -5,6 +5,8 @@
 #include "../types.h"
 #include "debug_break.h"
 
+#include <intrin.h>
+
 // Convenience storage literal operators, allows for specifying sizes like this:
 //  s64 a = 10_MiB;
 
@@ -672,12 +674,21 @@ constexpr u32 count_digits(T value) {
 #if COMPILER == MSVC
 #define atomic_inc(ptr) _InterlockedIncrement((ptr))
 #define atomic_inc_64(ptr) _InterlockedIncrement64((ptr))
-#define atomic_add(ptr, value) _InterlockedAdd((ptr), value)
-#define atomic_add_64(ptr, value) _InterlockedAdd64((ptr), value)
+
+#define atomic_add(ptr, value) _InterlockedAdd((ptr), (value))
+#define atomic_add_64(ptr, value) _InterlockedAdd64((ptr), (value))
+
+#define atomic_exchange(ptr, value) _InterlockedExchange((ptr), (value))
+#define atomic_exchange_64(ptr, value) _InterlockedExchange64((ptr), (value))
+#define atomic_exchange_pointer(ptr, value) _InterlockedExchangePointer((ptr), (value))
+
+#define atomic_compare_exchange(ptr, exchange, comperand) _InterlockedCompareExchange((ptr), (exchange), (comperand))
+#define atomic_compare_exchange_64(ptr, exchange, comperand) _InterlockedCompareExchange64((ptr), (exchange), (comperand))
+#define atomic_compare_exchange_pointer(ptr, exchange, comperand) _InterlockedCompareExchangePointer((ptr), (exchange), (comperand))
 #else
 #define atomic_inc(ptr) __sync_add_and_fetch((ptr), 1)
 #define atomic_inc_64(ptr) __sync_add_and_fetch((ptr), 1)
-#error atomic_add and atomic_add_64
+#error atomic_add, atomic_add_64, atomic_exchange, atomic_exchange_64
 #endif
 
 template <typename T>

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "lstd/math.h"
-#include "lstd/vendor/imgui/imgui.h"
-#include "lstd/vendor/imguizmo/ImGuizmo.h"
+#include "vendor/imgui/imgui.h"
+#include "vendor/imguizmo/ImGuizmo.h"
 
 #if OS == WINDOWS
 
