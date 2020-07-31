@@ -58,17 +58,4 @@ pixel_buffer *clone(pixel_buffer *dest, pixel_buffer src) {
     return dest;
 }
 
-// Since we longer do the ownership thing, the move() function is obsolete.
-// pixel_buffer *move(pixel_buffer *dest, pixel_buffer *src) {
-//     dest->release();
-//     *dest = *src;
-//
-//     if (!src->is_owner()) return dest;
-//
-//     // Transfer ownership
-//     encode_owner(src->Pixels, dest);
-//     encode_owner(dest->Pixels, dest);
-//     return dest;
-// }
-
 LSTD_END_NAMESPACE

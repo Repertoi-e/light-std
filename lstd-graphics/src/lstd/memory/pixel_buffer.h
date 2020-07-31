@@ -37,6 +37,5 @@ struct pixel_buffer {
 };
 
 pixel_buffer *clone(pixel_buffer *dest, pixel_buffer src);
-// pixel_buffer *move(pixel_buffer *dest, pixel_buffer *src);
 
 LSTD_END_NAMESPACE

@@ -111,10 +111,4 @@ file::path *clone(file::path *dest, const file::path &src) {
     return dest;
 }
 
-// file::path *move(file::path *dest, file::path *src) {
-//     dest->UnifiedPath.release();
-//     move(&dest->UnifiedPath, &src->UnifiedPath);
-//     return dest;
-// }
-
 LSTD_END_NAMESPACE

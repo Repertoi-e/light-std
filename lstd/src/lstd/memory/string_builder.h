@@ -60,6 +60,5 @@ struct string_builder {
 };
 
 string_builder *clone(string_builder *dest, const string_builder &src);
-// string_builder *move(string_builder *dest, string_builder *src);
 
 LSTD_END_NAMESPACE

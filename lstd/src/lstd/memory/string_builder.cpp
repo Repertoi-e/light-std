@@ -79,18 +79,4 @@ string_builder *clone(string_builder *dest, const string_builder &src) {
     return dest;
 }
 
-// string_builder *move(string_builder *dest, string_builder *src) {
-//     dest->release();
-//
-//     *dest = *src;
-//
-//     // Transfer ownership
-//     auto *b = dest->BaseBuffer.Next;
-//     while (b) {
-//         b->Owner = dest;
-//         b = b->Next;
-//     }
-//     return dest;
-// }
-
 LSTD_END_NAMESPACE

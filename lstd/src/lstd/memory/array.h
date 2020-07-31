@@ -446,20 +446,6 @@ array<T> *clone(array<T> *dest, const array<T> &src) {
     return dest;
 }
 
-// Since we longer do the ownership thing, the move() function is obsolete.
-// template <typename T>
-// array<T> *move(array<T> *dest, array<T> *src) {
-//     dest->release();
-//     *dest = *src;
-//
-//     if (!src->is_owner()) return dest;
-//
-//     // Transfer ownership
-//     encode_owner(src->Data, dest);
-//     encode_owner(dest->Data, dest);
-//     return dest;
-// }
-
 //
 // == and != for stack_array and array
 //

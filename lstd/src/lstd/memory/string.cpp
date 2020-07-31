@@ -259,17 +259,4 @@ string *clone(string *dest, const string &src) {
     return dest;
 }
 
-// Obsolete.
-// string *move(string *dest, string *src) {
-//     dest->release();
-//     *dest = *src;
-//
-//     if (!src->is_owner()) return dest;
-//
-//     // Transfer ownership
-//     encode_owner(src->Data, dest);
-//     encode_owner(dest->Data, dest);
-//     return dest;
-// }
-
 LSTD_END_NAMESPACE

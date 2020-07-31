@@ -423,7 +423,4 @@ constexpr bool operator>=(const char *one, const string &other) { return !(one <
 // Returns just _dest_.
 string *clone(string *dest, const string &src);
 
-// Since we longer do the ownership thing, the move() function is obsolete.
-// string *move(string *dest, string *src);
-
 LSTD_END_NAMESPACE

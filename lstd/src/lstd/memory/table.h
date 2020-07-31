@@ -339,18 +339,4 @@ table<K, V> *clone(table<K, V> *dest, const table<K, V> &src) {
     return dest;
 }
 
-// Since we longer do the ownership thing, the move() function is obsolete.
-// template <typename K, typename V>
-// table<K, V> *move(table<K, V> *dest, table<K, V> *src) {
-//     dest->release();
-//     *dest = *src;
-//
-//     if (!src->is_owner()) return;
-//
-//     // Transfer ownership
-//     encode_owner(src->Hashes, dest);
-//     encode_owner(dest->Hashes, dest);
-//     return dest;
-// }
-
 LSTD_END_NAMESPACE

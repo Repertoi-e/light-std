@@ -154,7 +154,12 @@ struct range {
     constexpr iterator end() const { return _End; }
 };
 
-// @TODO This needs updating...
+// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 //
 // @Volatile: README.md
 // Type policy:
@@ -199,12 +204,8 @@ struct range {
 //     Objects that own memory (like string) overload clone() and make sure the copy reserves a buffer and copies
 //     the data to it.
 //
-//     _move(T *dest, T *src)_ is global function that transfers ownership.
-//     The buffer in _src_ (iff _src_ owns it) is now owned by _dest_ (_src_ becomes simply a view into _dest_).
-//     So _move_ is cheaper than _clone_ and is used for example when inserting objects into an array.
-//
-//     ! Note: _clone_ and _move_ work on all types (unless overloaded they do a shallow copy).
-//     They are the recommended way to implement functionality normally done in copy/move c-tors.
+//     ! Note: _clone_ works on all types (unless overloaded they do a shallow copy). 
+//     It is the recommended way to implement functionality normally done in copy c-tors.
 //
 // "No throwing of exceptions, anywhere"
 //   Exceptions make your code complicated. They are a good way to handle errors in small examples,
@@ -222,17 +223,6 @@ T *clone(T *dest, T src) {
     *dest = src;
     return dest;
 }
-
-// Since we longer do the ownership thing, the move() function is obsolete.
-//
-// Global function that is supposed to ensure transfer of ownership without the overhead of cloning
-// By default, a normal copy is done (to make sure it can be called on all types)
-// Returns _dest_
-// template <typename T>
-// constexpr T *move(T *dest, T *src) {
-//     *dest = *src;
-//     return dest;
-// }
 
 template <typename T>
 constexpr void swap(T &a, T &b) {
