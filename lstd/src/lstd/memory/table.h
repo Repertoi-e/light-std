@@ -12,6 +12,7 @@ struct table_iterator;
 // work by storing linked lists of entries, but that can lead to many more cache misses.
 //
 // We store 3 arrays, one for the values, one for the keys and one for the hashed keys.
+// Read the comment above reserve() for more information on how the arrays get allocated.
 //
 // When storing a value, we map its hash to a slot index and if that slot is free, we put the key and value there,
 // otherwise we keep incrementing the slot index until we find an empty slot. Because the table can never be full, we
@@ -25,10 +26,17 @@ struct table_iterator;
 //
 // Whether we hash a key, if the result is less than 2, we just add 2 to it to put it in the valid range.
 // This leads to possibly more collisions, but it's a small price to pay.
-template <typename K, typename V>
+//
+// The template parameter _BlockAlloc_ specifies whether the hashes, keys and values arrays are allocated
+// all contiguously or by seperate allocation calls. You want to allocate them next to each other because that's good for the cache,
+// but if the table is too large then the block won't fit in the cache anyways so you should consider setting this to false to reduce
+// the size of the allocation request.
+template <typename K, typename V, bool BlockAlloc = true>
 struct table {
     using key_t = K;
     using value_t = V;
+
+    static constexpr bool BLOCK_ALLOC = BlockAlloc;
 
     static constexpr s64 MINIMUM_SIZE = 32;
     static constexpr s64 FIRST_VALID_HASH = 2;
@@ -39,7 +47,7 @@ struct table {
     // Number of slots allocated
     s64 Reserved = 0;
 
-    // Number of slots that can't be used (valid or removed items)
+    // Number of slots that can't be used (valid + removed items)
     s64 SlotsFilled = 0;
 
     u64 *Hashes = null;
@@ -55,29 +63,81 @@ struct table {
     // Note that it may reserve way more than required.
     // Reserves space equal to the next power of two bigger than _size_, starting at _MINIMUM_SIZE_.
     //
-    // Allocates a buffer if the table doesn't already point to reserved memory
-    // (using the Context's allocator).
-    void reserve(s64 target) {
+    // Allocates a buffer if the table doesn't already point to reserved memory (using the Context's allocator).
+    // If _BLOCK_ALLOC_ is true it ensures that the allocated arrays are next to each other.
+    //
+    // You don't need to call this before using the table.
+    // The first time an element is added to the table, it reserves with _MINIMUM_SIZE_ and no specified alignment.
+    // You can call this before using the table to initialize the arrays with a custom alignment (if that's required).
+    //
+    // This is also called when adding an element and the table is half full (SlotsFilled * 2 == Reserved).
+    // In that case the _target_ is exactly _SlotsFilled_ * 2.
+    // You may want to call this manually if you are adding a bunch of items and causing the table to reallocate a lot.
+    void reserve(s64 target, u32 alignment = 0) {
         if (SlotsFilled + target < Reserved) return;
-        target = max<s64>(ceil_pow_of_2(target + SlotsFilled + 1), 8);
-
-        auto *oldHashes = Hashes;
-        auto *oldKeys = Keys;
-        auto *oldValues = Values;
-        auto oldReserved = Reserved;
+        target = max<s64>(ceil_pow_of_2(target + SlotsFilled + 1), MINIMUM_SIZE);
 
         if (Reserved) {
-            Hashes = reallocate_array(Hashes, target, DO_INIT_0);
-            Keys = reallocate_array(Keys, target);
-            Values = reallocate_array(Values, target);
+            auto oldAlignment = ((allocation_header *) Hashes - 1)->Alignment;
+            if (alignment == 0) {
+                alignment = oldAlignment;
+            } else {
+                assert(alignment == oldAlignment && "Reserving with an alignment but the object already has arrays with a different alignment. Specify alignment 0 to automatically use the old one.");
+            }
+
+            if constexpr (BLOCK_ALLOC) {
+                auto *oldHashes = Hashes;
+                auto *oldKeys = Keys;
+                auto *oldValues = Values;
+                auto oldReserved = Reserved;
+
+                s64 padding1 = 0, padding2 = 0;
+                if (alignment != 0) {
+                    padding1 = (target * sizeof(u64)) % alignment;
+                    padding2 = (target * sizeof(value_t)) % alignment;
+                }
+
+                s64 sizeInBytes = target * (sizeof(u64) + sizeof(key_t) + sizeof(value_t)) + padding1 + padding2;
+
+                char *block = reallocate_array((char *) Hashes, sizeInBytes);
+                Hashes = (u64 *) block;
+                Keys = (key_t *) (block + target * sizeof(u64) + padding1);
+                Values = (value_t *) (block + target * (sizeof(u64) + sizeof(key_t)) + padding2);
+
+                // Copy the old values in reverse because the block might not have moved in memory.
+                // copy_memory handles moving when the src and dest buffers overlap.
+                copy_memory(Values, oldValues, oldReserved * sizeof(value_t));
+                copy_memory(Keys, oldKeys, oldReserved * sizeof(key_t));
+                copy_memory(Hashes, oldHashes, oldReserved * sizeof(u64));
+            } else {
+                Hashes = reallocate_array(Hashes, target, DO_INIT_0);
+                Keys = reallocate_array(Keys, target);
+                Values = reallocate_array(Values, target);
+            }
         } else {
             // It's impossible to have a view into a table (currently).
             // So there were no previous elements.
             assert(!Count);
 
-            Hashes = allocate_array(u64, target, DO_INIT_0);
-            Keys = allocate_array(key_t, target);
-            Values = allocate_array(value_t, target);
+            if constexpr (BLOCK_ALLOC) {
+                s64 padding1 = 0, padding2 = 0;
+                if (alignment != 0) {
+                    padding1 = (target * sizeof(u64)) % alignment;
+                    padding2 = (target * sizeof(value_t)) % alignment;
+                }
+
+                s64 sizeInBytes = target * (sizeof(u64) + sizeof(key_t) + sizeof(value_t)) + padding1 + padding2;
+
+                char *block = allocate_array_aligned(char, sizeInBytes, alignment);
+                Hashes = (u64 *) block;
+                Keys = (key_t *) (block + target * sizeof(u64) + padding1);
+                Values = (value_t *) (block + target * (sizeof(u64) + sizeof(key_t)) + padding2);
+                zero_memory(Hashes, target * sizeof(u64));
+            } else {
+                Hashes = allocate_array_aligned(u64, target, alignment, DO_INIT_0);
+                Keys = allocate_array_aligned(key_t, target, alignment);
+                Values = allocate_array_aligned(value_t, target, alignment);
+            }
         }
         Reserved = target;
     }
@@ -85,9 +145,13 @@ struct table {
     // Free any memory allocated by this object and reset count
     void release() {
         if (Reserved) {
-            free(Hashes);
-            free(Keys);
-            free(Values);
+            if constexpr (BLOCK_ALLOC) {
+                free(Hashes);
+            } else {
+                free(Hashes);
+                free(Keys);
+                free(Values);
+            }
         }
         Hashes = null;
         Keys = null;
@@ -310,23 +374,23 @@ struct table_iterator {
     }
 };
 
-template <typename K, typename V>
-typename table<K, V>::iterator table<K, V>::begin() {
+template <typename K, typename V, bool BlockAlloc>
+typename table<K, V, BlockAlloc>::iterator table<K, V, BlockAlloc>::begin() {
     return table<K, V>::iterator(this);
 }
 
-template <typename K, typename V>
-typename table<K, V>::iterator table<K, V>::end() {
+template <typename K, typename V, bool BlockAlloc>
+typename table<K, V, BlockAlloc>::iterator table<K, V, BlockAlloc>::end() {
     return table<K, V>::iterator(this, Reserved);
 }
 
-template <typename K, typename V>
-typename table<K, V>::const_iterator table<K, V>::begin() const {
+template <typename K, typename V, bool BlockAlloc>
+typename table<K, V, BlockAlloc>::const_iterator table<K, V, BlockAlloc>::begin() const {
     return table<K, V>::const_iterator(this);
 }
 
-template <typename K, typename V>
-typename table<K, V>::const_iterator table<K, V>::end() const {
+template <typename K, typename V, bool BlockAlloc>
+typename table<K, V, BlockAlloc>::const_iterator table<K, V, BlockAlloc>::end() const {
     return table<K, V>::const_iterator(this, Reserved);
 }
 

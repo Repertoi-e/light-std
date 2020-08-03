@@ -53,12 +53,28 @@ void run_tests() {
     }
     fmt::print("\n{!}");
 
+    // These need to be reset in case we rerun the tests (we may spin this function up in a while loop a bunch of times when looking for rare bugs).
     asserts::GlobalCalledCount = 0;
     asserts::GlobalFailed.release();
 }
 
+io::string_builder_writer logger;
+
+void write_output_to_file() {
+    auto out = file::handle(file::path("output.txt"));
+    out.write_to_file(logger.Builder.combine(), file::handle::Overwrite_Entire);
+}
+
+void test_exit() {
+    fmt::print("Hello, world!\n");
+}
+
 s32 main() {
     Context.CheckForLeaksAtTermination = true;
+    // Context.Log = &logger;
+
+    run_at_exit(test_exit);
+    os_exit(1);
 
     time_t start = os_get_time();
 
@@ -72,6 +88,16 @@ s32 main() {
     }
 
     fmt::print("\nFinished tests, time taken: {:f} seconds\n\n", os_time_to_seconds(os_get_time() - start));
+    run_at_exit(write_output_to_file);
+
+#if defined DEBUG_MEMORY
+    // These get reported as leaks otherwise and we were looking for actual problems...
+    for (auto [k, v] : g_TestTable) {
+        v->release();
+    }
+    g_TestTable.release();
+    Context.release_temporary_allocator();
+#endif
 
     return 0;
 }

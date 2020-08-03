@@ -89,13 +89,13 @@ void os_restore_display_mode(monitor *mon);
 vec2<s32> os_get_monitor_pos(monitor *mon);
 v2 os_get_monitor_content_scale(monitor *mon);
 
-// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
+// Don't free the result of this function. This library follows the convention that if the function is not marked as [[nodiscard]], the returned value should not be freed.
 monitor *os_monitor_from_window(window *win);
 
-// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
+// Don't free the result of this function. This library follows the convention that if the function is not marked as [[nodiscard]], the returned value should not be freed.
 array<monitor *> os_get_monitors();
 
-// Don't free the result of this function. This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
+// Don't free the result of this function. This library follows the convention that if the function is not marked as [[nodiscard]], the returned value should not be freed.
 monitor *os_get_primary_monitor();
 
 LSTD_END_NAMESPACE

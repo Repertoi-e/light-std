@@ -4,7 +4,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *userFlags) {
+void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *options) {
 #if COMPILER == MSVC
 #pragma warning(push)
 #pragma warning(disable : 4146)
@@ -46,7 +46,9 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
             p->Used += size;
             data->TotalUsed += size;
 
-            *userFlags |= LEAK;
+            // We mark all allocations done with the temporary allocator as "leaks", so they don't get reported when checking for actual leaks.
+            // allocator::general_(re)allocate check for this flag after calling the allocation function, so this gets propagated upwards correctly.
+            *options |= LEAK;
 
             return result;
         }
@@ -75,16 +77,14 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
             return null;
         case allocator_mode::FREE_ALL: {
 #if defined DEBUG_MEMORY
-            // Remove our allocations from the linked list
+            // Remove our allocations from the linked list so we don't corrupt the heap after freeing the pages
             WITH_ALLOC(Malloc) {
                 array<allocation_header *> toUnlink;
                 defer(toUnlink.release());
 
                 auto *h = allocator::DEBUG_Head;
                 while (h) {
-                    if (h->Function == temporary_allocator && h->Context == data) {
-                        toUnlink.append(h);
-                    }
+                    if (h->Function == temporary_allocator && h->Context == data) toUnlink.append(h);
                     h = h->DEBUG_Next;
                 }
                 For(toUnlink) allocator::DEBUG_unlink_header(it);

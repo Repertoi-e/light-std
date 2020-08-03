@@ -65,43 +65,18 @@ void initialize_win32_state() {
 static array<delegate<void()>> ExitFunctions;
 
 void run_at_exit(const delegate<void()> &function) {
-    ExitFunctions.append(function);
+    WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
+        ExitFunctions.append(function);
+    }
 }
 
 // Needs to happen just before the global C++ destructors get called.
 void call_exit_functions() { For(ExitFunctions) it(); }
 
-// Copied from test.h
-//
-// We check if the path contains src/ and use the rest after that.
-// Otherwise we just take the file name. Possible results are:
-//
-//      /home/.../game/src/some_dir/a/string.cpp ---> some_dir/a/localization.cpp
-//      /home/.../game/some_dir/string.cpp       ---> localization.cpp
-//
-constexpr string get_short_file_name(const string &str) {
-    char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATORS[0], '\0'};
-    string src = srcData;
-
-    s64 findResult = str.find_reverse(src);
-    if (findResult == -1) {
-        findResult = str.find_reverse(file::OS_PATH_SEPARATORS[0]);
-        assert(findResult != str.Length - 1);
-        // Skip the slash
-        findResult++;
-    } else {
-        // Skip the src directory
-        findResult += src.Length;
-    }
-
-    string result = str;
-    return result.substring(findResult, result.Length);
-}
-
-void debug_memory_check_heap() {
+// Needs to happend before the global WindowsList variable gets uninitialized.
+void uninitialize_win32_state() {
 #if defined DEBUG_MEMORY
-    // If there are any left over allocations, we check their integrity.
-    allocator::verify_heap();
+    Context.release_temporary_allocator();
 
     // Now we check for memory leaks.
     // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
@@ -109,65 +84,16 @@ void debug_memory_check_heap() {
     // want to load/unload DLLs during the runtime of the application, and those DLLs might use all kinds of complex
     // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
     if (Context.CheckForLeaksAtTermination) {
-        allocation_header **leaks;
-        // We want to ignore the allocation below since it's not the user's fault and we shouldn't count it as a leak
-        s64 leaksID;
-
-        s64 leaksCount = 0;
-        {
-            thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
-            auto *it = allocator::DEBUG_Head;
-            while (it) {
-                if (!it->MarkedAsLeak) ++leaksCount;
-                it = it->DEBUG_Next;
-            }
-        }
-        // @Cleanup: We can mark this as LEAK?
-        leaks = allocate_array(allocation_header *, leaksCount);
-        leaksID = ((allocation_header *) leaks - 1)->ID;
-
-        {
-            thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
-            auto *p = leaks;
-            auto *it = allocator::DEBUG_Head;
-            while (it) {
-                if (!it->MarkedAsLeak && it->ID != leaksID) *p++ = it;
-                it = it->DEBUG_Next;
-            }
-        }
-
-        if (leaksCount) {
-            fmt::print(">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still had {!YELLOW}{}{!} allocations which were unfreed. Here they are:\n", os_get_current_module(), leaksCount);
-        }
-
-        For_as(i, range(leaksCount)) {
-            auto *it = leaks[i];
-
-            string fileName = "Unknown";
-            if (compare_c_string(it->FileName, "") != -1) {
-                fileName = get_short_file_name(it->FileName);
-            }
-
-            fmt::print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", fileName, it->FileLine, it->Size, it->ID, it->RID);
-        }
+        allocator::DEBUG_report_leaks();
     }
+
+    // There's no better place to put this. Don't forget to call this for other operating systems!!!
+    allocator::DEBUG_Mutex.release();
 #endif
-}
-
-// Needs to happend before the global WindowsList variable gets uninitialized.
-void uninitialize_win32_state() {
-    call_exit_functions();
-    Context.release_temporary_allocator();
-
-    debug_memory_check_heap();
 
     CinMutex.release();
     CoutMutex.release();
     WorkingDirMutex.release();
-
-#if defined DEBUG_MEMORY
-    allocator::DEBUG_Mutex.release();
-#endif
 }
 
 //
@@ -187,6 +113,7 @@ s32 cpp_init() {
 }
 
 s32 pre_termination() {
+    call_exit_functions();
     uninitialize_win32_state();
     return 0;
 }
@@ -294,7 +221,7 @@ void win32_common_init() {
         WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
     }
 
-    // Enable ANSII escape sequences
+    // Enable ANSI escape sequences
     DWORD dw = 0;
     GetConsoleMode(CoutHandle, &dw);
     SetConsoleMode(CoutHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
@@ -320,7 +247,7 @@ void win32_common_init() {
         break;
     }
 
-    WITH_CONTEXT_VAR(AllocFlags, LEAK) {
+    WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
         ModuleName.reserve(reserved * 2);  // @Bug reserved * 2 is not enough
     }
 
@@ -342,7 +269,7 @@ void win32_common_init() {
         DWORD ignored;
         WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
     } else {
-        WITH_CONTEXT_VAR(AllocFlags, LEAK) {
+        WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
             Argv.reserve(argc - 1);
         }
 
@@ -350,7 +277,7 @@ void win32_common_init() {
             auto *warg = argv[it];
 
             auto *arg = Argv.append();
-            WITH_CONTEXT_VAR(AllocFlags, LEAK) {
+            WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
                 arg->reserve(c_string_length(warg) * 2);  // @Bug c_string_length * 2 is not enough
             }
             utf16_to_utf8(warg, const_cast<char *>(arg->Data), &arg->ByteLength);
@@ -575,7 +502,11 @@ void os_free_block(void *ptr) {
     WIN32_CHECKBOOL(HeapFree(GetProcessHeap(), 0, ptr));
 }
 
-void os_exit(s32 exitCode) { ExitProcess(exitCode); }
+void os_exit(s32 exitCode) {
+    call_exit_functions();
+    uninitialize_win32_state();
+    ExitProcess(exitCode);
+}
 
 time_t os_get_time() {
     LARGE_INTEGER count;
@@ -598,7 +529,7 @@ string os_get_working_dir() {
         return "";
     }
 
-    WITH_CONTEXT_VAR(AllocFlags, LEAK) {
+    WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
         WorkingDir.reserve(required * 2);  // @Bug required * 2 is not enough
     }
 
@@ -632,14 +563,7 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
 
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
         if (!silent) {
-            WITH_ALLOC(Context.TemporaryAlloc) {
-                string warning = ">>> Warning: Couldn't find environment variable with value \"";
-                warning.append(name);
-                warning.append("\".\n");
-
-                DWORD ignored;
-                WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
-            }
+            fmt::print(">>> Warning: Couldn't find environment variable with value \"{}\"\n", name);
         }
         return {false, ""};
     }
@@ -707,7 +631,7 @@ string os_get_clipboard_content() {
     }
     defer(GlobalUnlock(object));
 
-    WITH_CONTEXT_VAR(AllocFlags, LEAK) {
+    WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
         ClipboardString.reserve(c_string_length(buffer) * 2);  // @Bug c_string_length * 2 is not enough
     }
 

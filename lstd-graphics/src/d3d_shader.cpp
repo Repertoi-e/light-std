@@ -170,13 +170,13 @@ void d3d_shader_unbind(shader *s) {
 }
 
 void d3d_shader_release(shader *s) {
-    SAFE_RELEASE(s->D3D.VS);
-    SAFE_RELEASE(s->D3D.PS);
+    COM_SAFE_RELEASE(s->D3D.VS);
+    COM_SAFE_RELEASE(s->D3D.PS);
 
     auto *vs = (ID3DBlob *) s->D3D.VSBlob;
     auto *ps = (ID3DBlob *) s->D3D.PSBlob;
-    SAFE_RELEASE(vs);
-    SAFE_RELEASE(ps);
+    COM_SAFE_RELEASE(vs);
+    COM_SAFE_RELEASE(ps);
     s->D3D.VSBlob = null;
     s->D3D.PSBlob = null;
 }

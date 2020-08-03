@@ -119,12 +119,12 @@ void d3d_texture_2D_unbind(texture_2D *t) {
 }
 
 void d3d_texture_2D_release(texture_2D *t) {
-    SAFE_RELEASE(t->D3D.Texture);
-    SAFE_RELEASE(t->D3D.ResourceView);
-    SAFE_RELEASE(t->D3D.SamplerState);
-    SAFE_RELEASE(t->D3D.RenderTargetView);
-    SAFE_RELEASE(t->D3D.DepthStencilBuffer);
-    SAFE_RELEASE(t->D3D.DepthStencilView);
+    COM_SAFE_RELEASE(t->D3D.Texture);
+    COM_SAFE_RELEASE(t->D3D.ResourceView);
+    COM_SAFE_RELEASE(t->D3D.SamplerState);
+    COM_SAFE_RELEASE(t->D3D.RenderTargetView);
+    COM_SAFE_RELEASE(t->D3D.DepthStencilBuffer);
+    COM_SAFE_RELEASE(t->D3D.DepthStencilView);
 }
 
 texture_2D::impl g_D3DTexture2DImpl = {d3d_texture_2D_init, d3d_texture_2D_set_data, d3d_texture_2D_bind,

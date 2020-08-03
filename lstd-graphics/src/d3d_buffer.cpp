@@ -102,7 +102,7 @@ void d3d_buffer_set_input_layout(buffer *b, const buffer_layout &layout) {
 
     b->Stride = layout.TotalSize;
 
-    SAFE_RELEASE(b->D3D.Layout);
+    COM_SAFE_RELEASE(b->D3D.Layout);
 
     auto *desc = allocate_array(D3D11_INPUT_ELEMENT_DESC, layout.Elements.Count, Context.TemporaryAlloc);
     auto *p = desc;
@@ -181,8 +181,8 @@ void d3d_buffer_unbind(buffer *b) {
 }
 
 void d3d_buffer_release(buffer *b) {
-    SAFE_RELEASE(b->D3D.Buffer);
-    SAFE_RELEASE(b->D3D.Layout);
+    COM_SAFE_RELEASE(b->D3D.Buffer);
+    COM_SAFE_RELEASE(b->D3D.Layout);
 }
 
 buffer::impl g_D3DBufferImpl = {d3d_buffer_init, d3d_buffer_set_input_layout, d3d_buffer_map, d3d_buffer_unmap,

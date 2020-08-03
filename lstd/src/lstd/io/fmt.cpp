@@ -70,15 +70,15 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                 return;
             }
 
-            char ansiiBuffer[7 + 3 * 4 + 1];
-            auto *ansiiEnd = internal::color_to_ansii(ansiiBuffer, style);
-            f->write_no_specs(ansiiBuffer, ansiiEnd - ansiiBuffer);
+            char ansiBuffer[7 + 3 * 4 + 1];
+            auto *ansiEnd = internal::color_to_ansi(ansiBuffer, style);
+            f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
 
             u8 emphasis = (u8) style.Emphasis;
             if (emphasis) {
                 assert(!style.Background);
-                ansiiEnd = internal::emphasis_to_ansii(ansiiBuffer, emphasis);
-                f->write_no_specs(ansiiBuffer, ansiiEnd - ansiiBuffer);
+                ansiEnd = internal::emphasis_to_ansi(ansiBuffer, emphasis);
+                f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
             }
         } else {
             currentArg = f->get_arg_from_ref(p->parse_arg_id());

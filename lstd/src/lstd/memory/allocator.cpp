@@ -56,6 +56,80 @@ void allocator::DEBUG_swap_header(allocation_header *oldHeader, allocation_heade
         newHeader->DEBUG_Next = next;
     }
 }
+
+// Copied from test.h
+//
+// We check if the path contains src/ and use the rest after that.
+// Otherwise we just take the file name. Possible results are:
+//
+//      /home/.../game/src/some_dir/a/string.cpp ---> some_dir/a/localization.cpp
+//      /home/.../game/some_dir/string.cpp       ---> localization.cpp
+//
+constexpr string get_short_file_name(const string &str) {
+    char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATORS[0], '\0'};
+    string src = srcData;
+
+    s64 findResult = str.find_reverse(src);
+    if (findResult == -1) {
+        findResult = str.find_reverse(file::OS_PATH_SEPARATORS[0]);
+        assert(findResult != str.Length - 1);
+        // Skip the slash
+        findResult++;
+    } else {
+        // Skip the src directory
+        findResult += src.Length;
+    }
+
+    string result = str;
+    return result.substring(findResult, result.Length);
+}
+
+void allocator::DEBUG_report_leaks() {
+    // First we check their integrity of the heap
+    allocator::verify_heap();
+
+    allocation_header **leaks;
+    // We want to ignore the allocation below since it's not the user's fault and we shouldn't count it as a leak
+    s64 leaksID;
+
+    s64 leaksCount = 0;
+    {
+        thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
+        auto *it = allocator::DEBUG_Head;
+        while (it) {
+            if (!it->MarkedAsLeak) ++leaksCount;
+            it = it->DEBUG_Next;
+        }
+    }
+    // @Cleanup: We can mark this as LEAK?
+    leaks = allocate_array(allocation_header *, leaksCount);
+    leaksID = ((allocation_header *) leaks - 1)->ID;
+
+    {
+        thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
+        auto *p = leaks;
+        auto *it = allocator::DEBUG_Head;
+        while (it) {
+            if (!it->MarkedAsLeak && it->ID != leaksID) *p++ = it;
+            it = it->DEBUG_Next;
+        }
+    }
+
+    if (leaksCount) {
+        fmt::print(">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still had {!YELLOW}{}{!} allocations which were unfreed. Here they are:\n", os_get_current_module(), leaksCount);
+    }
+
+    For_as(i, range(leaksCount)) {
+        auto *it = leaks[i];
+
+        string fileName = "Unknown";
+        if (compare_c_string(it->FileName, "") != -1) {
+            fileName = get_short_file_name(it->FileName);
+        }
+
+        fmt::print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", fileName, it->FileLine, it->Size, it->ID, it->RID);
+    }
+}
 #endif
 
 void verify_header_unlocked(allocation_header *header) {
@@ -177,8 +251,8 @@ static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f,
     return p;
 }
 
-void *allocator::general_allocate(s64 userSize, u32 alignment, u64 userFlags, const char *fileName, s64 fileLine) const {
-    userFlags |= ::Context.AllocFlags;
+void *allocator::general_allocate(s64 userSize, u32 alignment, u64 options, const char *fileName, s64 fileLine) const {
+    options |= ::Context.AllocFlags;
 
     if (alignment == 0) {
         auto contextAlignment = ::Context.AllocAlignment;
@@ -189,9 +263,31 @@ void *allocator::general_allocate(s64 userSize, u32 alignment, u64 userFlags, co
 #if defined DEBUG_MEMORY
     s64 id = AllocationCount;
 
-    if (id == 100) {
+    if (id == 602) {
         s32 k = 42;
     }
+
+    if (!(options & XXX_AVOID_RECURSION)) {
+        ::Context.Log->write(">>> Allocation made at: ");
+        ::Context.Log->write(fileName);
+        ::Context.Log->write(":");
+
+        char number[20];
+
+        auto *numberP = number + 19;
+        s64 numberSize = 0;
+        {
+            s64 line = fileLine;
+            while (line) {
+                *numberP-- = line % 10 + '0';
+                line /= 10;
+                ++numberSize;
+            }
+        }
+        ::Context.Log->write(numberP + 1, numberSize);
+        ::Context.Log->write("\n");
+    }
+
 #endif
 
     alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
@@ -202,8 +298,8 @@ void *allocator::general_allocate(s64 userSize, u32 alignment, u64 userFlags, co
     required += NO_MANS_LAND_SIZE;  // This is for the bytes after the requested block
 #endif
 
-    void *block = Function(allocator_mode::ALLOCATE, Context, required, null, 0, &userFlags);
-    auto *result = encode_header(block, userSize, alignment, Function, Context, userFlags);
+    void *block = Function(allocator_mode::ALLOCATE, Context, required, null, 0, &options);
+    auto *result = encode_header(block, userSize, alignment, Function, Context, options);
 
 #if defined DEBUG_MEMORY
     auto *header = (allocation_header *) result - 1;
@@ -219,8 +315,8 @@ void *allocator::general_allocate(s64 userSize, u32 alignment, u64 userFlags, co
     return result;
 }
 
-void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags, const char *fileName, s64 fileLine) {
-    userFlags |= ::Context.AllocFlags;
+void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 options, const char *fileName, s64 fileLine) {
+    options |= ::Context.AllocFlags;
 
     auto *header = (allocation_header *) ptr - 1;
     verify_header(header);
@@ -253,11 +349,11 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags, c
     void *p;
 
     // Try to resize the block, this returns null if the block can't be resized and we need to move it.
-    void *newBlock = func(allocator_mode::RESIZE, context, newSize, block, oldSize, &userFlags);
+    void *newBlock = func(allocator_mode::RESIZE, context, newSize, block, oldSize, &options);
     if (!newBlock) {
         // Memory needs to be moved
-        void *newBlock = func(allocator_mode::ALLOCATE, context, newSize, null, 0, &userFlags);
-        auto *newPointer = encode_header(newBlock, newUserSize, header->Alignment, func, context, userFlags);
+        void *newBlock = func(allocator_mode::ALLOCATE, context, newSize, null, 0, &options);
+        auto *newPointer = encode_header(newBlock, newUserSize, header->Alignment, func, context, options);
 
         auto *newHeader = (allocation_header *) newPointer - 1;
 
@@ -276,7 +372,7 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags, c
 
         newHeader->MarkedAsLeak = header->MarkedAsLeak;
 #endif
-        func(allocator_mode::FREE, context, 0, block, oldSize, &userFlags);
+        func(allocator_mode::FREE, context, 0, block, oldSize, &options);
 
         p = (void *) (newHeader + 1);
     } else {
@@ -295,7 +391,7 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags, c
     }
 
     if (oldSize < newSize) {
-        if (userFlags & DO_INIT_0) {
+        if (options & DO_INIT_0) {
             fill_memory((char *) p + oldUserSize, 0, newSize - oldSize);
         }
 #if defined DEBUG_MEMORY
@@ -320,10 +416,10 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 userFlags, c
     return p;
 }
 
-void allocator::general_free(void *ptr, u64 userFlags) {
+void allocator::general_free(void *ptr, u64 options) {
     if (!ptr) return;
 
-    userFlags |= ::Context.AllocFlags;
+    options |= ::Context.AllocFlags;
 
     auto *header = (allocation_header *) ptr - 1;
     verify_header(header);
@@ -348,15 +444,15 @@ void allocator::general_free(void *ptr, u64 userFlags) {
     fill_memory(block, DEAD_LAND_FILL, size);
 #endif
 
-    func(allocator_mode::FREE, context, 0, block, size, &userFlags);
+    func(allocator_mode::FREE, context, 0, block, size, &options);
 
     verify_heap();
 }
 
-void allocator::free_all(u64 userFlags) const {
-    userFlags |= ::Context.AllocFlags;
+void allocator::free_all(u64 options) const {
+    options |= ::Context.AllocFlags;
 
-    auto result = Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, &userFlags);
+    auto result = Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, &options);
     assert((result != (void *) -1) && "Allocator doesn't support FREE_ALL");
 }
 

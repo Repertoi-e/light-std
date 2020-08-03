@@ -95,7 +95,7 @@ struct text_style {
 };
 
 namespace internal {
-// Used when making ANSII escape codes for text styles
+// Used when making ANSI escape codes for text styles
 inline char *u8_to_esc(char *p, char delimiter, u8 c) {
     *p++ = '0' + c / 100;
     *p++ = '0' + c / 10 % 10;
@@ -104,7 +104,7 @@ inline char *u8_to_esc(char *p, char delimiter, u8 c) {
     return p;
 }
 
-inline char *color_to_ansii(char *buffer, text_style style) {
+inline char *color_to_ansi(char *buffer, text_style style) {
     char *p = buffer;
     if (style.ColorKind != text_style::color_kind::NONE) {
         if (style.ColorKind == text_style::color_kind::TERMINAL) {
@@ -138,7 +138,7 @@ inline char *color_to_ansii(char *buffer, text_style style) {
     return p;
 }
 
-inline char *emphasis_to_ansii(char *buffer, u8 emphasis) {
+inline char *emphasis_to_ansi(char *buffer, u8 emphasis) {
     u8 codes[4] = {};
     if (emphasis & (u8) emphasis::BOLD) codes[0] = 1;
     if (emphasis & (u8) emphasis::ITALIC) codes[1] = 3;

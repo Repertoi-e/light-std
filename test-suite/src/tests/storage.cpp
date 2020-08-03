@@ -121,3 +121,14 @@ TEST(table_clone) {
     assert_eq(t.Count, 3);
     assert_eq(copy.Count, 4);
 }
+
+TEST(table_alignment) {
+    // This test uses SIMD types which require a 16 byte alignment or otherwise crash.
+    // It tests if the block allocation in the table handles alignment of key and value arrays.
+
+    table<v2, v3> simdTable;
+    simdTable.reserve(0, 16);
+
+    simdTable.add({1, 2}, {1, 2, 3});
+    simdTable.add({1, 3}, {4, 7, 9});
+}

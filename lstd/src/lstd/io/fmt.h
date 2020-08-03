@@ -125,6 +125,7 @@
 //       'X' - Uppercase version of 'x'
 //       '' (None) - the same as 'd'
 //
+//
 // There is also a way to specify text styles directly in the format string. Without requiring an argument.
 // Text styles are defined by a opening curly brace ('{') followed by '!', then the text style and a closing brace ('}')
 // An empty text style resets any foreground/background color and text emphasis.
@@ -136,7 +137,7 @@
 //       and programatically in the fmt::color enum
 //	        fmt::print("{!DARK_MAGENTA}")
 //    2) Using the name of a "terminal" color. Use these colors if the console you are printing to doesn't support
-//       true color. These are the most basic colors supported by almost any console.
+//       24 bit true color. These are the most basic colors supported by almost any console.
 //           BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
 //           and the bright versions: BRIGHT_BLACK, BRIGHT_RED, ...
 //       In order to distinguish between 24-bit color and 4-bit, a leading 't' is required after the '!'
@@ -154,13 +155,13 @@
 // characters that define the emphasis style of the text.
 //	        fmt::print("{!WHITE;BIUS}")
 //    Here "BIUS" specifies all the types of emphasis:
-//      B (bold), I (italic, rarely supported by consoles tho), U (underline) and S (strikethrough)
+//      B (bold), I (italic, rarely supported by consoles though), U (underline) and S (strikethrough)
 //    They can be in any order and are optional.
 //    e.g. valid emphasis strings are: "BI", "U", "B", "SU", "SB", etc...
 //       Note: When parsing, if we fail to find the name of a color, e.g. {!IMAGINARYCOLOR}, we treat
 //             the series of characters as emphasis, although any character encountered that is not a
-//             valid emphasis gets reported as an error.
-//             This allows specifying emphasis without color: fmt::print("{!BU}");
+//             valid emphasis gets reported as an error. This allows specifying emphasis without color: 
+//                 fmt::print("{!BU}");
 
 LSTD_BEGIN_NAMESPACE
 
@@ -192,6 +193,7 @@ s64 calculate_formatted_size(const string &fmtString, Args &&... args) {
 // Formats to a string. The caller is responsible for freeing.
 //
 // [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
+// This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 template <typename... Args>
 [[nodiscard]] string sprint(const string &fmtString, Args &&... args) {
     auto writer = io::string_builder_writer();
@@ -199,31 +201,122 @@ template <typename... Args>
     return writer.Builder.combine();
 }
 
-// Formats to io::cout
+// Formats to Context.Log
 template <typename... Args>
 void print(const string &fmtString, Args &&... args) {
     to_writer(Context.Log, fmtString, ((Args &&) args)...);
 }
 
-// Formatters for array, stack_array and thread::id
+// Formats GUID in the following way: 00000000-0000-0000-0000-000000000000
+// Allows specifiers:
+//   'n' - 00000000000000000000000000000000
+//   'N' - Uppercase version of 'n'
+//   'd' - 00000000-0000-0000-0000-000000000000
+//   'D' - Uppercase version of 'd'
+//   'b' - {00000000-0000-0000-0000-000000000000}
+//   'B' - Uppercase version of 'b'
+//   'p' - (00000000-0000-0000-0000-000000000000)
+//   'P' - Uppercase version of 'p'
+//   'x' - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
+//   'X' - Uppercase version of 'x'
+// The default format is the same as 'd'.
+template <>
+struct formatter<guid> {
+    void format(const guid &src, format_context *f) {
+        char type = 'd';
+        if (f->Specs) {
+            type = f->Specs->Type;
+        }
 
+        bool upper = is_upper(type);
+        type = (char) to_lower(type);
+
+        if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
+            f->on_error("Invalid type specifier");
+            return;
+        }
+
+        char32_t openParenthesis = 0, closedParenthesis = 0;
+        bool hyphen = true;
+
+        if (type == 'n') {
+            hyphen = false;
+        } else if (type == 'b') {
+            openParenthesis = '{';
+            closedParenthesis = '}';
+        } else if (type == 'p') {
+            openParenthesis = '(';
+            closedParenthesis = ')';
+        } else if (type == 'x') {
+            union {
+                char Data[16];
+                struct {
+                    u32 D1;
+                    u16 D5, D7;
+                    u8 D9, D10, D11, D12, D13, D14, D15, D16;
+                };
+            } u;
+            copy_memory(u.Data, src.Data, 16);
+
+            auto *old = f->Specs;
+            f->Specs = null;
+            if (upper) {
+                to_writer(f, "{{{:#010X},{:#06X},{:#06X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}",
+                          u.D1, u.D5, u.D7, u.D9, u.D10, u.D11, u.D12, u.D13, u.D14, u.D15, u.D16);
+            } else {
+                to_writer(f, "{{{:#010x},{:#06x},{:#06x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}",
+                          u.D1, u.D5, u.D7, u.D9, u.D10, u.D11, u.D12, u.D13, u.D14, u.D15, u.D16);
+            }
+            f->Specs = old;
+            return;
+        }
+
+        if (openParenthesis) f->write_no_specs(openParenthesis);
+
+        auto *old = f->Specs;
+        f->Specs = null;
+
+        const char *p = src.Data;
+        For(range(16)) {
+            if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
+                f->write_no_specs((char32_t) '-');
+            }
+            if (upper) {
+                to_writer(f, "{:02X}", (u8) *p);
+            } else {
+                to_writer(f, "{:02x}", (u8) *p);
+            }
+            ++p;
+        }
+        f->Specs = old;
+
+        if (closedParenthesis) f->write_no_specs(closedParenthesis);
+    }
+};
+
+// Formatts array in the following way: [1, 2, ...]
 template <typename T>
 struct formatter<array<T>> {
     void format(const array<T> &src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
 };
 
+// Formatts stack array in the following way: [1, 2, ...]
 template <typename T, s64 N>
 struct formatter<stack_array<T, N>> {
     void format(const stack_array<T, N> &src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
 };
 
+// Formatter for thread::id
 template <>
 struct formatter<thread::id> {
     void format(thread::id src, format_context *f) { f->write(src.Value); }
 };
 
-// Formatters for math types
+//
+// Formatters for math types:
+//
 
+// Formats vector in the following way: [1, 2, ...]
 template <typename T, s32 Dim, bool Packed>
 struct formatter<vec<T, Dim, Packed>> {
     void format(const vec<T, Dim, Packed> &src, format_context *f) {
@@ -231,7 +324,7 @@ struct formatter<vec<T, Dim, Packed>> {
     }
 };
 
-// Prints in format: [ 1, 2, 3; 4, 5, 6; 7, 8, 9]
+// Formats in the following way: [ 1, 2, 3; 4, 5, 6; 7, 8, 9]
 // Alternate (using # specifier):
 // [  1,   2,   3
 //    3,  41,   5
@@ -283,7 +376,7 @@ struct formatter<mat<T, R, C, Packed>> {
     }
 };
 
-// Prints in format: quat(1, 0, 0, 0)
+// Formats in the following way: quat(1, 0, 0, 0)
 // Alternate (using # specifier): [ 60 deg @ [0, 1, 0] ] (rotation in degrees around axis)
 template <typename T, bool Packed>
 struct formatter<tquat<T, Packed>> {
@@ -298,86 +391,6 @@ struct formatter<tquat<T, Packed>> {
         } else {
             f->debug_tuple("quat").field(src.s)->field(src.i)->field(src.j)->field(src.k)->finish();
         }
-    }
-};
-
-// Prints in format: quat(1, 0, 0, 0)
-// Alternate (using # specifier): [ 60 deg @ [0, 1, 0] ] (rotation in degrees around axis)
-template <>
-struct formatter<guid> {
-    void format(const guid &src, format_context *f) {
-        char type = 'd';
-        if (f->Specs) {
-            type = f->Specs->Type;
-        }
-
-        bool upper = is_upper(type);
-        type = (char) to_lower(type);
-
-        if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
-            f->on_error("Invalid type specifier");
-            return;
-        }
-
-        char32_t openParenthesis = 0, closedParenthesis = 0;
-        bool hyphen = true;
-
-        if (type == 'n') {
-            hyphen = false;
-        } else if (type == 'b') {
-            openParenthesis = '{';
-            closedParenthesis = '}';
-        } else if (type == 'p') {
-            openParenthesis = '(';
-            closedParenthesis = ')';
-        } else if (type == 'x') {
-            union {
-                char Data[16];
-                struct {
-                    u32 D1;
-                    u16 D5, D7;
-                    u8 D9, D10, D11, D12, D13, D14, D15, D16;
-                };
-            } u;
-            copy_memory(u.Data, src.Data, 16);
-
-            auto *old = f->Specs;
-            f->Specs = null;
-            if (upper) {
-                to_writer(
-                    f,
-                    "{{{:#010X},{:#06X},{:#06X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}",
-                    u.D1, u.D5, u.D7, u.D9, u.D10, u.D11, u.D12, u.D13, u.D14, u.D15, u.D16);
-            } else {
-                to_writer(
-                    f,
-                    "{{{:#010x},{:#06x},{:#06x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}",
-                    u.D1, u.D5, u.D7, u.D9, u.D10, u.D11, u.D12, u.D13, u.D14, u.D15, u.D16);
-            }
-            f->Specs = old;
-            return;
-        }
-
-        if (openParenthesis) f->write_no_specs(openParenthesis);
-
-        auto *old = f->Specs;
-        f->Specs = null;
-
-        const char *p = src.Data;
-        For(range(16)) {
-            if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
-                f->write_no_specs((char32_t) '-');
-            }
-            if (upper) {
-                to_writer(f, "{:02X}", (u8) *p);
-            } else {
-                to_writer(f, "{:02x}", (u8) *p);
-            }
-            ++p;
-        }
-        f->Specs = old;
-
-        if (closedParenthesis) f->write_no_specs(closedParenthesis);
     }
 };
 

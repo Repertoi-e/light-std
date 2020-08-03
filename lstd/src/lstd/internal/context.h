@@ -61,10 +61,13 @@ struct implicit_context {
     allocator TemporaryAlloc = {temporary_allocator, &TemporaryAllocData};
 
     // Set this to true to print a list of unfreed memory blocks when the library uninitializes.
+    // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
+    // which make even program termination slow, we are just providing this information to the user because they might
+    // want to load/unload DLLs during the runtime of the application, and those DLLs might use all kinds of complex
+    // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
     bool CheckForLeaksAtTermination = false;
 
     // Frees the memory held by the temporary allocator (if any).
-    // Gets called by the context's destructor.
     void release_temporary_allocator();
 
     // When printing you should use this variable.

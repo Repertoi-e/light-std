@@ -13,14 +13,14 @@ LSTD_BEGIN_NAMESPACE
 void d3d_init(graphics *g) {
     IDXGIFactory *factory;
     DX_CHECK(CreateDXGIFactory(__uuidof(IDXGIFactory), (void **) &factory));
-    defer(SAFE_RELEASE(factory));
+    defer(COM_SAFE_RELEASE(factory));
 
     IDXGIAdapter *adapter;
     DX_CHECK(factory->EnumAdapters(0, &adapter));
-    defer(SAFE_RELEASE(adapter));
+    defer(COM_SAFE_RELEASE(adapter));
 
     IDXGIOutput *adapterOutput;
-    defer(SAFE_RELEASE(adapterOutput));
+    defer(COM_SAFE_RELEASE(adapterOutput));
     DX_CHECK(adapter->EnumOutputs(0, &adapterOutput));
 
     u32 numModes = 0;
@@ -151,15 +151,15 @@ void d3d_init_target_window(graphics *g, graphics::target_window *targetWindow) 
 
     IDXGIDevice *device;
     DX_CHECK(g->D3D.Device->QueryInterface(__uuidof(IDXGIDevice), (void **) &device));
-    defer(SAFE_RELEASE(device));
+    defer(COM_SAFE_RELEASE(device));
 
     IDXGIAdapter *adapter;
     device->GetAdapter(&adapter);
-    defer(SAFE_RELEASE(adapter));
+    defer(COM_SAFE_RELEASE(adapter));
 
     IDXGIFactory *factory = null;
     adapter->GetParent(__uuidof(IDXGIFactory), (void **) &factory);
-    defer(SAFE_RELEASE(factory));
+    defer(COM_SAFE_RELEASE(factory));
 
     DX_CHECK(factory->CreateSwapChain(g->D3D.Device, &desc, &targetWindow->D3D.SwapChain));
 }
@@ -168,24 +168,24 @@ void d3d_release_target_window(graphics *g, graphics::target_window *targetWindo
     assert(targetWindow);
 
     targetWindow->D3D.SwapChain->SetFullscreenState(false, null);
-    SAFE_RELEASE(targetWindow->D3D.SwapChain);
-    SAFE_RELEASE(targetWindow->D3D.BackBuffer);
-    SAFE_RELEASE(targetWindow->D3D.DepthStencilBuffer);
-    SAFE_RELEASE(targetWindow->D3D.DepthStencilView);
-    SAFE_RELEASE(targetWindow->D3D.RasterStates[0]);
-    SAFE_RELEASE(targetWindow->D3D.RasterStates[1]);
-    SAFE_RELEASE(targetWindow->D3D.RasterStates[2]);
+    COM_SAFE_RELEASE(targetWindow->D3D.SwapChain);
+    COM_SAFE_RELEASE(targetWindow->D3D.BackBuffer);
+    COM_SAFE_RELEASE(targetWindow->D3D.DepthStencilBuffer);
+    COM_SAFE_RELEASE(targetWindow->D3D.DepthStencilView);
+    COM_SAFE_RELEASE(targetWindow->D3D.RasterStates[0]);
+    COM_SAFE_RELEASE(targetWindow->D3D.RasterStates[1]);
+    COM_SAFE_RELEASE(targetWindow->D3D.RasterStates[2]);
 }
 
 void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindow, s32 width, s32 height) {
     assert(targetWindow);
 
-    SAFE_RELEASE(targetWindow->D3D.BackBuffer);
-    SAFE_RELEASE(targetWindow->D3D.DepthStencilView);
-    SAFE_RELEASE(targetWindow->D3D.DepthStencilBuffer);
-    SAFE_RELEASE(targetWindow->D3D.RasterStates[0]);
-    SAFE_RELEASE(targetWindow->D3D.RasterStates[1]);
-    SAFE_RELEASE(targetWindow->D3D.RasterStates[2]);
+    COM_SAFE_RELEASE(targetWindow->D3D.BackBuffer);
+    COM_SAFE_RELEASE(targetWindow->D3D.DepthStencilView);
+    COM_SAFE_RELEASE(targetWindow->D3D.DepthStencilBuffer);
+    COM_SAFE_RELEASE(targetWindow->D3D.RasterStates[0]);
+    COM_SAFE_RELEASE(targetWindow->D3D.RasterStates[1]);
+    COM_SAFE_RELEASE(targetWindow->D3D.RasterStates[2]);
 
     auto *oldTargetWindow = g->CurrentTargetWindow;
     defer(g->set_target_window(oldTargetWindow->Window));
@@ -198,7 +198,7 @@ void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindo
     ID3D11Texture2D *swapChainBackBuffer;
     DX_CHECK(targetWindow->D3D.SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &swapChainBackBuffer));
     DX_CHECK(g->D3D.Device->CreateRenderTargetView(swapChainBackBuffer, null, &targetWindow->D3D.BackBuffer));
-    SAFE_RELEASE(swapChainBackBuffer);
+    COM_SAFE_RELEASE(swapChainBackBuffer);
 
     D3D11_TEXTURE2D_DESC textureDesc;
     zero_memory(&textureDesc, sizeof(textureDesc));
@@ -311,13 +311,13 @@ void d3d_swap(graphics *g) {
 }
 
 void d3d_release(graphics *g) {
-    SAFE_RELEASE(g->D3D.Device);
-    SAFE_RELEASE(g->D3D.DeviceContext);
+    COM_SAFE_RELEASE(g->D3D.Device);
+    COM_SAFE_RELEASE(g->D3D.DeviceContext);
 
-    SAFE_RELEASE(g->D3D.BlendStates[0]);
-    SAFE_RELEASE(g->D3D.BlendStates[1]);
-    SAFE_RELEASE(g->D3D.DepthStencilStates[0]);
-    SAFE_RELEASE(g->D3D.DepthStencilStates[1]);
+    COM_SAFE_RELEASE(g->D3D.BlendStates[0]);
+    COM_SAFE_RELEASE(g->D3D.BlendStates[1]);
+    COM_SAFE_RELEASE(g->D3D.DepthStencilStates[0]);
+    COM_SAFE_RELEASE(g->D3D.DepthStencilStates[1]);
 }
 
 graphics::impl g_D3DImpl = {d3d_init,

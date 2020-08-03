@@ -36,15 +36,17 @@ enum class allocator_mode { ALLOCATE = 0,
                             FREE,
                             FREE_ALL };
 
-// This is a user flag when allocating.
+// This is an option when allocating.
 // When specified, the allocated memory is initialized to 0.
 // This is handled internally when passed, so allocator implementations needn't pay attention to it.
 constexpr u64 DO_INIT_0 = 1ull << 63;
 
-// This is a user flag when allocating.
+// This is an option when allocating.
 // Allocations marked explicitly as leaks don't get reported when the program terminates and Context.CheckForLeaksAtTermination is true.
 // This is handled internally when passed, so allocator implementations needn't pay attention to it.
 constexpr u64 LEAK = 1ull << 62;
+
+constexpr u64 XXX_AVOID_RECURSION = 1ull << 61;
 
 // This specifies what the signature of each allocation function should look like.
 //
@@ -56,12 +58,12 @@ constexpr u64 LEAK = 1ull << 62;
 // _oldMemory_ is used when resizing or freeing a block
 // _oldSize_ is the old size of memory block, used only when resizing
 //
-// the last pointer to u64 is reserved for user flags. It is a pointer to allow the allocator function
+// the last pointer to u64 is reserved for options. It is a pointer to allow the allocator function
 // to modify it and propagate it to the library implementation of allocate/reallocate/free.
 //
 // One example use is for our debug check for leaks when the library terminates.
 // The temporary allocator doesn't allow freeing so there is no reason for the library to report unfreed blocks from it.
-// So the temporary allocator modifies the flags to include LEAK (the flag is defined just above this comment).
+// So the temporary allocator modifies the options to include LEAK (that flag is defined just above this comment).
 //
 //
 // !!! When called with FREE_ALL, a return value of null means success!
@@ -207,14 +209,15 @@ struct allocator {
     inline static s64 AllocationCount = 0;
 
 #if defined DEBUG_MEMORY
-    // We keep a linked list of all allocations. You can use this to visualize them.
+    // We keep a linked list of all allocations. You can use this list to visualize them.
     inline static allocation_header *DEBUG_Head = null;
 
+    // Currently this mutex should be released in the OS implementations (e.g. windows_common.cpp).
     inline static thread::mutex DEBUG_Mutex;
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     //   DEBUG_MEMORY
-    // Use _DEBUG_unlink_header_ in your allocator implementation to make sure we don't corrupt the heap
+    // Use _DEBUG_unlink_header_ in your allocator implementation to make sure you don't corrupt the heap
     // (e.g. by freeing the entire allocator, but the headers still being in the linked list).
     // An example on how to use this properly in FREE_ALL is in temporary_allocator.cpp.
     // Note that it's not required for your allocator to implement FREE_ALL at all.
@@ -228,25 +231,32 @@ struct allocator {
 
     // Replaces _oldHeader_ with _newHeader_ in the list. (thread-safe)
     static void DEBUG_swap_header(allocation_header *oldHeader, allocation_header *newHeader);
+
+    // Assuming that the heap is not corrupted, this reports any unfreed allocations.
+    // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
+    // which make even program termination slow, we are just providing this information to the user because they might
+    // want to load/unload DLLs during the runtime of the application, and those DLLs might use all kinds of complex
+    // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
+    static void DEBUG_report_leaks();
 #endif
-    void *general_allocate(s64 userSize, u32 alignment, u64 userFlags = 0, const char *fileName = "", s64 fileLine = -1) const;
+    void *general_allocate(s64 userSize, u32 alignment, u64 options = 0, const char *fileName = "", s64 fileLine = -1) const;
 
     // This is static, because it doesn't depend on the allocator object you call it from.
     // Each pointer has a header which has information about the allocator it was allocated with.
-    static void *general_reallocate(void *ptr, s64 newSize, u64 userFlags = 0, const char *fileName = "", s64 fileLine = -1);
+    static void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, const char *fileName = "", s64 fileLine = -1);
 
     // This is static, because it doesn't depend on the allocator object you call it from.
     // Each pointer has a header which has information about the allocator it was allocated with.
     // Calling free on a null pointer doesn't do anything.
-    static void general_free(void *ptr, u64 userFlags = 0);
+    static void general_free(void *ptr, u64 options = 0);
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     //   DEBUG_MEMORY
-    //     See the comment in DEBUG_unlink_header.
+    //     See the comment above DEBUG_unlink_header.
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     //
     // Note: Not all allocators must support this.
-    void free_all(u64 userFlags = 0) const;
+    void free_all(u64 options = 0) const;
 
     // Verifies the integrity of headers in all allocations (only if DEBUG_MEMORY is on).
     // You can call this anytime even outside the class.
@@ -303,19 +313,19 @@ struct temporary_allocator_data {
 // Example use case: if you are programming a game and you need to calculate some stuff for a given frame,
 //     using this allocator means having the freedom of dynamically allocating without performance implications.
 //     At the end of the frame when the memory is no longer used you FREE_ALL and start the next frame.
-void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *userFlags);
+void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *options);
 
 LSTD_END_NAMESPACE
 
 template <typename T>
-T *allocate_impl(s64 count, u32 alignment, allocator alloc, u64 userFlags, const char *fileName = "", s64 fileLine = -1) {
+T *allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const char *fileName = "", s64 fileLine = -1) {
     static_assert(!is_same_v<T, void>);
     static_assert(!is_const_v<T>);
 
     s64 size = count * sizeof(T);
 
     if (!alloc) alloc = Context.Alloc;
-    auto *result = (T *) alloc.general_allocate(size, alignment, userFlags, fileName, fileLine);
+    auto *result = (T *) alloc.general_allocate(size, alignment, options, fileName, fileLine);
 
     if constexpr (!is_scalar_v<T>) {
         auto *p = result;
@@ -334,8 +344,8 @@ T *allocate_impl(s64 count, u32 alignment, allocator alloc, const char *fileName
 }
 
 template <typename T>
-T *allocate_impl(s64 count, u32 alignment, u64 userFlags, const char *fileName = "", s64 fileLine = -1) {
-    return allocate_impl<T>(count, alignment, Context.Alloc, userFlags, fileName, fileLine);
+T *allocate_impl(s64 count, u32 alignment, u64 options, const char *fileName = "", s64 fileLine = -1) {
+    return allocate_impl<T>(count, alignment, Context.Alloc, options, fileName, fileLine);
 }
 
 template <typename T>
@@ -347,14 +357,14 @@ T *allocate_impl(s64 count, u32 alignment, const char *fileName = "", s64 fileLi
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
 template <typename T>
-T *reallocate_array_impl(T *block, s64 newCount, u64 userFlags, const char *fileName = "", s64 fileLine = -1) {
+T *reallocate_array_impl(T *block, s64 newCount, u64 options, const char *fileName = "", s64 fileLine = -1) {
     static_assert(!is_same_v<T, void>);
     static_assert(!is_const_v<T>);
 
     if (!block) return null;
 
     // I think the standard implementation frees in this case but we need to decide
-    // what _userFlags_ should go there (no user flags or the ones passed to reallocate?),
+    // what _options_ should go there (no options or the ones passed to reallocate?),
     // so we leave that up to the call site.
     assert(newCount != 0);
 
@@ -373,7 +383,7 @@ T *reallocate_array_impl(T *block, s64 newCount, u64 userFlags, const char *file
     }
 
     s64 newSize = newCount * sizeof(T);
-    auto *result = (T *) allocator::general_reallocate(block, newSize, userFlags, fileName, fileLine);
+    auto *result = (T *) allocator::general_reallocate(block, newSize, options, fileName, fileLine);
 
     if constexpr (!is_scalar_v<T>) {
         if (oldCount < newCount) {
@@ -406,7 +416,7 @@ constexpr s64 size_of_or_1_for_void() {
 
 // Make sure you pass _block_ correctly as a T* otherwise we can't ensure it gets uninitialized correctly.
 template <typename T>
-void free_impl(T *block, u64 userFlags = 0) {
+void free_impl(T *block, u64 options = 0) {
     if (!block) return;
 
     static_assert(!is_const_v<T>);
@@ -424,7 +434,7 @@ void free_impl(T *block, u64 userFlags = 0) {
         }
     }
 
-    allocator::general_free(block, userFlags);
+    allocator::general_free(block, options);
 }
 
 // T is used to initialize the resulting memory (uses placement new).

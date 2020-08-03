@@ -46,7 +46,7 @@ void string_builder::append_pointer_and_size(const char *data, s64 size) {
 
         // If the entire string doesn't fit inside the available space,
         // allocate the next buffer and continue appending.
-        buffer *b = allocate(buffer, Alloc);
+        buffer *b = allocate(buffer, Alloc, XXX_AVOID_RECURSION);
 
         currentBuffer->Next = b;
         CurrentBuffer = b;

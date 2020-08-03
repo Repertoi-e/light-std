@@ -47,7 +47,7 @@ struct array {
             if (alignment == 0) {
                 alignment = oldAlignment;
             } else {
-                assert(alignment == oldAlignment && "Reserving with an alignment but the object already has a buffer with a different alignment. Use alignment 0 to use the old one.");
+                assert(alignment == oldAlignment && "Reserving with an alignment but the object already has a buffer with a different alignment. Specify alignment 0 to automatically use the old one.");
             }
 
             Data = reallocate_array(Data, target);

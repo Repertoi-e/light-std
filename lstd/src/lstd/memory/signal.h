@@ -170,6 +170,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
     // If the result is an array, the caller is responsible for freeing the memory.
     //
     // [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
+    // This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
     [[nodiscard]] collector_result_t emit(Args... args) {
         CurrentlyEmitting = true;
         Collector collector;
