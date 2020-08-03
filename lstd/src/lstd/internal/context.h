@@ -50,10 +50,13 @@ struct implicit_context {
     allocator Alloc = Malloc;
     u16 AllocAlignment = POINTER_SIZE;  // By default
 
-    // Any flags that get OR'd with the user flags in any allocation. Starts as no flags.
-    // Use the macro below to update it in a scoped way.
+    // Any options that get OR'd with the options in any allocation (options are implemented as flags).
     // e.g. use this to mark some allocation a function does (in which you have no control of) as a LEAK.
-    u64 AllocFlags = 0;
+    // Currently there are three allocator options:
+    //   - DO_INIT_0:           Initializes all requested bytes to 0
+    //   - LEAK:                Marks the allocation as a leak (doesn't get reported when calling allocator::DEBUG_report_leaks())
+    //   - XXX_AVOID_RECURSION: A hack used when Context.LogAllAllocations is true.
+    u64 AllocOptions = 0;
 
     // This allocator gets initialized the first time it gets used in a thread.
     // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
@@ -67,18 +70,22 @@ struct implicit_context {
     // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
     bool CheckForLeaksAtTermination = false;
 
-    // Frees the memory held by the temporary allocator (if any).
-    void release_temporary_allocator();
+    // Used for debugging. Every time an allocation is made, logs info about it.
+    bool LogAllAllocations = false;
+
+    // Gets called when the program encounters an unhandled expection.
+    // This can be used to view the stack trace before the program terminates.
+    // The default handler prints the crash message and stack trace to _Log_.
+    os_unexpected_exception_handler_t *UnexpectedExceptionHandler = default_unexpected_exception_handler;
 
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.
     // By default it points to io::cout (the console).
     io::writer *Log = internal::g_ConsoleLog;
 
-    // Gets called when the program encounters an unhandled expection.
-    // This can be used to view the stack trace before the program terminates.
-    // The default handler prints the crash message and stack trace to _Log_.
-    os_unexpected_exception_handler_t *UnexpectedExceptionHandler = default_unexpected_exception_handler;
+    // Disable stylized text output (colors, background colors, and bold/italic/strikethrough/underline text).
+    // This is useful when logging to a file and not a console. The ansi escape codes look like garbage in files.
+    bool FmtDisableAnsiCodes = false;
 };
 
 // Immutable context available everywhere

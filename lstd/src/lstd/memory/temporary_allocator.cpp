@@ -130,4 +130,14 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
     return null;
 }
 
+void release_temporary_allocator() {
+    if (!Context.TemporaryAllocData.Base.Reserved) return;
+
+    // Free any left-over overflow pages!
+    Context.TemporaryAlloc.free_all();
+
+    free(Context.TemporaryAllocData.Base.Storage);
+    Context.TemporaryAllocData = {};
+}
+
 LSTD_END_NAMESPACE

@@ -1,7 +1,7 @@
 
 # light-std
 A C++17 library created for personal use that aims to replace the standard C/C++ library. It's performance-oriented and designed for general programming.
-It attempts to mimic some of Jai's (Jonathan Blow's new language) features (implicit context and allocator system)
+It attempts to mimic some of Jai's (Jonathan Blow's new language) features (implicit context and allocator system).
 
 This library is supposed to be a replacement of C/C++'s standard library in but designed entirely differently. 
 
@@ -14,54 +14,51 @@ My view on some of those features and simpler solutions are visible in the type 
 - Dramatically reduce complexity and code size (both library AND user side!) UNLESS that comes at a run-time cost
 
 ### Rules
-- Always provide a default constructor (implicit or by "T() = default")
-- Every data member should have the same access control (everything should be public or private or protected)
+- Always provide a default constructor (implicit or by `T() = default`)
+- Every data member (which makes sense) should be public. Do not write useless getters/setters.
 - Strive to make classes/structures/objects (whatever you wanna call them) data oriented.
   Programs work with data. Design your data so it makes the solution straightforward and minimize abstraction layers.
-- No user defined copy/move constructors (reduces bloat and forces you to program in a way that's centralized around data, not objects).
-- No throwing of exceptions, anywhere
+- No user defined copy/move constructors.
+- No throwing of exceptions, .. ever, .. anywhere. No excuse.
 
 ### "No user defined copy/move constructors":
-_This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not just the pointer when you copy the object?)_
+_This may sound crazy if you have a type that owns memory. How would you deep copy the contents and not just the pointer when you copy the object? 
+How do you handle dangling pointers to unfreed memory of shallow copies when the original destructor fires? There is a solution which we implement in objects
+that deal with dynamically allocated buffers (like string, array, etc.)_
 
-All allocations in this library contain a header with some information about the allocation. One of the pieces of information is a pointer to the object that owns the memory. That pointer is set manually using functions from `memory/owner_pointers.h`.
+This library implements `string` the following way:
+- `string` is a struct that contains a pointer to a byte buffer and 2 fields containing pre-calculated utf8 code unit and code point lengths, as well as a field `Reserved` that contains the number of bytes allocated (default is 0).
+- The object is designed with no ownership in mind. That is determined explictly in code and by the programmer. `string`'s destructor is EMPTY. It doesn't free any buffers. The user is responsible for freeing the string when that is required. We make this easier by providing a defer macro which runs at the end of the scope (like a destructor). An example is provided below.
+- `string` contains `constexpr` methods which deal with string manipulation (all methods which make sense and don't modify the string can be used compile-time). This works because you can construct a string as a "view" with a c-style string literal (and in that case `Reserved` is 0). `constexpr` methods include substrings, trimming (these work because we don't do zero terminated strings, but instead just a pointer and a size), searching for strings or code points, etc. All operations are implemented with utf8 in mind.
 
-So this library implements `string` the following way:
-- `string` is a struct that contains a pointer to a byte buffer and 2 fields containing pre-calculated utf8 code unit and code point lengths, as well as a field `Reserved` that contains the number of bytes allocated by that string (default is 0).
-- A string may own its allocated memory or it may not, which is determined by encoding the _this_ pointer in the allocation header when the string reserves a buffer. That way when you shallow copy the string, the _this_ pointer is obviously different (because it is a different object) and when the copied string gets destructed it doesn't free the memory (it doesn't own it). Only when the original string gets destructed does the memory get freed and any shallow copies of it are invalidated (they point to freed memory).
-- When a string gets contructed from a literal it doesn't allocate memory. `Reserved` is 0 and the object works like a view. 
-- If the string was constructed from a literal, shallow copy of another string or a byte buffer, when you call modifying methods (like appending, inserting code points, etc.) the string allocates a buffer, copies the old one and now owns memory.
+> **Note**: We implement string length methods and comparing (lexicographically and code point by code point) for c-style strings in `string_utils.h` (included by `string.h`). These still work with utf8 in mind but assume the string is zero terminated.
 
-_What is described above is essentially this. strings by default are "string views" - they don't own memory, they point to existing memory. There are methods which modify the contents of the string, in that case a new string is created that allocates a buffer and frees it when it gets destructed. Copies of that string are, again, views that point to that string's memory (they are super light and do no allocations/deallocations when they get constructed/destroyed). If the first string gets destroyed, all views of it are pointing to freed memory. In order to deep copy the string explicitly the following function is provided:_
--  `clone(T *dest, T src)` is a global function that ensures a deep copy of the argument passed. Objects that own memory (like `string`) overload `clone()` and make sure the copy reserves a buffer and copies. It is the recommended way to deep clone any kind of object in this library (and not by using a copy constructor). Using a function is more explicit and you know when can a copy happen.
-- `move(T *dest, T *src)` is a global function that transfers ownership.
-> The buffer in `src` (iff `src` owns it) is now owned by `dest` (`src` becomes simply a view into `dest`). So `move` is cheaper than `clone` and is used for example when inserting objects into an array.
-
-> **Note**: In C++ the default assignment operator doesn't call the destructor, so assigning to a string that owns a buffer will cause a leak.
-
-Doing things this way has certain benenits. For example, you can stop thinking about `const &` in function parameters. Code like: `parse(string contents)` doesn't deep copy the string and it's really cheap to pass it as a parameter (string is represented by couple of pointer-sized members). When you start doing this a lot you can appreciate the simplicity in not having to write `const string &` everywhere... 
-The same thing applies for `array<T>`, `table<K, V>`, etc. 
-
-It also has some downsides. One thing to really watch out for is that you can't return these kinds of objects as results from functions. For example, 
+- A string has either allocated memory or it has not. We make this very clear when returning strings from functions in the library. If the procedure is marked as [[nodiscard]] that means that the returned string should be freed.
+- All of this allows us to skip writing copy/move constructors and assignment operators, we avoid unnecessary copies by making the programmer think harder about managing the memory, while being explicit and concise, so you know what your program is doing.
 ```cpp
-array<token> parse_input(string input) { 
-    array<token> result;
-    result.append(...);
-    // ... implement something .. //
-    return result;
-}
-```
-might look right, but when returning, `result` gets shallow-copied and then destroyed at the end of the scope of the function.
-The caller receives a view into freed memory.
+        string path = "./data/";      // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
 
-A corrent way to write such a function might be:
-```cpp
-void parse_input(array<token> *out, string input) { 
-    out->append(...);
-    // ... implement something .. //
-}
+        // _string_ includes constexpr methods but also methods which cannot be constexpr and allocate memory.
+        // It's like a mixed type between std::string_view and std::string from the STL, but with way better design and API.
+        // When a string needs to allocate memory it requests a buffer and copies the old contents of the string.
+        path.append("output.txt");
+
+        // This doesn't allocate memory but it points to the buffer in _path_.
+        // The substring is valid as long as the original string is valid.
+        // Also all operations with indices on strings support negative indexing (python-style). 
+        // So `-1` is translated to `str.Length - 1`.
+        string pathWithoutDot = path.substring(1, -1);
+
+        // Doesn't release the string here, but instead runs at scope exit.
+        // It runs exactly like a destructor, but it's explicit and not hidden.
+        // This style of programming makes you write code which doesn't allocate 
+        // strings superfluously and doesn't rely on C++ compiler optimization 
+        // (like "copy elision" when returning strings from functions).
+        defer(path.release());       
 ```
-You might argue that doesn't look very nice, but in my opinion it's better, because it encourages a certain coding style. Generally in C++ it's very easy to fall into a trap where we write functions that copy and return new objects right and left all the time and paying that cost without having to. Our excuse is that "the compiler will optimize it anyway" (although C++'s copy elision for return values doesn't work all the time, e.g. when the function has conditions...), but the problem is that with that kind of mindset a large program becomes infeasible to run in debug. That really creates friction when developing. Managing data more carefully from the call site produces much faster code, even in debug.
+
+-  `clone(T *dest, T src)` is a global function that ensures a deep copy of the argument passed. Objects that own memory (like `string`) overload `clone()` and make sure a deep clone is done. This is like a classic copy constructor but much cleaner. Note: `clone` works on all types (unless overloaded the default implementation does a shallow copy). It is this library's recommended way to implement functionality normally written in copy c-tors.
+```
 
 ### "No throwing of exceptions, anywhere"
 Exceptions make your code complicated. 
@@ -74,10 +71,10 @@ Container API is inspired by Rust and Python
 
 ### Example usage of data structures:
 ```cpp
-// string uses utf8 encoding
+// string uses utf8 encoding out of the box
 string a = "ЗДРАСТИ";
 for (auto ch : a) {
-    // Here _a_ is non-const so _ch_ is actually a reference to the code point in the string
+    // Here _a_ is non-const so _ch_ is actually a reference to the code point in the string and you can modify it directly
     ch = to_lower(ch);
 }
 assert(a == "здрасти"); 
@@ -101,62 +98,48 @@ assert(integers == to_array(0, 1, 2, 3, 4));
 
 ### Example of custom allocators and implicit context:
 
-```
-    // When allocating you should use the context's allocator
-    // This makes it so when users call your functions they
-    // can specify an allocator beforehand by pushing a new context variable,
-    // without having to pass you anything as a parameter for example.
-    //
-    // The idea for this comes from the implicit context in Jai.
+The thread-local global context variable includes these variables related to allocating:
+```cpp
+    // The allocator used when allocations without an explicit allocator are requested.
     allocator Alloc = Malloc;
+    u16 AllocAlignment = POINTER_SIZE;  // The default alingment (can also be specified explictly when allocating)
 
-    // The default alignment size 
-    u16 AllocAlignment = POINTER_SIZE;  // By default
-
-    // This allocator gets initialized the first time it gets used in a thread.
-    // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
-    temporary_allocator_data TemporaryAllocData;
-    allocator TemporaryAlloc = {temporary_allocator, &TemporaryAllocData};
-
-    // Frees the memory held by the temporary allocator (if any). // Gets called by the context's destructor.
-    void release_temporary_allocator();
-
-    io::writer *Log = internal::g_ConsoleLog;
-    os_unexpected_exception_handler_t *UnexpectedExceptionHandler = default_unexpected_exception_handler;
-    
-    thread::id ThreadID; // The current thread's ID
+    // Any options that get OR'd with the options in any allocation (options are implemented as flags).
+    // e.g. use this to mark some allocation a function does (in which you have no control of) as a LEAK.
+    // Currently there are three allocator options:
+    //   - DO_INIT_0:           Initializes all requested bytes to 0 
+    //   - LEAK:                Marks the allocation as a leak (doesn't get reported when calling allocator::DEBUG_report_leaks())
+    //   - XXX_AVOID_RECURSION: A hack used when Context.LogAllAllocations is true.
+    //
+    u64 AllocOptions = 0;
 ```
 
 ```cpp
-memory = new char[150]; // Using the default allocator 
-memory = new (Context.Alloc) char[150]; // the same as the line above
+memory = allocate_array(char, 150);                // Using the default allocator 
+memory = allocate_array(char, 150, Context.Alloc); // the same as the line above
 
-memory = new (Malloc) char[150];
-memory = new (Context.TemporaryAlloc) char[150];
+memory = allocate_array(char, 150, Malloc);                 // Using Malloc explictly (despite Context.Alloc which may be different)
+memory = allocate_array(char, 150, Context.TemporaryAlloc); // Uses the temporary allocator
 
-// my_allocator_function implements all the functionality of the allocator (allocating, alignment, freeing, etc.)
+// You can also implement custom allocators:
+// my_allocator_function is a function which implements all the functionality of the allocator (allocating, resizing, freeing, etc.)
 // Take a look at _os_allocator_, _default_allocator_, _temporary_allocator_, to see examples on how to implement one.
-allocator myAlloctor = { my_allocator_function, null /*Can also pass user data!*/};
+allocator myAlloctor = { my_allocator_function, null /*This pointer is used for any data the allocator needs.*/};
 memory = new (myAlloctor) char[150];
 ```
 
 ```cpp
-char *memory = new char[150]; // using default allocator (Malloc)
+char *memory = allocate_array(char, 150); 
 
 // The temporary allocator is provided by the library, it's essentially a fast arena allocator that's available globally and supports only "free all".
-// _Context.Alloc_ is a read-only variable inside the Context struct which can be accessed everywhere or changed within a scope with "PUSH_CONTEXT" like so:
-PUSH_CONTEXT(Alloc, Context.TemporaryAlloc) {
-    // Now using the temporary allocator, because the library overloads operators new/delete.
-    // operator new by default uses _Context.Alloc_
-    char *memory2 = new char[150];
-
-    // Allocates with an explicit allocator even though _Context.Alloc_ is the temporary allocator.
-    char *memory3 = new (Malloc) char[150];
-    delete[] memory3;
-
+// WITH_ALLOC is a scoped way to change the value of a variable. The old value of the context variable is restored when the scope defined after the macro exits.
+WITH_ALLOC(Alloc, Context.TemporaryAlloc) {
+    char *memory = allocate_array(char, 150); 
     // ...
 }
 
-// Delete always calls the allocator the memory was allocated with
-delete[] memory1;
+// Free always calls the allocator the memory was allocated with (we save that information in a header before the block)
+free(memory1);
 ```
+
+More examples will be provided when the library API is in a more stable state. Right now I've done one school project with it: a little game engine which runs a physics simulation with a python interpreter and a hot-loaded dll which contains the game code. I plan to write some serious using it and if I run into some friction with the way I've implemented something I might change it and break literally everything. Also this README might go stale and outdated from time to time but I try to update it oftenly.

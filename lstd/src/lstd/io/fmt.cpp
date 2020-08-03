@@ -62,6 +62,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             write(p->It + 1);
         } else if (*p->It == '!') {
             ++p->It;
+
             text_style style = {};
             bool success = p->parse_text_style(&style);
             if (!success) return;
@@ -70,16 +71,19 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                 return;
             }
 
-            char ansiBuffer[7 + 3 * 4 + 1];
-            auto *ansiEnd = internal::color_to_ansi(ansiBuffer, style);
-            f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
-
-            u8 emphasis = (u8) style.Emphasis;
-            if (emphasis) {
-                assert(!style.Background);
-                ansiEnd = internal::emphasis_to_ansi(ansiBuffer, emphasis);
+            if (!Context.FmtDisableAnsiCodes) {
+                char ansiBuffer[7 + 3 * 4 + 1];
+                auto *ansiEnd = internal::color_to_ansi(ansiBuffer, style);
                 f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
+
+                u8 emphasis = (u8) style.Emphasis;
+                if (emphasis) {
+                    assert(!style.Background);
+                    ansiEnd = internal::emphasis_to_ansi(ansiBuffer, emphasis);
+                    f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
+                }
             }
+
         } else {
             currentArg = f->get_arg_from_ref(p->parse_arg_id());
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_

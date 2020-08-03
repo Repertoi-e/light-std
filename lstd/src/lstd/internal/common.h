@@ -154,13 +154,6 @@ struct range {
     constexpr iterator end() const { return _End; }
 };
 
-// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-// @TODO This needs updating... XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-//
 // @Volatile: README.md
 // Type policy:
 //
@@ -168,44 +161,67 @@ struct range {
 // - Dramatically reduce complexity and code size (both library AND user side!) UNLESS that comes at a run-time cost
 //
 // - Always provide a default constructor (implicit or by "T() = default")
-// - Every data member should have the same access control (everything should be public or private or protected)
+// - Every data member (which makes sense) should be public. Do not write useless getters/setters.
 // - Strive to make classes/structures/objects (whatever you wanna call them) data oriented.
 //   Programs work with data. Design your data so it makes the solution straightforward and minimize abstraction layers.
-// - No user defined copy/move constructors
-// - No throwing of exceptions, anywhere
+// - No user defined copy/move constructors.
+// - No throwing of exceptions, .. ever, .. anywhere. No excuse.
 //
 // "No user defined copy/move constructors":
-//   This may sound crazy if you have a type that owns memory (how would you deep copy the contents and not
-//   just the pointer when you copy the object?).
-//   All allocations in this library contain a header with some information about the allocation.
-//   One of the pieces of information is a pointer to the object that owns the memory.
-//   That pointer is set manually using functions from "memory/owner_pointers.h".
-//   So _string_ is implemented the following way:
+//   This may sound crazy if you have a type that owns memory. How would you deep copy the contents and not just the pointer when you copy the object?
+//   How do you handle dangling pointers to unfreed memory of shallow copies when the original destructor fires?
+//
+//   _string_ is this library implemented the following way:
 //     _string_ is a struct that contains a pointer to a byte buffer and 2 fields containing pre-calculated
 //     utf8 code unit and code point lengths, as well as a field _Reserved_ that contains the number of
 //     bytes allocated by that string (default is 0).
 //
-//     A string may own its allocated memory or it may not, which is determined by encoding the _this_ pointer
-//     in the allocation header when the string reserves a buffer.
-//     That way when you shallow copy the string, the _this_ pointer is obviously different (because it is a
-//     different object) and when the copied string gets destructed it doesn't free the memory (it doesn't own it).
-//     Only when the original string gets destructed does the memory get freed and any shallow copies of it
-//     are invalidated (they point to freed memory).
+//     _string_ contains constexpr methods which deal with string manipulation (all methods which make sense and don't modify the string can be used compile-time).
+//     This works because you can construct a string as a "view" with a c-style string literal.
+//     constexpr methods include substrings, trimming (these work because, again, we don't do zero terminated strings, but instead a pointer and a size), searching for
+//     strings or code points, etc. All operations are implemented with utf8 in mind.
 //
-//     When a string gets contructed from a literal it doesn't allocate memory.
-//     _Reserved_ is 0 and the object works like a view.
+//     We implement string length methods and comparing (lexicographically and code point by code point) for c-style strings in "string_utils.h" (included by "string.h").
+//     These still work with utf8 in mind but assume the string is zero terminated.
 //
-//     If the string was constructed from a literal, shallow copy of another string or a byte buffer,
-//     when you call modifying methods (like appending, inserting code points, etc.) the string allocates a buffer,
-//     copies the old one and now owns memory.
+//     All operations with indices on strings support negative indexing (python-style). So "-1" is translated to "str.Length - 1".
 //
+//     A string has either allocated memory or it has not. We make this very clear when returning strings from functions in the library.
+//     If the procedure is marked as [[nodiscard]] that means that the returned string should be freed.
+//
+//     The object is designed with no ownership in mind. That is determined explictly in code and by the programmer.
+//     _string_'s destructor is EMPTY. It doesn't free any buffers. The user is responsible for freeing the string when that is required.
+//     We make this easier by providing a defer macro which runs at the end of the scope (like a destructor).
+//
+//     All of this allows us to skip writing copy/move constructors and assignment operators, we avoid unnecessary copies by making the programmer think harder
+//     about managing the memory, while being explicit and concise, so you know what your program is doing.
+//
+//            string path = "./data/";      // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
+//            
+//            // _string_ includes constexpr methods but also methods which cannot be constexpr and allocate memory.
+//            // It's like a mixed type between std::string_view and std::string from the STL, but with way better design and API.
+//            // When a string needs to allocate memory it requests a buffer and copies the old contents of the string.
+//            path.append("output.txt");
+//            
+//            // This doesn't allocate memory but it points to the buffer in _path_.
+//            // The substring is valid as long as the original string is valid.
+//            string pathWithoutDot = path.substring(2, -1);
+//            
+//            // Doesn't release the string here, but instead runs at scope exit.
+//            // It runs exactly like a destructor, but it's explicit and not hidden.
+//            // This style of programming makes you write code which doesn't allocate 
+//            // strings superfluously and doesn't rely on C++ compiler optimization 
+//            // (like "copy elision" when returning strings from functions).
+//            defer(path.release());  
+//
+//     String methods which allocate memory copy the contents of the old pointer if the string is still a view (hasn't yet allocated memory).
 //
 //     _clone(T *dest, T src)_ is a global function that ensures a deep copy of the argument passed.
-//     Objects that own memory (like string) overload clone() and make sure the copy reserves a buffer and copies
-//     the data to it.
+//     Objects that own memory (like string) overload clone() and make sure the copy reserves a buffer and copies the data to it.
+//     This is like a copy constructor but much cleaner.
 //
-//     ! Note: _clone_ works on all types (unless overloaded they do a shallow copy). 
-//     It is the recommended way to implement functionality normally done in copy c-tors.
+//     ! Note: _clone_ works on all types (unless overloaded the default implementation does a shallow copy).
+//     It is this library's recommended way to implement functionality normally done in copy c-tors.
 //
 // "No throwing of exceptions, anywhere"
 //   Exceptions make your code complicated. They are a good way to handle errors in small examples,
@@ -214,7 +230,6 @@ struct range {
 //   You should design code in such a way that errors can't occur (or if they do - handle them, not just bail,
 //   and when even that is not possible - stop execution).
 //
-// Every type in this library complies with this policy
 
 // Global function that is supposed to ensure a deep copy of the argument passed
 // By default, a shallow copy is done (to make sure it can be called on all types)

@@ -65,16 +65,11 @@ void write_output_to_file() {
     out.write_to_file(logger.Builder.combine(), file::handle::Overwrite_Entire);
 }
 
-void test_exit() {
-    fmt::print("Hello, world!\n");
-}
-
 s32 main() {
     Context.CheckForLeaksAtTermination = true;
-    // Context.Log = &logger;
-
-    run_at_exit(test_exit);
-    os_exit(1);
+    Context.LogAllAllocations = true;
+    Context.Log = &logger;
+    Context.FmtDisableAnsiCodes = true;
 
     time_t start = os_get_time();
 
@@ -96,7 +91,7 @@ s32 main() {
         v->release();
     }
     g_TestTable.release();
-    Context.release_temporary_allocator();
+    release_temporary_allocator();
 #endif
 
     return 0;

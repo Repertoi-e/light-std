@@ -16,14 +16,4 @@ void default_unexpected_exception_handler(const string &message, const array<os_
     fmt::print("\n\n");
 }
 
-void implicit_context::release_temporary_allocator() {
-    if (!TemporaryAllocData.Base.Reserved) return;
-
-    // Free any left-over overflow pages!
-    TemporaryAlloc.free_all();
-
-    free(TemporaryAllocData.Base.Storage);
-    Context.TemporaryAllocData = {};
-}
-
 LSTD_END_NAMESPACE

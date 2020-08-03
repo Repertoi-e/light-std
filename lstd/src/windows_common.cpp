@@ -65,7 +65,7 @@ void initialize_win32_state() {
 static array<delegate<void()>> ExitFunctions;
 
 void run_at_exit(const delegate<void()> &function) {
-    WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
+    WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
         ExitFunctions.append(function);
     }
 }
@@ -73,10 +73,9 @@ void run_at_exit(const delegate<void()> &function) {
 // Needs to happen just before the global C++ destructors get called.
 void call_exit_functions() { For(ExitFunctions) it(); }
 
-// Needs to happend before the global WindowsList variable gets uninitialized.
 void uninitialize_win32_state() {
 #if defined DEBUG_MEMORY
-    Context.release_temporary_allocator();
+    release_temporary_allocator();
 
     // Now we check for memory leaks.
     // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
@@ -247,7 +246,7 @@ void win32_common_init() {
         break;
     }
 
-    WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
+    WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
         ModuleName.reserve(reserved * 2);  // @Bug reserved * 2 is not enough
     }
 
@@ -269,7 +268,7 @@ void win32_common_init() {
         DWORD ignored;
         WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
     } else {
-        WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
+        WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
             Argv.reserve(argc - 1);
         }
 
@@ -277,7 +276,7 @@ void win32_common_init() {
             auto *warg = argv[it];
 
             auto *arg = Argv.append();
-            WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
+            WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
                 arg->reserve(c_string_length(warg) * 2);  // @Bug c_string_length * 2 is not enough
             }
             utf16_to_utf8(warg, const_cast<char *>(arg->Data), &arg->ByteLength);
@@ -529,7 +528,7 @@ string os_get_working_dir() {
         return "";
     }
 
-    WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
+    WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
         WorkingDir.reserve(required * 2);  // @Bug required * 2 is not enough
     }
 
@@ -631,7 +630,7 @@ string os_get_clipboard_content() {
     }
     defer(GlobalUnlock(object));
 
-    WITH_CONTEXT_VAR(AllocFlags, Context.AllocFlags | LEAK) {
+    WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
         ClipboardString.reserve(c_string_length(buffer) * 2);  // @Bug c_string_length * 2 is not enough
     }
 

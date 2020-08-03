@@ -46,6 +46,9 @@ constexpr u64 DO_INIT_0 = 1ull << 63;
 // This is handled internally when passed, so allocator implementations needn't pay attention to it.
 constexpr u64 LEAK = 1ull << 62;
 
+// When logging all allocations (Context.LogAllAllocations == true), sometimes for e.g. if logging to a string_builder_writer,
+// string_builder allocates a buffer which causes an allocation to be made and that creates an infinite calling chain.
+// Allocations with this flag don't get logged.
 constexpr u64 XXX_AVOID_RECURSION = 1ull << 61;
 
 // This specifies what the signature of each allocation function should look like.
@@ -315,10 +318,15 @@ struct temporary_allocator_data {
 //     At the end of the frame when the memory is no longer used you FREE_ALL and start the next frame.
 void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *options);
 
+// Frees the memory held by the temporary allocator (if any).
+void release_temporary_allocator();
+
 LSTD_END_NAMESPACE
 
+// These currently don't get namespaced.
+
 template <typename T>
-T *allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const char *fileName = "", s64 fileLine = -1) {
+T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const char *fileName = "", s64 fileLine = -1) {
     static_assert(!is_same_v<T, void>);
     static_assert(!is_const_v<T>);
 
@@ -339,25 +347,25 @@ T *allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const c
 }
 
 template <typename T>
-T *allocate_impl(s64 count, u32 alignment, allocator alloc, const char *fileName = "", s64 fileLine = -1) {
-    return allocate_impl<T>(count, alignment, alloc, 0, fileName, fileLine);
+T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, const char *fileName = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, alloc, 0, fileName, fileLine);
 }
 
 template <typename T>
-T *allocate_impl(s64 count, u32 alignment, u64 options, const char *fileName = "", s64 fileLine = -1) {
-    return allocate_impl<T>(count, alignment, Context.Alloc, options, fileName, fileLine);
+T *lstd_allocate_impl(s64 count, u32 alignment, u64 options, const char *fileName = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, Context.Alloc, options, fileName, fileLine);
 }
 
 template <typename T>
-T *allocate_impl(s64 count, u32 alignment, const char *fileName = "", s64 fileLine = -1) {
-    return allocate_impl<T>(count, alignment, Context.Alloc, 0, fileName, fileLine);
+T *lstd_allocate_impl(s64 count, u32 alignment, const char *fileName = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, Context.Alloc, 0, fileName, fileLine);
 }
 
 // Note: We don't support "non-trivially copyable" types (types that can have logic in the copy constructor).
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
 template <typename T>
-T *reallocate_array_impl(T *block, s64 newCount, u64 options, const char *fileName = "", s64 fileLine = -1) {
+T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const char *fileName = "", s64 fileLine = -1) {
     static_assert(!is_same_v<T, void>);
     static_assert(!is_const_v<T>);
 
@@ -401,12 +409,12 @@ T *reallocate_array_impl(T *block, s64 newCount, u64 options, const char *fileNa
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
 template <typename T>
-T *reallocate_array_impl(T *block, s64 newCount, const char *fileName = "", s64 fileLine = -1) {
-    return reallocate_array_impl(block, newCount, 0, fileName, fileLine);
+T *lstd_reallocate_array_impl(T *block, s64 newCount, const char *fileName = "", s64 fileLine = -1) {
+    return lstd_reallocate_array_impl(block, newCount, 0, fileName, fileLine);
 }
 
 template <typename T>
-constexpr s64 size_of_or_1_for_void() {
+constexpr s64 lstd_size_of_or_1_for_void() {
     if constexpr (is_same_v<T, void>) {
         return 1;
     } else {
@@ -416,12 +424,12 @@ constexpr s64 size_of_or_1_for_void() {
 
 // Make sure you pass _block_ correctly as a T* otherwise we can't ensure it gets uninitialized correctly.
 template <typename T>
-void free_impl(T *block, u64 options = 0) {
+void lstd_free_impl(T *block, u64 options = 0) {
     if (!block) return;
 
     static_assert(!is_const_v<T>);
 
-    constexpr s64 sizeT = size_of_or_1_for_void<T>();
+    constexpr s64 sizeT = lstd_size_of_or_1_for_void<T>();
 
     auto *header = (allocation_header *) block - 1;
     s64 count = header->Size / sizeT;
@@ -441,25 +449,25 @@ void free_impl(T *block, u64 options = 0) {
 // When you pass DO_INIT_0 we initialize the memory with zeroes before initializing T.
 
 #if defined DEBUG_MEMORY
-#define allocate(T, ...) allocate_impl<T>(1, 0, __VA_ARGS__, __FILE__, __LINE__)
-#define allocate_aligned(T, alignment, ...) allocate_impl<T>(1, alignment, __VA_ARGS__, __FILE__, __LINE__)
-#define allocate_array(T, count, ...) allocate_impl<T>(count, 0, __VA_ARGS__, __FILE__, __LINE__)
-#define allocate_array_aligned(T, count, alignment, ...) allocate_impl<T>(count, alignment, __VA_ARGS__, __FILE__, __LINE__)
+#define allocate(T, ...) lstd_allocate_impl<T>(1, 0, __VA_ARGS__, __FILE__, __LINE__)
+#define allocate_aligned(T, alignment, ...) lstd_allocate_impl<T>(1, alignment, __VA_ARGS__, __FILE__, __LINE__)
+#define allocate_array(T, count, ...) lstd_allocate_impl<T>(count, 0, __VA_ARGS__, __FILE__, __LINE__)
+#define allocate_array_aligned(T, count, alignment, ...) lstd_allocate_impl<T>(count, alignment, __VA_ARGS__, __FILE__, __LINE__)
 
-#define reallocate_array(block, newCount, ...) reallocate_array_impl(block, newCount, __VA_ARGS__, __FILE__, __LINE__)
-#define free free_impl
+#define reallocate_array(block, newCount, ...) lstd_reallocate_array_impl(block, newCount, __VA_ARGS__, __FILE__, __LINE__)
+#define free lstd_free_impl
 #else
-#define allocate(T, ...) allocate_impl<T>(1, 0, __VA_ARGS__)
-#define allocate_aligned(T, alignment, ...) allocate_impl<T>(1, alignment, __VA_ARGS__)
-#define allocate_array(T, count, ...) allocate_impl<T>(count, 0, __VA_ARGS__)
-#define allocate_array_aligned(T, count, alignment, ...) allocate_impl<T>(count, alignment, __VA_ARGS__)
+#define allocate(T, ...) lstd_allocate_impl<T>(1, 0, __VA_ARGS__)
+#define allocate_aligned(T, alignment, ...) lstd_allocate_impl<T>(1, alignment, __VA_ARGS__)
+#define allocate_array(T, count, ...) lstd_allocate_impl<T>(count, 0, __VA_ARGS__)
+#define allocate_array_aligned(T, count, alignment, ...) lstd_allocate_impl<T>(count, alignment, __VA_ARGS__)
 
-#define reallocate_array(block, newCount, ...) reallocate_array_impl(block, newCount, __VA_ARGS__)
-#define free free_impl
+#define reallocate_array(block, newCount, ...) lstd_reallocate_array_impl(block, newCount, __VA_ARGS__)
+#define free lstd_free_impl
 #endif
 
 //
-// We overload the new/delete operators so we handle the allocations
+// We overload the new/delete operators so we handle the allocations. The allocator used is the one specified in the Context.
 //
 void *operator new(std::size_t size);
 void *operator new[](std::size_t size);

@@ -251,8 +251,26 @@ static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f,
     return p;
 }
 
+static void log_file_and_line(const char *file, s64 line) {
+    ::Context.Log->write(file);
+    ::Context.Log->write(":");
+
+    char number[20];
+
+    auto *numberP = number + 19;
+    s64 numberSize = 0;
+    {
+        while (line) {
+            *numberP-- = line % 10 + '0';
+            line /= 10;
+            ++numberSize;
+        }
+    }
+    ::Context.Log->write(numberP + 1, numberSize);
+}
+
 void *allocator::general_allocate(s64 userSize, u32 alignment, u64 options, const char *fileName, s64 fileLine) const {
-    options |= ::Context.AllocFlags;
+    options |= ::Context.AllocOptions;
 
     if (alignment == 0) {
         auto contextAlignment = ::Context.AllocAlignment;
@@ -266,29 +284,13 @@ void *allocator::general_allocate(s64 userSize, u32 alignment, u64 options, cons
     if (id == 602) {
         s32 k = 42;
     }
+#endif
 
-    if (!(options & XXX_AVOID_RECURSION)) {
+    if (::Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
         ::Context.Log->write(">>> Allocation made at: ");
-        ::Context.Log->write(fileName);
-        ::Context.Log->write(":");
-
-        char number[20];
-
-        auto *numberP = number + 19;
-        s64 numberSize = 0;
-        {
-            s64 line = fileLine;
-            while (line) {
-                *numberP-- = line % 10 + '0';
-                line /= 10;
-                ++numberSize;
-            }
-        }
-        ::Context.Log->write(numberP + 1, numberSize);
+        log_file_and_line(fileName, fileLine);
         ::Context.Log->write("\n");
     }
-
-#endif
 
     alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
     assert(is_pow_of_2(alignment));
@@ -316,7 +318,7 @@ void *allocator::general_allocate(s64 userSize, u32 alignment, u64 options, cons
 }
 
 void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 options, const char *fileName, s64 fileLine) {
-    options |= ::Context.AllocFlags;
+    options |= ::Context.AllocOptions;
 
     auto *header = (allocation_header *) ptr - 1;
     verify_header(header);
@@ -326,6 +328,12 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 options, con
 #if defined DEBUG_MEMORY
     auto id = header->ID;
 #endif
+
+    if (::Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
+        ::Context.Log->write(">>> Reallocation made at: ");
+        log_file_and_line(fileName, fileLine);
+        ::Context.Log->write("\n");
+    }
 
     // The header stores the size of the requested allocation
     // (so the user code can look at the header and not be confused with garbage)
@@ -419,7 +427,7 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 options, con
 void allocator::general_free(void *ptr, u64 options) {
     if (!ptr) return;
 
-    options |= ::Context.AllocFlags;
+    options |= ::Context.AllocOptions;
 
     auto *header = (allocation_header *) ptr - 1;
     verify_header(header);
@@ -450,7 +458,7 @@ void allocator::general_free(void *ptr, u64 options) {
 }
 
 void allocator::free_all(u64 options) const {
-    options |= ::Context.AllocFlags;
+    options |= ::Context.AllocOptions;
 
     auto result = Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, &options);
     assert((result != (void *) -1) && "Allocator doesn't support FREE_ALL");
@@ -458,11 +466,10 @@ void allocator::free_all(u64 options) const {
 
 LSTD_END_NAMESPACE
 
-void *operator new(std::size_t size) { return allocate_impl<char>(size, 0, Malloc); }
-void *operator new[](std::size_t size) { return allocate_impl<char>(size, 0, Malloc); }
-
-void *operator new(std::size_t size, std::align_val_t alignment) { return allocate_impl<char>(size, (u32) alignment, Malloc); }
-void *operator new[](std::size_t size, std::align_val_t alignment) { return allocate_impl<char>(size, (u32) alignment, Malloc); }
+void *operator new(std::size_t size) { return Context.Alloc.general_allocate(size, 0, 0); }
+void *operator new[](std::size_t size) { return Context.Alloc.general_allocate(size, 0, 0); }
+void *operator new(std::size_t size, std::align_val_t alignment) { return Context.Alloc.general_allocate(size, (u32) alignment); }
+void *operator new[](std::size_t size, std::align_val_t alignment) { return Context.Alloc.general_allocate(size, (u32) alignment); }
 
 void operator delete(void *ptr) noexcept { allocator::general_free(ptr); }
 void operator delete[](void *ptr) noexcept { allocator::general_free(ptr); }

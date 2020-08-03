@@ -160,8 +160,12 @@
 //    e.g. valid emphasis strings are: "BI", "U", "B", "SU", "SB", etc...
 //       Note: When parsing, if we fail to find the name of a color, e.g. {!IMAGINARYCOLOR}, we treat
 //             the series of characters as emphasis, although any character encountered that is not a
-//             valid emphasis gets reported as an error. This allows specifying emphasis without color: 
+//             valid emphasis gets reported as an error. This allows specifying emphasis without color:
 //                 fmt::print("{!BU}");
+//
+// You can disable text styles with _Context.FmtDisableAnsiCodes_.
+// That is useful when logging to a file and not a console. The ansi escape codes look like garbage in files.
+//
 
 LSTD_BEGIN_NAMESPACE
 
