@@ -33,14 +33,15 @@ This library implements `string` the following way:
 
 > **Note**: We implement string length methods and comparing (lexicographically and code point by code point) for c-style strings in `string_utils.h` (included by `string.h`). These still work with utf8 in mind but assume the string is zero terminated.
 
-- A string has either allocated memory or it has not. We make this very clear when returning strings from functions in the library. If the procedure is marked as [[nodiscard]] that means that the returned string should be freed.
+- A string has either allocated memory or it has not. We make this very clear when returning strings from functions in the library. If the procedure is marked as `[[nodiscard]]` that means that the returned string should be freed.
 - All of this allows us to skip writing copy/move constructors and assignment operators, we avoid unnecessary copies by making the programmer think harder about managing the memory, while being explicit and concise, so you know what your program is doing.
 ```cpp
-        string path = "./data/";      // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
+        // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
+        string path = "./data/"; 
 
-        // _string_ includes constexpr methods but also methods which cannot be constexpr and allocate memory.
+        // _string_ includes both constexpr methods and runtime-only methods which modify the buffer (and might allocate memory).
         // It's like a mixed type between std::string_view and std::string from the STL, but with way better design and API.
-        // When a string needs to allocate memory it requests a buffer and copies the old contents of the string.
+        // When a string needs to allocate memory it copies the old contents of the string.
         path.append("output.txt");
 
         // This doesn't allocate memory but it points to the buffer in _path_.
@@ -57,8 +58,29 @@ This library implements `string` the following way:
         defer(path.release());       
 ```
 
--  `clone(T *dest, T src)` is a global function that ensures a deep copy of the argument passed. Objects that own memory (like `string`) overload `clone()` and make sure a deep clone is done. This is like a classic copy constructor but much cleaner. Note: `clone` works on all types (unless overloaded the default implementation does a shallow copy). It is this library's recommended way to implement functionality normally written in copy c-tors.
+This example demonstrates the interactions with this fluid idea of ownership:
+```cpp
+        string get_data_root_dir() {
+            string path = os_get_working_dir();
+            // You don't want to use strings here directly but instead with the file::path API 
+            // which is more robust with handling slashes, but for the sake of example..
+            path.append("/data");
+            return path; // Doesn't call copy constructor, _path_ doesn't call it's destructor
+        }
+        
+        // ...
+        string levelData = get_data_root_dir();
+
+        // The buffer allocated in get_data_root_dir() has "leaked" here and is still usable!
+        // Although _levelData_ is a different object, it still just encapsulates a buffer
+        // which doesn't really have an specific owner.
+        levelData.append("/levels/level1.dat"); 
+
+        // We finally free the memory when this scope exists and we don't need it anymore.
+        defer(levelData.release());             
 ```
+
+-  `clone(T *dest, T src)` is a global function that ensures a deep copy of the argument passed. Objects that own memory (like `string`) overload `clone()` and make sure a deep clone is done. This is like a classic copy constructor but much cleaner. Note: `clone` works on all types (unless overloaded the default implementation does a shallow copy). It is this library's recommended way to implement functionality normally written in copy c-tors.
 
 ### "No throwing of exceptions, anywhere"
 Exceptions make your code complicated. 
@@ -67,7 +89,7 @@ I can't be bothered to write about exceptions. Really, they shouldn't exist in C
 
 ## Examples
 
-Container API is inspired by Rust and Python
+Container API is inspired in parts by Rust and Python. 
 
 ### Example usage of data structures:
 ```cpp
@@ -93,6 +115,7 @@ array<s32> integers = {0, 1};
 for (s32 i : range(2, 5)) {
     integers.add(i);
 }
+// _to_array_ here just makes a stack array from the listed integers so they can be compared to _array_
 assert(integers == to_array(0, 1, 2, 3, 4));
 ```
 
@@ -142,4 +165,6 @@ WITH_ALLOC(Alloc, Context.TemporaryAlloc) {
 free(memory1);
 ```
 
-More examples will be provided when the library API is in a more stable state. Right now I've done one school project with it: a little game engine which runs a physics simulation with a python interpreter and a hot-loaded dll which contains the game code. I plan to write some serious using it and if I run into some friction with the way I've implemented something I might change it and break literally everything. Also this README might go stale and outdated from time to time but I try to update it oftenly.
+More examples will be provided when the library API is in a more stable state. Right now I've done one school project with it: a little game engine which runs a physics simulation with a python interpreter and a hot-loaded dll which contains the game code. 
+
+I plan to write some serious using it and if I run into some friction with the way I've implemented something I might change it and break literally everything. Also this README might go stale and outdated from time to time but I try to update it oftenly.
