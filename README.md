@@ -44,18 +44,18 @@ This library implements `string` the following way:
         // When a string needs to allocate memory it copies the old contents of the string.
         path.append("output.txt");
 
-        // This doesn't allocate memory but it points to the buffer in _path_.
-        // The substring is valid as long as the original string is valid.
-        // Also all operations with indices on strings support negative indexing (python-style). 
-        // So `-1` is translated to `str.Length - 1`.
-        string pathWithoutDot = path.substring(1, -1);
-
         // Doesn't release the string here, but instead runs at scope exit.
         // It runs exactly like a destructor, but it's explicit and not hidden.
         // This style of programming makes you write code which doesn't allocate 
         // strings superfluously and doesn't rely on C++ compiler optimization 
         // (like "copy elision" when returning strings from functions).
-        defer(path.release());       
+        defer(path.release());   
+
+        // This doesn't allocate memory but it points to the buffer in _path_.
+        // The substring is valid as long as the original string is valid.
+        // Also all operations with indices on strings support negative indexing (python-style). 
+        // So `-1` is translated to `str.Length - 1`.
+        string pathWithoutDot = path.substring(1, -1);    
 ```
 
 This example demonstrates the interactions with this fluid idea of ownership:
@@ -71,13 +71,13 @@ This example demonstrates the interactions with this fluid idea of ownership:
         // ...
         string levelData = get_data_root_dir();
 
+        // We want to free the memory when this scope exists and we don't need it anymore.
+        defer(levelData.release());          
+
         // The buffer allocated in get_data_root_dir() has "leaked" here and is still usable!
         // Although _levelData_ is a different object, it still just encapsulates a buffer
         // which doesn't really have an specific owner.
         levelData.append("/levels/level1.dat"); 
-
-        // We finally free the memory when this scope exists and we don't need it anymore.
-        defer(levelData.release());             
 ```
 
 -  `clone(T *dest, T src)` is a global function that ensures a deep copy of the argument passed. Objects that own memory (like `string`) overload `clone()` and make sure a deep clone is done. This is like a classic copy constructor but much cleaner. Note: `clone` works on all types (unless overloaded the default implementation does a shallow copy). It is this library's recommended way to implement functionality normally written in copy c-tors.
