@@ -12,7 +12,7 @@
 //
 // The formatting engine in this library is similar to how python handles advanced string formatting.
 //
-// Format strings consist of characters and fields encoded in utf-8.
+// Format strings consist of characters and fields encoded in utf8.
 // Fields define how an argument gets formatted to the output while the rest of the characters get transfered unchanged.
 //
 // Fields are defined with curly braces, like so:
@@ -54,7 +54,7 @@
 //
 //     The optional 'fill' code point defines the code point to be used to pad the field to the minimum width.
 //     The fill code point, if present, must be followed by an alignment flag.
-//     The fill element can be multiple bytes and must be encoded in utf-8.
+//     The fill element can be multiple bytes and must be encoded in utf8.
 //
 //     The 'sign' option is only valid for numeric types, and can be one of the following:
 //       '+'  - Indicates that a sign should be used for both positive as well as negative numbers
@@ -105,11 +105,11 @@
 //
 //      C-Style string:
 //       'p' - Treats the argument as a pointer.
-//       's' - Outputs it as an utf-8 encoded string.
+//       's' - Outputs it as an utf8 encoded string.
 //       '' (None) - the same as 's'
 //
 //      Strings:
-//       's' - Outputs it as an utf-8 encoded string.
+//       's' - Outputs it as an utf8 encoded string.
 //       '' (None) - the same as 's'
 //
 //      Guid:

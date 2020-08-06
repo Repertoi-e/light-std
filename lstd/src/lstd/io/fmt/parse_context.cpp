@@ -68,12 +68,10 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
     switch (*It) {
         case '+':
             require_signed_arg(argType);
-            // specs->Flags |= flag::SIGN | flag::PLUS;
             specs->Sign = sign::PLUS;
             ++It;
             break;
         case '-':
-            // specs->Flags |= flag::MINUS;
             require_signed_arg(argType);
 
             // sign::MINUS has the same behaviour as sign::NONE on our types,
@@ -84,7 +82,6 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
             ++It;
             break;
         case ' ':
-            // specs->Flags |= flag::SIGN;
             require_signed_arg(argType);
             specs->Sign = sign::SPACE;
             ++It;

@@ -376,24 +376,16 @@ struct table_iterator {
 };
 
 template <typename K, typename V, bool BlockAlloc>
-typename table<K, V, BlockAlloc>::iterator table<K, V, BlockAlloc>::begin() {
-    return table<K, V>::iterator(this);
-}
+typename table<K, V, BlockAlloc>::iterator table<K, V, BlockAlloc>::begin() { return table<K, V>::iterator(this); }
 
 template <typename K, typename V, bool BlockAlloc>
-typename table<K, V, BlockAlloc>::iterator table<K, V, BlockAlloc>::end() {
-    return table<K, V>::iterator(this, Reserved);
-}
+typename table<K, V, BlockAlloc>::iterator table<K, V, BlockAlloc>::end() { return table<K, V>::iterator(this, Reserved); }
 
 template <typename K, typename V, bool BlockAlloc>
-typename table<K, V, BlockAlloc>::const_iterator table<K, V, BlockAlloc>::begin() const {
-    return table<K, V>::const_iterator(this);
-}
+typename table<K, V, BlockAlloc>::const_iterator table<K, V, BlockAlloc>::begin() const { return table<K, V>::const_iterator(this); }
 
 template <typename K, typename V, bool BlockAlloc>
-typename table<K, V, BlockAlloc>::const_iterator table<K, V, BlockAlloc>::end() const {
-    return table<K, V>::const_iterator(this, Reserved);
-}
+typename table<K, V, BlockAlloc>::const_iterator table<K, V, BlockAlloc>::end() const { return table<K, V>::const_iterator(this, Reserved); }
 
 template <typename K, typename V>
 table<K, V> *clone(table<K, V> *dest, const table<K, V> &src) {

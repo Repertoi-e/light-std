@@ -18,3 +18,6 @@ Remove comments about posix thread implementation in _context.h_ and _thread.h_
 Allow users to add more variables to Implicit_Context
 Won't work with headers tho
 ---------------------------------------------------------------------------------
+
+LOC:    80394
+LOC IO:  2161

@@ -84,7 +84,8 @@ project "lstd"
         "%{prj.name}/src/**.h",
         "%{prj.name}/src/**.inc",
         "%{prj.name}/src/**.c",
-        "%{prj.name}/src/**.cpp"
+        "%{prj.name}/src/**.cpp",
+        "%{prj.name}/src/**.def"
     }
 
     filter {}

@@ -34,6 +34,9 @@ constexpr char eof = (char) -1;
 // We should have a way to force a format when parsing.
 //
 
+// The design here is that whenever possible we shouldn't do allocations, because that makes this API slow, and people
+// will write specialized faster versions and then what's the point of having this reader in the library anyway?
+
 //
 // Provides a way to parse types and request bytes.
 // Holds a pointer to a _request_byte_t_ procedure. Every other function in this class is implemented by calling that.
@@ -41,158 +44,137 @@ constexpr char eof = (char) -1;
 //
 // @TODO: Tests tests tests!
 struct reader : non_copyable, non_movable, non_assignable {
-    // This is the only method function required for the reader to work, it is called only when there are no more bytes available.
+    // This is the only function required for the reader to work, it is called only when there are no more bytes available.
     // We pass _this_ as first argument. You can cast this pointer to the reader object implementation - e.g. (console_reader *) r;
-    using ensure_buffer_t = void (*)(reader *r);
-    ensure_buffer_t EnsureBuffer = null;
+    //
+    // The buffer should be stored as a view in _Buffer_.
+    // Return value doesn't matter unless it's _eof_ (equivalent to (char) -1, defined above this struct).
+    // In the case in which you return _eof_ we just set the _EOF_ flag in this reader.
+    // We can require you to do that manually but this seems less error-prone (the compiler throws an error if you forget to return something).
+    using give_me_buffer_t = char (*)(reader *r);
+    give_me_buffer_t GiveMeBuffer = null;
 
-    // Since the general parse functions defined below (which all call _EnsureBuffer_ when there are no more bytes available)
+    // Since the functions defined below (which all call _GiveMeBuffer_ when there are no more bytes available)
     // may return strings that point inside the buffer, reader implementations must keep the buffers alive until they are no longer used.
     // We do this to prevent unnecessary string copies. If we try to be extremely robust and fail-safe and assume we have no knowledge of
-    // the implementation, we must copy the string and then return it. But then these parse functions become extremely slow for the
-    // specialized cases.
+    // the implementation, we must copy the string and then return it. But then these functions become extremely slow for most cases.
     //
-    // The reader implementation should be very clear about when the caller needs to copy the string because it may get invalidaded
+    // The reader implementation should be very clear about when the caller needs to copy the string
+    // and when buffers get invalidaded, so the user doesn't get confused.
+    //
+    // This is stored as view itself. When reading we bump it's data pointer and reduce it's _Count_.
+    array<char> Buffer;
 
     // Whether this reader has reached "end of file"
     bool EOF = false;
 
     reader() = default;
-    reader(ensure_buffer_t ensureBuffer);
+    reader(give_me_buffer_t giveMeBuffer);
 
-    void release();
+    // A bit more verbose and clear.
+    s64 bytes_available() { return Buffer.Count; }
+
+    // Calls _GiveMeBuffer_ and checks for _eof_.
+    // Instead of calling this automatically (which might be wrong in some cases) we make that the responsibility of the user.
+    // Call this whenever there are no bytes available or to discard the current buffer.
+    //
+    // @TODO: This is not a good explanation
+    // This function also sets the EOF flag if the implementation returns _eof_. In that case there still may be a valid buffer,
+    // because we don't explicitly clear it. The console reader, for example, continues to work after _eof_.
+    // In that context _eof_ means end of one user input.
+    void request_next_buffer();
+
+    // Attemps to read _n_ bytes.
+    //
+    // If we run out of data we can't call _GiveMeBuffer_ and continue, because we can't return a view across two buffers, so we bail out.
+    // The first return value is the stuff that was read and the second is how many bytes weren't read.
+    //
+    // There are two cases in which the second return value is non-zero:
+    //  * The reader reached "end of file" (in which case the _EOF_ flag above is set to true).
+    //  * We got a new buffer but in order to avoid allocating a concatenated array we bailed out of the function.
+    //
+    // We leave it up to the caller to decide what to do in case this function fails.
+    // In case _EOF_ is still false, you can call read_bytes again and again and concatenate
+    // the arrays to get the full _n_ bytes. In that case an allocation is inevitable anyway.
+    //
+    // Don't release the array returned by this function. It's just a view.
+    // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
+    pair<array<char>, s64> read_bytes(s64 n);
+
+    // Attemps to read bytes until _delim_ is encountered. Return value doesn't include _delim_.
+    // This is an optimized version that works on a couple bytes at a time instead of comparing byte by byte.
+    // We have a similar function in "parse.h" called _eat_bytes_until_ which works on arrays.
+    // We also have one for utf8 strings: _eat_code_points_until_.
+    //
+    // If we run out of data we can't call _GiveMeBuffer_ and continue, because we can't return a view across two buffers, so we bail out.
+    // The first return value is the stuff that was read and the second is whether _delim_ was actually encountered.
+    //
+    // There are two cases in which the second return value is false:
+    //  * The reader reached "end of file" (in which case the _EOF_ flag above is set to true).
+    //  * We got a new buffer but in order to avoid allocating a concatenated array we bailed out of the function.
+    //
+    // We leave it up to the caller to decide what to do in case this function fails.
+    // In case _EOF_ is still false, you can call read_bytes_until again and again and concatenate
+    // the arrays to get the full however many bytes until _delim_. In that case an allocation is inevitable anyway.
+    //
+    // Don't release the array returned by this function. It's just a view.
+    // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
+    pair<array<char>, bool> read_bytes_until(char delim);
+
+    // Attemps to read bytes until a byte that is in _delims_ is encountered. Return value doesn't include the delimeter.
+    // @Speed This is the obvious version for now that checks byte by byte. Maybe we can optimize it?
+    //
+    // !!! Read the documentation for _read_bytes_until(char delim)_ above!
+    pair<array<char>, bool> read_bytes_until(const array<char> &delims);
+
+    // Attemps to read bytes until a byte that is different from _eats_ is encountered. Return value doesn't include the different byte.
+    // This is an optimized version that works on a couple bytes at a time instead of comparing byte by byte.
+    // We have a similar function in "parse.h" called _eat_bytes_while_ which works on arrays.
+    // We also have one for utf8 strings: _eat_code_points_while_.
+    //
+    // If we run out of data we can't call _GiveMeBuffer_ and continue, because we can't return a view across two buffers, so we bail out.
+    // The first return value is the stuff that was read and the second is whether a char different from _eats_ was actually encountered.
+    //
+    // There are two cases in which the second return value is false:
+    //  * The reader reached "end of file" (in which case the _EOF_ flag above is set to true).
+    //  * We got a new buffer but in order to avoid allocating a concatenated array we bailed out of the function.
+    //
+    // We leave it up to the caller to decide what to do in case this function fails.
+    // In case _EOF_ is still false, you can call read_bytes_while again and again and concatenate
+    // the arrays to get the full however many bytes until _eats_ is not encountered. In that case an allocation is inevitable anyway.
+    //
+    // Don't release the array returned by this function. It's just a view.
+    // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
+    pair<array<char>, bool> read_bytes_while(char eats);
+
+    // Attemps to read bytes until a byte that is not in _anyOfThese_ is encountered. Return value doesn't include the different byte.
+    // @Speed This is the obvious version for now that checks byte by byte. Maybe we can optimize it?
+    //
+    // !!! Read the documentation for _read_bytes_while(char eats)_ above!
+    pair<array<char>, bool> read_bytes_while(const array<char> &anyOfThese);
+
+    // !!! Doesn't safety check.
+    // !!! Assumes there is enough data in _Buffer.
+    //
+    // Don't release the array returned by this function. It's just a view.
+    // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
+    array<char> read_bytes_unsafe(s64 n);
+
+    // !!! Doesn't safety check.
+    // !!! Assumes _n_ bytes don't underflow the buffer.
+    //
+    // Call this incase you want to return the cursor to a previous state (rollback _n_ bytes).
+    // The caller is responsible for not messing up this call.
+    //
+    // Since there are no hidden calls to _request_next_buffer_ and the caller
+    // controls explictly all operations, this function is not scary.
+    // It would've been a nightmare to implement robustly if we didn't decide on this API design.
+    //
+    // Of course we should maybe consider doing some bookkeeping to make sure this really never underflows,
+    // but is it worth the overhead? And how do we make that optional?
+    void go_backwards(s64 n);
+
     /*
-    reader *read(char32_t *out);
-
-    // Assumes there is enough space in _out_.
-    reader *read(char *out, s64 n);
-    reader *read(array<char> *out, s64 n);
-
-    // Assumes there is enough space in _out_.
-    // _delim_ is not included in the string.
-    reader *read_until(char *out, char32_t delim);
-
-    // _delim_ is not included in the string.
-    reader *read_until(array<char> *out, char32_t delim);
-
-    // Assumes there is enough space in _out_.
-    // The delim is not included in the string.
-    reader *read_until(char *out, const string &delims);
-
-    // The delim is not included in the string.
-    reader *read_until(array<char> *out, const string &delims);
-
-    // Assumes there is enough space in _out_.
-    // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(char *out, char32_t eat);
-
-    // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(array<char> *out, char32_t eat);
-
-    // Assumes there is enough space in _out_.
-    // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(char *out, const string &eats);
-
-    // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(array<char> *out, const string &eats);
-
-    // Reads bytes until a newline character and puts them in _str_.
-    // '\n' is not included in the string.
-    reader *read_line(string *str);
-
-    // Ignore available characters, read until a newline character and don't return the result
-    reader *ignore();
-
-    // Parse an integer
-    // You can supply a custom base the integer is encoded in.
-    // base 0 means this function tries to automatically determine the base by looking for a prefix:
-    //     0x - hex, 0 - oct, otherwise - decimal
-    //
-    // If the parsing fails:
-    // - the integer is outside range:               the value returned is the min/max value for that integer type
-    // - the buffer doesn't contain a valid integer: the value returned is '0'
-    // In both cases the _LastParseFailed_ flag is set to true (the flag gets reset before any parse function)
-    //
-    // Note:
-    // If T is unsigned, but the buffer contains a '-', the value returned is underflowed
-    //
-    // @Locale This doesn't parse commas
-    template <typename T>
-    enable_if_t<is_integral_v<T>> read(T *value, s32 base = 0) {
-        auto [parsed, success] = parse_int<T>(base);
-        LastParseFailed = !success;
-        *value = parsed;
-    }
-
-    // Parse a bool
-    // Valid strings are: "0" "1" "true" "false" (ignoring case)
-    //
-    // @Bug There's an edge case in which this doesn't work. We have to extend the API a whole bunch in order to make
-    // parsing in general easier and fix this. The bug is that sometimes the buffer might get cut of (e.g. "..tru" and
-    // the next chunk would contain "e" but we would fail parsing because we check if the whole word is available
-    // in the current chunk).
-    //
-    void read(bool *value);
-
-    // Parse a float
-    // If the parsing fails the _LastParseFailed_ flag is set to true (gets reset before any parsing operation)
-    void reader::read(f32 *value) {
-        if (!value) return;
-        auto [parsed, success] = parse_float();
-        LastParseFailed = !success;
-        *value = (f32) parsed;
-    }
-
-    // Parse a float
-    // If the parsing fails the _LastParseFailed_ flag is set to true (gets reset before any parsing operation)
-    void reader::read(f64 *value) {
-        if (!value) return;
-        auto [parsed, success] = parse_float();
-        LastParseFailed = !success;
-        *value = parsed;
-    }
-
-    // Parse a guid
-    // Parses the following representations:
-    // - 00000000000000000000000000000000
-    // - 00000000-0000-0000-0000-000000000000
-    // - {00000000-0000-0000-0000-000000000000}
-    // - (00000000-0000-0000-0000-000000000000)
-    // - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
-    //
-    // For the last one, it must start with "{0x" (in order to get recognized),
-    // but the other integers don't have to be in hex.
-    //
-    // Doesn't pay attention to capitalization (both uppercase/lowercase/mixed are valid).
-    //
-    // If the parsing fails the _LastParseFailed_ flag is set to true (gets reset before any parsing operation) and the guid is set to all 0
-    void reader::read(guid *value) {
-        if (!value) return;
-        auto [parsed, success] = parse_guid();
-        LastParseFailed = !success;
-        *value = parsed;
-    }
-
-    template <typename T>
-    enable_if_t<!is_arithmetic_v<T> && !is_same_v<T, string>> read(T *value) {
-        LastParseFailed = !deserialize(value, this);
-    }
-
-    void read_byte(char *value, bool noSkipWhitespaceSingleTime = false) {
-        if (!test_state_and_skip_ws(noSkipWhitespaceSingleTime)) {
-            LastParseFailed = true;
-            *value = eof;
-            return;
-        }
-        *value = bump_byte();
-        if (*value == eof) {
-            LastParseFailed = true;
-            EOF = true;
-        }
-    }
-
-    bool test_state_and_skip_ws(bool noSkipSingleTime = false);
-
     // Returns the value in _Current_ and then increments it (WITHOUT safety checks!)
     const char *incr() {
         --Available;
@@ -241,72 +223,7 @@ struct reader : non_copyable, non_movable, non_assignable {
         return {0, false}; \
     }
 
-    template <typename T>
-    pair<T, bool> parse_int(s32 base) {
-        if (!test_state_and_skip_ws()) return {0, false};
 
-        char ch = bump_byte();
-        check_eof(ch);
-
-        bool negative = false;
-        if (ch == '+') {
-            ch = bump_byte();
-        } else if (ch == '-') {
-            negative = true;
-            ch = bump_byte();
-        }
-        check_eof(ch);
-
-        char next = peek_byte();
-        check_eof(next);
-
-        if ((base == 0 || base == 16) && ch == '0' && (next == 'x' || next == 'X')) {
-            base = 16;
-            bump_byte();
-            ch = bump_byte();
-        }
-        if (base == 0) {
-            base = ch == '0' ? 8 : 10;
-        }
-        check_eof(ch);
-
-        T maxValue;
-        if constexpr (is_unsigned_v<T>) {
-            maxValue = (numeric_info<T>::max)();
-        } else {
-            maxValue = negative ? -(numeric_info<T>::min()) : numeric_info<T>::max();
-        }
-        T cutoff = const_abs(maxValue / base);
-        s32 cutlim = maxValue % (T) base;
-
-        T value = 0;
-        while (true) {
-            if (is_digit(ch)) {
-                ch -= '0';
-            } else if (is_alpha(ch)) {
-                ch -= to_upper(ch) == ch ? 'A' - 10 : 'a' - 10;
-            }
-
-            if ((s32) ch >= base) break;
-            if (value > cutoff || (value == cutoff && (s32) ch > cutlim)) {
-                if constexpr (is_unsigned_v<T>) {
-                    return {negative ? (T(0 - maxValue)) : maxValue, false};
-                } else {
-                    return {(negative ? T(-1) : T(1)) * maxValue, false};
-                }
-            }
-            value = value * base + ch;
-
-            if (!is_alphanumeric(peek_byte())) break;
-            ch = bump_byte();
-        }
-        if constexpr (is_unsigned_v<T>) {
-            return {negative ? (T(0 - value)) : value, true};
-        } else {
-            return {(negative ? T(-1) : T(1)) * value, true};
-        }
-    }
-#undef check_eof
     */
 };
 

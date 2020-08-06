@@ -197,22 +197,22 @@ struct range {
 //     about managing the memory, while being explicit and concise, so you know what your program is doing.
 //
 //            string path = "./data/";      // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
-//            
+//
 //            // _string_ includes constexpr methods but also methods which cannot be constexpr and allocate memory.
 //            // It's like a mixed type between std::string_view and std::string from the STL, but with way better design and API.
 //            // When a string needs to allocate memory it requests a buffer and copies the old contents of the string.
 //            path.append("output.txt");
-//            
+//
 //            // This doesn't allocate memory but it points to the buffer in _path_.
 //            // The substring is valid as long as the original string is valid.
 //            string pathWithoutDot = path.substring(2, -1);
-//            
+//
 //            // Doesn't release the string here, but instead runs at scope exit.
 //            // It runs exactly like a destructor, but it's explicit and not hidden.
-//            // This style of programming makes you write code which doesn't allocate 
-//            // strings superfluously and doesn't rely on C++ compiler optimization 
+//            // This style of programming makes you write code which doesn't allocate
+//            // strings superfluously and doesn't rely on C++ compiler optimization
 //            // (like "copy elision" when returning strings from functions).
-//            defer(path.release());  
+//            defer(path.release());
 //
 //     String methods which allocate memory copy the contents of the old pointer if the string is still a view (hasn't yet allocated memory).
 //
@@ -499,26 +499,38 @@ constexpr u64 rotate_left_64(u64 x, u32 bits) { return (x << bits) | (x >> (64 -
 constexpr u32 rotate_right_32(u32 x, u32 bits) { return (x >> bits) | (x << (32 - bits)); }
 constexpr u64 rotate_right_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 - bits)); }
 
+//
 // Useful: http://graphics.stanford.edu/~seander/bithacks.html#CopyIntegerSign
+//
 
-#define u32_has_zero(v) (((v) -0x01010101UL) & ~(v) &0x80808080UL)
-#define u32_has_value(x, n) (u32_has_zero((x) ^ (~0UL / 255 * (u8)(n))))
+// Uses 4 operations:
+#define U32_HAS_ZERO_BYTE(v) (((v) -0x01010101UL) & ~(v) &0x80808080UL)
 
-#define u32_has_less(x, n) (((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ~0UL / 255 * 128)
-#define u32_count_less(x, n) \
-    (((~0UL / 255 * (127 + (n)) - ((x) & ~0UL / 255 * 127)) & ~(x) & ~0UL / 255 * 128) / 128 % 255)
+// Uses 5 operations when n is constant:
+#define U32_HAS_BYTE(x, n) (U32_HAS_ZERO_BYTE((x) ^ (~0UL / 255 * (u8)(n))))
 
-#define u32_has_more(x, n) (((x) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128)
-#define u32_count_more(x, n) \
-    (((((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128) / 128 % 255)
+// Uses 4 operations when n is constant:
+#define U32_HAS_BYTE_LESS_THAN(x, n) (((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ~0UL / 255 * 128)
 
-#define u32_likely_has_between(x, m, n) \
-    ((((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(m))) & ~0UL / 255 * 128)
-#define u32_has_between(x, m, n)                                       \
-    ((~0UL / 255 * (127 + (u8)(n)) - ((x) & ~0UL / 255 * 127) & ~(x) & \
-      ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(m))) &       \
-     ~0UL / 255 * 128)
-#define u32_count_between(x, m, n) (u32_has_between(x, m, n) / 128 % 255)
+// Uses 7 operations when n is constant:
+#define U32_COUNT_BYTES_LESS_THAN(x, n) (((~0UL / 255 * (127 + (n)) - ((x) & ~0UL / 255 * 127)) & ~(x) & ~0UL / 255 * 128) / 128 % 255)
+
+// Uses 3 operations when n is constant:
+#define U32_HAS_BYTE_GREATER_THAN(x, n) (((x) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128)
+
+// Uses 6 operations when n is constant:
+#define U32_COUNT_BYTES_GREATER_THAN(x, n) (((((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(n)) | (x)) & ~0UL / 255 * 128) / 128 % 255)
+
+// Uses 7 operations when n is constant.
+// Sometimes it reports false positives. Use U32_HAS_BYTE_BETWEEN for an exact answer.
+// Use this as a fast pretest:
+#define U32_LIKELY_HAS_BYTE_BETWEEN(x, m, n) ((((x) - ~0UL / 255 * (u8)(n)) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(m))) & ~0UL / 255 * 128)
+
+// Uses 8 operations when n is constant:
+#define U32_HAS_BYTE_BETWEEN(x, m, n) ((~0UL / 255 * (127 + (u8)(n)) - ((x) & ~0UL / 255 * 127) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(m))) & ~0UL / 255 * 128)
+
+// Uses 10 operations when n is constant:
+#define U32_COUNT_BYTES_BETWEEN(x, m, n) (U32_HAS_BYTE_BETWEEN(x, m, n) / 128 % 255)
 
 #if COMPILER == MSVC
 #pragma warning(push)

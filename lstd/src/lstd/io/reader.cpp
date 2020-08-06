@@ -6,18 +6,97 @@ LSTD_BEGIN_NAMESPACE
 
 namespace io {
 
-/*
-reader::reader(ensure_buffer_t ensureBuffer) : EnsureBuffer(ensureBuffer) {}
+reader::reader(give_me_buffer_t giveMeBuffer) : GiveMeBuffer(giveMeBuffer) {}
 
-void reader::release() {
-    auto *p = BaseBuffer.Next;
-    while (p) {
-        auto *toFree = p;
-        p = p->Next;
-        free(toFree);
+void reader::request_next_buffer() {
+    char status = GiveMeBuffer(this);
+    if (status == eof) EOF = true;
+}
+
+pair<array<char>, s64> reader::read_bytes(s64 n) {
+    if (EOF) return {{}, n};
+
+    if (Buffer.Count >= n) {
+        return {read_bytes_unsafe(n), 0};
+    } else {
+        s64 diff = n - Buffer.Count;
+        return {read_bytes_unsafe(Buffer.Count), diff};
     }
 }
 
+pair<array<char>, bool> reader::read_bytes_until(char delim) {
+    if (EOF) return {{}, false};
+
+    char *p = Buffer.Data;
+    s64 n = Buffer.Count;
+    while (n >= 4) {
+        if (U32_HAS_BYTE(*(u32 *) p, delim)) break;
+        p += 4;
+        n -= 4;
+    }
+
+    while (n > 0) {
+        if (*p == delim) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        ++p;
+    }
+    return {array<char>(Buffer.Data, p - Buffer.Data), false};
+}
+
+pair<array<char>, bool> reader::read_bytes_until(const array<char> &delims) {
+    if (EOF) return {{}, false};
+
+    char *p = Buffer.Data;
+    s64 n = Buffer.Count;
+    while (n > 0) {
+        if (delims.find(*p) != -1) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        ++p;
+    }
+    return {array<char>(Buffer.Data, p - Buffer.Data), false};
+}
+
+pair<array<char>, bool> reader::read_bytes_while(char eats) {
+    if (EOF) return {{}, false};
+
+    char *p = Buffer.Data;
+    s64 n = Buffer.Count;
+    while (n >= 4) {
+        if (!U32_HAS_BYTE(*(u32 *) p, eats)) break;
+        p += 4;
+        n -= 4;
+    }
+
+    while (n > 0) {
+        if (*p != eats) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        ++p;
+    }
+    return {array<char>(Buffer.Data, p - Buffer.Data), false};
+}
+
+pair<array<char>, bool> reader::read_bytes_while(const array<char> &anyOfThese) {
+    if (EOF) return {{}, false};
+
+    char *p = Buffer.Data;
+    s64 n = Buffer.Count;
+    while (n > 0) {
+        if (anyOfThese.find(*p) == -1) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        ++p;
+    }
+    return {array<char>(Buffer.Data, p - Buffer.Data), false};
+}
+
+array<char> reader::read_bytes_unsafe(s64 n) {
+    auto result = array<char>(Buffer.Data, n);
+    Buffer.Data += n;
+    Buffer.Count -= n;
+    return result;
+}
+
+void reader::go_backwards(s64 n) {
+    Buffer.Data -= n;
+    Buffer.Count += n;
+}
+
+/*
 reader *reader::read(char32_t *out) {
     if (!test_state_and_skip_ws()) {
         *out = eof;
