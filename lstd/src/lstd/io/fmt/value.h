@@ -73,7 +73,8 @@ TYPE_CONSTANT(const void *, type::POINTER);
 template <typename T>
 constexpr auto type_constant_v = type_constant<T>::value;
 
-// Specialize this for custom types that may not be POD or have data that isn't serialized, e.g. pointers
+//
+// Specialize this for custom types
 //
 // template <>
 // struct formatter<my_type> {
@@ -93,6 +94,7 @@ using has_formatter = is_constructible<formatter<T>>;
 
 struct format_context;
 
+// Contains a value of any type
 struct value {
     struct custom {
         const void *Data;

@@ -15,7 +15,7 @@ TEST(global_function) {
     signal.connect(my_callback3);
 
     array<s32> result = signal.emit(20);
-    assert_eq(result, to_array<s32>(20, 21, 22, 23));
+    assert_eq(result, to_stack_array<s32>(20, 21, 22, 23));
     result.release();
 
     signal.release();

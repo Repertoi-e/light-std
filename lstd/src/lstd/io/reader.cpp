@@ -6,9 +6,16 @@ LSTD_BEGIN_NAMESPACE
 
 namespace io {
 
-reader::reader(request_byte_t requestByteFunction)
-    : Buffer(null), Current(null), Available(0), EOF(false), LastFailed(false), SkipWhitespace(true) {
-    RequestByteFunction = requestByteFunction;
+/*
+reader::reader(ensure_buffer_t ensureBuffer) : EnsureBuffer(ensureBuffer) {}
+
+void reader::release() {
+    auto *p = BaseBuffer.Next;
+    while (p) {
+        auto *toFree = p;
+        p = p->Next;
+        free(toFree);
+    }
 }
 
 reader *reader::read(char32_t *out) {
@@ -53,14 +60,11 @@ reader *reader::read(char *out, s64 n) {
             Current += size;
             Available -= size;
         } else {
-            char ch = request_byte_and_incr();
+            char ch = peek_byte();
             if (ch == eof) {
                 EOF = true;
                 break;
             }
-
-            *out++ = ch;
-            --n;
         }
     }
     return this;
@@ -298,7 +302,14 @@ reader *io::reader::read_while(string *str, const string &eats) {
     return this;
 }
 
-reader *io::reader::read_line(string *str) { return read_until(str, "\n"); }
+reader *io::reader::read_line(string *str) {
+    array<char> buffer;  // @Speed
+    defer(buffer.release());
+
+    read_until(&buffer, '\n');
+    str->append_pointer_and_size(buffer.Data, buffer.Count);
+    return this;
+}
 
 reader *io::reader::ignore() {
     if (EOF) return this;
@@ -432,7 +443,8 @@ pair<f64, bool> reader::parse_float() {
         while (true) {
             if (ch >= '0' && ch <= '9') {
                 integerPart = integerPart * 10 + (ch - '0');
-            } else if (ch == '.' /*@Locale*/) {
+            } else if (ch == '.' /*@Locale*/
+/*) { 
                 hasFraction = true;
                 ch = bump_byte();
                 break;
@@ -661,7 +673,7 @@ pair<guid, bool> io::reader::parse_guid() {
         return {result, true};
     }
 }
-
+*/
 }  // namespace io
 
 LSTD_END_NAMESPACE

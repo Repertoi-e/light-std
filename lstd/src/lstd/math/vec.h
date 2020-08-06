@@ -341,9 +341,9 @@ struct vec : public vec_data<T, Dim_, Packed_> {
     // Constructs the vector from an array of elements.
     // The number of elements in the array must be at least as the vector's dimension.
     template <typename U, typename = enable_if_t<is_convertible_v<U, T>>>
-    vec(array_view<U> data) {
+    vec(const array<U> &data) {
         for (s64 i = 0; i < Dim; ++i) {
-            this->Data[i] = (T) * (data.begin() + i);
+            this->Data[i] = (T) data.Data[i];
         }
     }
 
@@ -358,7 +358,7 @@ struct vec : public vec_data<T, Dim_, Packed_> {
 
     // Truncates last coordinate of homogenous vector to create non-homogeneous
     template <typename T2, bool Packed2>
-    explicit vec(const vec<T2, Dim + 1, Packed2> &rhs) : vec(array_view<T2>(rhs.Data, rhs.Data + rhs.Dim)) {}
+    explicit vec(const vec<T2, Dim + 1, Packed2> &rhs) : vec(array<T2>((T2 *) rhs.Data, rhs.Dim)) {}
 
     // Initializes the vector to the given scalar elements.
     // Number of arguments must equal vector dimension.
@@ -372,8 +372,8 @@ struct vec : public vec_data<T, Dim_, Packed_> {
                 this->Simd = vec_data<T, Dim, Packed>::SimdT::set((T) scalars...);
             }
         } else {
-            array_view<T> args = {(T) scalars...};
-            for (s64 i = 0; i < Dim; ++i) this->Data[i] = *(args.begin() + i);
+            stack_array<T, sizeof...(Scalars)> args = {(T) scalars...};
+            for (s64 i = 0; i < Dim; ++i) this->Data[i] = args[i];
         }
     }
 

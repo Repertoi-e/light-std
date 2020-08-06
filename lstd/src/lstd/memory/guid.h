@@ -9,13 +9,16 @@ LSTD_BEGIN_NAMESPACE
 struct guid {
     char Data[16]{};
 
-    guid() = default;  // By default the guid is zero
-    explicit guid(array_view<char> data) { copy_memory(Data, data.begin(), 16); }
+    constexpr guid() = default;  // By default the guid is zero
+    constexpr explicit guid(const array<char> &data) {
+        assert(data.Count >= 16);
+        copy_memory(Data, data.Data, 16);
+    }
 
-    bool is_zero() { return guid() == *this; }
+    constexpr bool is_zero() { return guid() == *this; }
 
-    bool operator==(const guid &other) const;
-    bool operator!=(const guid &other) const;
+    constexpr bool operator==(const guid &other) const;
+    constexpr bool operator!=(const guid &other) const;
 };
 
 guid new_guid();

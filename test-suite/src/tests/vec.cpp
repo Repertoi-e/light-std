@@ -37,7 +37,7 @@ TEST(ctor) {
 }
 
 TEST(ctor_array) {
-    array_view<f64> data = {1, 2, 3, 4, 5};
+    array<f64> data = {1, 2, 3, 4, 5};
 
     vec<f32, 1, true> v1(data);
 

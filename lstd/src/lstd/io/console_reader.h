@@ -14,7 +14,7 @@ struct console_reader : reader {
     // If you don't use seperate threads and aim for max performance, set this to false.
     bool LockMutex = true;
 
-    console_reader() : reader(console_reader_request_byte) {}
+    // console_reader() : reader(console_reader_request_byte) {}
 };
 
 // Standard input. Normally thread safe, optionally not (set LockMutex flag to false)

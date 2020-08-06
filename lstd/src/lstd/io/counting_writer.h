@@ -8,7 +8,7 @@ namespace io {
 
 void counting_writer_write(writer *w, const char *data, s64 count);
 
-// This writer counts how many bytes have been written to it.
+// This writer counts how many bytes would have been written. The actual data is discarded.
 struct counting_writer : writer {
     s64 Count = 0;
 

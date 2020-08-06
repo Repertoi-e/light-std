@@ -39,7 +39,7 @@ struct format_context : io::writer {
           Parse(fmtString, errorHandlerFunc) {}
 
     // Write directly, without taking formatting specs into account.
-    void write_no_specs(array_view<char> data) { Out->write(data); }
+    void write_no_specs(const array<char> &data) { Out->write(data); }
     void write_no_specs(const char *data) { Out->write(data, c_string_length(data)); }
     void write_no_specs(const char *data, s64 count) { Out->write(data, count); }
     void write_no_specs(const string &str) { Out->write(str); }
@@ -123,8 +123,7 @@ struct format_context : io::writer {
     void write_f64(f64 value, format_specs specs);
 };
 
-// @TODO: This should not be visible in fmt namespace (it doesn't have use outside of internal code).
-// Check for other stuff that should be internal?
+namespace internal {
 struct format_context_visitor {
     format_context *F;
     bool NoSpecs;
@@ -137,13 +136,15 @@ struct format_context_visitor {
     void operator()(u64 value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(bool value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(f64 value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
-    void operator()(array_view<char> value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
+    void operator()(const array<char> &value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const string &value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const void *value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
 
     void operator()(unused) { F->on_error("Internal error while formatting"); }
     void operator()(arg::handle handle) { F->on_error("Internal error while formatting a custom argument"); }
 };
+}  // namespace internal
+
 }  // namespace fmt
 
 LSTD_END_NAMESPACE

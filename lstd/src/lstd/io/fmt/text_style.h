@@ -69,7 +69,10 @@ inline terminal_color string_to_terminal_color(const string &str) {
     return terminal_color::NONE;
 }
 
-enum class emphasis : u8 { BOLD = BIT(0), ITALIC = BIT(1), UNDERLINE = BIT(2), STRIKETHROUGH = BIT(3) };
+enum class emphasis : u8 { BOLD = BIT(0),
+                           ITALIC = BIT(1),
+                           UNDERLINE = BIT(2),
+                           STRIKETHROUGH = BIT(3) };
 
 constexpr emphasis operator|(emphasis lhs, emphasis rhs) {
     using T = underlying_type_t<emphasis>;
@@ -83,13 +86,16 @@ constexpr emphasis &operator|=(emphasis &lhs, emphasis rhs) {
 }
 
 struct text_style {
-    enum class color_kind { NONE = 0, RGB, TERMINAL };
+    enum class color_kind { NONE = 0,
+                            RGB,
+                            TERMINAL };
 
     color_kind ColorKind = color_kind::NONE;
     union {
         u32 RGB = 0;
         terminal_color Terminal;
     } Color{};
+
     bool Background = false;
     emphasis Emphasis = (emphasis) 0;
 };

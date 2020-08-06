@@ -56,7 +56,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             if (currentArg.Type == type::CUSTOM) {
                 typename arg::handle(currentArg.Value.Custom).format(f);
             } else {
-                visit_fmt_arg(format_context_visitor(f), currentArg);
+                visit_fmt_arg(internal::format_context_visitor(f), currentArg);
             }
         } else if (*p->It == '{') {
             write(p->It + 1);
@@ -93,7 +93,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                 if (currentArg.Type == type::CUSTOM) {
                     typename arg::handle(currentArg.Value.Custom).format(f);
                 } else {
-                    visit_fmt_arg(format_context_visitor(f), currentArg);
+                    visit_fmt_arg(internal::format_context_visitor(f), currentArg);
                 }
             } else if (c == ':') {
                 ++p->It;
@@ -115,7 +115,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                 if (currentArg.Type == type::CUSTOM) {
                     typename arg::handle(currentArg.Value.Custom).format(f);
                 } else {
-                    visit_fmt_arg(format_context_visitor(f), currentArg);
+                    visit_fmt_arg(internal::format_context_visitor(f), currentArg);
                 }
             } else {
                 f->on_error("'}' expected");

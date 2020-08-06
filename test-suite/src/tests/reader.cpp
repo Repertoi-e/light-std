@@ -1,5 +1,6 @@
 #include "../test.h"
 
+/*
 void test_guid_case(guid id, char f) {
     string format = fmt::sprint("{{:{:c}}}", f);
     defer(format.release());
@@ -22,3 +23,4 @@ TEST(guid_write_read) {
     array<char> cases = {'n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X'};
     For(cases) test_guid_case(id, it);
 }
+*/

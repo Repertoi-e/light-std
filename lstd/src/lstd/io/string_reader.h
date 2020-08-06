@@ -12,18 +12,20 @@ struct string_reader : reader {
     string Src;
     bool Exhausted;
 
-    explicit string_reader(const string &src) : reader(string_reader_request_byte), Src(src), Exhausted(false) {}
+    /// explicit string_reader(const string &src) : reader(string_reader_request_byte), Src(src), Exhausted(false) {}
 };
 
 inline char string_reader_request_byte(reader *r) {
     auto *sr = (string_reader *) r;
-
+    /*
     if (sr->Exhausted) return eof;
     sr->Buffer = sr->Src.Data;
     sr->Current = sr->Buffer;
     sr->Available = sr->Src.ByteLength;
     sr->Exhausted = true;
-    return *sr->Current;
+    */
+    return 0;
+    //return *sr->Current;
 }
 
 }  // namespace io

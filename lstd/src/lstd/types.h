@@ -1921,7 +1921,7 @@ LSTD_END_NAMESPACE
 
 LSTD_BEGIN_NAMESPACE
 template <typename T>
-using array_view = std::initializer_list<T>;
+using initializer_list = std::initializer_list<T>;
 
 template <typename T, typename U>
 struct pair {

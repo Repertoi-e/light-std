@@ -18,11 +18,6 @@ namespace io {
 // Special constant to signify end of file.
 constexpr char eof = (char) -1;
 
-struct reader;
-
-template <typename T>
-bool deserialize(T *dest, reader *r);
-
 //
 // @TODO: We should have a compile time macro to remove strict parsing checks.
 // For example we check for the positions of the hyphens in the GUID and if they don't match we fail parsing.
@@ -39,33 +34,34 @@ bool deserialize(T *dest, reader *r);
 // We should have a way to force a format when parsing.
 //
 
-// Provides a way to parse types and any bytes with a simple extension API.
-// Holds a pointer to a _request_byte_t_. Every other function
-// in this class is implemented by calling that function.
+//
+// Provides a way to parse types and request bytes.
+// Holds a pointer to a _request_byte_t_ procedure. Every other function in this class is implemented by calling that.
+// That function should use the _Buffer_, _Current_ and _Available_ members to cache multiple bytes when available.
+//
 // @TODO: Tests tests tests!
 struct reader : non_copyable, non_movable, non_assignable {
-    using request_byte_t = char (*)(reader *r);
+    // This is the only method function required for the reader to work, it is called only when there are no more bytes available.
+    // We pass _this_ as first argument. You can cast this pointer to the reader object implementation - e.g. (console_reader *) r;
+    using ensure_buffer_t = void (*)(reader *r);
+    ensure_buffer_t EnsureBuffer = null;
 
-    // This is the only method function required for the reader to work, it is called only
-    // when there are no more bytes available.
-    // If you want to supply a buffer of bytes (not just one), use _Buffer_, _Current_, and _Available_.
-    request_byte_t RequestByteFunction = null;
-
-    const char *Buffer = null, *Current = null;
-    s64 Available = 0;
+    // Since the general parse functions defined below (which all call _EnsureBuffer_ when there are no more bytes available)
+    // may return strings that point inside the buffer, reader implementations must keep the buffers alive until they are no longer used.
+    // We do this to prevent unnecessary string copies. If we try to be extremely robust and fail-safe and assume we have no knowledge of
+    // the implementation, we must copy the string and then return it. But then these parse functions become extremely slow for the
+    // specialized cases.
+    //
+    // The reader implementation should be very clear about when the caller needs to copy the string because it may get invalidaded
 
     // Whether this reader has reached "end of file"
     bool EOF = false;
-    // If the last call to any parse function has resulted in an error
-    bool LastFailed = false;
-
-    // By default, when reading code points, integers, floats, etc. any white space is ignored.
-    // If you don't want that, set this flag to false.
-    bool SkipWhitespace = true;
 
     reader() = default;
-    reader(request_byte_t requestByteFunction);
+    reader(ensure_buffer_t ensureBuffer);
 
+    void release();
+    /*
     reader *read(char32_t *out);
 
     // Assumes there is enough space in _out_.
@@ -81,10 +77,10 @@ struct reader : non_copyable, non_movable, non_assignable {
 
     // Assumes there is enough space in _out_.
     // The delim is not included in the string.
-    reader *read_until(char *out, const string & delims);
+    reader *read_until(char *out, const string &delims);
 
     // The delim is not included in the string.
-    reader *read_until(array<char> *out, const string & delims);
+    reader *read_until(array<char> *out, const string &delims);
 
     // Assumes there is enough space in _out_.
     // Doesn't put the terminating byte/s in the buffer.
@@ -95,25 +91,10 @@ struct reader : non_copyable, non_movable, non_assignable {
 
     // Assumes there is enough space in _out_.
     // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(char *out, const string & eats);
+    reader *read_while(char *out, const string &eats);
 
     // Doesn't put the terminating byte/s in the buffer.
-    reader *read_while(array<char> *out, const string & eats);
-
-    // Reads _n_ code points and appends to _str_
-    reader *read(string *str, s64 n);
-
-    // _delim_ is not included in the string.
-    reader *read_until(string *str, char32_t delim);
-
-    // The delim is not included in the string.
-    reader *read_until(string *str, const string & delims);
-
-    // Doesn't include the terminating code point in the string.
-    reader *read_while(string *str, char32_t eat);
-
-    // Doesn't include the terminating code point in the string.
-    reader *read_while(string *str, const string & eats);
+    reader *read_while(array<char> *out, const string &eats);
 
     // Reads bytes until a newline character and puts them in _str_.
     // '\n' is not included in the string.
@@ -130,7 +111,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     // If the parsing fails:
     // - the integer is outside range:               the value returned is the min/max value for that integer type
     // - the buffer doesn't contain a valid integer: the value returned is '0'
-    // In both cases the _LastFailed_ flag is set to true (the flag gets reset before any parse function)
+    // In both cases the _LastParseFailed_ flag is set to true (the flag gets reset before any parse function)
     //
     // Note:
     // If T is unsigned, but the buffer contains a '-', the value returned is underflowed
@@ -139,7 +120,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     template <typename T>
     enable_if_t<is_integral_v<T>> read(T *value, s32 base = 0) {
         auto [parsed, success] = parse_int<T>(base);
-        LastFailed = !success;
+        LastParseFailed = !success;
         *value = parsed;
     }
 
@@ -154,20 +135,20 @@ struct reader : non_copyable, non_movable, non_assignable {
     void read(bool *value);
 
     // Parse a float
-    // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
+    // If the parsing fails the _LastParseFailed_ flag is set to true (gets reset before any parsing operation)
     void reader::read(f32 *value) {
         if (!value) return;
         auto [parsed, success] = parse_float();
-        LastFailed = !success;
+        LastParseFailed = !success;
         *value = (f32) parsed;
     }
 
     // Parse a float
-    // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
+    // If the parsing fails the _LastParseFailed_ flag is set to true (gets reset before any parsing operation)
     void reader::read(f64 *value) {
         if (!value) return;
         auto [parsed, success] = parse_float();
-        LastFailed = !success;
+        LastParseFailed = !success;
         *value = parsed;
     }
 
@@ -184,18 +165,69 @@ struct reader : non_copyable, non_movable, non_assignable {
     //
     // Doesn't pay attention to capitalization (both uppercase/lowercase/mixed are valid).
     //
-    // If the parsing fails the _LastFailed_ flag is set to true (gets reset before any parsing operation)
-    // and the guid is set to all 0
+    // If the parsing fails the _LastParseFailed_ flag is set to true (gets reset before any parsing operation) and the guid is set to all 0
     void reader::read(guid *value) {
         if (!value) return;
         auto [parsed, success] = parse_guid();
-        LastFailed = !success;
+        LastParseFailed = !success;
         *value = parsed;
     }
 
     template <typename T>
     enable_if_t<!is_arithmetic_v<T> && !is_same_v<T, string>> read(T *value) {
-        LastFailed = !deserialize(value, this);
+        LastParseFailed = !deserialize(value, this);
+    }
+
+    void read_byte(char *value, bool noSkipWhitespaceSingleTime = false) {
+        if (!test_state_and_skip_ws(noSkipWhitespaceSingleTime)) {
+            LastParseFailed = true;
+            *value = eof;
+            return;
+        }
+        *value = bump_byte();
+        if (*value == eof) {
+            LastParseFailed = true;
+            EOF = true;
+        }
+    }
+
+    bool test_state_and_skip_ws(bool noSkipSingleTime = false);
+
+    // Returns the value in _Current_ and then increments it (WITHOUT safety checks!)
+    const char *incr() {
+        --Available;
+        return Current++;
+    }
+
+    // Increments _Current_ and returns the value in it (WITHOUT safety checks!)
+    const char *pre_incr() {
+        --Available;
+        return ++Current;
+    }
+
+    // Retrieves the current byte
+    char peek_byte() {
+        if (Available == 0) {
+            return RequestByteFunction(this);
+        }
+        return *Current;
+    }
+
+    // Returns the current byte and increments _Current_
+    char bump_byte() {
+        if (Available == 0) {
+            return RequestByteFunction(this);
+        }
+        return *incr();
+    }
+
+    // Returns the byte after the current one and also increments _Current_
+    char next_byte() {
+        if (Available <= 1) {
+            if (bump_byte() == eof) return eof;
+            return peek_byte();
+        }
+        return *pre_incr();
     }
 
    private:
@@ -275,59 +307,15 @@ struct reader : non_copyable, non_movable, non_assignable {
         }
     }
 #undef check_eof
-
-    void read_byte(char *value, bool noSkipWhitespaceSingleTime = false) {
-        if (!test_state_and_skip_ws(noSkipWhitespaceSingleTime)) {
-            LastFailed = true;
-            *value = eof;
-            return;
-        }
-        *value = bump_byte();
-        if (*value == eof) {
-            LastFailed = true;
-            EOF = true;
-        }
-    }
-
-    bool test_state_and_skip_ws(bool noSkipSingleTime = false);
-
-    const char *incr() { return --Available, Current++; }
-    const char *pre_incr() { return --Available, ++Current; }
-
-    char peek_byte() {
-        if (Available == 0) {
-            return RequestByteFunction(this);
-        }
-        return *Current;
-    }
-
-    char request_byte_and_incr() {
-        if (RequestByteFunction(this) == eof) return eof;
-        return *incr();
-    }
-
-    char bump_byte() {
-        if (Available == 0) {
-            return RequestByteFunction(this);
-        }
-        return *incr();
-    }
-
-    char next_byte() {
-        if (Available <= 1) {
-            if (bump_byte() == eof) return eof;
-            return peek_byte();
-        }
-        return *pre_incr();
-    }
+    */
 };
 
 // Specialize this for custom types that may not be POD or have data that isn't serialized, e.g. pointers
-template <typename T>
-bool deserialize(T *dest, reader *r) {
-    r->read((char *) dest, sizeof(T));
-    return true;
-}
+// template <typename T>
+// bool deserialize(T *dest, reader *r) {
+//     r->read((char *) dest, sizeof(T));
+//     return true;
+// }
 
 }  // namespace io
 

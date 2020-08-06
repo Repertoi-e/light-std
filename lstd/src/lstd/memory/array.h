@@ -21,9 +21,9 @@ struct array {
     s64 Count = 0;
     s64 Reserved = 0;
 
-    array() = default;
-    array(data_t *data, s64 count) : Data(data), Count(count), Reserved(0) {}
-    array(array_view<data_t> items) : Data((data_t *) items.begin()), Count(items.size()), Reserved(0) {}
+    constexpr array() = default;
+    constexpr array(data_t *data, s64 count) : Data(data), Count(count), Reserved(0) {}
+    constexpr array(initializer_list<data_t> items) : Data((data_t *) items.begin()), Count(items.size()), Reserved(0) {}
 
     // We no longer use destructors for deallocation. Call release() explicitly (take a look at the defer macro!).
     // ~array() { release(); }
@@ -83,7 +83,7 @@ struct array {
 
     // We don't have bounds checking (for speed)
     data_t &get(s64 index) { return Data[translate_index(index, Count)]; }
-    const data_t &get(s64 index) const { return Data[translate_index(index, Count)]; }
+    constexpr const data_t &get(s64 index) const { return Data[translate_index(index, Count)]; }
 
     // Calls our quick_sort() on the elements.
     void sort() { quick_sort(Data, Data + Count); }
@@ -234,7 +234,7 @@ struct array {
 
     // Find the first occurence of an element which matches the predicate and is after a specified index.
     // Predicate must take a single argument (the current element) and return if it matches.
-    s64 find(const delegate<bool(const data_t &)> &predicate, s64 start = 0) const {
+    constexpr s64 find(const delegate<bool(const data_t &)> &predicate, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
@@ -245,7 +245,7 @@ struct array {
     }
 
     // Find the first occurence of an element that is after a specified index
-    s64 find(const T &element, s64 start = 0) const {
+    constexpr s64 find(const T &element, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
@@ -256,7 +256,7 @@ struct array {
     }
 
     // Find the first occurence of a subarray that is after a specified index
-    s64 find(array arr, s64 start = 0) const {
+    constexpr s64 find(array arr, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(arr.Data);
         assert(arr.Count);
@@ -274,7 +274,7 @@ struct array {
     }
 
     // Find the last occurence of an element that is before a specified index
-    s64 find_reverse(const T &element, s64 start = 0) const {
+    constexpr s64 find_reverse(const T &element, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
@@ -286,7 +286,7 @@ struct array {
     }
 
     // Find the last occurence of a subarray that is before a specified index
-    s64 find_reverse(array arr, s64 start = 0) const {
+    constexpr s64 find_reverse(array arr, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(arr.Data);
         assert(arr.Count);
@@ -305,7 +305,7 @@ struct array {
     }
 
     // Find the first occurence of any element in the specified subarray that is after a specified index
-    s64 find_any_of(array allowed, s64 start = 0) const {
+    constexpr s64 find_any_of(array allowed, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(allowed.Data);
         assert(allowed.Count);
@@ -319,7 +319,7 @@ struct array {
 
     // Find the last occurence of any element in the specified subarray
     // that is before a specified index (0 means: start from the end)
-    s64 find_reverse_any_of(array allowed, s64 start = 0) const {
+    constexpr s64 find_reverse_any_of(array allowed, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(allowed.Data);
         assert(allowed.Count);
@@ -333,7 +333,7 @@ struct array {
     }
 
     // Find the first absence of an element that is after a specified index
-    s64 find_not(const data_t &element, s64 start = 0) const {
+    constexpr s64 find_not(const data_t &element, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
@@ -344,7 +344,7 @@ struct array {
     }
 
     // Find the last absence of an element that is before the specified index
-    s64 find_reverse_not(const data_t &element, s64 start = 0) const {
+    constexpr s64 find_reverse_not(const data_t &element, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
 
         start = translate_index(start, Count);
@@ -356,7 +356,7 @@ struct array {
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    s64 find_not_any_of(array banned, s64 start = 0) const {
+    constexpr s64 find_not_any_of(array banned, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(banned.Data);
         assert(banned.Count);
@@ -369,7 +369,7 @@ struct array {
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    s64 find_reverse_not_any_of(array banned, s64 start = 0) const {
+    constexpr s64 find_reverse_not_any_of(array banned, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(banned.Data);
         assert(banned.Count);
@@ -383,10 +383,10 @@ struct array {
     }
 
     // Checks if _item_ is contained in the array
-    bool has(const data_t &item) const { return find(item) != -1; }
+    constexpr bool has(const data_t &item) const { return find(item) != -1; }
 
     // Checks if there is enough reserved space for _n_ elements
-    bool has_space_for(s64 n) { return (Count + size) <= Reserved; }
+    constexpr bool has_space_for(s64 n) { return (Count + size) <= Reserved; }
 
     //
     // Iterator:
@@ -394,48 +394,51 @@ struct array {
     using iterator = data_t *;
     using const_iterator = const data_t *;
 
-    iterator begin() { return Data; }
-    iterator end() { return Data + Count; }
-    const_iterator begin() const { return Data; }
-    const_iterator end() const { return Data + Count; }
+    constexpr iterator begin() { return Data; }
+    constexpr iterator end() { return Data + Count; }
+    constexpr const_iterator begin() const { return Data; }
+    constexpr const_iterator end() const { return Data + Count; }
 
     //
     // Operators:
     //
     data_t &operator[](s64 index) { return get(index); }
-    const data_t &operator[](s64 index) const { return get(index); }
+    constexpr const data_t &operator[](s64 index) const { return get(index); }
 
     // Check two arrays for equality
     template <typename U>
-    bool operator==(array<U> other) const {
+    constexpr bool operator==(array<U> other) const {
         return compare(other) == -1;
     }
 
     template <typename U>
-    bool operator!=(array<U> other) const {
+    constexpr bool operator!=(array<U> other) const {
         return !(*this == other);
     }
 
     template <typename U>
-    bool operator<(array<U> other) const {
+    constexpr bool operator<(array<U> other) const {
         return compare_lexicographically(other) < 0;
     }
 
     template <typename U>
-    bool operator>(array<U> other) const {
+    constexpr bool operator>(array<U> other) const {
         return compare_lexicographically(other) > 0;
     }
 
     template <typename U>
-    bool operator<=(array<U> other) const {
+    constexpr bool operator<=(array<U> other) const {
         return !(*this > other);
     }
 
     template <typename U>
-    bool operator>=(array<U> other) const {
+    constexpr bool operator>=(array<U> other) const {
         return !(*this < other);
     }
 };
+
+template <typename T, s64 N>
+stack_array<T, N>::operator array<T>() const { return array<T>((T *) Data, Count); }
 
 // Be careful not to call this with _dest_ pointing to _src_!
 // Returns just _dest_.
@@ -450,7 +453,7 @@ array<T> *clone(array<T> *dest, const array<T> &src) {
 // == and != for stack_array and array
 //
 template <typename T, typename U, s64 N>
-bool operator==(array<T> left, const stack_array<U, N> &right) {
+constexpr bool operator==(array<T> left, const stack_array<U, N> &right) {
     static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
 
     if (left.Count != right.Count) return false;
@@ -464,17 +467,17 @@ bool operator==(array<T> left, const stack_array<U, N> &right) {
 }
 
 template <typename T, typename U, s64 N>
-bool operator==(const stack_array<U, N> &left, array<T> right) {
+constexpr bool operator==(const stack_array<U, N> &left, array<T> right) {
     return right == left;
 }
 
 template <typename T, typename U, s64 N>
-bool operator!=(array<T> left, const stack_array<U, N> &right) {
+constexpr bool operator!=(array<T> left, const stack_array<U, N> &right) {
     return !(left == right);
 }
 
 template <typename T, typename U, s64 N>
-bool operator!=(const stack_array<U, N> &left, array<T> right) {
+constexpr bool operator!=(const stack_array<U, N> &left, array<T> right) {
     return right != left;
 }
 

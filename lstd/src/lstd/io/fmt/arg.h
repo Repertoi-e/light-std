@@ -142,6 +142,7 @@ constexpr bool can_be_formatted_v = can_be_formatted<T>::value;
 
 // !!!
 // If you get a compiler error here it's probably because you passed in an argument that can't be formatted
+// To format custom types, implement a fmt::formatter specialization.
 // !!!
 template <typename T>
 constexpr auto mapped_type_constant_v = type_constant_v<decltype(arg_mapper{}.map(declval<T>()))>;
@@ -166,7 +167,7 @@ enable_if_t<!IsPacked, arg> make_arg(const T &value) {
 
 // Visits an argument dispatching to the appropriate visit method based on the argument type
 template <typename Visitor>
-auto visit_fmt_arg(Visitor visitor, arg ar) -> decltype(visitor(0)) {
+auto visit_fmt_arg(Visitor &&visitor, arg ar) -> decltype(visitor(0)) {
     switch (ar.Type) {
         case type::NONE:
             break;

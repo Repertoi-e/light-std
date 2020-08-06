@@ -1,7 +1,4 @@
 ---------------------------------------------------------------------------------
-Make seperate libraries for different functionality 
-(right now lstd is a giant library containing everything we've implemented)
----------------------------------------------------------------------------------
 Replace with our own math functions in order to not depend on the runtime lib
 ---------------------------------------------------------------------------------
 - Locale?

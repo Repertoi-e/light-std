@@ -1,7 +1,9 @@
 #include "../test.h"
 
 TEST(stack_array) {
-    stack_array<s32, 5> a = {0, 1, 2, 3, 4};
+    stack_array<s32, 5> aa = {0, 1, 2, 3, 4};
+
+    auto a = (array<s32>) aa;
 
     For(range(a.Count)) { assert_eq(a[it], it); }
 
@@ -28,23 +30,23 @@ TEST(array) {
     For(range(10)) { assert_eq(a[it], it); }
 
     a.insert(3, -3);
-    assert_eq(a, to_array<s64>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
+    assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
 
     a.remove(4);
-    assert_eq(a, to_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
+    assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
     s64 count = a.Count;
     For(range(count)) { a.remove(-1); }
     assert_eq(a.Count, 0);
 
     For(range(10)) { a.insert(0, it); }
-    assert_eq(a, to_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
+    assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 
     a.remove(-1);
-    assert_eq(a, to_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1));
+    assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1));
 
     a.remove(0);
-    assert_eq(a, to_array<s64>(8, 7, 6, 5, 4, 3, 2, 1));
+    assert_eq(a, to_stack_array<s64>(8, 7, 6, 5, 4, 3, 2, 1));
 
     s64 f = a.find(9);
     assert_eq(f, -1);

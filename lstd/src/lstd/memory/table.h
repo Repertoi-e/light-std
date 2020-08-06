@@ -103,6 +103,7 @@ struct table {
                 Hashes = (u64 *) block;
                 Keys = (key_t *) (block + target * sizeof(u64) + padding1);
                 Values = (value_t *) (block + target * (sizeof(u64) + sizeof(key_t)) + padding2);
+                zero_memory(Hashes, target * sizeof(u64));
 
                 // Copy the old values in reverse because the block might not have moved in memory.
                 // copy_memory handles moving when the src and dest buffers overlap.

@@ -58,19 +58,24 @@ void run_tests() {
     asserts::GlobalFailed.release();
 }
 
-io::string_builder_writer logger;
+#define LOG_TO_FILE 0
 
+#if LOG_TO_FILE
+io::string_builder_writer logger;
 void write_output_to_file() {
     auto out = file::handle(file::path("output.txt"));
     out.write_to_file(logger.Builder.combine(), file::handle::Overwrite_Entire);
 }
+#endif
 
 s32 main() {
     Context.CheckForLeaksAtTermination = true;
+#if LOG_TO_FILE
+
     Context.LogAllAllocations = true;
     Context.Log = &logger;
     Context.FmtDisableAnsiCodes = true;
-
+#endif
     time_t start = os_get_time();
 
     // WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc)
@@ -83,7 +88,10 @@ s32 main() {
     }
 
     fmt::print("\nFinished tests, time taken: {:f} seconds\n\n", os_time_to_seconds(os_get_time() - start));
+
+#if LOG_TO_FILE
     run_at_exit(write_output_to_file);
+#endif
 
 #if defined DEBUG_MEMORY
     // These get reported as leaks otherwise and we were looking for actual problems...

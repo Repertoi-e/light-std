@@ -323,6 +323,7 @@ void win32_common_init() {
 }
 
 char io::console_reader_request_byte(io::reader *r) {
+    /*
     auto *cr = (io::console_reader *) r;
 
     thread::mutex *mutex = null;
@@ -339,6 +340,8 @@ char io::console_reader_request_byte(io::reader *r) {
     cr->Available = read;
 
     return (read == 0) ? io::eof : (*cr->Current);
+    */
+    return 0;
 }
 
 void io::console_writer_write(io::writer *w, const char *data, s64 count) {
@@ -677,16 +680,16 @@ guid new_guid() {
     GUID g;
     CoCreateGuid(&g);
 
-    stack_array<char, 16> data = to_array((char) ((g.Data1 >> 24) & 0xFF), (char) ((g.Data1 >> 16) & 0xFF),
-                                          (char) ((g.Data1 >> 8) & 0xFF), (char) ((g.Data1) & 0xff),
+    stack_array<char, 16> data = to_stack_array((char) ((g.Data1 >> 24) & 0xFF), (char) ((g.Data1 >> 16) & 0xFF),
+                                                (char) ((g.Data1 >> 8) & 0xFF), (char) ((g.Data1) & 0xff),
 
-                                          (char) ((g.Data2 >> 8) & 0xFF), (char) ((g.Data2) & 0xff),
+                                                (char) ((g.Data2 >> 8) & 0xFF), (char) ((g.Data2) & 0xff),
 
-                                          (char) ((g.Data3 >> 8) & 0xFF), (char) ((g.Data3) & 0xFF),
+                                                (char) ((g.Data3 >> 8) & 0xFF), (char) ((g.Data3) & 0xFF),
 
-                                          (char) g.Data4[0], (char) g.Data4[1], (char) g.Data4[2], (char) g.Data4[3],
-                                          (char) g.Data4[4], (char) g.Data4[5], (char) g.Data4[6], (char) g.Data4[7]);
-    return guid(array_view<char>(data.begin(), data.end()));
+                                                (char) g.Data4[0], (char) g.Data4[1], (char) g.Data4[2], (char) g.Data4[3],
+                                                (char) g.Data4[4], (char) g.Data4[5], (char) g.Data4[6], (char) g.Data4[7]);
+    return guid(data);
 }
 
 LSTD_END_NAMESPACE

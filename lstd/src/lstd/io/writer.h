@@ -31,7 +31,7 @@ struct writer : non_copyable, non_movable, non_assignable {
     writer() = default;
     writer(write_t writeFunction, flush_t flushFunction) : WriteFunction(writeFunction), FlushFunction(flushFunction) {}
 
-    void write(array_view<char> data) { WriteFunction(this, data.begin(), data.size()); }
+    void write(const array<char> &data) { WriteFunction(this, data.Data, data.Count); }
     void write(const char *data) { WriteFunction(this, data, c_string_length(data)); }
     void write(const char *data, s64 count) { WriteFunction(this, data, count); }
     void write(const string &str) { WriteFunction(this, str.Data, str.ByteLength); }

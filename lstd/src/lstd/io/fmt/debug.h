@@ -66,19 +66,19 @@ struct debug_list_helper {
     ~debug_list_helper() { Fields.release(); }
 
     template <typename T>
-    debug_list_helper *entries(array_view<T> val) {
+    debug_list_helper *entries(const array<T> &val) {
         For(val) Fields.append(make_arg(it));
         return this;
     }
 
     template <typename T>
     debug_list_helper *entries(T *begin, T *end) {
-        return entries(array_view<T>(begin, end));
+        return entries(array<T>(begin, end - begin));
     }
 
     template <typename T>
     debug_list_helper *entries(T *begin, s64 count) {
-        return entries(array_view<T>(begin, begin + count));
+        return entries(array<T>(begin, count));
     }
 
     void finish();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../internal/context.h"
+#include "array.h"
 #include "string.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -17,13 +18,13 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 
     stack_dynamic_buffer() = default;
 
-    stack_dynamic_buffer(array_view<char> view) {
-        if (sizeof(StackData) > view.size()) {
-            reserve(view.size());
+    stack_dynamic_buffer(const array<char> &arr) {
+        if (sizeof(StackData) > arr.Count) {
+            reserve(arr.Count);
         }
 
-        ByteLength = view.size();
-        copy_memory(StackData, view.begin(), ByteLength);
+        ByteLength = arr.Count;
+        copy_memory(StackData, arr.Data, ByteLength);
     }
 
     // We no longer use destructors for deallocation.
@@ -85,8 +86,8 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 
     // Insert data after a specified index
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert(s64 index, array_view<char> view, bool unsafe = false) {
-        insert_pointer_and_size(index, view.begin(), view.size(), unsafe);
+    void insert(s64 index, const array<char> &arr, bool unsafe = false) {
+        insert_pointer_and_size(index, view.Data, view.Count, unsafe);
     }
 
     // Insert a buffer of bytes at a specified index
@@ -134,8 +135,8 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 
     // Append one view to another
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append(array_view<char> view, bool unsafe = false) {
-        append_pointer_and_size(view.begin(), view.size(), unsafe);
+    void append(const array<char> &view, bool unsafe = false) {
+        append_pointer_and_size(view.Data, view.Count, unsafe);
     }
 
     // Append _count_ bytes of string contained in _data_
@@ -159,7 +160,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     //
     // Operators:
     //
-    operator array_view<char>() { return array_view<char>(Data, Data + ByteLength); }
+    operator array<char>() { return array<char>(Data, ByteLength); }
     explicit operator bool() const { return ByteLength; }
 
     // Read/write [] operator

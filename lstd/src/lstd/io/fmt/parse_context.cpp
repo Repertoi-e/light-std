@@ -68,17 +68,25 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
     switch (*It) {
         case '+':
             require_signed_arg(argType);
-            specs->Flags |= flag::SIGN | flag::PLUS;
+            // specs->Flags |= flag::SIGN | flag::PLUS;
+            specs->Sign = sign::PLUS;
             ++It;
             break;
         case '-':
+            // specs->Flags |= flag::MINUS;
             require_signed_arg(argType);
-            specs->Flags |= flag::MINUS;
+
+            // sign::MINUS has the same behaviour as sign::NONE on our types,
+            // but the user might want to have different formating
+            // on their custom types when minus is specified,
+            // so we record it when parsing anyway.
+            specs->Sign = sign::MINUS;
             ++It;
             break;
         case ' ':
+            // specs->Flags |= flag::SIGN;
             require_signed_arg(argType);
-            specs->Flags |= flag::SIGN;
+            specs->Sign = sign::SPACE;
             ++It;
             break;
     }
@@ -86,7 +94,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
 
     if (*It == '#') {
         require_numeric_arg(argType);
-        specs->Flags |= flag::HASH;
+        specs->Hash = true;
         if (++It == End) return true;
     }
 
@@ -210,7 +218,7 @@ u32 parse_context::parse_nonnegative_int() {
 bool parse_context::parse_align(type argType, format_specs *specs) {
     assert(It != End);
 
-    alignment align = alignment::DEFAULT;
+    alignment align = alignment::NONE;
     s32 i = 0;
 
     auto cpSize = get_size_of_cp(It);
@@ -230,7 +238,7 @@ bool parse_context::parse_align(type argType, format_specs *specs) {
                 align = alignment::CENTER;
                 break;
         }
-        if (align != alignment::DEFAULT) {
+        if (align != alignment::NONE) {
             if (i > 0) {
                 if (*It == '{') {
                     on_error("Invalid fill character '{'");

@@ -18,7 +18,7 @@ LSTD_BEGIN_NAMESPACE
 
 #if defined DEBUG || defined RELEASE
 #if !defined DEBUG_MEMORY && !defined FORCE_NO_DEBUG_MEMORY
-#define DEBUG_MEMORY
+#define DEBUG_MEMORY 1
 #endif
 #else
 // Don't enable extra info when in Dist configuration unless predefined

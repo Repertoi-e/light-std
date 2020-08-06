@@ -8,36 +8,57 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-enum class alignment { DEFAULT = 0, LEFT, RIGHT, CENTER, NUMERIC };
-enum class flag : u32 { SIGN = BIT(0), PLUS = BIT(1), MINUS = BIT(2), HASH = BIT(3) };
+// The optional align is one of the following:
+//   '<' - Forces the field to be left-aligned within the available space (default)
+//   '>' - Forces the field to be right-aligned within the available space.
+//   '=' - Forces the padding to be placed after the sign (if any)
+//         but before the digits.  This is used for printing fields
+//         in the form '+000000120'. This alignment option is only
+//         valid for numeric types.
+//   '^' - Forces the field to be centered within the available space
+enum class alignment { NONE = 0,
+                       LEFT,     // <
+                       RIGHT,    // >
+                       NUMERIC,  // =
+                       CENTER    // ^
+};
 
-constexpr flag operator|(flag lhs, flag rhs) {
-    using T = underlying_type_t<flag>;
-    return (flag)((T) lhs | (T) rhs);
-}
+// The 'sign' option is only valid for numeric types, and can be one of the following:
+//   '+'  - Indicates that a sign should be used for both positive as well as negative numbers
+//   '-'  - Indicates that a sign should be used only for negative numbers (default)
+//   ' '  - Indicates that a leading space should be used on positive numbers
+enum class sign {
+    NONE = 0,
+    PLUS,
 
-constexpr flag &operator|=(flag &lhs, flag rhs) {
-    using T = underlying_type_t<flag>;
-    lhs = (flag)((T) lhs | (T) rhs);
-    return lhs;
-}
+    // MINUS has the same behaviour as NONE on our types,
+    // but the user might want to have different formating
+    // on their custom types when minus is specified,
+    // so we record it when parsing anyway.
+    MINUS,
+    SPACE,
+};
 
 struct format_specs {
     char32_t Fill = ' ';
-    alignment Align = alignment::DEFAULT;
+    alignment Align = alignment::NONE;
 
-    flag Flags = (flag) 0;
+    sign Sign = sign::NONE;
+    bool Hash = false;
 
     u32 Width = 0;
     s32 Precision = -1;
 
     char Type = 0;
-
-    constexpr bool has_flag(flag flag) const { return ((u32) Flags & (u32) flag) != 0; }
 };
 
+// Refers to an argument by index or name.
+// Used for dynamic arguments (specifying width/precision not as a constant in the format string but as a separate argument).
 struct arg_ref {
-    enum class kind { NONE = 0, INDEX, NAME };
+    enum class kind { NONE = 0,
+                      INDEX,
+                      NAME };
+
     kind Kind = kind::NONE;
     union {
         u32 Index;
@@ -55,6 +76,7 @@ struct arg_ref {
     }
 };
 
+// Dynamic means that the width/precision was specified in a separate argument and not as a constant in the format string
 struct dynamic_format_specs : format_specs {
     arg_ref WidthRef;
     arg_ref PrecisionRef;

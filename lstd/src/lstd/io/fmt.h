@@ -338,7 +338,7 @@ struct formatter<mat<T, R, C, Packed>> {
     void format(const mat<T, R, C, Packed> &src, format_context *f) {
         f->write("[");
 
-        bool alternate = f->Specs && f->Specs->has_flag(flag::HASH);
+        bool alternate = f->Specs && f->Specs->Hash;
         s64 max = 0;
         if (alternate) {
             for (s32 i = 0; i < src.Height; ++i) {
@@ -385,7 +385,7 @@ struct formatter<mat<T, R, C, Packed>> {
 template <typename T, bool Packed>
 struct formatter<tquat<T, Packed>> {
     void format(const tquat<T, Packed> &src, format_context *f) {
-        bool alternate = f->Specs && f->Specs->has_flag(flag::HASH);
+        bool alternate = f->Specs && f->Specs->Hash;
         if (alternate) {
             f->write("[");
             to_writer(f, "{.f}", src.angle() / TAU * 360);

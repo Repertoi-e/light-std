@@ -141,7 +141,7 @@ void format_context::write(const void *value) {
     }
 
     format_specs specs = *Specs;
-    if (specs.Align == alignment::DEFAULT) specs.Align = alignment::RIGHT;
+    if (specs.Align == alignment::NONE) specs.Align = alignment::RIGHT;
     write_padded_helper(this, specs, f, numDigits + 2);
 }
 
@@ -159,8 +159,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
     } else if (to_lower(type) == 'x') {
         numDigits = count_digits<4>(value);
     } else if (type == 'c') {
-        if (specs.Align == alignment::NUMERIC || specs.has_flag(flag::SIGN) || specs.has_flag(flag::PLUS) ||
-            specs.has_flag(flag::MINUS) || specs.has_flag(flag::HASH)) {
+        if (specs.Align == alignment::NUMERIC || specs.Sign != sign::NONE || specs.Hash) {
             on_error("Invalid format specifier for code point");
             return;
         }
@@ -178,20 +177,20 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
 
     if (negative) {
         *prefixPointer++ = '-';
-    } else if (specs.has_flag(flag::PLUS)) {
+    } else if (specs.Sign == sign::PLUS) {
         *prefixPointer++ = '+';
-    } else if (specs.has_flag(flag::SIGN)) {
+    } else if (specs.Sign == sign::SPACE) {
         *prefixPointer++ = ' ';
     }
 
-    if ((to_lower(type) == 'x' || to_lower(type) == 'b') && specs.has_flag(flag::HASH)) {
+    if ((to_lower(type) == 'x' || to_lower(type) == 'b') && specs.Hash) {
         *prefixPointer++ = '0';
         *prefixPointer++ = type;
     }
 
     // Octal prefix '0' is counted as a digit,
     // so only add it if precision is not greater than the number of digits.
-    if (type == 'o' && specs.has_flag(flag::HASH)) {
+    if (type == 'o' && specs.Hash) {
         if (specs.Precision == -1 || specs.Precision > numDigits) *prefixPointer++ = '0';
     }
 
@@ -209,7 +208,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
         padding = (u32) specs.Precision - numDigits;
         specs.Fill = '0';
     }
-    if (specs.Align == alignment::DEFAULT) specs.Align = alignment::RIGHT;
+    if (specs.Align == alignment::NONE) specs.Align = alignment::RIGHT;
 
     type = (char) to_lower(type);
     if (type == 'd') {
@@ -292,9 +291,9 @@ void format_context::write_f64(f64 value, format_specs specs) {
     if (bits.ieee.S) {
         sign = '-';
         value = -value;
-    } else if (specs.has_flag(flag::PLUS)) {
+    } else if (specs.Sign == sign::PLUS) {
         sign = '+';
-    } else if (specs.has_flag(flag::SIGN)) {
+    } else if (specs.Sign == sign::SPACE) {
         sign = ' ';
     }
 
@@ -363,7 +362,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
             if (specs.Width) --specs.Width;
         }
         specs.Align = alignment::RIGHT;
-    } else if (specs.Align == alignment::DEFAULT) {
+    } else if (specs.Align == alignment::NONE) {
         specs.Align = alignment::RIGHT;
     }
 

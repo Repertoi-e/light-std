@@ -17,9 +17,9 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
     void release() {
         auto *b = BucketHead->Next;  // The first bucket is on the stack
         while (b) {
-            auto *toDelete = b;
+            auto *toFree = b;
             b = b->Next;
-            free(toDelete);
+            free(toFree);
         }
     }
 
