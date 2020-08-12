@@ -7,6 +7,9 @@
 
 LSTD_BEGIN_NAMESPACE
 
+template <typename T>
+struct array;
+
 // UTF-8 string
 // This string doesn't guarantee a null termination at the end.
 //
@@ -68,10 +71,6 @@ struct string {
     // Converts a null-terminated utf32 string to utf8.
     // Allocates a buffer (using the Context's allocator by default)
     explicit string(const char32_t *str);
-
-    // Create a string with an initial size reserved.
-    // Allocates a buffer (using the Context's allocator by default)
-    explicit string(s64 size);
 
     // We no longer use destructors for deallocation. Call release() explicitly (take a look at the defer macro!).
     // ~string() { release(); }
@@ -396,6 +395,9 @@ struct string {
     //
     // Operators:
     //
+
+    // Returns an array which is a view into this buffer
+    operator array<char>() const;
 
     // Returns true if the string contains any characters
     explicit operator bool() const { return ByteLength; }

@@ -29,12 +29,13 @@ void d3d_init(graphics *g) {
 
     DXGI_MODE_DESC *displayModeList = allocate_array(DXGI_MODE_DESC, numModes, Context.TemporaryAlloc);
     DX_CHECK(adapterOutput->GetDisplayModeList(DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_ENUM_MODES_INTERLACED, &numModes,
-                                              displayModeList));
+                                               displayModeList));
 
     DXGI_ADAPTER_DESC adapterDesc;
     DX_CHECK(adapter->GetDesc(&adapterDesc));
 
-    auto adapterStr = string(c_string_length(adapterDesc.Description) * 2);  // @Bug c_string_length * 2 is not enough
+    string adapterStr;  // @Bug c_string_length * 2 is not enough
+    adapterStr.reserve(c_string_length(adapterDesc.Description) * 2);
     utf16_to_utf8(adapterDesc.Description, const_cast<char *>(adapterStr.Data), &adapterStr.ByteLength);
     adapterStr.Length = utf8_length(adapterStr.Data, adapterStr.ByteLength);
 
@@ -215,7 +216,7 @@ void d3d_target_window_resized(graphics *g, graphics::target_window *targetWindo
 
     DX_CHECK(g->D3D.Device->CreateTexture2D(&textureDesc, null, &targetWindow->D3D.DepthStencilBuffer));
     DX_CHECK(g->D3D.Device->CreateDepthStencilView(targetWindow->D3D.DepthStencilBuffer, null,
-                                                  &targetWindow->D3D.DepthStencilView));
+                                                   &targetWindow->D3D.DepthStencilView));
 
     D3D11_RASTERIZER_DESC rDesc;
     zero_memory(&rDesc, sizeof(rDesc));

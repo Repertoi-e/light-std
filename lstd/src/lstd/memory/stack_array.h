@@ -50,6 +50,39 @@ struct stack_array {
 
     constexpr void sort() { quicksort(Data, Data + Count); }
 
+    // Compares this array to _arr_ and returns the index of the first element that is different.
+    // If the arrays are equal, the returned value is -1.
+    constexpr s32 compare(const stack_array &arr) const {
+        if (!Count && !arr.Count) return -1;
+        if (!Count || !arr.Count) return 0;
+
+        auto s1 = begin(), s2 = arr.begin();
+        while (*s1 == *s2) {
+            ++s1, ++s2;
+            if (s1 == end() && s2 == arr.end()) return -1;
+            if (s1 == end()) return s1 - begin();
+            if (s2 == arr.end()) return s2 - arr.begin();
+        }
+        return s1 - begin();
+    }
+
+    // Compares this array to to _arr_ lexicographically.
+    // The result is less than 0 if this array sorts before the other, 0 if they are equal, and greater than 0 otherwise.
+    constexpr s32 compare_lexicographically(const stack_array &arr) const {
+        if (!Count && !arr.Count) return -1;
+        if (!Count) return -1;
+        if (!arr.Count) return 1;
+
+        auto s1 = begin(), s2 = arr.begin();
+        while (*s1 == *s2) {
+            ++s1, ++s2;
+            if (s1 == end() && s2 == arr.end()) return 0;
+            if (s1 == end()) return -1;
+            if (s2 == arr.end()) return 1;
+        }
+        return s1 < s2 ? -1 : 1;
+    }
+
     //
     // Operators:
     //

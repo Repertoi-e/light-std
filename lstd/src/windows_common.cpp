@@ -62,7 +62,7 @@ void initialize_win32_state() {
     win32_crash_handler_init();
 }
 
-static array<delegate<void()>> ExitFunctions;
+file_scope array<delegate<void()>> ExitFunctions;
 
 void run_at_exit(const delegate<void()> &function) {
     WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
@@ -70,8 +70,20 @@ void run_at_exit(const delegate<void()> &function) {
     }
 }
 
+// We supply this to the user if they are doing something very hacky..
+void very_hacky_but_call_scheduled_exit_functions() {
+    For(ExitFunctions) it();
+}
+
+// We supply this to the user if they are doing something very hacky..
+array<delegate<void()>> *very_hacky_but_get_scheduled_exit_functions() {
+    return &ExitFunctions;
+}
+
 // Needs to happen just before the global C++ destructors get called.
-void call_exit_functions() { For(ExitFunctions) it(); }
+inline void call_exit_functions() {
+    very_hacky_but_call_scheduled_exit_functions();
+}
 
 void uninitialize_win32_state() {
 #if defined DEBUG_MEMORY

@@ -11,10 +11,14 @@
 //  s64 a = 10_MiB;
 
 // _B For completeness
-constexpr s64 operator"" _B(u64 i) { return (s64)(i); }
-constexpr s64 operator"" _KiB(u64 i) { return (s64)(i) << 10; }
-constexpr s64 operator"" _MiB(u64 i) { return (s64)(i) << 20; }
-constexpr s64 operator"" _GiB(u64 i) { return (s64)(i) << 30; }
+constexpr u64 operator"" _B(u64 i) { return i; }
+constexpr u64 operator"" _KiB(u64 i) { return i << 10; }
+constexpr u64 operator"" _MiB(u64 i) { return i << 20; }
+constexpr u64 operator"" _GiB(u64 i) { return i << 30; }
+
+constexpr u64 operator"" _thousand(u64 i) { return i * 1000; }
+constexpr u64 operator"" _million(u64 i) { return i * 1000000; }
+constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
 
 // Helper macro for, e.g flag enums
 //
@@ -31,6 +35,13 @@ constexpr s64 operator"" _GiB(u64 i) { return (s64)(i) << 30; }
 #define LINE_NAME(name) _MACRO_CONCAT(name, __LINE__)
 #define _MACRO_DO_CONCAT(s1, s2) s1##s2
 #define _MACRO_CONCAT(s1, s2) _MACRO_DO_CONCAT(s1, s2)
+
+//
+// Define clearer keyboards for the different meanings of _static_.
+// I recommend getting used to them because static is a really really name for a keyword.
+//
+#define file_scope static
+#define local_persist static
 
 // Go-style defer
 //
@@ -108,6 +119,14 @@ struct non_assignable {
 //  for (auto it : range(20))        // [0, 20)
 //  for (auto it : range(3, 10, 2))  // every second integer (step 2) in [3, 10)
 //  for (auto it : range(10, 0, -1)) // reverse [10, 0)
+//
+// .. or with our For macro:
+//
+//  For(range(12)) {}
+//
+//    which is equivalent to:
+//
+//  For_as(it, range(12)) {}
 //
 struct range {
     struct iterator {
@@ -592,15 +611,16 @@ constexpr bool sign_bit(f64 number) {
     return format.ieee.S;
 }
 
+// Returns -1 if number is negative, 1 otherwise
+template <typename T>
+constexpr s32 sign_no_zero(T number) {
+    return sign_bit(number) ? -1 : 1;
+}
+
 // Handles zero as well
 template <typename T>
 constexpr s32 sign(T number) {
     if (number == T(0)) return 0;
-    return sign_bit(number) ? -1 : 1;
-}
-
-template <typename T>
-constexpr s32 sign_no_zero(T number) {
     return sign_bit(number) ? -1 : 1;
 }
 
@@ -688,7 +708,9 @@ constexpr u32 count_digits(T value) {
     return numDigits;
 }
 
-// All of these return the value after the operation
+//
+// Atomic operations for lock-free parallel programming:
+//
 #if COMPILER == MSVC
 #define atomic_inc(ptr) _InterlockedIncrement((ptr))
 #define atomic_inc_64(ptr) _InterlockedIncrement64((ptr))
@@ -706,9 +728,10 @@ constexpr u32 count_digits(T value) {
 #else
 #define atomic_inc(ptr) __sync_add_and_fetch((ptr), 1)
 #define atomic_inc_64(ptr) __sync_add_and_fetch((ptr), 1)
-#error atomic_add, atomic_add_64, atomic_exchange, atomic_exchange_64
+#error Some atomic operations not implemented
 #endif
 
+// Returns 10 ** exponent at compile-time.
 template <typename T>
 constexpr T const_exp10(s32 exponent) {
     return exponent == 0 ? T(1) : T(10) * const_exp10<T>(exponent - 1);
@@ -718,8 +741,27 @@ template <typename T>
 struct delegate;
 
 // Schedule a function to run when this library uninitializes - before any global C++ destructors are called
-// and before the CRT (if we are linking against it) unitializes.
+// and before the CRT (if we are linking against it) uninitializes.
+//
+// Runs also when calling _os_exit(exitCode)_.
+//
+// Note that we don't try to be as general as possible _run_at_exit_ is merely a utility that might be useful
+// to ensure files are flushed or something (not recommended for just deallocation, the os claims back the memory anyway..
+// don't make your program slow!!).
 void run_at_exit(const delegate<void()> &function);
+
+// Runs all scheduled exit functions.
+// We supply this if you are doing something very weird and want to exit without calling _os_exit_.
+// This is here if you are doing something very weird and hacky.
+void very_hacky_but_call_scheduled_exit_functions();
+
+template <typename T>
+struct array;
+
+// We return a pointer so you can modify the array.
+// Again, this is if you are doing something very very hacky.
+// .. We don't want to limit you.
+array<delegate<void()>> *very_hacky_but_get_scheduled_exit_functions();
 
 LSTD_END_NAMESPACE
 

@@ -428,7 +428,8 @@ string window::get_title() {
         GetWindowTextW(PlatformData.Win32.hWnd, titleUtf16, tempLength);
     }
 
-    auto result = string(length * 2);  // @Bug length * 2 is not enough
+    string result;  // @Bug length * 2 is not enough
+    result.reserve(length * 2);
     utf16_to_utf8(titleUtf16, const_cast<char *>(result.Data), &result.ByteLength);
     result.Length = utf8_length(result.Data, result.ByteLength);
     return result;

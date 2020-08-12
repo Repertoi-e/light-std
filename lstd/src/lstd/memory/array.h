@@ -2,6 +2,7 @@
 
 #include "../internal/context.h"
 #include "stack_array.h"
+#include "string.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -192,7 +193,7 @@ struct array {
     data_t *append(const data_t &element) { return insert(Count, element); }
 
     // Appends an array to the end and returns a pointer to it in the buffer
-    data_t *append(array arr) { return insert(Counts, arr); }
+    data_t *append(const array &arr) { return insert(Counts, arr); }
 
     // Appends a buffer of elements to the end and returns a pointer to it in the buffer
     data_t *append_pointer_and_size(const data_t *ptr, s64 size) { return insert_pointer_and_size(Count, ptr, size); }
@@ -200,8 +201,13 @@ struct array {
     // Compares this array to _arr_ and returns the index of the first element that is different.
     // If the arrays are equal, the returned value is -1.
     template <typename U>
-    constexpr s64 compare(array<U> arr) const {
+    constexpr s64 compare(const array<U> &arr) const {
         static_assert(is_equal_comparable_v<T, U>, "Arrays have types which cannot be compared with operator ==");
+
+        if (Data == arr.Data && Count == arr.Count) return -1;
+
+        if (!Count && !arr.Count) return -1;
+        if (!Count || !arr.Count) return 0;
 
         const T *s1 = begin();
         const U *s2 = arr.begin();
@@ -217,9 +223,15 @@ struct array {
     // Compares this array to to _arr_ lexicographically.
     // The result is less than 0 if this array sorts before the other, 0 if they are equal, and greater than 0 otherwise.
     template <typename U>
-    constexpr s32 compare_lexicographically(array<U> arr) const {
+    constexpr s32 compare_lexicographically(const array<U> &arr) const {
         static_assert(is_equal_comparable_v<T, U>, "Arrays have types which cannot be compared with operator ==");
         static_assert(is_less_comparable_v<T, U>, "Arrays have types which cannot be compared with operator <");
+
+        if (Data == arr.Data && Count == arr.Count) return 0;
+
+        if (!Count && !arr.Count) return -1;
+        if (!Count) return -1;
+        if (!arr.Count) return 1;
 
         const T *s1 = begin();
         const U *s2 = arr.begin();
@@ -256,7 +268,7 @@ struct array {
     }
 
     // Find the first occurence of a subarray that is after a specified index
-    constexpr s64 find(array arr, s64 start = 0) const {
+    constexpr s64 find(const array &arr, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(arr.Data);
         assert(arr.Count);
@@ -286,7 +298,7 @@ struct array {
     }
 
     // Find the last occurence of a subarray that is before a specified index
-    constexpr s64 find_reverse(array arr, s64 start = 0) const {
+    constexpr s64 find_reverse(const array &arr, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(arr.Data);
         assert(arr.Count);
@@ -305,7 +317,7 @@ struct array {
     }
 
     // Find the first occurence of any element in the specified subarray that is after a specified index
-    constexpr s64 find_any_of(array allowed, s64 start = 0) const {
+    constexpr s64 find_any_of(const array &allowed, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(allowed.Data);
         assert(allowed.Count);
@@ -319,7 +331,7 @@ struct array {
 
     // Find the last occurence of any element in the specified subarray
     // that is before a specified index (0 means: start from the end)
-    constexpr s64 find_reverse_any_of(array allowed, s64 start = 0) const {
+    constexpr s64 find_reverse_any_of(const array &allowed, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(allowed.Data);
         assert(allowed.Count);
@@ -356,7 +368,7 @@ struct array {
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    constexpr s64 find_not_any_of(array banned, s64 start = 0) const {
+    constexpr s64 find_not_any_of(const array &banned, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(banned.Data);
         assert(banned.Count);
@@ -369,7 +381,7 @@ struct array {
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    constexpr s64 find_reverse_not_any_of(array banned, s64 start = 0) const {
+    constexpr s64 find_reverse_not_any_of(const array &banned, s64 start = 0) const {
         if (!Data || Count == 0) return -1;
         assert(banned.Data);
         assert(banned.Count);
@@ -407,38 +419,40 @@ struct array {
 
     // Check two arrays for equality
     template <typename U>
-    constexpr bool operator==(array<U> other) const {
+    constexpr bool operator==(const array<U> &other) const {
         return compare(other) == -1;
     }
 
     template <typename U>
-    constexpr bool operator!=(array<U> other) const {
+    constexpr bool operator!=(const array<U> &other) const {
         return !(*this == other);
     }
 
     template <typename U>
-    constexpr bool operator<(array<U> other) const {
+    constexpr bool operator<(const array<U> &other) const {
         return compare_lexicographically(other) < 0;
     }
 
     template <typename U>
-    constexpr bool operator>(array<U> other) const {
+    constexpr bool operator>(const array<U> &other) const {
         return compare_lexicographically(other) > 0;
     }
 
     template <typename U>
-    constexpr bool operator<=(array<U> other) const {
+    constexpr bool operator<=(const array<U> &other) const {
         return !(*this > other);
     }
 
     template <typename U>
-    constexpr bool operator>=(array<U> other) const {
+    constexpr bool operator>=(const array<U> &other) const {
         return !(*this < other);
     }
 };
 
 template <typename T, s64 N>
 stack_array<T, N>::operator array<T>() const { return array<T>((T *) Data, Count); }
+
+inline string::operator array<char>() const { return array<char>((char *) Data, ByteLength); }
 
 // Be careful not to call this with _dest_ pointing to _src_!
 // Returns just _dest_.
@@ -453,7 +467,7 @@ array<T> *clone(array<T> *dest, const array<T> &src) {
 // == and != for stack_array and array
 //
 template <typename T, typename U, s64 N>
-constexpr bool operator==(array<T> left, const stack_array<U, N> &right) {
+constexpr bool operator==(const array<T> &left, const stack_array<U, N> &right) {
     static_assert(is_equal_comparable_v<T, U>, "Types cannot be compared with operator ==");
 
     if (left.Count != right.Count) return false;
@@ -467,17 +481,17 @@ constexpr bool operator==(array<T> left, const stack_array<U, N> &right) {
 }
 
 template <typename T, typename U, s64 N>
-constexpr bool operator==(const stack_array<U, N> &left, array<T> right) {
+constexpr bool operator==(const stack_array<U, N> &left, const array<T> &right) {
     return right == left;
 }
 
 template <typename T, typename U, s64 N>
-constexpr bool operator!=(array<T> left, const stack_array<U, N> &right) {
+constexpr bool operator!=(const array<T> &left, const stack_array<U, N> &right) {
     return !(left == right);
 }
 
 template <typename T, typename U, s64 N>
-constexpr bool operator!=(const stack_array<U, N> &left, array<T> right) {
+constexpr bool operator!=(const stack_array<U, N> &left, const array<T> &right) {
     return right != left;
 }
 

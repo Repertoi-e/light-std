@@ -20,7 +20,7 @@ struct display_mode {
     s32 RedBits = 0, GreenBits = 0, BlueBits = 0;
     s32 RefreshRate = 0;
 
-    s32 compare(const display_mode &other) const {
+    s32 compare_lexicographically(const display_mode &other) const {
         s32 bpp = RedBits + GreenBits + BlueBits;
         s32 otherBPP = other.RedBits + other.GreenBits + other.BlueBits;
 
@@ -36,10 +36,10 @@ struct display_mode {
         return (RefreshRate > other.RefreshRate) - (other.RefreshRate - RefreshRate);
     }
 
-    bool operator==(const display_mode &other) const { return compare(other) == 0; }
+    bool operator==(const display_mode &other) const { return compare_lexicographically(other) == 0; }
     bool operator!=(const display_mode &other) const { return !(*this == other); }
-    bool operator>(const display_mode &other) const { return compare(other) == 1; }
-    bool operator<(const display_mode &other) const { return compare(other) == -1; }
+    bool operator>(const display_mode &other) const { return compare_lexicographically(other) == 1; }
+    bool operator<(const display_mode &other) const { return compare_lexicographically(other) == -1; }
 };
 
 struct monitor {

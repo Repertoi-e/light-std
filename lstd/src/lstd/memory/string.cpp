@@ -11,7 +11,9 @@ string::code_point_ref &string::code_point_ref::operator=(char32_t other) {
 
 string::code_point_ref::operator char32_t() const { return ((const string *) Parent)->get(Index); }
 
-string::string(char32_t codePoint, s64 repeat) : string(get_size_of_cp(codePoint) * repeat) {
+string::string(char32_t codePoint, s64 repeat) {
+    reserve(get_size_of_cp(codePoint) * repeat);
+
     s64 cpSize = get_size_of_cp(codePoint);
 
     auto *data = const_cast<char *>(Data);
@@ -37,8 +39,6 @@ string::string(const char32_t *str) {
         append(*str);
     }
 }
-
-string::string(s64 size) { reserve(size); }
 
 void string::reserve(s64 target) {
     if (ByteLength + target < Reserved) return;

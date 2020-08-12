@@ -135,10 +135,7 @@ static auto test_formatting(long) -> false_t;
 }  // namespace internal
 
 template <typename T>
-struct can_be_formatted : decltype(internal::test_formatting<T>(0)) {};
-
-template <typename T>
-constexpr bool can_be_formatted_v = can_be_formatted<T>::value;
+constexpr bool can_be_formatted_v = decltype(internal::test_formatting<T>(0))::value || is_enum_v<T>;
 
 // !!!
 // If you get a compiler error here it's probably because you passed in an argument that can't be formatted

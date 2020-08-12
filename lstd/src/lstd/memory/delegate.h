@@ -118,7 +118,7 @@ struct delegate<R(A...)> {
     }
 
     // Compare storages
-    s32 compare(void *storage) const {
+    s32 compare_lexicographically(void *storage) const {
         For(range(TargetSize)) {
             if (Storage[it] < storage[it]) {
                 return -1;
@@ -129,24 +129,24 @@ struct delegate<R(A...)> {
         return 0;
     }
 
-    bool operator==(const delegate &rhs) const { return compare(&rhs.Storage[0]) == 0; }
-    bool operator!=(const delegate &rhs) const { return compare(&rhs.Storage[0]) != 0; }
+    bool operator==(const delegate &rhs) const { return compare_lexicographically(&rhs.Storage[0]) == 0; }
+    bool operator!=(const delegate &rhs) const { return compare_lexicographically(&rhs.Storage[0]) != 0; }
 
     bool operator<(const delegate &rhs) const {
-        return compare(&rhs.Storage[0]) == -1;
+        return compare_lexicographically(&rhs.Storage[0]) == -1;
     }
 
     bool operator<=(const delegate &rhs) const {
-        auto result = compare(&rhs.Storage[0]);
+        auto result = compare_lexicographically(&rhs.Storage[0]);
         return result == -1 || result == 0;
     }
 
     bool operator>(const delegate &rhs) const {
-        return compare(&rhs.Storage[0]) == 1;
+        return compare_lexicographically(&rhs.Storage[0]) == 1;
     }
 
     bool operator>=(const delegate &rhs) const {
-        auto result = compare(&rhs.Storage[0]);
+        auto result = compare_lexicographically(&rhs.Storage[0]);
         return result == 1 || result == 0;
     }
 
