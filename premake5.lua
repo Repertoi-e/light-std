@@ -11,7 +11,7 @@ newoption {
 
 workspace "light-std"
     architecture "x64"
-    configurations { "Debug", "Release", "Dist" }
+    configurations { "Debug", "DebugTests", "Release", "Dist" }
 
 function common_settings()
     architecture "x64"
@@ -55,6 +55,10 @@ function common_settings()
         entrypoint "main_no_crt"
 
     filter "configurations:Debug"
+        defines "DEBUG"
+        symbols "On"
+        buildoptions { "/FS" }
+	filter "configurations:DebugTests"
         defines "DEBUG"
         symbols "On"
         buildoptions { "/FS" }
@@ -153,6 +157,10 @@ project "test-suite"
     common_settings()
 
 project "benchmark"
+	-- Disable this project when building only test-suite
+	kind "Utility"
+	filter "not configurations:DebugTests"
+	
     location "%{prj.name}"
     kind "ConsoleApp"
 
@@ -177,6 +185,9 @@ project "benchmark"
         links { "benchmark" }
 
 project "game"
+	kind "Utility"
+	filter "not configurations:DebugTests"
+	
     location "%{prj.name}"
     kind "ConsoleApp"
 
@@ -212,6 +223,10 @@ project "game"
         links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 project "cars"
+	-- Disable this project when building only test-suite
+	kind "Utility"
+	filter "not configurations:DebugTests"
+
     location "game"
     kind "SharedLib"
 
@@ -285,6 +300,10 @@ if (pythonPath == "" or pythonLib == "") and not _OPTIONS["python"] then
 end
 
 project "physics"
+	-- Disable this project when building only test-suite
+	kind "Utility"
+	filter "not configurations:DebugTests"
+	
     location "game"
     kind "SharedLib"
 
@@ -325,6 +344,10 @@ project "physics"
 
 -- This is the python module used in physics
 project "lstd-python-graphics"
+	-- Disable this project when building only test-suite
+	kind "Utility"
+	filter "not configurations:DebugTests"
+	
     location "game"
     kind "SharedLib"
     
@@ -351,6 +374,10 @@ project "lstd-python-graphics"
 
 
 project "bootloader"
+	-- Disable this project when building only test-suite
+	kind "Utility"
+	filter "not configurations:DebugTests"
+	
     location "os/bootloader"
     kind "ConsoleApp"
 
@@ -402,6 +429,4 @@ project "bootloader"
         defines "DIST"
         optimize "Full"
         symbols "Off"
-    filter {}
-
      

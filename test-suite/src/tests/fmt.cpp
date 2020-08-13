@@ -1,11 +1,11 @@
 #include "../test.h"
 
 #define CHECK_WRITE(expected, fmtString, ...)             \
-    {                                                     \
-        string t = fmt::sprint(fmtString, ##__VA_ARGS__); \
-        assert_eq(t, expected);                           \
-        t.release();                                      \
-    }
+{                                                     \
+string t = fmt::sprint(fmtString, ##__VA_ARGS__); \
+assert_eq(t, expected);                           \
+t.release();                                      \
+}
 
 static string LAST_ERROR;
 
@@ -14,18 +14,18 @@ void test_error_handler(const string &message, fmt::error_context errorContext) 
 template <typename... Args>
 void format_test_error(const string &fmtString, Args &&... args) {
     io::counting_writer dummy;
-
+    
     fmt::args_store<remove_reference_t<Args>...> store;
     store.populate(args...);
-
+    
     auto f = fmt::format_context(&dummy, fmtString, fmt::args(store), test_error_handler);
     fmt::parse_fmt_string(fmtString, &f);
 }
 
 #define EXPECT_ERROR(expected, fmtString, ...)   \
-    format_test_error(fmtString, ##__VA_ARGS__); \
-    assert_eq(LAST_ERROR, expected);             \
-    LAST_ERROR = "";
+format_test_error(fmtString, ##__VA_ARGS__); \
+assert_eq(LAST_ERROR, expected);             \
+LAST_ERROR = "";
 
 TEST(write_bool) {
     CHECK_WRITE("true", "{}", true);
@@ -76,10 +76,10 @@ TEST(write_code_point) { CHECK_WRITE("X", "{:c}", 'X'); }
 template <typename T>
 void check_unknown_types(T value, const string &types) {
     string special = ".0123456789}";
-
+    
     For(range(1, CHAR_MAX)) {
         if (special.has((char32_t) it) || types.has((char32_t) it)) continue;
-
+        
         string fmtString = fmt::sprint("{{0:10{:c}}}", it);
         EXPECT_ERROR("Invalid type specifier", fmtString, value);
         fmtString.release();
@@ -146,7 +146,7 @@ TEST(format_f32) {
 
 TEST(format_f64) {
     check_unknown_types(1.2, "eEfFgGaAn%");
-
+    
     CHECK_WRITE("0.0", "{:}", 0.0);
     CHECK_WRITE("0.000000", "{:f}", 0.0);
     CHECK_WRITE("0", "{:g}", 0.0);
@@ -157,7 +157,7 @@ TEST(format_f64) {
     CHECK_WRITE("392.650000", "{:F}", 392.65);
     CHECK_WRITE("12.500000%", "{:%}", 0.125);
     CHECK_WRITE("12.34%", "{:.2%}", 0.1234432);
-
+    
     CHECK_WRITE("3.926500e+02", "{0:e}", 392.65);
     CHECK_WRITE("3.926500E+02", "{0:E}", 392.65);
     CHECK_WRITE("+0000392.6", "{0:+010.4g}", 392.65);
@@ -194,10 +194,10 @@ struct Answer {};
 
 LSTD_BEGIN_NAMESPACE
 namespace fmt {
-template <>
-struct formatter<Answer> {
-    void format(Answer, format_context *f) { f->write(42); }
-};
+    template <>
+        struct formatter<Answer> {
+        void format(Answer, format_context *f) { f->write(42); }
+    };
 }  // namespace fmt
 LSTD_END_NAMESPACE
 
@@ -224,12 +224,12 @@ TEST(escape_brackets) {
     CHECK_WRITE("before {", "before {{");
     CHECK_WRITE("{ after", "{{ after");
     CHECK_WRITE("before { after", "before {{ after");
-
+    
     CHECK_WRITE("}", "}}");
     CHECK_WRITE("before }", "before }}");
     CHECK_WRITE("} after", "}} after");
     CHECK_WRITE("before } after", "before }} after");
-
+    
     CHECK_WRITE("{}", "{{}}");
     CHECK_WRITE("{42}", "{{{0}}}", 42);
 }
@@ -249,7 +249,7 @@ TEST(args_errors) {
     EXPECT_ERROR("Invalid format string", "{0");
     EXPECT_ERROR("Invalid format string", "{00}", 42);
     EXPECT_ERROR("Argument index out of range", "{0}");
-
+    
     EXPECT_ERROR("Invalid format string", "{");  //-V1002
     EXPECT_ERROR("Unmatched '}' in format string - use '}}' to escape", "}");
     EXPECT_ERROR("Invalid format string", "{0{}");
@@ -263,7 +263,7 @@ TEST(many_args) {
 TEST(named_args) {
     CHECK_WRITE("1/a/A", "{_1}/{a_}/{A_}", fmt::named("a_", "a"), fmt::named("A_", "A"), fmt::named("_1", 1));
     EXPECT_ERROR("Argument with this name not found", "{a}");
-
+    
     CHECK_WRITE(" -42", "{0:{width}}", -42, fmt::named("width", 4));
     CHECK_WRITE("st", "{0:.{precision}}", "str", fmt::named("precision", 2));
     CHECK_WRITE("1 2", "{} {two}", 1, fmt::named("two", 2));
@@ -275,12 +275,12 @@ TEST(named_args) {
 
 TEST(auto_arg_index) {
     CHECK_WRITE("abc", "{}{}{}", "a", "b", "c");
-
+    
     EXPECT_ERROR("Cannot switch from manual to automatic argument indexing", "{0}{}", 'a', 'b');
     EXPECT_ERROR("Cannot switch from automatic to manual argument indexing", "{}{0}", 'a', 'b');
-
+    
     CHECK_WRITE("1.2", "{:.{}}", 1.2345, 2);
-
+    
     EXPECT_ERROR("Cannot switch from manual to automatic argument indexing", "{0}:.{}", 1.2345, 2);
     EXPECT_ERROR("Cannot switch from automatic to manual argument indexing", "{:.{1}}", 1.2345, 2);
 }
@@ -333,12 +333,12 @@ TEST(numeric_align) {
     CHECK_WRITE("-  42", "{0:=5}", -42ll);
     CHECK_WRITE("   42", "{0:=5}", 42ull);
     CHECK_WRITE("-  42.0", "{0:=7}", -42.0);
-
+    
     EXPECT_ERROR("'}' expected", "{0:=5", 'a');
     EXPECT_ERROR("Invalid format specifier for code point", "{0:=5c}", 'a');
     EXPECT_ERROR("Format specifier requires numeric argument", "{0:=5}", "abc");
     EXPECT_ERROR("Format specifier requires numeric argument", "{0:=8}", (void *) 0xface);
-
+    
     CHECK_WRITE(" 1.0", "{:= }", 1.0);
 }
 
@@ -361,7 +361,7 @@ TEST(center_align) {
 TEST(fill) {
     EXPECT_ERROR("Invalid fill character '{'", "{0:{<5}", 'c');
     EXPECT_ERROR("Invalid fill character '{'", "{0:{<5}}", 'c');
-
+    
     CHECK_WRITE("**42", "{0:*>4}", 42);
     CHECK_WRITE("**-42", "{0:*>5}", -42);
     CHECK_WRITE("***42", "{0:*>5}", 42u);
@@ -374,7 +374,7 @@ TEST(fill) {
     CHECK_WRITE("abc**", "{0:*<5}", "abc");
     CHECK_WRITE("**0xface", "{0:*>8}", (void *) 0xface);
     CHECK_WRITE("foo=", "{:}=", "foo");
-
+    
     CHECK_WRITE(u8"ФФ42", u8"{0:Ф>4}", 42);
     CHECK_WRITE(u8"\u0904\u090442", u8"{0:\u0904>4}", 42);
     CHECK_WRITE(u8"\U0002070E\U0002070E42", u8"{0:\U0002070E>4}", 42);
@@ -387,7 +387,7 @@ TEST(plus_sign) {
     CHECK_WRITE("+42", "{0:+}", 42l);
     CHECK_WRITE("+42", "{0:+}", 42ll);
     CHECK_WRITE("+42.0", "{0:+}", 42.0);
-
+    
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0:+}", 42u);
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0:+}", 42ul);
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0:+}", 42ull);
@@ -404,7 +404,7 @@ TEST(minus_sign) {
     CHECK_WRITE("42", "{0:-}", 42l);
     CHECK_WRITE("42", "{0:-}", 42ll);
     CHECK_WRITE("42.0", "{0:-}", 42.0);
-
+    
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0:-}", 42u);
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0:-}", 42ul);
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0:-}", 42ull);
@@ -421,7 +421,7 @@ TEST(space_sign) {
     CHECK_WRITE(" 42", "{0: }", 42l);
     CHECK_WRITE(" 42", "{0: }", 42ll);
     CHECK_WRITE(" 42.0", "{0: }", 42.0);
-
+    
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0: }", 42u);
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0: }", 42ul);
     EXPECT_ERROR("Format specifier requires a signed integer argument", "{0: }", 42ull);
@@ -445,7 +445,7 @@ TEST(hash_flag) {
     CHECK_WRITE("42", "{0:#}", 42u);
     CHECK_WRITE("0x42", "{0:#x}", 0x42u);
     CHECK_WRITE("042", "{0:#o}", 042u);
-
+    
     CHECK_WRITE("-42", "{0:#}", -42l);
     CHECK_WRITE("0x42", "{0:#x}", 0x42l);
     CHECK_WRITE("-0x42", "{0:#x}", -0x42l);
@@ -454,7 +454,7 @@ TEST(hash_flag) {
     CHECK_WRITE("42", "{0:#}", 42ul);
     CHECK_WRITE("0x42", "{0:#x}", 0x42ul);
     CHECK_WRITE("042", "{0:#o}", 042ul);
-
+    
     CHECK_WRITE("-42", "{0:#}", -42ll);
     CHECK_WRITE("0x42", "{0:#x}", 0x42ll);
     CHECK_WRITE("-0x42", "{0:#x}", -0x42ll);
@@ -463,9 +463,9 @@ TEST(hash_flag) {
     CHECK_WRITE("42", "{0:#}", 42ull);
     CHECK_WRITE("0x42", "{0:#x}", 0x42ull);
     CHECK_WRITE("042", "{0:#o}", 042ull);
-
+    
     CHECK_WRITE("-42.0", "{0:#}", -42.0);
-
+    
     EXPECT_ERROR("'}' expected", "{0:#", 'c');
     EXPECT_ERROR("Invalid format specifier for code point", "{0:#c}", 'c');
     EXPECT_ERROR("Format specifier requires numeric argument", "{0:#}", "abc");
@@ -481,7 +481,7 @@ TEST(zero_flag) {
     CHECK_WRITE("-0042", "{0:05}", -42ll);
     CHECK_WRITE("00042", "{0:05}", 42ull);
     CHECK_WRITE("-0042.0", "{0:07}", -42.0);
-
+    
     EXPECT_ERROR("'}' expected", "{0:0", 'c');
     EXPECT_ERROR("Invalid format specifier for code point", "{0:0c}", 'c');
     EXPECT_ERROR("Format specifier requires numeric argument", "{0:0}", "abc");
@@ -490,7 +490,7 @@ TEST(zero_flag) {
 
 TEST(width) {
     EXPECT_ERROR("Number is too big", "{0:999999999999999999}", 0);
-
+    
     CHECK_WRITE(" -42", "{0:4}", -42);
     CHECK_WRITE("   42", "{0:5}", 42u);
     CHECK_WRITE("   -42", "{0:6}", -42l);
@@ -509,17 +509,17 @@ TEST(runtime_width) {
     EXPECT_ERROR("'}' expected", "{0:{}", 0);
     EXPECT_ERROR("Invalid format string", "{0:{?}}", 0);
     EXPECT_ERROR("Argument index out of range", "{0:{1}}", 0);
-
+    
     EXPECT_ERROR("Invalid format string", "{0:{0:}}", 0);
-
+    
     EXPECT_ERROR("Negative width", "{0:{1}}", 0, -1);
     EXPECT_ERROR("Width value is too big", "{0:{1}}", 0, (INT_MAX + 1u));
     EXPECT_ERROR("Negative width", "{0:{1}}", 0, -1l);
     EXPECT_ERROR("Width value is too big", "{0:{1}}", 0, (INT_MAX + 1ul));
-
+    
     EXPECT_ERROR("Width was not an integer", "{0:{1}}", 0, "0");
     EXPECT_ERROR("Width was not an integer", "{0:{1}}", 0, 0.0);
-
+    
     CHECK_WRITE(" -42", "{0:{1}}", -42, 4);
     CHECK_WRITE("   42", "{0:{1}}", 42u, 5);
     CHECK_WRITE("   -42", "{0:{1}}", -42l, 6);
@@ -535,10 +535,10 @@ TEST(runtime_width) {
 
 TEST(precision) {
     EXPECT_ERROR("Number is too big", "{0:.999999999999999999}", 0);
-
+    
     EXPECT_ERROR("Missing precision specifier", "{0:.", 0);
     EXPECT_ERROR("Missing precision specifier", "{0:.}", 0);
-
+    
     EXPECT_ERROR("'}' expected", "{0:.2", 0);
     EXPECT_ERROR("Invalid type specifier", "{0:.2f}", 42);
     EXPECT_ERROR("Invalid type specifier", "{0:.2f}", 42u);
@@ -554,12 +554,12 @@ TEST(precision) {
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:.2}", 42ll);
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:.2}", 42ull);
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:3.0c}", 'c');
-
+    
     CHECK_WRITE("1.2", "{0:.2}", 1.2345);
-
+    
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:.2}", (void *) 0xcafe);
     EXPECT_ERROR("Invalid type specifier", "{0:.2f}", (void *) 0xcafe);
-
+    
     CHECK_WRITE("st", "{0:.2}", "str");
 }
 
@@ -574,17 +574,17 @@ TEST(runtime_precision) {
     EXPECT_ERROR("Invalid format string", "{0:.{?}}", 0);
     EXPECT_ERROR("'}' expected", "{0:.{1}", 0, 0);
     EXPECT_ERROR("Argument index out of range", "{0:.{1}}", 0);
-
+    
     EXPECT_ERROR("Invalid format string", "{0:.{0:}}", 0);
-
+    
     EXPECT_ERROR("Negative precision", "{0:.{1}}", 0, -1);
     EXPECT_ERROR("Precision value is too big", "{0:.{1}}", 0, (INT_MAX + 1u));
     EXPECT_ERROR("Negative precision", "{0:.{1}}", 0, -1l);
     EXPECT_ERROR("Precision value is too big", "{0:.{1}}", 0, (INT_MAX + 1ul));
-
+    
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:.{1}c}", 0, '0');
     EXPECT_ERROR("Precision was not an integer", "{0:.{1}}", 0, 0.0);
-
+    
     EXPECT_ERROR("'}' expected", "{0:.{1}", 0, 2);
     EXPECT_ERROR("Invalid type specifier", "{0:.{1}f}", 42, 2);
     EXPECT_ERROR("Invalid type specifier", "{0:.{1}f}", 42u, 2);
@@ -600,38 +600,40 @@ TEST(runtime_precision) {
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:.{1}}", 42ll, 2);
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:.{1}}", 42ull, 2);
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:3.{1}c}", 'c', 0);
-
+    
     CHECK_WRITE("1.2", "{0:.{1}}", 1.2345, 2);
-
+    
     EXPECT_ERROR("Precision is not allowed for this argument type", "{0:.{1}}", (void *) 0xcafe, 2);
     EXPECT_ERROR("Invalid type specifier", "{0:.{1}f}", (void *) 0xcafe, 2);
-
+    
     CHECK_WRITE("st", "{0:.{1}}", "str", 2);
 }
 
 TEST(colors_and_emphasis) {
+    if (Context.FmtDisableAnsiCodes) return;
+    
     EXPECT_ERROR(
-        "Invalid emphasis character - "
-        "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)",
-        "{!L}");
+                 "Invalid emphasis character - "
+                 "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)",
+                 "{!L}");
     EXPECT_ERROR(
-        "Invalid emphasis character - "
-        "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)",
-        "{!BLUE;BL}");
+                 "Invalid emphasis character - "
+                 "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)",
+                 "{!BLUE;BL}");
     EXPECT_ERROR(
-        "Invalid emphasis character - "
-        "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)",
-        "{!BG}");
-
+                 "Invalid emphasis character - "
+                 "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)",
+                 "{!BG}");
+    
     EXPECT_ERROR("Invalid channel value - it must be in the range [0-255]", "{!256;0;0}");
     EXPECT_ERROR("Invalid channel value - it must be in the range [0-255]", "{!0;300;0}");
     EXPECT_ERROR("';' expected", "{!0.0}");
     EXPECT_ERROR("';' expected", "{!0;0}");
     EXPECT_ERROR("Integer expected", "{!0;0;}");
     EXPECT_ERROR("'}' or ';' expected", "{!0;0;0.}");
-
+    
     EXPECT_ERROR("Invalid color name - it must be a valid identifier", "{!BL9UE}");
-
+    
     CHECK_WRITE("\x1b[38;2;255;020;030m", "{!255;20;30}");
     CHECK_WRITE("\x1b[38;2;000;000;255m", "{!BLUE}");
     CHECK_WRITE("\x1b[38;2;000;000;255m\x1b[48;2;255;000;000m", "{!BLUE}{!RED;BG}");

@@ -108,18 +108,6 @@ namespace io {
             *value = parsed;
         }
     
-        // Parse a guid
-        // Parses the following representations:
-        // - 00000000000000000000000000000000
-        // - 00000000-0000-0000-0000-000000000000
-        // - {00000000-0000-0000-0000-000000000000}
-        // - (00000000-0000-0000-0000-000000000000)
-        // - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
-        //
-        // For the last one, it must start with "{0x" (in order to get recognized),
-        // but the other integers don't have to be in hex.
-        //
-        // Doesn't pay attention to capitalization (both uppercase/lowercase/mixed are valid).
         //
         // If the parsing fails the _LastParseFailed_ flag is set to true (gets reset before any parsing operation) and the guid is set to all 0
         void reader::read(guid *value) {

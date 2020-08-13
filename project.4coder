@@ -31,7 +31,7 @@ command_list = {
 			}, },
  { .name = "run",
    .out = "*run*", .footer_panel = false, .save_dirty_files = false,
-   .cmd = { { "bin\\Debug-windows-x86_64\\test-suite\\test-suite.exe", .os = "win"   },
+   .cmd = { { "bin\\DebugTests-windows-x86_64\\test-suite\\test-suite.exe", .os = "win"   },
             }, },
 };
 

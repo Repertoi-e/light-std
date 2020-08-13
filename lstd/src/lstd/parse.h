@@ -199,7 +199,7 @@ tuple<IntT, parse_status, array<char>> parse_integer(const array<char> &buffer, 
     
     if constexpr (Options->LookForBasePrefix) {
         if (*p == '0') {
-            if ((n - 1) && *(p + 1) == 'x') {
+            if ((n - 1) && (*(p + 1) == 'x' || *(p + 1) == 'X')) {
                 base = 16;
                 p += 2, n -= 2;
             } else {
@@ -353,6 +353,257 @@ tuple<bool, parse_status, array<char>> parse_bool(const array<char> &buffer) {
     
     return {false, PARSE_INVALID, array<char>(p, n)};
 }
+/*
+inline pair<char, parse_status> eat_hex_byte(char **p, s64 *n) {
+    
+}
+
+// ... compile time options for different code paths in parse_guid. 
+struct parse_guid_options {
+    // Do we handle formats starting with parentheses - ( or {.
+    bool Parentheses = true;
+    
+    // Doesn't pay attention to the position or the number of hyphens in the input, just ignores them.
+    // This makes parsing go faster when you don't care if the input is partially incorrect or you know it is not!
+    bool RelaxHyphens = false;
+    
+    constexpr parse_guid_options() {}
+    constexpr parse_guid_options(bool parentheses, bool relaxHyphens) : Parentheses(parentheses), RelaxHyphens(relaxHyphens) {}
+};
+
+constexpr parse_guid_options parse_guid_options_default;
+
+// Parse a guid
+// Parses the following representations:
+// - 81a130d2502f4cf1a37663edeb000e9f
+// - 81a130d2-502f-4cf1-a376-63edeb000e9f
+// - {81a130d2-502f-4cf1-a376-63edeb000e9f}
+// - (81a130d2-502f-4cf1-a376-63edeb000e9f)
+// - {0x81a130d2,0x502f,0x4cf1,{0xa3,0x76,0x63,0xed,0xeb,0x00,0x0e,0x9f}}
+//
+// For the last one, it must start with "{0x" (in order to get recognized),
+// but the other integers don't have to start with 0x!
+//
+// Doesn't pay attention to capitalization (both uppercase/lowercase/mixed are valid).
+template <const parse_guid_options *Options = &parse_guid_options_default>
+tuple<guid, parse_status, array<char>> parse_guid(const array<char> &buffer) {
+    char *p = buffer.Data;
+    s64 n = buffer.Count;
+    
+    if (!n) return {0, PARSE_EXHAUSTED, buffer};
+    
+    bool parentheses = false, curly = false;
+    if (Options->Parentheses) {
+        if (*p == '(' || *p == '{') {
+            parentheses = true;
+            curly = *p == '{';
+            ++p, --n;
+            if (!n) return {0, PARSE_EXHAUSTED, buffer};
+        }
+    }
+    
+    if ((n - 1) && *p == '0') {
+        if (*(p + 1) == 'x' || *(p + 1) == 'X') {
+            if (!parenthesis || !curly) {
+                // Here we don't return "rest" after consuming the chars,
+                // because the parse functions should return the buffer where 
+                // the parse error happened (e.g. for logging errors with context).
+                // In this cases the error is that there is 0x but we didn't start with a {.
+                return {result, PARSE_INVALID, buffer};
+            }
+            
+            // Parse following format:
+            // {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
+            
+            union {
+                char Data[16];
+                struct {
+                    u32 D1;
+                    u16 D5, D7;
+                    char D9, D10, D11, D12, D13, D14, D15, D16;
+                };
+            } u;
+            
+            // :GuidParseError
+#define EAT_CHAR(c)   \
+ch = bump_byte(); \
+check_eof(ch);    \
+if (ch != c) fail
+            
+            // :GuidParseError
+#define HANDLE_SECTION(num, size, comma)         \
+{                                            \
+auto [d, success] = parse_int<size>(16); \
+if (!success) fail;                      \
+if (comma) EAT_CHAR(',');                \
+u.D##num = d;                            \
+}
+            bump_byte();  // We already consumed 0, so when parse_int fires the first char is x which is invalid.
+            
+            HANDLE_SECTION(1, u32, true);
+            HANDLE_SECTION(5, u16, true);
+            HANDLE_SECTION(7, u16, true);
+            EAT_CHAR('{');
+            HANDLE_SECTION(9, u8, true);
+            HANDLE_SECTION(10, u8, true);
+            HANDLE_SECTION(11, u8, true);
+            HANDLE_SECTION(12, u8, true);
+            HANDLE_SECTION(13, u8, true);
+            HANDLE_SECTION(14, u8, true);
+            HANDLE_SECTION(15, u8, true);
+            HANDLE_SECTION(16, u8, false);
+            EAT_CHAR('}');
+            EAT_CHAR('}');
+            
+            copy_memory(result.Data, u.Data, 16);
+            return {result, true};
+        }
+    }
+    
+    
+    guid result;
+    
+    
+    
+    bool parenthesis = false;
+    bool curly = false;
+    
+    if (ch == '(' || ch == '{') {
+        parenthesis = true;
+        curly = ch == '{';
+        bump_byte();
+    }
+    
+    ch = bump_byte();
+    check_eof(ch);
+    
+    char next = peek_byte();
+    if (ch == '0' && next == 'x' || next == 'X') {
+        // :GuidParseError
+        if (!parenthesis) fail;
+        if (!curly) fail;
+        
+        //
+        // Parse following format:
+        // {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
+        //
+        union {
+            char Data[16];
+            struct {
+                u32 D1;
+                u16 D5, D7;
+                char D9, D10, D11, D12, D13, D14, D15, D16;
+            };
+        } u;
+        
+        // :GuidParseError
+#define EAT_CHAR(c)   \
+ch = bump_byte(); \
+check_eof(ch);    \
+if (ch != c) fail
+        
+        // :GuidParseError
+#define HANDLE_SECTION(num, size, comma)         \
+{                                            \
+auto [d, success] = parse_int<size>(16); \
+if (!success) fail;                      \
+if (comma) EAT_CHAR(',');                \
+u.D##num = d;                            \
+}
+        bump_byte();  // We already consumed 0, so when parse_int fires the first char is x which is invalid.
+        
+        HANDLE_SECTION(1, u32, true);
+        HANDLE_SECTION(5, u16, true);
+        HANDLE_SECTION(7, u16, true);
+        EAT_CHAR('{');
+        HANDLE_SECTION(9, u8, true);
+        HANDLE_SECTION(10, u8, true);
+        HANDLE_SECTION(11, u8, true);
+        HANDLE_SECTION(12, u8, true);
+        HANDLE_SECTION(13, u8, true);
+        HANDLE_SECTION(14, u8, true);
+        HANDLE_SECTION(15, u8, true);
+        HANDLE_SECTION(16, u8, false);
+        EAT_CHAR('}');
+        EAT_CHAR('}');
+        
+        copy_memory(result.Data, u.Data, 16);
+        return {result, true};
+    } else {
+        char c1 = 0, c2 = 0;
+        bool seek1 = true;
+        bool hyphens = false;
+        bool justSkippedHyphen = false;
+        
+        u32 p = 0;
+        while (true) {
+            if (!hyphens) {
+                if (ch == '-' && p == 4) {
+                    hyphens = true;
+                    ch = bump_byte();
+                    check_eof(ch);
+                    continue;
+                }
+            } else if (!justSkippedHyphen && (p == 6 || p == 8 || p == 10)) {
+                if (ch != '-') {
+                    // @TODO: We should report parse errors like we do format errors
+                    fail;
+                } else {
+                    justSkippedHyphen = true;
+                    ch = bump_byte();
+                    check_eof(ch);
+                    continue;
+                }
+            }
+            
+            if (!is_hex_digit(to_lower(ch))) {
+                fail;  // :GuidParseError
+            }
+            
+            if (seek1) {
+                c1 = hex_digit_from_char(ch);
+                if (c1 == -1) {
+                    fail;  // :GuidParseError
+                }
+                seek1 = false;
+            } else {
+                c2 = hex_digit_from_char(ch);
+                if (c2 == -1) {
+                    fail;  // :GuidParseError
+                }
+                u8 uc = c1 * 16 + c2;
+                
+                union {
+                    u8 uc;
+                    char sc;
+                } u;
+                u.uc = uc;
+                
+                result.Data[p++] = u.sc;
+                seek1 = true;
+                
+                justSkippedHyphen = false;
+            }
+            
+            if (p == 16) break;
+            
+            ch = bump_byte();
+            check_eof(ch);
+        }
+        
+        if (parenthesis) {
+            ch = bump_byte();
+            check_eof(ch);
+            if (curly) {
+                if (ch != '}') fail;  // :GuidParseError
+            } else if (ch != ')') {
+                fail;  // :GuidParseError
+            }
+        }
+        return {result, true};
+    }
+}
+*/
 
 // Returns the rest after _delim_ is reached
 array<char> eat_bytes_until(const array<char> &buffer, char delim) {

@@ -59,6 +59,7 @@ constexpr auto numbers_not_allowed = parse_bool_options(false, true, false);
 constexpr auto ignore_case = parse_bool_options(false, true, true);
 
 TEST(bools) {
+    
     test_parse_bool(&parse_bool_options_default, "", false, PARSE_EXHAUSTED, "");
     
     test_parse_bool(&parse_bool_options_default, "0", false, PARSE_SUCCESS, "");
