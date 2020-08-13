@@ -6,9 +6,13 @@ LSTD_BEGIN_NAMESPACE
 
 enum parse_status : u32 {
     PARSE_SUCCESS = 0,
-
+    
+    // We have ran out of buffer. The returned _rest_ is actually the whole buffer which was passed.
+    // The caller should get more bytes and concatenate it with the original buffer and call the function again (usually that is what you want).
+    PARSE_EXHAUSTED,
+    
     PARSE_INVALID,  // Means the input was malformed/in the wrong format
-
+    
     PARSE_TOO_MANY_DIGITS  // Used in _parse_integer_ when the resulting value overflowed or underflowed
 };
 
@@ -74,7 +78,8 @@ struct parse_int_options {
     // For any byte that doesn't correspond to a digit, return _BYTE_NOT_VALID_ and if the parser should ignore the byte but not fail parsing, return _IGNORE_THIS_BYTE.
     // Here are two use cases which illustrate that:
     //
-    //     // This byte to digit function supports only decimal and allows parsing '1_000_000' as 1 million because it tells the parser to ignore '_'
+    //     // This byte to digit function supports only decimal and allows parsing '1_000_000' as 1 million because it tells the parser to ignore '_'.
+    //     // You can also write a function which ignores commas, using this to parse numbers with a thousands separator: '1,000,000'
     //     char byte_to_digit_which_ignores_underscores(char value) {
     //         if (value >= '0' && value <= '9') {
     //             return value - '0';
@@ -103,18 +108,18 @@ struct parse_int_options {
     //
     // Remember that this function is actually specified at compile time!!!
     char (*ByteToDigit)(char) = byte_to_digit_default;
-
+    
     bool ParseSign = true;           // If true, looks for +/- before trying to parse any digits. If '-' the result is negated.
     bool AllowPlusSign = true;       // If true, allows explicit + as a sign, if false, results in parse failure.
     bool LookForBasePrefix = false;  // If true, looks for 0x and 0 for hex and oct respectively and if found, overwrites the base parameter.
-
+    
     enum too_many_digits : char {
         BAIL,     // Stop parsing when an overflow happens and bail out of the function.
         CONTINUE  // Parse as much digits as possible while ignoring the overflow/underflow.
     };
-
+    
     too_many_digits TooManyDigitsBehaviour = BAIL;
-
+    
     constexpr parse_int_options() {}
     constexpr parse_int_options(char (*byteToDigit)(char), bool parseSign, bool allowPlusSign, bool lookForBasePrefix, too_many_digits tooManyDigitsBehaviour)
         : ByteToDigit(byteToDigit), ParseSign(parseSign), AllowPlusSign(allowPlusSign), LookForBasePrefix(lookForBasePrefix), TooManyDigitsBehaviour(tooManyDigitsBehaviour) {}
@@ -163,6 +168,7 @@ IntT handle_negative(IntT value, bool negative) {
 //
 // Returns:
 //   * PARSE_SUCCESS          if a valid integer was parsed. A valid integer is in the form (+|-)[digit]* (where digit may be a letter depending on the base),
+//   * PARSE_EXHAUSTED        if we parsed a sign or a base prefix but we ran ouf ot bytes,
 //   * PARSE_INVALID          if the function wasn't able to parse a valid integer but
 //                            note that if the integer starts with +/-, that could be considered invalid (depending on the options),
 //   * PARSE_TOO_MANY_DIGITS  if the parsing stopped because the integer became too large (only if TooManyDigitsBehaviour == BAIL in options)
@@ -171,12 +177,12 @@ IntT handle_negative(IntT value, bool negative) {
 template <typename IntT, const parse_int_options *Options = &parse_int_options_default>
 tuple<IntT, parse_status, array<char>> parse_integer(const array<char> &buffer, u32 base = 10) {
     assert(base >= 2 && base <= 36);
-
+    
     char *p = buffer.Data;
     s64 n = buffer.Count;
-
-    if (!n) return {0, PARSE_INVALID, array<char>(p, n)};
-
+    
+    if (!n) return {0, PARSE_EXHAUSTED, buffer};
+    
     bool negative = false;
     if constexpr (Options->ParseSign) {
         if (*p == '+') {
@@ -188,9 +194,9 @@ tuple<IntT, parse_status, array<char>> parse_integer(const array<char> &buffer, 
             negative = true;
             ++p, --n;
         }
-        if (!n) return {0, PARSE_INVALID, array<char>(p, n)};
+        if (!n) return {0, PARSE_EXHAUSTED, buffer};
     }
-
+    
     if constexpr (Options->LookForBasePrefix) {
         if (*p == '0') {
             if ((n - 1) && *(p + 1) == 'x') {
@@ -201,18 +207,18 @@ tuple<IntT, parse_status, array<char>> parse_integer(const array<char> &buffer, 
                 ++p, --n;
             }
         }
-        if (!n) return {0, PARSE_INVALID, array<char>(p, n)};
+        if (!n) return {0, PARSE_EXHAUSTED, buffer};
     }
-
+    
     // Check the first character. If it's not a valid digit bail out.
     // We can't combine this with the loop below because the return
     // after the parsing would consume the sign (if there was one read).
     // This here returns the entire buffer as the 'rest'.
     char digit = Options->ByteToDigit(*p);
     ++p, --n;
-
+    
     if (digit < 0 || digit >= (s32) base) return {0, PARSE_INVALID, array<char>(p, n)};
-
+    
     IntT maxValue, cutOff;
     s32 cutLim;
     if constexpr (Options->TooManyDigitsBehaviour == parse_int_options::BAIL) {
@@ -223,11 +229,11 @@ tuple<IntT, parse_status, array<char>> parse_integer(const array<char> &buffer, 
         } else {
             maxValue = negative ? -(numeric_info<IntT>::min()) : numeric_info<IntT>::max();
         }
-
+        
         cutOff = const_abs(maxValue / base);
         cutLim = maxValue % (IntT) base;
     }
-
+    
     // Now we start parsing for real
     IntT value = 0;
     while (true) {
@@ -244,21 +250,94 @@ tuple<IntT, parse_status, array<char>> parse_integer(const array<char> &buffer, 
                 }
             }
         }
-
+        
         // If this is our first iteration, we use the digit we parsed above
         value = value * base + digit;
-
+        
         digit = Options->ByteToDigit(*p);
         if (digit < 0 || digit >= (s32) base) break;
         *p++, --n;
     }
-
+    
     // If we haven't parsed a sign there is no need to handle negative
     if constexpr (Options->ParseSign) {
         return {handle_negative(value, negative), PARSE_SUCCESS, array<char>(p, n)};
     } else {
         return {value, PARSE_SUCCESS, array<char>(p, n)};
     }
+}
+
+// If _IgnoreCase_ is true, then _value_ must be lower case (to save on performance)
+template <bool IgnoreCase>
+inline parse_status eat_byte(char **p, s64 *n, char value) {
+    if (!*n) return PARSE_EXHAUSTED;
+    char ch = **p;
+    if constexpr (IgnoreCase) ch = (char) to_lower(ch);
+    if (ch == value) {
+        ++*p, --*n;
+        return PARSE_SUCCESS;
+    } else {
+        return PARSE_INVALID;
+    }
+}
+
+// If _IgnoreCase_ is true, then _sequence_ must be lower case (to save on performance)
+template <bool IgnoreCase>
+inline parse_status eat_sequence(char **p, s64 *n, const array<char> &sequence) {
+    For(sequence) {
+        parse_status status = eat_byte<IgnoreCase>(p, n, it);
+        if (status != PARSE_SUCCESS) return status;
+    }
+    return PARSE_SUCCESS;
+}
+
+struct parse_bool_options {
+    bool ParseNumbers = true;  // Attemps to parse 0/1.
+    bool ParseWords = true;    // Attemps to parse the words "true" and "false".
+    bool IgnoreCase = false;   // Ignores case when parsing the words.
+    
+    constexpr parse_bool_options() {}
+    constexpr parse_bool_options(bool parseNumbers, bool parseWords, bool ignoreCase) : ParseNumbers(parseNumbers), ParseWords(parseWords), IgnoreCase(ignoreCase) {}
+};
+
+constexpr parse_bool_options parse_bool_options_default;
+
+//
+//
+//
+template <const parse_bool_options *Options = &parse_bool_options_default>
+tuple<bool, parse_status, array<char>> parse_bool(const array<char> &buffer) {
+    static_assert(Options->ParseNumbers || Options->ParseWords);  // Sanity
+    
+    char *p = buffer.Data;
+    s64 n = buffer.Count;
+    
+    if (!n) return {0, PARSE_EXHAUSTED, buffer};
+    
+    if constexpr (Options->ParseNumbers) {
+        if (*p == '0') return {false, PARSE_SUCCESS, array<char>(p + 1, n - 1)};
+        if (*p == '1') return {true, PARSE_SUCCESS, array<char>(p + 1, n - 1)};
+    }
+    
+    if constexpr (Options->ParseWords) {
+        if (*p == 't') {
+            parse_status status = eat_sequence<Options->IgnoreCase>(&p, &n, (string) "true");
+            if (status == PARSE_INVALID) return {false, PARSE_INVALID, array<char>(p, n)};
+            if (status == PARSE_EXHAUSTED) return {false, PARSE_EXHAUSTED, buffer};
+            
+            return {true, PARSE_SUCCESS, array<char>(p, n)};
+        }
+        
+        if (*p == 'f') {
+            parse_status status = eat_sequence<Options->IgnoreCase>(&p, &n, (string) "false");
+            if (status == PARSE_INVALID) return {false, PARSE_INVALID, array<char>(p, n)};
+            if (status == PARSE_EXHAUSTED) return {false, PARSE_EXHAUSTED, buffer};
+            
+            return {false, PARSE_SUCCESS, array<char>(p, n)};
+        }
+    }
+    
+    return {false, PARSE_INVALID, array<char>(p, n)};
 }
 
 // Returns the rest after _delim_ is reached
