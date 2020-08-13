@@ -144,7 +144,7 @@ IntT handle_negative(IntT value, bool negative) {
 }
 
 // Attemps to parse an integer. The integer size returned is determined explictly as a template parameter.
-// This is a very light-weight and performant function without any unnecessary bloat and cruft.
+// This is a very general and light function.
 //
 // There are 3 return values: the value parsed, the parse status and the rest of the buffer after consuming some characters for the parsing.
 // If the status was PARSE_INVALID then some bytes could have been consumed (for example +/- or the base prefix).
@@ -168,7 +168,7 @@ IntT handle_negative(IntT value, bool negative) {
 //
 // Returns:
 //   * PARSE_SUCCESS          if a valid integer was parsed. A valid integer is in the form (+|-)[digit]* (where digit may be a letter depending on the base),
-//   * PARSE_EXHAUSTED        if we parsed a sign or a base prefix but we ran ouf ot bytes,
+//   * PARSE_EXHAUSTED        if an empty buffer was passed or we parsed a sign or a base prefix but we ran ouf ot bytes,
 //   * PARSE_INVALID          if the function wasn't able to parse a valid integer but
 //                            note that if the integer starts with +/-, that could be considered invalid (depending on the options),
 //   * PARSE_TOO_MANY_DIGITS  if the parsing stopped because the integer became too large (only if TooManyDigitsBehaviour == BAIL in options)
@@ -291,6 +291,7 @@ inline parse_status eat_sequence(char **p, s64 *n, const array<char> &sequence) 
     return PARSE_SUCCESS;
 }
 
+// Similar to parse_int, these options compile different versions of parse_bool and turn off certain code paths. 
 struct parse_bool_options {
     bool ParseNumbers = true;  // Attemps to parse 0/1.
     bool ParseWords = true;    // Attemps to parse the words "true" and "false".
@@ -302,8 +303,21 @@ struct parse_bool_options {
 
 constexpr parse_bool_options parse_bool_options_default;
 
+// Attemps to parse a bool.
+// This is a very general and light function.
 //
+// There are 3 return values: the value parsed, the parse status and the rest of the buffer after consuming some characters for the parsing.
+// If the status was PARSE_INVALID then some bytes could have been consumed (for example when parsing words and the buffer was "truFe").
 //
+// Allows for compilation of different code paths using a template parameter which is a pointer to a struct (parse_bool_options) with constants.
+// The options are described there (a bit earlier in this file). But in short if provides options for parse integers or words and case handling.
+//
+// This function doesn't eat white space from the beginning.
+//
+// Returns:
+//   * PARSE_SUCCESS          if a valid bool was parsed (0/1 or  "true"/"false", depending on the options)
+//   * PARSE_EXHAUSTED        if an empty buffer was passed or we started parsing a word but ran out of bytes
+//   * PARSE_INVALID          if the function wasn't able to parse a valid bool
 //
 template <const parse_bool_options *Options = &parse_bool_options_default>
 tuple<bool, parse_status, array<char>> parse_bool(const array<char> &buffer) {
