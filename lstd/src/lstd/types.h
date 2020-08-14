@@ -164,10 +164,10 @@ struct unused {};
 template <typename T, T Value>
 struct integral_constant {
     static constexpr T value = Value;
-
+    
     using value_t = T;
     using type = integral_constant<T, Value>;
-
+    
     constexpr operator value_t() const { return value; }
     constexpr value_t operator()() const { return value; }
 };
@@ -187,7 +187,7 @@ struct no_t {
 // Used as a type which constructs from anything.
 struct argument_sink {
     template <typename... Args>
-    argument_sink(Args &&...) {}
+        argument_sink(Args &&...) {}
 };
 
 // This is used to declare a type from one of two type options.
@@ -751,20 +751,20 @@ struct is_integral : public is_integral_helper<remove_cv_t<T>> {};
 
 template <typename T>
 using is_integer = integral_constant<bool, is_integral<T>::value && !is_same<T, bool>::value &&
-                                               !is_same<T, char>::value && !is_same<T, wchar_t>::value>;
+!is_same<T, char>::value && !is_same<T, wchar_t>::value>;
 
 // Use this macro to declare your custom type as an integral
 #define DECLARE_INTEGRAL(T)                                  \
-    LSTD_BEGIN_NAMESPACE                                     \
-    template <>                                              \
-    struct is_integral<T> : public true_t {};                \
-    template <>                                              \
-    struct is_integral<const T> : public true_t {};          \
-    template <>                                              \
-    struct is_integral<volatile T> : public true_t {};       \
-    template <>                                              \
-    struct is_integral<const volatile T> : public true_t {}; \
-    LSTD_END_NAMESPACE
+LSTD_BEGIN_NAMESPACE                                     \
+template <>                                              \
+struct is_integral<T> : public true_t {};                \
+template <>                                              \
+struct is_integral<const T> : public true_t {};          \
+template <>                                              \
+struct is_integral<volatile T> : public true_t {};       \
+template <>                                              \
+struct is_integral<const volatile T> : public true_t {}; \
+LSTD_END_NAMESPACE
 
 template <typename T>
 constexpr bool is_integral_v = is_integral<T>::value;
@@ -788,16 +788,16 @@ struct is_floating_point : public is_floating_point_helper<remove_cv_t<T>> {};
 
 // Use this macro to declare your custom type as a floating point
 #define DECLARE_FLOATING_POINT(T)                                  \
-    LSTD_BEGIN_NAMESPACE                                           \
-    template <>                                                    \
-    struct is_floating_point<T> : public true_t {};                \
-    template <>                                                    \
-    struct is_floating_point<const T> : public true_t {};          \
-    template <>                                                    \
-    struct is_floating_point<volatile T> : public true_t {};       \
-    template <>                                                    \
-    struct is_floating_point<const volatile T> : public true_t {}; \
-    LSTD_END_NAMESPACE
+LSTD_BEGIN_NAMESPACE                                           \
+template <>                                                    \
+struct is_floating_point<T> : public true_t {};                \
+template <>                                                    \
+struct is_floating_point<const T> : public true_t {};          \
+template <>                                                    \
+struct is_floating_point<volatile T> : public true_t {};       \
+template <>                                                    \
+struct is_floating_point<const volatile T> : public true_t {}; \
+LSTD_END_NAMESPACE
 
 template <typename T>
 constexpr bool is_floating_point_v = is_floating_point<T>::value;
@@ -812,7 +812,7 @@ constexpr bool is_arithmetic_v = is_arithmetic<T>::value;
 // is_floating_point<T> || s_integral<T> || is_void<T> || is_null_pointer<T>
 template <typename T>
 struct is_fundamental : public integral_constant<bool, is_void_v<T> || is_integral_v<T> || is_floating_point_v<T> ||
-                                                           is_null_pointer_v<T>> {};
+is_null_pointer_v<T>> {};
 
 template <typename T>
 constexpr bool is_fundamental_v = is_fundamental<T>::value;
@@ -828,25 +828,25 @@ struct make_signed {
 };
 
 #define MAKE_SIGNED_HELPER(uns, s)           \
-    template <>                              \
-    struct make_signed<uns> {                \
-        using type = s;                      \
-    };                                       \
-                                             \
-    template <>                              \
-    struct make_signed<const uns> {          \
-        using type = const s;                \
-    };                                       \
-                                             \
-    template <>                              \
-    struct make_signed<volatile uns> {       \
-        using type = volatile s;             \
-    };                                       \
-                                             \
-    template <>                              \
-    struct make_signed<const volatile uns> { \
-        using type = const volatile s;       \
-    };
+template <>                              \
+struct make_signed<uns> {                \
+using type = s;                      \
+};                                       \
+\
+template <>                              \
+struct make_signed<const uns> {          \
+using type = const s;                \
+};                                       \
+\
+template <>                              \
+struct make_signed<volatile uns> {       \
+using type = volatile s;             \
+};                                       \
+\
+template <>                              \
+struct make_signed<const volatile uns> { \
+using type = const volatile s;       \
+};
 MAKE_SIGNED_HELPER(u8, s8)
 MAKE_SIGNED_HELPER(u16, s16)
 MAKE_SIGNED_HELPER(u32, s32)
@@ -867,25 +867,25 @@ struct make_unsigned {
 };
 
 #define MAKE_UNSIGNED_HELPER(uns, s)           \
-    template <>                                \
-    struct make_unsigned<uns> {                \
-        using type = s;                        \
-    };                                         \
-                                               \
-    template <>                                \
-    struct make_unsigned<const uns> {          \
-        using type = const s;                  \
-    };                                         \
-                                               \
-    template <>                                \
-    struct make_unsigned<volatile uns> {       \
-        using type = volatile s;               \
-    };                                         \
-                                               \
-    template <>                                \
-    struct make_unsigned<const volatile uns> { \
-        using type = const volatile s;         \
-    };
+template <>                                \
+struct make_unsigned<uns> {                \
+using type = s;                        \
+};                                         \
+\
+template <>                                \
+struct make_unsigned<const uns> {          \
+using type = const s;                  \
+};                                         \
+\
+template <>                                \
+struct make_unsigned<volatile uns> {       \
+using type = volatile s;               \
+};                                         \
+\
+template <>                                \
+struct make_unsigned<const volatile uns> { \
+using type = const volatile s;         \
+};
 MAKE_UNSIGNED_HELPER(s8, u8)
 MAKE_UNSIGNED_HELPER(s16, u16)
 MAKE_UNSIGNED_HELPER(s32, u32)
@@ -1020,7 +1020,7 @@ extern void (*copy_memory)(void *dest, const void *src, s64 num);
 template <typename DestType, typename SourceType>
 DestType bit_cast(const SourceType &sourceValue) {
     static_assert(sizeof(DestType) == sizeof(SourceType));
-
+    
     if constexpr (alignof(DestType) == alignof(SourceType)) {
         union {
             SourceType sourceValue;
@@ -1053,7 +1053,7 @@ using underlying_type_t = typename underlying_type<T>::type;
 // value have the same object representation, value is true.
 template <typename T>
 struct has_unique_object_representations
-    : public integral_constant<bool, __has_unique_object_representations(remove_cv_t<remove_all_extents_t<T>>)> {};
+: public integral_constant<bool, __has_unique_object_representations(remove_cv_t<remove_all_extents_t<T>>)> {};
 
 template <typename T>
 constexpr auto has_unique_object_representations_v = has_unique_object_representations<T>::value;
@@ -1089,16 +1089,16 @@ constexpr bool is_signed_v = is_signed<T>::value;
 
 // Use this macro to declare your custom type as a signed type
 #define DECLARE_SIGNED(T)                                  \
-    LSTD_BEGIN_NAMESPACE                                   \
-    template <>                                            \
-    struct is_signed<T> : public true_t {};                \
-    template <>                                            \
-    struct is_signed<const T> : public true_t {};          \
-    template <>                                            \
-    struct is_signed<volatile T> : public true_t {};       \
-    template <>                                            \
-    struct is_signed<const volatile T> : public true_t {}; \
-    LSTD_END_NAMESPACE
+LSTD_BEGIN_NAMESPACE                                   \
+template <>                                            \
+struct is_signed<T> : public true_t {};                \
+template <>                                            \
+struct is_signed<const T> : public true_t {};          \
+template <>                                            \
+struct is_signed<volatile T> : public true_t {};       \
+template <>                                            \
+struct is_signed<const volatile T> : public true_t {}; \
+LSTD_END_NAMESPACE
 
 template <typename T>
 struct is_unsigned_helper : public false_t {};
@@ -1127,16 +1127,16 @@ constexpr bool is_unsigned_v = is_unsigned<T>::value;
 
 // Use this macro to declare your custom type as a signed type
 #define DECLARE_UNSIGNED(T)                                  \
-    LSTD_BEGIN_NAMESPACE                                     \
-    template <>                                              \
-    struct is_unsigned<T> : public true_t {};                \
-    template <>                                              \
-    struct is_unsigned<const T> : public true_t {};          \
-    template <>                                              \
-    struct is_unsigned<volatile T> : public true_t {};       \
-    template <>                                              \
-    struct is_unsigned<const volatile T> : public true_t {}; \
-    LSTD_END_NAMESPACE
+LSTD_BEGIN_NAMESPACE                                     \
+template <>                                              \
+struct is_unsigned<T> : public true_t {};                \
+template <>                                              \
+struct is_unsigned<const T> : public true_t {};          \
+template <>                                              \
+struct is_unsigned<volatile T> : public true_t {};       \
+template <>                                              \
+struct is_unsigned<const volatile T> : public true_t {}; \
+LSTD_END_NAMESPACE
 
 template <typename T>
 struct alignment_of_value {
@@ -1307,7 +1307,7 @@ constexpr bool is_member_pointer_v = is_member_pointer<T>::value;
 
 template <typename T>
 struct is_member_object_pointer
-    : public integral_constant<bool, is_member_pointer_v<T> && !is_member_function_pointer_v<T>> {};
+: public integral_constant<bool, is_member_pointer_v<T> && !is_member_function_pointer_v<T>> {};
 template <typename T>
 constexpr bool is_member_object_pointer_v = is_member_object_pointer<T>::value;
 
@@ -1347,12 +1347,12 @@ constexpr bool is_union_v = is_union<T>::value;
 
 // Use this macro to declare your type as an union
 #define DECLARE_UNION(T)                         \
-    LSTD_BEGIN_NAMESPACE                         \
-    template <>                                  \
-    struct is_union<T> : public true_t {};       \
-    template <>                                  \
-    struct is_union<const T> : public true_t {}; \
-    LSTD_END_NAMESPACE
+LSTD_BEGIN_NAMESPACE                         \
+template <>                                  \
+struct is_union<T> : public true_t {};       \
+template <>                                  \
+struct is_union<const T> : public true_t {}; \
+LSTD_END_NAMESPACE
 
 template <typename T>
 struct is_class : public integral_constant<bool, __is_class(T)> {};
@@ -1367,12 +1367,12 @@ constexpr bool is_enum_v = is_enum<T>::value;
 
 // Use this macro to declare your type as an enum
 #define DECLARE_ENUM(T)                         \
-    LSTD_BEGIN_NAMESPACE                        \
-    template <>                                 \
-    struct is_enum<T> : public true_t {};       \
-    template <>                                 \
-    struct is_enum<const T> : public true_t {}; \
-    LSTD_END_NAMESPACE
+LSTD_BEGIN_NAMESPACE                        \
+template <>                                 \
+struct is_enum<T> : public true_t {};       \
+template <>                                 \
+struct is_enum<const T> : public true_t {}; \
+LSTD_END_NAMESPACE
 
 template <typename T>
 struct is_object : public integral_constant<bool, !is_reference_v<T> && !is_void_v<T> && !is_function_v<T>> {};
@@ -1382,7 +1382,7 @@ constexpr bool is_object_v = is_object<T>::value;
 
 template <typename T>
 struct is_scalar : public integral_constant<bool, is_arithmetic_v<T> || is_enum_v<T> || is_pointer_v<T> ||
-                                                      is_member_pointer_v<T> || is_null_pointer_v<T>> {};
+is_member_pointer_v<T> || is_null_pointer_v<T>> {};
 
 template <typename T>
 struct is_scalar<T *> : public true_t {};
@@ -1410,9 +1410,9 @@ constexpr bool is_compound_v = is_compound<T>::value;
 template <typename T>
 struct decay {
     using U = remove_reference_t<T>;
-
+    
     using type = type_select_t<is_array_v<U>, remove_extent_t<U> *,
-                               type_select_t<is_function_v<U>, add_pointer_t<U>, remove_cv_t<U>>>;
+    type_select_t<is_function_v<U>, add_pointer_t<U>, remove_cv_t<U>>>;
 };
 
 template <typename T>
@@ -1474,7 +1474,7 @@ constexpr bool is_empty_v = is_empty<T>::value;
 
 template <typename T>
 struct is_pod
-    : public integral_constant<bool, (__has_trivial_constructor(T) && __is_pod(T)) || is_void_v<T> || is_scalar_v<T>> {
+: public integral_constant<bool, (__has_trivial_constructor(T) && __is_pod(T)) || is_void_v<T> || is_scalar_v<T>> {
 };
 #pragma warning(pop)
 #else
@@ -1496,10 +1496,10 @@ constexpr bool is_pod_v = is_pod<T>::value;
 
 // Use this macro to declare your type as POD or not
 #define DECLARE_IS_POD(T, isPod)                                 \
-    LSTD_BEGIN_NAMESPACE                                         \
-    template <>                                                  \
-    struct is_pod<T> : public integral_constant<bool, isPod> {}; \
-    LSTD_END_NAMESPACE
+LSTD_BEGIN_NAMESPACE                                         \
+template <>                                                  \
+struct is_pod<T> : public integral_constant<bool, isPod> {}; \
+LSTD_END_NAMESPACE
 
 template <typename T>
 struct is_standard_layout : public integral_constant<bool, __is_standard_layout(T) || is_void_v<T> || is_scalar_v<T>> {
@@ -1544,7 +1544,7 @@ constexpr bool has_trivial_copy_v = has_trivial_copy<T>::value;
 
 template <typename T>
 struct has_trivial_assign
-    : public integral_constant<bool, (__has_trivial_assign(T) || is_pod_v<T>) &&!is_const_v<T> && !is_volatile_v<T>> {};
+: public integral_constant<bool, (__has_trivial_assign(T) || is_pod_v<T>) &&!is_const_v<T> && !is_volatile_v<T>> {};
 
 template <typename T>
 constexpr bool has_trivial_assign_v = has_trivial_assign<T>::value;
@@ -1585,16 +1585,16 @@ struct is_trivially_copyable {
 };
 
 #define EASTL_DECLARE_IS_TRIVIALLY_COPYABLE(T, isTriviallyCopyable)                                          \
-    LSTD_BEGIN_NAMESPACE                                                                                     \
-    template <>                                                                                              \
-    struct is_trivially_copyable<T> : public integral_constant<bool, isTriviallyCopyable> {};                \
-    template <>                                                                                              \
-    struct is_trivially_copyable<const T> : public integral_constant<bool, isTriviallyCopyable> {};          \
-    template <>                                                                                              \
-    struct is_trivially_copyable<volatile T> : public integral_constant<bool, isTriviallyCopyable> {};       \
-    template <>                                                                                              \
-    struct is_trivially_copyable<const volatile T> : public integral_constant<bool, isTriviallyCopyable> {}; \
-    LSTD_END_NAMESPACE
+LSTD_BEGIN_NAMESPACE                                                                                     \
+template <>                                                                                              \
+struct is_trivially_copyable<T> : public integral_constant<bool, isTriviallyCopyable> {};                \
+template <>                                                                                              \
+struct is_trivially_copyable<const T> : public integral_constant<bool, isTriviallyCopyable> {};          \
+template <>                                                                                              \
+struct is_trivially_copyable<volatile T> : public integral_constant<bool, isTriviallyCopyable> {};       \
+template <>                                                                                              \
+struct is_trivially_copyable<const volatile T> : public integral_constant<bool, isTriviallyCopyable> {}; \
+LSTD_END_NAMESPACE
 
 template <typename T>
 constexpr bool is_trivially_copyable_v = is_trivially_copyable<T>::value;
@@ -1629,7 +1629,7 @@ struct is_constructible_helper_2<true, T> : public is_scalar<T> {};
 
 template <typename T, typename Arg0>  // We handle the case of multiple arguments below (by disallowing them).
 struct is_constructible_helper_2<true, T, Arg0>
-    : public type_identity<decltype(can_construct_scalar_helper<T>::can(declval<Arg0>()))>::type {};
+: public type_identity<decltype(can_construct_scalar_helper<T>::can(declval<Arg0>()))>::type {};
 
 // Scalars and references can be constructed only with 0 or 1 argument. e.g the following is an invalid expression:
 // int(17, 23)
@@ -1646,9 +1646,9 @@ struct is_constructible_helper_1<true, T, Args...> : public false_t {};
 // is_constructible
 template <typename T, typename... Args>
 struct is_constructible
-    : public is_constructible_helper_1<(is_array_of_unknown_bounds_v<T> ||
-                                        is_function_v<typename remove_all_extents_t<T>> || has_void_arg_v<T, Args...>),
-                                       T, Args...> {};
+: public is_constructible_helper_1<(is_array_of_unknown_bounds_v<T> ||
+                                    is_function_v<typename remove_all_extents_t<T>> || has_void_arg_v<T, Args...>),
+T, Args...> {};
 
 // Array types are constructible if constructed with no arguments and if their element type is default-constructible
 template <typename Array, s64 N>
@@ -1665,7 +1665,7 @@ constexpr bool is_constructible_v = is_constructible<T, Args...>::value;
 
 template <typename T, typename... Args>
 struct is_trivially_constructible
-    : public integral_constant<bool, is_constructible_v<T, Args...> &&__is_trivially_constructible(T, Args...)> {};
+: public integral_constant<bool, is_constructible_v<T, Args...> &&__is_trivially_constructible(T, Args...)> {};
 
 template <typename T, typename... Args>
 constexpr bool is_trivially_constructible_v = is_trivially_constructible<T, Args...>::value;
@@ -1742,11 +1742,11 @@ constexpr bool is_trivially_move_constructible_v = is_trivially_move_constructib
 template <typename T, typename U>
 struct is_assignable_helper {
     template <typename, typename>
-    static no_t is(...);
-
+        static no_t is(...);
+    
     template <typename T1, typename U1>
-    static decltype(declval<T1>() = declval<U1>(), yes_t()) is(int);
-
+        static decltype(declval<T1>() = declval<U1>(), yes_t()) is(int);
+    
     static constexpr auto value = (sizeof(is<T, U>(0)) == sizeof(yes_t));
 };
 
@@ -1778,13 +1778,13 @@ struct is_trivially_assignable_helper<false, T, U> : false_t {};
 
 template <typename T, typename U>
 struct is_trivially_assignable
-    : integral_constant<bool, is_trivially_assignable_helper<is_assignable_v<T, U>, T, U>::value> {};
+: integral_constant<bool, is_trivially_assignable_helper<is_assignable_v<T, U>, T, U>::value> {};
 
 #else
 template <typename T, typename U>
 struct is_trivially_assignable
-    : integral_constant<bool, is_assignable_v<T, U> && (is_pod_v<typename remove_reference_t<T>> ||
-                                                        __has_trivial_assign(typename remove_reference_t<T>))> {};
+: integral_constant<bool, is_assignable_v<T, U> && (is_pod_v<typename remove_reference_t<T>> ||
+                                                    __has_trivial_assign(typename remove_reference_t<T>))> {};
 
 #endif
 
@@ -1799,7 +1799,7 @@ constexpr bool is_copy_assignable_v = is_copy_assignable<T>::value;
 
 template <typename T>
 struct is_trivially_copy_assignable
-    : public is_trivially_assignable<add_lvalue_reference_t<T>, add_lvalue_reference_t<add_const_t<T>>> {};
+: public is_trivially_assignable<add_lvalue_reference_t<T>, add_lvalue_reference_t<add_const_t<T>>> {};
 
 template <typename T>
 constexpr bool is_trivially_copy_assignable_v = is_trivially_copy_assignable<T>::value;
@@ -1811,7 +1811,7 @@ constexpr bool is_move_assignable_v = is_move_assignable<T>::value;
 
 template <typename T>
 struct is_trivially_move_assignable
-    : public is_trivially_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>> {};
+: public is_trivially_assignable<add_lvalue_reference_t<T>, add_rvalue_reference_t<T>> {};
 
 template <typename T>
 constexpr bool is_trivially_move_assignable_v = is_trivially_move_assignable<T>::value;
@@ -1842,7 +1842,7 @@ constexpr bool is_destructible_v = is_destructible<T>::value;
 
 template <typename T>
 struct is_trivially_destructible_helper
-    : public integral_constant<bool, (is_pod_v<T> || is_scalar_v<T> || is_reference_v<T>) &&!is_void_v<T>> {};
+: public integral_constant<bool, (is_pod_v<T> || is_scalar_v<T> || is_reference_v<T>) &&!is_void_v<T>> {};
 
 template <typename T>
 struct is_trivially_destructible : public is_trivially_destructible_helper<remove_all_extents_t<T>> {};
@@ -1854,7 +1854,7 @@ template <typename T, T... Ints>
 struct integer_sequence {
     using value_t = T;
     static constexpr s64 size = sizeof...(Ints);
-
+    
     static_assert(is_integral_v<T>, "integer_sequence can only be instantiated with an integral type");
 };
 
@@ -1903,7 +1903,7 @@ template <typename T, T Head, T... Indices>
 struct reverse_integer_sequence<integer_sequence<T, Head, Indices...>> {
     using type =
         typename merge_integer_sequence<typename reverse_integer_sequence<integer_sequence<T, Indices...>>::type,
-                                        integer_sequence<T, Head>>::type;
+    integer_sequence<T, Head>>::type;
 };
 
 template <typename IS>
@@ -1912,7 +1912,7 @@ struct reverse_index_sequence;
 template <s64 Head, s64... Indices>
 struct reverse_index_sequence<index_sequence<Head, Indices...>> {
     using type = typename merge_index_sequence<typename reverse_index_sequence<index_sequence<Indices...>>::type,
-                                               index_sequence<Head>>::type;
+    index_sequence<Head>>::type;
 };
 
 LSTD_END_NAMESPACE
@@ -1927,13 +1927,13 @@ template <typename T, typename U>
 struct pair {
     using first_t = T;
     using second_t = U;
-
+    
     T First;
     U Second;
-
+    
     constexpr pair() = default;
     constexpr pair(const remove_cvref_t<T> &first, const remove_cvref_t<U> &second) : First(first), Second(second) {}
-
+    
     constexpr T &key() { return First; }
     constexpr U &value() { return Second; }
 };
@@ -1944,9 +1944,9 @@ struct tuple;
 template <typename T1>
 struct tuple<T1> {
     static constexpr s64 SIZE = 1;
-
+    
     T1 Item1;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1) : Item1(item1) {}
 };
@@ -1954,10 +1954,10 @@ struct tuple<T1> {
 template <typename T1, typename T2>
 struct tuple<T1, T2> {
     static constexpr s64 SIZE = 2;
-
+    
     T1 Item1;
     T2 Item2;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2) : Item1(item1), Item2(item2) {}
 };
@@ -1965,11 +1965,11 @@ struct tuple<T1, T2> {
 template <typename T1, typename T2, typename T3>
 struct tuple<T1, T2, T3> {
     static constexpr s64 SIZE = 3;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3)
         : Item1(item1), Item2(item2), Item3(item3) {}
@@ -1978,12 +1978,12 @@ struct tuple<T1, T2, T3> {
 template <typename T1, typename T2, typename T3, typename T4>
 struct tuple<T1, T2, T3, T4> {
     static constexpr s64 SIZE = 4;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
     T4 Item4;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4)
@@ -1993,13 +1993,13 @@ struct tuple<T1, T2, T3, T4> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
 struct tuple<T1, T2, T3, T4, T5> {
     static constexpr s64 SIZE = 5;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
     T4 Item4;
     T5 Item5;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5)
@@ -2009,14 +2009,14 @@ struct tuple<T1, T2, T3, T4, T5> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
 struct tuple<T1, T2, T3, T4, T5, T6> {
     static constexpr s64 SIZE = 6;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
     T4 Item4;
     T5 Item5;
     T6 Item6;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6)
@@ -2026,7 +2026,7 @@ struct tuple<T1, T2, T3, T4, T5, T6> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
 struct tuple<T1, T2, T3, T4, T5, T6, T7> {
     static constexpr s64 SIZE = 7;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2034,7 +2034,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7> {
     T5 Item5;
     T6 Item6;
     T7 Item7;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2045,7 +2045,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7> {
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8> {
     static constexpr s64 SIZE = 8;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2054,26 +2054,26 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8> {
     T6 Item6;
     T7 Item7;
     T8 Item8;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
                     const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9>
+typename T9>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9> {
     static constexpr s64 SIZE = 9;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2083,27 +2083,27 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9> {
     T7 Item7;
     T8 Item8;
     T9 Item9;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
                     const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10>
+typename T9, typename T10>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
     static constexpr s64 SIZE = 10;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2114,29 +2114,29 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
     T8 Item8;
     T9 Item9;
     T10 Item10;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
                     const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
                     const remove_cvref_t<T10> &item10)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11>
+typename T9, typename T10, typename T11>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
     static constexpr s64 SIZE = 11;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2148,30 +2148,30 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
     T9 Item9;
     T10 Item10;
     T11 Item11;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
                     const remove_cvref_t<T7> &item7, const remove_cvref_t<T8> &item8, const remove_cvref_t<T9> &item9,
                     const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12>
+typename T9, typename T10, typename T11, typename T12>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
     static constexpr s64 SIZE = 12;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2184,7 +2184,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
     T10 Item10;
     T11 Item11;
     T12 Item12;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2192,24 +2192,24 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
                     const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
                     const remove_cvref_t<T12> &item12)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12, typename T13>
+typename T9, typename T10, typename T11, typename T12, typename T13>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
     static constexpr s64 SIZE = 13;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2223,7 +2223,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
     T11 Item11;
     T12 Item12;
     T13 Item13;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2231,25 +2231,25 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
                     const remove_cvref_t<T10> &item10, const remove_cvref_t<T11> &item11,
                     const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12),
-          Item13(item13) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12),
+    Item13(item13) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14>
+typename T9, typename T10, typename T11, typename T12, typename T13, typename T14>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
     static constexpr s64 SIZE = 14;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2264,7 +2264,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
     T12 Item12;
     T13 Item13;
     T14 Item14;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2273,26 +2273,26 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
                     const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
                     const remove_cvref_t<T14> &item14)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12),
-          Item13(item13),
-          Item14(item14) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12),
+    Item13(item13),
+    Item14(item14) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15>
+typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
     static constexpr s64 SIZE = 15;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2308,7 +2308,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
     T13 Item13;
     T14 Item14;
     T15 Item15;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2317,27 +2317,27 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
                     const remove_cvref_t<T12> &item12, const remove_cvref_t<T13> &item13,
                     const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12),
-          Item13(item13),
-          Item14(item14),
-          Item15(item15) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12),
+    Item13(item13),
+    Item14(item14),
+    Item15(item15) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16>
+typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
     static constexpr s64 SIZE = 16;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2354,7 +2354,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
     T14 Item14;
     T15 Item15;
     T16 Item16;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2364,29 +2364,29 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
                     const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15,
                     const remove_cvref_t<T16> &item16)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12),
-          Item13(item13),
-          Item14(item14),
-          Item15(item15),
-          Item16(item16) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12),
+    Item13(item13),
+    Item14(item14),
+    Item15(item15),
+    Item16(item16) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
-          typename T17>
+typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
+typename T17>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
     static constexpr s64 SIZE = 17;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2404,7 +2404,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
     T15 Item15;
     T16 Item16;
     T17 Item17;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2414,30 +2414,30 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
                     const remove_cvref_t<T14> &item14, const remove_cvref_t<T15> &item15,
                     const remove_cvref_t<T16> &item16, const remove_cvref_t<T17> &item17)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12),
-          Item13(item13),
-          Item14(item14),
-          Item15(item15),
-          Item16(item16),
-          Item17(item17) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12),
+    Item13(item13),
+    Item14(item14),
+    Item15(item15),
+    Item16(item16),
+    Item17(item17) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
-          typename T17, typename T18>
+typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
+typename T17, typename T18>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
     static constexpr s64 SIZE = 18;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2456,7 +2456,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
     T16 Item16;
     T17 Item17;
     T18 Item18;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2467,31 +2467,31 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
                     const remove_cvref_t<T16> &item16, const remove_cvref_t<T17> &item17,
                     const remove_cvref_t<T18> &item18)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12),
-          Item13(item13),
-          Item14(item14),
-          Item15(item15),
-          Item16(item16),
-          Item17(item17),
-          Item18(item18) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12),
+    Item13(item13),
+    Item14(item14),
+    Item15(item15),
+    Item16(item16),
+    Item17(item17),
+    Item18(item18) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
-          typename T17, typename T18, typename T19>
+typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
+typename T17, typename T18, typename T19>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
     static constexpr s64 SIZE = 19;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2511,7 +2511,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
     T17 Item17;
     T18 Item18;
     T19 Item19;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2522,32 +2522,32 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
                     const remove_cvref_t<T16> &item16, const remove_cvref_t<T17> &item17,
                     const remove_cvref_t<T18> &item18, const remove_cvref_t<T19> &item19)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12),
-          Item13(item13),
-          Item14(item14),
-          Item15(item15),
-          Item16(item16),
-          Item17(item17),
-          Item18(item18),
-          Item19(item19) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12),
+    Item13(item13),
+    Item14(item14),
+    Item15(item15),
+    Item16(item16),
+    Item17(item17),
+    Item18(item18),
+    Item19(item19) {}
 };
 
 template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8,
-          typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
-          typename T17, typename T18, typename T19, typename T20>
+typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15, typename T16,
+typename T17, typename T18, typename T19, typename T20>
 struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> {
     static constexpr s64 SIZE = 20;
-
+    
     T1 Item1;
     T2 Item2;
     T3 Item3;
@@ -2568,7 +2568,7 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
     T18 Item18;
     T19 Item19;
     T20 Item20;
-
+    
     constexpr tuple() = default;
     constexpr tuple(const remove_cvref_t<T1> &item1, const remove_cvref_t<T2> &item2, const remove_cvref_t<T3> &item3,
                     const remove_cvref_t<T4> &item4, const remove_cvref_t<T5> &item5, const remove_cvref_t<T6> &item6,
@@ -2580,26 +2580,39 @@ struct tuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T
                     const remove_cvref_t<T18> &item18, const remove_cvref_t<T19> &item19,
                     const remove_cvref_t<T20> &item20)
         : Item1(item1),
-          Item2(item2),
-          Item3(item3),
-          Item4(item4),
-          Item5(item5),
-          Item6(item6),
-          Item7(item7),
-          Item8(item8),
-          Item9(item9),
-          Item10(item10),
-          Item11(item11),
-          Item12(item12),
-          Item13(item13),
-          Item14(item14),
-          Item15(item15),
-          Item16(item16),
-          Item17(item17),
-          Item18(item18),
-          Item19(item19),
-          Item20(item20) {}
+    Item2(item2),
+    Item3(item3),
+    Item4(item4),
+    Item5(item5),
+    Item6(item6),
+    Item7(item7),
+    Item8(item8),
+    Item9(item9),
+    Item10(item10),
+    Item11(item11),
+    Item12(item12),
+    Item13(item13),
+    Item14(item14),
+    Item15(item15),
+    Item16(item16),
+    Item17(item17),
+    Item18(item18),
+    Item19(item19),
+    Item20(item20) {}
 };
+
+namespace internal {
+    struct ignore_t {
+        template <typename T>
+            const ignore_t &operator=(const T &) const { return *this; }
+    };
+}
+constexpr internal::ignore_t ignore_return;
+
+template <typename... Args>
+auto tie(Args &... args) {
+    return tuple<Args &...>(args...);
+}
 
 /*
 The code for the tuples above was generated by this routine:
@@ -2634,10 +2647,10 @@ LSTD_END_NAMESPACE
 // See C++11 18.3.2.5
 // Naming style changed
 enum class float_round_style { Indeterminate = -1,
-                               ToZero,
-                               ToNearest,
-                               ToInfinity,
-                               ToNegativeInfinity };
+    ToZero,
+    ToNearest,
+    ToInfinity,
+    ToNegativeInfinity };
 
 // See C++11 18.3.2.6
 // Naming style changed
@@ -2681,7 +2694,7 @@ struct numeric_info_base {
 template <typename T>
 struct numeric_info : public numeric_info_base {
     using value_t = T;
-
+    
     static value_t min() { return value_t(); }
     static value_t max() { return value_t(); }
     static value_t lowest() { return value_t(); }
@@ -2737,7 +2750,7 @@ struct numeric_info<char> : public numeric_info_int_base {
     static constexpr char infinity() { return 0; }
     static constexpr char quiet_NaN() { return 0; }
     static constexpr char signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_signed = S8_MIN != 0;
     static constexpr bool is_modulo = S8_MIN == 0;
     static constexpr s32 digits = 8 - (S8_MIN != 0);
@@ -2755,7 +2768,7 @@ struct numeric_info<wchar_t> : public numeric_info_int_base {
     static constexpr wchar_t infinity() { return 0; }
     static constexpr wchar_t quiet_NaN() { return 0; }
     static constexpr wchar_t signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_modulo = true;
     static constexpr s32 digits = 16;
     static constexpr s32 digits10 = 4;
@@ -2772,7 +2785,7 @@ struct numeric_info<bool> : public numeric_info_int_base {  // limits for type b
     static constexpr bool infinity() { return 0; }
     static constexpr bool quiet_NaN() { return 0; }
     static constexpr bool signaling_NaN() { return 0; }
-
+    
     static constexpr s32 digits = 1;
 };
 
@@ -2787,7 +2800,7 @@ struct numeric_info<u8> : public numeric_info_int_base {
     static constexpr u8 infinity() { return 0; }
     static constexpr u8 quiet_NaN() { return 0; }
     static constexpr u8 signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_modulo = true;
     static constexpr s32 digits = 8;
     static constexpr s32 digits10 = 2;
@@ -2804,7 +2817,7 @@ struct numeric_info<s16> : public numeric_info_int_base {
     static constexpr s16 infinity() { return 0; }
     static constexpr s16 quiet_NaN() { return 0; }
     static constexpr s16 signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_signed = true;
     static constexpr s32 digits = 15;
     static constexpr s32 digits10 = 4;
@@ -2822,7 +2835,7 @@ struct numeric_info<u16> : public numeric_info_int_base {
     static constexpr u16 infinity() { return 0; }
     static constexpr u16 quiet_NaN() { return 0; }
     static constexpr u16 signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_modulo = true;
     static constexpr s32 digits = 16;
     static constexpr s32 digits10 = 4;
@@ -2840,7 +2853,7 @@ struct numeric_info<char16_t> : public numeric_info_int_base {
     static constexpr char16_t infinity() { return 0; }
     static constexpr char16_t quiet_NaN() { return 0; }
     static constexpr char16_t signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_modulo = true;
     static constexpr s32 digits = 16;
     static constexpr s32 digits10 = 4;
@@ -2857,7 +2870,7 @@ struct numeric_info<s32> : public numeric_info_int_base {
     static constexpr s32 infinity() { return 0; }
     static constexpr s32 quiet_NaN() { return 0; }
     static constexpr s32 signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_signed = true;
     static constexpr s32 digits = 31;
     static constexpr s32 digits10 = 9;
@@ -2874,7 +2887,7 @@ struct numeric_info<u32> : public numeric_info_int_base {
     static constexpr u32 infinity() { return 0; }
     static constexpr u32 quiet_NaN() { return 0; }
     static constexpr u32 signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_modulo = true;
     static constexpr s32 digits = 32;
     static constexpr s32 digits10 = 9;
@@ -2892,7 +2905,7 @@ struct numeric_info<long> : public numeric_info_int_base {
     static constexpr long infinity() { return 0; }
     static constexpr long quiet_NaN() { return 0; }
     static constexpr long signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_signed = true;
     static constexpr s32 digits = 31;
     static constexpr s32 digits10 = 9;
@@ -2910,7 +2923,7 @@ struct numeric_info<unsigned long> : public numeric_info_int_base {
     static constexpr unsigned long infinity() { return 0; }
     static constexpr unsigned long quiet_NaN() { return 0; }
     static constexpr unsigned long signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_modulo = true;
     static constexpr s32 digits = 32;
     static constexpr s32 digits10 = 9;
@@ -2918,7 +2931,7 @@ struct numeric_info<unsigned long> : public numeric_info_int_base {
 
 template <>
 struct numeric_info<char32_t> : public numeric_info_int_base {
-   public:
+    public:
     static constexpr char32_t min() { return 0; }
     static constexpr char32_t max() { return U32_MAX; }
     static constexpr char32_t lowest() { return min(); }
@@ -2928,7 +2941,7 @@ struct numeric_info<char32_t> : public numeric_info_int_base {
     static constexpr char32_t infinity() { return 0; }
     static constexpr char32_t quiet_NaN() { return 0; }
     static constexpr char32_t signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_modulo = true;
     static constexpr s32 digits = 32;
     static constexpr s32 digits10 = 9;
@@ -2945,7 +2958,7 @@ struct numeric_info<s64> : public numeric_info_int_base {
     static constexpr s64 infinity() { return 0; }
     static constexpr s64 quiet_NaN() { return 0; }
     static constexpr s64 signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_signed = true;
     static constexpr s32 digits = 63;
     static constexpr s32 digits10 = 18;
@@ -2953,7 +2966,7 @@ struct numeric_info<s64> : public numeric_info_int_base {
 
 template <>
 struct numeric_info<u64> : public numeric_info_int_base {
-   public:
+    public:
     static constexpr u64 min() { return 0; }
     static constexpr u64 max() { return U64_MAX; }
     static constexpr u64 lowest() { return min(); }
@@ -2963,7 +2976,7 @@ struct numeric_info<u64> : public numeric_info_int_base {
     static constexpr u64 infinity() { return 0; }
     static constexpr u64 quiet_NaN() { return 0; }
     static constexpr u64 signaling_NaN() { return 0; }
-
+    
     static constexpr bool is_modulo = true;
     static constexpr s32 digits = 64;
     static constexpr s32 digits10 = 19;
@@ -2971,7 +2984,7 @@ struct numeric_info<u64> : public numeric_info_int_base {
 
 template <>
 struct numeric_info<f32> : public numeric_info_float_base {
-   public:
+    public:
     static constexpr f32 min() { return F32_MIN; }
     static constexpr f32 max() { return F32_MAX; }
     static constexpr f32 lowest() { return -max(); }
@@ -2981,7 +2994,7 @@ struct numeric_info<f32> : public numeric_info_float_base {
     static constexpr f32 infinity() { return __builtin_huge_valf(); }
     static constexpr f32 quiet_NaN() { return __builtin_nanf("0"); }
     static constexpr f32 signaling_NaN() { return __builtin_nansf("1"); }
-
+    
     static constexpr s32 digits = F32_MANT_DIG;
     static constexpr s32 digits10 = F32_DIG;
     static constexpr s32 max_digits10 = 9;
@@ -2993,7 +3006,7 @@ struct numeric_info<f32> : public numeric_info_float_base {
 
 template <>
 struct numeric_info<f64> : public numeric_info_float_base {
-   public:
+    public:
     static constexpr f64 min() { return F64_MIN; }
     static constexpr f64 max() { return F64_MAX; }
     static constexpr f64 lowest() { return -max(); }
@@ -3003,7 +3016,7 @@ struct numeric_info<f64> : public numeric_info_float_base {
     static constexpr f64 infinity() { return __builtin_huge_val(); }
     static constexpr f64 quiet_NaN() { return __builtin_nan("0"); }
     static constexpr f64 signaling_NaN() { return __builtin_nans("1"); }
-
+    
     static constexpr s32 digits = F64_MANT_DIG;
     static constexpr s32 digits10 = F64_DIG;
     static constexpr s32 max_digits10 = 17;
@@ -3015,7 +3028,7 @@ struct numeric_info<f64> : public numeric_info_float_base {
 
 template <>
 struct numeric_info<lf64> : public numeric_info_float_base {
-   public:
+    public:
     static constexpr lf64 min() { return LONG_F64_MIN; }
     static constexpr lf64 max() { return LONG_F64_MAX; }
     static constexpr lf64 lowest() { return -max(); }
@@ -3025,7 +3038,7 @@ struct numeric_info<lf64> : public numeric_info_float_base {
     static constexpr lf64 infinity() { return __builtin_huge_val(); }
     static constexpr lf64 quiet_NaN() { return __builtin_nan("0"); }
     static constexpr lf64 signaling_NaN() { return __builtin_nans("1"); }
-
+    
     static constexpr s32 digits = LONG_F64_MANT_DIG;
     static constexpr s32 digits10 = LONG_F64_DIG;
     static constexpr s32 max_digits10 = 17;
@@ -3057,7 +3070,7 @@ struct is_not_equal_comparable : false_t {};
 
 template <typename T, typename U>
 struct is_not_equal_comparable<T, U, void_t<not_equal_comparison_t<T, U>>>
-    : is_same<not_equal_comparison_t<T, U>, bool> {};
+: is_same<not_equal_comparison_t<T, U>, bool> {};
 
 template <typename T, typename U>
 constexpr bool is_not_equal_comparable_v = is_not_equal_comparable<T, U>::value;
@@ -3097,7 +3110,7 @@ struct is_less_equal_comparable : false_t {};
 
 template <typename T, typename U>
 struct is_less_equal_comparable<T, U, void_t<less_equal_comparison_t<T, U>>>
-    : is_same<less_equal_comparison_t<T, U>, bool> {};
+: is_same<less_equal_comparison_t<T, U>, bool> {};
 
 template <typename T, typename U>
 constexpr bool is_less_equal_comparable_v = is_less_equal_comparable<T, U>::value;
@@ -3111,7 +3124,7 @@ struct is_greater_equal_comparable : false_t {};
 
 template <typename T, typename U>
 struct is_greater_equal_comparable<T, U, void_t<greater_equal_comparison_t<T, U>>>
-    : is_same<greater_equal_comparison_t<T, U>, bool> {};
+: is_same<greater_equal_comparison_t<T, U>, bool> {};
 
 template <typename T, typename U>
 constexpr bool is_greater_equal_comparable_v = is_greater_equal_comparable<T, U>::value;
@@ -3148,7 +3161,7 @@ struct vec_info_helper {};
 template <typename T_, s64 Dim_, bool Packed_>
 struct vec_info_helper<vec<T_, Dim_, Packed_>> {
     using type = T_;
-
+    
     static constexpr s64 Dim = Dim_;
     static constexpr bool Packed = Packed_;
 };
@@ -3156,7 +3169,7 @@ struct vec_info_helper<vec<T_, Dim_, Packed_>> {
 template <typename T_, s64 Dim_, bool Packed_>
 struct vec_info_helper<vec_data<T_, Dim_, Packed_>> {
     using type = T_;
-
+    
     static constexpr s64 Dim = Dim_;
     static constexpr bool Packed = Packed_;
 };
@@ -3170,7 +3183,7 @@ struct mat_info_helper {};
 template <typename T_, s64 R_, s64 C_, bool Packed_>
 struct mat_info_helper<mat<T_, R_, C_, Packed_>> {
     using type = T_;
-
+    
     static constexpr s64 R = R_;
     static constexpr s64 C = C_;
     static constexpr bool Packed = Packed_;
@@ -3182,15 +3195,15 @@ struct mat_info : public mat_info_helper<decay_t<MatrixT>> {};
 template <typename VectorDataT>
 struct has_simd {
     template <typename U>
-    static false_t test(...) {
+        static false_t test(...) {
         return {};
     }
-
+    
     template <typename U>
-    static decltype(U::Simd) test(s32) {
+        static decltype(U::Simd) test(s32) {
         return {};
     }
-
+    
     static constexpr bool value = !is_same_v<false_t, decltype(test<VectorDataT>(0))>;
 };
 
@@ -3230,7 +3243,7 @@ struct concat_type_list<type_list<T...>, type_list<U...>> {
 template <typename T, s32 N>
 struct repeat_type {
     using type = type_select_t<N <= 0, type_list<>,
-                               typename concat_type_list<type_list<T>, typename repeat_type<T, N - 1>::type>::type>;
+    typename concat_type_list<type_list<T>, typename repeat_type<T, N - 1>::type>::type>;
 };
 
 // Decide if type is Scalar, Vector or Matrix.

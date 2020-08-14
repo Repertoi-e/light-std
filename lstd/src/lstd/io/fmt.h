@@ -252,25 +252,18 @@ struct formatter<guid> {
             openParenthesis = '(';
             closedParenthesis = ')';
         } else if (type == 'x') {
-            union {
-                char Data[16];
-                struct {
-                    u32 D1;
-                    u16 D5, D7;
-                    u8 D9, D10, D11, D12, D13, D14, D15, D16;
-                };
-            } u;
-            copy_memory(u.Data, src.Data, 16);
-
             auto *old = f->Specs;
             f->Specs = null;
+
+            u8 *p = (u8 *) src.Data;
             if (upper) {
-                to_writer(f, "{{{:#010X},{:#06X},{:#06X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}",
-                          u.D1, u.D5, u.D7, u.D9, u.D10, u.D11, u.D12, u.D13, u.D14, u.D15, u.D16);
+                to_writer(f, "{{{:#04X}{:02X}{:02X}{:02X},{:#04X}{:02X},{:#04X}{:02X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}",
+                          p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
             } else {
-                to_writer(f, "{{{:#010x},{:#06x},{:#06x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}",
-                          u.D1, u.D5, u.D7, u.D9, u.D10, u.D11, u.D12, u.D13, u.D14, u.D15, u.D16);
+                to_writer(f, "{{{:#04x}{:02x}{:02x}{:02x},{:#04x}{:02x},{:#04x}{:02x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}",
+                          p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
             }
+
             f->Specs = old;
             return;
         }

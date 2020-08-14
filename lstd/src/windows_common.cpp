@@ -688,7 +688,7 @@ array<string> os_get_command_line_arguments() { return Argv; }
 
 u32 os_get_pid() { return (u32) GetCurrentProcessId(); }
 
-guid new_guid() {
+guid guid_new() {
     GUID g;
     CoCreateGuid(&g);
     

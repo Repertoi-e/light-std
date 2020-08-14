@@ -18,7 +18,7 @@ void test_guid_case(guid id, char f) {
 }
 
 TEST(guid_write_read) {
-    guid id = new_guid();
+    guid id = guid_new();
 
     array<char> cases = {'n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X'};
     For(cases) test_guid_case(id, it);

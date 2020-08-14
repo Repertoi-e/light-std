@@ -1,22 +1,38 @@
 ---------------------------------------------------------------------------------
-Replace with our own math functions in order to not depend on the runtime lib
+Fix threads once and for all..
+.. also use a lock-free queue in console output instead of a mutex 
+(TEST PERFOMANCE FOR THIS!) 
 ---------------------------------------------------------------------------------
-- Locale?
-- Time?
-- Random?
+Rework file:: (handles and paths) api to make more sense.
+---------------------------------------------------------------------------------
+Put os_ functions in os namespace and remove prefixes?
+.. for consistency with other sections..
+---------------------------------------------------------------------------------
+Replace with our own math functions in order to not depend on the runtime lib
+(BENCHMARK!)
 ---------------------------------------------------------------------------------
 File I/O and Reader/Writer implementations
 (File mapping too)
 + Tests
 ---------------------------------------------------------------------------------
 API for watching directory changes
-... and an asset system
+... and an asset catalog system
 ---------------------------------------------------------------------------------
-Implement the other part of platform specific functionality and compile on linux.
-Remove comments about posix thread implementation in _context.h_ and _thread.h_
+
+
+
+... Things not hapenning for a while probably:
 ---------------------------------------------------------------------------------
 Allow users to add more variables to Implicit_Context
 Won't work with headers tho
+---------------------------------------------------------------------------------
+Implement the other part of platform specific functionality and compile on linux.
+---------------------------------------------------------------------------------
+- Locale?
+- Time?
+- Random?
+- Regex?
+- Complex numbers?
 ---------------------------------------------------------------------------------
 
 LOC:    80394

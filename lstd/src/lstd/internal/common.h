@@ -731,6 +731,26 @@ constexpr u32 count_digits(T value) {
 #error Some atomic operations not implemented
 #endif
 
+// Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
+inline constexpr void byte_swap_2(void *ptr) {
+    u16 x = *(u16 *) ptr;
+    *(u16 *) ptr = x << 8 & 0xFF00 | x >> 8 & 0x00FF;
+}
+
+// Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
+inline constexpr void byte_swap_4(void *ptr) {
+    u32 x = *(u32 *) ptr;
+    *(u32 *) ptr = x << 24 & 0xFF000000 | x << 8 & 0x00FF0000 | x >> 8 & 0x0000FF00 | x >> 24 & 0x000000FF;
+}
+
+// Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
+inline constexpr void byte_swap_8(void *ptr) {
+    u64 x = *(u64 *) ptr;
+    x = ((x << 8) & 0xFF00FF00FF00FF00ULL) | ((x >> 8) & 0x00FF00FF00FF00FFULL);
+    x = ((x << 16) & 0xFFFF0000FFFF0000ULL) | ((x >> 16) & 0x0000FFFF0000FFFFULL);
+    *(u64 *) ptr = (x << 32) | (x >> 32);
+}
+
 // Returns 10 ** exponent at compile-time.
 template <typename T>
 constexpr T const_exp10(s32 exponent) {
