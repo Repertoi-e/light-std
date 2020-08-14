@@ -20,7 +20,7 @@ struct formatter<file::path> {
 
 template <>
 struct formatter<file::handle> {
-    void format(const file::handle &handle, format_context *f) { 
+    void format(const file::handle &handle, format_context *f) {
         string displayWorthy = handle.Path.unified();
         f->write(displayWorthy);
         displayWorthy.release();

@@ -684,9 +684,11 @@ f64 max(f64 x, f64 y);
 
 template <typename T>
 enable_if_t<is_integral_v<T>, T> ceil_pow_of_2(T v) {
-    v--;
-    for (s64 i = 1; i < sizeof(T) * 8; i *= 2) v |= v >> i;
-    return ++v;
+    if (v <= 1) return 1;
+    T power = 2;
+    --v;
+    while (v >>= 1) power <<= 1;
+    return power;
 }
 
 #undef INTEGRAL_FUNCTION_CONSTEXPR

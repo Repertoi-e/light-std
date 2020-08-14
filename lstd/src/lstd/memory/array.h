@@ -109,9 +109,7 @@ struct array {
 
     // Inserts an element at a specified index and returns a pointer to it in the buffer
     data_t *insert(s64 index, const data_t &element) {
-        if (Count >= Reserved) {
-            reserve(Reserved * 2);
-        }
+        reserve(1);
 
         s64 offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
@@ -128,13 +126,8 @@ struct array {
 
     // Insert a buffer of elements at a specified index.
     data_t *insert_pointer_and_size(s64 index, const data_t *ptr, s64 size) {
-        s64 required = Reserved;
-        while (Count + size >= required) {
-            required = 2 * Reserved;
-            if (required < 8) required = 8;
-        }
-        reserve(required);
-
+        reserve(size);
+        
         s64 offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
         if (offset < Count) {
@@ -193,7 +186,7 @@ struct array {
     data_t *append(const data_t &element) { return insert(Count, element); }
 
     // Appends an array to the end and returns a pointer to it in the buffer
-    data_t *append(const array &arr) { return insert(Counts, arr); }
+    data_t *append(const array &arr) { return insert(Count, arr); }
 
     // Appends a buffer of elements to the end and returns a pointer to it in the buffer
     data_t *append_pointer_and_size(const data_t *ptr, s64 size) { return insert_pointer_and_size(Count, ptr, size); }
@@ -414,6 +407,11 @@ struct array {
     //
     // Operators:
     //
+
+    // Returns a string which is a view into this buffer
+    template <typename U = T, typename = typename enable_if<is_same_v<remove_cv_t<U>, char> || is_same_v<remove_cv_t<U>, u8>>::type>
+    operator string() const { return string((const char *) Data, Count); }
+
     data_t &operator[](s64 index) { return get(index); }
     constexpr const data_t &operator[](s64 index) const { return get(index); }
 

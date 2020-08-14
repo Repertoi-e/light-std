@@ -68,16 +68,16 @@ TEST(table) {
     t.set("4", 4);
     t.set("9", 10101);
 
-    assert((void *) t.find("1").Second);
-    assert_eq(*t.find("1").Second, 1);
-    assert((void *) t.find("4").Second);
-    assert_eq(*t.find("4").Second, 4);
-    assert((void *) t.find("9").Second);
-    assert_eq(*t.find("9").Second, 10101);
+    assert((void *) t.find("1").second);
+    assert_eq(*t.find("1").second, 1);
+    assert((void *) t.find("4").second);
+    assert_eq(*t.find("4").second, 4);
+    assert((void *) t.find("9").second);
+    assert_eq(*t.find("9").second, 10101);
 
     t.set("9", 20202);
-    assert((void *) t.find("9").Second);
-    assert_eq(*t.find("9").Second, 20202);
+    assert((void *) t.find("9").second);
+    assert_eq(*t.find("9").second, 20202);
     t.set("9", 9);
 
     s64 loopIterations = 0;

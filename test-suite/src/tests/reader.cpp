@@ -1,26 +1,43 @@
+#include <lstd/parse.h>
+
 #include "../test.h"
 
-/*
 void test_guid_case(guid id, char f) {
-    string format = fmt::sprint("{{:{:c}}}", f);
+    string format = fmt::sprint("{{:{:c}}}\n", f);
     defer(format.release());
 
-    string buffer = fmt::sprint(format, id);
-    defer(buffer.release());
+    string formatted = fmt::sprint(format, id);
+    defer(formatted.release());
 
-    io::string_reader r(buffer);
-    guid result;
-    r.read(&result);
-    assert(!r.LastFailed);
+    io::string_reader string_reader(formatted);
 
-    s64 diff = compare_memory(id.Data, result.Data, 16);
-    assert(diff == -1);
+    // Weird scenario just to stress test
+    io::chunked_reader<2> r(&string_reader);
+
+    r.request_next_buffer();
+    auto [buffer, success] = r.read_bytes_until('\n');
+
+    array<char> result = buffer;
+    defer(result.release());
+
+    while (!success && !r.EOF) {
+        r.request_next_buffer();
+
+        tie(buffer, success) = r.read_bytes_until('\n');
+        result.append(buffer);
+
+        if (success) break;
+    }
+
+    auto [parsed, parsedStatus, rest] = parse_guid(result);
+    assert(parsed == id);
+    assert(parsedStatus == PARSE_SUCCESS);
+    assert(rest == (array<char>) (string) "");
 }
 
 TEST(guid_write_read) {
     guid id = guid_new();
 
-    array<char> cases = {'n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X'};
-    For(cases) test_guid_case(id, it);
+    array<char> formats = {'n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X'};
+    For(formats) test_guid_case(id, it);
 }
-*/

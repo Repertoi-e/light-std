@@ -110,7 +110,7 @@ struct path {
     // Remove any occurences of ".." (that aren't the first one)
     // e.g.  ../data/my_data/../my_other_data
     // -> ../data/my_other_data
-    string resolved() const ;
+    string resolved() const;
 
     // Returns a path good for display.
     // Resolves any ./ or ../ and replaces all \ with /.

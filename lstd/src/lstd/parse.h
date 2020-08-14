@@ -554,28 +554,132 @@ tuple<guid, parse_status, array<char>> parse_guid(const array<char> &buffer) {
     return {result, PARSE_SUCCESS, array<char>(p, n)};
 }
 
-// Returns the rest after _delim_ is reached
-array<char> eat_bytes_until(const array<char> &buffer, char delim) {
-    // @TODO
-    return buffer;
+// Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
+inline tuple<array<char>, bool, array<char>> eat_n_bytes(const array<char> &buffer, s64 n) {
+    if (n < buffer.Count) return {{}, false, buffer};
+    return {array<char>(buffer.Data, n), true, array<char>(buffer.Data + n, buffer.Count - n)};
 }
 
-// Returns the rest after a byte that is not _eats_ is reached
-array<char> eat_bytes_while(const array<char> &buffer, char eats) {
-    // @TODO
-    return buffer;
+// Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
+inline tuple<array<char>, bool, array<char>> eat_bytes_until(const array<char> &buffer, char delim) {
+    char *p = buffer.Data;
+    s64 n = buffer.Count;
+    while (n >= 4) {
+        if (U32_HAS_BYTE(*(u32 *) p, delim)) break;
+        p += 4;
+        n -= 4;
+    }
+    while (n > 0) {
+        if (*p == delim) return {array<char>(buffer.Data, p - buffer.Data), true, array<char>(p, n)};
+        ++p;
+    }
+    return {{}, false, buffer};
 }
 
-// Same as the buffer version but works on strings and pays attention to utf8
-string eat_code_points_until(const string &str, char32_t delim) {
-    // @TODO
-    return "";
+// Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
+inline tuple<array<char>, bool, array<char>> eat_bytes_while(const array<char> &buffer, char eats) {
+    char *p = buffer.Data;
+    s64 n = buffer.Count;
+    while (n >= 4) {
+        if (!(U32_HAS_BYTE(*(u32 *) p, eats))) break;
+        p += 4;
+        n -= 4;
+    }
+    while (n > 0) {
+        if (*p != eats) return {array<char>(buffer.Data, p - buffer.Data), true, array<char>(p, n)};
+        ++p;
+    }
+    return {{}, false, buffer};
 }
 
-// Same as the buffer version but works on strings and pays attention to utf8
-string eat_code_points_while(const string &str, char32_t eats) {
-    // @TODO
-    return "";
+// Returns the code point, a status, and the rest of the buffer.
+// Note: This validates the input!
+//
+// Status is: PARSE_SUCCESS, PARSE_INVALID (buffer contained invalid utf8), PARSE_EXHAUSTED (we ran out of bytes)
+//
+// :ParseInvalidConsumesByte
+// Read the doc in _eat_code_points_until_!
+inline tuple<char32_t, parse_status, array<char>> eat_code_point(const array<char> &buffer) {
+    char *p = buffer.Data;
+    s64 n = buffer.Count;
+    if (!n) return {0, PARSE_EXHAUSTED, buffer};
+
+    s64 sizeOfCp = get_size_of_cp(p);
+    if (n < sizeOfCp) return {0, PARSE_EXHAUSTED, buffer};
+
+    char data[4]{};
+    For(range(sizeOfCp)) {
+        data[it] = *p;
+        ++p, --n;
+    }
+    return {decode_cp(data), PARSE_SUCCESS, array<char>(p, n)};
+}
+
+// Same as the buffer version (eat_bytes_until) but pays attention to utf8.
+// Returns: the code points read, a status, and the rest of the buffer.
+// Status is: PARSE_SUCCESS, PARSE_INVALID (buffer contained invalid utf8), PARSE_EXHAUSTED (we ran out of bytes)
+//
+// :ParseInvalidConsumesByte
+// When PARSE_INVALID we consume one byte even though the code point might be multiple bytes.
+// We do this to comforn with the rest of the standard of our parse functions of using the return value
+// as a pointer to exactly where things went wrong. e.g. an handler at the all site might report an error like this:
+//
+//                                         .. here is a sequence that began with a byte that told us we are looking
+//                                         at a 4 byte code point for example but somewhere in there there was an invalid byte
+//      This was a valid utf8 string until XXXX
+//                                         ^ error happened here. This is the last byte in the returned value. Rest of string in this case is "XXX".
+//
+inline tuple<string, parse_status, string> eat_code_points_until(const array<char> &buffer, char32_t delim) {
+    auto p = buffer;
+    while (true) {
+        auto [cp, status, rest] = eat_code_point(p);
+        if (status == PARSE_EXHAUSTED) return {{}, PARSE_EXHAUSTED, buffer};
+        if (status == PARSE_INVALID) return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, string(p.Data + 1, p.Count - 1)};
+
+        if (cp == delim) break;
+
+        p = rest;
+    }
+    return {string(buffer.Data, p.Data - buffer.Data), PARSE_SUCCESS, p};
+}
+
+// Same as the buffer version (eat_bytes_while) but pays attention to utf8.
+// Returns: the code points read, a status, and the rest of the buffer.
+// Status is: PARSE_SUCCESS, PARSE_INVALID (buffer contained invalid utf8), PARSE_EXHAUSTED (we ran out of bytes)
+//
+// :ParseInvalidConsumesByte
+// Read the doc in _eat_code_points_until_!
+inline tuple<string, parse_status, string> eat_code_points_while(const array<char> &buffer, char32_t eats) {
+    auto p = buffer;
+    while (true) {
+        auto [cp, status, rest] = eat_code_point(p);
+        if (status == PARSE_EXHAUSTED) return {{}, PARSE_EXHAUSTED, buffer};
+        if (status == PARSE_INVALID) return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, string(p.Data + 1, p.Count - 1)};
+
+        if (cp != eats) break;
+
+        p = rest;
+    }
+    return {string(buffer.Data, p.Data - buffer.Data), PARSE_SUCCESS, p};
+}
+
+// Returns: the code points read, a status, and the rest of the buffer.
+// Status is: PARSE_SUCCESS, PARSE_INVALID (buffer contained invalid utf8), PARSE_EXHAUSTED (we ran out of bytes)
+//
+// :ParseInvalidConsumesByte
+// Read the doc in _eat_code_points_until_!
+inline pair<string, parse_status> eat_white_space(const string &str) {
+    array<char> p = str;
+    while (true) {
+        auto [cp, status, rest] = eat_code_point(p);
+        if (status == PARSE_EXHAUSTED) return {str, PARSE_EXHAUSTED};
+        if (status == PARSE_INVALID) return {string(p.Data + 1, p.Count - 1), PARSE_INVALID};
+
+        if (!is_space(cp)) break;
+
+        p = rest;
+    }
+    return {p, PARSE_SUCCESS};
 }
 
 LSTD_END_NAMESPACE

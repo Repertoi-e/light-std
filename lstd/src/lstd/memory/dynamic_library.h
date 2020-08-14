@@ -11,7 +11,7 @@ struct dynamic_library : non_copyable, non_movable, non_assignable {
     dynamic_library() = default;
     dynamic_library(const string &name) { load(name); }
     ~dynamic_library() { close(); }
-    
+
     bool load(const string &name);
     void close();
 

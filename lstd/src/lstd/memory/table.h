@@ -323,7 +323,7 @@ struct table {
     value_t *operator[](const key_t &key) {
         auto [kp, vp] = find(key);
         if (vp) return vp;
-        return add(key, value_t()).Second;
+        return add(key, value_t()).second;
     }
 };
 

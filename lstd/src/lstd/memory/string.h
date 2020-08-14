@@ -204,7 +204,7 @@ struct string {
     // This function doesn't allocate, but just returns a "view".
     constexpr string substring(s64 begin, s64 end) const {
         auto sub = substring_utf8(Data, Length, begin, end);
-        return string(sub.First, sub.Second - sub.First);
+        return string(sub.first, sub.second - sub.first);
     }
 
     // Returns a substring with whitespace removed at the start.

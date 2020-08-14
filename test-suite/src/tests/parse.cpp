@@ -93,31 +93,23 @@ TEST(bool) {
 }
 
 TEST(guid) {
-    // 2d043ca6-06cd-44c0-8009-e0b1ea72ebf9
-    guid theGuid = {0x2d, 0x04, 0x3c, 0xa6, 0x06, 0xcd, 0x44, 0xc0, 0x80, 0x09, 0xe0, 0xb1, 0xea, 0x72, 0xeb, 0xf9};
+    guid guid = guid_new();
     
-    array<char> formats = {
-        'n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X'};
+    array<char> formats = {'n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X'};
     
     // Random stuff we will append after the string to check _rest_
-    array<string> garbage = {
-        "", "--", ")()-", "0xff", "cafef00d", "deadbeef"};
+    array<string> garbage = {"", "--", ")()-", "0xff and cafef00d and deadbeef"};
     
     For_as(f, formats) {
         For_as(g, garbage) {
             string format = fmt::sprint("{{:{:c}}}{}", f, g);
             defer(format.release());
             
-            string guidFormatted = fmt::sprint(format, theGuid);
+            string guidFormatted = fmt::sprint(format, guid);
             defer(guidFormatted.release());
             
-            auto [parsedGuid, status, rest] = parse_guid(guidFormatted);
-            
-            if (theGuid != parsedGuid) {
-                int a = 42;
-            }
-            
-            assert_eq(theGuid, parsedGuid);
+            auto [parsed, status, rest] = parse_guid(guidFormatted);
+            assert_eq(guid, parsed);
             assert_eq(status, PARSE_SUCCESS);
             assert_eq(rest, (array<char>) g);
         }
