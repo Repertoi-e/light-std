@@ -422,6 +422,62 @@ constexpr char32_t decode_cp(const char *str) {
     }
 }
 
+// Checks whether the encoded code point in data is valid utf8
+//
+// @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
+// @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
+// @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
+constexpr bool is_valid_utf8(const char *data) {
+    u8 *p = (u8 *) data;
+
+    s64 sizeOfCp = get_size_of_cp(data);
+    if (sizeOfCp == 1) {
+        if (*data < 0) return false;
+    } else if (sizeOfCp == 2) {
+        if (*p < 0xC2 || *p > 0xDF) return false;
+        ++p;
+        if (*p < 0x80 || *p > 0xBF) return false;
+    } else if (sizeOfCp == 3) {
+        if (*p == 0xE0) {
+            ++p;
+            if (*p < 0xA0 || *p > 0xBF) return false;
+        } else if (*p >= 0xE1 && *p <= 0xEC) {
+            ++p;
+            if (*p < 0x80 || *p > 0xBF) return false;
+        } else if (*p == 0xED) {
+            ++p;
+            if (*p < 0x80 || *p > 0x9F) return false;
+        } else if (*p >= 0xEE && *p <= 0xEF) {
+            ++p;
+            if (*p < 0x80 || *p > 0xBF) return false;
+        } else {
+            return false;
+        }
+        // The third byte restriction is the same on all of these
+        ++p;
+        if (*p < 0x80 || *p > 0xBF) return false;
+    } else if (sizeOfCp == 4) {
+        if (*p == 0xF0) {
+            ++p;
+            if (*p < 0x90 || *p > 0xBF) return false;
+        } else if (*p >= 0xF1 && *p <= 0xF3) {
+            ++p;
+            if (*p < 0x80 || *p > 0xBF) return false;
+        } else if (*p == 0xF4) {
+            ++p;
+            if (*p < 0x80 || *p > 0x8F) return false;
+        } else {
+            return false;
+        }
+        // The third and fourth byte restriction is the same on all of these
+        ++p;
+        if (*p < 0x80 || *p > 0xBF) return false;
+    } else {
+        return false;
+    }
+    return true;
+}
+
 // This function translates an index that may be negative to an actual index.
 // For example 5 maps to 5
 // but -5 maps to length - 5

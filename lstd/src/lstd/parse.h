@@ -620,6 +620,7 @@ inline tuple<char32_t, parse_status, array<char>> eat_code_point(const array<cha
         data[it] = *p;
         ++p, --n;
     }
+    if (!is_valid_utf8(data)) return {0, PARSE_INVALID, array<char>(buffer.Data + 1, buffer.Count - 1)};
     return {decode_cp(data), PARSE_SUCCESS, array<char>(p, n)};
 }
 

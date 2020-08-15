@@ -243,6 +243,11 @@ file_scope alignment get_alignment_from_char(char ch) {
 
 bool parse_context::parse_fill_and_align(type argType, format_specs *specs) {
     auto [fill, status, rest] = eat_code_point(It);
+    if (status == PARSE_INVALID) {
+        on_error("Invalid UTF8 encountered in format string");
+        return false;
+    }
+
     assert(status != PARSE_EXHAUSTED);
 
     // First we check if the code point we parsed was an alingment specifier, if it was then there was no fill.
@@ -263,15 +268,11 @@ bool parse_context::parse_fill_and_align(type argType, format_specs *specs) {
     // If we got here and didn't get an alignment specifier we roll back and don't parse anything.
     if (align != alignment::NONE) {
         s64 errorPosition = rest.Data - FormatString.Data;
-
-        if (status == PARSE_INVALID) {
-            on_error("Invalid UTF8 encountered in format string", errorPosition);
-            return false;
-        }
         if (fill == '{') {
             on_error("Invalid fill character \"{\"", errorPosition - 2);
             return false;
         }
+
         It = rest;  // Advance forward
 
         specs->Fill = fill;
