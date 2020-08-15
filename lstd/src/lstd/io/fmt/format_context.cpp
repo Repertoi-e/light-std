@@ -93,7 +93,7 @@ void format_context_write(io::writer *w, const char *data, s64 count) {
             return;
         }
         if (f->Specs->Type != 's') {
-            f->on_error("Invalid type specifier");
+            f->on_error("Invalid type specifier for a string", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
             return;
         }
     }
@@ -120,7 +120,7 @@ static char U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
 
 void format_context::write(const void *value) {
     if (Specs && Specs->Type && Specs->Type != 'p') {
-        on_error("Invalid type specifier");
+        on_error("Invalid type specifier for a pointer", Parse.It.Data - Parse.FormatString.Data - 1);
         return;
     }
 
@@ -160,7 +160,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
         numDigits = count_digits<4>(value);
     } else if (type == 'c') {
         if (specs.Align == alignment::NUMERIC || specs.Sign != sign::NONE || specs.Hash) {
-            on_error("Invalid format specifier for code point");
+            on_error("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", Parse.It.Data - Parse.FormatString.Data);
             return;
         }
         auto cp = (char32_t) value;
@@ -168,7 +168,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
             this, specs, [&]() { this->write_no_specs(cp); }, get_size_of_cp(cp));
         return;
     } else {
-        on_error("Invalid type specifier");
+        on_error("Invalid type specifier for an integer", Parse.It.Data - Parse.FormatString.Data - 1);
         return;
     }
 
@@ -273,7 +273,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
     if (type) {
         char lower = (char) to_lower(type);
         if (lower != 'g' && lower != 'e' && lower != '%' && lower != 'f' && lower != 'a') {
-            on_error("Invalid type specifier");
+            on_error("Invalid type specifier for a float", Parse.It.Data - Parse.FormatString.Data - 1);
             return;
         }
     } else {
@@ -433,8 +433,7 @@ arg format_context::get_arg_from_ref(arg_ref ref) {
             ArgMap.ensure_initted(Args);
             target = ArgMap.find(ref.Name);
             if (target.Type == type::NONE) {
-                --Parse.It;
-                on_error("Argument with this name not found");
+                on_error("Argument with this name not found", Parse.It.Data - Parse.FormatString.Data - 1);
             }
         }
     }

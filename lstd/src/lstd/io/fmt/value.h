@@ -9,7 +9,9 @@ namespace fmt {
 enum class type {
     NONE = 0,
     NAMED_ARG,
-
+    
+    // @TOOD: Remove 32 bit versions?
+   
     // Integers
     S32,
     U32,

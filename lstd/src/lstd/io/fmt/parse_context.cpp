@@ -1,141 +1,188 @@
 #include "parse_context.h"
 
+#include "../../os.h"
+#include "../../parse.h"
+#include "../fmt.h"
+
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
-void parse_context::require_numeric_arg(type argType) {
+void parse_context::require_numeric_arg(type argType, s64 errorPosition) {
     assert(argType != type::NONE);
     if (argType == type::CUSTOM) return;
-    if (!is_fmt_type_numeric(argType)) on_error("Format specifier requires numeric argument");
+    if (!is_fmt_type_numeric(argType)) on_error("Format specifier requires a numeric argument", errorPosition);
 }
 
-void parse_context::require_signed_arg(type argType) {
+void parse_context::require_signed_numeric_arg(type argType, s64 errorPosition) {
     assert(argType != type::NONE);
     if (argType == type::CUSTOM) return;
 
-    require_numeric_arg(argType);
+    require_numeric_arg(argType, errorPosition);
     if (is_fmt_type_integral(argType) && argType != type::S32 && argType != type::S64) {
-        on_error("Format specifier requires a signed integer argument");
+        on_error("Format specifier requires a signed numeric argument", errorPosition);
     }
 }
 
-void parse_context::check_precision_for_arg(type argType) {
+void parse_context::check_precision_for_arg(type argType, s64 errorPosition) {
     assert(argType != type::NONE);
     if (argType == type::CUSTOM) return;
-    if (is_fmt_type_integral(argType) || argType == type::POINTER) {
-        on_error("Precision is not allowed for this argument type");
+    if (is_fmt_type_integral(argType)) {
+        on_error("Precision is not allowed for integer types", errorPosition);
+    }
+    if (argType == type::POINTER) {
+        on_error("Precision is not allowed for pointer type", errorPosition);
     }
 }
+
+constexpr parse_int_options parse_int_options_fmt = parse_int_options(byte_to_digit_default, false, false, false);
 
 arg_ref parse_context::parse_arg_id() {
-    assert(It != End);
-
-    char c = *It;
-    if (c == '}' || c == ':') {
+    char ch = It[0];
+    if (ch == '}' || ch == ':') {
         return arg_ref(next_arg_id());
     }
 
-    if (is_digit(c)) {
-        u32 index = parse_nonnegative_int();
-        if (It == End || (*It != '}' && *It != ':')) {
-            on_error("Invalid format string");
+    if (is_digit(ch)) {
+        u32 value, status;
+        tie(value, status, It) = parse_int<u32, &parse_int_options_fmt>(It, 10);
+
+        if (status == PARSE_TOO_MANY_DIGITS) {
+            on_error("Argument ID is an integer which is too large");
             return {};
         }
-        check_arg_id(index);
-        return arg_ref(index);
+
+        if (!It.Count) {
+            on_error("Format string ended abruptly");
+            return {};
+        }
+
+        ch = It[0];
+        if ((ch != '}' && ch != ':')) {
+            on_error("Expected \":\" or \"}\"");
+            return {};
+        }
+
+        check_arg_id(value);
+        return arg_ref(value);
     }
-    if (!is_alpha(c) && c != '_') {
-        on_error("Invalid format string");
+
+    if (!is_identifier_start(ch)) {
+        on_error("We couldn't parse an integer argument ID so we tried a named argument, but we didn't find a valid identifier start (must be a-Z or underscore)");
         return {};
     }
-    auto *it = It;
-    do {
-        ++it;
-    } while (it != End && (is_alphanumeric(c = *it) || c == '_'));
 
-    auto name = string(It, (s64)(it - It));
-    It = it;
+    const char *it = It.Data;
+    s64 n = It.Count;
+    do {
+        ++it, --n;
+    } while (n && (is_alphanumeric(*it) || *it == '_'));
+
+    auto name = string(It.Data, it - It.Data);
+    It = array<char>((char *) it, n);
     return arg_ref(name);
 }
 
+// Note: When parsing this if we reach the end before } we don't report an error. The caller of this should handle that.
 bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
-    if (It == End || *It == '}') return true;  // No specs to parse, but that's not an error
+    if (It[0] == '}') return true;  // No specs to parse
 
-    if (!parse_align(argType, specs)) return false;
-    if (It == End) return true;
+    if (!parse_fill_and_align(argType, specs)) return false;
 
-    // Parse sign
-    switch (*It) {
+    if (!It.Count) return true;  // No more specs to parse. Tried to parse so far: align
+
+    // Try to parse sign
+    switch (It[0]) {
         case '+':
-            require_signed_arg(argType);
+            require_signed_numeric_arg(argType);
+
             specs->Sign = sign::PLUS;
-            ++It;
+
+            ++It.Data, --It.Count;
             break;
         case '-':
-            require_signed_arg(argType);
+            require_signed_numeric_arg(argType);
 
-            // sign::MINUS has the same behaviour as sign::NONE on our types,
-            // but the user might want to have different formating
-            // on their custom types when minus is specified,
-            // so we record it when parsing anyway.
+            // MINUS has the same behaviour as NONE on the basic types but the user might want to have different
+            // formating on their custom types when minus is specified, so we record it anyway.
             specs->Sign = sign::MINUS;
-            ++It;
+
+            ++It.Data, --It.Count;
             break;
         case ' ':
-            require_signed_arg(argType);
+            require_signed_numeric_arg(argType);
+
             specs->Sign = sign::SPACE;
-            ++It;
+
+            ++It.Data, --It.Count;
             break;
     }
-    if (It == End) return true;
+    if (!It.Count) return true;  // No more specs to parse. Tried to parse so far: align, sign
 
-    if (*It == '#') {
+    if (It[0] == '#') {
         require_numeric_arg(argType);
         specs->Hash = true;
-        if (++It == End) return true;
+
+        ++It.Data, --It.Count;
+        if (!It.Count) return true;  // No more specs to parse. Tried to parse so far: align, sign, #
     }
 
-    if (*It == '0') {
+    // 0 means = alignment with the character 0 as fill
+    if (It[0] == '0') {
         require_numeric_arg(argType);
         specs->Align = alignment::NUMERIC;
         specs->Fill = '0';
-        if (++It == End) return true;
+
+        ++It.Data, --It.Count;
+        if (!It.Count) return true;  // No more specs to parse. Tried to parse so far: align, sign, #, 0
     }
 
     if (!parse_width(specs)) return false;
-    if (It == End) return true;
+    if (!It.Count) return true;  // No more specs to parse. Tried to parse so far: align, sign, #, 0, width
 
-    if (*It == '.') {
+    if (It[0] == '.') {
         if (!parse_precision(argType, specs)) return false;
     }
 
-    if (It != End && *It != '}') specs->Type = *It++;
+    // If we still haven't reached the end or a '}' we treat the byte as the type specifier.
+    if (It.Count && It[0] != '}') {
+        specs->Type = It[0];
+        ++It.Data, --It.Count;
+    }
+
     return true;
 }
 
 bool parse_context::parse_text_style(text_style *textStyle) {
-    if (is_alpha(*It)) {
+    if (is_alpha(It[0])) {
         bool terminal = false;
-        if (*It == 't') {
+        if (It[0] == 't') {
             terminal = true;
-            ++It;
+            ++It.Data, --It.Count;  // Skip the t
         }
 
-        auto *nameBegin = It;
-        while (It != End && is_identifier_start(*It)) ++It;
+        const char *it = It.Data;
+        s64 n = It.Count;
+        do {
+            ++it, --n;
+        } while (n && is_identifier_start(*it));
 
-        if (It == End) return true;
-        if (*It != ';' && *It != '}') {
-            on_error("Invalid color name - it must be a valid identifier");
+        if (!n) return true;  // The caller should check for closing }
+
+        auto name = string(It.Data, it - It.Data);
+
+        It = array<char>((char *) it, n);
+
+        if (It[0] != ';' && It[0] != '}') {
+            on_error("Invalid color name - it must be a valid identifier (without digits)");
             return false;
         }
 
-        auto name = string(nameBegin, It - nameBegin);
         if (terminal) {
             terminal_color c = string_to_terminal_color(name);
             if (c == terminal_color::NONE) {
-                // Color with that name not found, treat it as emphasis
-                It -= name.ByteLength;
+                // Color with that name not found, roll back and treat it as emphasis
+                It.Data -= name.ByteLength, It.Count += name.ByteLength;
+
                 if (!handle_emphasis(textStyle)) return false;
                 return true;
             }
@@ -144,39 +191,48 @@ bool parse_context::parse_text_style(text_style *textStyle) {
         } else {
             color c = string_to_color(name);
             if (c == color::NONE) {
-                // Color with that name not found, treat it as emphasis
-                It -= name.ByteLength;
+                // Color with that name not found, roll back and treat it as emphasis
+                It.Data -= name.ByteLength, It.Count += name.ByteLength;
+
                 if (!handle_emphasis(textStyle)) return false;
                 return true;
             }
             textStyle->ColorKind = text_style::color_kind::RGB;
             textStyle->Color.RGB = (u32) c;
         }
-    } else if (is_digit(*It)) {
+    } else if (is_digit(It[0])) {
         // Parse an RGB true color
         u32 r = parse_rgb_channel(false);
         if (r == (u32) -1) return false;
-        ++It;
+        ++It.Data, --It.Count;  // Skip the ;
+
         u32 g = parse_rgb_channel(false);
         if (g == (u32) -1) return false;
-        ++It;
+        ++It.Data, --It.Count;  // Skip the ;
+
         u32 b = parse_rgb_channel(true);
         if (b == (u32) -1) return false;
         textStyle->ColorKind = text_style::color_kind::RGB;
         textStyle->Color.RGB = (r << 16) | (g << 8) | b;
-    } else if (*It == '}') {
-        // Empty text style spec means "reset"
+    } else if (It[0] == '#') {
+        assert(false && "Parse #ffffff rgb color");
+    } else if (It[0] == '}') {
+        // Empty text style ({!}) spec means "reset the formatting"
         return true;
     }
 
-    if (*It == ';') {
-        ++It;
-        if (It + 2 < End) {
-            if (string(It, 2) == "BG") {
-                assert(textStyle->ColorKind != text_style::color_kind::NONE);  // "BG" specifier encountered but there
-                                                                               // was no color parsed before it
+    // Handle emphasis or BG, if specified
+    if (It[0] == ';') {
+        ++It.Data, --It.Count;  // Skip the ;
+        if (It.Count > 2) {
+            if (string(It.Data, 2) == "BG") {
+                if (textStyle->ColorKind == text_style::color_kind::NONE) {
+                    on_error("Color specified as background but there was no color parsed");
+                    return false;
+                }
+
                 textStyle->Background = true;
-                It += 2;
+                It.Data += 2, It.Count -= 2;
                 return true;
             }
         }
@@ -185,139 +241,157 @@ bool parse_context::parse_text_style(text_style *textStyle) {
     return true;
 }
 
-u32 parse_context::parse_nonnegative_int() {
-    assert(It != End && '0' <= *It && *It <= '9');
-
-    if (*It == '0') {
-        ++It;
-        return 0;
+file_scope alignment get_alignment_from_char(char ch) {
+    if (ch == '<') {
+        return alignment::LEFT;
+    } else if (ch == '>') {
+        return alignment::RIGHT;
+    } else if (ch == '=') {
+        return alignment::NUMERIC;
+    } else if (ch == '^') {
+        return alignment::CENTER;
     }
-    u32 value = 0;
-    u32 maxInt = numeric_info<s32>::max();
-    u32 big = maxInt / 10;
-    do {
-        // Check for overflow.
-        if (value > big) {
-            value = maxInt + 1;
-            break;
-        }
-        value = value * 10 + u32(*It - '0');
-        ++It;
-    } while (It != End && '0' <= *It && *It <= '9');
-    if (value > maxInt) {
-        on_error("Number is too big");
-        while (It != End && '0' <= *It && *It <= '9') ++It;
-        return (u32) -1;
-    }
-    return value;
+    return alignment::NONE;
 }
 
-bool parse_context::parse_align(type argType, format_specs *specs) {
-    assert(It != End);
+bool parse_context::parse_fill_and_align(type argType, format_specs *specs) {
+    auto [fill, status, rest] = eat_code_point(It);
+    assert(status != PARSE_EXHAUSTED);
 
-    alignment align = alignment::NONE;
-    s32 i = 0;
+    // First we check if the code point we parsed was an alingment specifier, if it was then there was no fill.
+    // We leave it as ' ' by default and continue afterwards for error checking.
+    auto align = get_alignment_from_char((char) fill);
+    if (align == alignment::NONE) {
+        // If there was nothing in _rest_ then it wasn't a fill code point because there is no alignment (in rest).
+        // We don't parse anything and roll back.
+        if (!rest.Count) return true;
 
-    auto cpSize = get_size_of_cp(It);
-    if (It + cpSize != End) i += cpSize;
-    do {
-        switch (It[i]) {
-            case '<':
-                align = alignment::LEFT;
-                break;
-            case '>':
-                align = alignment::RIGHT;
-                break;
-            case '=':
-                align = alignment::NUMERIC;
-                break;
-            case '^':
-                align = alignment::CENTER;
-                break;
+        // We now check if the next char in rest is an alignment specifier.
+        align = get_alignment_from_char(rest[0]);
+        ++rest.Data, --rest.Count;  // Skip the align, later we advance _It_ to _rest_
+    } else {
+        fill = ' ';  // If we parsed an alignment but no fill then the fill must be ' ' by default
+    }
+
+    // If we got here and didn't get an alignment specifier we roll back and don't parse anything.
+    if (align != alignment::NONE) {
+        s64 errorPosition = rest.Data - FormatString.Data;
+
+        if (status == PARSE_INVALID) {
+            on_error("Invalid UTF8 encountered in format string", errorPosition);
+            return false;
         }
-        if (align != alignment::NONE) {
-            if (i > 0) {
-                if (*It == '{') {
-                    on_error("Invalid fill character '{'");
-                    return false;
-                }
-                char32_t fill = decode_cp(It);
-                It += 1 + get_size_of_cp(fill);
-                specs->Fill = fill;
-            } else {
-                ++It;
-            }
-            specs->Align = align;
-            if (align == alignment::NUMERIC) require_numeric_arg(argType);
-            break;
+        if (fill == '{') {
+            on_error("Invalid fill character \"{\"", errorPosition - 2);
+            return false;
         }
-    } while (i-- > 0);
+        It = rest;  // Advance forward
+
+        specs->Fill = fill;
+        specs->Align = align;
+
+        if (align == alignment::NUMERIC) require_numeric_arg(argType, errorPosition - 1);
+    }
     return true;
 }
 
 bool parse_context::parse_width(dynamic_format_specs *specs) {
-    assert(It != End);
+    if (is_digit(It[0])) {
+        parse_status status;
+        tie(specs->Width, status, It) = parse_int<u32, &parse_int_options_fmt>(It, 10);
 
-    if (is_digit(*It)) {
-        specs->Width = parse_nonnegative_int();
+        if (status == PARSE_TOO_MANY_DIGITS) {
+            on_error("We parsed an integer width which was too large");
+            return {};
+        }
         if (specs->Width == (u32) -1) return false;
-    } else if (*It == '{') {
-        ++It;
-        if (It != End) specs->WidthRef = parse_arg_id();
-        if (It == End || *It != '}') {
-            on_error("Invalid format string");
+    } else if (It[0] == '{') {
+        ++It.Data, --It.Count;  // Skip the }
+
+        if (It.Count) {
+            specs->WidthRef = parse_arg_id();
+            if (specs->WidthRef.Kind == arg_ref::kind::NONE) return false;  // The error was reported in _parse_arg_id_
+        }
+        if (!It.Count || It[0] != '}') {
+            on_error("Expected a closing \"}\" after parsing an argument ID for a dynamic width");
             return false;
         }
-        ++It;
+
+        ++It.Data, --It.Count;  // Skip the {
     }
     return true;
 }
 
 bool parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
-    assert(It != End);
+    ++It.Data, --It.Count;  // Skip the .
 
-    // Skip the '.'
-    ++It;
-
-    char c = It != End ? *It : 0;
-    if (is_digit(c)) {
-        u32 value = parse_nonnegative_int();
-        if (value == (u32) -1) return false;
-        specs->Precision = (s32) value;
-    } else if (c == '{') {
-        ++It;
-        if (It != End) specs->PrecisionRef = parse_arg_id();
-        if (It == End || *It++ != '}') {
-            on_error("Invalid format string");
-            return false;
-        }
-    } else {
-        on_error("Missing precision specifier");
+    if (!It.Count) {
+    missing:
+        on_error("Missing precision specifier (we parsed a dot but nothing valid after that)");
         return false;
     }
-    check_precision_for_arg(argType);
+
+    if (is_digit(It[0])) {
+        parse_status status;
+        tie(specs->Precision, status, It) = parse_int<u32, &parse_int_options_fmt>(It, 10);
+
+        if (status == PARSE_TOO_MANY_DIGITS) {
+            on_error("We parsed an integer precision which was too large");
+            return {};
+        }
+        if (specs->Precision == (u32) -1) return false;
+    } else if (It[0] == '{') {
+        ++It.Data, --It.Count;  // Skip the }
+
+        if (It.Count) {
+            specs->PrecisionRef = parse_arg_id();
+            if (specs->PrecisionRef.Kind == arg_ref::kind::NONE) return false;  // The error was reported in _parse_arg_id_
+        }
+        if (!It.Count || It[0] != '}') {
+            on_error("Expected a closing \"}\" after parsing an argument ID for a dynamic precision");
+            return false;
+        }
+
+        ++It.Data, --It.Count;  // Skip the {
+    } else {
+        goto missing;
+    }
+    check_precision_for_arg(argType, It.Data - FormatString.Data - 1);
     return true;
 }
 
+constexpr parse_int_options parse_int_options_rgb_channel = parse_int_options(byte_to_digit_default, false, false, true);
+
 u32 parse_context::parse_rgb_channel(bool last) {
-    u32 channel = parse_nonnegative_int();
-    if (channel > 255) {
-        on_error("Invalid channel value - it must be in the range [0-255]");
+    auto [channel, status, rest] = parse_int<u8, &parse_int_options_rgb_channel>(It);
+
+    if (status == PARSE_INVALID) {
+        on_error("Invalid character encountered when parsing an integer channel value", rest.Data - FormatString.Data);
         return (u32) -1;
     }
-    if (It == End) return (u32) -1;
+
+    if (status == PARSE_TOO_MANY_DIGITS) {
+        on_error("Channel value too big - it must be in the range [0-255]", rest.Data - FormatString.Data - 1);
+        return (u32) -1;
+    }
+
+    It = rest;
+    if (status == PARSE_EXHAUSTED) return (u32) -1;
+
+    if (!It.Count) return (u32) -1;
+
     if (!last) {
-        if (*It != ';') {
-            on_error("';' expected");
+        if (It[0] != ';') {
+            on_error("\";\" expected followed by the next channel value");
             return (u32) -1;
         }
-        if (*It == '}' || !is_digit(*(It + 1))) {
-            on_error("Integer expected");
+        if (It[0] == '}' || It.Count < 2 || !is_digit(*(It.Data + 1))) {
+            on_error("Expected an integer specifying a channel value (3 channels required)", It.Data - FormatString.Data + 1);
             return (u32) -1;
         }
     } else {
-        if (*It != '}' && *It != ';') {
-            on_error("'}' or ';' expected");
+        if (It[0] != '}' && It[0] != ';') {
+            on_error("\"}\" expected (or \";\" for BG specifier or emphasis)");
             return (u32) -1;
         }
     }
@@ -326,8 +400,8 @@ u32 parse_context::parse_rgb_channel(bool last) {
 
 bool parse_context::handle_emphasis(text_style *textStyle) {
     // We get here either by failing to match a color name or by parsing a color first and then reaching another ';'
-    while (It != End && is_alpha(*It)) {
-        switch (*It) {
+    while (It.Count && is_alpha(It[0])) {
+        switch (It[0]) {
             case 'B':
                 textStyle->Emphasis |= emphasis::BOLD;
                 break;
@@ -347,9 +421,38 @@ bool parse_context::handle_emphasis(text_style *textStyle) {
                     "valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)");
                 return false;
         }
-        ++It;
+        ++It.Data, --It.Count;  // Go to the next byte
     }
     return true;
+}
+
+void parse_context::default_error_handler(const string &message, const string &formatString, s64 position) {
+    // An error during formatting occured.
+    // If you are running a debugger it has now hit a breakpoint.
+
+    // Make escape characters appear as they would in a string literal
+    string str = formatString;
+    str.replace_all('\"', "\\\"")
+        ->replace_all('\\', "\\\\")
+        ->replace_all('\a', "\\a")
+        ->replace_all('\b', "\\b")
+        ->replace_all('\f', "\\f")
+        ->replace_all('\n', "\\n")
+        ->replace_all('\r', "\\r")
+        ->replace_all('\t', "\\t")
+        ->replace_all('\v', "\\v");
+
+    fmt::print("\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
+    fmt::print("    ... the error happened here:\n");
+    fmt::print("        {!}{}{!GRAY}\n", str);
+    fmt::print("        {: >{}} {!} \n\n", "^", position + 1);
+#if defined NDEBUG
+    os_exit();
+#else
+    // More info has been printed to the console but here's the error message:
+    auto errorMessage = message;
+    assert(false);
+#endif
 }
 
 }  // namespace fmt

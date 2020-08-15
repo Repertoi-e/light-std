@@ -9,48 +9,49 @@ namespace fmt {
 void parse_fmt_string(const string &fmtString, format_context *f) {
     parse_context *p = &f->Parse;
 
-    auto write = [&](const char *end) {
-        if (p->It == end) return;
+    auto write_until = [&](const char *end) {
+        if (!p->It.Count) return;
         while (true) {
-            auto *bracket = find_cp_utf8(p->It, end - p->It, '}');
+            auto *bracket = find_cp_utf8(p->It.Data, end - p->It.Data, '}');
             if (!bracket) {
-                f->write_no_specs(p->It, end - p->It);
+                f->write_no_specs(p->It.Data, end - p->It.Data);
                 return;
             }
 
             if (*(bracket + 1) != '}') {
-                p->It = bracket;  // To help error reporting at the right place.
-                f->on_error("Unmatched '}' in format string - use '}}' to escape");
+                f->on_error("Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", bracket - f->Parse.FormatString.Data);
                 return;
             }
 
-            f->write_no_specs(p->It, bracket - p->It);
+            f->write_no_specs(p->It.Data, bracket - p->It.Data);
             f->write_no_specs("}");
 
-            p->It = bracket + 2;
+            s64 advance = bracket + 2 - p->It.Data;
+            p->It.Data += advance, p->It.Count -= advance;
         }
     };
 
     arg currentArg;
 
-    auto end = fmtString.Data + fmtString.ByteLength;
-    while (p->It != end) {
-        auto *bracket = find_cp_utf8(p->It, end - p->It, '{');
+    while (p->It.Count) {
+        auto *bracket = find_cp_utf8(p->It.Data, p->It.Count, '{');
         if (!bracket) {
-            write(end);
+            write_until(p->It.Data + p->It.Count);
             return;
         }
 
-        write(bracket);
-        p->It = bracket + 1;
+        write_until(bracket);
 
-        if (p->It == end) {
+        s64 advance = bracket + 1 - p->It.Data;
+        p->It.Data += advance, p->It.Count -= advance;
+
+        if (!p->It.Count) {
             f->on_error("Invalid format string");
             return;
         }
-        if (*p->It == '}') {
-            auto argId = p->next_arg_id();
-            currentArg = f->get_arg_from_ref(arg_ref(argId));
+        if (p->It[0] == '}') {
+            // Implicit {} means "get the next argument"
+            currentArg = f->get_arg_from_ref(arg_ref(p->next_arg_id()));
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
             if (currentArg.Type == type::CUSTOM) {
@@ -58,16 +59,17 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             } else {
                 visit_fmt_arg(internal::format_context_visitor(f), currentArg);
             }
-        } else if (*p->It == '{') {
-            write(p->It + 1);
-        } else if (*p->It == '!') {
-            ++p->It;
+        } else if (p->It[0] == '{') {
+            // {{ means we escaped a {.
+            write_until(p->It.Data + 1);
+        } else if (p->It[0] == '!') {
+            ++p->It.Data, --p->It.Count;  // Skip the !
 
             text_style style = {};
             bool success = p->parse_text_style(&style);
             if (!success) return;
-            if (p->It == end || *p->It != '}') {
-                f->on_error("'}' expected");
+            if (!p->It.Count || p->It[0] != '}') {
+                f->on_error("\"}\" expected");
                 return;
             }
 
@@ -83,12 +85,15 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                     f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
                 }
             }
-
         } else {
-            currentArg = f->get_arg_from_ref(p->parse_arg_id());
+            // Parse integer specified or a named argument
+            auto argId = p->parse_arg_id();
+            if (argId.Kind == arg_ref::kind::NONE) return; // The error was reported in _parse_arg_id_
+
+            currentArg = f->get_arg_from_ref(argId);
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
-            char c = p->It != end ? *p->It : 0;
+            char c = p->It.Count ? p->It[0] : 0;
             if (c == '}') {
                 if (currentArg.Type == type::CUSTOM) {
                     typename arg::handle(currentArg.Value.Custom).format(f);
@@ -96,13 +101,13 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                     visit_fmt_arg(internal::format_context_visitor(f), currentArg);
                 }
             } else if (c == ':') {
-                ++p->It;
+                ++p->It.Data, --p->It.Count;  // Skip the :
 
                 dynamic_format_specs specs = {};
                 bool success = p->parse_fmt_specs(currentArg.Type, &specs);
                 if (!success) return;
-                if (p->It == end || *p->It != '}') {
-                    f->on_error("'}' expected");
+                if (!p->It.Count || p->It[0] != '}') {
+                    f->on_error("\"}\" expected");
                     return;
                 }
 
@@ -118,11 +123,11 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                     visit_fmt_arg(internal::format_context_visitor(f), currentArg);
                 }
             } else {
-                f->on_error("'}' expected");
+                f->on_error("\"}\" expected");
                 return;
             }
         }
-        ++p->It;
+        ++p->It.Data, --p->It.Count;  // Go to the next byte
     }
 }
 }  // namespace fmt

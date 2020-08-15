@@ -181,7 +181,7 @@ void to_writer(io::writer *out, const string &fmtString, Args &&... args) {
     store.populate(args...);
 
     auto bakedArgs = fmt::args(store);
-    auto f = format_context(out, fmtString, bakedArgs, default_error_handler);
+    auto f = format_context(out, fmtString, bakedArgs, parse_context::default_error_handler);
     parse_fmt_string(fmtString, &f);
     f.flush();
 }

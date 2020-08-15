@@ -257,7 +257,15 @@ tuple<IntT, parse_status, array<char>> parse_int(const array<char> &buffer, u32 
         if (digit == IGNORE_THIS_BYTE) continue;
 
         if (digit < 0 || digit >= (s32) base) {
-            if (firstDigit) return {0, PARSE_INVALID, array<char>(p, n)};
+            if (firstDigit) {
+                // We have a special case for when we look for prefix and we are base 8 but the whole valid integer is just one 0,
+                // then we return 0 and don't treat it as an oct value (because in that case we require more digits).
+                if (Options->LookForBasePrefix) {
+                    if (base == 8) return {0, PARSE_SUCCESS, array<char>(p - 1, n + 1)};
+                }
+
+                return {0, PARSE_INVALID, array<char>(p, n)};
+            }
 
             // Roll back the invalid byte we consumed.
             // After the break we return PARSE_SUCCESS.

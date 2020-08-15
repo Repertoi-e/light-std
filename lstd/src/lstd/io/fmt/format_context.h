@@ -32,7 +32,7 @@ struct format_context : io::writer {
     // null if no specs were parsed
     dynamic_format_specs *Specs = null;
 
-    format_context(io::writer *out, const string &fmtString, args args, error_handler_t errorHandlerFunc)
+    format_context(io::writer *out, const string &fmtString, args args, parse_context::error_handler_t errorHandlerFunc)
         : writer(format_context_write, format_context_flush),
           Out(out),
           Args(args),
@@ -113,7 +113,10 @@ struct format_context : io::writer {
     // Called by _parse_format_string_ in fmt.cpp
     bool handle_dynamic_specs();
 
-    void on_error(const string &message) { Parse.on_error(message); }
+    // The position tells where to point the caret in the format string, so it is clear where exactly the error happened.
+    // If left as -1 we calculate using the current Parse.It.
+    // We may want to pass a different position if we are in the middle of parsing and the It is not pointing at the right place.
+    void on_error(const string &message, s64 position = -1) { Parse.on_error(message, position); }
 
    private:
     // Writes an integer with given formatting specs
