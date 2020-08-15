@@ -16,8 +16,9 @@ struct debug_struct_helper {
     format_context *F;
     string Name;
     array<field_entry> Fields;
+    bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-    debug_struct_helper(format_context *f, const string &name) : F(f), Name(name) {}
+    debug_struct_helper(format_context *f, const string &name, bool noSpecs) : F(f), Name(name), NoSpecs(noSpecs) {}
 
     // I know we are against hidden freeing but having this destructor is actually really fine.
     // Things would be a whole more ugly and complicated without it.
@@ -39,8 +40,9 @@ struct debug_tuple_helper {
     format_context *F;
     string Name;
     array<arg> Fields;
+    bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-    debug_tuple_helper(format_context *f, const string &name) : F(f), Name(name) {}
+    debug_tuple_helper(format_context *f, const string &name, bool noSpecs) : F(f), Name(name), NoSpecs(noSpecs) {}
 
     // I know we are against hidden freeing but having this destructor is actually really fine.
     // Things would be a whole more ugly and complicated without it.
@@ -58,8 +60,9 @@ struct debug_tuple_helper {
 struct debug_list_helper {
     format_context *F;
     array<arg> Fields;
+    bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-    debug_list_helper(format_context *f) : F(f) {}
+    debug_list_helper(format_context *f, bool noSpecs) : F(f), NoSpecs(noSpecs) {}
 
     // I know we are against hidden freeing but having this destructor is actually really fine.
     // Things would be a whole more ugly and complicated without it.

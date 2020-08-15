@@ -24,7 +24,7 @@ void debug_struct_helper::finish() {
 void debug_struct_helper::write_field(field_entry *entry) {
     F->write_no_specs(entry->Name);
     F->write_no_specs(": ");
-    visit_fmt_arg(internal::format_context_visitor(F, true), entry->Arg);
+    visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), entry->Arg);
 }
 
 void debug_tuple_helper::finish() {
@@ -33,11 +33,11 @@ void debug_tuple_helper::finish() {
 
     auto *begin = Fields.begin();
     if (begin != Fields.end()) {
-        visit_fmt_arg(internal::format_context_visitor(F, true), *begin);
+        visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), *begin);
         ++begin;
         while (begin != Fields.end()) {
             F->write_no_specs(", ");
-            visit_fmt_arg(internal::format_context_visitor(F, true), *begin);
+            visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), *begin);
             ++begin;
         }
     }
@@ -49,11 +49,11 @@ void fmt::debug_list_helper::finish() {
 
     auto *begin = Fields.begin();
     if (begin != Fields.end()) {
-        visit_fmt_arg(internal::format_context_visitor(F, true), *begin);
+        visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), *begin);
         ++begin;
         while (begin != Fields.end()) {
             F->write_no_specs(", ");
-            visit_fmt_arg(internal::format_context_visitor(F, true), *begin);
+            visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), *begin);
             ++begin;
         }
     }

@@ -33,13 +33,11 @@ void test_error_handler(const string &message, const string &formatString, s64 p
 }
 
 template <typename... Args>
-void format_test_error(const string &fmtString, Args &&... args) {
+void format_test_error(const string &fmtString, Args &&... arguments) {
     io::counting_writer dummy;
 
-    fmt::args_stack_array<remove_reference_t<Args>...> store;
-    store.populate(args...);
-
-    auto f = fmt::format_context(&dummy, fmtString, fmt::args(store), test_error_handler);
+    auto args = fmt::args_on_the_stack(((remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+    auto f = fmt::format_context(&dummy, fmtString, args, test_error_handler);
     fmt::parse_fmt_string(fmtString, &f);
 }
 

@@ -176,21 +176,18 @@ void parse_fmt_string(const string &fmtString, format_context *f);
 
 // Formats to writer
 template <typename... Args>
-void to_writer(io::writer *out, const string &fmtString, Args &&... args) {
-    args_stack_array<remove_reference_t<Args>...> store;  // This needs to outlive _parse_fmt_string_
-    store.populate(args...);
-
-    auto bakedArgs = fmt::args(store);
-    auto f = format_context(out, fmtString, bakedArgs, parse_context::default_error_handler);
+void to_writer(io::writer *out, const string &fmtString, Args &&... arguments) {
+    auto args = args_on_the_stack(((remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+    auto f = format_context(out, fmtString, args, parse_context::default_error_handler);
     parse_fmt_string(fmtString, &f);
     f.flush();
 }
 
 // Formats to a counting writer and returns the result
 template <typename... Args>
-s64 calculate_formatted_size(const string &fmtString, Args &&... args) {
+s64 calculate_formatted_size(const string &fmtString, Args &&... arguments) {
     io::counting_writer writer;
-    to_writer(&writer, fmtString, ((Args &&) args)...);
+    to_writer(&writer, fmtString, ((Args &&) arguments)...);
     return writer.Count;
 }
 
@@ -199,16 +196,16 @@ s64 calculate_formatted_size(const string &fmtString, Args &&... args) {
 // [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
 // This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 template <typename... Args>
-[[nodiscard]] string sprint(const string &fmtString, Args &&... args) {
+[[nodiscard]] string sprint(const string &fmtString, Args &&... arguments) {
     auto writer = io::string_builder_writer();
-    to_writer(&writer, fmtString, ((Args &&) args)...);
+    to_writer(&writer, fmtString, ((Args &&) arguments)...);
     return writer.Builder.combine();
 }
 
 // Formats to Context.Log
 template <typename... Args>
-void print(const string &fmtString, Args &&... args) {
-    to_writer(Context.Log, fmtString, ((Args &&) args)...);
+void print(const string &fmtString, Args &&... arguments) {
+    to_writer(Context.Log, fmtString, ((Args &&) arguments)...);
 }
 
 // Formats GUID in the following way: 00000000-0000-0000-0000-000000000000

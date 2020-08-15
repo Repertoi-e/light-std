@@ -52,11 +52,9 @@ struct type_constant : integral_constant<type, type::CUSTOM> {};
     template <>                       \
     struct type_constant<Type> : integral_constant<type, constant> {}
 
-namespace internal {
-struct named_arg_base;
-}
+struct named_arg;
 
-TYPE_CONSTANT(const internal::named_arg_base &, type::NAMED_ARG);
+TYPE_CONSTANT(const named_arg &, type::NAMED_ARG);
 TYPE_CONSTANT(char, type::S64);
 TYPE_CONSTANT(s32, type::S64);
 TYPE_CONSTANT(s64, type::S64);
@@ -100,6 +98,8 @@ struct value {
     struct custom {
         const void *Data;
         void (*FormatFunction)(const void *arg, format_context *f);
+
+        void format(format_context *f) const { FormatFunction(Data, f); }
     };
 
     union {
@@ -110,7 +110,7 @@ struct value {
         const void *Pointer;
         string String;
 
-        const internal::named_arg_base *NamedArg;
+        const named_arg *NamedArg;
 
         custom Custom;
     };
@@ -121,7 +121,7 @@ struct value {
     value(f64 value) : F64(value) {}
     value(const void *value) : Pointer(value) {}
     value(const string &value) : String(value) {}
-    value(const internal::named_arg_base &value) : NamedArg(&value) {}
+    value(const named_arg &value) : NamedArg(&value) {}
 
     template <typename T>
     value(const T *value) {

@@ -8,58 +8,30 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
+// Holds a type and a value. If the value is not arithmetic then the life time of the parameter isn't extended (we just hold a pointer)!
 struct arg {
     type Type = type::NONE;
     value Value;
-
-    struct handle {
-        value::custom Custom;
-
-        handle(value::custom val) : Custom(val) {}
-        void format(format_context *f) { Custom.FormatFunction(Custom.Data, f); }
-    };
-};
-
-namespace internal {
-struct named_arg_base {
-    string Name;
-
-    // The serialized argument
-    char Data[sizeof(arg)]{};
-
-    named_arg_base(const string &name) : Name(name) {}
-
-    arg deserialize() const {
-        arg result;
-        copy_memory(&result, Data, sizeof(arg));
-        return result;
-    }
 };
 
 template <typename T>
-struct named_arg : named_arg_base {
-    const T &Value;
+arg make_arg(const T &value);
 
-    using value_t = T;
-    inline static auto TypeTag = type_constant_v<value_t>;
-
-    named_arg(const string &name, const T &value) : named_arg_base(name), Value(value) {}
+struct named_arg {
+    string Name;
+    arg BakedArg;
 };
-}  // namespace internal
 
 // Returns a named argument to be used in a formatting function.
-// The named argument holds a reference and does not extend the lifetime of its arguments.
+// The named argument holds a pointer and does not extend the lifetime of its argument!
 template <typename T>
-auto named(const string &name, const T &arg) {
-    return internal::named_arg<T>(name, arg);
+named_arg named(const string &name, const T &val) {
+    return {name, make_arg(val)};
 }
 
 // Disable construction of nested named arguments
 template <typename T>
-void named(const string &, internal::named_arg<T>) = delete;
-
-template <typename T>
-arg make_arg(const T &value);
+void named(const string &, named_arg) = delete;
 
 // Maps formatting arguments to types that can be used to construct a fmt::value.
 template <typename U>
@@ -78,31 +50,22 @@ auto map_arg(const U &val) {
         } else {
             return (u64) val;
         }
-    }
-    else if constexpr (is_enum_v<T>) {
+    } else if constexpr (is_enum_v<T>) {
         return map_arg((underlying_type_t<T>) val);
-    }
-    else if constexpr (is_same_v<string, T> || is_constructible_v<string, T>) {
+    } else if constexpr (is_same_v<string, T> || is_constructible_v<string, T>) {
         return string(val);
-    }
-    else if constexpr (is_pointer_v<T>) {
+    } else if constexpr (is_pointer_v<T>) {
         static_assert(is_same_v<T, void *>, "Formatting of non-void pointers is disallowed");
         return (const void *) val;
-    }
-    else if constexpr (has_formatter_v<T>) {
+    } else if constexpr (has_formatter_v<T>) {
         return &val;
-    }
-    else {
+    } else {
         static_assert(false, "Argument doesn't have a formatter")
     }
 }
 
-template <typename T>
-const internal::named_arg_base &map_arg(const internal::named_arg<T> &val) {
-    auto result = make_arg(val.Value);
-    copy_memory(const_cast<char *>(val.Data), &result, sizeof(arg));
-    return val;
-}
+// For some reason we can't put this in the if else above...
+inline const named_arg &map_arg(const named_arg &val) { return val; }
 
 // !!!
 // If you get a compiler error here it's probably because you passed in an argument that can't be formatted
@@ -124,14 +87,14 @@ enable_if_t<IsPacked, value> make_arg(const T &v) {
 template <bool IsPacked, typename T>
 enable_if_t<!IsPacked, arg> make_arg(const T &v) { return arg(make_arg(v)); }
 
-// Visits an argument dispatching to the appropriate visit method based on the argument type
+// Visits an argument dispatching with the right value based on the argument type
 template <typename Visitor>
-auto visit_fmt_arg(Visitor &&visitor, arg ar) -> decltype(visitor(0)) {
+auto visit_fmt_arg(Visitor &&visitor, const arg &ar) -> decltype(visitor(0)) {
     switch (ar.Type) {
         case type::NONE:
             break;
         case type::NAMED_ARG:
-            assert(false && "Invalid argument type");
+            assert(false && "We shouldn't have gotten here");
             break;
         case type::S64:
             return visitor(ar.Value.S64);
@@ -146,7 +109,7 @@ auto visit_fmt_arg(Visitor &&visitor, arg ar) -> decltype(visitor(0)) {
         case type::POINTER:
             return visitor(ar.Value.Pointer);
         case type::CUSTOM:
-            return visitor(typename arg::handle(ar.Value.Custom));
+            return visitor(ar.Value.Custom);
     }
     return visitor(unused{});
 }
@@ -168,44 +131,32 @@ u64 get_packed_fmt_types() {
 static constexpr u64 IS_UNPACKED_BIT = 1ull << 63;
 static constexpr u32 MAX_PACKED_ARGS = 15;
 
-// Either an array of values or arguments (just values if number is less than MAX_PACKED_ARGS)
+// We can't really combine this with _args_, ugh!
+// Stores either an array of values or arguments on the stack (just values if number is less than MAX_PACKED_ARGS)
 template <typename... Args>
-struct args_stack_array {
+struct args_on_the_stack {
     static constexpr s64 NUM_ARGS = sizeof...(Args);
-
     static constexpr bool IS_PACKED = NUM_ARGS < MAX_PACKED_ARGS;
-
-    // If the arguments are not packed, add one more element to mark the end.
-    // static constexpr s64 DATA_SIZE = NUM_ARGS + (IS_PACKED && NUM_ARGS != 0 ? 0 : 1);
 
     using data_t = type_select_t<IS_PACKED, value, arg>;
     stack_array<data_t, NUM_ARGS> Data;
 
-    u64 Types = 0;
+    u64 Types;
 
-    void populate(const Args &... args) {
+    args_on_the_stack(Args &&... args) : Types(IS_PACKED ? internal::get_packed_fmt_types<unused, Args...>() : IS_UNPACKED_BIT | NUM_ARGS) {
         Data = {make_arg<IS_PACKED>(args)...};
-        Types = IS_PACKED ? internal::get_packed_fmt_types<unused, Args...>() : IS_UNPACKED_BIT | NUM_ARGS;
     }
 };
 
 struct args {
-    u64 Types = 0;
-    union {
-        const value *Values;
-        const arg *Args;
-    };
+    void *Data;  // (value *) or (arg *) if not packed
     s64 Count = 0;
+    u64 Types = 0;
 
     args() = default;
 
     template <typename... Args>
-    args(const args_stack_array<Args...> &store) : Types(store.Types), Count(sizeof...(Args)) {
-        set_data(store.Data.Data);
-    }
-
-    void set_data(const value *values) { Values = values; }
-    void set_data(const arg *ars) { Args = ars; }
+    args(const args_on_the_stack<Args...> &store) : Data((void *) store.Data.Data), Types(store.Types), Count(sizeof...(Args)) {}
 
     bool is_packed() { return !(Types & IS_UNPACKED_BIT); }
 
@@ -213,8 +164,6 @@ struct args {
         u64 shift = (u64) index * 4;
         return (type)((Types & (0xfull << shift)) >> shift);
     }
-
-    s64 max_size() { return (s64)(is_packed() ? MAX_PACKED_ARGS : Types & ~IS_UNPACKED_BIT); }
 
     // Doesn't support negative indexing
     arg get_arg(s64 index) {
@@ -225,17 +174,14 @@ struct args {
 
             auto type = get_type(index);
             if (type == type::NONE) return {};
+            if (type == type::NAMED_ARG) return ((value *) Data)[index].NamedArg->BakedArg;
 
             arg result;
             result.Type = type;
-            if (result.Type == type::NAMED_ARG) {
-                result = Values[index].NamedArg->deserialize();
-            } else {
-                result.Value = Values[index];
-            }
+            result.Value = ((value *) Data)[index];
             return result;
         }
-        return Args[index];
+        return ((arg *) Data)[index];
     }
 };
 
@@ -255,7 +201,7 @@ struct arg_map : non_copyable {
     void ensure_initted(args ars) {
         if (Entries) return;
 
-        Entries = allocate_array(entry, ars.max_size());
+        Entries = allocate_array(entry, ars.Count);
 
         if (ars.is_packed()) {
             s64 i = 0;
@@ -264,24 +210,24 @@ struct arg_map : non_copyable {
 
                 if (type == type::NONE) break;
                 if (type == type::NAMED_ARG) {
-                    add(ars.Values[i]);
+                    add(((value *) ars.Data)[i]);
                 }
                 ++i;
             }
         } else {
             s64 i = 0;
             while (true) {
-                auto type = ars.Args[i].Type;
+                auto type = ((arg *) ars.Data)[i].Type;
                 if (type == type::NONE) break;
                 if (type == type::NAMED_ARG) {
-                    add(ars.Args[i].Value);
+                    add(((arg *) ars.Data)[i].Value);
                 }
                 ++i;
             }
         }
     }
 
-    void add(const value &value) { Entries[Size++] = {value.NamedArg->Name, value.NamedArg->deserialize()}; }
+    void add(const value &value) { Entries[Size++] = {value.NamedArg->Name, value.NamedArg->BakedArg}; }
 
     arg find(const string &name) {
         for (auto *it = Entries, *end = Entries + Size; it != end; ++it) {

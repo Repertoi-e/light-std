@@ -32,40 +32,11 @@ struct format_context : io::writer {
     // null if no specs were parsed
     dynamic_format_specs *Specs = null;
 
-    format_context(io::writer *out, const string &fmtString, args args, parse_context::error_handler_t errorHandlerFunc)
+    format_context(io::writer *out, const string &fmtString, const args &args, parse_context::error_handler_t errorHandlerFunc)
         : writer(format_context_write, format_context_flush),
           Out(out),
           Args(args),
           Parse(fmtString, errorHandlerFunc) {}
-
-    // Write directly, without taking formatting specs into account.
-    void write_no_specs(const array<char> &data) { Out->write(data); }
-    void write_no_specs(const char *data) { Out->write(data, c_string_length(data)); }
-    void write_no_specs(const char *data, s64 count) { Out->write(data, count); }
-    void write_no_specs(const string &str) { Out->write(str); }
-    void write_no_specs(char32_t cp) { Out->write(cp); }
-
-    template <typename T>
-    enable_if_t<is_integer_v<T>> write_no_specs(T value) {
-        u64 absValue = (u64) value;
-        bool negative = sign_bit(value);
-        if (negative) absValue = 0 - absValue;
-        write_u64(absValue, negative, {});
-    }
-
-    template <typename T>
-    enable_if_t<is_floating_point_v<T>> write_no_specs(T value) {
-        write_f64((f64) value, {});
-    }
-
-    void write_no_specs(bool value) { write_no_specs(value ? 1 : 0); }
-
-    void write_no_specs(const void *value) {
-        auto *old = Specs;
-        Specs = null;
-        write(value);
-        Specs = old;
-    }
 
     using writer::write;
 
@@ -102,9 +73,39 @@ struct format_context : io::writer {
     // We checks for specs here, so the non-spec version just calls this one...
     void write(const void *value);
 
-    debug_struct_helper debug_struct(const string &name) { return debug_struct_helper(this, name); }
-    debug_tuple_helper debug_tuple(const string &name) { return debug_tuple_helper(this, name); }
-    debug_list_helper debug_list() { return debug_list_helper(this); }
+    // Write directly, without looking at formatting specs
+    void write_no_specs(const array<char> &data) { Out->write(data); }
+    void write_no_specs(const char *data) { Out->write(data, c_string_length(data)); }
+    void write_no_specs(const char *data, s64 count) { Out->write(data, count); }
+    void write_no_specs(const string &str) { Out->write(str); }
+    void write_no_specs(char32_t cp) { Out->write(cp); }
+
+    template <typename T>
+    enable_if_t<is_integer_v<T>> write_no_specs(T value) {
+        u64 absValue = (u64) value;
+        bool negative = sign_bit(value);
+        if (negative) absValue = 0 - absValue;
+        write_u64(absValue, negative, {});
+    }
+
+    template <typename T>
+    enable_if_t<is_floating_point_v<T>> write_no_specs(T value) {
+        write_f64((f64) value, {});
+    }
+
+    void write_no_specs(bool value) { write_no_specs(value ? 1 : 0); }
+
+    void write_no_specs(const void *value) {
+        auto *old = Specs;
+        Specs = null;
+        write(value);
+        Specs = old;
+    }
+
+    // _noSpecs_ means don't take specifiers into account when writing individual arguments in the end
+    debug_struct_helper debug_struct(const string &name, bool noSpecs = true) { return debug_struct_helper(this, name, noSpecs); }
+    debug_tuple_helper debug_tuple(const string &name, bool noSpecs = true) { return debug_tuple_helper(this, name, noSpecs); }
+    debug_list_helper debug_list(bool noSpecs = true) { return debug_list_helper(this, noSpecs); }
 
     // Returns an argument from an arg_ref and reports an error if it doesn't exist
     arg get_arg_from_ref(arg_ref ref);
@@ -142,9 +143,9 @@ struct format_context_visitor {
     void operator()(const array<char> &value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const string &value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const void *value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
+    void operator()(const value::custom &custom) { custom.format(F); }
 
     void operator()(unused) { F->on_error("Internal error while formatting"); }
-    void operator()(arg::handle handle) { F->on_error("Internal error while formatting a custom argument"); }
 };
 }  // namespace internal
 

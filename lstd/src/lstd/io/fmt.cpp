@@ -54,11 +54,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             currentArg = f->get_arg_from_ref(arg_ref(p->next_arg_id()));
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
-            if (currentArg.Type == type::CUSTOM) {
-                typename arg::handle(currentArg.Value.Custom).format(f);
-            } else {
-                visit_fmt_arg(internal::format_context_visitor(f), currentArg);
-            }
+            visit_fmt_arg(internal::format_context_visitor(f), currentArg);
         } else if (p->It[0] == '{') {
             // {{ means we escaped a {.
             write_until(p->It.Data + 1);
@@ -88,18 +84,14 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
         } else {
             // Parse integer specified or a named argument
             auto argId = p->parse_arg_id();
-            if (argId.Kind == arg_ref::kind::NONE) return; // The error was reported in _parse_arg_id_
+            if (argId.Kind == arg_ref::kind::NONE) return;  // The error was reported in _parse_arg_id_
 
             currentArg = f->get_arg_from_ref(argId);
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
             char c = p->It.Count ? p->It[0] : 0;
             if (c == '}') {
-                if (currentArg.Type == type::CUSTOM) {
-                    typename arg::handle(currentArg.Value.Custom).format(f);
-                } else {
-                    visit_fmt_arg(internal::format_context_visitor(f), currentArg);
-                }
+                visit_fmt_arg(internal::format_context_visitor(f), currentArg);
             } else if (c == ':') {
                 ++p->It.Data, --p->It.Count;  // Skip the :
 
@@ -115,13 +107,9 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                 success = f->handle_dynamic_specs();
                 if (!success) return;
 
-                defer(f->Specs = null);
+                visit_fmt_arg(internal::format_context_visitor(f), currentArg);
 
-                if (currentArg.Type == type::CUSTOM) {
-                    typename arg::handle(currentArg.Value.Custom).format(f);
-                } else {
-                    visit_fmt_arg(internal::format_context_visitor(f), currentArg);
-                }
+                f->Specs = null;
             } else {
                 f->on_error("\"}\" expected");
                 return;
