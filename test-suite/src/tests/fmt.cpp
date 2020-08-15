@@ -278,19 +278,6 @@ TEST(many_args) {
                 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
 }
 
-TEST(named_args) {
-    CHECK_WRITE("1/a/A", "{_1}/{a_}/{A_}", fmt::named("a_", "a"), fmt::named("A_", "A"), fmt::named("_1", 1));
-    EXPECT_ERROR("Argument with this name not found", "{a}");
-
-    CHECK_WRITE(" -42", "{0:{width}}", -42, fmt::named("width", 4));
-    CHECK_WRITE("st", "{0:.{precision}}", "str", fmt::named("precision", 2));
-    CHECK_WRITE("1 2", "{} {two}", 1, fmt::named("two", 2));
-    CHECK_WRITE("42", "{c}", fmt::named("a", 0), fmt::named("b", 0), fmt::named("c", 42), fmt::named("d", 0),
-                fmt::named("e", 0), fmt::named("f", 0), fmt::named("g", 0), fmt::named("h", 0), fmt::named("i", 0),
-                fmt::named("j", 0), fmt::named("k", 0), fmt::named("l", 0), fmt::named("m", 0), fmt::named("n", 0),
-                fmt::named("o", 0), fmt::named("p", 0));
-}
-
 TEST(auto_arg_index) {
     CHECK_WRITE("abc", "{}{}{}", "a", "b", "c");
 
@@ -524,8 +511,7 @@ TEST(width) {
 TEST(dynamic_width) {
     EXPECT_ERROR("Expected a closing \"}\" after parsing an argument ID for a dynamic width", "{0:{", 0);
     EXPECT_ERROR("\"}\" expected", "{0:{}", 0);
-    EXPECT_ERROR("We couldn't parse an integer argument ID so we tried a named argument, but we didn't find a valid identifier start (must be a-Z or underscore)",
-                 "{0:{?}}", 0);
+    EXPECT_ERROR("Expected a number - an index to an argument", "{0:{?}}", 0);
     EXPECT_ERROR("Argument index out of range", "{0:{1}}", 0);
 
     EXPECT_ERROR("Expected a closing \"}\" after parsing an argument ID for a dynamic width", "{0:{0:}}", 0);
@@ -589,8 +575,7 @@ TEST(benchmark_string) {
 TEST(dynamic_precision) {
     EXPECT_ERROR("Expected a closing \"}\" after parsing an argument ID for a dynamic precision", "{0:.{", 0);
     EXPECT_ERROR("\"}\" expected", "{0:.{}", 0);
-    EXPECT_ERROR("We couldn't parse an integer argument ID so we tried a named argument, but we didn't find a valid identifier start (must be a-Z or underscore)",
-                 "{0:.{?}}", 0);
+    EXPECT_ERROR("Expected a number - an index to an argument", "{0:.{?}}", 0);
     EXPECT_ERROR("\"}\" expected", "{0:.{1}", 0, 0);
     EXPECT_ERROR("Argument index out of range", "{0:.{1}}", 0);
 

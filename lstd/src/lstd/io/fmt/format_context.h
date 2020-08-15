@@ -26,7 +26,6 @@ void format_context_flush(io::writer *w);
 struct format_context : io::writer {
     io::writer *Out;
     args Args;
-    arg_map ArgMap;
     parse_context Parse;
 
     // null if no specs were parsed
@@ -107,8 +106,8 @@ struct format_context : io::writer {
     debug_tuple_helper debug_tuple(const string &name, bool noSpecs = true) { return debug_tuple_helper(this, name, noSpecs); }
     debug_list_helper debug_list(bool noSpecs = true) { return debug_list_helper(this, noSpecs); }
 
-    // Returns an argument from an arg_ref and reports an error if it doesn't exist
-    arg get_arg_from_ref(arg_ref ref);
+    // Returns an argument from index and reports an error if it is out of bounds
+    arg get_arg_from_index(s64 index);
 
     // Checks if fields containing dynamic width/precision (not in-place integers) have been handled and handles them
     // Called by _parse_format_string_ in fmt.cpp

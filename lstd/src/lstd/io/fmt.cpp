@@ -51,7 +51,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
         }
         if (p->It[0] == '}') {
             // Implicit {} means "get the next argument"
-            currentArg = f->get_arg_from_ref(arg_ref(p->next_arg_id()));
+            currentArg = f->get_arg_from_index(p->next_arg_id());
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
             visit_fmt_arg(internal::format_context_visitor(f), currentArg);
@@ -83,10 +83,10 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             }
         } else {
             // Parse integer specified or a named argument
-            auto argId = p->parse_arg_id();
-            if (argId.Kind == arg_ref::kind::NONE) return;  // The error was reported in _parse_arg_id_
+            s64 argId = p->parse_arg_id();
+            if (argId == -1) return;
 
-            currentArg = f->get_arg_from_ref(argId);
+            currentArg = f->get_arg_from_index(argId);
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
             char c = p->It.Count ? p->It[0] : 0;

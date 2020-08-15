@@ -405,10 +405,10 @@ struct precision_checker {
     enable_if_t<is_integer_v<T>, s32> operator()(T value) {
         if (sign_bit(value)) {
             F->on_error("Negative precision");
-            return numeric_info<s32>::min();
+            return -1;
         } else if ((u64) value > numeric_info<s32>::max()) {
             F->on_error("Precision value is too big");
-            return numeric_info<s32>::min();
+            return -1;
         }
         return (s32) value;
     }
@@ -416,40 +416,35 @@ struct precision_checker {
     template <typename T>
     enable_if_t<!is_integer_v<T>, s32> operator()(T) {
         F->on_error("Precision was not an integer");
-        return numeric_info<s32>::min();
+        return -1;
     }
 };
 
-arg format_context::get_arg_from_ref(arg_ref ref) {
-    arg target = {};
-    if (ref.Kind != arg_ref::kind::NONE) {
-        if (ref.Kind == arg_ref::kind::INDEX) {
-            if (ref.Index < Args.Count) {
-                target = Args.get_arg(ref.Index);
-            } else {
-                on_error("Argument index out of range");
-            }
-        } else {
-            ArgMap.ensure_initted(Args);
-            target = ArgMap.find(ref.Name);
-            if (target.Type == type::NONE) {
-                on_error("Argument with this name not found", Parse.It.Data - Parse.FormatString.Data - 1);
-            }
-        }
+arg format_context::get_arg_from_index(s64 index) {
+    if (index < Args.Count) {
+        return Args.get_arg(index);
     }
-    return target;
+    on_error("Argument index out of range");
+    return {};
 }
 
 bool format_context::handle_dynamic_specs() {
     assert(Specs);
 
-    auto width = get_arg_from_ref(Specs->WidthRef);
-    if (width.Type != type::NONE) Specs->Width = visit_fmt_arg(width_checker{this}, width);
-    if (Specs->Width == (u32) -1) return false;
-
-    auto precision = get_arg_from_ref(Specs->PrecisionRef);
-    if (precision.Type != type::NONE) Specs->Precision = visit_fmt_arg(precision_checker{this}, precision);
-    if (Specs->Precision == numeric_info<s32>::min()) return false;
+    if (Specs->WidthIndex != -1) {
+        auto width = get_arg_from_index(Specs->WidthIndex);
+        if (width.Type != type::NONE) {
+            Specs->Width = visit_fmt_arg(width_checker{this}, width);
+            if (Specs->Width == (u32) -1) return false;
+        }
+    }
+    if (Specs->PrecisionIndex != -1) {
+        auto precision = get_arg_from_index(Specs->PrecisionIndex);
+        if (precision.Type != type::NONE) {
+            Specs->Precision = visit_fmt_arg(precision_checker{this}, precision);
+            if (Specs->Precision == numeric_info<s32>::min()) return false;
+        }
+    }
 
     return true;
 }

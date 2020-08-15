@@ -36,4 +36,14 @@ Implement the other part of platform specific functionality and compile on linux
 ---------------------------------------------------------------------------------
 
 LOC:    80394
-LOC IO:  2161
+		----
+
+LOC no vendor:  ----
+                28816
+
+LOC IO:  2161 
+         2306
+		 2310
+		 2329
+		 2242
+		 2142

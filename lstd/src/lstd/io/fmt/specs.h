@@ -51,34 +51,10 @@ struct format_specs {
     char Type = 0;
 };
 
-// Refers to an argument by index or name.
-// Used for dynamic arguments (specifying width/precision not as a constant in the format string but as a separate argument).
-struct arg_ref {
-    enum class kind { NONE = 0,
-                      INDEX,
-                      NAME };
-
-    kind Kind = kind::NONE;
-    union {
-        u32 Index;
-        string Name;
-    };
-
-    arg_ref() : Index(0) {}
-    arg_ref(u32 index) : Kind(kind::INDEX), Index(index) {}
-    arg_ref(const string &name) : Kind(kind::NAME), Name(name) {}
-
-    arg_ref &operator=(u32 index) {
-        Kind = kind::INDEX;
-        Index = index;
-        return *this;
-    }
-};
-
 // Dynamic means that the width/precision was specified in a separate argument and not as a constant in the format string
 struct dynamic_format_specs : format_specs {
-    arg_ref WidthRef;
-    arg_ref PrecisionRef;
+    s64 WidthIndex = -1;
+    s64 PrecisionIndex = -1;
 };
 }  // namespace fmt
 

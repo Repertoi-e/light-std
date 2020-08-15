@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../memory/stack_array.h"
-#include "../../memory/string.h"
 #include "parse_context.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -13,25 +12,6 @@ struct arg {
     type Type = type::NONE;
     value Value;
 };
-
-template <typename T>
-arg make_arg(const T &value);
-
-struct named_arg {
-    string Name;
-    arg BakedArg;
-};
-
-// Returns a named argument to be used in a formatting function.
-// The named argument holds a pointer and does not extend the lifetime of its argument!
-template <typename T>
-named_arg named(const string &name, const T &val) {
-    return {name, make_arg(val)};
-}
-
-// Disable construction of nested named arguments
-template <typename T>
-void named(const string &, named_arg) = delete;
 
 // Maps formatting arguments to types that can be used to construct a fmt::value.
 template <typename U>
@@ -64,9 +44,6 @@ auto map_arg(const U &val) {
     }
 }
 
-// For some reason we can't put this in the if else above...
-inline const named_arg &map_arg(const named_arg &val) { return val; }
-
 // !!!
 // If you get a compiler error here it's probably because you passed in an argument that can't be formatted
 // To format custom types, implement a fmt::formatter specialization.
@@ -92,9 +69,6 @@ template <typename Visitor>
 auto visit_fmt_arg(Visitor &&visitor, const arg &ar) -> decltype(visitor(0)) {
     switch (ar.Type) {
         case type::NONE:
-            break;
-        case type::NAMED_ARG:
-            assert(false && "We shouldn't have gotten here");
             break;
         case type::S64:
             return visitor(ar.Value.S64);
@@ -174,7 +148,6 @@ struct args {
 
             auto type = get_type(index);
             if (type == type::NONE) return {};
-            if (type == type::NAMED_ARG) return ((value *) Data)[index].NamedArg->BakedArg;
 
             arg result;
             result.Type = type;
@@ -184,59 +157,6 @@ struct args {
         return ((arg *) Data)[index];
     }
 };
-
-struct arg_map : non_copyable {
-    // A map from argument names and their values (for named arguments)
-    struct entry {
-        string Name;
-        arg Arg;
-    };
-
-    entry *Entries = null;
-    u32 Size = 0;
-
-    arg_map() = default;
-    ~arg_map() { free(Entries); }
-
-    void ensure_initted(args ars) {
-        if (Entries) return;
-
-        Entries = allocate_array(entry, ars.Count);
-
-        if (ars.is_packed()) {
-            s64 i = 0;
-            while (true) {
-                auto type = ars.get_type(i);
-
-                if (type == type::NONE) break;
-                if (type == type::NAMED_ARG) {
-                    add(((value *) ars.Data)[i]);
-                }
-                ++i;
-            }
-        } else {
-            s64 i = 0;
-            while (true) {
-                auto type = ((arg *) ars.Data)[i].Type;
-                if (type == type::NONE) break;
-                if (type == type::NAMED_ARG) {
-                    add(((arg *) ars.Data)[i].Value);
-                }
-                ++i;
-            }
-        }
-    }
-
-    void add(const value &value) { Entries[Size++] = {value.NamedArg->Name, value.NamedArg->BakedArg}; }
-
-    arg find(const string &name) {
-        for (auto *it = Entries, *end = Entries + Size; it != end; ++it) {
-            if (it->Name == name) return it->Arg;
-        }
-        return arg();
-    }
-};
-
 }  // namespace fmt
 
 LSTD_END_NAMESPACE

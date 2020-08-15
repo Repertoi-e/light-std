@@ -1,6 +1,5 @@
 #include "parse_context.h"
 
-#include "../../os.h"
 #include "../../parse.h"
 #include "../fmt.h"
 
@@ -36,10 +35,10 @@ void parse_context::check_precision_for_arg(type argType, s64 errorPosition) {
 
 constexpr parse_int_options parse_int_options_fmt = parse_int_options(byte_to_digit_default, false, false, false);
 
-arg_ref parse_context::parse_arg_id() {
+s64 parse_context::parse_arg_id() {
     char ch = It[0];
     if (ch == '}' || ch == ':') {
-        return arg_ref(next_arg_id());
+        return next_arg_id();
     }
 
     if (is_digit(ch)) {
@@ -47,39 +46,27 @@ arg_ref parse_context::parse_arg_id() {
         tie(value, status, It) = parse_int<u32, &parse_int_options_fmt>(It, 10);
 
         if (status == PARSE_TOO_MANY_DIGITS) {
-            on_error("Argument ID is an integer which is too large");
-            return {};
+            on_error("Argument index is an integer which is too large");
+            return -1;
         }
 
         if (!It.Count) {
             on_error("Format string ended abruptly");
-            return {};
+            return -1;
         }
 
         ch = It[0];
         if ((ch != '}' && ch != ':')) {
             on_error("Expected \":\" or \"}\"");
-            return {};
+            return -1;
         }
 
         check_arg_id(value);
-        return arg_ref(value);
+        return (s64) value;
+    } else {
+        on_error("Expected a number - an index to an argument");
+        return -1;
     }
-
-    if (!is_identifier_start(ch)) {
-        on_error("We couldn't parse an integer argument ID so we tried a named argument, but we didn't find a valid identifier start (must be a-Z or underscore)");
-        return {};
-    }
-
-    const char *it = It.Data;
-    s64 n = It.Count;
-    do {
-        ++it, --n;
-    } while (n && (is_alphanumeric(*it) || *it == '_'));
-
-    auto name = string(It.Data, it - It.Data);
-    It = array<char>((char *) it, n);
-    return arg_ref(name);
 }
 
 // Note: When parsing this if we reach the end before } we don't report an error. The caller of this should handle that.
@@ -309,8 +296,8 @@ bool parse_context::parse_width(dynamic_format_specs *specs) {
         ++It.Data, --It.Count;  // Skip the }
 
         if (It.Count) {
-            specs->WidthRef = parse_arg_id();
-            if (specs->WidthRef.Kind == arg_ref::kind::NONE) return false;  // The error was reported in _parse_arg_id_
+            specs->WidthIndex = parse_arg_id();
+            if (specs->WidthIndex == -1) return false;  // The error was reported in _parse_arg_id_
         }
         if (!It.Count || It[0] != '}') {
             on_error("Expected a closing \"}\" after parsing an argument ID for a dynamic width");
@@ -344,8 +331,8 @@ bool parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
         ++It.Data, --It.Count;  // Skip the }
 
         if (It.Count) {
-            specs->PrecisionRef = parse_arg_id();
-            if (specs->PrecisionRef.Kind == arg_ref::kind::NONE) return false;  // The error was reported in _parse_arg_id_
+            specs->PrecisionIndex = parse_arg_id();
+            if (specs->PrecisionIndex == -1) return false;  // The error was reported in _parse_arg_id_
         }
         if (!It.Count || It[0] != '}') {
             on_error("Expected a closing \"}\" after parsing an argument ID for a dynamic precision");

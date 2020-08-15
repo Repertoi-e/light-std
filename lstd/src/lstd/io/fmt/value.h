@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../internal/common.h"
 #include "../../memory/string.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -8,7 +7,6 @@ LSTD_BEGIN_NAMESPACE
 namespace fmt {
 enum class type {
     NONE = 0,
-    NAMED_ARG,
 
     // Integers
     S64,
@@ -22,6 +20,7 @@ enum class type {
 
     STRING,
     POINTER,
+
     CUSTOM
 };
 
@@ -36,15 +35,16 @@ constexpr type &operator|=(type &lhs, type rhs) {
 }
 
 constexpr bool is_fmt_type_integral(type type) {
-    assert(type != type::NAMED_ARG);
     return type > type::NONE && type <= type::LAST_INTEGRAL;
 }
 
 constexpr bool is_fmt_type_arithmetic(type type) {
-    assert(type != type::NAMED_ARG);
     return type > type::NONE && type <= type::LAST_ARITHMETIC;
 }
 
+struct named_arg;
+
+namespace internal {
 template <typename T>
 struct type_constant : integral_constant<type, type::CUSTOM> {};
 
@@ -52,9 +52,6 @@ struct type_constant : integral_constant<type, type::CUSTOM> {};
     template <>                       \
     struct type_constant<Type> : integral_constant<type, constant> {}
 
-struct named_arg;
-
-TYPE_CONSTANT(const named_arg &, type::NAMED_ARG);
 TYPE_CONSTANT(char, type::S64);
 TYPE_CONSTANT(s32, type::S64);
 TYPE_CONSTANT(s64, type::S64);
@@ -65,9 +62,10 @@ TYPE_CONSTANT(f64, type::F64);
 TYPE_CONSTANT(string, type::STRING);
 TYPE_CONSTANT(const void *, type::POINTER);
 #undef TYPE_CONSTANT
+}  // namespace internal
 
 template <typename T>
-constexpr auto type_constant_v = type_constant<T>::value;
+constexpr auto type_constant_v = internal::type_constant<remove_cv_t<remove_reference_t<T>>>::value;
 
 //
 // Specialize this for custom types
@@ -110,8 +108,6 @@ struct value {
         const void *Pointer;
         string String;
 
-        const named_arg *NamedArg;
-
         custom Custom;
     };
 
@@ -121,7 +117,6 @@ struct value {
     value(f64 value) : F64(value) {}
     value(const void *value) : Pointer(value) {}
     value(const string &value) : String(value) {}
-    value(const named_arg &value) : NamedArg(&value) {}
 
     template <typename T>
     value(const T *value) {

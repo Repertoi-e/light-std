@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../../internal/common.h"
-#include "../../memory/string_utils.h"
 #include "../string_reader.h"
 #include "specs.h"
 
@@ -11,7 +9,6 @@ namespace fmt {
 
 struct parse_context {
     using error_handler_t = void (*)(const string &message, const string &formatString, s64 position);
-
     static void default_error_handler(const string &message, const string &formatString, s64 position);
 
     string FormatString;
@@ -39,7 +36,7 @@ struct parse_context {
     }
 
     // Note: When parsing, if we reach the end before } or : or whatever we don't report an error. The caller of this should handle that.
-    arg_ref parse_arg_id();
+    s64 parse_arg_id();
 
     // _argType_ is the type of the argument for which we are parsing the specs.
     // It is used for error checking, e.g, to check if it's numeric when we encounter numeric-only specs.
