@@ -7,19 +7,19 @@
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
-void parse_context::require_numeric_arg(type argType, s64 errorPosition) {
+void parse_context::require_arithmetic_arg(type argType, s64 errorPosition) {
     assert(argType != type::NONE);
     if (argType == type::CUSTOM) return;
-    if (!is_fmt_type_numeric(argType)) on_error("Format specifier requires a numeric argument", errorPosition);
+    if (!is_fmt_type_arithmetic(argType)) on_error("Format specifier requires an arithmetic argument", errorPosition);
 }
 
-void parse_context::require_signed_numeric_arg(type argType, s64 errorPosition) {
+void parse_context::require_signed_arithmetic_arg(type argType, s64 errorPosition) {
     assert(argType != type::NONE);
     if (argType == type::CUSTOM) return;
 
-    require_numeric_arg(argType, errorPosition);
-    if (is_fmt_type_integral(argType) && argType != type::S32 && argType != type::S64) {
-        on_error("Format specifier requires a signed numeric argument", errorPosition);
+    require_arithmetic_arg(argType, errorPosition);
+    if (is_fmt_type_integral(argType) && argType != type::S64) {
+        on_error("Format specifier requires a signed integer argument (got unsigned)", errorPosition);
     }
 }
 
@@ -93,14 +93,14 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
     // Try to parse sign
     switch (It[0]) {
         case '+':
-            require_signed_numeric_arg(argType);
+            require_signed_arithmetic_arg(argType);
 
             specs->Sign = sign::PLUS;
 
             ++It.Data, --It.Count;
             break;
         case '-':
-            require_signed_numeric_arg(argType);
+            require_signed_arithmetic_arg(argType);
 
             // MINUS has the same behaviour as NONE on the basic types but the user might want to have different
             // formating on their custom types when minus is specified, so we record it anyway.
@@ -109,7 +109,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
             ++It.Data, --It.Count;
             break;
         case ' ':
-            require_signed_numeric_arg(argType);
+            require_signed_arithmetic_arg(argType);
 
             specs->Sign = sign::SPACE;
 
@@ -119,7 +119,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
     if (!It.Count) return true;  // No more specs to parse. Tried to parse so far: align, sign
 
     if (It[0] == '#') {
-        require_numeric_arg(argType);
+        require_arithmetic_arg(argType);
         specs->Hash = true;
 
         ++It.Data, --It.Count;
@@ -128,7 +128,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
 
     // 0 means = alignment with the character 0 as fill
     if (It[0] == '0') {
-        require_numeric_arg(argType);
+        require_arithmetic_arg(argType);
         specs->Align = alignment::NUMERIC;
         specs->Fill = '0';
 
@@ -290,7 +290,7 @@ bool parse_context::parse_fill_and_align(type argType, format_specs *specs) {
         specs->Fill = fill;
         specs->Align = align;
 
-        if (align == alignment::NUMERIC) require_numeric_arg(argType, errorPosition - 1);
+        if (align == alignment::NUMERIC) require_arithmetic_arg(argType, errorPosition - 1);
     }
     return true;
 }

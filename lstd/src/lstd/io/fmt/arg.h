@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../memory/stack_array.h"
+#include "../../memory/string.h"
 #include "parse_context.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -60,107 +61,68 @@ void named(const string &, internal::named_arg<T>) = delete;
 template <typename T>
 arg make_arg(const T &value);
 
-// Maps formatting arguments to core types
-struct arg_mapper {
-    using long_t = type_select_t<sizeof(long) == sizeof(int), s32, s64>;
-    using ulong_t = type_select_t<sizeof(long) == sizeof(int), u32, u64>;
+// Maps formatting arguments to types that can be used to construct a fmt::value.
+template <typename U>
+auto map_arg(const U &val) {
+    using T = typename remove_cv_t<remove_reference_t<U>>;
 
-    s32 map(char val) { return val; }
-    s32 map(signed char val) { return val; }
-    u64 map(unsigned char val) { return val; }
-    s32 map(s16 val) { return val; }
-    u32 map(u16 val) { return val; }
-    s32 map(s32 val) { return val; }
-    u32 map(u32 val) { return val; }
-    long_t map(long val) { return val; }
-    ulong_t map(unsigned long val) { return val; }
-    s64 map(s64 val) { return val; }
-    u64 map(u64 val) { return val; }
-    bool map(bool val) { return val; }
+    static_assert(!is_same_v<T, long double>, "Argument of type 'long double' is not supported");
 
-    u32 map(wchar_t val) { return val; }
-    u32 map(char32_t val) { return val; }
-
-    f64 map(f32 val) { return (f64) val; }
-    f64 map(f64 val) { return val; }
-    void map(long double val) { assert(false && "Argument of type 'long double' is not supported"); }
-
-    string map(char *val) { return string(val); }
-    string map(const char *val) { return string(val); }
-
-    template <typename T>
-    enable_if_t<is_constructible_v<string, T>, string> map(const T &val) {
+    if constexpr (is_arithmetic_v<T> || is_same_v<T, string::code_point_ref>) {
+        if constexpr (is_same_v<bool, T>) {
+            return (bool) val;
+        } else if constexpr (is_floating_point_v<T>) {
+            return (f64) val;
+        } else if constexpr (is_signed_v<T>) {
+            return (s64) val;
+        } else {
+            return (u64) val;
+        }
+    }
+    else if constexpr (is_enum_v<T>) {
+        return map_arg((underlying_type_t<T>) val);
+    }
+    else if constexpr (is_same_v<string, T> || is_constructible_v<string, T>) {
         return string(val);
     }
-
-    string map(string val) { return (string) val; }
-    const void *map(void *val) { return val; }
-    const void *map(const void *val) { return val; }
-
-    template <typename T>
-    s32 map(const T *) {
-        // Formatting of arbitrary pointers is disallowed.
-        // If you want to output a pointer cast it to "void *" or "const void *".
-        static_assert(is_same_v<T, void>, "Formatting of non-void pointers is disallowed");
-        return 0;
+    else if constexpr (is_pointer_v<T>) {
+        static_assert(is_same_v<T, void *>, "Formatting of non-void pointers is disallowed");
+        return (const void *) val;
     }
-
-    template <typename T>
-    enable_if_t<!is_constructible_v<string, T> && has_formatter<T>::value, const T &> map(const T &val) {
-        return val;
+    else if constexpr (has_formatter_v<T>) {
+        return &val;
     }
-
-    template <typename T, typename = enable_if_t<is_enum_v<T>>>
-    auto map(const T &val) {
-        return (underlying_type_t<T>) (val);
+    else {
+        static_assert(false, "Argument doesn't have a formatter")
     }
-
-    template <typename T>
-    const internal::named_arg_base &map(const internal::named_arg<T> &val) {
-        auto result = make_arg(val.Value);
-        copy_memory(const_cast<char *>(val.Data), &result, sizeof(arg));
-        return val;
-    }
-};
-
-namespace internal {
-
-template <typename>
-struct sfinae_true : true_t {};
+}
 
 template <typename T>
-static auto test_formatting(int) -> sfinae_true<decltype(arg_mapper{}.map(declval<T>()))>;
-template <typename>
-static auto test_formatting(long) -> false_t;
-}  // namespace internal
-
-template <typename T>
-constexpr bool can_be_formatted_v = decltype(internal::test_formatting<T>(0))::value || is_enum_v<T>;
+const internal::named_arg_base &map_arg(const internal::named_arg<T> &val) {
+    auto result = make_arg(val.Value);
+    copy_memory(const_cast<char *>(val.Data), &result, sizeof(arg));
+    return val;
+}
 
 // !!!
 // If you get a compiler error here it's probably because you passed in an argument that can't be formatted
 // To format custom types, implement a fmt::formatter specialization.
 // !!!
 template <typename T>
-constexpr auto mapped_type_constant_v = type_constant_v<decltype(arg_mapper{}.map(declval<T>()))>;
+constexpr auto mapped_type_constant_v = type_constant_v<decltype(map_arg(declval<T>()))>;
 
 template <typename T>
-arg make_arg(const T &value) {
-    static_assert(can_be_formatted_v<T>, "Argument doesn't have a formatter.");
-    return {mapped_type_constant_v<T>, arg_mapper().map(value)};
+arg make_arg(const T &v) { return {mapped_type_constant_v<T>, map_arg(v)}; }
+
+template <bool IsPacked, typename T>
+enable_if_t<IsPacked, value> make_arg(const T &v) {
+    const auto &mapped = map_arg(v);
+    value result = value(mapped);
+    return result;
 }
 
 template <bool IsPacked, typename T>
-enable_if_t<IsPacked, value> make_arg(const T &value) {
-    static_assert(can_be_formatted_v<T>, "Argument doesn't have a formatter.");
-    return arg_mapper().map(value);
-}
-
-template <bool IsPacked, typename T>
-enable_if_t<!IsPacked, arg> make_arg(const T &value) {
-    static_assert(can_be_formatted_v<T>, "Argument doesn't have a formatter.");
-    return make_arg(value);
-}
+enable_if_t<!IsPacked, arg> make_arg(const T &v) { return arg(make_arg(v)); }
 
 // Visits an argument dispatching to the appropriate visit method based on the argument type
 template <typename Visitor>
@@ -171,16 +133,12 @@ auto visit_fmt_arg(Visitor &&visitor, arg ar) -> decltype(visitor(0)) {
         case type::NAMED_ARG:
             assert(false && "Invalid argument type");
             break;
-        case type::S32:
-            return visitor(ar.Value.S32);
-        case type::U32:
-            return visitor(ar.Value.U32);
         case type::S64:
             return visitor(ar.Value.S64);
         case type::U64:
             return visitor(ar.Value.U64);
         case type::BOOL:
-            return visitor(ar.Value.S32 != 0);
+            return visitor(ar.Value.S64 != 0);
         case type::F64:
             return visitor(ar.Value.F64);
         case type::STRING:
@@ -194,37 +152,40 @@ auto visit_fmt_arg(Visitor &&visitor, arg ar) -> decltype(visitor(0)) {
 }
 
 namespace internal {
-constexpr u64 IS_UNPACKED_BIT = 1ull << 63;
-constexpr u32 MAX_PACKED_ARGS = 15;
-
+// Hacky template because C++
 template <typename Dummy>
 u64 get_packed_fmt_types() {
     return 0ull;
 }
 
+// Hacky template because C++
 template <typename Dummy, typename Arg, typename... Args>
 u64 get_packed_fmt_types() {
     return (u64) mapped_type_constant_v<Arg> | (get_packed_fmt_types<Dummy, Args...>() << 4);
 }
 }  // namespace internal
 
+static constexpr u64 IS_UNPACKED_BIT = 1ull << 63;
+static constexpr u32 MAX_PACKED_ARGS = 15;
+
+// Either an array of values or arguments (just values if number is less than MAX_PACKED_ARGS)
 template <typename... Args>
-struct args_store {
+struct args_stack_array {
     static constexpr s64 NUM_ARGS = sizeof...(Args);
 
-    static constexpr bool IS_PACKED = NUM_ARGS < internal::MAX_PACKED_ARGS;
+    static constexpr bool IS_PACKED = NUM_ARGS < MAX_PACKED_ARGS;
 
     // If the arguments are not packed, add one more element to mark the end.
-    static constexpr s64 DATA_SIZE = NUM_ARGS + (IS_PACKED && NUM_ARGS != 0 ? 0 : 1);
+    // static constexpr s64 DATA_SIZE = NUM_ARGS + (IS_PACKED && NUM_ARGS != 0 ? 0 : 1);
 
-    using value_t = type_select_t<IS_PACKED, value, arg>;
-    stack_array<value_t, DATA_SIZE> Data;
+    using data_t = type_select_t<IS_PACKED, value, arg>;
+    stack_array<data_t, NUM_ARGS> Data;
 
     u64 Types = 0;
 
     void populate(const Args &... args) {
         Data = {make_arg<IS_PACKED>(args)...};
-        Types = IS_PACKED ? internal::get_packed_fmt_types<unused, Args...>() : internal::IS_UNPACKED_BIT | NUM_ARGS;
+        Types = IS_PACKED ? internal::get_packed_fmt_types<unused, Args...>() : IS_UNPACKED_BIT | NUM_ARGS;
     }
 };
 
@@ -239,39 +200,42 @@ struct args {
     args() = default;
 
     template <typename... Args>
-    args(const args_store<Args...> &store) : Types(store.Types), Count(sizeof...(Args)) {
+    args(const args_stack_array<Args...> &store) : Types(store.Types), Count(sizeof...(Args)) {
         set_data(store.Data.Data);
     }
 
     void set_data(const value *values) { Values = values; }
     void set_data(const arg *ars) { Args = ars; }
 
-    bool is_packed() { return !(Types & internal::IS_UNPACKED_BIT); }
+    bool is_packed() { return !(Types & IS_UNPACKED_BIT); }
 
     type get_type(s64 index) {
         u64 shift = (u64) index * 4;
         return (type)((Types & (0xfull << shift)) >> shift);
     }
 
-    s64 max_size() { return (s64)(is_packed() ? internal::MAX_PACKED_ARGS : Types & ~internal::IS_UNPACKED_BIT); }
+    s64 max_size() { return (s64)(is_packed() ? MAX_PACKED_ARGS : Types & ~IS_UNPACKED_BIT); }
 
     // Doesn't support negative indexing
     arg get_arg(s64 index) {
-        arg result;
-        if (!is_packed()) {
-            if (index < max_size()) result = Args[index];
+        if (index >= Count) return {};
+
+        if (is_packed()) {
+            if (index > MAX_PACKED_ARGS) return {};
+
+            auto type = get_type(index);
+            if (type == type::NONE) return {};
+
+            arg result;
+            result.Type = type;
+            if (result.Type == type::NAMED_ARG) {
+                result = Values[index].NamedArg->deserialize();
+            } else {
+                result.Value = Values[index];
+            }
             return result;
         }
-        if (index > internal::MAX_PACKED_ARGS) return result;
-
-        result.Type = get_type(index);
-        if (result.Type == type::NONE) return result;
-
-        result.Value = Values[index];
-        if (result.Type == type::NAMED_ARG) {
-            result = result.Value.NamedArg->deserialize();
-        }
-        return result;
+        return Args[index];
     }
 };
 

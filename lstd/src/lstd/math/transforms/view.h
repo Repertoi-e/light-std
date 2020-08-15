@@ -97,8 +97,7 @@ auto look_at(const vec<T, Dim, Packed> &eye, const vec<T, Dim, Packed> &target,
 // _flipX_ - true to flip X in camera space
 template <typename T, bool Packed>
 auto look_at(const vec<T, 2, Packed> &eye, const vec<T, 2, Packed> &target, bool positiveYForward, bool flipX) {
-    return look_at(eye, target, stack_array<vec<T, 2, Packed>, 0>{{no_init}},
-                   stack_array<bool, 2>{flipX, positiveYForward});
+    return look_at(eye, target, stack_array<vec<T, 2, Packed>, 0>{{no_init}}, stack_array<bool, 2>{flipX, positiveYForward});
 }
 
 // Creates a 3D look-at matrix.
@@ -113,8 +112,7 @@ auto look_at(const vec<T, 2, Packed> &eye, const vec<T, 2, Packed> &target, bool
 template <typename T, bool Packed>
 auto look_at(const vec<T, 3, Packed> &eye, const vec<T, 3, Packed> &target, const vec<T, 3, Packed> &up,
              bool positiveZForward, bool flipX, bool flipY) {
-    return look_at(eye, target, stack_array<vec<T, 3, Packed>, 1>{up},
-                   stack_array<bool, 3>{flipX, flipY, positiveZForward});
+    return look_at(eye, target, stack_array<vec<T, 3, Packed>, 1>{up}, stack_array<bool, 3>{flipX, flipY, positiveZForward});
 }
 
 LSTD_END_NAMESPACE

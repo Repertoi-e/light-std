@@ -177,7 +177,7 @@ void parse_fmt_string(const string &fmtString, format_context *f);
 // Formats to writer
 template <typename... Args>
 void to_writer(io::writer *out, const string &fmtString, Args &&... args) {
-    args_store<remove_reference_t<Args>...> store;  // This needs to outlive _parse_fmt_string_
+    args_stack_array<remove_reference_t<Args>...> store;  // This needs to outlive _parse_fmt_string_
     store.populate(args...);
 
     auto bakedArgs = fmt::args(store);

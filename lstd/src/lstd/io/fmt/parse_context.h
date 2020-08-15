@@ -64,10 +64,10 @@ struct parse_context {
     // Would it be useful to have a way to restrict certain specifiers so you can't format an integer vector with precision for example...
 
     // Some specifiers require numeric arguments and we do error checking, CUSTOM arguments don't get checked
-    void require_numeric_arg(type argType, s64 errorPosition = -1);
+    void require_arithmetic_arg(type argType, s64 errorPosition = -1);
 
     // Some specifiers require signed numeric arguments and we do error checking, CUSTOM arguments don't get checked
-    void require_signed_numeric_arg(type argType, s64 errorPosition = -1);
+    void require_signed_arithmetic_arg(type argType, s64 errorPosition = -1);
 
     // Integer values and pointers aren't allowed to get precision. CUSTOM argument is again, not checked.
     void check_precision_for_arg(type argType, s64 errorPosition = -1);

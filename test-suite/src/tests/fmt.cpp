@@ -36,7 +36,7 @@ template <typename... Args>
 void format_test_error(const string &fmtString, Args &&... args) {
     io::counting_writer dummy;
 
-    fmt::args_store<remove_reference_t<Args>...> store;
+    fmt::args_stack_array<remove_reference_t<Args>...> store;
     store.populate(args...);
 
     auto f = fmt::format_context(&dummy, fmtString, fmt::args(store), test_error_handler);
@@ -356,8 +356,8 @@ TEST(numeric_align) {
 
     EXPECT_ERROR("\"}\" expected", "{0:=5", 'a');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:=5c}", 'a');
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:=5}", "abc");
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:=8}", (void *) 0xface);
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:=5}", "abc");
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:=8}", (void *) 0xface);
 
     CHECK_WRITE(" 1.0", "{:= }", 1.0);
 }
@@ -407,13 +407,13 @@ TEST(plus_sign) {
     CHECK_WRITE("+42", "{0:+}", 42ll);
     CHECK_WRITE("+42.0", "{0:+}", 42.0);
 
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0:+}", 42u);
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0:+}", 42ul);
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0:+}", 42ull);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:+}", 42u);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:+}", 42ul);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:+}", 42ull);
     EXPECT_ERROR("\"}\" expected", "{0:+", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:+c}", 'c');
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:+}", "abc");
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:+}", (void *) 0x42);
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:+}", "abc");
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:+}", (void *) 0x42);
 }
 
 TEST(minus_sign) {
@@ -424,13 +424,13 @@ TEST(minus_sign) {
     CHECK_WRITE("42", "{0:-}", 42ll);
     CHECK_WRITE("42.0", "{0:-}", 42.0);
 
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0:-}", 42u);
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0:-}", 42ul);
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0:-}", 42ull);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:-}", 42u);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:-}", 42ul);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:-}", 42ull);
     EXPECT_ERROR("\"}\" expected", "{0:-", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:-c}", 'c');
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:-}", "abc");
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:-}", (void *) 0x42);
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:-}", "abc");
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:-}", (void *) 0x42);
 }
 
 TEST(space_sign) {
@@ -441,13 +441,13 @@ TEST(space_sign) {
     CHECK_WRITE(" 42", "{0: }", 42ll);
     CHECK_WRITE(" 42.0", "{0: }", 42.0);
 
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0: }", 42u);
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0: }", 42ul);
-    EXPECT_ERROR("Format specifier requires a signed numeric argument", "{0: }", 42ull);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0: }", 42u);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0: }", 42ul);
+    EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0: }", 42ull);
     EXPECT_ERROR("\"}\" expected", "{0: ", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0: c}", 'c');
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0: }", "abc");
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0: }", (void *) 0x42);
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0: }", "abc");
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0: }", (void *) 0x42);
 }
 
 TEST(hash_flag) {
@@ -487,8 +487,8 @@ TEST(hash_flag) {
 
     EXPECT_ERROR("\"}\" expected", "{0:#", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:#c}", 'c');
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:#}", "abc");
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:#}", (void *) 0x42);
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:#}", "abc");
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:#}", (void *) 0x42);
 }
 
 TEST(zero_flag) {
@@ -503,8 +503,8 @@ TEST(zero_flag) {
 
     EXPECT_ERROR("\"}\" expected", "{0:0", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:0c}", 'c');
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:0}", "abc");
-    EXPECT_ERROR("Format specifier requires a numeric argument", "{0:0}", (void *) 0x42);
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:0}", "abc");
+    EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:0}", (void *) 0x42);
 }
 
 TEST(width) {
