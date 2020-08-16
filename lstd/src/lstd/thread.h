@@ -3,8 +3,6 @@
 #include "intrin.h"
 #include "memory/delegate.h"
 
-struct _RTL_CRITICAL_SECTION;
-
 LSTD_BEGIN_NAMESPACE
 
 namespace thread {
@@ -30,8 +28,8 @@ struct id {
 
 // Mutex class.
 // This is a mutual exclusion object for synchronizing access to shared
-// memory areas for several threads. The mutex is non-recursive (i.e. a
-// program may deadlock if the thread that owns a mutex object calls lock()
+// memory areas for several threads. The mutex can be recursive (i.e. a
+// program doesn't deadlock if the thread that owns a mutex object calls lock()
 // on that object).
 struct mutex : non_assignable {
     union {
@@ -39,7 +37,6 @@ struct mutex : non_assignable {
             char Handle[40]{};
         } Win32;
     } PlatformData{};
-    volatile bool AlreadyLocked = false;
 
     // This mutex won't work until init() is called.
     //
@@ -84,66 +81,6 @@ struct mutex : non_assignable {
 
 // @Pedantic We want to make sure the user doesn't clone things that don't make sense.
 inline mutex *clone(mutex *dest, const mutex &src) {
-    assert(false && "We don't deep copy mutexes");
-    return null;
-}
-
-// This is a mutual exclusion object for synchronizing access to shared
-// memory areas for several threads. The mutex is recursive (i.e. a thread
-// may lock the mutex several times, as long as it unlocks the mutex the same
-// number of times).
-//
-// You should generally try to design your code in a way that doesn't need recursive locking.
-// In any way, we provide the functionality (but we strongly discourage it).
-// If you need recursive locking it may be a sign that you are locking more than needed.
-struct recursive_mutex : non_assignable {
-    union {
-        struct alignas(64) {
-            char Handle[40]{};
-        } Win32;
-    } PlatformData{};
-
-    // This mutex won't work until init() is called.
-    //
-    // @POSIX
-    //   pthread_mutexattr_t attr;
-    //   pthread_mutexattr_init(&attr);
-    //   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    //   pthread_mutex_init(&mHandle, &attr);
-    void init();
-
-    // @POSIX pthread_mutex_destroy(&mHandle);
-    void release();
-
-    // We no longer use destructors for releasing handles/memory etc.
-    // ~recursive_mutex();
-
-    // Block the calling thread until a lock on the mutex can
-    // be obtained. The mutex remains locked until unlock() is called.
-    //
-    // @POSIX pthread_mutex_lock(&mHandle);
-    void lock();
-
-    // Try to lock the mutex.
-    //
-    // If the mutex isn't currently locked by any thread, the calling thread locks it and owns it until unlock() is called. The function returns true.
-    // If the mutex is currently locked by another thread, the function fails and returns false, without blocking
-    // (the calling thread continues its execution).
-    //
-    // @POSIX return (pthread_mutex_trylock(&mHandle) == 0) ? true : false;
-    bool try_lock();
-
-    // Unlock the mutex.
-    // If any threads are waiting for the lock on this mutex, one of them will be unblocked.
-
-    // @POSIX pthread_mutex_unlock(&mHandle);
-    void unlock();
-
-    friend struct condition_variable;
-};
-
-// @Pedantic We want to make sure the user doesn't clone things that don't make sense.
-inline recursive_mutex *clone(recursive_mutex *dest, const recursive_mutex &src) {
     assert(false && "We don't deep copy mutexes");
     return null;
 }
@@ -272,33 +209,19 @@ inline condition_variable *clone(condition_variable *dest, const condition_varia
 
 struct thread : non_assignable {
     // Don't read this directly, use atomic operations - atomic_compare_exchange_pointer(&Handle, null, null).
-    void *Handle;
+    // You probably don't want this anyway?
+    void *Handle = null;
 
-    // True if this object is not a thread of execution.
-    // Don't read this directly, use atomic operations - atomic_compare_exchange(&Finished, 0, 0).
-    u32 Finished = true;
+    // Non-starting constructor.
+    thread() {}
 
-    // Construct without an associated thread of execution (i.e. non-joinable).
-    thread() = default;
+    void init_and_launch(const delegate<void(void *)> &function, void *userData = null);
 
-    // Thread starting constructor.
-    // Construct a thread object with a new thread of execution.
-    thread(const delegate<void(void *)> &function, void *userData) { init(function, userData); }
+    void wait();
 
-    // We no longer use destructors for releasing handles/memory etc.
-    // ~thread();
+    // Terminate the thread without waiting execution
+    void terminate();
 
-    void init(const delegate<void(void *)> &function, void *userData);
-
-    // Wait for the thread to finish (join execution flows).
-    // Releases the mutex and the handle.
-    void join();
-
-    // After calling detach(), the thread object is no longer assicated with a thread of execution (i.e. it is not joinable).
-    // _Finished_ is set to true but the thread may still continue execution without the calling thread blocking.
-    void detach();
-
-    // Return the thread ID of a thread object.
     id get_id() const;
 
    private:
@@ -331,7 +254,7 @@ inline thread *clone(thread *dest, const thread &src) {
 // Because of the limitations of this object, it should only be used in
 // situations where the mutex needs to be locked/unlocked very frequently.
 struct fast_mutex : non_assignable {
-    volatile long _Lock = 0;
+    long Lock = 0;
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
@@ -343,34 +266,14 @@ struct fast_mutex : non_assignable {
     //
     // Returns true if the lock was acquired
     bool try_lock() {
-        s32 oldLock;
-#if COMPILER == MSVC
-        oldLock = _InterlockedExchange(&_Lock, 1);
-#else
-        asm volatile(
-            "movl $1,%%eax\n\t"
-            "xchg %%eax,%0\n\t"
-            "movl %%eax,%1\n\t"
-            : "=m"(Lock), "=m"(oldLock)
-            :
-            : "%eax", "memory");
-#endif
+        s32 oldLock = atomic_exchange(&Lock, 1);
         return oldLock == 0;
     }
 
     // Unlock the mutex.
     // If any threads are waiting for the lock on this mutex, one of them will be unblocked.
     void unlock() {
-#if COMPILER == MSVC
-        _InterlockedExchange(&_Lock, 0);
-#else
-        asm volatile(
-            "movl $0,%%eax\n\t"
-            "xchg %%eax,%0\n\t"
-            : "=m"(Lock)
-            :
-            : "%eax", "memory");
-#endif
+        atomic_exchange(&Lock, 0);
     }
 };
 
@@ -380,12 +283,8 @@ inline fast_mutex *clone(fast_mutex *dest, const fast_mutex &src) {
     return null;
 }
 
-// Yield execution to another thread.
-// Offers the operating system the opportunity to schedule another thread
-// that is ready to run on the current processor.
-void yield();
-
 // Blocks the calling thread for at least a given period of time in ms.
+// sleep(0) supposedly tells the os to yield execution to another thread.
 void sleep(u32 ms);
 
 }  // namespace thread

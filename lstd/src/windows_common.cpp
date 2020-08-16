@@ -22,7 +22,7 @@ file_scope char CinBuffer[CONSOLE_BUFFER_SIZE]{};
 file_scope char CoutBuffer[CONSOLE_BUFFER_SIZE]{};
 file_scope char CerrBuffer[CONSOLE_BUFFER_SIZE]{};
 file_scope HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
-file_scope thread::recursive_mutex CoutMutex;  // @Cleanup: recursive mutex
+file_scope thread::mutex CoutMutex;
 file_scope thread::mutex CinMutex;
 
 file_scope LARGE_INTEGER PerformanceFrequency;
@@ -350,9 +350,9 @@ char io::console_reader_give_me_buffer(io::reader *r) {
 void io::console_writer_write(io::writer *w, const char *data, s64 count) {
     auto *cw = (io::console_writer *) w;
 
-    thread::recursive_mutex *mutex = null;
+    thread::mutex *mutex = null;
     if (cw->LockMutex) mutex = &CoutMutex;
-    thread::scoped_lock<thread::recursive_mutex> _(mutex);
+    thread::scoped_lock _(mutex);
 
     if (count > cw->Available) {
         cw->flush();
@@ -367,9 +367,9 @@ void io::console_writer_write(io::writer *w, const char *data, s64 count) {
 void io::console_writer_flush(io::writer *w) {
     auto *cw = (io::console_writer *) w;
 
-    thread::recursive_mutex *mutex = null;
+    thread::mutex *mutex = null;
     if (cw->LockMutex) mutex = &CoutMutex;
-    thread::scoped_lock<thread::recursive_mutex> _(mutex);
+    thread::scoped_lock _(mutex);
 
     if (!cw->Buffer) {
         if (cw->OutputType == io::console_writer::COUT) {

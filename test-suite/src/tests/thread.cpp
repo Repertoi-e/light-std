@@ -9,12 +9,19 @@ file_scope void thread_ids(void *) { fmt::print("\t\tMy thread id is {}.\n", Con
 
 TEST(ids) {
     fmt::print("\n\t\tMain thread's id is {}.\n", Context.ThreadID);
-    thread::thread t1(thread_ids, null);
-    t1.join();
-    thread::thread t2(thread_ids, null);
-    t2.join();
-    thread::thread t3(thread_ids, null);
-    t3.join();
+
+    thread::thread t1;
+    t1.init_and_launch(thread_ids);
+    t1.wait();
+
+    thread::thread t2;
+    t2.init_and_launch(thread_ids);
+    t2.wait();
+
+    thread::thread t3;
+    t3.init_and_launch(thread_ids);
+    t3.wait();
+
     For(range(45)) fmt::print(" ");
 }
 
@@ -24,8 +31,9 @@ file_scope void thread_tls(void *) { TLSVar = 2; }
 TEST(thread_local_storage) {
     TLSVar = 1;
 
-    thread::thread t1(thread_tls, null);
-    t1.join();
+    thread::thread t1;
+    t1.init_and_launch(thread_tls);
+    t1.wait();
 
     assert_eq(TLSVar, 1);
 }
@@ -49,10 +57,12 @@ TEST(mutex_lock) {
     array<thread::thread> threads;
     defer(threads.release());
 
-    For(range(100)) { threads.append(thread::thread(thread_lock, null)); }
+    For(range(100)) {
+        threads.append()->init_and_launch(thread_lock);
+    }
 
     For(threads) {
-        it.join();
+        it.wait();
     }
 
     assert_eq(Count, 100 * 10000);
@@ -73,10 +83,12 @@ TEST(fast_mutex_lock) {
 
     array<thread::thread> threads;
     defer(threads.release());
-    For(range(100)) { threads.append(thread::thread(thread_lock2, null)); }
+    For(range(100)) {
+        threads.append()->init_and_launch(thread_lock2);
+    }
 
     For(threads) {
-        it.join();
+        it.wait();
     }
 
     assert_eq(Count, 100 * 10000);
@@ -106,17 +118,20 @@ TEST(condition_variable) {
     Cond.init();
     defer(Cond.release());
 
-    thread::thread t1(thread_condition_waiter, null);
+    thread::thread t1;
+    t1.init_and_launch(thread_condition_waiter);
 
     // These will decrease Count by 1 when they finish)
     array<thread::thread> threads;
     threads.release();
-    For(range(Count)) { threads.append(thread::thread(thread_condition_notifier, null)); }
+    For(range(Count)) {
+        threads.append()->init_and_launch(thread_condition_notifier);
+    }
 
-    t1.join();
+    t1.wait();
 
     For(threads) {
-        it.join();
+        it.wait();
     }
 
     Mutex.release();
@@ -139,8 +154,9 @@ TEST(context) {
                 assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
             };
 
-            thread::thread t1(&threadFunction, null);
-            t1.join();
+            thread::thread t1;
+            t1.init_and_launch(&threadFunction);
+            t1.wait();
         }
         assert_eq((void *) Context.Alloc.Function, (void *) old);
     }
