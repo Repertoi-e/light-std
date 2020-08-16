@@ -20,7 +20,7 @@ TEST(code_point_size) {
     assert_eq(supplementary.Length, 3);
 
     string mixed;
-    mixed.append(ascii)->append(cyrillic)->append(devanagari)->append(supplementary);
+    mixed.append_string(ascii)->append_string(cyrillic)->append_string(devanagari)->append_string(supplementary);
 
     assert_eq(mixed.ByteLength, 12 + 9 + 6 + 3);
     assert_eq(mixed.Length, 3 + 3 + 3 + 3);
@@ -60,20 +60,20 @@ TEST(insert) {
     a.insert(0, 'H');
     assert_eq(a, "Hel");
 
-    a.insert(3, "lo");
+    a.insert_string(3, "lo");
     assert_eq(a, "Hello");
 
-    a.insert(0, "Hello ");
+    a.insert_string(0, "Hello ");
     assert_eq(a, "Hello Hello");
 
-    a.insert(5, " world");
+    a.insert_string(5, " world");
     assert_eq(a, "Hello world Hello");
     a.release();
 }
 
 TEST(remove) {
     string a = "Hello world Hello";
-    a.remove(-6, a.Length);
+    a.remove_range(-6, a.Length);
     assert_eq(a, "Hello world");
     a.remove(1);
     assert_eq(a, "Hllo world");
@@ -88,7 +88,7 @@ TEST(remove) {
     a.release();
 
     a = "Hello world";
-    a.remove(0, 5);
+    a.remove_range(0, 5);
     assert_eq(a, " world");
     a.release();
 }
@@ -176,7 +176,7 @@ TEST(append) {
     {
         string result = "Hello";
         result.append_pointer_and_size(",THIS IS GARBAGE", 1);
-        result.append(" world!");
+        result.append_string(" world!");
 
         assert_eq(result, "Hello, world!");
         result.release();
@@ -186,7 +186,7 @@ TEST(append) {
         string b = ",";
         string c = " world!";
         string result;
-        result.append(a)->append(b)->append(c);
+        result.append_string(a)->append_string(b)->append_string(c);
 
         assert_eq(result, "Hello, world!");
         result.release();
@@ -200,7 +200,7 @@ TEST(append) {
     }
     result.release();
     For(range(10)) {
-        result.append(u8"Д");
+        result.append_string(u8"Д");
         assert_eq(result.ByteLength, 2 * (it + 1));
         assert_eq(result.Length, it + 1);
     }

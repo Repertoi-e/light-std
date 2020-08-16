@@ -253,13 +253,17 @@ struct string {
     // Returns this.
     string *insert(s64 index, char32_t codePoint);
 
-    // Insert a string at a specified index.
-    // Returns this.
-    string *insert(s64 index, const string &str);
-
     // Insert a buffer of bytes at a specified index.
     // Returns this.
     string *insert_pointer_and_size(s64 index, const char *str, s64 size);
+
+    // Insert a string at a specified index.
+    // Returns this.
+    string *insert_string(s64 index, const string &str) { return insert_pointer_and_size(index, str.Data, str.ByteLength); }
+
+    // Insert a list of bytes at a specified index.
+    // Returns this.
+    string *insert_list_of_bytes(s64 index, const initializer_list<char> &list) { return insert_pointer_and_size(index, list.begin(), list.size()); }
 
     // Remove code point at specified index.
     // Returns this.
@@ -267,19 +271,23 @@ struct string {
 
     // Remove a range of code points. [begin, end)
     // Returns this.
-    string *remove(s64 begin, s64 end);
+    string *remove_range(s64 begin, s64 end);
 
     // Append a non encoded character to a string.
     // Returns this.
     string *append(char32_t codePoint) { return insert(Length, codePoint); }
 
-    // Append one string to another.
-    // Returns this.
-    string *append(const string &str) { return append_pointer_and_size(str.Data, str.ByteLength); }
-
     // Append _size_ bytes of string contained in _data_.
     // Returns this.
     string *append_pointer_and_size(const char *str, s64 size) { return insert_pointer_and_size(Length, str, size); }
+
+    // Append one string to another.
+    // Returns this.
+    string *append_string(const string &str) { return append_pointer_and_size(str.Data, str.ByteLength); }
+
+    // Append a list of bytes to the end.
+    // Returns this.
+    string *append_list_of_bytes(const initializer_list<char> &list) { return append_pointer_and_size(list.begin(), list.size()); }
 
     // Copy this string's contents and append them _n_ times.
     // Returns this.

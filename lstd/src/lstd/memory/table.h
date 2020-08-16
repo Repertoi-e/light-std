@@ -31,7 +31,7 @@ struct table_iterator;
 // all contiguously or by seperate allocation calls. You want to allocate them next to each other because that's good for the cache,
 // but if the table is too large then the block won't fit in the cache anyways so you should consider setting this to false to reduce
 // the size of the allocation request.
-template <typename K, typename V, bool BlockAlloc = true>
+template <typename K, typename V, bool BlockAlloc = false>
 struct table {
     using key_t = K;
     using value_t = V;
@@ -70,8 +70,8 @@ struct table {
     // The first time an element is added to the table, it reserves with _MINIMUM_SIZE_ and no specified alignment.
     // You can call this before using the table to initialize the arrays with a custom alignment (if that's required).
     //
-    // This is also called when adding an element and the table is half full (SlotsFilled * 2 == Reserved).
-    // In that case the _target_ is exactly _SlotsFilled_ * 2.
+    // This is also called when adding an element and the table is more than half full (SlotsFilled * 2 >= Reserved).
+    // In that case the _target_ is exactly _SlotsFilled_.
     // You may want to call this manually if you are adding a bunch of items and causing the table to reallocate a lot.
     void reserve(s64 target, u32 alignment = 0) {
         if (SlotsFilled + target < Reserved) return;
@@ -238,7 +238,7 @@ struct table {
     // Returns pointers to the added key and value.
     pair<key_t *, value_t *> add_prehashed(u64 hash, const key_t &key, const value_t &value) {
         // The + 1 here handles the case when the table size is 1 and you add the first item.
-        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled * 2);
+        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled);  // Make sure the table is never more than 50% full
 
         assert(SlotsFilled < Reserved);
 

@@ -38,10 +38,10 @@ void string_builder::append_pointer_and_size(const char *data, s64 size) {
 
     s64 availableSpace = BUFFER_SIZE - currentBuffer->Occupied;
     if (availableSpace >= size) {
-        copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, size);
+        const_copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, size);
         currentBuffer->Occupied += size;
     } else {
-        copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, availableSpace);
+        const_copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, availableSpace);
         currentBuffer->Occupied += availableSpace;
 
         // If the entire string doesn't fit inside the available space,

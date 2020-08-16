@@ -318,6 +318,13 @@ struct vec : public vec_data<T, Dim_, Packed_> {
     static constexpr s64 Dim = Dim_;
     static constexpr bool Packed = Packed_;
 
+    vec() {
+        for (s64 i = 0; i < Dim; ++i) {
+            this->Data[i] = T(0);
+        }
+    }
+
+    // :MathTypesNoInit By default we zero-init but you can call a special constructor with the value no_init which doesn't initialize the object
     vec(no_init_t) : vec_data<T, Dim_, Packed_>() {}
 
     // Constructs the vector by converting elements

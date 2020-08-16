@@ -254,7 +254,7 @@ inline thread *clone(thread *dest, const thread &src) {
 // Because of the limitations of this object, it should only be used in
 // situations where the mutex needs to be locked/unlocked very frequently.
 struct fast_mutex : non_assignable {
-    long Lock = 0;
+    s32 Lock = 0;
 
     // Block the calling thread until a lock on the mutex can
     // be obtained. The mutex remains locked until unlock() is called.
@@ -266,14 +266,14 @@ struct fast_mutex : non_assignable {
     //
     // Returns true if the lock was acquired
     bool try_lock() {
-        s32 oldLock = atomic_exchange(&Lock, 1);
+        s32 oldLock = atomic_swap(&Lock, 1);
         return oldLock == 0;
     }
 
     // Unlock the mutex.
     // If any threads are waiting for the lock on this mutex, one of them will be unblocked.
     void unlock() {
-        atomic_exchange(&Lock, 0);
+        atomic_swap(&Lock, 0);
     }
 };
 

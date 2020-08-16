@@ -31,13 +31,13 @@ inline os_function_call *clone(os_function_call *dest, os_function_call src) {
 template <typename T>
 struct array;
 
-typedef void os_unexpected_exception_handler_t(const string &message, const array<os_function_call> &callStack);
+typedef void os_panic_handler_t(const string &message, const array<os_function_call> &callStack);
 
-void default_unexpected_exception_handler(const string &message, const array<os_function_call> &callStack);
+void default_panic_handler(const string &message, const array<os_function_call> &callStack);
 
 // @TODO: By default our alloc alignment is 16 (simd friendly).
 // Maybe that's too big and we should have a context variable to control it.
-struct implicit_context {
+struct context {
     // The current thread's ID
     thread::id ThreadID;
 
@@ -47,21 +47,21 @@ struct implicit_context {
     // without having to pass you anything as a parameter for example.
     //
     // The idea for this comes from the implicit context in Jai.
-    allocator Alloc = Malloc;
+    allocator Alloc;                    // = Malloc; by default. Initialized in *platform*_common.cpp in _initialize_context_
     u16 AllocAlignment = POINTER_SIZE;  // By default
 
     // Any options that get OR'd with the options in any allocation (options are implemented as flags).
     // e.g. use this to mark some allocation a function does (in which you have no control of) as a LEAK.
     // Currently there are three allocator options:
     //   - DO_INIT_0:           Initializes all requested bytes to 0
-    //   - LEAK:                Marks the allocation as a leak (doesn't get reported when calling allocator::DEBUG_report_leaks())
+    //   - LEAk:                Marks the allocation as a known leak (doesn't get reported when calling allocator::DEBUG_report_leaks())
     //   - XXX_AVOID_RECURSION: A hack used when Context.LogAllAllocations is true.
     u64 AllocOptions = 0;
 
     // This allocator gets initialized the first time it gets used in a thread.
     // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
-    temporary_allocator_data TemporaryAllocData;
-    allocator TemporaryAlloc = {temporary_allocator, &TemporaryAllocData};
+    temporary_allocator_data TempAllocData{};  // Initialized the first time it is used
+    allocator Temp = {temporary_allocator, &TempAllocData};
 
     // Set this to true to print a list of unfreed memory blocks when the library uninitializes.
     // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
@@ -76,7 +76,7 @@ struct implicit_context {
     // Gets called when the program encounters an unhandled expection.
     // This can be used to view the stack trace before the program terminates.
     // The default handler prints the crash message and stack trace to _Log_.
-    os_unexpected_exception_handler_t *UnexpectedExceptionHandler = default_unexpected_exception_handler;
+    os_panic_handler_t *PanicHandler = default_panic_handler;
 
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.
@@ -96,7 +96,7 @@ struct implicit_context {
 // Now that allows us to modify the context cleanly without ugly casting without restricting to scope.
 // Even though I really really recommend using WITH_CONTEXT_VAR, WITH_ALLOC, WITH_ALIGNMENT
 // since these restore the old value at the end of the scope and in most cases that's what you want.
-inline thread_local implicit_context Context;
+inline thread_local context Context;
 
 LSTD_END_NAMESPACE
 

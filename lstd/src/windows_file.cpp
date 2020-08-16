@@ -20,7 +20,7 @@ namespace file {
 
 file_scope wchar_t *utf8_path_to_utf16(const file::path &path) {
     // @Bug path.Str.Length is not enough (2 wide chars for one char)
-    auto *result = allocate_array(wchar_t, path.Str.Length + 1, Context.TemporaryAlloc);
+    auto *result = allocate_array(wchar_t, path.Str.Length + 1, Context.Temp);
     utf8_to_utf16(path.Str.Data, path.Str.Length, result);
     return result;
 }
@@ -129,7 +129,7 @@ bool handle::copy(handle dest, bool overwrite) const {
         p.combine_with(Path.file_name());
 
         // @Bug p.Str.Length is not enough (2 wide chars for one char)
-        auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.TemporaryAlloc);
+        auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.Temp);
         utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
         return CopyFileW(utf16, d, !overwrite);
@@ -145,7 +145,7 @@ bool handle::move(handle dest, bool overwrite) const {
         p.combine_with(Path.file_name());
 
         // @Bug p.Str.Length is not enough (2 wide chars for one char)
-        auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.TemporaryAlloc);
+        auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.Temp);
         utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
         if (MoveFileExW(utf8_path_to_utf16(Path), d, MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
@@ -168,7 +168,7 @@ bool handle::rename(const string &newName) const {
     p.combine_with(newName);
 
     // @Bug p.Str.Length is not enough (2 wide chars for one char)
-    auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.TemporaryAlloc);
+    auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.Temp);
     utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
     if (MoveFileW(utf8_path_to_utf16(Path), d)) {
@@ -236,7 +236,7 @@ void handle::iterator::read_next_entry() {
             defer(queryPath.release());
 
             // @Bug queryPath.Str.Length is not enough (2 wide chars for one char)
-            auto *query = allocate_array(wchar_t, queryPath.Str.Length + 1, Context.TemporaryAlloc);
+            auto *query = allocate_array(wchar_t, queryPath.Str.Length + 1, Context.Temp);
             utf8_to_utf16(queryPath.Str.Data, queryPath.Str.Length, query);
 
             CREATE_FILE_HANDLE_CHECKED(file, FindFirstFileW(query, (WIN32_FIND_DATAW *) PlatformFileInfo), ;);

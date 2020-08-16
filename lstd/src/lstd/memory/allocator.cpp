@@ -188,7 +188,7 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc
     result->DEBUG_Previous = null;
 
     result->ID = (u32) DEBUG_memory_info::AllocationCount;
-    atomic_inc_64(&DEBUG_memory_info::AllocationCount);
+    atomic_inc(&DEBUG_memory_info::AllocationCount);
 
     result->RID = 0;
 #endif

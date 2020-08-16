@@ -33,22 +33,30 @@ file_scope array<string> Argv;
 
 file_scope string ClipboardString;
 
-// We must ensure that the context gets initialized before any global
+// We must ensure that the context and the mutexes get initialized before any global
 // C++ constructors get called which may use the context.
-s32 initialize_context() {
-    Context = {};
-    Context.TemporaryAlloc.Context = &Context.TemporaryAllocData;
-    Context.ThreadID = thread::id((u64) GetCurrentThreadId());
-
+void init_mutexes() {
 #if defined DEBUG_MEMORY
     DEBUG_memory_info::Mutex.init();
 #endif
-
     CinMutex.init();
     CoutMutex.init();
     WorkingDirMutex.init();
+}
 
-    return 0;
+void init_context() {
+    Context = {};
+
+    Context.ThreadID = thread::id((u64) GetCurrentThreadId());
+
+    Malloc = {default_allocator, null};
+    Context.Alloc = Malloc;
+
+    s64 startingSize = 8_KiB;  // Start with 8 KiB
+    Context.TempAllocData.Base.Storage = allocate_array(char, startingSize, Malloc);
+    Context.TempAllocData.Base.Reserved = startingSize;
+
+    Context.Temp = {temporary_allocator, &Context.TempAllocData};
 }
 
 void win32_common_init();
@@ -56,7 +64,7 @@ void win32_common_init();
 extern void win32_crash_handler_init();
 
 // Needs to happen after global C++ constructors are initialized.
-void initialize_win32_state() {
+void init_win32_state() {
     win32_common_init();
     win32_crash_handler_init();
 }
@@ -84,7 +92,7 @@ inline void call_exit_functions() {
     exit_call_scheduled_functions();
 }
 
-void uninitialize_win32_state() {
+void uninit_win32_state() {
 #if defined DEBUG_MEMORY
     release_temporary_allocator();
 
@@ -113,18 +121,27 @@ void uninitialize_win32_state() {
 // https://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm#page-2
 #if COMPILER == MSVC
 s32 c_init() {
-    initialize_context();
+    init_mutexes();
+    init_context();
+    return 0;
+}
+
+// We need to reinit the context after the TLS initalizer fires and resets our state.. sigh.
+// We can't just do it once because global variables might still use the context and TLS fires a bit later.
+s32 tls_init() {
+    release_temporary_allocator();
+    init_context();
     return 0;
 }
 
 s32 cpp_init() {
-    initialize_win32_state();
+    init_win32_state();
     return 0;
 }
 
 s32 pre_termination() {
     call_exit_functions();
-    uninitialize_win32_state();
+    uninit_win32_state();
     return 0;
 }
 
@@ -132,20 +149,24 @@ s32 pre_termination() {
 #undef allocate
 
 typedef s32 cb(void);
-#pragma const_seg(".CRT$XIUSER")
-__declspec(allocate(".CRT$XIUSER")) cb *g_CInit = c_init;
+#pragma const_seg(".CRT$XIU")
+__declspec(allocate(".CRT$XIU")) cb *g_CInit = c_init;
 #pragma const_seg()
 
-#pragma const_seg(".CRT$XCUSER")
-__declspec(allocate(".CRT$XCUSER")) cb *g_CPPInit = cpp_init;
+#pragma const_seg(".CRT$XDU")
+__declspec(allocate(".CRT$XDU")) cb *g_TLSInit = tls_init;
 #pragma const_seg()
 
-#pragma const_seg(".CRT$XPUSER")
-__declspec(allocate(".CRT$XPUSER")) cb *g_PreTermination = pre_termination;
+#pragma const_seg(".CRT$XCU")
+__declspec(allocate(".CRT$XCU")) cb *g_CPPInit = cpp_init;
 #pragma const_seg()
 
-#pragma const_seg(".CRT$XTUSER")
-__declspec(allocate(".CRT$XTUSER")) cb *g_Termination = NULL;
+#pragma const_seg(".CRT$XPU")
+__declspec(allocate(".CRT$XPU")) cb *g_PreTermination = pre_termination;
+#pragma const_seg()
+
+#pragma const_seg(".CRT$XTU")
+__declspec(allocate(".CRT$XTU")) cb *g_Termination = NULL;
 #pragma const_seg()
 
 #pragma pop_macro("allocate")
@@ -156,14 +177,14 @@ __declspec(allocate(".CRT$XTUSER")) cb *g_Termination = NULL;
 
 bool dynamic_library::load(const string &name) {
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *buffer = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
+    auto *buffer = allocate_array(wchar_t, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, buffer);
     Handle = (void *) LoadLibraryW(buffer);
     return Handle;
 }
 
 void *dynamic_library::get_symbol(const string &name) {
-    auto *buffer = allocate_array(char, name.ByteLength + 1, Context.TemporaryAlloc);
+    auto *buffer = allocate_array(char, name.ByteLength + 1, Context.Temp);
     copy_memory(buffer, name.Data, name.ByteLength);
     buffer[name.ByteLength] = '\0';
     return (void *) GetProcAddress((HMODULE) Handle, (LPCSTR) buffer);
@@ -242,7 +263,7 @@ void win32_common_init() {
     QueryPerformanceFrequency(&PerformanceFrequency);
 
     // Get the module name
-    wchar_t *buffer = allocate_array(wchar_t, MAX_PATH, Context.TemporaryAlloc);
+    wchar_t *buffer = allocate_array(wchar_t, MAX_PATH, Context.Temp);
     s64 reserved = MAX_PATH;
 
     while (true) {
@@ -250,7 +271,7 @@ void win32_common_init() {
         if (written == reserved) {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
                 reserved *= 2;
-                buffer = allocate_array(wchar_t, reserved, Context.TemporaryAlloc);
+                buffer = allocate_array(wchar_t, reserved, Context.Temp);
                 continue;
             }
         }
@@ -469,7 +490,7 @@ s64 os_get_block_size(void *ptr) {
 
 void os_write_shared_block(const string &name, void *data, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     CREATE_MAPPING_CHECKED(h,
@@ -487,7 +508,7 @@ void os_write_shared_block(const string &name, void *data, s64 size) {
 
 void os_read_shared_block(const string &name, void *out, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     CREATE_MAPPING_CHECKED(h, OpenFileMappingW(FILE_MAP_READ, false, name16), );
@@ -509,7 +530,7 @@ void os_free_block(void *ptr) {
 
 void os_exit(s32 exitCode) {
     call_exit_functions();
-    uninitialize_win32_state();
+    uninit_win32_state();
     ExitProcess(exitCode);
 }
 
@@ -527,7 +548,7 @@ string os_get_working_dir() {
     thread::scoped_lock _(&WorkingDirMutex);
 
     DWORD required = GetCurrentDirectoryW(0, null);
-    auto *dir16 = allocate_array(wchar_t, required + 1, Context.TemporaryAlloc);
+    auto *dir16 = allocate_array(wchar_t, required + 1, Context.Temp);
 
     if (!GetCurrentDirectoryW(required + 1, dir16)) {
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW", __FILE__, __LINE__);
@@ -550,7 +571,7 @@ void os_set_working_dir(const string &dir) {
     thread::scoped_lock _(&WorkingDirMutex);
 
     // @Bug
-    auto *dir16 = allocate_array(wchar_t, dir.Length + 1, Context.TemporaryAlloc);
+    auto *dir16 = allocate_array(wchar_t, dir.Length + 1, Context.Temp);
     utf8_to_utf16(dir.Data, dir.Length, dir16);
 
     WIN32_CHECKBOOL(SetCurrentDirectoryW(dir16));
@@ -558,12 +579,12 @@ void os_set_working_dir(const string &dir) {
 
 pair<bool, string> os_get_env(const string &name, bool silent) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     DWORD bufferSize = 65535;  // Limit according to http://msdn.microsoft.com/en-us/library/ms683188.aspx
 
-    auto *buffer = allocate_array(wchar_t, bufferSize, Context.TemporaryAlloc);
+    auto *buffer = allocate_array(wchar_t, bufferSize, Context.Temp);
     auto r = GetEnvironmentVariableW(name16, buffer, bufferSize);
 
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
@@ -575,7 +596,7 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
 
     // 65535 may be the limit but let's not take risks
     if (r > bufferSize) {
-        buffer = allocate_array(wchar_t, r, Context.TemporaryAlloc);
+        buffer = allocate_array(wchar_t, r, Context.Temp);
         GetEnvironmentVariableW(name16, buffer, r);
         bufferSize = r;
 
@@ -592,11 +613,11 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
 
 void os_set_env(const string &name, const string &value) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *value16 = allocate_array(wchar_t, value.Length + 1, Context.TemporaryAlloc);
+    auto *value16 = allocate_array(wchar_t, value.Length + 1, Context.Temp);
     utf8_to_utf16(value.Data, value.Length, value16);
 
     if (value.Length > 32767) {
@@ -610,7 +631,7 @@ void os_set_env(const string &name, const string &value) {
 
 void os_remove_env(const string &name) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.TemporaryAlloc);
+    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     WIN32_CHECKBOOL(SetEnvironmentVariableW(name16, null));

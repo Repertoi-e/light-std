@@ -82,13 +82,14 @@ s32 main() {
 
     time_t start = os_get_time();
 
-    auto *allocData = allocate(free_list_allocator_data, Malloc);
-    allocData->init(10_MiB, free_list_allocator_data::Find_First);
+    // auto *allocData = allocate(free_list_allocator_data, Malloc);
+    // allocData->init(10_MiB, free_list_allocator_data::Find_First);
+    // WITH_CONTEXT_VAR(Alloc, allocator(free_list_allocator, allocData)) {
 
-    WITH_CONTEXT_VAR(Alloc, allocator(free_list_allocator, allocData)) {
+    WITH_CONTEXT_VAR(Alloc, Context.Temp) {
         while (true) {
             run_tests();
-            free_all(Context.TemporaryAlloc);
+            free_all(Context.Temp);
             break;
         }
     }

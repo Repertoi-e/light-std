@@ -44,18 +44,18 @@ void path::combine_with(const string &str) {
     if (!Reserved) {
         string old = Str;
         Str = "";
-        Str.append(old);
+        Str.append_string(old);
         Reserved = true;
     }
 
     auto other = path(str);
     if (!is_pointing_to_content()) {
-        Str.append("/");
+        Str.append('/');
     }
     if (other.is_absolute()) {
         Str.ByteLength = Str.Length = 0;
     }
-    Str.append(str);
+    Str.append_string(str);
 }
 
 string path::resolved() const {
@@ -81,7 +81,7 @@ string path::resolved() const {
     s64 progress = beginning;
     while ((dots = result.find("..", progress)) != -1) {
         s64 previousSlash = result.find_reverse_any_of(OS_PATH_SEPARATORS, dots - 2);
-        result.remove(previousSlash, dots + 2);
+        result.remove_range(previousSlash, dots + 2);
         progress = previousSlash + 1;
         if (progress >= result.Length) break;
     }
@@ -96,7 +96,7 @@ string path::resolved() const {
             continue;
         }
 
-        result.remove(dots, dots + 2);
+        result.remove_range(dots, dots + 2);
         progress = dots + 1;
         if (progress >= result.Length) break;
     }

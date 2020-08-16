@@ -86,8 +86,14 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 
     // Insert data after a specified index
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert(s64 index, const array<char> &arr, bool unsafe = false) {
+    void insert_array(s64 index, const array<char> &arr, bool unsafe = false) {
         insert_pointer_and_size(index, view.Data, view.Count, unsafe);
+    }
+
+    // Insert data after a specified index
+    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+    void insert_array(s64 index, const initializer_list<char> &list, bool unsafe = false) {
+        insert_pointer_and_size(index, list.begin(), list.size(), unsafe);
     }
 
     // Insert a buffer of bytes at a specified index
@@ -116,7 +122,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 
     // Remove a range of bytes.
     // [begin, end)
-    void remove(s64 begin, s64 end) {
+    void remove_range(s64 begin, s64 end) {
         auto *targetBegin = Data + translate_index(begin, ByteLength);
         auto *targetEnd = Data + translate_index(begin, ByteLength, true);
 
@@ -133,16 +139,22 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
     void append(char b, bool unsafe = false) { insert(ByteLength, b, unsafe); }
 
-    // Append one view to another
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append(const array<char> &view, bool unsafe = false) {
-        append_pointer_and_size(view.Data, view.Count, unsafe);
-    }
-
     // Append _count_ bytes of string contained in _data_
     // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
     void append_pointer_and_size(const char *data, s64 count, bool unsafe = false) {
         insert_pointer_and_size(ByteLength, data, count, unsafe);
+    }
+
+    // Append one view to another
+    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+    void append_array(const array<char> &view, bool unsafe = false) {
+        append_pointer_and_size(view.Data, view.Count, unsafe);
+    }
+
+    // Append a list
+    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+    void append_list(const initializer_list<char> &list, bool unsafe = false) {
+        append_pointer_and_size(list.begin(), list.size(), unsafe);
     }
 
     //

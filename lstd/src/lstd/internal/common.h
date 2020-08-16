@@ -38,10 +38,21 @@ constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
 
 //
 // Define clearer keyboards for the different meanings of _static_.
-// I recommend getting used to them because static is a really really name for a keyword.
+// I recommend getting used to them because static is a really really confusing keyword.
 //
 #define file_scope static
 #define local_persist static
+
+#if COMPILER == MSVC
+#define always_inline __forceinline
+#define never_inline __declspec(noinline)
+#define no_vtable __declspec(novtable)
+#define no_alias __declspec(noalias)
+#define restrict __declspec(restrict)
+#else
+#define always_inline inline
+#error Defines
+#endif
 
 // Go-style defer
 //
@@ -600,22 +611,22 @@ constexpr bool is_nan(f64 number) {
 }
 
 template <typename T>
-constexpr T const_min(T x, T y) {
+always_inline constexpr T const_min(T x, T y) {
     return x < y ? x : y;
 }
 
 template <typename T>
-constexpr T const_max(T x, T y) {
+always_inline constexpr T const_max(T x, T y) {
     return x > y ? x : y;
 }
 
 template <typename T>
-constexpr T min(T x, T y) {
+always_inline constexpr T min(T x, T y) {
     return x < y ? x : y;
 }
 
 template <typename T>
-constexpr T max(T x, T y) {
+always_inline constexpr T max(T x, T y) {
     return x > y ? x : y;
 }
 
@@ -654,22 +665,49 @@ constexpr u32 count_digits(T value) {
 }
 
 //
-// Atomic operations for lock-free parallel programming:
+// Atomic operations for lock-free programming:
 //
+
+template <typename T>
+constexpr bool is_appropriate_size_for_atomic_v = sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8;
+
+template <typename T>
+constexpr bool is_appropriate_for_atomic_v = (is_integral_v<T> || is_enum_v<T> || is_pointer_v<T>) &&is_appropriate_size_for_atomic_v<T>;
+
 #if COMPILER == MSVC
-#define atomic_inc(ptr) _InterlockedIncrement((ptr))
-#define atomic_inc_64(ptr) _InterlockedIncrement64((ptr))
 
-#define atomic_add(ptr, value) _InterlockedAdd((ptr), (value))
-#define atomic_add_64(ptr, value) _InterlockedAdd64((ptr), (value))
+// Returns the initial value in _ptr_
+template <typename T>
+always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_inc(T *ptr) {
+    if constexpr (sizeof(T) == 2) return (T) _InterlockedIncrement16((volatile short *) ptr);
+    if constexpr (sizeof(T) == 4) return (T) _InterlockedIncrement((volatile long *) ptr);
+    if constexpr (sizeof(T) == 8) return (T) _InterlockedIncrement64((volatile long long *) ptr);
+}
 
-#define atomic_exchange(ptr, value) _InterlockedExchange((ptr), (value))
-#define atomic_exchange_64(ptr, value) _InterlockedExchange64((ptr), (value))
-#define atomic_exchange_pointer(ptr, value) _InterlockedExchangePointer((ptr), (value))
+// Returns the initial value in _ptr_
+template <typename T>
+always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_add(T *ptr, T value) {
+    if constexpr (sizeof(T) == 2) return (T) _InterlockedExchangeAdd16((volatile short *) ptr, value);
+    if constexpr (sizeof(T) == 4) return (T) _InterlockedExchangeAdd((volatile long *) ptr, value);
+    if constexpr (sizeof(T) == 8) return (T) _InterlockedExchangeAdd64((volatile long long *) ptr, value);
+}
 
-#define atomic_compare_exchange(ptr, exchange, comperand) _InterlockedCompareExchange((ptr), (exchange), (comperand))
-#define atomic_compare_exchange_64(ptr, exchange, comperand) _InterlockedCompareExchange64((ptr), (exchange), (comperand))
-#define atomic_compare_exchange_pointer(ptr, exchange, comperand) _InterlockedCompareExchangePointer((ptr), (exchange), (comperand))
+// Returns the old value in _ptr_
+template <typename T>
+always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_swap(T *ptr, T value) {
+    if constexpr (sizeof(T) == 2) return (T) _InterlockedExchange16((volatile short *) ptr, value);
+    if constexpr (sizeof(T) == 4) return (T) _InterlockedExchange((volatile long *) ptr, value);
+    if constexpr (sizeof(T) == 8) return (T) _InterlockedExchange64((volatile long long *) ptr, value);
+}
+
+// Returns the old value in _ptr_, exchanges values only if the old value is equal to comperand.
+// You can use this for a safe way to read a value, e.g. atomic_compare_and_swap(&value, 0, 0)
+template <typename T>
+always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_compare_and_swap(T *ptr, T exchange, T comperand) {
+    if constexpr (sizeof(T) == 2) return (T) _InterlockedCompareExchange16((volatile short *) ptr, exchange, comperand);
+    if constexpr (sizeof(T) == 4) return (T) _InterlockedCompareExchange((volatile long *) ptr, exchange, comperand);
+    if constexpr (sizeof(T) == 8) return (T) _InterlockedCompareExchange64((volatile long long *) ptr, exchange, comperand);
+}
 #else
 #define atomic_inc(ptr) __sync_add_and_fetch((ptr), 1)
 #define atomic_inc_64(ptr) __sync_add_and_fetch((ptr), 1)
@@ -677,19 +715,19 @@ constexpr u32 count_digits(T value) {
 #endif
 
 // Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
-inline constexpr void byte_swap_2(void *ptr) {
+always_inline constexpr void byte_swap_2(void *ptr) {
     u16 x = *(u16 *) ptr;
     *(u16 *) ptr = x << 8 & 0xFF00 | x >> 8 & 0x00FF;
 }
 
 // Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
-inline constexpr void byte_swap_4(void *ptr) {
+always_inline constexpr void byte_swap_4(void *ptr) {
     u32 x = *(u32 *) ptr;
     *(u32 *) ptr = x << 24 & 0xFF000000 | x << 8 & 0x00FF0000 | x >> 8 & 0x0000FF00 | x >> 24 & 0x000000FF;
 }
 
 // Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
-inline constexpr void byte_swap_8(void *ptr) {
+always_inline constexpr void byte_swap_8(void *ptr) {
     u64 x = *(u64 *) ptr;
     x = ((x << 8) & 0xFF00FF00FF00FF00ULL) | ((x >> 8) & 0x00FF00FF00FF00FFULL);
     x = ((x << 16) & 0xFFFF0000FFFF0000ULL) | ((x >> 16) & 0x0000FFFF0000FFFFULL);

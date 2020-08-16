@@ -21,24 +21,6 @@ TEST(ctor) {
     assert_eq(q3.z, 4);
 }
 
-TEST(deterministic_default_initializer) {
-    alignas(alignof(quat)) stack_array<u8, sizeof(quat)> rawData;
-    fill_memory(rawData.Data, (char) 0xCC, rawData.Count);
-
-    For(rawData) assert_eq(it, u8(0xCC));
-    new (rawData.Data) quat{no_init};
-
-#if defined DEBUG
-    For(rawData) assert_eq(it, u8(0xCC));
-#else
-    auto *q = (quat *) rawData.Data;
-    assert(is_nan(q->x));
-    assert(is_nan(q->y));
-    assert(is_nan(q->z));
-    assert(is_nan(q->w));
-#endif
-}
-
 TEST(axis_angle) {
     quat q = rotation_axis_angle(normalize(vecf<3>{1, 2, 3}), 0.83f);
     quat qexp(0.9151163f, 0.107757f, 0.2155141f, 0.3232711f);

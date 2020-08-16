@@ -139,7 +139,7 @@ struct thread_start_info {
 
     // Pointer to the implicit context in the "parent" thread.
     // We copy its members to the newly created thread.
-    implicit_context *ContextPtr = null;
+    context *ContextPtr = null;
 };
 
 u32 __stdcall thread::wrapper_function(void *data) {
@@ -148,9 +148,15 @@ u32 __stdcall thread::wrapper_function(void *data) {
 
     // Copy the context from the parent thread
     Context = *ti->ContextPtr;
-    Context.TemporaryAllocData = {};
-    Context.TemporaryAlloc.Context = &Context.TemporaryAllocData;
+
     Context.ThreadID = ::thread::id((u64) GetCurrentThreadId());
+
+    // We need a fresh temporary storage
+    s64 startingSize = 8_KiB;  // Start with 8 KiB
+    Context.TempAllocData.Base.Storage = allocate_array(char, startingSize, Malloc);
+    Context.TempAllocData.Base.Reserved = startingSize;
+
+    Context.Temp = {temporary_allocator, &Context.TempAllocData};
 
     ti->Function(ti->UserData);
 

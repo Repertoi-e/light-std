@@ -23,7 +23,10 @@ struct array {
 
     constexpr array() = default;
     constexpr array(data_t *data, s64 count) : Data(data), Count(count), Reserved(0) {}
-    constexpr array(initializer_list<data_t> items) : Data((data_t *) items.begin()), Count(items.size()), Reserved(0) {}
+    constexpr array(const initializer_list<data_t> &items) {
+        assert(false && "This bug bit me hard... You cannot create arrays which are views into initializer lists.");
+        assert(false && "You may want to reserve a dynamic array with those values. In that case make an empty array and use append().");
+    }
 
     // We no longer use destructors for deallocation. Call release() explicitly (take a look at the defer macro!).
     // ~array() { release(); }
@@ -120,13 +123,10 @@ struct array {
         return where;
     }
 
-    // Insert an array at a specified index and returns a pointer to the beginning of it in the buffer
-    data_t *insert(s64 index, const array &arr) { return insert_pointer_and_size(index, arr.Data, arr.Count); }
-
     // Insert a buffer of elements at a specified index.
     data_t *insert_pointer_and_size(s64 index, const data_t *ptr, s64 size) {
         reserve(size);
-        
+
         s64 offset = translate_index(index, Count, true);
         auto *where = begin() + offset;
         if (offset < Count) {
@@ -136,6 +136,12 @@ struct array {
         Count += size;
         return where;
     }
+
+    // Insert an array at a specified index and returns a pointer to the beginning of it in the buffer
+    data_t *insert_array(s64 index, const array &arr) { return insert_pointer_and_size(index, arr.Data, arr.Count); }
+
+    // Insert an array at a specified index and returns a pointer to the beginning of it in the buffer
+    data_t *insert_list(s64 index, const initializer_list<T> &list) { return insert_pointer_and_size(Count, list.begin(), list.size()); }
 
     // Removes element at specified index and moves following elements back
     array *remove(s64 index) {
@@ -153,7 +159,7 @@ struct array {
 
     // Removes a range of elements and moves following elements back
     // [begin, end)
-    array *remove(s64 begin, s64 end) {
+    array *remove_range(s64 begin, s64 end) {
         // If the array is a view, we don't want to modify the original!
         if (!Reserved) reserve(0);
 
@@ -184,11 +190,14 @@ struct array {
     // Appends an element to the end and returns a pointer to it in the buffer
     data_t *append(const data_t &element) { return insert(Count, element); }
 
-    // Appends an array to the end and returns a pointer to it in the buffer
-    data_t *append(const array &arr) { return insert(Count, arr); }
-
     // Appends a buffer of elements to the end and returns a pointer to it in the buffer
     data_t *append_pointer_and_size(const data_t *ptr, s64 size) { return insert_pointer_and_size(Count, ptr, size); }
+
+    // Appends an array to the end and returns a pointer to the beginning of it in the buffer
+    data_t *append_array(const array &arr) { return insert_array(Count, arr); }
+
+    // Appends an array to the end and returns a pointer to the beginning of it in the buffer
+    data_t *append_list(const initializer_list<T> &list) { return insert_list(Count, list); }
 
     // Compares this array to _arr_ and returns the index of the first element that is different.
     // If the arrays are equal, the returned value is -1.

@@ -11,12 +11,9 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 #endif
 
     auto *data = (temporary_allocator_data *) context;
-    // The temporary allocator hasn't been initialized yet.
-    if (!data->Base.Reserved) {
-        s64 startingSize = (size * 2 + 8_KiB - 1) & -8_KiB;  // Round up to a multiple of 8 KiB
-        data->Base.Storage = allocate_array(char, startingSize, Malloc);
-        data->Base.Reserved = startingSize;
-    }
+
+    // The temporary allocator should have been initialized
+    assert(data->Base.Storage && data->Base.Reserved);
 
     switch (mode) {
         case allocator_mode::ALLOCATE: {
@@ -131,13 +128,13 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 }
 
 void release_temporary_allocator() {
-    if (!Context.TemporaryAllocData.Base.Reserved) return;
+    if (!Context.TempAllocData.Base.Reserved) return;
 
     // Free any left-over overflow pages!
-    free_all(Context.TemporaryAlloc);
+    free_all(Context.Temp);
 
-    free(Context.TemporaryAllocData.Base.Storage);
-    Context.TemporaryAllocData = {};
+    free(Context.TempAllocData.Base.Storage);
+    Context.TempAllocData = {};
 }
 
 LSTD_END_NAMESPACE

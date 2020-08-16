@@ -77,7 +77,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     string message = fmt::sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
     defer(message.release());
 
-    Context.UnexpectedExceptionHandler(message, callStack);
+    Context.PanicHandler(message, callStack);
 
     For(callStack) {
         it.Name.release();

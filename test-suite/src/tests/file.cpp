@@ -2,7 +2,7 @@
 
 #include "../test.h"
 
-// #define DO_READ_EVERY_FILE
+#define DO_READ_EVERY_FILE
 
 TEST(path_manipulation) {
     {
@@ -145,18 +145,21 @@ TEST(read_every_file_in_project) {
 
     table<string, s64> files;
 
+    s32 fileCounter = 100;
     auto callback = [&](file::path it) {
-        file::path p;
-        clone(&p, rootFolder);
-        p.combine_with(it);
-        defer(p.release());
+        if (fileCounter) {
+            file::path p;
+            clone(&p, rootFolder);
+            p.combine_with(it);
+            defer(p.release());
 
-        auto *counter = files.find(p.Str).value();
-        if (!counter) {
-            s64 zero = 0;
-            counter = files.add(p.Str, zero).value();
+            auto *counter = files.find(p.Str).second;
+            if (!counter) {
+                counter = files.add(p.Str, 0).second;
+            }
+            ++*counter;
+            --fileCounter;
         }
-        ++*counter;
     };
     file::handle(rootFolder).traverse_recursively(&callback);
 

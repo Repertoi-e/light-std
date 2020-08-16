@@ -14,13 +14,27 @@ struct arg {
 };
 
 // Maps formatting arguments to types that can be used to construct a fmt::value.
+//
+// The order in which we look:
+//   * does the type have a formatter? maps to &val (value then setups a function call to formatter<T>::format())
+//   * is string constructible from T? then we map to string(T)
+//   * is the type a pointer? if it's non-void we throw an error, otherwise we map to (void *) val
+//   * is the type arithmetic or an enum? maps to bool, f64, u64 or s64
+// Otherwise we static_assert that the argument can't be formatted
 template <typename U>
 auto map_arg(const U &val) {
     using T = typename remove_cv_t<remove_reference_t<U>>;
 
     static_assert(!is_same_v<T, long double>, "Argument of type 'long double' is not supported");
 
-    if constexpr (is_arithmetic_v<T> || is_same_v<T, string::code_point_ref>) {
+    if constexpr (has_formatter_v<T>) {
+        return &val;
+    } else if constexpr (is_same_v<string, T> || is_constructible_v<string, T>) {
+        return string(val);
+    } else if constexpr (is_pointer_v<T>) {
+        static_assert(is_same_v<T, void *>, "Formatting of non-void pointers is disallowed");
+        return (const void *) val;
+    } else if constexpr (is_arithmetic_v<T> || is_same_v<T, string::code_point_ref>) {
         if constexpr (is_same_v<bool, T>) {
             return (bool) val;
         } else if constexpr (is_floating_point_v<T>) {
@@ -32,13 +46,6 @@ auto map_arg(const U &val) {
         }
     } else if constexpr (is_enum_v<T>) {
         return map_arg((underlying_type_t<T>) val);
-    } else if constexpr (is_same_v<string, T> || is_constructible_v<string, T>) {
-        return string(val);
-    } else if constexpr (is_pointer_v<T>) {
-        static_assert(is_same_v<T, void *>, "Formatting of non-void pointers is disallowed");
-        return (const void *) val;
-    } else if constexpr (has_formatter_v<T>) {
-        return &val;
     } else {
         static_assert(false, "Argument doesn't have a formatter")
     }

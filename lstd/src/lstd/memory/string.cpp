@@ -105,10 +105,6 @@ string *string::insert(s64 index, char32_t codePoint) {
     return this;
 }
 
-string *string::insert(s64 index, const string &str) {
-    return insert_pointer_and_size(index, str.Data, str.ByteLength);
-}
-
 string *string::insert_pointer_and_size(s64 index, const char *str, s64 size) {
     reserve(size);
 
@@ -144,7 +140,7 @@ string *string::remove(s64 index) {
     return this;
 }
 
-string *string::remove(s64 begin, s64 end) {
+string *string::remove_range(s64 begin, s64 end) {
     if (!Reserved) reserve(0);
 
     auto *targetBegin = get_cp_at_index(Data, Length, begin);
@@ -166,7 +162,7 @@ string *string::remove(s64 begin, s64 end) {
 string *string::repeat(s64 n) {
     string contents = *this;
     reserve(n * contents.ByteLength);
-    For(range(1, n)) { append(contents); }
+    For(range(1, n)) { append_string(contents); }
     return this;
 }
 
@@ -206,7 +202,7 @@ string *string::remove_all(const string &str) {
             if (*search != *progress) break;
         }
         if (progress == str.end()) {
-            remove(realIt, realIt + str.Length);
+            remove_range(realIt, realIt + str.Length);
             offset += str.Length;
         }
     }
@@ -233,8 +229,8 @@ string *string::replace_all(const string &oldStr, const string &newStr) {
             if (*search != *progress) break;
         }
         if (progress == oldStr.end()) {
-            remove(it, it + oldStr.Length);
-            insert(it, newStr);
+            remove_range(it, it + oldStr.Length);
+            insert_string(it, newStr);
             it += diff;
         }
     }
@@ -255,7 +251,7 @@ string *string::replace_all(const string &oldStr, char32_t newCp) {
 
 string *clone(string *dest, const string &src) {
     dest->reset();
-    dest->append(src);
+    dest->append_string(src);
     return dest;
 }
 

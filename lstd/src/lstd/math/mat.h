@@ -148,6 +148,11 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
     struct FromStripes_ {};
     static constexpr FromStripes_ FromStripes = {};
 
+    mat() {
+        For_as(i, range(R)) { For_as(j, range(C)) (*this)(i, j) = T(0); }
+    }
+
+    // :MathTypesNoInit By default we zero-init but you can call a special constructor with the value no_init which doesn't initialize the object
     mat(no_init_t) {}
 
     template <typename T2, bool Packed2>

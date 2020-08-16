@@ -1,23 +1,6 @@
 #include "../test.h"
 #include "math.h"
 
-TEST(deterministic_default_initializer) {
-    using MatT = matf<3, 3>;
-    alignas(alignof(MatT)) stack_array<u8, sizeof(MatT)> rawData;
-    fill_memory(rawData.Data, (char) 0xCC, rawData.Count);
-
-    For(rawData) assert_eq(it, (u8) 0xCC);
-
-    new (rawData.Data) MatT(no_init);
-
-#if defined DEBUG
-    For(rawData) assert_eq(it, (u8) 0xCC);
-#else
-    auto *m = (MatT *) rawData.Data;
-    For_as(i, range(3)) { For_as(j, range(3)) assert(is_nan((*m)(i, j))); }
-#endif
-}
-
 TEST(ctor_and_index) {
     matf<3, 3> m = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     matf<3, 3> n = {no_init};

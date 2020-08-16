@@ -16,7 +16,11 @@ struct line {
     using VectorT = vec<T, Dim>;
     VectorT Direction, Base;
 
-    line(no_init_t) {}
+    line() {}
+
+    // :MathTypesNoInit By default we zero-init but you can call a special constructor with the value no_init which doesn't initialize the object
+    line(no_init_t) : Direction(no_init), Base(no_init) {}
+
     line(const VectorT &base, const VectorT &direction) : Direction(direction), Base(base) {
         assert(is_normalized(direction));
     }

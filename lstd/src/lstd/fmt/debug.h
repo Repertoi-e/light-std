@@ -70,7 +70,12 @@ struct debug_list_helper {
 
     template <typename T>
     debug_list_helper *entries(const array<T> &val) {
-        For(val) Fields.append(make_arg(it));
+        auto *p = val.Data;
+        s64 n = val.Count;
+        while (n) {
+            Fields.append(make_arg((T &&) *p));
+            ++p, --n;
+        }
         return this;
     }
 

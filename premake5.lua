@@ -215,7 +215,7 @@ project "game"
     pchsource "game/src/game.cpp"
     forceincludes { "game.h" }
     
-    exceptionhandling "Off"
+    exceptionhandling ""
     
     common_settings()
     

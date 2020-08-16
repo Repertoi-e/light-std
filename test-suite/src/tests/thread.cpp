@@ -41,6 +41,29 @@ TEST(thread_local_storage) {
 file_scope thread::mutex Mutex;
 file_scope s32 Count = 0;
 
+file_scope void thread_lock_free(void *) {
+    For(range(10000)) {
+        atomic_inc(&Count);
+    }
+}
+
+TEST(lock_free) {
+    Count = 0;
+
+    array<thread::thread> threads;
+    defer(threads.release());
+
+    For(range(100)) {
+        threads.append()->init_and_launch(thread_lock_free);
+    }
+
+    For(threads) {
+        it.wait();
+    }
+
+    assert_eq(Count, 100 * 10000);
+}
+
 file_scope void thread_lock(void *) {
     For(range(10000)) {
         Mutex.lock();
@@ -141,13 +164,13 @@ TEST(context) {
     WITH_CONTEXT_VAR(Alloc, Malloc) {
         auto *old = Context.Alloc.Function;
 
-        auto differentAlloc = Context.TemporaryAlloc;
+        auto differentAlloc = Context.Temp;
         WITH_CONTEXT_VAR(Alloc, differentAlloc) {
             auto threadFunction = [&](void *) {
                 assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
                 []() {
-                    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
-                        assert_eq((void *) Context.Alloc.Function, (void *) Context.TemporaryAlloc.Function);
+                    WITH_CONTEXT_VAR(Alloc, Context.Temp) {
+                        assert_eq((void *) Context.Alloc.Function, (void *) Context.Temp.Function);
                         return;
                     }
                 }();

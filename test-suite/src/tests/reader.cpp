@@ -24,7 +24,7 @@ void test_guid_case(guid id, char f) {
         r.request_next_buffer();
 
         tie(buffer, success) = r.read_bytes_until('\n');
-        result.append(buffer);
+        result.append_array(buffer);
 
         if (success) break;
     }
@@ -38,6 +38,6 @@ void test_guid_case(guid id, char f) {
 TEST(guid_write_read) {
     guid id = guid_new();
 
-    array<char> formats = {'n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X'};
+    auto formats = to_stack_array('n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X');
     For(formats) test_guid_case(id, it);
 }

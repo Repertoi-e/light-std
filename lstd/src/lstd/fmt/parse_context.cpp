@@ -430,13 +430,16 @@ void parse_context::default_error_handler(const string &message, const string &f
         ->replace_all('\t', "\\t")
         ->replace_all('\v', "\\v");
 
-    fmt::print("\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
-    fmt::print("    ... the error happened here:\n");
-    fmt::print("        {!}{}{!GRAY}\n", str);
-    fmt::print("        {: >{}} {!} \n\n", "^", position + 1);
+    io::string_builder_writer output;
+    fmt::to_writer(&output, "\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
+    fmt::to_writer(&output, "    ... the error happened here:\n");
+    fmt::to_writer(&output, "        {!}{}{!GRAY}\n", str);
+    fmt::to_writer(&output, "        {: >{}} {!} \n\n", "^", position + 1);
 #if defined NDEBUG
-    os_exit();
+    Context.PanicHandler(output.Builder.combine(), {});
 #else
+    fmt::print("{}", output.Builder.combine());
+
     // More info has been printed to the console but here's the error message:
     auto errorMessage = message;
     assert(false);

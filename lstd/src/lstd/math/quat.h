@@ -24,7 +24,11 @@ struct tquat {
         vec<T, 4, Packed> Vec;
     };
 
+    tquat() : tquat(T(0), T(0), T(0), T(0)) {}
+
+    // :MathTypesNoInit By default we zero-init but you can call a special constructor with the value no_init which doesn't initialize the object
     tquat(no_init_t) {}
+
     tquat(const tquat &rhs) : Vec(rhs.Vec) {}
     tquat(T scalar, T x, T y, T z) : w(scalar), x(x), y(y), z(z) {}
 
