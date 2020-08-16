@@ -915,7 +915,7 @@ void kryptonite(void *dest, const void *src, s64 num) {
 #endif
 
 // This sets up copy_memory and move_memory the first time it's called
-static void dispatcher(void *dest, const void *src, s64 num) {
+file_scope void dispatcher(void *dest, const void *src, s64 num) {
 #if ARCH == X86
 #if COMPILER == MSVC
     s32 cpuid[4] = {-1};
@@ -997,7 +997,7 @@ void (*fill_memory)(void *dest, char value, s64 num) = optimized_fill_memory;
 // Compare memory (optimized code partly taken from https://code.woboq.org/userspace/glibc/string/memcmp.c.html)
 //
 
-static s64 compare_bytes_of_two_u32s(u32 a, u32 b) {
+file_scope s64 compare_bytes_of_two_u32s(u32 a, u32 b) {
     auto *s1 = (const char *) &a;
     auto *s2 = (const char *) &b;
 
@@ -1007,7 +1007,7 @@ static s64 compare_bytes_of_two_u32s(u32 a, u32 b) {
     return -1;
 }
 
-static s64 compare_memory_common_alignment(const char *s1, const char *s2, s64 num) {
+file_scope s64 compare_memory_common_alignment(const char *s1, const char *s2, s64 num) {
     s64 progress = 0;
     u32 a0, a1;
     u32 b0, b1;
@@ -1074,7 +1074,7 @@ static s64 compare_memory_common_alignment(const char *s1, const char *s2, s64 n
 #define MERGE(w0, sh_1, w1, sh_2) (((w0) << (sh_1)) | ((w1) >> (sh_2)))
 #endif
 
-static s64 compare_memory_not_common_alignment(const char *s1, const char *s2, s64 num) {
+file_scope s64 compare_memory_not_common_alignment(const char *s1, const char *s2, s64 num) {
     s64 progress = 0;
     u32 a0, a1, a2, a3;
     u32 b0, b1, b2, b3;

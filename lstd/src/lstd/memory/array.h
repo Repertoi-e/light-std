@@ -2,7 +2,6 @@
 
 #include "../internal/context.h"
 #include "stack_array.h"
-#include "string.h"
 
 LSTD_BEGIN_NAMESPACE
 

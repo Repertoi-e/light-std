@@ -10,10 +10,10 @@ LSTD_BEGIN_NAMESPACE
 
 #define CALLSTACK_DEPTH 6
 
-static DWORD MachineType;
-static table<DWORD, const char *> CodeDescs;
+file_scope DWORD MachineType;
+file_scope table<DWORD, const char *> CodeDescs;
 
-static LONG exception_filter(LPEXCEPTION_POINTERS e) {
+file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     u32 exceptionCode = e->ExceptionRecord->ExceptionCode;
 
     HANDLE hProcess = INVALID_HANDLE_VALUE;

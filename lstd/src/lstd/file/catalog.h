@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../memory/array.h"
 #include "../memory/bucket_array.h"
 #include "path.h"
 

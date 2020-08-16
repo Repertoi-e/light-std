@@ -5,7 +5,7 @@ TEST(hardware_concurrency) {
     For(range(45)) fmt::print(" ");
 }
 
-static void thread_ids(void *) { fmt::print("\t\tMy thread id is {}.\n", Context.ThreadID); }
+file_scope void thread_ids(void *) { fmt::print("\t\tMy thread id is {}.\n", Context.ThreadID); }
 
 TEST(ids) {
     fmt::print("\n\t\tMain thread's id is {}.\n", Context.ThreadID);
@@ -18,8 +18,8 @@ TEST(ids) {
     For(range(45)) fmt::print(" ");
 }
 
-thread_local static s32 TLSVar;
-static void thread_tls(void *) { TLSVar = 2; }
+thread_local file_scope s32 TLSVar;
+file_scope void thread_tls(void *) { TLSVar = 2; }
 
 TEST(thread_local_storage) {
     TLSVar = 1;
@@ -30,10 +30,10 @@ TEST(thread_local_storage) {
     assert_eq(TLSVar, 1);
 }
 
-static thread::mutex Mutex;
-static s32 Count = 0;
+file_scope thread::mutex Mutex;
+file_scope s32 Count = 0;
 
-static void thread_lock(void *) {
+file_scope void thread_lock(void *) {
     For(range(10000)) {
         Mutex.lock();
         ++Count;
@@ -58,9 +58,9 @@ TEST(mutex_lock) {
     assert_eq(Count, 100 * 10000);
 }
 
-static thread::fast_mutex FastMutex;
+file_scope thread::fast_mutex FastMutex;
 
-static void thread_lock2(void *) {
+file_scope void thread_lock2(void *) {
     For(range(10000)) {
         FastMutex.lock();
         ++Count;
@@ -82,16 +82,16 @@ TEST(fast_mutex_lock) {
     assert_eq(Count, 100 * 10000);
 }
 
-static thread::condition_variable Cond;
+file_scope thread::condition_variable Cond;
 
-static void thread_condition_notifier(void *) {
+file_scope void thread_condition_notifier(void *) {
     Mutex.lock();
     --Count;
     Cond.notify_all();
     Mutex.unlock();
 }
 
-static void thread_condition_waiter(void *) {
+file_scope void thread_condition_waiter(void *) {
     Mutex.lock();
     while (Count > 0) {
         Cond.wait(&Mutex);

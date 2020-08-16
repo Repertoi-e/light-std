@@ -18,7 +18,7 @@
 
 CPPU_BEGIN_NAMESPACE
 
-static void reset_info(Local_File_Path const &path) {
+file_scope void reset_info(Local_File_Path const &path) {
     if (path.FileInfo) Delete((struct stat *) path.FileInfo);
     if (path.LinkInfo) Delete((struct stat *) path.LinkInfo);
 
@@ -28,7 +28,7 @@ static void reset_info(Local_File_Path const &path) {
 
 Local_File_Path::~Local_File_Path() { reset_info(*this); }
 
-static void read_file_info(Local_File_Path const &path) {
+file_scope void read_file_info(Local_File_Path const &path) {
     if (path.FileInfo) return;
 
     path.FileInfo = (void *) New<struct stat>();
@@ -39,7 +39,7 @@ static void read_file_info(Local_File_Path const &path) {
     }
 }
 
-static void read_link_info(Local_File_Path const &path) {
+file_scope void read_link_info(Local_File_Path const &path) {
     if (path.LinkInfo) return;
 
     path.LinkInfo = (void *) New<struct stat>();

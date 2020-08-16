@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-static char DIGITS[] =
+file_scope char DIGITS[] =
     "0001020304050607080910111213141516171819"
     "2021222324252627282930313233343536373839"
     "4041424344454647484950515253545556575859"
@@ -14,7 +14,7 @@ static char DIGITS[] =
     "8081828384858687888990919293949596979899";
 
 template <typename UInt>
-static char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, const string &thousandsSep = "") {
+file_scope char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, const string &thousandsSep = "") {
     u32 digitIndex = 0;
 
     buffer += formattedSize;
@@ -50,7 +50,7 @@ static char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, co
 }
 
 template <u32 BASE_BITS, typename UInt>
-static char *format_uint_base(char *buffer, UInt value, s64 formattedSize, bool upper = false) {
+file_scope char *format_uint_base(char *buffer, UInt value, s64 formattedSize, bool upper = false) {
     buffer += formattedSize;
     do {
         const char *digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
@@ -63,7 +63,7 @@ static char *format_uint_base(char *buffer, UInt value, s64 formattedSize, bool 
 // Writes pad code points and the actual contents with f(),
 // _fSize_ needs to be the size of the output from _f_ in code points (in order to calculate padding properly)
 template <typename F>
-static void write_padded_helper(format_context *f, const format_specs &specs, F &&func, s64 fSize) {
+file_scope void write_padded_helper(format_context *f, const format_specs &specs, F &&func, s64 fSize) {
     u32 padding = (u32)(specs.Width > fSize ? specs.Width - fSize : 0);
     if (specs.Align == alignment::RIGHT) {
         For(range(padding)) f->write_no_specs(specs.Fill);
@@ -116,7 +116,7 @@ void format_context_flush(io::writer *w) {
     f->Out->flush();
 }
 
-static char U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
+file_scope char U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
 
 void format_context::write(const void *value) {
     if (Specs && Specs->Type && Specs->Type != 'p') {

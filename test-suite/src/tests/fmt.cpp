@@ -7,9 +7,9 @@
         t.release();                                      \
     }
 
-static string LAST_ERROR;
+file_scope string LAST_ERROR;
 
-void test_error_handler(const string &message, const string &formatString, s64 position) {
+file_scope void test_error_handler(const string &message, const string &formatString, s64 position) {
     LAST_ERROR = message;
 
     // We test visually for the correctness of the ^.

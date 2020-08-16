@@ -6,7 +6,7 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
-constexpr T *partition(T *first, T *last, T *pivot) {
+constexpr T *quick_sort_partition(T *first, T *last, T *pivot) {
     --last;
     swap(*pivot, *last);
     pivot = last;
@@ -29,7 +29,7 @@ constexpr void quick_sort(T *first, T *last) {
     if (first >= last) return;
 
     auto *pivot = first + (last - first) / 2;
-    auto *nextPivot = partition(first, last, pivot);
+    auto *nextPivot = quick_sort_partition(first, last, pivot);
     quick_sort(first, nextPivot);
     quick_sort(nextPivot + 1, last);
 }

@@ -11,27 +11,27 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 LSTD_BEGIN_NAMESPACE
 
-static wchar_t *HelperClassName = null;
+file_scope wchar_t *HelperClassName = null;
 
-static HWND HelperWindowHandle;
-static HDEVNOTIFY DeviceNotificationHandle;
+file_scope HWND HelperWindowHandle;
+file_scope HDEVNOTIFY DeviceNotificationHandle;
 
-static constexpr s64 CONSOLE_BUFFER_SIZE = 1_KiB;
+file_scope constexpr s64 CONSOLE_BUFFER_SIZE = 1_KiB;
 
-static char CinBuffer[CONSOLE_BUFFER_SIZE]{};
-static char CoutBuffer[CONSOLE_BUFFER_SIZE]{};
-static char CerrBuffer[CONSOLE_BUFFER_SIZE]{};
-static HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
-static thread::recursive_mutex CoutMutex;  // @Cleanup: recursive mutex
-static thread::mutex CinMutex;
+file_scope char CinBuffer[CONSOLE_BUFFER_SIZE]{};
+file_scope char CoutBuffer[CONSOLE_BUFFER_SIZE]{};
+file_scope char CerrBuffer[CONSOLE_BUFFER_SIZE]{};
+file_scope HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
+file_scope thread::recursive_mutex CoutMutex;  // @Cleanup: recursive mutex
+file_scope thread::mutex CinMutex;
 
-static LARGE_INTEGER PerformanceFrequency;
-static string ModuleName;
-static string WorkingDir;
-static thread::mutex WorkingDirMutex;
-static array<string> Argv;
+file_scope LARGE_INTEGER PerformanceFrequency;
+file_scope string ModuleName;
+file_scope string WorkingDir;
+file_scope thread::mutex WorkingDirMutex;
+file_scope array<string> Argv;
 
-static string ClipboardString;
+file_scope string ClipboardString;
 
 // We must ensure that the context gets initialized before any global
 // C++ constructors get called which may use the context.
@@ -176,11 +176,11 @@ void dynamic_library::close() {
     }
 }
 
-static void destroy_helper_window() {
+file_scope void destroy_helper_window() {
     DestroyWindow(HelperWindowHandle);
 }
 
-static void register_helper_window_class() {
+file_scope void register_helper_window_class() {
     GUID guid;
     WIN32_CHECKHR(CoCreateGuid(&guid));
     WIN32_CHECKHR(StringFromCLSID(guid, &HelperClassName));
@@ -401,7 +401,7 @@ void *os_allocate_block(s64 size) {
 }
 
 // Tests whether the allocation contraction is possible
-static bool is_contraction_possible(s64 oldSize) {
+file_scope bool is_contraction_possible(s64 oldSize) {
     // Check if object allocated on low fragmentation heap.
     // The LFH can only allocate blocks up to 16KB in size.
     if (oldSize <= 0x4000) {
@@ -416,7 +416,7 @@ static bool is_contraction_possible(s64 oldSize) {
     return true;
 }
 
-static void *try_heap_realloc(void *ptr, s64 newSize, bool *reportError) {
+file_scope void *try_heap_realloc(void *ptr, s64 newSize, bool *reportError) {
     void *result = null;
     __try {
         result = HeapReAlloc(GetProcessHeap(), HEAP_REALLOC_IN_PLACE_ONLY | HEAP_GENERATE_EXCEPTIONS, ptr, newSize);

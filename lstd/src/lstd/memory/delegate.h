@@ -52,9 +52,9 @@ struct delegate<R(A...)> {
     using default_function = void (default_class::*)(void);        // Unknown default function (undefined)
     using default_type = target<default_class, default_function>;  // Default target type
 
-    static const s64 TargetSize = sizeof(default_type);  // Size of default target data
+    static constexpr s64 TARGET_SIZE = sizeof(default_type);  // Size of default target data
 
-    alignas(default_type) char Storage[TargetSize]{};
+    alignas(default_type) char Storage[TARGET_SIZE]{};
 
     using stub_t = R (*)(void *, A &&...);
     alignas(stub_t) stub_t Invoker = null;
@@ -112,14 +112,14 @@ struct delegate<R(A...)> {
 
     // Assign null pointer
     delegate &operator=(nullptr_t) {
-        zero_memory(Storage, TargetSize);
+        zero_memory(Storage, TARGET_SIZE);
         Invoker = null;
         return *this;
     }
 
     // Compare storages
     s32 compare_lexicographically(void *storage) const {
-        For(range(TargetSize)) {
+        For(range(TARGET_SIZE)) {
             if (Storage[it] < storage[it]) {
                 return -1;
             } else if (Storage[it] > storage[it]) {
@@ -159,8 +159,6 @@ struct delegate<R(A...)> {
     R operator()(A... args) const {
         return (*Invoker)((void *) &Storage[0], (A &&)(args)...);
     }
-
-   private:
 };
 
 LSTD_END_NAMESPACE

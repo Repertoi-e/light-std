@@ -1,6 +1,6 @@
 #pragma once
 
-#include "array.h"
+#include "../internal/context.h"
 
 template <typename T, s64 ElementsPerBucket = 128>
 struct bucket_array : non_copyable, non_movable, non_assignable {

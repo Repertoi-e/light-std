@@ -18,7 +18,7 @@ namespace file {
         return returnOnFail;                                                                                        \
     }
 
-static wchar_t *utf8_path_to_utf16(const file::path &path) {
+file_scope wchar_t *utf8_path_to_utf16(const file::path &path) {
     // @Bug path.Str.Length is not enough (2 wide chars for one char)
     auto *result = allocate_array(wchar_t, path.Str.Length + 1, Context.TemporaryAlloc);
     utf8_to_utf16(path.Str.Data, path.Str.Length, result);

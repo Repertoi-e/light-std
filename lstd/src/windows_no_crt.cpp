@@ -77,10 +77,10 @@ extern "C" {
 struct onexit_table_t {
     _PVFV *_first, *_last, *_end;
 };
-static onexit_table_t ExitTable{};
+file_scope onexit_table_t ExitTable{};
 
-static bool ExitMutexInitted = false;
-static CRITICAL_SECTION AtExitMutex;
+file_scope bool ExitMutexInitted = false;
+file_scope CRITICAL_SECTION AtExitMutex;
 
 int __cdecl atexit(_PVFV function) {
     if (!ExitMutexInitted) {
@@ -204,7 +204,7 @@ int __cdecl __tlregdtor(_PVFV func) {
     return 0;
 }
 
-static void __stdcall tls_uninit(HANDLE, DWORD const dwReason, LPVOID) {
+file_scope void __stdcall tls_uninit(HANDLE, DWORD const dwReason, LPVOID) {
     if (dwReason != DLL_THREAD_DETACH && dwReason != DLL_PROCESS_DETACH) {
         return;
     }
@@ -231,11 +231,11 @@ static __declspec(allocate(".CRT$XLD")) _tls_callback_type __xl_d = tls_uninit;
 // Access to these variables is guarded in the below functions.  They may only
 // be modified while the lock is held.  _Tss_epoch is readable from user
 // code and is read without taking the lock.
-static s32 InitEpoch = INT_MIN;
+file_scope s32 InitEpoch = INT_MIN;
 __declspec(thread) int _Init_thread_epoch = INT_MIN;
 
-static CRITICAL_SECTION g_TssMutex;
-static CONDITION_VARIABLE g_TssCv;
+file_scope CRITICAL_SECTION g_TssMutex;
+file_scope CONDITION_VARIABLE g_TssCv;
 
 void __cdecl _Init_thread_header(int *const pOnce) {
     EnterCriticalSection(&g_TssMutex);
@@ -275,10 +275,10 @@ int _cdecl _purecall(void) {
 }
 
 // Terminator for synchronization data structures.
-static void __cdecl thread_uninit() { DeleteCriticalSection(&g_TssMutex); }
+file_scope void __cdecl thread_uninit() { DeleteCriticalSection(&g_TssMutex); }
 
 // Initializer for synchronization data structures.
-static int __cdecl thread_init() {
+file_scope int __cdecl thread_init() {
     InitializeCriticalSectionEx(&g_TssMutex, 4000, 0);
     InitializeConditionVariable(&g_TssCv);
     atexit(thread_uninit);
@@ -374,7 +374,7 @@ extern "C" void execute_on_exit_table() {
 // This flag is incremented each time DLL_PROCESS_ATTACH is processed successfully
 // and is decremented each time DLL_PROCESS_DETACH is processed (the detach is
 // always assumed to complete successfully).
-static int ProcAttached = 0;
+file_scope int ProcAttached = 0;
 
 // The client may define a _pRawDllMain.  This function gets called for attach
 // notifications before any other function is called, and gets called for detach
@@ -385,12 +385,12 @@ extern "C" extern __scrt_dllmain_type const _pRawDllMain;
 extern "C" extern __scrt_dllmain_type const _pDefaultRawDllMain = null;
 DECLARE_ALTERNATE_NAME_DATA(_pRawDllMain, _pDefaultRawDllMain)
 
-static BOOL WINAPI dllmain_raw(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) {
+file_scope BOOL WINAPI dllmain_raw(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) {
     if (!_pRawDllMain) return TRUE;
 
     return _pRawDllMain(instance, reason, reserved);
 }
-static bool __cdecl is_potentially_valid_image_base(void *const image_base) noexcept {
+file_scope bool __cdecl is_potentially_valid_image_base(void *const image_base) noexcept {
     if (!image_base) return false;
 
     auto header = (PIMAGE_DOS_HEADER) image_base;
@@ -405,7 +405,7 @@ static bool __cdecl is_potentially_valid_image_base(void *const image_base) noex
 
 // Given an RVA, finds the PE section in the pointed-to image that includes the
 // RVA.  Returns null if no such section exists or the section is not found.
-static PIMAGE_SECTION_HEADER __cdecl find_pe_section(unsigned char *const imageBase, uintptr_t const rva) noexcept {
+file_scope PIMAGE_SECTION_HEADER __cdecl find_pe_section(unsigned char *const imageBase, uintptr_t const rva) noexcept {
     auto const header = (PIMAGE_DOS_HEADER) imageBase;
     auto const ntHeader = (PIMAGE_NT_HEADERS)((PBYTE) header + header->e_lfanew);
 
@@ -448,7 +448,7 @@ extern "C" bool __cdecl is_nonwritable_in_current_image(void const *const target
     return true;
 }
 
-static BOOL WINAPI dllmain_crt_dispatch(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) {
+file_scope BOOL WINAPI dllmain_crt_dispatch(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) {
     switch (reason) {
         case DLL_PROCESS_ATTACH: {
             // If we have any dynamically initialized __declspec(thread) variables, we

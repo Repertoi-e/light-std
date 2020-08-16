@@ -223,7 +223,7 @@ s32 main() {
     GameMemory = &gameMemory;
 
     auto *allocData = allocate(free_list_allocator_data, Malloc);
-    allocData->init(GameMemoryInMiB * 1024 * 1024, free_list_allocator_data::Find_First);
+    allocData->init(GameMemoryInMiB * 1_MiB, free_list_allocator_data::Find_First);
     gameMemory.AllocData = allocData;
     gameMemory.Alloc = GameAlloc = Malloc;  // = {free_list_allocator, allocData};
 

@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 using node = free_list_allocator_data::node;
 
-static void coalescence(node *previousNode, node *freeNode) {
+file_scope void coalescence(node *previousNode, node *freeNode) {
     if (freeNode->Next && (s64) freeNode + freeNode->BlockSize == (s64) freeNode->Next) {
         freeNode->BlockSize += freeNode->Next->BlockSize;
         freeNode->Next = freeNode->Next->Next;
