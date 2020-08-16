@@ -10,10 +10,6 @@ namespace io {
 struct writer;
 inline void writer_flush_do_nothing(writer *) {}
 
-// @Temp ??
-// template <typename T>
-// bool serialize(T *src, fmt::foromt*f);
-
 // Provides a way to write types and bytes with a simple extension API.
 // Holds a pointer to _write_t_ and _flush_t_. Every other function
 // in this class is implemented by calling those functions.
@@ -31,12 +27,12 @@ struct writer : non_copyable, non_movable, non_assignable {
     writer() = default;
     writer(write_t writeFunction, flush_t flushFunction) : WriteFunction(writeFunction), FlushFunction(flushFunction) {}
 
-    void write(const array<char> &data) { WriteFunction(this, data.Data, data.Count); }
+    void write(const array<char> &data);
     void write(const char *data) { WriteFunction(this, data, c_string_length(data)); }
     void write(const char *data, s64 count) { WriteFunction(this, data, count); }
     void write(const string &str) { WriteFunction(this, str.Data, str.ByteLength); }
 
-    void write(char32_t cp) {
+    void writer::write(char32_t cp) {
         char data[4];
         encode_cp(data, cp);
         WriteFunction(this, data, get_size_of_cp(data));

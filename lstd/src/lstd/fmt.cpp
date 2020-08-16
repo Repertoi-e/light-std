@@ -1,7 +1,5 @@
 #include "fmt.h"
 
-#include "../file.h"
-
 LSTD_BEGIN_NAMESPACE
 
 namespace fmt {

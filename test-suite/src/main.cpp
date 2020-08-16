@@ -80,11 +80,10 @@ s32 main() {
 
     time_t start = os_get_time();
 
-    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc)
-    {
+    WITH_CONTEXT_VAR(Alloc, Context.TemporaryAlloc) {
         while (true) {
             run_tests();
-            Context.TemporaryAlloc.free_all();
+            free_all(Context.TemporaryAlloc);
             break;
         }
     }
@@ -92,7 +91,7 @@ s32 main() {
     fmt::print("\nFinished tests, time taken: {:f} seconds\n\n", os_time_to_seconds(os_get_time() - start));
 
 #if LOG_TO_FILE
-    run_at_exit(write_output_to_file);
+    exit_schedule(write_output_to_file);
 #endif
 
 #if defined DEBUG_MEMORY

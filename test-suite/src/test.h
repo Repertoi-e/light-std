@@ -1,8 +1,8 @@
 #pragma once
 
 #include <lstd/file.h>
+#include <lstd/fmt.h>
 #include <lstd/io.h>
-#include <lstd/io/fmt.h>
 #include <lstd/memory/array.h>
 #include <lstd/memory/table.h>
 #include <lstd/os.h>

@@ -4,7 +4,6 @@
 
 #include "lstd/file/path.h"
 #include "lstd/io.h"
-#include "lstd/io/fmt.h"
 #include "lstd/memory/dynamic_library.h"
 #include "lstd/os.h"
 
@@ -42,7 +41,7 @@ s32 initialize_context() {
     Context.ThreadID = thread::id((u64) GetCurrentThreadId());
 
 #if defined DEBUG_MEMORY
-    allocator::DEBUG_Mutex.init();
+    DEBUG_memory_info::Mutex.init();
 #endif
 
     CinMutex.init();
@@ -64,25 +63,25 @@ void initialize_win32_state() {
 
 file_scope array<delegate<void()>> ExitFunctions;
 
-void run_at_exit(const delegate<void()> &function) {
+void exit_schedule(const delegate<void()> &function) {
     WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
         ExitFunctions.append(function);
     }
 }
 
 // We supply this to the user if they are doing something very hacky..
-void very_hacky_but_call_scheduled_exit_functions() {
+void exit_call_scheduled_functions() {
     For(ExitFunctions) it();
 }
 
 // We supply this to the user if they are doing something very hacky..
-array<delegate<void()>> *very_hacky_but_get_scheduled_exit_functions() {
+array<delegate<void()>> *exit_get_scheduled_functions() {
     return &ExitFunctions;
 }
 
 // Needs to happen just before the global C++ destructors get called.
 inline void call_exit_functions() {
-    very_hacky_but_call_scheduled_exit_functions();
+    exit_call_scheduled_functions();
 }
 
 void uninitialize_win32_state() {
@@ -95,11 +94,11 @@ void uninitialize_win32_state() {
     // want to load/unload DLLs during the runtime of the application, and those DLLs might use all kinds of complex
     // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
     if (Context.CheckForLeaksAtTermination) {
-        allocator::DEBUG_report_leaks();
+        DEBUG_memory_info::report_leaks();
     }
 
     // There's no better place to put this. Don't forget to call this for other operating systems!!!
-    allocator::DEBUG_Mutex.release();
+    DEBUG_memory_info::Mutex.release();
 #endif
 
     CinMutex.release();
@@ -331,19 +330,19 @@ void win32_common_init() {
         }
     }
 
-    run_at_exit(destroy_helper_window);
+    exit_schedule(destroy_helper_window);
 }
 
 char io::console_reader_give_me_buffer(io::reader *r) {
     auto *cr = (io::console_reader *) r;
-    
+
     cr->Buffer.Data = CinBuffer;
 
     DWORD read;
     ReadFile(CinHandle, const_cast<char *>(cr->Buffer.Data), (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
 
     cr->Buffer.Count = (s64) read;
-    
+
     if (!read) return eof;
     return 0;
 }

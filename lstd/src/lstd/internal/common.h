@@ -130,15 +130,14 @@ struct non_assignable {
 //
 struct range {
     struct iterator {
-        s64 I;
-        s64 Step;
+        s64 I, Step;
 
         constexpr iterator(s64 i, s64 step = 1) : I(i), Step(step) {}
 
         operator s32() const { return (s32) I; }
         operator s64() const { return I; }
 
-        constexpr s64 operator*() const { return (s32) I; }
+        constexpr s64 operator*() const { return I; }
         constexpr iterator operator++() { return I += Step, *this; }
 
         constexpr iterator operator++(int) {
@@ -150,27 +149,27 @@ struct range {
         constexpr bool operator!=(iterator other) const { return Step < 0 ? (I > other.I) : (I < other.I); }
     };
 
-    iterator _Begin;
-    iterator _End;
+    iterator Begin;
+    iterator End;
 
-    constexpr range(s64 start, s64 stop, s64 step) : _Begin(start, step), _End(stop) {}
+    constexpr range(s64 start, s64 stop, s64 step) : Begin(start, step), End(stop) {}
     constexpr range(s64 start, s64 stop) : range(start, stop, 1) {}
     constexpr range(u64 stop) : range(0, stop, 1) {}
 
     // Checks if a value is inside the given range.
     // This also accounts for stepping.
     constexpr bool has(s64 value) const {
-        if (_Begin.Step > 0 ? (value >= _Begin.I && value < _End.I) : (value > _End.I && value <= _Begin.I)) {
-            s64 diff = value - _Begin.I;
-            if (diff % _Begin.Step == 0) {
+        if (Begin.Step > 0 ? (value >= Begin.I && value < End.I) : (value > End.I && value <= Begin.I)) {
+            s64 diff = value - Begin.I;
+            if (diff % Begin.Step == 0) {
                 return true;
             }
         }
         return false;
     }
 
-    constexpr iterator begin() const { return _Begin; }
-    constexpr iterator end() const { return _End; }
+    constexpr iterator begin() const { return Begin; }
+    constexpr iterator end() const { return End; }
 };
 
 // @Volatile: README.md
@@ -409,62 +408,6 @@ union ieee754_f64 {
         u32 N : 1;
         u32 E : 11;
         u32 S : 1;
-#endif
-    } ieee_nan;
-};
-
-// @Wrong
-// This seems wrong, not sure.
-// sizeof(ieee854_lf64) is 16 but sizeof(long double) in MSVC is 8
-union ieee854_lf64 {
-    lf64 F;
-    u64 W;
-
-    struct {
-#if ENDIAN == BIG_ENDIAN
-        u32 MSW;
-        u32 LSW;
-#else
-        u32 LSW;
-        u32 MSW;
-#endif
-    };
-
-    // This is the IEEE 854 double-extended-precision format.
-    struct {
-#if ENDIAN == BIG_ENDIAN
-        u32 S : 1;
-        u32 E : 15;
-        u32 Empty : 16;
-        u32 M0 : 32;
-        u32 M1 : 32;
-#else
-        u32 M1 : 32;
-        u32 M0 : 32;
-        u32 E : 15;
-        u32 S : 1;
-        u32 Empty : 16;
-#endif
-    } ieee;
-
-    // This is for NaNs in the IEEE 854 double-extended-precision format.
-    struct {
-#if ENDIAN == BIG_ENDIAN
-        u32 S : 1;
-        u32 E : 15;
-        u32 Empty : 16;
-        u32 One : 1;
-        u32 N : 1;
-        u32 M0 : 30;
-        u32 M1 : 32;
-#else
-        u32 M1 : 32;
-        u32 M0 : 30;
-        u32 N : 1;
-        u32 One : 1;
-        u32 E : 15;
-        u32 S : 1;
-        u32 Empty : 16;
 #endif
     } ieee_nan;
 };
@@ -767,15 +710,15 @@ struct delegate;
 //
 // Runs also when calling _os_exit(exitCode)_.
 //
-// Note that we don't try to be as general as possible _run_at_exit_ is merely a utility that might be useful
+// Note that we don't try to be as general as possible _exit_schedule_ is merely a utility that might be useful
 // to ensure files are flushed or something (not recommended for just deallocation, the os claims back the memory anyway..
 // don't make your program slow!!).
-void run_at_exit(const delegate<void()> &function);
+void exit_schedule(const delegate<void()> &function);
 
 // Runs all scheduled exit functions.
 // We supply this if you are doing something very weird and want to exit without calling _os_exit_.
 // This is here if you are doing something very weird and hacky.
-void very_hacky_but_call_scheduled_exit_functions();
+void exit_call_scheduled_functions();
 
 template <typename T>
 struct array;
@@ -783,7 +726,7 @@ struct array;
 // We return a pointer so you can modify the array.
 // Again, this is if you are doing something very very hacky.
 // .. We don't want to limit you.
-array<delegate<void()>> *very_hacky_but_get_scheduled_exit_functions();
+array<delegate<void()>> *exit_get_scheduled_functions();
 
 LSTD_END_NAMESPACE
 

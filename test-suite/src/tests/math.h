@@ -1,19 +1,10 @@
 #pragma once
 
-#include <lstd/io/fmt.h>
+#include <lstd/fmt.h>
 #include <lstd/math.h>
 
 template <s32 Dim, bool Packed = false>
 using vecf = vec<f32, Dim, Packed>;
-
-/*
-REQUIRE\((.*?)== (.*?)\);
-assert_eq($1, $2);
-
-
-TEST_CASE_VEC_VARIANT\("(.*?)", "\[Vector\]", TypesAll, PackedAll\) {\s*\r\n\s*SECTION\(SECTIONNAMEVEC\)
-TEST($1)
-*/
 
 template <typename T>
 struct approx_helper {

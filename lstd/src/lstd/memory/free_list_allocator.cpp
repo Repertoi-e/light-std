@@ -65,7 +65,7 @@ void free_list_allocator_data::init(s64 totalSize, u8 policy) {
     Storage = allocate_array(char, totalSize, Malloc);
     Reserved = totalSize;
     PlacementPolicy = policy;
-    allocator{free_list_allocator, this}.free_all();  // Initializes linked list
+    free_all(allocator{free_list_allocator, this});  // Initializes the linked list
 }
 
 void free_list_allocator_data::release() {
@@ -231,14 +231,14 @@ void *free_list_allocator(allocator_mode mode, void *context, s64 size, void *ol
                 array<allocation_header *> toUnlink;
                 defer(toUnlink.release());
 
-                auto *h = allocator::DEBUG_Head;
+                auto *h = DEBUG_memory_info::Head;
                 while (h) {
-                    if (h->Function == free_list_allocator && h->Context == data) {
+                    if (h->Alloc == allocator(free_list_allocator, data)) {
                         toUnlink.append(h);
                     }
                     h = h->DEBUG_Next;
                 }
-                For(toUnlink) allocator::DEBUG_unlink_header(it);
+                For(toUnlink) DEBUG_memory_info::unlink_header(it);
             }
 #endif
 

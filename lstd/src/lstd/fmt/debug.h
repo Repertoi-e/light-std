@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../memory/array.h"
+#include "../memory/array.h"
 #include "arg.h"
 
 LSTD_BEGIN_NAMESPACE

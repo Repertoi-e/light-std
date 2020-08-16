@@ -3,7 +3,6 @@
 #if OS == WINDOWS
 
 #include "lstd/io.h"
-#include "lstd/io/fmt.h"
 #include "lstd/memory/table.h"
 #include "lstd/os.h"
 
@@ -106,7 +105,7 @@ void win32_crash_handler_init() {
     }
     assert(MachineType && "Machine type not supported");
 
-    run_at_exit(release_code_descs);
+    exit_schedule(release_code_descs);
 
 #define CODE_DESCR(code) code, #code
     CodeDescs.add(CODE_DESCR(EXCEPTION_ACCESS_VIOLATION));

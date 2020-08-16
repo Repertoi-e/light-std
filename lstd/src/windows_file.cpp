@@ -3,7 +3,6 @@
 #if OS == WINDOWS
 
 #include "lstd/file.h"
-#include "lstd/io/fmt.h"
 #include "lstd/os.h"
 
 LSTD_BEGIN_NAMESPACE

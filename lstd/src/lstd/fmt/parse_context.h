@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../string_reader.h"
 #include "specs.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -35,7 +34,8 @@ struct parse_context {
         return true;
     }
 
-    // Note: When parsing, if we reach the end before } or : or whatever we don't report an error. The caller of this should handle that.
+    // Note: When parsing, if we reach the end before } or : or whatever we don't report an error.
+    // The caller of this should handle that. Returns -1 if an error occured (the error is reported).
     s64 parse_arg_id();
 
     // _argType_ is the type of the argument for which we are parsing the specs.

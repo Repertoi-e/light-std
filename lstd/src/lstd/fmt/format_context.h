@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../memory/stack_dynamic_buffer.h"
-#include "../writer.h"
+#include "../io/writer.h"
+#include "../memory/stack_dynamic_buffer.h"
 #include "debug.h"
 #include "parse_context.h"
 

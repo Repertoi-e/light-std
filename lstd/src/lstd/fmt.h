@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../internal/context.h"
-#include "../io.h"
-#include "../math.h"
-#include "../memory/array.h"
-#include "../memory/guid.h"
 #include "fmt/format_context.h"
+#include "internal/context.h"
+#include "io.h"
+#include "math.h"
+#include "memory/array.h"
+#include "memory/guid.h"
 
 //
 // Format specification:

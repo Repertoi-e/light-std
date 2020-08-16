@@ -2,7 +2,6 @@
 
 #if OS == WINDOWS
 
-#include "lstd/io/fmt.h"
 #include "lstd/os.h"
 
 #define XAUDIO2_E_INVALID_CALL 0x88960001

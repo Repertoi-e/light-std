@@ -2,21 +2,20 @@
 
 #include "../file.h"
 #include "../internal/context.h"
-#include "../io/fmt.h"
 #include "../math.h"
 #include "../os.h"
 
 LSTD_BEGIN_NAMESPACE
 
 #if defined DEBUG_MEMORY
-void allocator::DEBUG_unlink_header(allocation_header *header) {
-    thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
+void DEBUG_memory_info::unlink_header(allocation_header *header) {
+    thread::scoped_lock<thread::mutex> _(&Mutex);
 
     assert(header);
-    assert(DEBUG_Head);
+    assert(Head);
 
-    if (header == DEBUG_Head) {
-        DEBUG_Head = header->DEBUG_Next;
+    if (header == Head) {
+        Head = header->DEBUG_Next;
     }
 
     if (header->DEBUG_Next) {
@@ -28,27 +27,27 @@ void allocator::DEBUG_unlink_header(allocation_header *header) {
     }
 }
 
-void allocator::DEBUG_add_header(allocation_header *header) {
-    thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
+void DEBUG_memory_info::add_header(allocation_header *header) {
+    thread::scoped_lock<thread::mutex> _(&Mutex);
 
-    header->DEBUG_Next = DEBUG_Head;
-    if (DEBUG_Head) {
-        DEBUG_Head->DEBUG_Previous = header;
+    header->DEBUG_Next = Head;
+    if (Head) {
+        Head->DEBUG_Previous = header;
     }
-    DEBUG_Head = header;
+    Head = header;
 }
-void allocator::DEBUG_swap_header(allocation_header *oldHeader, allocation_header *newHeader) {
+void DEBUG_memory_info::swap_header(allocation_header *oldHeader, allocation_header *newHeader) {
     auto *prev = oldHeader->DEBUG_Previous;
     auto *next = oldHeader->DEBUG_Next;
 
-    assert(DEBUG_Head);  // ?
+    assert(Head);  // ?
 
-    thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
+    thread::scoped_lock<thread::mutex> _(&Mutex);
     if (prev) {
         prev->DEBUG_Next = newHeader;
         newHeader->DEBUG_Previous = prev;
     } else {
-        DEBUG_Head = newHeader;
+        Head = newHeader;
     }
 
     if (next) {
@@ -84,9 +83,9 @@ constexpr string get_short_file_name(const string &str) {
     return result.substring(findResult, result.Length);
 }
 
-void allocator::DEBUG_report_leaks() {
+void DEBUG_memory_info::report_leaks() {
     // First we check their integrity of the heap
-    allocator::verify_heap();
+    verify_heap();
 
     allocation_header **leaks;
     // We want to ignore the allocation below since it's not the user's fault and we shouldn't count it as a leak
@@ -94,8 +93,8 @@ void allocator::DEBUG_report_leaks() {
 
     s64 leaksCount = 0;
     {
-        thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
-        auto *it = allocator::DEBUG_Head;
+        thread::scoped_lock<thread::mutex> _(&Mutex);
+        auto *it = Head;
         while (it) {
             if (!it->MarkedAsLeak) ++leaksCount;
             it = it->DEBUG_Next;
@@ -106,9 +105,9 @@ void allocator::DEBUG_report_leaks() {
     leaksID = ((allocation_header *) leaks - 1)->ID;
 
     {
-        thread::scoped_lock<thread::mutex> _(&allocator::DEBUG_Mutex);
+        thread::scoped_lock<thread::mutex> _(&Mutex);
         auto *p = leaks;
-        auto *it = allocator::DEBUG_Head;
+        auto *it = Head;
         while (it) {
             if (!it->MarkedAsLeak && it->ID != leaksID) *p++ = it;
             it = it->DEBUG_Next;
@@ -130,10 +129,8 @@ void allocator::DEBUG_report_leaks() {
         fmt::print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", fileName, it->FileLine, it->Size, it->ID, it->RID);
     }
 }
-#endif
 
-void verify_header_unlocked(allocation_header *header) {
-#if defined DEBUG_MEMORY
+file_scope void verify_header_unlocked(allocation_header *header) {
     char freedHeader[sizeof(allocation_header)];
     fill_memory(freedHeader, DEAD_LAND_FILL, sizeof(allocation_header));
     if (compare_memory(header, freedHeader, sizeof(allocation_header)) == -1) {
@@ -160,31 +157,27 @@ void verify_header_unlocked(allocation_header *header) {
     // If one of these asserts was triggered in _verify_heap()_, this can also mean that the linked list is messed up
     // (possibly by modifying the pointers in the header).
     //
-#endif
 }
 
-void allocator::verify_header(allocation_header *header) {
-#if defined DEBUG_MEMORY
+void DEBUG_memory_info::verify_header(allocation_header *header) {
     // We need to lock here because another thread can free a header while we are reading from it.
-    thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
+    thread::scoped_lock<thread::mutex> _(&Mutex);
     verify_header_unlocked(header);
-#endif
 }
 
-void allocator::verify_heap() {
-#if defined DEBUG_MEMORY
+void DEBUG_memory_info::verify_heap() {
     // We need to lock here because another thread can free a header while we are reading from it.
-    thread::scoped_lock<thread::mutex> _(&DEBUG_Mutex);
+    thread::scoped_lock<thread::mutex> _(&Mutex);
 
-    auto *it = DEBUG_Head;
+    auto *it = Head;
     while (it) {
         verify_header_unlocked(it);
         it = it->DEBUG_Next;
     }
-#endif
 }
+#endif
 
-static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f, void *c, u64 flags) {
+file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc, u64 flags) {
     u32 padding = calculate_padding_for_pointer_with_header(p, align, sizeof(allocation_header));
     u32 alignmentPadding = padding - sizeof(allocation_header);
 
@@ -194,20 +187,17 @@ static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f,
     result->DEBUG_Next = null;
     result->DEBUG_Previous = null;
 
-    result->ID = (u32) allocator::AllocationCount;
-    atomic_inc_64(&allocator::AllocationCount);
+    result->ID = (u32) DEBUG_memory_info::AllocationCount;
+    atomic_inc_64(&DEBUG_memory_info::AllocationCount);
 
     result->RID = 0;
 #endif
 
-    result->Function = f;
-    result->Context = c;
+    result->Alloc = alloc;
     result->Size = userSize;
 
     result->Alignment = align;
     result->AlignmentPadding = alignmentPadding;
-
-    result->Owner = null;
 
     //
     // This is now safe since we handle alignment here (and not in general_(re)allocate).
@@ -251,9 +241,9 @@ static void *encode_header(void *p, s64 userSize, u32 align, allocator_func_t f,
     return p;
 }
 
-static void log_file_and_line(const char *file, s64 line) {
-    ::Context.Log->write(file);
-    ::Context.Log->write(":");
+file_scope void log_file_and_line(const char *file, s64 line) {
+    Context.Log->write(file);
+    Context.Log->write(":");
 
     char number[20];
 
@@ -266,30 +256,30 @@ static void log_file_and_line(const char *file, s64 line) {
             ++numberSize;
         }
     }
-    ::Context.Log->write(numberP + 1, numberSize);
+    Context.Log->write(numberP + 1, numberSize);
 }
 
-void *allocator::general_allocate(s64 userSize, u32 alignment, u64 options, const char *fileName, s64 fileLine) const {
-    options |= ::Context.AllocOptions;
+void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options, const char *fileName, s64 fileLine) {
+    options |= Context.AllocOptions;
 
     if (alignment == 0) {
-        auto contextAlignment = ::Context.AllocAlignment;
+        auto contextAlignment = Context.AllocAlignment;
         assert(is_pow_of_2(contextAlignment));
         alignment = contextAlignment;
     }
 
 #if defined DEBUG_MEMORY
-    s64 id = AllocationCount;
+    s64 id = DEBUG_memory_info::AllocationCount;
 
     if (id == 602) {
         s32 k = 42;
     }
 #endif
 
-    if (::Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
-        ::Context.Log->write(">>> Allocation made at: ");
+    if (Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
+        Context.Log->write(">>> Allocation made at: ");
         log_file_and_line(fileName, fileLine);
-        ::Context.Log->write("\n");
+        Context.Log->write("\n");
     }
 
     alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
@@ -300,8 +290,8 @@ void *allocator::general_allocate(s64 userSize, u32 alignment, u64 options, cons
     required += NO_MANS_LAND_SIZE;  // This is for the bytes after the requested block
 #endif
 
-    void *block = Function(allocator_mode::ALLOCATE, Context, required, null, 0, &options);
-    auto *result = encode_header(block, userSize, alignment, Function, Context, options);
+    void *block = alloc.Function(allocator_mode::ALLOCATE, alloc.Context, required, null, 0, &options);
+    auto *result = encode_header(block, userSize, alignment, alloc, options);
 
 #if defined DEBUG_MEMORY
     auto *header = (allocation_header *) result - 1;
@@ -309,30 +299,30 @@ void *allocator::general_allocate(s64 userSize, u32 alignment, u64 options, cons
     header->FileName = fileName;
     header->FileLine = fileLine;
 
-    DEBUG_add_header(header);
+    DEBUG_memory_info::add_header(header);
+    DEBUG_memory_info::verify_heap();
 #endif
-
-    verify_heap();
 
     return result;
 }
 
-void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 options, const char *fileName, s64 fileLine) {
-    options |= ::Context.AllocOptions;
+void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const char *fileName, s64 fileLine) {
+    options |= Context.AllocOptions;
 
     auto *header = (allocation_header *) ptr - 1;
-    verify_header(header);
 
     if (header->Size == newUserSize) return ptr;
 
 #if defined DEBUG_MEMORY
+    DEBUG_memory_info::verify_header(header);
+
     auto id = header->ID;
 #endif
 
-    if (::Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
-        ::Context.Log->write(">>> Reallocation made at: ");
+    if (Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
+        Context.Log->write(">>> Reallocation made at: ");
         log_file_and_line(fileName, fileLine);
-        ::Context.Log->write("\n");
+        Context.Log->write("\n");
     }
 
     // The header stores the size of the requested allocation
@@ -349,30 +339,27 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 options, con
     newSize += NO_MANS_LAND_SIZE;
 #endif
 
-    auto *func = header->Function;
-    auto *context = header->Context;
+    auto alloc = header->Alloc;
 
     void *block = (char *) header - header->AlignmentPadding;
-
     void *p;
 
     // Try to resize the block, this returns null if the block can't be resized and we need to move it.
-    void *newBlock = func(allocator_mode::RESIZE, context, newSize, block, oldSize, &options);
+    void *newBlock = alloc.Function(allocator_mode::RESIZE, alloc.Context, newSize, block, oldSize, &options);
     if (!newBlock) {
         // Memory needs to be moved
-        void *newBlock = func(allocator_mode::ALLOCATE, context, newSize, null, 0, &options);
-        auto *newPointer = encode_header(newBlock, newUserSize, header->Alignment, func, context, options);
+        void *newBlock = alloc.Function(allocator_mode::ALLOCATE, alloc.Context, newSize, null, 0, &options);
+        auto *newPointer = encode_header(newBlock, newUserSize, header->Alignment, alloc, options);
 
         auto *newHeader = (allocation_header *) newPointer - 1;
 
-        newHeader->Owner = header->Owner;
         copy_memory(newPointer, ptr, header->Size);
 
 #if defined DEBUG_MEMORY
         newHeader->ID = id;
         newHeader->RID = header->RID + 1;
 
-        DEBUG_swap_header(header, newHeader);
+        DEBUG_memory_info::swap_header(header, newHeader);
         fill_memory(block, DEAD_LAND_FILL, oldSize);
 
         newHeader->FileName = fileName;
@@ -380,7 +367,7 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 options, con
 
         newHeader->MarkedAsLeak = header->MarkedAsLeak;
 #endif
-        func(allocator_mode::FREE, context, 0, block, oldSize, &options);
+        alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, oldSize, &options);
 
         p = (void *) (newHeader + 1);
     } else {
@@ -417,22 +404,23 @@ void *allocator::general_reallocate(void *ptr, s64 newUserSize, u64 options, con
 
 #if defined DEBUG_MEMORY
     fill_memory((char *) p + newUserSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
-#endif
 
-    verify_heap();
+    DEBUG_memory_info::verify_heap();
+#endif
 
     return p;
 }
 
-void allocator::general_free(void *ptr, u64 options) {
+void general_free(void *ptr, u64 options) {
     if (!ptr) return;
 
-    options |= ::Context.AllocOptions;
+    options |= Context.AllocOptions;
 
     auto *header = (allocation_header *) ptr - 1;
-    verify_header(header);
 
 #if defined DEBUG_MEMORY
+    DEBUG_memory_info::verify_header(header);
+
     auto id = header->ID;
 #endif
 
@@ -442,37 +430,36 @@ void allocator::general_free(void *ptr, u64 options) {
     size += NO_MANS_LAND_SIZE;
 #endif
 
-    auto *func = header->Function;
-    auto *context = header->Context;
+    auto alloc = header->Alloc;
 
     void *block = (char *) header - header->AlignmentPadding;
 
 #if defined DEBUG_MEMORY
-    DEBUG_unlink_header(header);
+    DEBUG_memory_info::unlink_header(header);
     fill_memory(block, DEAD_LAND_FILL, size);
+
+    DEBUG_memory_info::verify_heap();
 #endif
 
-    func(allocator_mode::FREE, context, 0, block, size, &options);
-
-    verify_heap();
+    alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, size, &options);
 }
 
-void allocator::free_all(u64 options) const {
-    options |= ::Context.AllocOptions;
+void free_all(allocator alloc, u64 options) {
+    options |= Context.AllocOptions;
 
-    auto result = Function(allocator_mode::FREE_ALL, Context, 0, 0, 0, &options);
+    auto result = alloc.Function(allocator_mode::FREE_ALL, alloc.Context, 0, 0, 0, &options);
     assert((result != (void *) -1) && "Allocator doesn't support FREE_ALL");
 }
 
 LSTD_END_NAMESPACE
 
-void *operator new(std::size_t size) { return Context.Alloc.general_allocate(size, 0, 0); }
-void *operator new[](std::size_t size) { return Context.Alloc.general_allocate(size, 0, 0); }
-void *operator new(std::size_t size, std::align_val_t alignment) { return Context.Alloc.general_allocate(size, (u32) alignment); }
-void *operator new[](std::size_t size, std::align_val_t alignment) { return Context.Alloc.general_allocate(size, (u32) alignment); }
+void *operator new(std::size_t size) { return general_allocate(Context.Alloc, size, 0, 0); }
+void *operator new[](std::size_t size) { return general_allocate(Context.Alloc, size, 0, 0); }
+void *operator new(std::size_t size, std::align_val_t alignment) { return general_allocate(Context.Alloc, size, (u32) alignment); }
+void *operator new[](std::size_t size, std::align_val_t alignment) { return general_allocate(Context.Alloc, size, (u32) alignment); }
 
-void operator delete(void *ptr) noexcept { allocator::general_free(ptr); }
-void operator delete[](void *ptr) noexcept { allocator::general_free(ptr); }
+void operator delete(void *ptr) noexcept { general_free(ptr); }
+void operator delete[](void *ptr) noexcept { general_free(ptr); }
 
-void operator delete(void *ptr, std::align_val_t alignment) noexcept { allocator::general_free(ptr); }
-void operator delete[](void *ptr, std::align_val_t alignment) noexcept { allocator::general_free(ptr); }
+void operator delete(void *ptr, std::align_val_t alignment) noexcept { general_free(ptr); }
+void operator delete[](void *ptr, std::align_val_t alignment) noexcept { general_free(ptr); }

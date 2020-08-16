@@ -48,7 +48,7 @@ void os_write_shared_block(const string &name, void *data, s64 size);
 void os_read_shared_block(const string &name, void *out, s64 size);
 
 // Exits the application with the given exit code.
-// Also runs all callbacks registered with _run_at_exit()_.
+// Also runs all callbacks registered with _exit_schedule()_.
 void os_exit(s32 exitCode = 0);
 
 // Returns a time stamp that can be used for time-interval measurements

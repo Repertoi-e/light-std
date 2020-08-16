@@ -3,7 +3,7 @@
 #include "file/catalog.h"
 #include "file/handle.h"
 #include "file/path.h"
-#include "io/fmt.h"
+#include "fmt.h"
 
 LSTD_BEGIN_NAMESPACE
 

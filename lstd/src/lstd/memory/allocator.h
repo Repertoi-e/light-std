@@ -84,6 +84,18 @@ constexpr u64 XXX_AVOID_RECURSION = 1ull << 61;
 // the old pointer was when freeing or reallocating.
 using allocator_func_t = add_pointer_t<void *(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *)>;
 
+struct allocator {
+    allocator_func_t Function = null;
+    void *Context = null;
+
+    allocator(allocator_func_t function = null, void *context = null) : Function(function), Context(context) {}
+
+    bool operator==(allocator other) const { return Function == other.Function && Context == other.Context; }
+    bool operator!=(allocator other) const { return Function != other.Function || Context != other.Context; }
+
+    operator bool() const { return Function; }
+};
+
 #if defined DEBUG_MEMORY
 //
 // In DEBUG we put extra stuff to make bugs more obvious. These constants are like the ones MSVC's debug CRT model uses.
@@ -140,15 +152,11 @@ struct allocation_header {
     s64 FileLine;
 #endif
 
-    // The allocator used when allocating the memory
-    allocator_func_t Function;
-    void *Context;
+    // The allocator used when allocating the memory. We read this when resizing/freeing.
+    allocator Alloc;
 
     // The size of the allocation (NOT including the size of the header and padding)
     s64 Size;
-
-    void *Owner;  // Points to the object that owns the block (null is valid, this is mainly used by containers). Manage
-                  // this with functions from "owner_pointers.h".
 
 #if defined DEBUG_MEMORY
     // This is another guard to check that the header is valid.
@@ -205,18 +213,19 @@ inline u16 calculate_padding_for_pointer_with_header(void *ptr, s32 alignment, u
     return padding;
 }
 
-struct allocator {
-    allocator_func_t Function = null;
-    void *Context = null;
-
+#if defined DEBUG_MEMORY
+struct DEBUG_memory_info {
     inline static s64 AllocationCount = 0;
 
-#if defined DEBUG_MEMORY
     // We keep a linked list of all allocations. You can use this list to visualize them.
-    inline static allocation_header *DEBUG_Head = null;
+    // _Head_ is the last allocation done.
+    inline static allocation_header *Head = null;
 
     // Currently this mutex should be released in the OS implementations (e.g. windows_common.cpp).
-    inline static thread::mutex DEBUG_Mutex;
+    // We need to lock it before modifying the linked list for example.
+    //
+    // @TODO: @Speed: Lock-free linked list!
+    inline static thread::mutex Mutex;
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     //   DEBUG_MEMORY
@@ -226,54 +235,48 @@ struct allocator {
     // Note that it's not required for your allocator to implement FREE_ALL at all.
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    // Removes a header from the list (thread-safe)
-    static void DEBUG_unlink_header(allocation_header *header);
+    // Removes a header from the list .
+    static void unlink_header(allocation_header *header);
 
-    // This adds the header to the front - making it the new DEBUG_Head (thread-safe)
-    static void DEBUG_add_header(allocation_header *header);
+    // This adds the header to the front - making it the new head.
+    static void add_header(allocation_header *header);
 
-    // Replaces _oldHeader_ with _newHeader_ in the list. (thread-safe)
-    static void DEBUG_swap_header(allocation_header *oldHeader, allocation_header *newHeader);
+    // Replaces _oldHeader_ with _newHeader_ in the list.
+    static void swap_header(allocation_header *oldHeader, allocation_header *newHeader);
 
     // Assuming that the heap is not corrupted, this reports any unfreed allocations.
     // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
     // which make even program termination slow, we are just providing this information to the user because they might
     // want to load/unload DLLs during the runtime of the application, and those DLLs might use all kinds of complex
     // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
-    static void DEBUG_report_leaks();
-#endif
-    void *general_allocate(s64 userSize, u32 alignment, u64 options = 0, const char *fileName = "", s64 fileLine = -1) const;
-
-    // This is static, because it doesn't depend on the allocator object you call it from.
-    // Each pointer has a header which has information about the allocator it was allocated with.
-    static void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, const char *fileName = "", s64 fileLine = -1);
-
-    // This is static, because it doesn't depend on the allocator object you call it from.
-    // Each pointer has a header which has information about the allocator it was allocated with.
-    // Calling free on a null pointer doesn't do anything.
-    static void general_free(void *ptr, u64 options = 0);
-
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    //   DEBUG_MEMORY
-    //     See the comment above DEBUG_unlink_header.
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    //
-    // Note: Not all allocators must support this.
-    void free_all(u64 options = 0) const;
+    static void report_leaks();
 
     // Verifies the integrity of headers in all allocations (only if DEBUG_MEMORY is on).
-    // You can call this anytime even outside the class.
     static void verify_heap();
 
     // Verifies the integrity of a single header (only if DEBUG_MEMORY is on).
-    // You can call this anytime even outside the class.
     static void verify_header(allocation_header *header);
-
-    bool operator==(allocator other) const { return Function == other.Function && Context == other.Context; }
-    bool operator!=(allocator other) const { return Function != other.Function || Context != other.Context; }
-
-    operator bool() const { return Function; }
 };
+#endif
+
+void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options = 0, const char *fileName = "", s64 fileLine = -1);
+
+// This is static, because it doesn't depend on the allocator object you call it from.
+// Each pointer has a header which has information about the allocator it was allocated with.
+void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, const char *fileName = "", s64 fileLine = -1);
+
+// This is static, because it doesn't depend on the allocator object you call it from.
+// Each pointer has a header which has information about the allocator it was allocated with.
+// Calling free on a null pointer doesn't do anything.
+void general_free(void *ptr, u64 options = 0);
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//   DEBUG_MEMORY
+//     See the comment above DEBUG_unlink_header.
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//
+// Note: Not all allocators must support this.
+void free_all(allocator alloc, u64 options = 0);
 
 //
 // Default allocator:
@@ -333,7 +336,7 @@ T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, co
     s64 size = count * sizeof(T);
 
     if (!alloc) alloc = Context.Alloc;
-    auto *result = (T *) alloc.general_allocate(size, alignment, options, fileName, fileLine);
+    auto *result = (T *) general_allocate(alloc, size, alignment, options, fileName, fileLine);
 
     if constexpr (!is_scalar_v<T>) {
         auto *p = result;
@@ -391,7 +394,7 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const char *f
     }
 
     s64 newSize = newCount * sizeof(T);
-    auto *result = (T *) allocator::general_reallocate(block, newSize, options, fileName, fileLine);
+    auto *result = (T *) general_reallocate(block, newSize, options, fileName, fileLine);
 
     if constexpr (!is_scalar_v<T>) {
         if (oldCount < newCount) {
@@ -413,15 +416,6 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, const char *fileName = "",
     return lstd_reallocate_array_impl(block, newCount, 0, fileName, fileLine);
 }
 
-template <typename T>
-constexpr s64 lstd_size_of_or_1_for_void() {
-    if constexpr (is_same_v<T, void>) {
-        return 1;
-    } else {
-        return sizeof(T);
-    }
-}
-
 // Make sure you pass _block_ correctly as a T* otherwise we can't ensure it gets uninitialized correctly.
 template <typename T>
 void lstd_free_impl(T *block, u64 options = 0) {
@@ -429,7 +423,10 @@ void lstd_free_impl(T *block, u64 options = 0) {
 
     static_assert(!is_const_v<T>);
 
-    constexpr s64 sizeT = lstd_size_of_or_1_for_void<T>();
+    s64 sizeT = 1;
+    if constexpr (!is_same_v<T, void>) {
+        sizeT = sizeof(T);
+    }
 
     auto *header = (allocation_header *) block - 1;
     s64 count = header->Size / sizeT;
@@ -442,7 +439,7 @@ void lstd_free_impl(T *block, u64 options = 0) {
         }
     }
 
-    allocator::general_free(block, options);
+    general_free(block, options);
 }
 
 // T is used to initialize the resulting memory (uses placement new).

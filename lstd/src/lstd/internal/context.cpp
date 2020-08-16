@@ -1,6 +1,5 @@
 #include "context.h"
 
-#include "../io/fmt.h"
 #include "../memory/array.h"
 
 LSTD_BEGIN_NAMESPACE

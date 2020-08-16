@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../memory/stack_array.h"
+#include "../memory/stack_array.h"
 #include "parse_context.h"
 
 LSTD_BEGIN_NAMESPACE

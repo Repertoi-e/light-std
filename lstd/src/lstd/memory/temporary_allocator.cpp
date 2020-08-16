@@ -82,12 +82,12 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
                 array<allocation_header *> toUnlink;
                 defer(toUnlink.release());
 
-                auto *h = allocator::DEBUG_Head;
+                auto *h = DEBUG_memory_info::Head;
                 while (h) {
-                    if (h->Function == temporary_allocator && h->Context == data) toUnlink.append(h);
+                    if (h->Alloc == allocator(temporary_allocator, data)) toUnlink.append(h);
                     h = h->DEBUG_Next;
                 }
-                For(toUnlink) allocator::DEBUG_unlink_header(it);
+                For(toUnlink) DEBUG_memory_info::unlink_header(it);
             }
 #endif
 
@@ -134,7 +134,7 @@ void release_temporary_allocator() {
     if (!Context.TemporaryAllocData.Base.Reserved) return;
 
     // Free any left-over overflow pages!
-    Context.TemporaryAlloc.free_all();
+    free_all(Context.TemporaryAlloc);
 
     free(Context.TemporaryAllocData.Base.Storage);
     Context.TemporaryAllocData = {};
