@@ -6,7 +6,7 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename Key, typename Value, bool Const>
-struct table_iterator;
+struct hash_table_iterator;
 
 // This hash table stores all entries in a contiguous array, for good performance when looking up things. Some tables
 // work by storing linked lists of entries, but that can lead to many more cache misses.
@@ -15,7 +15,7 @@ struct table_iterator;
 // Read the comment above reserve() for more information on how the arrays get allocated.
 //
 // When storing a value, we map its hash to a slot index and if that slot is free, we put the key and value there,
-// otherwise we keep incrementing the slot index until we find an empty slot. Because the table can never be full, we
+// otherwise we keep incrementing the slot index until we find an empty slot. Because the hash table can never be full, we
 // are guaranteed to find a slot eventually.
 //
 // When looking up a value we perform the same process to find the correct slot.
@@ -29,10 +29,10 @@ struct table_iterator;
 //
 // The template parameter _BlockAlloc_ specifies whether the hashes, keys and values arrays are allocated
 // all contiguously or by seperate allocation calls. You want to allocate them next to each other because that's good for the cache,
-// but if the table is too large then the block won't fit in the cache anyways so you should consider setting this to false to reduce
+// but if the hash table is too large then the block won't fit in the cache anyways so you should consider setting this to false to reduce
 // the size of the allocation request.
-template <typename K, typename V, bool BlockAlloc = false>
-struct table {
+template <typename K, typename V, bool BlockAlloc = true>
+struct hash_table {
     using key_t = K;
     using value_t = V;
 
@@ -54,72 +54,30 @@ struct table {
     key_t *Keys = null;
     value_t *Values = null;
 
-    table() = default;
+    hash_table() = default;
 
     // We don't use destructors for freeing memory anymore.
-    // ~table() { release(); }
+    // ~has_table() { release(); }
 
-    // Makes sure the table has reserved enough space for at least n elements.
+    // Makes sure the hash table has reserved enough space for at least n elements.
     // Note that it may reserve way more than required.
     // Reserves space equal to the next power of two bigger than _size_, starting at _MINIMUM_SIZE_.
     //
-    // Allocates a buffer if the table doesn't already point to reserved memory (using the Context's allocator).
+    // Allocates a buffer if the hash table doesn't already point to reserved memory (using the Context's allocator).
     // If _BLOCK_ALLOC_ is true it ensures that the allocated arrays are next to each other.
     //
-    // You don't need to call this before using the table.
-    // The first time an element is added to the table, it reserves with _MINIMUM_SIZE_ and no specified alignment.
-    // You can call this before using the table to initialize the arrays with a custom alignment (if that's required).
+    // You don't need to call this before using the hash table.
+    // The first time an element is added to the hash table, it reserves with _MINIMUM_SIZE_ and no specified alignment.
+    // You can call this before using the hash table to initialize the arrays with a custom alignment (if that's required).
     //
-    // This is also called when adding an element and the table is more than half full (SlotsFilled * 2 >= Reserved).
+    // This is also called when adding an element and the hash table is more than half full (SlotsFilled * 2 >= Reserved).
     // In that case the _target_ is exactly _SlotsFilled_.
-    // You may want to call this manually if you are adding a bunch of items and causing the table to reallocate a lot.
+    // You may want to call this manually if you are adding a bunch of items and causing the hash table to reallocate a lot.
     void reserve(s64 target, u32 alignment = 0) {
         if (SlotsFilled + target < Reserved) return;
         target = max<s64>(ceil_pow_of_2(target + SlotsFilled + 1), MINIMUM_SIZE);
 
-        if (Reserved) {
-            auto oldAlignment = ((allocation_header *) Hashes - 1)->Alignment;
-            if (alignment == 0) {
-                alignment = oldAlignment;
-            } else {
-                assert(alignment == oldAlignment && "Reserving with an alignment but the object already has arrays with a different alignment. Specify alignment 0 to automatically use the old one.");
-            }
-
-            if constexpr (BLOCK_ALLOC) {
-                auto *oldHashes = Hashes;
-                auto *oldKeys = Keys;
-                auto *oldValues = Values;
-                auto oldReserved = Reserved;
-
-                s64 padding1 = 0, padding2 = 0;
-                if (alignment != 0) {
-                    padding1 = (target * sizeof(u64)) % alignment;
-                    padding2 = (target * sizeof(value_t)) % alignment;
-                }
-
-                s64 sizeInBytes = target * (sizeof(u64) + sizeof(key_t) + sizeof(value_t)) + padding1 + padding2;
-
-                char *block = reallocate_array((char *) Hashes, sizeInBytes);
-                Hashes = (u64 *) block;
-                Keys = (key_t *) (block + target * sizeof(u64) + padding1);
-                Values = (value_t *) (block + target * (sizeof(u64) + sizeof(key_t)) + padding2);
-                zero_memory(Hashes, target * sizeof(u64));
-
-                // Copy the old values in reverse because the block might not have moved in memory.
-                // copy_memory handles moving when the src and dest buffers overlap.
-                copy_memory(Values, oldValues, oldReserved * sizeof(value_t));
-                copy_memory(Keys, oldKeys, oldReserved * sizeof(key_t));
-                copy_memory(Hashes, oldHashes, oldReserved * sizeof(u64));
-            } else {
-                Hashes = reallocate_array(Hashes, target, DO_INIT_0);
-                Keys = reallocate_array(Keys, target);
-                Values = reallocate_array(Values, target);
-            }
-        } else {
-            // It's impossible to have a view into a table (currently).
-            // So there were no previous elements.
-            assert(!Count);
-
+        auto allocateNewBlock = [&]() {
             if constexpr (BLOCK_ALLOC) {
                 s64 padding1 = 0, padding2 = 0;
                 if (alignment != 0) {
@@ -139,6 +97,39 @@ struct table {
                 Keys = allocate_array_aligned(key_t, target, alignment);
                 Values = allocate_array_aligned(value_t, target, alignment);
             }
+        };
+
+        if (Reserved) {
+            auto oldAlignment = ((allocation_header *) Hashes - 1)->Alignment;
+            if (alignment == 0) {
+                alignment = oldAlignment;
+            } else {
+                assert(alignment == oldAlignment && "Reserving with an alignment but the object already has arrays with a different alignment. Specify alignment 0 to automatically use the old one.");
+            }
+
+            auto *oldHashes = Hashes;
+            auto *oldKeys = Keys;
+            auto *oldValues = Values;
+            auto oldReserved = Reserved;
+
+            allocateNewBlock();
+
+            // Add the old items
+            For(range(oldReserved)) {
+                if (oldHashes[it] >= FIRST_VALID_HASH) add_prehashed(oldHashes[it], oldKeys[it], oldValues[it]);
+            }
+
+            free(oldHashes);
+
+            if constexpr (!BLOCK_ALLOC) {
+                free(oldKeys);
+                free(oldValues);
+            }
+        } else {
+            // It's impossible to have a view into a hash table (currently).
+            // So there were no previous elements.
+            assert(!Count);
+            allocateNewBlock();
         }
         Reserved = target;
     }
@@ -160,7 +151,7 @@ struct table {
         Count = SlotsFilled = Reserved = 0;
     }
 
-    // Don't free the table, just destroy contents and reset count
+    // Don't free the hash table, just destroy contents and reset count
     void reset() {
         // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
         if (Reserved) {
@@ -184,7 +175,7 @@ struct table {
         return find_prehashed(get_hash(key), key);
     }
 
-    // Looks for key in the table using the given hash.
+    // Looks for key in the hash table using the given hash.
     // In normal _find_ we calculate the hash of the key using the global get_hash() specialized functions.
     // This method is useful if you have cached the hash.
     pair<key_t *, value_t *> find_prehashed(u64 hash, const key_t &key) {
@@ -232,13 +223,13 @@ struct table {
         return add_prehashed(get_hash(key), key, value);
     }
 
-    // Adds key and value to the table using the given hash.
+    // Adds key and value to the hash table using the given hash.
     // In normal _add_ we calculate the hash of the key using the global get_hash() specialized functions.
     // This method is useful if you have cached the hash.
     // Returns pointers to the added key and value.
     pair<key_t *, value_t *> add_prehashed(u64 hash, const key_t &key, const value_t &value) {
-        // The + 1 here handles the case when the table size is 1 and you add the first item.
-        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled);  // Make sure the table is never more than 50% full
+        // The + 1 here handles the case when the hash table size is 1 and you add the first item.
+        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled);  // Make sure the hash table is never more than 50% full
 
         assert(SlotsFilled < Reserved);
 
@@ -294,11 +285,11 @@ struct table {
         return false;
     }
 
-    // Returns true if the table has the given key.
+    // Returns true if the hash table has the given key.
     // We calculate the hash of the key using the global get_hash() specialized functions.
     bool has(const key_t &key) const { return find(key) != null; }
 
-    // Returns true if the table has the given key.
+    // Returns true if the hash table has the given key.
     // In normal _hash_ we calculate the hash of the key using the global get_hash() specialized functions.
     // This method is useful if you have cached the hash.
     bool has_prehashed(u64 hash, const key_t &key) const { return find_prehashed(hash, key) != null; }
@@ -306,8 +297,8 @@ struct table {
     //
     // Iterator:
     //
-    using iterator = table_iterator<key_t, value_t, false>;
-    using const_iterator = table_iterator<key_t, value_t, true>;
+    using iterator = hash_table_iterator<key_t, value_t, false>;
+    using const_iterator = hash_table_iterator<key_t, value_t, true>;
 
     iterator begin();
     iterator end();
@@ -328,33 +319,33 @@ struct table {
 };
 
 template <typename Key, typename Value, bool Const>
-struct table_iterator {
-    using table_t = type_select_t<Const, const table<Key, Value>, table<Key, Value>>;
+struct hash_table_iterator {
+    using hash_table_t = type_select_t<Const, const hash_table<Key, Value>, hash_table<Key, Value>>;
 
-    table_t *Parent;
+    hash_table_t *Parent;
     s64 Index;
 
-    table_iterator(table_t *parent, s64 index = 0) : Parent(parent), Index(index) {
+    hash_table_iterator(hash_table_t *parent, s64 index = 0) : Parent(parent), Index(index) {
         assert(parent);
 
         // Find the first pair
         skip_empty_slots();
     }
 
-    table_iterator &operator++() {
+    hash_table_iterator &operator++() {
         ++Index;
         skip_empty_slots();
         return *this;
     }
 
-    table_iterator operator++(int) {
-        table_iterator pre = *this;
+    hash_table_iterator operator++(int) {
+        hash_table_iterator pre = *this;
         ++(*this);
         return pre;
     }
 
-    bool operator==(const table_iterator &other) const { return Parent == other.Parent && Index == other.Index; }
-    bool operator!=(const table_iterator &other) const { return !(*this == other); }
+    bool operator==(const hash_table_iterator &other) const { return Parent == other.Parent && Index == other.Index; }
+    bool operator!=(const hash_table_iterator &other) const { return !(*this == other); }
 
     template <bool NotConst = !Const>
     enable_if_t<NotConst, pair<Key *, Value *>> operator*() {
@@ -369,26 +360,26 @@ struct table_iterator {
    private:
     void skip_empty_slots() {
         for (; Index < Parent->Reserved; ++Index) {
-            if (Parent->Hashes[Index] < table_t::FIRST_VALID_HASH) continue;
+            if (Parent->Hashes[Index] < hash_table_t::FIRST_VALID_HASH) continue;
             break;
         }
     }
 };
 
 template <typename K, typename V, bool BlockAlloc>
-typename table<K, V, BlockAlloc>::iterator table<K, V, BlockAlloc>::begin() { return table<K, V>::iterator(this); }
+typename hash_table<K, V, BlockAlloc>::iterator hash_table<K, V, BlockAlloc>::begin() { return hash_table<K, V>::iterator(this); }
 
 template <typename K, typename V, bool BlockAlloc>
-typename table<K, V, BlockAlloc>::iterator table<K, V, BlockAlloc>::end() { return table<K, V>::iterator(this, Reserved); }
+typename hash_table<K, V, BlockAlloc>::iterator hash_table<K, V, BlockAlloc>::end() { return hash_table<K, V>::iterator(this, Reserved); }
 
 template <typename K, typename V, bool BlockAlloc>
-typename table<K, V, BlockAlloc>::const_iterator table<K, V, BlockAlloc>::begin() const { return table<K, V>::const_iterator(this); }
+typename hash_table<K, V, BlockAlloc>::const_iterator hash_table<K, V, BlockAlloc>::begin() const { return hash_table<K, V>::const_iterator(this); }
 
 template <typename K, typename V, bool BlockAlloc>
-typename table<K, V, BlockAlloc>::const_iterator table<K, V, BlockAlloc>::end() const { return table<K, V>::const_iterator(this, Reserved); }
+typename hash_table<K, V, BlockAlloc>::const_iterator hash_table<K, V, BlockAlloc>::end() const { return hash_table<K, V>::const_iterator(this, Reserved); }
 
 template <typename K, typename V>
-table<K, V> *clone(table<K, V> *dest, const table<K, V> &src) {
+hash_table<K, V> *clone(hash_table<K, V> *dest, const hash_table<K, V> &src) {
     *dest = {};
     for (auto [key, value] : src) {
         dest->add(*key, *value);

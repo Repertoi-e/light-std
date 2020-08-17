@@ -11,7 +11,7 @@ LSTD_BEGIN_NAMESPACE
 #define CALLSTACK_DEPTH 6
 
 file_scope DWORD MachineType;
-file_scope table<DWORD, const char *> CodeDescs;
+file_scope hash_table<DWORD, const char *> CodeDescs;
 
 file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     u32 exceptionCode = e->ExceptionRecord->ExceptionCode;

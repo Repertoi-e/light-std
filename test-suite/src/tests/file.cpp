@@ -143,7 +143,7 @@ TEST(read_every_file_in_project) {
 
     defer(rootFolder.release());
 
-    table<string, s64> files;
+    hash_table<string, s64> files;
 
     s32 fileCounter = 100;
     auto callback = [&](file::path it) {

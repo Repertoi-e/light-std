@@ -61,7 +61,7 @@ TEST(array) {
 }
 
 TEST(table) {
-    table<string, s32> t;
+    hash_table<string, s32> t;
     defer(t.release());
 
     t.set("1", 1);
@@ -90,21 +90,21 @@ TEST(table) {
     }
     assert_eq(loopIterations, t.Count);
 
-    table<string, s32> empty;
+    hash_table<string, s32> empty;
     for (auto [key, value] : empty) {
         assert(false);
     }
 }
 
 TEST(table_clone) {
-    table<string, s32> t;
+    hash_table<string, s32> t;
     defer(t.release());
 
     t.set("1", 1);
     t.set("4", 4);
     t.set("9", 9);
 
-    table<string, s32> copy;
+    hash_table<string, s32> copy;
     clone(&copy, t);
     defer(copy.release());
 
@@ -128,7 +128,7 @@ TEST(table_alignment) {
     // This test uses SIMD types which require a 16 byte alignment or otherwise crash.
     // It tests if the block allocation in the table handles alignment of key and value arrays.
 
-    table<v2, v3> simdTable;
+    hash_table<v2, v3> simdTable;
     simdTable.reserve(0, 16);
 
     simdTable.add({1, 2}, {1, 2, 3});

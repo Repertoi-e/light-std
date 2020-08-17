@@ -81,7 +81,7 @@ struct test {
     test_func Function = null;
 };
 
-inline table<string, array<test>> g_TestTable;
+inline hash_table<string, array<test>> g_TestTable;
 
 #define _TEST(name)                                                     \
     struct _MACRO_CONCAT(test_, __LINE__)##_##name {                    \
