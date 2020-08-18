@@ -447,7 +447,7 @@ void general_free(void *ptr, u64 options) {
 void free_all(allocator alloc, u64 options) {
 #if defined DEBUG_MEMORY
     // Remove allocations made with the allocator from the the linked list so we don't corrupt the heap
-    WITH_ALLOC(Context.Temp) {
+    WITH_ALLOC(Malloc) {
         array<allocation_header *> allocations;
 
         auto *h = DEBUG_memory_info::Head;

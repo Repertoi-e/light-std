@@ -2,7 +2,7 @@
 
 #include "../test.h"
 
-#define DO_READ_EVERY_FILE
+#define DO_READ_EVERY_FILE 0
 
 TEST(path_manipulation) {
     {
@@ -67,6 +67,7 @@ TEST(file_size) {
     assert_eq(file::handle(text).file_size(), 277);
 }
 
+/* Just wearing out the SSD :*
 TEST(writing_hello_250_times) {
     auto thisFile = file::path(__FILE__);
     file::path filePath = thisFile.directory();
@@ -91,7 +92,7 @@ TEST(writing_hello_250_times) {
     assert_eq(contents, read);
 
     assert(file.delete_file());
-}
+}*/
 
 //
 // This is just causing more trouble that I want to cope with.
@@ -136,7 +137,7 @@ TEST(test_introspection) {
 }
 */
 
-#if defined DO_READ_EVERY_FILE
+#if DO_READ_EVERY_FILE
 TEST(read_every_file_in_project) {
     file::path rootFolder = file::path(__FILE__).directory();
     rootFolder.combine_with("../../../");
