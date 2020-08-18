@@ -57,7 +57,7 @@ void run_tests() {
 
     // These need to be reset in case we rerun the tests (we may spin this function up in a while loop a bunch of times when looking for rare bugs).
     asserts::GlobalCalledCount = 0;
-    asserts::GlobalFailed.release();
+    free(asserts::GlobalFailed);
 }
 
 #define LOG_TO_FILE 0
@@ -103,7 +103,7 @@ s32 main() {
 #if defined DEBUG_MEMORY
     // These get reported as leaks otherwise and we were looking for actual problems...
     for (auto [k, v] : g_TestTable) {
-        v->release();
+        free(*v);
     }
     g_TestTable.release();
     release_temporary_allocator();

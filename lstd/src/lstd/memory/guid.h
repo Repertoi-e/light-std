@@ -8,7 +8,7 @@ LSTD_BEGIN_NAMESPACE
 struct guid {
     char Data[16]{};
 
-    constexpr guid() = default;  // By default the guid is zero
+    constexpr guid() {}  // By default the guid is zero
 
     constexpr guid(const initializer_list<u8> &data) {
         assert(data.size() >= 16);

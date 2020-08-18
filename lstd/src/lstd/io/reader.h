@@ -54,7 +54,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     // Whether this reader has reached "end of file"
     bool EOF = false;
 
-    reader() = default;
+    reader() {}
     reader(give_me_buffer_t giveMeBuffer);
 
     // A bit more verbose and clear.

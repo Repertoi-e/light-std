@@ -3,9 +3,9 @@
 template <typename U, s64 N>
 void test_expected(stack_array<U, N> expected, s64 start, s64 stop, s64 step = 1) {
     array<s64> result;
-    For(range(start, stop, step)) result.append(it);
+    For(range(start, stop, step)) append(result, it);
     assert_eq(result, expected);
-    result.release();
+    free(result);
 }
 
 TEST(basic) {
@@ -15,9 +15,9 @@ TEST(basic) {
 
 TEST(variable_steps) {
     array<s64> result;
-    For(range(2, -3, 2)) result.append(it);
+    For(range(2, -3, 2)) append(result, it);
     assert_eq(result.Count, 0);
-    result.release();
+    free(result);
 
     test_expected(to_stack_array<s32>(-3, -1, 1), -3, 2, 2);
     test_expected(to_stack_array<s32>(10, 13), 10, 15, 3);

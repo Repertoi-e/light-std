@@ -77,11 +77,11 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
             // Remove our allocations from the linked list so we don't corrupt the heap after freeing the pages
             WITH_ALLOC(Malloc) {
                 array<allocation_header *> toUnlink;
-                defer(toUnlink.release());
+                defer(free(toUnlink));
 
                 auto *h = DEBUG_memory_info::Head;
                 while (h) {
-                    if (h->Alloc == allocator(temporary_allocator, data)) toUnlink.append(h);
+                    if (h->Alloc == allocator(temporary_allocator, data)) append(toUnlink, h);
                     h = h->DEBUG_Next;
                 }
                 For(toUnlink) DEBUG_memory_info::unlink_header(it);

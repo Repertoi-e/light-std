@@ -41,7 +41,7 @@ template <s64 ChunkSize>
 inline char chunked_reader_give_me_buffer(reader *r) {
     auto *sr = (chunked_reader<ChunkSize> *) r;
 
-    if (sr->HelperBuffer.Count) sr->HelperBuffer.reset();
+    if (sr->HelperBuffer.Count) reset(sr->HelperBuffer);
     if (!sr->Buffer.Data) sr->Source->request_next_buffer();
 
     auto [buffer, rest] = sr->Source->read_bytes(ChunkSize);
@@ -54,7 +54,7 @@ inline char chunked_reader_give_me_buffer(reader *r) {
 
         // Continue requesting buffers from the source until we have the requested chunk size
         // Abort if we reach EOF
-        WITH_ALLOC(sr->Alloc) { sr->HelperBuffer.append_array(buffer); }
+        WITH_ALLOC(sr->Alloc) { append_array(sr->HelperBuffer, buffer); }
 
         s64 totalRead = ChunkSize - rest;
         while (totalRead != ChunkSize) {
@@ -67,7 +67,7 @@ inline char chunked_reader_give_me_buffer(reader *r) {
                 return eof;
             }
 
-            WITH_ALLOC(sr->Alloc) { sr->HelperBuffer.append_array(anotherBuffer); }
+            WITH_ALLOC(sr->Alloc) { append_array(sr->HelperBuffer, anotherBuffer); }
             totalRead += anotherRead;
         }
         sr->Buffer = sr->HelperBuffer;

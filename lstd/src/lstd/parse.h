@@ -70,6 +70,7 @@ inline char byte_to_digit_force_upper(char value) {
 //
 // We could only wish C++ had more facilities which helped with these kind of options (e.g. Jai's #bake_arguments), but this seems to work well enough.
 //
+// @TODO: C++20 will allow passing this struct not as a pointer but as a literal directly!
 struct parse_int_options {
     // We use _ByteToDigit_ to convert from a byte value to a digit.
     // The spec is that if a byte is valid, the returned value is the value of the digit.
@@ -328,6 +329,7 @@ inline parse_status expect_sequence(char **p, s64 *n, const array<char> &sequenc
 }
 
 // Similar to parse_int, these options compile different versions of parse_bool and turn off certain code paths.
+// @TODO: C++20 will allow passing this struct not as a pointer but as a literal directly!
 struct parse_bool_options {
     bool ParseNumbers = true;  // Attemps to parse 0/1.
     bool ParseWords = true;    // Attemps to parse the words "true" and "false".
@@ -406,6 +408,7 @@ pair<char, parse_status> eat_hex_byte(char **p, s64 *n) {
 }
 
 // Similar to parse_int, these options compile different versions of parse_guid and turn off certain code paths.
+// @TODO: C++20 will allow passing this struct not as a pointer but as a literal directly!
 struct parse_guid_options {
     // The function used for parsing the actual hex byte values.
     // We call parse_int with it.

@@ -7,6 +7,8 @@
 LSTD_BEGIN_NAMESPACE
 
 struct identity_helper : non_copyable {
+    identity_helper() {}
+
     template <typename T, s64 R, s64 C, bool Packed>
     operator mat<T, R, C, Packed>() const {
         mat<T, R, C, Packed> m = zero();
@@ -22,6 +24,10 @@ struct identity_helper : non_copyable {
 
 // Creates an identity matrix or identity quaternion.
 // If the matrix is not square, it will look like a truncated larger square identity matrix.
+//
+// Example:
+//    mat44 transfrom = identity();
+//    quat orientation = identity();
 inline auto identity() { return identity_helper{}; }
 
 LSTD_END_NAMESPACE

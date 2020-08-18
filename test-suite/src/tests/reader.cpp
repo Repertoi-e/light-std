@@ -18,13 +18,13 @@ void test_guid_case(guid id, char f) {
     auto [buffer, success] = r.read_bytes_until('\n');
 
     array<char> result = buffer;
-    defer(result.release());
+    defer(free(result));
 
     while (!success && !r.EOF) {
         r.request_next_buffer();
 
         tie(buffer, success) = r.read_bytes_until('\n');
-        result.append_array(buffer);
+        append_array(result, buffer);
 
         if (success) break;
     }

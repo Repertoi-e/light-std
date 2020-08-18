@@ -77,7 +77,7 @@ struct delegate<R(A...)> {
         return (*reinterpret_cast<const target<Class, nullptr_t> *>(data)->InstancePtr)((A &&)(args)...);
     }
 
-    delegate() = default;
+    delegate() {}
 
     // Construct from null
     delegate(nullptr_t) {}

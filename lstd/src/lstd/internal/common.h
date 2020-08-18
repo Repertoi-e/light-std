@@ -100,8 +100,8 @@ LSTD_BEGIN_NAMESPACE
 // Base classes to reduce boiler plate code
 struct non_copyable {
    protected:
-    non_copyable() = default;
-    ~non_copyable() = default;
+    non_copyable() {}
+    ~non_copyable() {}
 
    private:
     non_copyable(const non_copyable &) = delete;
@@ -110,8 +110,8 @@ struct non_copyable {
 
 struct non_movable {
    protected:
-    non_movable() = default;
-    ~non_movable() = default;
+    non_movable() {}
+    ~non_movable() {}
 
    private:
     non_movable(non_movable &&) = delete;

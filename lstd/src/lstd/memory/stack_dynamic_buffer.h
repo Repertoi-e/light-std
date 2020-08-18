@@ -16,7 +16,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     s64 Reserved = 0;
     s64 ByteLength = 0;
 
-    stack_dynamic_buffer() = default;
+    stack_dynamic_buffer() {}
 
     stack_dynamic_buffer(const array<char> &arr) {
         if (sizeof(StackData) > arr.Count) {

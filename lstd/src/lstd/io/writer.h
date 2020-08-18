@@ -24,7 +24,7 @@ struct writer : non_copyable, non_movable, non_assignable {
     char *Buffer = null, *Current = null;
     s64 BufferSize = 0, Available = 0;
 
-    writer() = default;
+    writer() {}
     writer(write_t writeFunction, flush_t flushFunction) : WriteFunction(writeFunction), FlushFunction(flushFunction) {}
 
     void write(const array<char> &data);

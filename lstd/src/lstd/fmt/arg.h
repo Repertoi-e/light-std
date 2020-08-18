@@ -134,7 +134,7 @@ struct args {
     s64 Count = 0;
     u64 Types = 0;
 
-    args() = default;
+    args() {}
 
     template <typename... Args>
     args(const args_on_the_stack<Args...> &store) : Data((void *) store.Data.Data), Types(store.Types), Count(sizeof...(Args)) {}

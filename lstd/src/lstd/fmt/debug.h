@@ -22,11 +22,11 @@ struct debug_struct_helper {
 
     // I know we are against hidden freeing but having this destructor is actually really fine.
     // Things would be a whole more ugly and complicated without it.
-    ~debug_struct_helper() { Fields.release(); }
+    ~debug_struct_helper() { free(Fields); }
 
     template <typename T>
     debug_struct_helper *field(const string &name, const T &val) {
-        Fields.append({name, make_arg(val)});
+        append(Fields, {name, make_arg(val)});
         return this;
     }
 
@@ -46,11 +46,11 @@ struct debug_tuple_helper {
 
     // I know we are against hidden freeing but having this destructor is actually really fine.
     // Things would be a whole more ugly and complicated without it.
-    ~debug_tuple_helper() { Fields.release(); }
+    ~debug_tuple_helper() { free(Fields); }
 
     template <typename T>
     debug_tuple_helper *field(const T &val) {
-        Fields.append(make_arg(val));
+        append(Fields, make_arg(val));
         return this;
     }
 
@@ -66,14 +66,14 @@ struct debug_list_helper {
 
     // I know we are against hidden freeing but having this destructor is actually really fine.
     // Things would be a whole more ugly and complicated without it.
-    ~debug_list_helper() { Fields.release(); }
+    ~debug_list_helper() { free(Fields); }
 
     template <typename T>
     debug_list_helper *entries(const array<T> &val) {
         auto *p = val.Data;
         s64 n = val.Count;
         while (n) {
-            Fields.append(make_arg((T &&) *p));
+            append(Fields, make_arg((T &&) * p));
             ++p, --n;
         }
         return this;

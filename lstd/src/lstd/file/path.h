@@ -26,7 +26,7 @@ struct path {
     string Str;
     bool Reserved = false;
 
-    path() = default;
+    path() {}
     path(const string &path) : Str(path) {}
 
     void release() {

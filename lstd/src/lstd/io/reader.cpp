@@ -68,7 +68,7 @@ pair<array<char>, bool> reader::read_bytes_until(const array<char> &delims) {
     char *p = Buffer.Data;
     s64 n = Buffer.Count;
     while (n > 0) {
-        if (delims.find(*p) != -1) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        if (find(delims, *p) != -1) return {array<char>(Buffer.Data, p - Buffer.Data), true};
         ++p, --n;
     }
     return {array<char>(Buffer.Data, p - Buffer.Data), false};
@@ -102,7 +102,7 @@ pair<array<char>, bool> reader::read_bytes_while(const array<char> &anyOfThese) 
     char *p = Buffer.Data;
     s64 n = Buffer.Count;
     while (n > 0) {
-        if (anyOfThese.find(*p) == -1) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        if (find(anyOfThese, *p) == -1) return {array<char>(Buffer.Data, p - Buffer.Data), true};
         ++p, --n;
     }
     return {array<char>(Buffer.Data, p - Buffer.Data), false};

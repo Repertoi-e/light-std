@@ -22,7 +22,7 @@ struct handle {
 
     mutable path Path;
 
-    handle() = default;
+    handle() {}
     handle(const path &path) : Path(path) {}
     handle(const string &str) : handle(path(str)) {}
 
@@ -127,7 +127,7 @@ struct handle {
         path Path;
         s64 Index = 0;
 
-        iterator() = default;
+        iterator() {}
         iterator(const path &path) : Path(path) { read_next_entry(); }
 
         // I know we are against hidden freeing but having this destructor is actually really fine.

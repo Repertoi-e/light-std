@@ -12,7 +12,7 @@ struct bucket_array : non_copyable, non_movable, non_assignable {
     bucket BaseBucket;
     bucket *BucketHead = null;  // null means BaseBucket
 
-    bucket_array() = default;
+    bucket_array() {}
 
     void release() {
         auto *b = BucketHead->Next;  // The first bucket is on the stack

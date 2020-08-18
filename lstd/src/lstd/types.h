@@ -155,8 +155,6 @@ using lf64 = long double;
 #define LONG_F64_RADIX F64_RADIX              // exponent radix
 #define LONG_F64_TRUE_MIN F64_TRUE_MIN        // min positive value
 
-using time_t = s64;
-
 // Personal preference
 // I prefer null over nullptr but they are exactly the same
 constexpr auto null = nullptr;

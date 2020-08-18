@@ -14,16 +14,16 @@ void catalog::ensure_initted(file::path root) {
 
 void catalog::load(array<file::path> files, const delegate<void(const array<file::path> &)> &callback, bool watch, allocator alloc) {
     entity *e = Entities.add({}, alloc);
-    e->FilesAssociated.reserve(files.Count);
+    reserve(e->FilesAssociated, files.Count);
     e->Callback = callback;
     e->Watched = watch;
-    e->LastWriteTimes.reserve(files.Count);
+    reserve(e->LastWriteTimes, files.Count);
 
     For(files) {
         file::path path = Root;
         path.combine_with(it);
-        e->FilesAssociated.append(path);
-        e->LastWriteTimes.append(file::handle(path).last_modification_time());
+        append(e->FilesAssociated, path);
+        append(e->LastWriteTimes, file::handle(path).last_modification_time());
     }
     callback(e->FilesAssociated);
 }

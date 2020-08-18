@@ -72,7 +72,7 @@ constexpr auto type_constant_v = internal::type_constant<remove_cv_t<remove_refe
 //
 // template <>
 // struct formatter<my_type> {
-//     formatter() = default;
+//     formatter() {}
 //
 // 	void format(my_type val, format_context *f) {
 // 		...

@@ -16,7 +16,7 @@ TEST(global_function) {
 
     array<s32> result = signal.emit(20);
     assert_eq(result, to_stack_array<s32>(20, 21, 22, 23));
-    result.release();
+    free(result);
 
     signal.release();
 }

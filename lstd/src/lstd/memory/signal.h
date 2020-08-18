@@ -87,7 +87,7 @@ struct collector_array {
     result_t Array;
 
     bool operator()(Result r) {
-        Array.append(r);
+        append(Array, r);
         return true;
     }
 
@@ -133,21 +133,21 @@ struct signal<R(Args...), Collector> : public non_copyable {
 
     // Connects default callback if non-null.
     signal(const callback_t &cb = null) {
-        if (cb) Callbacks.append(cb);
+        if (cb) append(Callbacks, cb);
     }
 
     // We no longer use destructors for deallocation.
     // ~signal() { release(); }
 
     void release() {
-        Callbacks.release();
-        ToRemove.release();
+        free(Callbacks);
+        free(ToRemove);
     }
 
     // Add a new callback, returns a handler ID which you can use to remove the callback later
     template <typename... CBArgs>
     s64 connect(const callback_t &cb) {
-        if (cb) Callbacks.append(cb);
+        if (cb) append(Callbacks, cb);
         return Callbacks.Count - 1;
     }
 
@@ -161,7 +161,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
             }
             return false;
         } else {
-            ToRemove.append(index);
+            append(ToRemove, index);
             return false;  // We will remove the callback once we have finished emitting
         }
     }
@@ -183,7 +183,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
             assert(it <= Callbacks.Count);
             if (Callbacks[it]) Callbacks[it] = null;
         }
-        ToRemove.reset();
+        reset(ToRemove);
 
         if constexpr (!is_same_v<collector_result_t, void>) {
             return collector.result();

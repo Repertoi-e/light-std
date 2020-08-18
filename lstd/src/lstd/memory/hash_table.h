@@ -54,85 +54,10 @@ struct hash_table {
     key_t *Keys = null;
     value_t *Values = null;
 
-    hash_table() = default;
+    hash_table() {}
 
     // We don't use destructors for freeing memory anymore.
     // ~has_table() { release(); }
-
-    // Makes sure the hash table has reserved enough space for at least n elements.
-    // Note that it may reserve way more than required.
-    // Reserves space equal to the next power of two bigger than _size_, starting at _MINIMUM_SIZE_.
-    //
-    // Allocates a buffer if the hash table doesn't already point to reserved memory (using the Context's allocator).
-    // If _BLOCK_ALLOC_ is true it ensures that the allocated arrays are next to each other.
-    //
-    // You don't need to call this before using the hash table.
-    // The first time an element is added to the hash table, it reserves with _MINIMUM_SIZE_ and no specified alignment.
-    // You can call this before using the hash table to initialize the arrays with a custom alignment (if that's required).
-    //
-    // This is also called when adding an element and the hash table is more than half full (SlotsFilled * 2 >= Reserved).
-    // In that case the _target_ is exactly _SlotsFilled_.
-    // You may want to call this manually if you are adding a bunch of items and causing the hash table to reallocate a lot.
-    void reserve(s64 target, u32 alignment = 0) {
-        if (SlotsFilled + target < Reserved) return;
-        target = max<s64>(ceil_pow_of_2(target + SlotsFilled + 1), MINIMUM_SIZE);
-
-        auto allocateNewBlock = [&]() {
-            if constexpr (BLOCK_ALLOC) {
-                s64 padding1 = 0, padding2 = 0;
-                if (alignment != 0) {
-                    padding1 = (target * sizeof(u64)) % alignment;
-                    padding2 = (target * sizeof(value_t)) % alignment;
-                }
-
-                s64 sizeInBytes = target * (sizeof(u64) + sizeof(key_t) + sizeof(value_t)) + padding1 + padding2;
-
-                char *block = allocate_array_aligned(char, sizeInBytes, alignment);
-                Hashes = (u64 *) block;
-                Keys = (key_t *) (block + target * sizeof(u64) + padding1);
-                Values = (value_t *) (block + target * (sizeof(u64) + sizeof(key_t)) + padding2);
-                zero_memory(Hashes, target * sizeof(u64));
-            } else {
-                Hashes = allocate_array_aligned(u64, target, alignment, DO_INIT_0);
-                Keys = allocate_array_aligned(key_t, target, alignment);
-                Values = allocate_array_aligned(value_t, target, alignment);
-            }
-        };
-
-        if (Reserved) {
-            auto oldAlignment = ((allocation_header *) Hashes - 1)->Alignment;
-            if (alignment == 0) {
-                alignment = oldAlignment;
-            } else {
-                assert(alignment == oldAlignment && "Reserving with an alignment but the object already has arrays with a different alignment. Specify alignment 0 to automatically use the old one.");
-            }
-
-            auto *oldHashes = Hashes;
-            auto *oldKeys = Keys;
-            auto *oldValues = Values;
-            auto oldReserved = Reserved;
-
-            allocateNewBlock();
-
-            // Add the old items
-            For(range(oldReserved)) {
-                if (oldHashes[it] >= FIRST_VALID_HASH) add_prehashed(oldHashes[it], oldKeys[it], oldValues[it]);
-            }
-
-            free(oldHashes);
-
-            if constexpr (!BLOCK_ALLOC) {
-                free(oldKeys);
-                free(oldValues);
-            }
-        } else {
-            // It's impossible to have a view into a hash table (currently).
-            // So there were no previous elements.
-            assert(!Count);
-            allocateNewBlock();
-        }
-        Reserved = target;
-    }
 
     // Free any memory allocated by this object and reset count
     void release() {
@@ -229,7 +154,7 @@ struct hash_table {
     // Returns pointers to the added key and value.
     pair<key_t *, value_t *> add_prehashed(u64 hash, const key_t &key, const value_t &value) {
         // The + 1 here handles the case when the hash table size is 1 and you add the first item.
-        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(SlotsFilled);  // Make sure the hash table is never more than 50% full
+        if ((SlotsFilled + 1) * 2 >= Reserved) reserve(this, SlotsFilled);  // Make sure the hash table is never more than 50% full
 
         assert(SlotsFilled < Reserved);
 
@@ -317,6 +242,82 @@ struct hash_table {
         return add(key, value_t()).second;
     }
 };
+
+// Makes sure the hash table has reserved enough space for at least n elements.
+// Note that it may reserve way more than required.
+// Reserves space equal to the next power of two bigger than _size_, starting at _MINIMUM_SIZE_.
+//
+// Allocates a buffer if the hash table doesn't already point to reserved memory (using the Context's allocator).
+// If _BLOCK_ALLOC_ is true it ensures that the allocated arrays are next to each other.
+//
+// You don't need to call this before using the hash table.
+// The first time an element is added to the hash table, it reserves with _MINIMUM_SIZE_ and no specified alignment.
+// You can call this before using the hash table to initialize the arrays with a custom alignment (if that's required).
+//
+// This is also called when adding an element and the hash table is more than half full (SlotsFilled * 2 >= Reserved).
+// In that case the _target_ is exactly _SlotsFilled_.
+// You may want to call this manually if you are adding a bunch of items and causing the hash table to reallocate a lot.
+template <typename K, typename V, bool BlockAlloc>
+void reserve(hash_table<K, V, BlockAlloc> *table, s64 target, u32 alignment = 0) {
+    if (table->SlotsFilled + target < table->Reserved) return;
+    target = max<s64>(ceil_pow_of_2(target + table->SlotsFilled + 1), table->MINIMUM_SIZE);
+
+    auto allocateNewBlock = [&]() {
+        if constexpr (table->BLOCK_ALLOC) {
+            s64 padding1 = 0, padding2 = 0;
+            if (alignment != 0) {
+                padding1 = (target * sizeof(u64)) % alignment;
+                padding2 = (target * sizeof(V)) % alignment;
+            }
+
+            s64 sizeInBytes = target * (sizeof(u64) + sizeof(K) + sizeof(V)) + padding1 + padding2;
+
+            char *block = allocate_array_aligned(char, sizeInBytes, alignment);
+            table->Hashes = (u64 *) block;
+            table->Keys = (K *) (block + target * sizeof(u64) + padding1);
+            table->Values = (V *) (block + target * (sizeof(u64) + sizeof(K)) + padding2);
+            zero_memory(table->Hashes, target * sizeof(u64));
+        } else {
+            table->Hashes = allocate_array_aligned(u64, target, alignment, DO_INIT_0);
+            table->Keys = allocate_array_aligned(K, target, alignment);
+            table->Values = allocate_array_aligned(V, target, alignment);
+        }
+    };
+
+    if (table->Reserved) {
+        auto oldAlignment = ((allocation_header *) table->Hashes - 1)->Alignment;
+        if (alignment == 0) {
+            alignment = oldAlignment;
+        } else {
+            assert(alignment == oldAlignment && "Reserving with an alignment but the object already has arrays with a different alignment. Specify alignment 0 to automatically use the old one.");
+        }
+
+        auto *oldHashes = table->Hashes;
+        auto *oldKeys = table->Keys;
+        auto *oldValues = table->Values;
+        auto oldReserved = table->Reserved;
+
+        allocateNewBlock();
+
+        // Add the old items
+        For(range(oldReserved)) {
+            if (oldHashes[it] >= table->FIRST_VALID_HASH) table->add_prehashed(oldHashes[it], oldKeys[it], oldValues[it]);
+        }
+
+        free(oldHashes);
+
+        if constexpr (!table->BLOCK_ALLOC) {
+            free(oldKeys);
+            free(oldValues);
+        }
+    } else {
+        // It's impossible to have a view into a hash table (currently).
+        // So there were no previous elements.
+        assert(!table->Count);
+        allocateNewBlock();
+    }
+    table->Reserved = target;
+}
 
 template <typename Key, typename Value, bool Const>
 struct hash_table_iterator {

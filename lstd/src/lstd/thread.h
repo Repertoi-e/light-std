@@ -15,9 +15,6 @@ struct id {
     id() : Value(0){};
     id(u64 value) : Value(value){};
 
-    id(const id &) = default;
-    id &operator=(const id &) = default;
-
     friend bool operator==(const id &id1, const id &id2) { return (id1.Value == id2.Value); }
     friend bool operator!=(const id &id1, const id &id2) { return (id1.Value != id2.Value); }
     friend bool operator<=(const id &id1, const id &id2) { return (id1.Value <= id2.Value); }

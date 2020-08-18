@@ -25,7 +25,7 @@ struct string_builder {
     // or the user sets it manually.
     allocator Alloc;
 
-    string_builder() = default;
+    string_builder() {}
     // ~string_builder() { release(); }
 
     // Free any memory allocated by this object and reset cursor

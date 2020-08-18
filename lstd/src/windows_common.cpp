@@ -73,7 +73,7 @@ file_scope array<delegate<void()>> ExitFunctions;
 
 void exit_schedule(const delegate<void()> &function) {
     WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
-        ExitFunctions.append(function);
+        append(ExitFunctions, function);
     }
 }
 
@@ -301,13 +301,13 @@ void win32_common_init() {
         WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
     } else {
         WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
-            Argv.reserve(argc - 1);
+            reserve(Argv, argc - 1);
         }
 
         For(range(1, argc)) {
             auto *warg = argv[it];
 
-            auto *arg = Argv.append();
+            auto *arg = append(Argv);
             WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
                 arg->reserve(c_string_length(warg) * 2);  // @Bug c_string_length * 2 is not enough
             }

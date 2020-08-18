@@ -30,7 +30,7 @@ struct string {
         string *Parent;
         s64 Index;
 
-        code_point_ref() = default;
+        code_point_ref() {}
         code_point_ref(string *parent, s64 index) : Parent(parent), Index(index) {}
 
         code_point_ref &operator=(char32_t other);
@@ -48,7 +48,7 @@ struct string {
     // Non-zero if Data was allocated by string and needs to be freed
     s64 Reserved = 0;
 
-    constexpr string() = default;
+    constexpr string() {}
 
     // Create a string from a null terminated c-string.
     // Note that this constructor doesn't validate if the passed in string is valid utf8.
@@ -345,7 +345,7 @@ struct string {
         string_t *Parent;
         s64 Index;
 
-        string_iterator() = default;
+        string_iterator() {}
         string_iterator(string_t *parent, s64 index) : Parent(parent), Index(index) {}
 
         string_iterator &operator+=(s64 amount) { return Index += amount, *this; }

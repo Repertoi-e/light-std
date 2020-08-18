@@ -107,7 +107,7 @@ line<T, Dim>::line(const hyperplane<T, 2> &plane) {
 template <typename T>
 struct Triangle3D {
    public:
-    Triangle3D() = default;
+    Triangle3D() {}
     Triangle3D(const vec<T, 3, false> &a, const vec<T, 3, false> &b, const vec<T, 3, false> &c) : a(a), b(b), c(c) {}
     vec<T, 3, false> a, b, c;  // Corners of the traingle.
 };

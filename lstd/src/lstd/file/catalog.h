@@ -24,7 +24,7 @@ struct catalog : non_copyable, non_movable, non_assignable {
     file::path Root;
     bucket_array<entity, 256> Entities;
 
-    catalog() = default;
+    catalog() {}
     catalog(file::path root);
 
     void release() {

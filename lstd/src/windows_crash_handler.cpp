@@ -3,7 +3,7 @@
 #if OS == WINDOWS
 
 #include "lstd/io.h"
-#include "lstd/memory/table.h"
+#include "lstd/memory/hash_table.h"
 #include "lstd/os.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -69,7 +69,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
             call.LineNumber = lineInfo.LineNumber;
         }
 
-        callStack.append(call);
+        append(callStack, call);
     }
 
     auto desc = CodeDescs.find(exceptionCode).second;
@@ -83,7 +83,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         it.Name.release();
         it.File.release();
     }
-    callStack.release();
+    free(callStack);
 
     return EXCEPTION_EXECUTE_HANDLER;
 }

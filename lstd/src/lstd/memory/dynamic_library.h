@@ -8,7 +8,7 @@ LSTD_BEGIN_NAMESPACE
 struct dynamic_library : non_copyable, non_movable, non_assignable {
     void *Handle = null;
 
-    dynamic_library() = default;
+    dynamic_library() {}
     dynamic_library(const string &name) { load(name); }
 
     bool load(const string &name);

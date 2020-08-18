@@ -51,10 +51,10 @@ TEST(lock_free) {
     Count = 0;
 
     array<thread::thread> threads;
-    defer(threads.release());
+    defer(free(threads));
 
     For(range(100)) {
-        threads.append()->init_and_launch(thread_lock_free);
+        append(threads)->init_and_launch(thread_lock_free);
     }
 
     For(threads) {
@@ -78,10 +78,10 @@ TEST(mutex_lock) {
     Mutex.init();
 
     array<thread::thread> threads;
-    defer(threads.release());
+    defer(free(threads));
 
     For(range(100)) {
-        threads.append()->init_and_launch(thread_lock);
+        append(threads)->init_and_launch(thread_lock);
     }
 
     For(threads) {
@@ -105,9 +105,9 @@ TEST(fast_mutex_lock) {
     Count = 0;
 
     array<thread::thread> threads;
-    defer(threads.release());
+    defer(free(threads));
     For(range(100)) {
-        threads.append()->init_and_launch(thread_lock2);
+        append(threads)->init_and_launch(thread_lock2);
     }
 
     For(threads) {
@@ -146,9 +146,9 @@ TEST(condition_variable) {
 
     // These will decrease Count by 1 when they finish)
     array<thread::thread> threads;
-    threads.release();
+    free(threads);
     For(range(Count)) {
-        threads.append()->init_and_launch(thread_condition_notifier);
+        append(threads)->init_and_launch(thread_condition_notifier);
     }
 
     t1.wait();

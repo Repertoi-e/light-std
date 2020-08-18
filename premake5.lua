@@ -11,7 +11,7 @@ newoption {
 
 workspace "light-std"
     architecture "x64"
-    configurations { "Debug", "DebugTests", "Release", "Dist" }
+    configurations { "Debug", "Release", "Dist" }
 
 function common_settings()
     architecture "x64"
@@ -25,7 +25,8 @@ function common_settings()
     editandcontinue "Off"
 
     defines "_HAS_EXCEPTIONS=0"
-
+    exceptionhandling "Off"
+	
     includedirs { "%{prj.name}/src" }
 
     filter "system:windows"
@@ -55,10 +56,6 @@ function common_settings()
         entrypoint "main_no_crt"
 
     filter "configurations:Debug"
-        defines "DEBUG"
-        symbols "On"
-        buildoptions { "/FS" }
-	filter "configurations:DebugTests"
         defines "DEBUG"
         symbols "On"
         buildoptions { "/FS" }
@@ -97,8 +94,6 @@ project "lstd"
     pchheader "pch.h"
     pchsource "%{prj.name}/src/pch.cpp"
     forceincludes { "pch.h" }
-
-    exceptionhandling "Off"
     
     common_settings()
 
@@ -128,8 +123,6 @@ project "lstd-graphics"
     pchheader "pch.h"
     pchsource "%{prj.name}/src/pch.cpp"
     forceincludes { "pch.h" }
-
-    exceptionhandling "Off"
     
     common_settings()
 
@@ -151,16 +144,10 @@ project "test-suite"
     pchheader "test.h"
     pchsource "%{prj.name}/src/test.cpp"
     forceincludes { "test.h" }
-
-    exceptionhandling "Off"
     
     common_settings()
 
 project "benchmark"
-	-- Disable this project when building only test-suite
-	kind "Utility"
-	filter "not configurations:DebugTests"
-	
     location "%{prj.name}"
     kind "ConsoleApp"
 
@@ -174,8 +161,6 @@ project "benchmark"
 
     links { "lstd" }
     includedirs { "lstd/src", "%{prj.name}/vendor/benchmark/include" }
-
-    exceptionhandling "Off"
     
     common_settings()
     
@@ -185,10 +170,6 @@ project "benchmark"
         links { "benchmark" }
 
 project "game"
-	kind "Utility"
-	filter "not configurations:DebugTests"
-	
-    location "%{prj.name}"
     kind "ConsoleApp"
 
     targetdir("bin/" .. outputFolder .. "/%{prj.name}")
@@ -215,18 +196,12 @@ project "game"
     pchsource "game/src/game.cpp"
     forceincludes { "game.h" }
     
-    exceptionhandling ""
-    
     common_settings()
     
     filter "system:windows"
         links { "dxgi.lib", "d3d11.lib", "d3dcompiler.lib", "d3d11.lib", "d3d10.lib" }
 
 project "cars"
-	-- Disable this project when building only test-suite
-	kind "Utility"
-	filter "not configurations:DebugTests"
-
     location "game"
     kind "SharedLib"
 
@@ -247,8 +222,6 @@ project "cars"
     pchheader "game.h"
     pchsource "game/src/game.cpp"
     forceincludes { "game.h" }
-
-    exceptionhandling "Off"
     
     common_settings()
 
@@ -300,10 +273,6 @@ if (pythonPath == "" or pythonLib == "") and not _OPTIONS["python"] then
 end
 
 project "physics"
-	-- Disable this project when building only test-suite
-	kind "Utility"
-	filter "not configurations:DebugTests"
-	
     location "game"
     kind "SharedLib"
 
@@ -344,10 +313,6 @@ project "physics"
 
 -- This is the python module used in physics
 project "lstd-python-graphics"
-	-- Disable this project when building only test-suite
-	kind "Utility"
-	filter "not configurations:DebugTests"
-	
     location "game"
     kind "SharedLib"
     
@@ -374,10 +339,6 @@ project "lstd-python-graphics"
 
 
 project "bootloader"
-	-- Disable this project when building only test-suite
-	kind "Utility"
-	filter "not configurations:DebugTests"
-	
     location "os/bootloader"
     kind "ConsoleApp"
 
@@ -403,9 +364,9 @@ project "bootloader"
     includedirs { "os/%{prj.name}/src/vendor/Uefi" }
     includedirs { "os/%{prj.name}/src/vendor/Uefi/X64" }
 
-    exceptionhandling "Off"
     defines "_HAS_EXCEPTIONS=0"
-
+    exceptionhandling "Off"
+	
     editandcontinue "Off"
 
     rtti "Off"

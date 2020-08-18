@@ -42,7 +42,7 @@ enum class allocator_mode { ALLOCATE = 0,
 constexpr u64 DO_INIT_0 = 1ull << 63;
 
 // This is an option when allocating.
-// Allocations marked explicitly as leaks don't get reported when the program terminates and Context.CheckForLeaksAtTermination is true.
+// Allocations marked explicitly as leaks don't get reported with DEBUG_memory_info::report_leaks().
 // This is handled internally when passed, so allocator implementations needn't pay attention to it.
 constexpr u64 LEAK = 1ull << 62;
 
@@ -174,7 +174,7 @@ struct allocation_header {
     //   ...[..Alignment padding..][............Header............]............
     //      ^ The pointer returned by the allocator                ^ The resulting pointer (aligned)
     //
-    u16 Alignment;         // We allow a maximum of 65536 bit (8192 byte) alignment
+    u16 Alignment;         // We allow a maximum of 65535 bit (8191 byte) alignment
     u16 AlignmentPadding;  // Offset from the block that needs to be there in order for the result to be aligned
 
 #if defined DEBUG_MEMORY
@@ -452,6 +452,7 @@ void lstd_free_impl(T *block, u64 options = 0) {
 #define allocate_array_aligned(T, count, alignment, ...) lstd_allocate_impl<T>(count, alignment, __VA_ARGS__, __FILE__, __LINE__)
 
 #define reallocate_array(block, newCount, ...) lstd_reallocate_array_impl(block, newCount, __VA_ARGS__, __FILE__, __LINE__)
+
 #define free lstd_free_impl
 #else
 #define allocate(T, ...) lstd_allocate_impl<T>(1, 0, __VA_ARGS__)
@@ -460,6 +461,7 @@ void lstd_free_impl(T *block, u64 options = 0) {
 #define allocate_array_aligned(T, count, alignment, ...) lstd_allocate_impl<T>(count, alignment, __VA_ARGS__)
 
 #define reallocate_array(block, newCount, ...) lstd_reallocate_array_impl(block, newCount, __VA_ARGS__)
+
 #define free lstd_free_impl
 #endif
 

@@ -4,7 +4,7 @@
 #include <lstd/fmt.h>
 #include <lstd/io.h>
 #include <lstd/memory/array.h>
-#include <lstd/memory/table.h>
+#include <lstd/memory/hash_table.h>
 #include <lstd/os.h>
 
 // This is a helper function to shorten the name of test files.
@@ -66,7 +66,7 @@ struct asserts {
                 "                LHS : {!YELLOW}\"{}\"{!GRAY},\n"                                           \
                 "                RHS: {!YELLOW}\"{}\"{!}",                                                  \
                 get_short_file_name(__FILE__), __LINE__, u8## #x, op, u8## #y, LINE_NAME(a), LINE_NAME(b)); \
-            asserts::GlobalFailed.append(message);                                                          \
+            append(asserts::GlobalFailed, message);                                                         \
         }                                                                                                   \
     }
 
@@ -88,7 +88,7 @@ inline hash_table<string, array<test>> g_TestTable;
         _MACRO_CONCAT(test_, __LINE__)                                  \
         ##_##name() {                                                   \
             string shortFile = get_short_file_name(__FILE__);           \
-            g_TestTable[shortFile]->append({#name, &run});              \
+            append(*g_TestTable[shortFile], {#name, &run});             \
         }                                                               \
         static void run();                                              \
     };                                                                  \

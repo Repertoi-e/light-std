@@ -48,8 +48,6 @@ struct stack_array {
     constexpr data_t &get(s64 index) { return Data[translate_index(index, Count)]; }
     constexpr const data_t &get(s64 index) const { return Data[translate_index(index, Count)]; }
 
-    constexpr void sort() { quicksort(Data, Data + Count); }
-
     // Compares this array to _arr_ and returns the index of the first element that is different.
     // If the arrays are equal, the returned value is -1.
     constexpr s32 compare(const stack_array &arr) const {

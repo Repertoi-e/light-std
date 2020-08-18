@@ -1,66 +1,65 @@
 #include "../test.h"
 
 TEST(stack_array) {
-    stack_array<s32, 5> aa = {0, 1, 2, 3, 4};
-
-    auto a = (array<s32>) aa;
+    auto stackArray = to_stack_array(0, 1, 2, 3, 4);
+    array<s32> a = stackArray;
 
     For(range(a.Count)) { assert_eq(a[it], it); }
 
-    assert_true(a.has(3));
-    assert_true(a.has(4));
-    assert_true(a.has(0));
+    assert_true(has(a, 3));
+    assert_true(has(a, 4));
+    assert_true(has(a, 0));
 
-    assert_false(a.has(10));
-    assert_false(a.has(20));
+    assert_false(has(a, 10));
+    assert_false(has(a, 20));
 
-    assert_eq(a.find_reverse(3), 3);
-    assert_eq(a.find_reverse(4), 4);
-    assert_eq(a.find_reverse(0), 0);
-    assert_eq(a.find(3), 3);
-    assert_eq(a.find(4), 4);
-    assert_eq(a.find(0), 0);
+    assert_eq(find(a, 3, -1, true), 3);
+    assert_eq(find(a, 4, -1, true), 4);
+    assert_eq(find(a, 0, -1, true), 0);
+    assert_eq(find(a, 3), 3);
+    assert_eq(find(a, 4), 4);
+    assert_eq(find(a, 0), 0);
 }
 
 TEST(array) {
     array<s64> a;
-    defer(a.release());
+    defer(free(a));
 
-    For(range(10)) { a.append(it); }
+    For(range(10)) { append(a, it); }
     For(range(10)) { assert_eq(a[it], it); }
 
-    a.insert(3, -3);
+    insert(a, 3, -3);
     assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
 
-    a.remove(4);
+    remove(a, 4);
     assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
     s64 count = a.Count;
-    For(range(count)) { a.remove(-1); }
+    For(range(count)) { remove(a, -1); }
     assert_eq(a.Count, 0);
 
-    For(range(10)) { a.insert(0, it); }
+    For(range(10)) { insert(a, 0, it); }
     assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 
-    a.remove(-1);
+    remove(a, -1);
     assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1));
 
-    a.remove(0);
+    remove(a, 0);
     assert_eq(a, to_stack_array<s64>(8, 7, 6, 5, 4, 3, 2, 1));
 
-    s64 f = a.find(9);
+    s64 f = find(a, 9);
     assert_eq(f, -1);
-    f = a.find(8);
+    f = find(a, 8);
     assert_eq(f, 0);
-    f = a.find(1);
+    f = find(a, 1);
     assert_eq(f, 7);
-    f = a.find(3);
+    f = find(a, 3);
     assert_eq(f, 5);
-    f = a.find(5);
+    f = find(a, 5);
     assert_eq(f, 3);
 }
 
-TEST(table) {
+TEST(hash_table) {
     hash_table<string, s32> t;
     defer(t.release());
 
@@ -96,7 +95,7 @@ TEST(table) {
     }
 }
 
-TEST(table_clone) {
+TEST(hash_table_clone) {
     hash_table<string, s32> t;
     defer(t.release());
 
@@ -124,12 +123,12 @@ TEST(table_clone) {
     assert_eq(copy.Count, 4);
 }
 
-TEST(table_alignment) {
+TEST(hash_table_alignment) {
     // This test uses SIMD types which require a 16 byte alignment or otherwise crash.
     // It tests if the block allocation in the table handles alignment of key and value arrays.
 
     hash_table<v2, v3> simdTable;
-    simdTable.reserve(0, 16);
+    reserve(&simdTable, 0, 16);
 
     simdTable.add({1, 2}, {1, 2, 3});
     simdTable.add({1, 3}, {4, 7, 9});
