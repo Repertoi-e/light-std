@@ -1,5 +1,6 @@
 #pragma once
 
+#include "delegate.h"
 #include "string.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -26,38 +27,30 @@ struct string_builder {
     allocator Alloc;
 
     string_builder() {}
-    // ~string_builder() { release(); }
-
-    // Free any memory allocated by this object and reset cursor
-    void release();
-
-    // Don't free the buffers, just reset cursor
-    void reset();
-
-    // Append a code point to the builder
-    void append(char32_t codePoint);
-
-    // Append a string to the builder
-    void append(const string &str);
-
-    // Append _size_ bytes from _data_ to the builder
-    void append_pointer_and_size(const char *data, s64 size);
-
-    // Execute f on every buffer where f should have the signature: void f(string)
-    template <typename Lambda>
-    void traverse(Lambda f) const {
-        const buffer *buffer = &BaseBuffer;
-        while (buffer) {
-            f(string(buffer->Data, buffer->Occupied));
-            buffer = buffer->Next;
-        }
-    }
-
-    buffer *get_current_buffer();
-
-    // Merges all buffers in one string. The caller is responsible for freeing.
-    string combine() const;
+    // ~string_builder() { free(); }
 };
+
+// Don't free the buffers, just reset cursor
+void reset(string_builder &builder);
+
+// Free any memory allocated by this object and reset cursor
+void free(string_builder &builder);
+
+// Append a code point to the builder
+void append(string_builder &builder, char32_t codePoint);
+
+// Append a string to the builder
+void append_string(string_builder &builder, const string &str);
+
+// Append _size_ bytes from _data_ to the builder
+void append_pointer_and_size(string_builder &builder, const char *data, s64 size);
+
+string_builder::buffer *get_current_buffer(string_builder &builder);
+
+// Merges all buffers in one string. The caller is responsible for freeing.
+[[nodiscard]] string combine(const string_builder &builder);
+
+void traverse(const string_builder &builder, const delegate<void(const string &)> &func);
 
 string_builder *clone(string_builder *dest, const string_builder &src);
 

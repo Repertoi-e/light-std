@@ -433,4 +433,11 @@ constexpr bool operator>=(const char *one, const string &other) { return !(one <
 // Returns just _dest_.
 string *clone(string *dest, const string &src);
 
+// Hash for strings
+inline u64 get_hash(const string &value) {
+    u64 hash = 5381;
+    For(value) hash = ((hash << 5) + hash) + it;
+    return hash;
+}
+
 LSTD_END_NAMESPACE

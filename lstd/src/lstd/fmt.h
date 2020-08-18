@@ -199,7 +199,9 @@ template <typename... Args>
 [[nodiscard]] string sprint(const string &fmtString, Args &&... arguments) {
     auto writer = io::string_builder_writer();
     to_writer(&writer, fmtString, ((Args &&) arguments)...);
-    return writer.Builder.combine();
+    string combined = combine(writer.Builder);
+    free(writer.Buffer);  // @TODO: Writer rework, free the writer
+    return combined;
 }
 
 // Formats to Context.Log

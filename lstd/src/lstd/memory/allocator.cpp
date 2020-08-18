@@ -445,6 +445,20 @@ void general_free(void *ptr, u64 options) {
 }
 
 void free_all(allocator alloc, u64 options) {
+#if defined DEBUG_MEMORY
+    // Remove allocations made with the allocator from the the linked list so we don't corrupt the heap
+    WITH_ALLOC(Context.Temp) {
+        array<allocation_header *> allocations;
+
+        auto *h = DEBUG_memory_info::Head;
+        while (h) {
+            if (h->Alloc == alloc) append(allocations, h);
+            h = h->DEBUG_Next;
+        }
+        For(allocations) DEBUG_memory_info::unlink_header(it);
+    }
+#endif
+
     options |= Context.AllocOptions;
 
     auto result = alloc.Function(allocator_mode::FREE_ALL, alloc.Context, 0, 0, 0, &options);

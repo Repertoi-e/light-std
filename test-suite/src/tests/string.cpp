@@ -216,14 +216,14 @@ TEST(count) {
 
 TEST(builder) {
     string_builder builder;
-    builder.append("Hello");
-    builder.append_pointer_and_size(",THIS IS GARBAGE", 1);
-    builder.append(string(" world"));
-    builder.append('!');
-    defer(builder.release());
+    append_string(builder, "Hello");
+    append_pointer_and_size(builder, ",THIS IS GARBAGE", 1);
+    append_string(builder, string(" world"));
+    append(builder, '!');
+    defer(free(builder));
 
     string result;
-    result = builder.combine();
+    result = combine(builder);
     defer(result.release());
     assert_eq(result, "Hello, world!");
 }

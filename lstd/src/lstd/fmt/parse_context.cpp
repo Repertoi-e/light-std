@@ -438,7 +438,7 @@ void parse_context::default_error_handler(const string &message, const string &f
 #if defined NDEBUG
     Context.PanicHandler(output.Builder.combine(), {});
 #else
-    fmt::print("{}", output.Builder.combine());
+    fmt::print("{}", combine(output.Builder));
 
     // More info has been printed to the console but here's the error message:
     auto errorMessage = message;

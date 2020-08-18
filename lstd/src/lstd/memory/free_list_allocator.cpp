@@ -225,23 +225,6 @@ void *free_list_allocator(allocator_mode mode, void *context, s64 size, void *ol
             return null;
         }
         case allocator_mode::FREE_ALL: {
-#if defined DEBUG_MEMORY
-            // Remove our allocations from the linked list
-            WITH_ALLOC(Malloc) {
-                array<allocation_header *> toUnlink;
-                defer(free(toUnlink));
-
-                auto *h = DEBUG_memory_info::Head;
-                while (h) {
-                    if (h->Alloc == allocator(free_list_allocator, data)) {
-                        append(toUnlink, h);
-                    }
-                    h = h->DEBUG_Next;
-                }
-                For(toUnlink) DEBUG_memory_info::unlink_header(it);
-            }
-#endif
-
             data->Used = data->PeakUsed = 0;
 
             auto *firstNode = (node *) data->Storage;

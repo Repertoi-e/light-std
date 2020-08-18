@@ -13,7 +13,7 @@ void catalog::ensure_initted(file::path root) {
 }
 
 void catalog::load(array<file::path> files, const delegate<void(const array<file::path> &)> &callback, bool watch, allocator alloc) {
-    entity *e = Entities.add({}, alloc);
+    entity *e = append(Entities, {}, alloc);
     reserve(e->FilesAssociated, files.Count);
     e->Callback = callback;
     e->Watched = watch;

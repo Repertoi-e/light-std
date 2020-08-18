@@ -29,7 +29,7 @@ struct catalog : non_copyable, non_movable, non_assignable {
 
     void release() {
         Root.release();
-        Entities.release();
+        free(Entities);
     }
 
     void ensure_initted(file::path root);

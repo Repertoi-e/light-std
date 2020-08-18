@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../internal/common.h"
+#include "array_like.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -52,9 +53,9 @@ struct delegate<R(A...)> {
     using default_function = void (default_class::*)(void);        // Unknown default function (undefined)
     using default_type = target<default_class, default_function>;  // Default target type
 
-    static constexpr s64 TARGET_SIZE = sizeof(default_type);  // Size of default target data
-
-    alignas(default_type) char Storage[TARGET_SIZE]{};
+    // @CodeReusability Make this object array-like so we can use compare, compare_lexicographically, ==, !=, < operators, etc.. for free!
+    static constexpr s64 Count = sizeof(default_type);  
+    alignas(default_type) char Data[Count]{};
 
     using stub_t = R (*)(void *, A &&...);
     alignas(stub_t) stub_t Invoker = null;
@@ -86,7 +87,7 @@ struct delegate<R(A...)> {
     delegate(R (*function)(A...)) {
         using Signature = decltype(function);
 
-        auto storage = (target<nullptr_t, Signature> *) &Storage[0];
+        auto storage = (target<nullptr_t, Signature> *) &Data[0];
         storage->InstancePtr = null;
         storage->FunctionPtr = function;
         Invoker = &delegate::invoke<null, Signature>;
@@ -95,7 +96,7 @@ struct delegate<R(A...)> {
     // Construct delegate with method
     template <typename Class, typename Signature>
     delegate(Class *object, Signature method) {
-        auto storage = (target<Class, Signature> *) &Storage[0];
+        auto storage = (target<Class, Signature> *) &Data[0];
         storage->InstancePtr = object;
         storage->FunctionPtr = method;
         Invoker = &delegate::invoke<Class, Signature>;
@@ -104,7 +105,7 @@ struct delegate<R(A...)> {
     // Construct delegate with function object (functor) / lambda
     template <typename Class>
     delegate(Class *functor) {
-        auto storage = (target<Class, nullptr_t> *) &Storage[0];
+        auto storage = (target<Class, nullptr_t> *) &Data[0];
         storage->InstancePtr = functor;
         storage->FunctionPtr = null;
         Invoker = &delegate::invoke<Class, null>;
@@ -112,42 +113,9 @@ struct delegate<R(A...)> {
 
     // Assign null pointer
     delegate &operator=(nullptr_t) {
-        zero_memory(Storage, TARGET_SIZE);
+        zero_memory(Data, Count);
         Invoker = null;
         return *this;
-    }
-
-    // Compare storages
-    s32 compare_lexicographically(void *storage) const {
-        For(range(TARGET_SIZE)) {
-            if (Storage[it] < storage[it]) {
-                return -1;
-            } else if (Storage[it] > storage[it]) {
-                return 1;
-            }
-        }
-        return 0;
-    }
-
-    bool operator==(const delegate &rhs) const { return compare_lexicographically(&rhs.Storage[0]) == 0; }
-    bool operator!=(const delegate &rhs) const { return compare_lexicographically(&rhs.Storage[0]) != 0; }
-
-    bool operator<(const delegate &rhs) const {
-        return compare_lexicographically(&rhs.Storage[0]) == -1;
-    }
-
-    bool operator<=(const delegate &rhs) const {
-        auto result = compare_lexicographically(&rhs.Storage[0]);
-        return result == -1 || result == 0;
-    }
-
-    bool operator>(const delegate &rhs) const {
-        return compare_lexicographically(&rhs.Storage[0]) == 1;
-    }
-
-    bool operator>=(const delegate &rhs) const {
-        auto result = compare_lexicographically(&rhs.Storage[0]);
-        return result == 1 || result == 0;
     }
 
     bool operator==(nullptr_t) const { return !Invoker; }
@@ -157,7 +125,7 @@ struct delegate<R(A...)> {
 
     // Call delegate
     R operator()(A... args) const {
-        return (*Invoker)((void *) &Storage[0], (A &&)(args)...);
+        return (*Invoker)((void *) &Data[0], (A &&)(args)...);
     }
 };
 

@@ -227,22 +227,9 @@ struct DEBUG_memory_info {
     // @TODO: @Speed: Lock-free linked list!
     inline static thread::mutex Mutex;
 
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    //   DEBUG_MEMORY
-    // Use _DEBUG_unlink_header_ in your allocator implementation to make sure you don't corrupt the heap
-    // (e.g. by freeing the entire allocator, but the headers still being in the linked list).
-    // An example on how to use this properly in FREE_ALL is in temporary_allocator.cpp.
-    // Note that it's not required for your allocator to implement FREE_ALL at all.
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    // Removes a header from the list .
-    static void unlink_header(allocation_header *header);
-
-    // This adds the header to the front - making it the new head.
-    static void add_header(allocation_header *header);
-
-    // Replaces _oldHeader_ with _newHeader_ in the list.
-    static void swap_header(allocation_header *oldHeader, allocation_header *newHeader);
+    static void unlink_header(allocation_header *header);                                 // Removes a header from the list
+    static void add_header(allocation_header *header);                                    // This adds the header to the front - making it the new head
+    static void swap_header(allocation_header *oldHeader, allocation_header *newHeader);  // Replaces _oldHeader_ with _newHeader_ in the list
 
     // Assuming that the heap is not corrupted, this reports any unfreed allocations.
     // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
@@ -270,11 +257,6 @@ void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, const char *fi
 // Calling free on a null pointer doesn't do anything.
 void general_free(void *ptr, u64 options = 0);
 
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//   DEBUG_MEMORY
-//     See the comment above DEBUG_unlink_header.
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//
 // Note: Not all allocators must support this.
 void free_all(allocator alloc, u64 options = 0);
 

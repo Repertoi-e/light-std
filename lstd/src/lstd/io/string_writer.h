@@ -31,7 +31,7 @@ struct string_builder_writer : writer {
 
 inline void string_builder_writer_write(writer *w, const char *data, s64 count) {
     auto *sw = (string_builder_writer *) w;
-    sw->Builder.append_pointer_and_size(data, count);
+    append_pointer_and_size(sw->Builder, data, count);
 }
 
 }  // namespace io

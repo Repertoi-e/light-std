@@ -1,11 +1,13 @@
 #pragma once
 
-#include "../types.h"
+#include "array_like.h"
 
 LSTD_BEGIN_NAMESPACE
 
 // Used for generating unique ids
 struct guid {
+    // @CodeReusability Make this object array-like so we can use compare, compare_lexicographically, ==, !=, < operators, etc.. for free!
+    static constexpr s64 Count = 16;
     char Data[16]{};
 
     constexpr guid() {}  // By default the guid is zero
@@ -20,13 +22,15 @@ struct guid {
         copy_memory(Data, data.Data, 16);
     }
 
-    bool is_zero() { return guid() == *this; }
-
-    s64 compare(const guid &other) const;
-
-    bool operator==(const guid &other) const { return compare(other) == -1; }
-    bool operator!=(const guid &other) const { return !(*this == other); }
+    operator bool() { return guid() != *this; }
 };
+
+// Hash for guid
+inline u64 get_hash(guid value) {
+    u64 hash = 5381;
+    For(value.Data) hash = ((hash << 5) + hash) + it;
+    return hash;
+}
 
 // Guaranteed to generate a unique id each time (time-based)
 guid guid_new();

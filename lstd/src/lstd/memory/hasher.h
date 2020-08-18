@@ -12,6 +12,7 @@ LSTD_BEGIN_NAMESPACE
 //    h.add(&value);
 //    ...
 //    u64 result = h.get_hash();
+// @Speed: Not so fast atm..
 
 struct hasher {
     // Temporarily store up to 31 bytes between multiple add() calls
@@ -25,27 +26,28 @@ struct hasher {
 
     u64 State[4]{};
 
-    constexpr hasher(u64 seed) {
+    hasher(u64 seed) {
         State[0] = seed + 11400714785074694791ULL + 14029467366897019727ULL;
         State[1] = seed + 14029467366897019727ULL;
         State[2] = seed;
         State[3] = seed - 11400714785074694791ULL;
     }
 
-    constexpr bool add(const char *data, s64 size) {
+    // @Speed: SIMD this shit
+    bool add(const char *data, s64 size) {
         if (!data) return false;
 
         ByteLength += size;
 
         if (BufferPtr + size < BufferEnd) {
-            const_copy_memory(BufferPtr, data, size);
+            copy_memory(BufferPtr, data, size);
             BufferPtr += size;
             return true;
         }
 
         if (BufferPtr != Buffer) {
             s64 available = BufferEnd - BufferPtr;
-            const_copy_memory(BufferPtr, data, available);
+            copy_memory(BufferPtr, data, available);
             data += available;
 
             process(Buffer);
@@ -62,7 +64,7 @@ struct hasher {
         return true;
     }
 
-    constexpr u64 hash() {
+    u64 hash() {
         u64 result = 0;
         if (ByteLength >= MAX_BUFFER_SIZE) {
             result += rotate_left_64(State[0], 1);
@@ -120,7 +122,7 @@ struct hasher {
     }
 
    private:
-    constexpr void process(const void *data) {
+    void process(const void *data) {
         auto *block = (const u64 *) data;
         State[0] = rotate_left_64(State[0] + block[0] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
         State[1] = rotate_left_64(State[1] + block[1] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;

@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../internal/common.h"
-#include "guid.h"
 #include "hasher.h"
-#include "string.h"
 
 //
 // !!! THESE ARE NOT SUPPOSED TO BE CRYPTOGRAPHICALLY SECURE !!!
@@ -21,7 +18,7 @@ LSTD_BEGIN_NAMESPACE
 
 // Floats are handled in the general hash function here.
 // The output depends on the endianness of the machine,
-// because we are reinterpreting the float's bits as unsinged numbers
+// because we are reinterpreting the float's bits as unsigned numbers
 template <typename T>
 constexpr u64 get_hash(const T &value) {
     hasher h(0);
@@ -63,18 +60,6 @@ TRIVIAL_HASH(bool);
 
 #undef TRIVIAL_HASH
 
-// Hash for strings
-inline u64 get_hash(const string &value) {
-    u64 hash = 5381;
-    For(value) hash = ((hash << 5) + hash) + it;
-    return hash;
-}
-
-// Hash for guid
-inline u64 get_hash(guid value) {
-    u64 hash = 5381;
-    For(value.Data) hash = ((hash << 5) + hash) + it;
-    return hash;
-}
+// @TODO: Have a macro that declares types with HASH_AS_ARRAY_LIKE which uses the hasher automatially. For now we don't even hash arrays.
 
 LSTD_END_NAMESPACE

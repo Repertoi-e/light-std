@@ -84,9 +84,9 @@ s32 main() {
 
     // auto *allocData = allocate(free_list_allocator_data, Malloc);
     // allocData->init(10_MiB, free_list_allocator_data::Find_First);
-    // WITH_CONTEXT_VAR(Alloc, allocator(free_list_allocator, allocData)) {
+    // WITH_ALLOC(allocator(free_list_allocator, allocData)) {
 
-    WITH_CONTEXT_VAR(Alloc, Context.Temp) {
+    WITH_ALLOC(Context.Temp) {
         while (true) {
             run_tests();
             free_all(Context.Temp);
