@@ -72,7 +72,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         append(callStack, call);
     }
 
-    auto desc = CodeDescs.find(exceptionCode).second;
+    auto desc = find(CodeDescs, exceptionCode).second;
 
     string message = fmt::sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
     defer(message.release());
@@ -89,7 +89,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
 }
 
 void release_code_descs() {
-    CodeDescs.release();
+    free(CodeDescs);
 }
 
 void win32_crash_handler_init() {
@@ -108,29 +108,29 @@ void win32_crash_handler_init() {
     exit_schedule(release_code_descs);
 
 #define CODE_DESCR(code) code, #code
-    CodeDescs.add(CODE_DESCR(EXCEPTION_ACCESS_VIOLATION));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_DATATYPE_MISALIGNMENT));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_BREAKPOINT));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_SINGLE_STEP));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_ARRAY_BOUNDS_EXCEEDED));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_FLT_DENORMAL_OPERAND));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_FLT_DIVIDE_BY_ZERO));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_FLT_INEXACT_RESULT));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_FLT_INVALID_OPERATION));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_FLT_OVERFLOW));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_FLT_STACK_CHECK));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_FLT_UNDERFLOW));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_INT_DIVIDE_BY_ZERO));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_INT_OVERFLOW));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_PRIV_INSTRUCTION));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_IN_PAGE_ERROR));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_ILLEGAL_INSTRUCTION));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_NONCONTINUABLE_EXCEPTION));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_STACK_OVERFLOW));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_INVALID_DISPOSITION));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_GUARD_PAGE));
-    CodeDescs.add(CODE_DESCR(EXCEPTION_INVALID_HANDLE));
-    // CodeDescs.add(CODE_DESCR(EXCEPTION_POSSIBLE_DEADLOCK));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_ACCESS_VIOLATION));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_DATATYPE_MISALIGNMENT));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_BREAKPOINT));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_SINGLE_STEP));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_ARRAY_BOUNDS_EXCEEDED));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_FLT_DENORMAL_OPERAND));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_FLT_DIVIDE_BY_ZERO));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_FLT_INEXACT_RESULT));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_FLT_INVALID_OPERATION));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_FLT_OVERFLOW));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_FLT_STACK_CHECK));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_FLT_UNDERFLOW));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_INT_DIVIDE_BY_ZERO));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_INT_OVERFLOW));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_PRIV_INSTRUCTION));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_IN_PAGE_ERROR));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_ILLEGAL_INSTRUCTION));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_NONCONTINUABLE_EXCEPTION));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_STACK_OVERFLOW));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_INVALID_DISPOSITION));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_GUARD_PAGE));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_INVALID_HANDLE));
+    // add(CodeDescs, CODE_DESCR(EXCEPTION_POSSIBLE_DEADLOCK));
 
     SetUnhandledExceptionFilter(exception_filter);
 }

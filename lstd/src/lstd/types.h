@@ -283,6 +283,11 @@ struct enable_if<true, T> {
 template <bool B, typename T = void>
 using enable_if_t = typename enable_if<B, T>::type;
 
+// Extension..
+// Put it at the end of function parameters.
+// @Cleanup: When C++20 concepts arrive..
+#define enable_function_if(condition) enable_if_t<condition> * = 0
+
 // template <bool B, typename T = void> struct disable_if;
 template <bool B, typename T = void>
 struct disable_if {};

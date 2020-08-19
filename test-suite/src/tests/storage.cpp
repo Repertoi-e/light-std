@@ -61,23 +61,23 @@ TEST(array) {
 
 TEST(hash_table) {
     hash_table<string, s32> t;
-    defer(t.release());
+    defer(free(t));
 
-    t.set("1", 1);
-    t.set("4", 4);
-    t.set("9", 10101);
+    set(t, "1", 1);
+    set(t, "4", 4);
+    set(t, "9", 10101);
 
-    assert((void *) t.find("1").second);
-    assert_eq(*t.find("1").second, 1);
-    assert((void *) t.find("4").second);
-    assert_eq(*t.find("4").second, 4);
-    assert((void *) t.find("9").second);
-    assert_eq(*t.find("9").second, 10101);
+    assert((void *) find(t, "1").second);
+    assert_eq(*find(t, "1").second, 1);
+    assert((void *) find(t, "4").second);
+    assert_eq(*find(t, "4").second, 4);
+    assert((void *) find(t, "9").second);
+    assert_eq(*find(t, "9").second, 10101);
 
-    t.set("9", 20202);
-    assert((void *) t.find("9").second);
-    assert_eq(*t.find("9").second, 20202);
-    t.set("9", 9);
+    set(t, "9", 20202);
+    assert((void *) find(t, "9").second);
+    assert_eq(*find(t, "9").second, 20202);
+    set(t, "9", 9);
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
@@ -97,17 +97,17 @@ TEST(hash_table) {
 
 TEST(hash_table_clone) {
     hash_table<string, s32> t;
-    defer(t.release());
+    defer(free(t));
 
-    t.set("1", 1);
-    t.set("4", 4);
-    t.set("9", 9);
+    set(t, "1", 1);
+    set(t, "4", 4);
+    set(t, "9", 9);
 
     hash_table<string, s32> copy;
     clone(&copy, t);
-    defer(copy.release());
+    defer(free(copy));
 
-    copy.set("11", 20);
+    set(copy, "11", 20);
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
@@ -128,8 +128,8 @@ TEST(hash_table_alignment) {
     // It tests if the block allocation in the table handles alignment of key and value arrays.
 
     hash_table<v2, v3> simdTable;
-    reserve(&simdTable, 0, 16);
+    reserve(simdTable, 0, 16);
 
-    simdTable.add({1, 2}, {1, 2, 3});
-    simdTable.add({1, 3}, {4, 7, 9});
+    add(simdTable, {1, 2}, {1, 2, 3});
+    add(simdTable, {1, 3}, {4, 7, 9});
 }

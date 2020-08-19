@@ -131,7 +131,7 @@ constexpr bool has_space_for(const array<T> &arr, s64 n) { return (arr.Count + n
 
 // Sets the _index_'th element in the array (also calls the destructor on the old one)
 template <typename T>
-void *set(array<T> &arr, s64 index, const T &element) {
+void *set(array<T> &arr, s64 index, const get_type_of_data_t<array<T>> &element) {
     auto i = translate_index(index, arr.Count);
     arr.Data[i].~T();
     arr.Data[i] = element;

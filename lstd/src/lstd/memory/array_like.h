@@ -33,12 +33,7 @@ constexpr bool is_array_like_v = is_array_like<T>::value;
 
 // This returns the type of the _Data_ member of an array-like object
 template <typename ArrayT>
-struct get_type_of_data {
-    using type = remove_pointer_t<decltype(ArrayT::Data)>;
-};
-
-template <typename ArrayT>
-using get_type_of_data_t = typename get_type_of_data<ArrayT>::type;
+using get_type_of_data_t = remove_pointer_t<decltype(ArrayT::Data)>;
 
 //
 // Find functions for arrays:
@@ -177,7 +172,7 @@ constexpr enable_if_t<is_array_like_v<ArrayT> && is_array_like_v<ArrayU>, s32> c
 // Comparison operators for arrays:
 //
 
-// @TODO: C++20 space ship operator to reduce this bloat..
+// @Cleanup: C++20 space ship operator to reduce this bloat..
 
 template <typename ArrayT, typename ArrayU>
 constexpr enable_if_t<is_array_like_v<ArrayT> && is_array_like_v<ArrayU>, bool> operator==(const ArrayT &arr1, const ArrayU &arr2) {

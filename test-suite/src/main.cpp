@@ -101,11 +101,11 @@ s32 main() {
 #endif
 
 #if defined DEBUG_MEMORY
-    // These get reported as leaks otherwise and we were looking for actual problems...
+    // Otherwise these get reported as leaks and we were looking for actual problems...
     for (auto [k, v] : g_TestTable) {
         free(*v);
     }
-    g_TestTable.release();
+    free(g_TestTable);
     release_temporary_allocator();
 #endif
 
