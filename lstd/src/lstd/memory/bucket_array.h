@@ -6,7 +6,7 @@ template <typename T, s64 ElementsPerBucket = 128>
 struct bucket_array : non_copyable, non_movable, non_assignable {
     struct bucket {
         T *Elements = null;
-        s64 Count = 0, Reserved = 0;
+        s64 Count = 0, Allocated = 0;
         bucket *Next = null;
     };
     bucket BaseBucket;
@@ -49,7 +49,7 @@ T *append(bucket_array<T, ElementsPerBucket> &arr, const T &element, allocator a
 
     auto *b = get_bucket_head(arr), *last = b;
     while (b) {
-        if (b->Reserved != b->Count) {
+        if (b->Allocated != b->Count) {
             clone(b->Elements + b->Count, element);
             ++b->Count;
             return b->Elements + b->Count - 1;
@@ -60,7 +60,7 @@ T *append(bucket_array<T, ElementsPerBucket> &arr, const T &element, allocator a
 
     b = last->Next = allocate(remove_pointer_t<decltype(b)>, alloc);
     b->Elements = allocate_array(T, ElementsPerBucket, alloc);
-    b->Reserved = ElementsPerBucket;
+    b->Allocated = ElementsPerBucket;
     clone(b->Elements, element);
     b->Count = 1;
     return b->Elements;

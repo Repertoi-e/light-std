@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 struct free_list_allocator_data : non_copyable, non_movable, non_assignable {
     void *Storage = null;
-    s64 Reserved = 0;
+    s64 Allocated = 0;
 
     struct node {
         s64 BlockSize = 0;

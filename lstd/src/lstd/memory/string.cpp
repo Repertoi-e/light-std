@@ -41,11 +41,11 @@ string::string(const char32_t *str) {
 }
 
 void string::reserve(s64 target) {
-    if (ByteLength + target < Reserved) return;
+    if (ByteLength + target < Allocated) return;
 
     target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
-    if (Reserved) {
+    if (Allocated) {
         Data = (const char *) reallocate_array((char *) Data, target);
     } else {
         auto *oldData = Data;
@@ -54,7 +54,7 @@ void string::reserve(s64 target) {
         // encode_owner(Data, this);
         if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
     }
-    Reserved = target;
+    Allocated = target;
 }
 
 void string::reset() {
@@ -62,9 +62,9 @@ void string::reset() {
 }
 
 void string::release() {
-    if (Reserved) free((char *) Data);
+    if (Allocated) free((char *) Data);
     Data = null;
-    Length = ByteLength = Reserved = 0;
+    Length = ByteLength = Allocated = 0;
 }
 
 string *string::set(s64 index, char32_t codePoint) {
@@ -125,7 +125,7 @@ string *string::insert_pointer_and_size(s64 index, const char *str, s64 size) {
 }
 
 string *string::remove(s64 index) {
-    if (!Reserved) reserve(0);
+    if (!Allocated) reserve(0);
 
     auto *target = get_cp_at_index(Data, Length, index);
 
@@ -141,7 +141,7 @@ string *string::remove(s64 index) {
 }
 
 string *string::remove_range(s64 begin, s64 end) {
-    if (!Reserved) reserve(0);
+    if (!Allocated) reserve(0);
 
     auto *targetBegin = get_cp_at_index(Data, Length, begin);
     auto *targetEnd = get_cp_at_index(Data, Length, end, true);

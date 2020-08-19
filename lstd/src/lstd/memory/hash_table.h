@@ -13,9 +13,6 @@ using hash_table_key_t = typename remove_pointer_t<decltype(HashTableT::Keys)>;
 template <typename HashTableT>
 using hash_table_value_t = typename remove_pointer_t<decltype(HashTableT::Values)>;
 
-template <typename Key, typename Value, bool Const>
-struct hash_table_iterator;
-
 // This hash table stores all entries in a contiguous array, for good performance when looking up things. Some tables
 // work by storing linked lists of entries, but that can lead to many more cache misses.
 //
@@ -70,13 +67,61 @@ struct hash_table {
     //
     // Iterator:
     //
-    using iterator = hash_table_iterator<key_t, value_t, false>;
-    using const_iterator = hash_table_iterator<key_t, value_t, true>;
+    template <bool Const>
+    struct iterator_ {
+        using hash_table_t = type_select_t<Const, const hash_table<key_t, value_t>, hash_table<key_t, value_t>>;
 
-    iterator begin();
-    iterator end();
-    const_iterator begin() const;
-    const_iterator end() const;
+        hash_table_t *Parent;
+        s64 Index;
+
+        iterator_(hash_table_t *parent, s64 index = 0) : Parent(parent), Index(index) {
+            assert(parent);
+
+            // Find the first pair
+            skip_empty_slots();
+        }
+
+        iterator_ &operator++() {
+            ++Index;
+            skip_empty_slots();
+            return *this;
+        }
+
+        iterator_ operator++(int) {
+            iterator_ pre = *this;
+            ++(*this);
+            return pre;
+        }
+
+        bool operator==(const iterator_ &other) const { return Parent == other.Parent && Index == other.Index; }
+        bool operator!=(const iterator_ &other) const { return !(*this == other); }
+
+        template <bool NotConst = !Const>
+        enable_if_t<NotConst, pair<key_t *, value_t *>> operator*() {
+            return {Parent->Keys + Index, Parent->Values + Index};
+        }
+
+        template <bool NotConst = !Const>
+        enable_if_t<!NotConst, pair<const key_t *, const value_t *>> operator*() const {
+            return {Parent->Keys + Index, Parent->Values + Index};
+        }
+
+       private:
+        void skip_empty_slots() {
+            for (; Index < Parent->Allocated; ++Index) {
+                if (Parent->Hashes[Index] < FIRST_VALID_HASH) continue;
+                break;
+            }
+        }
+    };
+
+    using iterator = iterator_<false>;
+    using const_iterator = iterator_<true>;
+
+    iterator begin() { return iterator(this); }
+    iterator end() { return iterator(this, Allocated); }
+    const_iterator begin() const { return const_iterator(this); }
+    const_iterator end() const { return const_iterator(this, Allocated); }
 
     //
     // Operators:
@@ -354,75 +399,13 @@ bool has(const T &table, const key_t<T> &key, enable_function_if(is_hash_table_v
 template <typename T>
 bool has_prehashed(const T &table, u64 hash, const key_t<T> &key, enable_function_if(is_hash_table_v<T>)) { return find_prehashed(table, hash, key) != null; }
 
-template <typename K, typename V, bool Const>
-struct hash_table_iterator {
-    using hash_table_t = type_select_t<Const, const hash_table<K, V>, hash_table<K, V>>;
-
-    hash_table_t *Parent;
-    s64 Index;
-
-    hash_table_iterator(hash_table_t *parent, s64 index = 0) : Parent(parent), Index(index) {
-        assert(parent);
-
-        // Find the first pair
-        skip_empty_slots();
-    }
-
-    hash_table_iterator &operator++() {
-        ++Index;
-        skip_empty_slots();
-        return *this;
-    }
-
-    hash_table_iterator operator++(int) {
-        hash_table_iterator pre = *this;
-        ++(*this);
-        return pre;
-    }
-
-    bool operator==(const hash_table_iterator &other) const { return Parent == other.Parent && Index == other.Index; }
-    bool operator!=(const hash_table_iterator &other) const { return !(*this == other); }
-
-    template <bool NotConst = !Const>
-    enable_if_t<NotConst, pair<K *, V *>> operator*() {
-        return {Parent->Keys + Index, Parent->Values + Index};
-    }
-
-    template <bool NotConst = !Const>
-    enable_if_t<!NotConst, pair<const K *, const V *>> operator*() const {
-        return {Parent->Keys + Index, Parent->Values + Index};
-    }
-
-   private:
-    void skip_empty_slots() {
-        for (; Index < Parent->Allocated; ++Index) {
-            if (Parent->Hashes[Index] < hash_table_t::FIRST_VALID_HASH) continue;
-            break;
-        }
-    }
-};
-
-template <typename K, typename V, bool BlockAlloc>
-typename hash_table<K, V, BlockAlloc>::iterator hash_table<K, V, BlockAlloc>::begin() { return hash_table<K, V>::iterator(this); }
-
-template <typename K, typename V, bool BlockAlloc>
-typename hash_table<K, V, BlockAlloc>::iterator hash_table<K, V, BlockAlloc>::end() { return hash_table<K, V>::iterator(this, Allocated); }
-
-template <typename K, typename V, bool BlockAlloc>
-typename hash_table<K, V, BlockAlloc>::const_iterator hash_table<K, V, BlockAlloc>::begin() const { return hash_table<K, V>::const_iterator(this); }
-
-template <typename K, typename V, bool BlockAlloc>
-typename hash_table<K, V, BlockAlloc>::const_iterator hash_table<K, V, BlockAlloc>::end() const { return hash_table<K, V>::const_iterator(this, Allocated); }
-
 #undef key_t
 #undef value_t
 
-template <typename K, typename V>
-hash_table<K, V> *clone(hash_table<K, V> *dest, const hash_table<K, V> &src) {
-    *dest = {};
-    for (auto [key, value] : src) {
-        add(*dest, *key, *value);
-    }
+template <typename K, typename V, bool BlockAlloc>
+hash_table<K, V, BlockAlloc> *clone(hash_table<K, V, BlockAlloc> *dest, const hash_table<K, V, BlockAlloc> &src) {
+    free(*dest);
+    for (auto [k, v] : src) add(*dest, *k, *v);
     return dest;
 }
 

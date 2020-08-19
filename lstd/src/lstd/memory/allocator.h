@@ -276,7 +276,7 @@ inline allocator Malloc = {default_allocator, null};
 struct temporary_allocator_data {
     struct page {
         void *Storage = null;
-        s64 Reserved = 0;
+        s64 Allocated = 0;
         s64 Used = 0;
 
         page *Next = null;

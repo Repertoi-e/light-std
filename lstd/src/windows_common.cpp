@@ -54,7 +54,7 @@ void init_context() {
 
     s64 startingSize = 8_KiB;  // Start with 8 KiB
     Context.TempAllocData.Base.Storage = allocate_array(char, startingSize, Malloc);
-    Context.TempAllocData.Base.Reserved = startingSize;
+    Context.TempAllocData.Base.Allocated = startingSize;
 
     Context.Temp = {temporary_allocator, &Context.TempAllocData};
 }

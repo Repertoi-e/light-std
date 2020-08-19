@@ -13,7 +13,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     char StackData[StackSize]{};
     char *Data = StackData;
 
-    s64 Reserved = 0;
+    s64 Allocated = 0;
     s64 ByteLength = 0;
 
     stack_dynamic_buffer() {}
@@ -37,11 +37,11 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     // ! Reserves only if there is not enough space on the stack
     void reserve(s64 target) {
         if (target < sizeof(StackData)) return;
-        if (ByteLength + target < Reserved) return;
+        if (ByteLength + target < Allocated) return;
 
         target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
 
-        if (Reserved) {
+        if (Allocated) {
             Data = reallocate_array(Data, target);
         } else {
             auto *oldData = Data;
@@ -50,15 +50,15 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
             // encode_owner(Data, this);
             if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
         }
-        Reserved = target;
+        Allocated = target;
     }
 
     // Releases the memory allocated by this buffer.
     // If this buffer doesn't own the memory it points to, this function does nothing.
     void release() {
-        if (Reserved) free(Data);
+        if (Allocated) free(Data);
         Data = null;
-        ByteLength = Reserved = 0;
+        ByteLength = Allocated = 0;
     }
 
     // Don't free the buffer, just move cursor to 0

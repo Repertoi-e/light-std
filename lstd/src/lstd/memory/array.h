@@ -44,15 +44,16 @@ struct array {
     // Operators:
     //
 
-    data_t &operator[](s64 index);
-
-    constexpr const data_t &operator[](s64 index) const;
+    data_t &operator[](s64 index) { return get(*this, index); }
+    constexpr const data_t &operator[](s64 index) const { return get(*this, index); }
 
     // @TODO: Make string an array<u8>
     // Returns a string which is a view into this buffer
     template <typename U = T, typename = typename enable_if<is_same_v<remove_cv_t<U>, char> || is_same_v<remove_cv_t<U>, u8>>::type>
     operator string() const { return string((const char *) Data, Count); }
 };
+
+#define data_t array_like_data_t
 
 // Makes sure the array has reserved enough space for at least _target_ new elements.
 // Note that it may reserve way more than required.
@@ -119,19 +120,13 @@ T &get(array<T> &arr, s64 index) { return arr.Data[translate_index(index, arr.Co
 template <typename T>
 constexpr const T &get(const array<T> &arr, s64 index) { return arr.Data[translate_index(index, arr.Count)]; }
 
-template <typename T>
-T &array<T>::operator[](s64 index) { return get(*this, index); }
-
-template <typename T>
-constexpr const T &array<T>::operator[](s64 index) const { return get(*this, index); }
-
 // Checks if there is enough reserved space for _n_ elements
 template <typename T>
 constexpr bool has_space_for(const array<T> &arr, s64 n) { return (arr.Count + n) <= arr.Allocated; }
 
 // Sets the _index_'th element in the array (also calls the destructor on the old one)
 template <typename T>
-void *set(array<T> &arr, s64 index, const get_type_of_data_t<array<T>> &element) {
+void *set(array<T> &arr, s64 index, const data_t<array<T>> &element) {
     auto i = translate_index(index, arr.Count);
     arr.Data[i].~T();
     arr.Data[i] = element;
@@ -139,7 +134,7 @@ void *set(array<T> &arr, s64 index, const get_type_of_data_t<array<T>> &element)
 
 // Inserts an element at a specified index and returns a pointer to it in the buffer
 template <typename T>
-T *insert(array<T> &arr, s64 index, const get_type_of_data_t<array<T>> &element) {
+T *insert(array<T> &arr, s64 index, const data_t<array<T>> &element) {
     reserve(arr, 1);
 
     s64 offset = translate_index(index, arr.Count, true);

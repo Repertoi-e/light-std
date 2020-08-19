@@ -63,14 +63,14 @@ u16 free_list_allocator_data::find_best(s64 size, node **previousNode, node **fo
 
 void free_list_allocator_data::init(s64 totalSize, u8 policy) {
     Storage = allocate_array(char, totalSize, Malloc);
-    Reserved = totalSize;
+    Allocated = totalSize;
     PlacementPolicy = policy;
     free_all(allocator{free_list_allocator, this});  // Initializes the linked list
 }
 
 void free_list_allocator_data::release() {
     free((char *) Storage);
-    Reserved = 0;
+    Allocated = 0;
     FreeListHead = null;
     Storage = null;
 }
@@ -228,7 +228,7 @@ void *free_list_allocator(allocator_mode mode, void *context, s64 size, void *ol
             data->Used = data->PeakUsed = 0;
 
             auto *firstNode = (node *) data->Storage;
-            firstNode->BlockSize = data->Reserved;
+            firstNode->BlockSize = data->Allocated;
             firstNode->Next = null;
             data->FreeListHead = firstNode;
 

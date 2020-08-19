@@ -46,7 +46,7 @@ struct string {
     s64 Length = 0;
 
     // Non-zero if Data was allocated by string and needs to be freed
-    s64 Reserved = 0;
+    s64 Allocated = 0;
 
     constexpr string() {}
 

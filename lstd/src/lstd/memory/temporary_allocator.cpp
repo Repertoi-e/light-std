@@ -13,27 +13,27 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
     auto *data = (temporary_allocator_data *) context;
 
     // The temporary allocator should have been initialized
-    assert(data->Base.Storage && data->Base.Reserved);
+    assert(data->Base.Storage && data->Base.Allocated);
 
     switch (mode) {
         case allocator_mode::ALLOCATE: {
             auto *p = &data->Base;
 
             while (p->Next) {
-                if (p->Used + size < p->Reserved) break;
+                if (p->Used + size < p->Allocated) break;
                 p = p->Next;
             }
 
-            if (p->Used + size >= p->Reserved) {
+            if (p->Used + size >= p->Allocated) {
                 assert(!p->Next);
                 p->Next = allocate(temporary_allocator_data::page, Malloc);
 
                 // Random log-based growth thing I came up at the time, not real science.
-                s64 loggedSize = (s64) ceil(p->Reserved * (log2(p->Reserved * 10.0) / 3));
+                s64 loggedSize = (s64) ceil(p->Allocated * (log2(p->Allocated * 10.0) / 3));
                 s64 reserveTarget = (max<s64>(ceil_pow_of_2(size * 2), ceil_pow_of_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
 
                 p->Next->Storage = allocate_array(char, reserveTarget, Malloc);
-                p->Next->Reserved = reserveTarget;
+                p->Next->Allocated = reserveTarget;
                 p = p->Next;
             }
 
@@ -52,7 +52,7 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
         case allocator_mode::RESIZE: {
             auto *p = &data->Base;
             while (p->Next) {
-                if (p->Used + size < p->Reserved) break;
+                if (p->Used + size < p->Allocated) break;
                 p = p->Next;
             }
 
@@ -63,7 +63,7 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
             // We support resizing only on the last allocation (this still covers lots of cases,
             // e.g. constructing a string and then immediately appending to it!).
             if (possiblyThisBlock == oldMemory) {
-                if (p->Used + diff >= p->Reserved) return null;  // Not enough space
+                if (p->Used + diff >= p->Allocated) return null;  // Not enough space
                 p->Used += diff;
                 return oldMemory;
             }
@@ -73,12 +73,12 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
             // We don't free individual allocations in the temporary allocator
             return null;
         case allocator_mode::FREE_ALL: {
-            s64 targetSize = data->Base.Reserved;
+            s64 targetSize = data->Base.Allocated;
 
             // Check if any overflow pages were used
             auto *page = data->Base.Next;
             while (page) {
-                targetSize += page->Reserved;
+                targetSize += page->Allocated;
 
                 auto *next = page->Next;
                 free(page->Storage);
@@ -88,11 +88,11 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
             data->Base.Next = null;
 
             // Resize _Storage_ to fit all allocations which previously required overflow pages
-            if (targetSize != data->Base.Reserved) {
+            if (targetSize != data->Base.Allocated) {
                 free(data->Base.Storage);
 
                 data->Base.Storage = allocate_array(char, targetSize, Malloc);
-                data->Base.Reserved = targetSize;
+                data->Base.Allocated = targetSize;
             }
 
             data->TotalUsed = data->Base.Used = 0;
@@ -113,7 +113,7 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 }
 
 void release_temporary_allocator() {
-    if (!Context.TempAllocData.Base.Reserved) return;
+    if (!Context.TempAllocData.Base.Allocated) return;
 
     // Free any left-over overflow pages!
     free_all(Context.Temp);

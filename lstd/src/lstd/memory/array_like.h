@@ -33,7 +33,9 @@ constexpr bool is_array_like_v = is_array_like<T>::value;
 
 // This returns the type of the _Data_ member of an array-like object
 template <typename ArrayT>
-using get_type_of_data_t = remove_pointer_t<decltype(ArrayT::Data)>;
+using array_like_data_t = remove_pointer_t<decltype(ArrayT::Data)>;
+
+#define data_t array_like_data_t
 
 //
 // Find functions for arrays:
@@ -42,7 +44,7 @@ using get_type_of_data_t = remove_pointer_t<decltype(ArrayT::Data)>;
 // Find the first occurence of an element which matches the predicate and is after a specified index.
 // Predicate must take a single argument (the current element) and return if it matches.
 template <typename ArrayT>
-constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find(const ArrayT &arr, const delegate<bool(const decltype(*ArrayT::Data) &)> &predicate, s64 start = 0, bool reverse = false) {
+constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find(const ArrayT &arr, const delegate<bool(data_t<ArrayT> &)> &predicate, s64 start = 0, bool reverse = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     start = translate_index(start, arr.Count);
     For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) if (predicate(arr.Data[it])) return it;
@@ -51,7 +53,7 @@ constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find(const ArrayT &arr, cons
 
 // Find the first occurence of an element that is after a specified index
 template <typename ArrayT>
-constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find(const ArrayT &arr, const get_type_of_data_t<ArrayT> &element, s64 start = 0, bool reverse = false) {
+constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find(const ArrayT &arr, const data_t<ArrayT> &element, s64 start = 0, bool reverse = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     start = translate_index(start, arr.Count);
     For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) if (arr.Data[it] == element) return it;
@@ -87,7 +89,7 @@ constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find_any_of(const ArrayT &ar
 
 // Find the first absence of an element that is after a specified index
 template <typename ArrayT>
-constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find_not(const ArrayT &arr, const decltype(*ArrayT::Data) &element, s64 start = 0, bool reversed = false) {
+constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find_not(const ArrayT &arr, const data_t<ArrayT> &element, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     start = translate_index(start, Count);
     For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) if (arr.Data[it] != element) return it;
@@ -106,7 +108,7 @@ constexpr enable_if_t<is_array_like_v<ArrayT>, s64> find_not_any_of(const ArrayT
 
 // Checks if _item_ is contained in the array
 template <typename ArrayT>
-constexpr enable_if_t<is_array_like_v<ArrayT>, bool> has(const ArrayT &arr, const get_type_of_data_t<ArrayT> &item) { return find(arr, item) != -1; }
+constexpr enable_if_t<is_array_like_v<ArrayT>, bool> has(const ArrayT &arr, const data_t<ArrayT> &item) { return find(arr, item) != -1; }
 
 //
 // Compare functions for arrays:
@@ -116,8 +118,8 @@ constexpr enable_if_t<is_array_like_v<ArrayT>, bool> has(const ArrayT &arr, cons
 // If the arrays are equal, the returned value is -1.
 template <typename ArrayT, typename ArrayU>
 constexpr enable_if_t<is_array_like_v<ArrayT> && is_array_like_v<ArrayU>, s64> compare(const ArrayT &arr1, const ArrayU &arr2) {
-    using T = decltype(*arr1.Data);
-    using U = decltype(*arr2.Data);
+    using T = decltype(*ArrayT::Data);
+    using U = decltype(*ArrayU::Data);
 
     static_assert(is_equal_comparable_v<T, U>, "Arrays have types which cannot be compared with operator ==");
 
@@ -143,8 +145,8 @@ constexpr enable_if_t<is_array_like_v<ArrayT> && is_array_like_v<ArrayU>, s64> c
 // The result is -1 if this array sorts before the other, 0 if they are equal, and +1 otherwise.
 template <typename ArrayT, typename ArrayU>
 constexpr enable_if_t<is_array_like_v<ArrayT> && is_array_like_v<ArrayU>, s32> compare_lexicographically(const ArrayT &arr1, const ArrayU &arr2) {
-    using T = decltype(*arr1.Data);
-    using U = decltype(*arr2.Data);
+    using T = decltype(*ArrayT::Data);
+    using U = decltype(*ArrayU::Data);
 
     static_assert(is_equal_comparable_v<T, U>, "Arrays have types which cannot be compared with operator ==");
     static_assert(is_less_comparable_v<T, U>, "Arrays have types which cannot be compared with operator <");
@@ -203,5 +205,7 @@ template <typename ArrayT, typename ArrayU>
 constexpr enable_if_t<is_array_like_v<ArrayT> && is_array_like_v<ArrayU>, bool> operator>=(const ArrayT &arr1, const ArrayU &arr2) {
     return !(arr1 < arr2);
 }
+
+#undef data_t
 
 LSTD_END_NAMESPACE
