@@ -2,6 +2,7 @@
 
 #if OS == WINDOWS
 
+#include "lstd/internal/os_function_call.h"
 #include "lstd/io.h"
 #include "lstd/memory/hash_table.h"
 #include "lstd/os.h"
@@ -35,8 +36,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
 
     array<os_function_call> callStack;
 
-    while (StackWalk64(MachineType, GetCurrentProcess(), GetCurrentThread(), &sf, c, 0, SymFunctionTableAccess64,
-                       SymGetModuleBase64, null)) {
+    while (StackWalk64(MachineType, GetCurrentProcess(), GetCurrentThread(), &sf, c, 0, SymFunctionTableAccess64, SymGetModuleBase64, null)) {
         if (sf.AddrFrame.Offset == 0 || callStack.Count >= CALLSTACK_DEPTH) break;
 
         constexpr auto s = (sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR) + sizeof(ULONG64) - 1) / sizeof(ULONG64);

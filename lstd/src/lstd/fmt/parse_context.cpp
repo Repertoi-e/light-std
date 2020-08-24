@@ -33,17 +33,17 @@ void parse_context::check_precision_for_arg(type argType, s64 errorPosition) {
     }
 }
 
-constexpr parse_int_options parse_int_options_fmt = parse_int_options(byte_to_digit_default, false, false, false);
-
 s64 parse_context::parse_arg_id() {
-    char ch = It[0];
+    utf32 ch = It[0];
     if (ch == '}' || ch == ':') {
         return next_arg_id();
     }
 
     if (is_digit(ch)) {
         u32 value, status;
-        tie(value, status, It) = parse_int<u32, &parse_int_options_fmt>(It, 10);
+        bytes rest;
+        tie(value, status, rest) = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
+        It = string(rest);
 
         if (status == PARSE_TOO_MANY_DIGITS) {
             on_error("Argument index is an integer which is too large");
@@ -132,7 +132,7 @@ bool parse_context::parse_fmt_specs(type argType, dynamic_format_specs *specs) {
 
     // If we still haven't reached the end or a '}' we treat the byte as the type specifier.
     if (It.Count && It[0] != '}') {
-        specs->Type = It[0];
+        specs->Type = (utf8) It[0];
         ++It.Data, --It.Count;
     }
 
@@ -147,7 +147,7 @@ bool parse_context::parse_text_style(text_style *textStyle) {
             ++It.Data, --It.Count;  // Skip the t
         }
 
-        const char *it = It.Data;
+        const utf8 *it = It.Data;
         s64 n = It.Count;
         do {
             ++it, --n;
@@ -157,7 +157,7 @@ bool parse_context::parse_text_style(text_style *textStyle) {
 
         auto name = string(It.Data, it - It.Data);
 
-        It = array<char>((char *) it, n);
+        It = string(it, n);
 
         if (It[0] != ';' && It[0] != '}') {
             on_error("Invalid color name - it must be a valid identifier (without digits)");
@@ -168,7 +168,7 @@ bool parse_context::parse_text_style(text_style *textStyle) {
             terminal_color c = string_to_terminal_color(name);
             if (c == terminal_color::NONE) {
                 // Color with that name not found, roll back and treat it as emphasis
-                It.Data -= name.ByteLength, It.Count += name.ByteLength;
+                It.Data -= name.Count, It.Count += name.Count;
 
                 if (!handle_emphasis(textStyle)) return false;
                 return true;
@@ -179,7 +179,7 @@ bool parse_context::parse_text_style(text_style *textStyle) {
             color c = string_to_color(name);
             if (c == color::NONE) {
                 // Color with that name not found, roll back and treat it as emphasis
-                It.Data -= name.ByteLength, It.Count += name.ByteLength;
+                It.Data -= name.Count, It.Count += name.Count;
 
                 if (!handle_emphasis(textStyle)) return false;
                 return true;
@@ -228,7 +228,7 @@ bool parse_context::parse_text_style(text_style *textStyle) {
     return true;
 }
 
-file_scope alignment get_alignment_from_char(char ch) {
+file_scope alignment get_alignment_from_char(utf8 ch) {
     if (ch == '<') {
         return alignment::LEFT;
     } else if (ch == '>') {
@@ -252,7 +252,7 @@ bool parse_context::parse_fill_and_align(type argType, format_specs *specs) {
 
     // First we check if the code point we parsed was an alingment specifier, if it was then there was no fill.
     // We leave it as ' ' by default and continue afterwards for error checking.
-    auto align = get_alignment_from_char((char) fill);
+    auto align = get_alignment_from_char((utf8) fill);
     if (align == alignment::NONE) {
         // If there was nothing in _rest_ then it wasn't a fill code point because there is no alignment (in rest).
         // We don't parse anything and roll back.
@@ -267,13 +267,17 @@ bool parse_context::parse_fill_and_align(type argType, format_specs *specs) {
 
     // If we got here and didn't get an alignment specifier we roll back and don't parse anything.
     if (align != alignment::NONE) {
-        s64 errorPosition = rest.Data - FormatString.Data;
+        s64 errorPosition = (const utf8 *) rest.Data - FormatString.Data;
         if (fill == '{') {
             on_error("Invalid fill character \"{\"", errorPosition - 2);
             return false;
         }
+        if (fill == '}') {
+            on_error("Invalid fill character \"}\"", errorPosition - 2);
+            return false;
+        }
 
-        It = rest;  // Advance forward
+        It = string(rest);  // Advance forward
 
         specs->Fill = fill;
         specs->Align = align;
@@ -286,7 +290,9 @@ bool parse_context::parse_fill_and_align(type argType, format_specs *specs) {
 bool parse_context::parse_width(dynamic_format_specs *specs) {
     if (is_digit(It[0])) {
         parse_status status;
-        tie(specs->Width, status, It) = parse_int<u32, &parse_int_options_fmt>(It, 10);
+        bytes rest;
+        tie(specs->Width, status, rest) = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
+        It = string(rest);
 
         if (status == PARSE_TOO_MANY_DIGITS) {
             on_error("We parsed an integer width which was too large");
@@ -321,7 +327,9 @@ bool parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
 
     if (is_digit(It[0])) {
         parse_status status;
-        tie(specs->Precision, status, It) = parse_int<u32, &parse_int_options_fmt>(It, 10);
+        bytes rest;
+        tie(specs->Precision, status, rest) = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
+        It = string(rest);
 
         if (status == PARSE_TOO_MANY_DIGITS) {
             on_error("We parsed an integer precision which was too large");
@@ -348,22 +356,20 @@ bool parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
     return true;
 }
 
-constexpr parse_int_options parse_int_options_rgb_channel = parse_int_options(byte_to_digit_default, false, false, true);
-
 u32 parse_context::parse_rgb_channel(bool last) {
-    auto [channel, status, rest] = parse_int<u8, &parse_int_options_rgb_channel>(It);
+    auto [channel, status, rest] = parse_int<u8, parse_int_options{.ParseSign = false, .LookForBasePrefix = true}>(It);
 
     if (status == PARSE_INVALID) {
-        on_error("Invalid character encountered when parsing an integer channel value", rest.Data - FormatString.Data);
+        on_error("Invalid character encountered when parsing an integer channel value", (const utf8 *) rest.Data - FormatString.Data);
         return (u32) -1;
     }
 
     if (status == PARSE_TOO_MANY_DIGITS) {
-        on_error("Channel value too big - it must be in the range [0-255]", rest.Data - FormatString.Data - 1);
+        on_error("Channel value too big - it must be in the range [0-255]", (const utf8 *) rest.Data - FormatString.Data - 1);
         return (u32) -1;
     }
 
-    It = rest;
+    It = string(rest);
     if (status == PARSE_EXHAUSTED) return (u32) -1;
 
     if (!It.Count) return (u32) -1;
@@ -391,16 +397,16 @@ bool parse_context::handle_emphasis(text_style *textStyle) {
     while (It.Count && is_alpha(It[0])) {
         switch (It[0]) {
             case 'B':
-                textStyle->Emphasis |= emphasis::BOLD;
+                textStyle->Emphasis |= BOLD;
                 break;
             case 'I':
-                textStyle->Emphasis |= emphasis::ITALIC;
+                textStyle->Emphasis |= ITALIC;
                 break;
             case 'U':
-                textStyle->Emphasis |= emphasis::UNDERLINE;
+                textStyle->Emphasis |= UNDERLINE;
                 break;
             case 'S':
-                textStyle->Emphasis |= emphasis::STRIKETHROUGH;
+                textStyle->Emphasis |= STRIKETHROUGH;
                 break;
             default:
                 // Note: we might have gotten here if we failed to match a color name

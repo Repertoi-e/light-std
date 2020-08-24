@@ -48,13 +48,13 @@ io::Console_Writer::Console_Writer() {
 }
 
 void io::Console_Writer::write(const Memory_View &str) {
-    if (str.ByteLength > Available) {
+    if (str.Count > Available) {
         flush();
     }
 
-    copy_memory(Current, str.Data, str.ByteLength);
-    Current += str.ByteLength;
-    Available -= str.ByteLength;
+    copy_memory(Current, str.Data, str.Count);
+    Current += str.Count;
+    Available -= str.Count;
 }
 
 void io::Console_Writer::flush() {

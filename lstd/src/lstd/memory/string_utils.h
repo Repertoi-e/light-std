@@ -6,10 +6,18 @@
 
 LSTD_BEGIN_NAMESPACE
 
+template <typename T>
+using c_string_type = type::remove_const_t<type::remove_pointer_t<T>> *;
+
+// @Cleanup This looks messy
+template <typename T>
+concept c_string = type::is_same_v<c_string_type<T>, char8_t *> || type::is_same_v<c_string_type<T>, utf8 *> || type::is_same_v<c_string_type<T>, utf16 *> || type::is_same_v<c_string_type<T>, utf32 *>;
+
 // Retrieve the length of a standard cstyle string. Doesn't care about encoding.
 // Note that this calculation does not include the null byte.
 // This function can also be used to determine the size in bytes of a null terminated utf8 string.
-constexpr s64 c_string_length(const char *str) {
+template <c_string T>
+constexpr s64 c_string_length(T str) {
     if (!str) return 0;
 
     s64 length = 0;
@@ -17,98 +25,8 @@ constexpr s64 c_string_length(const char *str) {
     return length;
 }
 
-// Overload for wide chars
-constexpr s64 c_string_length(const wchar_t *str) {
-    if (!str) return 0;
-
-    s64 length = 0;
-    while (*str++) ++length;
-    return length;
-}
-
-// Overload for utf32 chars
-constexpr s64 c_string_length(const char32_t *str) {
-    if (!str) return 0;
-
-    s64 length = 0;
-    while (*str++) ++length;
-    return length;
-}
-
-constexpr s64 compare_c_string(const char *one, const char *other) {
-    assert(one);
-    assert(other);
-
-    if (!*one && !*other) return -1;
-
-    s64 index = 0;
-    while (*one == *other) {
-        ++one, ++other;
-        if (!*one && !*other) return -1;
-        if (!*one || !*other) return index;
-        ++index;
-    }
-    return index;
-}
-
-constexpr s64 compare_c_string(const wchar_t *one, const wchar_t *other) {
-    assert(one);
-    assert(other);
-
-    if (!*one && !*other) return -1;
-
-    s64 index = 0;
-    while (*one == *other) {
-        ++one, ++other;
-        if (!*one && !*other) return -1;
-        if (!*one || !*other) return index;
-        ++index;
-    }
-    return index;
-}
-
-constexpr s64 compare_c_string(const char32_t *one, const char32_t *other) {
-    assert(one);
-    assert(other);
-
-    if (!*one && !*other) return -1;
-
-    s64 index = 0;
-    while (*one == *other) {
-        ++one, ++other;
-        if (!*one && !*other) return -1;
-        if (!*one || !*other) return index;
-        ++index;
-    }
-    return index;
-}
-
-constexpr s32 compare_c_string_lexicographically(const char *one, const char *other) {
-    assert(one);
-    assert(other);
-
-    while (*one && (*one == *other)) ++one, ++other;
-    return (*one > *other) - (*other > *one);
-}
-
-constexpr s32 compare_c_string_lexicographically(const wchar_t *one, const wchar_t *other) {
-    assert(one);
-    assert(other);
-
-    while (*one && (*one == *other)) ++one, ++other;
-    return (*one > *other) - (*other > *one);
-}
-
-constexpr s32 compare_c_string_lexicographically(const char32_t *one, const char32_t *other) {
-    assert(one);
-    assert(other);
-
-    while (*one && (*one == *other)) ++one, ++other;
-    return (*one > *other) - (*other > *one);
-}
-
-// Retrieve the length (in code points) of an encoded utf8 string
-constexpr s64 utf8_length(const char *str, s64 size) {
+// Retrieve the length (in code points) for a utf8 string
+constexpr s64 utf8_length(const utf8 *str, s64 size) {
     if (!str || size == 0) return 0;
 
     s64 length = 0;
@@ -118,32 +36,58 @@ constexpr s64 utf8_length(const char *str, s64 size) {
     return length;
 }
 
-// This function only works for ascii
-constexpr bool is_digit(char32_t x) { return x >= '0' && x <= '9'; }
+template <c_string T>
+constexpr s64 compare_c_string(T one, T other) {
+    assert(one);
+    assert(other);
+
+    if (!*one && !*other) return -1;
+
+    s64 index = 0;
+    while (*one == *other) {
+        ++one, ++other;
+        if (!*one && !*other) return -1;
+        if (!*one || !*other) return index;
+        ++index;
+    }
+    return index;
+}
+
+template <c_string T>
+constexpr s32 compare_c_string_lexicographically(T one, T other) {
+    assert(one);
+    assert(other);
+
+    while (*one && (*one == *other)) ++one, ++other;
+    return (*one > *other) - (*other > *one);
+}
 
 // This function only works for ascii
-constexpr bool is_hex_digit(char32_t x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f') || (x >= 'A' && x <= 'F'); }
+constexpr bool is_digit(utf32 x) { return x >= '0' && x <= '9'; }
 
 // This function only works for ascii
-constexpr bool is_space(char32_t x) { return (x >= 9 && x <= 13) || x == 32; }
+constexpr bool is_hex_digit(utf32 x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f') || (x >= 'A' && x <= 'F'); }
 
 // This function only works for ascii
-constexpr bool is_blank(char32_t x) { return x == 9 || x == 32; }
+constexpr bool is_space(utf32 x) { return (x >= 9 && x <= 13) || x == 32; }
 
 // This function only works for ascii
-constexpr bool is_alpha(char32_t x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
+constexpr bool is_blank(utf32 x) { return x == 9 || x == 32; }
 
 // This function only works for ascii
-constexpr bool is_alphanumeric(char32_t x) { return is_alpha(x) || is_digit(x); }
+constexpr bool is_alpha(utf32 x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
 
 // This function only works for ascii
-constexpr bool is_identifier_start(char32_t x) { return is_alpha(x) || x == '_'; }
+constexpr bool is_alphanumeric(utf32 x) { return is_alpha(x) || is_digit(x); }
 
 // This function only works for ascii
-constexpr bool is_print(char32_t x) { return x > 31 && x != 127; }
+constexpr bool is_identifier_start(utf32 x) { return is_alpha(x) || x == '_'; }
+
+// This function only works for ascii
+constexpr bool is_print(utf32 x) { return x > 31 && x != 127; }
 
 // Convert code point to uppercase
-constexpr char32_t to_upper(char32_t cp) {
+constexpr utf32 to_upper(utf32 cp) {
     if (((0x0061 <= cp) && (0x007a >= cp)) || ((0x00e0 <= cp) && (0x00f6 >= cp)) ||
         ((0x00f8 <= cp) && (0x00fe >= cp)) || ((0x03b1 <= cp) && (0x03c1 >= cp)) ||
         ((0x03c3 <= cp) && (0x03cb >= cp))) {
@@ -208,7 +152,7 @@ constexpr char32_t to_upper(char32_t cp) {
 }
 
 // Convert code point to lowercase
-constexpr char32_t to_lower(char32_t cp) {
+constexpr utf32 to_lower(utf32 cp) {
     if (((0x0041 <= cp) && (0x005a >= cp)) || ((0x00c0 <= cp) && (0x00d6 >= cp)) ||
         ((0x00d8 <= cp) && (0x00de >= cp)) || ((0x0391 <= cp) && (0x03a1 >= cp)) ||
         ((0x03a3 <= cp) && (0x03ab >= cp))) {
@@ -272,10 +216,10 @@ constexpr char32_t to_lower(char32_t cp) {
     return cp;
 }
 
-constexpr bool is_upper(char32_t ch) { return ch != to_lower(ch); }
-constexpr bool is_lower(char32_t ch) { return ch != to_upper(ch); }
+constexpr bool is_upper(utf32 ch) { return ch != to_lower(ch); }
+constexpr bool is_lower(utf32 ch) { return ch != to_upper(ch); }
 
-constexpr s64 compare_c_string_ignore_case(const char *one, const char *other) {
+constexpr s64 compare_c_string_ignore_case(const utf8 *one, const utf8 *other) {
     assert(one);
     assert(other);
 
@@ -291,14 +235,14 @@ constexpr s64 compare_c_string_ignore_case(const char *one, const char *other) {
     return index;
 }
 
-constexpr s64 compare_c_string_ignore_case(const wchar_t *one, const wchar_t *other) {
+constexpr s64 compare_c_string_ignore_case(const utf16 *one, const utf16 *other) {
     assert(one);
     assert(other);
 
     if (!*one && !*other) return -1;
 
     s64 index = 0;
-    while (to_lower((char32_t) *one) == to_lower((char32_t) *other)) {
+    while (to_lower((utf32) *one) == to_lower((utf32) *other)) {
         ++one, ++other;
         if (!*one && !*other) return -1;
         if (!*one || !*other) return index;
@@ -307,7 +251,7 @@ constexpr s64 compare_c_string_ignore_case(const wchar_t *one, const wchar_t *ot
     return index;
 }
 
-constexpr s64 compare_c_string_ignore_case(const char32_t *one, const char32_t *other) {
+constexpr s64 compare_c_string_ignore_case(const utf32 *one, const utf32 *other) {
     assert(one);
     assert(other);
 
@@ -323,7 +267,7 @@ constexpr s64 compare_c_string_ignore_case(const char32_t *one, const char32_t *
     return index;
 }
 
-constexpr s32 compare_c_string_lexicographically_ignore_case(const char *one, const char *other) {
+constexpr s32 compare_c_string_lexicographically_ignore_case(const utf8 *one, const utf8 *other) {
     assert(one);
     assert(other);
 
@@ -331,15 +275,15 @@ constexpr s32 compare_c_string_lexicographically_ignore_case(const char *one, co
     return (*one > *other) - (*other > *one);
 }
 
-constexpr s32 compare_c_string_lexicographically_ignore_case(const wchar_t *one, const wchar_t *other) {
+constexpr s32 compare_c_string_lexicographically_ignore_case(const utf16 *one, const utf16 *other) {
     assert(one);
     assert(other);
 
-    while (*one && (to_lower((char32_t) *one) == to_lower((char32_t) *other))) ++one, ++other;
+    while (*one && (to_lower((utf32) *one) == to_lower((utf32) *other))) ++one, ++other;
     return (*one > *other) - (*other > *one);
 }
 
-constexpr s32 compare_c_string_lexicographically_ignore_case(const char32_t *one, const char32_t *other) {
+constexpr s32 compare_c_string_lexicographically_ignore_case(const utf32 *one, const utf32 *other) {
     assert(one);
     assert(other);
 
@@ -349,7 +293,7 @@ constexpr s32 compare_c_string_lexicographically_ignore_case(const char32_t *one
 
 // Returns the size in bytes of the code point that _str_ points to.
 // If the byte pointed by _str_ is a countinuation utf8 byte, this function returns 0
-constexpr s8 get_size_of_cp(const char *str) {
+constexpr s8 get_size_of_cp(const utf8 *str) {
     if (!str) return 0;
     if ((*str & 0xc0) == 0x80) return 0;
 
@@ -365,7 +309,7 @@ constexpr s8 get_size_of_cp(const char *str) {
 }
 
 // Returns the size that the code point would be if it were encoded.
-constexpr s8 get_size_of_cp(char32_t codePoint) {
+constexpr s8 get_size_of_cp(utf32 codePoint) {
     if (((s32) 0xffffff80 & codePoint) == 0) {
         return 1;
     } else if (((s32) 0xfffff800 & codePoint) == 0) {
@@ -378,35 +322,35 @@ constexpr s8 get_size_of_cp(char32_t codePoint) {
 }
 
 // Encodes code point at _str_, assumes there is enough space.
-constexpr void encode_cp(char *str, char32_t codePoint) {
+constexpr void encode_cp(utf8 *str, utf32 codePoint) {
     s64 size = get_size_of_cp(codePoint);
     if (size == 1) {
         // 1-byte/7-bit ascii
         // (0b0xxxxxxx)
-        str[0] = (char) codePoint;
+        str[0] = (utf8) codePoint;
     } else if (size == 2) {
         // 2-byte/11-bit utf8 code point
         // (0b110xxxxx 0b10xxxxxx)
-        str[0] = 0xc0 | (char) (codePoint >> 6);
-        str[1] = 0x80 | (char) (codePoint & 0x3f);
+        str[0] = 0xc0 | (utf8)(codePoint >> 6);
+        str[1] = 0x80 | (utf8)(codePoint & 0x3f);
     } else if (size == 3) {
         // 3-byte/16-bit utf8 code point
         // (0b1110xxxx 0b10xxxxxx 0b10xxxxxx)
-        str[0] = 0xe0 | (char) (codePoint >> 12);
-        str[1] = 0x80 | (char) ((codePoint >> 6) & 0x3f);
-        str[2] = 0x80 | (char) (codePoint & 0x3f);
+        str[0] = 0xe0 | (utf8)(codePoint >> 12);
+        str[1] = 0x80 | (utf8)((codePoint >> 6) & 0x3f);
+        str[2] = 0x80 | (utf8)(codePoint & 0x3f);
     } else {
         // 4-byte/21-bit utf8 code point
         // (0b11110xxx 0b10xxxxxx 0b10xxxxxx 0b10xxxxxx)
-        str[0] = 0xf0 | (char) (codePoint >> 18);
-        str[1] = 0x80 | (char) ((codePoint >> 12) & 0x3f);
-        str[2] = 0x80 | (char) ((codePoint >> 6) & 0x3f);
-        str[3] = 0x80 | (char) (codePoint & 0x3f);
+        str[0] = 0xf0 | (utf8)(codePoint >> 18);
+        str[1] = 0x80 | (utf8)((codePoint >> 12) & 0x3f);
+        str[2] = 0x80 | (utf8)((codePoint >> 6) & 0x3f);
+        str[3] = 0x80 | (utf8)(codePoint & 0x3f);
     }
 }
 
 // Decodes a code point from a data pointer
-constexpr char32_t decode_cp(const char *str) {
+constexpr utf32 decode_cp(const utf8 *str) {
     if (0xf0 == (0xf8 & str[0])) {
         // 4 byte utf8 code point
         return ((0x07 & str[0]) << 18) | ((0x3f & str[1]) << 12) | ((0x3f & str[2]) << 6) | (0x3f & str[3]);
@@ -427,12 +371,12 @@ constexpr char32_t decode_cp(const char *str) {
 // @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
 // @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
 // @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
-constexpr bool is_valid_utf8(const char *data) {
+constexpr bool is_valid_utf8(const utf8 *data) {
     u8 *p = (u8 *) data;
 
     s64 sizeOfCp = get_size_of_cp(data);
     if (sizeOfCp == 1) {
-        if (*data < 0) return false;
+        if ((s8) *data < 0) return false;
     } else if (sizeOfCp == 2) {
         if (*p < 0xC2 || *p > 0xDF) return false;
         ++p;
@@ -486,7 +430,7 @@ constexpr bool is_valid_utf8(const char *data) {
 // This function checks if the index is in range.
 //
 // If _toleratePastLast_ is true, pointing to one past the end is accepted.
-constexpr s64 translate_index(s64 index, s64 length, bool toleratePastLast = false) {
+constexpr always_inline s64 translate_index(s64 index, s64 length, bool toleratePastLast = false) {
     s64 checkLength = toleratePastLast ? (length + 1) : length;
 
     if (index < 0) {
@@ -501,14 +445,14 @@ constexpr s64 translate_index(s64 index, s64 length, bool toleratePastLast = fal
 
 // This returns a pointer to the code point at a specified index in an utf8 string.
 // If _toleratePastLast_ is true, pointing to one past the end is accepted.
-constexpr const char *get_cp_at_index(const char *str, s64 length, s64 index, bool toleratePastLast = false) {
+constexpr const utf8 *get_cp_at_index(const utf8 *str, s64 length, s64 index, bool toleratePastLast = false) {
     For(range(translate_index(index, length, toleratePastLast))) str += get_size_of_cp(str);
     return str;
 }
 
 // Compares two utf8 encoded strings and returns the index of the code point
 // at which they are different or -1 if they are the same.
-constexpr s64 compare_utf8(const char *one, s64 length1, const char *two, s64 length2) {
+constexpr s64 compare_utf8(const utf8 *one, s64 length1, const utf8 *two, s64 length2) {
     if (length1 == 0 && length2 == 0) return -1;
     if (length1 == 0 || length2 == 0) return 0;
 
@@ -527,7 +471,7 @@ constexpr s64 compare_utf8(const char *one, s64 length1, const char *two, s64 le
 
 // Compares two utf8 encoded strings ignoring case and returns the index of the code point
 // at which they are different or -1 if they are the same.
-constexpr s64 compare_utf8_ignore_case(const char *one, s64 length1, const char *two, s64 length2) {
+constexpr s64 compare_utf8_ignore_case(const utf8 *one, s64 length1, const utf8 *two, s64 length2) {
     if (length1 == 0 && length2 == 0) return -1;
     if (length1 == 0 || length2 == 0) return 0;
 
@@ -546,7 +490,7 @@ constexpr s64 compare_utf8_ignore_case(const char *one, s64 length1, const char 
 
 // Compares two utf8 encoded strings and returns -1 if _one_ is before _two_,
 // 0 if one == two and 1 if _two_ is before _one_.
-constexpr s32 compare_utf8_lexicographically(const char *one, s64 length1, const char *two, s64 length2) {
+constexpr s32 compare_utf8_lexicographically(const utf8 *one, s64 length1, const utf8 *two, s64 length2) {
     if (length1 == 0 && length2 == 0) return 0;
     if (length1 == 0) return -1;
     if (length2 == 0) return 1;
@@ -567,7 +511,7 @@ constexpr s32 compare_utf8_lexicographically(const char *one, s64 length1, const
 
 // Compares two utf8 encoded strings ignorign case and returns -1 if _one_ is before _two_,
 // 0 if one == two and 1 if _two_ is before _one_.
-constexpr s32 compare_utf8_lexicographically_ignore_case(const char *one, s64 length1, const char *two, s64 length2) {
+constexpr s32 compare_utf8_lexicographically_ignore_case(const utf8 *one, s64 length1, const utf8 *two, s64 length2) {
     if (length1 == 0 && length2 == 0) return 0;
     if (length1 == 0) return -1;
     if (length2 == 0) return 1;
@@ -587,8 +531,7 @@ constexpr s32 compare_utf8_lexicographically_ignore_case(const char *one, s64 le
 }
 
 // Find the first occurence of a substring that is after a specified index
-constexpr const char *find_substring_utf8(const char *haystack, s64 length1, const char *needle, s64 length2,
-                                          s64 start = 0) {
+constexpr const utf8 *find_substring_utf8(const utf8 *haystack, s64 length1, const utf8 *needle, s64 length2, s64 start = 0) {
     assert(haystack);
     assert(needle);
     assert(length2);
@@ -625,15 +568,14 @@ constexpr const char *find_substring_utf8(const char *haystack, s64 length1, con
 }
 
 // Find the first occurence of a code point that is after a specified index
-constexpr const char *find_cp_utf8(const char *str, s64 length, char32_t cp, s64 start = 0) {
-    char encoded[4]{};
+constexpr const utf8 *find_cp_utf8(const utf8 *str, s64 length, utf32 cp, s64 start = 0) {
+    utf8 encoded[4]{};
     encode_cp(encoded, cp);
     return find_substring_utf8(str, length, encoded, 1, start);
 }
 
 // Find the last occurence of a substring that is before a specified index
-constexpr const char *find_substring_utf8_reverse(const char *haystack, s64 length1, const char *needle, s64 length2,
-                                                  s64 start = 0) {
+constexpr const utf8 *find_substring_utf8_reverse(const utf8 *haystack, s64 length1, const utf8 *needle, s64 length2, s64 start = 0) {
     assert(haystack);
     assert(needle);
     assert(length2);
@@ -671,15 +613,14 @@ constexpr const char *find_substring_utf8_reverse(const char *haystack, s64 leng
 }
 
 // Find the last occurence of a code point that is before a specified index
-constexpr const char *find_cp_utf8_reverse(const char *str, s64 length, char32_t cp, s64 start = 0) {
-    char encoded[4]{};
+constexpr const utf8 *find_cp_utf8_reverse(const utf8 *str, s64 length, utf32 cp, s64 start = 0) {
+    utf8 encoded[4]{};
     encode_cp(encoded, cp);
     return find_substring_utf8_reverse(str, length, encoded, 1, start);
 }
 
 // Find the first occurence of any code point in _terminators_ that is after a specified index
-constexpr const char *find_utf8_any_of(const char *str, s64 length1, const char *terminators, s64 length2,
-                                       s64 start = 0) {
+constexpr const utf8 *find_utf8_any_of(const utf8 *str, s64 length1, const utf8 *terminators, s64 length2, s64 start = 0) {
     assert(str);
     assert(terminators);
     assert(length2);
@@ -698,8 +639,7 @@ constexpr const char *find_utf8_any_of(const char *str, s64 length1, const char 
 }
 
 // Find the last occurence of any code point in _terminators_
-constexpr const char *find_utf8_reverse_any_of(const char *str, s64 length1, const char *terminators, s64 length2,
-                                               s64 start = 0) {
+constexpr const utf8 *find_utf8_reverse_any_of(const utf8 *str, s64 length1, const utf8 *terminators, s64 length2, s64 start = 0) {
     assert(str);
     assert(terminators);
     assert(length2);
@@ -719,7 +659,7 @@ constexpr const char *find_utf8_reverse_any_of(const char *str, s64 length1, con
 }
 
 // Find the first absence of a code point that is after a specified index
-constexpr const char *find_utf8_not(const char *str, s64 length, char32_t cp, s64 start = 0) {
+constexpr const utf8 *find_utf8_not(const utf8 *str, s64 length, utf32 cp, s64 start = 0) {
     assert(str);
 
     if (length == 0) return null;
@@ -728,7 +668,7 @@ constexpr const char *find_utf8_not(const char *str, s64 length, char32_t cp, s6
     auto *p = get_cp_at_index(str, length, translate_index(start, length));
     auto *end = get_cp_at_index(str, length, length, true);
 
-    char encoded[4]{};
+    utf8 encoded[4]{};
     encode_cp(encoded, cp);
     auto *encodedEnd = encoded + get_size_of_cp(encoded);
 
@@ -750,7 +690,7 @@ constexpr const char *find_utf8_not(const char *str, s64 length, char32_t cp, s6
 }
 
 // Find the last absence of a code point that is before the specified index
-constexpr const char *find_utf8_reverse_not(const char *str, s64 length, char32_t cp, s64 start = 0) {
+constexpr const utf8 *find_utf8_reverse_not(const utf8 *str, s64 length, utf32 cp, s64 start = 0) {
     assert(str);
 
     if (length == 0) return null;
@@ -761,7 +701,7 @@ constexpr const char *find_utf8_reverse_not(const char *str, s64 length, char32_
     auto *p = get_cp_at_index(str, length, translate_index(start, length, true) - 1);
     auto *end = get_cp_at_index(str, length, length, true);
 
-    char encoded[4]{};
+    utf8 encoded[4]{};
     encode_cp(encoded, cp);
     auto *encodedEnd = encoded + get_size_of_cp(encoded);
 
@@ -783,7 +723,7 @@ constexpr const char *find_utf8_reverse_not(const char *str, s64 length, char32_
 }
 
 // Find the first absence of any code point in _terminators_ that is after a specified index
-constexpr const char *find_utf8_not_any_of(const char *str, s64 length1, const char *terminators, s64 length2, s64 start = 0) {
+constexpr const utf8 *find_utf8_not_any_of(const utf8 *str, s64 length1, const utf8 *terminators, s64 length2, s64 start = 0) {
     assert(str);
     assert(terminators);
     assert(length2);
@@ -802,7 +742,7 @@ constexpr const char *find_utf8_not_any_of(const char *str, s64 length1, const c
 }
 
 // Find the first absence of any code point in _terminators_ that is after a specified index
-constexpr const char *find_utf8_reverse_not_any_of(const char *str, s64 length1, const char *terminators, s64 length2, s64 start = 0) {
+constexpr const utf8 *find_utf8_reverse_not_any_of(const utf8 *str, s64 length1, const utf8 *terminators, s64 length2, s64 start = 0) {
     assert(str);
     assert(terminators);
     assert(length2);
@@ -824,13 +764,13 @@ constexpr const char *find_utf8_reverse_not_any_of(const char *str, s64 length1,
 
 // Gets [begin, end) range of characters of a utf8 string.
 // Returns begin-end pointers.
-constexpr pair<const char *, const char *> substring_utf8(const char *str, s64 length, s64 begin, s64 end) {
+constexpr pair<const utf8 *, const utf8 *> substring_utf8(const utf8 *str, s64 length, s64 begin, s64 end) {
     // Convert to absolute [begin, end)
     s64 beginIndex = translate_index(begin, length);
     s64 endIndex = translate_index(end, length, true);
 
-    const char *beginPtr = get_cp_at_index(str, length, beginIndex);
-    const char *endPtr = beginPtr;
+    const utf8 *beginPtr = get_cp_at_index(str, length, beginIndex);
+    const utf8 *endPtr = beginPtr;
     For(range(beginIndex, endIndex)) endPtr += get_size_of_cp(endPtr);
 
     return {beginPtr, endPtr};
@@ -838,9 +778,9 @@ constexpr pair<const char *, const char *> substring_utf8(const char *str, s64 l
 
 // Converts utf8 to utf16 and stores in _out_ (assumes there is enough space).
 // Also adds a null-terminator at the end.
-constexpr void utf8_to_utf16(const char *str, s64 length, wchar_t *out) {
+constexpr void utf8_to_utf16(const utf8 *str, s64 length, utf16 *out) {
     For(range(length)) {
-        char32_t cp = decode_cp(str);
+        utf32 cp = decode_cp(str);
         if (cp > 0xffff) {
             *out++ = (u16)((cp >> 10) + (0xD800u - (0x10000 >> 10)));
             *out++ = (u16)((cp & 0x3FF) + 0xDC00u);
@@ -854,9 +794,9 @@ constexpr void utf8_to_utf16(const char *str, s64 length, wchar_t *out) {
 
 // Converts utf8 to utf32 and stores in _out_ (assumes there is enough space).
 // Also adds a null-terminator at the end.
-constexpr void utf8_to_utf32(const char *str, s64 length, char32_t *out) {
+constexpr void utf8_to_utf32(const utf8 *str, s64 length, utf32 *out) {
     For(range(length)) {
-        char32_t cp = decode_cp(str);
+        utf32 cp = decode_cp(str);
         *out++ = cp;
         str += get_size_of_cp(cp);
     }
@@ -864,12 +804,12 @@ constexpr void utf8_to_utf32(const char *str, s64 length, char32_t *out) {
 }
 
 // Converts a null-terminated utf16 to utf8 and stores in _out_ and _outByteLength_ (assumes there is enough space).
-constexpr void utf16_to_utf8(const wchar_t *str, char *out, s64 *outByteLength) {
+constexpr void utf16_to_utf8(const utf16 *str, utf8 *out, s64 *outByteLength) {
     s64 byteLength = 0;
     while (*str) {
-        char32_t cp = *str;
+        utf32 cp = *str;
         if ((cp >= 0xD800) && (cp <= 0xDBFF)) {
-            char32_t trail = cp = *++str;
+            utf32 trail = cp = *++str;
             if (!*str) assert(false && "Invalid utf16 string");
 
             if ((trail >= 0xDC00) && (trail <= 0xDFFF)) {
@@ -889,7 +829,7 @@ constexpr void utf16_to_utf8(const wchar_t *str, char *out, s64 *outByteLength) 
 }
 
 // Converts a null-terminated utf32 to utf8 and stores in _out_ and _outByteLength_ (assumes there is enough space).
-constexpr void utf32_to_utf8(const char32_t *str, char *out, s64 *outByteLength) {
+constexpr void utf32_to_utf8(const utf32 *str, utf8 *out, s64 *outByteLength) {
     s64 byteLength = 0;
     while (*str) {
         encode_cp(out, *str);

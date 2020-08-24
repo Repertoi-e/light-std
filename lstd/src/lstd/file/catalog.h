@@ -15,7 +15,7 @@ struct catalog : non_copyable, non_movable, non_assignable {
         bool Loaded;
 
         array<file::path> FilesAssociated;  // @Leak
-        delegate<void(const array<file::path> &)> Callback;
+        delegate<void(const array_view<file::path> &)> Callback;
 
         bool Watched;
         array<time_t> LastWriteTimes;  // @Leak
@@ -32,9 +32,9 @@ struct catalog : non_copyable, non_movable, non_assignable {
         free(Entities);
     }
 
-    void ensure_initted(file::path root);
+    void ensure_initted(const file::path &root);
 
-    void load(array<file::path> files, const delegate<void(const array<file::path> &)> &callback, bool watch, allocator alloc = {});
+    void load(const array_view<file::path> &files, const delegate<void(const array_view<file::path> &)> &callback, bool watch, allocator alloc = {});
 };
 
 LSTD_END_NAMESPACE

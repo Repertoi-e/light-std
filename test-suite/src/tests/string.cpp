@@ -4,25 +4,25 @@
 
 TEST(code_point_size) {
     string ascii = "abc";
-    assert_eq(ascii.ByteLength, 3);
+    assert_eq(ascii.Count, 3);
     assert_eq(ascii.Length, 3);
 
     string cyrillic = u8"абв";
-    assert_eq(cyrillic.ByteLength, 6);
+    assert_eq(cyrillic.Count, 6);
     assert_eq(cyrillic.Length, 3);
 
     string devanagari = u8"\u0904\u0905\u0906";
-    assert_eq(devanagari.ByteLength, 9);
+    assert_eq(devanagari.Count, 9);
     assert_eq(devanagari.Length, 3);
 
     string supplementary = u8"\U0002070E\U00020731\U00020779";
-    assert_eq(supplementary.ByteLength, 12);
+    assert_eq(supplementary.Count, 12);
     assert_eq(supplementary.Length, 3);
 
     string mixed;
     mixed.append_string(ascii)->append_string(cyrillic)->append_string(devanagari)->append_string(supplementary);
 
-    assert_eq(mixed.ByteLength, 12 + 9 + 6 + 3);
+    assert_eq(mixed.Count, 12 + 9 + 6 + 3);
     assert_eq(mixed.Length, 3 + 3 + 3 + 3);
 }
 
@@ -157,7 +157,7 @@ TEST(iterator) {
     string b = "HeLLo";
     // In order to modify a character, use a string::code_point
     // This will be same as writing "for (string::code_point ch : b)", since b is non-const.
-    // Note that when b is const, the type of ch is just char32_t (you can't take a code point reference)
+    // Note that when b is const, the type of ch is just utf32 (you can't take a code point reference)
     for (auto ch : b) {
         ch = to_lower(ch);
     }
@@ -167,9 +167,9 @@ TEST(iterator) {
     }
     assert_eq(b, u8"ДДДДД");
 
-    // for (char32_t &ch : b) { .. }
+    // for (utf32 &ch : b) { .. }
     // doesn't work since string isn't
-    // actually an array of char32_t
+    // actually an array of utf32
 }
 
 TEST(append) {
@@ -195,13 +195,13 @@ TEST(append) {
     string result;
     For(range(10)) {
         result.append('i');
-        assert_eq(result.ByteLength, it + 1);
+        assert_eq(result.Count, it + 1);
         assert_eq(result.Length, it + 1);
     }
     result.release();
     For(range(10)) {
         result.append_string(u8"Д");
-        assert_eq(result.ByteLength, 2 * (it + 1));
+        assert_eq(result.Count, 2 * (it + 1));
         assert_eq(result.Length, it + 1);
     }
     result.release();

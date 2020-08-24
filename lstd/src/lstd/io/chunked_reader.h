@@ -8,7 +8,7 @@ LSTD_BEGIN_NAMESPACE
 namespace io {
 
 template <s64 ChunkSize>
-char chunked_reader_give_me_buffer(reader *r);
+byte chunked_reader_give_me_buffer(reader *r);
 
 // Reads in chunks from another reader.
 // If the source reader reaches eof _chunked_reader_give_me_buffer_ returns eof but provides a partial chunk.
@@ -25,7 +25,7 @@ struct chunked_reader : reader {
     // By default we use the context allocator.
     allocator Alloc;
 
-    array<char> HelperBuffer;
+    array<byte> HelperBuffer;
 
     explicit chunked_reader(reader *src, allocator alloc = {}) : reader(chunked_reader_give_me_buffer<ChunkSize>), Source(src), Alloc(alloc) {
         if (!Alloc) Alloc = Context.Alloc;
@@ -38,7 +38,7 @@ struct chunked_reader : reader {
 };
 
 template <s64 ChunkSize>
-inline char chunked_reader_give_me_buffer(reader *r) {
+inline byte chunked_reader_give_me_buffer(reader *r) {
     auto *sr = (chunked_reader<ChunkSize> *) r;
 
     if (sr->HelperBuffer.Count) reset(sr->HelperBuffer);

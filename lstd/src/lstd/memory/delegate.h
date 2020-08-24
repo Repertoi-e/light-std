@@ -41,23 +41,25 @@ struct delegate;
 // It doesn't allocate any dynamic memory.
 template <typename R, typename... A>
 struct delegate<R(A...)> {
+    using stub_t = R (*)(void *, A &&...);
     using return_t = R;
 
-    template <typename Class, typename Signature>
+    template <typename Type, typename Signature>
     struct target {
-        Class *InstancePtr;
+        Type *InstancePtr;
         Signature FunctionPtr;
     };
 
-    struct default_class;                                          // Unknown default class (undefined)
-    using default_function = void (default_class::*)(void);        // Unknown default function (undefined)
-    using default_type = target<default_class, default_function>;  // Default target type
+    struct default_type_;                                          // Unknown default type (undefined)
+    using default_function = void (default_type_::*)(void);        // Unknown default function (undefined)
+    using default_type = target<default_type_, default_function>;  // Default target type
 
-    // @CodeReusability Make this object array-like so we can use compare, compare_lexicographically, ==, !=, < operators, etc.. for free!
-    static constexpr s64 Count = sizeof(default_type);  
-    alignas(default_type) char Data[Count]{};
+    // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
+    static constexpr bool IS_ARRAY_LIKE = true;
 
-    using stub_t = R (*)(void *, A &&...);
+    static constexpr s64 Count = sizeof(default_type);
+    
+    alignas(default_type) byte Data[Count]{};
     alignas(stub_t) stub_t Invoker = null;
 
     // Invoke static method / free function
@@ -67,15 +69,15 @@ struct delegate<R(A...)> {
     }
 
     // Invoke method
-    template <typename Class, typename Signature>
+    template <typename Type, typename Signature>
     static R invoke(void *data, A &&... args) {
-        return (reinterpret_cast<const target<Class, Signature> *>(data)->InstancePtr->*reinterpret_cast<const target<Class, Signature> *>(data)->FunctionPtr)((A &&)(args)...);
+        return (reinterpret_cast<const target<Type, Signature> *>(data)->InstancePtr->*reinterpret_cast<const target<Type, Signature> *>(data)->FunctionPtr)((A &&)(args)...);
     }
 
     // Invoke function object (functor)
-    template <typename Class, nullptr_t>
+    template <typename Type, nullptr_t>
     static R invoke(void *data, A &&... args) {
-        return (*reinterpret_cast<const target<Class, nullptr_t> *>(data)->InstancePtr)((A &&)(args)...);
+        return (*reinterpret_cast<const target<Type, nullptr_t> *>(data)->InstancePtr)((A &&)(args)...);
     }
 
     delegate() {}
@@ -94,21 +96,21 @@ struct delegate<R(A...)> {
     }
 
     // Construct delegate with method
-    template <typename Class, typename Signature>
-    delegate(Class *object, Signature method) {
-        auto storage = (target<Class, Signature> *) &Data[0];
+    template <typename Type, typename Signature>
+    delegate(Type *object, Signature method) {
+        auto storage = (target<Type, Signature> *) &Data[0];
         storage->InstancePtr = object;
         storage->FunctionPtr = method;
-        Invoker = &delegate::invoke<Class, Signature>;
+        Invoker = &delegate::invoke<Type, Signature>;
     }
 
     // Construct delegate with function object (functor) / lambda
-    template <typename Class>
-    delegate(Class *functor) {
-        auto storage = (target<Class, nullptr_t> *) &Data[0];
+    template <typename Type>
+    delegate(Type *functor) {
+        auto storage = (target<Type, nullptr_t> *) &Data[0];
         storage->InstancePtr = functor;
         storage->FunctionPtr = null;
-        Invoker = &delegate::invoke<Class, null>;
+        Invoker = &delegate::invoke<Type, null>;
     }
 
     // Assign null pointer

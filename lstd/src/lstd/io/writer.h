@@ -15,27 +15,27 @@ inline void writer_flush_do_nothing(writer *) {}
 // in this class is implemented by calling those functions.
 // By default _FlushFunction_ points to a stub that does nothing.
 struct writer : non_copyable, non_movable, non_assignable {
-    using write_t = void (*)(writer *w, const char *data, s64 count);
+    using write_t = void (*)(writer *w, const byte *data, s64 count);
     using flush_t = void (*)(writer *w);
 
     write_t WriteFunction = null;
     flush_t FlushFunction = writer_flush_do_nothing;
 
-    char *Buffer = null, *Current = null;
+    byte *Buffer = null, *Current = null;
     s64 BufferSize = 0, Available = 0;
 
     writer() {}
     writer(write_t writeFunction, flush_t flushFunction) : WriteFunction(writeFunction), FlushFunction(flushFunction) {}
 
-    void write(const array<char> &data);
-    void write(const char *data) { WriteFunction(this, data, c_string_length(data)); }
-    void write(const char *data, s64 count) { WriteFunction(this, data, count); }
-    void write(const string &str) { WriteFunction(this, str.Data, str.ByteLength); }
+    void write(const array<byte> &data) { WriteFunction(this, data.Data, data.Count); }
+    void write(const byte *data, s64 size) { WriteFunction(this, data, size); }
+    
+    void write(const string &str) { WriteFunction(this, (byte *) str.Data, str.Count); }
 
-    void writer::write(char32_t cp) {
-        char data[4];
+    void writer::write(utf32 cp) {
+        utf8 data[4];
         encode_cp(data, cp);
-        WriteFunction(this, data, get_size_of_cp(data));
+        WriteFunction(this, (byte *) data, get_size_of_cp(data));
     }
 
     void flush() { FlushFunction(this); }

@@ -7,7 +7,7 @@ LSTD_BEGIN_NAMESPACE
 namespace io {
 
 // Defined in *platform*_common.cpp
-char console_reader_give_me_buffer(reader *r);
+byte console_reader_give_me_buffer(reader *r);
 
 // This reader implements standard console input.
 // Also provides some extra functions.

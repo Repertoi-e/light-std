@@ -18,9 +18,9 @@ namespace file {
         return returnOnFail;                                                                                        \
     }
 
-file_scope wchar_t *utf8_path_to_utf16(const file::path &path) {
+file_scope utf16 *utf8_path_to_utf16(const file::path &path) {
     // @Bug path.Str.Length is not enough (2 wide chars for one char)
-    auto *result = allocate_array(wchar_t, path.Str.Length + 1, Context.Temp);
+    auto *result = allocate_array(utf16, path.Str.Length + 1, Context.Temp);
     utf8_to_utf16(path.Str.Data, path.Str.Length, result);
     return result;
 }
@@ -122,19 +122,19 @@ bool handle::delete_directory() const {
 bool handle::copy(handle dest, bool overwrite) const {
     if (!is_file()) return false;
 
-    auto *utf16 = utf8_path_to_utf16(Path);
+    auto *u16 = utf8_path_to_utf16(Path);
 
     if (dest.is_directory()) {
         auto p = dest.Path;
         p.combine_with(Path.file_name());
 
         // @Bug p.Str.Length is not enough (2 wide chars for one char)
-        auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.Temp);
+        auto *d = allocate_array(utf16, p.Str.Length + 1, Context.Temp);
         utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
-        return CopyFileW(utf16, d, !overwrite);
+        return CopyFileW(u16, d, !overwrite);
     }
-    return CopyFileW(utf16, utf8_path_to_utf16(dest.Path), !overwrite);
+    return CopyFileW(u16, utf8_path_to_utf16(dest.Path), !overwrite);
 }
 
 bool handle::move(handle dest, bool overwrite) const {
@@ -145,7 +145,7 @@ bool handle::move(handle dest, bool overwrite) const {
         p.combine_with(Path.file_name());
 
         // @Bug p.Str.Length is not enough (2 wide chars for one char)
-        auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.Temp);
+        auto *d = allocate_array(utf16, p.Str.Length + 1, Context.Temp);
         utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
         if (MoveFileExW(utf8_path_to_utf16(Path), d, MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
@@ -168,7 +168,7 @@ bool handle::rename(const string &newName) const {
     p.combine_with(newName);
 
     // @Bug p.Str.Length is not enough (2 wide chars for one char)
-    auto *d = allocate_array(wchar_t, p.Str.Length + 1, Context.Temp);
+    auto *d = allocate_array(utf16, p.Str.Length + 1, Context.Temp);
     utf8_to_utf16(p.Str.Data, p.Str.Length, d);
 
     if (MoveFileW(utf8_path_to_utf16(Path), d)) {
@@ -191,25 +191,23 @@ bool handle::create_symbolic_link(handle dest) const {
     return CreateSymbolicLinkW(utf8_path_to_utf16(dest.Path), utf8_path_to_utf16(Path), dest.is_directory() ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0);
 }
 
-pair<bool, string> handle::read_entire_file() const {
-    pair<bool, string> failReturn = {false, ""};  // Hack, because specifying directly in the macro below doesn't work
-
-    CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_path_to_utf16(Path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), failReturn);
+pair<bytes, bool> handle::read_entire_file() const {
+    CREATE_FILE_HANDLE_CHECKED(file,
+                               CreateFileW(utf8_path_to_utf16(Path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null),
+                               make_pair(array<byte>{}, false));
     defer(CloseHandle(file));
 
     LARGE_INTEGER size = {0};
     GetFileSizeEx(file, &size);
 
-    string result;
-    result.reserve(size.QuadPart);
-    char *target = const_cast<char *>(result.Data);
+    array<byte> result;
+    reserve(result, size.QuadPart);
     DWORD bytesRead;
-    if (!ReadFile(file, target, (u32) size.QuadPart, &bytesRead, null)) return {false, ""};
+    if (!ReadFile(file, result.Data, (u32) size.QuadPart, &bytesRead, null)) return {{}, false};
     assert(size.QuadPart == bytesRead);
 
-    result.ByteLength += bytesRead;
-    result.Length += utf8_length(target, bytesRead);
-    return {true, result};
+    result.Count += bytesRead;
+    return {result, true};
 }
 
 bool handle::write_to_file(const string &contents, write_mode mode) const {
@@ -222,8 +220,8 @@ bool handle::write_to_file(const string &contents, write_mode mode) const {
     if (mode == write_mode::Overwrite_Entire) SetEndOfFile(file);
 
     DWORD bytesWritten;
-    if (!WriteFile(file, contents.Data, (u32) contents.ByteLength, &bytesWritten, null)) return false;
-    if (bytesWritten != contents.ByteLength) return false;
+    if (!WriteFile(file, contents.Data, (u32) contents.Count, &bytesWritten, null)) return false;
+    if (bytesWritten != contents.Count) return false;
     return true;
 }
 
@@ -236,7 +234,7 @@ void handle::iterator::read_next_entry() {
             defer(queryPath.release());
 
             // @Bug queryPath.Str.Length is not enough (2 wide chars for one char)
-            auto *query = allocate_array(wchar_t, queryPath.Str.Length + 1, Context.Temp);
+            auto *query = allocate_array(utf16, queryPath.Str.Length + 1, Context.Temp);
             utf8_to_utf16(queryPath.Str.Data, queryPath.Str.Length, query);
 
             CREATE_FILE_HANDLE_CHECKED(file, FindFirstFileW(query, (WIN32_FIND_DATAW *) PlatformFileInfo), ;);
@@ -262,8 +260,8 @@ void handle::iterator::read_next_entry() {
 
         auto *fileName = ((WIN32_FIND_DATAW *) PlatformFileInfo)->cFileName;
         CurrentFileName.reserve(c_string_length(fileName) * 2);  // @Bug c_string_length * 2 is not enough
-        utf16_to_utf8(fileName, const_cast<char *>(CurrentFileName.Data), &CurrentFileName.ByteLength);
-        CurrentFileName.Length = utf8_length(CurrentFileName.Data, CurrentFileName.ByteLength);
+        utf16_to_utf8(fileName, const_cast<utf8 *>(CurrentFileName.Data), &CurrentFileName.Count);
+        CurrentFileName.Length = utf8_length(CurrentFileName.Data, CurrentFileName.Count);
     } while (CurrentFileName == ".." || CurrentFileName == ".");
     assert(CurrentFileName != ".." && CurrentFileName != ".");
 }

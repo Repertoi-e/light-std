@@ -1,4 +1,7 @@
 ---------------------------------------------------------------------------------
+Simplify math with the power of C++20
+What's the deal with numeric_info?
+---------------------------------------------------------------------------------
 Fix threads once and for all..
 .. also use a lock-free queue in console output instead of a mutex 
 (TEST PERFOMANCE FOR THIS!) 
@@ -19,7 +22,31 @@ API for watching directory changes
 ... and an asset catalog system
 ---------------------------------------------------------------------------------
 
+// Maps formatting arguments to types that can be used to construct a fmt::value
 
+Rework reader yet again ! (and writer)
+// @Bug value.Length is not enough (2 wide chars for one char)
+
+concepts namespace (like type namespace)
+Remove std:: from our code (implement everything we use ourselves for accurate line count and not relying on the STL etc)
+
+
+Literal struct for other parse options
+
+Methods in ..
+
+remove_cvref
+
+Tests with parse_guid_options
+
+    bool BasePrefixCountedTowardsMaxDigits = true;                 // By default we counts the base prefix towards _MaxDigits_.
+    bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true;  // _ByteToDigit_ might return IGNORE_THIS_BYTE, by default we count it towards _MaxDigits_.
+
+
+Remove traverse functions (bad API)
+
+
+concept Hashable
 ---------------------------------------------------------------------------------
 Speed up hasher
 ---------------------------------------------------------------------------------

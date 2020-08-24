@@ -35,74 +35,38 @@ constexpr void quick_sort(T *first, T *last) {
     quick_sort(nextPivot + 1, last);
 }
 
+template <typename T>
+struct array_view;
+
 // @TODO: Document use cases for this and why is it different from array<T>
 template <typename T, s64 N>
 struct stack_array {
     using data_t = T;
 
-    using iterator = data_t *;
-    using const_iterator = const data_t *;
+    // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
+    static constexpr bool IS_ARRAY_LIKE = true;
 
     data_t Data[N ? N : 1];
     static constexpr s64 Count = N;
 
-    constexpr data_t &get(s64 index) { return Data[translate_index(index, Count)]; }
-    constexpr const data_t &get(s64 index) const { return Data[translate_index(index, Count)]; }
-
-    // Compares this array to _arr_ and returns the index of the first element that is different.
-    // If the arrays are equal, the returned value is -1.
-    constexpr s32 compare(const stack_array &arr) const {
-        if (!Count && !arr.Count) return -1;
-        if (!Count || !arr.Count) return 0;
-
-        auto s1 = begin(), s2 = arr.begin();
-        while (*s1 == *s2) {
-            ++s1, ++s2;
-            if (s1 == end() && s2 == arr.end()) return -1;
-            if (s1 == end()) return s1 - begin();
-            if (s2 == arr.end()) return s2 - arr.begin();
-        }
-        return s1 - begin();
-    }
-
-    // Compares this array to to _arr_ lexicographically.
-    // The result is less than 0 if this array sorts before the other, 0 if they are equal, and greater than 0 otherwise.
-    constexpr s32 compare_lexicographically(const stack_array &arr) const {
-        if (!Count && !arr.Count) return -1;
-        if (!Count) return -1;
-        if (!arr.Count) return 1;
-
-        auto s1 = begin(), s2 = arr.begin();
-        while (*s1 == *s2) {
-            ++s1, ++s2;
-            if (s1 == end() && s2 == arr.end()) return 0;
-            if (s1 == end()) return -1;
-            if (s2 == arr.end()) return 1;
-        }
-        return s1 < s2 ? -1 : 1;
-    }
-
     //
-    // Operators:
+    // Iterators:
     //
-
-    operator array<T>() const;
-
-    constexpr data_t &operator[](s64 index) { return get(index); }
-    constexpr const data_t &operator[](s64 index) const { return get(index); }
+    using iterator = data_t *;
+    using const_iterator = const data_t *;
 
     constexpr iterator begin() { return Data; }
     constexpr iterator end() { return Data + Count; }
     constexpr const_iterator begin() const { return Data; }
     constexpr const_iterator end() const { return Data + Count; }
 
-    // Check two arrays for equality
-    constexpr bool operator==(const stack_array &other) const { return compare_lexicographically(other) == 0; }
-    constexpr bool operator!=(const stack_array &other) const { return !(*this == other); }
-    constexpr bool operator<(const stack_array &other) const { return compare_lexicographically(other) < 0; }
-    constexpr bool operator>(const stack_array &other) const { return compare_lexicographically(other) > 0; }
-    constexpr bool operator<=(const stack_array &other) const { return !(*this > other); }
-    constexpr bool operator>=(const stack_array &other) const { return !(*this < other); }
+    //
+    // Operators:
+    //
+    operator array_view<T>() const;
+
+    constexpr data_t &operator[](s64 index) { return Data[translate_index(index, Count)]; }
+    constexpr const data_t &operator[](s64 index) const { return Data[translate_index(index, Count)]; }
 };
 
 namespace internal {
@@ -111,10 +75,10 @@ struct return_type_helper {
     using type = D;
 };
 template <typename... Types>
-struct return_type_helper<void, Types...> : common_type<Types...> {};
+struct return_type_helper<void, Types...> : type::common_type<Types...> {};
 
 template <class T, s64 N, s64... I>
-constexpr stack_array<remove_cv_t<T>, N> to_array_impl(T (&a)[N], index_sequence<I...>) {
+constexpr stack_array<type::remove_cv_t<T>, N> to_array_impl(T (&a)[N], type::index_sequence<I...>) {
     return {{a[I]...}};
 }
 }  // namespace internal
@@ -126,8 +90,8 @@ constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, 
 }
 
 template <typename T, s64 N>
-constexpr stack_array<remove_cv_t<T>, N> to_stack_array(T (&a)[N]) {
-    return internal::to_array_impl(a, make_index_sequence<N>{});
+constexpr stack_array<type::remove_cv_t<T>, N> to_stack_array(T (&a)[N]) {
+    return internal::to_array_impl(a, type::make_index_sequence<N>{});
 }
 
 LSTD_END_NAMESPACE

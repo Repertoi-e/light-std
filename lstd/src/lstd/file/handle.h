@@ -108,7 +108,7 @@ struct handle {
 
     // Reads entire file. Caller is responsible for freeing the string.
     // (no async variant at the moment)
-    pair<bool, string> read_entire_file() const;
+    [[nodiscard("Leak")]] pair<bytes, bool> read_entire_file() const;
 
     // Write the data memory points to to a file.
     // Returns true on success.

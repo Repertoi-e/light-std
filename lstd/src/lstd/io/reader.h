@@ -16,7 +16,7 @@ struct array;
 namespace io {
 
 // Special constant to signify end of file.
-constexpr char eof = (char) -1;
+constexpr byte eof = (byte) -1;
 
 //
 // The design here is that whenever possible we shouldn't do allocations, because that makes this API slow, and people
@@ -34,10 +34,10 @@ struct reader : non_copyable, non_movable, non_assignable {
     // We pass _this_ as first argument. You can cast this pointer to the reader object implementation - e.g. (console_reader *) r;
     //
     // The buffer should be stored as a view in _Buffer_.
-    // Return value doesn't matter unless it's _eof_ (equivalent to (char) -1, defined above this struct).
+    // Return value doesn't matter unless it's _eof_ (equivalent to (byte) -1, defined above this struct).
     // In the case in which you return _eof_ we just set the _EOF_ flag in this reader.
     // We can require you to do that manually but this seems less error-prone (the compiler throws an error if you forget to return something).
-    using give_me_buffer_t = char (*)(reader *r);
+    using give_me_buffer_t = byte (*)(reader *r);
     give_me_buffer_t GiveMeBuffer = null;
 
     // Since the functions defined below (which all call _GiveMeBuffer_ when there are no more bytes available)
@@ -49,7 +49,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     // and when buffers get invalidaded, so the user doesn't get confused.
     //
     // This is stored as view itself. When reading we bump it's data pointer and reduce it's _Count_.
-    array<char> Buffer;
+    bytes Buffer;
 
     // Whether this reader has reached "end of file"
     bool EOF = false;
@@ -68,13 +68,13 @@ struct reader : non_copyable, non_movable, non_assignable {
     // In that case there still may be a valid buffer (because we don't explicitly clear it).
     // The console reader, for example, continues to work after _eof_ (because in that context _eof_ means end of just one user input).
     //
-    // If the old buffer gets invalidated (freed or overwriten) then any results by read functions 
+    // If the old buffer gets invalidated (freed or overwriten) then any results by read functions
     // in this reader may be invalid since we return views of the buffer.
     void request_next_buffer();
 
     // Attemps to read just a single byte.
     // Returns: the value read, a success flag (false if buffer is exhausted).
-    pair<char, bool> read_byte();
+    pair<byte, bool> read_byte();
 
     // Attemps to read _n_ bytes.
     //
@@ -91,7 +91,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     //
     // Don't release the array returned by this function. It's just a view.
     // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
-    pair<array<char>, s64> read_bytes(s64 n);
+    pair<bytes, s64> read_bytes(s64 n);
 
     // Attemps to read bytes until _delim_ is encountered. Return value doesn't include _delim_.
     // This is an optimized version that works on a couple bytes at a time instead of comparing byte by byte.
@@ -111,13 +111,13 @@ struct reader : non_copyable, non_movable, non_assignable {
     //
     // Don't release the array returned by this function. It's just a view.
     // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
-    pair<array<char>, bool> read_bytes_until(char delim);
+    pair<bytes, bool> read_bytes_until(byte delim);
 
     // Attemps to read bytes until a byte that is in _delims_ is encountered. Return value doesn't include the delimeter.
     // @Speed This is the obvious version for now that checks byte by byte. Maybe we can optimize it?
     //
-    // !!! Read the documentation for _read_bytes_until(char delim)_ above!
-    pair<array<char>, bool> read_bytes_until(const array<char> &delims);
+    // !!! Read the documentation for _read_bytes_until(byte delim)_ above!
+    pair<bytes, bool> read_bytes_until(bytes delims);
 
     // Attemps to read bytes until a byte that is different from _eats_ is encountered. Return value doesn't include the different byte.
     // This is an optimized version that works on a couple bytes at a time instead of comparing byte by byte.
@@ -125,7 +125,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     // We also have one for utf8 strings: _eat_code_points_while_.
     //
     // If we run out of data we can't call _GiveMeBuffer_ and continue, because we can't return a view across two buffers, so we bail out.
-    // The first return value is the stuff that was read and the second is whether a char different from _eats_ was actually encountered.
+    // The first return value is the stuff that was read and the second is whether a byte different from _eats_ was actually encountered.
     //
     // There are two cases in which the second return value is false:
     //  * The reader reached "end of file" (in which case the _EOF_ flag above is set to true).
@@ -137,20 +137,20 @@ struct reader : non_copyable, non_movable, non_assignable {
     //
     // Don't release the array returned by this function. It's just a view.
     // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
-    pair<array<char>, bool> read_bytes_while(char eats);
+    pair<bytes, bool> read_bytes_while(byte eats);
 
     // Attemps to read bytes until a byte that is not in _anyOfThese_ is encountered. Return value doesn't include the different byte.
     // @Speed This is the obvious version for now that checks byte by byte. Maybe we can optimize it?
     //
-    // !!! Read the documentation for _read_bytes_while(char eats)_ above!
-    pair<array<char>, bool> read_bytes_while(const array<char> &anyOfThese);
+    // !!! Read the documentation for _read_bytes_while(byte eats)_ above!
+    pair<bytes, bool> read_bytes_while(bytes anyOfThese);
 
     // !!! Doesn't safety check.
     // !!! Assumes there is enough data in _Buffer.
     //
     // Don't release the array returned by this function. It's just a view.
     // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
-    array<char> read_bytes_unsafe(s64 n);
+    bytes read_bytes_unsafe(s64 n);
 
     // !!! Doesn't safety check.
     // !!! Assumes _n_ bytes don't underflow the buffer.

@@ -9,20 +9,18 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-void format_context_write(io::writer *w, const char *data, s64 count);
+void format_context_write(io::writer *w, const byte *data, s64 count);
 void format_context_flush(io::writer *w);
 
 // This writer is kinda specific.
-// We have a pointer (_Out_) to a writer that eventually the formatted string
-// gets passed to, but we can optimize this with the following:
+// We have a pointer (_Out_) to a writer that gets the writes with certain formatting behaviour.
 //
-// We don't actually write the string to _Out_ but heavily override it's pointers (and restore them later)
-// in order to do a fast flush and prevent copying data.
+// We implement _format_context_write_ (the function that io::writer uses) to get format specs into account
+// (width, fill char, padding direction etc.) but we provide _write_no_specs(...)_ which directly call Out->write(...).
 //
-// This works fine if _Out_ is something like a console_writer (where it's internal buffers are only used for caching)
-// but if use _format_context_ with _Out_ being a writer where write/flush does specific stuff and such optimization
-// actually breaks behaviour, set the _CannotDoFastFlushToOut_ flag to true.
-// That way this object actually writes the formatted string to _Out_ before flushing.
+// This object also has functions for writing pointers, integers and floats.
+// You can use this without a format string but just directly to write formatted stuff to an output writer.
+// @TODO: Separate parse_context from format_context for less confusion.
 struct format_context : io::writer {
     io::writer *Out;
     args Args;
@@ -37,10 +35,15 @@ struct format_context : io::writer {
           Args(args),
           Parse(fmtString, errorHandlerFunc) {}
 
-    using writer::write;
+    using io::writer::write;
 
-    template <typename T>
-    enable_if_t<is_integral_v<T>> write(T value) {
+    // We need this overload for format_context because otherwise the pointer overload
+    // of write_no_specs gets chosen (utf8* gets casted automatically to void*.. sigh!)
+    void write(const utf8 *str) { write((const byte *) str, c_string_length(str)); }
+    void write(const char8_t *str) { write((const byte *) str, c_string_length(str)); }
+
+    template <std::integral T>
+    void write(T value) {
         u64 absValue = (u64) value;
         bool negative = sign_bit(value);
         if (negative) absValue = 0 - absValue;
@@ -52,8 +55,8 @@ struct format_context : io::writer {
         }
     }
 
-    template <typename T>
-    enable_if_t<is_floating_point_v<T>> write(T value) {
+    template <std::floating_point T>
+    void write(T value) {
         if (Specs) {
             write_f64((f64) value, *Specs);
         } else {
@@ -73,22 +76,27 @@ struct format_context : io::writer {
     void write(const void *value);
 
     // Write directly, without looking at formatting specs
-    void write_no_specs(const array<char> &data) { Out->write(data); }
-    void write_no_specs(const char *data) { Out->write(data, c_string_length(data)); }
-    void write_no_specs(const char *data, s64 count) { Out->write(data, count); }
-    void write_no_specs(const string &str) { Out->write(str); }
-    void write_no_specs(char32_t cp) { Out->write(cp); }
+    void write_no_specs(const string &str) { Out->write(*((array<byte> *) &str)); }
 
-    template <typename T>
-    enable_if_t<is_integer_v<T>> write_no_specs(T value) {
+    // We need this overload for format_context because otherwise the pointer overload
+    // of write_no_specs gets chosen (utf8* gets casted automatically to void*.. sigh!)
+    void write_no_specs(const utf8 *str) { Out->write((const byte *) str, c_string_length(str)); }
+    void write_no_specs(const char8_t *str) { Out->write((const byte *) str, c_string_length(str)); }
+
+    void write_no_specs(const utf8 *str, s64 size) { Out->write((const byte *) str, size); }
+
+    void write_no_specs(utf32 cp) { Out->write(cp); }
+
+    template <std::integral T>
+    void write_no_specs(T value) {
         u64 absValue = (u64) value;
         bool negative = sign_bit(value);
         if (negative) absValue = 0 - absValue;
         write_u64(absValue, negative, {});
     }
 
-    template <typename T>
-    enable_if_t<is_floating_point_v<T>> write_no_specs(T value) {
+    template <std::floating_point T>
+    void write_no_specs(T value) {
         write_f64((f64) value, {});
     }
 
@@ -139,12 +147,11 @@ struct format_context_visitor {
     void operator()(u64 value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(bool value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(f64 value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
-    void operator()(const array<char> &value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const string &value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const void *value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const value::custom &custom) { custom.format(F); }
 
-    void operator()(unused) { F->on_error("Internal error while formatting"); }
+    void operator()(::type::unused) { F->on_error("Internal error while formatting"); }
 };
 }  // namespace internal
 

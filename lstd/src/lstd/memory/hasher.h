@@ -22,7 +22,7 @@ struct hasher {
     char *BufferPtr = Buffer;
     char *BufferEnd = Buffer + MAX_BUFFER_SIZE;
 
-    u64 ByteLength = 0;
+    u64 Count = 0;
 
     u64 State[4]{};
 
@@ -37,7 +37,7 @@ struct hasher {
     bool add(const char *data, s64 size) {
         if (!data) return false;
 
-        ByteLength += size;
+        Count += size;
 
         if (BufferPtr + size < BufferEnd) {
             copy_memory(BufferPtr, data, size);
@@ -66,7 +66,7 @@ struct hasher {
 
     u64 hash() {
         u64 result = 0;
-        if (ByteLength >= MAX_BUFFER_SIZE) {
+        if (Count >= MAX_BUFFER_SIZE) {
             result += rotate_left_64(State[0], 1);
             result += rotate_left_64(State[1], 7);
             result += rotate_left_64(State[2], 12);
@@ -91,7 +91,7 @@ struct hasher {
             result = State[2] + 2870177450012600261ULL;
         }
 
-        result += ByteLength;
+        result += Count;
 
         auto *p = Buffer;
         while (p + 8 < BufferPtr) {

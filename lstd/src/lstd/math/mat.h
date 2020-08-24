@@ -21,13 +21,13 @@ struct mat_data {
         make_stack_array_of_uninitialized_math_type<StripeVecT, StripeCount>();
 
    protected:
-    inline T &get_element(s64 row, s64 col) {
+    always_inline T &get_element(s64 row, s64 col) {
         s64 r = translate_index(row, R);
         s64 c = translate_index(col, C);
         return Stripes[r][c];
     }
 
-    inline T get_element(s64 row, s64 col) const {
+    always_inline T get_element(s64 row, s64 col) const {
         s64 r = translate_index(row, R);
         s64 c = translate_index(col, C);
         return Stripes[r][c];
@@ -36,7 +36,7 @@ struct mat_data {
 
 template <typename MatrixT, s64 SR, s64 SC>
 struct mat_view : non_copyable {
-    using Info = mat_info<MatrixT>;
+    using Info = type::mat_info<MatrixT>;
 
     static constexpr s64 VecDim = max(SR, SC);
     static constexpr bool VecAssignable = min(SR, SC) == 1;
@@ -54,8 +54,8 @@ struct mat_view : non_copyable {
         return result;
     }
 
-    template <typename U, bool Packed2, typename = enable_if_t<VecAssignable, U>>
-    operator vec<U, VecDim, Packed2>() const {
+    template <typename U, bool Packed2>
+    requires(VecAssignable) operator vec<U, VecDim, Packed2>() const {
         vec<U, max(SR, SC), Packed2> v = {no_init};
         s64 k = 0;
         For_as(i, range(SR)) {
@@ -69,24 +69,24 @@ struct mat_view : non_copyable {
 
     template <typename U, bool UPacked>
     mat_view &operator=(const mat<U, SR, SC, UPacked> &rhs) {
-        static_assert(!is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
+        static_assert(!type::is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
 
         // If aliasing happens, the same matrix is copied to itself with no side-effects
         For_as(i, range(SR)) {
-            For_as(j, range(SC)) Mat(Row + i, Col + j) = (typename mat_info<MatrixT>::type) rhs(i, j);
+            For_as(j, range(SC)) Mat(Row + i, Col + j) = (typename type::mat_info<MatrixT>::type) rhs(i, j);
         }
         return *this;
     }
 
     // From vector if applicable (for 1*N and N*1 submatrices)
-    template <typename U, bool Packed, typename = enable_if_t<VecAssignable, U>>
-    mat_view &operator=(const vec<U, VecDim, Packed> &v) {
-        static_assert(!is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
+    template <typename U, bool Packed>
+    requires(VecAssignable) mat_view &operator=(const vec<U, VecDim, Packed> &v) {
+        static_assert(!type::is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
 
         s64 k = 0;
         For_as(i, range(SR)) {
             For_as(j, range(SC)) {
-                Mat(Row + i, Col + j) = (typename mat_info<MatrixT>::type) v[k];
+                Mat(Row + i, Col + j) = (typename type::mat_info<MatrixT>::type) v[k];
                 ++k;
             }
         }
@@ -95,11 +95,11 @@ struct mat_view : non_copyable {
 
     template <typename MatrixU>
     mat_view &operator=(const mat_view<MatrixU, SR, SC> &rhs) {
-        static_assert(!is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
+        static_assert(!type::is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
 
         // If *this and rhs reference the same matrix, aliasing must be resolved.
         if ((void *) &Mat == (void *) &rhs.Mat) {
-            mat<typename mat_info<MatrixU>::type, SR, SC, mat_info<MatrixU>::Packed> temp = rhs;
+            mat<typename type::mat_info<MatrixU>::type, SR, SC, type::mat_info<MatrixU>::Packed> temp = rhs;
             operator=(temp);
         } else {
             For_as(i, range(SR)) {
@@ -110,7 +110,7 @@ struct mat_view : non_copyable {
     }
 
     mat_view &operator=(const mat_view &rhs) {
-        static_assert(!is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
+        static_assert(!type::is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
         return operator=<MatrixT>(rhs);
     }
 
@@ -160,15 +160,15 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
         For_as(i, range(R)) { For_as(j, range(C)) (*this)(i, j) = rhs(i, j); }
     }
 
-    template <typename H, typename... Args, enable_if_t<all_v<is_scalar, H, Args...>, s64> = 0,
-              enable_if_t<1 + sizeof...(Args) == R * C, s64> = 0>
-    mat(H h, Args... args) {
+    // Requires all of the arguments to be scalars and their count be R * C.
+    template <typename H, typename... Args>
+    requires(type::all_v<type::is_scalar, H, Args...> && (1 + sizeof...(Args) == R * C)) mat(H h, Args... args) {
         assign<0, 0>(h, args...);
     }
 
     // From vector if applicable (for 1*N and N*1 matrices)
-    template <typename T2, bool Packed2, typename = enable_if_t<VecAssignable, T2>>
-    mat(const vec<T2, VecDim, Packed2> &v) {
+    template <typename T2, bool Packed2>
+    requires(VecAssignable) mat(const vec<T2, VecDim, Packed2> &v) {
         For(range(v.Dim)) (*this)(it) = v[it];
     }
 
@@ -177,16 +177,16 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
     mat(FromStripes_, Stripes... stripes) : mat_data<T, R, C, Packed>{((Stripes &&) stripes)...} {}
 
     // General matrix indexing
-    inline T &operator()(s64 row, s64 col) { return get_element(row, col); }
-    inline T operator()(s64 row, s64 col) const { return get_element(row, col); }
+    always_inline T &operator()(s64 row, s64 col) { return get_element(row, col); }
+    always_inline T operator()(s64 row, s64 col) const { return get_element(row, col); }
 
     // Column and row vector simple indexing
     template <typename Q = T>
-    inline enable_if_t<(C == 1 && R > 1) || (C > 1 && R == 1), Q> &operator()(s64 index) {
+    requires((C == 1 && R > 1) || (C > 1 && R == 1)) always_inline T &operator()(s64 index) {
         return get_element(R == 1 ? 0 : index, C == 1 ? 0 : index);
     }
     template <typename Q = T>
-    inline enable_if_t<(C == 1 && R > 1) || (C > 1 && R == 1), Q> operator()(s64 index) const {
+    requires((C == 1 && R > 1) || (C > 1 && R == 1)) always_inline T &operator()(s64 index) const {
         return get_element(R == 1 ? 0 : index, C == 1 ? 0 : index);
     }
 
@@ -214,8 +214,8 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
     auto row(s64 row) const { return get_view<1, C>(row, 0); }
 
     // Conversion to vector if applicable
-    template <typename T2, bool Packed2, typename = enable_if_t<VecAssignable, T2>>
-    operator vec<T2, VecDim, Packed2>() const {
+    template <typename T2, bool Packed2>
+    requires(VecAssignable) operator vec<T2, VecDim, Packed2>() const {
         vec<T2, max(R, C), Packed2> v = {no_init};
         s64 k = 0;
         For_as(i, range(R)) {

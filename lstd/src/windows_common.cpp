@@ -11,16 +11,16 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 LSTD_BEGIN_NAMESPACE
 
-file_scope wchar_t *HelperClassName = null;
+file_scope utf16 *HelperClassName = null;
 
 file_scope HWND HelperWindowHandle;
 file_scope HDEVNOTIFY DeviceNotificationHandle;
 
 file_scope constexpr s64 CONSOLE_BUFFER_SIZE = 1_KiB;
 
-file_scope char CinBuffer[CONSOLE_BUFFER_SIZE]{};
-file_scope char CoutBuffer[CONSOLE_BUFFER_SIZE]{};
-file_scope char CerrBuffer[CONSOLE_BUFFER_SIZE]{};
+file_scope byte CinBuffer[CONSOLE_BUFFER_SIZE]{};
+file_scope byte CoutBuffer[CONSOLE_BUFFER_SIZE]{};
+file_scope byte CerrBuffer[CONSOLE_BUFFER_SIZE]{};
 file_scope HANDLE CinHandle = null, CoutHandle = null, CerrHandle = null;
 file_scope thread::mutex CoutMutex;
 file_scope thread::mutex CinMutex;
@@ -53,7 +53,7 @@ void init_context() {
     Context.Alloc = Malloc;
 
     s64 startingSize = 8_KiB;  // Start with 8 KiB
-    Context.TempAllocData.Base.Storage = allocate_array(char, startingSize, Malloc);
+    Context.TempAllocData.Base.Storage = allocate_array(byte, startingSize, Malloc);
     Context.TempAllocData.Base.Allocated = startingSize;
 
     Context.Temp = {temporary_allocator, &Context.TempAllocData};
@@ -177,17 +177,16 @@ __declspec(allocate(".CRT$XTU")) cb *g_Termination = NULL;
 
 bool dynamic_library::load(const string &name) {
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *buffer = allocate_array(wchar_t, name.Length + 1, Context.Temp);
+    auto *buffer = allocate_array(utf16, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, buffer);
     Handle = (void *) LoadLibraryW(buffer);
     return Handle;
 }
 
 void *dynamic_library::get_symbol(const string &name) {
-    auto *buffer = allocate_array(char, name.ByteLength + 1, Context.Temp);
-    copy_memory(buffer, name.Data, name.ByteLength);
-    buffer[name.ByteLength] = '\0';
-    return (void *) GetProcAddress((HMODULE) Handle, (LPCSTR) buffer);
+    auto *cString = name.to_c_string();
+    defer(free(cString)); 
+    return (void *) GetProcAddress((HMODULE) Handle, (LPCSTR) cString);
 }
 
 void dynamic_library::close() {
@@ -249,7 +248,7 @@ void win32_common_init() {
         string warning = ">>> Warning: Couldn't set console code page to UTF-8. Some characters might be messed up.\n";
 
         DWORD ignored;
-        WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
+        WriteFile(CerrHandle, warning.Data, (DWORD) warning.Count, &ignored, null);
     }
 
     // Enable ANSI escape sequences
@@ -263,7 +262,7 @@ void win32_common_init() {
     QueryPerformanceFrequency(&PerformanceFrequency);
 
     // Get the module name
-    wchar_t *buffer = allocate_array(wchar_t, MAX_PATH, Context.Temp);
+    utf16 *buffer = allocate_array(utf16, MAX_PATH, Context.Temp);
     s64 reserved = MAX_PATH;
 
     while (true) {
@@ -271,7 +270,7 @@ void win32_common_init() {
         if (written == reserved) {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
                 reserved *= 2;
-                buffer = allocate_array(wchar_t, reserved, Context.Temp);
+                buffer = allocate_array(utf16, reserved, Context.Temp);
                 continue;
             }
         }
@@ -282,11 +281,11 @@ void win32_common_init() {
         ModuleName.reserve(reserved * 2);  // @Bug reserved * 2 is not enough
     }
 
-    utf16_to_utf8(buffer, const_cast<char *>(ModuleName.Data), &ModuleName.ByteLength);
-    ModuleName.Length = utf8_length(ModuleName.Data, ModuleName.ByteLength);
+    utf16_to_utf8(buffer, const_cast<utf8 *>(ModuleName.Data), &ModuleName.Count);
+    ModuleName.Length = utf8_length(ModuleName.Data, ModuleName.Count);
 
     // Get the arguments
-    wchar_t **argv;
+    utf16 **argv;
     int argc;
 
     // @Cleanup: Parse the arguments ourselves and use our temp allocator
@@ -298,7 +297,7 @@ void win32_common_init() {
             "array in all cases.\n";
 
         DWORD ignored;
-        WriteFile(CerrHandle, warning.Data, (DWORD) warning.ByteLength, &ignored, null);
+        WriteFile(CerrHandle, warning.Data, (DWORD) warning.Count, &ignored, null);
     } else {
         WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
             reserve(Argv, argc - 1);
@@ -311,8 +310,8 @@ void win32_common_init() {
             WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
                 arg->reserve(c_string_length(warg) * 2);  // @Bug c_string_length * 2 is not enough
             }
-            utf16_to_utf8(warg, const_cast<char *>(arg->Data), &arg->ByteLength);
-            arg->Length = utf8_length(arg->Data, arg->ByteLength);
+            utf16_to_utf8(warg, const_cast<utf8 *>(arg->Data), &arg->Count);
+            arg->Length = utf8_length(arg->Data, arg->Count);
         }
 
         LocalFree(argv);
@@ -354,13 +353,13 @@ void win32_common_init() {
     exit_schedule(destroy_helper_window);
 }
 
-char io::console_reader_give_me_buffer(io::reader *r) {
+byte io::console_reader_give_me_buffer(io::reader *r) {
     auto *cr = (io::console_reader *) r;
 
     cr->Buffer.Data = CinBuffer;
 
     DWORD read;
-    ReadFile(CinHandle, const_cast<char *>(cr->Buffer.Data), (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
+    ReadFile(CinHandle, cr->Buffer.Data, (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
 
     cr->Buffer.Count = (s64) read;
 
@@ -368,21 +367,21 @@ char io::console_reader_give_me_buffer(io::reader *r) {
     return 0;
 }
 
-void io::console_writer_write(io::writer *w, const char *data, s64 count) {
+void io::console_writer_write(io::writer *w, const byte *data, s64 size) {
     auto *cw = (io::console_writer *) w;
 
     thread::mutex *mutex = null;
     if (cw->LockMutex) mutex = &CoutMutex;
     thread::scoped_lock _(mutex);
 
-    if (count > cw->Available) {
+    if (size > cw->Available) {
         cw->flush();
     }
 
-    copy_memory(cw->Current, data, count);
+    copy_memory(cw->Current, data, size);
 
-    cw->Current += count;
-    cw->Available -= count;
+    cw->Current += size;
+    cw->Available -= size;
 }
 
 void io::console_writer_flush(io::writer *w) {
@@ -490,7 +489,7 @@ s64 os_get_block_size(void *ptr) {
 
 void os_write_shared_block(const string &name, void *data, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
+    auto *name16 = allocate_array(utf16, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     CREATE_MAPPING_CHECKED(h,
@@ -508,7 +507,7 @@ void os_write_shared_block(const string &name, void *data, s64 size) {
 
 void os_read_shared_block(const string &name, void *out, s64 size) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
+    auto *name16 = allocate_array(utf16, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     CREATE_MAPPING_CHECKED(h, OpenFileMappingW(FILE_MAP_READ, false, name16), );
@@ -548,7 +547,7 @@ string os_get_working_dir() {
     thread::scoped_lock _(&WorkingDirMutex);
 
     DWORD required = GetCurrentDirectoryW(0, null);
-    auto *dir16 = allocate_array(wchar_t, required + 1, Context.Temp);
+    auto *dir16 = allocate_array(utf16, required + 1, Context.Temp);
 
     if (!GetCurrentDirectoryW(required + 1, dir16)) {
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW", __FILE__, __LINE__);
@@ -559,8 +558,8 @@ string os_get_working_dir() {
         WorkingDir.reserve(required * 2);  // @Bug required * 2 is not enough
     }
 
-    utf16_to_utf8(dir16, const_cast<char *>(WorkingDir.Data), &WorkingDir.ByteLength);
-    WorkingDir.Length = utf8_length(WorkingDir.Data, WorkingDir.ByteLength);
+    utf16_to_utf8(dir16, const_cast<utf8 *>(WorkingDir.Data), &WorkingDir.Count);
+    WorkingDir.Length = utf8_length(WorkingDir.Data, WorkingDir.Count);
     return WorkingDir;
 }
 
@@ -571,7 +570,7 @@ void os_set_working_dir(const string &dir) {
     thread::scoped_lock _(&WorkingDirMutex);
 
     // @Bug
-    auto *dir16 = allocate_array(wchar_t, dir.Length + 1, Context.Temp);
+    auto *dir16 = allocate_array(utf16, dir.Length + 1, Context.Temp);
     utf8_to_utf16(dir.Data, dir.Length, dir16);
 
     WIN32_CHECKBOOL(SetCurrentDirectoryW(dir16));
@@ -579,12 +578,12 @@ void os_set_working_dir(const string &dir) {
 
 pair<bool, string> os_get_env(const string &name, bool silent) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
+    auto *name16 = allocate_array(utf16, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     DWORD bufferSize = 65535;  // Limit according to http://msdn.microsoft.com/en-us/library/ms683188.aspx
 
-    auto *buffer = allocate_array(wchar_t, bufferSize, Context.Temp);
+    auto *buffer = allocate_array(utf16, bufferSize, Context.Temp);
     auto r = GetEnvironmentVariableW(name16, buffer, bufferSize);
 
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
@@ -596,7 +595,7 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
 
     // 65535 may be the limit but let's not take risks
     if (r > bufferSize) {
-        buffer = allocate_array(wchar_t, r, Context.Temp);
+        buffer = allocate_array(utf16, r, Context.Temp);
         GetEnvironmentVariableW(name16, buffer, r);
         bufferSize = r;
 
@@ -605,19 +604,19 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
 
     string result;
     result.reserve(bufferSize * 2);  // @Bug bufferSize * 2 is not enough
-    utf16_to_utf8(buffer, const_cast<char *>(result.Data), &result.ByteLength);
-    result.Length = utf8_length(result.Data, result.ByteLength);
+    utf16_to_utf8(buffer, const_cast<utf8 *>(result.Data), &result.Count);
+    result.Length = utf8_length(result.Data, result.Count);
 
     return {true, result};
 }
 
 void os_set_env(const string &name, const string &value) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
+    auto *name16 = allocate_array(utf16, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     // @Bug value.Length is not enough (2 wide chars for one char)
-    auto *value16 = allocate_array(wchar_t, value.Length + 1, Context.Temp);
+    auto *value16 = allocate_array(utf16, value.Length + 1, Context.Temp);
     utf8_to_utf16(value.Data, value.Length, value16);
 
     if (value.Length > 32767) {
@@ -631,7 +630,7 @@ void os_set_env(const string &name, const string &value) {
 
 void os_remove_env(const string &name) {
     // @Bug name.Length is not enough (2 wide chars for one char)
-    auto *name16 = allocate_array(wchar_t, name.Length + 1, Context.Temp);
+    auto *name16 = allocate_array(utf16, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
 
     WIN32_CHECKBOOL(SetEnvironmentVariableW(name16, null));
@@ -650,7 +649,7 @@ string os_get_clipboard_content() {
         return "";
     }
 
-    auto *buffer = (wchar_t *) GlobalLock(object);
+    auto *buffer = (utf16 *) GlobalLock(object);
     if (!buffer) {
         fmt::print("(windows_monitor.cpp): Failed to lock global handle\n");
         return "";
@@ -661,21 +660,21 @@ string os_get_clipboard_content() {
         ClipboardString.reserve(c_string_length(buffer) * 2);  // @Bug c_string_length * 2 is not enough
     }
 
-    utf16_to_utf8(buffer, const_cast<char *>(ClipboardString.Data), &ClipboardString.ByteLength);
-    ClipboardString.Length = utf8_length(ClipboardString.Data, ClipboardString.ByteLength);
+    utf16_to_utf8(buffer, const_cast<utf8 *>(ClipboardString.Data), &ClipboardString.Count);
+    ClipboardString.Length = utf8_length(ClipboardString.Data, ClipboardString.Count);
 
     return ClipboardString;
 }
 
 void os_set_clipboard_content(const string &content) {
-    HANDLE object = GlobalAlloc(GMEM_MOVEABLE, content.Length * 2 * sizeof(wchar_t));
+    HANDLE object = GlobalAlloc(GMEM_MOVEABLE, content.Length * 2 * sizeof(utf16));
     if (!object) {
         fmt::print("(windows_monitor.cpp): Failed to open clipboard\n");
         return;
     }
     defer(GlobalFree(object));
 
-    auto *buffer = (wchar_t *) GlobalLock(object);
+    auto *buffer = (utf16 *) GlobalLock(object);
     if (!buffer) {
         fmt::print("(windows_monitor.cpp): Failed to lock global handle\n");
         return;
@@ -704,15 +703,15 @@ guid guid_new() {
     GUID g;
     CoCreateGuid(&g);
 
-    stack_array<char, 16> data = to_stack_array((char) ((g.Data1 >> 24) & 0xFF), (char) ((g.Data1 >> 16) & 0xFF),
-                                                (char) ((g.Data1 >> 8) & 0xFF), (char) ((g.Data1) & 0xff),
+    stack_array<byte, 16> data = to_stack_array((byte)((g.Data1 >> 24) & 0xFF), (byte)((g.Data1 >> 16) & 0xFF),
+                                                (byte)((g.Data1 >> 8) & 0xFF), (byte)((g.Data1) & 0xff),
 
-                                                (char) ((g.Data2 >> 8) & 0xFF), (char) ((g.Data2) & 0xff),
+                                                (byte)((g.Data2 >> 8) & 0xFF), (byte)((g.Data2) & 0xff),
 
-                                                (char) ((g.Data3 >> 8) & 0xFF), (char) ((g.Data3) & 0xFF),
+                                                (byte)((g.Data3 >> 8) & 0xFF), (byte)((g.Data3) & 0xFF),
 
-                                                (char) g.Data4[0], (char) g.Data4[1], (char) g.Data4[2], (char) g.Data4[3],
-                                                (char) g.Data4[4], (char) g.Data4[5], (char) g.Data4[6], (char) g.Data4[7]);
+                                                (byte) g.Data4[0], (byte) g.Data4[1], (byte) g.Data4[2], (byte) g.Data4[3],
+                                                (byte) g.Data4[4], (byte) g.Data4[5], (byte) g.Data4[6], (byte) g.Data4[7]);
     return guid(data);
 }
 

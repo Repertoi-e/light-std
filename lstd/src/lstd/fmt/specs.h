@@ -39,7 +39,7 @@ enum class sign {
 };
 
 struct format_specs {
-    char32_t Fill = ' ';
+    utf32 Fill = ' ';
     alignment Align = alignment::NONE;
 
     sign Sign = sign::NONE;

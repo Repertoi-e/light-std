@@ -25,15 +25,15 @@ void reset(string_builder &builder) {
     }
 }
 
-void append(string_builder &builder, char32_t cp) {
-    char encoded[4];
+void append(string_builder &builder, utf32 cp) {
+    utf8 encoded[4];
     encode_cp(encoded, cp);
     append_pointer_and_size(builder, encoded, get_size_of_cp(cp));
 }
 
-void append_string(string_builder &builder, const string &str) { append_pointer_and_size(builder, str.Data, str.ByteLength); }
+void append_string(string_builder &builder, const string &str) { append_pointer_and_size(builder, str.Data, str.Count); }
 
-void append_pointer_and_size(string_builder &builder, const char *data, s64 size) {
+void append_pointer_and_size(string_builder &builder, const utf8 *data, s64 size) {
     auto *currentBuffer = get_current_buffer(builder);
 
     s64 availableSpace = builder.BUFFER_SIZE - currentBuffer->Occupied;
@@ -74,6 +74,7 @@ string combine(const string_builder &builder) {
     return result;
 }
 
+// @API Remove this, iterators? Literally anything else..
 void traverse(const string_builder &builder, const delegate<void(const string &)> &func) {
     auto *buffer = &builder.BaseBuffer;
     while (buffer) {

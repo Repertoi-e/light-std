@@ -36,7 +36,7 @@ template <typename... Args>
 void format_test_error(const string &fmtString, Args &&... arguments) {
     io::counting_writer dummy;
 
-    auto args = fmt::args_on_the_stack(((remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+    auto args = fmt::args_on_the_stack(((type::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
     auto f = fmt::format_context(&dummy, fmtString, args, test_error_handler);
     fmt::parse_fmt_string(fmtString, &f);
 }
@@ -67,27 +67,27 @@ TEST(write_integer_32) {
     CHECK_WRITE("34", "{}", 34u);
     CHECK_WRITE("56", "{}", 56l);
     CHECK_WRITE("78", "{}", 78ul);
-    CHECK_WRITE("-2147483648", "{}", numeric_info<s32>::min());
-    CHECK_WRITE("2147483647", "{}", numeric_info<s32>::max());
-    CHECK_WRITE("4294967295", "{}", numeric_info<u32>::max());
-    CHECK_WRITE("-2147483648", "{}", numeric_info<long>::min());
-    CHECK_WRITE("2147483647", "{}", numeric_info<long>::max());
-    CHECK_WRITE("4294967295", "{}", numeric_info<unsigned long>::max());
+    CHECK_WRITE("-2147483648", "{}", type::numeric_info<s32>::min());
+    CHECK_WRITE("2147483647", "{}", type::numeric_info<s32>::max());
+    CHECK_WRITE("4294967295", "{}", type::numeric_info<u32>::max());
+    CHECK_WRITE("-2147483648", "{}", type::numeric_info<long>::min());
+    CHECK_WRITE("2147483647", "{}", type::numeric_info<long>::max());
+    CHECK_WRITE("4294967295", "{}", type::numeric_info<unsigned long>::max());
 }
 
 TEST(write_integer_64) {
     CHECK_WRITE("56", "{}", 56ll);
     CHECK_WRITE("78", "{}", 78ull);
-    CHECK_WRITE("-9223372036854775808", "{}", numeric_info<s64>::min());
-    CHECK_WRITE("9223372036854775807", "{}", numeric_info<s64>::max());
-    CHECK_WRITE("18446744073709551615", "{}", numeric_info<u64>::max());
+    CHECK_WRITE("-9223372036854775808", "{}", type::numeric_info<s64>::min());
+    CHECK_WRITE("9223372036854775807", "{}", type::numeric_info<s64>::max());
+    CHECK_WRITE("18446744073709551615", "{}", type::numeric_info<u64>::max());
 }
 
 TEST(write_f64) {
     CHECK_WRITE("4.2", "{}", 4.2);
     CHECK_WRITE("-4.2", "{}", -4.2);
-    CHECK_WRITE("2.22507e-308", "{}", numeric_info<f64>::min());
-    CHECK_WRITE("1.79769e+308", "{}", numeric_info<f64>::max());
+    CHECK_WRITE("2.22507e-308", "{}", type::numeric_info<f64>::min());
+    CHECK_WRITE("1.79769e+308", "{}", type::numeric_info<f64>::max());
 }
 
 TEST(write_code_point) { CHECK_WRITE("X", "{:c}", 'X'); }
@@ -97,7 +97,7 @@ void check_unknown_types(T value, const string &types, const string &expectedMes
     string special = ".0123456789}";
 
     For(range(1, CHAR_MAX)) {
-        if (special.has((char32_t) it) || types.has((char32_t) it)) continue;
+        if (special.has((utf32) it) || types.has((utf32) it)) continue;
 
         string fmtString = fmt::sprint("{{0:10{:c}}}", it);
         EXPECT_ERROR(expectedMessage, fmtString, value);
@@ -118,7 +118,7 @@ TEST(format_int_binary) {
     CHECK_WRITE("11000000111001", "{0:b}", 12345);
     CHECK_WRITE("10010001101000101011001111000", "{0:b}", 0x12345678);
     CHECK_WRITE("10010000101010111100110111101111", "{0:b}", 0x90ABCDEF);
-    CHECK_WRITE("11111111111111111111111111111111", "{0:b}", numeric_info<u32>::max());
+    CHECK_WRITE("11111111111111111111111111111111", "{0:b}", type::numeric_info<u32>::max());
 }
 
 TEST(format_int_octal) {
@@ -155,7 +155,7 @@ TEST(format_int_localeish) {
     CHECK_WRITE("123", "{:n}", 123);
     CHECK_WRITE("1,234", "{:n}", 1234);
     CHECK_WRITE("1,234,567", "{:n}", 1234567);
-    CHECK_WRITE("4,294,967,295", "{:n}", numeric_info<u32>::max());
+    CHECK_WRITE("4,294,967,295", "{:n}", type::numeric_info<u32>::max());
 }
 
 TEST(format_f32) {
@@ -185,7 +185,7 @@ TEST(format_f64) {
 }
 
 TEST(format_nan) {
-    auto nan = numeric_info<f64>::quiet_NaN();
+    auto nan = type::numeric_info<f64>::quiet_NaN();
     CHECK_WRITE("nan", "{}", nan);
     CHECK_WRITE("+nan", "{:+}", nan);
     CHECK_WRITE(" nan", "{: }", nan);
@@ -197,7 +197,7 @@ TEST(format_nan) {
 }
 
 TEST(format_inf) {
-    auto inf = numeric_info<f64>::infinity();
+    auto inf = type::numeric_info<f64>::infinity();
     CHECK_WRITE("inf", "{}", inf);
     CHECK_WRITE("+inf", "{:+}", inf);
     CHECK_WRITE("-inf", "{}", -inf);

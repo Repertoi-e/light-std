@@ -14,25 +14,22 @@ void test_guid_case(guid id, char f) {
     // Weird scenario just to stress test
     io::chunked_reader<2> r(&string_reader);
 
-    r.request_next_buffer();
-    auto [buffer, success] = r.read_bytes_until('\n');
+    array<byte> buffer;
+    defer(free(buffer)); // If we allocate, we free, this doesn't crash if there was no memory allocated!
 
-    array<char> result = buffer;
-    defer(free(result));
-
-    while (!success && !r.EOF) {
+    bool done = false;
+    while (!done && !r.EOF) {
         r.request_next_buffer();
 
-        tie(buffer, success) = r.read_bytes_until('\n');
-        append_array(result, buffer);
-
-        if (success) break;
+        bytes b;
+        tie(b, done) = r.read_bytes_until('\n');
+        append_array_or_set_fields(buffer, b);
     }
 
-    auto [parsed, parsedStatus, rest] = parse_guid(result);
+    auto [parsed, parsedStatus, rest] = parse_guid(buffer);
     assert(parsed == id);
     assert(parsedStatus == PARSE_SUCCESS);
-    assert(rest == (array<char>) (string) "");
+    assert(rest == (bytes) (string) "");
 }
 
 TEST(guid_write_read) {

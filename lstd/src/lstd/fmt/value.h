@@ -24,16 +24,6 @@ enum class type {
     CUSTOM
 };
 
-constexpr type operator|(type lhs, type rhs) {
-    using T = underlying_type_t<type>;
-    return (type)((T) lhs | (T) rhs);
-}
-constexpr type &operator|=(type &lhs, type rhs) {
-    using T = underlying_type_t<type>;
-    lhs = (type)((T) lhs | (T) rhs);
-    return lhs;
-}
-
 constexpr bool is_fmt_type_integral(type type) {
     return type > type::NONE && type <= type::LAST_INTEGRAL;
 }
@@ -65,7 +55,7 @@ TYPE_CONSTANT(const void *, type::POINTER);
 }  // namespace internal
 
 template <typename T>
-constexpr auto type_constant_v = internal::type_constant<remove_cv_t<remove_reference_t<T>>>::value;
+constexpr auto type_constant_v = internal::type_constant<::type::remove_cv_t<::type::remove_reference_t<T>>>::value;
 
 //
 // Specialize this for custom types
@@ -84,10 +74,14 @@ struct formatter {
 };
 
 template <typename T>
-using has_formatter = is_constructible<formatter<T>>;
+using has_formatter = ::type::is_constructible<formatter<T>>;
 
 template <typename T>
 constexpr bool has_formatter_v = has_formatter<T>::value;
+
+// Can T be formatted with a custom formatter
+// template <typename T>
+// concept formattable = requires(T, t) { {formatter<T>{}}; };
 
 struct format_context;
 
@@ -127,7 +121,7 @@ struct value {
    private:
     template <typename T>
     static void format_custom_arg(const void *arg, format_context *f) {
-        formatter<remove_cvref_t<T>> formatter;
+        formatter<::type::remove_cvref_t<T>> formatter;
         formatter.format(*(const T *) (arg), f);
     }
 };

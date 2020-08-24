@@ -1,8 +1,9 @@
 #include <math.h>  // @DependencyCleanup
 
+#include "../memory/array.h"
 #include "common.h"
 #include "context.h"
-#include "../memory/array.h"
+#include "os_function_call.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -1227,7 +1228,7 @@ f64 max(f64 x, f64 y) {
 }
 
 void default_panic_handler(const string &message, const array<os_function_call> &callStack) {
-    fmt::print("\n\n{!}(context.cpp / default_crash_handler): An panic occured and the program must terminate.\n");
+    fmt::print("\n\n{!}(context.cpp / default_crash_handler): A panic occured and the program must terminate.\n");
     fmt::print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
     fmt::print("        ... and here is the call stack:\n");
     if (callStack.Count) {

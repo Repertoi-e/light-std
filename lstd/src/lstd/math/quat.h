@@ -12,7 +12,7 @@ LSTD_BEGIN_NAMESPACE
 // There are helper functions to represent rotation with quaternions.
 template <typename T, bool Packed = false>
 struct tquat {
-    static constexpr bool SimdAccelerated = has_simd_v<vec<T, 4, Packed>>;
+    static constexpr bool SimdAccelerated = type::has_simd_v<vec<T, 4, Packed>>;
 
     union {
         struct {

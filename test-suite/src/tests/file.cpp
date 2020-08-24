@@ -85,7 +85,7 @@ TEST(writing_hello_250_times) {
     assert(file.write_to_file(contents));
     assert_eq(250 * 6, file.file_size());
 
-    auto [sucess, read] = file.read_entire_file();
+    auto [read, sucess] = file.read_entire_file();
     defer(read.release());
 
     assert(sucess);
@@ -117,7 +117,7 @@ TEST(test_introspection) {
 
         string contents;
         test.read_entire_file(&contents);
-        assert_eq(contents.ByteLength, test.file_size());
+        assert_eq(contents.Count, test.file_size());
 
         string nativePath;
         clone(&nativePath, testPath.Str);

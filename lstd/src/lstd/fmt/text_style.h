@@ -69,21 +69,10 @@ inline terminal_color string_to_terminal_color(const string &str) {
     return terminal_color::NONE;
 }
 
-enum class emphasis : u8 { BOLD = BIT(0),
-                           ITALIC = BIT(1),
-                           UNDERLINE = BIT(2),
-                           STRIKETHROUGH = BIT(3) };
-
-constexpr emphasis operator|(emphasis lhs, emphasis rhs) {
-    using T = underlying_type_t<emphasis>;
-    return (emphasis)((T) lhs | (T) rhs);
-}
-
-constexpr emphasis &operator|=(emphasis &lhs, emphasis rhs) {
-    using T = underlying_type_t<emphasis>;
-    lhs = (emphasis)((T) lhs | (T) rhs);
-    return lhs;
-}
+enum emphasis : u8 { BOLD = BIT(0),
+                     ITALIC = BIT(1),
+                     UNDERLINE = BIT(2),
+                     STRIKETHROUGH = BIT(3) };
 
 struct text_style {
     enum class color_kind { NONE = 0,
@@ -97,12 +86,12 @@ struct text_style {
     } Color{};
 
     bool Background = false;
-    emphasis Emphasis = (emphasis) 0;
+    u8 Emphasis = 0;
 };
 
 namespace internal {
 // Used when making ANSI escape codes for text styles
-inline char *u8_to_esc(char *p, char delimiter, u8 c) {
+inline utf8 *u8_to_esc(utf8 *p, utf8 delimiter, u8 c) {
     *p++ = '0' + c / 100;
     *p++ = '0' + c / 10 % 10;
     *p++ = '0' + c % 10;
@@ -110,8 +99,8 @@ inline char *u8_to_esc(char *p, char delimiter, u8 c) {
     return p;
 }
 
-inline char *color_to_ansi(char *buffer, text_style style) {
-    char *p = buffer;
+inline utf8 *color_to_ansi(utf8 *buffer, text_style style) {
+    utf8 *p = buffer;
     if (style.ColorKind != text_style::color_kind::NONE) {
         if (style.ColorKind == text_style::color_kind::TERMINAL) {
             // Background terminal colors are 10 more than the foreground ones
@@ -144,14 +133,14 @@ inline char *color_to_ansi(char *buffer, text_style style) {
     return p;
 }
 
-inline char *emphasis_to_ansi(char *buffer, u8 emphasis) {
+inline utf8 *emphasis_to_ansi(utf8 *buffer, u8 emphasis) {
     u8 codes[4] = {};
-    if (emphasis & (u8) emphasis::BOLD) codes[0] = 1;
-    if (emphasis & (u8) emphasis::ITALIC) codes[1] = 3;
-    if (emphasis & (u8) emphasis::UNDERLINE) codes[2] = 4;
-    if (emphasis & (u8) emphasis::STRIKETHROUGH) codes[3] = 9;
+    if (emphasis & BOLD) codes[0] = 1;
+    if (emphasis & ITALIC) codes[1] = 3;
+    if (emphasis & UNDERLINE) codes[2] = 4;
+    if (emphasis & STRIKETHROUGH) codes[3] = 9;
 
-    char *p = buffer;
+    utf8 *p = buffer;
     For(range(4)) {
         if (!codes[it]) continue;
 

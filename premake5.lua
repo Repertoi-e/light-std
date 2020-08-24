@@ -17,7 +17,9 @@ function common_settings()
     architecture "x64"
 
     language "C++"
-    cppdialect "C++17"
+
+    -- We can't specify C++20 but at least on Windows, our generate_projects.bat replaces language standard with stdcpplatest in the .vcxproj files
+    cppdialect "C++17" 
 
     rtti "Off"
     characterset "Unicode"

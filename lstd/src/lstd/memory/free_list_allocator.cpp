@@ -40,7 +40,7 @@ u16 free_list_allocator_data::find_best(s64 size, node **previousNode, node **fo
     u16 padding = 0;
 
     // Iterate the whole list while keeping a pointer to the best fit
-    s64 smallestDiff = numeric_info<s64>::max();
+    s64 smallestDiff = type::numeric_info<s64>::max();
 
     node *it = FreeListHead, *itPrev = null, *bestBlock = null;
     while (it) {

@@ -9,17 +9,17 @@ namespace io {
 reader::reader(give_me_buffer_t giveMeBuffer) : GiveMeBuffer(giveMeBuffer) {}
 
 void reader::request_next_buffer() {
-    char status = GiveMeBuffer(this);
+    byte status = GiveMeBuffer(this);
     if (status == eof) EOF = true;
 }
 
-pair<char, bool> reader::read_byte() {
+pair<byte, bool> reader::read_byte() {
     if (EOF) return {0, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
 
     if (Buffer.Count) {
-        char ch = *Buffer.Data;
+        byte ch = *Buffer.Data;
         Buffer.Data += 1;
         Buffer.Count -= 1;
         return {ch, true};
@@ -27,7 +27,7 @@ pair<char, bool> reader::read_byte() {
     return {0, false};
 }
 
-pair<array<char>, s64> reader::read_bytes(s64 n) {
+pair<bytes, s64> reader::read_bytes(s64 n) {
     if (EOF) return {{}, n};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
@@ -40,12 +40,12 @@ pair<array<char>, s64> reader::read_bytes(s64 n) {
     }
 }
 
-pair<array<char>, bool> reader::read_bytes_until(char delim) {
+pair<bytes, bool> reader::read_bytes_until(byte delim) {
     if (EOF) return {{}, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
 
-    char *p = Buffer.Data;
+    auto *p = Buffer.Data;
     s64 n = Buffer.Count;
     while (n >= 4) {
         if (U32_HAS_BYTE(*(u32 *) p, delim)) break;
@@ -54,32 +54,32 @@ pair<array<char>, bool> reader::read_bytes_until(char delim) {
     }
 
     while (n > 0) {
-        if (*p == delim) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        if (*p == delim) return {bytes(Buffer.Data, p - Buffer.Data), true};
         ++p, --n;
     }
-    return {array<char>(Buffer.Data, p - Buffer.Data), false};
+    return {bytes(Buffer.Data, p - Buffer.Data), false};
 }
 
-pair<array<char>, bool> reader::read_bytes_until(const array<char> &delims) {
+pair<bytes, bool> reader::read_bytes_until(bytes delims) {
     if (EOF) return {{}, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
 
-    char *p = Buffer.Data;
+    byte *p = Buffer.Data;
     s64 n = Buffer.Count;
     while (n > 0) {
-        if (find(delims, *p) != -1) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        if (find(delims, *p) != -1) return {bytes(Buffer.Data, p - Buffer.Data), true};
         ++p, --n;
     }
-    return {array<char>(Buffer.Data, p - Buffer.Data), false};
+    return {bytes(Buffer.Data, p - Buffer.Data), false};
 }
 
-pair<array<char>, bool> reader::read_bytes_while(char eats) {
+pair<bytes, bool> reader::read_bytes_while(byte eats) {
     if (EOF) return {{}, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
 
-    char *p = Buffer.Data;
+    byte *p = Buffer.Data;
     s64 n = Buffer.Count;
     while (n >= 4) {
         if (!U32_HAS_BYTE(*(u32 *) p, eats)) break;
@@ -88,28 +88,28 @@ pair<array<char>, bool> reader::read_bytes_while(char eats) {
     }
 
     while (n > 0) {
-        if (*p != eats) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        if (*p != eats) return {bytes(Buffer.Data, p - Buffer.Data), true};
         ++p, --n;
     }
-    return {array<char>(Buffer.Data, p - Buffer.Data), false};
+    return {bytes(Buffer.Data, p - Buffer.Data), false};
 }
 
-pair<array<char>, bool> reader::read_bytes_while(const array<char> &anyOfThese) {
+pair<bytes, bool> reader::read_bytes_while(bytes anyOfThese) {
     if (EOF) return {{}, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
 
-    char *p = Buffer.Data;
+    byte *p = Buffer.Data;
     s64 n = Buffer.Count;
     while (n > 0) {
-        if (find(anyOfThese, *p) == -1) return {array<char>(Buffer.Data, p - Buffer.Data), true};
+        if (find(anyOfThese, *p) == -1) return {bytes(Buffer.Data, p - Buffer.Data), true};
         ++p, --n;
     }
-    return {array<char>(Buffer.Data, p - Buffer.Data), false};
+    return {bytes(Buffer.Data, p - Buffer.Data), false};
 }
 
-array<char> reader::read_bytes_unsafe(s64 n) {
-    auto result = array<char>(Buffer.Data, n);
+bytes reader::read_bytes_unsafe(s64 n) {
+    auto result = bytes(Buffer.Data, n);
     Buffer.Data += n;
     Buffer.Count -= n;
     return result;
@@ -141,7 +141,7 @@ void reader::go_backwards(s64 n) {
     pair<f64, bool> reader::parse_float() {
         if (!test_state_and_skip_ws()) return {0.0, false};
     
-        char ch = bump_byte();
+        byte ch = bump_byte();
         check_eof(ch);
     
         bool negative = false;
@@ -153,7 +153,7 @@ void reader::go_backwards(s64 n) {
         }
         check_eof(ch);
     
-        char next = peek_byte();
+        byte next = peek_byte();
         check_eof(next);
     
         if (ch == '0' && next == 'x' || next == 'X') {
@@ -185,7 +185,7 @@ void reader::go_backwards(s64 n) {
                     return {(negative ? -1 : 1) * integerPart, false};
                 }
     
-                char next = peek_byte();
+                byte next = peek_byte();
                 if (!is_alphanumeric(next) && next != '.' && next != 'e') break;
                 ch = bump_byte();
             }
@@ -206,7 +206,7 @@ void reader::go_backwards(s64 n) {
                         return {(negative ? -1 : 1) * (integerPart + fractionPart), true};
                     }
     
-                    char next = peek_byte();
+                    byte next = peek_byte();
                     if (!is_digit(next) && next != '.' && next != 'e') break;
                     ch = bump_byte();
                 }

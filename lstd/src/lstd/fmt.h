@@ -177,7 +177,7 @@ void parse_fmt_string(const string &fmtString, format_context *f);
 // Formats to writer
 template <typename... Args>
 void to_writer(io::writer *out, const string &fmtString, Args &&... arguments) {
-    auto args = args_on_the_stack(((remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+    auto args = args_on_the_stack(((::type::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
     auto f = format_context(out, fmtString, args, parse_context::default_error_handler);
     parse_fmt_string(fmtString, &f);
     f.flush();
@@ -239,7 +239,7 @@ struct formatter<guid> {
             return;
         }
 
-        char32_t openParenthesis = 0, closedParenthesis = 0;
+        utf32 openParenthesis = 0, closedParenthesis = 0;
         bool hyphen = true;
 
         if (type == 'n') {
@@ -272,10 +272,10 @@ struct formatter<guid> {
         auto *old = f->Specs;
         f->Specs = null;
 
-        const char *p = src.Data;
+        const byte *p = src.Data;
         For(range(16)) {
             if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
-                f->write_no_specs((char32_t) '-');
+                f->write_no_specs((utf32) '-');
             }
             if (upper) {
                 to_writer(f, "{:02X}", (u8) *p);
@@ -336,7 +336,7 @@ struct formatter<mat<T, R, C, Packed>> {
             for (s32 i = 0; i < src.Height; ++i) {
                 for (s32 j = 0; j < src.Width; ++j) {
                     s64 s;
-                    if constexpr (is_floating_point_v<T>) {
+                    if constexpr (::type::is_floating_point_v<T>) {
                         s = calculate_formatted_size("{:f}", src(i, j));
                     } else {
                         s = calculate_formatted_size("{}", src(i, j));
@@ -351,13 +351,13 @@ struct formatter<mat<T, R, C, Packed>> {
         for (s32 i = 0; i < src.Height; ++i) {
             for (s32 j = 0; j < src.Width; ++j) {
                 if (alternate) {
-                    if constexpr (is_floating_point_v<T>) {
+                    if constexpr (::type::is_floating_point_v<T>) {
                         to_writer(f, "{0:<{1}f}", src(i, j), max);
                     } else {
                         to_writer(f, "{0:<{1}}", src(i, j), max);
                     }
                 } else {
-                    if constexpr (is_floating_point_v<T>) {
+                    if constexpr (::type::is_floating_point_v<T>) {
                         to_writer(f, "{0:f}", src(i, j));
                     } else {
                         to_writer(f, "{0:}", src(i, j));

@@ -510,8 +510,8 @@ constexpr u64 rotate_right_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 
 #pragma warning(disable : 4146)
 #endif
 
-template <typename T>
-constexpr enable_if_t<is_integer_v<T>> set_bit(T *number, T bit, bool value) {
+template <std::integral T>
+constexpr T set_bit(T *number, T bit, bool value) {
     auto enabled = (make_unsigned_t<T>) value;
     *number ^= (-enabled ^ *number) & bit;
 }
@@ -520,15 +520,11 @@ constexpr enable_if_t<is_integer_v<T>> set_bit(T *number, T bit, bool value) {
 #pragma warning(pop)
 #endif
 
-#define INTEGRAL_FUNCTION_CONSTEXPR(return_type) \
-    template <typename T>                        \
-    constexpr enable_if_t<is_integral_v<T>, return_type>
+template <std::integral T>
+constexpr T is_pow_of_2(T number) { return (number & (number - 1)) == 0; }
 
-INTEGRAL_FUNCTION_CONSTEXPR(bool)
-is_pow_of_2(T number) { return (number & (number - 1)) == 0; }
-
-INTEGRAL_FUNCTION_CONSTEXPR(T)
-const_abs(T number) {
+template <std::integral T>
+constexpr T const_abs(T number) {
     auto s = number >> (sizeof(T) * 8 - 1);
     return (number ^ s) - s;
 }
@@ -545,13 +541,13 @@ constexpr f64 const_abs(f64 number) {
     return format.F;
 }
 
-template <typename T>
-constexpr enable_if_t<is_integral_v<T> && numeric_info<T>::is_signed, bool> sign_bit(T number) {
+template <std::signed_integral T>
+constexpr bool sign_bit(T number) {
     return number < 0;
 }
 
-template <typename T>
-constexpr enable_if_t<is_integral_v<T> && !numeric_info<T>::is_signed, bool> sign_bit(T) {
+template <std::unsigned_integral T>
+constexpr bool sign_bit(T) {
     return false;
 }
 
@@ -636,16 +632,14 @@ f32 max(f32 x, f32 y);
 f64 min(f64 x, f64 y);
 f64 max(f64 x, f64 y);
 
-template <typename T>
-enable_if_t<is_integral_v<T>, T> ceil_pow_of_2(T v) {
+template <std::integral T>
+T ceil_pow_of_2(T v) {
     if (v <= 1) return 1;
     T power = 2;
     --v;
     while (v >>= 1) power <<= 1;
     return power;
 }
-
-#undef INTEGRAL_FUNCTION_CONSTEXPR
 
 // Returns the number of decimal digits in n. Leading zeros are not counted
 // except for n == 0 in which case count_digits returns 1.
@@ -654,7 +648,7 @@ inline u32 count_digits(u64 n) {
     return (u32) t - (n < ZERO_OR_POWERS_OF_10_64[t]) + 1;
 }
 
-template <u32 Bits, typename T>
+template <u32 Bits, std::integral T>
 constexpr u32 count_digits(T value) {
     T n = value;
     u32 numDigits = 0;
@@ -669,32 +663,32 @@ constexpr u32 count_digits(T value) {
 //
 
 template <typename T>
-constexpr bool is_appropriate_size_for_atomic_v = sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8;
+constexpr bool is_appropriate_size_for_atomic_v = (sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8);
 
 template <typename T>
-constexpr bool is_appropriate_for_atomic_v = (is_integral_v<T> || is_enum_v<T> || is_pointer_v<T>) &&is_appropriate_size_for_atomic_v<T>;
+concept appropriate_for_atomic = (type::is_integral_v<T> || type::is_enum_v<T> || type::is_pointer_v<T>) &&is_appropriate_size_for_atomic_v<T>;
 
 #if COMPILER == MSVC
 
 // Returns the initial value in _ptr_
-template <typename T>
-always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_inc(T *ptr) {
+template <appropriate_for_atomic T>
+always_inline constexpr T atomic_inc(T *ptr) {
     if constexpr (sizeof(T) == 2) return (T) _InterlockedIncrement16((volatile short *) ptr);
     if constexpr (sizeof(T) == 4) return (T) _InterlockedIncrement((volatile long *) ptr);
     if constexpr (sizeof(T) == 8) return (T) _InterlockedIncrement64((volatile long long *) ptr);
 }
 
 // Returns the initial value in _ptr_
-template <typename T>
-always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_add(T *ptr, T value) {
+template <appropriate_for_atomic T>
+always_inline constexpr T atomic_add(T *ptr, T value) {
     if constexpr (sizeof(T) == 2) return (T) _InterlockedExchangeAdd16((volatile short *) ptr, value);
     if constexpr (sizeof(T) == 4) return (T) _InterlockedExchangeAdd((volatile long *) ptr, value);
     if constexpr (sizeof(T) == 8) return (T) _InterlockedExchangeAdd64((volatile long long *) ptr, value);
 }
 
 // Returns the old value in _ptr_
-template <typename T>
-always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_swap(T *ptr, T value) {
+template <appropriate_for_atomic T>
+always_inline constexpr T atomic_swap(T *ptr, T value) {
     if constexpr (sizeof(T) == 2) return (T) _InterlockedExchange16((volatile short *) ptr, value);
     if constexpr (sizeof(T) == 4) return (T) _InterlockedExchange((volatile long *) ptr, value);
     if constexpr (sizeof(T) == 8) return (T) _InterlockedExchange64((volatile long long *) ptr, value);
@@ -702,8 +696,8 @@ always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_sw
 
 // Returns the old value in _ptr_, exchanges values only if the old value is equal to comperand.
 // You can use this for a safe way to read a value, e.g. atomic_compare_and_swap(&value, 0, 0)
-template <typename T>
-always_inline constexpr enable_if_t<is_appropriate_for_atomic_v<T>, T> atomic_compare_and_swap(T *ptr, T exchange, T comperand) {
+template <appropriate_for_atomic T>
+always_inline constexpr T atomic_compare_and_swap(T *ptr, T exchange, T comperand) {
     if constexpr (sizeof(T) == 2) return (T) _InterlockedCompareExchange16((volatile short *) ptr, exchange, comperand);
     if constexpr (sizeof(T) == 4) return (T) _InterlockedCompareExchange((volatile long *) ptr, exchange, comperand);
     if constexpr (sizeof(T) == 8) return (T) _InterlockedCompareExchange64((volatile long long *) ptr, exchange, comperand);

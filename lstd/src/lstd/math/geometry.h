@@ -229,7 +229,7 @@ struct Intersection<line<T, 2>, line<T, 2>> {
         line2 = l2;
         auto intersection = Intersect(hyperplane<T, 2>(l1), l2);
         param2 = intersection.LineParameter();
-        param1 = is_inf(param2) ? numeric_info<T>::infinity() : Length(intersection.Point() - l1.Base());
+        param1 = is_inf(param2) ? type::numeric_info<T>::infinity() : Length(intersection.Point() - l1.Base());
     }
 
     bool Intersecting() const { return !is_inf(param1); }
@@ -262,7 +262,7 @@ struct Intersection<line_segment<T, 2>, line_segment<T, 2>> {
             param1 = intersection.LineParameter1() / l1.Length();
             param2 = intersection.LineParameter2() / l2.Length();
         } else {
-            param1 = param2 = numeric_info<T>::infinity();
+            param1 = param2 = type::numeric_info<T>::infinity();
         }
     }
 
@@ -290,7 +290,7 @@ struct Intersection<line_segment<T, 2>, line<T, 2>> {
             param1 = inter.LineParameter1();
             param2 = inter.LineParameter2();
         } else {
-            param1 = param2 = numeric_info<T>::infinity();
+            param1 = param2 = type::numeric_info<T>::infinity();
         }
     }
 

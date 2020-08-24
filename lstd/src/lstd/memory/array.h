@@ -2,31 +2,31 @@
 
 #include "../internal/context.h"
 #include "stack_array.h"
+#include "string_utils.h"
 
 LSTD_BEGIN_NAMESPACE
 
-// _array_ works with types that can be copied byte by byte correctly, we don't handle C++'s messy copy constructors.
-// Take a look at the type policy in "internal/common.h".
+// Methods in this object allow negative reversed indexing which begins at
+// the end of the string, so -1 is the last character -2 the one before that, etc. (Python-style)
 //
-// We also don't free this with a destructor anymore (we used to in a past review of our design).
-// The user manually manages the memory with free(), which frees the allocated block (if the object has allocated) and resets the object.
-// The defer macro helps a lot (e.g. defer(arr.release()) calls release at any scope exit).
-//
-// Python-style negative indexing is supported (just like string). -1 means the last element (at index Count - 1).
+// This type is entirely constexpr. Everything except methods that modify the contents of the string can be used compile-time.
+// e.g. sub_view, searching, trimming etc.
 template <typename T>
-struct array {
+struct array_view {
     using data_t = T;
+
+    // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
+    static constexpr bool IS_ARRAY_LIKE = true;
 
     data_t *Data = null;
     s64 Count = 0;
-    s64 Allocated = 0;
 
-    constexpr array() {}
-    constexpr array(data_t *data, s64 count) : Data(data), Count(count), Allocated(0) {}
-
-    constexpr array(const initializer_list<data_t> &items) {
-        assert(false && "This bug bit me hard... You cannot create arrays which are views into initializer lists.");
-        assert(false && "You may want to reserve a dynamic array with those values. In that case make an empty array and use append_list().");
+    constexpr array_view() {}
+    constexpr array_view(data_t *data, s64 count) : Data(data), Count(count) {}
+    constexpr array_view(const initializer_list<data_t> &items) {
+        static_assert(false, "This bug bit me hard... You cannot create arrays which are views into initializer lists.");
+        static_assert(false, "You may want to reserve a dynamic array with those values. In that case make an empty array and use append_list().");
+        static_assert(false, "Or you can store them in an array on the stack - e.g. use to_stack_array(1, 2, 3...)");
     }
 
     //
@@ -43,15 +43,45 @@ struct array {
     //
     // Operators:
     //
+    constexpr data_t &operator[](s64 index) { return Data[translate_index(index, Count)]; }
+    constexpr const data_t &operator[](s64 index) const { return Data[translate_index(index, Count)]; }
 
-    data_t &operator[](s64 index) { return get(*this, index); }
-    constexpr const data_t &operator[](s64 index) const { return get(*this, index); }
+    explicit operator bool() const { return Count; }
 
-    // @TODO: Make string an array<u8>
-    // Returns a string which is a view into this buffer
-    template <typename U = T, typename = typename enable_if<is_same_v<remove_cv_t<U>, char> || is_same_v<remove_cv_t<U>, u8>>::type>
-    operator string() const { return string((const char *) Data, Count); }
+    // Implicit conversion operators between utf8 (a utf8 byte) and byte (which is also a byte but has different semantics).
+    // They are identical (both are unsigned bytes) but we use them to differentiate when we are working with just arrays of bytes or
+    // arrays that contain encoded utf8. It's more of an "intent" thing and being explicit with it is, I think, good.
+    template <typename U = T>
+    requires(type::is_same_v<type::remove_const_t<U>, utf8>) operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
+
+    template <typename U = T>
+    requires(type::is_same_v<type::remove_const_t<U>, byte>) operator array_view<utf8>() const { return array_view<utf8>((utf8 *) Data, Count); }
 };
+
+// We use array_view<byte> when parsing all the time for example and it's kinda a long name..
+using bytes = array_view<byte>;
+
+// This object may represent a non-owning pointer to to a byte buffer or a pointer to an allocated memory block.
+// In the latter case the memory must be released by the user with free().
+// Copying it does a shallow copy (creates a view). In order to get a deep copy use clone().
+//
+// Functions in this object allow negative reversed indexing which begins at
+// the end of the array, so -1 is the last element -2 the one before that, etc. (Python-style)
+//
+// _array_ works with types that can be copied byte by byte correctly, we don't handle C++'s messy copy constructors.
+// Take a look at the type policy in "internal/common.h".
+//
+// The user manually manages the memory with free(), which frees the allocated block (if there was anny allocated) and resets the object.
+// The defer macro helps a lot (e.g. defer(free(arr)) calls release at any scope exit).
+// !! More info about how we handle views/shallow copies and ownership in the type policy in "internal/common.h"
+template <typename T>
+struct array : public array_view<T> {
+    s64 Allocated = 0;
+    array() {}
+};
+
+template <typename T, s64 N>
+stack_array<T, N>::operator array_view<T>() const { return array_view<T>((T *) Data, Count); }
 
 #define data_t array_like_data_t
 
@@ -111,15 +141,6 @@ void free(array<T> &arr) {
     arr.Allocated = 0;
 }
 
-// We don't have bounds checking (for speed).
-// Although DEBUG_MEMORY puts NO_MANS_LAND bytes on both sides of allocated buffers so that could cause a crash and catch a bug!
-
-template <typename T>
-T &get(array<T> &arr, s64 index) { return arr.Data[translate_index(index, arr.Count)]; }
-
-template <typename T>
-constexpr const T &get(const array<T> &arr, s64 index) { return arr.Data[translate_index(index, arr.Count)]; }
-
 // Checks if there is enough reserved space for _n_ elements
 template <typename T>
 constexpr bool has_space_for(const array<T> &arr, s64 n) { return (arr.Count + n) <= arr.Allocated; }
@@ -175,7 +196,7 @@ T *insert_pointer_and_size(array<T> &arr, s64 index, const T *ptr, s64 size) {
 
 // Insert an array at a specified index and returns a pointer to the beginning of it in the buffer
 template <typename T>
-T *insert_array(array<T> &arr, s64 index, const array<T> &arr2) { return insert_pointer_and_size(arr, index, arr2.Data, arr2.Count); }
+T *insert_array(array<T> &arr, s64 index, const array_view<T> &arr2) { return insert_pointer_and_size(arr, index, arr2.Data, arr2.Count); }
 
 // Insert a list of elements at a specified index and returns a pointer to the beginning of it in the buffer
 template <typename T>
@@ -251,16 +272,26 @@ T *append_pointer_and_size(array<T> &arr, const T *ptr, s64 size) { return inser
 
 // Appends an array to the end and returns a pointer to the beginning of it in the buffer
 template <typename T>
-T *append_array(array<T> &arr, const array<T> &arr2) { return insert_array(arr, arr.Count, arr2); }
+T *append_array(array<T> &arr, const array_view<T> &arr2) { return insert_array(arr, arr.Count, arr2); }
+
+// Appends an array to the end and returns a pointer to the beginning of it in the buffer.
+// This is different from append_array in that if the array is empty/uninitialized then it doesn't allocate memory
+// but just sets the fields to the Data and Count in _arr2_. This is useful for specific use cases
+// (e.g. when reading bytes and we didn't succeed so we might need to read more and append them - when using reader, take a look at reader.cpp in tests,
+// we don't want to allocate for the first set of bytes because that might be the whole set so there is no reason for concatenation).
+template <typename T>
+T *append_array_or_set_fields(array<T> &arr, const array_view<T> &arr2) {
+    if (!arr.Data && !arr.Count) {
+        arr.Data = arr2.Data;
+        arr.Count = arr2.Count;
+        return arr.Data;
+    }
+    return append_array(arr, arr2);
+}
 
 // Appends an array to the end and returns a pointer to the beginning of it in the buffer
 template <typename T>
 T *append_list(array<T> &arr, const initializer_list<T> &list) { return insert_list(arr, arr.Count, list); }
-
-template <typename T, s64 N>
-stack_array<T, N>::operator array<T>() const { return array<T>((T *) Data, Count); }
-
-inline string::operator array<char>() const { return array<char>((char *) Data, ByteLength); }
 
 // Be careful not to call this with _dest_ pointing to _src_!
 // Returns just _dest_.

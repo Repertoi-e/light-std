@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <initializer_list>
 #include <tuple>
 #include <utility>
@@ -16,7 +17,7 @@
 // Min/max values are also defined (S8_MIN, S8_MAX, etc...)
 //
 // What's missing from std:
-// - conditional (type_select is equivalent)
+// - conditional (select is equivalent)
 // - is_trivially_default_constructible (is_trivially_constructible is equivalent)
 // - is_default_constructible (is_constructible is equivalent)
 // - is_explicitly_convertible (is_convertible is equivalent)
@@ -87,6 +88,16 @@ using u16 = unsigned short;
 using u32 = unsigned;
 using u64 = unsigned long long;
 
+using utf16 = wchar_t;  // There is char16_t but since utf16 is only used on Windows (or you should die in hell) and windows headers use wchar_t
+using utf32 = char32_t;
+
+// We use utf8 for bytes which are supposed to be encoded in utf8
+// instead of using just char (which generally has the meaning of byte).
+// We also define byte which is an unsigned type and can store [0-255].
+// Strings in C++ are char* which makes them compatible with utf8*. 
+using utf8 = char; 
+using byte = unsigned char;
+
 #define S64_C(c) c##L
 #define U64_C(c) c##UL
 
@@ -155,12 +166,35 @@ using lf64 = long double;
 #define LONG_F64_RADIX F64_RADIX              // exponent radix
 #define LONG_F64_TRUE_MIN F64_TRUE_MIN        // min positive value
 
+//
+// Math types:
+//
+
+template <typename T, s64 Dim, bool Packed>
+struct vec_data;
+
+template <typename T, s64 Dim, bool Packed>
+struct vec;
+
+template <typename T, s64... Indices>
+struct swizzle;
+
+template <typename T, s64 Rows, s64 Columns, bool Packed>
+struct mat;
+
+template <typename MatrixT, s64 SRows, s64 SColumns>
+struct mat_view;
+
+template <typename T, bool Packed>
+struct tquat;
+
+//
+// Extra types:
+//
+
 // Personal preference
 // I prefer null over nullptr but they are exactly the same
 constexpr auto null = nullptr;
-
-// Used internally to denote a special template argument that means it's an unused argument.
-struct unused {};
 
 // This is essentially a utility base struct for defining properties as both struct constants and as types.
 template <typename T, T Value>
@@ -176,6 +210,26 @@ struct integral_constant {
 
 using true_t = integral_constant<bool, true>;
 using false_t = integral_constant<bool, false>;
+
+template <typename T>
+using initializer_list = std::initializer_list<T>;
+
+template <typename T1, typename T2>
+using pair = std::pair<T1, T2>;
+
+using std::make_pair;
+
+template <typename... Types>
+using tuple = std::tuple<Types...>;
+
+using std::make_tuple;
+
+constexpr auto ignore_return = std::ignore;
+using std::tie;
+
+namespace type {
+// Used internally to denote a special template argument that means it's an unused argument.
+struct unused {};
 
 // These are used as a utility to differentiate between two things.
 // sizeof(yes_t) == 1
@@ -196,78 +250,79 @@ struct argument_sink {
 // The result is based on the condition type.
 //
 // Example usage:
-//    using chosen_t = type_select_t<is_integral_v<SomeType>, ChoiceAType, ChoiceBType>;
+//    using chosen_t = select_t<is_integral_v<SomeType>, ChoiceAType, ChoiceBType>;
 //
 template <bool Condition, typename ConditionIsTrueType, typename ConditionIsFalseType>
-struct type_select {
+struct select {
     using type = ConditionIsTrueType;
 };
 
 template <typename ConditionIsTrueType, typename ConditionIsFalseType>
-struct type_select<false, ConditionIsTrueType, ConditionIsFalseType> {
+struct select<false, ConditionIsTrueType, ConditionIsFalseType> {
     using type = ConditionIsFalseType;
 };
 
 template <bool Condition, typename ConditionIsTrueType, typename ConditionIsFalseType>
-using type_select_t = typename type_select<Condition, ConditionIsTrueType, ConditionIsFalseType>::type;
+using select_t = typename select<Condition, ConditionIsTrueType, ConditionIsFalseType>::type;
 
-// Similar to type_select but unilaterally selects the first type.
+// Similar to select but unilaterally selects the first type.
 template <typename T, typename = unused, typename = unused>
-struct first_type_select {
+struct first_select {
     using type = T;
 };
 
 template <typename T, typename = unused, typename = unused>
-using first_type_select_t = typename first_type_select<T>::type;
+using first_select_t = typename first_select<T>::type;
 
 // This is a utility struct for creating composite type traits.
 template <bool B1, bool B2, bool B3 = false, bool B4 = false, bool B5 = false>
-struct type_or;
+    struct or
+    ;
 
 template <bool B1, bool B2, bool B3, bool B4, bool B5>
-struct type_or {
+    struct or {
     static constexpr auto value = true;
 };
 
 template <>
-struct type_or<false, false, false, false, false> {
+    struct or <false, false, false, false, false> {
     static constexpr auto value = false;
 };
 
 // This is a utility struct for creating composite type traits.
 template <bool B1, bool B2, bool B3 = true, bool B4 = true, bool B5 = true>
-struct type_and;
+struct and;
 
 template <bool B1, bool B2, bool B3, bool B4, bool B5>
-struct type_and {
+struct and {
     static constexpr auto value = false;
 };
 
 template <>
-struct type_and<true, true, true, true, true> {
+struct and<true, true, true, true, true> {
     static constexpr auto value = true;
 };
 
 // This is a utility struct for creating composite type traits.
 template <int B1, int B2>
-struct type_equal {
+struct equal {
     static constexpr auto value = (B1 == B2);
 };
 
 // This is a utility struct for creating composite type traits.
 template <int B1, int B2>
-struct type_not_equal {
+struct not_equal {
     static constexpr auto value = (B1 != B2);
 };
 
 // This is a utility struct for creating composite type traits.
 template <bool B>
-struct type_not {
+struct not {
     static constexpr auto value = true;
 };
 
 template <>
-struct type_not<true> {
+struct not <true> {
     static constexpr auto value = false;
 };
 
@@ -283,11 +338,7 @@ struct enable_if<true, T> {
 template <bool B, typename T = void>
 using enable_if_t = typename enable_if<B, T>::type;
 
-// Extension..
-// Put it at the end of function parameters.
-// @Cleanup: When C++20 concepts arrive..
-#define enable_function_if(condition) enable_if_t<condition> * = 0
-
+/*
 // template <bool B, typename T = void> struct disable_if;
 template <bool B, typename T = void>
 struct disable_if {};
@@ -307,7 +358,7 @@ template <typename B>
 struct disjunction<B> : B {};
 
 template <typename B, typename... Bn>
-struct disjunction<B, Bn...> : type_select_t<bool(B::value), B, disjunction<Bn...>> {};
+struct disjunction<B, Bn...> : select_t<bool(B::value), B, disjunction<Bn...>> {};
 
 template <typename... B>
 inline bool disjunction_v = disjunction<B...>::value;
@@ -317,6 +368,7 @@ struct negation : integral_constant<bool, !bool(B::value)> {};
 
 template <typename B>
 inline bool negation_v = negation<B>::value;
+*/
 
 // The purpose of this is typically to deal with non-deduced template contexts
 template <typename T>
@@ -641,6 +693,7 @@ using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
 template <typename T>
 typename add_rvalue_reference<T>::type declval() noexcept;
 
+/*
 // These are primarily useful in templated code for meta programming.
 // Currently we are limited to s64, as C++ doesn't allow integral
 // template parameters to be generic. We can expand the supported types
@@ -676,7 +729,7 @@ struct static_max<I0, I1, in...> {
 
 template <s64 I0, s64... in>
 inline s64 static_max_v = static_max<I0, in...>::value;
-
+*/
 template <typename T>
 struct is_void : public false_t {};
 
@@ -743,6 +796,8 @@ template <>
 struct is_integral_helper<bool> : public true_t {};
 template <>
 struct is_integral_helper<char> : public true_t {};
+template <>
+struct is_integral_helper<char8_t> : public true_t {};
 template <>
 struct is_integral_helper<char16_t> : public true_t {};
 template <>
@@ -823,7 +878,6 @@ struct is_fundamental : public integral_constant<bool, is_void_v<T> || is_integr
 
 template <typename T>
 constexpr bool is_fundamental_v = is_fundamental<T>::value;
-
 //
 // Transformations:
 //
@@ -897,6 +951,7 @@ MAKE_UNSIGNED_HELPER(s8, u8)
 MAKE_UNSIGNED_HELPER(s16, u16)
 MAKE_UNSIGNED_HELPER(s32, u32)
 MAKE_UNSIGNED_HELPER(s64, u64)
+MAKE_UNSIGNED_HELPER(char8_t, u8)
 MAKE_UNSIGNED_HELPER(char16_t, u16)
 MAKE_UNSIGNED_HELPER(char32_t, u32)
 
@@ -936,7 +991,6 @@ struct add_pointer {
 
 template <typename T>
 using add_pointer_t = typename add_pointer<T>::type;
-
 // The remove_extent transformation trait removes a dimension from an array.
 // For a given non-array type T, remove_extent<T>::type is equivalent to T.
 // For a given array type T[N], remove_extent<T[N]>::type is equivalent to T.
@@ -980,6 +1034,7 @@ struct remove_all_extents<T[]> {
 template <typename T>
 using remove_all_extents_t = typename remove_all_extents<T>::type;
 
+/*
 // The aligned_storage transformation trait provides a type that is
 // suitably aligned to store an object whose size is does not exceed length
 // and whose alignment is a divisor of alignment. When using aligned_storage,
@@ -1012,7 +1067,7 @@ struct aligned_storage {
 
 template <s64 N, s64 Align = 8>
 using aligned_storage_t = typename aligned_storage<N, Align>::type;
-
+*/
 // :CopyMemory
 extern void (*copy_memory)(void *dest, const void *src, s64 num);
 
@@ -1041,7 +1096,6 @@ DestType bit_cast(const SourceType &sourceValue) {
         return destValue;
     }
 }
-
 // Maps a sequence of any types to void. This utility struct is used in
 // template meta programming to simplify compile time reflection mechanisms
 // required by the standard library.
@@ -1145,6 +1199,7 @@ constexpr bool is_unsigned_v = is_unsigned<T>::value;
     struct is_unsigned<const volatile T> : public true_t {}; \
     LSTD_END_NAMESPACE
 
+/*
 template <typename T>
 struct alignment_of_value {
     static const s64 value = alignof(T);
@@ -1232,7 +1287,7 @@ struct has_equality<T, void_t<decltype(declval<T>() == declval<T>())>> : true_t 
 
 template <typename T>
 constexpr auto has_equality_v = has_equality<T>::value;
-
+*/
 // An integral type representing the number of elements in the Ith dimension of array type T.
 //
 // For a given array type T[N], extent<T[N]>::value == N.
@@ -1286,19 +1341,19 @@ template <typename T>
 constexpr bool is_array_of_unknown_bounds_v = is_array_of_unknown_bounds<T>::value;
 
 template <typename T>
-struct is_mem_fun_pointer_value : public false_t {};
+struct is_member_function_pointer_helper : public false_t {};
 
 template <typename R, typename T, typename... Args>
-struct is_mem_fun_pointer_value<R (T::*)(Args...)> : public true_t {};
+struct is_member_function_pointer_helper<R (T::*)(Args...)> : public true_t {};
 template <typename R, typename T, typename... Args>
-struct is_mem_fun_pointer_value<R (T::*)(Args...) const> : public true_t {};
+struct is_member_function_pointer_helper<R (T::*)(Args...) const> : public true_t {};
 template <typename R, typename T, typename... Args>
-struct is_mem_fun_pointer_value<R (T::*)(Args...) volatile> : public true_t {};
+struct is_member_function_pointer_helper<R (T::*)(Args...) volatile> : public true_t {};
 template <typename R, typename T, typename... Args>
-struct is_mem_fun_pointer_value<R (T::*)(Args...) const volatile> : public true_t {};
+struct is_member_function_pointer_helper<R (T::*)(Args...) const volatile> : public true_t {};
 
 template <typename T>
-struct is_member_function_pointer : public integral_constant<bool, is_mem_fun_pointer_value<T>::value> {};
+struct is_member_function_pointer : public integral_constant<bool, is_member_function_pointer_helper<T>::value> {};
 
 template <typename T>
 constexpr bool is_member_function_pointer_v = is_member_function_pointer<T>::value;
@@ -1332,7 +1387,7 @@ template <typename T>
 struct is_pointer_helper<T *const volatile> : public true_t {};
 
 template <typename T>
-struct is_pointer_value : public type_and<is_pointer_helper<T>::value, type_not<is_member_pointer_v<T>>::value> {};
+struct is_pointer_value : public and<is_pointer_helper<T>::value, not <is_member_pointer_v<T>>::value> {};
 
 template <typename T>
 struct is_pointer : public integral_constant<bool, is_pointer_value<T>::value> {};
@@ -1399,15 +1454,8 @@ template <typename T>
 struct is_scalar<T *volatile> : public true_t {};
 template <typename T>
 struct is_scalar<T *const volatile> : public true_t {};
-
 template <typename T>
 constexpr bool is_scalar_v = is_scalar<T>::value;
-
-template <typename T>
-struct is_compound : public integral_constant<bool, !is_fundamental<T>::value> {};
-
-template <typename T>
-constexpr bool is_compound_v = is_compound<T>::value;
 
 // Converts the type T to its decayed equivalent. That means doing
 // lvalue to rvalue, array to pointer, function to pointer conversions,
@@ -1418,10 +1466,9 @@ template <typename T>
 struct decay {
     using U = remove_reference_t<T>;
 
-    using type = type_select_t<is_array_v<U>, remove_extent_t<U> *,
-                               type_select_t<is_function_v<U>, add_pointer_t<U>, remove_cv_t<U>>>;
+    using type = select_t<is_array_v<U>, remove_extent_t<U> *,
+                          select_t<is_function_v<U>, add_pointer_t<U>, remove_cv_t<U>>>;
 };
-
 template <typename T>
 using decay_t = typename decay<T>::type;
 
@@ -1453,6 +1500,7 @@ struct common_type<T, U, V...> {
 template <typename... T>
 using common_type_t = typename common_type<T...>::type;
 
+/*
 // An aggregate is one of the following types:
 // * array type
 // * struct or union, that has
@@ -1605,7 +1653,7 @@ struct is_trivially_copyable {
 
 template <typename T>
 constexpr bool is_trivially_copyable_v = is_trivially_copyable<T>::value;
-
+*/
 #if !COMPILER == MSVC || COMPILER == CLANG
 template <typename T, typename... Args>
 struct is_constructible : public integral_constant<bool, __is_constructible(T, Args...)> {};
@@ -1616,7 +1664,7 @@ inline typename remove_reference<T>::type &&move_internal(T &&x) {
 }
 
 template <typename T, typename... Args>
-typename first_type_select<true_t, decltype(move_internal(T(declval<Args>()...)))>::type is(T &&, Args &&...);
+typename first_select<true_t, decltype(move_internal(T(declval<Args>()...)))>::type is(T &&, Args &&...);
 
 template <typename T>
 struct can_construct_scalar_helper {
@@ -1670,6 +1718,7 @@ struct is_constructible_helper_2<false, Array[N], Args...> : public false_t {};
 template <typename T, typename... Args>
 constexpr bool is_constructible_v = is_constructible<T, Args...>::value;
 
+/*
 template <typename T, typename... Args>
 struct is_trivially_constructible
     : public integral_constant<bool, is_constructible_v<T, Args...> &&__is_trivially_constructible(T, Args...)> {};
@@ -1856,7 +1905,7 @@ struct is_trivially_destructible : public is_trivially_destructible_helper<remov
 
 template <typename T>
 constexpr bool is_trivially_destructible_v = is_trivially_destructible<T>::value;
-
+*/
 template <typename T, T... Ints>
 struct integer_sequence {
     using value_t = T;
@@ -1921,18 +1970,6 @@ struct reverse_index_sequence<index_sequence<Head, Indices...>> {
     using type = typename merge_index_sequence<typename reverse_index_sequence<index_sequence<Indices...>>::type,
                                                index_sequence<Head>>::type;
 };
-
-template <typename T>
-using initializer_list = std::initializer_list<T>;
-
-template <typename T1, typename T2>
-using pair = std::pair<T1, T2>;
-
-template <typename... Types>
-using tuple = std::tuple<Types...>;
-
-constexpr auto ignore_return = std::ignore;
-using std::tie;
 
 // See C++11 18.3.2.5
 // Naming style changed
@@ -2131,6 +2168,23 @@ struct numeric_info<u16> : public numeric_info_int_base {
     static constexpr s32 digits10 = 4;
 };
 #endif
+
+template <>
+struct numeric_info<char8_t> : public numeric_info_int_base {
+    static constexpr char8_t min() { return 0; }
+    static constexpr char8_t max() { return U8_MAX; }
+    static constexpr char8_t lowest() { return min(); }
+    static constexpr char8_t epsilon() { return 0; }
+    static constexpr char8_t round_error() { return 0; }
+    static constexpr char8_t denorm_min() { return 0; }
+    static constexpr char8_t infinity() { return 0; }
+    static constexpr char8_t quiet_NaN() { return 0; }
+    static constexpr char8_t signaling_NaN() { return 0; }
+
+    static constexpr bool is_modulo = true;
+    static constexpr s32 digits = 8;
+    static constexpr s32 digits10 = 2;
+};
 
 template <>
 struct numeric_info<char16_t> : public numeric_info_int_base {
@@ -2420,29 +2474,7 @@ template <typename T, typename U>
 constexpr bool is_greater_equal_comparable_v = is_greater_equal_comparable<T, U>::value;
 
 //
-//
-//
-
-template <typename T, s64 Dim, bool Packed>
-struct vec_data;
-
-template <typename T, s64 Dim, bool Packed>
-struct vec;
-
-template <typename T, s64... Indices>
-struct swizzle;
-
-template <typename T, s64 Rows, s64 Columns, bool Packed>
-struct mat;
-
-template <typename MatrixT, s64 SRows, s64 SColumns>
-struct mat_view;
-
-template <typename T, bool Packed>
-struct tquat;
-
-//
-//
+// Math stuff:
 //
 
 template <typename VectorT>
@@ -2532,8 +2564,8 @@ struct concat_type_list<type_list<T...>, type_list<U...>> {
 
 template <typename T, s32 N>
 struct repeat_type {
-    using type = type_select_t<N <= 0, type_list<>,
-                               typename concat_type_list<type_list<T>, typename repeat_type<T, N - 1>::type>::type>;
+    using type = select_t<N <= 0, type_list<>,
+                          typename concat_type_list<type_list<T>, typename repeat_type<T, N - 1>::type>::type>;
 };
 
 // Decide if type is Scalar, Vector or Matrix.
@@ -2644,3 +2676,4 @@ struct sum_of_dims<> {
 
 template <typename... Rest>
 constexpr s64 sum_of_dims_v = sum_of_dims<Rest...>::value;
+}  // namespace type

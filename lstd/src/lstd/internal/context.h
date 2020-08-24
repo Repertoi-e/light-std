@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../memory/allocator.h"
-#include "../memory/string.h"
 #include "../thread.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -14,22 +13,11 @@ namespace internal {
 extern io::writer *g_ConsoleLog;
 }  // namespace internal
 
-// @Cleanup: Move these somewhere else?
-struct os_function_call {
-    string Name;
-    string File;
-    u32 LineNumber;
-};
-
-inline os_function_call *clone(os_function_call *dest, os_function_call src) {
-    clone(&dest->Name, src.Name);
-    clone(&dest->File, src.File);
-    dest->LineNumber = src.LineNumber;
-    return dest;
-}
-
 template <typename T>
 struct array;
+
+struct os_function_call;
+struct string;
 
 typedef void os_panic_handler_t(const string &message, const array<os_function_call> &callStack);
 

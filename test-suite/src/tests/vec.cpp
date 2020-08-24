@@ -38,7 +38,7 @@ TEST(ctor) {
 
 TEST(ctor_array) {
     auto stack = to_stack_array(1.0, 2.0, 3.0, 4.0, 5.0);
-    auto data = (array<f64>) stack;
+    array_view<f64> data = stack;
 
     vec<f32, 1, true> v1(data);
 

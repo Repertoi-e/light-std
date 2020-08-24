@@ -53,7 +53,7 @@ void path::combine_with(const string &str) {
         Str.append('/');
     }
     if (other.is_absolute()) {
-        Str.ByteLength = Str.Length = 0;
+        Str.Count = Str.Length = 0;
     }
     Str.append_string(str);
 }

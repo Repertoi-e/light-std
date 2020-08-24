@@ -7,11 +7,11 @@ LSTD_BEGIN_NAMESPACE
 
 // This returns the type of the _Keys_ member of an hash table
 template <typename HashTableT>
-using hash_table_key_t = typename remove_pointer_t<decltype(HashTableT::Keys)>;
+using hash_table_key_t = typename type::remove_pointer_t<decltype(HashTableT::Keys)>;
 
 // This returns the type of the _Values_ member of an hash table
 template <typename HashTableT>
-using hash_table_value_t = typename remove_pointer_t<decltype(HashTableT::Values)>;
+using hash_table_value_t = typename type::remove_pointer_t<decltype(HashTableT::Values)>;
 
 // This hash table stores all entries in a contiguous array, for good performance when looking up things. Some tables
 // work by storing linked lists of entries, but that can lead to many more cache misses.
@@ -69,7 +69,7 @@ struct hash_table {
     //
     template <bool Const>
     struct iterator_ {
-        using hash_table_t = type_select_t<Const, const hash_table<key_t, value_t>, hash_table<key_t, value_t>>;
+        using hash_table_t = type::select_t<Const, const hash_table<key_t, value_t>, hash_table<key_t, value_t>>;
 
         hash_table_t *Parent;
         s64 Index;
@@ -96,14 +96,8 @@ struct hash_table {
         bool operator==(const iterator_ &other) const { return Parent == other.Parent && Index == other.Index; }
         bool operator!=(const iterator_ &other) const { return !(*this == other); }
 
-        template <bool NotConst = !Const>
-        enable_if_t<NotConst, pair<key_t *, value_t *>> operator*() {
-            return {Parent->Keys + Index, Parent->Values + Index};
-        }
-
-        template <bool NotConst = !Const>
-        enable_if_t<!NotConst, pair<const key_t *, const value_t *>> operator*() const {
-            return {Parent->Keys + Index, Parent->Values + Index};
+        auto operator*() {
+            return make_pair(Parent->Keys + Index, Parent->Values + Index);
         }
 
        private:
@@ -146,7 +140,7 @@ template <typename K, typename V, bool BlockAlloc>
 struct is_hash_table<hash_table<K, V, BlockAlloc>> : true_t {};
 
 template <typename T>
-constexpr bool is_hash_table_v = is_hash_table<T>::value;
+concept any_hash_table = is_hash_table<T>::value;
 
 // Makes sure the hash table has reserved enough space for at least n elements.
 // Note that it may reserve way more than required.
@@ -162,8 +156,8 @@ constexpr bool is_hash_table_v = is_hash_table<T>::value;
 // This is also called when adding an element and the hash table is more than half full (SlotsFilled * 2 >= Allocated).
 // In that case the _target_ is exactly _SlotsFilled_.
 // You may want to call this manually if you are adding a bunch of items and causing the hash table to reallocate a lot.
-template <typename T>
-void reserve(T &table, s64 target, u32 alignment = 0, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+void reserve(T &table, s64 target, u32 alignment = 0) {
     using K = key_t<T>;
     using V = value_t<T>;
 
@@ -180,7 +174,7 @@ void reserve(T &table, s64 target, u32 alignment = 0, enable_function_if(is_hash
 
             s64 sizeInBytes = target * (sizeof(u64) + sizeof(K) + sizeof(V)) + padding1 + padding2;
 
-            char *block = allocate_array_aligned(char, sizeInBytes, alignment);
+            byte *block = allocate_array_aligned(byte, sizeInBytes, alignment);
             table.Hashes = (u64 *) block;
             table.Keys = (K *) (block + target * sizeof(u64) + padding1);
             table.Values = (V *) (block + target * (sizeof(u64) + sizeof(K)) + padding2);
@@ -228,8 +222,8 @@ void reserve(T &table, s64 target, u32 alignment = 0, enable_function_if(is_hash
 }
 
 // Free any memory allocated by this object and reset count
-template <typename T>
-void free(T &table, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+void free(T &table) {
     if (table.Allocated) {
         free(table.Hashes);
         if constexpr (!table.BLOCK_ALLOC) {
@@ -244,8 +238,8 @@ void free(T &table, enable_function_if(is_hash_table_v<T>)) {
 }
 
 // Don't free the hash table, just destroy contents and reset count
-template <typename T>
-void reset(T &table, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+void reset(T &table) {
     // PODs may have destructors, although the C++ standard's definition forbids them to have non-trivial ones.
     if (table.Allocated) {
         // @TODO: Factor this into uninitialize_block() function and use it in free() as well
@@ -266,8 +260,8 @@ void reset(T &table, enable_function_if(is_hash_table_v<T>)) {
 // Looks for key in the hash table using the given hash.
 // In normal _find_ we calculate the hash of the key using the global get_hash() specialized functions.
 // This method is useful if you have cached the hash.
-template <typename T>
-pair<key_t<T> *, value_t<T> *> find_prehashed(const T &table, u64 hash, const key_t<T> &key, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+pair<key_t<T> *, value_t<T> *> find_prehashed(const T &table, u64 hash, const key_t<T> &key) {
     if (!table.Count) return {null, null};
 
     s64 index = hash & (table.Allocated - 1);
@@ -287,8 +281,8 @@ pair<key_t<T> *, value_t<T> *> find_prehashed(const T &table, u64 hash, const ke
 }
 
 // We calculate the hash of the key using the global get_hash() specialized functions.
-template <typename T>
-pair<key_t<T> *, value_t<T> *> find(const T &table, const key_t<T> &key, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+pair<key_t<T> *, value_t<T> *> find(const T &table, const key_t<T> &key) {
     return find_prehashed(table, get_hash(key), key);
 }
 
@@ -296,8 +290,8 @@ pair<key_t<T> *, value_t<T> *> find(const T &table, const key_t<T> &key, enable_
 // In normal _add_ we calculate the hash of the key using the global get_hash() specialized functions.
 // This method is useful if you have cached the hash.
 // Returns pointers to the added key and value.
-template <typename T>
-pair<key_t<T> *, value_t<T> *> add_prehashed(T &table, u64 hash, const key_t<T> &key, const value_t<T> &value, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+pair<key_t<T> *, value_t<T> *> add_prehashed(T &table, u64 hash, const key_t<T> &key, const value_t<T> &value) {
     // The + 1 here handles the case when the hash table size is 1 and you add the first item.
     if ((table.SlotsFilled + 1) * 2 >= table.Allocated) reserve(table, table.SlotsFilled);  // Make sure the hash table is never more than 50% full
 
@@ -331,28 +325,28 @@ pair<key_t<T> *, value_t<T> *> add_prehashed(T &table, u64 hash, const key_t<T> 
 // Because _add_ returns a pointer where the object is placed, clone() can place the deep copy there directly.
 //
 // We calculate the hash of the key using the global get_hash() specialized functions.
-template <typename T>
-pair<key_t<T> *, value_t<T> *> add(T &table, const key_t<T> &key, enable_function_if(is_hash_table_v<T>)) { return add(table, key, value_t<T>()); }
+template <any_hash_table T>
+pair<key_t<T> *, value_t<T> *> add(T &table, const key_t<T> &key) { return add(table, key, value_t<T>()); }
 
 // Inserts an empty key/value pair with a given hash.
 // Use the returned pointers to fill out the slots.
 // This is useful if you want to clone() the key and value and not just shallow copy them.
-template <typename T>
-pair<key_t<T> *, value_t<T> *> add(T &table, u64 hash, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+pair<key_t<T> *, value_t<T> *> add(T &table, u64 hash) {
     return add_prehashed(table, hash, K(), V());
 }
 
 // We calculate the hash of the key using the global get_hash() specialized functions.
 // Returns pointers to the added key and value.
-template <typename T>
-pair<key_t<T> *, value_t<T> *> add(T &table, const key_t<T> &key, const value_t<T> &value, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+pair<key_t<T> *, value_t<T> *> add(T &table, const key_t<T> &key, const value_t<T> &value) {
     return add_prehashed(table, get_hash(key), key, value);
 }
 
 // In normal _set_ we calculate the hash of the key using the global get_hash() specialized functions.
 // This method is useful if you have cached the hash.
-template <typename T>
-pair<key_t<T> *, value_t<T> *> set_prehashed(T &table, u64 hash, const key_t<T> &key, const value_t<T> &value, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+pair<key_t<T> *, value_t<T> *> set_prehashed(T &table, u64 hash, const key_t<T> &key, const value_t<T> &value) {
     auto [kp, vp] = find_prehashed(table, hash, key);
     if (vp) {
         *vp = value;
@@ -362,16 +356,16 @@ pair<key_t<T> *, value_t<T> *> set_prehashed(T &table, u64 hash, const key_t<T> 
 }
 
 // We calculate the hash of the key using the global get_hash() specialized functions.
-template <typename T>
-pair<key_t<T> *, value_t<T> *> set(T &table, const key_t<T> &key, const value_t<T> &value, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+pair<key_t<T> *, value_t<T> *> set(T &table, const key_t<T> &key, const value_t<T> &value) {
     return set_prehashed(table, get_hash(key), key, value);
 }
 
 // Returns true if the key was found and removed.
 // In normal _remove_ we calculate the hash of the key using the global get_hash() specialized functions.
 // This method is useful if you have cached the hash.
-template <typename T>
-bool remove_prehashed(T &table, u64 hash, const key_t<T> &key, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+bool remove_prehashed(T &table, u64 hash, const key_t<T> &key) {
     auto *ptr = find(table, hash, key);
     if (ptr) {
         s64 index = ptr - table.Values;
@@ -383,21 +377,21 @@ bool remove_prehashed(T &table, u64 hash, const key_t<T> &key, enable_function_i
 
 // Returns true if the key was found and removed.
 // We calculate the hash of the key using the global get_hash() specialized functions.
-template <typename T>
-bool remove(T &table, const key_t<T> &key, enable_function_if(is_hash_table_v<T>)) {
+template <any_hash_table T>
+bool remove(T &table, const key_t<T> &key) {
     return remove_prehashed(table, get_hash(key), key);
 }
 
 // Returns true if the hash table has the given key.
 // We calculate the hash of the key using the global get_hash() specialized functions.
-template <typename T>
-bool has(const T &table, const key_t<T> &key, enable_function_if(is_hash_table_v<T>)) { return find(table, key) != null; }
+template <any_hash_table T>
+bool has(const T &table, const key_t<T> &key) { return find(table, key) != null; }
 
 // Returns true if the hash table has the given key.
 // In normal _hash_ we calculate the hash of the key using the global get_hash() specialized functions.
 // This method is useful if you have cached the hash.
-template <typename T>
-bool has_prehashed(const T &table, u64 hash, const key_t<T> &key, enable_function_if(is_hash_table_v<T>)) { return find_prehashed(table, hash, key) != null; }
+template <any_hash_table T>
+bool has_prehashed(const T &table, u64 hash, const key_t<T> &key) { return find_prehashed(table, hash, key) != null; }
 
 #undef key_t
 #undef value_t

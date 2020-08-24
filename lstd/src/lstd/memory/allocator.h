@@ -82,7 +82,7 @@ constexpr u64 XXX_AVOID_RECURSION = 1ull << 61;
 // so when the allocator function returns an unaligned pointer we can freely bump it.
 // The information about the alignment is saved in the header, that's how we know what
 // the old pointer was when freeing or reallocating.
-using allocator_func_t = add_pointer_t<void *(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *)>;
+using allocator_func_t = type::add_pointer_t<void *(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *)>;
 
 struct allocator {
     allocator_func_t Function = null;
@@ -148,7 +148,7 @@ struct allocation_header {
 
     // We mark the source of the allocation if such information was provided.
     // On reallocation we overwrite these with the source provided there.
-    const char *FileName;
+    const utf8 *FileName;
     s64 FileLine;
 #endif
 
@@ -246,11 +246,11 @@ struct DEBUG_memory_info {
 };
 #endif
 
-void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options = 0, const char *fileName = "", s64 fileLine = -1);
+void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options = 0, const utf8 *file = "", s64 fileLine = -1);
 
 // This is static, because it doesn't depend on the allocator object you call it from.
 // Each pointer has a header which has information about the allocator it was allocated with.
-void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, const char *fileName = "", s64 fileLine = -1);
+void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, const utf8 *file = "", s64 fileLine = -1);
 
 // This is static, because it doesn't depend on the allocator object you call it from.
 // Each pointer has a header which has information about the allocator it was allocated with.
@@ -275,7 +275,7 @@ inline allocator Malloc = {default_allocator, null};
 
 struct temporary_allocator_data {
     struct page {
-        void *Storage = null;
+        byte *Storage = null;
         s64 Allocated = 0;
         s64 Used = 0;
 
@@ -311,16 +311,17 @@ LSTD_END_NAMESPACE
 // These currently don't get namespaced.
 
 template <typename T>
-T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const char *fileName = "", s64 fileLine = -1) {
-    static_assert(!is_same_v<T, void>);
-    static_assert(!is_const_v<T>);
+T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const utf8 *file = "", s64 fileLine = -1) {
+    // @Cleanup: Concepts
+    static_assert(!type::is_same_v<T, void>);
+    static_assert(!type::is_const_v<T>);
 
     s64 size = count * sizeof(T);
 
     if (!alloc) alloc = Context.Alloc;
-    auto *result = (T *) general_allocate(alloc, size, alignment, options, fileName, fileLine);
+    auto *result = (T *) general_allocate(alloc, size, alignment, options, file, fileLine);
 
-    if constexpr (!is_scalar_v<T>) {
+    if constexpr (!type::is_scalar_v<T>) {
         auto *p = result;
         auto *end = result + count;
         while (p != end) {
@@ -332,27 +333,27 @@ T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, co
 }
 
 template <typename T>
-T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, const char *fileName = "", s64 fileLine = -1) {
-    return lstd_allocate_impl<T>(count, alignment, alloc, 0, fileName, fileLine);
+T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, const utf8 *file = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, alloc, 0, file, fileLine);
 }
 
 template <typename T>
-T *lstd_allocate_impl(s64 count, u32 alignment, u64 options, const char *fileName = "", s64 fileLine = -1) {
-    return lstd_allocate_impl<T>(count, alignment, Context.Alloc, options, fileName, fileLine);
+T *lstd_allocate_impl(s64 count, u32 alignment, u64 options, const utf8 *file = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, Context.Alloc, options, file, fileLine);
 }
 
 template <typename T>
-T *lstd_allocate_impl(s64 count, u32 alignment, const char *fileName = "", s64 fileLine = -1) {
-    return lstd_allocate_impl<T>(count, alignment, Context.Alloc, 0, fileName, fileLine);
+T *lstd_allocate_impl(s64 count, u32 alignment, const utf8 *file = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, Context.Alloc, 0, file, fileLine);
 }
 
 // Note: We don't support "non-trivially copyable" types (types that can have logic in the copy constructor).
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
 template <typename T>
-T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const char *fileName = "", s64 fileLine = -1) {
-    static_assert(!is_same_v<T, void>);
-    static_assert(!is_const_v<T>);
+T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *file = "", s64 fileLine = -1) {
+    static_assert(!type::is_same_v<T, void>);
+    static_assert(!type::is_const_v<T>);
 
     if (!block) return null;
 
@@ -364,7 +365,7 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const char *f
     auto *header = (allocation_header *) block - 1;
     s64 oldCount = header->Size / sizeof(T);
 
-    if constexpr (!is_scalar_v<T>) {
+    if constexpr (!type::is_scalar_v<T>) {
         if (newCount < oldCount) {
             auto *p = block + newCount;
             auto *end = block + oldCount;
@@ -376,9 +377,9 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const char *f
     }
 
     s64 newSize = newCount * sizeof(T);
-    auto *result = (T *) general_reallocate(block, newSize, options, fileName, fileLine);
+    auto *result = (T *) general_reallocate(block, newSize, options, file, fileLine);
 
-    if constexpr (!is_scalar_v<T>) {
+    if constexpr (!type::is_scalar_v<T>) {
         if (oldCount < newCount) {
             auto *p = result + oldCount;
             auto *end = result + newCount;
@@ -394,8 +395,8 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const char *f
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
 template <typename T>
-T *lstd_reallocate_array_impl(T *block, s64 newCount, const char *fileName = "", s64 fileLine = -1) {
-    return lstd_reallocate_array_impl(block, newCount, 0, fileName, fileLine);
+T *lstd_reallocate_array_impl(T *block, s64 newCount, const utf8 *file = "", s64 fileLine = -1) {
+    return lstd_reallocate_array_impl(block, newCount, 0, file, fileLine);
 }
 
 // Make sure you pass _block_ correctly as a T* otherwise we can't ensure it gets uninitialized correctly.
@@ -403,17 +404,17 @@ template <typename T>
 void lstd_free_impl(T *block, u64 options = 0) {
     if (!block) return;
 
-    static_assert(!is_const_v<T>);
+    static_assert(!type::is_const_v<T>);
 
     s64 sizeT = 1;
-    if constexpr (!is_same_v<T, void>) {
+    if constexpr (!type::is_same_v<T, void>) {
         sizeT = sizeof(T);
     }
 
     auto *header = (allocation_header *) block - 1;
     s64 count = header->Size / sizeT;
 
-    if constexpr (!is_same_v<T, void> && !is_scalar_v<T>) {
+    if constexpr (!type::is_same_v<T, void> && !type::is_scalar_v<T>) {
         auto *p = block;
         while (count--) {
             p->~T();
@@ -426,7 +427,6 @@ void lstd_free_impl(T *block, u64 options = 0) {
 
 // T is used to initialize the resulting memory (uses placement new).
 // When you pass DO_INIT_0 we initialize the memory with zeroes before initializing T.
-
 #if defined DEBUG_MEMORY
 #define allocate(T, ...) lstd_allocate_impl<T>(1, 0, __VA_ARGS__, __FILE__, __LINE__)
 #define allocate_aligned(T, alignment, ...) lstd_allocate_impl<T>(1, alignment, __VA_ARGS__, __FILE__, __LINE__)

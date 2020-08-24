@@ -7,7 +7,7 @@ namespace fmt {
 void parse_fmt_string(const string &fmtString, format_context *f) {
     parse_context *p = &f->Parse;
 
-    auto write_until = [&](const char *end) {
+    auto write_until = [&](const utf8 *end) {
         if (!p->It.Count) return;
         while (true) {
             auto *bracket = find_cp_utf8(p->It.Data, end - p->It.Data, '}');
@@ -68,7 +68,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             }
 
             if (!Context.FmtDisableAnsiCodes) {
-                char ansiBuffer[7 + 3 * 4 + 1];
+                utf8 ansiBuffer[7 + 3 * 4 + 1];
                 auto *ansiEnd = internal::color_to_ansi(ansiBuffer, style);
                 f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
 
@@ -87,7 +87,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             currentArg = f->get_arg_from_index(argId);
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
-            char c = p->It.Count ? p->It[0] : 0;
+            utf8 c = p->It.Count ? p->It[0] : 0;
             if (c == '}') {
                 visit_fmt_arg(internal::format_context_visitor(f), currentArg);
             } else if (c == ':') {

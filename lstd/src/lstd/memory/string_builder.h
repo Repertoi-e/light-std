@@ -10,7 +10,7 @@ struct string_builder {
     static constexpr s64 BUFFER_SIZE = 1_KiB;
 
     struct buffer {
-        char Data[BUFFER_SIZE]{};
+        utf8 Data[BUFFER_SIZE]{};
         s64 Occupied = 0;
         buffer *Next = null;
     };
@@ -37,19 +37,20 @@ void reset(string_builder &builder);
 void free(string_builder &builder);
 
 // Append a code point to the builder
-void append(string_builder &builder, char32_t codePoint);
+void append(string_builder &builder, utf32 codePoint);
 
 // Append a string to the builder
 void append_string(string_builder &builder, const string &str);
 
 // Append _size_ bytes from _data_ to the builder
-void append_pointer_and_size(string_builder &builder, const char *data, s64 size);
+void append_pointer_and_size(string_builder &builder, const utf8 *data, s64 size);
 
 string_builder::buffer *get_current_buffer(string_builder &builder);
 
 // Merges all buffers in one string. The caller is responsible for freeing.
 [[nodiscard]] string combine(const string_builder &builder);
 
+// @API Remove this, iterators? Literally anything else..
 void traverse(const string_builder &builder, const delegate<void(const string &)> &func);
 
 string_builder *clone(string_builder *dest, const string_builder &src);

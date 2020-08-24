@@ -25,8 +25,8 @@ struct debug_struct_helper {
     ~debug_struct_helper() { free(Fields); }
 
     template <typename T>
-    debug_struct_helper *field(const string &name, const T &val) {
-        append(Fields, {name, make_arg(val)});
+    debug_struct_helper *field(const string &name, const T &value) {
+        append(Fields, {name, make_arg(value)});
         return this;
     }
 
@@ -49,8 +49,8 @@ struct debug_tuple_helper {
     ~debug_tuple_helper() { free(Fields); }
 
     template <typename T>
-    debug_tuple_helper *field(const T &val) {
-        append(Fields, make_arg(val));
+    debug_tuple_helper *field(const T &value) {
+        append(Fields, make_arg(value));
         return this;
     }
 
@@ -69,24 +69,19 @@ struct debug_list_helper {
     ~debug_list_helper() { free(Fields); }
 
     template <typename T>
-    debug_list_helper *entries(const array<T> &val) {
-        auto *p = val.Data;
-        s64 n = val.Count;
-        while (n) {
-            append(Fields, make_arg((T &&) * p));
-            ++p, --n;
-        }
+    debug_list_helper *entries(const array_view<T> &values) {
+        For(values) append(Fields, make_arg(it));
         return this;
     }
 
     template <typename T>
     debug_list_helper *entries(T *begin, T *end) {
-        return entries(array<T>(begin, end - begin));
+        return entries(array_view<T>(begin, end - begin));
     }
 
     template <typename T>
     debug_list_helper *entries(T *begin, s64 count) {
-        return entries(array<T>(begin, count));
+        return entries(array_view<T>(begin, count));
     }
 
     void finish();

@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace io {
 
-char string_reader_give_me_buffer(reader *r);
+byte string_reader_give_me_buffer(reader *r);
 
 struct string_reader : reader {
     string Source;
@@ -15,12 +15,12 @@ struct string_reader : reader {
     explicit string_reader(const string &src) : reader(string_reader_give_me_buffer), Source(src), Exhausted(false) {}
 };
 
-inline char string_reader_give_me_buffer(reader *r) {
+inline byte string_reader_give_me_buffer(reader *r) {
     auto *sr = (string_reader *) r;
 
     if (sr->Exhausted) return eof;
-    sr->Buffer.Data = (char *) sr->Source.Data;
-    sr->Buffer.Count = sr->Source.ByteLength;
+    sr->Buffer.Data = (byte *) sr->Source.Data;
+    sr->Buffer.Count = sr->Source.Count;
     sr->Exhausted = true;
     return 0;
 }

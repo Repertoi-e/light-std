@@ -11,7 +11,7 @@ struct parse_context {
     static void default_error_handler(const string &message, const string &formatString, s64 position);
 
     string FormatString;
-    array<char> It;  // How much left we have to parse from the format string
+    string It;  // How much left we have to parse from the format string
 
     s32 NextArgID = 0;
 

@@ -32,12 +32,12 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
                 s64 loggedSize = (s64) ceil(p->Allocated * (log2(p->Allocated * 10.0) / 3));
                 s64 reserveTarget = (max<s64>(ceil_pow_of_2(size * 2), ceil_pow_of_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
 
-                p->Next->Storage = allocate_array(char, reserveTarget, Malloc);
+                p->Next->Storage = allocate_array(byte, reserveTarget, Malloc);
                 p->Next->Allocated = reserveTarget;
                 p = p->Next;
             }
 
-            void *result = (char *) p->Storage + p->Used;
+            void *result = p->Storage + p->Used;
             assert(result);
 
             p->Used += size;
@@ -58,7 +58,7 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 
             s64 diff = size - oldSize;
 
-            void *possiblyThisBlock = (char *) p->Storage + p->Used - oldSize;
+            void *possiblyThisBlock = p->Storage + p->Used - oldSize;
 
             // We support resizing only on the last allocation (this still covers lots of cases,
             // e.g. constructing a string and then immediately appending to it!).
@@ -91,7 +91,7 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
             if (targetSize != data->Base.Allocated) {
                 free(data->Base.Storage);
 
-                data->Base.Storage = allocate_array(char, targetSize, Malloc);
+                data->Base.Storage = allocate_array(byte, targetSize, Malloc);
                 data->Base.Allocated = targetSize;
             }
 

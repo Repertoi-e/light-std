@@ -8,7 +8,11 @@ LSTD_BEGIN_NAMESPACE
 
 namespace io {
 
-void string_writer_write(writer *w, const char *data, s64 count);
+//
+// @TODO: Optional utf8 validation would be good here?
+//
+
+void string_writer_write(writer *w, const byte *data, s64 size);
 
 struct string_writer : writer {
     string *Str;
@@ -16,12 +20,12 @@ struct string_writer : writer {
     string_writer(string *str) : writer(string_writer_write, writer_flush_do_nothing), Str(str) {}
 };
 
-inline void string_writer_write(writer *w, const char *data, s64 count) {
+inline void string_writer_write(writer *w, const byte *data, s64 size) {
     auto *sw = (string_writer *) w;
-    sw->Str->append_pointer_and_size(data, count);
+    sw->Str->append_pointer_and_size((const utf8 *) data, size);
 }
 
-void string_builder_writer_write(writer *w, const char *data, s64 count);
+void string_builder_writer_write(writer *w, const byte *data, s64 size);
 
 struct string_builder_writer : writer {
     string_builder Builder;
@@ -29,9 +33,9 @@ struct string_builder_writer : writer {
     string_builder_writer() : writer(string_builder_writer_write, writer_flush_do_nothing) {}
 };
 
-inline void string_builder_writer_write(writer *w, const char *data, s64 count) {
+inline void string_builder_writer_write(writer *w, const byte *data, s64 size) {
     auto *sw = (string_builder_writer *) w;
-    append_pointer_and_size(sw->Builder, data, count);
+    append_pointer_and_size(sw->Builder, (const utf8 *) data, size);
 }
 
 }  // namespace io

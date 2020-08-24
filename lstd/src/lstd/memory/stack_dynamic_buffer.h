@@ -10,175 +10,188 @@ LSTD_BEGIN_NAMESPACE
 // StackSize - the amount of bytes used on the stack
 template <s64 StackSize>
 struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
-    char StackData[StackSize]{};
-    char *Data = StackData;
+    byte StackData[StackSize]{};
+    byte *Data = StackData;
 
     s64 Allocated = 0;
-    s64 ByteLength = 0;
+    s64 Count = 0;
 
     stack_dynamic_buffer() {}
 
-    stack_dynamic_buffer(const array<char> &arr) {
-        if (sizeof(StackData) > arr.Count) {
-            reserve(arr.Count);
-        }
-
-        ByteLength = arr.Count;
-        copy_memory(StackData, arr.Data, ByteLength);
-    }
-
     // We no longer use destructors for deallocation.
-    // ~stack_dynamic_buffer() { release(); }
-
-    // Makes sure buffer has reserved enough space for at least n bytes.
-    // Note that it may reserve way more than required.
-    // Reserves space equal to the next power of two bigger than _size_, starting at 8.
-    //
-    // ! Reserves only if there is not enough space on the stack
-    void reserve(s64 target) {
-        if (target < sizeof(StackData)) return;
-        if (ByteLength + target < Allocated) return;
-
-        target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
-
-        if (Allocated) {
-            Data = reallocate_array(Data, target);
-        } else {
-            auto *oldData = Data;
-            Data = allocate_array(char, target);
-            // We removed the ownership system.
-            // encode_owner(Data, this);
-            if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
-        }
-        Allocated = target;
-    }
-
-    // Releases the memory allocated by this buffer.
-    // If this buffer doesn't own the memory it points to, this function does nothing.
-    void release() {
-        if (Allocated) free(Data);
-        Data = null;
-        ByteLength = Allocated = 0;
-    }
-
-    // Don't free the buffer, just move cursor to 0
-    void reset() { ByteLength = 0; }
-
-    // Allows negative reversed indexing which begins at the end
-    char &get(s64 index) { return Data[translate_index(index, ByteLength)]; }
-    char get(s64 index) const { return Data[translate_index(index, ByteLength)]; }
-
-    // Sets the _index_'th byte in the string
-    void set(s64 index, char b) { Data[translate_index(index, ByteLength)] = b; }
-
-    // Insert a byte at a specified index
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert(s64 index, char b, bool unsafe = false) {
-        if (!unsafe) reserve(ByteLength + 1);
-
-        auto *target = Data + translate_index(index, ByteLength, true);
-        u64 offset = (u64)(target - Data);
-        copy_memory((char *) Data + offset + 1, target, ByteLength - (target - Data));
-        *target = b;
-
-        ++ByteLength;
-    }
-
-    // Insert data after a specified index
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert_array(s64 index, const array<char> &arr, bool unsafe = false) {
-        insert_pointer_and_size(index, view.Data, view.Count, unsafe);
-    }
-
-    // Insert data after a specified index
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert_array(s64 index, const initializer_list<char> &list, bool unsafe = false) {
-        insert_pointer_and_size(index, list.begin(), list.size(), unsafe);
-    }
-
-    // Insert a buffer of bytes at a specified index
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void insert_pointer_and_size(s64 index, const char *data, s64 count, bool unsafe = false) {
-        if (!unsafe) reserve(ByteLength + 1);
-
-        auto *target = Data + translate_index(index, ByteLength, true);
-        u64 offset = (u64)(target - Data);
-        copy_memory((char *) Data + offset + count, target, ByteLength - (target - Data));
-
-        copy_memory(target, data, count);
-
-        ByteLength += count;
-    }
-
-    // Remove byte at specified index
-    void remove(s64 index) {
-        auto *targetBegin = Data + translate_index(begin, ByteLength);
-
-        u64 offset = (u64)(targetBegin - Data);
-        copy_memory((char *) Data + offset, targetBegin + 1, ByteLength - offset - 1);
-
-        --ByteLength;
-    }
-
-    // Remove a range of bytes.
-    // [begin, end)
-    void remove_range(s64 begin, s64 end) {
-        auto *targetBegin = Data + translate_index(begin, ByteLength);
-        auto *targetEnd = Data + translate_index(begin, ByteLength, true);
-
-        assert(targetEnd > targetBegin);
-
-        s64 bytes = targetEnd - targetBegin;
-        u64 offset = (u64)(targetBegin - Data);
-        copy_memory((char *) Data + offset, targetEnd, ByteLength - offset - bytes);
-
-        ByteLength -= bytes;
-    }
-
-    // Append a byte
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append(char b, bool unsafe = false) { insert(ByteLength, b, unsafe); }
-
-    // Append _count_ bytes of string contained in _data_
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append_pointer_and_size(const char *data, s64 count, bool unsafe = false) {
-        insert_pointer_and_size(ByteLength, data, count, unsafe);
-    }
-
-    // Append one view to another
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append_array(const array<char> &view, bool unsafe = false) {
-        append_pointer_and_size(view.Data, view.Count, unsafe);
-    }
-
-    // Append a list
-    // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
-    void append_list(const initializer_list<char> &list, bool unsafe = false) {
-        append_pointer_and_size(list.begin(), list.size(), unsafe);
-    }
+    // ~stack_dynamic_buffer() { free(); }
 
     //
     // Iterator:
     //
-    using iterator = char *;
-    using const_iterator = const char *;
+    using iterator = byte *;
+    using const_iterator = const byte *;
 
     iterator begin() { return Data; }
-    iterator end() { return Data + ByteLength; }
+    iterator end() { return Data + Count; }
 
     const_iterator begin() const { return Data; }
-    const_iterator end() const { return Data + ByteLength; }
+    const_iterator end() const { return Data + Count; }
 
     //
     // Operators:
     //
-    operator array<char>() { return array<char>(Data, ByteLength); }
-    explicit operator bool() const { return ByteLength; }
+    operator array<byte>() { return array<byte>(Data, Count); }
+    explicit operator bool() const { return Count; }
 
     // Read/write [] operator
-    char &operator[](s64 index) { return get(index); }
+    byte &operator[](s64 index) { return get(index); }
     // Read-only [] operator
-    char operator[](s64 index) const { return get(index); }
+    byte operator[](s64 index) const { return get(index); }
 };
+
+template <typename T>
+struct is_stack_dynamic_buffer : false_t {};
+
+template <s64 StackSize>
+struct is_stack_dynamic_buffer<stack_dynamic_buffer<StackSize>> : true_t {};
+
+template <typename T>
+concept any_stack_dynamic_buffer = is_stack_dynamic_buffer<T>::value;
+
+// Makes sure buffer has reserved enough space for at least n bytes.
+// Note that it may reserve way more than required.
+// Reserves space equal to the next power of two bigger than _size_, starting at 8.
+//
+// ! Reserves only if there is not enough space on the stack
+template <any_stack_dynamic_buffer T>
+void reserve(T &buffer, s64 target) {
+    if (target < sizeof(buffer.StackData)) return;
+    if (buffer.Count + target < buffer.Allocated) return;
+
+    target = max<s64>(ceil_pow_of_2(target + buffer.Count + 1), 8);
+
+    if (buffer.Allocated) {
+        buffer.Data = reallocate_array(buffer.Data, target);
+    } else {
+        auto *oldData = buffer.Data;
+        buffer.Data = allocate_array(byte, target);
+        if (buffer.Count) copy_memory(buffer.Data, oldData, buffer.Count);
+    }
+    buffer.Allocated = target;
+}
+
+// Releases the memory allocated by this buffer.
+// If this buffer doesn't own the memory it points to, this function does nothing.
+template <any_stack_dynamic_buffer T>
+void free(T &buffer) {
+    if (buffer.Allocated) free(buffer.Data);
+    buffer.Data = null;
+    buffer.Count = buffer.Allocated = 0;
+}
+
+// Don't free the buffer, just move cursor to 0
+template <any_stack_dynamic_buffer T>
+void reset(T &buffer) { buffer.Count = 0; }
+
+// Allows negative indexing which is reversed and begins at the end
+template <any_stack_dynamic_buffer T>
+byte &get(T &buffer, s64 index) { return buffer.Data[translate_index(index, buffer.Count)]; }
+
+template <any_stack_dynamic_buffer T>
+byte get(const T &buffer, s64 index) { return buffer.Data[translate_index(index, buffer.Count)]; }
+
+// Sets the _index_'th byte in the string
+template <any_stack_dynamic_buffer T>
+void set(T &buffer, s64 index, byte b) { buffer.Data[translate_index(index, buffer.Count)] = b; }
+
+// Insert a byte at a specified index
+// _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+template <any_stack_dynamic_buffer T>
+void insert(T &buffer, s64 index, byte b, bool unsafe = false) {
+    if (!unsafe) reserve(buffer, buffer.Count + 1);
+
+    auto *target = buffer.Data + translate_index(index, buffer.Count, true);
+    u64 offset = (u64)(target - buffer.Data);
+    copy_memory((byte *) buffer.Data + offset + 1, target, buffer.Count - (target - buffer.Data));
+    *target = b;
+
+    ++buffer.Count;
+}
+
+// Insert data after a specified index
+// _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+template <any_stack_dynamic_buffer T>
+void insert_array(T &buffer, s64 index, const array<byte> &arr, bool unsafe = false) {
+    insert_pointer_and_size(buffer, index, view.Data, view.Count, unsafe);
+}
+
+// Insert data after a specified index
+// _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+template <any_stack_dynamic_buffer T>
+void insert_array(T &buffer, s64 index, const initializer_list<byte> &list, bool unsafe = false) {
+    insert_pointer_and_size(buffer, index, list.begin(), list.size(), unsafe);
+}
+
+// Insert a buffer of bytes at a specified index
+// _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+template <any_stack_dynamic_buffer T>
+void insert_pointer_and_size(T &buffer, s64 index, const byte *data, s64 count, bool unsafe = false) {
+    if (!unsafe) reserve(buffer, buffer.Count + 1);
+
+    auto *target = buffer.Data + translate_index(index, buffer.Count, true);
+    u64 offset = (u64)(target - buffer.Data);
+    copy_memory((byte *) buffer.Data + offset + count, target, buffer.Count - (target - buffer.Data));
+    copy_memory(target, data, count);
+
+    buffer.Count += count;
+}
+
+// Remove byte at specified index
+template <any_stack_dynamic_buffer T>
+void remove(T &buffer, s64 index) {
+    auto *targetBegin = buffer.Data + translate_index(begin, buffer.Count);
+    u64 offset = (u64)(targetBegin - buffer.Data);
+    copy_memory((byte *) buffer.Data + offset, targetBegin + 1, buffer.Count - offset - 1);
+
+    --buffer.Count;
+}
+
+// Remove a range of bytes.
+// [begin, end)
+template <any_stack_dynamic_buffer T>
+void remove_range(T &buffer, s64 begin, s64 end) {
+    auto *targetBegin = buffer.Data + translate_index(begin, buffer.Count);
+    auto *targetEnd = buffer.Data + translate_index(begin, buffer.Count, true);
+
+    assert(targetEnd > targetBegin);
+
+    s64 bytes = targetEnd - targetBegin;
+    u64 offset = (u64)(targetBegin - buffer.Data);
+    copy_memory((byte *) buffer.Data + offset, targetEnd, buffer.Count - offset - bytes);
+
+    buffer.Count -= bytes;
+}
+
+// Append a byte
+// _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+template <any_stack_dynamic_buffer T>
+void append(T &buffer, byte b, bool unsafe = false) { insert(buffer, buffer.Count, b, unsafe); }
+
+// Append _count_ bytes of string contained in _data_
+// _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+template <any_stack_dynamic_buffer T>
+void append_pointer_and_size(T &buffer, const byte *data, s64 count, bool unsafe = false) {
+    insert_pointer_and_size(buffer, buffer.Count, data, count, unsafe);
+}
+
+// Append one view to another
+// _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+template <any_stack_dynamic_buffer T>
+void append_array(T &buffer, const array<byte> &view, bool unsafe = false) {
+    append_pointer_and_size(buffer, view.Data, view.Count, unsafe);
+}
+
+// Append a list
+// _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
+template <any_stack_dynamic_buffer T>
+void append_list(T &buffer, const initializer_list<byte> &list, bool unsafe = false) {
+    append_pointer_and_size(buffer, list.begin(), list.size(), unsafe);
+}
 
 LSTD_END_NAMESPACE

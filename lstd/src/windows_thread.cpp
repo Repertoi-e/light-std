@@ -153,7 +153,7 @@ u32 __stdcall thread::wrapper_function(void *data) {
 
     // We need a fresh temporary storage
     s64 startingSize = 8_KiB;  // Start with 8 KiB
-    Context.TempAllocData.Base.Storage = allocate_array(char, startingSize, Malloc);
+    Context.TempAllocData.Base.Storage = allocate_array(byte, startingSize, Malloc);
     Context.TempAllocData.Base.Allocated = startingSize;
 
     Context.Temp = {temporary_allocator, &Context.TempAllocData};

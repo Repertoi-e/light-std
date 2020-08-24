@@ -38,16 +38,10 @@ auto translation(const vec<T, Dim, Packed> &translation) {
     return translation_helper{translation};
 }
 
-namespace impl {
-// C++ is dumb and we can't inline this
-template <typename... Args>
-constexpr bool are_scalar_v = (... && is_scalar_v<Args>);
-}  // namespace impl
-
 // Creates a translation matrix.
 // A list of scalars that specify movement along repsective axes.
-template <typename... Args, typename enable_if_t<impl::are_scalar_v<Args...>, s64> = 0>
-auto translation(const Args &... coordinates) {
+template <typename... Args>
+requires((... && type::is_scalar_v<Args>) ) auto translation(const Args &... coordinates) {
     using PromotedT = decltype((0 + ... + coordinates));
     return translation_helper{vec<PromotedT, sizeof...(coordinates)>(coordinates...)};
 }

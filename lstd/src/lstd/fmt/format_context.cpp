@@ -6,7 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
-file_scope char DIGITS[] =
+file_scope utf8 DIGITS[] =
     "0001020304050607080910111213141516171819"
     "2021222324252627282930313233343536373839"
     "4041424344454647484950515253545556575859"
@@ -14,48 +14,48 @@ file_scope char DIGITS[] =
     "8081828384858687888990919293949596979899";
 
 template <typename UInt>
-file_scope char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, const string &thousandsSep = "") {
+file_scope utf8 *format_uint_decimal(utf8 *buffer, UInt value, s64 formattedSize, const string &thousandsSep = "") {
     u32 digitIndex = 0;
 
     buffer += formattedSize;
     while (value >= 100) {
         u32 index = (u32)(value % 100) * 2;
         value /= 100;
-        *--buffer = (char) DIGITS[index + 1];
+        *--buffer = DIGITS[index + 1];
         if (++digitIndex % 3 == 0) {
-            buffer -= thousandsSep.ByteLength;
-            copy_memory(buffer, thousandsSep.Data, thousandsSep.ByteLength);
+            buffer -= thousandsSep.Count;
+            copy_memory(buffer, thousandsSep.Data, thousandsSep.Count);
         }
-        *--buffer = (char) DIGITS[index];
+        *--buffer = DIGITS[index];
         if (++digitIndex % 3 == 0) {
-            buffer -= thousandsSep.ByteLength;
-            copy_memory(buffer, thousandsSep.Data, thousandsSep.ByteLength);
+            buffer -= thousandsSep.Count;
+            copy_memory(buffer, thousandsSep.Data, thousandsSep.Count);
         }
     }
 
     if (value < 10) {
-        *--buffer = (char) ('0' + value);
+        *--buffer = (utf8) ('0' + value);
         return buffer;
     }
 
     u32 index = (u32) value * 2;
-    *--buffer = (char) DIGITS[index + 1];
+    *--buffer = DIGITS[index + 1];
     if (++digitIndex % 3 == 0) {
-        buffer -= thousandsSep.ByteLength;
-        copy_memory(buffer, thousandsSep.Data, thousandsSep.ByteLength);
+        buffer -= thousandsSep.Count;
+        copy_memory(buffer, thousandsSep.Data, thousandsSep.Count);
     }
-    *--buffer = (char) DIGITS[index];
+    *--buffer = DIGITS[index];
 
     return buffer;
 }
 
 template <u32 BASE_BITS, typename UInt>
-file_scope char *format_uint_base(char *buffer, UInt value, s64 formattedSize, bool upper = false) {
+file_scope utf8 *format_uint_base(utf8 *buffer, UInt value, s64 formattedSize, bool upper = false) {
     buffer += formattedSize;
     do {
-        const char *digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
+        const utf8 *digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
         u32 digit = (value & ((1 << BASE_BITS) - 1));
-        *--buffer = (char) (BASE_BITS < 4 ? (char) ('0' + digit) : digits[digit]);
+        *--buffer = (utf8)(BASE_BITS < 4 ? (utf8)('0' + digit) : digits[digit]);
     } while ((value >>= BASE_BITS) != 0);
     return buffer;
 }
@@ -79,11 +79,11 @@ file_scope void write_padded_helper(format_context *f, const format_specs &specs
     }
 }
 
-void format_context_write(io::writer *w, const char *data, s64 count) {
+void format_context_write(io::writer *w, const byte *data, s64 size) {
     auto *f = (format_context *) w;
 
     if (!f->Specs) {
-        f->write_no_specs(data, count);
+        f->write_no_specs((const utf8 *) data, size);
         return;
     }
 
@@ -99,16 +99,16 @@ void format_context_write(io::writer *w, const char *data, s64 count) {
     }
 
     // 'p' wasn't specified, not treating as formatting a pointer
-    s64 length = utf8_length(data, count);
+    s64 length = utf8_length((const utf8 *) data, size);
 
     // Adjust size for specified precision
     if (f->Specs->Precision != -1) {
         assert(f->Specs->Precision >= 0);
         length = f->Specs->Precision;
-        count = get_cp_at_index(data, length, length, true) - data;
+        size = get_cp_at_index((const utf8 *) data, length, length, true) - (const utf8 *) data;
     }
     write_padded_helper(
-        f, *f->Specs, [&]() { f->write_no_specs(data, count); }, length);
+        f, *f->Specs, [&]() { f->write_no_specs((const utf8 *) data, size); }, length);
 }
 
 void format_context_flush(io::writer *w) {
@@ -116,7 +116,8 @@ void format_context_flush(io::writer *w) {
     f->Out->flush();
 }
 
-file_scope char U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
+// @Threadsafety ???
+file_scope utf8 U64_FORMAT_BUFFER[::type::numeric_info<u64>::digits10 + 1];
 
 void format_context::write(const void *value) {
     if (Specs && Specs->Type && Specs->Type != 'p') {
@@ -130,7 +131,8 @@ void format_context::write(const void *value) {
     auto f = [&, this]() {
         this->write_no_specs(U'0');
         this->write_no_specs(U'x');
-        char formatBuffer[numeric_info<u64>::digits / 4 + 2];
+
+        utf8 formatBuffer[::type::numeric_info<u64>::digits / 4 + 2];
         auto *p = format_uint_base<4>(formatBuffer, uptr, numDigits);
         this->write_no_specs(p, formatBuffer + numDigits - p);
     };
@@ -146,7 +148,7 @@ void format_context::write(const void *value) {
 }
 
 void format_context::write_u64(u64 value, bool negative, format_specs specs) {
-    char type = specs.Type;
+    utf8 type = specs.Type;
     if (!type) type = 'd';
 
     s64 numDigits;
@@ -163,7 +165,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
             on_error("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", Parse.It.Data - Parse.FormatString.Data);
             return;
         }
-        auto cp = (char32_t) value;
+        auto cp = (utf32) value;
         write_padded_helper(
             this, specs, [&]() { this->write_no_specs(cp); }, get_size_of_cp(cp));
         return;
@@ -172,8 +174,8 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
         return;
     }
 
-    char prefixBuffer[4];
-    char *prefixPointer = prefixBuffer;
+    utf8 prefixBuffer[4];
+    utf8 *prefixPointer = prefixBuffer;
 
     if (negative) {
         *prefixPointer++ = '-';
@@ -210,7 +212,7 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
     }
     if (specs.Align == alignment::NONE) specs.Align = alignment::RIGHT;
 
-    type = (char) to_lower(type);
+    type = (utf8) to_lower(type);
     if (type == 'd') {
         write_padded_helper(
             this, specs,
@@ -269,9 +271,9 @@ void format_context::write_u64(u64 value, bool negative, format_specs specs) {
 
 // Writes a float with given formatting specs
 void format_context::write_f64(f64 value, format_specs specs) {
-    char type = specs.Type;
+    utf8 type = specs.Type;
     if (type) {
-        char lower = (char) to_lower(type);
+        utf8 lower = (utf8) to_lower(type);
         if (lower != 'g' && lower != 'e' && lower != '%' && lower != 'f' && lower != 'a') {
             on_error("Invalid type specifier for a float", Parse.It.Data - Parse.FormatString.Data - 1);
             return;
@@ -282,7 +284,7 @@ void format_context::write_f64(f64 value, format_specs specs) {
 
     bool percentage = specs.Type == '%';
 
-    char32_t sign = 0;
+    utf32 sign = 0;
 
     ieee754_f64 bits;
     bits.F = value;
@@ -319,15 +321,15 @@ void format_context::write_f64(f64 value, format_specs specs) {
     // @Locale The decimal point written in _internal::format_float_ should be locale-dependent.
     // Also if we decide to add a thousands separator we should do it inside _format_float_
     stack_dynamic_buffer<512> formatBuffer;
-    defer(formatBuffer.release());
+    defer(free(formatBuffer));
 
     format_float(
-        [](void *user, char *buf, s64 length) {
+        [](void *user, utf8 *buf, s64 length) {
             auto *fb = (stack_dynamic_buffer<512> *) user;
-            fb->ByteLength += length;
-            return fb->Data + fb->ByteLength;
+            fb->Count += length;
+            return (utf8 *) fb->Data + fb->Count;
         },
-        &formatBuffer, formatBuffer.Data, type, value, specs.Precision);
+        &formatBuffer, (utf8 *) formatBuffer.Data, type, value, specs.Precision);
 
     // Note: We set _type_ to 'g' if it's zero, but here we check specs.Type (which we didn't modify)
     // This is because '0' is similar to 'g', except that it prints at least one digit after the decimal point,
@@ -340,20 +342,20 @@ void format_context::write_f64(f64 value, format_specs specs) {
             if (*p == '0') ++p;
             while (p != end && *p >= '1' && *p <= '9') ++p;
 
-            char *where = p;
+            byte *where = p;
             while (p != end && *p == '0') ++p;
 
             if (p == end || !is_digit(*p)) {
                 if (p != end) copy_memory(where, p, (s64)(end - p));
-                formatBuffer.ByteLength -= (s64)(p - where);
+                formatBuffer.Count -= (s64)(p - where);
             }
         } else if (p == end) {
             // There was no dot at all
-            formatBuffer.append_pointer_and_size(".0", 2);
+            append_pointer_and_size(formatBuffer, (byte *) ".0", 2);
         }
     }
 
-    if (percentage) formatBuffer.append('%');
+    if (percentage) append(formatBuffer, '%');
 
     if (specs.Align == alignment::NUMERIC) {
         if (sign) {
@@ -366,12 +368,12 @@ void format_context::write_f64(f64 value, format_specs specs) {
         specs.Align = alignment::RIGHT;
     }
 
-    auto formattedSize = formatBuffer.ByteLength + (sign ? 1 : 0);
+    auto formattedSize = formatBuffer.Count + (sign ? 1 : 0);
     write_padded_helper(
         this, specs,
         [&, this]() {
             if (sign) this->write_no_specs(sign);
-            this->write_no_specs(formatBuffer.Data, formatBuffer.ByteLength);
+            this->write_no_specs((utf8 *) formatBuffer.Data, formatBuffer.Count);
         },
         formattedSize);
 }
@@ -380,21 +382,20 @@ struct width_checker {
     format_context *F;
 
     template <typename T>
-    enable_if_t<is_integer_v<T>, u32> operator()(T value) {
-        if (sign_bit(value)) {
-            F->on_error("Negative width");
-            return (u32) -1;
-        } else if ((u64) value > numeric_info<s32>::max()) {
-            F->on_error("Width value is too big");
+    u32 operator()(T value) {
+        if constexpr (::type::is_integer_v<T>) {
+            if (sign_bit(value)) {
+                F->on_error("Negative width");
+                return (u32) -1;
+            } else if ((u64) value > ::type::numeric_info<s32>::max()) {
+                F->on_error("Width value is too big");
+                return (u32) -1;
+            }
+            return (u32) value;
+        } else {
+            F->on_error("Width was not an integer");
             return (u32) -1;
         }
-        return (u32) value;
-    }
-
-    template <typename T>
-    enable_if_t<!is_integer_v<T>, u32> operator()(T) {
-        F->on_error("Width was not an integer");
-        return (u32) -1;
     }
 };
 
@@ -402,21 +403,20 @@ struct precision_checker {
     format_context *F;
 
     template <typename T>
-    enable_if_t<is_integer_v<T>, s32> operator()(T value) {
-        if (sign_bit(value)) {
-            F->on_error("Negative precision");
-            return -1;
-        } else if ((u64) value > numeric_info<s32>::max()) {
-            F->on_error("Precision value is too big");
+    s32 operator()(T value) {
+        if constexpr (::type::is_integer_v<T>) {
+            if (sign_bit(value)) {
+                F->on_error("Negative precision");
+                return -1;
+            } else if ((u64) value > ::type::numeric_info<s32>::max()) {
+                F->on_error("Precision value is too big");
+                return -1;
+            }
+            return (s32) value;
+        } else {
+            F->on_error("Precision was not an integer");
             return -1;
         }
-        return (s32) value;
-    }
-
-    template <typename T>
-    enable_if_t<!is_integer_v<T>, s32> operator()(T) {
-        F->on_error("Precision was not an integer");
-        return -1;
     }
 };
 
@@ -442,7 +442,7 @@ bool format_context::handle_dynamic_specs() {
         auto precision = get_arg_from_index(Specs->PrecisionIndex);
         if (precision.Type != type::NONE) {
             Specs->Precision = visit_fmt_arg(precision_checker{this}, precision);
-            if (Specs->Precision == numeric_info<s32>::min()) return false;
+            if (Specs->Precision == ::type::numeric_info<s32>::min()) return false;
         }
     }
 

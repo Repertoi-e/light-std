@@ -28,15 +28,15 @@ constexpr u64 get_hash(const T &value) {
 
 // Partial specialization for pointers
 template <typename T>
-constexpr enable_if_t<is_pointer_v<T>, u64> get_hash(const T value) {
+requires(type::is_pointer_v<T>) constexpr u64 get_hash(const T value) {
     return (u64) value;
 }
 
 // Partial specialization for arrays of known size
 template <typename T>
-constexpr enable_if_t<is_array_v<T> && is_array_of_known_bounds_v<T>, u64> get_hash(const T value) {
+requires(type::is_array_v<T> &&type::is_array_of_known_bounds_v<T>) constexpr u64 get_hash(const T value) {
     hasher h(0);
-    h.add((const char *) value, sizeof(remove_extent_t<T>) * extent_v<T>);
+    h.add((const char *) value, sizeof(type::remove_extent_t<T>) * type::extent_v<T>);
     return h.hash();
 }
 

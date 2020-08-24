@@ -6,8 +6,7 @@ LSTD_BEGIN_NAMESPACE
 
 namespace impl {
 template <typename T, bool Packed>
-typename enable_if<!tquat<T, Packed>::SimdAccelerated, tquat<T, Packed>>::type product(const tquat<T, Packed> &lhs,
-                                                                                       const tquat<T, Packed> &rhs) {
+requires(!tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) {
     tquat<T, Packed> result = {no_init};
     result.w = lhs.s * rhs.s - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z;
     result.x = lhs.s * rhs.x + lhs.x * rhs.s + lhs.y * rhs.z - lhs.z * rhs.y;
@@ -17,8 +16,7 @@ typename enable_if<!tquat<T, Packed>::SimdAccelerated, tquat<T, Packed>>::type p
 }
 
 template <typename T, bool Packed>
-typename enable_if<tquat<T, Packed>::SimdAccelerated, tquat<T, Packed>>::type product(const tquat<T, Packed> &lhs,
-                                                                                      const tquat<T, Packed> &rhs) {
+requires(tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) {
     tquat<T, Packed> result = {no_init};
     using SimdT = simd<T, 4>;
 

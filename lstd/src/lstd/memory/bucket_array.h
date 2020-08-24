@@ -58,7 +58,7 @@ T *append(bucket_array<T, ElementsPerBucket> &arr, const T &element, allocator a
         b = b->Next;
     }
 
-    b = last->Next = allocate(remove_pointer_t<decltype(b)>, alloc);
+    b = last->Next = allocate(type::remove_pointer_t<decltype(b)>, alloc);
     b->Elements = allocate_array(T, ElementsPerBucket, alloc);
     b->Allocated = ElementsPerBucket;
     clone(b->Elements, element);

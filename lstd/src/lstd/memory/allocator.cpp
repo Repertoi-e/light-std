@@ -121,12 +121,16 @@ void DEBUG_memory_info::report_leaks() {
     For_as(i, range(leaksCount)) {
         auto *it = leaks[i];
 
-        string fileName = "Unknown";
+        string file = "Unknown";
+
+        //
+        // @Cleanup D I R T Y @Cleanup @Cleanup @Cleanup
+        //
         if (compare_c_string(it->FileName, "") != -1) {
-            fileName = get_short_file_name(it->FileName);
+            file = get_short_file_name(it->FileName);
         }
 
-        fmt::print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", fileName, it->FileLine, it->Size, it->ID, it->RID);
+        fmt::print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", file, it->FileLine, it->Size, it->ID, it->RID);
     }
 }
 
@@ -241,11 +245,11 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc
     return p;
 }
 
-file_scope void log_file_and_line(const char *file, s64 line) {
+file_scope void log_file_and_line(const utf8 *file, s64 line) {
     Context.Log->write(file);
     Context.Log->write(":");
 
-    char number[20];
+    utf8 number[20];
 
     auto *numberP = number + 19;
     s64 numberSize = 0;
@@ -256,10 +260,10 @@ file_scope void log_file_and_line(const char *file, s64 line) {
             ++numberSize;
         }
     }
-    Context.Log->write(numberP + 1, numberSize);
+    Context.Log->write((const byte *) numberP + 1, numberSize);
 }
 
-void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options, const char *fileName, s64 fileLine) {
+void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options, const utf8 *file, s64 fileLine) {
     options |= Context.AllocOptions;
 
     if (alignment == 0) {
@@ -278,7 +282,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
 
     if (Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
         Context.Log->write(">>> Allocation made at: ");
-        log_file_and_line(fileName, fileLine);
+        log_file_and_line(file, fileLine);
         Context.Log->write("\n");
     }
 
@@ -296,7 +300,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
 #if defined DEBUG_MEMORY
     auto *header = (allocation_header *) result - 1;
 
-    header->FileName = fileName;
+    header->FileName = file;
     header->FileLine = fileLine;
 
     DEBUG_memory_info::add_header(header);
@@ -306,7 +310,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     return result;
 }
 
-void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const char *fileName, s64 fileLine) {
+void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const utf8 *file, s64 fileLine) {
     options |= Context.AllocOptions;
 
     auto *header = (allocation_header *) ptr - 1;
@@ -321,7 +325,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const char *fi
 
     if (Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
         Context.Log->write(">>> Reallocation made at: ");
-        log_file_and_line(fileName, fileLine);
+        log_file_and_line(file, fileLine);
         Context.Log->write("\n");
     }
 
@@ -362,7 +366,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const char *fi
         DEBUG_memory_info::swap_header(header, newHeader);
         fill_memory(block, DEAD_LAND_FILL, oldSize);
 
-        newHeader->FileName = fileName;
+        newHeader->FileName = file;
         newHeader->FileLine = fileLine;
 
         newHeader->MarkedAsLeak = header->MarkedAsLeak;
@@ -377,7 +381,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const char *fi
 #if defined DEBUG_MEMORY
         ++header->RID;
 
-        header->FileName = fileName;
+        header->FileName = file;
         header->FileLine = fileLine;
 #endif
         header->Size = newUserSize;

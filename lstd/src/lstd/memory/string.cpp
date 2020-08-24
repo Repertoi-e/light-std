@@ -4,36 +4,36 @@
 
 LSTD_BEGIN_NAMESPACE
 
-string::code_point_ref &string::code_point_ref::operator=(char32_t other) {
+string::code_point_ref &string::code_point_ref::operator=(utf32 other) {
     Parent->set(Index, other);
     return *this;
 }
 
-string::code_point_ref::operator char32_t() const { return ((const string *) Parent)->get(Index); }
+string::code_point_ref::operator utf32() const { return ((const string *) Parent)->get(Index); }
 
-string::string(char32_t codePoint, s64 repeat) {
+string::string(utf32 codePoint, s64 repeat) {
     reserve(get_size_of_cp(codePoint) * repeat);
 
     s64 cpSize = get_size_of_cp(codePoint);
 
-    auto *data = const_cast<char *>(Data);
+    auto *data = Data;
     For(range(repeat)) {
         encode_cp(data, codePoint);
         data += cpSize;
         ++Length;
     }
 
-    ByteLength = Length * cpSize;
+    Count = Length * cpSize;
 }
 
-string::string(const wchar_t *str) {
+string::string(const utf16 *str) {
     reserve(2 * c_string_length(str));
     for (; *str; ++str) {
-        append((char32_t) *str);
+        append((utf32) *str);
     }
 }
 
-string::string(const char32_t *str) {
+string::string(const utf32 *str) {
     reserve(4 * c_string_length(str));
     for (; *str; ++str) {
         append(*str);
@@ -41,33 +41,33 @@ string::string(const char32_t *str) {
 }
 
 void string::reserve(s64 target) {
-    if (ByteLength + target < Allocated) return;
+    if (Count + target < Allocated) return;
 
-    target = max<s64>(ceil_pow_of_2(target + ByteLength + 1), 8);
+    target = max<s64>(ceil_pow_of_2(target + Count + 1), 8);
 
     if (Allocated) {
-        Data = (const char *) reallocate_array((char *) Data, target);
+        Data = reallocate_array(Data, target);
     } else {
         auto *oldData = Data;
-        Data = allocate_array(char, target);
+        Data = allocate_array(utf8, target);
         // We removed the ownership system.
         // encode_owner(Data, this);
-        if (ByteLength) copy_memory(const_cast<char *>(Data), oldData, ByteLength);
+        if (Count) copy_memory(Data, oldData, Count);
     }
     Allocated = target;
 }
 
 void string::reset() {
-    Length = ByteLength = 0;
+    Length = Count = 0;
 }
 
 void string::release() {
-    if (Allocated) free((char *) Data);
+    if (Allocated) free(Data);
     Data = null;
-    Length = ByteLength = Allocated = 0;
+    Length = Count = Allocated = 0;
 }
 
-string *string::set(s64 index, char32_t codePoint) {
+string *string::set(s64 index, utf32 codePoint) {
     s64 cpSize = get_size_of_cp(codePoint);
 
     auto *target = get_cp_at_index(Data, Length, index);
@@ -81,31 +81,31 @@ string *string::set(s64 index, char32_t codePoint) {
 
     // We may have moved Data while reserving space!
     target = Data + offset;
-    copy_memory((char *) Data + offset + cpSize, target + cpSizeTarget, ByteLength - (target - Data) - cpSizeTarget);
-    encode_cp((char *) Data + offset, codePoint);
+    copy_memory(Data + offset + cpSize, target + cpSizeTarget, Count - (target - Data) - cpSizeTarget);
+    encode_cp(Data + offset, codePoint);
 
-    ByteLength += diff;
+    Count += diff;
 
     return this;
 }
 
-string *string::insert(s64 index, char32_t codePoint) {
+string *string::insert(s64 index, utf32 codePoint) {
     s64 cpSize = get_size_of_cp(codePoint);
     reserve(cpSize);
 
     auto *target = get_cp_at_index(Data, Length, index, true);
     u64 offset = (u64)(target - Data);
-    copy_memory((char *) Data + offset + cpSize, target, ByteLength - (target - Data));
+    copy_memory(Data + offset + cpSize, target, Count - (target - Data));
 
-    encode_cp((char *) Data + offset, codePoint);
+    encode_cp(Data + offset, codePoint);
 
-    ByteLength += cpSize;
+    Count += cpSize;
     ++Length;
 
     return this;
 }
 
-string *string::insert_pointer_and_size(s64 index, const char *str, s64 size) {
+string *string::insert_pointer_and_size(s64 index, const utf8 *str, s64 size) {
     reserve(size);
 
     // assert(str);
@@ -114,11 +114,11 @@ string *string::insert_pointer_and_size(s64 index, const char *str, s64 size) {
 
     auto *target = get_cp_at_index(Data, Length, index, true);
     u64 offset = (u64)(target - Data);
-    copy_memory((char *) Data + offset + size, target, ByteLength - (target - Data));
+    copy_memory(Data + offset + size, target, Count - (target - Data));
 
-    copy_memory((char *) Data + offset, str, size);
+    copy_memory(Data + offset, str, size);
 
-    ByteLength += size;
+    Count += size;
     Length += utf8_length(str, size);
 
     return this;
@@ -133,9 +133,9 @@ string *string::remove(s64 index) {
     --Length;
 
     u64 offset = (u64)(target - Data);
-    copy_memory((char *) Data + offset, target + cpSize, ByteLength - offset - cpSize);
+    copy_memory(Data + offset, target + cpSize, Count - offset - cpSize);
 
-    ByteLength -= cpSize;
+    Count -= cpSize;
 
     return this;
 }
@@ -152,16 +152,16 @@ string *string::remove_range(s64 begin, s64 end) {
     Length -= utf8_length(targetBegin, targetEnd - targetBegin);
 
     u64 offset = (u64)(targetBegin - Data);
-    copy_memory((char *) Data + offset, targetEnd, ByteLength - offset - bytes);
+    copy_memory(Data + offset, targetEnd, Count - offset - bytes);
 
-    ByteLength -= bytes;
+    Count -= bytes;
 
     return this;
 }
 
 string *string::repeat(s64 n) {
     string contents = *this;
-    reserve(n * contents.ByteLength);
+    reserve(n * contents.Count);
     For(range(1, n)) { append_string(contents); }
     return this;
 }
@@ -176,7 +176,7 @@ string *string::to_upper() {
     return this;
 }
 
-string *string::remove_all(char32_t cp) {
+string *string::remove_all(utf32 cp) {
     if (Length == 0) return this;
 
     s64 offset = 0;
@@ -209,7 +209,7 @@ string *string::remove_all(const string &str) {
     return this;
 }
 
-string *string::replace_all(char32_t oldCp, char32_t newCp) {
+string *string::replace_all(utf32 oldCp, utf32 newCp) {
     if (Length == 0) return this;
     For(range(0, Length)) {
         if (get(it) == oldCp) set(it, newCp);
@@ -237,14 +237,14 @@ string *string::replace_all(const string &oldStr, const string &newStr) {
     return this;
 }
 
-string *string::replace_all(char32_t oldCp, const string &newStr) {
-    char encoded[4];
+string *string::replace_all(utf32 oldCp, const string &newStr) {
+    utf8 encoded[4];
     encode_cp(encoded, oldCp);
     return replace_all(string(encoded, get_size_of_cp(encoded)), newStr);
 }
 
-string *string::replace_all(const string &oldStr, char32_t newCp) {
-    char encoded[4];
+string *string::replace_all(const string &oldStr, utf32 newCp) {
+    utf8 encoded[4];
     encode_cp(encoded, newCp);
     return replace_all(oldStr, string(encoded, get_size_of_cp(encoded)));
 }

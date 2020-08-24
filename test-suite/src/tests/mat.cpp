@@ -59,16 +59,16 @@ TEST(thin_mat_short_index) {
 }
 
 TEST(view) {
-    mat<char, 5, 5> m1 = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+    mat<utf8, 5, 5> m1 = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
                           'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y'};
 
-    mat<char, 5, 5> m2 = {'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z',
+    mat<utf8, 5, 5> m2 = {'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z',
                           'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z'};
 
-    mat<char, 5, 5> r = {'z', 'z', 'z', 'p', 'q', 'z', 'z', 'z', 'u', 'v', 'c', 'd', 'e',
+    mat<utf8, 5, 5> r = {'z', 'z', 'z', 'p', 'q', 'z', 'z', 'z', 'u', 'v', 'c', 'd', 'e',
                          'z', 'z', 'h', 'i', 'j', 'z', 'z', 'm', 'n', 'o', 'z', 'z'};
 
-    mat<char, 2, 2> sm = m1.get_view<2, 2>(3, 0);
+    mat<utf8, 2, 2> sm = m1.get_view<2, 2>(3, 0);
     m2.get_view<3, 3>(2, 0) = m1.get_view<3, 3>(0, 2);
     m2.get_view<2, 2>(0, 3) = sm;
     assert_eq(m2, r);
@@ -77,8 +77,8 @@ TEST(view) {
     r(0, 4) = r(1, 4) = r(2, 4) = r(3, 4) = r(4, 4) = '0';
     assert_eq(m2, r);
 
-    vec<char, 3> v = m1.get_view<3, 1>(0, 0);
-    vec<char, 3> vr = {'a', 'f', 'k'};
+    vec<utf8, 3> v = m1.get_view<3, 1>(0, 0);
+    vec<utf8, 3> vr = {'a', 'f', 'k'};
     assert_eq(v, vr);
     v = m1.get_view<1, 3>(0, 0);
     vr = {'a', 'b', 'c'};

@@ -2,7 +2,7 @@
 
 TEST(stack_array) {
     auto stackArray = to_stack_array(0, 1, 2, 3, 4);
-    array<s32> a = stackArray;
+    array_view<s32> a = stackArray;
 
     For(range(a.Count)) { assert_eq(a[it], it); }
 
