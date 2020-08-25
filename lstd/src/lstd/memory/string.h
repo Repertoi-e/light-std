@@ -12,7 +12,7 @@ LSTD_BEGIN_NAMESPACE
 //
 // Contains the pre-calculated amount of code points in the string.
 //
-// Methods in this object allow negative reversed indexing which begins at
+// Functions on this object allow negative reversed indexing which begins at
 // the end of the string, so -1 is the last code point -2 the one before that, etc. (Python-style)
 struct string : public array_view<utf8> {
     struct code_point_ref {
@@ -331,7 +331,7 @@ struct string : public array_view<utf8> {
    private:
     template <bool Const>
     struct string_iterator {
-        using string_t = type::select_t<Const, const string, string>;
+        using string_t = types::select_t<Const, const string, string>;
 
         string_t *Parent;
         s64 Index;

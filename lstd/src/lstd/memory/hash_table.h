@@ -7,11 +7,11 @@ LSTD_BEGIN_NAMESPACE
 
 // This returns the type of the _Keys_ member of an hash table
 template <typename HashTableT>
-using hash_table_key_t = typename type::remove_pointer_t<decltype(HashTableT::Keys)>;
+using hash_table_key_t = typename types::remove_pointer_t<decltype(HashTableT::Keys)>;
 
 // This returns the type of the _Values_ member of an hash table
 template <typename HashTableT>
-using hash_table_value_t = typename type::remove_pointer_t<decltype(HashTableT::Values)>;
+using hash_table_value_t = typename types::remove_pointer_t<decltype(HashTableT::Values)>;
 
 // This hash table stores all entries in a contiguous array, for good performance when looking up things. Some tables
 // work by storing linked lists of entries, but that can lead to many more cache misses.
@@ -69,7 +69,7 @@ struct hash_table {
     //
     template <bool Const>
     struct iterator_ {
-        using hash_table_t = type::select_t<Const, const hash_table<key_t, value_t>, hash_table<key_t, value_t>>;
+        using hash_table_t = types::select_t<Const, const hash_table<key_t, value_t>, hash_table<key_t, value_t>>;
 
         hash_table_t *Parent;
         s64 Index;

@@ -41,7 +41,7 @@ auto translation(const vec<T, Dim, Packed> &translation) {
 // Creates a translation matrix.
 // A list of scalars that specify movement along repsective axes.
 template <typename... Args>
-requires((... && type::is_scalar_v<Args>) ) auto translation(const Args &... coordinates) {
+requires((... && types::is_scalar_v<Args>) ) auto translation(const Args &... coordinates) {
     using PromotedT = decltype((0 + ... + coordinates));
     return translation_helper{vec<PromotedT, sizeof...(coordinates)>(coordinates...)};
 }

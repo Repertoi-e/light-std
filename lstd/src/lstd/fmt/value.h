@@ -55,7 +55,7 @@ TYPE_CONSTANT(const void *, type::POINTER);
 }  // namespace internal
 
 template <typename T>
-constexpr auto type_constant_v = internal::type_constant<::type::remove_cv_t<::type::remove_reference_t<T>>>::value;
+constexpr auto type_constant_v = internal::type_constant<types::remove_cvref_t<T>>::value;
 
 //
 // Specialize this for custom types
@@ -74,7 +74,7 @@ struct formatter {
 };
 
 template <typename T>
-using has_formatter = ::type::is_constructible<formatter<T>>;
+using has_formatter = types::is_constructible<formatter<T>>;
 
 template <typename T>
 constexpr bool has_formatter_v = has_formatter<T>::value;
@@ -121,7 +121,7 @@ struct value {
    private:
     template <typename T>
     static void format_custom_arg(const void *arg, format_context *f) {
-        formatter<::type::remove_cvref_t<T>> formatter;
+        formatter<types::remove_cvref_t<T>> formatter;
         formatter.format(*(const T *) (arg), f);
     }
 };

@@ -9,10 +9,10 @@
 #include "platform.h"
 
 /// Provides definitions for common types as well as most stuff from the std headers: <type_traits> <limits>
-/// as well as some stuff from <utility>
+/// as well as some stuff from <utility> <concepts>
 
 // The following integral types are defined: s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)
-//		as well as: f32 (float), f64 (double), null (nullptr)
+//		as well as: f32 (float), f64 (double), lf64 (long double), null (nullptr), utf8 (char), byte (unsigned char)
 //
 // Min/max values are also defined (S8_MIN, S8_MAX, etc...)
 //
@@ -49,27 +49,12 @@
 // What's implemented here but not part of std:
 // - is_array_of_known_bounds
 // - is_array_of_unknown_bounds
-// - is_equal_comparable - whether two types can be compared with ==
-// - is_not_equal_comparable - whether two types can be compared with !=
-// - is_less_comparable - whether two types can be compared with <
-// - is_greater_comparable - whether two types can be compared with >
-// - is_less_equal_comparable - whether two types can be compared with <=
-// - is_greater_equal_comparable - whether two types can be compared with >=
-// - vec_info
-// - mat_info
-// - has_simd
+// - is_equal_comparable
+// - is_less_comparable
 // - all
 // - any
 // - concat_type_list
 // - repeat_type
-// - is_vec
-// - is_swizzle
-// - is_mat
-// - is_mat_view
-// - is_quat
-// - is_vec_or_swizzle
-// - dim_of
-// - sum_of_dims
 // - merge_integer_sequence
 // - reverse_integer_sequence
 
@@ -94,8 +79,8 @@ using utf32 = char32_t;
 // We use utf8 for bytes which are supposed to be encoded in utf8
 // instead of using just char (which generally has the meaning of byte).
 // We also define byte which is an unsigned type and can store [0-255].
-// Strings in C++ are char* which makes them compatible with utf8*. 
-using utf8 = char; 
+// Strings in C++ are char* which makes them compatible with utf8*.
+using utf8 = char;
 using byte = unsigned char;
 
 #define S64_C(c) c##L
@@ -227,7 +212,7 @@ using std::make_tuple;
 constexpr auto ignore_return = std::ignore;
 using std::tie;
 
-namespace type {
+namespace types {
 // Used internally to denote a special template argument that means it's an unused argument.
 struct unused {};
 
@@ -2394,143 +2379,30 @@ struct numeric_info<lf64> : public numeric_info_float_base {
 
 // ==
 template <typename T, typename U>
-using equal_comparison_t = decltype(declval<T &>() == declval<U &>());
-
-template <typename T, typename U, typename = void_t<>>
-struct is_equal_comparable : false_t {};
-
-template <typename T, typename U>
-struct is_equal_comparable<T, U, void_t<equal_comparison_t<T, U>>> : is_same<equal_comparison_t<T, U>, bool> {};
-
-template <typename T, typename U>
-constexpr bool is_equal_comparable_v = is_equal_comparable<T, U>::value;
-
-// !=
-template <typename T, typename U>
-using not_equal_comparison_t = decltype(declval<T &>() != declval<U &>());
-
-template <typename T, typename U, typename = void_t<>>
-struct is_not_equal_comparable : false_t {};
-
-template <typename T, typename U>
-struct is_not_equal_comparable<T, U, void_t<not_equal_comparison_t<T, U>>>
-    : is_same<not_equal_comparison_t<T, U>, bool> {};
-
-template <typename T, typename U>
-constexpr bool is_not_equal_comparable_v = is_not_equal_comparable<T, U>::value;
+concept equal_comparable = requires(T a, U b) { a == b; };
 
 // <
 template <typename T, typename U>
-using less_comparison_t = decltype(declval<T &>() < declval<U &>());
-
-template <typename T, typename U, typename = void_t<>>
-struct is_less_comparable : false_t {};
-
-template <typename T, typename U>
-struct is_less_comparable<T, U, void_t<less_comparison_t<T, U>>> : is_same<less_comparison_t<T, U>, bool> {};
-
-template <typename T, typename U>
-constexpr bool is_less_comparable_v = is_less_comparable<T, U>::value;
-
-// >
-template <typename T, typename U>
-using greater_comparison_t = decltype(declval<T &>() > declval<U &>());
-
-template <typename T, typename U, typename = void_t<>>
-struct is_greater_comparable : false_t {};
-
-template <typename T, typename U>
-struct is_greater_comparable<T, U, void_t<greater_comparison_t<T, U>>> : is_same<greater_comparison_t<T, U>, bool> {};
-
-template <typename T, typename U>
-constexpr bool is_greater_comparable_v = is_greater_comparable<T, U>::value;
-
-// <=
-template <typename T, typename U>
-using less_equal_comparison_t = decltype(declval<T &>() <= declval<U &>());
-
-template <typename T, typename U, typename = void_t<>>
-struct is_less_equal_comparable : false_t {};
-
-template <typename T, typename U>
-struct is_less_equal_comparable<T, U, void_t<less_equal_comparison_t<T, U>>>
-    : is_same<less_equal_comparison_t<T, U>, bool> {};
-
-template <typename T, typename U>
-constexpr bool is_less_equal_comparable_v = is_less_equal_comparable<T, U>::value;
-
-// >=
-template <typename T, typename U>
-using greater_equal_comparison_t = decltype(declval<T &>() >= declval<U &>());
-
-template <typename T, typename U, typename = void_t<>>
-struct is_greater_equal_comparable : false_t {};
-
-template <typename T, typename U>
-struct is_greater_equal_comparable<T, U, void_t<greater_equal_comparison_t<T, U>>>
-    : is_same<greater_equal_comparison_t<T, U>, bool> {};
-
-template <typename T, typename U>
-constexpr bool is_greater_equal_comparable_v = is_greater_equal_comparable<T, U>::value;
+concept less_comparable = requires(T a, U b) { a < b; };
 
 //
 // Math stuff:
 //
-
-template <typename VectorT>
-struct vec_info_helper {};
-
-template <typename T_, s64 Dim_, bool Packed_>
-struct vec_info_helper<vec<T_, Dim_, Packed_>> {
-    using type = T_;
-
-    static constexpr s64 Dim = Dim_;
-    static constexpr bool Packed = Packed_;
-};
-
-template <typename T_, s64 Dim_, bool Packed_>
-struct vec_info_helper<vec_data<T_, Dim_, Packed_>> {
-    using type = T_;
-
-    static constexpr s64 Dim = Dim_;
-    static constexpr bool Packed = Packed_;
-};
-
-template <typename Vector>
-struct vec_info : public vec_info_helper<typename decay_t<Vector>> {};
 
 template <typename MatrixT>
 struct mat_info_helper {};
 
 template <typename T_, s64 R_, s64 C_, bool Packed_>
 struct mat_info_helper<mat<T_, R_, C_, Packed_>> {
-    using type = T_;
+    using T = T_;
 
     static constexpr s64 R = R_;
     static constexpr s64 C = C_;
-    static constexpr bool Packed = Packed_;
+    static constexpr bool PACKED = Packed_;
 };
 
 template <typename MatrixT>
 struct mat_info : public mat_info_helper<decay_t<MatrixT>> {};
-
-template <typename VectorDataT>
-struct has_simd {
-    template <typename U>
-    static false_t test(...) {
-        return {};
-    }
-
-    template <typename U>
-    static decltype(U::Simd) test(s32) {
-        return {};
-    }
-
-    static constexpr bool value = !is_same_v<false_t, decltype(test<VectorDataT>(0))>;
-};
-
-template <typename VectorDataT>
-constexpr bool has_simd_v = has_simd<VectorDataT>::value;
 
 template <typename T, typename U>
 using mat_mul_elem_t = decltype(T() * U() + T() * U());
@@ -2639,41 +2511,4 @@ struct is_vec_or_swizzle {
 
 template <typename T>
 constexpr bool is_vec_or_swizzle_v = is_vec_or_swizzle<T>::value;
-
-// Dimension of an argument
-template <typename U, s32 Along = 0>
-struct dim_of {
-    static constexpr s64 value = 1;
-};
-
-template <typename T, s64 Dim, bool Packed>
-struct dim_of<vec<T, Dim, Packed>, 0> {
-    static constexpr s64 value = Dim;
-};
-
-template <typename T, s64... Indices>
-struct dim_of<swizzle<T, Indices...>> {
-    static constexpr s64 value = sizeof...(Indices);
-};
-
-template <typename T>
-constexpr s64 dim_of_v = dim_of<T>::value;
-
-// Sum dimensions of arguments.
-template <typename... Rest>
-struct sum_of_dims;
-
-template <typename Head, typename... Rest>
-struct sum_of_dims<Head, Rest...> {
-    static constexpr s64 value =
-        dim_of_v<Head> > 0 ? dim_of_v<Head> + sum_of_dims<Rest...>::value : -1;  // -1 means error
-};
-
-template <>
-struct sum_of_dims<> {
-    static constexpr s64 value = 0;
-};
-
-template <typename... Rest>
-constexpr s64 sum_of_dims_v = sum_of_dims<Rest...>::value;
-}  // namespace type
+}  // namespace types

@@ -40,15 +40,15 @@ inline mat<T1, Dim, Dim, Packed> &operator/=(mat<T1, Dim, Dim, Packed> &lhs, con
 
 namespace impl {
 template <typename T, typename U, s64 R, s64 C, bool Packed, s64... StripeIndices>
-inline auto small_add(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed> &rhs, type::integer_sequence<s64, StripeIndices...>) {
-    using V = type::mat_mul_elem_t<T, U>;
+inline auto small_add(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed> &rhs, types::integer_sequence<s64, StripeIndices...>) {
+    using V = types::mat_mul_elem_t<T, U>;
     using ResultT = mat<V, R, C, Packed>;
     return ResultT{ResultT::FromStripes, (lhs.Stripes[StripeIndices] + rhs.Stripes[StripeIndices])...};
 }
 
 template <typename T, typename U, s64 R, s64 C, bool Packed, s64... StripeIndices>
-inline auto small_sub(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed> &rhs, type::integer_sequence<s64, StripeIndices...>) {
-    using V = type::mat_mul_elem_t<T, U>;
+inline auto small_sub(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed> &rhs, types::integer_sequence<s64, StripeIndices...>) {
+    using V = types::mat_mul_elem_t<T, U>;
     using ResultT = mat<V, R, C, Packed>;
     return ResultT{ResultT::FromStripes, (lhs.Stripes[StripeIndices] - rhs.Stripes[StripeIndices])...};
 }
@@ -56,7 +56,7 @@ inline auto small_sub(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed
 
 template <typename T, typename U, s64 R, s64 C, bool Packed>
 inline auto operator+(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed> &rhs) {
-    using V = type::mat_mul_elem_t<T, U>;
+    using V = types::mat_mul_elem_t<T, U>;
 
     if constexpr (R * C == 4) {
         mat<V, R, C, Packed> result = {no_init};
@@ -67,7 +67,7 @@ inline auto operator+(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed
         }
         return result;
     } else if constexpr (R <= 4 && C <= 4) {
-        return impl::small_add(lhs, rhs, type::make_integer_sequence<s64, type::decay_t<decltype(lhs)>::StripeCount>{});
+        return impl::small_add(lhs, rhs, types::make_integer_sequence<s64, types::decay_t<decltype(lhs)>::StripeCount>{});
     } else {
         mat<V, R, C, Packed> result = {no_init};
         for (s64 i = 0; i < result.StripeCount; ++i) {
@@ -79,7 +79,7 @@ inline auto operator+(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed
 
 template <typename T, typename U, s64 R, s64 C, bool Packed>
 inline auto operator-(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed> &rhs) {
-    using V = type::mat_mul_elem_t<T, U>;
+    using V = types::mat_mul_elem_t<T, U>;
 
     if constexpr (R * C == 4) {
         mat<V, R, C, Packed> result = {no_init};
@@ -90,7 +90,7 @@ inline auto operator-(const mat<T, R, C, Packed> &lhs, const mat<U, R, C, Packed
         }
         return result;
     } else if constexpr (R <= 4 && C <= 4) {
-        return impl::small_sub(lhs, rhs, type::make_integer_sequence<s64, type::decay_t<decltype(lhs)>::StripeCount>{});
+        return impl::small_sub(lhs, rhs, types::make_integer_sequence<s64, types::decay_t<decltype(lhs)>::StripeCount>{});
     } else {
         mat<V, R, C, Packed> result = {no_init};
         for (s64 i = 0; i < result.StripeCount; ++i) {
@@ -114,39 +114,39 @@ inline mat<U, R, C, Packed> &operator-=(mat<T, R, C, Packed> &lhs, const mat<U, 
 
 // Scalar multiplication
 template <typename T, s64 R, s64 C, bool Packed, typename U>
-requires(type::is_convertible_v<U, T>) inline mat<T, R, C, Packed> &operator*=(mat<T, R, C, Packed> &m, U s) {
+requires(types::is_convertible_v<U, T>) inline mat<T, R, C, Packed> &operator*=(mat<T, R, C, Packed> &m, U s) {
     For(range(m.StripeCount)) m.Stripes[it] *= s;
     return m;
 }
 
 // Divides all elements of the mat by scalar
 template <typename T, s64 R, s64 C, bool Packed, typename U>
-requires(type::is_convertible_v<U, T>) inline mat<T, R, C, Packed> &operator/=(mat<T, R, C, Packed> &m, U s) {
+requires(types::is_convertible_v<U, T>) inline mat<T, R, C, Packed> &operator/=(mat<T, R, C, Packed> &m, U s) {
     m *= U(1) / s;
     return m;
 }
 
 template <typename T, s64 R, s64 C, bool Packed, typename U>
-requires(type::is_convertible_v<U, T>) mat<T, R, C, Packed> operator*(const mat<T, R, C, Packed> &m, U s) {
+requires(types::is_convertible_v<U, T>) mat<T, R, C, Packed> operator*(const mat<T, R, C, Packed> &m, U s) {
     mat<T, R, C, Packed> copy(m);
     copy *= s;
     return copy;
 }
 
 template <typename T, s64 R, s64 C, bool Packed, typename U>
-requires(type::is_convertible_v<U, T>) mat<T, R, C, Packed> operator/(const mat<T, R, C, Packed> &m, U s) {
+requires(types::is_convertible_v<U, T>) mat<T, R, C, Packed> operator/(const mat<T, R, C, Packed> &m, U s) {
     mat<T, R, C, Packed> copy(m);
     copy /= s;
     return copy;
 }
 
 template <typename T, s64 R, s64 C, bool Packed, typename U>
-requires(type::is_convertible_v<U, T>) mat<T, R, C, Packed> operator*(U s, const mat<T, R, C, Packed> &m) {
+requires(types::is_convertible_v<U, T>) mat<T, R, C, Packed> operator*(U s, const mat<T, R, C, Packed> &m) {
     return m * s;
 }
 
 template <typename T, s64 R, s64 C, bool Packed, typename U>
-requires(type::is_convertible_v<U, T>) mat<T, R, C, Packed> operator/(U s, const mat<T, R, C, Packed> &m) {
+requires(types::is_convertible_v<U, T>) mat<T, R, C, Packed> operator/(U s, const mat<T, R, C, Packed> &m) {
     mat<T, R, C, Packed> result = {no_init};
     for (s64 i = 0; i < mat<T, R, C, Packed>::StripeCount; ++i) {
         result.Stripes[i] = T(s) / m.Stripes[i];
@@ -203,7 +203,7 @@ template <typename MatrixDestT, typename MatrixSourceT>
 requires(impl::reinterpret_compatible<MatrixDestT, MatrixSourceT>::value) MatrixDestT mat_reinterpret_cast(const MatrixSourceT &source) {
     MatrixDestT dest = {no_init};
     For_as(i, range(source.R)) {
-        For_as(j, range(source.C)) dest(i, j) = typename type::mat_info<MatrixDestT>::type(source(i, j));
+        For_as(j, range(source.C)) dest(i, j) = typename types::mat_info<MatrixDestT>::T(source(i, j));
     }
     return dest;
 }
@@ -217,10 +217,10 @@ requires(impl::reinterpret_compatible<MatrixDestT, MatrixSourceT>::value) Matrix
 //     MatrixDestT dest = {no_init};
 //     For_as(i, range(source.R)) {
 //         For_as(j, range(source.C)) {
-//             if constexpr (type::mat_info<MatrixDestT>::Order == type::mat_info<MatrixSourceT>::Order) {
-//                 dest(i, j) = typename type::mat_info<MatrixDestT>::type(source(i, j));
+//             if constexpr (types::mat_info<MatrixDestT>::Order == types::mat_info<MatrixSourceT>::Order) {
+//                 dest(i, j) = typename types::mat_info<MatrixDestT>::T(source(i, j));
 //             } else {
-//                 dest(j, i) = typename type::mat_info<MatrixDestT>::type(source(i, j));
+//                 dest(j, i) = typename types::mat_info<MatrixDestT>::T(source(i, j));
 //             }
 //         }
 //     }

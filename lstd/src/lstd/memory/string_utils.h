@@ -7,11 +7,11 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
-using c_string_type = type::remove_const_t<type::remove_pointer_t<T>> *;
+using c_string_type = types::remove_const_t<types::remove_pointer_t<T>> *;
 
 // @Cleanup This looks messy
 template <typename T>
-concept c_string = type::is_same_v<c_string_type<T>, char8_t *> || type::is_same_v<c_string_type<T>, utf8 *> || type::is_same_v<c_string_type<T>, utf16 *> || type::is_same_v<c_string_type<T>, utf32 *>;
+concept c_string = types::is_same_v<c_string_type<T>, char8_t *> || types::is_same_v<c_string_type<T>, utf8 *> || types::is_same_v<c_string_type<T>, utf16 *> || types::is_same_v<c_string_type<T>, utf32 *>;
 
 // Retrieve the length of a standard cstyle string. Doesn't care about encoding.
 // Note that this calculation does not include the null byte.

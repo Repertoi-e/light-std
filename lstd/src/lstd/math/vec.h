@@ -4,17 +4,56 @@
 #include "../memory/string_utils.h"
 #include "no_init.h"
 #include "simd.h"
+#include "swizzle_1.inl"
+#include "swizzle_2.inl"
+#include "swizzle_3.inl"
+#include "swizzle_4.inl"
 
 LSTD_BEGIN_NAMESPACE
+
+//
+// Helpers for accesing static information about vectors
+//
+template <typename T>
+struct vec_info_helper {
+    static constexpr bool IS_VEC = false;
+};
+
+template <typename DataT, s64 Dim, bool Packed>
+struct vec_info_helper<vec<DataT, Dim, Packed>> {
+    static constexpr bool IS_VEC = true;
+
+    using T = DataT;
+    static constexpr s64 DIM = Dim;
+    static constexpr bool PACKED = Packed;
+};
+
+template <typename DataT, s64 Dim, bool Packed>
+struct vec_info_helper<vec_data<DataT, Dim, Packed>> {
+    static constexpr bool IS_VEC = true;
+
+    using T = DataT;
+    static constexpr s64 DIM = Dim;
+    static constexpr bool PACKED = Packed;
+};
+
+template <typename T>
+struct vec_info : public vec_info_helper<types::decay_t<T>> {};
+
+template <typename T>
+concept has_simd = requires(T a) {
+    vec_info<T>{}.IS_VEC;
+    a.Simd;
+};
 
 // To access swizzlers, use the xx, xy, xyz and similar elements of vectors.
 // Swizzlers can be used with assignments, concatenation, casting and constructors.
 // To perform arithmetic, cast swizzlers to corresponding vector type.
 template <typename VecData, s64... Indices>
 struct swizzle {
-    using T = typename type::vec_info<VecData>::type;
+    using T = typename vec_info<VecData>::T;
 
-    static constexpr s64 IndexTable[] = {Indices...};
+    inline static constexpr s64 IndexTable[] = {Indices...};
     static constexpr s64 Dim = sizeof...(Indices);
 
     operator vec<T, sizeof...(Indices), false>() const;
@@ -48,267 +87,108 @@ struct swizzle {
     }
 };
 
+//
+// Gets the dimension of a vec or a swizzle
+//
+template <typename U, s32 Along = 0>
+struct dim_of {
+    static constexpr s64 value = 1;
+};
+
+template <typename T, s64 Dim, bool Packed>
+struct dim_of<vec<T, Dim, Packed>, 0> {
+    static constexpr s64 value = Dim;
+};
+
 template <typename T, s64... Indices>
-constexpr s64 swizzle<T, Indices...>::IndexTable[];
+struct dim_of<swizzle<T, Indices...>> {
+    static constexpr s64 value = sizeof...(Indices);
+};
+
+template <typename T>
+constexpr s64 dim_of_v = dim_of<T>::value;
+
+//
+// vec_data is a base class of vec
+//
 
 template <typename T, s64 Dim, bool Packed>
 struct vec_data {
     T Data[Dim];
 };
 
-// Small vectors with x,y,z,w members
-template <typename T, bool Packed>
-struct vec_data<T, 2, Packed> {
-    using ST = T;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) {
-        for (s64 i = 0; i < 2; ++i) {
-            Data[i] = rhs.Data[i];
-        }
-    }
-    vec_data &operator=(const vec_data &rhs) {
-        for (s64 i = 0; i < 2; ++i) {
-            Data[i] = rhs.Data[i];
-        }
-        return *this;
-    }
-
-    union {
-        struct {
-            T x, y;
-        };
-
-        T Data[2];
-#include "swizzle_2.inc"
-    };
-};
-
-template <typename T, bool Packed>
-struct vec_data<T, 3, Packed> {
-    using ST = T;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) {
-        for (s64 i = 0; i < 3; ++i) {
-            Data[i] = rhs.Data[i];
-        }
-    }
-    vec_data &operator=(const vec_data &rhs) {
-        for (s64 i = 0; i < 3; ++i) {
-            Data[i] = rhs.Data[i];
-        }
-        return *this;
+//
+// Small vectors with x, y, z, w members
+// VEC_DATA_ macro (defined in swizzle_*.h) includes Data array of proper dimension and x, (y, z, w) members
+//
+#define VEC_DATA_DEF(dim)                          \
+    template <typename T, bool Packed>             \
+    struct vec_data<T, dim, Packed> {              \
+        using ST = T;                              \
+                                                   \
+        vec_data() {}                              \
+        vec_data(const vec_data &rhs) {            \
+            for (s64 i = 0; i < dim; ++i) {        \
+                Data[i] = rhs.Data[i];             \
+            }                                      \
+        }                                          \
+        vec_data &operator=(const vec_data &rhs) { \
+            for (s64 i = 0; i < dim; ++i) {        \
+                Data[i] = rhs.Data[i];             \
+            }                                      \
+            return *this;                          \
+        }                                          \
+                                                   \
+        union {                                    \
+            VEC_DATA_##dim                         \
+        };                                         \
     }
 
-    union {
-        struct {
-            T x, y, z;
-        };
-        T Data[3];
-#include "swizzle_3.inc"
-    };
-};
+VEC_DATA_DEF(2);
+VEC_DATA_DEF(3);
+VEC_DATA_DEF(4);
+#undef VEC_DATA_DEF
 
-template <typename T, bool Packed>
-struct vec_data<T, 4, Packed> {
-    using ST = T;
+#define VEC_DATA_8 ST Data[8];
 
-    vec_data() {}
-    vec_data(const vec_data &rhs) {
-        for (s64 i = 0; i < 4; ++i) {
-            Data[i] = rhs.Data[i];
-        }
+//
+// Small SIMD f32 vectors
+// VEC_DATA_ macro (defined in swizzle_*.h) includes Data array of proper dimension and x, (y, z, w) members
+//
+#define VEC_DATA_DEF(type, dim, simdDim)                   \
+    template <>                                            \
+    struct alignas(16) vec_data<type, dim, false> {        \
+        using ST = type;                                   \
+        using SimdT = simd<ST, simdDim>;                   \
+                                                           \
+        vec_data() {}                                      \
+        vec_data(const vec_data &rhs) { Simd = rhs.Simd; } \
+        explicit vec_data(SimdT simd) : Simd(simd) {}      \
+                                                           \
+        vec_data &operator=(const vec_data &rhs) {         \
+            Simd = rhs.Simd;                               \
+            return *this;                                  \
+        }                                                  \
+                                                           \
+        union {                                            \
+            SimdT Simd;                                    \
+            VEC_DATA_##dim                                 \
+        };                                                 \
     }
-    vec_data &operator=(const vec_data &rhs) {
-        for (s64 i = 0; i < 4; ++i) {
-            Data[i] = rhs.Data[i];
-        }
-        return *this;
-    }
+VEC_DATA_DEF(f32, 2, 2);
+VEC_DATA_DEF(f32, 3, 4);  // We turn on SIMD for vectors with three components (but we treat them as having 4)
+VEC_DATA_DEF(f32, 4, 4);
+VEC_DATA_DEF(f32, 8, 8);
 
-    union {
-        struct {
-            T x, y, z, w;
-        };
-        T Data[4];
-#include "swizzle_4.inc"
-    };
-};
-
-// Small SIMD fp32 vectors
-template <>
-struct alignas(16) vec_data<f32, 2, false> {
-    using ST = f32;
-    using SimdT = simd<ST, 2>;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) { Simd = rhs.Simd; }
-    explicit vec_data(SimdT simd) : Simd(simd) {}
-
-    vec_data &operator=(const vec_data &rhs) {
-        Simd = rhs.Simd;
-        return *this;
-    }
-
-    union {
-        SimdT Simd;
-        struct {
-            ST x, y;
-        };
-        ST Data[2];
-#include "swizzle_2.inc"
-    };
-};
-
-template <>
-struct alignas(16) vec_data<f32, 3, false> {
-    using ST = f32;
-    using SimdT = simd<ST, 4>;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) { Simd = rhs.Simd; }
-    explicit vec_data(SimdT simd) : Simd(simd) {}
-
-    vec_data &operator=(const vec_data &rhs) {
-        Simd = rhs.Simd;
-        return *this;
-    }
-
-    union {
-        SimdT Simd;
-        struct {
-            ST x, y, z;
-        };
-        ST Data[3];
-#include "swizzle_3.inc"
-    };
-};
-
-template <>
-struct alignas(16) vec_data<f32, 4, false> {
-    using ST = f32;
-    using SimdT = simd<ST, 4>;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) { Simd = rhs.Simd; }
-    explicit vec_data(SimdT simd) : Simd(simd) {}
-
-    vec_data &operator=(const vec_data &rhs) {
-        Simd = rhs.Simd;
-        return *this;
-    }
-
-    union {
-        SimdT Simd;
-        struct {
-            ST x, y, z, w;
-        };
-        ST Data[4];
-#include "swizzle_4.inc"
-    };
-};
-
-template <>
-struct alignas(16) vec_data<f32, 8, false> {
-    using ST = f32;
-    using SimdT = simd<f32, 8>;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) { Simd = rhs.Simd; }
-    explicit vec_data(SimdT simd) : Simd(simd) {}
-
-    vec_data &operator=(const vec_data &rhs) {
-        Simd = rhs.Simd;
-        return *this;
-    }
-
-    union {
-        SimdT Simd;
-        f32 Data[8];
-    };
-};
-
-// Small SIMD fp64 vectors
-template <>
-struct alignas(16) vec_data<f64, 2, false> {
-    using ST = f64;
-    using SimdT = simd<ST, 2>;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) { Simd = rhs.Simd; }
-    explicit vec_data(SimdT simd) : Simd(simd) {}
-
-    vec_data &operator=(const vec_data &rhs) {
-        Simd = rhs.Simd;
-        return *this;
-    }
-
-    union {
-        SimdT Simd;
-        struct {
-            ST x, y;
-        };
-
-        ST Data[2];
-#include "swizzle_2.inc"
-    };
-};
-
-template <>
-struct alignas(16) vec_data<f64, 3, false> {
-    using ST = f64;
-    using SimdT = simd<ST, 4>;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) { Simd = rhs.Simd; }
-
-    explicit vec_data(SimdT simd) : Simd(simd) {}
-
-    vec_data &operator=(const vec_data &rhs) {
-        Simd = rhs.Simd;
-        return *this;
-    }
-
-    union {
-        SimdT Simd;
-        struct {
-            ST x, y, z;
-        };
-
-        ST Data[3];
-#include "swizzle_3.inc"
-    };
-};
-
-template <>
-struct alignas(16) vec_data<f64, 4, false> {
-    using ST = f64;
-    using SimdT = simd<ST, 4>;
-
-    vec_data() {}
-    vec_data(const vec_data &rhs) { Simd = rhs.Simd; }
-
-    explicit vec_data(SimdT simd) : Simd(simd) {}
-
-    vec_data &operator=(const vec_data &rhs) {
-        Simd = rhs.Simd;
-        return *this;
-    }
-
-    union {
-        SimdT Simd;
-        struct {
-            ST x, y, z, w;
-        };
-        ST Data[4];
-#include "swizzle_4.inc"
-    };
-};
+// Small SIMD f64 vectors
+VEC_DATA_DEF(f64, 2, 2);
+VEC_DATA_DEF(f64, 3, 4);  // We turn on SIMD for vectors with three components (but we treat them as having 4)
+VEC_DATA_DEF(f64, 4, 4);
+VEC_DATA_DEF(f64, 8, 8);
 
 template <typename T, s64 Dim_, bool Packed_ = false>
 struct vec : public vec_data<T, Dim_, Packed_> {
-    static_assert(Dim_ >= 1, "Dimension must be a positive integer.");
+    static_assert(Dim_ >= 1, "Dimension must be a positive integer >= 1.");
 
     using vec_data<T, Dim_, Packed_>::Data;
 
@@ -329,7 +209,7 @@ struct vec : public vec_data<T, Dim_, Packed_> {
 
     // Constructs the vector by converting elements
     template <typename U, bool UPacked>
-    requires(type::is_convertible_v<U, T>) vec(const vec<U, Dim, UPacked> &other) {
+    requires(types::is_convertible_v<U, T>) vec(const vec<U, Dim, UPacked> &other) {
         for (s64 i = 0; i < Dim; ++i) {
             this->Data[i] = (T) other.Data[i];
         }
@@ -337,7 +217,7 @@ struct vec : public vec_data<T, Dim_, Packed_> {
 
     // Sets all elements to the same value
     explicit vec(T all) {
-        if constexpr (!type::has_simd_v<vec>) {
+        if constexpr (!has_simd<vec>) {
             for (auto &v : *this) v = all;
         } else {
             using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
@@ -348,7 +228,7 @@ struct vec : public vec_data<T, Dim_, Packed_> {
     // Constructs the vector from an array of elements.
     // The number of elements in the array must be at least as the vector's dimension.
     template <typename U>
-    requires(type::is_convertible_v<U, T>) vec(const array_view<U> &data) {
+    requires(types::is_convertible_v<U, T>) vec(const array_view<U> &data) {
         for (s64 i = 0; i < Dim; ++i) {
             this->Data[i] = (T) data.Data[i];
         }
@@ -356,7 +236,7 @@ struct vec : public vec_data<T, Dim_, Packed_> {
 
     template <typename SimdArgT>
     vec(FromSimd_, SimdArgT simd) : vec_data<T, Dim, Packed>(simd) {
-        static_assert(type::has_simd_v<vec>);
+        static_assert(has_simd<vec>);
     }
 
     // Creates a homogeneous vector by appending a 1
@@ -370,8 +250,8 @@ struct vec : public vec_data<T, Dim_, Packed_> {
     // Initializes the vector to the given scalar elements.
     // Number of arguments must equal vector dimension.
     template <typename... Scalars>
-    requires((Dim >= 1) && (sizeof...(Scalars) == Dim) && ((... && type::is_convertible_v<Scalars, T>) )) vec(Scalars... scalars) : vec(no_init) {
-        if constexpr (type::has_simd_v<vec>) {
+    requires((Dim >= 1) && (sizeof...(Scalars) == Dim) && ((... && types::is_convertible_v<Scalars, T>) )) vec(Scalars... scalars) : vec(no_init) {
+        if constexpr (has_simd<vec>) {
             if constexpr (Dim == 3) {
                 this->Simd = vec_data<T, 3, Packed>::SimdT::set((T) scalars..., T(0));
             } else {
@@ -386,7 +266,7 @@ struct vec : public vec_data<T, Dim_, Packed_> {
     // Initializes the vector by concatenating given scalar, vector or swizzle arguments.
     // Sum of the dimension of arguments must equal vector dimension.
     template <typename... Mixed>
-    requires((sizeof...(Mixed) >= 1) && (type::sum_of_dims_v<Mixed...> == Dim) && ((... || !type::is_convertible_v<Mixed, T>) )) vec(const Mixed &... mixed) {
+    requires((sizeof...(Mixed) >= 1) && ((dim_of_v<Mixed> + ...) == Dim) && ((... || !types::is_convertible_v<Mixed, T>) )) vec(const Mixed &... mixed) {
         assign(0, mixed...);
     }
 
@@ -421,18 +301,18 @@ struct vec : public vec_data<T, Dim_, Packed_> {
     template <typename VectorDataU, s64... Indices>
     struct get_element<swizzle<VectorDataU, Indices...>> {
         static auto get(const swizzle<VectorDataU, Indices...> &u, s64 index) {
-            return ((typename type::vec_info<VectorDataU>::type *) &u)[u.IndexTable[index]];
+            return ((typename vec_info<VectorDataU>::T *) &u)[u.IndexTable[index]];
         }
     };
 
     template <typename Head, typename... Scalars>
     void assign(s64 index, Head &&head, Scalars &&... scalars) {
-        if constexpr (type::is_scalar_v<type::remove_cvref_t<Head>> && (... && type::is_scalar_v<type::remove_cvref_t<Scalars>>) ) {
+        if constexpr (types::is_scalar_v<types::remove_cvref_t<Head>> && (... && types::is_scalar_v<types::remove_cvref_t<Scalars>>) ) {
             Data[index] = (T) head;
             assign(index + 1, ((Scalars &&) scalars)...);
         } else {
-            for (s64 i = 0; i < type::dim_of_v<type::remove_cvref_t<Head>>; ++i) {
-                Data[index] = (T) get_element<type::remove_cvref_t<Head>>::get(head, i);
+            for (s64 i = 0; i < dim_of_v<types::remove_cvref_t<Head>>; ++i) {
+                Data[index] = (T) get_element<types::remove_cvref_t<Head>>::get(head, i);
                 ++index;
             }
             assign(index, ((Scalars &&) scalars)...);
@@ -448,7 +328,7 @@ struct vec : public vec_data<T, Dim_, Packed_> {
 };
 
 template <typename SimdT, s64... Indices>
-auto shuffle_reverse(SimdT arg, type::integer_sequence<s64, Indices...>) {
+auto shuffle_reverse(SimdT arg, types::integer_sequence<s64, Indices...>) {
     return SimdT::template shuffle<Indices...>(arg);
 }
 
@@ -456,35 +336,33 @@ template <typename VectorDataU, s64... Indices>
 swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Indices...>::T, sizeof...(Indices), false>() const {
     using DestVecT = vec<T, sizeof...(Indices), false>;
 
-    if constexpr (type::has_simd_v<VectorDataU> && type::has_simd_v<DestVecT>) {
-        using SourceSimdT = decltype(type::declval<VectorDataU>().Simd);
-        using DestSimdT = decltype(type::declval<VectorDataU>().Simd);
+    if constexpr (has_simd<VectorDataU> && has_simd<DestVecT>) {
+        using SourceSimdT = decltype(types::declval<VectorDataU>().Simd);
+        using DestSimdT = decltype(types::declval<VectorDataU>().Simd);
 
-        constexpr s64 VectorDataDim = type::vec_info<VectorDataU>::Dim;
-        if constexpr (type::is_same_v<SourceSimdT, DestSimdT>) {
-            const auto &sourceSimd = ((const VectorDataU *) this)->Simd;
+        constexpr s64 VectorDataDim = vec_info<VectorDataU>::DIM;
+        if constexpr (types::is_same_v<SourceSimdT, DestSimdT>) {
+            auto &sourceSimd = ((VectorDataU *) this)->Simd;
             if constexpr (sizeof...(Indices) == 3 && VectorDataDim == 3 && VectorDataDim == 4) {
-                return {DestVecT::FromSimd, shuffle_reverse(sourceSimd, typename type::reverse_integer_sequence<type::integer_sequence<s64, Indices..., 3>>::type{})};
+                return {DestVecT::FromSimd, shuffle_reverse(sourceSimd, typename types::reverse_integer_sequence<types::integer_sequence<s64, Indices..., 3>>::type{})};
             } else if constexpr (sizeof...(Indices) == 4 && VectorDataDim == 3 && VectorDataDim == 4) {
-                return {DestVecT::FromSimd, shuffle_reverse(sourceSimd, typename type::reverse_integer_sequence<type::integer_sequence<s64, Indices...>>::type{})};
+                return {DestVecT::FromSimd, shuffle_reverse(sourceSimd, typename types::reverse_integer_sequence<types::integer_sequence<s64, Indices...>>::type{})};
             } else if constexpr (sizeof...(Indices) == 2 && VectorDataDim == 2) {
-                return {DestVecT::FromSimd, shuffle_reverse(sourceSimd, typename type::reverse_integer_sequence<type::integer_sequence<s64, Indices...>>::type{})};
+                return {DestVecT::FromSimd, shuffle_reverse(sourceSimd, typename types::reverse_integer_sequence<types::integer_sequence<s64, Indices...>>::type{})};
             }
         }
     }
-    return DestVecT(((typename type::vec_info<VectorDataU>::type *) this)[Indices]...);
+    return DestVecT(((typename vec_info<VectorDataU>::T *) this)[Indices]...);
 }
 
 template <typename VectorDataU, s64... Indices>
-swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Indices...>::T, sizeof...(Indices), true>()
-    const {
+swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Indices...>::T, sizeof...(Indices), true>() const {
     return vec<T, sizeof...(Indices), true>(Data[Indices]...);
 }
 
 template <typename VectorDataU, s64... Indices>
-swizzle<VectorDataU, Indices...> &swizzle<VectorDataU, Indices...>::operator=(
-    const vec<T, sizeof...(Indices), false> &rhs) {
-    if (((typename type::vec_info<VectorDataU>::type *) this) != rhs.Data) {
+swizzle<VectorDataU, Indices...> &swizzle<VectorDataU, Indices...>::operator=(const vec<T, sizeof...(Indices), false> &rhs) {
+    if (((typename vec_info<VectorDataU>::T *) this) != rhs.Data) {
         assign<Indices...>(rhs.Data);
     } else {
         vec<T, sizeof...(Indices), false> temp = rhs;
@@ -494,9 +372,8 @@ swizzle<VectorDataU, Indices...> &swizzle<VectorDataU, Indices...>::operator=(
 }
 
 template <typename VectorDataU, s64... Indices>
-swizzle<VectorDataU, Indices...> &swizzle<VectorDataU, Indices...>::operator=(
-    const vec<T, sizeof...(Indices), true> &rhs) {
-    if (((typename type::vec_info<VectorDataU>::type *) this) != rhs.Data) {
+swizzle<VectorDataU, Indices...> &swizzle<VectorDataU, Indices...>::operator=(const vec<T, sizeof...(Indices), true> &rhs) {
+    if (((typename vec_info<VectorDataU>::T *) this) != rhs.Data) {
         assign<Indices...>(rhs.Data);
     } else {
         vec<T, sizeof...(Indices), false> temp = rhs;

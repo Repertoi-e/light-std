@@ -82,7 +82,7 @@ constexpr u64 XXX_AVOID_RECURSION = 1ull << 61;
 // so when the allocator function returns an unaligned pointer we can freely bump it.
 // The information about the alignment is saved in the header, that's how we know what
 // the old pointer was when freeing or reallocating.
-using allocator_func_t = type::add_pointer_t<void *(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *)>;
+using allocator_func_t = types::add_pointer_t<void *(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *)>;
 
 struct allocator {
     allocator_func_t Function = null;
@@ -313,15 +313,15 @@ LSTD_END_NAMESPACE
 template <typename T>
 T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const utf8 *file = "", s64 fileLine = -1) {
     // @Cleanup: Concepts
-    static_assert(!type::is_same_v<T, void>);
-    static_assert(!type::is_const_v<T>);
+    static_assert(!types::is_same_v<T, void>);
+    static_assert(!types::is_const_v<T>);
 
     s64 size = count * sizeof(T);
 
     if (!alloc) alloc = Context.Alloc;
     auto *result = (T *) general_allocate(alloc, size, alignment, options, file, fileLine);
 
-    if constexpr (!type::is_scalar_v<T>) {
+    if constexpr (!types::is_scalar_v<T>) {
         auto *p = result;
         auto *end = result + count;
         while (p != end) {
@@ -352,8 +352,8 @@ T *lstd_allocate_impl(s64 count, u32 alignment, const utf8 *file = "", s64 fileL
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
 template <typename T>
 T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *file = "", s64 fileLine = -1) {
-    static_assert(!type::is_same_v<T, void>);
-    static_assert(!type::is_const_v<T>);
+    static_assert(!types::is_same_v<T, void>);
+    static_assert(!types::is_const_v<T>);
 
     if (!block) return null;
 
@@ -365,7 +365,7 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *f
     auto *header = (allocation_header *) block - 1;
     s64 oldCount = header->Size / sizeof(T);
 
-    if constexpr (!type::is_scalar_v<T>) {
+    if constexpr (!types::is_scalar_v<T>) {
         if (newCount < oldCount) {
             auto *p = block + newCount;
             auto *end = block + oldCount;
@@ -379,7 +379,7 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *f
     s64 newSize = newCount * sizeof(T);
     auto *result = (T *) general_reallocate(block, newSize, options, file, fileLine);
 
-    if constexpr (!type::is_scalar_v<T>) {
+    if constexpr (!types::is_scalar_v<T>) {
         if (oldCount < newCount) {
             auto *p = result + oldCount;
             auto *end = result + newCount;
@@ -404,17 +404,17 @@ template <typename T>
 void lstd_free_impl(T *block, u64 options = 0) {
     if (!block) return;
 
-    static_assert(!type::is_const_v<T>);
+    static_assert(!types::is_const_v<T>);
 
     s64 sizeT = 1;
-    if constexpr (!type::is_same_v<T, void>) {
+    if constexpr (!types::is_same_v<T, void>) {
         sizeT = sizeof(T);
     }
 
     auto *header = (allocation_header *) block - 1;
     s64 count = header->Size / sizeT;
 
-    if constexpr (!type::is_same_v<T, void> && !type::is_scalar_v<T>) {
+    if constexpr (!types::is_same_v<T, void> && !types::is_scalar_v<T>) {
         auto *p = block;
         while (count--) {
             p->~T();

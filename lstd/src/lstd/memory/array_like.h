@@ -28,7 +28,7 @@ concept array_like = requires(T t) {
 
 // This returns the type of the _Data_ member of an array-like object
 template <typename ArrayT>
-using array_like_data_t = type::remove_pointer_t<decltype(ArrayT::Data)>;
+using array_like_data_t = types::remove_pointer_t<decltype(ArrayT::Data)>;
 
 // We undef this at the end of the file.. short name just for brevity
 #define data_t array_like_data_t

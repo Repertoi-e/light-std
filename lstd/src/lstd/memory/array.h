@@ -6,7 +6,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// Methods in this object allow negative reversed indexing which begins at
+// Functions on this object allow negative reversed indexing which begins at
 // the end of the string, so -1 is the last character -2 the one before that, etc. (Python-style)
 //
 // This type is entirely constexpr. Everything except methods that modify the contents of the string can be used compile-time.
@@ -52,10 +52,10 @@ struct array_view {
     // They are identical (both are unsigned bytes) but we use them to differentiate when we are working with just arrays of bytes or
     // arrays that contain encoded utf8. It's more of an "intent" thing and being explicit with it is, I think, good.
     template <typename U = T>
-    requires(type::is_same_v<type::remove_const_t<U>, utf8>) operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
+    requires(types::is_same_v<types::remove_const_t<U>, utf8>) operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
 
     template <typename U = T>
-    requires(type::is_same_v<type::remove_const_t<U>, byte>) operator array_view<utf8>() const { return array_view<utf8>((utf8 *) Data, Count); }
+    requires(types::is_same_v<types::remove_const_t<U>, byte>) operator array_view<utf8>() const { return array_view<utf8>((utf8 *) Data, Count); }
 };
 
 // We use array_view<byte> when parsing all the time for example and it's kinda a long name..

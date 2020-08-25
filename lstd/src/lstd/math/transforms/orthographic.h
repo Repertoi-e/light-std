@@ -58,7 +58,7 @@ struct ortographic_helper : non_copyable {
 // projFarPlane - The upper bound of the last axis of the projected volume (Z axis in 3D).
 template <typename T, s64 Dim, bool Packed>
 auto orthographic(const vec<T, Dim, Packed> &minBounds, const vec<T, Dim, Packed> &maxBounds, T projNearPlane, T projFarPlane) {
-    if constexpr (type::is_integral_v<T>) {
+    if constexpr (types::is_integral_v<T>) {
         using VectorT = vec<f32, Dim, false>;
         return ortographic_helper(VectorT(minBounds), VectorT(maxBounds), f32(projNearPlane), f32(projFarPlane));
     } else {

@@ -207,7 +207,7 @@ struct range {
 //
 //     _string_ contains constexpr methods which deal with string manipulation (all methods which make sense and don't modify the string can be used compile-time).
 //     This works because you can construct a string as a "view" with a c-style string literal.
-//     constexpr methods include substrings, trimming (these work because, again, we don't do zero terminated strings, but instead a pointer and a size), searching for
+//     constexpr functions include substrings, trimming (these work because, again, we don't do zero terminated strings, but instead a pointer and a size), searching for
 //     strings or code points, etc. All operations are implemented with utf8 in mind.
 //
 //     We implement string length methods and comparing (lexicographically and code point by code point) for c-style strings in "string_utils.h" (included by "string.h").
@@ -666,7 +666,7 @@ template <typename T>
 constexpr bool is_appropriate_size_for_atomic_v = (sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8);
 
 template <typename T>
-concept appropriate_for_atomic = (type::is_integral_v<T> || type::is_enum_v<T> || type::is_pointer_v<T>) &&is_appropriate_size_for_atomic_v<T>;
+concept appropriate_for_atomic = (types::is_integral_v<T> || types::is_enum_v<T> || types::is_pointer_v<T>) &&is_appropriate_size_for_atomic_v<T>;
 
 #if COMPILER == MSVC
 

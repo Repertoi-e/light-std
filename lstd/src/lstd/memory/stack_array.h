@@ -75,10 +75,10 @@ struct return_type_helper {
     using type = D;
 };
 template <typename... Types>
-struct return_type_helper<void, Types...> : type::common_type<Types...> {};
+struct return_type_helper<void, Types...> : types::common_type<Types...> {};
 
 template <class T, s64 N, s64... I>
-constexpr stack_array<type::remove_cv_t<T>, N> to_array_impl(T (&a)[N], type::index_sequence<I...>) {
+constexpr stack_array<types::remove_cv_t<T>, N> to_array_impl(T (&a)[N], types::index_sequence<I...>) {
     return {{a[I]...}};
 }
 }  // namespace internal
@@ -90,8 +90,8 @@ constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, 
 }
 
 template <typename T, s64 N>
-constexpr stack_array<type::remove_cv_t<T>, N> to_stack_array(T (&a)[N]) {
-    return internal::to_array_impl(a, type::make_index_sequence<N>{});
+constexpr stack_array<types::remove_cv_t<T>, N> to_stack_array(T (&a)[N]) {
+    return internal::to_array_impl(a, types::make_index_sequence<N>{});
 }
 
 LSTD_END_NAMESPACE

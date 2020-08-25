@@ -145,7 +145,7 @@ struct parse_int_options {
 template <typename IntT>
 IntT handle_negative(IntT value, bool negative) {
     if (negative) {
-        if constexpr (type::is_unsigned_v<IntT>) {
+        if constexpr (types::is_unsigned_v<IntT>) {
             return IntT(0 - value);
         } else {
             return -value;
@@ -230,10 +230,10 @@ tuple<IntT, parse_status, bytes> parse_int(bytes buffer, u32 base = 10) {
     if constexpr (Options.TooManyDigitsBehaviour == parse_int_options::BAIL) {
         // Here we determine at what point we stop parsing because the number becomes too big.
         // If however our parsing overflow behaviour is greedy we don't do this.
-        if constexpr (type::is_unsigned_v<IntT>) {
-            maxValue = (type::numeric_info<IntT>::max)();
+        if constexpr (types::is_unsigned_v<IntT>) {
+            maxValue = (types::numeric_info<IntT>::max)();
         } else {
-            maxValue = negative ? -(type::numeric_info<IntT>::min()) : type::numeric_info<IntT>::max();
+            maxValue = negative ? -(types::numeric_info<IntT>::min()) : types::numeric_info<IntT>::max();
         }
 
         cutOff = const_abs(maxValue / base);

@@ -185,7 +185,7 @@ struct signal<R(Args...), Collector> : public non_copyable {
         }
         reset(ToRemove);
 
-        if constexpr (!type::is_same_v<collector_result_t, void>) {
+        if constexpr (!types::is_same_v<collector_result_t, void>) {
             return collector.result();
         }
     }

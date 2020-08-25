@@ -14,7 +14,7 @@ template <typename T, s64 Dim>
 union alignas(16) simd {
     // @Cleanup: This looks messy
     static_assert(Dim == 2 || Dim == 4 || Dim == 8, "Dimension must be 2, 4, or 8.");
-    static_assert(type::is_same_v<T, f32> || type::is_same_v<T, f64> || type::is_same_v<T, s32> || type::is_same_v<T, s64>,
+    static_assert(types::is_same_v<T, f32> || types::is_same_v<T, f64> || types::is_same_v<T, s32> || types::is_same_v<T, s64>,
                   "Type must be f32, f64, s32 or s64.");
 
     T reg[Dim];

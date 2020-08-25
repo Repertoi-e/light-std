@@ -34,8 +34,8 @@ TEST(int) {
     test_parse_int(s32, parse_int_options{.LookForBasePrefix = true}, 10, "+0xff", 0xff, PARSE_SUCCESS, "");
     test_parse_int(s32, parse_int_options{.LookForBasePrefix = true}, 10, "-0712", -0712, PARSE_SUCCESS, "");
 
-    test_parse_int(s32, parse_int_options{}, 10, "1000000000000000000000000", type::numeric_info<s32>::max(), PARSE_TOO_MANY_DIGITS, "00000000000000");
-    test_parse_int(s32, parse_int_options{}, 10, "-1000000000000000000000000", type::numeric_info<s32>::min(), PARSE_TOO_MANY_DIGITS, "00000000000000");
+    test_parse_int(s32, parse_int_options{}, 10, "1000000000000000000000000", types::numeric_info<s32>::max(), PARSE_TOO_MANY_DIGITS, "00000000000000");
+    test_parse_int(s32, parse_int_options{}, 10, "-1000000000000000000000000", types::numeric_info<s32>::min(), PARSE_TOO_MANY_DIGITS, "00000000000000");
 
     test_parse_int(s32, parse_int_options{.TooManyDigitsBehaviour = parse_int_options::CONTINUE}, 10, "1000000000000000000000000", -1593835520, PARSE_SUCCESS, "");
     test_parse_int(s32, parse_int_options{.TooManyDigitsBehaviour = parse_int_options::CONTINUE}, 10, "-1000000000000000000000000", 1593835520, PARSE_SUCCESS, "");

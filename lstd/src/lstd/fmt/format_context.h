@@ -151,7 +151,7 @@ struct format_context_visitor {
     void operator()(const void *value) { NoSpecs ? F->write_no_specs(value) : F->write(value); }
     void operator()(const value::custom &custom) { custom.format(F); }
 
-    void operator()(::type::unused) { F->on_error("Internal error while formatting"); }
+    void operator()(types::unused) { F->on_error("Internal error while formatting"); }
 };
 }  // namespace internal
 

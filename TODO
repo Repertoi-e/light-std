@@ -31,12 +31,6 @@ concepts namespace (like type namespace)
 Remove std:: from our code (implement everything we use ourselves for accurate line count and not relying on the STL etc)
 
 
-Literal struct for other parse options
-
-Methods in ..
-
-remove_cvref
-
 Tests with parse_guid_options
 
     bool BasePrefixCountedTowardsMaxDigits = true;                 // By default we counts the base prefix towards _MaxDigits_.
@@ -70,11 +64,13 @@ Implement the other part of platform specific functionality and compile on linux
 LOC:    80394
 		----
 		80115
+		79664
 
 LOC no vendor:  ----
                 28816
 				28387
 				28381
+				27936
 
 LOC IO:  2161 
          2306
