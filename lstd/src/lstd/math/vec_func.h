@@ -9,28 +9,28 @@ LSTD_BEGIN_NAMESPACE
 // Returns true if the vector's length is too small for precise calculations (i.e. normalization).
 // "Too small" means smaller than the square root of the smallest number representable by the underlying scalar.
 // This value is ~10^-18 for floats and ~10^-154 for doubles.
-template <typename T, s64 Dim, bool Packed>
-bool is_null_vector(const vec<T, Dim, Packed> &v) {
+template <any_vec Vec>
+bool is_null_vector(const Vec &v) {
+    using T = Vec::T;
+
     static constexpr T epsilon = T(1) / const_exp10<T>(const_abs(types::numeric_info<T>::min_exponent10) / 2);
     T length = len(v);
     return length < epsilon;
 }
 
 // Returns the squared length of the vector
-template <typename T, s64 Dim, bool Packed>
-T len_sq(const vec<T, Dim, Packed> &v) {
-    return dot(v, v);
-}
+template <any_vec Vec>
+auto len_sq(const Vec &v) { return dot(v, v); }
 
 // Returns the length of the vector
-template <typename T, s64 Dim, bool Packed>
-T len(const vec<T, Dim, Packed> &v) {
-    return (T) sqrt((T) len_sq(v));
-}
+template <any_vec Vec>
+auto len(const Vec &v) { return (Vec::T) sqrt((Vec::T) len_sq(v)); }
 
 // Returns the length of the vector, avoids overflow and underflow, so it's more expensive
-template <typename T, s64 Dim, bool Packed>
-T len_precise(const vec<T, Dim, Packed> &v) {
+template <any_vec Vec>
+auto len_precise(const Vec &v) {
+    using T = Vec::T;
+
     T maxElement = abs(v[0]);
     for (s64 i = 1; i < v.DIM; ++i) maxElement = max(maxElement, abs(v[i]));
     if (maxElement == T(0)) return T(0);
@@ -40,30 +40,33 @@ T len_precise(const vec<T, Dim, Packed> &v) {
 }
 
 // Returns the euclidean distance between to vectors
-template <typename T, typename U, s64 Dim, bool Packed1, bool Packed2>
-auto distance(const vec<T, Dim, Packed1> &lhs, const vec<U, Dim, Packed2> &rhs) {
+template <any_vec Vec, any_vec Other>
+requires(Vec::DIM == Other::DIM) auto distance(const Vec &lhs, const Other &rhs) {
     return len(lhs - rhs);
 }
 
 // Makes a unit vector, but keeps direction
-template <typename T, s64 Dim, bool Packed>
-vec<T, Dim, Packed> normalize(const vec<T, Dim, Packed> &v) {
+template <any_vec Vec>
+Vec normalize(const Vec &v) {
     assert(!is_null_vector(v));
-    T l = len(v);
-    return v / l;
+    return v / len(v);
 }
 
 // Checks if the vector is unit vector. There's some tolerance due to floating points
-template <typename T, s64 Dim, bool Packed>
-bool is_normalized(const vec<T, Dim, Packed> &v) {
+template <any_vec Vec>
+bool is_normalized(const Vec &v) {
+    using T = Vec::T;
+
     T n = len_sq(v);
     return T(0.9999) <= n && n <= T(1.0001);
 }
 
 // Makes a unit vector, but keeps direction. Leans towards (1,0,0...) for nullvectors, costs more
-template <typename T, s64 Dim, bool Packed>
-vec<T, Dim, Packed> safe_normalize(const vec<T, Dim, Packed> &v) {
-    vec<T, Dim, Packed> vmod = v;
+template <any_vec Vec>
+Vec safe_normalize(const Vec &v) {
+    using T = Vec::T;
+
+    Vec vmod = v;
     vmod[0] = abs(v[0]) > types::numeric_info<T>::denorm_min() ? v[0] : types::numeric_info<T>::denorm_min();
     T l = len_precise(vmod);
     return vmod / l;
@@ -71,35 +74,45 @@ vec<T, Dim, Packed> safe_normalize(const vec<T, Dim, Packed> &v) {
 
 // Makes a unit vector, but keeps direction. Leans towards _degenerate_ for nullvectors, costs more.
 // _degenerate_ Must be a unit vector.
-template <typename T, s64 Dim, bool Packed>
-vec<T, Dim, Packed> safe_normalize(const vec<T, Dim, Packed> &v, const vec<T, Dim, Packed> &degenerate) {
+template <any_vec Vec>
+Vec safe_normalize(const Vec &v, const Vec &degenerate) {
     assert(is_normalized(degenerate));
-    T length = len_precise(v);
+    Vec::T length = len_precise(v);
     if (length == 0) return degenerate;
     return v / length;
 }
 
+// template <typename Vec, typename U>
+// concept convertible_to_test = requires(Vec v, U u) {
+//     { u }
+//     ->;
+// };
+
+// requires(types::is_convertible_v<U, vec_info<Vec>::T>)
 // Sets all elements of the vector to the same value
-template <typename T, s64 Dim, bool Packed, typename U>
-requires (types::is_convertible_v<U, T>) void fill(vec<T, Dim, Packed> &lhs, U all) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        for (auto &v : lhs) v = (T) all;
+template <any_vec Vec, typename U>
+void fill(Vec &lhs, U all) {
+    static_assert(std::convertible_to<U, vec_info<Vec>::T>);
+
+    if constexpr (!has_simd<Vec>) {
+        For(lhs) it = (Vec::T) all;
     } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::spread((T) all);
+        using SimdT = decltype(Vec::Simd);
+        lhs.Simd = SimdT::spread((Vec::T) all);
     }
 }
 
 // Calculates the scalar product (dot product) of the two arguments
-template <typename T, s64 Dim, bool Packed>
-T dot(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        T sum = T(0);
-        for (s64 i = 0; i < Dim; ++i) sum += lhs.Data[i] * rhs.Data[i];
+// @Bug: Using a concept here directly complains about ambigious overload? (about matrix dot)
+template <typename Vec>
+requires(vec_info<Vec>::IS_VEC) auto dot(const Vec &lhs, const Vec &rhs) {
+    if constexpr (!has_simd<Vec>) {
+        auto sum = Vec::T(0);
+        For(range(Vec::DIM)) sum += lhs.Data[it] * rhs.Data[it];
         return sum;
     } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return SimdT::template dot<Dim>(lhs.Simd, rhs.Simd);
+        using SimdT = decltype(Vec::Simd);
+        return SimdT::template dot<Vec::DIM>(lhs.Simd, rhs.Simd);
     }
 }
 
@@ -107,68 +120,68 @@ T dot(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
 // You must supply N-1 arguments of type _T_.
 // The function returns the generalized cross product as defined by
 // https://en.wikipedia.org/wiki/Cross_product#Multilinear_algebra.
-template <typename T, s64 Dim, bool Packed, typename... Args>
-auto cross(const vec<T, Dim, Packed> &head, Args &&... args) -> vec<T, Dim, Packed>;
+template <any_vec Vec, typename... Args>
+Vec cross(const Vec &head, Args &&... args);
 
 // Returns the generalized cross-product in N dimensions.
 // See https://en.wikipedia.org/wiki/Cross_product#Multilinear_algebra for definition.
-template <typename T, s64 Dim, bool Packed>
-auto cross(const stack_array<const vec<T, Dim, Packed> *, Dim - 1> &args) -> vec<T, Dim, Packed>;
+template <any_vec Vec>
+Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args);
 
-// Returns the 2-dimensional cross prodct, which is a vector perpendicular to the argument
-template <typename T, bool Packed>
-vec<T, 2, Packed> cross(const vec<T, 2, Packed> &arg) {
-    return vec<T, 2, Packed>(-arg.y, arg.x);
+// Returns the 2-dimensional cross product, which is a vector perpendicular to the argument
+template <any_vec Vec>
+requires(Vec::DIM == 2) Vec cross(const Vec &arg) {
+    return Vec(-arg.y, arg.x);
 }
-// Returns the 2-dimensional cross prodct, which is a vector perpendicular to the argument
-template <typename T, bool Packed>
-vec<T, 2, Packed> cross(const stack_array<const vec<T, 2, Packed> *, 1> &arg) {
+// Returns the 2-dimensional cross product, which is a vector perpendicular to the argument
+template <any_vec Vec>
+requires(Vec::DIM == 2) Vec cross(const stack_array<const Vec *, 1> &arg) {
     return cross(*(arg[0]));
 }
 
 // Returns the 3-dimensional cross-product
-template <typename T, bool Packed>
-vec<T, 3, Packed> cross(const vec<T, 3, Packed> &lhs, const vec<T, 3, Packed> &rhs) {
-    using VecT = vec<T, 3, Packed>;
-    if constexpr (has_simd<VecT>) {
-        return VecT(lhs.yzx) * VecT(rhs.zxy) - VecT(lhs.zxy) * VecT(rhs.yzx);
+template <any_vec Vec>
+requires(Vec::DIM == 3) Vec cross(const Vec &lhs, const Vec &rhs) {
+    if constexpr (has_simd<Vec>) {
+        return Vec(lhs.yzx) * Vec(rhs.zxy) - Vec(lhs.zxy) * Vec(rhs.yzx);
     } else {
-        return VecT(lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x);
+        return Vec(lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x);
     }
 }
 
 // Returns the 3-dimensional cross-product
-template <typename T, bool Packed>
-vec<T, 3, Packed> cross(const stack_array<const vec<T, 3, Packed> *, 2> &args) {
+template <any_vec Vec>
+requires(Vec::DIM == 3) Vec cross(const stack_array<const Vec *, 2> &args) {
     return cross(*(args[0]), *(args[1]));
 }
 
 // Returns the element-wise minimum of arguments
-template <typename T, s64 Dim, bool Packed>
-vec<T, Dim, Packed> min(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    vec<T, Dim, Packed> result = {no_init};
-    for (s64 i = 0; i < lhs.DIM; ++i) result[i] = min(lhs[i], rhs[i]);
+template <any_vec Vec>
+Vec element_wise_min(const Vec &lhs, const Vec &rhs) {
+    Vec result = {no_init};
+    For(range(Vec::DIM)) result[it] = min(lhs[it], rhs[it]);
     return result;
 }
 
 // Returns the element-wise maximum of arguments
-template <typename T, s64 Dim, bool Packed>
-vec<T, Dim, Packed> max(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    vec<T, Dim, Packed> result = {no_init};
-    for (s64 i = 0; i < lhs.DIM; ++i) result[i] = max(lhs[i], rhs[i]);
+template <any_vec Vec>
+Vec element_wise_max(const Vec &lhs, const Vec &rhs) {
+    Vec result = {no_init};
+    For(range(Vec::DIM)) result[it] = max(lhs[it], rhs[it]);
     return result;
 }
 
+// We need this for the generalized cross product
 #include "mat_func.h"
 
-template <typename T, s64 Dim, bool Packed>
-auto cross(const stack_array<const vec<T, Dim, Packed> *, Dim - 1> &args) -> vec<T, Dim, Packed> {
-    vec<T, Dim, Packed> result = {no_init};
-    mat<T, Dim - 1, Dim - 1, false> d = {no_init};
+template <any_vec Vec>
+Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args) {
+    Vec result = {no_init};
+    mat<Vec::T, Vec::DIM - 1, Vec::DIM - 1, false> d = {no_init};
 
     // Calculate elements of result on-by-one
-    s64 sign = 2 * (Dim % 2) - 1;
-    for (s64 base = 0; base < result.DIM; ++base, sign *= -1) {
+    s64 sign = 2 * (Vec::DIM % 2) - 1;
+    for (s64 base = 0; base < Vec::DIM; ++base, sign *= -1) {
         // Fill up sub-matrix the determinant of which yields the coefficient of base-vector
         For_as(j, range(base)) {
             For_as(i, range(d.R)) { d(i, j) = (*(args[i]))[j]; }
@@ -178,17 +191,17 @@ auto cross(const stack_array<const vec<T, Dim, Packed> *, Dim - 1> &args) -> vec
             For_as(i, range(d.R)) { d(i, j - 1) = (*(args[i]))[j]; }
         }
 
-        T coef = T(sign) * det(d);
+        auto coef = Vec::T(sign) * det(d);
         result[base] = coef;
     }
     return result;
 }
 
-template <typename T, s64 Dim, bool Packed, typename... Args>
-auto cross(const vec<T, Dim, Packed> &head, Args &&... args) -> vec<T, Dim, Packed> {
-    static_assert(1 + sizeof...(args) == Dim - 1, "Number of arguments must be (Dim - 1).");
+template <any_vec Vec, typename... Args>
+Vec cross(const Vec &head, Args &&... args) {
+    static_assert(1 + sizeof...(args) == Vec::DIM - 1, "Number of arguments must be (Dim - 1).");
 
-    stack_array<const vec<T, Dim, Packed> *, Dim - 1> vectors = {&head, &args...};
+    stack_array<const Vec *, Vec::DIM - 1> vectors = {&head, &args...};
     return cross(vectors);
 }
 

@@ -26,7 +26,7 @@ struct identity_helper : non_copyable {
 // If the matrix is not square, it will look like a truncated larger square identity matrix.
 //
 // Example:
-//    mat44 transfrom = identity();
+//    mat4 transform   = identity();
 //    quat orientation = identity();
 inline auto identity() { return identity_helper{}; }
 

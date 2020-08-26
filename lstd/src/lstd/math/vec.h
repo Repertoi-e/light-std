@@ -41,16 +41,21 @@ template <typename T>
 struct vec_info : public vec_info_helper<types::decay_t<T>> {};
 
 template <typename T>
-concept has_simd = requires(T a) {
-    vec_info<T>{}.IS_VEC;
-    a.Simd;
+concept has_simd = requires {
+    vec_info<T>::IS_VEC;
+    T::Simd;
 };
+
+template <typename T>
+concept any_vec = requires { vec_info<T>::IS_VEC; };
 
 // To access swizzlers, use the xx, xy, xyz and similar elements of vectors.
 // Swizzlers can be used with assignments, concatenation, casting and constructors.
 // To perform arithmetic, cast swizzlers to corresponding vector type.
 template <typename VecData, s64... Indices>
 struct swizzle {
+    static_assert(any_vec<VecData>, "Swizzle expects a valid vector data type");
+
     using T = typename vec_info<VecData>::T;
 
     inline static constexpr s64 INDEX_TABLE[] = {Indices...};
@@ -174,32 +179,36 @@ VEC_DATA_DEF(4);
         };                                                 \
     }
 VEC_DATA_DEF(f32, 2, 2);
-VEC_DATA_DEF(f32, 3, 4);  // :SimdForVec3 We turn on SIMD for vectors with three components (but we treat them as having 4)
+VEC_DATA_DEF(f32, 3, 4);  // :SimdForVec3: We turn on SIMD for vectors with three components (but we treat them as having 4)
 VEC_DATA_DEF(f32, 4, 4);
 VEC_DATA_DEF(f32, 8, 8);
 
 // Small SIMD f64 vectors
 VEC_DATA_DEF(f64, 2, 2);
-VEC_DATA_DEF(f64, 3, 4);  // :SimdForVec3 We turn on SIMD for vectors with three components (but we treat them as having 4)
+VEC_DATA_DEF(f64, 3, 4);  // :SimdForVec3: We turn on SIMD for vectors with three components (but we treat them as having 4)
 VEC_DATA_DEF(f64, 4, 4);
 VEC_DATA_DEF(f64, 8, 8);
 
-template <typename T, s64 Dim, bool Packed = false>
-struct vec : public vec_data<T, Dim, Packed> {
-    static constexpr s64 DIM = Dim;
-    static_assert(DIM >= 1, "Dimension must be a positive integer >= 1.");
+template <typename T_, s64 Dim, bool Packed = false>
+struct vec : public vec_data<T_, Dim, Packed> {
+    static_assert(Dim >= 1, "Dimension must be >= 1");
 
+    using T = T_;
+    static constexpr s64 DIM = Dim;
     static constexpr bool PACKED = Packed;
 
+    // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
     static constexpr bool IS_ARRAY_LIKE = true;
-
     static constexpr s64 Count = DIM;
-    using vec_data<T, DIM, PACKED>::Data;
 
-    struct from_simd_t {};
-    static constexpr from_simd_t FROM_SIMD = {};
-
-    vec() { For(range(DIM)) Data[it] = T(0); }
+    vec() {
+        // By default we zero-init
+        if constexpr (types::is_scalar_v<T>) {
+            zero_memory(&Data[0], Dim * sizeof(T));
+        } else {
+            For(range(DIM)) Data[it] = T(0);
+        }
+    }
 
     // :MathTypesNoInit By default we zero-init but you can call a special constructor with the value no_init which doesn't initialize the object
     vec(no_init_t) : vec_data<T, DIM, PACKED>() {}
@@ -214,9 +223,9 @@ struct vec : public vec_data<T, Dim, Packed> {
         }
     }
 
-    // Convertible if the elements are convertible
-    template <typename U, bool UPacked>
-    requires(types::is_convertible_v<U, T>) vec(const vec<U, DIM, UPacked> &other) { For(range(DIM)) Data[it] = T(other.Data[it]); }
+    // Convertible if the vectors are of the same size and the elements are convertible
+    template <any_vec Vec>
+    requires(types::is_convertible_v<T, vec_info<Vec>::T> && (vec_info<Vec>::DIM == DIM)) vec(const Vec &v) { For(range(DIM)) Data[it] = T(v.Data[it]); }
 
     // Constructs the vector from an array of elements.
     // The number of elements in the array must be at least as the vector's dimension.
@@ -228,40 +237,52 @@ struct vec : public vec_data<T, Dim, Packed> {
         }
     }
 
-    template <typename SimdArgT>
-    vec(from_simd_t, SimdArgT simd) : vec_data<T, DIM, PACKED>(simd) { static_assert(has_simd<vec>, "Strange error. You shouldn't call this constructor?"); }
-
     // Creates a homogeneous vector by appending a 1
-    template <typename T2, bool Packed2>
-    requires(DIM >= 2) explicit vec(const vec<T2, DIM - 1, Packed2> &rhs) : vec(rhs, 1) {}
+    template <any_vec Vec>
+    requires(DIM >= 2 && (Vec::DIM == DIM - 1)) explicit vec(const Vec &v) : vec(v, 1) {}
 
     // Truncates last coordinate of homogenous vector to create non-homogeneous
-    template <typename T2, bool Packed2>
-    explicit vec(const vec<T2, DIM + 1, Packed2> &rhs) : vec(array_view<T2>((T2 *) rhs.Data, rhs.DIM)) {}
+    template <any_vec Vec>
+    requires(Vec::DIM == DIM + 1) explicit vec(const Vec &v) : vec(array_view<Vec::T>((Vec::T *) v.Data, v.DIM)) {}
 
-    // Initializes the vector to the given scalar elements.
-    // Number of arguments must equal vector dimension.
-    template <typename... Scalars>
-    requires((DIM >= 1) && (sizeof...(Scalars) == DIM) && ((... && types::is_convertible_v<Scalars, T>) )) vec(Scalars... scalars) : vec(no_init) {
-        if constexpr (has_simd<vec>) {
-            // :SimdForVec3 We support SIMD for vectors with a dimension of 3 and we treat them as having 4 components
-            if constexpr (DIM == 3) {
-                this->Simd = vec_data<T, 3, PACKED>::SimdT::set(T(scalars)..., T(0));
-            } else {
-                this->Simd = vec_data<T, DIM, PACKED>::SimdT::set(T(scalars)...);
-            }
+    // Initializes the vector from the given elements - either just scalars or mixed with vectors and swizzles.
+    //   e.g. vec3(pos.xy, 0) or just vec3(pos, 0).
+    // In the case it is just scalars
+    //   e.g. vec3(1, 4, 9) we can try to use SIMD for faster assignment.
+    //
+    // The sum of the dimensions of the arguments must be equal to the dimension of the vector (scalars have one dimension).
+    // We don't support arrays here - they get treated as scalars and fail because they might not be convertible to the type of the vector.
+    template <typename... Args>
+    requires((sizeof...(Args) >= 1) && ((dim_of_v<Args> + ...) == DIM)) vec(const Args &... args) {
+        // If not all are convertible to T we treat as mixed.
+        if constexpr ((!types::is_convertible_v<Args, T> || ...)) {
+            assign_from_mixed(0, args...);
         } else {
-            stack_array<T, sizeof...(Scalars)> args = {T(scalars)...};
-            for (s64 i = 0; i < DIM; ++i) Data[i] = args[i];
+            if constexpr (has_simd<vec>) {
+                // :SimdForVec3: We support SIMD for vectors with a dimension of 3 and we treat them as having 4 components
+                if constexpr (DIM == 3) {
+                    this->Simd = vec_data<T, DIM, PACKED>::SimdT::set(T(args)..., T(0));
+                } else {
+                    this->Simd = vec_data<T, DIM, PACKED>::SimdT::set(T(args)...);
+                }
+            } else {
+                // We did this before but this copies all the arguments to the stack first..
+                //
+                //    stack_array<T, sizeof...(Args)> args = {T(args)...};
+                //    For(range(DIM)) Data[it] = args[it];
+                //
+                // assign_from_mixed might get optimized better (we are passing just scalars here).
+                assign_from_mixed(0, args...);
+            }
         }
     }
 
-    // Initializes the vector by concatenating given scalar, vector or swizzle arguments.
-    // Sum of the dimension of arguments must equal vector dimension.
-    template <typename... Mixed>
-    requires((sizeof...(Mixed) >= 1) && ((dim_of_v<Mixed> + ...) == DIM) && ((... || !types::is_convertible_v<Mixed, T>) )) vec(const Mixed &... mixed) {
-        assign(0, mixed...);
-    }
+    // We use this type to validate constructing a vector from SIMD
+    struct from_simd_t {};
+    static constexpr from_simd_t FROM_SIMD = {};
+
+    template <typename SimdArgT>
+    vec(from_simd_t, SimdArgT simd) : vec_data<T, DIM, PACKED>(simd) { static_assert(has_simd<vec>); }
 
     //
     // Iterators:
@@ -277,47 +298,32 @@ struct vec : public vec_data<T, Dim, Packed> {
     //
     // Operators:
     //
+
+    // We support negative indexing, -1 means the last element (DIM - 1) and so on..
     T operator[](s64 index) const { return Data[translate_index(index, DIM)]; }
     T &operator[](s64 index) { return Data[translate_index(index, DIM)]; }
 
-   protected:
-    // Get nth element of an argument
-    template <typename U>
-    struct get_element {
-        static U get(const U &u, s64 index) { return u; }
-    };
+   private:
+    template <typename Head, typename... Rest>
+    void assign_from_mixed(s64 index, const Head &head, const Rest &... rest) {
+        using H = types::remove_cvref_t<Head>;
 
-    template <typename T2, s64 D2, bool P2>
-    struct get_element<vec<T2, D2, P2>> {
-        static T2 get(const vec<T2, D2, P2> &u, s64 index) { return u.Data[index]; }
-    };
-
-    template <typename VectorDataU, s64... Indices>
-    struct get_element<swizzle<VectorDataU, Indices...>> {
-        static auto get(const swizzle<VectorDataU, Indices...> &u, s64 index) {
-            return ((typename vec_info<VectorDataU>::T *) &u)[u.INDEX_TABLE[index]];
-        }
-    };
-
-    template <typename Head, typename... Scalars>
-    void assign(s64 index, Head &&head, Scalars &&... scalars) {
-        if constexpr (types::is_scalar_v<types::remove_cvref_t<Head>> && (... && types::is_scalar_v<types::remove_cvref_t<Scalars>>) ) {
-            Data[index] = T(head);
-            assign(index + 1, ((Scalars &&) scalars)...);
-        } else {
-            for (s64 i = 0; i < dim_of_v<types::remove_cvref_t<Head>>; ++i) {
-                Data[index] = T(get_element<types::remove_cvref_t<Head>>::get(head, i));
+        if constexpr (types::is_vec_or_swizzle_v<H>) {
+            For(range(dim_of_v<H>)) {
+                Data[index] = T(head[it]);
                 ++index;
             }
-            assign(index, ((Scalars &&) scalars)...);
+        } else {
+            Data[index] = T(head);
+            ++index;
         }
+        assign_from_mixed(index, rest...);
     }
 
-    void assign(s64 index) {
-        // terminator
-        for (; index < DIM; index++) {
-            Data[index] = T(0);
-        }
+    void assign_from_mixed(s64 index) {
+        // Terminator. We assign the rest of the vector to zero (this will probably never happen
+        // because we require the sum of the mixed arguments to be the same as the dimension.. but in case we do something weird in the future!).
+        for (; index < DIM; index++) Data[index] = T(0);
     }
 };
 
@@ -337,7 +343,7 @@ swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Ind
         constexpr s64 VectorDataDim = vec_info<VectorDataU>::DIM;
         if constexpr (types::is_same_v<SourceSimdT, DestSimdT>) {
             auto &sourceSimd = ((VectorDataU *) this)->Simd;
-            // :SimdForVec3 We support SIMD for vectors with a dimension of 3 and we treat them as having 4 components
+            // :SimdForVec3: We support SIMD for vectors with a dimension of 3 and we treat them as having 4 components
             if constexpr (sizeof...(Indices) == 3 && VectorDataDim == 3 && VectorDataDim == 4) {
                 return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename types::reverse_integer_sequence<types::integer_sequence<s64, Indices..., 3>>::type{})};
             } else if constexpr (sizeof...(Indices) == 4 && VectorDataDim == 3 && VectorDataDim == 4) {

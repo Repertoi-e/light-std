@@ -110,8 +110,7 @@ auto look_at(const vec<T, 2, Packed> &eye, const vec<T, 2, Packed> &target, bool
 // The camera space X is selected to be orthogonal to both the look direction and the _up_ vector.
 // Afterwards, the _up_ vector is re-orthogonalized to the camera-space Z and X vectors.
 template <typename T, bool Packed>
-auto look_at(const vec<T, 3, Packed> &eye, const vec<T, 3, Packed> &target, const vec<T, 3, Packed> &up,
-             bool positiveZForward, bool flipX, bool flipY) {
+auto look_at(const vec<T, 3, Packed> &eye, const vec<T, 3, Packed> &target, const vec<T, 3, Packed> &up, bool positiveZForward, bool flipX, bool flipY) {
     return look_at(eye, target, stack_array<vec<T, 3, Packed>, 1>{up}, stack_array<bool, 3>{flipX, flipY, positiveZForward});
 }
 

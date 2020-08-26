@@ -52,7 +52,7 @@ auto scale(const vec<Vt, Vdim, Vpacked> &scale) {
 // A list of scalars corresponding to scaling on respective axes.
 // The number of arguments must be less than or equal to the matrix dimension.
 template <typename... Args>
-requires(types::all_v<types::is_scalar, types::decay_t<Args>...>) auto scale(Args &&... scales) {
+requires(types::all_v<types::is_scalar, types::decay_t<Args>...>) auto scale(Args... scales) {
     using PromotedT = decltype((0 + ... + scales));
     return scale_helper{vec<PromotedT, sizeof...(scales)>(scales...)};
 }

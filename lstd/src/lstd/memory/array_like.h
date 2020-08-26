@@ -194,7 +194,7 @@ requires array_likes_lexicographically_comparable<T, U> constexpr bool operator<
 
 template <array_like T, array_like U>
 requires array_likes_lexicographically_comparable<T, U> constexpr bool operator>(const T &arr1, const U &arr2) {
-    return compare_lexicographically(arr1, arr2) ? 0;
+    return compare_lexicographically(arr1, arr2) > 0;
 }
 
 template <array_like T, array_like U>

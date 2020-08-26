@@ -299,8 +299,7 @@ template <typename T>
 template <typename U, bool QPacked>
 rotation_3d_tri_axis_helper<T>::operator tquat<U, QPacked>() const {
     using QuatT = tquat<U, QPacked>;
-    return qmul(QuatT(rotation_axis(Angles[2], Axes[2])),
-                qmul(QuatT(rotation_axis(Angles[1], Axes[1])), QuatT(rotation_axis(Angles[0], Axes[0]))));
+    return qmul(QuatT(rotation_axis(Angles[2], Axes[2])), qmul(QuatT(rotation_axis(Angles[1], Axes[1])), QuatT(rotation_axis(Angles[0], Axes[0]))));
 }
 
 template <typename T, bool Packed>

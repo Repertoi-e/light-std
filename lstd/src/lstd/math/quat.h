@@ -175,14 +175,4 @@ using quat = tquat<f32>;
 using quat32 = tquat<f32>;
 using quat64 = tquat<f64>;
 
-#if !defined LSTD_NO_QUAT_LITERALS
-inline tquat<f64> operator"" _i(unsigned long long int arg) { return tquat<f64>(0, (f64) arg, 0, 0); }
-inline tquat<f64> operator"" _j(unsigned long long int arg) { return tquat<f64>(0, 0, (f64) arg, 0); }
-inline tquat<f64> operator"" _k(unsigned long long int arg) { return tquat<f64>(0, 0, 0, (f64) arg); }
-
-inline tquat<f64> operator"" _i(long double arg) { return tquat<f64>(0, arg, 0, 0); }
-inline tquat<f64> operator"" _j(long double arg) { return tquat<f64>(0, 0, arg, 0); }
-inline tquat<f64> operator"" _k(long double arg) { return tquat<f64>(0, 0, 0, arg); }
-#endif
-
 LSTD_END_NAMESPACE
