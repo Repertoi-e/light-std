@@ -35,15 +35,15 @@ struct ortographic_helper : non_copyable {
         VectorT volumeSize = MaxBounds - MinBounds;
 
         VectorT scale = T(2) / volumeSize;
-        scale[scale.Dim - 1] *= T(0.5) * (ProjFarPlane - ProjNearPlane);
+        scale[scale.DIM - 1] *= T(0.5) * (ProjFarPlane - ProjNearPlane);
 
         VectorT offset = -(MaxBounds + MinBounds) / T(2) * scale;
-        offset[offset.Dim - 1] += (ProjFarPlane + ProjNearPlane) / 2;
+        offset[offset.DIM - 1] += (ProjFarPlane + ProjNearPlane) / 2;
 
         m = identity();
-        For(range(scale.Dim)) {
+        For(range(scale.DIM)) {
             m(it, it) = scale[it];
-            m(scale.Dim, it) = offset[it];
+            m(scale.DIM, it) = offset[it];
         }
     }
 };

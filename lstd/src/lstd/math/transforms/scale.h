@@ -35,7 +35,7 @@ struct scale_helper : non_copyable {
     void set_impl(mat<U, R, C, MPacked> &m) const {
         m = identity();
         s64 i;
-        for (i = 0; i < Scale.Dim; ++i) m(i, i) = (U) Scale[i];
+        for (i = 0; i < Scale.DIM; ++i) m(i, i) = (U) Scale[i];
         for (; i < min(R, C); ++i) m(i, i) = T(1);
     }
 };

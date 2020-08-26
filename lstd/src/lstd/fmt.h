@@ -316,7 +316,7 @@ struct formatter<thread::id> {
 template <typename T, s32 Dim, bool Packed>
 struct formatter<vec<T, Dim, Packed>> {
     void format(const vec<T, Dim, Packed> &src, format_context *f) {
-        f->debug_list().entries(src.Data, src.Dim)->finish();
+        f->debug_list().entries(src.Data, src.DIM)->finish();
     }
 };
 

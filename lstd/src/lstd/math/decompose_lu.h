@@ -217,7 +217,7 @@ template <typename T, s64 Dim, bool Packed>
 vec<f32, Dim, Packed> decomposition_lup<T, Dim, Packed>::solve(const vec<T, Dim, Packed> &b) const {
     // Permute b
     vec<T, Dim, Packed> bp = {no_init};
-    For(range(P.Dim)) bp[it] = b[P[it]];
+    For(range(P.DIM)) bp[it] = b[P[it]];
 
     return decomposition_lu<T, Dim, Packed>::solve_impl(L, U, bp);
 }

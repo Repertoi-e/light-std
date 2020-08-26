@@ -169,7 +169,7 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
     // From vector if applicable (for 1*N and N*1 matrices)
     template <typename T2, bool Packed2>
     requires(VecAssignable) mat(const vec<T2, VecDim, Packed2> &v) {
-        For(range(v.Dim)) (*this)(it) = v[it];
+        For(range(v.DIM)) (*this)(it) = v[it];
     }
 
     // Used by internal methods

@@ -32,7 +32,7 @@ T len(const vec<T, Dim, Packed> &v) {
 template <typename T, s64 Dim, bool Packed>
 T len_precise(const vec<T, Dim, Packed> &v) {
     T maxElement = abs(v[0]);
-    for (s64 i = 1; i < v.Dim; ++i) maxElement = max(maxElement, abs(v[i]));
+    for (s64 i = 1; i < v.DIM; ++i) maxElement = max(maxElement, abs(v[i]));
     if (maxElement == T(0)) return T(0);
 
     auto scaled = v / maxElement;
@@ -147,7 +147,7 @@ vec<T, 3, Packed> cross(const stack_array<const vec<T, 3, Packed> *, 2> &args) {
 template <typename T, s64 Dim, bool Packed>
 vec<T, Dim, Packed> min(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
     vec<T, Dim, Packed> result = {no_init};
-    for (s64 i = 0; i < lhs.Dim; ++i) result[i] = min(lhs[i], rhs[i]);
+    for (s64 i = 0; i < lhs.DIM; ++i) result[i] = min(lhs[i], rhs[i]);
     return result;
 }
 
@@ -155,7 +155,7 @@ vec<T, Dim, Packed> min(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed
 template <typename T, s64 Dim, bool Packed>
 vec<T, Dim, Packed> max(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
     vec<T, Dim, Packed> result = {no_init};
-    for (s64 i = 0; i < lhs.Dim; ++i) result[i] = max(lhs[i], rhs[i]);
+    for (s64 i = 0; i < lhs.DIM; ++i) result[i] = max(lhs[i], rhs[i]);
     return result;
 }
 
@@ -168,13 +168,13 @@ auto cross(const stack_array<const vec<T, Dim, Packed> *, Dim - 1> &args) -> vec
 
     // Calculate elements of result on-by-one
     s64 sign = 2 * (Dim % 2) - 1;
-    for (s64 base = 0; base < result.Dim; ++base, sign *= -1) {
+    for (s64 base = 0; base < result.DIM; ++base, sign *= -1) {
         // Fill up sub-matrix the determinant of which yields the coefficient of base-vector
         For_as(j, range(base)) {
             For_as(i, range(d.R)) { d(i, j) = (*(args[i]))[j]; }
         }
 
-        For_as(j, range(base + 1, result.Dim)) {
+        For_as(j, range(base + 1, result.DIM)) {
             For_as(i, range(d.R)) { d(i, j - 1) = (*(args[i]))[j]; }
         }
 

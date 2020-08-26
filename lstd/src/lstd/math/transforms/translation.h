@@ -28,7 +28,7 @@ struct translation_helper : non_copyable {
     template <typename U, s64 R, s64 C, bool MPacked>
     void set_impl(mat<U, R, C, MPacked> &m) const {
         m = identity();
-        For(range(Translation.Dim)) m(-1, it) = (U) Translation[it];
+        For(range(Translation.DIM)) m(-1, it) = (U) Translation[it];
     }
 };
 

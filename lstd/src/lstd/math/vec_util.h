@@ -64,22 +64,6 @@ auto operator|(U lhs, const swizzle<VectorData1, Indices1...> &rhs) {
 }
 
 //
-// Comparison
-//
-
-template <typename T, s64 Dim, bool Packed>
-bool operator==(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    bool same = lhs.Data[0] == rhs.Data[0];
-    For(range(1, Dim)) same = same && lhs.Data[it] == rhs.Data[it];
-    return same;
-}
-
-template <typename T, s64 Dim, bool Packed>
-bool operator!=(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    return !(lhs == rhs);
-}
-
-//
 // Arithmetic
 //
 
@@ -92,7 +76,7 @@ inline vec<T, Dim, Packed> operator*(const vec<T, Dim, Packed> &lhs, const vec<T
         return result;
     } else {
         using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FromSimd, SimdT::mul(lhs.Simd, rhs.Simd)};
+        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::mul(lhs.Simd, rhs.Simd)};
     }
 }
 
@@ -105,7 +89,7 @@ inline vec<T, Dim, Packed> operator/(const vec<T, Dim, Packed> &lhs, const vec<T
         return result;
     } else {
         using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FromSimd, SimdT::div(lhs.Simd, rhs.Simd)};
+        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::div(lhs.Simd, rhs.Simd)};
     }
 }
 
@@ -118,7 +102,7 @@ inline vec<T, Dim, Packed> operator+(const vec<T, Dim, Packed> &lhs, const vec<T
         return result;
     } else {
         using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FromSimd, SimdT::add(lhs.Simd, rhs.Simd)};
+        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::add(lhs.Simd, rhs.Simd)};
     }
 }
 // Elementwise vector subtraction
@@ -130,7 +114,7 @@ inline vec<T, Dim, Packed> operator-(const vec<T, Dim, Packed> &lhs, const vec<T
         return result;
     } else {
         using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FromSimd, SimdT::sub(lhs.Simd, rhs.Simd)};
+        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::sub(lhs.Simd, rhs.Simd)};
     }
 }
 
@@ -241,7 +225,7 @@ requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator*(con
         return copy;
     } else {
         using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FromSimd, SimdT::mul(lhs.Simd, (T) rhs)};
+        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::mul(lhs.Simd, (T) rhs)};
     }
 }
 
@@ -254,7 +238,7 @@ requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator/(con
         return copy;
     } else {
         using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FromSimd, SimdT::div(lhs.Simd, (T) rhs)};
+        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::div(lhs.Simd, (T) rhs)};
     }
 }
 
@@ -267,7 +251,7 @@ requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator+(con
         return copy;
     } else {
         using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FromSimd, SimdT::add(lhs.Simd, (T) rhs)};
+        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::add(lhs.Simd, (T) rhs)};
     }
 }
 
@@ -280,7 +264,7 @@ requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator-(con
         return copy;
     } else {
         using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FromSimd, SimdT::sub(lhs.Simd, (T) rhs)};
+        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::sub(lhs.Simd, (T) rhs)};
     }
 }
 
