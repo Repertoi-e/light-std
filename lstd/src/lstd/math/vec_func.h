@@ -6,6 +6,32 @@
 
 LSTD_BEGIN_NAMESPACE
 
+// Sets all elements of the vector to the same value.
+//
+// The "typename" before vec_info.. here is very important. It took me 2 hours of debugging. C++ is hell sometimes.
+template <any_vec Vec, typename U>
+requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) void fill(Vec &lhs, U all) {
+    if constexpr (!has_simd<Vec>) {
+        For(lhs) it = (Vec::T) all;
+    } else {
+        using SimdT = decltype(Vec::Simd);
+        lhs.Simd = SimdT::spread((Vec::T) all);
+    }
+}
+
+// Calculates the scalar product (dot product) of the two arguments.
+template <any_vec Vec>
+auto dot(const Vec &lhs, const Vec &rhs) {
+    if constexpr (!has_simd<Vec>) {
+        auto sum = Vec::T(0);
+        For(range(Vec::DIM)) sum += lhs.Data[it] * rhs.Data[it];
+        return sum;
+    } else {
+        using SimdT = decltype(Vec::Simd);
+        return SimdT::template dot<Vec::DIM>(lhs.Simd, rhs.Simd);
+    }
+}
+
 // Returns true if the vector's length is too small for precise calculations (i.e. normalization).
 // "Too small" means smaller than the square root of the smallest number representable by the underlying scalar.
 // This value is ~10^-18 for floats and ~10^-154 for doubles.
@@ -41,7 +67,7 @@ auto len_precise(const Vec &v) {
 
 // Returns the euclidean distance between to vectors
 template <any_vec Vec, any_vec Other>
-requires(Vec::DIM == Other::DIM) auto distance(const Vec &lhs, const Other &rhs) {
+requires(vec_info<Vec>::DIM == vec_info<Other>::DIM) auto distance(const Vec &lhs, const Other &rhs) {
     return len(lhs - rhs);
 }
 
@@ -82,40 +108,6 @@ Vec safe_normalize(const Vec &v, const Vec &degenerate) {
     return v / length;
 }
 
-// template <typename Vec, typename U>
-// concept convertible_to_test = requires(Vec v, U u) {
-//     { u }
-//     ->;
-// };
-
-// requires(types::is_convertible_v<U, vec_info<Vec>::T>)
-// Sets all elements of the vector to the same value
-template <any_vec Vec, typename U>
-void fill(Vec &lhs, U all) {
-    static_assert(std::convertible_to<U, vec_info<Vec>::T>);
-
-    if constexpr (!has_simd<Vec>) {
-        For(lhs) it = (Vec::T) all;
-    } else {
-        using SimdT = decltype(Vec::Simd);
-        lhs.Simd = SimdT::spread((Vec::T) all);
-    }
-}
-
-// Calculates the scalar product (dot product) of the two arguments
-// @Bug: Using a concept here directly complains about ambigious overload? (about matrix dot)
-template <typename Vec>
-requires(vec_info<Vec>::IS_VEC) auto dot(const Vec &lhs, const Vec &rhs) {
-    if constexpr (!has_simd<Vec>) {
-        auto sum = Vec::T(0);
-        For(range(Vec::DIM)) sum += lhs.Data[it] * rhs.Data[it];
-        return sum;
-    } else {
-        using SimdT = decltype(Vec::Simd);
-        return SimdT::template dot<Vec::DIM>(lhs.Simd, rhs.Simd);
-    }
-}
-
 // Returns the generalized cross-product in N dimensions.
 // You must supply N-1 arguments of type _T_.
 // The function returns the generalized cross product as defined by
@@ -130,18 +122,18 @@ Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args);
 
 // Returns the 2-dimensional cross product, which is a vector perpendicular to the argument
 template <any_vec Vec>
-requires(Vec::DIM == 2) Vec cross(const Vec &arg) {
+requires(vec_info<Vec>::DIM == 2) Vec cross(const Vec &arg) {
     return Vec(-arg.y, arg.x);
 }
 // Returns the 2-dimensional cross product, which is a vector perpendicular to the argument
 template <any_vec Vec>
-requires(Vec::DIM == 2) Vec cross(const stack_array<const Vec *, 1> &arg) {
+requires(vec_info<Vec>::DIM == 2) Vec cross(const stack_array<const Vec *, 1> &arg) {
     return cross(*(arg[0]));
 }
 
 // Returns the 3-dimensional cross-product
 template <any_vec Vec>
-requires(Vec::DIM == 3) Vec cross(const Vec &lhs, const Vec &rhs) {
+requires(vec_info<Vec>::DIM == 3) Vec cross(const Vec &lhs, const Vec &rhs) {
     if constexpr (has_simd<Vec>) {
         return Vec(lhs.yzx) * Vec(rhs.zxy) - Vec(lhs.zxy) * Vec(rhs.yzx);
     } else {
@@ -151,7 +143,7 @@ requires(Vec::DIM == 3) Vec cross(const Vec &lhs, const Vec &rhs) {
 
 // Returns the 3-dimensional cross-product
 template <any_vec Vec>
-requires(Vec::DIM == 3) Vec cross(const stack_array<const Vec *, 2> &args) {
+requires(vec_info<Vec>::DIM == 3) Vec cross(const stack_array<const Vec *, 2> &args) {
     return cross(*(args[0]), *(args[1]));
 }
 

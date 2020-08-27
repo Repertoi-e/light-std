@@ -4,310 +4,192 @@
 
 LSTD_BEGIN_NAMESPACE
 
+template <typename Vec, typename U>
+concept vec_same_type = types::is_same_v<typename vec_info<Vec>::T, U>;
+
+template <typename Vec, typename Other>
+concept vecs_same_types = types::is_same_v<typename vec_info<Vec>::T, typename vec_info<Other>::T>;
+
+template <typename Vec, s64 Dims>
+using same_vec_with_extra_dims = vec<typename vec_info<Vec>::T, vec_info<Vec>::DIM + Dims, vec_info<Vec>::PACKED>;
+
+// If either vector is packed the result is true
+template <typename Vec, typename Other>
+constexpr bool determine_packed = vec_info<Vec>::PACKED || vec_info<Other>::PACKED;
+
 //
 // Concatenation
 //
 
-template <typename T, s64 Dim, bool Packed, typename U>
-vec<T, Dim + 1, Packed> operator|(const vec<T, Dim, Packed> &lhs, U rhs) {
-    vec<T, Dim + 1, Packed> result = {no_init};
-    For(range(Dim)) result[it] = lhs[it];
-    result[Dim] = rhs;
+template <any_vec Vec, typename U>
+requires(vec_same_type<Vec, U>) auto operator|(const Vec &lhs, U rhs) {
+    same_vec_with_extra_dims<Vec, 1> result = {no_init};
+    For(range(lhs.DIM)) result[it] = lhs[it];
+    result[lhs.DIM] = rhs;
     return result;
 }
 
-template <typename T1, s64 Dim1, typename T2, s64 Dim2, bool Packed>
-vec<T1, Dim1 + Dim2, Packed> operator|(const vec<T1, Dim1, Packed> &lhs, const vec<T2, Dim2, Packed> &rhs) {
-    vec<T1, Dim1 + Dim2, Packed> result = {no_init};
+template <any_vec Vec, typename U>
+requires(vec_same_type<Vec, U>) auto operator|(U lhs, const Vec &rhs) {
+    same_vec_with_extra_dims<Vec, 1> result = {no_init};
+    result[0] = lhs;
+    For(range(rhs.DIM)) result[it + 1] = rhs[it];
+    return result;
+}
+
+template <any_vec Vec, any_vec Other>
+requires(vecs_same_types<Vec, Other>) auto operator|(const Vec &lhs, const Other &rhs) {
+    same_vec_with_extra_dims<Vec, vec_info<Other>::Dims> result = {no_init};
     For(range(Dim1)) result[it] = lhs[it];
     For(range(Dim2)) result[Dim1 + it] = rhs[it];
     return result;
 }
 
-template <typename T, s64 Dim, bool Packed, typename U>
-vec<T, Dim + 1, Packed> operator|(U lhs, const vec<T, Dim, Packed> &rhs) {
-    vec<T, Dim + 1, Packed> result = {no_init};
-    result(0) = lhs;
-    For(range(Dim)) result[it + 1] = rhs[it];
-    return result;
+template <any_vec Vec, s64... Indices1, any_vec Other, s64... Indices2>
+requires(vecs_same_types<Vec, Other>) auto operator|(const swizzle<Vec, Indices1...> &lhs, const swizzle<Other, Indices2...> &rhs) {
+    using T = typename vec_info<Vec>::T;
+    using U = typename vec_info<Other>::T;
+
+    constexpr bool PACKED = determine_packed<Vec, Other>;
+    return vec<T, sizeof...(Indices1), PACKED>(lhs) | vec<U, sizeof...(Indices2), PACKED>(rhs);
 }
 
-template <typename VectorData1, s64... Indices1, typename VectorData2, s64... Indices2>
-auto operator|(const swizzle<VectorData1, Indices1...> &lhs, const swizzle<VectorData2, Indices2...> &rhs) {
-    using TS1 = typename vec_info<VectorData1>::T;
-    using TS2 = typename vec_info<VectorData2>::T;
-    return vec<TS1, sizeof...(Indices1), false>(lhs) | vec<TS2, sizeof...(Indices2), false>(rhs);
+template <any_vec Vec, s64... Indices1, any_vec Other>
+requires(vecs_same_types<Vec, Other>) auto operator|(const swizzle<Vec, Indices1...> &lhs, const Other &rhs) {
+    return vec<typename vec_info<Vec>::T, sizeof...(Indices1), determine_packed<Vec, Other>>(lhs) | rhs;
 }
 
-template <typename VectorData1, s64... Indices1, typename T2, s64 Dim, bool Packed>
-auto operator|(const swizzle<VectorData1, Indices1...> &lhs, const vec<T2, Dim, Packed> &rhs) {
-    using TS = typename vec_info<VectorData1>::T;
-    return vec<TS, sizeof...(Indices1), Packed>(lhs) | rhs;
+template <any_vec Vec, s64... Indices1, any_vec Other>
+requires(vecs_same_types<Vec, Other>) auto operator|(const Vec &lhs, const swizzle<Other, Indices1...> &rhs) {
+    return lhs | vec<typename vec_info<Other>::T, sizeof...(Indices1), determine_packed<Vec, Other>>(rhs);
 }
 
-template <typename VectorData1, s64... Indices1, typename T2, s64 Dim, bool Packed>
-auto operator|(const vec<T2, Dim, Packed> &lhs, const swizzle<VectorData1, Indices1...> &rhs) {
-    using TS = typename vec_info<VectorData1>::T;
-    return lhs | vec<TS, sizeof...(Indices1), false>(rhs);
+template <any_vec Vec, s64... Indices1, typename U>
+requires(vec_same_type<Vec, U>) auto operator|(const swizzle<Vec, Indices1...> &lhs, U rhs) {
+    return vec<typename vec_info<Vec>::T, sizeof...(Indices1), vec_info<Vec>::PACKED>(lhs) | rhs;
 }
 
 template <typename VectorData1, s64... Indices1, typename U>
-auto operator|(const swizzle<VectorData1, Indices1...> &lhs, U rhs) {
-    using TS = typename vec_info<VectorData1>::T;
-    return vec<TS, sizeof...(Indices1), false>(lhs) | rhs;
-}
-
-template <typename VectorData1, s64... Indices1, typename U>
-auto operator|(U lhs, const swizzle<VectorData1, Indices1...> &rhs) {
-    using TS = typename vec_info<VectorData1>::T;
-    return lhs | vec<TS, sizeof...(Indices1), false>(rhs);
+requires(vec_same_type<Vec, U>) auto operator|(U lhs, const swizzle<VectorData1, Indices1...> &rhs) {
+    return lhs | vec<typename vec_info<VectorData1>::T, sizeof...(Indices1), vec_info<Vec>::PACKED>(rhs);
 }
 
 //
 // Arithmetic
 //
 
-// Elementwise (Hadamard) vector product
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> operator*(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        vec<T, Dim, Packed> result = {no_init};
-        for (s64 i = 0; i < Dim; ++i) result[i] = lhs.Data[i] * rhs.Data[i];
-        return result;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::mul(lhs.Simd, rhs.Simd)};
-    }
-}
+// Elementwise (Hadamard) vector product, division, addition and subtraction
 
-// Elementwise vector division
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> operator/(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        vec<T, Dim, Packed> result = {no_init};
-        for (s64 i = 0; i < Dim; ++i) result[i] = lhs.Data[i] / rhs.Data[i];
-        return result;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::div(lhs.Simd, rhs.Simd)};
+#define ELEMENT_WISE_OPERATOR(op, simdName)                                   \
+    template <any_vec Vec>                                                    \
+    always_inline Vec operator##op(const Vec &lhs, const Vec &rhs) {          \
+        if constexpr (!has_simd<Vec>) {                                       \
+            Vec result = {no_init};                                           \
+            For(range(Vec::DIM)) result[it] = lhs.Data[it] op rhs.Data[it];   \
+            return result;                                                    \
+        } else {                                                              \
+            using SimdT = decltype(Vec::Simd);                                \
+            return {Vec::FROM_SIMD, SimdT::##simdName##(lhs.Simd, rhs.Simd)}; \
+        }                                                                     \
     }
-}
 
-// Elementwise vector addition
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> operator+(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        vec<T, Dim, Packed> result = {no_init};
-        for (s64 i = 0; i < Dim; ++i) result[i] = lhs.Data[i] + rhs.Data[i];
-        return result;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::add(lhs.Simd, rhs.Simd)};
-    }
-}
-// Elementwise vector subtraction
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> operator-(const vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        vec<T, Dim, Packed> result = {no_init};
-        for (s64 i = 0; i < Dim; ++i) result[i] = lhs.Data[i] - rhs.Data[i];
-        return result;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::sub(lhs.Simd, rhs.Simd)};
-    }
-}
+ELEMENT_WISE_OPERATOR(*, mul)
+ELEMENT_WISE_OPERATOR(/, div)
+ELEMENT_WISE_OPERATOR(+, add)
+ELEMENT_WISE_OPERATOR(-, sub)
+#undef ELEMENT_WISE_OPERATOR
 
-// Assignment
+// Elementwise (Hadamard) vector product, division, addition and subtraction but with assignment
 
-// Elementwise (Hadamard) vector product
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> &operator*=(vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        For(range(Dim)) lhs.Data[it] *= rhs.Data[it];
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::mul(lhs.Simd, rhs.Simd);
+#define ELEMENT_WISE_OPERATOR_ASSIGNMENT(op, simdName)          \
+    template <any_vec Vec>                                      \
+    always_inline Vec &operator##op(Vec &lhs, const Vec &rhs) { \
+        if constexpr (!has_simd<Vec>) {                         \
+            For(range(Vec::DIM)) lhs.Data[it] op rhs.Data[it];  \
+        } else {                                                \
+            using SimdT = decltype(Vec::Simd);                  \
+            lhs.Simd = SimdT::##simdName##(lhs.Simd, rhs.Simd); \
+        }                                                       \
+        return lhs;                                             \
     }
-    return lhs;
-}
 
-// Elementwise vector division
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> &operator/=(vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        For(range(Dim)) lhs.Data[it] /= rhs.Data[it];
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::div(lhs.Simd, rhs.Simd);
-    }
-    return lhs;
-}
+ELEMENT_WISE_OPERATOR_ASSIGNMENT(*=, mul)
+ELEMENT_WISE_OPERATOR_ASSIGNMENT(/=, div)
+ELEMENT_WISE_OPERATOR_ASSIGNMENT(+=, add)
+ELEMENT_WISE_OPERATOR_ASSIGNMENT(-=, sub)
+#undef ELEMENT_WISE_OPERATOR_ASSIGNMENT
 
-// Elementwise vector addition
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> &operator+=(vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        For(range(Dim)) lhs.Data[it] += rhs.Data[it];
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::add(lhs.Simd, rhs.Simd);
-    }
-    return lhs;
-}
+// * scales the vector by _rhs_, / scales the vector by 1/_rhs_, + and - add/subtract _rhs_ to/from each element, but with assignment
 
-// Elementwise vector subtraction
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> &operator-=(vec<T, Dim, Packed> &lhs, const vec<T, Dim, Packed> &rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        For(range(Dim)) lhs.Data[it] -= rhs.Data[it];
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::sub(lhs.Simd, rhs.Simd);
+#define ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(op, simdName)                                                          \
+    template <any_vec Vec, typename U>                                                                                 \
+    requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec &operator##op(Vec &lhs, U rhs) { \
+        if constexpr (!has_simd<Vec>) {                                                                                \
+            For(range(Vec::DIM)) lhs.Data[it] *= rhs;                                                                  \
+        } else {                                                                                                       \
+            using SimdT = decltype(Vec::Simd);                                                                         \
+            lhs.Simd = SimdT::##simdName##(lhs.Simd, Vec::T(rhs));                                                     \
+        }                                                                                                              \
+        return lhs;                                                                                                    \
     }
-    return lhs;
-}
 
-// Scales the vector by _rhs_
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> &operator*=(vec<T, Dim, Packed> &lhs, U rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        For(range(Dim)) lhs.Data[it] *= rhs;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::mul(lhs.Simd, (T) rhs);
-    }
-    return lhs;
-}
+ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(*=, mul);
+ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(/=, div);
+ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(+=, add);
+ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(-=, sub);
+#undef ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT
 
-// Scales the vector by 1/_rhs_
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> &operator/=(vec<T, Dim, Packed> &lhs, U rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        For(range(Dim)) lhs.Data[it] /= rhs;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::div(lhs.Simd, (T) rhs);
-    }
-    return lhs;
-}
+// * scales the vector by _rhs_, / scales the vector by 1/_rhs_, + and - add/subtract _rhs_ to/from each element
 
-// Adds _rhs_ to each element of the vector
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> &operator+=(vec<T, Dim, Packed> &lhs, U rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        For(range(Dim)) lhs.Data[it] += rhs;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::add(lhs.Simd, (T) rhs);
+#define ELEMENT_WISE_SCALAR_OPERATOR(op, simdName)                                                                          \
+    template <any_vec Vec, typename U>                                                                                      \
+    requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator##op(const Vec &lhs, U rhs) { \
+        if constexpr (!has_simd<Vec>) {                                                                                     \
+            Vec copy = lhs;                                                                                                 \
+            copy op## = rhs;                                                                                                \
+            return copy;                                                                                                    \
+        } else {                                                                                                            \
+            using SimdT = decltype(Vec::Simd);                                                                              \
+            return {Vec::FROM_SIMD, SimdT::##simdName##(lhs.Simd, Vec::T(rhs))};                                            \
+        }                                                                                                                   \
     }
-    return lhs;
-}
-
-// Subtracts _rhs_ from each element of the vector
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> &operator-=(vec<T, Dim, Packed> &lhs, U rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        For(range(Dim)) lhs.Data[it] -= rhs;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        lhs.Simd = SimdT::sub(lhs.Simd, (T) rhs);
-    }
-    return lhs;
-}
-
-// Scales the vector by _rhs_
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator*(const vec<T, Dim, Packed> &lhs, U rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        vec<T, Dim, Packed> copy(lhs);
-        copy *= rhs;
-        return copy;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::mul(lhs.Simd, (T) rhs)};
-    }
-}
-
-// Scales the vector by 1/_rhs_
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator/(const vec<T, Dim, Packed> &lhs, U rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        vec<T, Dim, Packed> copy(lhs);
-        copy /= rhs;
-        return copy;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::div(lhs.Simd, (T) rhs)};
-    }
-}
-
-// Adds _rhs_ to each element of the vector
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator+(const vec<T, Dim, Packed> &lhs, U rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        vec<T, Dim, Packed> copy(lhs);
-        copy += rhs;
-        return copy;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::add(lhs.Simd, (T) rhs)};
-    }
-}
-
-// Subtracts _rhs_ from each element of the vector
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator-(const vec<T, Dim, Packed> &lhs, U rhs) {
-    if constexpr (!has_simd<vec<T, Dim, Packed>>) {
-        vec<T, Dim, Packed> copy(lhs);
-        copy -= rhs;
-        return copy;
-    } else {
-        using SimdT = decltype(vec_data<T, Dim, Packed>::Simd);
-        return {vec<T, Dim, Packed>::FROM_SIMD, SimdT::sub(lhs.Simd, (T) rhs)};
-    }
-}
+ELEMENT_WISE_SCALAR_OPERATOR(*, mul);
+ELEMENT_WISE_SCALAR_OPERATOR(/, div);
+ELEMENT_WISE_SCALAR_OPERATOR(+, add);
+ELEMENT_WISE_SCALAR_OPERATOR(-, sub);
+#undef ELEMENT_WISE_SCALAR_OPERATOR
 
 // Scales vector by _lhs_
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator*(U lhs, const vec<T, Dim, Packed> &rhs) {
-    return rhs * lhs;
-}
+template <any_vec Vec, typename U>
+requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator*(U lhs, const Vec &rhs) { return rhs * lhs; }
 
 // Adds _lhs_ to all elements of the vector
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator+(U lhs, const vec<T, Dim, Packed> &rhs) {
-    return rhs + lhs;
-}
+template <any_vec Vec, typename U>
+requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator+(U lhs, const Vec &rhs) { return rhs + lhs; }
 
 // Makes a vector with _lhs_ as all elements, then subtracts _rhs_ from it
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator-(U lhs, const vec<T, Dim, Packed> &rhs) {
-    return vec<T, Dim, Packed>(lhs) - rhs;
-}
+template <any_vec Vec, typename U>
+requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator-(U lhs, const Vec &rhs) { return Vec(lhs) - rhs; }
 
 // Makes a vector with _lhs_ as all elements, then divides it by _rhs_
-template <typename T, s64 Dim, bool Packed, typename U>
-requires(types::is_convertible_v<U, T>) inline vec<T, Dim, Packed> operator/(U lhs, const vec<T, Dim, Packed> &rhs) {
-    vec<T, Dim, Packed> copy(lhs);
-    copy /= rhs;
-    return copy;
+template <any_vec Vec, typename U>
+requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator/(U lhs, const Vec &rhs) {
+    auto result = Vec(lhs);
+    result /= rhs;
+    return result;
 }
 
 // Negates all elements of the vector
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> operator-(const vec<T, Dim, Packed> &arg) {
-    return arg * T(-1);
-}
+template <any_vec Vec>
+always_inline Vec operator-(const Vec &arg) { return arg * Vec::T(-1); }
 
 // Optional plus sign, leaves the vector as is
-template <typename T, s64 Dim, bool Packed>
-inline vec<T, Dim, Packed> operator+(const vec<T, Dim, Packed> &arg) {
-    return arg;
-}
+template <any_vec Vec>
+always_inline Vec operator+(const Vec &arg) { return arg; }
 
-// Swizzles
-
+//
+// Swizzles...
+//
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
 requires(Dim == sizeof...(Indices) && types::is_same_v<T, typename vec_info<VectorDataT>::T>) vec<T, Dim, Packed> operator*(const vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
     return v * decltype(v)(s);

@@ -19,35 +19,35 @@ struct vec_info_helper {
     static constexpr bool IS_VEC = false;
 };
 
-template <typename DataT, s64 Dim, bool Packed>
-struct vec_info_helper<vec<DataT, Dim, Packed>> {
+template <typename T_, s64 Dim, bool Packed>
+struct vec_info_helper<vec<T_, Dim, Packed>> {
     static constexpr bool IS_VEC = true;
 
-    using T = DataT;
+    using T = T_;
     static constexpr s64 DIM = Dim;
     static constexpr bool PACKED = Packed;
 };
 
-template <typename DataT, s64 Dim, bool Packed>
-struct vec_info_helper<vec_data<DataT, Dim, Packed>> {
+template <typename T_, s64 Dim, bool Packed>
+struct vec_info_helper<vec_data<T_, Dim, Packed>> {
     static constexpr bool IS_VEC = true;
 
-    using T = DataT;
+    using T = T_;
     static constexpr s64 DIM = Dim;
     static constexpr bool PACKED = Packed;
 };
 
 template <typename T>
-struct vec_info : public vec_info_helper<types::decay_t<T>> {};
+struct vec_info : public vec_info_helper<types::remove_cvref_t<T>> {};
 
 template <typename T>
 concept has_simd = requires {
-    vec_info<T>::IS_VEC;
+    vec_info<T>::IS_VEC == true;
     T::Simd;
 };
 
 template <typename T>
-concept any_vec = requires { vec_info<T>::IS_VEC; };
+concept any_vec = vec_info<T>::IS_VEC;
 
 // To access swizzlers, use the xx, xy, xyz and similar elements of vectors.
 // Swizzlers can be used with assignments, concatenation, casting and constructors.
