@@ -125,7 +125,7 @@ ELEMENT_WISE_OPERATOR_ASSIGNMENT(-=, sub)
     template <any_vec Vec, typename U>                                                                                 \
     requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec &operator##op(Vec &lhs, U rhs) { \
         if constexpr (!has_simd<Vec>) {                                                                                \
-            For(range(Vec::DIM)) lhs.Data[it] *= rhs;                                                                  \
+            For(range(Vec::DIM)) lhs.Data[it] op rhs;                                                                  \
         } else {                                                                                                       \
             using SimdT = decltype(Vec::Simd);                                                                         \
             lhs.Simd = SimdT::##simdName##(lhs.Simd, Vec::T(rhs));                                                     \
