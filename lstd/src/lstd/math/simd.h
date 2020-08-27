@@ -14,8 +14,7 @@ template <typename T, s64 Dim>
 union alignas(16) simd {
     // @Cleanup: This looks messy
     static_assert(Dim == 2 || Dim == 4 || Dim == 8, "Dimension must be 2, 4, or 8.");
-    static_assert(types::is_same_v<T, f32> || types::is_same_v<T, f64> || types::is_same_v<T, s32> || types::is_same_v<T, s64>,
-                  "Type must be f32, f64, s32 or s64.");
+    static_assert(types::is_same_v<T, f32> || types::is_same_v<T, f64> || types::is_same_v<T, s32> || types::is_same_v<T, s64>, "Type must be f32, f64, s32 or s64.");
 
     T reg[Dim];
 
@@ -67,8 +66,6 @@ union alignas(16) simd {
         return result;
     }
 
-    static inline simd mad(const simd &a, const simd &b, const simd &c) { return add(mul(a, b), c); }
-
     static inline simd spread(T value) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = value;
@@ -89,7 +86,7 @@ union alignas(16) simd {
     template <s64 Count = Dim>
     static inline T dot(const simd &lhs, const simd &rhs) {
         static_assert(Count <= Dim, "Number of elements to dot must be smaller or equal to dimension.");
-        static_assert(0 < Count, "Count must not be zero.");
+        static_assert(Count > 0, "Count must not be zero.");
 
         T sum = lhs.reg[0] * rhs.reg[0];
         for (s64 i = 1; i < Count; ++i) sum += lhs.reg[i] * rhs.reg[i];

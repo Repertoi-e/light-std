@@ -41,9 +41,9 @@ template <typename T>
 struct vec_info : public vec_info_helper<types::remove_cvref_t<T>> {};
 
 template <typename T>
-concept has_simd = requires {
+concept has_simd = requires(T t) {
     vec_info<T>::IS_VEC == true;
-    T::Simd;
+    t.Simd;
 };
 
 template <typename T>

@@ -138,3 +138,21 @@
 #else
 #warning Compiler not detected
 #endif
+
+//
+// Define clearer keyboards for the different meanings of _static_.
+// I recommend getting used to them because static is a really really confusing keyword.
+//
+#define file_scope static
+#define local_persist static
+
+#if COMPILER == MSVC
+#define always_inline __forceinline
+#define never_inline __declspec(noinline)
+#define no_vtable __declspec(novtable)
+#define no_alias __declspec(noalias)
+#define restrict __declspec(restrict)
+#else
+#define always_inline inline
+#error Defines
+#endif

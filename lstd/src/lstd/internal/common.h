@@ -6,6 +6,7 @@
 
 #include "../types.h"
 #include "debug_break.h"
+#include "scalar_functions.h"
 
 // Convenience storage literal operators, allows for specifying sizes like this:
 //  s64 a = 10_MiB;
@@ -35,24 +36,6 @@ constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
 #define LINE_NAME(name) _MACRO_CONCAT(name, __LINE__)
 #define _MACRO_DO_CONCAT(s1, s2) s1##s2
 #define _MACRO_CONCAT(s1, s2) _MACRO_DO_CONCAT(s1, s2)
-
-//
-// Define clearer keyboards for the different meanings of _static_.
-// I recommend getting used to them because static is a really really confusing keyword.
-//
-#define file_scope static
-#define local_persist static
-
-#if COMPILER == MSVC
-#define always_inline __forceinline
-#define never_inline __declspec(noinline)
-#define no_vtable __declspec(novtable)
-#define no_alias __declspec(noalias)
-#define restrict __declspec(restrict)
-#else
-#define always_inline inline
-#error Defines
-#endif
 
 // Go-style defer
 //
@@ -332,97 +315,6 @@ constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, s64 num) 
     return -1;
 }
 
-#define POWERS_OF_10(factor)                                                                                        \
-    factor * 10, factor * 100, factor * 1000, factor * 10000, factor * 100000, factor * 1000000, factor * 10000000, \
-        factor * 100000000, factor * 1000000000
-
-constexpr u32 POWERS_OF_10_32[] = {1, POWERS_OF_10(1)};
-constexpr u64 POWERS_OF_10_64[] = {1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
-
-constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
-constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
-#undef POWERS_OF_10
-
-union ieee754_f32 {
-    f32 F;
-    u32 W;
-
-    // This is the IEEE 754 single-precision format.
-    struct {
-#if ENDIAN == BIG_ENDIAN
-        u32 S : 1;
-        u32 E : 8;
-        u32 M : 23;
-#else
-        u32 M : 23;
-        u32 E : 8;
-        u32 S : 1;
-#endif
-    } ieee;
-
-    // This format makes it easier to see if a NaN is a signalling NaN.
-    struct {
-#if ENDIAN == BIG_ENDIAN
-        u32 S : 1;
-        u32 E : 8;
-        u32 N : 1;
-        u32 M : 22;
-#else
-        u32 M : 22;
-        u32 N : 1;
-        u32 E : 8;
-        u32 S : 1;
-#endif
-    } ieee_nan;
-};
-
-union ieee754_f64 {
-    f64 F;
-    u64 W;
-
-    struct {
-#if ENDIAN == BIG_ENDIAN
-        u32 MSW;
-        u32 LSW;
-#else
-        u32 LSW;
-        u32 MSW;
-#endif
-    };
-
-    // This is the IEEE 754 single-precision format.
-    struct {
-#if ENDIAN == BIG_ENDIAN
-        u32 S : 1;
-        u32 E : 11;
-        u32 M0 : 20;
-        u32 M1 : 32;
-#else
-        u32 M1 : 32;
-        u32 M0 : 20;
-        u32 E : 11;
-        u32 S : 1;
-#endif
-    } ieee;
-
-    // This format makes it easier to see if a NaN is a signalling NaN.
-    struct {
-#if ENDIAN == BIG_ENDIAN
-        u32 S : 1;
-        u32 E : 11;
-        u32 N : 1;
-        u32 M0 : 19;
-        u32 M1 : 32;
-#else
-        u32 M1 : 32;
-        u32 M0 : 19;
-        u32 N : 1;
-        u32 E : 11;
-        u32 S : 1;
-#endif
-    } ieee_nan;
-};
-
 #if COMPILER == MSVC
 #pragma intrinsic(_BitScanReverse)
 inline u32 msb(u32 x) {
@@ -512,7 +404,7 @@ constexpr u64 rotate_right_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 
 
 template <std::integral T>
 constexpr T set_bit(T *number, T bit, bool value) {
-    auto enabled = (make_unsigned_t<T>) value;
+    auto enabled = (types::make_unsigned_t<T>) value;
     *number ^= (-enabled ^ *number) & bit;
 }
 
@@ -520,126 +412,16 @@ constexpr T set_bit(T *number, T bit, bool value) {
 #pragma warning(pop)
 #endif
 
-template <std::integral T>
-constexpr T is_pow_of_2(T number) { return (number & (number - 1)) == 0; }
+#define POWERS_OF_10(factor) \
+    factor * 10, factor * 100, factor * 1000, factor * 10000, factor * 100000, factor * 1000000, factor * 10000000, factor * 100000000, factor * 1000000000
 
-template <std::integral T>
-constexpr T const_abs(T number) {
-    auto s = number >> (sizeof(T) * 8 - 1);
-    return (number ^ s) - s;
-}
+// These are just look up tables for powers of ten. Used in the fmt module when printing arithmetic types, for example.
+constexpr u32 POWERS_OF_10_32[] = {1, POWERS_OF_10(1)};
+constexpr u64 POWERS_OF_10_64[] = {1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
 
-constexpr f32 const_abs(f32 number) {
-    ieee754_f32 format = {number};
-    format.ieee.S = 0;
-    return format.F;
-}
-
-constexpr f64 const_abs(f64 number) {
-    ieee754_f64 format = {number};
-    format.ieee.S = 0;
-    return format.F;
-}
-
-template <std::signed_integral T>
-constexpr bool sign_bit(T number) {
-    return number < 0;
-}
-
-template <std::unsigned_integral T>
-constexpr bool sign_bit(T) {
-    return false;
-}
-
-constexpr bool sign_bit(f32 number) {
-    ieee754_f32 format = {number};
-    return format.ieee.S;
-}
-
-constexpr bool sign_bit(f64 number) {
-    ieee754_f64 format = {number};
-    return format.ieee.S;
-}
-
-// Returns -1 if number is negative, 1 otherwise
-template <typename T>
-constexpr s32 sign_no_zero(T number) {
-    return sign_bit(number) ? -1 : 1;
-}
-
-// Handles zero as well
-template <typename T>
-constexpr s32 sign(T number) {
-    if (number == T(0)) return 0;
-    return sign_bit(number) ? -1 : 1;
-}
-
-constexpr bool is_inf(f32 number) {
-    ieee754_f32 format = {number};
-    return format.ieee.E == 0xff && format.ieee.M == 0;
-}
-
-constexpr bool is_inf(f64 number) {
-    ieee754_f64 format = {number};
-#if ENDIAN == BIG_ENDIAN
-    // @Wrong
-    // Haven't tested this
-    return ((u32) format.W & 0xffffff7f) == 0x0000f07f && ((u32)(format.W >> 32) == 0);
-#else
-    return ((u32)(format.W >> 32) & 0x7fffffff) == 0x7ff00000 && ((u32) format.W == 0);
-#endif
-}
-
-constexpr bool is_nan(f32 number) {
-    ieee754_f32 format = {number};
-    return format.ieee.E == 0xff && format.ieee.M != 0;
-}
-
-constexpr bool is_nan(f64 number) {
-    ieee754_f64 format = {number};
-#if ENDIAN == BIG_ENDIAN
-    // @Wrong
-    // Haven't tested this
-    return ((u32) format.W & 0xffffff7f) + ((u32)(format.W >> 32) != 0) > 0x0000f07f;
-#else
-    return ((u32)(format.W >> 32) & 0x7fffffff) + ((u32) format.W != 0) > 0x7ff00000;
-#endif
-}
-
-template <typename T>
-always_inline constexpr T const_min(T x, T y) {
-    return x < y ? x : y;
-}
-
-template <typename T>
-always_inline constexpr T const_max(T x, T y) {
-    return x > y ? x : y;
-}
-
-template <typename T>
-always_inline constexpr T min(T x, T y) {
-    return x < y ? x : y;
-}
-
-template <typename T>
-always_inline constexpr T max(T x, T y) {
-    return x > y ? x : y;
-}
-
-// Defined in common.cpp
-f32 min(f32 x, f32 y);
-f32 max(f32 x, f32 y);
-f64 min(f64 x, f64 y);
-f64 max(f64 x, f64 y);
-
-template <std::integral T>
-T ceil_pow_of_2(T v) {
-    if (v <= 1) return 1;
-    T power = 2;
-    --v;
-    while (v >>= 1) power <<= 1;
-    return power;
-}
+constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
+constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
+#undef POWERS_OF_10
 
 // Returns the number of decimal digits in n. Leading zeros are not counted
 // except for n == 0 in which case count_digits returns 1.
@@ -726,12 +508,6 @@ always_inline constexpr void byte_swap_8(void *ptr) {
     x = ((x << 8) & 0xFF00FF00FF00FF00ULL) | ((x >> 8) & 0x00FF00FF00FF00FFULL);
     x = ((x << 16) & 0xFFFF0000FFFF0000ULL) | ((x >> 16) & 0x0000FFFF0000FFFFULL);
     *(u64 *) ptr = (x << 32) | (x >> 32);
-}
-
-// Returns 10 ** exponent at compile-time.
-template <typename T>
-constexpr T const_exp10(s32 exponent) {
-    return exponent == 0 ? T(1) : T(10) * const_exp10<T>(exponent - 1);
 }
 
 template <typename T>

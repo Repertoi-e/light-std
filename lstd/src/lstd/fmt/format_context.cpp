@@ -383,7 +383,7 @@ struct width_checker {
 
     template <typename T>
     u32 operator()(T value) {
-        if constexpr (types::is_integer_v<T>) {
+        if constexpr (types::is_integral_v<T>) {
             if (sign_bit(value)) {
                 F->on_error("Negative width");
                 return (u32) -1;
@@ -404,7 +404,7 @@ struct precision_checker {
 
     template <typename T>
     s32 operator()(T value) {
-        if constexpr (types::is_integer_v<T>) {
+        if constexpr (types::is_integral_v<T>) {
             if (sign_bit(value)) {
                 F->on_error("Negative precision");
                 return -1;

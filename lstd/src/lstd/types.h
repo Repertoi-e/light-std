@@ -178,7 +178,7 @@ struct tquat;
 //
 
 // Personal preference
-// I prefer null over nullptr but they are exactly the same
+// I prefer to type null over nullptr but they are exactly the same
 constexpr auto null = nullptr;
 
 // This is essentially a utility base struct for defining properties as both struct constants and as types.
@@ -193,9 +193,14 @@ struct integral_constant {
     constexpr value_t operator()() const { return value; }
 };
 
-using true_t = integral_constant<bool, true>;
-using false_t = integral_constant<bool, false>;
+using true_t = integral_constant<bool, true>;    // == to std::true_type
+using false_t = integral_constant<bool, false>;  // == to std::false_type
 
+//
+// Instead of writing our own implementation for initializer_list, pair and tuple we use the
+// one in the STL because it relies on some compiler background feature work.
+// @TODO: We can try to implement it on our own, it should work! The implementation is very large. We should compress it.
+//
 template <typename T>
 using initializer_list = std::initializer_list<T>;
 
@@ -209,6 +214,13 @@ using tuple = std::tuple<Types...>;
 
 using std::make_tuple;
 
+//
+// This is useful for multiple return values.
+// e.g:
+//    s32 value;
+//    parse_status status;
+//    tie(value, status, ignore_return) = parse_integer(...);
+//
 constexpr auto ignore_return = std::ignore;
 using std::tie;
 
@@ -216,16 +228,7 @@ namespace types {
 // Used internally to denote a special template argument that means it's an unused argument.
 struct unused {};
 
-// These are used as a utility to differentiate between two things.
-// sizeof(yes_t) == 1
-using yes_t = char;
-
-// sizeof(no_t)  != 1
-struct no_t {
-    char Padding[8];
-};
-
-// Used as a type which constructs from anything.
+// Used as a type which constructs from anything
 struct argument_sink {
     template <typename... Args>
     argument_sink(Args &&...) {}
@@ -234,8 +237,8 @@ struct argument_sink {
 // This is used to declare a type from one of two type options.
 // The result is based on the condition type.
 //
-// Example usage:
-//    using chosen_t = select_t<is_integral_v<SomeType>, ChoiceAType, ChoiceBType>;
+// e.g:
+//    using chosen_t = select_t<Condition, ChoiceAType, ChoiceBType>;
 //
 template <bool Condition, typename ConditionIsTrueType, typename ConditionIsFalseType>
 struct select {
@@ -258,58 +261,6 @@ struct first_select {
 
 template <typename T, typename = unused, typename = unused>
 using first_select_t = typename first_select<T>::type;
-
-// This is a utility struct for creating composite type traits.
-template <bool B1, bool B2, bool B3 = false, bool B4 = false, bool B5 = false>
-    struct or
-    ;
-
-template <bool B1, bool B2, bool B3, bool B4, bool B5>
-    struct or {
-    static constexpr auto value = true;
-};
-
-template <>
-    struct or <false, false, false, false, false> {
-    static constexpr auto value = false;
-};
-
-// This is a utility struct for creating composite type traits.
-template <bool B1, bool B2, bool B3 = true, bool B4 = true, bool B5 = true>
-struct and;
-
-template <bool B1, bool B2, bool B3, bool B4, bool B5>
-struct and {
-    static constexpr auto value = false;
-};
-
-template <>
-struct and<true, true, true, true, true> {
-    static constexpr auto value = true;
-};
-
-// This is a utility struct for creating composite type traits.
-template <int B1, int B2>
-struct equal {
-    static constexpr auto value = (B1 == B2);
-};
-
-// This is a utility struct for creating composite type traits.
-template <int B1, int B2>
-struct not_equal {
-    static constexpr auto value = (B1 != B2);
-};
-
-// This is a utility struct for creating composite type traits.
-template <bool B>
-struct not {
-    static constexpr auto value = true;
-};
-
-template <>
-struct not <true> {
-    static constexpr auto value = false;
-};
 
 // template <bool B, typename T = void> struct enable_if;
 template <bool B, typename T = void>
@@ -715,42 +666,28 @@ struct static_max<I0, I1, in...> {
 template <s64 I0, s64... in>
 inline s64 static_max_v = static_max<I0, in...>::value;
 */
+
+////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-struct is_void : public false_t {};
+struct is_void_helper : public false_t {};
 
 template <>
-struct is_void<void> : public true_t {};
-template <>
-struct is_void<void const> : public true_t {};
-template <>
-struct is_void<void volatile> : public true_t {};
-template <>
-struct is_void<void const volatile> : public true_t {};
+struct is_void_helper<void> : public true_t {};
+
+template <typename T>
+struct is_void : public is_void_helper<remove_cv_t<T>> {};
 
 template <typename T>
 constexpr bool is_void_v = is_void<T>::value;
 
-// Utility which identifies if any of the given template arguments is void.
-template <typename... Args>
-struct has_void_arg;
-
-template <>
-struct has_void_arg<> : public false_t {};
-
-template <typename A0, typename... Args>
-struct has_void_arg<A0, Args...> {
-    static constexpr auto value = (is_void<A0>::value || has_void_arg<Args...>::value);
-};
-
-template <typename... Args>
-constexpr bool has_void_arg_v = has_void_arg<Args...>::value;
-
+////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
 struct is_null_pointer : public is_same<remove_cv_t<T>, decltype(null)> {};
 
 template <typename T>
 constexpr bool is_null_pointer_v = is_null_pointer<T>::value;
 
+////////////////////////////////////////////////////////////////////////////////////////////////
 // true if T is one of the following types: bool, char, wchar_t, short, int, long long (and unsigned variants)
 template <typename T>
 struct is_integral_helper : public false_t {};
@@ -796,10 +733,6 @@ struct is_integral_helper<wchar_t> : public true_t {};
 template <typename T>
 struct is_integral : public is_integral_helper<remove_cv_t<T>> {};
 
-template <typename T>
-using is_integer = integral_constant<bool, is_integral<T>::value && !is_same<T, bool>::value &&
-                                               !is_same<T, char>::value && !is_same<T, wchar_t>::value>;
-
 // Use this macro to declare your custom type as an integral
 #define DECLARE_INTEGRAL(T)                                  \
     LSTD_BEGIN_NAMESPACE                                     \
@@ -816,19 +749,17 @@ using is_integer = integral_constant<bool, is_integral<T>::value && !is_same<T, 
 template <typename T>
 constexpr bool is_integral_v = is_integral<T>::value;
 
-template <typename T>
-constexpr bool is_integer_v = is_integer<T>::value;
-
-// true if T is one of the following types: float, double, long double
+////////////////////////////////////////////////////////////////////////////////////////////////
+// true if T is float, double, long double
 template <typename T>
 struct is_floating_point_helper : public false_t {};
 
 template <>
-struct is_floating_point_helper<float> : public true_t {};
+struct is_floating_point_helper<f32> : public true_t {};
 template <>
-struct is_floating_point_helper<double> : public true_t {};
+struct is_floating_point_helper<f64> : public true_t {};
 template <>
-struct is_floating_point_helper<long double> : public true_t {};
+struct is_floating_point_helper<lf64> : public true_t {};
 
 template <typename T>
 struct is_floating_point : public is_floating_point_helper<remove_cv_t<T>> {};
@@ -849,20 +780,139 @@ struct is_floating_point : public is_floating_point_helper<remove_cv_t<T>> {};
 template <typename T>
 constexpr bool is_floating_point_v = is_floating_point<T>::value;
 
-// is_floating_point<T> || is_integral<T>
+//
+// An arithmetic type is an integral type or a floating point type
+//
 template <typename T>
 struct is_arithmetic : public integral_constant<bool, is_integral_v<T> || is_floating_point_v<T>> {};
 
 template <typename T>
 constexpr bool is_arithmetic_v = is_arithmetic<T>::value;
 
-// is_floating_point<T> || s_integral<T> || is_void<T> || is_null_pointer<T>
+//
+// A fundamental type is void, nullptr_t, or any of the arithmetic types
+//
 template <typename T>
-struct is_fundamental : public integral_constant<bool, is_void_v<T> || is_integral_v<T> || is_floating_point_v<T> ||
-                                                           is_null_pointer_v<T>> {};
+struct is_fundamental : public integral_constant<bool, is_void_v<T> || is_arithmetic_v<T> || is_null_pointer_v<T>> {};
 
 template <typename T>
 constexpr bool is_fundamental_v = is_fundamental<T>::value;
+
+//
+// Is union
+//
+template <typename T>
+struct is_union : public integral_constant<bool, __is_union(T)> {};
+template <typename T>
+
+constexpr bool is_union_v = is_union<T>::value;
+
+// Use this macro to declare your type as an union
+#define DECLARE_UNION(T)                         \
+    LSTD_BEGIN_NAMESPACE                         \
+    template <>                                  \
+    struct is_union<T> : public true_t {};       \
+    template <>                                  \
+    struct is_union<const T> : public true_t {}; \
+    LSTD_END_NAMESPACE
+
+//
+// Is class
+//
+template <typename T>
+struct is_class : public integral_constant<bool, __is_class(T)> {};
+
+template <typename T>
+constexpr bool is_class_v = is_class<T>::value;
+
+//
+// Is enum
+//
+template <typename T>
+struct is_enum : public integral_constant<bool, __is_enum(T)> {};
+template <typename T>
+constexpr bool is_enum_v = is_enum<T>::value;
+
+// Use this macro to declare your type as an enum
+#define DECLARE_ENUM(T)                         \
+    LSTD_BEGIN_NAMESPACE                        \
+    template <>                                 \
+    struct is_enum<T> : public true_t {};       \
+    template <>                                 \
+    struct is_enum<const T> : public true_t {}; \
+    LSTD_END_NAMESPACE
+
+//
+// An object considered to be any type that is not a function a reference or void
+//
+template <typename T>
+struct is_object : public integral_constant<bool, !is_reference_v<T> && !is_void_v<T> && !is_function_v<T>> {};
+
+template <typename T>
+constexpr bool is_object_v = is_object<T>::value;
+
+//
+// True if T is a pointer to a member function AND NOT a member object
+//
+template <typename T>
+struct is_member_function_pointer_helper : false_t {};
+
+template <typename T, typename U>
+struct is_member_function_pointer_helper<T U::*> : is_function<T> {};
+
+template <typename T>
+struct is_member_function_pointer : is_member_function_pointer_helper<remove_cv_t<T>> {};
+
+template <typename T>
+constexpr bool is_member_function_pointer_v = is_member_function_pointer<T>::value;
+
+//
+// True if T is a pointer to a member object OR a member function
+//
+template <typename T>
+struct is_member_pointer_helper : false_t {};
+
+template <typename T, typename U>
+struct is_member_pointer_helper<T U::*> : true_t {};
+
+template <typename T>
+struct is_member_pointer : is_member_pointer_helper<remove_cv_t<T>> {};
+
+template <typename T>
+constexpr bool is_member_pointer_v = is_member_pointer<T>::value;
+
+//
+// True if T is a pointer to a member object AND NOT a member function
+//
+template <typename T>
+struct is_member_object_pointer : public integral_constant<bool, is_member_pointer_v<T> && !is_member_function_pointer_v<T>> {};
+
+template <typename T>
+constexpr bool is_member_object_pointer_v = is_member_object_pointer<T>::value;
+
+// Tests whether T is a pointer to an object, to a function, but not to member objects/functions (use the tests above for that)
+//
+template <typename T>
+struct is_pointer_helper : false_t {};
+
+template <typename T>
+struct is_pointer_helper<T *> : true_t {};
+
+template <typename T>
+struct is_pointer : is_pointer_helper<remove_cv_t<T>> {};
+
+template <typename T>
+constexpr bool is_pointer_v = is_pointer<T>::value;
+
+//
+// A scalar is an integer type, a floating point type, an enum type, a pointer or a member function pointer or a null pointer type.
+//
+template <typename T>
+struct is_scalar : public integral_constant<bool, is_arithmetic_v<T> || is_enum_v<T> || is_pointer_v<T> || is_member_pointer_v<T> || is_null_pointer_v<T>> {};
+
+template <typename T>
+constexpr bool is_scalar_v = is_scalar<T>::value;
+
 //
 // Transformations:
 //
@@ -1325,122 +1375,11 @@ struct is_array_of_unknown_bounds : public integral_constant<bool, is_array_v<T>
 template <typename T>
 constexpr bool is_array_of_unknown_bounds_v = is_array_of_unknown_bounds<T>::value;
 
-template <typename T>
-struct is_member_function_pointer_helper : public false_t {};
-
-template <typename R, typename T, typename... Args>
-struct is_member_function_pointer_helper<R (T::*)(Args...)> : public true_t {};
-template <typename R, typename T, typename... Args>
-struct is_member_function_pointer_helper<R (T::*)(Args...) const> : public true_t {};
-template <typename R, typename T, typename... Args>
-struct is_member_function_pointer_helper<R (T::*)(Args...) volatile> : public true_t {};
-template <typename R, typename T, typename... Args>
-struct is_member_function_pointer_helper<R (T::*)(Args...) const volatile> : public true_t {};
-
-template <typename T>
-struct is_member_function_pointer : public integral_constant<bool, is_member_function_pointer_helper<T>::value> {};
-
-template <typename T>
-constexpr bool is_member_function_pointer_v = is_member_function_pointer<T>::value;
-
-template <typename T>
-struct is_member_pointer : public integral_constant<bool, is_member_function_pointer<T>::value> {};
-
-template <typename T, typename U>
-struct is_member_pointer<U T::*> : public true_t {};
-
-template <typename T>
-constexpr bool is_member_pointer_v = is_member_pointer<T>::value;
-
-template <typename T>
-struct is_member_object_pointer
-    : public integral_constant<bool, is_member_pointer_v<T> && !is_member_function_pointer_v<T>> {};
-template <typename T>
-constexpr bool is_member_object_pointer_v = is_member_object_pointer<T>::value;
-
-// Doesn't include pointers to member types (use the tests above for that)
-template <typename T>
-struct is_pointer_helper : public false_t {};
-
-template <typename T>
-struct is_pointer_helper<T *> : public true_t {};
-template <typename T>
-struct is_pointer_helper<T *const> : public true_t {};
-template <typename T>
-struct is_pointer_helper<T *volatile> : public true_t {};
-template <typename T>
-struct is_pointer_helper<T *const volatile> : public true_t {};
-
-template <typename T>
-struct is_pointer_value : public and<is_pointer_helper<T>::value, not <is_member_pointer_v<T>>::value> {};
-
-template <typename T>
-struct is_pointer : public integral_constant<bool, is_pointer_value<T>::value> {};
-
-template <typename T>
-constexpr bool is_pointer_v = is_pointer<T>::value;
-
 template <typename From, typename To>
 struct is_convertible : public integral_constant<bool, __is_convertible_to(From, To)> {};
 
 template <typename From, typename To>
 constexpr bool is_convertible_v = is_convertible<From, To>::value;
-
-template <typename T>
-struct is_union : public integral_constant<bool, __is_union(T)> {};
-template <typename T>
-
-constexpr bool is_union_v = is_union<T>::value;
-
-// Use this macro to declare your type as an union
-#define DECLARE_UNION(T)                         \
-    LSTD_BEGIN_NAMESPACE                         \
-    template <>                                  \
-    struct is_union<T> : public true_t {};       \
-    template <>                                  \
-    struct is_union<const T> : public true_t {}; \
-    LSTD_END_NAMESPACE
-
-template <typename T>
-struct is_class : public integral_constant<bool, __is_class(T)> {};
-
-template <typename T>
-constexpr bool is_class_v = is_class<T>::value;
-
-template <typename T>
-struct is_enum : public integral_constant<bool, __is_enum(T)> {};
-template <typename T>
-constexpr bool is_enum_v = is_enum<T>::value;
-
-// Use this macro to declare your type as an enum
-#define DECLARE_ENUM(T)                         \
-    LSTD_BEGIN_NAMESPACE                        \
-    template <>                                 \
-    struct is_enum<T> : public true_t {};       \
-    template <>                                 \
-    struct is_enum<const T> : public true_t {}; \
-    LSTD_END_NAMESPACE
-
-template <typename T>
-struct is_object : public integral_constant<bool, !is_reference_v<T> && !is_void_v<T> && !is_function_v<T>> {};
-
-template <typename T>
-constexpr bool is_object_v = is_object<T>::value;
-
-template <typename T>
-struct is_scalar : public integral_constant<bool, is_arithmetic_v<T> || is_enum_v<T> || is_pointer_v<T> ||
-                                                      is_member_pointer_v<T> || is_null_pointer_v<T>> {};
-
-template <typename T>
-struct is_scalar<T *> : public true_t {};
-template <typename T>
-struct is_scalar<T *const> : public true_t {};
-template <typename T>
-struct is_scalar<T *volatile> : public true_t {};
-template <typename T>
-struct is_scalar<T *const volatile> : public true_t {};
-template <typename T>
-constexpr bool is_scalar_v = is_scalar<T>::value;
 
 // Converts the type T to its decayed equivalent. That means doing
 // lvalue to rvalue, array to pointer, function to pointer conversions,
@@ -1682,6 +1621,21 @@ struct is_constructible_helper_1 : public is_constructible_helper_2<is_scalar_v<
 // Unilaterally dismiss void, abstract, unknown bound arrays, and function types as not constructible.
 template <typename T, typename... Args>
 struct is_constructible_helper_1<true, T, Args...> : public false_t {};
+
+// Utility which identifies if any of the given template arguments is void.
+template <typename... Args>
+struct has_void_arg;
+
+template <>
+struct has_void_arg<> : public false_t {};
+
+template <typename A0, typename... Args>
+struct has_void_arg<A0, Args...> {
+    static constexpr auto value = (is_void<A0>::value || has_void_arg<Args...>::value);
+};
+
+template <typename... Args>
+constexpr bool has_void_arg_v = has_void_arg<Args...>::value;
 
 // is_constructible
 template <typename T, typename... Args>
@@ -1984,7 +1938,7 @@ struct numeric_info_base {
     static constexpr bool is_bounded = false;
     static constexpr bool is_exact = false;
     static constexpr bool is_iec559 = false;
-    static constexpr bool is_integer = false;
+    static constexpr bool is_integral = false;
     static constexpr bool is_modulo = false;
     static constexpr bool is_signed = false;
     static constexpr bool is_specialized = false;
@@ -2032,7 +1986,7 @@ struct numeric_info<const volatile T> : public numeric_info<T> {};
 struct numeric_info_int_base : numeric_info_base {
     static constexpr bool is_bounded = true;
     static constexpr bool is_exact = true;
-    static constexpr bool is_integer = true;
+    static constexpr bool is_integral = true;
     static constexpr bool is_specialized = true;
     static constexpr s32 radix = 2;
 };

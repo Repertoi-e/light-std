@@ -149,7 +149,7 @@ requires(vec_info<Vec>::DIM == 3) Vec cross(const stack_array<const Vec *, 2> &a
 
 // Returns the element-wise minimum of arguments
 template <any_vec Vec>
-Vec element_wise_min(const Vec &lhs, const Vec &rhs) {
+always_inline Vec element_wise_min(const Vec &lhs, const Vec &rhs) {
     Vec result = {no_init};
     For(range(Vec::DIM)) result[it] = min(lhs[it], rhs[it]);
     return result;
@@ -157,9 +157,16 @@ Vec element_wise_min(const Vec &lhs, const Vec &rhs) {
 
 // Returns the element-wise maximum of arguments
 template <any_vec Vec>
-Vec element_wise_max(const Vec &lhs, const Vec &rhs) {
+always_inline Vec element_wise_max(const Vec &lhs, const Vec &rhs) {
     Vec result = {no_init};
     For(range(Vec::DIM)) result[it] = max(lhs[it], rhs[it]);
+    return result;
+}
+
+template <any_vec Vec>
+always_inline Vec element_wise_clamp(const Vec &arg, typename vec_info<Vec>::T lower, typename vec_info<Vec>::T upper) {
+    Vec result;
+    For(range(Vec::DIM)) result[it] = clamp(arg[it], lower, upper);
     return result;
 }
 

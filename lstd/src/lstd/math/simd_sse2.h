@@ -6,7 +6,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// Specialization for float4, using SSE
+// Specialization for 4xf32, using SSE
 template <>
 union alignas(16) simd<f32, 4> {
     __m128 reg;
@@ -65,8 +65,6 @@ union alignas(16) simd<f32, 4> {
         return r;
     }
 
-    static inline simd mad(const simd &a, const simd &b, const simd &c) { return add(mul(a, b), c); }
-
     static inline simd spread(f32 value) {
         simd r;
         r.reg = _mm_set1_ps(value);
@@ -82,7 +80,7 @@ union alignas(16) simd<f32, 4> {
     template <s32 Count>
     static inline f32 dot(const simd &lhs, const simd &rhs) {
         static_assert(Count <= 4, "Number of elements to dot must be smaller or equal to dimension.");
-        static_assert(0 < Count, "Count must not be zero.");
+        static_assert(Count > 0, "Count must not be zero.");
 
         f32 sum;
         simd m = mul(lhs, rhs);
@@ -101,7 +99,7 @@ union alignas(16) simd<f32, 4> {
     }
 };
 
-// Specialization for float8, using SSE
+// Specialization for 8xf32, using SSE
 template <>
 union alignas(16) simd<f32, 8> {
     __m128 reg[2];
@@ -167,8 +165,6 @@ union alignas(16) simd<f32, 8> {
         return r;
     }
 
-    static inline simd mad(const simd &a, const simd &b, const simd &c) { return add(mul(a, b), c); }
-
     static inline simd spread(f32 value) {
         simd r;
         r.reg[0] = _mm_set1_ps(value);
@@ -186,7 +182,7 @@ union alignas(16) simd<f32, 8> {
     template <s32 Count>
     static inline f32 dot(const simd &lhs, const simd &rhs) {
         static_assert(Count <= 8, "Number of elements to dot must be smaller or equal to dimension.");
-        static_assert(0 < Count, "Count must not be zero.");
+        static_assert(Count > 0, "Count must not be zero.");
         __m128 reg1, reg2;
         reg1 = _mm_mul_ps(lhs.reg[0], rhs.reg[0]);
         reg2 = _mm_mul_ps(lhs.reg[1], rhs.reg[1]);
@@ -221,7 +217,7 @@ union alignas(16) simd<f32, 8> {
     }
 };
 
-// Specialization for double2, using SSE
+// Specialization for 2xf64, using SSE
 template <>
 union alignas(16) simd<f64, 2> {
     __m128d reg;
@@ -279,8 +275,6 @@ union alignas(16) simd<f64, 2> {
         return r;
     }
 
-    static inline simd mad(const simd &a, const simd &b, const simd &c) { return add(mul(a, b), c); }
-
     static inline simd spread(f64 value) {
         simd r;
         r.reg = _mm_set1_pd(value);
@@ -296,7 +290,7 @@ union alignas(16) simd<f64, 2> {
     template <s32 Count>
     static inline f64 dot(const simd &lhs, const simd &rhs) {
         static_assert(Count <= 2, "Number of elements to dot must be smaller or equal to dimension.");
-        static_assert(0 < Count, "Count must not be zero.");
+        static_assert(Count > 0, "Count must not be zero.");
         f64 sum;
         simd m = mul(lhs, rhs);
         sum = m.v[0];
@@ -314,7 +308,7 @@ union alignas(16) simd<f64, 2> {
     }
 };
 
-// Specialization for double4, using SSE
+// Specialization for 4xf64, using SSE
 template <>
 union alignas(16) simd<f64, 4> {
     __m128d reg[2];
@@ -380,8 +374,6 @@ union alignas(16) simd<f64, 4> {
         return r;
     }
 
-    static inline simd mad(const simd &a, const simd &b, const simd &c) { return add(mul(a, b), c); }
-
     static inline simd spread(f64 value) {
         simd r;
         r.reg[0] = _mm_set1_pd(value);
@@ -399,7 +391,7 @@ union alignas(16) simd<f64, 4> {
     template <s32 Count>
     static inline f64 dot(const simd &lhs, const simd &rhs) {
         static_assert(Count <= 4, "Number of elements to dot must be smaller or equal to dimension.");
-        static_assert(0 < Count, "Count must not be zero.");
+        static_assert(Count > 0, "Count must not be zero.");
         __m128d regs[2];
         regs[0] = _mm_mul_pd(lhs.reg[0], rhs.reg[0]);
         regs[1] = _mm_mul_pd(lhs.reg[1], rhs.reg[1]);
