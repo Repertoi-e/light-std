@@ -402,7 +402,7 @@ constexpr u64 rotate_right_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 
 #pragma warning(disable : 4146)
 #endif
 
-template <std::integral T>
+template <types::is_integral T>
 constexpr T set_bit(T *number, T bit, bool value) {
     auto enabled = (types::make_unsigned_t<T>) value;
     *number ^= (-enabled ^ *number) & bit;
@@ -430,7 +430,7 @@ inline u32 count_digits(u64 n) {
     return (u32) t - (n < ZERO_OR_POWERS_OF_10_64[t]) + 1;
 }
 
-template <u32 Bits, std::integral T>
+template <u32 Bits, types::is_integral T>
 constexpr u32 count_digits(T value) {
     T n = value;
     u32 numDigits = 0;
@@ -448,7 +448,7 @@ template <typename T>
 constexpr bool is_appropriate_size_for_atomic_v = (sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8);
 
 template <typename T>
-concept appropriate_for_atomic = (types::is_integral_v<T> || types::is_enum_v<T> || types::is_pointer_v<T>) &&is_appropriate_size_for_atomic_v<T>;
+concept appropriate_for_atomic = (types::is_integral<T> || types::is_enum<T> || types::is_pointer<T>) &&is_appropriate_size_for_atomic_v<T>;
 
 #if COMPILER == MSVC
 

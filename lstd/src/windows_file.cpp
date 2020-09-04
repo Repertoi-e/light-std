@@ -191,10 +191,9 @@ bool handle::create_symbolic_link(handle dest) const {
     return CreateSymbolicLinkW(utf8_path_to_utf16(dest.Path), utf8_path_to_utf16(Path), dest.is_directory() ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0);
 }
 
-pair<bytes, bool> handle::read_entire_file() const {
-    CREATE_FILE_HANDLE_CHECKED(file,
-                               CreateFileW(utf8_path_to_utf16(Path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null),
-                               make_pair(array<byte>{}, false));
+handle::read_entire_file_result handle::read_entire_file() const {
+    read_entire_file_result fail = {array<byte>{}, false};
+    CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_path_to_utf16(Path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), fail);
     defer(CloseHandle(file));
 
     LARGE_INTEGER size = {0};

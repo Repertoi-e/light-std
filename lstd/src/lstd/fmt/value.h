@@ -36,11 +36,11 @@ struct named_arg;
 
 namespace internal {
 template <typename T>
-struct type_constant : integral_constant<type, type::CUSTOM> {};
+struct type_constant : types::integral_constant<type, type::CUSTOM> {};
 
 #define TYPE_CONSTANT(Type, constant) \
     template <>                       \
-    struct type_constant<Type> : integral_constant<type, constant> {}
+    struct type_constant<Type> : types::integral_constant<type, constant> {}
 
 TYPE_CONSTANT(char, type::S64);
 TYPE_CONSTANT(s32, type::S64);

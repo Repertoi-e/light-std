@@ -67,16 +67,16 @@ TEST(hash_table) {
     set(t, "4", 4);
     set(t, "9", 10101);
 
-    assert((void *) find(t, "1").second);
-    assert_eq(*find(t, "1").second, 1);
-    assert((void *) find(t, "4").second);
-    assert_eq(*find(t, "4").second, 4);
-    assert((void *) find(t, "9").second);
-    assert_eq(*find(t, "9").second, 10101);
+    assert((void *) find(t, "1").Value);
+    assert_eq(*find(t, "1").Value, 1);
+    assert((void *) find(t, "4").Value);
+    assert_eq(*find(t, "4").Value, 4);
+    assert((void *) find(t, "9").Value);
+    assert_eq(*find(t, "9").Value, 10101);
 
     set(t, "9", 20202);
-    assert((void *) find(t, "9").second);
-    assert_eq(*find(t, "9").second, 20202);
+    assert((void *) find(t, "9").Value);
+    assert_eq(*find(t, "9").Value, 20202);
     set(t, "9", 9);
 
     s64 loopIterations = 0;
@@ -91,6 +91,7 @@ TEST(hash_table) {
 
     hash_table<string, s32> empty;
     for (auto [key, value] : empty) {
+        (void) key, value; // Unused variable
         assert(false);
     }
 }

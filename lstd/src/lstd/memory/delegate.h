@@ -58,14 +58,14 @@ struct delegate<R(A...)> {
     static constexpr bool IS_ARRAY_LIKE = true;
 
     static constexpr s64 Count = sizeof(default_type);
-    
+
     alignas(default_type) byte Data[Count]{};
     alignas(stub_t) stub_t Invoker = null;
 
     // Invoke static method / free function
-    template <nullptr_t, typename Signature>
+    template <decltype(null), typename Signature>
     static R invoke(void *data, A &&... args) {
-        return (*reinterpret_cast<const target<nullptr_t, Signature> *>(data)->FunctionPtr)((A &&)(args)...);
+        return (*reinterpret_cast<const target<decltype(null), Signature> *>(data)->FunctionPtr)((A &&)(args)...);
     }
 
     // Invoke method
@@ -75,21 +75,21 @@ struct delegate<R(A...)> {
     }
 
     // Invoke function object (functor)
-    template <typename Type, nullptr_t>
+    template <typename Type, decltype(null)>
     static R invoke(void *data, A &&... args) {
-        return (*reinterpret_cast<const target<Type, nullptr_t> *>(data)->InstancePtr)((A &&)(args)...);
+        return (*reinterpret_cast<const target<Type, decltype(null)> *>(data)->InstancePtr)((A &&)(args)...);
     }
 
     delegate() {}
 
     // Construct from null
-    delegate(nullptr_t) {}
+    delegate(decltype(null)) {}
 
     // Construct delegate with static method / free function
     delegate(R (*function)(A...)) {
         using Signature = decltype(function);
 
-        auto storage = (target<nullptr_t, Signature> *) &Data[0];
+        auto storage = (target<decltype(null), Signature> *) &Data[0];
         storage->InstancePtr = null;
         storage->FunctionPtr = function;
         Invoker = &delegate::invoke<null, Signature>;
@@ -104,6 +104,9 @@ struct delegate<R(A...)> {
         Invoker = &delegate::invoke<Type, Signature>;
     }
 
+    // using nullptr_t = decltype(null);
+    
+
     // Construct delegate with function object (functor) / lambda
     template <typename Type>
     delegate(Type *functor) {
@@ -114,14 +117,14 @@ struct delegate<R(A...)> {
     }
 
     // Assign null pointer
-    delegate &operator=(nullptr_t) {
+    delegate &operator=(decltype(null)) {
         zero_memory(Data, Count);
         Invoker = null;
         return *this;
     }
 
-    bool operator==(nullptr_t) const { return !Invoker; }
-    bool operator!=(nullptr_t) const { return Invoker; }
+    bool operator==(decltype(null)) const { return !Invoker; }
+    bool operator!=(decltype(null)) const { return Invoker; }
 
     operator bool() const { return Invoker; }
 

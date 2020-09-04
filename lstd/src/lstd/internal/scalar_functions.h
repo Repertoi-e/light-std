@@ -11,10 +11,10 @@
 
 LSTD_BEGIN_NAMESPACE
 
-template <std::integral T>
+template <types::is_integral T>
 constexpr T is_pow_of_2(T number) { return (number & (number - 1)) == 0; }
 
-template <std::integral T>
+template <types::is_integral T>
 constexpr T const_abs(T number) {
     auto s = number >> (sizeof(T) * 8 - 1);
     return (number ^ s) - s;
@@ -32,12 +32,12 @@ constexpr f64 const_abs(f64 number) {
     return format.F;
 }
 
-template <std::signed_integral T>
+template <types::is_signed_integral T>
 constexpr bool sign_bit(T number) {
     return number < 0;
 }
 
-template <std::unsigned_integral T>
+template <types::is_unsigned_integral T>
 constexpr bool sign_bit(T) {
     return false;
 }
@@ -142,7 +142,7 @@ f32 max(f32 x, f32 y);
 f64 min(f64 x, f64 y);
 f64 max(f64 x, f64 y);
 
-template <std::integral T>
+template <types::is_integral T>
 T ceil_pow_of_2(T v) {
     if (v <= 1) return 1;
     T power = 2;

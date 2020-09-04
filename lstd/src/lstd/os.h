@@ -78,12 +78,17 @@ string os_get_working_dir();
 //           are not thread-safe but we use a lock so these are.
 void os_set_working_dir(const string &dir);
 
+struct os_get_env_result {
+    string Value;
+    bool Success;
+};
+
 // Get the value of an environment variable, returns true if found.
 // If not found and silent is false, logs warning.
 //
 // [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
 // This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
-[[nodiscard]] pair<bool, string> os_get_env(const string &name, bool silent = false);
+[[nodiscard]] os_get_env_result os_get_env(const string &name, bool silent = false);
 
 // Sets a variable (creates if it doesn't exist yet) in this process' environment
 void os_set_env(const string &name, const string &value);

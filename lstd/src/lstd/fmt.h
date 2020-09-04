@@ -336,7 +336,7 @@ struct formatter<mat<T, R, C, Packed>> {
             for (s32 i = 0; i < src.Height; ++i) {
                 for (s32 j = 0; j < src.Width; ++j) {
                     s64 s;
-                    if constexpr (types::is_floating_point_v<T>) {
+                    if constexpr (types::is_floating_point<T>) {
                         s = calculate_formatted_size("{:f}", src(i, j));
                     } else {
                         s = calculate_formatted_size("{}", src(i, j));
@@ -351,13 +351,13 @@ struct formatter<mat<T, R, C, Packed>> {
         for (s32 i = 0; i < src.Height; ++i) {
             for (s32 j = 0; j < src.Width; ++j) {
                 if (alternate) {
-                    if constexpr (types::is_floating_point_v<T>) {
+                    if constexpr (types::is_floating_point<T>) {
                         to_writer(f, "{0:<{1}f}", src(i, j), max);
                     } else {
                         to_writer(f, "{0:<{1}}", src(i, j), max);
                     }
                 } else {
-                    if constexpr (types::is_floating_point_v<T>) {
+                    if constexpr (types::is_floating_point<T>) {
                         to_writer(f, "{0:f}", src(i, j));
                     } else {
                         to_writer(f, "{0:}", src(i, j));

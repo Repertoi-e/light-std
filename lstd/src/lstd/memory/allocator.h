@@ -3,8 +3,6 @@
 /// Defines the structure of allocators in this library.
 /// Provides a default thread-safe global allocator and thread local temporary allocator.
 
-#include <new>
-
 #include "../internal/common.h"
 #include "../thread.h"
 
@@ -311,17 +309,34 @@ LSTD_END_NAMESPACE
 // These currently don't get namespaced.
 
 template <typename T>
-T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const utf8 *file = "", s64 fileLine = -1) {
-    // @Cleanup: Concepts
-    static_assert(!types::is_same_v<T, void>);
-    static_assert(!types::is_const_v<T>);
+concept non_void = !types::is_same<typename T, void>;
 
+#if BITS == 64
+using size_t = u64;
+#else
+using size_t = u32;
+#endif
+using align_val_t = size_t;
+
+//
+// Normally <new> defines the placement new operator but since we don't include it (to avoid including STL at all) we define our own implementation here.
+//
+#if !defined LSTD_DONT_DEFINE_INITIALIZER_LIST
+#if COMPILER == MSVC
+inline void *__cdecl operator new (size_t, void *p) noexcept { return p; }
+#else
+inline void *operator new(size_t, void *p) noexcept { return p; }
+#endif
+#endif
+
+template <non_void T>
+T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const utf8 *file = "", s64 fileLine = -1) {
     s64 size = count * sizeof(T);
 
     if (!alloc) alloc = Context.Alloc;
     auto *result = (T *) general_allocate(alloc, size, alignment, options, file, fileLine);
 
-    if constexpr (!types::is_scalar_v<T>) {
+    if constexpr (!types::is_scalar<T>) {
         auto *p = result;
         auto *end = result + count;
         while (p != end) {
@@ -332,17 +347,17 @@ T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, co
     return result;
 }
 
-template <typename T>
+template <non_void T>
 T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, const utf8 *file = "", s64 fileLine = -1) {
     return lstd_allocate_impl<T>(count, alignment, alloc, 0, file, fileLine);
 }
 
-template <typename T>
+template <non_void T>
 T *lstd_allocate_impl(s64 count, u32 alignment, u64 options, const utf8 *file = "", s64 fileLine = -1) {
     return lstd_allocate_impl<T>(count, alignment, Context.Alloc, options, file, fileLine);
 }
 
-template <typename T>
+template <non_void T>
 T *lstd_allocate_impl(s64 count, u32 alignment, const utf8 *file = "", s64 fileLine = -1) {
     return lstd_allocate_impl<T>(count, alignment, Context.Alloc, 0, file, fileLine);
 }
@@ -350,11 +365,8 @@ T *lstd_allocate_impl(s64 count, u32 alignment, const utf8 *file = "", s64 fileL
 // Note: We don't support "non-trivially copyable" types (types that can have logic in the copy constructor).
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
-template <typename T>
-T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *file = "", s64 fileLine = -1) {
-    static_assert(!types::is_same_v<T, void>);
-    static_assert(!types::is_const_v<T>);
-
+template <non_void T>
+requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *file = "", s64 fileLine = -1) {
     if (!block) return null;
 
     // I think the standard implementation frees in this case but we need to decide
@@ -365,7 +377,7 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *f
     auto *header = (allocation_header *) block - 1;
     s64 oldCount = header->Size / sizeof(T);
 
-    if constexpr (!types::is_scalar_v<T>) {
+    if constexpr (!types::is_scalar<T>) {
         if (newCount < oldCount) {
             auto *p = block + newCount;
             auto *end = block + oldCount;
@@ -379,7 +391,7 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *f
     s64 newSize = newCount * sizeof(T);
     auto *result = (T *) general_reallocate(block, newSize, options, file, fileLine);
 
-    if constexpr (!types::is_scalar_v<T>) {
+    if constexpr (!types::is_scalar<T>) {
         if (oldCount < newCount) {
             auto *p = result + oldCount;
             auto *end = result + newCount;
@@ -394,27 +406,25 @@ T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *f
 
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
-template <typename T>
-T *lstd_reallocate_array_impl(T *block, s64 newCount, const utf8 *file = "", s64 fileLine = -1) {
+template <non_void T>
+requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCount, const utf8 *file = "", s64 fileLine = -1) {
     return lstd_reallocate_array_impl(block, newCount, 0, file, fileLine);
 }
 
-// Make sure you pass _block_ correctly as a T* otherwise we can't ensure it gets uninitialized correctly.
+// If T is non-scalar we call the destructors on _block_ (completely determined by T, so make sure you pass that correctly!)
 template <typename T>
-void lstd_free_impl(T *block, u64 options = 0) {
+requires(!types::is_const<T>) void lstd_free_impl(T *block, u64 options = 0) {
     if (!block) return;
 
-    static_assert(!types::is_const_v<T>);
-
     s64 sizeT = 1;
-    if constexpr (!types::is_same_v<T, void>) {
+    if constexpr (!types::is_same<typename T, void>) {
         sizeT = sizeof(T);
     }
 
     auto *header = (allocation_header *) block - 1;
     s64 count = header->Size / sizeT;
 
-    if constexpr (!types::is_same_v<T, void> && !types::is_scalar_v<T>) {
+    if constexpr (!types::is_same<typename T, void> && !types::is_scalar<T>) {
         auto *p = block;
         while (count--) {
             p->~T();
@@ -450,14 +460,14 @@ void lstd_free_impl(T *block, u64 options = 0) {
 //
 // We overload the new/delete operators so we handle the allocations. The allocator used is the one specified in the Context.
 //
-void *operator new(std::size_t size);
-void *operator new[](std::size_t size);
+void *operator new(size_t size);
+void *operator new[](size_t size);
 
-void *operator new(std::size_t size, std::align_val_t alignment);
-void *operator new[](std::size_t size, std::align_val_t alignment);
+void *operator new(size_t size, align_val_t alignment);
+void *operator new[](size_t size, align_val_t alignment);
 
 void operator delete(void *ptr) noexcept;
 void operator delete[](void *ptr) noexcept;
 
-void operator delete(void *ptr, std::align_val_t alignment) noexcept;
-void operator delete[](void *ptr, std::align_val_t alignment) noexcept;
+void operator delete(void *ptr, align_val_t alignment) noexcept;
+void operator delete[](void *ptr, align_val_t alignment) noexcept;

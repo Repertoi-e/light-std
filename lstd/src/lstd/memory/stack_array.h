@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../internal/common.h"
+#include "../types/integer_sequence.h"
 #include "array_like.h"
 #include "string_utils.h"
 
@@ -39,21 +40,21 @@ template <typename T>
 struct array_view;
 
 // @TODO: Document use cases for this and why is it different from array<T>
-template <typename T, s64 N>
+template <typename T_, s64 N>
 struct stack_array {
-    using data_t = T;
+    using T = T_;
 
     // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
     static constexpr bool IS_ARRAY_LIKE = true;
 
-    data_t Data[N ? N : 1];
+    T Data[N ? N : 1];
     static constexpr s64 Count = N;
 
     //
     // Iterators:
     //
-    using iterator = data_t *;
-    using const_iterator = const data_t *;
+    using iterator = T *;
+    using const_iterator = const T *;
 
     constexpr iterator begin() { return Data; }
     constexpr iterator end() { return Data + Count; }
@@ -65,8 +66,8 @@ struct stack_array {
     //
     operator array_view<T>() const;
 
-    constexpr data_t &operator[](s64 index) { return Data[translate_index(index, Count)]; }
-    constexpr const data_t &operator[](s64 index) const { return Data[translate_index(index, Count)]; }
+    constexpr T &operator[](s64 index) { return Data[translate_index(index, Count)]; }
+    constexpr const T &operator[](s64 index) const { return Data[translate_index(index, Count)]; }
 };
 
 namespace internal {
@@ -78,14 +79,13 @@ template <typename... Types>
 struct return_type_helper<void, Types...> : types::common_type<Types...> {};
 
 template <class T, s64 N, s64... I>
-constexpr stack_array<types::remove_cv_t<T>, N> to_array_impl(T (&a)[N], types::index_sequence<I...>) {
+constexpr stack_array<types::remove_cv_t<T>, N> to_array_impl(T (&a)[N], index_sequence<I...>) {
     return {{a[I]...}};
 }
 }  // namespace internal
 
 template <typename D = void, class... Types>
-constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, sizeof...(Types)> to_stack_array(
-    Types &&... t) {
+constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, sizeof...(Types)> to_stack_array(Types &&... t) {
     return {(Types &&)(t)...};
 }
 

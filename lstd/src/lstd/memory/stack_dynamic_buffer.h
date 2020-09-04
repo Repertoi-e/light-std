@@ -46,10 +46,10 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 };
 
 template <typename T>
-struct is_stack_dynamic_buffer : false_t {};
+struct is_stack_dynamic_buffer : types::false_t {};
 
 template <s64 StackSize>
-struct is_stack_dynamic_buffer<stack_dynamic_buffer<StackSize>> : true_t {};
+struct is_stack_dynamic_buffer<stack_dynamic_buffer<StackSize>> : types::true_t {};
 
 template <typename T>
 concept any_stack_dynamic_buffer = is_stack_dynamic_buffer<T>::value;

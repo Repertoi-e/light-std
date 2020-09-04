@@ -194,8 +194,8 @@ struct string : public array_view<utf8> {
     // Gets [begin, end) range of characters into a new string object.
     // This function doesn't allocate, but just returns a "view".
     constexpr string substring(s64 begin, s64 end) const {
-        auto sub = substring_utf8(Data, Length, begin, end);
-        return string(sub.first, sub.second - sub.first);
+        auto [b, e] = substring_utf8(Data, Length, begin, end);
+        return string(b, e - b);
     }
 
     // Returns a substring with whitespace removed at the start.

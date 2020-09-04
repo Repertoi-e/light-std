@@ -19,32 +19,36 @@ struct arg {
 //   * does the type have a formatter? maps to &val (value then setups a function call to formatter<T>::format())
 //   * is string constructible from T? then we map to string(T)
 //   * is the type a pointer? if it's non-void we throw an error, otherwise we map to (void *) val
-//   * is the type arithmetic or an enum? maps to bool, f64, u64 or s64
+//   * is the type a bool? maps to bool
+//   * is the type an (un)integral? maps to u64 or s64
+//   * is the type a floating point? maps to f64
+//   * is the type a code_point_ref? maps to u64 (we want the value in that case)
+//   * is the type an enum? calls map_arg again with the underlying type
 // Otherwise we static_assert that the argument can't be formatted
 template <typename U>
 auto map_arg(const U &val) {
     using T = typename types::remove_cvref_t<U>;
 
-    static_assert(!types::is_same_v<T, long double>, "Argument of type 'long double' is not supported");
+    static_assert(!types::is_same<T, long double>, "Argument of type 'long double' is not supported");
 
     if constexpr (has_formatter_v<T>) {
         return &val;
-    } else if constexpr (types::is_same_v<string, T> || types::is_constructible_v<string, T>) {
+    } else if constexpr (types::is_same<string, T> || types::is_constructible_v<string, T>) {
         return string(val);
-    } else if constexpr (types::is_pointer_v<T>) {
-        static_assert(types::is_same_v<T, void *>, "Formatting of non-void pointers is disallowed");
+    } else if constexpr (types::is_pointer<T>) {
+        static_assert(types::is_same<T, void *>, "Formatting of non-void pointers is disallowed");
         return (const void *) val;
-    } else if constexpr (types::is_arithmetic_v<T> || types::is_same_v<T, string::code_point_ref>) {
-        if constexpr (types::is_same_v<bool, T>) {
-            return (bool) val;
-        } else if constexpr (types::is_floating_point_v<T>) {
-            return (f64) val;
-        } else if constexpr (types::is_signed_v<T>) {
-            return (s64) val;
-        } else {
-            return (u64) val;
-        }
-    } else if constexpr (types::is_enum_v<T>) {
+    } else if constexpr (types::is_same<bool, T>) {
+        return (bool) val;
+    } else if constexpr (types::is_signed_integral<T>) {
+        return (s64) val;
+    } else if constexpr (types::is_unsigned_integral<T>) {
+        return (u64) val;
+    } else if constexpr (types::is_floating_point<T>) {
+        return (f64) val;
+    } else if constexpr (types::is_same<T, string::code_point_ref>) {
+        return (u64) val;
+    } else if constexpr (types::is_enum<T>) {
         return map_arg((types::underlying_type_t<T>) val);
     } else {
         static_assert(false, "Argument doesn't have a formatter")
@@ -119,8 +123,8 @@ struct args_on_the_stack {
     static constexpr s64 NUM_ARGS = sizeof...(Args);
     static constexpr bool IS_PACKED = NUM_ARGS < MAX_PACKED_ARGS;
 
-    using data_t = types::select_t<IS_PACKED, value, arg>;
-    stack_array<data_t, NUM_ARGS> Data;
+    using T = types::select_t<IS_PACKED, value, arg>;
+    stack_array<T, NUM_ARGS> Data;
 
     u64 Types;
 

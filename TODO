@@ -22,12 +22,20 @@ API for watching directory changes
 ... and an asset catalog system
 ---------------------------------------------------------------------------------
 
+#define LSTD_DONT_DEFINE_INITIALIZER_LIST // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers
+#include <cmath> // @DependencyCleanup
+
+
+Check if we can reuse code in reader read_bytes etc an dand parse.h
+
+// @TODO: Move this in mat.h
+// @TODO: Reorder these.
+
 // Maps formatting arguments to types that can be used to construct a fmt::value
 
 Rework reader yet again ! (and writer)
 // @Bug value.Length is not enough (2 wide chars for one char)
 
-concepts namespace (like type namespace)
 Remove std:: from our code (implement everything we use ourselves for accurate line count and not relying on the STL etc)
 
 

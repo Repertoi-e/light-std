@@ -72,14 +72,22 @@ struct reader : non_copyable, non_movable, non_assignable {
     // in this reader may be invalid since we return views of the buffer.
     void request_next_buffer();
 
+    struct read_byte_result {
+        byte Byte;     // The value
+        bool Success;  // False if buffer is exhausted
+    };
+
     // Attemps to read just a single byte.
-    // Returns: the value read, a success flag (false if buffer is exhausted).
-    pair<byte, bool> read_byte();
+    read_byte_result read_byte();
+
+    struct read_n_bytes_result {
+        bytes Bytes;    // The stuff that was read
+        s64 Remaining;  // How many bytes WERENT'T read
+    };
 
     // Attemps to read _n_ bytes.
     //
     // If we run out of data we can't call _GiveMeBuffer_ and continue, because we can't return a view across two buffers, so we bail out.
-    // The first return value is the stuff that was read and the second is how many bytes WEREN'T read.
     //
     // There are two cases in which the second return value is non-zero:
     //  * The reader reached "end of file" (in which case the _EOF_ flag above is set to true).
@@ -91,7 +99,12 @@ struct reader : non_copyable, non_movable, non_assignable {
     //
     // Don't release the array returned by this function. It's just a view.
     // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
-    pair<bytes, s64> read_bytes(s64 n);
+    read_n_bytes_result read_bytes(s64 n);
+
+    struct read_bytes_result {
+        bytes Bytes;   // The stuff read
+        bool Success;  // True if the terminator was actually encountered - false if buffer was exhausted before that
+    };
 
     // Attemps to read bytes until _delim_ is encountered. Return value doesn't include _delim_.
     // This is an optimized version that works on a couple bytes at a time instead of comparing byte by byte.
@@ -99,7 +112,7 @@ struct reader : non_copyable, non_movable, non_assignable {
     // We also have one for utf8 strings: _eat_code_points_until_.
     //
     // If we run out of data we can't call _GiveMeBuffer_ and continue, because we can't return a view across two buffers, so we bail out.
-    // The first return value is the stuff that was read and the second is whether _delim_ was actually encountered.
+    // The first return value is the stuff that was read and the second
     //
     // There are two cases in which the second return value is false:
     //  * The reader reached "end of file" (in which case the _EOF_ flag above is set to true).
@@ -111,13 +124,11 @@ struct reader : non_copyable, non_movable, non_assignable {
     //
     // Don't release the array returned by this function. It's just a view.
     // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
-    pair<bytes, bool> read_bytes_until(byte delim);
+    read_bytes_result read_bytes_until(byte delim);
 
     // Attemps to read bytes until a byte that is in _delims_ is encountered. Return value doesn't include the delimeter.
-    // @Speed This is the obvious version for now that checks byte by byte. Maybe we can optimize it?
-    //
-    // !!! Read the documentation for _read_bytes_until(byte delim)_ above!
-    pair<bytes, bool> read_bytes_until(bytes delims);
+    // @Speed This is the naive version for now that checks byte by byte. Maybe we can optimize it?
+    read_bytes_result read_bytes_until(bytes delims);
 
     // Attemps to read bytes until a byte that is different from _eats_ is encountered. Return value doesn't include the different byte.
     // This is an optimized version that works on a couple bytes at a time instead of comparing byte by byte.
@@ -137,13 +148,13 @@ struct reader : non_copyable, non_movable, non_assignable {
     //
     // Don't release the array returned by this function. It's just a view.
     // This library follows the convention that when a function is marked as [[nodiscard]] the returned value should be freed by the caller.
-    pair<bytes, bool> read_bytes_while(byte eats);
+    read_bytes_result read_bytes_while(byte eats);
 
     // Attemps to read bytes until a byte that is not in _anyOfThese_ is encountered. Return value doesn't include the different byte.
     // @Speed This is the obvious version for now that checks byte by byte. Maybe we can optimize it?
     //
     // !!! Read the documentation for _read_bytes_while(byte eats)_ above!
-    pair<bytes, bool> read_bytes_while(bytes anyOfThese);
+    read_bytes_result read_bytes_while(bytes anyOfThese);
 
     // !!! Doesn't safety check.
     // !!! Assumes there is enough data in _Buffer.

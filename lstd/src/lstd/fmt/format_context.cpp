@@ -1,5 +1,6 @@
 #include "format_context.h"
 
+#include "../types/numeric_info.h"
 #include "format_float.inl"
 
 LSTD_BEGIN_NAMESPACE
@@ -34,7 +35,7 @@ file_scope utf8 *format_uint_decimal(utf8 *buffer, UInt value, s64 formattedSize
     }
 
     if (value < 10) {
-        *--buffer = (utf8) ('0' + value);
+        *--buffer = (utf8)('0' + value);
         return buffer;
     }
 
@@ -117,7 +118,7 @@ void format_context_flush(io::writer *w) {
 }
 
 // @Threadsafety ???
-file_scope utf8 U64_FORMAT_BUFFER[types::numeric_info<u64>::digits10 + 1];
+file_scope utf8 U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
 
 void format_context::write(const void *value) {
     if (Specs && Specs->Type && Specs->Type != 'p') {
@@ -132,7 +133,7 @@ void format_context::write(const void *value) {
         this->write_no_specs(U'0');
         this->write_no_specs(U'x');
 
-        utf8 formatBuffer[types::numeric_info<u64>::digits / 4 + 2];
+        utf8 formatBuffer[numeric_info<u64>::digits / 4 + 2];
         auto *p = format_uint_base<4>(formatBuffer, uptr, numDigits);
         this->write_no_specs(p, formatBuffer + numDigits - p);
     };
@@ -383,11 +384,11 @@ struct width_checker {
 
     template <typename T>
     u32 operator()(T value) {
-        if constexpr (types::is_integral_v<T>) {
+        if constexpr (types::is_integral<T>) {
             if (sign_bit(value)) {
                 F->on_error("Negative width");
                 return (u32) -1;
-            } else if ((u64) value > types::numeric_info<s32>::max()) {
+            } else if ((u64) value > numeric_info<s32>::max()) {
                 F->on_error("Width value is too big");
                 return (u32) -1;
             }
@@ -404,11 +405,11 @@ struct precision_checker {
 
     template <typename T>
     s32 operator()(T value) {
-        if constexpr (types::is_integral_v<T>) {
+        if constexpr (types::is_integral<T>) {
             if (sign_bit(value)) {
                 F->on_error("Negative precision");
                 return -1;
-            } else if ((u64) value > types::numeric_info<s32>::max()) {
+            } else if ((u64) value > numeric_info<s32>::max()) {
                 F->on_error("Precision value is too big");
                 return -1;
             }
@@ -442,7 +443,7 @@ bool format_context::handle_dynamic_specs() {
         auto precision = get_arg_from_index(Specs->PrecisionIndex);
         if (precision.Type != type::NONE) {
             Specs->Precision = visit_fmt_arg(precision_checker{this}, precision);
-            if (Specs->Precision == types::numeric_info<s32>::min()) return false;
+            if (Specs->Precision == numeric_info<s32>::min()) return false;
         }
     }
 

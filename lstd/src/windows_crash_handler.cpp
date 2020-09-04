@@ -72,7 +72,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         append(callStack, call);
     }
 
-    auto desc = find(CodeDescs, exceptionCode).second;
+    auto desc = find(CodeDescs, exceptionCode).Value;
 
     string message = fmt::sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
     defer(message.release());
@@ -93,10 +93,9 @@ void release_code_descs() {
 }
 
 void win32_crash_handler_init() {
-    auto [success, processor] = os_get_env("PROCESSOR_ARCHITECTURE");
-    defer(processor.release());
-
+    auto [processor, success] = os_get_env("PROCESSOR_ARCHITECTURE");
     if (success) {
+        defer(processor.release());
         if (processor == "EM64T" || processor == "AMD64") {
             MachineType = IMAGE_FILE_MACHINE_AMD64;
         } else if (processor == "x86") {

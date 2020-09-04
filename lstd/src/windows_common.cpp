@@ -185,7 +185,7 @@ bool dynamic_library::load(const string &name) {
 
 void *dynamic_library::get_symbol(const string &name) {
     auto *cString = name.to_c_string();
-    defer(free(cString)); 
+    defer(free(cString));
     return (void *) GetProcAddress((HMODULE) Handle, (LPCSTR) cString);
 }
 
@@ -576,7 +576,7 @@ void os_set_working_dir(const string &dir) {
     WIN32_CHECKBOOL(SetCurrentDirectoryW(dir16));
 }
 
-pair<bool, string> os_get_env(const string &name, bool silent) {
+os_get_env_result os_get_env(const string &name, bool silent) {
     // @Bug name.Length is not enough (2 wide chars for one char)
     auto *name16 = allocate_array(utf16, name.Length + 1, Context.Temp);
     utf8_to_utf16(name.Data, name.Length, name16);
@@ -590,7 +590,7 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
         if (!silent) {
             fmt::print(">>> Warning: Couldn't find environment variable with value \"{}\"\n", name);
         }
-        return {false, ""};
+        return {"", false};
     }
 
     // 65535 may be the limit but let's not take risks
@@ -607,7 +607,7 @@ pair<bool, string> os_get_env(const string &name, bool silent) {
     utf16_to_utf8(buffer, const_cast<utf8 *>(result.Data), &result.Count);
     result.Length = utf8_length(result.Data, result.Count);
 
-    return {true, result};
+    return {result, true};
 }
 
 void os_set_env(const string &name, const string &value) {
@@ -703,16 +703,16 @@ guid guid_new() {
     GUID g;
     CoCreateGuid(&g);
 
-    stack_array<byte, 16> data = to_stack_array((byte)((g.Data1 >> 24) & 0xFF), (byte)((g.Data1 >> 16) & 0xFF),
-                                                (byte)((g.Data1 >> 8) & 0xFF), (byte)((g.Data1) & 0xff),
+    guid result = {(byte)((g.Data1 >> 24) & 0xFF), (byte)((g.Data1 >> 16) & 0xFF),
+                   (byte)((g.Data1 >> 8) & 0xFF), (byte)((g.Data1) & 0xff),
 
-                                                (byte)((g.Data2 >> 8) & 0xFF), (byte)((g.Data2) & 0xff),
+                   (byte)((g.Data2 >> 8) & 0xFF), (byte)((g.Data2) & 0xff),
 
-                                                (byte)((g.Data3 >> 8) & 0xFF), (byte)((g.Data3) & 0xFF),
+                   (byte)((g.Data3 >> 8) & 0xFF), (byte)((g.Data3) & 0xFF),
 
-                                                (byte) g.Data4[0], (byte) g.Data4[1], (byte) g.Data4[2], (byte) g.Data4[3],
-                                                (byte) g.Data4[4], (byte) g.Data4[5], (byte) g.Data4[6], (byte) g.Data4[7]);
-    return guid(data);
+                   (byte) g.Data4[0], (byte) g.Data4[1], (byte) g.Data4[2], (byte) g.Data4[3],
+                   (byte) g.Data4[4], (byte) g.Data4[5], (byte) g.Data4[6], (byte) g.Data4[7]};
+    return result;
 }
 
 LSTD_END_NAMESPACE

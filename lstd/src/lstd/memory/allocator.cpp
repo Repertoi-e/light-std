@@ -471,13 +471,13 @@ void free_all(allocator alloc, u64 options) {
 
 LSTD_END_NAMESPACE
 
-void *operator new(std::size_t size) { return general_allocate(Context.Alloc, size, 0, 0); }
-void *operator new[](std::size_t size) { return general_allocate(Context.Alloc, size, 0, 0); }
-void *operator new(std::size_t size, std::align_val_t alignment) { return general_allocate(Context.Alloc, size, (u32) alignment); }
-void *operator new[](std::size_t size, std::align_val_t alignment) { return general_allocate(Context.Alloc, size, (u32) alignment); }
+void *operator new(size_t size) { return general_allocate(Context.Alloc, size, 0, 0); }
+void *operator new[](size_t size) { return general_allocate(Context.Alloc, size, 0, 0); }
+void *operator new(size_t size, align_val_t alignment) { return general_allocate(Context.Alloc, size, (u32) alignment); }
+void *operator new[](size_t size, align_val_t alignment) { return general_allocate(Context.Alloc, size, (u32) alignment); }
 
 void operator delete(void *ptr) noexcept { general_free(ptr); }
 void operator delete[](void *ptr) noexcept { general_free(ptr); }
 
-void operator delete(void *ptr, std::align_val_t alignment) noexcept { general_free(ptr); }
-void operator delete[](void *ptr, std::align_val_t alignment) noexcept { general_free(ptr); }
+void operator delete(void *ptr, align_val_t alignment) noexcept { general_free(ptr); }
+void operator delete[](void *ptr, align_val_t alignment) noexcept { general_free(ptr); }

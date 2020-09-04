@@ -11,7 +11,7 @@ using c_string_type = types::remove_const_t<types::remove_pointer_t<T>> *;
 
 // @Cleanup This looks messy
 template <typename T>
-concept c_string = types::is_same_v<c_string_type<T>, char8_t *> || types::is_same_v<c_string_type<T>, utf8 *> || types::is_same_v<c_string_type<T>, utf16 *> || types::is_same_v<c_string_type<T>, utf32 *>;
+concept c_string = types::is_same<c_string_type<T>, char8_t *> || types::is_same<c_string_type<T>, utf8 *> || types::is_same<c_string_type<T>, utf16 *> || types::is_same<c_string_type<T>, utf32 *>;
 
 // Retrieve the length of a standard cstyle string. Doesn't care about encoding.
 // Note that this calculation does not include the null byte.
@@ -762,9 +762,13 @@ constexpr const utf8 *find_utf8_reverse_not_any_of(const utf8 *str, s64 length1,
     return null;
 }
 
+struct substring_utf8_result {
+    const utf8 *Begin, *End;
+};
+
 // Gets [begin, end) range of characters of a utf8 string.
 // Returns begin-end pointers.
-constexpr pair<const utf8 *, const utf8 *> substring_utf8(const utf8 *str, s64 length, s64 begin, s64 end) {
+constexpr substring_utf8_result substring_utf8(const utf8 *str, s64 length, s64 begin, s64 end) {
     // Convert to absolute [begin, end)
     s64 beginIndex = translate_index(begin, length);
     s64 endIndex = translate_index(end, length, true);

@@ -2,6 +2,7 @@
 
 #include "../internal/common.h"
 #include "../memory/stack_array.h"
+#include "../types/numeric_info.h"
 #include "vec_util.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -39,7 +40,7 @@ template <any_vec Vec>
 bool is_null_vector(const Vec &v) {
     using T = Vec::T;
 
-    static constexpr T epsilon = T(1) / const_exp10<T>(const_abs(types::numeric_info<T>::min_exponent10) / 2);
+    static constexpr T epsilon = T(1) / const_exp10<T>(const_abs(numeric_info<T>::min_exponent10) / 2);
     T length = len(v);
     return length < epsilon;
 }
@@ -93,7 +94,7 @@ Vec safe_normalize(const Vec &v) {
     using T = Vec::T;
 
     Vec vmod = v;
-    vmod[0] = abs(v[0]) > types::numeric_info<T>::denorm_min() ? v[0] : types::numeric_info<T>::denorm_min();
+    vmod[0] = abs(v[0]) > numeric_info<T>::denorm_min() ? v[0] : numeric_info<T>::denorm_min();
     T l = len_precise(vmod);
     return vmod / l;
 }

@@ -40,9 +40,7 @@ s64 parse_context::parse_arg_id() {
     }
 
     if (is_digit(ch)) {
-        u32 value, status;
-        bytes rest;
-        tie(value, status, rest) = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
+        auto [value, status, rest] = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
         It = string(rest);
 
         if (status == PARSE_TOO_MANY_DIGITS) {
@@ -289,10 +287,10 @@ bool parse_context::parse_fill_and_align(type argType, format_specs *specs) {
 
 bool parse_context::parse_width(dynamic_format_specs *specs) {
     if (is_digit(It[0])) {
-        parse_status status;
-        bytes rest;
-        tie(specs->Width, status, rest) = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
+        auto [value, status, rest] = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
         It = string(rest);
+
+        specs->Width = value;
 
         if (status == PARSE_TOO_MANY_DIGITS) {
             on_error("We parsed an integer width which was too large");
@@ -326,10 +324,10 @@ bool parse_context::parse_precision(type argType, dynamic_format_specs *specs) {
     }
 
     if (is_digit(It[0])) {
-        parse_status status;
-        bytes rest;
-        tie(specs->Precision, status, rest) = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
+        auto [value, status, rest] = parse_int<u32, parse_int_options{.ParseSign = false}>(It, 10);
         It = string(rest);
+
+        specs->Precision = value;
 
         if (status == PARSE_TOO_MANY_DIGITS) {
             on_error("We parsed an integer precision which was too large");

@@ -11,19 +11,19 @@ LSTD_BEGIN_NAMESPACE
 //
 // This type is entirely constexpr. Everything except methods that modify the contents of the string can be used compile-time.
 // e.g. sub_view, searching, trimming etc.
-template <typename T>
+template <typename T_>
 struct array_view {
-    using data_t = T;
+    using T = T_;
 
     // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
     static constexpr bool IS_ARRAY_LIKE = true;
 
-    data_t *Data = null;
+    T *Data = null;
     s64 Count = 0;
 
     constexpr array_view() {}
-    constexpr array_view(data_t *data, s64 count) : Data(data), Count(count) {}
-    constexpr array_view(const initializer_list<data_t> &items) {
+    constexpr array_view(T *data, s64 count) : Data(data), Count(count) {}
+    constexpr array_view(const initializer_list<T> &items) {
         static_assert(false, "This bug bit me hard... You cannot create arrays which are views into initializer lists.");
         static_assert(false, "You may want to reserve a dynamic array with those values. In that case make an empty array and use append_list().");
         static_assert(false, "Or you can store them in an array on the stack - e.g. use to_stack_array(1, 2, 3...)");
@@ -32,8 +32,8 @@ struct array_view {
     //
     // Iterators:
     //
-    using iterator = data_t *;
-    using const_iterator = const data_t *;
+    using iterator = T *;
+    using const_iterator = const T *;
 
     constexpr iterator begin() { return Data; }
     constexpr iterator end() { return Data + Count; }
@@ -43,8 +43,8 @@ struct array_view {
     //
     // Operators:
     //
-    constexpr data_t &operator[](s64 index) { return Data[translate_index(index, Count)]; }
-    constexpr const data_t &operator[](s64 index) const { return Data[translate_index(index, Count)]; }
+    constexpr T &operator[](s64 index) { return Data[translate_index(index, Count)]; }
+    constexpr const T &operator[](s64 index) const { return Data[translate_index(index, Count)]; }
 
     explicit operator bool() const { return Count; }
 
@@ -52,10 +52,10 @@ struct array_view {
     // They are identical (both are unsigned bytes) but we use them to differentiate when we are working with just arrays of bytes or
     // arrays that contain encoded utf8. It's more of an "intent" thing and being explicit with it is, I think, good.
     template <typename U = T>
-    requires(types::is_same_v<types::remove_const_t<U>, utf8>) operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
+    requires(types::is_same<types::remove_const_t<U>, utf8>) operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
 
     template <typename U = T>
-    requires(types::is_same_v<types::remove_const_t<U>, byte>) operator array_view<utf8>() const { return array_view<utf8>((utf8 *) Data, Count); }
+    requires(types::is_same<types::remove_const_t<U>, byte>) operator array_view<utf8>() const { return array_view<utf8>((utf8 *) Data, Count); }
 };
 
 // We use array_view<byte> when parsing all the time for example and it's kinda a long name..
@@ -167,6 +167,8 @@ T *insert(array<T> &arr, s64 index, const data_t<array<T>> &element) {
     ++arr.Count;
     return where;
 }
+
+#undef data_t
 
 // Inserts an empty element at a specified index and returns a pointer to it in the buffer.
 //

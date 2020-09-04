@@ -30,10 +30,7 @@ struct format_context : io::writer {
     dynamic_format_specs *Specs = null;
 
     format_context(io::writer *out, const string &fmtString, const args &args, parse_context::error_handler_t errorHandlerFunc)
-        : writer(format_context_write, format_context_flush),
-          Out(out),
-          Args(args),
-          Parse(fmtString, errorHandlerFunc) {}
+        : writer(format_context_write, format_context_flush), Out(out), Args(args), Parse(fmtString, errorHandlerFunc) {}
 
     using io::writer::write;
 
@@ -42,7 +39,7 @@ struct format_context : io::writer {
     void write(const utf8 *str) { write((const byte *) str, c_string_length(str)); }
     void write(const char8_t *str) { write((const byte *) str, c_string_length(str)); }
 
-    template <std::integral T>
+    template <types::is_integral T>
     void write(T value) {
         u64 absValue = (u64) value;
         bool negative = sign_bit(value);
@@ -55,7 +52,7 @@ struct format_context : io::writer {
         }
     }
 
-    template <std::floating_point T>
+    template <types::is_floating_point T>
     void write(T value) {
         if (Specs) {
             write_f64((f64) value, *Specs);
@@ -87,7 +84,7 @@ struct format_context : io::writer {
 
     void write_no_specs(utf32 cp) { Out->write(cp); }
 
-    template <std::integral T>
+    template <types::is_integral T>
     void write_no_specs(T value) {
         u64 absValue = (u64) value;
         bool negative = sign_bit(value);
@@ -95,7 +92,7 @@ struct format_context : io::writer {
         write_u64(absValue, negative, {});
     }
 
-    template <std::floating_point T>
+    template <types::is_floating_point T>
     void write_no_specs(T value) {
         write_f64((f64) value, {});
     }

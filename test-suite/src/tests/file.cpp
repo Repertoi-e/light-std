@@ -154,9 +154,9 @@ TEST(read_every_file_in_project) {
             p.combine_with(it);
             defer(p.release());
 
-            auto *counter = files.find(p.Str).second;
+            auto *counter = files.find(p.Str).Second;
             if (!counter) {
-                counter = files.add(p.Str, 0).second;
+                counter = files.add(p.Str, 0).Second;
             }
             ++*counter;
             --fileCounter;

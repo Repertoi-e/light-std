@@ -13,7 +13,7 @@ void reader::request_next_buffer() {
     if (status == eof) EOF = true;
 }
 
-pair<byte, bool> reader::read_byte() {
+reader::read_byte_result reader::read_byte() {
     if (EOF) return {0, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
@@ -27,7 +27,7 @@ pair<byte, bool> reader::read_byte() {
     return {0, false};
 }
 
-pair<bytes, s64> reader::read_bytes(s64 n) {
+reader::read_n_bytes_result reader::read_bytes(s64 n) {
     if (EOF) return {{}, n};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
@@ -40,7 +40,7 @@ pair<bytes, s64> reader::read_bytes(s64 n) {
     }
 }
 
-pair<bytes, bool> reader::read_bytes_until(byte delim) {
+reader::read_bytes_result reader::read_bytes_until(byte delim) {
     if (EOF) return {{}, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
@@ -60,7 +60,7 @@ pair<bytes, bool> reader::read_bytes_until(byte delim) {
     return {bytes(Buffer.Data, p - Buffer.Data), false};
 }
 
-pair<bytes, bool> reader::read_bytes_until(bytes delims) {
+reader::read_bytes_result reader::read_bytes_until(bytes delims) {
     if (EOF) return {{}, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
@@ -74,7 +74,7 @@ pair<bytes, bool> reader::read_bytes_until(bytes delims) {
     return {bytes(Buffer.Data, p - Buffer.Data), false};
 }
 
-pair<bytes, bool> reader::read_bytes_while(byte eats) {
+reader::read_bytes_result reader::read_bytes_while(byte eats) {
     if (EOF) return {{}, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");
@@ -94,7 +94,7 @@ pair<bytes, bool> reader::read_bytes_while(byte eats) {
     return {bytes(Buffer.Data, p - Buffer.Data), false};
 }
 
-pair<bytes, bool> reader::read_bytes_while(bytes anyOfThese) {
+reader::read_bytes_result reader::read_bytes_while(bytes anyOfThese) {
     if (EOF) return {{}, false};
 
     assert(Buffer.Data && "Didn't call request_next_buffer?");

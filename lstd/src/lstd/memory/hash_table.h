@@ -13,6 +13,16 @@ using hash_table_key_t = typename types::remove_pointer_t<decltype(HashTableT::K
 template <typename HashTableT>
 using hash_table_value_t = typename types::remove_pointer_t<decltype(HashTableT::Values)>;
 
+// #undefed at the end of the file
+#define key_t hash_table_key_t
+#define value_t hash_table_value_t
+
+template <typename T>
+struct key_value_pair {
+    key_t<T> *Key;
+    value_t<T> *Value;
+};
+
 // This hash table stores all entries in a contiguous array, for good performance when looking up things. Some tables
 // work by storing linked lists of entries, but that can lead to many more cache misses.
 //
@@ -36,11 +46,10 @@ using hash_table_value_t = typename types::remove_pointer_t<decltype(HashTableT:
 // all contiguously or by seperate allocation calls. You want to allocate them next to each other because that's good for the cache,
 // but if the hash table is too large then the block won't fit in the cache anyways so you should consider setting this to false to reduce
 // the size of the allocation request.
-template <typename K, typename V, bool BlockAlloc = true>
+template <typename K_, typename V_, bool BlockAlloc = true>
 struct hash_table {
-    using key_t = K;
-    using value_t = V;
-
+    using K = K_;
+    using V = V_;
     static constexpr bool BLOCK_ALLOC = BlockAlloc;
 
     static constexpr s64 MINIMUM_SIZE = 32;
@@ -56,8 +65,8 @@ struct hash_table {
     s64 SlotsFilled = 0;
 
     u64 *Hashes = null;
-    key_t *Keys = null;
-    value_t *Values = null;
+    K *Keys = null;
+    V *Values = null;
 
     hash_table() {}
 
@@ -69,7 +78,7 @@ struct hash_table {
     //
     template <bool Const>
     struct iterator_ {
-        using hash_table_t = types::select_t<Const, const hash_table<key_t, value_t>, hash_table<key_t, value_t>>;
+        using hash_table_t = types::select_t<Const, const hash_table<K, V>, hash_table<K, V>>;
 
         hash_table_t *Parent;
         s64 Index;
@@ -96,8 +105,8 @@ struct hash_table {
         bool operator==(const iterator_ &other) const { return Parent == other.Parent && Index == other.Index; }
         bool operator!=(const iterator_ &other) const { return !(*this == other); }
 
-        auto operator*() {
-            return make_pair(Parent->Keys + Index, Parent->Values + Index);
+        key_value_pair<hash_table_t> operator*() {
+            return {Parent->Keys + Index, Parent->Values + Index};
         }
 
        private:
@@ -123,21 +132,18 @@ struct hash_table {
 
     // Returns a pointer to the value associated with _key_.
     // If the key doesn't exist, this adds a new element and returns it.
-    value_t *operator[](const key_t &key) {
+    V *operator[](const K &key) {
         auto [kp, vp] = find(*this, key);
         if (vp) return vp;
-        return add(*this, key, V()).second;
+        return add(*this, key, V()).Value;
     }
 };
 
-#define key_t hash_table_key_t
-#define value_t hash_table_value_t
-
 template <typename T>
-struct is_hash_table : false_t {};
+struct is_hash_table : types::false_t {};
 
 template <typename K, typename V, bool BlockAlloc>
-struct is_hash_table<hash_table<K, V, BlockAlloc>> : true_t {};
+struct is_hash_table<hash_table<K, V, BlockAlloc>> : types::true_t {};
 
 template <typename T>
 concept any_hash_table = is_hash_table<T>::value;
@@ -261,7 +267,7 @@ void reset(T &table) {
 // In normal _find_ we calculate the hash of the key using the global get_hash() specialized functions.
 // This method is useful if you have cached the hash.
 template <any_hash_table T>
-pair<key_t<T> *, value_t<T> *> find_prehashed(const T &table, u64 hash, const key_t<T> &key) {
+key_value_pair<T> find_prehashed(const T &table, u64 hash, const key_t<T> &key) {
     if (!table.Count) return {null, null};
 
     s64 index = hash & (table.Allocated - 1);
@@ -282,7 +288,7 @@ pair<key_t<T> *, value_t<T> *> find_prehashed(const T &table, u64 hash, const ke
 
 // We calculate the hash of the key using the global get_hash() specialized functions.
 template <any_hash_table T>
-pair<key_t<T> *, value_t<T> *> find(const T &table, const key_t<T> &key) {
+key_value_pair<T> find(const T &table, const key_t<T> &key) {
     return find_prehashed(table, get_hash(key), key);
 }
 
@@ -291,7 +297,7 @@ pair<key_t<T> *, value_t<T> *> find(const T &table, const key_t<T> &key) {
 // This method is useful if you have cached the hash.
 // Returns pointers to the added key and value.
 template <any_hash_table T>
-pair<key_t<T> *, value_t<T> *> add_prehashed(T &table, u64 hash, const key_t<T> &key, const value_t<T> &value) {
+key_value_pair<T> add_prehashed(T &table, u64 hash, const key_t<T> &key, const value_t<T> &value) {
     // The + 1 here handles the case when the hash table size is 1 and you add the first item.
     if ((table.SlotsFilled + 1) * 2 >= table.Allocated) reserve(table, table.SlotsFilled);  // Make sure the hash table is never more than 50% full
 
@@ -326,27 +332,27 @@ pair<key_t<T> *, value_t<T> *> add_prehashed(T &table, u64 hash, const key_t<T> 
 //
 // We calculate the hash of the key using the global get_hash() specialized functions.
 template <any_hash_table T>
-pair<key_t<T> *, value_t<T> *> add(T &table, const key_t<T> &key) { return add(table, key, value_t<T>()); }
+key_value_pair<T> add(T &table, const key_t<T> &key) { return add(table, key, value_t<T>()); }
 
 // Inserts an empty key/value pair with a given hash.
 // Use the returned pointers to fill out the slots.
 // This is useful if you want to clone() the key and value and not just shallow copy them.
 template <any_hash_table T>
-pair<key_t<T> *, value_t<T> *> add(T &table, u64 hash) {
+key_value_pair<T> add(T &table, u64 hash) {
     return add_prehashed(table, hash, K(), V());
 }
 
 // We calculate the hash of the key using the global get_hash() specialized functions.
 // Returns pointers to the added key and value.
 template <any_hash_table T>
-pair<key_t<T> *, value_t<T> *> add(T &table, const key_t<T> &key, const value_t<T> &value) {
+key_value_pair<T> add(T &table, const key_t<T> &key, const value_t<T> &value) {
     return add_prehashed(table, get_hash(key), key, value);
 }
 
 // In normal _set_ we calculate the hash of the key using the global get_hash() specialized functions.
 // This method is useful if you have cached the hash.
 template <any_hash_table T>
-pair<key_t<T> *, value_t<T> *> set_prehashed(T &table, u64 hash, const key_t<T> &key, const value_t<T> &value) {
+key_value_pair<T> set_prehashed(T &table, u64 hash, const key_t<T> &key, const value_t<T> &value) {
     auto [kp, vp] = find_prehashed(table, hash, key);
     if (vp) {
         *vp = value;
@@ -357,7 +363,7 @@ pair<key_t<T> *, value_t<T> *> set_prehashed(T &table, u64 hash, const key_t<T> 
 
 // We calculate the hash of the key using the global get_hash() specialized functions.
 template <any_hash_table T>
-pair<key_t<T> *, value_t<T> *> set(T &table, const key_t<T> &key, const value_t<T> &value) {
+key_value_pair<T> set(T &table, const key_t<T> &key, const value_t<T> &value) {
     return set_prehashed(table, get_hash(key), key, value);
 }
 

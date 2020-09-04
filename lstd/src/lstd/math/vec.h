@@ -9,6 +9,8 @@
 #include "swizzle_3.inl"
 #include "swizzle_4.inl"
 
+#include <cmath> // @DependencyCleanup
+
 LSTD_BEGIN_NAMESPACE
 
 //
@@ -203,7 +205,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
 
     vec() {
         // By default we zero-init
-        if constexpr (types::is_scalar_v<T>) {
+        if constexpr (types::is_scalar<T>) {
             zero_memory(&Data[0], Dim * sizeof(T));
         } else {
             For(range(DIM)) Data[it] = T(0);
@@ -328,7 +330,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
 };
 
 template <typename SimdT, s64... Indices>
-auto shuffle_reverse(SimdT arg, types::integer_sequence<s64, Indices...>) {
+auto shuffle_reverse(SimdT arg, integer_sequence<s64, Indices...>) {
     return SimdT::template shuffle<Indices...>(arg);
 }
 
@@ -341,15 +343,15 @@ swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Ind
         using DestSimdT = decltype(types::declval<DestVecT>().Simd);
 
         constexpr s64 VectorDataDim = vec_info<VectorDataU>::DIM;
-        if constexpr (types::is_same_v<SourceSimdT, DestSimdT>) {
+        if constexpr (types::is_same<SourceSimdT, DestSimdT>) {
             auto &sourceSimd = ((VectorDataU *) this)->Simd;
             // :SimdForVec3: We support SIMD for vectors with a dimension of 3 and we treat them as having 4 components
             if constexpr (sizeof...(Indices) == 3 && VectorDataDim == 3 && VectorDataDim == 4) {
-                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename types::reverse_integer_sequence<types::integer_sequence<s64, Indices..., 3>>::type{})};
+                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_integer_sequence<integer_sequence<s64, Indices..., 3>>::type{})};
             } else if constexpr (sizeof...(Indices) == 4 && VectorDataDim == 3 && VectorDataDim == 4) {
-                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename types::reverse_integer_sequence<types::integer_sequence<s64, Indices...>>::type{})};
+                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_integer_sequence<integer_sequence<s64, Indices...>>::type{})};
             } else if constexpr (sizeof...(Indices) == 2 && VectorDataDim == 2) {
-                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename types::reverse_integer_sequence<types::integer_sequence<s64, Indices...>>::type{})};
+                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_integer_sequence<integer_sequence<s64, Indices...>>::type{})};
             }
         }
     }

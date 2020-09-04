@@ -2,6 +2,7 @@
 
 #include "io/reader.h"
 #include "memory/array.h"
+#include "types/numeric_info.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -145,7 +146,7 @@ struct parse_int_options {
 template <typename IntT>
 IntT handle_negative(IntT value, bool negative) {
     if (negative) {
-        if constexpr (types::is_unsigned_v<IntT>) {
+        if constexpr (types::is_unsigned_integral<IntT>) {
             return IntT(0 - value);
         } else {
             return -value;
@@ -159,11 +160,15 @@ inline void advance(bytes *p, s64 count) {
     p->Count -= count;
 }
 
+template <typename T>
+struct parse_result {
+    T Value;
+    parse_status Status;  // If the status was PARSE_INVALID then some bytes could have been consumed (for example +/- or the base prefix).
+    bytes Rest;
+};
+
 // Attemps to parse an integer. The integer size returned is determined explictly as a template parameter.
 // This is a very general and light function.
-//
-// There are 3 return values: the value parsed, the parse status and the rest of the buffer after consuming some characters for the parsing.
-// If the status was PARSE_INVALID then some bytes could have been consumed (for example +/- or the base prefix).
 //
 // Allows for compilation of different code paths using a template parameter which is a pointer to a struct (parse_int_options) with constants.
 // The options are described there (a bit earlier in this file). But in short, it contains a function which maps bytes to digits as well as options
@@ -191,7 +196,7 @@ inline void advance(bytes *p, s64 count) {
 //                            and in that case the max value of the integer type is returned (min value if parsing a negative number).
 //
 template <typename IntT, parse_int_options Options = parse_int_options{}>
-tuple<IntT, parse_status, bytes> parse_int(bytes buffer, u32 base = 10) {
+parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
     assert(base >= 2 && base <= 36);
 
     if (!buffer.Count) return {0, PARSE_EXHAUSTED, buffer};
@@ -230,10 +235,10 @@ tuple<IntT, parse_status, bytes> parse_int(bytes buffer, u32 base = 10) {
     if constexpr (Options.TooManyDigitsBehaviour == parse_int_options::BAIL) {
         // Here we determine at what point we stop parsing because the number becomes too big.
         // If however our parsing overflow behaviour is greedy we don't do this.
-        if constexpr (types::is_unsigned_v<IntT>) {
-            maxValue = (types::numeric_info<IntT>::max)();
+        if constexpr (types::is_unsigned_integral<IntT>) {
+            maxValue = (numeric_info<IntT>::max)();
         } else {
-            maxValue = negative ? -(types::numeric_info<IntT>::min()) : types::numeric_info<IntT>::max();
+            maxValue = negative ? -(numeric_info<IntT>::min()) : numeric_info<IntT>::max();
         }
 
         cutOff = const_abs(maxValue / base);
@@ -368,7 +373,7 @@ struct parse_bool_options {
 //   * PARSE_INVALID          if the function wasn't able to parse a valid bool
 //
 template <parse_bool_options Options = parse_bool_options{}>
-tuple<bool, parse_status, bytes> parse_bool(bytes buffer) {
+parse_result<bool> parse_bool(bytes buffer) {
     static_assert(Options.ParseNumbers || Options.ParseWords);  // Sanity
 
     if (!buffer) return {0, PARSE_EXHAUSTED, buffer};
@@ -406,10 +411,15 @@ tuple<bool, parse_status, bytes> parse_bool(bytes buffer) {
     return {false, PARSE_INVALID, p};
 }
 
+struct eat_hex_byte_result {
+    byte Value;
+    parse_status Status;
+};
+
 // Tries to parse exactly two hex digits as a byte.
 // We don't eat if parsing fails.
 template <byte_to_digit_t ByteToDigit = byte_to_digit_default>
-pair<byte, parse_status> eat_hex_byte(bytes *p) {
+eat_hex_byte_result eat_hex_byte(bytes *p) {
     auto [value, status, rest] = parse_int<u8, parse_int_options{.ParseSign = false, .ReturnLimitOnTooManyDigits = false, .MaxDigits = 2}>(*p, 16);
 
     if (status == PARSE_TOO_MANY_DIGITS) status = PARSE_SUCCESS;
@@ -440,8 +450,10 @@ struct parse_guid_options {
 // - {0x81a130d2,0x502f,0x4cf1,{0xa3,0x76,0x63,0xed,0xeb,0x00,0x0e,0x9f}}
 //
 // Doesn't pay attention to capitalization (both uppercase/lowercase/mixed are valid).
+//
+// Returns: the guid parsed, a status, and the rest of the buffer
 template <parse_guid_options Options = parse_guid_options{}>
-tuple<guid, parse_status, bytes> parse_guid(bytes buffer) {
+parse_result<guid> parse_guid(bytes buffer) {
     guid empty;
     if (!buffer) return {empty, PARSE_EXHAUSTED, buffer};
 
@@ -567,8 +579,14 @@ tuple<guid, parse_status, bytes> parse_guid(bytes buffer) {
     return {result, PARSE_SUCCESS, p};
 }
 
-// Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
-inline tuple<bytes, bool, bytes> eat_bytes_until(bytes buffer, byte delim) {
+struct eat_bytes_result {
+    bytes Value;   // The stuff read
+    bool Success;  // False if the buffer was exhausted
+    bytes Rest;    // The rest of the buffer
+};
+
+// Returns: the bytes read,  a success flag (false if buffer was exhausted), and the rest of the buffer
+inline eat_bytes_result eat_bytes_until(bytes buffer, byte delim) {
     bytes p = buffer;
     while (p.Count >= 4) {
         if (U32_HAS_BYTE(*(u32 *) p.Data, delim)) break;
@@ -582,7 +600,7 @@ inline tuple<bytes, bool, bytes> eat_bytes_until(bytes buffer, byte delim) {
 }
 
 // Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
-inline tuple<bytes, bool, bytes> eat_bytes_while(bytes buffer, byte eats) {
+inline eat_bytes_result eat_bytes_while(bytes buffer, byte eats) {
     bytes p = buffer;
     while (p.Count >= 4) {
         if (!(U32_HAS_BYTE(*(u32 *) p.Data, eats))) break;
@@ -596,13 +614,13 @@ inline tuple<bytes, bool, bytes> eat_bytes_while(bytes buffer, byte eats) {
 }
 
 // Returns the code point, a status, and the rest of the buffer.
-// Note: This validates the input!
+// Note: This checks for validity of the input!
 //
 // Status is: PARSE_SUCCESS, PARSE_INVALID (buffer contained invalid utf8), PARSE_EXHAUSTED (we ran out of bytes)
 //
 // :ParseInvalidConsumesByte
 // Read the doc in _eat_code_points_until_!
-inline tuple<utf32, parse_status, bytes> eat_code_point(bytes buffer) {
+inline parse_result<utf32> eat_code_point(bytes buffer) {
     if (!buffer) return {0, PARSE_EXHAUSTED, buffer};
 
     s64 sizeOfCp = get_size_of_cp((utf8 *) buffer.Data);
@@ -620,6 +638,12 @@ inline tuple<utf32, parse_status, bytes> eat_code_point(bytes buffer) {
     return {decode_cp(data), PARSE_SUCCESS, buffer};
 }
 
+struct parse_string_result {
+    string Value;
+    parse_status Status;
+    string Rest;
+};
+
 // Same as the buffer version (eat_bytes_until) but pays attention to utf8.
 // Returns: the code points read, a status, and the rest of the buffer.
 // Status is: PARSE_SUCCESS, PARSE_INVALID (buffer contained invalid utf8), PARSE_EXHAUSTED (we ran out of bytes)
@@ -634,7 +658,7 @@ inline tuple<utf32, parse_status, bytes> eat_code_point(bytes buffer) {
 //      This was a valid utf8 string until XXXX
 //                                         ^ error happened here. This is the last byte in the returned value. Rest of string in this case is "XXX".
 //
-inline tuple<string, parse_status, string> eat_code_points_until(bytes buffer, utf32 delim) {
+inline parse_string_result eat_code_points_until(bytes buffer, utf32 delim) {
     bytes p = buffer;
     while (true) {
         auto [cp, status, rest] = eat_code_point(p);
@@ -658,7 +682,7 @@ inline tuple<string, parse_status, string> eat_code_points_until(bytes buffer, u
 //
 // :ParseInvalidConsumesByte
 // Read the doc in _eat_code_points_until_!
-inline tuple<string, parse_status, string> eat_code_points_while(bytes buffer, utf32 eats) {
+inline parse_string_result eat_code_points_while(bytes buffer, utf32 eats) {
     bytes p = buffer;
     while (true) {
         auto [cp, status, rest] = eat_code_point(p);
@@ -676,12 +700,17 @@ inline tuple<string, parse_status, string> eat_code_points_while(bytes buffer, u
     return {string(buffer.Data, p.Data - buffer.Data), PARSE_SUCCESS, (string) p};
 }
 
-// Returns: the a status, and the rest of the buffer.
+struct eat_white_space_result {
+    parse_status Status;
+    string Rest;
+};
+
+// Returns: the status, and the rest of the buffer.
 // Status is: PARSE_SUCCESS, PARSE_INVALID (buffer contained invalid utf8), PARSE_EXHAUSTED (we ran out of bytes)
 //
 // :ParseInvalidConsumesByte
 // Read the doc in _eat_code_points_until_!
-inline pair<parse_status, string> eat_white_space(const string &str) {
+inline eat_white_space_result eat_white_space(const string &str) {
     bytes p = (bytes) str;
     while (true) {
         auto [cp, status, rest] = eat_code_point(p);

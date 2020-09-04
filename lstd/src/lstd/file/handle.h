@@ -106,9 +106,13 @@ struct handle {
         traverse_recursively_impl(Path, Path, func);
     }
 
-    // Reads entire file. Caller is responsible for freeing the string.
-    // (no async variant at the moment)
-    [[nodiscard("Leak")]] pair<bytes, bool> read_entire_file() const;
+    struct read_entire_file_result {
+        bytes Content;
+        bool Success;
+    };
+
+    // Reads entire file (no async variant available at the moment). Caller is responsible for freeing the string.
+    [[nodiscard("Leak")]] read_entire_file_result read_entire_file() const;
 
     // Write the data memory points to to a file.
     // Returns true on success.

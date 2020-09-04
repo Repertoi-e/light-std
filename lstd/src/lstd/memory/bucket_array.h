@@ -2,21 +2,34 @@
 
 #include "../internal/context.h"
 
-template <typename T, s64 ElementsPerBucket = 128>
-struct bucket_array : non_copyable, non_movable, non_assignable {
+template <typename T_, s64 ElementsPerBucket = 128>
+struct bucket_array {
+    using T = T_;
+    constexpr static s64 ELEMENTS_PER_BUCKET = ElementsPerBucket;
+
     struct bucket {
         T *Elements = null;
         s64 Count = 0, Allocated = 0;
         bucket *Next = null;
     };
+
     bucket BaseBucket;
     bucket *BucketHead = null;  // null means BaseBucket
 
     bucket_array() {}
 };
 
-template <typename T, s64 ElementsPerBucket = 128>
-void free(bucket_array<T, ElementsPerBucket> &arr) {
+template <typename T>
+struct is_bucket_array_helper : types::false_t {};
+
+template <typename T, s64 ElementsPerBucket>
+struct is_bucket_array_helper<bucket_array<T, ElementsPerBucket>> : types::true_t {};
+
+template <typename T>
+concept is_bucket_array = is_bucket_array_helper<T>::value;
+
+template <is_bucket_array T>
+void free(T &arr) {
     auto *b = arr.BucketHead->Next;  // The first bucket is on the stack
     while (b) {
         auto *toFree = b;
@@ -25,26 +38,26 @@ void free(bucket_array<T, ElementsPerBucket> &arr) {
     }
 }
 
-template <typename T, s64 ElementsPerBucket = 128>
-auto *get_bucket_head(bucket_array<T, ElementsPerBucket> &arr) {
+template <is_bucket_array T>
+auto *get_bucket_head(T &arr) {
     if (!arr.BucketHead) return &arr.BaseBucket;
     return arr.BucketHead;
 }
 
 // Search based on predicate
-template <typename T, s64 ElementsPerBucket = 128>
-T *find(const bucket_array<T, ElementsPerBucket> &arr, const delegate<bool(T *)> &predicate) {
+template <is_bucket_array T>
+auto *find(const T &arr, const delegate<bool(typename T::T *)> &predicate) {
     auto *b = get_bucket_head(arr);
     while (b) {
-        auto index = b->Assets.find(predicate);
-        if (index != -1) return (T *) b->Assets[index];
+        auto index = b->Elements.find(predicate);
+        if (index != -1) return (T::T *) b->Elements[index];
         b = b->Next;
     }
     return null;
 }
 
-template <typename T, s64 ElementsPerBucket = 128>
-T *append(bucket_array<T, ElementsPerBucket> &arr, const T &element, allocator alloc = {}) {
+template <is_bucket_array T>
+auto *append(T &arr, const typename T::T &element, allocator alloc = {}) {
     if (!alloc) alloc = Context.Alloc;
 
     auto *b = get_bucket_head(arr), *last = b;
@@ -58,16 +71,16 @@ T *append(bucket_array<T, ElementsPerBucket> &arr, const T &element, allocator a
         b = b->Next;
     }
 
-    b = last->Next = allocate(types::remove_pointer_t<decltype(b)>, alloc);
-    b->Elements = allocate_array(T, ElementsPerBucket, alloc);
-    b->Allocated = ElementsPerBucket;
+    b = last->Next = allocate(T::bucket, alloc);
+    b->Elements = allocate_array(T::T, T::ELEMENTS_PER_BUCKET, alloc);
+    b->Allocated = T::ELEMENTS_PER_BUCKET;
     clone(b->Elements, element);
     b->Count = 1;
     return b->Elements;
 }
 
-template <typename T, typename U, s64 ElementsPerBucket = 128>
-T *find_or_create(const bucket_array<T, ElementsPerBucket> &arr, const U &toMatch, const delegate<U(T *)> &map, allocator alloc = {}) {
+template <is_bucket_array T, typename U>
+auto *find_or_create(const T &arr, const U &toMatch, const delegate<U(typename T::T *)> &map, allocator alloc = {}) {
     if (!alloc) alloc = Context.Alloc;
 
     T *result = find(arr, [&](T *element) { return map(element) == toMatch; });

@@ -5,6 +5,24 @@
 
 LSTD_BEGIN_NAMESPACE
 
+template <typename MatrixT>
+struct mat_info_helper {};
+
+template <typename T_, s64 R_, s64 C_, bool Packed_>
+struct mat_info_helper<mat<T_, R_, C_, Packed_>> {
+    using T = T_;
+
+    static constexpr s64 R = R_;
+    static constexpr s64 C = C_;
+    static constexpr bool PACKED = Packed_;
+};
+
+template <typename MatrixT>
+struct mat_info : public mat_info_helper<types::decay_t<MatrixT>> {};
+
+template <typename T, typename U>
+using mat_mul_elem_t = decltype(T() * U() + T() * U());
+
 template <typename T, s64 R_, s64 C_, bool Packed = false>
 struct mat_data {
     static constexpr s64 C = C_;
@@ -36,7 +54,7 @@ struct mat_data {
 
 template <typename MatrixT, s64 SR, s64 SC>
 struct mat_view : non_copyable {
-    using Info = types::mat_info<MatrixT>;
+    using Info = mat_info<MatrixT>;
 
     static constexpr s64 VecDim = max(SR, SC);
     static constexpr bool VecAssignable = min(SR, SC) == 1;
@@ -69,11 +87,11 @@ struct mat_view : non_copyable {
 
     template <typename U, bool UPacked>
     mat_view &operator=(const mat<U, SR, SC, UPacked> &rhs) {
-        static_assert(!types::is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
+        static_assert(!types::is_const<MatrixT>, "Cannot assign to submatrix of const matrix.");
 
         // If aliasing happens, the same matrix is copied to itself with no side-effects
         For_as(i, range(SR)) {
-            For_as(j, range(SC)) Mat(Row + i, Col + j) = (typename types::mat_info<MatrixT>::T) rhs(i, j);
+            For_as(j, range(SC)) Mat(Row + i, Col + j) = (typename mat_info<MatrixT>::T) rhs(i, j);
         }
         return *this;
     }
@@ -81,12 +99,12 @@ struct mat_view : non_copyable {
     // From vector if applicable (for 1*N and N*1 submatrices)
     template <typename U, bool Packed>
     requires(VecAssignable) mat_view &operator=(const vec<U, VecDim, Packed> &v) {
-        static_assert(!types::is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
+        static_assert(!types::is_const<MatrixT>, "Cannot assign to submatrix of const matrix.");
 
         s64 k = 0;
         For_as(i, range(SR)) {
             For_as(j, range(SC)) {
-                Mat(Row + i, Col + j) = (typename types::mat_info<MatrixT>::T) v[k];
+                Mat(Row + i, Col + j) = (typename mat_info<MatrixT>::T) v[k];
                 ++k;
             }
         }
@@ -95,11 +113,11 @@ struct mat_view : non_copyable {
 
     template <typename MatrixU>
     mat_view &operator=(const mat_view<MatrixU, SR, SC> &rhs) {
-        static_assert(!types::is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
+        static_assert(!types::is_const<MatrixT>, "Cannot assign to submatrix of const matrix.");
 
         // If *this and rhs reference the same matrix, aliasing must be resolved.
         if ((void *) &Mat == (void *) &rhs.Mat) {
-            mat<typename types::mat_info<MatrixU>::T, SR, SC, types::mat_info<MatrixU>::PACKED> temp = rhs;
+            mat<typename mat_info<MatrixU>::T, SR, SC, mat_info<MatrixU>::PACKED> temp = rhs;
             operator=(temp);
         } else {
             For_as(i, range(SR)) {
@@ -110,7 +128,7 @@ struct mat_view : non_copyable {
     }
 
     mat_view &operator=(const mat_view &rhs) {
-        static_assert(!types::is_const_v<MatrixT>, "Cannot assign to submatrix of const matrix.");
+        static_assert(!types::is_const<MatrixT>, "Cannot assign to submatrix of const matrix.");
         return operator=<MatrixT>(rhs);
     }
 
@@ -161,8 +179,8 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
     }
 
     // Requires all of the arguments to be scalars and their count be R * C.
-    template <typename H, typename... Args>
-    requires(types::all_v<types::is_scalar, H, Args...> && (1 + sizeof...(Args) == R * C)) mat(H h, Args... args) {
+    template <types::is_scalar H, types::is_scalar... Args>
+    requires(1 + sizeof...(Args) == R * C) mat(H h, Args... args) {
         assign<0, 0>(h, args...);
     }
 
