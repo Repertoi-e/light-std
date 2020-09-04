@@ -22,6 +22,8 @@ API for watching directory changes
 ... and an asset catalog system
 ---------------------------------------------------------------------------------
 
+Document types/... and types.h
+
 #define LSTD_DONT_DEFINE_INITIALIZER_LIST // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers
 #include <cmath> // @DependencyCleanup
 
@@ -69,20 +71,17 @@ Implement the other part of platform specific functionality and compile on linux
 - Complex numbers?
 ---------------------------------------------------------------------------------
 
-LOC:    80394
-		----
-		80115
-		79664
+LOC:            80394
+		        ----
+		        80115
+		        79664
+		        79336
 
 LOC no vendor:  ----
                 28816
 				28387
 				28381
 				27936
+				27608
 
-LOC IO:  2161 
-         2306
-		 2310
-		 2329
-		 2242
-		 2142
+LOC no tests:   24972 (2700 less)

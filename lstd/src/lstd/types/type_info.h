@@ -2,6 +2,7 @@
 
 #include "../internal/namespace.h"
 #include "../platform.h"
+#include "compare.h"
 
 LSTD_BEGIN_NAMESPACE
 
