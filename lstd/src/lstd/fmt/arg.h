@@ -31,9 +31,9 @@ auto map_arg(const U &val) {
 
     static_assert(!types::is_same<T, long double>, "Argument of type 'long double' is not supported");
 
-    if constexpr (has_formatter_v<T>) {
+    if constexpr (has_formatter<T>) {
         return &val;
-    } else if constexpr (types::is_same<string, T> || types::is_constructible_v<string, T>) {
+    } else if constexpr (types::is_same<string, T> || types::is_constructible<string, T>) {
         return string(val);
     } else if constexpr (types::is_pointer<T>) {
         static_assert(types::is_same<T, void *>, "Formatting of non-void pointers is disallowed");

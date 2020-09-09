@@ -1,7 +1,13 @@
 #pragma once
 
-#include "../internal/namespace.h"
-#include "../platform.h"
+#include "math_types.h"
+
+//
+// The following integral types are defined: s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)
+//		as well as: f32 (float), f64 (double), lf64 (long double), null (nullptr), utf8 (char), byte (unsigned char)
+//      as well as: null (same as nullptr)
+//      as well as: initializer_list (if not included from the std)
+//
 
 // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers.
 // As far as I can tell every header in the STD includes some common file which contains the def for initializer_list
@@ -11,12 +17,6 @@
 #if defined LSTD_DONT_DEFINE_INITIALIZER_LIST
 #include <initializer_list>
 #endif
-
-// The following integral types are defined: s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)
-//		as well as: f32 (float), f64 (double), lf64 (long double), null (nullptr), utf8 (char), byte (unsigned char)
-//      as well as forward definitions for math types: vec_data, vec, swizzle, mat, mat_view, tquat
-//      as well as: null (same as nullptr), integral_constant, true_t (== std::true_type), false_t (== std::false_type) which are often used in template matching
-//      as well as: initializer_list
 
 // The user might include stuff from the STL and it that case the compiler would complain for two definitions
 #if !defined LSTD_DONT_DEFINE_INITIALIZER_LIST
@@ -55,7 +55,7 @@ LSTD_BEGIN_NAMESPACE
 using s8 = char;
 using s16 = short;
 using s32 = int;
-using s64 = long long;
+// using s64 = long long; Defined in math_types.h.. to avoid circular dependencies
 
 using u8 = unsigned char;
 using u16 = unsigned short;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>  // @DependencyCleanup
+
 #include "../memory/array.h"
 #include "../memory/string_utils.h"
 #include "no_init.h"
@@ -8,8 +10,6 @@
 #include "swizzle_2.inl"
 #include "swizzle_3.inl"
 #include "swizzle_4.inl"
-
-#include <cmath> // @DependencyCleanup
 
 LSTD_BEGIN_NAMESPACE
 
@@ -227,12 +227,12 @@ struct vec : public vec_data<T_, Dim, Packed> {
 
     // Convertible if the vectors are of the same size and the elements are convertible
     template <any_vec Vec>
-    requires(types::is_convertible_v<T, vec_info<Vec>::T> && (vec_info<Vec>::DIM == DIM)) vec(const Vec &v) { For(range(DIM)) Data[it] = T(v.Data[it]); }
+    requires(types::is_convertible<T, vec_info<Vec>::T> && (vec_info<Vec>::DIM == DIM)) vec(const Vec &v) { For(range(DIM)) Data[it] = T(v.Data[it]); }
 
     // Constructs the vector from an array of elements.
     // The number of elements in the array must be at least as the vector's dimension.
     template <typename U>
-    requires(types::is_convertible_v<U, T>) vec(const array_view<U> &data) {
+    requires(types::is_convertible<U, T>) vec(const array_view<U> &data) {
         assert(DIM <= data.Count);
         for (s64 i = 0; i < DIM; ++i) {
             Data[i] = T(data.Data[i]);
@@ -257,7 +257,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
     template <typename... Args>
     requires((sizeof...(Args) >= 1) && ((dim_of_v<Args> + ...) == DIM)) vec(const Args &... args) {
         // If not all are convertible to T we treat as mixed.
-        if constexpr ((!types::is_convertible_v<Args, T> || ...)) {
+        if constexpr ((!types::is_convertible<Args, T> || ...)) {
             assign_from_mixed(0, args...);
         } else {
             if constexpr (has_simd<vec>) {
@@ -310,7 +310,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
     void assign_from_mixed(s64 index, const Head &head, const Rest &... rest) {
         using H = types::remove_cvref_t<Head>;
 
-        if constexpr (types::is_vec_or_swizzle_v<H>) {
+        if constexpr (types::is_vec_or_swizzle<H>) {
             For(range(dim_of_v<H>)) {
                 Data[index] = T(head[it]);
                 ++index;
@@ -330,7 +330,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
 };
 
 template <typename SimdT, s64... Indices>
-auto shuffle_reverse(SimdT arg, integer_sequence<s64, Indices...>) {
+auto shuffle_reverse(SimdT arg, integer_sequence<Indices...>) {
     return SimdT::template shuffle<Indices...>(arg);
 }
 
@@ -347,11 +347,11 @@ swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Ind
             auto &sourceSimd = ((VectorDataU *) this)->Simd;
             // :SimdForVec3: We support SIMD for vectors with a dimension of 3 and we treat them as having 4 components
             if constexpr (sizeof...(Indices) == 3 && VectorDataDim == 3 && VectorDataDim == 4) {
-                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_integer_sequence<integer_sequence<s64, Indices..., 3>>::type{})};
+                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_sequence<integer_sequence<Indices..., 3>>::type{})};
             } else if constexpr (sizeof...(Indices) == 4 && VectorDataDim == 3 && VectorDataDim == 4) {
-                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_integer_sequence<integer_sequence<s64, Indices...>>::type{})};
+                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_sequence<integer_sequence<Indices...>>::type{})};
             } else if constexpr (sizeof...(Indices) == 2 && VectorDataDim == 2) {
-                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_integer_sequence<integer_sequence<s64, Indices...>>::type{})};
+                return {DestVecT::FROM_SIMD, shuffle_reverse(sourceSimd, typename reverse_sequence<integer_sequence<Indices...>>::type{})};
             }
         }
     }

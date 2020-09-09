@@ -5,15 +5,15 @@ LSTD_BEGIN_NAMESPACE
 
 namespace impl {
 template <typename T, typename U, s64 R1, s64 Match, s64 C2, bool Packed, s64... MatchIndices>
-inline auto small_product_row_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs, s64 row, integer_sequence<s64, MatchIndices...>) {
+inline auto small_product_row_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs, s64 row, integer_sequence<MatchIndices...>) {
     return (... + (rhs.Stripes[MatchIndices] * lhs(row, MatchIndices)));
 }
 
 template <typename T, typename U, s64 R1, s64 Match, s64 C2, bool Packed, s64... RowIndices>
-inline auto small_product_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs, integer_sequence<s64, RowIndices...>) {
+inline auto small_product_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs, integer_sequence<RowIndices...>) {
     using V = mat_mul_elem_t<T, U>;
     using ResultT = mat<V, R1, C2, Packed>;
-    return ResultT{ResultT::FromStripes, small_product_row_rr(lhs, rhs, RowIndices, make_integer_sequence<s64, Match>{})...};
+    return ResultT{ResultT::FromStripes, small_product_row_rr(lhs, rhs, RowIndices, make_integer_sequence<Match>{})...};
 }
 }  // namespace impl
 
@@ -35,7 +35,7 @@ inline mat<T, R1, C2, Packed> dot(const mat<T, R1, Match, Packed> &lhs, const ma
         return result;
     } else {
         if constexpr (R1 <= 4 && Match <= 4 && C2 <= 4) {
-            return impl::small_product_rr(lhs, rhs, make_integer_sequence<s64, R1>{});
+            return impl::small_product_rr(lhs, rhs, make_integer_sequence<R1>{});
         } else {
             using V = mat_mul_elem_t<T, U>;
             mat<V, R1, C2, Packed> result = {no_init};

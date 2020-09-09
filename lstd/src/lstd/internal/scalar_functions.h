@@ -4,7 +4,6 @@
 // This file defines common useful functions that work on scalars (integrals or floating point types)
 //
 
-#include "../types.h"
 #include "floating_point.h"
 
 // @NoCRT @DependencyCleanup Replace with our own math trig/sqrt etc. functions in order to not depend on the runtime lib

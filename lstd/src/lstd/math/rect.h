@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../types.h"
+#include "../types/basic_types.h"
 
 struct rect {
     s32 Left = 0, Top = 0;

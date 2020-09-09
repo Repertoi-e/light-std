@@ -11,7 +11,7 @@ LSTD_BEGIN_NAMESPACE
 //
 // The "typename" before vec_info.. here is very important. It took me 2 hours of debugging. C++ is hell sometimes.
 template <any_vec Vec, typename U>
-requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) void fill(Vec &lhs, U all) {
+requires(types::is_convertible<U, typename vec_info<Vec>::T>) void fill(Vec &lhs, U all) {
     if constexpr (!has_simd<Vec>) {
         For(lhs) it = (Vec::T) all;
     } else {

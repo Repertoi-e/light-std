@@ -2,14 +2,19 @@
 
 #include "basic_types.h"
 
+//
+// numeric_info is useful when writing template functions and you don't know the specific integral type, so you cannot just use S32_MAX for example.
+// These template definitions are == to std::numeric_limits.
+//
+
 LSTD_BEGIN_NAMESPACE
 
 enum class float_round_style {
     Indeterminate = -1,
-    ToZero,
-    ToNearest,
-    ToInfinity,
-    ToNegativeInfinity
+    To_Zero,
+    To_Nearest,
+    To_Infinity,
+    To_Negative_Infinity
 };
 
 enum class float_denorm_style {
@@ -33,7 +38,7 @@ struct numeric_info_base {
     static constexpr bool is_specialized = false;
     static constexpr bool tinyness_before = false;
     static constexpr bool traps = false;
-    static constexpr float_round_style round_style = float_round_style::ToZero;
+    static constexpr float_round_style round_style = float_round_style::To_Zero;
     static constexpr s32 digits = 0;
     static constexpr s32 digits10 = 0;
     static constexpr s32 max_digits10 = 0;
@@ -88,7 +93,7 @@ struct numeric_info_float_base : numeric_info_base {
     static constexpr bool is_iec559 = true;
     static constexpr bool is_signed = true;
     static constexpr bool is_specialized = true;
-    static constexpr float_round_style round_style = float_round_style::ToNearest;
+    static constexpr float_round_style round_style = float_round_style::To_Nearest;
     static constexpr s32 radix = F32_RADIX;
 };
 

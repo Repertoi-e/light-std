@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../types.h"
-#include "../types/type_transformations.h"
+#include "../types/basic_types.h"
 
 //
 // :CodeReusability: This file implements find, find_not, find_any_of, find_not_any_of, has, compare, compare_lexicographically and operators ==, !=, <, <=, >, >=

@@ -3,11 +3,18 @@
 #include "../internal/namespace.h"
 #include "../platform.h"
 
+//
+// This file provides forward definitions for math types: vec_data, vec, swizzle, mat, mat_view, tquat,
+//  as well as concepts:
+//  - is_vec, is_swizzle, is_vec_or_swizzle,
+//  - is_mat, is_mat_view
+//  - is_quat
+//
+
 LSTD_BEGIN_NAMESPACE
 
-//
-// Math types:
-//
+// Defined here and not in basic_types.h.. to avoid circular dependencies
+using s64 = long long;
 
 template <typename T, s64 Dim, bool Packed>
 struct vec_data;
@@ -29,69 +36,70 @@ struct tquat;
 
 namespace types {
 template <typename T>
-struct is_vec {
+struct is_vec_helper {
     static constexpr bool value = false;
 };
 
 template <typename T, s64 Dim, bool Packed>
-struct is_vec<vec<T, Dim, Packed>> {
+struct is_vec_helper<vec<T, Dim, Packed>> {
     static constexpr bool value = true;
 };
 
 template <typename T>
-constexpr bool is_vec_v = is_vec<T>::value;
+concept is_vec = is_vec_helper<T>::value;
 
 template <typename T>
-struct is_swizzle {
+struct is_swizzle_helper {
     static constexpr bool value = false;
 };
 template <typename T, s64... Indices>
-struct is_swizzle<swizzle<T, Indices...>> {
+struct is_swizzle_helper<swizzle<T, Indices...>> {
     static constexpr bool value = true;
 };
 
 template <typename T>
-constexpr bool is_swizzle_v = is_swizzle<T>::value;
+concept is_swizzle = is_swizzle_helper<T>::value;
 
 template <typename T>
-struct is_mat {
+concept is_vec_or_swizzle = is_vec<T> || is_swizzle<T>;
+
+template <typename T>
+struct is_mat_helper {
     static constexpr bool value = false;
 };
 
 template <typename T, s64 R, s64 C, bool Packed>
-struct is_mat<mat<T, R, C, Packed>> {
+struct is_mat_helper<mat<T, R, C, Packed>> {
     static constexpr bool value = true;
 };
 
 template <typename T>
-constexpr bool is_mat_v = is_mat<T>::value;
+concept is_mat = is_mat_helper<T>::value;
 
 template <typename T>
-struct is_mat_view {
+struct is_mat_view_helper {
     static constexpr bool value = false;
 };
 template <typename M, s64 R, s64 C>
-struct is_mat_view<mat_view<M, R, C>> {
+struct is_mat_view_helper<mat_view<M, R, C>> {
     static constexpr bool value = true;
 };
 
 template <typename T>
-constexpr bool is_mat_view_v = is_mat_view<T>::value;
+concept is_mat_view = is_mat_view_helper<T>::value;
 
 template <typename T>
-struct is_quat {
+struct is_quat_helper {
     static constexpr bool value = false;
 };
 
 template <typename T, bool Packed>
-struct is_quat<tquat<T, Packed>> {
+struct is_quat_helper<tquat<T, Packed>> {
     static constexpr bool value = true;
 };
 
 template <typename T>
-constexpr bool is_quat_v = is_quat<T>::value;
+constexpr bool is_quat = is_quat_helper<T>::value;
 
-template <typename T>
-constexpr bool is_vec_or_swizzle_v = is_vec_v<T> || is_swizzle_v<T>;
 }  // namespace types
 LSTD_END_NAMESPACE

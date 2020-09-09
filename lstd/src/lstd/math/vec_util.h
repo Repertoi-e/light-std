@@ -55,7 +55,7 @@ bool almost_equal(T d1, T d2, types::false_t) {
 
 // Check equivalence with tolerance.
 template <typename T, typename U>
-requires(!types::is_vec_v<T> && !types::is_mat_v<T> && !types::is_quat_v<T>) bool almost_equal(T d1, U d2) {
+requires(!types::is_vec<T> && !types::is_mat<T> && !types::is_quat<T>) bool almost_equal(T d1, U d2) {
     using P = mat_mul_elem_t<T, U>;
     return almost_equal(P(d1), P(d2), types::integral_constant<bool, types::is_floating_point<P>>());
 }
@@ -171,16 +171,16 @@ ELEMENT_WISE_OPERATOR_ASSIGNMENT(-=, sub)
 
 // * scales the vector by _rhs_, / scales the vector by 1/_rhs_, + and - add/subtract _rhs_ to/from each element, but with assignment
 
-#define ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(op, simdName)                                                          \
-    template <any_vec Vec, typename U>                                                                                 \
-    requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec &operator##op(Vec &lhs, U rhs) { \
-        if constexpr (!has_simd<Vec>) {                                                                                \
-            For(range(Vec::DIM)) lhs.Data[it] op rhs;                                                                  \
-        } else {                                                                                                       \
-            using SimdT = decltype(Vec::Simd);                                                                         \
-            lhs.Simd = SimdT::##simdName##(lhs.Simd, Vec::T(rhs));                                                     \
-        }                                                                                                              \
-        return lhs;                                                                                                    \
+#define ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(op, simdName)                                                        \
+    template <any_vec Vec, typename U>                                                                               \
+    requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec &operator##op(Vec &lhs, U rhs) { \
+        if constexpr (!has_simd<Vec>) {                                                                              \
+            For(range(Vec::DIM)) lhs.Data[it] op rhs;                                                                \
+        } else {                                                                                                     \
+            using SimdT = decltype(Vec::Simd);                                                                       \
+            lhs.Simd = SimdT::##simdName##(lhs.Simd, Vec::T(rhs));                                                   \
+        }                                                                                                            \
+        return lhs;                                                                                                  \
     }
 
 ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(*=, mul);
@@ -191,17 +191,17 @@ ELEMENT_WISE_SCALAR_OPERATOR_ASSIGNMENT(-=, sub);
 
 // * scales the vector by _rhs_, / scales the vector by 1/_rhs_, + and - add/subtract _rhs_ to/from each element
 
-#define ELEMENT_WISE_SCALAR_OPERATOR(op, simdName)                                                                          \
-    template <any_vec Vec, typename U>                                                                                      \
-    requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator##op(const Vec &lhs, U rhs) { \
-        if constexpr (!has_simd<Vec>) {                                                                                     \
-            Vec copy = lhs;                                                                                                 \
-            copy op## = rhs;                                                                                                \
-            return copy;                                                                                                    \
-        } else {                                                                                                            \
-            using SimdT = decltype(Vec::Simd);                                                                              \
-            return {Vec::FROM_SIMD, SimdT::##simdName##(lhs.Simd, Vec::T(rhs))};                                            \
-        }                                                                                                                   \
+#define ELEMENT_WISE_SCALAR_OPERATOR(op, simdName)                                                                        \
+    template <any_vec Vec, typename U>                                                                                    \
+    requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator##op(const Vec &lhs, U rhs) { \
+        if constexpr (!has_simd<Vec>) {                                                                                   \
+            Vec copy = lhs;                                                                                               \
+            copy op## = rhs;                                                                                              \
+            return copy;                                                                                                  \
+        } else {                                                                                                          \
+            using SimdT = decltype(Vec::Simd);                                                                            \
+            return {Vec::FROM_SIMD, SimdT::##simdName##(lhs.Simd, Vec::T(rhs))};                                          \
+        }                                                                                                                 \
     }
 ELEMENT_WISE_SCALAR_OPERATOR(*, mul);
 ELEMENT_WISE_SCALAR_OPERATOR(/, div);
@@ -211,25 +211,25 @@ ELEMENT_WISE_SCALAR_OPERATOR(-, sub);
 
 // Scales vector by _lhs_
 template <any_vec Vec, typename U>
-requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator*(U lhs, const Vec &rhs) {
+requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator*(U lhs, const Vec &rhs) {
     return rhs * lhs;
 }
 
 // Adds _lhs_ to all elements of the vector
 template <any_vec Vec, typename U>
-requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator+(U lhs, const Vec &rhs) {
+requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator+(U lhs, const Vec &rhs) {
     return rhs + lhs;
 }
 
 // Makes a vector with _lhs_ as all elements, then subtracts _rhs_ from it
 template <any_vec Vec, typename U>
-requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator-(U lhs, const Vec &rhs) {
+requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator-(U lhs, const Vec &rhs) {
     return Vec(lhs) - rhs;
 }
 
 // Makes a vector with _lhs_ as all elements, then divides it by _rhs_
 template <any_vec Vec, typename U>
-requires(types::is_convertible_v<U, typename vec_info<Vec>::T>) always_inline Vec operator/(U lhs, const Vec &rhs) {
+requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator/(U lhs, const Vec &rhs) {
     auto result = Vec(lhs);
     result /= rhs;
     return result;
@@ -253,15 +253,15 @@ always_inline Vec operator+(const Vec &arg) {
 template <typename Vec, typename Other, s64... Indices>
 concept swizzle_and_vec_match = ((vec_info<Vec>::DIM == sizeof...(Indices)) && (types::is_same<typename vec_info<Vec>::T, typename vec_info<Other>::T>) );
 
-#define SWIZZLE_OPERATOR(op)                                                                                              \
-    template <any_vec Vec, any_vec Other, s64... Indices>                                                                 \
+#define SWIZZLE_OPERATOR(op)                                                                                                      \
+    template <any_vec Vec, any_vec Other, s64... Indices>                                                                         \
     requires(swizzle_and_vec_match<Vec, Other, Indices...>) Vec operator##op(const Vec &v, const swizzle<Other, Indices...> &s) { \
-        return v op Vec(s);                                                                                               \
-    }                                                                                                                     \
-                                                                                                                          \
-    template <any_vec Vec, any_vec Other, s64... Indices>                                                                 \
+        return v op Vec(s);                                                                                                       \
+    }                                                                                                                             \
+                                                                                                                                  \
+    template <any_vec Vec, any_vec Other, s64... Indices>                                                                         \
     requires(swizzle_and_vec_match<Vec, Other, Indices...>) Vec operator##op(const swizzle<Other, Indices...> &s, const Vec &v) { \
-        return Vec(s) op v;                                                                                               \
+        return Vec(s) op v;                                                                                                       \
     }
 
 SWIZZLE_OPERATOR(*)
@@ -358,75 +358,78 @@ auto operator-=(swizzle<VData1, Indices1...> &s1, const swizzle<VData2, Indices2
     return s1 = s1 - s2;
 }
 
+template <typename U, typename VectorDataT>
+concept u_to_vector_type = types::is_convertible<U, typename vec_info<VectorDataT>::T>;
+
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto operator*(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+requires u_to_vector_type<U, VectorDataT> auto operator*(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return VectorT(lhs) * rhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto operator/(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+requires u_to_vector_type<U, VectorDataT> auto operator/(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return VectorT(lhs) / rhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto operator+(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+requires u_to_vector_type<U, VectorDataT> auto operator+(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return VectorT(lhs) + rhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto operator-(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+requires u_to_vector_type<U, VectorDataT> auto operator-(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return VectorT(lhs) - rhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto operator*(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
+requires u_to_vector_type<U, VectorDataT> auto operator*(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
     return rhs * lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto operator/(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
+requires u_to_vector_type<U, VectorDataT> auto operator/(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return lhs / VectorT(rhs);
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto operator+(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
+requires u_to_vector_type<U, VectorDataT> auto operator+(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
     return rhs + lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto operator-(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
+requires u_to_vector_type<U, VectorDataT> auto operator-(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return lhs - VectorT(rhs);
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto &operator*=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+requires u_to_vector_type<U, VectorDataT> auto &operator*=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     lhs = VectorT(lhs) * rhs;
     return lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto &operator/=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+requires u_to_vector_type<U, VectorDataT> auto &operator/=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     lhs = VectorT(lhs) / rhs;
     return lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto &operator+=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+requires u_to_vector_type<U, VectorDataT> auto &operator+=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     lhs = VectorT(lhs) + rhs;
     return lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires(types::is_convertible_v<U, typename vec_info<VectorDataT>::T>) auto &operator-=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+requires u_to_vector_type<U, VectorDataT> auto &operator-=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     lhs = VectorT(lhs) - rhs;
     return lhs;

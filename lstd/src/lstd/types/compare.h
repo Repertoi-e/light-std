@@ -1,6 +1,12 @@
 #pragma once
 
 #include "../internal/namespace.h"
+
+//
+// This file defines the necessary types for the spaceship <=> operator in C++20 to work.
+// partial_ordering, weak_ordering, strong_ordering, comparison_category_of
+//
+
 LSTD_BEGIN_NAMESPACE
 
 namespace std {
@@ -156,12 +162,5 @@ inline constexpr unsigned char comparison_category_of<weak_ordering> = Compariso
 
 template <>
 inline constexpr unsigned char comparison_category_of<strong_ordering> = Comparison_Category_Strong;
-
-struct pair {
-    int First;
-    int Second;
-
-    constexpr auto operator<=>(const pair &) const = default;
-};
 
 LSTD_END_NAMESPACE

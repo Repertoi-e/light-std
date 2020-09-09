@@ -74,10 +74,7 @@ struct formatter {
 };
 
 template <typename T>
-using has_formatter = types::is_constructible<formatter<T>>;
-
-template <typename T>
-constexpr bool has_formatter_v = has_formatter<T>::value;
+concept has_formatter = types::is_constructible<formatter<T>>;
 
 // Can T be formatted with a custom formatter
 // template <typename T>

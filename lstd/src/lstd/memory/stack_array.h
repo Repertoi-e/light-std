@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../internal/common.h"
-#include "../types/integer_sequence.h"
+#include "../types/sequence.h"
 #include "array_like.h"
 #include "string_utils.h"
 
@@ -79,7 +79,7 @@ template <typename... Types>
 struct return_type_helper<void, Types...> : types::common_type<Types...> {};
 
 template <class T, s64 N, s64... I>
-constexpr stack_array<types::remove_cv_t<T>, N> to_array_impl(T (&a)[N], index_sequence<I...>) {
+constexpr stack_array<types::remove_cv_t<T>, N> to_array_impl(T (&a)[N], integer_sequence<I...>) {
     return {{a[I]...}};
 }
 }  // namespace internal
@@ -91,7 +91,7 @@ constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, 
 
 template <typename T, s64 N>
 constexpr stack_array<types::remove_cv_t<T>, N> to_stack_array(T (&a)[N]) {
-    return internal::to_array_impl(a, types::make_index_sequence<N>{});
+    return internal::to_array_impl(a, types::make_integer_sequence<N>{});
 }
 
 LSTD_END_NAMESPACE
