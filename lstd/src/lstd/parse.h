@@ -1,6 +1,5 @@
 #pragma once
 
-#include "io/reader.h"
 #include "memory/array.h"
 #include "types/numeric_info.h"
 
@@ -585,7 +584,7 @@ struct eat_bytes_result {
     bytes Rest;    // The rest of the buffer
 };
 
-// Returns: the bytes read,  a success flag (false if buffer was exhausted), and the rest of the buffer
+// Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
 inline eat_bytes_result eat_bytes_until(bytes buffer, byte delim) {
     bytes p = buffer;
     while (p.Count >= 4) {
@@ -600,6 +599,32 @@ inline eat_bytes_result eat_bytes_until(bytes buffer, byte delim) {
 }
 
 // Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
+inline eat_bytes_result eat_bytes_until_any_of(bytes buffer, bytes anyOfTheseDelims) {
+    // @Speed Benchmark this!
+    byte minb = 255, maxb = 0;
+    For(anyOfTheseDelims) {
+        if (it < minb) minb = it;
+        if (it > maxb) maxb = it;
+    }
+
+    bytes p = buffer;
+    while (p.Count >= 4) {
+        if (U32_LIKELY_HAS_BYTE_BETWEEN(*(u32 *) p.Data, minb, maxb)) {
+            if (U32_HAS_BYTE_BETWEEN(*(u32 *) p.Data, minb, maxb)) {
+                break;
+            }
+        }
+        advance(&p, 4);
+    }
+
+    while (p.Count) {
+        if (has(anyOfTheseDelims, p[0])) return {bytes(buffer.Data, p.Data - buffer.Data), true, p};
+        advance(&p, 1);
+    }
+    return {{}, false, buffer};
+}
+
+// Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
 inline eat_bytes_result eat_bytes_while(bytes buffer, byte eats) {
     bytes p = buffer;
     while (p.Count >= 4) {
@@ -608,6 +633,32 @@ inline eat_bytes_result eat_bytes_while(bytes buffer, byte eats) {
     }
     while (p.Count) {
         if (p[0] != eats) return {bytes(buffer.Data, p.Data - buffer.Data), true, p};
+        advance(&p, 1);
+    }
+    return {{}, false, buffer};
+}
+
+// Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
+inline eat_bytes_result eat_bytes_while_any_of(bytes buffer, bytes anyOfTheseEats) {
+    // @Speed Benchmark this!
+    byte minb = 255, maxb = 0;
+    For(anyOfTheseEats) {
+        if (it < minb) minb = it;
+        if (it > maxb) maxb = it;
+    }
+
+    bytes p = buffer;
+    while (p.Count >= 4) {
+        if (!(U32_LIKELY_HAS_BYTE_BETWEEN(*(u32 *) p.Data, minb, maxb))) {
+            if (!(U32_HAS_BYTE_BETWEEN(*(u32 *) p.Data, minb, maxb))) {
+                break;
+            }
+        }
+        advance(&p, 4);
+    }
+
+    while (p.Count) {
+        if (!has(anyOfTheseEats, p[0])) return {bytes(buffer.Data, p.Data - buffer.Data), true, p};
         advance(&p, 1);
     }
     return {{}, false, buffer};
@@ -676,6 +727,25 @@ inline parse_string_result eat_code_points_until(bytes buffer, utf32 delim) {
     return {string(buffer.Data, p.Data - buffer.Data), PARSE_SUCCESS, (string) p};
 }
 
+// Works like _eat_code_points_until_ but with multiple delimeters.
+inline parse_string_result eat_code_points_until_any_of(bytes buffer, const string &anyOfTheseDelims) {
+    bytes p = buffer;
+    while (true) {
+        auto [cp, status, rest] = eat_code_point(p);
+        if (status == PARSE_EXHAUSTED) return {{}, PARSE_EXHAUSTED, (string) buffer};
+
+        if (status == PARSE_INVALID) {
+            advance(&p, 1);
+            return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, (string) p};
+        }
+
+        if (anyOfTheseDelims.has(cp)) break;
+
+        p = rest;
+    }
+    return {string(buffer.Data, p.Data - buffer.Data), PARSE_SUCCESS, (string) p};
+}
+
 // Same as the buffer version (eat_bytes_while) but pays attention to utf8.
 // Returns: the code points read, a status, and the rest of the buffer.
 // Status is: PARSE_SUCCESS, PARSE_INVALID (buffer contained invalid utf8), PARSE_EXHAUSTED (we ran out of bytes)
@@ -694,6 +764,25 @@ inline parse_string_result eat_code_points_while(bytes buffer, utf32 eats) {
         }
 
         if (cp != eats) break;
+
+        p = rest;
+    }
+    return {string(buffer.Data, p.Data - buffer.Data), PARSE_SUCCESS, (string) p};
+}
+
+// Works like _eat_code_points_while_ but with multiple allowed code points.
+inline parse_string_result eat_code_points_while_any_of(bytes buffer, const string &anyOfTheseEats) {
+    bytes p = buffer;
+    while (true) {
+        auto [cp, status, rest] = eat_code_point(p);
+        if (status == PARSE_EXHAUSTED) return {{}, PARSE_EXHAUSTED, (string) buffer};
+
+        if (status == PARSE_INVALID) {
+            advance(&p, 1);
+            return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, (string) p};
+        }
+
+        if (!anyOfTheseEats.has(cp)) break;
 
         p = rest;
     }

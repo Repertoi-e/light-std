@@ -292,9 +292,7 @@ void win32_common_init() {
     // and don't bother with cleaning up this functions memory.
     argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (argv == null) {
-        string warning =
-            ">>> Warning: Couldn't parse command line arguments, os_get_command_line_arguments() will return an empty "
-            "array in all cases.\n";
+        string warning = ">>> Warning: Couldn't parse command line arguments, os_get_command_line_arguments() will return an empty array in all cases.\n";
 
         DWORD ignored;
         WriteFile(CerrHandle, warning.Data, (DWORD) warning.Count, &ignored, null);
@@ -340,8 +338,7 @@ void win32_common_init() {
                 dbi.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
                 dbi.dbcc_classguid = GUID_DEVINTERFACE_HID;
             }
-            DeviceNotificationHandle = RegisterDeviceNotificationW(HelperWindowHandle, (DEV_BROADCAST_HDR *) &dbi,
-                                                                   DEVICE_NOTIFY_WINDOW_HANDLE);
+            DeviceNotificationHandle = RegisterDeviceNotificationW(HelperWindowHandle, (DEV_BROADCAST_HDR *) &dbi, DEVICE_NOTIFY_WINDOW_HANDLE);
         }
 
         while (PeekMessageW(&msg, HelperWindowHandle, 0, 0, PM_REMOVE)) {
@@ -353,18 +350,10 @@ void win32_common_init() {
     exit_schedule(destroy_helper_window);
 }
 
-byte io::console_reader_give_me_buffer(io::reader *r) {
-    auto *cr = (io::console_reader *) r;
-
-    cr->Buffer.Data = CinBuffer;
-
+bytes os_read_from_console() {
     DWORD read;
-    ReadFile(CinHandle, cr->Buffer.Data, (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
-
-    cr->Buffer.Count = (s64) read;
-
-    if (!read) return eof;
-    return 0;
+    ReadFile(CinHandle, CinBuffer, (DWORD) CONSOLE_BUFFER_SIZE, &read, null);
+    return bytes(CinBuffer, (s64) read);
 }
 
 void io::console_writer_write(io::writer *w, const byte *data, s64 size) {

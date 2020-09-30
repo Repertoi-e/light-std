@@ -19,12 +19,13 @@ API for watching directory changes
 ... and an asset catalog system
 ---------------------------------------------------------------------------------
 
+inline eat_bytes_result eat_bytes_until_any(bytes buffer, bytes delims) {
+    // @Speed Benchmark this!
+
 
 #define LSTD_DONT_DEFINE_INITIALIZER_LIST // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers
 #include <cmath> // @DependencyCleanup
 
-
-Check if we can reuse code in reader read_bytes etc an dand parse.h
 
 Rework reader yet again ! (and writer)
 // @Bug value.Length is not enough (2 wide chars for one char)
@@ -65,6 +66,7 @@ LOC:            80394
 		        80115
 		        79664
 		        79336
+				79196
 
 LOC no vendor:  ----
                 28816
@@ -72,5 +74,7 @@ LOC no vendor:  ----
 				28381
 				27936
 				27608
+				27468
 
 LOC no tests:   24972 (2700 less)
+				24768

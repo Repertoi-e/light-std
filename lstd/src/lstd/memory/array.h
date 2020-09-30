@@ -58,7 +58,7 @@ struct array_view {
     requires(types::is_same<types::remove_const_t<U>, byte>) operator array_view<utf8>() const { return array_view<utf8>((utf8 *) Data, Count); }
 };
 
-// We use array_view<byte> when parsing all the time for example and it's kinda a long name..
+// We use array_view<byte> when, e.g. parsing, and it's kinda a long name..
 using bytes = array_view<byte>;
 
 // This object may represent a non-owning pointer to to a byte buffer or a pointer to an allocated memory block.
