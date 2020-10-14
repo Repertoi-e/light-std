@@ -4,10 +4,33 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
+type get_type(args ars, s64 index) {
+    u64 shift = (u64) index * 4;
+    return (type)((ars.Types & (0xfull << shift)) >> shift);
+}
+
+// Doesn't support negative indexing
+arg get_arg(args ars, s64 index) {
+    if (index >= ars.Count) return {};
+    
+    if (!(ars.Types & IS_UNPACKED_BIT)) {
+        if (index > MAX_PACKED_ARGS) return {};
+
+        auto type = get_type(ars, index);
+        if (type == type::NONE) return {};
+
+        arg result;
+        result.Type = type;
+        result.Value = ((value *) ars.Data)[index];
+        return result;
+    }
+    return ((arg *) ars.Data)[index];
+}
+
 // Returns an argument from index and reports an error if it is out of bounds
 arg get_arg_from_index(format_context *f, s64 index) {
     if (index < f->Args.Count) {
-        return f->Args.get_arg(index);
+        return get_arg(f->Args, index);
     }
     on_error(f, "Argument index out of range");
     return {};
@@ -121,7 +144,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
         }
         if (p->It[0] == '}') {
             // Implicit {} means "get the next argument"
-            currentArg = get_arg_from_index(f, p->next_arg_id());
+            currentArg = get_arg_from_index(f, next_arg_id(p));
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
             visit_fmt_arg(internal::format_context_visitor(f), currentArg);
@@ -132,7 +155,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             ++p->It.Data, --p->It.Count;  // Skip the !
 
             text_style style = {};
-            bool success = p->parse_text_style(&style);
+            bool success = parse_text_style(p, &style);
             if (!success) return;
             if (!p->It.Count || p->It[0] != '}') {
                 on_error(f, "\"}\" expected");
@@ -153,7 +176,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             }
         } else {
             // Parse integer specified or a named argument
-            s64 argId = p->parse_arg_id();
+            s64 argId = parse_arg_id(p);
             if (argId == -1) return;
 
             currentArg = get_arg_from_index(f, argId);
@@ -166,7 +189,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                 ++p->It.Data, --p->It.Count;  // Skip the :
 
                 dynamic_format_specs specs = {};
-                bool success = p->parse_fmt_specs(currentArg.Type, &specs);
+                bool success = parse_fmt_specs(p, currentArg.Type, &specs);
                 if (!success) return;
                 if (!p->It.Count || p->It[0] != '}') {
                     on_error(f, "\"}\" expected");

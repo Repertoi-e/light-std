@@ -178,7 +178,7 @@ void parse_fmt_string(const string &fmtString, format_context *f);
 template <typename... Args>
 void to_writer(writer *out, const string &fmtString, Args &&... arguments) {
     auto args = args_on_the_stack(((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
-    auto f = format_context(out, fmtString, args, parse_context::default_error_handler);
+    auto f = format_context(out, fmtString, args, default_parse_error_handler);
     parse_fmt_string(fmtString, &f);
     f.flush();
 }

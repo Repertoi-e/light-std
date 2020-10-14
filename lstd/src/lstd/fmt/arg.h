@@ -142,31 +142,6 @@ struct args {
 
     template <typename... Args>
     args(const args_on_the_stack<Args...> &store) : Data((void *) store.Data.Data), Types(store.Types), Count(sizeof...(Args)) {}
-
-    bool is_packed() { return !(Types & IS_UNPACKED_BIT); }
-
-    type get_type(s64 index) {
-        u64 shift = (u64) index * 4;
-        return (type)((Types & (0xfull << shift)) >> shift);
-    }
-
-    // Doesn't support negative indexing
-    arg get_arg(s64 index) {
-        if (index >= Count) return {};
-
-        if (is_packed()) {
-            if (index > MAX_PACKED_ARGS) return {};
-
-            auto type = get_type(index);
-            if (type == type::NONE) return {};
-
-            arg result;
-            result.Type = type;
-            result.Value = ((value *) Data)[index];
-            return result;
-        }
-        return ((arg *) Data)[index];
-    }
 };
 }  // namespace fmt
 

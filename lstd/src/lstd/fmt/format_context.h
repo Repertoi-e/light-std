@@ -26,7 +26,7 @@ struct format_context : writer {
     // null if no specs were parsed
     dynamic_format_specs *Specs = null;
 
-    format_context(writer *out, const string &fmtString, const args &args, parse_context::error_handler_t errorHandlerFunc)
+    format_context(writer *out, const string &fmtString, const args &args, parse_error_handler_t errorHandlerFunc)
         : Out(out), Args(args), Parse(fmtString, errorHandlerFunc) {}
 
     void write(const byte *data, s64 count) override;
@@ -36,7 +36,7 @@ struct format_context : writer {
 // The position tells where to point the caret in the format string, so it is clear where exactly the error happened.
 // If left as -1 we calculate using the current Parse.It.
 // We may want to pass a different position if we are in the middle of parsing and the It is not pointing at the right place.
-inline void on_error(format_context *f, const string &message, s64 position = -1) { f->Parse.on_error(message, position); }
+inline void on_error(format_context *f, const string &message, s64 position = -1) { on_error(&f->Parse, message, position); }
 
 // Writes an integer with given formatting specs
 void write_u64(format_context *f, u64 value, bool negative, format_specs specs);
