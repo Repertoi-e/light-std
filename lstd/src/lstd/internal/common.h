@@ -172,7 +172,7 @@ struct range {
 // Aim of this policy:
 // - Dramatically reduce complexity and code size (both library AND user side!) UNLESS that comes at a run-time cost
 //
-// - Always provide a default constructor (implicit or by "T() = default")
+// - Always provide a default constructor (implicit or by "T() {}")
 // - Every data member (which makes sense) should be public. Do not write useless getters/setters.
 // - Strive to make classes/structures/objects (whatever you wanna call them) data oriented.
 //   Programs work with data. Design your data so it makes the solution straightforward and minimize abstraction layers.

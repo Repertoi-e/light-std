@@ -13,7 +13,7 @@ template <>
 struct formatter<file::path> {
     void format(const file::path &path, format_context *f) {
         string displayWorthy = path.unified();
-        f->write(displayWorthy);
+        write(f, displayWorthy);
         displayWorthy.release();
     }
 };
@@ -22,7 +22,7 @@ template <>
 struct formatter<file::handle> {
     void format(const file::handle &handle, format_context *f) {
         string displayWorthy = handle.Path.unified();
-        f->write(displayWorthy);
+        write(f, displayWorthy);
         displayWorthy.release();
     }
 };

@@ -5,12 +5,10 @@
 
 LSTD_BEGIN_NAMESPACE
 
-namespace io {
 struct writer;
-}
 
 namespace internal {
-extern io::writer *g_ConsoleLog;
+extern writer *g_ConsoleLog;
 }  // namespace internal
 
 template <typename T>
@@ -69,7 +67,7 @@ struct context {
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.
     // By default it points to io::cout (the console).
-    io::writer *Log = internal::g_ConsoleLog;
+    writer *Log = internal::g_ConsoleLog;
 
     // Disable stylized text output (colors, background colors, and bold/italic/strikethrough/underline text).
     // This is useful when logging to a file and not a console. The ansi escape codes look like garbage in files.

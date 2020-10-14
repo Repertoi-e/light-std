@@ -356,52 +356,48 @@ bytes os_read_from_console() {
     return bytes(CinBuffer, (s64) read);
 }
 
-void io::console_writer_write(io::writer *w, const byte *data, s64 size) {
-    auto *cw = (io::console_writer *) w;
-
+void console_writer::write(const byte *data, s64 size) {
     thread::mutex *mutex = null;
-    if (cw->LockMutex) mutex = &CoutMutex;
+    if (LockMutex) mutex = &CoutMutex;
     thread::scoped_lock _(mutex);
 
-    if (size > cw->Available) {
-        cw->flush();
+    if (size > Available) {
+        flush();
     }
 
-    copy_memory(cw->Current, data, size);
+    copy_memory(Current, data, size);
 
-    cw->Current += size;
-    cw->Available -= size;
+    Current += size;
+    Available -= size;
 }
 
-void io::console_writer_flush(io::writer *w) {
-    auto *cw = (io::console_writer *) w;
-
+void console_writer::flush() {
     thread::mutex *mutex = null;
-    if (cw->LockMutex) mutex = &CoutMutex;
+    if (LockMutex) mutex = &CoutMutex;
     thread::scoped_lock _(mutex);
 
-    if (!cw->Buffer) {
-        if (cw->OutputType == io::console_writer::COUT) {
-            cw->Buffer = cw->Current = CoutBuffer;
+    if (!Buffer) {
+        if (OutputType == console_writer::COUT) {
+            Buffer = Current = CoutBuffer;
         } else {
-            cw->Buffer = cw->Current = CerrBuffer;
+            Buffer = Current = CerrBuffer;
         }
 
-        cw->BufferSize = cw->Available = CONSOLE_BUFFER_SIZE;
+        BufferSize = Available = CONSOLE_BUFFER_SIZE;
     }
 
-    HANDLE target = cw->OutputType == io::console_writer::COUT ? CoutHandle : CerrHandle;
+    HANDLE target = OutputType == console_writer::COUT ? CoutHandle : CerrHandle;
 
     DWORD ignored;
-    WriteFile(target, cw->Buffer, (DWORD)(cw->BufferSize - cw->Available), &ignored, null);
+    WriteFile(target, Buffer, (DWORD)(BufferSize - Available), &ignored, null);
 
-    cw->Current = cw->Buffer;
-    cw->Available = CONSOLE_BUFFER_SIZE;
+    Current = Buffer;
+    Available = CONSOLE_BUFFER_SIZE;
 }
 
 // This workaround is needed in order to prevent circular inclusion of context.h
 namespace internal {
-io::writer *g_ConsoleLog = &io::cout;
+writer *g_ConsoleLog = &cout;
 }
 
 void *os_allocate_block(s64 size) {

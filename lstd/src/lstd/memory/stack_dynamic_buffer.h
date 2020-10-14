@@ -132,7 +132,7 @@ void insert_array(T &buffer, s64 index, const initializer_list<byte> &list, bool
 // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
 template <any_stack_dynamic_buffer T>
 void insert_pointer_and_size(T &buffer, s64 index, const byte *data, s64 count, bool unsafe = false) {
-    if (!unsafe) reserve(buffer, buffer.Count + 1);
+    if (!unsafe) reserve(buffer, buffer.Count + count);
 
     auto *target = buffer.Data + translate_index(index, buffer.Count, true);
     u64 offset = (u64)(target - buffer.Data);

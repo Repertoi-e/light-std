@@ -246,8 +246,8 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc
 }
 
 file_scope void log_file_and_line(const utf8 *file, s64 line) {
-    Context.Log->write(file);
-    Context.Log->write(":");
+    write(Context.Log, file);
+    write(Context.Log, ":");
 
     utf8 number[20];
 
@@ -260,7 +260,7 @@ file_scope void log_file_and_line(const utf8 *file, s64 line) {
             ++numberSize;
         }
     }
-    Context.Log->write((const byte *) numberP + 1, numberSize);
+    write(Context.Log, (const byte *) numberP + 1, numberSize);
 }
 
 void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options, const utf8 *file, s64 fileLine) {
@@ -281,9 +281,9 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
 #endif
 
     if (Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
-        Context.Log->write(">>> Allocation made at: ");
+        write(Context.Log, ">>> Allocation made at: ");
         log_file_and_line(file, fileLine);
-        Context.Log->write("\n");
+        write(Context.Log, "\n");
     }
 
     alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
@@ -324,9 +324,9 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const utf8 *fi
 #endif
 
     if (Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
-        Context.Log->write(">>> Reallocation made at: ");
+        write(Context.Log, ">>> Reallocation made at: ");
         log_file_and_line(file, fileLine);
-        Context.Log->write("\n");
+        write(Context.Log, "\n");
     }
 
     // The header stores the size of the requested allocation

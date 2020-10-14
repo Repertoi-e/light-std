@@ -434,7 +434,7 @@ void parse_context::default_error_handler(const string &message, const string &f
         ->replace_all('\t', "\\t")
         ->replace_all('\v', "\\v");
 
-    io::string_builder_writer output;
+    string_builder_writer output;
     fmt::to_writer(&output, "\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
     fmt::to_writer(&output, "    ... the error happened here:\n");
     fmt::to_writer(&output, "        {!}{}{!GRAY}\n", str);

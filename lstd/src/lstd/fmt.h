@@ -176,7 +176,7 @@ void parse_fmt_string(const string &fmtString, format_context *f);
 
 // Formats to writer
 template <typename... Args>
-void to_writer(io::writer *out, const string &fmtString, Args &&... arguments) {
+void to_writer(writer *out, const string &fmtString, Args &&... arguments) {
     auto args = args_on_the_stack(((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
     auto f = format_context(out, fmtString, args, parse_context::default_error_handler);
     parse_fmt_string(fmtString, &f);
@@ -186,7 +186,7 @@ void to_writer(io::writer *out, const string &fmtString, Args &&... arguments) {
 // Formats to a counting writer and returns the result
 template <typename... Args>
 s64 calculate_formatted_size(const string &fmtString, Args &&... arguments) {
-    io::counting_writer writer;
+    counting_writer writer;
     to_writer(&writer, fmtString, ((Args &&) arguments)...);
     return writer.Count;
 }
@@ -197,10 +197,10 @@ s64 calculate_formatted_size(const string &fmtString, Args &&... arguments) {
 // This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 template <typename... Args>
 [[nodiscard]] string sprint(const string &fmtString, Args &&... arguments) {
-    auto writer = io::string_builder_writer();
+    auto writer = string_builder_writer();
     to_writer(&writer, fmtString, ((Args &&) arguments)...);
     string combined = combine(writer.Builder);
-    free(writer.Buffer);  // @TODO: Writer rework, free the writer
+    free(writer.Builder);  // @TODO: Writer rework, free the writer
     return combined;
 }
 
@@ -235,7 +235,7 @@ struct formatter<guid> {
         type = (char) to_lower(type);
 
         if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
-            f->on_error("Invalid type specifier for a guid", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
+            on_error(f, "Invalid type specifier for a guid", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
             return;
         }
 
@@ -267,7 +267,7 @@ struct formatter<guid> {
             return;
         }
 
-        if (openParenthesis) f->write_no_specs(openParenthesis);
+        if (openParenthesis) write_no_specs(f, openParenthesis);
 
         auto *old = f->Specs;
         f->Specs = null;
@@ -275,7 +275,7 @@ struct formatter<guid> {
         const byte *p = src.Data;
         For(range(16)) {
             if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
-                f->write_no_specs((utf32) '-');
+                write_no_specs(f, (utf32) '-');
             }
             if (upper) {
                 to_writer(f, "{:02X}", (u8) *p);
@@ -286,26 +286,26 @@ struct formatter<guid> {
         }
         f->Specs = old;
 
-        if (closedParenthesis) f->write_no_specs(closedParenthesis);
+        if (closedParenthesis) write_no_specs(f, closedParenthesis);
     }
 };
 
 // Formatts array in the following way: [1, 2, ...]
 template <typename T>
 struct formatter<array<T>> {
-    void format(const array<T> &src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
+    void format(const array<T> &src, format_context *f) { format_list(f).entries(src.Data, src.Count)->finish(); }
 };
 
 // Formatts stack array in the following way: [1, 2, ...]
 template <typename T, s64 N>
 struct formatter<stack_array<T, N>> {
-    void format(const stack_array<T, N> &src, format_context *f) { f->debug_list().entries(src.Data, src.Count)->finish(); }
+    void format(const stack_array<T, N> &src, format_context *f) { format_list(f).entries(src.Data, src.Count)->finish(); }
 };
 
 // Formatter for thread::id
 template <>
 struct formatter<thread::id> {
-    void format(thread::id src, format_context *f) { f->write(src.Value); }
+    void format(thread::id src, format_context *f) { write(f, src.Value); }
 };
 
 //
@@ -316,7 +316,7 @@ struct formatter<thread::id> {
 template <typename T, s32 Dim, bool Packed>
 struct formatter<vec<T, Dim, Packed>> {
     void format(const vec<T, Dim, Packed> &src, format_context *f) {
-        f->debug_list().entries(src.Data, src.DIM)->finish();
+        format_list(f).entries(src.Data, src.DIM)->finish();
     }
 };
 
@@ -328,7 +328,7 @@ struct formatter<vec<T, Dim, Packed>> {
 template <typename T, s32 R, s32 C, bool Packed>
 struct formatter<mat<T, R, C, Packed>> {
     void format(const mat<T, R, C, Packed> &src, format_context *f) {
-        f->write("[");
+        write(f, "[");
 
         bool alternate = f->Specs && f->Specs->Hash;
         s64 max = 0;
@@ -363,12 +363,12 @@ struct formatter<mat<T, R, C, Packed>> {
                         to_writer(f, "{0:}", src(i, j));
                     }
                 }
-                if (j != src.Width - 1) f->write(", ");
+                if (j != src.Width - 1) write(f, ", ");
             }
-            if (i < src.R - 1) f->write(alternate ? "\n " : "; ");
+            if (i < src.R - 1) write(f, alternate ? "\n " : "; ");
         }
         f->Specs = old;
-        f->write("]");
+        write(f, "]");
     }
 };
 
@@ -379,13 +379,13 @@ struct formatter<tquat<T, Packed>> {
     void format(const tquat<T, Packed> &src, format_context *f) {
         bool alternate = f->Specs && f->Specs->Hash;
         if (alternate) {
-            f->write("[");
+            write(f, "[");
             to_writer(f, "{.f}", src.angle() / TAU * 360);
-            f->write(" deg @ ");
+            write(f, " deg @ ");
             to_writer(f, "{}", src.axis());
-            f->write("]");
+            write(f, "]");
         } else {
-            f->debug_tuple("quat").field(src.s)->field(src.i)->field(src.j)->field(src.k)->finish();
+            format_tuple(f, "quat").field(src.s)->field(src.i)->field(src.j)->field(src.k)->finish();
         }
     }
 };

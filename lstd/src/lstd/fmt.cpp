@@ -4,6 +4,78 @@ LSTD_BEGIN_NAMESPACE
 
 namespace fmt {
 
+// Returns an argument from index and reports an error if it is out of bounds
+arg get_arg_from_index(format_context *f, s64 index) {
+    if (index < f->Args.Count) {
+        return f->Args.get_arg(index);
+    }
+    on_error(f, "Argument index out of range");
+    return {};
+}
+
+struct width_checker {
+    format_context *F;
+
+    template <typename T>
+    u32 operator()(T value) {
+        if constexpr (types::is_integral<T>) {
+            if (sign_bit(value)) {
+                on_error(F, "Negative width");
+                return (u32) -1;
+            } else if ((u64) value > numeric_info<s32>::max()) {
+                on_error(F, "Width value is too big");
+                return (u32) -1;
+            }
+            return (u32) value;
+        } else {
+            on_error(F, "Width was not an integer");
+            return (u32) -1;
+        }
+    }
+};
+
+struct precision_checker {
+    format_context *F;
+
+    template <typename T>
+    s32 operator()(T value) {
+        if constexpr (types::is_integral<T>) {
+            if (sign_bit(value)) {
+                on_error(F, "Negative precision");
+                return -1;
+            } else if ((u64) value > numeric_info<s32>::max()) {
+                on_error(F, "Precision value is too big");
+                return -1;
+            }
+            return (s32) value;
+        } else {
+            on_error(F, "Precision was not an integer");
+            return -1;
+        }
+    }
+};
+
+bool handle_dynamic_specs(format_context *f) {
+    assert(f->Specs);
+
+    if (f->Specs->WidthIndex != -1) {
+        auto width = get_arg_from_index(f, f->Specs->WidthIndex);
+        if (width.Type != type::NONE) {
+            f->Specs->Width = visit_fmt_arg(width_checker{f}, width);
+            if (f->Specs->Width == (u32) -1) return false;
+        }
+    }
+    if (f->Specs->PrecisionIndex != -1) {
+        auto precision = get_arg_from_index(f, f->Specs->PrecisionIndex);
+        if (precision.Type != type::NONE) {
+            f->Specs->Precision = visit_fmt_arg(precision_checker{f}, precision);
+            if (f->Specs->Precision == numeric_info<s32>::min()) return false;
+        }
+    }
+
+    return true;
+}
+
 void parse_fmt_string(const string &fmtString, format_context *f) {
     parse_context *p = &f->Parse;
 
@@ -12,17 +84,17 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
         while (true) {
             auto *bracket = find_cp_utf8(p->It.Data, end - p->It.Data, '}');
             if (!bracket) {
-                f->write_no_specs(p->It.Data, end - p->It.Data);
+                write_no_specs(f, p->It.Data, end - p->It.Data);
                 return;
             }
 
             if (*(bracket + 1) != '}') {
-                f->on_error("Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", bracket - f->Parse.FormatString.Data);
+                on_error(f, "Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", bracket - f->Parse.FormatString.Data);
                 return;
             }
 
-            f->write_no_specs(p->It.Data, bracket - p->It.Data);
-            f->write_no_specs("}");
+            write_no_specs(f, p->It.Data, bracket - p->It.Data);
+            write_no_specs(f, "}");
 
             s64 advance = bracket + 2 - p->It.Data;
             p->It.Data += advance, p->It.Count -= advance;
@@ -44,12 +116,12 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
         p->It.Data += advance, p->It.Count -= advance;
 
         if (!p->It.Count) {
-            f->on_error("Invalid format string");
+            on_error(f, "Invalid format string");
             return;
         }
         if (p->It[0] == '}') {
             // Implicit {} means "get the next argument"
-            currentArg = f->get_arg_from_index(p->next_arg_id());
+            currentArg = get_arg_from_index(f, p->next_arg_id());
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
             visit_fmt_arg(internal::format_context_visitor(f), currentArg);
@@ -63,20 +135,20 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             bool success = p->parse_text_style(&style);
             if (!success) return;
             if (!p->It.Count || p->It[0] != '}') {
-                f->on_error("\"}\" expected");
+                on_error(f, "\"}\" expected");
                 return;
             }
 
             if (!Context.FmtDisableAnsiCodes) {
                 utf8 ansiBuffer[7 + 3 * 4 + 1];
                 auto *ansiEnd = internal::color_to_ansi(ansiBuffer, style);
-                f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
+                write_no_specs(f, ansiBuffer, ansiEnd - ansiBuffer);
 
                 u8 emphasis = (u8) style.Emphasis;
                 if (emphasis) {
                     assert(!style.Background);
                     ansiEnd = internal::emphasis_to_ansi(ansiBuffer, emphasis);
-                    f->write_no_specs(ansiBuffer, ansiEnd - ansiBuffer);
+                    write_no_specs(f, ansiBuffer, ansiEnd - ansiBuffer);
                 }
             }
         } else {
@@ -84,7 +156,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
             s64 argId = p->parse_arg_id();
             if (argId == -1) return;
 
-            currentArg = f->get_arg_from_index(argId);
+            currentArg = get_arg_from_index(f, argId);
             if (currentArg.Type == type::NONE) return;  // The error was reported in _f->get_arg_from_ref_
 
             utf8 c = p->It.Count ? p->It[0] : 0;
@@ -97,19 +169,19 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
                 bool success = p->parse_fmt_specs(currentArg.Type, &specs);
                 if (!success) return;
                 if (!p->It.Count || p->It[0] != '}') {
-                    f->on_error("\"}\" expected");
+                    on_error(f, "\"}\" expected");
                     return;
                 }
 
                 f->Specs = &specs;
-                success = f->handle_dynamic_specs();
+                success = handle_dynamic_specs(f);
                 if (!success) return;
 
                 visit_fmt_arg(internal::format_context_visitor(f), currentArg);
 
                 f->Specs = null;
             } else {
-                f->on_error("\"}\" expected");
+                on_error(f, "\"}\" expected");
                 return;
             }
         }

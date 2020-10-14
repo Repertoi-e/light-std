@@ -105,8 +105,8 @@ array<string> os_get_command_line_arguments();
 // Returns an ID which uniquely identifies the current process on the system
 u32 os_get_pid();
 
-// Returns a buffer (at most 1 KiB) from the console as input.
-// Subsequent calls overwrite the buffer, so you need to save the information before that.
+// Reads input from the console (at most 1 KiB).
+// Subsequent calls overwrite an internal buffer, so you need to save the information before that.
 //
 // Don't free the result of this function. This library follows the convention that if the function is not marked as [[nodiscard]], the returned value should not be freed.
 bytes os_read_from_console();

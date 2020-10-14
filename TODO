@@ -11,7 +11,7 @@ Put os_ functions in os namespace and remove prefixes?
 Replace with our own math functions in order to not depend on the runtime lib
 (BENCHMARK!)
 ---------------------------------------------------------------------------------
-File I/O and Reader/Writer implementations
+File I/O and writer implementations
 (File mapping too)
 + Tests
 ---------------------------------------------------------------------------------
@@ -23,11 +23,14 @@ inline eat_bytes_result eat_bytes_until_any(bytes buffer, bytes delims) {
     // @Speed Benchmark this!
 
 
+Modules
+
+
 #define LSTD_DONT_DEFINE_INITIALIZER_LIST // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers
 #include <cmath> // @DependencyCleanup
 
 
-Rework reader yet again ! (and writer)
+Rework writer
 // @Bug value.Length is not enough (2 wide chars for one char)
 
 
@@ -67,6 +70,7 @@ LOC:            80394
 		        79664
 		        79336
 				79196
+				79005
 
 LOC no vendor:  ----
                 28816
@@ -75,6 +79,7 @@ LOC no vendor:  ----
 				27936
 				27608
 				27468
+				27277
 
 LOC no tests:   24972 (2700 less)
 				24768

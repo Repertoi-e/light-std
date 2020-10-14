@@ -36,7 +36,7 @@ file_scope void test_error_handler(const string &message, const string &formatSt
 
 template <typename... Args>
 void format_test_error(const string &fmtString, Args &&... arguments) {
-    io::counting_writer dummy;
+    counting_writer dummy;
 
     auto args = fmt::args_on_the_stack(((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
     auto f = fmt::format_context(&dummy, fmtString, args, test_error_handler);
@@ -217,7 +217,7 @@ LSTD_BEGIN_NAMESPACE
 namespace fmt {
 template <>
 struct formatter<Answer> {
-    void format(Answer, format_context *f) { f->write(42); }
+    void format(Answer, format_context *f) { write(f, 42); }
 };
 }  // namespace fmt
 LSTD_END_NAMESPACE
