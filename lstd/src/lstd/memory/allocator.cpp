@@ -68,9 +68,9 @@ constexpr string get_short_file_name(const string &str) {
     char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATORS[0], '\0'};
     string src = srcData;
 
-    s64 findResult = str.find_reverse(src);
+    s64 findResult = str.find_substring_reverse(src);
     if (findResult == -1) {
-        findResult = str.find_reverse(file::OS_PATH_SEPARATORS[0]);
+        findResult = str.find_cp_reverse(file::OS_PATH_SEPARATORS[0]);
         assert(findResult != str.Length - 1);
         // Skip the slash
         findResult++;

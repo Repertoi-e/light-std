@@ -12,7 +12,7 @@ type get_type(args ars, s64 index) {
 // Doesn't support negative indexing
 arg get_arg(args ars, s64 index) {
     if (index >= ars.Count) return {};
-    
+
     if (!(ars.Types & IS_UNPACKED_BIT)) {
         if (index > MAX_PACKED_ARGS) return {};
 
@@ -105,21 +105,24 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
     auto write_until = [&](const utf8 *end) {
         if (!p->It.Count) return;
         while (true) {
-            auto *bracket = find_cp_utf8(p->It.Data, end - p->It.Data, '}');
-            if (!bracket) {
+            auto searchString = string(p->It.Data, end - p->It.Data);
+
+            s64 bracket = searchString.find_cp('}');
+            if (bracket == -1) {
                 write_no_specs(f, p->It.Data, end - p->It.Data);
                 return;
             }
-
-            if (*(bracket + 1) != '}') {
-                on_error(f, "Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", bracket - f->Parse.FormatString.Data);
+            
+            auto *pbracket = get_cp_at_index(searchString.Data, searchString.Length, bracket);
+            if (*(pbracket + 1) != '}') {
+                on_error(f, "Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", pbracket - f->Parse.FormatString.Data);
                 return;
             }
 
-            write_no_specs(f, p->It.Data, bracket - p->It.Data);
+            write_no_specs(f, p->It.Data, pbracket - p->It.Data);
             write_no_specs(f, "}");
 
-            s64 advance = bracket + 2 - p->It.Data;
+            s64 advance = pbracket + 2 - p->It.Data;
             p->It.Data += advance, p->It.Count -= advance;
         }
     };
@@ -127,15 +130,16 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
     arg currentArg;
 
     while (p->It.Count) {
-        auto *bracket = find_cp_utf8(p->It.Data, p->It.Count, '{');
-        if (!bracket) {
+        s64 bracket = p->It.find_cp('{');
+        if (bracket == -1) {
             write_until(p->It.Data + p->It.Count);
             return;
         }
 
-        write_until(bracket);
+        auto *pbracket = get_cp_at_index(p->It.Data, p->It.Length, bracket);
+        write_until(pbracket);
 
-        s64 advance = bracket + 1 - p->It.Data;
+        s64 advance = pbracket + 1 - p->It.Data;
         p->It.Data += advance, p->It.Count -= advance;
 
         if (!p->It.Count) {

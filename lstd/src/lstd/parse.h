@@ -131,8 +131,9 @@ struct parse_int_options {
     // Note: IGNORE_THIS_BYTE from ByteToDigit is counted towards this.
     s64 MaxDigits = -1;
 
-    bool BasePrefixCountedTowardsMaxDigits = true;                 // By default we counts the base prefix towards _MaxDigits_.
-    bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true;  // _ByteToDigit_ might return IGNORE_THIS_BYTE, by default we count it towards _MaxDigits_.
+    // @TODO: Potentially useful?
+    // bool BasePrefixCountedTowardsMaxDigits = true;                 // By default we count the base prefix towards _MaxDigits_.
+    // bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true;  // _ByteToDigit_ might return IGNORE_THIS_BYTE, by default we count it towards _MaxDigits_.
 };
 
 // With C++20 aggregate dot initialization you can do this!!

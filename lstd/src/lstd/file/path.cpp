@@ -14,14 +14,14 @@ string path::file_name() const {
 
 string path::base_name() const {
     auto fileName = file_name();
-    s64 last = fileName.find_reverse('.');
+    s64 last = fileName.find_cp_reverse('.');
     if (last == -1) return fileName;
     return fileName.substring(0, last);
 }
 
 string path::extension() const {
     auto fileName = file_name();
-    s64 last = fileName.find_reverse('.');
+    s64 last = fileName.find_cp_reverse('.');
     if (last == -1) return "";
     return fileName.substring(last, fileName.Length);
 }
@@ -63,7 +63,7 @@ string path::resolved() const {
     clone(&result, Str);
 
     s64 dots, beginning = 0;
-    while ((dots = result.find("..", beginning)) != -1) {
+    while ((dots = result.find_substring("..", beginning)) != -1) {
         if (dots + 2 >= result.Length) break;  // Invalid path
 
         auto slash = result[dots + 2];
@@ -79,7 +79,7 @@ string path::resolved() const {
     if (beginning == result.Length) return result;
 
     s64 progress = beginning;
-    while ((dots = result.find("..", progress)) != -1) {
+    while ((dots = result.find_substring("..", progress)) != -1) {
         s64 previousSlash = result.find_reverse_any_of(OS_PATH_SEPARATORS, dots - 2);
         result.remove_range(previousSlash, dots + 2);
         progress = previousSlash + 1;
@@ -87,7 +87,7 @@ string path::resolved() const {
     }
 
     progress = beginning;
-    while ((dots = result.find(".", progress)) != -1) {
+    while ((dots = result.find_cp('.', progress)) != -1) {
         if (dots + 1 >= result.Length) break;  // Invalid path
 
         auto next = result[dots + 1];

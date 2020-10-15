@@ -302,50 +302,50 @@ TEST(replace_all) {
 
 TEST(find) {
     string a = "This is a string";
-    assert_eq(2, a.find("is"));
-    assert_eq(5, a.find("is", 5));
+    assert_eq(2, a.find_substring("is"));
+    assert_eq(5, a.find_substring("is", 5));
 
-    assert_eq(0, a.find("This"));
-    assert_eq(0, a.find_reverse("This"));
-    assert_eq(10, a.find("string"));
-    assert_eq(10, a.find_reverse("string"));
+    assert_eq(0, a.find_substring("This"));
+    assert_eq(0, a.find_substring_reverse("This"));
+    assert_eq(10, a.find_substring("string"));
+    assert_eq(10, a.find_substring_reverse("string"));
 
-    assert_eq(5, a.find_reverse("is", 6));
-    assert_eq(2, a.find_reverse("is", 5));
-    assert_eq(2, a.find_reverse("is", 3));
+    assert_eq(5, a.find_substring_reverse("is", 6));
+    assert_eq(2, a.find_substring_reverse("is", 5));
+    assert_eq(2, a.find_substring_reverse("is", 3));
 
-    assert_eq(1, a.find('h'));
-    assert_eq(1, a.find('h', 1));
-    assert_eq(1, a.find("h", 1));
+    assert_eq(1, a.find_cp('h'));
+    assert_eq(1, a.find_cp('h', 1));
+    assert_eq(1, a.find_substring("h", 1));
 
-    assert_eq(0, a.find('T'));
-    assert_eq(0, a.find_reverse('T'));
+    assert_eq(0, a.find_cp('T'));
+    assert_eq(0, a.find_cp_reverse('T'));
 
-    assert_eq(13, a.find_reverse('i'));
-    assert_eq(5, a.find_reverse('i', 13));
-    assert_eq(2, a.find_reverse('i', 5));
+    assert_eq(13, a.find_cp_reverse('i'));
+    assert_eq(5, a.find_cp_reverse('i', 13));
+    assert_eq(2, a.find_cp_reverse('i', 5));
 
-    assert_eq(a.Length - 1, a.find('g'));
-    assert_eq(a.Length - 1, a.find_reverse('g'));
+    assert_eq(a.Length - 1, a.find_cp('g'));
+    assert_eq(a.Length - 1, a.find_cp_reverse('g'));
 
-    assert_eq(1, a.find_not('T'));
-    assert_eq(0, a.find_not('Q'));
-    assert_eq(a.Length - 1, a.find_reverse_not('Q'));
-    assert_eq(a.Length - 2, a.find_reverse_not('g'));
+    assert_eq(1, a.find_cp_not('T'));
+    assert_eq(0, a.find_cp_not('Q'));
+    assert_eq(a.Length - 1, a.find_cp_reverse_not('Q'));
+    assert_eq(a.Length - 2, a.find_cp_reverse_not('g'));
 
-    assert_eq(-1, a.find('Q'));
+    assert_eq(-1, a.find_cp('Q'));
 
     a = u8"Това е низ от букви";
-    assert_eq(8, a.find(u8"и"));
-    assert_eq(8, a.find(u8"и", 8));
+    assert_eq(8, a.find_substring(u8"и"));
+    assert_eq(8, a.find_substring(u8"и", 8));
 
-    assert_eq(8, a.find(U'и'));
-    assert_eq(8, a.find(U'и', 8));
+    assert_eq(8, a.find_cp(U'и'));
+    assert_eq(8, a.find_cp(U'и', 8));
 
-    assert_eq(14, a.find(U'б'));
-    assert_eq(14, a.find_reverse(U'б'));
+    assert_eq(14, a.find_cp(U'б'));
+    assert_eq(14, a.find_cp_reverse(U'б'));
 
-    assert_eq(-1, a.find(U'я'));
+    assert_eq(-1, a.find_cp(U'я'));
 
     a = "aaabbbcccddd";
     assert_eq(3, a.find_any_of("DCb"));
@@ -356,9 +356,9 @@ TEST(find) {
     assert_eq(1, a.find_reverse_any_of("PQa", 2));
     assert_eq(0, a.find_reverse_any_of("PQa", 1));
 
-    assert_eq(a.find('d'), a.find_not_any_of("abc"));
+    assert_eq(a.find_cp('d'), a.find_not_any_of("abc"));
     assert_eq(0, a.find_not_any_of("bcd"));
-    assert_eq(a.find('b'), a.find_not_any_of("ac"));
+    assert_eq(a.find_cp('b'), a.find_not_any_of("ac"));
 
     assert_eq(2, a.find_reverse_not_any_of("bcd"));
     assert_eq(2, a.find_reverse_not_any_of("bc", -3));

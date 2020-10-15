@@ -13,6 +13,8 @@ constexpr const char *OS_PATH_SEPARATORS = "\\/";
 constexpr const char *OS_PATH_SEPARATORS = "/";
 #endif
 
+inline void hygienize_path_separators(string *path) { path->replace_all('\\', '/'); }
+
 // This object stores a path to a file or directory and provides common
 // operations like getting the file name or extension.
 //
@@ -43,7 +45,7 @@ struct path {
     path get_path_from_here_to(const path &there) const {
         assert(is_pointing_to_content() && there.is_pointing_to_content());
 
-        if (Str.find(there.Str) == -1) {
+        if (Str.find_substring(there.Str) == -1) {
             return path(there.Str);
         } else {
             if (Str.Length == there.Str.Length) {

@@ -5,9 +5,6 @@ Fix threads once and for all..
 ---------------------------------------------------------------------------------
 Rework file:: (handles and paths) api to make more sense.
 ---------------------------------------------------------------------------------
-Put os_ functions in os namespace and remove prefixes?
-.. for consistency with other sections..
----------------------------------------------------------------------------------
 Replace with our own math functions in order to not depend on the runtime lib
 (BENCHMARK!)
 ---------------------------------------------------------------------------------
@@ -30,14 +27,14 @@ Modules
 #include <cmath> // @DependencyCleanup
 
 
-Rework writer
 // @Bug value.Length is not enough (2 wide chars for one char)
 
 
 Tests with parse_guid_options
 
-    bool BasePrefixCountedTowardsMaxDigits = true;                 // By default we counts the base prefix towards _MaxDigits_.
-    bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true;  // _ByteToDigit_ might return IGNORE_THIS_BYTE, by default we count it towards _MaxDigits_.
+// @TODO: Potentially useful?
+// bool BasePrefixCountedTowardsMaxDigits = true;
+// bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true; 
 
 
 Remove traverse functions (bad API)
@@ -71,6 +68,7 @@ LOC:            80394
 		        79336
 				79196
 				79005
+				78949
 
 LOC no vendor:  ----
                 28816
@@ -80,6 +78,7 @@ LOC no vendor:  ----
 				27608
 				27468
 				27277
+				27221
 
 LOC no tests:   24972 (2700 less)
 				24768
