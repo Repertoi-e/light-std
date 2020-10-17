@@ -184,7 +184,7 @@ bool dynamic_library::load(const string &name) {
 }
 
 void *dynamic_library::get_symbol(const string &name) {
-    auto *cString = name.to_c_string();
+    auto *cString = to_c_string(name);
     defer(free(cString));
     return (void *) GetProcAddress((HMODULE) Handle, (LPCSTR) cString);
 }
@@ -278,7 +278,7 @@ void win32_common_init() {
     }
 
     WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
-        ModuleName.reserve(reserved * 2);  // @Bug reserved * 2 is not enough
+        reserve(ModuleName, reserved * 2);  // @Bug reserved * 2 is not enough
     }
 
     utf16_to_utf8(buffer, const_cast<utf8 *>(ModuleName.Data), &ModuleName.Count);
@@ -306,7 +306,7 @@ void win32_common_init() {
 
             auto *arg = append(Argv);
             WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
-                arg->reserve(c_string_length(warg) * 2);  // @Bug c_string_length * 2 is not enough
+                reserve(*arg, c_string_length(warg) * 2);  // @Bug c_string_length * 2 is not enough
             }
             utf16_to_utf8(warg, const_cast<utf8 *>(arg->Data), &arg->Count);
             arg->Length = utf8_length(arg->Data, arg->Count);
@@ -467,7 +467,7 @@ s64 os_get_block_size(void *ptr) {
     HANDLE handleName = call;                                                                                       \
     if (!handleName) {                                                                                              \
         string extendedCallSite = fmt::sprint("{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name); \
-        defer(extendedCallSite.release());                                                                          \
+        defer(free(extendedCallSite));                                                                              \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);     \
         return returnOnFail;                                                                                        \
     }
@@ -540,7 +540,7 @@ string os_get_working_dir() {
     }
 
     WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
-        WorkingDir.reserve(required * 2);  // @Bug required * 2 is not enough
+        reserve(WorkingDir, required * 2);  // @Bug required * 2 is not enough
     }
 
     utf16_to_utf8(dir16, const_cast<utf8 *>(WorkingDir.Data), &WorkingDir.Count);
@@ -588,7 +588,7 @@ os_get_env_result os_get_env(const string &name, bool silent) {
     }
 
     string result;
-    result.reserve(bufferSize * 2);  // @Bug bufferSize * 2 is not enough
+    reserve(result, bufferSize * 2);  // @Bug bufferSize * 2 is not enough
     utf16_to_utf8(buffer, const_cast<utf8 *>(result.Data), &result.Count);
     result.Length = utf8_length(result.Data, result.Count);
 
@@ -642,7 +642,7 @@ string os_get_clipboard_content() {
     defer(GlobalUnlock(object));
 
     WITH_CONTEXT_VAR(AllocOptions, Context.AllocOptions | LEAK) {
-        ClipboardString.reserve(c_string_length(buffer) * 2);  // @Bug c_string_length * 2 is not enough
+        reserve(ClipboardString, c_string_length(buffer) * 2);  // @Bug c_string_length * 2 is not enough
     }
 
     utf16_to_utf8(buffer, const_cast<utf8 *>(ClipboardString.Data), &ClipboardString.Count);

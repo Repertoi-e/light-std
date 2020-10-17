@@ -52,7 +52,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         if (SymFromAddr(hProcess, sf.AddrPC.Offset, &symDisplacement, symbol)) {
             clone(&call.Name, string(symbol->Name));
             if (call.Name.Length == 0) {
-                call.Name.release();
+                free(call.Name);
                 call.Name = "UnknownFunction";
             }
         }
@@ -63,7 +63,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         if (SymGetLineFromAddr64(hProcess, sf.AddrPC.Offset, &lineDisplacement, &lineInfo)) {
             clone(&call.File, string(lineInfo.FileName));
             if (call.File.Length == 0) {
-                call.File.release();
+                free(call.File);
                 call.File = "UnknownFile";
             }
             call.LineNumber = lineInfo.LineNumber;
@@ -75,13 +75,13 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     auto desc = find(CodeDescs, exceptionCode).Value;
 
     string message = fmt::sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
-    defer(message.release());
+    defer(free(message));
 
     Context.PanicHandler(message, callStack);
 
     For(callStack) {
-        it.Name.release();
-        it.File.release();
+        free(it.Name);
+        free(it.File);
     }
     free(callStack);
 
@@ -95,7 +95,7 @@ void release_code_descs() {
 void win32_crash_handler_init() {
     auto [processor, success] = os_get_env("PROCESSOR_ARCHITECTURE");
     if (success) {
-        defer(processor.release());
+        defer(free(processor));
         if (processor == "EM64T" || processor == "AMD64") {
             MachineType = IMAGE_FILE_MACHINE_AMD64;
         } else if (processor == "x86") {

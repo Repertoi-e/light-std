@@ -740,7 +740,7 @@ inline parse_string_result eat_code_points_until_any_of(bytes buffer, const stri
             return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, (string) p};
         }
 
-        if (anyOfTheseDelims.has(cp)) break;
+        if (has(anyOfTheseDelims, cp)) break;
 
         p = rest;
     }
@@ -783,7 +783,7 @@ inline parse_string_result eat_code_points_while_any_of(bytes buffer, const stri
             return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, (string) p};
         }
 
-        if (!anyOfTheseEats.has(cp)) break;
+        if (!has(anyOfTheseEats, cp)) break;
 
         p = rest;
     }

@@ -6,7 +6,7 @@
     {                                                     \
         string t = fmt::sprint(fmtString, ##__VA_ARGS__); \
         assert_eq(t, expected);                           \
-        t.release();                                      \
+        free(t);                                          \
     }
 
 file_scope string LAST_ERROR;

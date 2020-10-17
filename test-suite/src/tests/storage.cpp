@@ -31,20 +31,20 @@ TEST(array) {
     insert(a, 3, -3);
     assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
 
-    remove(a, 4);
+    remove_at_index(a, 4);
     assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
     s64 count = a.Count;
-    For(range(count)) { remove(a, -1); }
+    For(range(count)) { remove_at_index(a, -1); }
     assert_eq(a.Count, 0);
 
     For(range(10)) { insert(a, 0, it); }
     assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 
-    remove(a, -1);
+    remove_at_index(a, -1);
     assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1));
 
-    remove(a, 0);
+    remove_at_index(a, 0);
     assert_eq(a, to_stack_array<s64>(8, 7, 6, 5, 4, 3, 2, 1));
 
     s64 f = find(a, 9);
@@ -83,7 +83,7 @@ TEST(hash_table) {
     for (auto [key, value] : t) {
         string str = fmt::sprint("{}", *value);
         assert_eq(*key, str);
-        str.release();
+        free(str);
 
         ++loopIterations;
     }
@@ -114,7 +114,7 @@ TEST(hash_table_clone) {
     for (auto [key, value] : t) {
         string str = fmt::sprint("{}", *value);
         assert_eq(*key, str);
-        str.release();
+        free(str);
 
         ++loopIterations;
     }

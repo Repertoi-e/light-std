@@ -14,7 +14,7 @@ struct formatter<file::path> {
     void format(const file::path &path, format_context *f) {
         string displayWorthy = path.unified();
         write(f, displayWorthy);
-        displayWorthy.release();
+        free(displayWorthy);
     }
 };
 
@@ -23,7 +23,7 @@ struct formatter<file::handle> {
     void format(const file::handle &handle, format_context *f) {
         string displayWorthy = handle.Path.unified();
         write(f, displayWorthy);
-        displayWorthy.release();
+        free(displayWorthy);
     }
 };
 }  // namespace fmt

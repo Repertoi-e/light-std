@@ -206,7 +206,7 @@ T *insert_list(array<T> &arr, s64 index, const initializer_list<T> &list) { retu
 
 // Removes element at specified index and moves following elements back
 template <typename T>
-void remove(array<T> &arr, s64 index) {
+void remove_at_index(array<T> &arr, s64 index) {
     // If the array is a view, we don't want to modify the original!
     if (!arr.Allocated) reserve(arr, 0);
 
@@ -216,6 +216,28 @@ void remove(array<T> &arr, s64 index) {
     where->~T();
     copy_memory(where, where + 1, (arr.Count - offset - 1) * sizeof(T));
     --arr.Count;
+}
+
+// Removes the first matching element and moves following elements back
+template <typename T>
+void remove(array<T> &arr, const T &element) {
+    // If the array is a view, we don't want to modify the original!
+    if (!arr.Allocated) reserve(arr, 0);
+
+    s64 index = -1;
+
+    auto *p = arr.Data, *end = arr.Data + arr.Count;
+    while (p != end) {
+        if (*p == element) {
+            index = p - arr.Data;
+            break;
+        }
+        ++p;
+    }
+
+    assert(index != -1 && "Element not in list");
+
+    remove_at_index(arr, index);
 }
 
 // Removes element at specified index and moves the last element to the empty slot.

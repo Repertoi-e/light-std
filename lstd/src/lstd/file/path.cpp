@@ -7,36 +7,36 @@ namespace file {
 string path::file_name() const {
     if (Str.Length == 0) return "";
 
-    s64 last = Str.find_reverse_any_of(OS_PATH_SEPARATORS, is_pointing_to_content() ? -2 : 0);
+    s64 last = find_reverse_any_of(Str, OS_PATH_SEPARATORS, is_pointing_to_content() ? -2 : 0);
     if (last == -1) return "";
-    return Str.substring(last + 1, Str.Length + (is_pointing_to_content() ? -1 : 0));
+    return substring(Str, last + 1, Str.Length + (is_pointing_to_content() ? -1 : 0));
 }
 
 string path::base_name() const {
     auto fileName = file_name();
-    s64 last = fileName.find_cp_reverse('.');
+    s64 last = find_cp_reverse(fileName , '.');
     if (last == -1) return fileName;
-    return fileName.substring(0, last);
+    return substring(fileName, 0, last);
 }
 
 string path::extension() const {
     auto fileName = file_name();
-    s64 last = fileName.find_cp_reverse('.');
+    s64 last = find_cp_reverse(fileName , '.');
     if (last == -1) return "";
-    return fileName.substring(last, fileName.Length);
+    return substring(fileName, last, fileName.Length);
 }
 
 string path::directory() const {
     if (Str.Length == 0) return "";
 
-    s64 last = Str.find_reverse_any_of(OS_PATH_SEPARATORS, is_pointing_to_content() ? -2 : 0);
+    s64 last = find_reverse_any_of(Str, OS_PATH_SEPARATORS, is_pointing_to_content() ? -2 : 0);
     if (last == -1) return "";
-    return Str.substring(0, last + 1);
+    return substring(Str, 0, last + 1);
 }
 
 string path::drive_letter() const {
     if (Str.Length < 2) return "";
-    if (Str[1] == ':') return Str.substring(0, 2);
+    if (Str[1] == ':') return substring(Str, 0, 2);
     return "";
 }
 
@@ -44,18 +44,18 @@ void path::combine_with(const string &str) {
     if (!Reserved) {
         string old = Str;
         Str = "";
-        Str.append_string(old);
+        append_string(Str, old);
         Reserved = true;
     }
 
     auto other = path(str);
     if (!is_pointing_to_content()) {
-        Str.append('/');
+        append_cp(Str, '/');
     }
     if (other.is_absolute()) {
         Str.Count = Str.Length = 0;
     }
-    Str.append_string(str);
+    append_string(Str, str);
 }
 
 string path::resolved() const {
@@ -63,7 +63,7 @@ string path::resolved() const {
     clone(&result, Str);
 
     s64 dots, beginning = 0;
-    while ((dots = result.find_substring("..", beginning)) != -1) {
+    while ((dots = find_substring(result, "..", beginning)) != -1) {
         if (dots + 2 >= result.Length) break;  // Invalid path
 
         auto slash = result[dots + 2];
@@ -79,15 +79,15 @@ string path::resolved() const {
     if (beginning == result.Length) return result;
 
     s64 progress = beginning;
-    while ((dots = result.find_substring("..", progress)) != -1) {
-        s64 previousSlash = result.find_reverse_any_of(OS_PATH_SEPARATORS, dots - 2);
-        result.remove_range(previousSlash, dots + 2);
+    while ((dots = find_substring(result, "..", progress)) != -1) {
+        s64 previousSlash = find_reverse_any_of(result, OS_PATH_SEPARATORS, dots - 2);
+        remove_range(result, previousSlash, dots + 2);
         progress = previousSlash + 1;
         if (progress >= result.Length) break;
     }
 
     progress = beginning;
-    while ((dots = result.find_cp('.', progress)) != -1) {
+    while ((dots = find_cp(result, '.', progress)) != -1) {
         if (dots + 1 >= result.Length) break;  // Invalid path
 
         auto next = result[dots + 1];
@@ -96,7 +96,7 @@ string path::resolved() const {
             continue;
         }
 
-        result.remove_range(dots, dots + 2);
+        remove_range(result, dots, dots + 2);
         progress = dots + 1;
         if (progress >= result.Length) break;
     }

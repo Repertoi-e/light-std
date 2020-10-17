@@ -440,15 +440,15 @@ void default_parse_error_handler(const string &message, const string &formatStri
 
     // Make escape characters appear as they would in a string literal
     string str = formatString;
-    str.replace_all('\"', "\\\"")
-        ->replace_all('\\', "\\\\")
-        ->replace_all('\a', "\\a")
-        ->replace_all('\b', "\\b")
-        ->replace_all('\f', "\\f")
-        ->replace_all('\n', "\\n")
-        ->replace_all('\r', "\\r")
-        ->replace_all('\t', "\\t")
-        ->replace_all('\v', "\\v");
+    replace_all(str, '\"', "\\\"");
+    replace_all(str, '\\', "\\\\");
+    replace_all(str, '\a', "\\a");
+    replace_all(str, '\b', "\\b");
+    replace_all(str, '\f', "\\f");
+    replace_all(str, '\n', "\\n");
+    replace_all(str, '\r', "\\r");
+    replace_all(str, '\t', "\\t");
+    replace_all(str, '\v', "\\v");
 
     string_builder_writer output;
     fmt::to_writer(&output, "\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);

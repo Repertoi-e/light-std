@@ -13,7 +13,7 @@ namespace file {
     HANDLE handleName = call;                                                                                       \
     if (handleName == INVALID_HANDLE_VALUE) {                                                                       \
         string extendedCallSite = fmt::sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, Path); \
-        defer(extendedCallSite.release());                                                                          \
+        defer(free(extendedCallSite));                                                                              \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);     \
         return returnOnFail;                                                                                        \
     }
@@ -255,10 +255,10 @@ void handle::iterator::read_next_entry() {
         }
         ++Index;
 
-        CurrentFileName.release();
+        free(CurrentFileName);
 
         auto *fileName = ((WIN32_FIND_DATAW *) PlatformFileInfo)->cFileName;
-        CurrentFileName.reserve(c_string_length(fileName) * 2);  // @Bug c_string_length * 2 is not enough
+        reserve(CurrentFileName, c_string_length(fileName) * 2);  // @Bug c_string_length * 2 is not enough
         utf16_to_utf8(fileName, const_cast<utf8 *>(CurrentFileName.Data), &CurrentFileName.Count);
         CurrentFileName.Length = utf8_length(CurrentFileName.Data, CurrentFileName.Count);
     } while (CurrentFileName == ".." || CurrentFileName == ".");

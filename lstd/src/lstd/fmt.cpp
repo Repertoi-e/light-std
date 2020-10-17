@@ -107,12 +107,12 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
         while (true) {
             auto searchString = string(p->It.Data, end - p->It.Data);
 
-            s64 bracket = searchString.find_cp('}');
+            s64 bracket = find_cp(searchString, '}');
             if (bracket == -1) {
                 write_no_specs(f, p->It.Data, end - p->It.Data);
                 return;
             }
-            
+
             auto *pbracket = get_cp_at_index(searchString.Data, searchString.Length, bracket);
             if (*(pbracket + 1) != '}') {
                 on_error(f, "Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", pbracket - f->Parse.FormatString.Data);
@@ -130,7 +130,7 @@ void parse_fmt_string(const string &fmtString, format_context *f) {
     arg currentArg;
 
     while (p->It.Count) {
-        s64 bracket = p->It.find_cp('{');
+        s64 bracket = find_cp(p->It, '{');
         if (bracket == -1) {
             write_until(p->It.Data + p->It.Count);
             return;

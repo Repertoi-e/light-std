@@ -13,8 +13,6 @@ constexpr const char *OS_PATH_SEPARATORS = "\\/";
 constexpr const char *OS_PATH_SEPARATORS = "/";
 #endif
 
-inline void hygienize_path_separators(string *path) { path->replace_all('\\', '/'); }
-
 // This object stores a path to a file or directory and provides common
 // operations like getting the file name or extension.
 //
@@ -32,7 +30,7 @@ struct path {
     path(const string &path) : Str(path) {}
 
     void release() {
-        if (Reserved) Str.release();
+        if (Reserved) free(Str);
     }
 
     // Returns the the relative path to get from this path to _there_.
@@ -45,13 +43,13 @@ struct path {
     path get_path_from_here_to(const path &there) const {
         assert(is_pointing_to_content() && there.is_pointing_to_content());
 
-        if (Str.find_substring(there.Str) == -1) {
+        if (find_substring(Str, there.Str) == -1) {
             return path(there.Str);
         } else {
             if (Str.Length == there.Str.Length) {
                 return path(Str);
             } else {
-                path difference = there.Str.substring(Str.Length, there.Str.Length);
+                path difference = substring(there.Str, Str.Length, there.Str.Length);
                 return difference;
             }
         }
@@ -118,7 +116,7 @@ struct path {
     // Resolves any ./ or ../ and replaces all \ with /.
     string unified() const {
         string result = resolved();
-        result.replace_all("\\", "/");
+        replace_all(result, "\\", "/");
         return result;
     }
 };

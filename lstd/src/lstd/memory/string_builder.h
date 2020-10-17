@@ -37,7 +37,7 @@ void reset(string_builder &builder);
 void free(string_builder &builder);
 
 // Append a code point to the builder
-void append(string_builder &builder, utf32 codePoint);
+void append_cp(string_builder &builder, utf32 codePoint);
 
 // Append a string to the builder
 void append_string(string_builder &builder, const string &str);

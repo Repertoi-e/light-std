@@ -64,494 +64,7 @@ struct string : public array_view<utf8> {
     explicit string(const utf32 *str);
 
     // We no longer use destructors for deallocation. Call release() explicitly (take a look at the defer macro!).
-    // ~string() { release(); }
-
-    // Makes sure string has reserved enough space for at least n bytes.
-    // Note that it may reserve way more than required.
-    // Reserves space equal to the next power of two bigger than _size_, starting at 8.
-    //
-    // Allocates a buffer if the string doesn't already point to reserved memory.
-    // Allocations are done using the Context's allocator and aligned if there is a specified
-    // preferred alignment in the Context.
-    void reserve(s64 size);
-
-    // Resets Count and Length without freeing memory
-    void reset();
-
-    // Releases the memory allocated by this string and resets its members
-    void release();
-
-    // Gets the _index_'th code point in the string.
-    // The returned code_point_ref object can be used to modify the code point at that location (by simply =).
-    code_point_ref get(s64 index) { return code_point_ref(this, translate_index(index, Length)); }
-
-    constexpr utf32 get(s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
-
-    constexpr bool begins_with(utf32 cp) const { return get(0) == cp; }
-    constexpr bool begins_with(const string &str) const {
-        if (str.Count > Count) return false;
-        return compare_memory(Data, str.Data, str.Count) == -1;
-    }
-
-    constexpr bool ends_with(utf32 cp) const { return get(-1) == cp; }
-    constexpr bool ends_with(const string &str) const {
-        if (str.Count > Count) return false;
-        return compare_memory(Data + Count - str.Count, str.Data, str.Count) == -1;
-    }
-
-    // Compares two utf8 encoded strings and returns the index of the code point
-    // at which they are different or _-1_ if they are the same.
-    constexpr s64 compare(const string &str) const {
-        if (Length == 0 && str.Length == 0) return -1;
-        if (Length == 0 || str.Length == 0) return 0;
-
-        auto *p1 = Data, *p2 = str.Data;
-        auto *e1 = p1 + Count, *e2 = p2 + str.Count;
-
-        s64 index = 0;
-        while (decode_cp(p1) == decode_cp(p2)) {
-            p1 += get_size_of_cp(p1);
-            p2 += get_size_of_cp(p2);
-            if (p1 == e1 && p2 == e2) return -1;
-            if (p1 == e1 || p2 == e2) return index;
-            ++index;
-        }
-        return index;
-    }
-
-    // Compares two utf8 encoded strings ignoring case and returns the index of the code point
-    // at which they are different or _-1_ if they are the same.
-    constexpr s64 compare_ignore_case(const string &str) const {
-        if (Length == 0 && str.Length == 0) return -1;
-        if (Length == 0 || str.Length == 0) return 0;
-
-        auto *p1 = Data, *p2 = str.Data;
-        auto *e1 = p1 + Count, *e2 = p2 + str.Count;
-
-        // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-        s64 index = 0;
-        while (::to_lower(decode_cp(p1)) == ::to_lower(decode_cp(p2))) {
-            p1 += get_size_of_cp(p1);
-            p2 += get_size_of_cp(p2);
-            if (p1 == e1 && p2 == e2) return -1;
-            if (p1 == e1 || p2 == e2) return index;
-            ++index;
-        }
-        return index;
-    }
-
-    // Compares two utf8 encoded strings and returns -1 if _one_ is before _two_,
-    // 0 if one == two and 1 if _two_ is before _one_.
-    constexpr s32 compare_lexicographically(const string &str) const {
-        if (Length == 0 && str.Length == 0) return 0;
-        if (Length == 0) return -1;
-        if (str.Length == 0) return 1;
-
-        auto *p1 = Data, *p2 = str.Data;
-        auto *e1 = p1 + Count, *e2 = p2 + str.Count;
-
-        s64 index = 0;
-        while (decode_cp(p1) == decode_cp(p2)) {
-            p1 += get_size_of_cp(p1);
-            p2 += get_size_of_cp(p2);
-            if (p1 == e1 && p2 == e2) return 0;
-            if (p1 == e1) return -1;
-            if (p2 == e2) return 1;
-            ++index;
-        }
-        return ((s64) decode_cp(p1) - (s64) decode_cp(p2)) < 0 ? -1 : 1;
-    }
-
-    // Compares two utf8 encoded strings ignorign case and returns -1 if _one_ is before _two_,
-    // 0 if one == two and 1 if _two_ is before _one_.
-    constexpr s32 compare_lexicographically_ignore_case(const string &str) const {
-        if (Length == 0 && str.Length == 0) return 0;
-        if (Length == 0) return -1;
-        if (str.Length == 0) return 1;
-
-        auto *p1 = Data, *p2 = str.Data;
-        auto *e1 = p1 + Count, *e2 = p2 + str.Count;
-
-        s64 index = 0;
-        while (::to_lower(decode_cp(p1)) == ::to_lower(decode_cp(p2))) {
-            p1 += get_size_of_cp(p1);
-            p2 += get_size_of_cp(p2);
-            if (p1 == e1 && p2 == e2) return 0;
-            if (p1 == e1) return -1;
-            if (p2 == e2) return 1;
-            ++index;
-        }
-        return ((s64)::to_lower(decode_cp(p1)) - (s64)::to_lower(decode_cp(p2))) < 0 ? -1 : 1;
-    }
-
-    // Find the index of the first occurence of a substring that is after a specified index
-    constexpr s64 find_substring(const string &needle, s64 start = 0) const {
-        assert(needle.Data && needle.Length);
-
-        if (Length == 0) return -1;
-
-        if (start >= Length || start <= -Length) return -1;
-
-        auto *p = get_cp_at_index(Data, Length, translate_index(start, Length));
-        auto *end = Data + Count;
-
-        auto *needleEnd = needle.Data + needle.Count;
-
-        while (p != end) {
-            while (end - p > 4) {
-                if (U32_HAS_BYTE(*(u32 *) p, *needle.Data)) break;
-                p += 4;
-            }
-
-            while (p != end) {
-                if (*p == *needle.Data) break;
-                ++p;
-            }
-
-            if (p == end) return -1;
-
-            auto *search = p + 1;
-            auto *progress = needle.Data + 1;
-            while (search != end && progress != needleEnd && *search == *progress) ++search, ++progress;
-            if (progress == needleEnd) return utf8_length(Data, p - Data);
-            ++p;
-        }
-        return -1;
-    }
-
-    // Find the index of the first occurence of a code point that is after a specified index
-    constexpr s64 find_cp(utf32 cp, s64 start = 0) const {
-        utf8 encoded[4]{};
-        encode_cp(encoded, cp);
-        return find_substring(string(encoded, get_size_of_cp(encoded)), start);
-    }
-
-    // Find the index of the last occurence of a substring that is before a specified index
-    constexpr s64 find_substring_reverse(const string &needle, s64 start = 0) const {
-        assert(needle.Data && needle.Length);
-
-        if (Length == 0) return -1;
-
-        if (start >= Length || start <= -Length) return -1;
-        if (start == 0) start = Length;
-
-        auto *p = get_cp_at_index(Data, Length, translate_index(start, Length, true) - 1);
-        auto *end = Data + Count;
-
-        auto *needleEnd = needle.Data + needle.Count;
-
-        while (p > Data) {
-            while (p - Data > 4) {
-                if (U32_HAS_BYTE(*((u32 *) (p - 3)), *needle.Data)) break;
-                p -= 4;
-            }
-
-            while (p != Data) {
-                if (*p == *needle.Data) break;
-                --p;
-            }
-
-            if (*p != *needle.Data && p == Data) return -1;
-
-            auto *search = p + 1;
-            auto *progress = needle.Data + 1;
-            while (search != end && progress != needleEnd && *search == *progress) ++search, ++progress;
-            if (progress == needleEnd) return utf8_length(Data, p - Data);
-            --p;
-        }
-        return -1;
-    }
-
-    // Find the index of the last occurence of a code point that is before a specified index
-    constexpr s64 find_cp_reverse(utf32 cp, s64 start = 0) const {
-        utf8 encoded[4]{};
-        encode_cp(encoded, cp);
-        return find_substring_reverse(string(encoded, get_size_of_cp(encoded)), start);
-    }
-
-    // Find the index of the first occurence of any code point in _terminators_ that is after a specified index
-    constexpr s64 find_any_of(const string &terminators, s64 start = 0) const {
-        assert(terminators.Data && terminators.Length);
-
-        if (Length == 0) return -1;
-        if (start >= Length || start <= -Length) return -1;
-
-        start = translate_index(start, Length);
-        auto *p = get_cp_at_index(Data, Length, start);
-
-        For(range(start, Length)) {
-            if (terminators.find_cp(decode_cp(p)) != -1) return utf8_length(Data, p - Data);
-            p += get_size_of_cp(p);
-        }
-        return -1;
-    }
-
-    // Find the index of the last occurence of any code point in _terminators_ that is before a specified index
-    constexpr s64 find_reverse_any_of(const string &terminators, s64 start = 0) const {
-        assert(terminators.Data && terminators.Length);
-
-        if (Length == 0) return -1;
-
-        if (start >= Length || start <= -Length) return -1;
-        if (start == 0) start = Length;
-
-        start = translate_index(start, Length, true) - 1;
-        auto *p = get_cp_at_index(Data, Length, start);
-
-        For(range(start, -1, -1)) {
-            if (terminators.find_cp(decode_cp(p)) != -1) return utf8_length(Data, p - Data);
-            p -= get_size_of_cp(p);
-        }
-        return -1;
-    }
-
-    // Find the index of the first absence of a substring that is after a specified index
-    constexpr s64 find_substring_not(const string &eat, s64 start = 0) const {
-        assert(eat.Data && eat.Length);
-
-        if (Length == 0) return -1;
-        if (start >= Length || start <= -Length) return -1;
-
-        auto *p = get_cp_at_index(Data, Length, translate_index(start, Length));
-        auto *end = Data + Count;
-
-        auto *eatEnd = eat.Data + eat.Count;
-        while (p != end) {
-            while (p != end) {
-                if (*p != *eat.Data) break;
-                ++p;
-            }
-
-            if (p == end) return -1;
-
-            auto *search = p + 1;
-            auto *progress = eat.Data + 1;
-            while (search != end && progress != eatEnd && *search != *progress) ++search, ++progress;
-            if (progress == eatEnd) return utf8_length(Data, p - Data);
-            ++p;
-        }
-        return -1;
-    }
-
-    // Find the index of the first absence of a code point that is after a specified index
-    constexpr s64 find_cp_not(utf32 cp, s64 start = 0) const {
-        utf8 encoded[4]{};
-        encode_cp(encoded, cp);
-        return find_substring_not(string(encoded, get_size_of_cp(encoded)), start);
-    }
-
-    // Find the index of the last absence of a substring that is before a specified index
-    constexpr s64 find_substring_reverse_not(const string &eat, s64 start = 0) const {
-        assert(eat.Data && eat.Length);
-
-        if (Length == 0) return -1;
-        if (start >= Length || start <= -Length) return -1;
-        if (start == 0) start = Length;
-
-        auto *p = get_cp_at_index(Data, Length, translate_index(start, Length, true) - 1);
-        auto *end = Data + Count;
-
-        auto *eatEnd = eat.Data + eat.Count;
-
-        while (p > Data) {
-            while (p != Data) {
-                if (*p != *eat.Data) break;
-                --p;
-            }
-
-            if (*p == *eat.Data && p == Data) return -1;
-
-            auto *search = p + 1;
-            auto *progress = eat.Data + 1;
-            while (search != end && progress != eatEnd && *search != *progress) ++search, ++progress;
-            if (progress == eatEnd) return utf8_length(Data, p - Data);
-            --p;
-        }
-        return -1;
-    }
-
-    // Find the index of the last absence of a substring that is before a specified index
-    constexpr s64 find_cp_reverse_not(utf32 cp, s64 start = 0) const {
-        utf8 encoded[4]{};
-        encode_cp(encoded, cp);
-        return find_substring_reverse_not(string(encoded, get_size_of_cp(encoded)), start);
-    }
-
-    // Find the index of the first absence of any code point in _terminators_ that is after a specified index
-    constexpr s64 find_not_any_of(const string &terminators, s64 start = 0) const {
-        assert(terminators.Data && terminators.Length);
-
-        if (Length == 0) return -1;
-
-        if (start >= Length || start <= -Length) return -1;
-        start = translate_index(start, Length);
-        auto *p = get_cp_at_index(Data, Length, start);
-
-        For(range(start, Length)) {
-            if (terminators.find_cp(decode_cp(p)) == -1) return utf8_length(Data, p - Data);
-            p += get_size_of_cp(p);
-        }
-        return -1;
-    }
-
-    // Find the index of the first absence of any code point in _terminators_ that is after a specified index
-    constexpr s64 find_reverse_not_any_of(const string &terminators, s64 start = 0) const {
-        assert(terminators.Data && terminators.Length);
-
-        if (Length == 0) return -1;
-
-        if (start >= Length || start <= -Length) return -1;
-        if (start == 0) start = Length;
-
-        start = translate_index(start, Length, true) - 1;
-        auto *p = get_cp_at_index(Data, Length, start);
-
-        For(range(start, -1, -1)) {
-            if (terminators.find_cp(decode_cp(p)) == -1) return utf8_length(Data, p - Data);
-            p -= get_size_of_cp(p);
-        }
-        return -1;
-    }
-
-    // Gets [begin, end) range of characters into a new string object.
-    // This function doesn't allocate, but just returns a "view".
-    constexpr string substring(s64 begin, s64 end) const {
-        s64 beginIndex = translate_index(begin, Length);
-        s64 endIndex = translate_index(end, Length, true);
-
-        const utf8 *beginPtr = get_cp_at_index(Data, Length, beginIndex);
-        const utf8 *endPtr = beginPtr;
-        For(range(beginIndex, endIndex)) endPtr += get_size_of_cp(endPtr);
-
-        return string(beginPtr, endPtr - beginPtr);
-    }
-
-    // Returns a substring with whitespace removed at the start.
-    // This function doesn't allocate, but just returns a "view".
-    constexpr string trim_start() const { return substring(find_not_any_of(" \n\r\t\v\f"), Length); }
-
-    // Returns a substring with whitespace removed at the end.
-    // This function doesn't allocate, but just returns a "view".
-    constexpr string trim_end() const { return substring(0, find_reverse_not_any_of(" \n\r\t\v\f") + 1); }
-
-    // Returns a substring with whitespace removed from both sides.
-    // This function doesn't allocate, but just returns a "view".
-    constexpr string trim() const { return trim_start().trim_end(); }
-
-    // Returns true if the string contains _cp_ anywhere
-    constexpr bool has(utf32 cp) const { return find_cp(cp) != -1; }
-
-    // Returns true if the string contains _str_ anywhere
-    constexpr bool has(const string &str) const { return find_substring(str) != -1; }
-
-    // Counts the number of occurences of _cp_
-    constexpr s64 count(utf32 cp) const {
-        s64 result = 0, index = 0;
-        while ((index = find_cp(cp, index)) != -1) {
-            ++result, ++index;
-            if (index >= Length) break;
-        }
-        return result;
-    }
-
-    // Counts the number of occurences of _str_
-    constexpr s64 count(const string &str) const {
-        s64 result = 0, index = 0;
-        while ((index = find_substring(str, index)) != -1) {
-            ++result, ++index;
-            if (index >= Length) break;
-        }
-        return result;
-    }
-
-    // Sets the _index_'th code point in the string.
-    // Returns this.
-    string *set(s64 index, utf32 codePoint);
-
-    // Insert a code point at a specified index.
-    // Returns this.
-    string *insert(s64 index, utf32 codePoint);
-
-    // Insert a buffer of bytes at a specified index.
-    // Returns this.
-    string *insert_pointer_and_size(s64 index, const utf8 *str, s64 size);
-
-    // Insert a string at a specified index.
-    // Returns this.
-    string *insert_string(s64 index, const string &str) { return insert_pointer_and_size(index, str.Data, str.Count); }
-
-    // Insert a list of bytes at a specified index.
-    // Returns this.
-    string *insert_list_of_bytes(s64 index, const initializer_list<utf8> &list) { return insert_pointer_and_size(index, list.begin(), list.size()); }
-
-    // Remove code point at specified index.
-    // Returns this.
-    string *remove(s64 index);
-
-    // Remove a range of code points. [begin, end)
-    // Returns this.
-    string *remove_range(s64 begin, s64 end);
-
-    // Append a non encoded character to a string.
-    // Returns this.
-    string *append(utf32 codePoint) { return insert(Length, codePoint); }
-
-    // Append _size_ bytes of string contained in _data_.
-    // Returns this.
-    string *append_pointer_and_size(const utf8 *str, s64 size) { return insert_pointer_and_size(Length, str, size); }
-
-    // Append one string to another.
-    // Returns this.
-    string *append_string(const string &str) { return append_pointer_and_size(str.Data, str.Count); }
-
-    // Append a list of bytes to the end.
-    // Returns this.
-    string *append_list_of_bytes(const initializer_list<utf8> &list) { return append_pointer_and_size(list.begin(), list.size()); }
-
-    // Copy this string's contents and append them _n_ times.
-    // Returns this.
-    string *repeat(s64 n);
-
-    // Convert this string to uppercase code points.
-    // Returns this.
-    string *to_upper();
-
-    // Convert this string to lowercase code points.
-    // Returns this.
-    string *to_lower();
-
-    // Removes all occurences of _cp_.
-    // Returns this.
-    string *remove_all(utf32 cp);
-
-    // Remove all occurences of _str_.
-    // Returns this.
-    string *remove_all(const string &str);
-
-    // Replace all occurences of _oldCp_ with _newCp_.
-    // Returns this.
-    string *replace_all(utf32 oldCp, utf32 newCp);
-
-    // Replace all occurences of _oldStr_ with _newStr_.
-    // Returns this.
-    string *replace_all(const string &oldStr, const string &newStr);
-
-    // Replace all occurences of _oldCp_ with _newStr_.
-    // Returns this.
-    string *replace_all(utf32 oldCp, const string &newStr);
-
-    // Replace all occurences of _oldStr_ with _newCp_.
-    // Returns this.
-    string *replace_all(const string &oldStr, utf32 newCp);
-
-    // Allocates a buffer and copies this string's contents and also appends a zero terminator.
-    // The caller is responsible for freeing.
-    [[nodiscard("Leak")]] utf8 *to_c_string(allocator alloc = {}) const {
-        utf8 *result = allocate_array(utf8, Count + 1, alloc);
-        copy_memory(result, Data, Count);
-        result[Count] = '\0';
-        return result;
-    }
+    // ~string() { free(); }
 
     //
     // Iterator:
@@ -604,7 +117,7 @@ struct string : public array_view<utf8> {
         bool operator>=(const string_iterator &other) const { return Index >= other.Index; }
         bool operator<=(const string_iterator &other) const { return Index <= other.Index; }
 
-        auto operator*() { return Parent->get(Index); }
+        auto operator*() { return (*Parent)[Index]; }
 
         operator const utf8 *() const { return get_cp_at_index(Parent->Data, Parent->Length, Index, true); }
     };
@@ -630,21 +143,529 @@ struct string : public array_view<utf8> {
     operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
 
     // The non-const version allows to modify the character by simply =.
-    code_point_ref operator[](s64 index) { return get(index); }
-    constexpr utf32 operator[](s64 index) const { return get(index); }
-
-    constexpr bool operator==(const string &other) const { return compare(other) == -1; }
-    constexpr bool operator!=(const string &other) const { return !(*this == other); }
-    constexpr bool operator<(const string &other) const { return compare_lexicographically(other) < 0; }
-    constexpr bool operator>(const string &other) const { return compare_lexicographically(other) > 0; }
-    constexpr bool operator<=(const string &other) const { return !(*this > other); }
-    constexpr bool operator>=(const string &other) const { return !(*this < other); }
+    code_point_ref operator[](s64 index) { return code_point_ref(this, translate_index(index, Length)); }
+    constexpr utf32 operator[](s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
 };
 
-constexpr bool operator==(const utf8 *one, const string &other) { return other.compare_lexicographically(one) == 0; }
+// Makes sure string has reserved enough space for at least n bytes.
+// Note that it may reserve way more than required.
+// Reserves space equal to the next power of two bigger than _size_, starting at 8.
+//
+// Allocates a buffer if the string doesn't already point to reserved memory.
+// Allocations are done using the Context's allocator and aligned if there is a specified
+// preferred alignment in the Context.
+void reserve(string &s, s64 size);
+
+// Resets Count and Length without freeing memory
+void reset(string &s);
+
+// Releases the memory allocated by this string and resets its members
+void free(string &s);
+
+// Allocates a buffer, copies the string's contents and also appends a zero terminator.
+// The caller is responsible for freeing.
+[[nodiscard("Leak")]] utf8 *to_c_string(const string &s, allocator alloc = {});
+
+// Gets the _index_'th code point in the string.
+constexpr utf32 get(const string &s, s64 index) { return decode_cp(get_cp_at_index(s.Data, s.Length, index)); }
+
+//
+// String modification:
+//
+// Sets the _index_'th code point in the string.
+void set(string &s, s64 index, utf32 codePoint);
+
+// Insert a code point at a specified index.
+void insert(string &s, s64 index, utf32 codePoint);
+
+// Insert a buffer of bytes at a specified index.
+void insert_pointer_and_size(string &s, s64 index, const utf8 *str, s64 size);
+
+// Insert a string at a specified index.
+inline void insert_string(string &s, s64 index, const string &str) { return insert_pointer_and_size(s, index, str.Data, str.Count); }
+
+// Remove the first occurence of a code point.
+void remove(string &s, utf32 cp);
+
+// Remove code point at specified index.
+void remove_at_index(string &s, s64 index);
+
+// Remove a range of code points. [begin, end)
+void remove_range(string &s, s64 begin, s64 end);
+
+// Append a non encoded character to a string.
+inline void append_cp(string &s, utf32 codePoint) { return insert(s, s.Length, codePoint); }
+
+// Append _size_ bytes of string contained in _data_.
+inline void append_pointer_and_size(string &s, const utf8 *str, s64 size) { return insert_pointer_and_size(s, s.Length, str, size); }
+
+// Append one string to another.
+inline void append_string(string &s, const string &str) { return append_pointer_and_size(s, str.Data, str.Count); }
+
+// Copy this string's contents and append them _n_ times.
+void repeat(string &s, s64 n);
+
+// @Cleanup: Combine remove_all and replace_all into one implementation with concept magic?
+
+// Removes all occurences of _cp_.
+void remove_all(string &s, utf32 cp);
+
+// Remove all occurences of _str_.
+void remove_all(string &s, const string &str);
+
+// Replace all occurences of _oldCp_ with _newCp_.
+void replace_all(string &s, utf32 oldCp, utf32 newCp);
+
+// Replace all occurences of _oldStr_ with _newStr_.
+void replace_all(string &s, const string &oldStr, const string &newStr);
+
+// Replace all occurences of _oldCp_ with _newStr_.
+void replace_all(string &s, utf32 oldCp, const string &newStr);
+
+// Replace all occurences of _oldStr_ with _newCp_.
+void replace_all(string &s, const string &oldStr, utf32 newCp);
+
+//
+// Comparison and searching:
+//
+
+
+// Compares two utf8 encoded strings and returns the index
+// of the code point at which they are different or _-1_ if they are the same.
+constexpr s64 compare(const string &s, const string &other) {
+    if (s.Length == 0 && other.Length == 0) return -1;
+    if (s.Length == 0 || other.Length == 0) return 0;
+
+    auto *p1 = s.Data, *p2 = other.Data;
+    auto *e1 = p1 + s.Count, *e2 = p2 + other.Count;
+
+    s64 index = 0;
+    while (decode_cp(p1) == decode_cp(p2)) {
+        p1 += get_size_of_cp(p1);
+        p2 += get_size_of_cp(p2);
+        if (p1 == e1 && p2 == e2) return -1;
+        if (p1 == e1 || p2 == e2) return index;
+        ++index;
+    }
+    return index;
+}
+
+// Compares two utf8 encoded strings while ignoring case and returns the index
+// of the code point at which they are different or _-1_ if they are the same.
+constexpr s64 compare_ignore_case(const string &s, const string &other) {
+    if (s.Length == 0 && other.Length == 0) return -1;
+    if (s.Length == 0 || other.Length == 0) return 0;
+
+    auto *p1 = s.Data, *p2 = other.Data;
+    auto *e1 = p1 + s.Count, *e2 = p2 + other.Count;
+
+    s64 index = 0;
+    while (to_lower(decode_cp(p1)) == to_lower(decode_cp(p2))) {
+        p1 += get_size_of_cp(p1);
+        p2 += get_size_of_cp(p2);
+        if (p1 == e1 && p2 == e2) return -1;
+        if (p1 == e1 || p2 == e2) return index;
+        ++index;
+    }
+    return index;
+}
+
+// Compares two utf8 encoded strings lexicographically and returns:
+//  -1 if _a_ is before _b_
+//   0 if a == b
+//   1 if _b_ is before _a_
+constexpr s32 compare_lexicographically(const string &a, const string &b) {
+    if (a.Length == 0 && b.Length == 0) return 0;
+    if (a.Length == 0) return -1;
+    if (b.Length == 0) return 1;
+
+    auto *p1 = a.Data, *p2 = b.Data;
+    auto *e1 = p1 + a.Count, *e2 = p2 + b.Count;
+
+    s64 index = 0;
+    while (decode_cp(p1) == decode_cp(p2)) {
+        p1 += get_size_of_cp(p1);
+        p2 += get_size_of_cp(p2);
+        if (p1 == e1 && p2 == e2) return 0;
+        if (p1 == e1) return -1;
+        if (p2 == e2) return 1;
+        ++index;
+    }
+    return ((s64) decode_cp(p1) - (s64) decode_cp(p2)) < 0 ? -1 : 1;
+}
+
+// Compares two utf8 encoded strings lexicographically while ignoring case and returns:
+//  -1 if _a_ is before _b_
+//   0 if a == b
+//   1 if _b_ is before _a_
+constexpr s32 compare_lexicographically_ignore_case(const string &a, const string &b) {
+    if (a.Length == 0 && b.Length == 0) return 0;
+    if (a.Length == 0) return -1;
+    if (b.Length == 0) return 1;
+
+    auto *p1 = a.Data, *p2 = b.Data;
+    auto *e1 = p1 + a.Count, *e2 = p2 + b.Count;
+
+    s64 index = 0;
+    while (to_lower(decode_cp(p1)) == to_lower(decode_cp(p2))) {
+        p1 += get_size_of_cp(p1);
+        p2 += get_size_of_cp(p2);
+        if (p1 == e1 && p2 == e2) return 0;
+        if (p1 == e1) return -1;
+        if (p2 == e2) return 1;
+        ++index;
+    }
+    return ((s64) to_lower(decode_cp(p1)) - (s64) to_lower(decode_cp(p2))) < 0 ? -1 : 1;
+}
+
+// Searches for the first occurence of a substring which is after a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_substring(const string &haystack, const string &needle, s64 start = 0) {
+    assert(needle.Data && needle.Length);
+
+    if (haystack.Length == 0) return -1;
+
+    if (start >= haystack.Length || start <= -haystack.Length) return -1;
+
+    auto *p = get_cp_at_index(haystack.Data, haystack.Length, translate_index(start, haystack.Length));
+    auto *end = haystack.Data + haystack.Count;
+
+    auto *needleEnd = needle.Data + needle.Count;
+
+    while (p != end) {
+        while (end - p > 4) {
+            if (U32_HAS_BYTE(*(u32 *) p, *needle.Data)) break;
+            p += 4;
+        }
+
+        while (p != end) {
+            if (*p == *needle.Data) break;
+            ++p;
+        }
+
+        if (p == end) return -1;
+
+        auto *search = p + 1;
+        auto *progress = needle.Data + 1;
+        while (search != end && progress != needleEnd && *search == *progress) ++search, ++progress;
+        if (progress == needleEnd) return utf8_length(haystack.Data, p - haystack.Data);
+        ++p;
+    }
+    return -1;
+}
+
+// Searches for the first occurence of a code point which is after a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_cp(const string &haystack, utf32 cp, s64 start = 0) {
+    utf8 encoded[4]{};
+    encode_cp(encoded, cp);
+    return find_substring(haystack, string(encoded, get_size_of_cp(encoded)), start);
+}
+
+// Searches for the last occurence of a substring which is before a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_substring_reverse(const string &haystack, const string &needle, s64 start = 0) {
+    assert(needle.Data && needle.Length);
+
+    if (haystack.Length == 0) return -1;
+
+    if (start >= haystack.Length || start <= -haystack.Length) return -1;
+    if (start == 0) start = haystack.Length;
+
+    auto *p = get_cp_at_index(haystack.Data, haystack.Length, translate_index(start, haystack.Length, true) - 1);
+    auto *end = haystack.Data + haystack.Count;
+
+    auto *needleEnd = needle.Data + needle.Count;
+
+    while (p > haystack.Data) {
+        while (p - haystack.Data > 4) {
+            if (U32_HAS_BYTE(*((u32 *) (p - 3)), *needle.Data)) break;
+            p -= 4;
+        }
+
+        while (p != haystack.Data) {
+            if (*p == *needle.Data) break;
+            --p;
+        }
+
+        if (*p != *needle.Data && p == haystack.Data) return -1;
+
+        auto *search = p + 1;
+        auto *progress = needle.Data + 1;
+        while (search != end && progress != needleEnd && *search == *progress) ++search, ++progress;
+        if (progress == needleEnd) return utf8_length(haystack.Data, p - haystack.Data);
+        --p;
+    }
+    return -1;
+}
+
+// Searches for the last occurence of a code point which is before a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_cp_reverse(const string &haystack, utf32 cp, s64 start = 0) {
+    utf8 encoded[4]{};
+    encode_cp(encoded, cp);
+    return find_substring_reverse(haystack, string(encoded, get_size_of_cp(encoded)), start);
+}
+
+// Searches for the first occurence of a substring which is different from _eat_ and is after a specified _start_ index.
+// Returns -1 if no index was found.
+//
+//  e.g.
+//   find_substring_not("../../../../user/stuff", "../")
+//   returns:                        ^
+//
+constexpr s64 find_substring_not(const string &s, const string &eat, s64 start = 0) {
+    assert(eat.Data && eat.Length);
+
+    if (s.Length == 0) return -1;
+
+    if (start >= s.Length || start <= -s.Length) return -1;
+
+    auto *p = get_cp_at_index(s.Data, s.Length, translate_index(start, s.Length));
+    auto *end = s.Data + s.Count;
+
+    auto *eatEnd = eat.Data + eat.Count;
+    while (p != end) {
+        while (p != end) {
+            if (*p != *eat.Data) break;
+            ++p;
+        }
+
+        if (p == end) return -1;
+
+        auto *search = p + 1;
+        auto *progress = eat.Data + 1;
+        while (search != end && progress != eatEnd && *search != *progress) ++search, ++progress;
+        if (progress == eatEnd) return utf8_length(s.Data, p - s.Data);
+        ++p;
+    }
+    return -1;
+}
+
+// Searches for the first occurence of a code point which is not _cp_ and is after a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_cp_not(const string &s, utf32 cp, s64 start = 0) {
+    utf8 encoded[4]{};
+    encode_cp(encoded, cp);
+    return find_substring_not(s, string(encoded, get_size_of_cp(encoded)), start);
+}
+
+// Searches for the last occurence of a substring which is different from _eat_ and is before a specified _start_ index.
+// Returns -1 if no index was found.
+//
+//  e.g.
+//   find_substring_reverse_not("user/stuff/file.txtGARBAGEGARBAGEGARBAGE", "GARBAGE")
+//   returns:                                      ^
+//
+constexpr s64 find_substring_reverse_not(const string &s, const string &eat, s64 start = 0) {
+    assert(eat.Data && eat.Length);
+
+    if (s.Length == 0) return -1;
+
+    if (start >= s.Length || start <= -s.Length) return -1;
+    if (start == 0) start = s.Length;
+
+    auto *p = get_cp_at_index(s.Data, s.Length, translate_index(start, s.Length, true) - 1);
+    auto *end = s.Data + s.Count;
+
+    auto *eatEnd = eat.Data + eat.Count;
+
+    while (p > s.Data) {
+        while (p != s.Data) {
+            if (*p != *eat.Data) break;
+            --p;
+        }
+
+        if (*p == *eat.Data && p == s.Data) return -1;
+
+        auto *search = p + 1;
+        auto *progress = eat.Data + 1;
+        while (search != end && progress != eatEnd && *search != *progress) ++search, ++progress;
+        if (progress == eatEnd) return utf8_length(s.Data, p - s.Data);
+        --p;
+    }
+    return -1;
+}
+
+// Searches for the last occurence of a code point which is different from _cp_ and is before a specified _start_ index.
+// Returns -1 if no index was found.
+//
+//  e.g.
+//   find_cp_reverse_not("user/stuff/file.txtCCCCCC", 'C')
+//   returns:                               ^
+//
+constexpr s64 find_cp_reverse_not(const string &s, utf32 cp, s64 start = 0) {
+    utf8 encoded[4]{};
+    encode_cp(encoded, cp);
+    return find_substring_reverse_not(s, string(encoded, get_size_of_cp(encoded)), start);
+}
+
+// Searches for the first occurence of a code point which is also present in _anyOfThese_ and is before a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_any_of(const string &s, const string &anyOfThese, s64 start = 0) {
+    assert(anyOfThese.Data && anyOfThese.Length);
+
+    if (s.Length == 0) return -1;
+
+    if (start >= s.Length || start <= -s.Length) return -1;
+
+    start = translate_index(start, s.Length);
+    auto *p = get_cp_at_index(s.Data, s.Length, start);
+
+    For(range(start, s.Length)) {
+        if (find_cp(anyOfThese, decode_cp(p)) != -1) return utf8_length(s.Data, p - s.Data);
+        p += get_size_of_cp(p);
+    }
+    return -1;
+}
+
+// Searches for the last occurence of a code point which is also present in _anyOfThese_ and is before a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_reverse_any_of(const string &s, const string &anyOfThese, s64 start = 0) {
+    assert(anyOfThese.Data && anyOfThese.Length);
+
+    if (s.Length == 0) return -1;
+
+    if (start >= s.Length || start <= -s.Length) return -1;
+    if (start == 0) start = s.Length;
+
+    start = translate_index(start, s.Length, true) - 1;
+    auto *p = get_cp_at_index(s.Data, s.Length, start);
+
+    For(range(start, -1, -1)) {
+        if (find_cp(anyOfThese, decode_cp(p)) != -1) return utf8_length(s.Data, p - s.Data);
+        p -= get_size_of_cp(p);
+    }
+    return -1;
+}
+
+// Searches for the first occurence of a code point which is NOT present in _anyOfThese_ and is before a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_not_any_of(const string &s, const string &anyOfThese, s64 start = 0) {
+    assert(anyOfThese.Data && anyOfThese.Length);
+
+    if (s.Length == 0) return -1;
+
+    if (start >= s.Length || start <= -s.Length) return -1;
+
+    start = translate_index(start, s.Length);
+    auto *p = get_cp_at_index(s.Data, s.Length, start);
+
+    For(range(start, s.Length)) {
+        if (find_cp(anyOfThese, decode_cp(p)) == -1) return utf8_length(s.Data, p - s.Data);
+        p += get_size_of_cp(p);
+    }
+    return -1;
+}
+
+// Searches for the last occurence of a code point which is NOT present in _anyOfThese_ and is before a specified _start_ index.
+// Returns -1 if no index was found.
+constexpr s64 find_reverse_not_any_of(const string &s, const string &anyOfThese, s64 start = 0) {
+    assert(anyOfThese.Data && anyOfThese.Length);
+
+    if (s.Length == 0) return -1;
+
+    if (start >= s.Length || start <= -s.Length) return -1;
+    if (start == 0) start = s.Length;
+
+    start = translate_index(start, s.Length, true) - 1;
+    auto *p = get_cp_at_index(s.Data, s.Length, start);
+
+    For(range(start, -1, -1)) {
+        if (find_cp(anyOfThese, decode_cp(p)) == -1) return utf8_length(s.Data, p - s.Data);
+        p -= get_size_of_cp(p);
+    }
+    return -1;
+}
+
+// Counts the number of occurences of _cp_
+constexpr s64 count(const string &s, utf32 cp) {
+    s64 result = 0, index = 0;
+    while ((index = find_cp(s, cp, index)) != -1) {
+        ++result, ++index;
+        if (index >= s.Length) break;
+    }
+    return result;
+}
+
+// Counts the number of occurences of _str_
+constexpr s64 count(const string &s, const string &str) {
+    s64 result = 0, index = 0;
+    while ((index = find_substring(s, str, index)) != -1) {
+        ++result, ++index;
+        if (index >= s.Length) break;
+    }
+    return result;
+}
+
+// Returns true if the string contains _cp_ anywhere
+constexpr bool has(const string &s, utf32 cp) { return find_cp(s, cp) != -1; }
+
+// Returns true if the string contains _str_ anywhere
+constexpr bool has(const string &s, const string &str) { return find_substring(s, str) != -1; }
+
+//
+// Substring and trimming:
+//
+
+// Gets [begin, end) range of characters into a new string object.
+// This function doesn't allocate, but just returns a "view".
+// We can do this because we don't store strings with a zero terminator.
+constexpr string substring(const string &s, s64 begin, s64 end) {
+    s64 beginIndex = translate_index(begin, s.Length);
+    s64 endIndex = translate_index(end, s.Length, true);
+
+    const utf8 *beginPtr = get_cp_at_index(s.Data, s.Length, beginIndex);
+    const utf8 *endPtr = beginPtr;
+    For(range(beginIndex, endIndex)) endPtr += get_size_of_cp(endPtr);
+
+    return string(beginPtr, endPtr - beginPtr);
+}
+
+// Returns true if _s_ begins with _str_
+constexpr bool begins_with(const string &s, const string &str) {
+    if (str.Count > s.Count) return false;
+    return compare_memory(s.Data, str.Data, str.Count) == -1;
+}
+
+// Returns true if _s_ ends with _str_
+constexpr bool ends_with(const string &s, const string &str) {
+    if (str.Count > s.Count) return false;
+    return compare_memory(s.Data + s.Count - str.Count, str.Data, str.Count) == -1;
+}
+
+// Returns a substring with white space removed at the start.
+// This function doesn't allocate, but just returns a "view".
+// We can do this because we don't store strings with a zero terminator.
+constexpr string trim_start(const string &s) { return substring(s, find_not_any_of(s, " \n\r\t\v\f"), s.Length); }
+
+// Returns a substring with white space removed at the end.
+// This function doesn't allocate, but just returns a "view".
+// We can do this because we don't store strings with a zero terminator.
+constexpr string trim_end(const string &s) { return substring(s, 0, find_reverse_not_any_of(s, " \n\r\t\v\f") + 1); }
+
+// Returns a substring with white space removed from both sides.
+// This function doesn't allocate, but just returns a "view".
+// We can do this because we don't store strings with a zero terminator.
+constexpr string trim(const string &s) { return trim_end(trim_start(s)); }
+
+//
+// Operators:
+//
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+constexpr bool operator==(const string &one, const string &other) { return compare(one, other) == -1; }
+constexpr bool operator!=(const string &one, const string &other) { return !(one == other); }
+constexpr bool operator<(const string &one, const string &other) { return compare_lexicographically(one, other) < 0; }
+constexpr bool operator>(const string &one, const string &other) { return compare_lexicographically(one, other) > 0; }
+constexpr bool operator<=(const string &one, const string &other) { return !(one > other); }
+constexpr bool operator>=(const string &one, const string &other) { return !(one < other); }
+
+constexpr bool operator==(const utf8 *one, const string &other) { return compare_lexicographically(one, other) == 0; }
 constexpr bool operator!=(const utf8 *one, const string &other) { return !(one == other); }
-constexpr bool operator<(const utf8 *one, const string &other) { return other.compare_lexicographically(one) > 0; }
-constexpr bool operator>(const utf8 *one, const string &other) { return other.compare_lexicographically(one) < 0; }
+constexpr bool operator<(const utf8 *one, const string &other) { return compare_lexicographically(one, other) < 0; }
+constexpr bool operator>(const utf8 *one, const string &other) { return compare_lexicographically(one, other) > 0; }
 constexpr bool operator<=(const utf8 *one, const string &other) { return !(one > other); }
 constexpr bool operator>=(const utf8 *one, const string &other) { return !(one < other); }
 

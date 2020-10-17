@@ -25,7 +25,7 @@ void reset(string_builder &builder) {
     }
 }
 
-void append(string_builder &builder, utf32 cp) {
+void append_cp(string_builder &builder, utf32 cp) {
     utf8 encoded[4];
     encode_cp(encoded, cp);
     append_pointer_and_size(builder, encoded, get_size_of_cp(cp));
@@ -65,10 +65,10 @@ string_builder::buffer *get_current_buffer(string_builder &builder) {
 
 string combine(const string_builder &builder) {
     string result;
-    result.reserve((builder.IndirectionCount + 1) * builder.BUFFER_SIZE);
+    reserve(result, (builder.IndirectionCount + 1) * builder.BUFFER_SIZE);
     auto *b = &builder.BaseBuffer;
     while (b) {
-        result.append_pointer_and_size(b->Data, b->Occupied);
+        append_pointer_and_size(result, b->Data, b->Occupied);
         b = b->Next;
     }
     return result;
