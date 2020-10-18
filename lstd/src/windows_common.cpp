@@ -284,6 +284,9 @@ void win32_common_init() {
     utf16_to_utf8(buffer, const_cast<utf8 *>(ModuleName.Data), &ModuleName.Count);
     ModuleName.Length = utf8_length(ModuleName.Data, ModuleName.Count);
 
+    // :UnifyPath
+    replace_all(ModuleName, '\\', '/');
+
     // Get the arguments
     utf16 **argv;
     int argc;
@@ -545,6 +548,10 @@ string os_get_working_dir() {
 
     utf16_to_utf8(dir16, const_cast<utf8 *>(WorkingDir.Data), &WorkingDir.Count);
     WorkingDir.Length = utf8_length(WorkingDir.Data, WorkingDir.Count);
+    
+    // :UnifyPath
+    replace_all(WorkingDir, '\\', '/');
+
     return WorkingDir;
 }
 

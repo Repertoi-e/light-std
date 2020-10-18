@@ -155,9 +155,18 @@ IntT handle_negative(IntT value, bool negative) {
     return value;
 }
 
-inline void advance(bytes *p, s64 count) {
+// Unsafe
+inline void advance_bytes(bytes *p, s64 count) {
     p->Data += count;
     p->Count -= count;
+}
+
+// Unsafe
+inline void advance_cp(string *p, s64 count) {
+    utf8 *t = get_cp_at_index(p->Data, p->Length, count, true);
+    p->Count -= t - p->Data;
+    p->Data = t;
+    p->Length -= count;
 }
 
 template <typename T>
@@ -206,13 +215,13 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
     bool negative = false;
     if constexpr (Options.ParseSign) {
         if (p[0] == '+') {
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             if constexpr (!Options.AllowPlusSign) {
                 return {0, PARSE_INVALID, p};
             }
         } else if (p[0] == '-') {
             negative = true;
-            advance(&p, 1);
+            advance_bytes(&p, 1);
         }
         if (!p) return {0, PARSE_EXHAUSTED, buffer};
     }
@@ -221,10 +230,10 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
         if (p[0] == '0') {
             if ((p.Count - 1) && (p[1] == 'x' || p[1] == 'X')) {
                 base = 16;
-                advance(&p, 2);
+                advance_bytes(&p, 2);
             } else {
                 base = 8;
-                advance(&p, 1);
+                advance_bytes(&p, 1);
             }
         }
         if (!p) return {0, PARSE_EXHAUSTED, buffer};
@@ -264,14 +273,14 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
         if (p) {
             // If we still have bytes we read the next one..
             digit = Options.ByteToDigit(p[0]);
-            advance(&p, 1);
+            advance_bytes(&p, 1);
         } else {
             // .. if not we don't read p[0] because that's an overflow and
             // we just set an invalid byte which we catch in the condition below.
             digit = BYTE_NOT_VALID;
 
             // We advance in both cases because later we roll back one byte! It's fine because we are not reading or writing anything just bumping the pointer and count
-            advance(&p, 1);
+            advance_bytes(&p, 1);
         }
 
         if (digit == IGNORE_THIS_BYTE) continue;
@@ -281,7 +290,7 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
                 // We have a special case for when we look for prefix and we are base 8 but the whole valid integer is just one 0,
                 // then we return 0 and don't treat it as an oct value (because in that case we require more digits).
                 if (Options.LookForBasePrefix) {
-                    advance(&p, -1);
+                    advance_bytes(&p, -1);
                     if (base == 8) return {0, PARSE_SUCCESS, p};
                 }
                 return {0, PARSE_INVALID, p};
@@ -290,7 +299,7 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
             // Roll back the invalid byte we consumed.
             // After the break we return PARSE_SUCCESS.
             // We only consume the invalid byte if we return PARSE_INVALID.
-            advance(&p, -1);
+            advance_bytes(&p, -1);
             break;
         }
         firstDigit = false;
@@ -332,7 +341,7 @@ inline parse_status expect_byte(bytes *p, byte value) {
     if constexpr (IgnoreCase) ch = (byte) to_lower(ch);
 
     if (ch == value) {
-        advance(p, 1);
+        advance_bytes(p, 1);
         return PARSE_SUCCESS;
     } else {
         return PARSE_INVALID;
@@ -381,11 +390,11 @@ parse_result<bool> parse_bool(bytes buffer) {
     bytes p = buffer;
     if constexpr (Options.ParseNumbers) {
         if (p[0] == '0') {
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             return {false, PARSE_SUCCESS, p};
         }
         if (p[0] == '1') {
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             return {true, PARSE_SUCCESS, p};
         }
     }
@@ -423,7 +432,7 @@ eat_hex_byte_result eat_hex_byte(bytes *p) {
     auto [value, status, rest] = parse_int<u8, parse_int_options{.ParseSign = false, .ReturnLimitOnTooManyDigits = false, .MaxDigits = 2}>(*p, 16);
 
     if (status == PARSE_TOO_MANY_DIGITS) status = PARSE_SUCCESS;
-    if (status == PARSE_SUCCESS) advance(p, 2);
+    if (status == PARSE_SUCCESS) advance_bytes(p, 2);
     return {(byte) value, status};
 }
 
@@ -464,7 +473,7 @@ parse_result<guid> parse_guid(bytes buffer) {
         if (p[0] == '(' || p[0] == '{') {
             parentheses = true;
             curly = p[0] == '{';
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             if (!p) return {empty, PARSE_EXHAUSTED, buffer};
         }
     }
@@ -537,7 +546,7 @@ parse_result<guid> parse_guid(bytes buffer) {
                 if (!hyphens) {
                     if (p[0] == '-') {
                         hyphens = true;
-                        advance(&p, 1);
+                        advance_bytes(&p, 1);
                         if (!p) return {empty, PARSE_EXHAUSTED, buffer};
                     }
                 }
@@ -545,7 +554,7 @@ parse_result<guid> parse_guid(bytes buffer) {
 
             if (hyphens && (counter == 6 || counter == 8 || counter == 10)) {
                 if (p[0] == '-') {
-                    advance(&p, 1);
+                    advance_bytes(&p, 1);
                     if (!p) return {empty, PARSE_EXHAUSTED, buffer};
                 } else {
                     return {empty, PARSE_INVALID, p};
@@ -553,7 +562,7 @@ parse_result<guid> parse_guid(bytes buffer) {
             }
         } else {
             if (p[0] == '-') {
-                advance(&p, 1);
+                advance_bytes(&p, 1);
                 if (!p) return {empty, PARSE_EXHAUSTED, buffer};
             }
         }
@@ -590,11 +599,11 @@ inline eat_bytes_result eat_bytes_until(bytes buffer, byte delim) {
     bytes p = buffer;
     while (p.Count >= 4) {
         if (U32_HAS_BYTE(*(u32 *) p.Data, delim)) break;
-        advance(&p, 4);
+        advance_bytes(&p, 4);
     }
     while (p.Count) {
         if (p[0] == delim) return {bytes(buffer.Data, p.Data - buffer.Data), true, p};
-        advance(&p, 1);
+        advance_bytes(&p, 1);
     }
     return {{}, false, buffer};
 }
@@ -615,12 +624,12 @@ inline eat_bytes_result eat_bytes_until_any_of(bytes buffer, bytes anyOfTheseDel
                 break;
             }
         }
-        advance(&p, 4);
+        advance_bytes(&p, 4);
     }
 
     while (p.Count) {
         if (has(anyOfTheseDelims, p[0])) return {bytes(buffer.Data, p.Data - buffer.Data), true, p};
-        advance(&p, 1);
+        advance_bytes(&p, 1);
     }
     return {{}, false, buffer};
 }
@@ -630,11 +639,11 @@ inline eat_bytes_result eat_bytes_while(bytes buffer, byte eats) {
     bytes p = buffer;
     while (p.Count >= 4) {
         if (!(U32_HAS_BYTE(*(u32 *) p.Data, eats))) break;
-        advance(&p, 4);
+        advance_bytes(&p, 4);
     }
     while (p.Count) {
         if (p[0] != eats) return {bytes(buffer.Data, p.Data - buffer.Data), true, p};
-        advance(&p, 1);
+        advance_bytes(&p, 1);
     }
     return {{}, false, buffer};
 }
@@ -655,12 +664,12 @@ inline eat_bytes_result eat_bytes_while_any_of(bytes buffer, bytes anyOfTheseEat
                 break;
             }
         }
-        advance(&p, 4);
+        advance_bytes(&p, 4);
     }
 
     while (p.Count) {
         if (!has(anyOfTheseEats, p[0])) return {bytes(buffer.Data, p.Data - buffer.Data), true, p};
-        advance(&p, 1);
+        advance_bytes(&p, 1);
     }
     return {{}, false, buffer};
 }
@@ -681,10 +690,10 @@ inline parse_result<utf32> eat_code_point(bytes buffer) {
     utf8 data[4]{};
     For(range(sizeOfCp)) {
         data[it] = buffer[0];
-        advance(&buffer, 1);
+        advance_bytes(&buffer, 1);
     }
     if (!is_valid_utf8(data)) {
-        advance(&buffer, 1);
+        advance_bytes(&buffer, 1);
         return {0, PARSE_INVALID, buffer};
     }
     return {decode_cp(data), PARSE_SUCCESS, buffer};
@@ -717,7 +726,7 @@ inline parse_string_result eat_code_points_until(bytes buffer, utf32 delim) {
         if (status == PARSE_EXHAUSTED) return {{}, PARSE_EXHAUSTED, (string) buffer};
 
         if (status == PARSE_INVALID) {
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, (string) p};
         }
 
@@ -736,7 +745,7 @@ inline parse_string_result eat_code_points_until_any_of(bytes buffer, const stri
         if (status == PARSE_EXHAUSTED) return {{}, PARSE_EXHAUSTED, (string) buffer};
 
         if (status == PARSE_INVALID) {
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, (string) p};
         }
 
@@ -760,7 +769,7 @@ inline parse_string_result eat_code_points_while(bytes buffer, utf32 eats) {
         if (status == PARSE_EXHAUSTED) return {{}, PARSE_EXHAUSTED, (string) buffer};
 
         if (status == PARSE_INVALID) {
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, (string) p};
         }
 
@@ -779,7 +788,7 @@ inline parse_string_result eat_code_points_while_any_of(bytes buffer, const stri
         if (status == PARSE_EXHAUSTED) return {{}, PARSE_EXHAUSTED, (string) buffer};
 
         if (status == PARSE_INVALID) {
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             return {{string(buffer.Data, p.Data - buffer.Data + 1)}, PARSE_INVALID, (string) p};
         }
 
@@ -806,7 +815,7 @@ inline eat_white_space_result eat_white_space(const string &str) {
         auto [cp, status, rest] = eat_code_point(p);
         if (status == PARSE_EXHAUSTED) return {PARSE_EXHAUSTED, str};
         if (status == PARSE_INVALID) {
-            advance(&p, 1);
+            advance_bytes(&p, 1);
             return {PARSE_INVALID, (string) p};
         }
 

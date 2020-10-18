@@ -94,7 +94,7 @@ bool fmt::internal::does_terminal_support_color() {
     auto terms = to_array(string_view("ansi"), "color", "console", "cygwin", "gnome", "konsole", "kterm", "linux",
         "msys", "putty", "rxvt", "screen", "vt100", "xterm");
     For(terms) {
-        if (string_view(env).begins_with(it)) {
+        if (string_view(env).match_beginning(it)) {
             return true;
         }
     }

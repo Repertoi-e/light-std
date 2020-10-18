@@ -192,11 +192,8 @@ s64 calculate_formatted_size(const string &fmtString, Args &&... arguments) {
 }
 
 // Formats to a string. The caller is responsible for freeing.
-//
-// [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
-// This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
 template <typename... Args>
-[[nodiscard]] string sprint(const string &fmtString, Args &&... arguments) {
+[[nodiscard("Leak")]] string sprint(const string &fmtString, Args &&... arguments) {
     auto writer = string_builder_writer();
     to_writer(&writer, fmtString, ((Args &&) arguments)...);
     string combined = combine(writer.Builder);

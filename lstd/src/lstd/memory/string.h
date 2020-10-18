@@ -145,6 +145,9 @@ struct string : public array_view<utf8> {
     // The non-const version allows to modify the character by simply =.
     code_point_ref operator[](s64 index) { return code_point_ref(this, translate_index(index, Length)); }
     constexpr utf32 operator[](s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
+
+    // Substring operator:
+    constexpr string operator(s64 begin, s64 end) const;
 };
 
 // Makes sure string has reserved enough space for at least n bytes.
@@ -228,7 +231,6 @@ void replace_all(string &s, const string &oldStr, utf32 newCp);
 //
 // Comparison and searching:
 //
-
 
 // Compares two utf8 encoded strings and returns the index
 // of the code point at which they are different or _-1_ if they are the same.
@@ -623,13 +625,13 @@ constexpr string substring(const string &s, s64 begin, s64 end) {
 }
 
 // Returns true if _s_ begins with _str_
-constexpr bool begins_with(const string &s, const string &str) {
+constexpr bool match_beginning(const string &s, const string &str) {
     if (str.Count > s.Count) return false;
     return compare_memory(s.Data, str.Data, str.Count) == -1;
 }
 
 // Returns true if _s_ ends with _str_
-constexpr bool ends_with(const string &s, const string &str) {
+constexpr bool match_end(const string &s, const string &str) {
     if (str.Count > s.Count) return false;
     return compare_memory(s.Data + s.Count - str.Count, str.Data, str.Count) == -1;
 }
@@ -653,21 +655,18 @@ constexpr string trim(const string &s) { return trim_end(trim_start(s)); }
 // Operators:
 //
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+constexpr auto operator<=>(const string &one, const string &other) { return compare_lexicographically(one, other); }
 
-constexpr bool operator==(const string &one, const string &other) { return compare(one, other) == -1; }
-constexpr bool operator!=(const string &one, const string &other) { return !(one == other); }
-constexpr bool operator<(const string &one, const string &other) { return compare_lexicographically(one, other) < 0; }
-constexpr bool operator>(const string &one, const string &other) { return compare_lexicographically(one, other) > 0; }
-constexpr bool operator<=(const string &one, const string &other) { return !(one > other); }
-constexpr bool operator>=(const string &one, const string &other) { return !(one < other); }
-
+// operator<=> doesn't work on these for some reason...
 constexpr bool operator==(const utf8 *one, const string &other) { return compare_lexicographically(one, other) == 0; }
 constexpr bool operator!=(const utf8 *one, const string &other) { return !(one == other); }
 constexpr bool operator<(const utf8 *one, const string &other) { return compare_lexicographically(one, other) < 0; }
 constexpr bool operator>(const utf8 *one, const string &other) { return compare_lexicographically(one, other) > 0; }
 constexpr bool operator<=(const utf8 *one, const string &other) { return !(one > other); }
 constexpr bool operator>=(const utf8 *one, const string &other) { return !(one < other); }
+
+// Substring operator:
+constexpr string string::operator()(s64 begin, s64 end) const { return substring(*this, begin, end); }
 
 // Be careful not to call this with _dest_ pointing to _src_!
 // Returns just _dest_.

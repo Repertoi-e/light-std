@@ -48,7 +48,7 @@ void append_pointer_and_size(string_builder &builder, const utf8 *data, s64 size
 string_builder::buffer *get_current_buffer(string_builder &builder);
 
 // Merges all buffers in one string. The caller is responsible for freeing.
-[[nodiscard]] string combine(const string_builder &builder);
+[[nodiscard("Leak")]] string combine(const string_builder &builder);
 
 // @API Remove this, iterators? Literally anything else..
 void traverse(const string_builder &builder, const delegate<void(const string &)> &func);

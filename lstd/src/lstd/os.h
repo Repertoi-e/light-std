@@ -22,18 +22,12 @@ struct string;
 //
 
 // Allocates memory by calling OS functions
-//
-// [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
-// This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
-[[nodiscard]] void *os_allocate_block(s64 size);
+[[nodiscard("Leak")]] void *os_allocate_block(s64 size);
 
 // Expands/shrinks a memory block allocated by _os_alloc()_.
 // This is NOT realloc. When this fails it returns null instead of allocating a new block and copying the contents of the old one.
 // That's why it's not called realloc.
-//
-// [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
-// This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
-[[nodiscard]] void *os_resize_block(void *ptr, s64 newSize);
+[[nodiscard("Leak")]] void *os_resize_block(void *ptr, s64 newSize);
 
 // Returns the size of a memory block allocated by _os_alloc()_ in bytes
 s64 os_get_block_size(void *ptr);
@@ -85,10 +79,8 @@ struct os_get_env_result {
 
 // Get the value of an environment variable, returns true if found.
 // If not found and silent is false, logs warning.
-//
-// [[nodiscard]] to issue a warning if a leak happens because the caller ignored the return value.
-// This library follows the convention that if the function is marked as [[nodiscard]], the returned value should be freed.
-[[nodiscard]] os_get_env_result os_get_env(const string &name, bool silent = false);
+// The caller is responsible for freeing the string in the returned value.
+[[nodiscard("Leak")]] os_get_env_result os_get_env(const string &name, bool silent = false);
 
 // Sets a variable (creates if it doesn't exist yet) in this process' environment
 void os_set_env(const string &name, const string &value);
