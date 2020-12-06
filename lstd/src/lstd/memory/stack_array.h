@@ -91,7 +91,7 @@ constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, 
 
 template <typename T, s64 N>
 constexpr stack_array<types::remove_cv_t<T>, N> to_stack_array(T (&a)[N]) {
-    return internal::to_array_impl(a, types::make_integer_sequence<N>{});
+    return internal::to_array_impl(a, make_integer_sequence<N>{});
 }
 
 LSTD_END_NAMESPACE

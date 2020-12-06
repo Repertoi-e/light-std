@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memory/array.h"
+#include "memory/guid.h"
 #include "types/numeric_info.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -163,9 +164,9 @@ inline void advance_bytes(bytes *p, s64 count) {
 
 // Unsafe
 inline void advance_cp(string *p, s64 count) {
-    utf8 *t = get_cp_at_index(p->Data, p->Length, count, true);
+    auto *t = get_cp_at_index(p->Data, p->Length, count, true);
     p->Count -= t - p->Data;
-    p->Data = t;
+    p->Data = (utf8 *) t;
     p->Length -= count;
 }
 

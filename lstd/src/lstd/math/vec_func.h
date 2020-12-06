@@ -13,10 +13,10 @@ LSTD_BEGIN_NAMESPACE
 template <any_vec Vec, typename U>
 requires(types::is_convertible<U, typename vec_info<Vec>::T>) void fill(Vec &lhs, U all) {
     if constexpr (!has_simd<Vec>) {
-        For(lhs) it = (Vec::T) all;
+        For(lhs) it = (typename Vec::T) all;
     } else {
         using SimdT = decltype(Vec::Simd);
-        lhs.Simd = SimdT::spread((Vec::T) all);
+        lhs.Simd = SimdT::spread((typename Vec::T) all);
     }
 }
 
@@ -38,7 +38,7 @@ auto dot(const Vec &lhs, const Vec &rhs) {
 // This value is ~10^-18 for floats and ~10^-154 for doubles.
 template <any_vec Vec>
 bool is_null_vector(const Vec &v) {
-    using T = Vec::T;
+    using T = typename Vec::T;
 
     static constexpr T epsilon = T(1) / const_exp10<T>(const_abs(numeric_info<T>::min_exponent10) / 2);
     T length = len(v);
@@ -51,12 +51,12 @@ auto len_sq(const Vec &v) { return dot(v, v); }
 
 // Returns the length of the vector
 template <any_vec Vec>
-auto len(const Vec &v) { return (Vec::T) sqrt((Vec::T) len_sq(v)); }
+auto len(const Vec &v) { return (typename Vec::T) sqrt((typename Vec::T) len_sq(v)); }
 
 // Returns the length of the vector, avoids overflow and underflow, so it's more expensive
 template <any_vec Vec>
 auto len_precise(const Vec &v) {
-    using T = Vec::T;
+    using T = typename Vec::T;
 
     T maxElement = abs(v[0]);
     for (s64 i = 1; i < v.DIM; ++i) maxElement = max(maxElement, abs(v[i]));
@@ -82,7 +82,7 @@ Vec normalize(const Vec &v) {
 // Checks if the vector is unit vector. There's some tolerance due to floating points
 template <any_vec Vec>
 bool is_normalized(const Vec &v) {
-    using T = Vec::T;
+    using T = typename Vec::T;
 
     T n = len_sq(v);
     return T(0.9999) <= n && n <= T(1.0001);
@@ -91,7 +91,7 @@ bool is_normalized(const Vec &v) {
 // Makes a unit vector, but keeps direction. Leans towards (1,0,0...) for nullvectors, costs more
 template <any_vec Vec>
 Vec safe_normalize(const Vec &v) {
-    using T = Vec::T;
+    using T = typename Vec::T;
 
     Vec vmod = v;
     vmod[0] = abs(v[0]) > numeric_info<T>::denorm_min() ? v[0] : numeric_info<T>::denorm_min();
@@ -104,7 +104,7 @@ Vec safe_normalize(const Vec &v) {
 template <any_vec Vec>
 Vec safe_normalize(const Vec &v, const Vec &degenerate) {
     assert(is_normalized(degenerate));
-    Vec::T length = len_precise(v);
+    typename Vec::T length = len_precise(v);
     if (length == 0) return degenerate;
     return v / length;
 }
@@ -177,7 +177,7 @@ always_inline Vec element_wise_clamp(const Vec &arg, typename vec_info<Vec>::T l
 template <any_vec Vec>
 Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args) {
     Vec result = {no_init};
-    mat<Vec::T, Vec::DIM - 1, Vec::DIM - 1, false> d = {no_init};
+    mat<typename Vec::T, Vec::DIM - 1, Vec::DIM - 1, false> d = {no_init};
 
     // Calculate elements of result on-by-one
     s64 sign = 2 * (Vec::DIM % 2) - 1;
@@ -191,7 +191,7 @@ Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args) {
             For_as(i, range(d.R)) { d(i, j - 1) = (*(args[i]))[j]; }
         }
 
-        auto coef = Vec::T(sign) * det(d);
+        auto coef = typename Vec::T(sign) * det(d);
         result[base] = coef;
     }
     return result;

@@ -65,12 +65,12 @@ void DEBUG_memory_info::swap_header(allocation_header *oldHeader, allocation_hea
 //      /home/.../game/some_dir/string.cpp       ---> localization.cpp
 //
 constexpr string get_short_file_name(const string &str) {
-    char srcData[] = {'s', 'r', 'c', file::OS_PATH_SEPARATORS[0], '\0'};
+    char srcData[] = {'s', 'r', 'c', path::OS_PATH_SEPARATOR, '\0'};
     string src = srcData;
 
     s64 findResult = find_substring_reverse(str, src);
     if (findResult == -1) {
-        findResult = find_cp_reverse(str, file::OS_PATH_SEPARATORS[0]);
+        findResult = find_cp_reverse(str, path::OS_PATH_SEPARATOR);
         assert(findResult != str.Length - 1);
         // Skip the slash
         findResult++;

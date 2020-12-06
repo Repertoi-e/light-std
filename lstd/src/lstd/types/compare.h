@@ -7,6 +7,12 @@
 // partial_ordering, weak_ordering, strong_ordering, comparison_category_of
 //
 
+// @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers.
+// As far as I can tell every header in the STD includes some common file which contains the def for these comparison types.
+// This also applies for initializer_list.
+#define LSTD_DONT_DEFINE_INITIALIZER_LIST
+
+#if not defined LSTD_DONT_DEFINE_INITIALIZER_LIST
 LSTD_BEGIN_NAMESPACE
 
 namespace std {
@@ -148,19 +154,20 @@ enum comparison_category : u8 {
     Comparison_Category_Strong = 0,
 };
 
-template <typename... Types>
-inline constexpr unsigned char comparison_category_of = get_comparison_category{(get_comparison_category<Types> | ... | Comparison_Category_Strong)};
+// template <typename... Types>
+// inline constexpr unsigned char comparison_category_of = get_comparison_category{(get_comparison_category<Types> | ... | Comparison_Category_Strong)};
 
 template <typename T>
-inline constexpr unsigned char comparison_category_of<T> = Comparison_Category_None;
+inline constexpr byte comparison_category_of = Comparison_Category_None;
 
 template <>
-inline constexpr unsigned char comparison_category_of<partial_ordering> = Comparison_Category_Partial;
+inline constexpr byte comparison_category_of<partial_ordering> = Comparison_Category_Partial;
 
 template <>
-inline constexpr unsigned char comparison_category_of<weak_ordering> = Comparison_Category_Weak;
+inline constexpr byte comparison_category_of<weak_ordering> = Comparison_Category_Weak;
 
 template <>
-inline constexpr unsigned char comparison_category_of<strong_ordering> = Comparison_Category_Strong;
+inline constexpr byte comparison_category_of<strong_ordering> = Comparison_Category_Strong;
 
 LSTD_END_NAMESPACE
+#endif

@@ -12,6 +12,7 @@
 // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers.
 // As far as I can tell every header in the STD includes some common file which contains the def for initializer_list
 // which is a good test to turn off to check if we include any headers from the STD for the time when we become clean.
+// This also applies to compare.h
 #define LSTD_DONT_DEFINE_INITIALIZER_LIST
 
 #if defined LSTD_DONT_DEFINE_INITIALIZER_LIST

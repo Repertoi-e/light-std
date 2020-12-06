@@ -1,7 +1,7 @@
 #pragma once
 
 //
-// This file defines unions to access different bits of a 
+// This file defines unions to access different bits of a
 // floating point number according to the IEEE 754 standard.
 //
 

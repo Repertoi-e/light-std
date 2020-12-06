@@ -104,11 +104,6 @@ constexpr bool is_nan(f64 number) {
 #define EULER 2.7182818f
 #define SQRT2 1.4142135f
 
-template <typename T>
-always_inline T clamp(T value, T lower, T upper) {
-    return max(lower, min(upper, value));
-}
-
 // Returns 10 ** exponent at compile-time.
 template <typename T>
 constexpr T const_exp10(s32 exponent) {
@@ -135,11 +130,16 @@ always_inline constexpr T max(T x, T y) {
     return x > y ? x : y;
 }
 
-// Defined in common.cpp
+// Defined in internal.cpp
 f32 min(f32 x, f32 y);
 f32 max(f32 x, f32 y);
 f64 min(f64 x, f64 y);
 f64 max(f64 x, f64 y);
+
+template <typename T>
+always_inline T clamp(T value, T lower, T upper) {
+    return max(lower, min(upper, value));
+}
 
 template <types::is_integral T>
 T ceil_pow_of_2(T v) {

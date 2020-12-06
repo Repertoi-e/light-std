@@ -35,7 +35,7 @@ struct buffer_writer : writer {
         s64 count = BufferSize - Available;
         reserve(*StackDynamicBuffer, StackDynamicBuffer->Count + count);
         StackDynamicBuffer->Count += count;
-        
+
         Buffer = Current = StackDynamicBuffer->Data + StackDynamicBuffer->Count;
 
         if (StackDynamicBuffer->Allocated) {

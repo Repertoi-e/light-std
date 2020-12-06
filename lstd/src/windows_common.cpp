@@ -548,7 +548,7 @@ string os_get_working_dir() {
 
     utf16_to_utf8(dir16, const_cast<utf8 *>(WorkingDir.Data), &WorkingDir.Count);
     WorkingDir.Length = utf8_length(WorkingDir.Data, WorkingDir.Count);
-    
+
     // :UnifyPath
     replace_all(WorkingDir, '\\', '/');
 
@@ -556,8 +556,8 @@ string os_get_working_dir() {
 }
 
 void os_set_working_dir(const string &dir) {
-    file::path path(dir);
-    assert(path.is_absolute());
+    string path(dir);
+    assert(path::is_absolute(path));
 
     thread::scoped_lock _(&WorkingDirMutex);
 

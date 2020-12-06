@@ -103,18 +103,18 @@ TEST(trim) {
     assert_eq(trim(a), "Hello, everyone!");
 }
 
-TEST(begins_with) {
+TEST(match_beginning) {
     string a = "Hello, world!";
-    assert_true(begins_with(a, "Hello"));
-    assert_false(begins_with(a, "Xello"));
-    assert_false(begins_with(a, "Hellol"));
+    assert_true(match_beginning(a, "Hello"));
+    assert_false(match_beginning(a, "Xello"));
+    assert_false(match_beginning(a, "Hellol"));
 }
 
-TEST(ends_with) {
+TEST(match_end) {
     string a = "Hello, world!";
-    assert_true(ends_with(a, "world!"));
-    assert_false(ends_with(a, "!world!"));
-    assert_false(ends_with(a, "world!!"));
+    assert_true(match_end(a, "world!"));
+    assert_false(match_end(a, "!world!"));
+    assert_false(match_end(a, "world!!"));
 }
 
 TEST(set) {

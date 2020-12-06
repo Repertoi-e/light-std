@@ -20,11 +20,10 @@ struct handle {
         Overwrite_Entire,
     };
 
-    mutable path Path;
+    mutable string Path;
 
     handle() {}
-    handle(const path &path) : Path(path) {}
-    handle(const string &str) : handle(path(str)) {}
+    handle(const string &str) : Path(str) {}
 
     // is_file() doesn't always equal !is_directory()
     bool is_file() const;
@@ -88,20 +87,24 @@ struct handle {
 
     // If this handle is pointing to a directory,
     // call _func_ on each file/directory inside of it.
-    void traverse(const delegate<void(const path &)> &func) const {
+    void traverse(const delegate<void(const string &)> &func) const {
         assert(is_directory());
-        if (!Path.is_pointing_to_content()) {
-            Path.combine_with("./");
+        if (!path::is_sep(Path[-1])) {
+            string newPath = path::join(Path, "");
+            free(Path);
+            Path = newPath;
         }
         traverse_impl(func);
     }
 
     // If this handle is pointing to a directory,
     // call _func_ on each file/subdirectory recursively.
-    void traverse_recursively(const delegate<void(const path &)> &func) const {
+    void traverse_recursively(const delegate<void(const string &)> &func) const {
         assert(is_directory());
-        if (!Path.is_pointing_to_content()) {
-            Path.combine_with("./");
+        if (!path::is_sep(Path[-1])) {
+            string newPath = path::join(Path, "");
+            free(Path);
+            Path = newPath;
         }
         traverse_recursively_impl(Path, Path, func);
     }
@@ -128,11 +131,11 @@ struct handle {
 
         string CurrentFileName;
 
-        path Path;
+        string Path;
         s64 Index = 0;
 
         iterator() {}
-        iterator(const path &path) : Path(path) { read_next_entry(); }
+        iterator(const string &path) : Path(path) { read_next_entry(); }
 
         // I know we are against hidden freeing but having this destructor is actually really fine.
         // Things would be a whole lot more ugly and complicated without it.
@@ -162,8 +165,8 @@ struct handle {
     iterator end() const { return iterator(); }
 
    private:
-    void traverse_impl(const delegate<void(const path &)> &func) const;
-    void traverse_recursively_impl(const path &first, const path &currentDirectory, const delegate<void(const path &)> &func) const;
+    void traverse_impl(const delegate<void(const string &)> &func) const;
+    void traverse_recursively_impl(const string &first, const string &currentDirectory, const delegate<void(const string &)> &func) const;
 };
 
 }  // namespace file

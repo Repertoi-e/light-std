@@ -270,35 +270,37 @@ constexpr void swap(T (&a)[N], T (&b)[N]) {
 
 // In this library, copy_memory works like memmove in the std (handles overlapping buffers)
 // :CopyMemory (declared in types.h also to avoid circular includes)
-extern void (*copy_memory)(void *dest, const void *src, s64 num);
-constexpr void const_copy_memory(void *dest, const void *src, s64 num) {
-    auto *d = (char *) dest;
+extern void *(*copy_memory)(void *dst, const void *src, u64 size);
+constexpr void *const_copy_memory(void *dst, const void *src, u64 size) {
+    auto *d = (char *) dst;
     auto *s = (const char *) src;
 
-    if (d <= s || d >= (s + num)) {
+    if (d <= s || d >= (s + size)) {
         // Non-overlapping
-        while (num--) {
+        while (size--) {
             *d++ = *s++;
         }
     } else {
         // Overlapping
-        d += num - 1;
-        s += num - 1;
+        d += size - 1;
+        s += size - 1;
 
-        while (num--) {
+        while (size--) {
             *d-- = *s--;
         }
     }
+    return dst;
 }
 
-extern void (*fill_memory)(void *dest, char value, s64 num);
-constexpr void const_fill_memory(void *dest, char value, s64 num) {
-    auto d = (char *) dest;
-    while (num-- > 0) *d++ = value;
+extern void *(*fill_memory)(void *dst, char value, u64 size);
+constexpr void *const_fill_memory(void *dst, char value, u64 size) {
+    auto d = (char *) dst;
+    while (size-- > 0) *d++ = value;
+    return dst;
 }
 
-inline void zero_memory(void *dest, s64 num) { return fill_memory(dest, 0, num); }
-constexpr void const_zero_memory(void *dest, s64 num) { return const_fill_memory(dest, 0, num); }
+inline void *zero_memory(void *dst, u64 size) { return fill_memory(dst, 0, size); }
+constexpr void *const_zero_memory(void *dst, u64 size) { return const_fill_memory(dst, 0, size); }
 
 // compare_memory returns the index of the first byte that is different
 // e.g: calling with
@@ -306,12 +308,12 @@ constexpr void const_zero_memory(void *dest, s64 num) { return const_fill_memory
 //		*ptr1 = 00100001
 //	returns 2
 // If the memory regions are equal, the returned value is -1
-extern s64 (*compare_memory)(const void *ptr1, const void *ptr2, s64 num);
-constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, s64 num) {
+extern s64 (*compare_memory)(const void *ptr1, const void *ptr2, u64 size);
+constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, u64 size) {
     auto *s1 = (const char *) ptr1;
     auto *s2 = (const char *) ptr2;
 
-    For(range(num)) if (*s1++ != *s2++) return it;
+    For(range(size)) if (*s1++ != *s2++) return it;
     return -1;
 }
 

@@ -206,9 +206,9 @@ struct vec : public vec_data<T_, Dim, Packed> {
     vec() {
         // By default we zero-init
         if constexpr (types::is_scalar<T>) {
-            zero_memory(&Data[0], Dim * sizeof(T));
+            zero_memory(&this->Data[0], Dim * sizeof(T));
         } else {
-            For(range(DIM)) Data[it] = T(0);
+            For(range(DIM)) this->Data[it] = T(0);
         }
     }
 
@@ -227,7 +227,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
 
     // Convertible if the vectors are of the same size and the elements are convertible
     template <any_vec Vec>
-    requires(types::is_convertible<T, vec_info<Vec>::T> && (vec_info<Vec>::DIM == DIM)) vec(const Vec &v) { For(range(DIM)) Data[it] = T(v.Data[it]); }
+    requires(types::is_convertible<T, vec_info<Vec>::T> && (vec_info<Vec>::DIM == DIM)) vec(const Vec &v) { For(range(DIM)) this->Data[it] = T(v.Data[it]); }
 
     // Constructs the vector from an array of elements.
     // The number of elements in the array must be at least as the vector's dimension.
@@ -235,7 +235,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
     requires(types::is_convertible<U, T>) vec(const array_view<U> &data) {
         assert(DIM <= data.Count);
         for (s64 i = 0; i < DIM; ++i) {
-            Data[i] = T(data.Data[i]);
+            this->Data[i] = T(data.Data[i]);
         }
     }
 
@@ -245,7 +245,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
 
     // Truncates last coordinate of homogenous vector to create non-homogeneous
     template <any_vec Vec>
-    requires(Vec::DIM == DIM + 1) explicit vec(const Vec &v) : vec(array_view<Vec::T>((Vec::T *) v.Data, v.DIM)) {}
+    requires(Vec::DIM == DIM + 1) explicit vec(const Vec &v) : vec(array_view<Vec::T>((typename Vec::T *) v.Data, v.DIM)) {}
 
     // Initializes the vector from the given elements - either just scalars or mixed with vectors and swizzles.
     //   e.g. vec3(pos.xy, 0) or just vec3(pos, 0).
@@ -271,7 +271,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
                 // We did this before but this copies all the arguments to the stack first..
                 //
                 //    stack_array<T, sizeof...(Args)> args = {T(args)...};
-                //    For(range(DIM)) Data[it] = args[it];
+                //    For(range(DIM)) this->Data[it] = args[it];
                 //
                 // assign_from_mixed might get optimized better (we are passing just scalars here).
                 assign_from_mixed(0, args...);
@@ -292,18 +292,18 @@ struct vec : public vec_data<T_, Dim, Packed> {
     using iterator = T *;
     using const_iterator = const T *;
 
-    iterator begin() { return Data; }
-    iterator end() { return Data + DIM; }
-    const_iterator begin() const { return Data; }
-    const_iterator end() const { return Data + DIM; }
+    iterator begin() { return this->Data; }
+    iterator end() { return this->Data + DIM; }
+    const_iterator begin() const { return this->Data; }
+    const_iterator end() const { return this->Data + DIM; }
 
     //
     // Operators:
     //
 
     // We support negative indexing, -1 means the last element (DIM - 1) and so on..
-    T operator[](s64 index) const { return Data[translate_index(index, DIM)]; }
-    T &operator[](s64 index) { return Data[translate_index(index, DIM)]; }
+    T operator[](s64 index) const { return this->Data[translate_index(index, DIM)]; }
+    T &operator[](s64 index) { return this->Data[translate_index(index, DIM)]; }
 
    private:
     template <typename Head, typename... Rest>
@@ -312,11 +312,11 @@ struct vec : public vec_data<T_, Dim, Packed> {
 
         if constexpr (types::is_vec_or_swizzle<H>) {
             For(range(dim_of_v<H>)) {
-                Data[index] = T(head[it]);
+                this->Data[index] = T(head[it]);
                 ++index;
             }
         } else {
-            Data[index] = T(head);
+            this->Data[index] = T(head);
             ++index;
         }
         assign_from_mixed(index, rest...);
@@ -325,7 +325,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
     void assign_from_mixed(s64 index) {
         // Terminator. We assign the rest of the vector to zero (this will probably never happen
         // because we require the sum of the mixed arguments to be the same as the dimension.. but in case we do something weird in the future!).
-        for (; index < DIM; index++) Data[index] = T(0);
+        for (; index < DIM; index++) this->Data[index] = T(0);
     }
 };
 
@@ -360,7 +360,7 @@ swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Ind
 
 template <typename VectorDataU, s64... Indices>
 swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Indices...>::T, sizeof...(Indices), true>() const {
-    return vec<T, sizeof...(Indices), true>(Data[Indices]...);
+    return vec<T, sizeof...(Indices), true>(this->Data[Indices]...);
 }
 
 template <typename VectorDataU, s64... Indices>

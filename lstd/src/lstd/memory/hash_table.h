@@ -339,7 +339,7 @@ key_value_pair<T> add(T &table, const key_t<T> &key) { return add(table, key, va
 // This is useful if you want to clone() the key and value and not just shallow copy them.
 template <any_hash_table T>
 key_value_pair<T> add(T &table, u64 hash) {
-    return add_prehashed(table, hash, K(), V());
+    return add_prehashed(table, hash, key_t<T>(), value_t<T>());
 }
 
 // We calculate the hash of the key using the global get_hash() specialized functions.

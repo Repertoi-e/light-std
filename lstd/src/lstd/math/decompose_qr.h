@@ -1,5 +1,6 @@
 #pragma once
 
+#include "transforms/identity.h"
 #include "transforms/zero.h"
 
 LSTD_BEGIN_NAMESPACE

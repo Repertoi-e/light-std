@@ -241,7 +241,7 @@ void remove(array<T> &arr, const T &element) {
 }
 
 // Removes element at specified index and moves the last element to the empty slot.
-// This is faster than remove because it doesn't keep the order of the elements.
+// This is faster than remove because it doesn't move everything back (doesn't keep the order of the elements).
 template <typename T>
 void remove_unordered(array<T> &arr, s64 index) {
     // If the array is a view, we don't want to modify the original!
@@ -266,12 +266,11 @@ void remove_range(array<T> &arr, s64 begin, s64 end) {
     s64 targetEnd = translate_index(end, arr.Count, true);
 
     auto where = arr.Data + targetBegin;
-    for (auto *destruct = where; destruct != (arr.Data + targetEnd); ++destruct) {
-        destruct->~T();
-    }
+    auto whereEnd = arr.Data + targetEnd;
+    for (auto *destruct = where; destruct != whereEnd; ++destruct) destruct->~T();
 
-    s64 elementCount = targetEnd - targetBegin;
-    copy_memory(where, where + elementCount, (arr.Count - targetBegin - elementCount) * sizeof(T));
+    s64 elementCount = whereEnd - where;
+    copy_memory(where, whereEnd, (arr.Count - targetBegin - elementCount) * sizeof(T));
     arr.Count -= elementCount;
 }
 
@@ -297,21 +296,6 @@ T *append_pointer_and_size(array<T> &arr, const T *ptr, s64 size) { return inser
 // Appends an array to the end and returns a pointer to the beginning of it in the buffer
 template <typename T>
 T *append_array(array<T> &arr, const array_view<T> &arr2) { return insert_array(arr, arr.Count, arr2); }
-
-// Appends an array to the end and returns a pointer to the beginning of it in the buffer.
-// This is different from append_array in that if the array is empty/uninitialized then it doesn't allocate memory
-// but just sets the fields to the Data and Count in _arr2_. This is useful for specific use cases
-// (e.g. when reading bytes and we didn't succeed so we might need to read more and append them - when using reader, take a look at reader.cpp in tests,
-// we don't want to allocate for the first set of bytes because that might be the whole set so there is no reason for concatenation).
-template <typename T>
-T *append_array_or_set_fields(array<T> &arr, const array_view<T> &arr2) {
-    if (!arr.Data && !arr.Count) {
-        arr.Data = arr2.Data;
-        arr.Count = arr2.Count;
-        return arr.Data;
-    }
-    return append_array(arr, arr2);
-}
 
 // Appends an array to the end and returns a pointer to the beginning of it in the buffer
 template <typename T>

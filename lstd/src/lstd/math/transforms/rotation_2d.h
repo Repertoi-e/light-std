@@ -31,8 +31,8 @@ struct rotation_2d_helper : non_copyable {
         return m;
     }
 
-    template <typename U, s64 R, s64 C, bool MPacked>
-    void set_impl(mat<U, R, C, MPacked> &m) const {
+    template <typename U, s64 RC, s64 CC, bool MPacked>
+    void set_impl(mat<U, RC, CC, MPacked> &m) const {
         T C = (T) cos(Angle);
         T S = (T) sin(Angle);
 

@@ -274,9 +274,11 @@ file_scope void get_float_string_internal(utf8 **start, u32 *length, utf8 *out, 
             if (bits % 1000) goto donez;
             bits /= 1000;
         }
-        u32 n = (u32) bits;
-        while ((n % 1000) == 0) n /= 1000;
-        bits = n;
+        {
+            u32 n = (u32) bits;
+            while ((n % 1000) == 0) n /= 1000;
+            bits = n;
+        }
     donez:;
     }
 

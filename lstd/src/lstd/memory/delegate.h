@@ -105,7 +105,6 @@ struct delegate<R(A...)> {
     }
 
     // using nullptr_t = decltype(null);
-    
 
     // Construct delegate with function object (functor) / lambda
     template <typename Type>

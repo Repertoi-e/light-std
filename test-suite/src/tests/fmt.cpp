@@ -99,7 +99,7 @@ void check_unknown_types(T value, const string &types, const string &expectedMes
     string special = ".0123456789}";
 
     For(range(1, CHAR_MAX)) {
-        if (special.has((utf32) it) || types.has((utf32) it)) continue;
+        if (has(special, (utf32) it) || has(types, (utf32) it)) continue;
 
         string fmtString = fmt::sprint("{{0:10{:c}}}", it);
         EXPECT_ERROR(expectedMessage, fmtString, value);

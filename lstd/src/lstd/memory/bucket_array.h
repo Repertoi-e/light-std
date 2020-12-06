@@ -50,7 +50,7 @@ auto *find(const T &arr, const delegate<bool(typename T::T *)> &predicate) {
     auto *b = get_bucket_head(arr);
     while (b) {
         auto index = b->Elements.find(predicate);
-        if (index != -1) return (T::T *) b->Elements[index];
+        if (index != -1) return (typename T::T *) b->Elements[index];
         b = b->Next;
     }
     return null;
@@ -72,7 +72,7 @@ auto *append(T &arr, const typename T::T &element, allocator alloc = {}) {
     }
 
     b = last->Next = allocate(T::bucket, alloc);
-    b->Elements = allocate_array(T::T, T::ELEMENTS_PER_BUCKET, alloc);
+    b->Elements = allocate_array(typename T::T, T::ELEMENTS_PER_BUCKET, alloc);
     b->Allocated = T::ELEMENTS_PER_BUCKET;
     clone(b->Elements, element);
     b->Count = 1;

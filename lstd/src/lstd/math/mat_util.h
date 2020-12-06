@@ -190,7 +190,7 @@ bool operator!=(const mat<T1, R, C, Packed1> &lhs, const mat<T2, R, C, Packed2> 
 
 namespace impl {
 template <typename MatrixDestT, typename MatrixSourceT>
-struct reinterpret_compatible : false_t {};
+struct reinterpret_compatible : types::false_t {};
 
 template <typename T1, typename T2, s64 R, s64 C, bool Packed1, bool Packed2>
 struct reinterpret_compatible<mat<T1, R, C, Packed1>, mat<T2, R, C, Packed2>> {

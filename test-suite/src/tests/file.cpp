@@ -2,97 +2,87 @@
 
 #include "../test.h"
 
-#define DO_READ_EVERY_FILE 0
+#define DO_READ_EVERY_FILE 1
 
 TEST(path_manipulation) {
     {
-        file::path a = "/home/data.txt";
-        assert(!a.is_pointing_to_content());
-        assert(a.is_absolute());
+        string a = path::normalize("/home/data.txt");
+        assert(path::is_absolute(a));
 
-        assert_eq(a.file_name(), "data.txt");
-        assert_eq(a.base_name(), "data");
-        assert_eq(a.extension(), ".txt");
-        assert_eq(a.directory(), "/home/");
+        assert_eq(path::base_name(a), "data.txt");
+        assert_eq(path::split_extension(a).Root, path::normalize("/home/data"));
+        assert_eq(path::split_extension(a).Extension, ".txt");
+        assert_eq(path::directory(a), path::normalize("/home/"));
     }
     {
-        file::path a = "/home/data/bin/";
-        assert(a.is_pointing_to_content());
-        assert(a.is_absolute());
+        string a = path::normalize("/home/data/bin");
+        assert(path::is_absolute(a));
 
-        assert_eq(a.file_name(), "bin");
-        assert_eq(a.base_name(), "bin");
-        assert_eq(a.extension(), "");
-        assert_eq(a.directory(), "/home/data/");
+        assert_eq(path::base_name(a), "bin");
+        assert_eq(path::split_extension(a).Root, path::normalize("/home/data/bin"));
+        assert_eq(path::split_extension(a).Extension, "");
+        assert_eq(path::directory(a), path::normalize("/home/data"));
 
-        auto b = a;
-        b.combine_with("lstd/");
-        assert_eq(b, "/home/data/bin/lstd/");
-        a.combine_with("C:/User");
-        assert_eq(a.Str, "C:/User");
+        auto b = path::join(a, "lstd");
+        assert_eq(b, path::normalize("/home/data/bin/lstd"));
+
+        b = path::join(a, path::normalize("C:/User"));
+        assert_eq(b, path::normalize("C:/User"));
     }
 
     {
-        file::path a = "../../data/bin/release-x64/../debug-x64/../debug/lstd.exe";
-        assert(!a.is_pointing_to_content());
-        assert(!a.is_absolute());
+        string a = path::normalize("../../data/bin/release-x64/../debug-x64/../debug/lstd.exe");
+        assert(!path::is_absolute(a));
 
-        a = file::path(a.resolved());
-        assert_eq(a.Str, "../../data/bin/debug/lstd.exe");
+        assert_eq(a, path::normalize("../../data/bin/debug/lstd.exe"));
 
-        assert_eq(a.file_name(), "lstd.exe");
-        assert_eq(a.base_name(), "lstd");
-        assert_eq(a.extension(), ".exe");
-        assert_eq(a.directory(), "../../data/bin/debug/");
+        assert_eq(path::base_name(a), "lstd.exe");
+        assert_eq(path::split_extension(a).Root, path::normalize("../../data/bin/debug/lstd"));
+        assert_eq(path::split_extension(a).Extension, ".exe");
+        assert_eq(path::directory(a), path::normalize("../../data/bin/debug"));
     }
 }
 
 TEST(file_size) {
-    auto thisFile = file::path(__FILE__);
-    file::path dataFolder = thisFile.directory();
-    dataFolder.combine_with("data");
-    defer(dataFolder.release());
+    auto thisFile = string(__FILE__);
+    string dataFolder = path::join(path::directory(thisFile), "data");
+    defer(free(dataFolder));
 
-    file::path fiveBytes;
-    clone(&fiveBytes, dataFolder);
-    defer(fiveBytes.release());
-    fiveBytes.combine_with("five_bytes");
+    string fiveBytes = path::join(dataFolder, "five_bytes");
+    defer(free(fiveBytes));
 
-    file::path text;
-    clone(&text, dataFolder);
-    defer(text.release());
-    text.combine_with("text");
+    string text = path::join(dataFolder, "text");
+    defer(free(text));
 
     assert_eq(file::handle(fiveBytes).file_size(), 5);
     assert_eq(file::handle(text).file_size(), 277);
 }
 
-/* Just wearing out the SSD :*
+/* Just wearing out the SSD :* */
 TEST(writing_hello_250_times) {
-    auto thisFile = file::path(__FILE__);
-    file::path filePath = thisFile.directory();
-    filePath.combine_with("data/write_test");
-    defer(filePath.release());
+    auto thisFile = string(__FILE__);
+
+    string filePath = path::join(path::directory(thisFile), "data/write_test");
+    defer(free(filePath));
 
     auto file = file::handle(filePath);
     assert(!file.exists());
 
     auto contents = string("Hello ");
-    contents.repeat(250);
+    repeat(contents, 250);
 
-    defer(contents.release());
+    defer(free(contents));
 
     assert(file.write_to_file(contents));
     assert_eq(250 * 6, file.file_size());
 
-    auto [read, sucess] = file.read_entire_file();
-    defer(read.release());
+    auto [read, success] = file.read_entire_file();
 
-    assert(sucess);
+    assert(success);
     assert_eq(contents, read);
 
     assert(file.delete_file());
-}*/
+}
 
 //
 // This is just causing more trouble that I want to cope with.
@@ -103,12 +93,12 @@ TEST(writing_hello_250_times) {
 
 /*
 TEST(test_introspection) {
-    auto thisFile = file::path(__FILE__);
-    file::path testsFolder = thisFile.directory();
+    auto thisFile = string(__FILE__);
+    string testsFolder = thisFile.directory();
 
     auto tests = file::handle(testsFolder);
     For(tests) {
-        file::path testPath;
+        string testPath;
         clone(&testPath, testsFolder);
         testPath.combine_with(it);
 
@@ -139,25 +129,18 @@ TEST(test_introspection) {
 
 #if DO_READ_EVERY_FILE
 TEST(read_every_file_in_project) {
-    file::path rootFolder = file::path(__FILE__).directory();
-    rootFolder.combine_with("../../../");
-
-    defer(rootFolder.release());
+    string rootFolder = path::normalize(path::join(path::directory(string(__FILE__)), "../../../"));
 
     hash_table<string, s64> files;
 
     s32 fileCounter = 100;
-    auto callback = [&](file::path it) {
+    auto callback = [&](string it) {
         if (fileCounter) {
-            file::path p;
-            clone(&p, rootFolder);
-            p.combine_with(it);
-            defer(p.release());
+            string p = path::join(rootFolder, it);
+            defer(free(p));
 
-            auto *counter = files.find(p.Str).Second;
-            if (!counter) {
-                counter = files.add(p.Str, 0).Second;
-            }
+            auto *counter = find(files, p).Value;
+            if (!counter) counter = add(files, p, 0).Value;
             ++*counter;
             --fileCounter;
         }

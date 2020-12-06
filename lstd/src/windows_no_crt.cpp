@@ -429,8 +429,8 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 // section of the image, and that the section in which it is located is not
 // writable.
 extern "C" bool __cdecl is_nonwritable_in_current_image(void const *const target) {
-    auto targetAddress = (unsigned char const *) target;
-    auto imageBase = (unsigned char *) &__ImageBase;
+    auto targetAddress = (byte const *) target;
+    auto imageBase = (byte *) &__ImageBase;
 
     if (!is_potentially_valid_image_base(imageBase)) return false;
 

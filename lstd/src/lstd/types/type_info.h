@@ -870,16 +870,18 @@ struct common_type<T, U, V...> {
 template <typename... T>
 using common_type_t = typename common_type<T...>::type;
 
-template <typename... Types>
-using common_comparison_category_t = select_t<(comparison_category_of<Types...> & Comparison_Category_None) != 0, void,
-                                              select_t<(comparison_category_of<Types...> & Comparison_Category_Partial) != 0, partial_ordering,
-                                                       select_t<(comparison_category_of<Types...> & Comparison_Category_Weak) != 0, weak_ordering,
-                                                                strong_ordering>>>;
-
-template <typename... Types>
-struct common_comparison_category {
-    using type = common_comparison_category_t<Types...>;
-};
+// Are these useful?
+//
+// template <typename... Types>
+// using common_comparison_category_t = select_t<(comparison_category_of<Types...> & Comparison_Category_None) != 0, void,
+//                                               select_t<(comparison_category_of<Types...> & Comparison_Category_Partial) != 0, partial_ordering,
+//                                                        select_t<(comparison_category_of<Types...> & Comparison_Category_Weak) != 0, weak_ordering,
+//                                                                 strong_ordering>>>;
+//
+// template <typename... Types>
+// struct common_comparison_category {
+//     using type = common_comparison_category_t<Types...>;
+// };
 }  // namespace types
 
 LSTD_END_NAMESPACE

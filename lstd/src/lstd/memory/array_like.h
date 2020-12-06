@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../memory/string_utils.h"
 #include "../types/basic_types.h"
 
 //
@@ -40,30 +41,30 @@ using array_like_data_t = types::remove_pointer_t<decltype(ArrayT::Data)>;
 // Find the first occurence of an element which matches the predicate and is after a specified index.
 // Predicate must take a single argument (the current element) and return if it matches.
 template <array_like T>
-constexpr s64 find(const T &arr, const delegate<bool(data_t<T> &)> &predicate, s64 start = 0, bool reverse = false) {
+constexpr s64 find(const T &arr, const delegate<bool(data_t<T> &)> &predicate, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     start = translate_index(start, arr.Count);
-    For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) if (predicate(arr.Data[it])) return it;
+    For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) if (predicate(arr.Data[it])) return it;
     return -1;
 }
 
 // Find the first occurence of an element that is after a specified index
 template <array_like T>
-constexpr s64 find(const T &arr, const data_t<T> &element, s64 start = 0, bool reverse = false) {
+constexpr s64 find(const T &arr, const data_t<T> &element, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     start = translate_index(start, arr.Count);
-    For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) if (arr.Data[it] == element) return it;
+    For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) if (arr.Data[it] == element) return it;
     return -1;
 }
 
 // Find the first occurence of a subarray that is after a specified index
 template <array_like T>
-constexpr s64 find(const T &arr, const T &arr2, s64 start = 0, bool reverse = false) {
+constexpr s64 find(const T &arr, const T &arr2, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     if (!arr2.Data || arr2.Count == 0) return -1;
     start = translate_index(start, arr.Count) - arr2.Count;
     start = min(start, arr2.Count - arr2.Count);  // We start at most the end minus _arr2_'s length because it cannot start later
-    For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) {
+    For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) {
         auto progress = arr2.Data;
         for (auto search = arr.Data + it; progress != arr2.Data + arr2.Count; ++search, ++progress) {
             if (*search != *progress) break;
@@ -75,11 +76,11 @@ constexpr s64 find(const T &arr, const T &arr2, s64 start = 0, bool reverse = fa
 
 // Find the first occurence of any element in the specified subarray that is after a specified index
 template <array_like T>
-constexpr s64 find_any_of(const T &arr, const T &allowed, s64 start = 0, bool reverse = false) {
+constexpr s64 find_any_of(const T &arr, const T &allowed, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     if (!allowed.Data || allowed.Count == 0) return -1;
-    start = translate_index(start, Count);
-    For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) if (allowed.has(arr.Data[it])) return it;
+    start = translate_index(start, arr.Count);
+    For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) if (allowed.has(arr.Data[it])) return it;
     return -1;
 }
 
@@ -87,18 +88,18 @@ constexpr s64 find_any_of(const T &arr, const T &allowed, s64 start = 0, bool re
 template <array_like T>
 constexpr s64 find_not(const T &arr, const data_t<T> &element, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
-    start = translate_index(start, Count);
-    For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) if (arr.Data[it] != element) return it;
+    start = translate_index(start, arr.Count);
+    For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) if (arr.Data[it] != element) return it;
     return -1;
 }
 
 // Find the first absence of any element in the specified subarray that is after a specified index
 template <array_like T>
-constexpr s64 find_not_any_of(const T &arr, const T &banned, s64 start = 0, bool reverse = false) {
+constexpr s64 find_not_any_of(const T &arr, const T &banned, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     if (!banned.Data || banned.Count == 0) return -1;
-    start = translate_index(start, Count);
-    For(range(start, (reverse ? -1 : arr.Count), (reverse ? -1 : 1))) if (!banned.has(arr.Data[it])) return it;
+    start = translate_index(start, arr.Count);
+    For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) if (!banned.has(arr.Data[it])) return it;
     return -1;
 }
 

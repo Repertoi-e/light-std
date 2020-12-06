@@ -4,15 +4,17 @@
 
 LSTD_BEGIN_NAMESPACE
 
-catalog::catalog(file::path root) { ensure_initted(root); }
+catalog::catalog(const string &root) { ensure_initted(root); }
 
-void catalog::ensure_initted(const file::path &root) {
-    if (Root.Str.Length) return;
-    assert(root.is_pointing_to_content() && "Create a catalog which points to a folder, not a file");
+void catalog::ensure_initted(const string &root) {
+    if (Root.Length) return;
+
+    // @TODO: Replace with is_dir
+    assert(path::is_sep(root[-1]) && "Create a catalog which points to a folder, not a file");
     clone(&Root, root);
 }
 
-void catalog::load(const array_view<file::path>& files, const delegate<void(const array_view<file::path> &)> &callback, bool watch, allocator alloc) {
+void catalog::load(const array_view<string> &files, const delegate<void(const array_view<string> &)> &callback, bool watch, allocator alloc) {
     entity *e = append(Entities, {}, alloc);
     reserve(e->FilesAssociated, files.Count);
     e->Callback = callback;
@@ -20,8 +22,7 @@ void catalog::load(const array_view<file::path>& files, const delegate<void(cons
     reserve(e->LastWriteTimes, files.Count);
 
     For(files) {
-        file::path path = Root;
-        path.combine_with(it);
+        auto path = path::join(Root, it);
         append(e->FilesAssociated, path);
         append(e->LastWriteTimes, file::handle(path).last_modification_time());
     }

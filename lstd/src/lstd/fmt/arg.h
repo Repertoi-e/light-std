@@ -51,7 +51,7 @@ auto map_arg(const U &val) {
     } else if constexpr (types::is_enum<T>) {
         return map_arg((types::underlying_type_t<T>) val);
     } else {
-        static_assert(false, "Argument doesn't have a formatter")
+        static_assert(false, "Argument doesn't have a formatter");
     }
 }
 

@@ -17,20 +17,14 @@ struct shear_helper : non_copyable {
     operator mat<U, R, C, MPacked>() const {
         mat<U, R, C, MPacked> m = identity();
         assert(PrincipalAxis != ModulatorAxis);
-        if constexpr (Order == mat_order::FOLLOW_VECTOR) {
-            assert(ModulatorAxis < R);
-            assert(PrincipalAxis < C);
-            m(ModulatorAxis, PrincipalAxis) = Slope;
-        } else {
-            assert(PrincipalAxis < R);
-            assert(ModulatorAxis < C);
-            m(PrincipalAxis, ModulatorAxis) = Slope;
-        }
+        assert(ModulatorAxis < R);
+        assert(PrincipalAxis < C);
+        m(ModulatorAxis, PrincipalAxis) = Slope;
         return m;
     }
 };
 
-// Creates a shear matrix. </summary>
+// Creates a shear matrix.
 // Strength of the shear.
 // Points are moved along this axis.
 // The displacement of points is proportional to this coordinate's value.

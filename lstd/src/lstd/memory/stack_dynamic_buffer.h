@@ -40,9 +40,9 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     explicit operator bool() const { return Count; }
 
     // Read/write [] operator
-    byte &operator[](s64 index) { return get(index); }
+    byte &operator[](s64 index) { return get(*this, index); }
     // Read-only [] operator
-    byte operator[](s64 index) const { return get(index); }
+    byte operator[](s64 index) const { return get(*this, index); }
 };
 
 template <typename T>
@@ -118,7 +118,7 @@ void insert(T &buffer, s64 index, byte b, bool unsafe = false) {
 // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
 template <any_stack_dynamic_buffer T>
 void insert_array(T &buffer, s64 index, const array<byte> &arr, bool unsafe = false) {
-    insert_pointer_and_size(buffer, index, view.Data, view.Count, unsafe);
+    insert_pointer_and_size(buffer, index, arr.Data, arr.Count, unsafe);
 }
 
 // Insert data after a specified index
@@ -145,7 +145,7 @@ void insert_pointer_and_size(T &buffer, s64 index, const byte *data, s64 count, 
 // Remove byte at specified index
 template <any_stack_dynamic_buffer T>
 void remove(T &buffer, s64 index) {
-    auto *targetBegin = buffer.Data + translate_index(begin, buffer.Count);
+    auto *targetBegin = buffer.Data + translate_index(index, buffer.Count);
     u64 offset = (u64)(targetBegin - buffer.Data);
     copy_memory((byte *) buffer.Data + offset, targetBegin + 1, buffer.Count - offset - 1);
 

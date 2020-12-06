@@ -18,10 +18,10 @@ namespace file {
         return returnOnFail;                                                                                        \
     }
 
-file_scope utf16 *utf8_path_to_utf16(const file::path &path) {
-    // @Bug path.Str.Length is not enough (2 wide chars for one char)
-    auto *result = allocate_array(utf16, path.Str.Length + 1, Context.Temp);
-    utf8_to_utf16(path.Str.Data, path.Str.Length, result);
+file_scope utf16 *utf8_path_to_utf16(const string &path) {
+    // @Bug path.Length is not enough (2 wide chars for one char)
+    auto *result = allocate_array(utf16, path.Length + 1, Context.Temp);
+    utf8_to_utf16(path.Data, path.Length, result);
     return result;
 }
 
@@ -125,12 +125,12 @@ bool handle::copy(handle dest, bool overwrite) const {
     auto *u16 = utf8_path_to_utf16(Path);
 
     if (dest.is_directory()) {
-        auto p = dest.Path;
-        p.combine_with(Path.file_name());
+        auto p = path::join(dest.Path, path::base_name(Path));
+        defer(free(p));
 
-        // @Bug p.Str.Length is not enough (2 wide chars for one char)
-        auto *d = allocate_array(utf16, p.Str.Length + 1, Context.Temp);
-        utf8_to_utf16(p.Str.Data, p.Str.Length, d);
+        // @Bug p.Length is not enough (2 wide chars for one char)
+        auto *d = allocate_array(utf16, p.Length + 1, Context.Temp);
+        utf8_to_utf16(p.Data, p.Length, d);
 
         return CopyFileW(u16, d, !overwrite);
     }
@@ -142,19 +142,20 @@ bool handle::move(handle dest, bool overwrite) const {
 
     auto p = dest.Path;
     if (dest.is_directory()) {
-        p.combine_with(Path.file_name());
+        auto p = path::join(dest.Path, path::base_name(Path));
+        defer(free(p));
 
-        // @Bug p.Str.Length is not enough (2 wide chars for one char)
-        auto *d = allocate_array(utf16, p.Str.Length + 1, Context.Temp);
-        utf8_to_utf16(p.Str.Data, p.Str.Length, d);
+        // @Bug p.Length is not enough (2 wide chars for one char)
+        auto *d = allocate_array(utf16, p.Length + 1, Context.Temp);
+        utf8_to_utf16(p.Data, p.Length, d);
 
         if (MoveFileExW(utf8_path_to_utf16(Path), d, MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
-            Path = p;
+            clone(&Path, p);
             return true;
         }
     } else {
         if (MoveFileExW(utf8_path_to_utf16(Path), utf8_path_to_utf16(dest.Path), MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0))) {
-            ::clone(const_cast<path *>(&Path), p);
+            clone(&Path, p);
             return true;
         }
     }
@@ -164,12 +165,12 @@ bool handle::move(handle dest, bool overwrite) const {
 bool handle::rename(const string &newName) const {
     if (!exists()) return false;
 
-    auto p = path(Path.directory());
-    p.combine_with(newName);
+    auto p = path::join(path::directory(Path), newName);
+    defer(free(p));
 
-    // @Bug p.Str.Length is not enough (2 wide chars for one char)
-    auto *d = allocate_array(utf16, p.Str.Length + 1, Context.Temp);
-    utf8_to_utf16(p.Str.Data, p.Str.Length, d);
+    // @Bug p.Length is not enough (2 wide chars for one char)
+    auto *d = allocate_array(utf16, p.Length + 1, Context.Temp);
+    utf8_to_utf16(p.Data, p.Length, d);
 
     if (MoveFileW(utf8_path_to_utf16(Path), d)) {
         Path = p;
@@ -227,14 +228,12 @@ bool handle::write_to_file(const string &contents, write_mode mode) const {
 void handle::iterator::read_next_entry() {
     do {
         if (!Handle) {
-            file::path queryPath;
-            clone(&queryPath, Path);
-            queryPath.combine_with("*");
-            defer(queryPath.release());
+            string queryPath = path::join(Path, "*");
+            defer(free(queryPath));
 
-            // @Bug queryPath.Str.Length is not enough (2 wide chars for one char)
-            auto *query = allocate_array(utf16, queryPath.Str.Length + 1, Context.Temp);
-            utf8_to_utf16(queryPath.Str.Data, queryPath.Str.Length, query);
+            // @Bug queryPath.Length is not enough (2 wide chars for one char)
+            auto *query = allocate_array(utf16, queryPath.Length + 1, Context.Temp);
+            utf8_to_utf16(queryPath.Data, queryPath.Length, query);
 
             CREATE_FILE_HANDLE_CHECKED(file, FindFirstFileW(query, (WIN32_FIND_DATAW *) PlatformFileInfo), ;);
             Handle = (void *) file;
@@ -265,38 +264,44 @@ void handle::iterator::read_next_entry() {
     assert(CurrentFileName != ".." && CurrentFileName != ".");
 }
 
-void handle::traverse_impl(const delegate<void(const path &)> &func) const {
+void handle::traverse_impl(const delegate<void(const string &)> &func) const {
     for (auto it = begin(); it != end(); ++it) {
-        file::path relativeFileName;
-        clone(&relativeFileName, Path);
-        relativeFileName.combine_with(*it);
-
+        string relativeFileName = path::join(Path, *it);
+        defer(free(relativeFileName));
         func(relativeFileName);
-
-        relativeFileName.release();
     }
 }
 
-void handle::traverse_recursively_impl(const path &first, const path &currentDirectory, const delegate<void(const path &)> &func) const {
+static string get_path_from_here_to(const string &here, const string &there) {
+    assert(path::is_sep(here[-1]) && path::is_sep(there[-1]));
+
+    if (find_substring(here, there) == -1) {
+        return there;
+    } else {
+        if (here.Length == there.Length) {
+            return here;
+        } else {
+            string difference = substring(there, here.Length, there.Length);
+            return difference;
+        }
+    }
+}
+
+void handle::traverse_recursively_impl(const string &first, const string &currentDirectory, const delegate<void(const string &)> &func) const {
     for (auto it = begin(); it != end(); ++it) {
-        file::path relativeFileName;
-        clone(&relativeFileName, currentDirectory);
-        relativeFileName.combine_with(*it);
+        string relativeFileName = path::join(currentDirectory, *it);
+        defer(free(relativeFileName));
 
         func(relativeFileName);
 
         if ((((WIN32_FIND_DATA *) it.PlatformFileInfo)->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
-            file::path p;
-            clone(&p, first.get_path_from_here_to(currentDirectory));
+            auto pComponents = to_stack_array(get_path_from_here_to(first, currentDirectory), *it, "./");
 
-            p.combine_with(*it);
-            p.combine_with("./");
+            string p = path::join(pComponents);
+            defer(free(p));
 
             handle(p).traverse_recursively_impl(first, p, func);
-
-            p.release();
         }
-        relativeFileName.release();
     }
 }
 

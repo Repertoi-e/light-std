@@ -116,3 +116,150 @@ LSTD_END_NAMESPACE
 // Shortcuts for allocations
 #define WITH_ALLOC(newAlloc) WITH_CONTEXT_VAR(Alloc, newAlloc)
 #define WITH_ALIGNMENT(newAlignment) WITH_CONTEXT_VAR(AllocAlignment, newAlignment)
+
+// These were moved from allocator.h where they made sense to be, but we need to access Context.Alloc here.
+// In the future we hopefully find a way to structure the library so these problems are avoided.
+// We can't make them non-templates because we need the type info...
+
+template <non_void T>
+T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const utf8 *file = "", s64 fileLine = -1) {
+    s64 size = count * sizeof(T);
+
+    if (!alloc) alloc = Context.Alloc;
+    auto *result = (T *) general_allocate(alloc, size, alignment, options, file, fileLine);
+
+    if constexpr (!types::is_scalar<T>) {
+        auto *p = result;
+        auto *end = result + count;
+        while (p != end) {
+            new (p) T;
+            ++p;
+        }
+    }
+    return result;
+}
+
+template <non_void T>
+T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, const utf8 *file = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, alloc, 0, file, fileLine);
+}
+
+template <non_void T>
+T *lstd_allocate_impl(s64 count, u32 alignment, u64 options, const utf8 *file = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, Context.Alloc, options, file, fileLine);
+}
+
+template <non_void T>
+T *lstd_allocate_impl(s64 count, u32 alignment, const utf8 *file = "", s64 fileLine = -1) {
+    return lstd_allocate_impl<T>(count, alignment, Context.Alloc, 0, file, fileLine);
+}
+
+// Note: We don't support "non-trivially copyable" types (types that can have logic in the copy constructor).
+// We assume your type can be copied to another place in memory and just work.
+// We assume that the destructor of the old copy doesn't invalidate the new copy.
+template <non_void T>
+requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, const utf8 *file = "", s64 fileLine = -1) {
+    if (!block) return null;
+
+    // I think the standard implementation frees in this case but we need to decide
+    // what _options_ should go there (no options or the ones passed to reallocate?),
+    // so we leave that up to the call site.
+    assert(newCount != 0);
+
+    auto *header = (allocation_header *) block - 1;
+    s64 oldCount = header->Size / sizeof(T);
+
+    if constexpr (!types::is_scalar<T>) {
+        if (newCount < oldCount) {
+            auto *p = block + newCount;
+            auto *end = block + oldCount;
+            while (p != end) {
+                p->~T();
+                ++p;
+            }
+        }
+    }
+
+    s64 newSize = newCount * sizeof(T);
+    auto *result = (T *) general_reallocate(block, newSize, options, file, fileLine);
+
+    if constexpr (!types::is_scalar<T>) {
+        if (oldCount < newCount) {
+            auto *p = result + oldCount;
+            auto *end = result + newCount;
+            while (p != end) {
+                new (p) T;
+                ++p;
+            }
+        }
+    }
+    return result;
+}
+
+// We assume your type can be copied to another place in memory and just work.
+// We assume that the destructor of the old copy doesn't invalidate the new copy.
+template <non_void T>
+requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCount, const utf8 *file = "", s64 fileLine = -1) {
+    return lstd_reallocate_array_impl(block, newCount, 0, file, fileLine);
+}
+
+// If T is non-scalar we call the destructors on _block_ (completely determined by T, so make sure you pass that correctly!)
+template <typename T>
+requires(!types::is_const<T>) void lstd_free_impl(T *block, u64 options = 0) {
+    if (!block) return;
+
+    s64 sizeT = 1;
+    if constexpr (!types::is_same<T, void>) {
+        sizeT = sizeof(T);
+    }
+
+    auto *header = (allocation_header *) block - 1;
+    s64 count = header->Size / sizeT;
+
+    if constexpr (!types::is_same<T, void> && !types::is_scalar<T>) {
+        auto *p = block;
+        while (count--) {
+            p->~T();
+            ++p;
+        }
+    }
+
+    general_free(block, options);
+}
+
+// T is used to initialize the resulting memory (uses placement new).
+// When you pass DO_INIT_0 we initialize the memory with zeroes before initializing T.
+#if defined DEBUG_MEMORY
+#define allocate(T, ...) lstd_allocate_impl<T>(1, 0, __VA_ARGS__, __FILE__, __LINE__)
+#define allocate_aligned(T, alignment, ...) lstd_allocate_impl<T>(1, alignment, __VA_ARGS__, __FILE__, __LINE__)
+#define allocate_array(T, count, ...) lstd_allocate_impl<T>(count, 0, __VA_ARGS__, __FILE__, __LINE__)
+#define allocate_array_aligned(T, count, alignment, ...) lstd_allocate_impl<T>(count, alignment, __VA_ARGS__, __FILE__, __LINE__)
+
+#define reallocate_array(block, newCount, ...) lstd_reallocate_array_impl(block, newCount, __VA_ARGS__, __FILE__, __LINE__)
+
+#define free lstd_free_impl
+#else
+#define allocate(T, ...) lstd_allocate_impl<T>(1, 0, __VA_ARGS__)
+#define allocate_aligned(T, alignment, ...) lstd_allocate_impl<T>(1, alignment, __VA_ARGS__)
+#define allocate_array(T, count, ...) lstd_allocate_impl<T>(count, 0, __VA_ARGS__)
+#define allocate_array_aligned(T, count, alignment, ...) lstd_allocate_impl<T>(count, alignment, __VA_ARGS__)
+
+#define reallocate_array(block, newCount, ...) lstd_reallocate_array_impl(block, newCount, __VA_ARGS__)
+
+#define free lstd_free_impl
+#endif
+
+//
+// We overload the new/delete operators so we handle the allocations. The allocator used is the one specified in the Context.
+//
+void *operator new(size_t size);
+void *operator new[](size_t size);
+
+void *operator new(size_t size, align_val_t alignment);
+void *operator new[](size_t size, align_val_t alignment);
+
+void operator delete(void *ptr) noexcept;
+void operator delete[](void *ptr) noexcept;
+
+void operator delete(void *ptr, align_val_t alignment) noexcept;
+void operator delete[](void *ptr, align_val_t alignment) noexcept;

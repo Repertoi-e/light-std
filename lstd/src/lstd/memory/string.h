@@ -137,17 +137,17 @@ struct string : public array_view<utf8> {
     //
 
     // Returns true if the string contains any code points
-    explicit operator bool() const { return Length; }
+    constexpr explicit operator bool() const { return Length; }
 
-    operator array_view<utf8>() const { return array_view<utf8>(Data, Count); }
-    operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
+    constexpr operator array_view<utf8>() const { return array_view<utf8>(Data, Count); }
+    constexpr operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
 
     // The non-const version allows to modify the character by simply =.
     code_point_ref operator[](s64 index) { return code_point_ref(this, translate_index(index, Length)); }
     constexpr utf32 operator[](s64 index) const { return decode_cp(get_cp_at_index(Data, Length, index)); }
 
     // Substring operator:
-    constexpr string operator(s64 begin, s64 end) const;
+    constexpr string operator()(s64 begin, s64 end) const;
 };
 
 // Makes sure string has reserved enough space for at least n bytes.
@@ -655,7 +655,15 @@ constexpr string trim(const string &s) { return trim_end(trim_start(s)); }
 // Operators:
 //
 
-constexpr auto operator<=>(const string &one, const string &other) { return compare_lexicographically(one, other); }
+constexpr bool operator==(const string &one, const string &other) { return compare_lexicographically(one, other) == 0; }
+constexpr bool operator!=(const string &one, const string &other) { return !(one == other); }
+constexpr bool operator<(const string &one, const string &other) { return compare_lexicographically(one, other) < 0; }
+constexpr bool operator>(const string &one, const string &other) { return compare_lexicographically(one, other) > 0; }
+constexpr bool operator<=(const string &one, const string &other) { return !(one > other); }
+constexpr bool operator>=(const string &one, const string &other) { return !(one < other); }
+
+// @TODO:
+// constexpr auto operator<=>(const string &one, const string &other) { return compare_lexicographically(one, other); }
 
 // operator<=> doesn't work on these for some reason...
 constexpr bool operator==(const utf8 *one, const string &other) { return compare_lexicographically(one, other) == 0; }

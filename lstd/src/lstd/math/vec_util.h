@@ -90,8 +90,8 @@ requires(vec_same_type<Vec, U>) auto operator|(U lhs, const Vec &rhs) {
 template <any_vec Vec, any_vec Other>
 requires(vecs_same_types<Vec, Other>) auto operator|(const Vec &lhs, const Other &rhs) {
     same_vec_with_extra_dims<Vec, vec_info<Other>::Dims> result = {no_init};
-    For(range(Dim1)) result[it] = lhs[it];
-    For(range(Dim2)) result[Dim1 + it] = rhs[it];
+    For(range(lhs.DIM)) result[it] = lhs[it];
+    For(range(rhs.DIM)) result[lhs.DIM + it] = rhs[it];
     return result;
 }
 
@@ -120,8 +120,8 @@ requires(vec_same_type<Vec, U>) auto operator|(const swizzle<Vec, Indices1...> &
 }
 
 template <typename VectorData1, s64... Indices1, typename U>
-requires(vec_same_type<Vec, U>) auto operator|(U lhs, const swizzle<VectorData1, Indices1...> &rhs) {
-    return lhs | vec<typename vec_info<VectorData1>::T, sizeof...(Indices1), vec_info<Vec>::PACKED>(rhs);
+requires(vec_same_type<VectorData1, U>) auto operator|(U lhs, const swizzle<VectorData1, Indices1...> &rhs) {
+    return lhs | vec<typename vec_info<VectorData1>::T, sizeof...(Indices1), vec_info<VectorData1>::PACKED>(rhs);
 }
 
 //

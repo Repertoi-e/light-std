@@ -14,27 +14,27 @@ struct catalog : non_copyable, non_movable, non_assignable {
     struct entity {
         bool Loaded;
 
-        array<file::path> FilesAssociated;  // @Leak
-        delegate<void(const array_view<file::path> &)> Callback;
+        array<string> FilesAssociated;  // @Leak
+        delegate<void(const array_view<string> &)> Callback;
 
         bool Watched;
         array<time_t> LastWriteTimes;  // @Leak
     };
 
-    file::path Root;
+    string Root;
     bucket_array<entity, 256> Entities;
 
     catalog() {}
-    catalog(file::path root);
+    catalog(const string &root);
 
     void release() {
-        Root.release();
+        free(Root);
         free(Entities);
     }
 
-    void ensure_initted(const file::path &root);
+    void ensure_initted(const string &root);
 
-    void load(const array_view<file::path> &files, const delegate<void(const array_view<file::path> &)> &callback, bool watch, allocator alloc = {});
+    void load(const array_view<string> &files, const delegate<void(const array_view<string> &)> &callback, bool watch, allocator alloc = {});
 };
 
 LSTD_END_NAMESPACE

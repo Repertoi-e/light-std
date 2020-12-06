@@ -1,6 +1,7 @@
 #pragma once
 
 #include "quat.h"
+#include "vec_util.h"
 
 LSTD_BEGIN_NAMESPACE
 
