@@ -47,7 +47,7 @@ struct context {
     //
     // .. We do it that way because tls_init (windows_common.cpp) gets called automatically but it can't have possibly enough info about
     // the parent context, but we still initialize the default allocator and the temporary allocator there.
-    // 
+    //
     // If we did everything in the thread wrapper (our thread module is the one that copies the context variables)
     // then threads that were not created with this library would not get the same allocator treatment.
     //
@@ -102,7 +102,8 @@ struct context {
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.
     // By default it points to io::cout (the console).
-    writer *Log = internal::g_ConsoleLog;
+    writer *Log = internal::g_ConsoleLog;  // We need to do this namespace hack because we can't include writers here with circular dependency..
+                                           // In reality it's just "&cout";
 
     // Disable stylized text output (colors, background colors, and bold/italic/strikethrough/underline text).
     // This is useful when logging to a file and not a console. The ansi escape codes look like garbage in files.

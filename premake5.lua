@@ -93,10 +93,6 @@ project "lstd"
     }
 
     filter {}
-
-    pchheader "pch.h"
-    pchsource "%{prj.name}/src/pch.cpp"
-    forceincludes { "pch.h" }
     
     common_settings()
 
