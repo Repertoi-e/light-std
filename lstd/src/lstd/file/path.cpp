@@ -128,10 +128,7 @@ string normalize_windows(const string &path) {
     return result;
 }
 
-string normalize_path_posix(const string &path) {
-    assert(false && "Not implemented");
-    return "";
-}
+
 
 }  // namespace path
 

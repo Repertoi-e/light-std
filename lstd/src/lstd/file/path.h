@@ -20,8 +20,7 @@ namespace path {
 
 [[nodiscard("Leak")]] string join_posix(const array_view<string> &paths);
 
-// Joins two or more paths
-// Ignore the previous parts if a part is absolute.
+
 //
 // By default this module handles path by what is best for the OS the program is compiled for. We do that here using macros.
 // If you want to work explicitly with a format, you can use the suffixed functions directly.
