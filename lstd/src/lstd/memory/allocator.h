@@ -35,19 +35,9 @@ enum class allocator_mode { ALLOCATE = 0,
                             FREE_ALL };
 
 // This is an option when allocating.
-// When specified, the allocated memory is initialized to 0.
-// This is handled internally when passed, so allocator implementations needn't pay attention to it.
-constexpr u64 DO_INIT_0 = 1ull << 63;
-
-// This is an option when allocating.
 // Allocations marked explicitly as leaks don't get reported with DEBUG_memory_info::report_leaks().
 // This is handled internally when passed, so allocator implementations needn't pay attention to it.
 constexpr u64 LEAK = 1ull << 62;
-
-// When logging all allocations (Context.LogAllAllocations == true), sometimes for e.g. if logging to a string_builder_writer,
-// string_builder allocates a buffer which causes an allocation to be made and that creates an infinite calling chain.
-// Allocations with this flag don't get logged.
-constexpr u64 XXX_AVOID_RECURSION = 1ull << 61;
 
 // This specifies what the signature of each allocation function should look like.
 //
@@ -211,6 +201,7 @@ inline u16 calculate_padding_for_pointer_with_header(void *ptr, s32 alignment, u
     return padding;
 }
 
+// #if'd so programs don't compile when debug info shouldn't be used.
 #if defined DEBUG_MEMORY
 struct DEBUG_memory_info {
     inline static s64 AllocationCount = 0;
@@ -237,7 +228,13 @@ struct DEBUG_memory_info {
     static void report_leaks();
 
     // Verifies the integrity of headers in all allocations (only if DEBUG_MEMORY is on).
-    static void verify_heap();
+    //
+    // We call this function when a new allocation is made.
+    // The problem is that it involves iterating over a linked list of every allocation made.
+    // We use the frequency variable in the _Context_ to specify how often we perform that expensive operation.
+    // By default we check the heap every 255 allocations, but if a problem is found you may want to decrease it to 1 so
+    // your program runs way slower but you catch the corruption at just the right time.
+    static void maybe_verify_heap();
 
     // Verifies the integrity of a single header (only if DEBUG_MEMORY is on).
     static void verify_header(allocation_header *header);

@@ -1,0 +1,1440 @@
+
+tests\parse.cpp:
+        int ................................ OK
+        bool ............................... OK
+        guid ............................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\temporary_allocator.cpp:29
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\temporary_allocator.cpp:35
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\temporary_allocator.cpp:29
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\temporary_allocator.cpp:35
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+100.00% success (3 out of 3 procs)
+
+tests\quat.cpp:
+        ctor ............................... OK
+        axis_angle ......................... OK
+        tri_axis ........................... OK
+        query_axis_angle ................... OK
+        to_mat ............................. OK
+        from_mat ........................... OK
+        add_subtract ....................... OK
+        product ............................ OK
+        vec_rotation ....................... OK
+        chaining ........................... OK
+        exp_log ............................ OK
+        pow ................................ OK
+100.00% success (12 out of 12 procs)
+
+tests\signal.cpp:
+        global_function .................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+OK
+        member_function .................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+OK
+        global_function_delegate ........... OK
+        member_function_delegate ........... OK
+        functor_delegate ................... OK
+100.00% success (5 out of 5 procs)
+
+tests\vec.cpp:
+        ctor ............................... OK
+        ctor_array ......................... OK
+        ctor_convert ....................... OK
+        ctor_scalar ........................ OK
+        ctor_mixed ......................... OK
+        ctor_mixed_swizzle ................. OK
+        cast ............................... OK
+        index .............................. OK
+        iterator ........................... OK
+        swizzle ............................ OK
+        add ................................ OK
+        subtract ........................... OK
+        multiply ........................... OK
+        divide ............................. OK
+        compound_add ....................... OK
+        compound_subtract .................. OK
+        compound_multiply .................. OK
+        compound_divide .................... OK
+        scalar_add ......................... OK
+        scalar_subtract .................... OK
+        scalar_multiply .................... OK
+        scalar_divide ...................... OK
+        scalar_compound_add ................ OK
+        scalar_compound_subtract ........... OK
+        scalar_compound_multiply ........... OK
+        scalar_compound_divide ............. OK
+        scalar_reverse_add ................. OK
+        scalar_reverse_subtract ............ OK
+        scalar_reverse_multiply ............ OK
+        scalar_reverse_divide .............. OK
+        swizzle_vector_add ................. OK
+        swizzle_vector_subtract ............ OK
+        swizzle_vector_multiply ............ OK
+        swizzle_vector_divide .............. OK
+        vector_swizzle_add ................. OK
+        vector_swizzle_subtract ............ OK
+        vector_swizzle_multiply ............ OK
+        vector_swizzle_divide .............. OK
+        swizzle_vector_compound_add ........ OK
+        swizzle_vector_compound_subtra ..... OK
+        swizzle_vector_compound_multip ..... OK
+        swizzle_vector_compound_divide ..... OK
+        vector_swizzle_compound_add ........ OK
+        vector_swizzle_compound_subtra ..... OK
+        vector_swizzle_compound_multip ..... OK
+        vector_swizzle_compound_divide ..... OK
+        swizzle_swizzle_add ................ OK
+        swizzle_swizzle_subtract ........... OK
+        swizzle_swizzle_multiply ........... OK
+        swizzle_swizzle_divide ............. OK
+        swizzle_swizzle_compound_add ....... OK
+        swizzle_swizzle_compound_subtr ..... OK
+        swizzle_swizzle_compound_multi ..... OK
+        swizzle_swizzle_compound_divid ..... OK
+        swizzle_scalar_add ................. OK
+        swizzle_scalar_subtract ............ OK
+        swizzle_scalar_multiply ............ OK
+        swizzle_scalar_divide .............. OK
+        scalar_swizzle_add ................. OK
+        scalar_swizzle_subtract ............ OK
+        scalar_swizzle_multiply ............ OK
+        scalar_swizzle_divide .............. OK
+        swizzle_scalar_compound_add ........ OK
+        swizzle_scalar_compound_subtra ..... OK
+        swizzle_scalar_compound_multip ..... OK
+        swizzle_scalar_compound_divide ..... OK
+        is_null_vec ........................ OK
+        length ............................. OK
+        length_precise ..................... OK
+        normalize .......................... OK
+        safe_normalize_denom ............... OK
+        safe_normalize_null ................ OK
+        safe_normalize_specific_proper ..... OK
+        safe_normalize_specific_null ....... OK
+        fill ............................... OK
+        element_wise_min_max ............... OK
+        dot ................................ OK
+        cross .............................. OK
+        cross_nd ........................... OK
+100.00% success (79 out of 79 procs)
+
+tests\file.cpp:
+        path_manipulation .................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+OK
+        file_size .......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_file.cpp:23
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_file.cpp:23
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_file.cpp:23
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_file.cpp:23
+OK
+100.00% success (2 out of 2 procs)
+
+tests\mat.cpp:
+        ctor_and_index ..................... OK
+        thin_mat_from_vec .................. OK
+        thin_mat_to_vec .................... OK
+        thin_mat_short_index ............... OK
+        view ............................... OK
+        add ................................ OK
+        subtract ........................... OK
+        multiply_square .................... OK
+        multiply_arbitrary ................. OK
+        mat_scalar_multiply ................ OK
+        mat_scalar_divide .................. OK
+        scalar_mat_multiply ................ OK
+        scalar_mat_divide .................. OK
+        scalar_compound_multiply ........... OK
+        scalar_compound_divide ............. OK
+        vec_square_multiply ................ OK
+        vec_non_square_multiply ............ OK
+        vec_implicit_affine_multiply ....... OK
+        vec_implicit_homogeneous_multi ..... OK
+        trace .............................. OK
+        transpose .......................... OK
+        det_small .......................... OK
+        det ................................ OK
+        inverse_small ...................... OK
+        inverse ............................ OK
+        norm ............................... OK
+        lu_decomposition ................... OK
+        lu_solve ........................... OK
+        lup_decomposition .................. OK
+        lup_solve .......................... OK
+        lup_decomposition_singular ......... OK
+        qr_decomposition ................... OK
+        transform_identity ................. OK
+        transform_zero ..................... OK
+        transform_rotation_2d .............. OK
+        transform_rotation_principal ....... OK
+        transform_rotation_tri_axis ........ OK
+        transform_rotation_axis_angle ...... OK
+        transform_scale .................... OK
+        transform_translation .............. OK
+        transform_orthographic ............. OK
+        transform_view ..................... OK
+        transform_view_2d .................. OK
+100.00% success (43 out of 43 procs)
+
+tests\fmt.cpp:
+        write_bool ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        write_integer_16 ................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        write_integer_32 ................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        write_integer_64 ................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        write_f64 .......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        write_code_point ................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_int ......................... OK
+        format_int_binary .................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_int_octal ................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_int_decimal ................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_int_hexadecimal ............. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_int_localeish ............... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_f32 ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_f64 ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_nan ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_inf ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        format_custom ...................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        precision_rounding ................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        escape_brackets .................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        args_in_different_positions ........ >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        args_errors ........................ OK
+        many_args .......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        auto_arg_index ..................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        empty_specs ........................ >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        left_align ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        right_align ........................ >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        numeric_align ...................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        center_align ....................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        fill ............................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\temporary_allocator.cpp:29
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\temporary_allocator.cpp:35
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        plus_sign .......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        minus_sign ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        space_sign ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        hash_flag .......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        zero_flag .......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        width .............................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        dynamic_width ...................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        precision .......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        benchmark_string ................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        dynamic_precision .................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        colors_and_emphasis ................ OK
+100.00% success (40 out of 40 procs)
+
+tests\range.cpp:
+        basic .............................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+OK
+        variable_steps ..................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+OK
+        reverse ............................ >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+OK
+100.00% success (3 out of 3 procs)
+
+tests\storage.cpp:
+        stack_array ........................ OK
+        array .............................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+OK
+        hash_table ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\hash_table.h:183
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        hash_table_clone ................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\hash_table.h:183
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\hash_table.h:183
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        hash_table_alignment ............... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\hash_table.h:183
+OK
+100.00% success (5 out of 5 procs)
+
+tests\string.cpp:
+        code_point_size .................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+OK
+        substring .......................... OK
+        substring_mixed_sizes .............. OK
+        index .............................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        insert ............................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+OK
+        remove ............................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        trim ............................... OK
+        match_beginning .................... OK
+        match_end .......................... OK
+        set ................................ >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+OK
+        iterator ........................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+OK
+        append ............................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:49
+OK
+        count .............................. OK
+        builder ............................ >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        remove_all ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        replace_all ........................ >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\string.cpp:52
+OK
+        find ............................... OK
+100.00% success (17 out of 17 procs)
+
+tests\thread.cpp:
+        hardware_concurrency ............... 
+		Hardware concurrency: 4.
+                                             OK
+        ids ................................ 
+		Main thread's id is 1420.
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+		My thread id is 7080.
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+		My thread id is 9124.
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+		My thread id is 12520.
+                                             OK
+        thread_local_storage ............... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+OK
+        lock_free .......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156 Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+   
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp>>> Allocation made at: :156X:\Dev\C++\light-std\lstd\src\windows_thread.cpp
+:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+OK
+        mutex_lock ......................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+OK
+        fast_mutex_lock .................... >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+OK
+        condition_variable ................. >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at:                         X:\Dev\C++\light-std\lstd\src\windows_thread.cpp                                                : 156156
+
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+OK
+        context ............................ >>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:177
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\windows_thread.cpp:156
+OK
+100.00% success (8 out of 8 procs)
+
+
+
+[Test Suite] 100.000% success (1333/1333 test asserts)
+
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:114
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Reallocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\array.h:111
+>>> Allocation made at: X:\Dev\C++\light-std\lstd\src\lstd\memory\temporary_allocator.cpp:94
+
+Finished tests, time taken: 1.773790 seconds
+

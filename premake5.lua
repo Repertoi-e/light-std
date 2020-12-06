@@ -88,7 +88,8 @@ project "lstd"
         "%{prj.name}/src/**.inc",
         "%{prj.name}/src/**.c",
         "%{prj.name}/src/**.cpp",
-        "%{prj.name}/src/**.def"
+        "%{prj.name}/src/**.def",
+		"%{prj.name}/src/**.ixx"
     }
 
     filter {}
@@ -110,7 +111,8 @@ project "lstd-graphics"
         "%{prj.name}/src/**.h",
         "%{prj.name}/src/**.inc",
         "%{prj.name}/src/**.c",
-        "%{prj.name}/src/**.cpp"
+        "%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.ixx"
     }
 
     -- Exclude directx files on non-windows platforms since they would cause a compilation failure
@@ -137,7 +139,7 @@ project "test-suite"
 
     files {
         "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.cpp",
+        "%{prj.name}/src/**.cpp"
     }
 
     links { "lstd" }
@@ -158,7 +160,7 @@ project "benchmark"
 
     files {
         "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.cpp",
+        "%{prj.name}/src/**.cpp"
     }
 
     links { "lstd" }
@@ -179,7 +181,7 @@ project "game"
 
     files {
         "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.cpp",
+        "%{prj.name}/src/**.cpp"
     }
 
     excludes { 

@@ -63,22 +63,26 @@ void run_tests() {
 #define LOG_TO_FILE 0
 
 #if LOG_TO_FILE
-io::string_builder_writer logger;
+string_builder_writer logger;
 void write_output_to_file() {
-    auto out = file::handle(file::path("output.txt"));
-    out.write_to_file(logger.Builder.combine(), file::handle::Overwrite_Entire);
+    Context.Log = &cout;
+
+    auto out = file::handle("output.txt");
+    out.write_to_file(combine(logger.Builder), file::handle::Overwrite_Entire);
 }
 #endif
 
 s32 main() {
-    Context.CheckForLeaksAtTermination = false;
 #if LOG_TO_FILE
 
     Context.LogAllAllocations = true;
-    Context.Log = &logger;
 
+    logger.Builder.Alloc = Malloc;  // Otherwise we use the temporary alloc which gets freed after we run the tests
+    Context.Log = &logger;
+    
     Context.FmtDisableAnsiCodes = true;
 #endif
+    Context.AllocAlignment = 16;
 
     time_t start = os_get_time();
 
@@ -97,7 +101,8 @@ s32 main() {
     fmt::print("\nFinished tests, time taken: {:f} seconds\n\n", os_time_to_seconds(os_get_time() - start));
 
 #if LOG_TO_FILE
-    exit_schedule(write_output_to_file);
+    // exit_schedule(write_output_to_file);
+    write_output_to_file();
 #endif
 
 #if defined DEBUG_MEMORY
@@ -107,6 +112,8 @@ s32 main() {
     }
     free(g_TestTable);
     release_temporary_allocator();
+
+    DEBUG_memory_info::report_leaks();
 #endif
 
     return 0;

@@ -44,6 +44,7 @@ void init_mutexes() {
     WorkingDirMutex.init();
 }
 
+// When our program runs but also when a new thread starts!
 void init_context() {
     Context = {};
 

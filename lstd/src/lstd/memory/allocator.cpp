@@ -85,7 +85,7 @@ constexpr string get_short_file_name(const string &str) {
 
 void DEBUG_memory_info::report_leaks() {
     // First we check their integrity of the heap
-    verify_heap();
+    maybe_verify_heap();
 
     allocation_header **leaks;
     // We want to ignore the allocation below since it's not the user's fault and we shouldn't count it as a leak
@@ -158,7 +158,7 @@ file_scope void verify_header_unlocked(allocation_header *header) {
            "No man's land was modified. This means that you wrote after the allocated block.");
 
     //
-    // If one of these asserts was triggered in _verify_heap()_, this can also mean that the linked list is messed up
+    // If one of these asserts was triggered in _maybe_verify_heap()_, this can also mean that the linked list is messed up
     // (possibly by modifying the pointers in the header).
     //
 }
@@ -169,9 +169,11 @@ void DEBUG_memory_info::verify_header(allocation_header *header) {
     verify_header_unlocked(header);
 }
 
-void DEBUG_memory_info::verify_heap() {
+void DEBUG_memory_info::maybe_verify_heap() {
     // We need to lock here because another thread can free a header while we are reading from it.
     thread::scoped_lock<thread::mutex> _(&Mutex);
+
+    if (AllocationCount % Context.DebugMemoryVerifyHeapFrequency) return;
 
     auto *it = Head;
     while (it) {
@@ -226,13 +228,8 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc
     p = result + 1;
     assert((((u64) p & ~((s64) align - 1)) == (u64) p) && "Pointer wasn't properly aligned.");
 
-    if (flags & DO_INIT_0) {
-        zero_memory(p, userSize);
-    }
 #if defined DEBUG_MEMORY
-    else {
-        fill_memory(p, CLEAN_LAND_FILL, userSize);
-    }
+    fill_memory(p, CLEAN_LAND_FILL, userSize);
 
     fill_memory((char *) p - NO_MANS_LAND_SIZE, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
     fill_memory((char *) p + userSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
@@ -275,15 +272,17 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
 #if defined DEBUG_MEMORY
     s64 id = DEBUG_memory_info::AllocationCount;
 
-    if (id == 602) {
+    if (id == 1238) {
         s32 k = 42;
     }
 #endif
 
-    if (Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
+    if (Context.LogAllAllocations && !Context.LoggingAnAllocation) {
+        Context.LoggingAnAllocation = true;
         write(Context.Log, ">>> Allocation made at: ");
         log_file_and_line(file, fileLine);
         write(Context.Log, "\n");
+        Context.LoggingAnAllocation = false;
     }
 
     alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
@@ -304,7 +303,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     header->FileLine = fileLine;
 
     DEBUG_memory_info::add_header(header);
-    DEBUG_memory_info::verify_heap();
+    DEBUG_memory_info::maybe_verify_heap();
 #endif
 
     return result;
@@ -323,10 +322,12 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const utf8 *fi
     auto id = header->ID;
 #endif
 
-    if (Context.LogAllAllocations && !(options & XXX_AVOID_RECURSION)) {
+    if (Context.LogAllAllocations && !Context.LoggingAnAllocation) {
+        Context.LoggingAnAllocation = true;
         write(Context.Log, ">>> Reallocation made at: ");
         log_file_and_line(file, fileLine);
         write(Context.Log, "\n");
+        Context.LoggingAnAllocation = false;
     }
 
     // The header stores the size of the requested allocation
@@ -389,27 +390,18 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const utf8 *fi
         p = (void *) (header + 1);
     }
 
+#if defined DEBUG_MEMORY
     if (oldSize < newSize) {
-        if (options & DO_INIT_0) {
-            fill_memory((char *) p + oldUserSize, 0, newSize - oldSize);
-        }
-#if defined DEBUG_MEMORY
-        else {
-            fill_memory((char *) p + oldUserSize, CLEAN_LAND_FILL, newSize - oldSize);
-        }
-#endif
-    }
-#if defined DEBUG_MEMORY
-    else {
+        // If we are expanding the memory, fill the new stuff with CLEAN_LAND_FILL
+        fill_memory((char *) p + oldUserSize, CLEAN_LAND_FILL, newSize - oldSize);
+    } else {
         // If we are shrinking the memory, fill the old stuff with DEAD_LAND_FILL
         fill_memory((char *) header + oldSize, DEAD_LAND_FILL, oldSize - newSize);
     }
-#endif
 
-#if defined DEBUG_MEMORY
+    // Fill the no mans land fill and check the heap for corruption
     fill_memory((char *) p + newUserSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
-
-    DEBUG_memory_info::verify_heap();
+    DEBUG_memory_info::maybe_verify_heap();
 #endif
 
     return p;
@@ -422,30 +414,27 @@ void general_free(void *ptr, u64 options) {
 
     auto *header = (allocation_header *) ptr - 1;
 
-#if defined DEBUG_MEMORY
-    DEBUG_memory_info::verify_header(header);
-
-    auto id = header->ID;
-#endif
+    auto alloc = header->Alloc;
+    void *block = (char *) header - header->AlignmentPadding;
 
     s64 extra = header->Alignment + sizeof(allocation_header) + (sizeof(allocation_header) % header->Alignment);
     s64 size = header->Size + extra;
+
 #if defined DEBUG_MEMORY
+    auto id = header->ID;  // Not used in the code below; It's here for seeing the value directly when debugging.
+
     size += NO_MANS_LAND_SIZE;
-#endif
 
-    auto alloc = header->Alloc;
-
-    void *block = (char *) header - header->AlignmentPadding;
-
-#if defined DEBUG_MEMORY
+    DEBUG_memory_info::verify_header(header);
     DEBUG_memory_info::unlink_header(header);
     fill_memory(block, DEAD_LAND_FILL, size);
-
-    DEBUG_memory_info::verify_heap();
 #endif
 
     alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, size, &options);
+
+#if defined DEBUG_MEMORY
+    DEBUG_memory_info::maybe_verify_heap(); 
+#endif
 }
 
 void free_all(allocator alloc, u64 options) {

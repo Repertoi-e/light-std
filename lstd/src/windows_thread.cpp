@@ -144,21 +144,19 @@ struct thread_start_info {
 
 u32 __stdcall thread::wrapper_function(void *data) {
     auto *ti = (thread_start_info *) data;
-    defer(free(ti));
 
-    // Copy the context from the parent thread
-    Context = *ti->ContextPtr;
+    // Copy the context variables from the parent thread
+    s64 firstByte = offsetof(context, Temp) + sizeof(context::Temp);
 
-    Context.ThreadID = ::thread::id((u64) GetCurrentThreadId());
+    copy_memory((byte *) &Context + firstByte, (byte *) ti->ContextPtr + firstByte, sizeof(context) - firstByte);
 
-    // We need a fresh temporary storage
-    s64 startingSize = 8_KiB;  // Start with 8 KiB
-    Context.TempAllocData.Base.Storage = allocate_array(byte, startingSize, Malloc);
-    Context.TempAllocData.Base.Allocated = startingSize;
+    ti->Function(ti->UserData);  // Call the thread function with the user data
 
-    Context.Temp = {temporary_allocator, &Context.TempAllocData};
+    // Do we need this?
+    // CloseHandle(ti->ThreadPtr->Handle);
 
-    ti->Function(ti->UserData);
+    release_temporary_allocator();
+    free(ti);
 
 #if defined BUILD_NO_CRT
     ExitThread(0);
@@ -166,8 +164,6 @@ u32 __stdcall thread::wrapper_function(void *data) {
 #else
     _endthreadex(0);
 #endif
-
-    CloseHandle(ti->ThreadPtr->Handle);
 
     return 0;
 }

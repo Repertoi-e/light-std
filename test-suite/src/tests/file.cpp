@@ -2,8 +2,6 @@
 
 #include "../test.h"
 
-#define DO_READ_EVERY_FILE 1
-
 TEST(path_manipulation) {
     {
         string a = path::normalize("/home/data.txt");
@@ -58,7 +56,7 @@ TEST(file_size) {
     assert_eq(file::handle(text).file_size(), 277);
 }
 
-/* Just wearing out the SSD :* */
+/* Just wearing out the SSD :*
 TEST(writing_hello_250_times) {
     auto thisFile = string(__FILE__);
 
@@ -83,6 +81,7 @@ TEST(writing_hello_250_times) {
 
     assert(file.delete_file());
 }
+ */
 
 //
 // This is just causing more trouble that I want to cope with.
@@ -126,6 +125,8 @@ TEST(test_introspection) {
     }
 }
 */
+
+#define DO_READ_EVERY_FILE 0
 
 #if DO_READ_EVERY_FILE
 TEST(read_every_file_in_project) {

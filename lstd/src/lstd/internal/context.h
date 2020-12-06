@@ -21,11 +21,43 @@ typedef void os_panic_handler_t(const string &message, const array<os_function_c
 
 void default_panic_handler(const string &message, const array<os_function_call> &callStack);
 
-// @TODO: By default our alloc alignment is 16 (simd friendly).
-// Maybe that's too big and we should have a context variable to control it.
+//
+// Thread local global variable to control certain behaviours of the program.
+// A way to store options that are valid in a certain scope or for certain threads.
+//
+// Gets initialized when the program runs for the main thread and tls_init (take a look at windows_common.cpp) initializes allocators.
+// Options get copied to new threads (take a look at thread_wrapper in windows_thread.cpp).
+//
 struct context {
     // The current thread's ID
     thread::id ThreadID;
+
+    // This allocator gets initialized the first time it gets used in a thread.
+    // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
+    temporary_allocator_data TempAllocData{};  // Initialized the first time it is used
+    allocator Temp = {temporary_allocator, &TempAllocData};
+
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Stuff that is unique to every thread.
+    //
+    // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv Stuff that gets copied from the parent when a new thread is spawned.
+    //
+    // Layout is important because we copy everything after the _Temp_ member.
+    //
+    // .. We do it that way because tls_init (windows_common.cpp) gets called automatically but it can't have possibly enough info about
+    // the parent context, but we still initialize the default allocator and the temporary allocator there.
+    // 
+    // If we did everything in the thread wrapper (our thread module is the one that copies the context variables)
+    // then threads that were not created with this library would not get the same allocator treatment.
+    //
+    // The result is that we provide a default malloc implementation in the maximum number of cases that are valid
+    // and the allocator is used as long as you call the allocate functions from this library.
+    //
+    // We also ensure that every thread gets it's own version of a temporary allocator of 8 KiB by default so
+    // it can do fast allocations without worrying about thread-safety (malloc needs to do that).
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
 
     // When allocating you should use the context's allocator
     // This makes it so when users call your functions they
@@ -33,21 +65,15 @@ struct context {
     // without having to pass you anything as a parameter for example.
     //
     // The idea for this comes from the implicit context in Jai.
-    allocator Alloc;                    // = Malloc; by default. Initialized in *platform*_common.cpp in _initialize_context_
+    allocator Alloc;  // = Malloc; by default. Initialized in *platform*_common.cpp in _initialize_context_
+
     u16 AllocAlignment = POINTER_SIZE;  // By default
 
     // Any options that get OR'd with the options in any allocation (options are implemented as flags).
     // e.g. use this to mark some allocation a function does (in which you have no control of) as a LEAK.
     // Currently there are three allocator options:
-    //   - DO_INIT_0:           Initializes all requested bytes to 0
-    //   - LEAk:                Marks the allocation as a known leak (doesn't get reported when calling allocator::DEBUG_report_leaks())
-    //   - XXX_AVOID_RECURSION: A hack used when Context.LogAllAllocations is true.
+    //   - LEAK:                Marks the allocation as a known leak (doesn't get reported when calling allocator::DEBUG_report_leaks())
     u64 AllocOptions = 0;
-
-    // This allocator gets initialized the first time it gets used in a thread.
-    // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
-    temporary_allocator_data TempAllocData{};  // Initialized the first time it is used
-    allocator Temp = {temporary_allocator, &TempAllocData};
 
     // Set this to true to print a list of unfreed memory blocks when the library uninitializes.
     // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
@@ -58,11 +84,20 @@ struct context {
 
     // Used for debugging. Every time an allocation is made, logs info about it.
     bool LogAllAllocations = false;
+    bool LoggingAnAllocation = false;  // Used to avoid infinite looping when the above bool is true.
+
+    // When DEBUG_MEMORY is defined we check the heap for corruption, we do that when a new allocation is made.
+    // The problem is that it involves iterating over a linked list of every allocation made.
+    // We use the frequency variable below to specify how often we perform that expensive operation.
+    // By default we check the heap every 255 allocations, but if a problem is found you may want to decrease it to 1 so
+    // your program runs way slower but you catch the corruption at just the right time.
+    u8 DebugMemoryVerifyHeapFrequency = 255;
 
     // Gets called when the program encounters an unhandled expection.
     // This can be used to view the stack trace before the program terminates.
     // The default handler prints the crash message and stack trace to _Log_.
     os_panic_handler_t *PanicHandler = default_panic_handler;
+    bool HandlingPanic;  // Used to avoid infinite looping when handling panics
 
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.

@@ -186,9 +186,10 @@ void reserve(T &table, s64 target, u32 alignment = 0) {
             table.Values = (V *) (block + target * (sizeof(u64) + sizeof(K)) + padding2);
             zero_memory(table.Hashes, target * sizeof(u64));
         } else {
-            table.Hashes = allocate_array_aligned(u64, target, alignment, DO_INIT_0);
+            table.Hashes = allocate_array_aligned(u64, target, alignment);
             table.Keys = allocate_array_aligned(K, target, alignment);
             table.Values = allocate_array_aligned(V, target, alignment);
+            zero_memory(table.Hashes, target * sizeof(u64));
         }
     };
 

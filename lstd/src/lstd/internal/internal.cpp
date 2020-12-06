@@ -1277,6 +1277,10 @@ f64 max(f64 x, f64 y) {
 }
 
 void default_panic_handler(const string &message, const array<os_function_call> &callStack) {
+    if (Context.HandlingPanic) return;
+
+    Context.HandlingPanic = true;
+
     fmt::print("\n\n{!}(context.cpp / default_crash_handler): A panic occured and the program must terminate.\n");
     fmt::print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
     fmt::print("        ... and here is the call stack:\n");
@@ -1291,6 +1295,8 @@ void default_panic_handler(const string &message, const array<os_function_call> 
         fmt::print("          [No call stack available]\n");
     }
     fmt::print("\n\n");
+
+    Context.HandlingPanic = false;
 }
 
 LSTD_END_NAMESPACE
