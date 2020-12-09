@@ -157,6 +157,30 @@ LSTD_END_NAMESPACE
 // In the future we hopefully find a way to structure the library so these problems are avoided.
 // We can't make them non-templates because we need the type info...
 
+template <typename T>
+concept non_void = !types::is_same<T, void>;
+
+#if BITS == 64
+using size_t = u64;
+#else
+using size_t = u32;
+#endif
+using align_val_t = size_t;
+
+//
+// Normally <new> defines the placement new operator but since we don't include it (to avoid including STL at all) we define our own implementation here.
+//
+#if !defined LSTD_DONT_DEFINE_INITIALIZER_LIST
+#if COMPILER == MSVC
+inline void *__cdecl operator new(size_t, void *p) noexcept { return p; }
+#else
+inline void *operator new(size_t, void *p) noexcept { return p; }
+#endif
+#else
+#include <new>
+#endif
+
+
 template <non_void T>
 T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const utf8 *file = "", s64 fileLine = -1) {
     s64 size = count * sizeof(T);

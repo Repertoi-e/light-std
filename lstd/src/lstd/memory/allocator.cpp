@@ -1,9 +1,12 @@
 #include "allocator.h"
 
 #include "../file.h"
+#include "../fmt.h"
 #include "../internal/context.h"
 #include "../math.h"
 #include "../os.h"
+
+import path;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -65,12 +68,12 @@ void DEBUG_memory_info::swap_header(allocation_header *oldHeader, allocation_hea
 //      /home/.../game/some_dir/string.cpp       ---> localization.cpp
 //
 constexpr string get_short_file_name(const string &str) {
-    char srcData[] = {'s', 'r', 'c', path::OS_PATH_SEPARATOR, '\0'};
+    char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
     string src = srcData;
 
     s64 findResult = find_substring_reverse(str, src);
     if (findResult == -1) {
-        findResult = find_cp_reverse(str, path::OS_PATH_SEPARATOR);
+        findResult = find_cp_reverse(str, OS_PATH_SEPARATOR);
         assert(findResult != str.Length - 1);
         // Skip the slash
         findResult++;
@@ -433,7 +436,7 @@ void general_free(void *ptr, u64 options) {
     alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, size, &options);
 
 #if defined DEBUG_MEMORY
-    DEBUG_memory_info::maybe_verify_heap(); 
+    DEBUG_memory_info::maybe_verify_heap();
 #endif
 }
 

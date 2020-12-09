@@ -1,6 +1,6 @@
 #include <lstd/parse.h>
 
-#include "test.h"
+#include "../test.h"
 
 #define test_parse_int(IntT, options, base, buffer, expectedValue, expectedStatus, expectedRest) \
     {                                                                                            \

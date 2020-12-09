@@ -4,6 +4,9 @@
 
 #include "lstd/file.h"
 #include "lstd/os.h"
+#include "pch.h"
+
+import path;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -125,7 +128,7 @@ bool handle::copy(handle dest, bool overwrite) const {
     auto *u16 = utf8_path_to_utf16(Path);
 
     if (dest.is_directory()) {
-        auto p = path::join(dest.Path, path::base_name(Path));
+        auto p = path_join(dest.Path, path_base_name(Path));
         defer(free(p));
 
         // @Bug p.Length is not enough (2 wide chars for one char)
@@ -142,7 +145,7 @@ bool handle::move(handle dest, bool overwrite) const {
 
     auto p = dest.Path;
     if (dest.is_directory()) {
-        auto p = path::join(dest.Path, path::base_name(Path));
+        auto p = path_join(dest.Path, path_base_name(Path));
         defer(free(p));
 
         // @Bug p.Length is not enough (2 wide chars for one char)
@@ -165,7 +168,7 @@ bool handle::move(handle dest, bool overwrite) const {
 bool handle::rename(const string &newName) const {
     if (!exists()) return false;
 
-    auto p = path::join(path::directory(Path), newName);
+    auto p = path_join(path_directory(Path), newName);
     defer(free(p));
 
     // @Bug p.Length is not enough (2 wide chars for one char)
@@ -228,7 +231,7 @@ bool handle::write_to_file(const string &contents, write_mode mode) const {
 void handle::iterator::read_next_entry() {
     do {
         if (!Handle) {
-            string queryPath = path::join(Path, "*");
+            string queryPath = path_join(Path, "*");
             defer(free(queryPath));
 
             // @Bug queryPath.Length is not enough (2 wide chars for one char)
@@ -266,14 +269,14 @@ void handle::iterator::read_next_entry() {
 
 void handle::traverse_impl(const delegate<void(const string &)> &func) const {
     for (auto it = begin(); it != end(); ++it) {
-        string relativeFileName = path::join(Path, *it);
+        string relativeFileName = path_join(Path, *it);
         defer(free(relativeFileName));
         func(relativeFileName);
     }
 }
 
 static string get_path_from_here_to(const string &here, const string &there) {
-    assert(path::is_sep(here[-1]) && path::is_sep(there[-1]));
+    assert(path_is_sep(here[-1]) && path_is_sep(there[-1]));
 
     if (find_substring(here, there) == -1) {
         return there;
@@ -289,7 +292,7 @@ static string get_path_from_here_to(const string &here, const string &there) {
 
 void handle::traverse_recursively_impl(const string &first, const string &currentDirectory, const delegate<void(const string &)> &func) const {
     for (auto it = begin(); it != end(); ++it) {
-        string relativeFileName = path::join(currentDirectory, *it);
+        string relativeFileName = path_join(currentDirectory, *it);
         defer(free(relativeFileName));
 
         func(relativeFileName);
@@ -297,12 +300,32 @@ void handle::traverse_recursively_impl(const string &first, const string &curren
         if ((((WIN32_FIND_DATA *) it.PlatformFileInfo)->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
             auto pComponents = to_stack_array(get_path_from_here_to(first, currentDirectory), *it, "./");
 
-            string p = path::join(pComponents);
+            string p = path_join(pComponents);
             defer(free(p));
 
             handle(p).traverse_recursively_impl(first, p, func);
         }
     }
+}
+
+void handle::traverse(const delegate<void(const string &)> &func) const {
+    assert(is_directory());
+    if (!path_is_sep(Path[-1])) {
+        string newPath = path_join(Path, "");
+        free(Path);
+        Path = newPath;
+    }
+    traverse_impl(func);
+}
+
+void handle::traverse_recursively(const delegate<void(const string &)> &func) const {
+    assert(is_directory());
+    if (!path_is_sep(Path[-1])) {
+        string newPath = path_join(Path, "");
+        free(Path);
+        Path = newPath;
+    }
+    traverse_recursively_impl(Path, Path, func);
 }
 
 }  // namespace file

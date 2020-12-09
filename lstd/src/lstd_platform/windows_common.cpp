@@ -2,10 +2,12 @@
 
 #if OS == WINDOWS
 
-#include "lstd/file/path.h"
 #include "lstd/io.h"
 #include "lstd/memory/dynamic_library.h"
 #include "lstd/os.h"
+#include "pch.h"
+
+import path;
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -558,7 +560,7 @@ string os_get_working_dir() {
 
 void os_set_working_dir(const string &dir) {
     string path(dir);
-    assert(path::is_absolute(path));
+    assert(path_is_absolute(path));
 
     thread::scoped_lock _(&WorkingDirMutex);
 

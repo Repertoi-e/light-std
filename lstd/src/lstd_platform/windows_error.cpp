@@ -3,6 +3,7 @@
 #if OS == WINDOWS
 
 #include "lstd/os.h"
+#include "pch.h"
 
 #define XAUDIO2_E_INVALID_CALL 0x88960001
 #define XAUDIO2_E_XMA_DECODER_ERROR 0x88960002

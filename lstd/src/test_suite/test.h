@@ -7,6 +7,8 @@
 #include <lstd/memory/hash_table.h>
 #include <lstd/os.h>
 
+import path;
+
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.
 // Otherwise we just take the file name. Possible results are:
@@ -15,12 +17,12 @@
 //      /home/.../lstd-tests/string.cpp           ---> string.cpp
 //
 constexpr string get_short_file_name(const string &str) {
-    char srcData[] = {'s', 'r', 'c', path::OS_PATH_SEPARATOR, '\0'};
+    char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
     string src = srcData;
 
     s64 findResult = find_substring_reverse(str, src);
     if (findResult == -1) {
-        findResult = find_cp_reverse(str, path::OS_PATH_SEPARATOR);
+        findResult = find_cp_reverse(str, OS_PATH_SEPARATOR);
         assert(findResult != str.Length - 1);
         // Skip the slash
         findResult++;

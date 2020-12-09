@@ -1,15 +1,12 @@
 #pragma once
 
-#include "types/basic_types.h"
+#include "memory/string.h"
 
 LSTD_BEGIN_NAMESPACE
 
 // @AvoidInclude
 template <typename T>
 struct array;
-
-// @AvoidInclude
-struct string;
 
 ///
 /// This file includes general functions related to platform specific tasks - implemented in platform files accordingly

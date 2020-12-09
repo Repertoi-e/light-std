@@ -2,7 +2,7 @@
 
 #include "../memory/array.h"
 #include "../memory/bucket_array.h"
-#include "path.h"
+#include "../memory/string.h"
 
 LSTD_BEGIN_NAMESPACE
 

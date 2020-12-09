@@ -1,5 +1,6 @@
 #include <math.h>  // @DependencyCleanup
 
+#include "../fmt.h"
 #include "../memory/array.h"
 #include "common.h"
 #include "context.h"

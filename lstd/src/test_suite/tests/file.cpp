@@ -1,55 +1,57 @@
 #include <lstd/file.h>
 
+import path;
+
 #include "../test.h"
 
 TEST(path_manipulation) {
     {
-        string a = path::normalize("/home/data.txt");
-        assert(path::is_absolute(a));
+        string a = path_normalize("/home/data.txt");
+        assert(path_is_absolute(a));
 
-        assert_eq(path::base_name(a), "data.txt");
-        assert_eq(path::split_extension(a).Root, path::normalize("/home/data"));
-        assert_eq(path::split_extension(a).Extension, ".txt");
-        assert_eq(path::directory(a), path::normalize("/home/"));
+        assert_eq(path_base_name(a), "data.txt");
+        assert_eq(path_split_extension(a).Root, path_normalize("/home/data"));
+        assert_eq(path_split_extension(a).Extension, ".txt");
+        assert_eq(path_directory(a), path_normalize("/home/"));
     }
     {
-        string a = path::normalize("/home/data/bin");
-        assert(path::is_absolute(a));
+        string a = path_normalize("/home/data/bin");
+        assert(path_is_absolute(a));
 
-        assert_eq(path::base_name(a), "bin");
-        assert_eq(path::split_extension(a).Root, path::normalize("/home/data/bin"));
-        assert_eq(path::split_extension(a).Extension, "");
-        assert_eq(path::directory(a), path::normalize("/home/data"));
+        assert_eq(path_base_name(a), "bin");
+        assert_eq(path_split_extension(a).Root, path_normalize("/home/data/bin"));
+        assert_eq(path_split_extension(a).Extension, "");
+        assert_eq(path_directory(a), path_normalize("/home/data"));
 
-        auto b = path::join(a, "lstd");
-        assert_eq(b, path::normalize("/home/data/bin/lstd"));
+        auto b = path_join(a, "lstd");
+        assert_eq(b, path_normalize("/home/data/bin/lstd"));
 
-        b = path::join(a, path::normalize("C:/User"));
-        assert_eq(b, path::normalize("C:/User"));
+        b = path_join(a, path_normalize("C:/User"));
+        assert_eq(b, path_normalize("C:/User"));
     }
 
     {
-        string a = path::normalize("../../data/bin/release-x64/../debug-x64/../debug/lstd.exe");
-        assert(!path::is_absolute(a));
+        string a = path_normalize("../../data/bin/release-x64/../debug-x64/../debug/lstd.exe");
+        assert(!path_is_absolute(a));
 
-        assert_eq(a, path::normalize("../../data/bin/debug/lstd.exe"));
+        assert_eq(a, path_normalize("../../data/bin/debug/lstd.exe"));
 
-        assert_eq(path::base_name(a), "lstd.exe");
-        assert_eq(path::split_extension(a).Root, path::normalize("../../data/bin/debug/lstd"));
-        assert_eq(path::split_extension(a).Extension, ".exe");
-        assert_eq(path::directory(a), path::normalize("../../data/bin/debug"));
+        assert_eq(path_base_name(a), "lstd.exe");
+        assert_eq(path_split_extension(a).Root, path_normalize("../../data/bin/debug/lstd"));
+        assert_eq(path_split_extension(a).Extension, ".exe");
+        assert_eq(path_directory(a), path_normalize("../../data/bin/debug"));
     }
 }
 
 TEST(file_size) {
     auto thisFile = string(__FILE__);
-    string dataFolder = path::join(path::directory(thisFile), "data");
+    string dataFolder = path_join(path_directory(thisFile), "data");
     defer(free(dataFolder));
 
-    string fiveBytes = path::join(dataFolder, "five_bytes");
+    string fiveBytes = path_join(dataFolder, "five_bytes");
     defer(free(fiveBytes));
 
-    string text = path::join(dataFolder, "text");
+    string text = path_join(dataFolder, "text");
     defer(free(text));
 
     assert_eq(file::handle(fiveBytes).file_size(), 5);
@@ -60,7 +62,7 @@ TEST(file_size) {
 TEST(writing_hello_250_times) {
     auto thisFile = string(__FILE__);
 
-    string filePath = path::join(path::directory(thisFile), "data/write_test");
+    string filePath = path_join(path_directory(thisFile), "data/write_test");
     defer(free(filePath));
 
     auto file = file::handle(filePath);
@@ -126,18 +128,18 @@ TEST(test_introspection) {
 }
 */
 
-#define DO_READ_EVERY_FILE 0
+#define DO_READ_EVERY_FILE 1
 
 #if DO_READ_EVERY_FILE
 TEST(read_every_file_in_project) {
-    string rootFolder = path::normalize(path::join(path::directory(string(__FILE__)), "../../../"));
+    string rootFolder = path_normalize(path_join(path_directory(string(__FILE__)), "../../../"));
 
     hash_table<string, s64> files;
 
     s32 fileCounter = 100;
     auto callback = [&](string it) {
         if (fileCounter) {
-            string p = path::join(rootFolder, it);
+            string p = path_join(rootFolder, it);
             defer(free(p));
 
             auto *counter = find(files, p).Value;

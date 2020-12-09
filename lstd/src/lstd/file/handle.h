@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../memory/delegate.h"
-#include "path.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -87,27 +86,11 @@ struct handle {
 
     // If this handle is pointing to a directory,
     // call _func_ on each file/directory inside of it.
-    void traverse(const delegate<void(const string &)> &func) const {
-        assert(is_directory());
-        if (!path::is_sep(Path[-1])) {
-            string newPath = path::join(Path, "");
-            free(Path);
-            Path = newPath;
-        }
-        traverse_impl(func);
-    }
+    void traverse(const delegate<void(const string &)> &func) const;
 
     // If this handle is pointing to a directory,
     // call _func_ on each file/subdirectory recursively.
-    void traverse_recursively(const delegate<void(const string &)> &func) const {
-        assert(is_directory());
-        if (!path::is_sep(Path[-1])) {
-            string newPath = path::join(Path, "");
-            free(Path);
-            Path = newPath;
-        }
-        traverse_recursively_impl(Path, Path, func);
-    }
+    void traverse_recursively(const delegate<void(const string &)> &func) const;
 
     struct read_entire_file_result {
         bytes Content;

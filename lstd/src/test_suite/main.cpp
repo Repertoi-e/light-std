@@ -2,11 +2,7 @@
 
 #include "test.h"
 
-import path;
-
 void run_tests() {
-    do_stuff_with_path();
-
     fmt::print("\n");
     for (auto [fileName, tests] : g_TestTable) {
         fmt::print("{}:\n", *fileName);

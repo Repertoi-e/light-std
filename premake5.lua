@@ -32,11 +32,11 @@ function common_settings()
     includedirs { "%{prj.name}/src" }
 
     filter "system:windows"
-        excludes "%{prj.name}/src/posix_*.cpp"
+        excludes "%{prj.name}/**/posix_*.cpp"
         systemversion "latest"
         buildoptions { "/utf-8" }
         
-        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SECURE_NO_WARNINGS" }
+        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SECURE_NO_WARNINGS", "_CRT_SUPPRESS_RESTRICT" }
         links { "dwmapi.lib", "dbghelp.lib" }
 
     -- Exclude windows files on non-windows platforms since they would cause a compilation failure
@@ -78,7 +78,7 @@ outputFolder = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 project "lstd"
     location "%{prj.name}"
-    kind "StaticLib"
+    kind "ConsoleApp"
 
     targetdir("bin/" .. outputFolder .. "/%{prj.name}")
     objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
@@ -170,6 +170,7 @@ project "benchmark"
         links { "benchmark" }
 
 project "game"
+	location "%{prj.name}"
     kind "ConsoleApp"
 
     targetdir("bin/" .. outputFolder .. "/%{prj.name}")

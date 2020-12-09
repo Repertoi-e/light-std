@@ -302,26 +302,3 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 void release_temporary_allocator();
 
 LSTD_END_NAMESPACE
-
-// These currently don't get namespaced.
-
-template <typename T>
-concept non_void = !types::is_same<T, void>;
-
-#if BITS == 64
-using size_t = u64;
-#else
-using size_t = u32;
-#endif
-using align_val_t = size_t;
-
-//
-// Normally <new> defines the placement new operator but since we don't include it (to avoid including STL at all) we define our own implementation here.
-//
-#if !defined LSTD_DONT_DEFINE_INITIALIZER_LIST
-#if COMPILER == MSVC
-inline void *__cdecl operator new(size_t, void *p) noexcept { return p; }
-#else
-inline void *operator new(size_t, void *p) noexcept { return p; }
-#endif
-#endif
