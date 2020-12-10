@@ -85,7 +85,7 @@ TEST(view) {
     assert_eq(v, vr);
 }
 
-TEST(add) {
+TEST(mat_add) {
     matf<3, 3> m1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     matf<3, 3> m2 = {7, 6, 5, 4, 3, 2, 1, 0, -1};
     decltype(m1 + m2) rexp1 = {8, 8, 8, 8, 8, 8, 8, 8, 8};
@@ -103,7 +103,7 @@ TEST(add) {
     assert_eq(m5 + m6, rexp3);
 }
 
-TEST(subtract) {
+TEST(mat_subtract) {
     matf<3, 3> m1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     matf<3, 3> m2 = {2, 3, 4, 5, 6, 7, 8, 9, 10};
     decltype(m1 - m2) rexp1 = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
@@ -116,7 +116,7 @@ TEST(subtract) {
     assert_eq(m3 - m4, rexp2);
 }
 
-TEST(multiply_square) {
+TEST(mat_multiply_square) {
     matf<2, 2> m2 = {1, 2, 3, 4};
     matf<2, 2> n2 = {5, 6, 7, 8};
     decltype(dot(m2, n2)) exp2 = {19, 22, 43, 50};
@@ -137,7 +137,7 @@ TEST(multiply_square) {
     assert_eq(dot(m5, n5), exp5);
 }
 
-TEST(multiply_arbitrary) {
+TEST(mat_multiply_arbitrary) {
     matf<2, 4> m2 = {1, 2, 3, 4, 3, 4, 5, 6};
     matf<4, 2> n2 = {
         5, 6, 7, 8, 6, 4, 4, 9,
@@ -201,6 +201,12 @@ TEST(multiply_arbitrary) {
             }                                                 \
         }                                                     \
     }
+
+// A note to tell our script to do special work because of the macros we use.
+//
+// :build_tests: mat_scalar_##NAME      -> mat_scalar_multiply       mat_scalar_divide
+// :build_tests: scalar_mat_##NAME      -> scalar_mat_multiply       scalar_mat_divide
+// :build_tests: scalar_compound_##NAME -> scalar_compound_multiply  scalar_compound_divide
 
 TEST_MAT_SCALAR_OP(multiply, *)
 TEST_MAT_SCALAR_OP(divide, /)

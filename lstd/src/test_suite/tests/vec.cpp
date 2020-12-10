@@ -4,7 +4,7 @@
 // @TODO: Fix TEST() macro to make truly unique type names because compiling this file and quat.cpp
 // (both have a test named "ctor" on line 4) produce the same type name.
 
-TEST(ctor) {
+TEST(vec_ctor) {
     vec<f32, 1, true> v1(10);
 
     assert_eq(v1.Data[0], 10);
@@ -195,7 +195,7 @@ TEST(cast) {
     assert_eq(v5, d5);
 }
 
-TEST(index) {
+TEST(vec_index) {
     vec<f32, 4, true> source(0, 1, 2, 3);
 
     assert_eq(source[0], 0);
@@ -204,7 +204,7 @@ TEST(index) {
     assert_eq(source[3], 3);
 }
 
-TEST(iterator) {
+TEST(vec_iterator) {
     vec<f32, 4, true> source(5, 6, 7, 8);
 
     f32 first = 5.0f;
@@ -232,7 +232,7 @@ TEST(swizzle) {
     assert_eq((vec<f32, 4, true>(v4.wzyx)), (vec<f32, 4, true>(4, 3, 2, 1)));
 }
 
-TEST(add) {
+TEST(vec_add) {
     vecf<3> a3(1, 2, 3);
     vecf<3> b3(4, 5, 6);
     vecf<3> c3(5, 7, 9);
@@ -246,7 +246,7 @@ TEST(add) {
     assert_eq(a5 + b5, c5);
 }
 
-TEST(subtract) {
+TEST(vec_subtract) {
     vecf<3> a3(1, 2, 3);
     vecf<3> b3(4, 5, 6);
     vecf<3> c3(-3, -3, -3);
@@ -260,7 +260,7 @@ TEST(subtract) {
     assert_eq(a5 - b5, c5);
 }
 
-TEST(multiply) {
+TEST(vec_multiply) {
     vecf<3> a3(1, 2, 3);
     vecf<3> b3(4, 5, 6);
     vecf<3> c3(4, 10, 18);
@@ -274,7 +274,7 @@ TEST(multiply) {
     assert_eq(a5 * b5, c5);
 }
 
-TEST(divide) {
+TEST(vec_divide) {
     vecf<3> a3(1, 2, 3);
     vecf<3> b3(4, 5, 6);
     vecf<3> c3(0.25f, 0.4f, 0.5f);
@@ -288,7 +288,7 @@ TEST(divide) {
     assert_eq(a5 / b5, approx_vec(c5));
 }
 
-TEST(compound_add) {
+TEST(vec_compound_add) {
     vecf<3> a3(1, 2, 3);
     vecf<3> b3(4, 5, 6);
     vecf<3> c3(5, 7, 9);
@@ -302,7 +302,7 @@ TEST(compound_add) {
     assert_eq(a5, c5);
 }
 
-TEST(compound_subtract) {
+TEST(vec_compound_subtract) {
     vecf<3> a3(1, 2, 3);
     vecf<3> b3(4, 5, 6);
     vecf<3> c3(-3, -3, -3);
@@ -316,7 +316,7 @@ TEST(compound_subtract) {
     assert_eq(a5, c5);
 }
 
-TEST(compound_multiply) {
+TEST(vec_compound_multiply) {
     vecf<3> a3(1, 2, 3);
     vecf<3> b3(4, 5, 6);
     vecf<3> c3(4, 10, 18);
@@ -330,7 +330,7 @@ TEST(compound_multiply) {
     assert_eq(a5, c5);
 }
 
-TEST(compound_divide) {
+TEST(vec_compound_divide) {
     vecf<3> a3(1, 2, 3);
     vecf<3> b3(4, 5, 6);
     vecf<3> c3(0.25f, 0.4f, 0.5f);
@@ -344,7 +344,7 @@ TEST(compound_divide) {
     assert_eq(a5, approx_vec(c5));
 }
 
-TEST(scalar_add) {
+TEST(vec_scalar_add) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -358,7 +358,7 @@ TEST(scalar_add) {
     assert_eq(a5 + b, c5);
 }
 
-TEST(scalar_subtract) {
+TEST(vec_scalar_subtract) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -372,7 +372,7 @@ TEST(scalar_subtract) {
     assert_eq(a5 - b, c5);
 }
 
-TEST(scalar_multiply) {
+TEST(vec_scalar_multiply) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -386,7 +386,7 @@ TEST(scalar_multiply) {
     assert_eq(a5 * b, c5);
 }
 
-TEST(scalar_divide) {
+TEST(vec_scalar_divide) {
     f32 b = 4;
 
     vecf<3> a3(4, 8, 12);
@@ -400,7 +400,7 @@ TEST(scalar_divide) {
     assert_eq(a5 / b, c5);
 }
 
-TEST(scalar_compound_add) {
+TEST(vec_scalar_compound_add) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -414,7 +414,7 @@ TEST(scalar_compound_add) {
     assert_eq(a5, c5);
 }
 
-TEST(scalar_compound_subtract) {
+TEST(vec_scalar_compound_subtract) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -428,7 +428,7 @@ TEST(scalar_compound_subtract) {
     assert_eq(a5, c5);
 }
 
-TEST(scalar_compound_multiply) {
+TEST(vec_scalar_compound_multiply) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -442,7 +442,7 @@ TEST(scalar_compound_multiply) {
     assert_eq(a5, c5);
 }
 
-TEST(scalar_compound_divide) {
+TEST(vec_scalar_compound_divide) {
     f32 b = 4;
 
     vecf<3> a3(4, 8, 12);
@@ -456,7 +456,7 @@ TEST(scalar_compound_divide) {
     assert_eq(a5, c5);
 }
 
-TEST(scalar_reverse_add) {
+TEST(vec_scalar_reverse_add) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -470,7 +470,7 @@ TEST(scalar_reverse_add) {
     assert_eq(b + a5, c5);
 }
 
-TEST(scalar_reverse_subtract) {
+TEST(vec_scalar_reverse_subtract) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -484,7 +484,7 @@ TEST(scalar_reverse_subtract) {
     assert_eq(b - a5, -c5);
 }
 
-TEST(scalar_reverse_multiply) {
+TEST(vec_scalar_reverse_multiply) {
     f32 b = 4;
 
     vecf<3> a3(1, 2, 3);
@@ -498,7 +498,7 @@ TEST(scalar_reverse_multiply) {
     assert_eq(b * a5, c5);
 }
 
-TEST(scalar_reverse_divide) {
+TEST(vec_scalar_reverse_divide) {
     f32 b = 4;
 
     vecf<3> a3(4, 8, 12);
@@ -597,6 +597,12 @@ TEST(scalar_reverse_divide) {
         assert_eq(r, e);                       \
     }
 
+// A note to tell our script to do special work because of the macros we use.
+//
+// :build_tests: swizzle_vector_##NAME  -> swizzle_vector_add swizzle_vector_subtract swizzle_vector_multiply swizzle_vector_divide swizzle_vector_compound_add swizzle_vector_compound_subtract swizzle_vector_compound_multiply swizzle_vector_compound_divide
+// :build_tests: vector_swizzle_##NAME -> vector_swizzle_add vector_swizzle_subtract vector_swizzle_multiply vector_swizzle_divide vector_swizzle_compound_add vector_swizzle_compound_subtract vector_swizzle_compound_multiply vector_swizzle_compound_divide
+//
+
 TEST_SWIZZLE_VECTOR_OP(add, +)
 TEST_SWIZZLE_VECTOR_OP(subtract, -)
 TEST_SWIZZLE_VECTOR_OP(multiply, *)
@@ -617,6 +623,8 @@ TEST_SWIZZLE_VECTOR_COMPOUND_OP(compound_subtract, -=)
 TEST_SWIZZLE_VECTOR_COMPOUND_OP(compound_multiply, *=)
 TEST_SWIZZLE_VECTOR_COMPOUND_OP(compound_divide, /=)
 
+// :build_tests: swizzle_swizzle_##NAME  -> swizzle_swizzle_add swizzle_swizzle_subtract swizzle_swizzle_multiply swizzle_swizzle_divide swizzle_swizzle_compound_add swizzle_swizzle_compound_subtract swizzle_swizzle_compound_multiply swizzle_swizzle_compound_divide
+
 TEST_SWIZZLE_SWIZZLE_OP(add, +)
 TEST_SWIZZLE_SWIZZLE_OP(subtract, -)
 TEST_SWIZZLE_SWIZZLE_OP(multiply, *)
@@ -626,6 +634,10 @@ TEST_SWIZZLE_SWIZZLE_COMPOUND_OP(compound_add, +=)
 TEST_SWIZZLE_SWIZZLE_COMPOUND_OP(compound_subtract, -=)
 TEST_SWIZZLE_SWIZZLE_COMPOUND_OP(compound_multiply, *=)
 TEST_SWIZZLE_SWIZZLE_COMPOUND_OP(compound_divide, /=)
+
+// :build_tests: swizzle_scalar_##NAME  -> swizzle_scalar_add swizzle_scalar_subtract swizzle_scalar_multiply swizzle_scalar_divide swizzle_scalar_compound_add swizzle_scalar_compound_subtract swizzle_scalar_compound_multiply swizzle_scalar_compound_divide
+
+// :build_tests: scalar_swizzle_##NAME  -> scalar_swizzle_add scalar_swizzle_subtract scalar_swizzle_multiply scalar_swizzle_divide
 
 TEST_SWIZZLE_SCALAR_OP(add, +)
 TEST_SWIZZLE_SCALAR_OP(subtract, -)
@@ -723,7 +735,7 @@ TEST(safe_normalize_specific_null) {
     assert_eq(a[1], approx(1));
 }
 
-TEST(fill) {
+TEST(fill_vec) {
     vecf<3> a = {no_init};
     vecf<3> b(4);
     fill(a, 4);

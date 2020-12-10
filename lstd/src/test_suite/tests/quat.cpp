@@ -1,7 +1,7 @@
 #include "../test.h"
 #include "math.h"
 
-TEST(ctor) {
+TEST(quat_ctor) {
     quat q1(1, 2, 3, 4);
     assert_eq(q1.w, 1);
     assert_eq(q1.x, 2);
