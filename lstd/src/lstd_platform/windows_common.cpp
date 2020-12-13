@@ -248,7 +248,7 @@ void win32_common_init() {
     CerrHandle = GetStdHandle(STD_ERROR_HANDLE);
 
     if (!SetConsoleOutputCP(CP_UTF8)) {
-        string warning = ">>> Warning: Couldn't set console code page to UTF-8. Some characters might be messed up.\n";
+        string warning = ">>> Warning: Couldn't set console code page to UTF8. Some characters might be messed up.\n";
 
         DWORD ignored;
         WriteFile(CerrHandle, warning.Data, (DWORD) warning.Count, &ignored, null);

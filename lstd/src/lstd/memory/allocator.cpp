@@ -1,6 +1,5 @@
 #include "allocator.h"
 
-#include "../file.h"
 #include "../fmt.h"
 #include "../internal/context.h"
 #include "../math.h"
@@ -273,6 +272,8 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     }
 
 #if defined DEBUG_MEMORY
+    DEBUG_memory_info::maybe_verify_heap();
+
     s64 id = DEBUG_memory_info::AllocationCount;
 
     if (id == 1238) {
@@ -306,7 +307,6 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     header->FileLine = fileLine;
 
     DEBUG_memory_info::add_header(header);
-    DEBUG_memory_info::maybe_verify_heap();
 #endif
 
     return result;
@@ -320,7 +320,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const utf8 *fi
     if (header->Size == newUserSize) return ptr;
 
 #if defined DEBUG_MEMORY
-    DEBUG_memory_info::verify_header(header);
+    DEBUG_memory_info::maybe_verify_heap();
 
     auto id = header->ID;
 #endif
@@ -404,7 +404,6 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, const utf8 *fi
 
     // Fill the no mans land fill and check the heap for corruption
     fill_memory((char *) p + newUserSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
-    DEBUG_memory_info::maybe_verify_heap();
 #endif
 
     return p;
@@ -424,20 +423,17 @@ void general_free(void *ptr, u64 options) {
     s64 size = header->Size + extra;
 
 #if defined DEBUG_MEMORY
+    DEBUG_memory_info::maybe_verify_heap();
+
     auto id = header->ID;  // Not used in the code below; It's here for seeing the value directly when debugging.
 
     size += NO_MANS_LAND_SIZE;
 
-    DEBUG_memory_info::verify_header(header);
     DEBUG_memory_info::unlink_header(header);
     fill_memory(block, DEAD_LAND_FILL, size);
 #endif
 
     alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, size, &options);
-
-#if defined DEBUG_MEMORY
-    DEBUG_memory_info::maybe_verify_heap();
-#endif
 }
 
 void free_all(allocator alloc, u64 options) {

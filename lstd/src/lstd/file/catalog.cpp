@@ -1,7 +1,5 @@
 #include "catalog.h"
 
-#include "handle.h"
-
 import path;
 
 LSTD_BEGIN_NAMESPACE
@@ -26,7 +24,7 @@ void catalog::load(const array_view<string> &files, const delegate<void(const ar
     For(files) {
         auto path = path_join(Root, it);
         append(e->FilesAssociated, path);
-        append(e->LastWriteTimes, file::handle(path).last_modification_time());
+        append(e->LastWriteTimes, path_last_modification_time(path));
     }
     callback(e->FilesAssociated);
 }

@@ -60,4 +60,21 @@ export {
     struct path_split_result {
         string Head, Tail;
     };
+
+    // Used by _path_read_entire_file_.
+    struct path_read_entire_file_result {
+        bytes Content;
+        bool Success;
+    };
+
+    // Used by _path_write_to_file_.
+    enum path_write_mode {
+        Append = 0,
+
+        // If the file is 50 bytes and you write 20,
+        // "Overwrite" keeps those 30 bytes at the end
+        // while "Overwrite_Entire" deletes them.
+        Overwrite,
+        Overwrite_Entire,
+    };
 }

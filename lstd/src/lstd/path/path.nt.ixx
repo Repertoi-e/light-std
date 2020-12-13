@@ -1,8 +1,15 @@
 module;
 
+#include "../fmt.h"
 #include "../internal/common.h"
 #include "../memory/string.h"
+#include "../os.h"
 #include "../parse.h"
+
+#undef MAC
+#undef _MAC
+#include <Windows.h>
+// #include <Windowsx.h>
 
 export module path.nt;
 
@@ -15,6 +22,54 @@ import path.general;
 //
 // We import this module when compiling for Windows.
 // If you want to explicitly work with Windows paths, import this module directly.
+//
+
+s32 wchar_size_required(const string &str) {
+    s32 size = MultiByteToWideChar(CP_UTF8, 0, str.Data, (s32) str.Count, null, 0);
+    assert(size != 0);  // _MultiByteToWideChar_ might fail for a number of reasons but we just panic.
+                        // In the future we may want to actually be more helpful with what went wrong...
+    return size;
+}
+
+// Uses the temporary allocator to get a utf16 path from our utf8 string.
+// utf16..................... sigh!
+utf16 *utf8_to_utf16_temp(const string &str) {
+    if (!str.Length) return null;
+
+    s32 size = wchar_size_required(str) + 1;
+    auto *result = allocate_array(utf16, size, Context.Temp);
+    utf8_to_utf16(str.Data, str.Length, result);
+    return result;
+}
+
+#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                                  \
+    HANDLE handleName = call;                                                                                       \
+    if (handleName == INVALID_HANDLE_VALUE) {                                                                       \
+        string extendedCallSite = fmt::sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
+        defer(free(extendedCallSite));                                                                              \
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);     \
+        return returnOnFail;                                                                                        \
+    }
+
+#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                                                                                       \
+    CREATE_FILE_HANDLE_CHECKED(x, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL), fail); \
+    defer(CloseHandle(x));
+
+string get_path_from_here_to(const string &here, const string &there) {
+    if (find_substring(here, there) == -1) {
+        return there;
+    } else {
+        if (here.Length == there.Length) {
+            return here;
+        } else {
+            string difference = substring(there, here.Length, there.Length);
+            return difference;
+        }
+    }
+}
+
+//
+// EXPORTS BEGIN HERE.
 //
 
 export {
@@ -272,5 +327,322 @@ export {
     // Note: The returned strings are substrings so they shouldn't be freed.
     always_inline constexpr path_split_extension_result path_split_extension(const string &path) {
         return path_split_extension_general(path, '/', '\\', '.');
+    }
+
+    // == is_file() || is_directory()
+    bool path_exists(const string &path) {
+        HANDLE file = CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
+        if (file == INVALID_HANDLE_VALUE) return false;
+        CloseHandle(file);
+        return true;
+    }
+
+    bool path_is_file(const string &path) {
+        HANDLE file = CreateFileW(utf8_to_utf16_temp(path), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+        if (file == INVALID_HANDLE_VALUE) return false;
+        defer(CloseHandle(file));
+
+        BY_HANDLE_FILE_INFORMATION info;
+        if (!GetFileInformationByHandle(file, &info)) return false;
+        return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
+    }
+
+    bool path_is_directory(const string &path) {
+        HANDLE file = CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
+        if (file == INVALID_HANDLE_VALUE) return false;
+        defer(CloseHandle(file));
+
+        BY_HANDLE_FILE_INFORMATION info;
+        if (!GetFileInformationByHandle(file, &info)) return false;
+        return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    }
+
+    bool path_is_symbolic_link(const string &path) {
+        auto attribs = GetFileAttributesW(utf8_to_utf16_temp(path));
+        if (attribs != INVALID_FILE_ATTRIBUTES) {
+            return (attribs & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+        }
+        return false;
+    }
+
+    s64 path_file_size(const string &path) {
+        if (path_is_directory(path)) return 0;
+
+        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null), 0);
+        defer(CloseHandle(file));
+
+        LARGE_INTEGER size = {0};
+        GetFileSizeEx(file, &size);
+        return size.QuadPart;
+    }
+
+    time_t path_creation_time(const string &path) {
+        GET_READONLY_EXISTING_HANDLE(handle, 0);
+        FILETIME time;
+        if (!GetFileTime(handle, &time, null, null)) return 0;
+        return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+    }
+
+    time_t path_last_access_time(const string &path) {
+        GET_READONLY_EXISTING_HANDLE(handle, 0);
+        FILETIME time;
+        if (!GetFileTime(handle, null, &time, null)) return 0;
+        return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+    }
+
+    time_t path_last_modification_time(const string &path) {
+        GET_READONLY_EXISTING_HANDLE(handle, 0);
+        FILETIME time;
+        if (!GetFileTime(handle, null, null, &time)) return 0;
+        return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+    }
+
+    bool path_create_directory(const string &path) {
+        if (path_exists(path)) return false;
+        return CreateDirectoryW(utf8_to_utf16_temp(path), null);
+    }
+
+    bool path_delete_file(const string &path) {
+        if (!path_is_file(path)) return false;
+        return DeleteFileW(utf8_to_utf16_temp(path));
+    }
+
+    bool path_delete_directory(const string &path) {
+        if (!path_is_directory(path)) return false;
+        return RemoveDirectoryW(utf8_to_utf16_temp(path));
+    }
+
+    // @Robustness: Handle directories?
+    //
+    // Copies a file to destination.
+    // Destination can point to another file - in which case it gets overwritten (if the parameter is true)
+    // or a directory - in which case the file name is kept the same or determined by the OS (in the case of duplicate files).
+    bool path_copy(const string &path, const string &dest, bool overwrite) {
+        if (!path_is_file(path)) return false;
+
+        auto *u16 = utf8_to_utf16_temp(path);
+
+        if (path_is_directory(dest)) {
+            auto p = path_join(dest, path_base_name(path));
+            defer(free(p));
+
+            return CopyFileW(u16, utf8_to_utf16_temp(p), !overwrite);
+        }
+        return CopyFileW(u16, utf8_to_utf16_temp(dest), !overwrite);
+    }
+
+    // @Robustness: Handle directories?
+    //
+    // Moves a file to destination.
+    // Destination can point to another file - in which case it gets overwritten (if the parameter is true)
+    // or a directory - in which case the file name is kept the same or determined by the OS (in the case of duplicate files).
+    bool path_move(const string &path, const string &dest, bool overwrite) {
+        if (!path_is_file(path)) return false;
+
+        if (path_is_directory(dest)) {
+            auto p = path_join(dest, path_base_name(path));
+            defer(free(p));
+
+            return MoveFileExW(utf8_to_utf16_temp(path), utf8_to_utf16_temp(p), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
+        }
+        return MoveFileExW(utf8_to_utf16_temp(path), utf8_to_utf16_temp(dest), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
+    }
+
+    // Renames a file/directory
+    bool path_rename(const string &path, const string &newName) {
+        if (!path_exists(path)) return false;
+
+        auto p = path_join(path_directory(path), newName);
+        defer(free(p));
+
+        return MoveFileW(utf8_to_utf16_temp(path), utf8_to_utf16_temp(p));
+    }
+
+    // A hard link is a way to represent a single file by more than one path.
+    // Hard links continue to work fine if you delete the source file since they use reference counting.
+    // Hard links can be created to files (not directories) only on the same volume.
+    //
+    // Destination must exist, otherwise this function fails.
+    bool path_create_hard_link(const string &path, const string &dest) {
+        if (!path_is_directory(path)) return false;
+        if (!path_is_directory(dest)) return false;
+        return CreateHardLinkW(utf8_to_utf16_temp(dest), utf8_to_utf16_temp(path), null);
+    }
+
+    // Symbolic links are different from hard links. Hard links do not link paths on different
+    // volumes or file systems, whereas symbolic links may point to any file or directory
+    // irrespective of the volumes on which the link and target reside.
+    //
+    // Hard links always refer to an existing file, whereas symbolic links may contain an
+    // arbitrary path that does not point to anything.
+    //
+    // Destination must exist, otherwise this function fails.
+    bool path_create_symbolic_link(const string &path, const string &dest) {
+        if (!path_exists(path)) return false;
+        if (!path_exists(dest)) return false;
+
+        u32 flag = path_is_directory(dest) ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
+        return CreateSymbolicLinkW(utf8_to_utf16_temp(dest), utf8_to_utf16_temp(path), flag);
+    }
+
+    // This is used for traversing every file in a directory.
+    // This is not recursive but we define a method which does that further down.
+    //
+    // _Path_ needs to be a valid path before using it.
+    //
+    struct path_walker : non_copyable {
+        string Path;  // Doesn't get cloned, valid as long as the string passed in the constructor is valid
+
+        string CurrentFileName;  // Gets allocated by this object, call free after use to prevent leak
+
+        void *Handle = null;  // null in the beginning, null after calling _path_read_next_entry_ and there were no more files.
+                              // Check this for when to stop calling _path_read_next_entry_.
+
+        s64 Index = 0;
+
+        path_walker() {}
+        path_walker(const string &path) : Path(path) {}
+
+       private:
+        utf16 *Path16 = null;
+
+        char PlatformFileInfo[sizeof(WIN32_FIND_DATAW)]{};  // We don't want to export the symbol.
+
+        // I don't usually use "private" but we seriously don't need to expose this garbage to users...
+        friend void path_read_next_entry(path_walker &walker);
+    };
+
+    void free(path_walker & walker) {
+        free(walker.CurrentFileName);
+    }
+
+    void path_read_next_entry(path_walker & walker) {
+        do {
+            if (!walker.Handle) {
+                if (!walker.Path16) {
+                    string queryPath = path_join(walker.Path, "*");
+                    defer(free(queryPath));
+
+                    walker.Path16 = utf8_to_utf16_temp(queryPath);
+                }
+
+                string path = walker.Path;
+                CREATE_FILE_HANDLE_CHECKED(f, FindFirstFileW(walker.Path16, (WIN32_FIND_DATAW *) walker.PlatformFileInfo), ;);
+                walker.Handle = (void *) f;
+            } else {
+#define CHECK_FIND_NEXT(call)                                                                            \
+    if (!call) {                                                                                         \
+        if (GetLastError() != ERROR_NO_MORE_FILES) {                                                     \
+            windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), #call, __FILE__, __LINE__); \
+        }                                                                                                \
+        if (walker.Handle != INVALID_HANDLE_VALUE) {                                                     \
+            WIN32_CHECKBOOL(FindClose((HANDLE) walker.Handle));                                          \
+        }                                                                                                \
+                                                                                                         \
+        walker.Handle = null; /* No more files.. terminate */                                            \
+        return;                                                                                          \
+    }
+                CHECK_FIND_NEXT(FindNextFileW((HANDLE) walker.Handle, (WIN32_FIND_DATAW *) walker.PlatformFileInfo));
+            }
+            ++walker.Index;
+
+            free(walker.CurrentFileName);
+
+            auto *fileName = ((WIN32_FIND_DATAW *) walker.PlatformFileInfo)->cFileName;
+            reserve(walker.CurrentFileName, c_string_length(fileName) * 2);  // @Bug c_string_length * 2 is not enough
+            utf16_to_utf8(fileName, const_cast<utf8 *>(walker.CurrentFileName.Data), &walker.CurrentFileName.Count);
+            walker.CurrentFileName.Length = utf8_length(walker.CurrentFileName.Data, walker.CurrentFileName.Count);
+        } while (walker.CurrentFileName == ".." || walker.CurrentFileName == ".");
+        assert(walker.CurrentFileName != ".." && walker.CurrentFileName != ".");
+    }
+
+    // This is exposed here so users can see how to implement a simple recursive path walker by themselves without hastle.
+    void path_walk_recursively_impl(const string &path, const string &first, array<string> &result) {
+        assert(path_is_directory(path));
+
+        auto walker = path_walker(path);
+        defer(free(walker));
+
+        while (true) {
+            path_read_next_entry(walker);
+            if (!walker.Handle) break;
+
+            string p = path_join(get_path_from_here_to(first, path), walker.CurrentFileName);
+            append(result, p);
+
+            if (path_is_directory(p)) {
+                path_walk_recursively_impl(p, first, result);
+            }
+        }
+    }
+
+    // Return an array of all files in a directory.
+    // _recursively_ determines if files in subdirectories are included.
+    //
+    // If you don't want the overhead of us building an array you can use the path_walker API directly.
+    // The reason we return an array is because that's what is most readable and useful in the general case.
+    [[nodiscard("Leak")]] array<string> path_walk(const string &path, bool recursively = false) {
+        assert(path_is_directory(path));
+
+        array<string> result;
+
+        if (!recursively) {
+            auto walker = path_walker(path);
+            defer(free(walker));
+
+            while (true) {
+                path_read_next_entry(walker);
+                if (!walker.Handle) break;
+
+                string file = path_join(path, walker.CurrentFileName);
+                append(result, file);
+            }
+        } else {
+            path_walk_recursively_impl(path, path, result);
+        }
+        return result;
+    }
+
+    // Reads entire file into memory (no async variant available at the moment).
+    [[nodiscard("Leak")]] path_read_entire_file_result path_read_entire_file(const string &path) {
+        path_read_entire_file_result fail = {array<byte>{}, false};
+        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), fail);
+        defer(CloseHandle(file));
+
+        LARGE_INTEGER size = {0};
+        GetFileSizeEx(file, &size);
+
+        array<byte> result;
+        reserve(result, size.QuadPart);
+        DWORD bytesRead;
+        if (!ReadFile(file, result.Data, (u32) size.QuadPart, &bytesRead, null)) return {{}, false};
+        assert(size.QuadPart == bytesRead);
+
+        result.Count += bytesRead;
+        return {result, true};
+    }
+
+    // Write content to a file.
+    // _mode_ determines if the content should be appended, overwritten entirely, or just overwritten.
+    //
+    // The difference between Overwrite_Entire and Overwrite:
+    // If the file is 50 bytes and you write 20,
+    // "Overwrite" keeps those 30 bytes at the end
+    // while "Overwrite_Entire" deletes them.
+    //
+    // Returns true on success.
+    bool path_write_to_file(const string &path, const string &contents, path_write_mode mode) {
+        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16_temp(path), GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
+        defer(CloseHandle(file));
+
+        LARGE_INTEGER pointer = {};
+        pointer.QuadPart = 0;
+        if (mode == path_write_mode::Append) SetFilePointerEx(file, pointer, null, FILE_END);
+        if (mode == path_write_mode::Overwrite_Entire) SetEndOfFile(file);
+
+        DWORD bytesWritten;
+        if (!WriteFile(file, contents.Data, (u32) contents.Count, &bytesWritten, null)) return false;
+        if (bytesWritten != contents.Count) return false;
+        return true;
     }
 }

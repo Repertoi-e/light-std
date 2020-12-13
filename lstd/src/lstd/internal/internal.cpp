@@ -968,7 +968,7 @@ void *kryptonite(void *dst, const void *src, u64 size) {
 
 // This sets up copy_memory the first time it's called
 file_scope void *dispatcher(void *dst, const void *src, u64 size) {
-#if ARCH == X86
+#if 0 && ARCH == X86
 #if COMPILER == MSVC
     s32 cpuid[4] = {-1};
     __cpuid(cpuid, 1);
@@ -986,7 +986,7 @@ file_scope void *dispatcher(void *dst, const void *src, u64 size) {
         copy_memory = &apex::tiberium;
     }
 #else
-    copy_memory = &const_copy_memory
+    copy_memory = &const_copy_memory;
 #endif
     // Once we set it, actually run it
     return copy_memory(dst, src, size);

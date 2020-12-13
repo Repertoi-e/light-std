@@ -1,5 +1,3 @@
-#include <lstd/file.h>
-
 import path;
 
 #include "../test.h"
@@ -54,8 +52,8 @@ TEST(file_size) {
     string text = path_join(dataFolder, "text");
     defer(free(text));
 
-    assert_eq(file::handle(fiveBytes).file_size(), 5);
-    assert_eq(file::handle(text).file_size(), 277);
+    assert_eq(path_file_size(fiveBytes), 5);
+    assert_eq(path_file_size(text), 277);
 }
 
 /* Just wearing out the SSD :*
@@ -134,23 +132,21 @@ TEST(test_introspection) {
 TEST(read_every_file_in_project) {
     string rootFolder = path_normalize(path_join(path_directory(string(__FILE__)), "../../../"));
 
-    hash_table<string, s64> files;
+    hash_table<string, s64> fileMap;
 
-    s32 fileCounter = 100;
-    auto callback = [&](string it) {
-        if (fileCounter) {
-            string p = path_join(rootFolder, it);
-            defer(free(p));
+    auto files = path_walk(rootFolder, true);
+    For(files) {
+        string p = path_join(rootFolder, it);
+        defer(free(p));
 
-            auto *counter = find(files, p).Value;
-            if (!counter) counter = add(files, p, 0).Value;
-            ++*counter;
-            --fileCounter;
-        }
-    };
-    file::handle(rootFolder).traverse_recursively(&callback);
+        assert(path_exists(p));
 
-    for (auto [file, count] : files) {
+        auto *counter = find(fileMap, p).Value;
+        if (!counter) counter = add(fileMap, p, 0).Value;
+        *counter += 1;
+    }
+
+    for (auto [file, count] : fileMap) {
         assert_eq(*count, 1);
     }
 }

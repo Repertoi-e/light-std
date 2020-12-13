@@ -1,6 +1,5 @@
 #pragma once
 
-#include <lstd/file.h>
 #include <lstd/fmt.h>
 #include <lstd/io.h>
 #include <lstd/memory/array.h>

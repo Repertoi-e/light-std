@@ -79,10 +79,11 @@ s32 main() {
 
     logger.Builder.Alloc = Malloc;  // Otherwise we use the temporary alloc which gets freed after we run the tests
     Context.Log = &logger;
-    
+
     Context.FmtDisableAnsiCodes = true;
 #endif
     Context.AllocAlignment = 16;
+    Context.DebugMemoryVerifyHeapFrequency = 1;
 
     time_t start = os_get_time();
 
@@ -92,11 +93,8 @@ s32 main() {
 
     WITH_ALLOC(Context.Temp) {
         build_test_table();
-        while (true) {
-            run_tests();
-            free_all(Context.Temp);
-            break;
-        }
+        run_tests();
+        release_temporary_allocator();
     }
 
     fmt::print("\nFinished tests, time taken: {:f} seconds\n\n", os_time_to_seconds(os_get_time() - start));
@@ -107,13 +105,6 @@ s32 main() {
 #endif
 
 #if defined DEBUG_MEMORY
-    // Otherwise these get reported as leaks and we were looking for actual problems...
-    for (auto [k, v] : g_TestTable) {
-        free(*v);
-    }
-    free(g_TestTable);
-    release_temporary_allocator();
-
     DEBUG_memory_info::report_leaks();
 #endif
 
