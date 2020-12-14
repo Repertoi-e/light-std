@@ -1,6 +1,5 @@
 #pragma once
 
-#include <lstd/fmt.h>
 #include <lstd/math.h>
 
 template <s32 Dim, bool Packed = false>
@@ -12,11 +11,6 @@ struct approx_helper {
 
     approx_helper() {}
     approx_helper(T value) { Value = value; }
-};
-
-template <typename T>
-struct fmt::formatter<approx_helper<T>> {
-    void format(approx_helper<T> src, format_context *f) { to_writer(f, "{}", src.Value); }
 };
 
 template <typename T, typename U>
@@ -39,17 +33,17 @@ approx_helper<T> approx(T arg) {
     return {arg};
 }
 
+template <typename T>
+struct formatter<approx_helper<T>> {
+    void format(approx_helper<T> src, void *data) { fmt_to_writer((format_context *) data, "{}", src.Value); }
+};
+
 template <typename Linalg>
 struct approx_helper2 {
     Linalg Object = {no_init};
 
     approx_helper2() {}
     approx_helper2(Linalg object) { Object = object; }
-};
-
-template <typename T>
-struct fmt::formatter<approx_helper2<T>> {
-    void format(approx_helper2<T> src, format_context *f) { to_writer(f, "{}", src.Object); }
 };
 
 template <typename Linalg1, typename Linalg2>
@@ -71,3 +65,8 @@ template <typename Linalg>
 approx_helper2<Linalg> approx_vec(const Linalg &arg) {
     return {arg};
 }
+
+template <typename T>
+struct formatter<approx_helper2<T>> {
+    void format(approx_helper2<T> src, void *data) { fmt_to_writer((format_context *) data, "{}", src.Object); }
+};

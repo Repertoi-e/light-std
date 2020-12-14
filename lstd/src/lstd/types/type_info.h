@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../internal/namespace.h"
-#include "../platform.h"
+#include "basic_types.h"
 #include "compare.h"
 
 //

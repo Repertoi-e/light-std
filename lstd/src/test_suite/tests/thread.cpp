@@ -1,14 +1,14 @@
 #include "../test.h"
 
 TEST(hardware_concurrency) {
-    fmt::print("\n\t\tHardware concurrency: {}.\n", os_get_hardware_concurrency());
-    For(range(45)) fmt::print(" ");
+    print("\n\t\tHardware concurrency: {}.\n", os_get_hardware_concurrency());
+    For(range(45)) print(" ");
 }
 
-file_scope void thread_ids(void *) { fmt::print("\t\tMy thread id is {}.\n", Context.ThreadID); }
+file_scope void thread_ids(void *) { print("\t\tMy thread id is {}.\n", Context.ThreadID); }
 
 TEST(ids) {
-    fmt::print("\n\t\tMain thread's id is {}.\n", Context.ThreadID);
+    print("\n\t\tMain thread's id is {}.\n", Context.ThreadID);
 
     thread::thread t1;
     t1.init_and_launch(thread_ids);
@@ -22,7 +22,7 @@ TEST(ids) {
     t3.init_and_launch(thread_ids);
     t3.wait();
 
-    For(range(45)) fmt::print(" ");
+    For(range(45)) print(" ");
 }
 
 thread_local file_scope s32 TLSVar;

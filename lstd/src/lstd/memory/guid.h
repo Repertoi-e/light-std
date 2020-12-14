@@ -1,30 +1,24 @@
 #pragma once
 
-#include "array_like.h"
+#include "../types/compare.h"
+#include "stack_array.h"
 
 LSTD_BEGIN_NAMESPACE
 
 // Used for generating unique ids
 struct guid {
-    // :CodeReusability: Make this object array-like so we can use compare, compare_lexicographically, ==, !=, < operators, etc.. for free!
-    static constexpr bool IS_ARRAY_LIKE = true;
-
-    byte Data[16]{};
-    static constexpr s64 Count = 16;
+    stack_array<byte, 16> Data;
 
     constexpr guid() {}  // By default the guid is zero
 
-    constexpr guid(const initializer_list<byte> &data) {
-        assert(data.size() >= 16);
-        copy_memory(Data, data.begin(), 16);
-    }
-
     constexpr explicit guid(bytes data) {
         assert(data.Count >= 16);
-        copy_memory(Data, data.Data, 16);
+        copy_memory(&Data[0], &data[0], 16);
     }
 
     constexpr operator bool() { return (guid{} != *this); }
+
+    constexpr auto operator<=>(const guid &) const = default;
 };
 
 // Hash for guid

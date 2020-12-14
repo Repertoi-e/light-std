@@ -39,7 +39,26 @@ constexpr void quick_sort(T *first, T *last) {
 template <typename T>
 struct array_view;
 
-// @TODO: Document use cases for this and why is it different from array<T>
+//
+// A wrapper around T arr[..] which makes it easier to pass around and work with.
+// 
+// To make an array from a list of elements use:
+//
+//  auto arr1 = to_stack_array(1, 4, 9);
+//  auto arr2 = to_stack_array<s64>(1, 4, 9);
+// 
+// To iterate:
+// For(arr1) {
+//     ...
+// }
+// 
+// For(range(arr1.Count)) {
+//     T element = arr1[it];
+//     ...
+// }
+// 
+// Different from array<T>, because the latter supports dynamic resizing.
+// This object contains no other member than T Data[N], _Count_ is a static member for the given type and doesn't take space.
 template <typename T_, s64 N>
 struct stack_array {
     using T = T_;

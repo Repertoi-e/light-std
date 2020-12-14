@@ -5,6 +5,8 @@
 #include "lstd/os.h"
 #include "pch.h"
 
+import fmt;
+
 #define XAUDIO2_E_INVALID_CALL 0x88960001
 #define XAUDIO2_E_XMA_DECODER_ERROR 0x88960002
 #define XAUDIO2_E_XAPO_CREATION_FAILED 0x88960003
@@ -3240,12 +3242,12 @@ const char *get_error_string(HRESULT hr) {
 
 #define CHK_ERRA(hrchk)           \
     case hrchk:                   \
-        fmt::print("{}", #hrchk); \
+        print("{}", #hrchk); \
         break;
 
 #define CHK_ERR(hrchk, strOut)    \
     case hrchk:                   \
-        fmt::print("{}", strOut); \
+        print("{}", strOut); \
         break;
 
 void print_error_description(HRESULT hr) {
@@ -3255,7 +3257,7 @@ void print_error_description(HRESULT hr) {
     DWORD result = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, nullptr, hr,
                                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (char *) &desc, 0, nullptr);
     if (result > 0 && desc) {
-        fmt::print("{}", desc);
+        print("{}", desc);
         LocalFree(desc);
         return;
     }
@@ -3622,19 +3624,19 @@ void print_error_description(HRESULT hr) {
         CHK_ERR(XAPO_E_FORMAT_UNSUPPORTED, "Requested audio format unsupported.")
 
         default:
-            fmt::print("(no description - unknown error)");
+            print("(no description - unknown error)");
             break;
     }
 }
 
 void windows_report_hresult_error(long hresult, const string &call, const string &file, s32 line) {
-    fmt::print("\n{!}(windows_error.cpp): An error occured while calling a function returning an HRESULT.\n");
-    fmt::print("    {!GRAY}{}{!}\n", call);
-    fmt::print("        ... was called at {!YELLOW}{}:{}{!} and returned {!GRAY}{:#x}\n", file, line, hresult);
-    fmt::print("        Error: {!RED}{}\n", get_error_string(hresult));
-    fmt::print("               ");
+    print("\n{!}(windows_error.cpp): An error occured while calling a function returning an HRESULT.\n");
+    print("    {!GRAY}{}{!}\n", call);
+    print("        ... was called at {!YELLOW}{}:{}{!} and returned {!GRAY}{:#x}\n", file, line, hresult);
+    print("        Error: {!RED}{}\n", get_error_string(hresult));
+    print("               ");
     print_error_description(hresult);
-    fmt::print("{!}\n\n");
+    print("{!}\n\n");
 }
 
 #endif  // OS == WINDOWS

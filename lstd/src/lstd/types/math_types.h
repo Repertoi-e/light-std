@@ -11,8 +11,6 @@
 //  - is_quat
 //
 
-LSTD_BEGIN_NAMESPACE
-
 // Defined here and not in basic_types.h.. to avoid circular dependencies
 using s64 = long long;
 
@@ -102,4 +100,3 @@ template <typename T>
 constexpr bool is_quat = is_quat_helper<T>::value;
 
 }  // namespace types
-LSTD_END_NAMESPACE

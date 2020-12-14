@@ -4,10 +4,12 @@
 
 #include "lstd/io.h"
 #include "lstd/memory/dynamic_library.h"
+#include "lstd/memory/guid.h"
 #include "lstd/os.h"
 #include "pch.h"
 
 import path;
+import fmt;
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -227,7 +229,7 @@ file_scope void register_helper_window_class() {
     }
 
     if (!RegisterClassExW(&wc)) {
-        fmt::print("(windows_common.cpp): Failed to register helper window class\n");
+        print("(windows_common.cpp): Failed to register helper window class\n");
         assert(false);
     }
 }
@@ -329,7 +331,7 @@ void win32_common_init() {
 
         HelperWindowHandle = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW, HelperClassName, L"LSTD Message Window", WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 0, 0, 1, 1, null, null, GetModuleHandleW(null), null);
         if (!HelperWindowHandle) {
-            fmt::print("(windows_monitor.cpp): Failed to create helper window\n");
+            print("(windows_monitor.cpp): Failed to create helper window\n");
             assert(false);
         }
 
@@ -469,13 +471,13 @@ s64 os_get_block_size(void *ptr) {
     return result;
 }
 
-#define CREATE_MAPPING_CHECKED(handleName, call, returnOnFail)                                                      \
-    HANDLE handleName = call;                                                                                       \
-    if (!handleName) {                                                                                              \
-        string extendedCallSite = fmt::sprint("{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name); \
-        defer(free(extendedCallSite));                                                                              \
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);     \
-        return returnOnFail;                                                                                        \
+#define CREATE_MAPPING_CHECKED(handleName, call, returnOnFail)                                                  \
+    HANDLE handleName = call;                                                                                   \
+    if (!handleName) {                                                                                          \
+        string extendedCallSite = sprint("{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name);  \
+        defer(free(extendedCallSite));                                                                          \
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
+        return returnOnFail;                                                                                    \
     }
 
 void os_write_shared_block(const string &name, void *data, s64 size) {
@@ -583,7 +585,7 @@ os_get_env_result os_get_env(const string &name, bool silent) {
 
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
         if (!silent) {
-            fmt::print(">>> Warning: Couldn't find environment variable with value \"{}\"\n", name);
+            print(">>> Warning: Couldn't find environment variable with value \"{}\"\n", name);
         }
         return {"", false};
     }
@@ -633,20 +635,20 @@ void os_remove_env(const string &name) {
 
 string os_get_clipboard_content() {
     if (!OpenClipboard(HelperWindowHandle)) {
-        fmt::print("(windows_monitor.cpp): Failed to open clipboard\n");
+        print("(windows_monitor.cpp): Failed to open clipboard\n");
         return "";
     }
     defer(CloseClipboard());
 
     HANDLE object = GetClipboardData(CF_UNICODETEXT);
     if (!object) {
-        fmt::print("(windows_monitor.cpp): Failed to convert clipboard to string\n");
+        print("(windows_monitor.cpp): Failed to convert clipboard to string\n");
         return "";
     }
 
     auto *buffer = (utf16 *) GlobalLock(object);
     if (!buffer) {
-        fmt::print("(windows_monitor.cpp): Failed to lock global handle\n");
+        print("(windows_monitor.cpp): Failed to lock global handle\n");
         return "";
     }
     defer(GlobalUnlock(object));
@@ -664,14 +666,14 @@ string os_get_clipboard_content() {
 void os_set_clipboard_content(const string &content) {
     HANDLE object = GlobalAlloc(GMEM_MOVEABLE, content.Length * 2 * sizeof(utf16));
     if (!object) {
-        fmt::print("(windows_monitor.cpp): Failed to open clipboard\n");
+        print("(windows_monitor.cpp): Failed to open clipboard\n");
         return;
     }
     defer(GlobalFree(object));
 
     auto *buffer = (utf16 *) GlobalLock(object);
     if (!buffer) {
-        fmt::print("(windows_monitor.cpp): Failed to lock global handle\n");
+        print("(windows_monitor.cpp): Failed to lock global handle\n");
         return;
     }
 
@@ -679,7 +681,7 @@ void os_set_clipboard_content(const string &content) {
     GlobalUnlock(object);
 
     if (!OpenClipboard(HelperWindowHandle)) {
-        fmt::print("(windows_monitor.cpp): Failed to open clipboard\n");
+        print("(windows_monitor.cpp): Failed to open clipboard\n");
         return;
     }
     defer(CloseClipboard());
@@ -698,16 +700,16 @@ guid guid_new() {
     GUID g;
     CoCreateGuid(&g);
 
-    guid result = {(byte)((g.Data1 >> 24) & 0xFF), (byte)((g.Data1 >> 16) & 0xFF),
-                   (byte)((g.Data1 >> 8) & 0xFF), (byte)((g.Data1) & 0xff),
+    auto data = to_stack_array((byte)((g.Data1 >> 24) & 0xFF), (byte)((g.Data1 >> 16) & 0xFF),
+                               (byte)((g.Data1 >> 8) & 0xFF), (byte)((g.Data1) & 0xff),
 
-                   (byte)((g.Data2 >> 8) & 0xFF), (byte)((g.Data2) & 0xff),
+                               (byte)((g.Data2 >> 8) & 0xFF), (byte)((g.Data2) & 0xff),
 
-                   (byte)((g.Data3 >> 8) & 0xFF), (byte)((g.Data3) & 0xFF),
+                               (byte)((g.Data3 >> 8) & 0xFF), (byte)((g.Data3) & 0xFF),
 
-                   (byte) g.Data4[0], (byte) g.Data4[1], (byte) g.Data4[2], (byte) g.Data4[3],
-                   (byte) g.Data4[4], (byte) g.Data4[5], (byte) g.Data4[6], (byte) g.Data4[7]};
-    return result;
+                               (byte) g.Data4[0], (byte) g.Data4[1], (byte) g.Data4[2], (byte) g.Data4[3],
+                               (byte) g.Data4[4], (byte) g.Data4[5], (byte) g.Data4[6], (byte) g.Data4[7]);
+    return guid(data);
 }
 
 LSTD_END_NAMESPACE

@@ -1,10 +1,11 @@
 #include <math.h>  // @DependencyCleanup
 
-#include "../fmt.h"
 #include "../memory/array.h"
 #include "common.h"
 #include "context.h"
 #include "os_function_call.h"
+
+import fmt;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -968,7 +969,7 @@ void *kryptonite(void *dst, const void *src, u64 size) {
 
 // This sets up copy_memory the first time it's called
 file_scope void *dispatcher(void *dst, const void *src, u64 size) {
-#if 0 && ARCH == X86
+#if ARCH == X86
 #if COMPILER == MSVC
     s32 cpuid[4] = {-1};
     __cpuid(cpuid, 1);
@@ -1282,20 +1283,20 @@ void default_panic_handler(const string &message, const array<os_function_call> 
 
     Context.HandlingPanic = true;
 
-    fmt::print("\n\n{!}(context.cpp / default_crash_handler): A panic occured and the program must terminate.\n");
-    fmt::print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
-    fmt::print("        ... and here is the call stack:\n");
+    print("\n\n{!}(context.cpp / default_crash_handler): A panic occured and the program must terminate.\n");
+    print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
+    print("        ... and here is the call stack:\n");
     if (callStack.Count) {
-        fmt::print("\n");
+        print("\n");
     }
     For(callStack) {
-        fmt::print("        {!YELLOW}{}{!}\n", it.Name);
-        fmt::print("          in file: {}:{}\n", it.File, it.LineNumber);
+        print("        {!YELLOW}{}{!}\n", it.Name);
+        print("          in file: {}:{}\n", it.File, it.LineNumber);
     }
     if (!callStack.Count) {
-        fmt::print("          [No call stack available]\n");
+        print("          [No call stack available]\n");
     }
-    fmt::print("\n\n");
+    print("\n\n");
 
     Context.HandlingPanic = false;
 }

@@ -1,6 +1,5 @@
 module;
 
-#include "../fmt.h"
 #include "../internal/common.h"
 #include "../memory/string.h"
 #include "../os.h"
@@ -9,10 +8,10 @@ module;
 #undef MAC
 #undef _MAC
 #include <Windows.h>
-// #include <Windowsx.h>
 
 export module path.nt;
 
+import fmt;
 import path.general;
 
 //
@@ -45,7 +44,7 @@ utf16 *utf8_to_utf16_temp(const string &str) {
 #define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                                  \
     HANDLE handleName = call;                                                                                       \
     if (handleName == INVALID_HANDLE_VALUE) {                                                                       \
-        string extendedCallSite = fmt::sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
+        string extendedCallSite = sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
         defer(free(extendedCallSite));                                                                              \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);     \
         return returnOnFail;                                                                                        \

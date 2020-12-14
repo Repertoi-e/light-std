@@ -1,9 +1,6 @@
 #include "../test.h"
 #include "math.h"
 
-// @TODO: Fix TEST() macro to make truly unique type names because compiling this file and quat.cpp
-// (both have a test named "ctor" on line 4) produce the same type name.
-
 TEST(vec_ctor) {
     vec<f32, 1, true> v1(10);
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "lstd/fmt.h"
 #include "lstd/math.h"
 
 #if OS == WINDOWS

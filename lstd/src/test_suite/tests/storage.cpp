@@ -81,7 +81,7 @@ TEST(hash_table) {
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
-        string str = fmt::sprint("{}", *value);
+        string str = sprint("{}", *value);
         assert_eq(*key, str);
         free(str);
 
@@ -112,7 +112,7 @@ TEST(hash_table_clone) {
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
-        string str = fmt::sprint("{}", *value);
+        string str = sprint("{}", *value);
         assert_eq(*key, str);
         free(str);
 

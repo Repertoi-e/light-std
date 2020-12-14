@@ -12,7 +12,9 @@
 // This also applies for initializer_list.
 #define LSTD_DONT_DEFINE_INITIALIZER_LIST
 
-#if not defined LSTD_DONT_DEFINE_INITIALIZER_LIST
+#if defined LSTD_DONT_DEFINE_INITIALIZER_LIST
+#include <compare>
+#else
 LSTD_BEGIN_NAMESPACE
 
 namespace std {

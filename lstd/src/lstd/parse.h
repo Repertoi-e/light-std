@@ -497,7 +497,7 @@ parse_result<guid> parse_guid(bytes buffer) {
 
             parse_status status;
 
-            auto *resultBuffer = result.Data;
+            auto *resultBuffer = &result.Data[0];
 
 #define EAT_HEX_BYTES(count)                                           \
     For(range(count)) {                                                \
@@ -537,7 +537,7 @@ parse_result<guid> parse_guid(bytes buffer) {
 
     bool hyphens = false;
 
-    auto *resultBuffer = result.Data;
+    auto *resultBuffer = &result.Data[0];
 
     s32 counter = 0;
     while (true) {

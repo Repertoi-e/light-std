@@ -11,10 +11,14 @@ struct string_builder_writer : writer {
 
     void write(const byte *data, s64 size) override {
         //
-        // @TODO: Optional utf8 validation would be good here?
+        // @Robustness: Optional utf8 validation would be good here?
         //
         append_pointer_and_size(Builder, (const utf8 *) data, size);
     }
 };
+
+inline void free(string_builder_writer &writer) {
+    free(writer.Builder);
+}
 
 LSTD_END_NAMESPACE

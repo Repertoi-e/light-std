@@ -4,7 +4,7 @@
 
 #define CHECK_WRITE(expected, fmtString, ...)             \
     {                                                     \
-        string t = fmt::sprint(fmtString, ##__VA_ARGS__); \
+        string t = sprint(fmtString, ##__VA_ARGS__); \
         assert_eq(t, expected);                           \
         free(t);                                          \
     }
@@ -27,10 +27,10 @@ file_scope void test_error_handler(const string &message, const string &formatSt
         ->replace_all('\t', "\\t")
         ->replace_all('\v', "\\v");
 
-    fmt::print("\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
-    fmt::print("    ... the error happened here:\n");
-    fmt::print("        {!}{}{!GRAY}\n", str);
-    fmt::print("        {: >{}} {!} \n\n", "^", position + 1);
+    print("\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
+    print("    ... the error happened here:\n");
+    print("        {!}{}{!GRAY}\n", str);
+    print("        {: >{}} {!} \n\n", "^", position + 1);
 #endif
 }
 
@@ -38,9 +38,9 @@ template <typename... Args>
 void format_test_error(const string &fmtString, Args &&... arguments) {
     counting_writer dummy;
 
-    auto args = fmt::args_on_the_stack(((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
-    auto f = fmt::format_context(&dummy, fmtString, args, test_error_handler);
-    fmt::parse_fmt_string(fmtString, &f);
+    auto args = fmt_args_on_the_stack(((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+    auto f = format_context(&dummy, fmtString, args, test_error_handler);
+    fmt_parse_and_format(&f);
 }
 
 #define EXPECT_ERROR(expected, fmtString, ...)   \
@@ -101,7 +101,7 @@ void check_unknown_types(T value, const string &types, const string &expectedMes
     For(range(1, CHAR_MAX)) {
         if (has(special, (utf32) it) || has(types, (utf32) it)) continue;
 
-        string fmtString = fmt::sprint("{{0:10{:c}}}", it);
+        string fmtString = sprint("{{0:10{:c}}}", it);
         EXPECT_ERROR(expectedMessage, fmtString, value);
         fmtString.release();
     }
@@ -213,14 +213,10 @@ TEST(format_inf) {
 
 struct Answer {};
 
-LSTD_BEGIN_NAMESPACE
-namespace fmt {
 template <>
 struct formatter<Answer> {
-    void format(Answer, format_context *f) { write(f, 42); }
+    void format(const Answer &, void *data) { write((format_context *) data, 42); }
 };
-}  // namespace fmt
-LSTD_END_NAMESPACE
 
 TEST(format_custom) {
     CHECK_WRITE("42", "{0}", Answer());

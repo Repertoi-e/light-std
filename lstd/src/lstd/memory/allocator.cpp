@@ -1,11 +1,21 @@
 #include "allocator.h"
 
-#include "../fmt.h"
 #include "../internal/context.h"
+#include "../io.h"
 #include "../math.h"
 #include "../os.h"
 
 import path;
+import fmt;
+
+#if defined BRACE_B
+#error ""
+#endif
+
+#if defined BRACE_A
+#error ""
+#endif
+
 
 LSTD_BEGIN_NAMESPACE
 
@@ -117,7 +127,7 @@ void DEBUG_memory_info::report_leaks() {
     }
 
     if (leaksCount) {
-        fmt::print(">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still had {!YELLOW}{}{!} allocations which were unfreed. Here they are:\n", os_get_current_module(), leaksCount);
+        print(">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still had {!YELLOW}{}{!} allocations which were unfreed. Here they are:\n", os_get_current_module(), leaksCount);
     }
 
     For_as(i, range(leaksCount)) {
@@ -132,7 +142,7 @@ void DEBUG_memory_info::report_leaks() {
             file = get_short_file_name(it->FileName);
         }
 
-        fmt::print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", file, it->FileLine, it->Size, it->ID, it->RID);
+        print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", file, it->FileLine, it->Size, it->ID, it->RID);
     }
 }
 

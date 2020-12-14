@@ -8,9 +8,6 @@ LSTD_BEGIN_NAMESPACE
 
 // Functions on this object allow negative reversed indexing which begins at
 // the end of the string, so -1 is the last character -2 the one before that, etc. (Python-style)
-//
-// This type is entirely constexpr. Everything except methods that modify the contents of the string can be used compile-time.
-// e.g. sub_view, searching, trimming etc.
 template <typename T_>
 struct array_view {
     using T = T_;
@@ -50,7 +47,7 @@ struct array_view {
 
     // Implicit conversion operators between utf8 (a utf8 byte) and byte (which is also a byte but has different semantics).
     // They are identical (both are unsigned bytes) but we use them to differentiate when we are working with just arrays of bytes or
-    // arrays that contain encoded utf8. It's more of an "intent" thing and being explicit with it is, I think, good.
+    // arrays that contain encoded utf8. It's more of an "intent of use" kind of thing and being explicit with it is, I think, good.
     template <typename U = T>
     requires(types::is_same<types::remove_const_t<U>, utf8>) operator array_view<byte>() const { return array_view<byte>((byte *) Data, Count); }
 
@@ -58,11 +55,13 @@ struct array_view {
     requires(types::is_same<types::remove_const_t<U>, byte>) operator array_view<utf8>() const { return array_view<utf8>((utf8 *) Data, Count); }
 };
 
-// We use array_view<byte> when, e.g. parsing, and it's kinda a long name..
+// Short-hand name for just saying "a bunch of bytes" and it doesn't matter where they came from.
+// Array views can point to literally anything in memory. For brevity we allow implicit conversion from arrays to array_views.
 using bytes = array_view<byte>;
 
-// This object may represent a non-owning pointer to to a byte buffer or a pointer to an allocated memory block.
-// In the latter case the memory must be released by the user with free().
+//
+// This object may represent a non-owning pointer to a buffer (that came from another array which is still alive) 
+// or a pointer to an allocated memory block. In the latter case the memory must be released by the user with free().
 // Copying it does a shallow copy (creates a view). In order to get a deep copy use clone().
 //
 // Functions in this object allow negative reversed indexing which begins at

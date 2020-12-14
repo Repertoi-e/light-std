@@ -1,8 +1,4 @@
-#include "specs.h"
-
-LSTD_BEGIN_NAMESPACE
-
-namespace fmt {
+#include "../internal/common.h"
 
 template <typename T, typename U>
 T bit_cast(U u) {
@@ -100,27 +96,6 @@ file_scope struct {
                "25262728293031323334353637383940414243444546474849"
                "50515253545556575859606162636465666768697071727374"
                "75767778798081828384858687888990919293949596979899"};
-
-file_scope u64 POWTEN[20] = {1,
-                             10,
-                             100,
-                             1000,
-                             10000,
-                             100000,
-                             1000000,
-                             10000000,
-                             100000000,
-                             1000000000,
-                             10000000000ull,
-                             100000000000ull,
-                             1000000000000ull,
-                             10000000000000ull,
-                             100000000000000ull,
-                             1000000000000000ull,
-                             10000000000000000ull,
-                             100000000000000000ull,
-                             1000000000000000000ull,
-                             10000000000000000000ull};
 
 using format_float_callback_t = utf8 *(*) (void *user, utf8 *buf, s64 length);
 
@@ -250,8 +225,8 @@ file_scope void get_float_string_internal(utf8 **start, u32 *length, utf8 *out, 
     fracDigits = (fracDigits & 0x80000000) ? ((fracDigits & 0x7ffffff) + 1) : (tens + fracDigits);
     if ((fracDigits < 24)) {
         u32 dg = 1;
-        if ((u64) bits >= POWTEN[9]) dg = 10;
-        while ((u64) bits >= POWTEN[dg]) {
+        if ((u64) bits >= POWERS_OF_10_32[9]) dg = 10;
+        while ((u64) bits >= POWERS_OF_10_32[dg]) {
             ++dg;
             if (dg == 20) goto noround;
         }
@@ -259,9 +234,9 @@ file_scope void get_float_string_internal(utf8 **start, u32 *length, utf8 *out, 
             // add 0.5 at the right position and round
             e = dg - fracDigits;
             if ((u32) e >= 24) goto noround;
-            u64 r = POWTEN[e];
+            u64 r = POWERS_OF_10_32[e];
             bits = bits + (r / 2);
-            if ((u64) bits >= POWTEN[dg]) ++tens;
+            if ((u64) bits >= POWERS_OF_10_32[dg]) ++tens;
             bits /= r;
         }
     noround:;
@@ -748,6 +723,3 @@ file_scope void format_float(format_float_callback_t callback, void *user, utf8 
 done:
     return;
 }
-}  // namespace fmt
-
-LSTD_END_NAMESPACE

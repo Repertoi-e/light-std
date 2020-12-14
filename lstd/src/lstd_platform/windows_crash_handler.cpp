@@ -7,6 +7,8 @@
 #include "lstd/os.h"
 #include "pch.h"
 
+import fmt;
+
 LSTD_BEGIN_NAMESPACE
 
 #define CALLSTACK_DEPTH 6
@@ -74,7 +76,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
 
     auto desc = find(CodeDescs, exceptionCode).Value;
 
-    string message = fmt::sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
+    string message = sprint("{} ({:#x})", desc ? *desc : "Unknown exception", exceptionCode);
     defer(free(message));
 
     Context.PanicHandler(message, callStack);

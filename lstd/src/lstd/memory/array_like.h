@@ -4,16 +4,17 @@
 #include "../types/basic_types.h"
 
 //
-// :CodeReusability: This file implements find, find_not, find_any_of, find_not_any_of, has, compare, compare_lexicographically and operators ==, !=, <, <=, >, >=
+// :CodeReusability: This file implements find, find_not, find_any_of, find_not_any_of, has, 
+//                                        compare, compare_lexicographically and operators ==, !=, <, <=, >, >=
 // for structures that have members Data and Count and a flag IS_ARRAY_LIKE - we call these array-likes.
 //
-// The flag is there to not collide too much with user types that can have Data and Count members but should have overloads for == for example..
-// We might want to remove that flag but it's good because it is explicit!
+// The flag is there to not collide with user types that can have Data and Count members but should not be considered array-like..
+// The flag is good because it is explicit!
 //
-// e.g. stack_array, array, delegate, guid, have these members, so != automatically resolves to all three types using the definition below.
-// Your flagged types will also get this treatment.
-//
-// The implementation also allows comparing stack_array and array, for example, as well as guid and delegate... something to think about!
+// e.g. stack_array, array, delegate, guid, have these members, so != is automatically generated to all three types using the definition below.
+// It also resolves for different types, e.g. stack_array != array, etc. for which otherwise we need a combinatorial amount of code.
+// 
+// Your flagged types will also automatically get this treatment.
 //
 
 LSTD_BEGIN_NAMESPACE

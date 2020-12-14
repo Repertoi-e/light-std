@@ -93,10 +93,10 @@ TEST(guid) {
 
     For_as(f, formats) {
         For_as(g, garbage) {
-            string format = fmt::sprint("{{:{:c}}}{}", f, g);
+            string format = sprint("{{:{:c}}}{}", f, g);
             defer(free(format));
 
-            string guidFormatted = fmt::sprint(format, guid);
+            string guidFormatted = sprint(format, guid);
             defer(free(guidFormatted));
 
             auto [parsed, status, rest] = parse_guid(guidFormatted);
