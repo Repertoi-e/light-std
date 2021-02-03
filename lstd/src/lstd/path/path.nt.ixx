@@ -23,54 +23,6 @@ import path.general;
 // If you want to explicitly work with Windows paths, import this module directly.
 //
 
-s32 wchar_size_required(const string &str) {
-    s32 size = MultiByteToWideChar(CP_UTF8, 0, str.Data, (s32) str.Count, null, 0);
-    assert(size != 0);  // _MultiByteToWideChar_ might fail for a number of reasons but we just panic.
-                        // In the future we may want to actually be more helpful with what went wrong...
-    return size;
-}
-
-// Uses the temporary allocator to get a utf16 path from our utf8 string.
-// utf16..................... sigh!
-utf16 *utf8_to_utf16_temp(const string &str) {
-    if (!str.Length) return null;
-
-    s32 size = wchar_size_required(str) + 1;
-    auto *result = allocate_array(utf16, size, Context.Temp);
-    utf8_to_utf16(str.Data, str.Length, result);
-    return result;
-}
-
-#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                                  \
-    HANDLE handleName = call;                                                                                       \
-    if (handleName == INVALID_HANDLE_VALUE) {                                                                       \
-        string extendedCallSite = sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
-        defer(free(extendedCallSite));                                                                              \
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__);     \
-        return returnOnFail;                                                                                        \
-    }
-
-#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                                                                                       \
-    CREATE_FILE_HANDLE_CHECKED(x, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL), fail); \
-    defer(CloseHandle(x));
-
-string get_path_from_here_to(const string &here, const string &there) {
-    if (find_substring(here, there) == -1) {
-        return there;
-    } else {
-        if (here.Length == there.Length) {
-            return here;
-        } else {
-            string difference = substring(there, here.Length, there.Length);
-            return difference;
-        }
-    }
-}
-
-//
-// EXPORTS BEGIN HERE.
-//
-
 export {
     constexpr char OS_PATH_SEPARATOR = '\\';
 
@@ -95,7 +47,236 @@ export {
     //    \\host\computer/dir  -> { "\\host\computer", "/dir" }
     //
     // Paths cannot contain both a drive letter and a UNC path.
-    inline path_split_drive_result path_split_drive(const string &path) {
+    constexpr path_split_drive_result path_split_drive(const string &path);
+
+    // Returns whether a path is absolute.
+    // Trivial in POSIX (starts with '/'), harder on Windows.
+    // For Windows it is absolute if it starts with a slash or backslash (current volume),
+    // or if it begins with a volume letter or UNC-resource.
+    //
+    // e.g.
+    //    /home/user/me       -> true
+    //    C:/Users/User       -> true
+    //    \\host\computer\dir -> true
+    //    ./data/myData       -> false
+    //    ../data/myData      -> false
+    //    data/myData         -> false
+    constexpr bool path_is_absolute(const string &path);
+
+    // Joins two or more paths.
+    // Ignore the previous parts if a part is absolute.
+    // This is the de facto way to build paths. Takes care of slashes automatically.
+    [[nodiscard("Leak")]] string path_join(const array_view<string> &paths);
+
+    [[nodiscard("Leak")]] string path_join(const string &one, const string &other);
+
+    // Normalize a pathname by collapsing redundant separators and up-level references so that A//B, A/B/, A/./B and A/foo/../B all become A/B.
+    // This string manipulation may change the meaning of a path that contains symbolic links.
+    //
+    // On Windows, it converts forward slashes to backward slashes.
+    //
+    // There is an edge case in which the path ends with a slash, both /home/user/dir and /home/user/dir/ mean the same thing.
+    // You can use other functions to check if they are really directories or files (by querying the OS).
+    [[nodiscard("Leak")]] string
+    path_normalize(const string &path);
+
+    // Splits path into two components: head (everything up to the last '/') and tail (the rest).
+    // The resulting head won't end in '/' unless it is the root.
+    //
+    // The Windows version handles \ and drive letters/UNC sharepoints of course.
+    //
+    // Note: The returned strings are substrings so they shouldn't be freed.
+    constexpr path_split_result path_split(const string &path);
+
+    // Returns the final component of the path
+    // e.g.
+    //    /home/user/me/     ->
+    //    /home/user/me.txt  -> me.txt
+    //    /home/user/dir     -> dir
+    //
+    // Note: The result is a substring and shouldn't be freed.
+
+    constexpr string path_base_name(const string &path);
+
+    // Returns everything before the final component of the path
+    // e.g.
+    //    /home/user/me/     -> /home/user/me
+    //    /home/user/me.txt  -> /home/user
+    //    /home/user/dir     -> /home/user
+    //
+    // Note: The result is a substring and shouldn't be freed.
+    constexpr string path_directory(const string &path);
+
+    // Split a path in root and extension.
+    // The extension is everything starting at the last dot in the last pathname component; the root is everything before that.
+    //
+    //    /home/user/me.txt       -> { "/home/user/me,       ".txt" }
+    //    /home/user/me.data.txt  -> { "/home/user/me.data", "/txt" }
+    //    /home/user/me           -> { "/home/user/me",      "" }
+    //
+    // Note: The returned strings are substrings so they shouldn't be freed.
+    constexpr path_split_extension_result path_split_extension(const string &path);
+
+    //
+    // The following routines query the OS:
+    //
+
+    // Reads entire file into memory (no async variant available at the moment).
+    [[nodiscard("Leak")]] path_read_entire_file_result path_read_entire_file(const string &path);
+
+    // Write content to a file.
+    // _mode_ determines if the content should be appended, overwritten entirely, or just overwritten.
+    //
+    // The difference between Overwrite_Entire and Overwrite:
+    // If the file is 50 bytes and you write 20,
+    // "Overwrite" keeps those 30 bytes at the end
+    // while "Overwrite_Entire" deletes them.
+    //
+    // Returns true on success.
+    bool path_write_to_file(const string &path, const string &contents, path_write_mode mode);
+
+    bool path_exists(const string &path);  // == is_file() || is_directory()
+    bool path_is_file(const string &path);
+    bool path_is_directory(const string &path);
+
+    bool path_is_symbolic_link(const string &path);
+
+    s64 path_file_size(const string &path);
+
+    time_t path_creation_time(const string &path);
+    time_t path_last_access_time(const string &path);
+    time_t path_last_modification_time(const string &path);
+
+    bool path_create_directory(const string &path);
+    bool path_delete_file(const string &path);
+    bool path_delete_directory(const string &path);
+
+    // @Robustness: We don't handle directories.
+    //
+    // Copies a file to destination.
+    // Destination can point to another file - in which case it gets overwritten (if the parameter is true)
+    // or a directory - in which case the file name is kept the same or determined by the OS (in the case of duplicate files).
+    bool path_copy(const string &path, const string &dest, bool overwrite);
+
+    // @Robustness: We don't handle directories.
+    //
+    // Moves a file to destination.
+    // Destination can point to another file - in which case it gets overwritten (if the parameter is true)
+    // or a directory - in which case the file name is kept the same or determined by the OS (in the case of duplicate files).
+    bool path_move(const string &path, const string &dest, bool overwrite);
+
+    // Renames a file/directory
+    bool path_rename(const string &path, const string &newName);
+
+    // A hard link is a way to represent a single file by more than one path.
+    // Hard links continue to work fine if you delete the source file since they use reference counting.
+    // Hard links can be created to files (not directories) only on the same volume.
+    //
+    // Destination must exist, otherwise this function fails.
+    bool path_create_hard_link(const string &path, const string &dest);
+
+    // Symbolic links are different from hard links. Hard links do not link paths on different
+    // volumes or file systems, whereas symbolic links may point to any file or directory
+    // irrespective of the volumes on which the link and target reside.
+    //
+    // Hard links always refer to an existing file, whereas symbolic links may contain an
+    // arbitrary path that does not point to anything.
+    //
+    // Destination must exist, otherwise this function fails.
+    bool path_create_symbolic_link(const string &path, const string &dest);
+
+    // This is used for traversing every file in a directory.
+    // This is not recursive but we define a method which does that further down.
+    //
+    // _Path_ needs to be a valid path before using it.
+    //
+    struct path_walker : non_copyable {
+        string Path;  // Doesn't get cloned, valid as long as the string passed in the constructor is valid
+
+        string CurrentFileName;  // Gets allocated by this object, call free after use to prevent leak
+
+        void *Handle = null;  // null in the beginning, null after calling _path_read_next_entry_ and there were no more files.
+                              // Check this for when to stop calling _path_read_next_entry_.
+
+        s64 Index = 0;
+
+        path_walker() {}
+        path_walker(const string &path) : Path(path) {}
+
+       private:
+        utf16 *Path16 = null;
+
+        char PlatformFileInfo[sizeof(WIN32_FIND_DATAW)]{};  // We don't want to export the symbol.
+
+        // I don't usually use "private" but we seriously don't need to expose this garbage to users...
+        friend void path_read_next_entry(path_walker &walker);
+    };
+
+    void free(path_walker & walker) {
+        free(walker.CurrentFileName);
+    }
+
+    void path_read_next_entry(path_walker & walker);
+
+    // Return an array of all files in a directory.
+    // _recursively_ determines if files in subdirectories are included.
+    //
+    // If you don't want the overhead of us building an array you can use
+    // the path_walker API directly (take a look at the implementation of this function further down the file).
+    // The reason we return an array is because that's what is most useful in the general case.
+    [[nodiscard("Leak")]] array<string> path_walk(const string &path, bool recursively = false);
+}
+
+s32 wchar_size_required(const string &str) {
+    s32 size = MultiByteToWideChar(CP_UTF8, 0, str.Data, (s32) str.Count, null, 0);
+    assert(size != 0);  // _MultiByteToWideChar_ might fail for a number of reasons but we just panic.
+                        // In the future we may want to actually be more helpful with what went wrong...
+    return size;
+}
+
+// Uses the temporary allocator to get a utf16 path from our utf8 string.
+// utf16..................... sigh!
+utf16 *utf8_to_utf16_temp(const string &str) {
+    if (!str.Length) return null;
+
+    s32 size = wchar_size_required(str) + 1;
+    auto *result = allocate_array(utf16, size, Context.Temp);
+    utf8_to_utf16(str.Data, str.Length, result);
+    return result;
+}
+
+#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)                                              \
+    HANDLE handleName = call;                                                                                   \
+    if (handleName == INVALID_HANDLE_VALUE) {                                                                   \
+        string extendedCallSite = sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path);  \
+        defer(free(extendedCallSite));                                                                          \
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite, __FILE__, __LINE__); \
+        return returnOnFail;                                                                                    \
+    }
+
+#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                                                                                       \
+    CREATE_FILE_HANDLE_CHECKED(x, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL), fail); \
+    defer(CloseHandle(x));
+
+string get_path_from_here_to(const string &here, const string &there) {
+    if (find_substring(here, there) == -1) {
+        return there;
+    } else {
+        if (here.Length == there.Length) {
+            return here;
+        } else {
+            string difference = substring(there, here.Length, there.Length);
+            return difference;
+        }
+    }
+}
+
+//
+// EXPORTS BEGIN HERE.
+//
+
+export {
+    constexpr path_split_drive_result path_split_drive(const string &path) {
         if (path.Length >= 2) {
             if (path(0, 2) == "\\\\" && path[2] != '\\') {
                 // It is an UNC path
@@ -126,26 +307,11 @@ export {
         return {"", path};
     }
 
-    // Returns whether a path is absolute.
-    // Trivial in POSIX (starts with '/'), harder on Windows.
-    // For Windows it is absolute if it starts with a slash or backslash (current volume),
-    // or if it begins with a volume letter or UNC-resource.
-    //
-    // e.g.
-    //    /home/user/me       -> true
-    //    C:/Users/User       -> true
-    //    \\host\computer\dir -> true
-    //    ./data/myData       -> false
-    //    ../data/myData      -> false
-    //    data/myData         -> false
-    inline bool path_is_absolute(const string &path) {
+    constexpr bool path_is_absolute(const string &path) {
         auto [_, rest] = path_split_drive(path);
         return rest && path_is_sep(rest[0]);
     }
 
-    // Joins two or more paths.
-    // Ignore the previous parts if a part is absolute.
-    // This is the de facto way to build paths. Takes care of slashes automatically.
     [[nodiscard("Leak")]] string path_join(const array_view<string> &paths) {
         assert(paths.Count >= 2);
 
@@ -197,18 +363,11 @@ export {
         return result;
     }
 
-    [[nodiscard("Leak")]] always_inline string path_join(const string &one, const string &other) {
+    [[nodiscard("Leak")]] string path_join(const string &one, const string &other) {
         auto arr = to_stack_array(one, other);
         return path_join(arr);
     }
 
-    // Normalize a pathname by collapsing redundant separators and up-level references so that A//B, A/B/, A/./B and A/foo/../B all become A/B.
-    // This string manipulation may change the meaning of a path that contains symbolic links.
-    //
-    // On Windows, it converts forward slashes to backward slashes.
-    //
-    // There is an edge case in which the path ends with a slash, both /home/user/dir and /home/user/dir/ mean the same thing.
-    // You can use other functions to check if they are really directories or files (by querying the OS).
     [[nodiscard("Leak")]] string path_normalize(const string &path) {
         if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\")) {
             // In the case of paths with these prefixes:
@@ -269,13 +428,7 @@ export {
         return result;
     }
 
-    // Splits path into two components: head (everything up to the last '/') and tail (the rest).
-    // The resulting head won't end in '/' unless it is the root.
-    //
-    // The Windows version handles \ and drive letters/UNC sharepoints of course.
-    //
-    // Note: The returned strings are substrings so they shouldn't be freed.
-    path_split_result path_split(const string &path) {
+    constexpr path_split_result path_split(const string &path) {
         auto [DriveOrUNC, rest] = path_split_drive(path);
 
         // Set i to index beyond path's last slash
@@ -292,39 +445,17 @@ export {
         return {head, tail};
     }
 
-    // Returns the final component of the path
-    // e.g.
-    //    /home/user/me/     ->
-    //    /home/user/me.txt  -> me.txt
-    //    /home/user/dir     -> dir
-    //
-    // Note: The result is a substring and shouldn't be freed.
-    always_inline string path_base_name(const string &path) {
+    constexpr string path_base_name(const string &path) {
         auto [_, tail] = path_split(path);
         return tail;
     }
 
-    // Returns everything before the final component of the path
-    // e.g.
-    //    /home/user/me/     -> /home/user/me
-    //    /home/user/me.txt  -> /home/user
-    //    /home/user/dir     -> /home/user
-    //
-    // Note: The result is a substring and shouldn't be freed.
-    always_inline string path_directory(const string &path) {
+    constexpr string path_directory(const string &path) {
         auto [head, _] = path_split(path);
         return head;
     }
 
-    // Split a path in root and extension.
-    // The extension is everything starting at the last dot in the last pathname component; the root is everything before that.
-    //
-    //    /home/user/me.txt       -> { "/home/user/me,       ".txt" }
-    //    /home/user/me.data.txt  -> { "/home/user/me.data", "/txt" }
-    //    /home/user/me           -> { "/home/user/me",      "" }
-    //
-    // Note: The returned strings are substrings so they shouldn't be freed.
-    always_inline constexpr path_split_extension_result path_split_extension(const string &path) {
+    constexpr path_split_extension_result path_split_extension(const string &path) {
         return path_split_extension_general(path, '/', '\\', '.');
     }
 
@@ -412,10 +543,6 @@ export {
     }
 
     // @Robustness: Handle directories?
-    //
-    // Copies a file to destination.
-    // Destination can point to another file - in which case it gets overwritten (if the parameter is true)
-    // or a directory - in which case the file name is kept the same or determined by the OS (in the case of duplicate files).
     bool path_copy(const string &path, const string &dest, bool overwrite) {
         if (!path_is_file(path)) return false;
 
@@ -431,10 +558,6 @@ export {
     }
 
     // @Robustness: Handle directories?
-    //
-    // Moves a file to destination.
-    // Destination can point to another file - in which case it gets overwritten (if the parameter is true)
-    // or a directory - in which case the file name is kept the same or determined by the OS (in the case of duplicate files).
     bool path_move(const string &path, const string &dest, bool overwrite) {
         if (!path_is_file(path)) return false;
 
@@ -447,7 +570,6 @@ export {
         return MoveFileExW(utf8_to_utf16_temp(path), utf8_to_utf16_temp(dest), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
     }
 
-    // Renames a file/directory
     bool path_rename(const string &path, const string &newName) {
         if (!path_exists(path)) return false;
 
@@ -457,62 +579,18 @@ export {
         return MoveFileW(utf8_to_utf16_temp(path), utf8_to_utf16_temp(p));
     }
 
-    // A hard link is a way to represent a single file by more than one path.
-    // Hard links continue to work fine if you delete the source file since they use reference counting.
-    // Hard links can be created to files (not directories) only on the same volume.
-    //
-    // Destination must exist, otherwise this function fails.
     bool path_create_hard_link(const string &path, const string &dest) {
         if (!path_is_directory(path)) return false;
         if (!path_is_directory(dest)) return false;
         return CreateHardLinkW(utf8_to_utf16_temp(dest), utf8_to_utf16_temp(path), null);
     }
 
-    // Symbolic links are different from hard links. Hard links do not link paths on different
-    // volumes or file systems, whereas symbolic links may point to any file or directory
-    // irrespective of the volumes on which the link and target reside.
-    //
-    // Hard links always refer to an existing file, whereas symbolic links may contain an
-    // arbitrary path that does not point to anything.
-    //
-    // Destination must exist, otherwise this function fails.
     bool path_create_symbolic_link(const string &path, const string &dest) {
         if (!path_exists(path)) return false;
         if (!path_exists(dest)) return false;
 
         u32 flag = path_is_directory(dest) ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
         return CreateSymbolicLinkW(utf8_to_utf16_temp(dest), utf8_to_utf16_temp(path), flag);
-    }
-
-    // This is used for traversing every file in a directory.
-    // This is not recursive but we define a method which does that further down.
-    //
-    // _Path_ needs to be a valid path before using it.
-    //
-    struct path_walker : non_copyable {
-        string Path;  // Doesn't get cloned, valid as long as the string passed in the constructor is valid
-
-        string CurrentFileName;  // Gets allocated by this object, call free after use to prevent leak
-
-        void *Handle = null;  // null in the beginning, null after calling _path_read_next_entry_ and there were no more files.
-                              // Check this for when to stop calling _path_read_next_entry_.
-
-        s64 Index = 0;
-
-        path_walker() {}
-        path_walker(const string &path) : Path(path) {}
-
-       private:
-        utf16 *Path16 = null;
-
-        char PlatformFileInfo[sizeof(WIN32_FIND_DATAW)]{};  // We don't want to export the symbol.
-
-        // I don't usually use "private" but we seriously don't need to expose this garbage to users...
-        friend void path_read_next_entry(path_walker &walker);
-    };
-
-    void free(path_walker & walker) {
-        free(walker.CurrentFileName);
     }
 
     void path_read_next_entry(path_walker & walker) {
@@ -554,33 +632,30 @@ export {
         } while (walker.CurrentFileName == ".." || walker.CurrentFileName == ".");
         assert(walker.CurrentFileName != ".." && walker.CurrentFileName != ".");
     }
+}
 
-    // This is exposed here so users can see how to implement a simple recursive path walker by themselves without hastle.
-    void path_walk_recursively_impl(const string &path, const string &first, array<string> &result) {
-        assert(path_is_directory(path));
+// This version appends paths to the array _result_. Copy this and modify it to suit your use case.
+void path_walk_recursively_impl(const string &path, const string &first, array<string> &result) {
+    assert(path_is_directory(path));
 
-        auto walker = path_walker(path);
-        defer(free(walker));
+    auto walker = path_walker(path);
+    defer(free(walker));
 
-        while (true) {
-            path_read_next_entry(walker);
-            if (!walker.Handle) break;
+    while (true) {
+        path_read_next_entry(walker);
+        if (!walker.Handle) break;
 
-            string p = path_join(get_path_from_here_to(first, path), walker.CurrentFileName);
-            append(result, p);
+        string p = path_join(get_path_from_here_to(first, path), walker.CurrentFileName);
+        append(result, p);
 
-            if (path_is_directory(p)) {
-                path_walk_recursively_impl(p, first, result);
-            }
+        if (path_is_directory(p)) {
+            path_walk_recursively_impl(p, first, result);
         }
     }
+}
 
-    // Return an array of all files in a directory.
-    // _recursively_ determines if files in subdirectories are included.
-    //
-    // If you don't want the overhead of us building an array you can use the path_walker API directly.
-    // The reason we return an array is because that's what is most readable and useful in the general case.
-    [[nodiscard("Leak")]] array<string> path_walk(const string &path, bool recursively = false) {
+export {
+    [[nodiscard("Leak")]] array<string> path_walk(const string &path, bool recursively) {
         assert(path_is_directory(path));
 
         array<string> result;
@@ -602,7 +677,6 @@ export {
         return result;
     }
 
-    // Reads entire file into memory (no async variant available at the moment).
     [[nodiscard("Leak")]] path_read_entire_file_result path_read_entire_file(const string &path) {
         path_read_entire_file_result fail = {array<byte>{}, false};
         CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), fail);
@@ -621,15 +695,6 @@ export {
         return {result, true};
     }
 
-    // Write content to a file.
-    // _mode_ determines if the content should be appended, overwritten entirely, or just overwritten.
-    //
-    // The difference between Overwrite_Entire and Overwrite:
-    // If the file is 50 bytes and you write 20,
-    // "Overwrite" keeps those 30 bytes at the end
-    // while "Overwrite_Entire" deletes them.
-    //
-    // Returns true on success.
     bool path_write_to_file(const string &path, const string &contents, path_write_mode mode) {
         CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16_temp(path), GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
         defer(CloseHandle(file));

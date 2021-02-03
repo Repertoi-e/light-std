@@ -38,8 +38,8 @@ template <typename... Args>
 void format_test_error(const string &fmtString, Args &&... arguments) {
     counting_writer dummy;
 
-    auto args = fmt_args_on_the_stack(format_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
-    auto f = format_context(&dummy, fmtString, args, test_error_handler);
+    auto args = fmt_args_on_the_stack(fmt_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+    auto f = fmt_context(&dummy, fmtString, args, test_error_handler);
     fmt_parse_and_format(&f);
 }
 
@@ -171,17 +171,17 @@ TEST(format_f64) {
     CHECK_WRITE("0.0", "{:}", 0.0);
     CHECK_WRITE("0.000000", "{:f}", 0.0);
     CHECK_WRITE("0", "{:g}", 0.0);
-    CHECK_WRITE("392.65", "{:}", 392.65);
-    CHECK_WRITE("392.65", "{:g}", 392.65);
-    CHECK_WRITE("392.65", "{:G}", 392.65);
-    CHECK_WRITE("392.650000", "{:f}", 392.65);
-    CHECK_WRITE("392.650000", "{:F}", 392.65);
+    CHECK_WRITE("392.649", "{:}", 392.649);
+    CHECK_WRITE("392.649", "{:g}", 392.649);
+    CHECK_WRITE("392.649", "{:G}", 392.649);
+    CHECK_WRITE("392.649000", "{:f}", 392.649);
+    CHECK_WRITE("392.649000", "{:F}", 392.649);
     CHECK_WRITE("12.500000%", "{:%}", 0.125);
     CHECK_WRITE("12.34%", "{:.2%}", 0.1234432);
 
-    CHECK_WRITE("3.926500e+02", "{0:e}", 392.65);
-    CHECK_WRITE("3.926500E+02", "{0:E}", 392.65);
-    CHECK_WRITE("+0000392.6", "{0:+010.4g}", 392.65);
+    CHECK_WRITE("3.926490e+02", "{0:e}", 392.649);
+    CHECK_WRITE("3.926490E+02", "{0:E}", 392.649);
+    CHECK_WRITE("+0000392.6", "{0:+010.4g}", 392.649);
     CHECK_WRITE("-0x1.500000p+5", "{:a}", -42.0);
     CHECK_WRITE("-0x1.500000P+5", "{:A}", -42.0);
 }
@@ -215,7 +215,7 @@ struct Answer {};
 
 template <>
 struct formatter<Answer> {
-    void format(const Answer &, format_context *f) { write(f, 42); }
+    void format(const Answer &, fmt_context *f) { write(f, 42); }
 };
 
 TEST(format_custom) {
@@ -228,11 +228,11 @@ TEST(precision_rounding) {
     CHECK_WRITE("0", "{:.0f}", 0.01);
     CHECK_WRITE("0", "{:.0f}", 0.1);
     CHECK_WRITE("0.000", "{:.3f}", 0.00049);
-    CHECK_WRITE("0.001", "{:.3f}", 0.0005);
+    CHECK_WRITE("0.001", "{:.3f}", 0.0015);
     CHECK_WRITE("0.001", "{:.3f}", 0.00149);
-    CHECK_WRITE("0.002", "{:.3f}", 0.0015);
-    CHECK_WRITE("1.000", "{:.3f}", 0.9999);
-    CHECK_WRITE("0.00123", "{:.3}", 0.00123);
+    CHECK_WRITE("0.002", "{:.3f}", 0.0025);
+    CHECK_WRITE("0.999", "{:.3f}", 0.9999);
+    CHECK_WRITE("0.00122", "{:.3}", 0.00123);
     CHECK_WRITE("0.1", "{:.16g}", 0.1);
 }
 
@@ -499,8 +499,8 @@ TEST(width) {
     CHECK_WRITE("     42", "{0:7}", 42ul);
     CHECK_WRITE("   -42", "{0:6}", -42ll);
     CHECK_WRITE("     42", "{0:7}", 42ull);
-    CHECK_WRITE("   -1.23", "{0:8}", -1.23);
-    CHECK_WRITE("    -1.23", "{0:9}", -1.23);
+    CHECK_WRITE("   -0.25", "{0:8}", -0.25);
+    CHECK_WRITE("    -0.25", "{0:9}", -0.25);
     CHECK_WRITE("    0xcafe", "{0:10}", (void *) 0xcafe);
     CHECK_WRITE("x          ", "{0:11}", "x");
     CHECK_WRITE("str         ", "{0:12}", "str");
@@ -528,8 +528,8 @@ TEST(dynamic_width) {
     CHECK_WRITE("     42", "{0:{1}}", 42ul, 7);
     CHECK_WRITE("   -42", "{0:{1}}", -42ll, 6);
     CHECK_WRITE("     42", "{0:{1}}", 42ull, 7);
-    CHECK_WRITE("   -1.23", "{0:{1}}", -1.23, 8);
-    CHECK_WRITE("    -1.23", "{0:{1}}", -1.23, 9);
+    CHECK_WRITE("   -0.25", "{0:{1}}", -0.25, 8);
+    CHECK_WRITE("    -0.25", "{0:{1}}", -0.25, 9);
     CHECK_WRITE("    0xcafe", "{0:{1}}", (void *) 0xcafe, 10);
     CHECK_WRITE("x          ", "{0:{1}}", "x", 11);
     CHECK_WRITE("str         ", "{0:{1}}", "str", 12);
@@ -566,7 +566,7 @@ TEST(precision) {
 }
 
 TEST(benchmark_string) {
-    CHECK_WRITE("1.2340000000:0042:+3.13:str:0x3e8:X:%", "{0:0.10f}:{1:04}:{2:+g}:{3}:{4}:{5:c}:%", 1.234, 42, 3.13,
+    CHECK_WRITE("0.1250000000:0042:+0.25:str:0x3e8:X:%", "{0:0.10f}:{1:04}:{2:+g}:{3}:{4}:{5:c}:%", 0.125, 42, 0.25,
                 "str", (void *) 1000, 'X');
 }
 

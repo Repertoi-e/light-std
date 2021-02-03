@@ -14,7 +14,7 @@ export {
     //
     // template <>
     // struct formatter<T> {
-    //     void format(const T &value, format_context *f) {
+    //     void format(const T &value, fmt_context *f) {
     //         to_writer(f, "v1: {}, v2: {}, ...", value.A, value.B);
     // 		   ...
     // 	   }
@@ -27,16 +27,18 @@ export {
     // Can T be formatted with a custom formatter
     template <typename T>
     concept formattable = requires(T) { {formatter<T>{}}; };
+}
 
-    template <formattable T, typename FC>
-    void format_custom_arg(const void *arg, FC *f) {
-        formatter<types::remove_cvref_t<T>> formatter;
-        formatter.format(*(const T *) (arg), f);
-    }
+template <formattable T, typename FC>
+void call_formatter_on_custom_arg(const void *arg, FC *f) {
+    formatter<types::remove_cvref_t<T>> formatter;
+    formatter.format(*(const T *) (arg), f);
+}
 
+export {
     // Contains a value of any type
     template <typename FC>
-    struct value {
+    struct fmt_value {
         struct custom {
             void *Data;
             void (*FormatFunc)(const void *arg, FC *f);
@@ -53,16 +55,17 @@ export {
             custom Custom;
         };
 
-        value(s64 v = 0) : S64(v) {}
-        value(u64 v) : U64(v) {}
-        value(f64 v) : F64(v) {}
-        value(const void *v) : Pointer(v) {}
-        value(const string &v) : String(v) {}
+        fmt_value(s64 v = 0) : S64(v) {}
+        fmt_value(bool v) : S64(v) {}  // We store bools in S64
+        fmt_value(u64 v) : U64(v) {}
+        fmt_value(f64 v) : F64(v) {}
+        fmt_value(const void *v) : Pointer(v) {}
+        fmt_value(const string &v) : String(v) {}
 
         template <typename T>
-        value(const T *v) {
+        fmt_value(const T *v) {
             Custom.Data = (void *) v;
-            Custom.FormatFunc = format_custom_arg<T, FC>;
+            Custom.FormatFunc = call_formatter_on_custom_arg<T, FC>;
         }
     };
 
@@ -72,7 +75,7 @@ export {
     template <typename FC>
     struct fmt_arg {
         fmt_type Type = fmt_type::None;
-        value<FC> Value;
+        fmt_value<FC> Value;
     };
 
     // Maps formatting arguments to types that can be used to construct a fmt_value.
@@ -101,7 +104,7 @@ export {
             static_assert(types::is_same<T, void *>, "Formatting of non-void pointers is disallowed");
             return (const void *) v;
         } else if constexpr (types::is_same<bool, T>) {
-            return (s64) v;
+            return (bool) v;
         } else if constexpr (types::is_signed_integral<T>) {
             return (s64) v;
         } else if constexpr (types::is_unsigned_integral<T>) {
@@ -125,12 +128,12 @@ export {
     constexpr auto fmt_mapped_type_constant_v = fmt_internal::type_constant_v<decltype(fmt_map_arg(types::declval<T>()))>;
 
     template <typename FC, typename T>
-    fmt_arg<FC> fmt_make_arg(const T &v) { return {fmt_mapped_type_constant_v<T>, value<FC>(fmt_map_arg(v))}; }
+    fmt_arg<FC> fmt_make_arg(const T &v) { return {fmt_mapped_type_constant_v<T>, fmt_value<FC>(fmt_map_arg(v))}; }
 
     template <typename FC, bool IsPacked, typename T>
     auto fmt_make_arg(const T &v) {
         if constexpr (IsPacked) {
-            return value<FC>(fmt_map_arg(v));  // We either pack values (we know their types in the fmg_args array)
+            return fmt_value<FC>(fmt_map_arg(v));  // We either pack values (we know their types in the fmg_args array)
         } else {
             return fmt_make_arg<FC>(v);  // .. or we don't have enough bits in the integer for everybody's type
                                          // and we store an array of fmt_args instead
@@ -148,7 +151,7 @@ export {
             case fmt_type::U64:
                 return visitor(ar.Value.U64);
             case fmt_type::Bool:
-                return visitor(ar.Value.S64 != 0);
+                return visitor(ar.Value.S64 != 0);  // We store bools in S64
             case fmt_type::F64:
                 return visitor(ar.Value.F64);
             case fmt_type::String:
@@ -182,7 +185,7 @@ export {
         static constexpr s64 NUM_ARGS = sizeof...(Args);
         static constexpr bool IS_PACKED = NUM_ARGS < fmt_internal::MAX_PACKED_ARGS;
 
-        using T = types::select_t<IS_PACKED, value<FC>, fmt_arg<FC>>;
+        using T = types::select_t<IS_PACKED, fmt_value<FC>, fmt_arg<FC>>;
         stack_array<T, NUM_ARGS> Data;
 
         u64 Types;
@@ -193,7 +196,7 @@ export {
     };
 
     struct fmt_args {
-        void *Data;  // (value *) or (arg *) if not packed
+        void *Data;  // (fmt_value *) or (fmt_arg *) if not packed
         s64 Count = 0;
         u64 Types = 0;
 

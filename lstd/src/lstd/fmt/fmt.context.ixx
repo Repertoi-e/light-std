@@ -5,7 +5,7 @@ module;
 #include "format_float.inl"
 #include "parse_error_handler.h"
 
-export module fmt.format_context;
+export module fmt.context;
 
 import fmt.arg;
 import fmt.specs;
@@ -15,50 +15,192 @@ export {
     // This writer is kinda specific.
     // We have a pointer (_Out_) to a writer that gets the writes with certain formatting behaviour.
     //
-    // We implement _format_context_write_ (the function that writer uses) to get format specs into account
-    // (width, fill char, padding direction etc.) but we provide _write_no_specs(...)_ which directly call Out->write(...).
+    // We implement write() to take format specs into account
+    // (width, fill char, padding direction etc.) but we provide _write_no_specs(...)_
+    // which directly call Out->write(...).
     //
     // This object also has functions for writing pointers, integers and floats.
     // You can use this without a format string but just directly to write formatted stuff to an output writer.
-    // @TODO: Separate fmt_parse_context from format_context for less confusion.
-    struct format_context : writer {
-        writer *Out;
-        fmt_args Args;
-        fmt_parse_context Parse;
+    //
+    // The reason we combine the writer and the "context" (the arguments and the parsed specs) is
+    // because it's convenient to have everything in one place (e.g. when writing custom formatters).
+    struct fmt_context : writer {
+        writer *Out;  // The real output
+
+        fmt_args Args;            // Storage for the arguments (gets set by the constructor)
+        fmt_parse_context Parse;  // Holds the format string (and how much we've parsed) and some
+                                  // state about the argument ids (when using automatic indexing).
 
         // null if no specs were parsed.
         // When writing a custom formatter use this for checking specifiers.
         // e.g.
-        //     if (f->Specs && f->Specs...) { ... }
+        //     if (f->Specs && f->Specs->Hash) { ... }
+        //
+        // These are "dynamic" format specs because width or precision might have
+        // been specified by another argument (instead of being a literal in the format string).
         dynamic_format_specs *Specs = null;
 
-        format_context() {} // @TODO: Can we remove this?
+        fmt_context() {}  // @TODO: Can we remove this?
 
-        format_context(writer *out, const string &fmtString, const fmt_args &args, parse_error_handler_t errorHandlerFunc)
+        fmt_context(writer *out, const string &fmtString, const fmt_args &args, parse_error_handler_t errorHandlerFunc)
             : Out(out), Args(args), Parse(fmtString, errorHandlerFunc) {}
 
         void write(const byte *data, s64 count) override;
         void flush() override { Out->flush(); }
+
+        // The position tells where to point the caret in the format string, so it is clear where exactly the error happened.
+        // If left as -1 we calculate using the current Parse.It.
+        //
+        // (We may want to pass a different position if we are in the middle of parsing and the It is not pointing at the right place).
+        //
+        // This is only used to provide useful error messages.
+        inline void on_error(const string &message, s64 position = -1) { Parse.on_error(message, position); }
     };
 
-    // The position tells where to point the caret in the format string, so it is clear where exactly the error happened.
-    // If left as -1 we calculate using the current Parse.It.
-    // We may want to pass a different position if we are in the middle of parsing and the It is not pointing at the right place.
-    inline void on_error(format_context * f, const string &message, s64 position = -1) { on_error(&f->Parse, message, position); }
+    // Writes an unsigned integer with given formatting specs.
+    // We format signed integers by writing "-" if the integer is negative and then calling this routine as if the integer is positive.
+    void write_u64(fmt_context * f, u64 value, bool negative, fmt_specs specs);
 
-    // Writes an integer with given formatting specs
-    void write_u64(format_context * f, u64 value, bool negative, format_specs specs);
+    // Writes a float with given formatting specs.
+    // The float formatting routine we used is based on stb_sprintf.
+    void write_f64(fmt_context * f, f64 value, fmt_specs specs);
 
-    // Writes a float with given formatting specs
-    void write_f64(format_context * f, f64 value, format_specs specs);
-
-    // We need this overload for format_context because otherwise the pointer overload
+    // We need this overload for fmt_context because otherwise the pointer overload
     // of write_no_specs gets chosen (utf8* gets casted automatically to void*.. sigh!)
-    inline void write(format_context * f, const utf8 *str) { f->write((const byte *) str, c_string_length(str)); }
-    inline void write(format_context * f, const char8_t *str) { f->write((const byte *) str, c_string_length(str)); }
+    inline void write(fmt_context * f, const utf8 *str) { f->write((const byte *) str, c_string_length(str)); }
+    inline void write(fmt_context * f, const char8_t *str) { f->write((const byte *) str, c_string_length(str)); }
+
+    // General formatting routimes which take specifiers into account:
+    template <types::is_integral T>
+    void write(fmt_context * f, T value);
+    template <types::is_floating_point T>
+    void write(fmt_context * f, T value);
+    void write(fmt_context * f, bool value);
+    void write(fmt_context * f, const void *value);
+
+    // These routines write the value directly, without looking at formatting specs.
+    // Useful when writing a custom formatter and there were specifiers but they
+    // shouldn't propagate downwards when printing simpler types.
+    template <types::is_integral T>
+    void write_no_specs(fmt_context * f, T value);
+    template <types::is_floating_point T>
+    void write_no_specs(fmt_context * f, T value);
+    inline void write_no_specs(fmt_context * f, bool value);
+    inline void write_no_specs(fmt_context * f, const void *value);
+
+    inline void write_no_specs(fmt_context * f, const string &str) { write(f->Out, *((array<byte> *) &str)); }
+
+    // We need this overload for fmt_context because otherwise the pointer overload
+    // of write_no_specs gets chosen (utf8* gets casted automatically to void*.. sigh!)
+    inline void write_no_specs(fmt_context * f, const utf8 *str) { write(f->Out, (const byte *) str, c_string_length(str)); }
+    inline void write_no_specs(fmt_context * f, const char8_t *str) { write(f->Out, (const byte *) str, c_string_length(str)); }
+
+    inline void write_no_specs(fmt_context * f, const utf8 *str, s64 size) { write(f->Out, (const byte *) str, size); }
+    inline void write_no_specs(fmt_context * f, utf32 cp) { write(f->Out, cp); }
+
+    struct format_struct_helper;
+    struct format_tuple_helper;
+    struct format_list_helper;
+
+    //
+    // The following three classes are used to quickly collect elements and then output them in a pretty way.
+    //
+    // e.g. usage for a custom quaternion formatter:
+    //     ...
+    //     fmt_tuple(f, "quat").field(src.s)->field(src.i)->field(src.j)->field(src.k)->finish();
+    // Outputs: "quat(1.00, 2.00, 3.00, 4.00)"
+    //
+    // These are inspired by Rust's API <3
+
+    // Outputs in the following format: *name* { field1: value, field2: value, ... }
+    // e.g.     vector3(x: 1.00, y: 4.00, z: 9.00)
+    template <typename FC>
+    struct format_struct {
+        struct field_entry {
+            string Name;
+            fmt_arg<FC> Arg;
+        };
+
+        fmt_context *F;
+        string Name;
+        array<field_entry> Fields;
+        bool NoSpecs;  // Write the result without taking into account specs for individual arguments
+
+        format_struct(fmt_context *f, const string &name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {}
+
+        // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
+        ~format_struct() { free(Fields); }
+
+        template <typename T>
+        format_struct *field(const string &name, const T &value) {
+            append(Fields, {name, fmt_make_arg<FC>(value)});
+            return this;
+        }
+
+        void finish();
+    };
+
+    // Outputs in the following format: *name*(element1, element2, ...)
+    // e.g.     read_file_result("Hello world!", true)
+    template <typename FC>
+    struct format_tuple {
+        FC *F;
+        string Name;
+        array<fmt_arg<FC>> Fields;
+        bool NoSpecs;  // Write the result without taking into account specs for individual arguments
+
+        format_tuple(FC *f, const string &name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {}
+
+        // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
+        ~format_tuple() { free(Fields); }
+
+        template <typename T>
+        format_tuple *field(const T &value) {
+            append(Fields, fmt_make_arg<FC>(value));
+            return this;
+        }
+
+        void finish();
+    };
+
+    // Outputs in the following format: [element1, element2, ...]
+    // e.g.     ["This", "is", "an", "array", "of", "strings"]
+    template <typename FC>
+    struct format_list {
+        FC *F;
+        array<fmt_arg<FC>> Fields;
+        bool NoSpecs;  // Write the result without taking into account specs for individual arguments
+
+        format_list(FC *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
+
+        // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
+        ~format_list() { free(Fields); }
+
+        template <typename T>
+        format_list *entries(const array_view<T> &values) {
+            For(values) append(Fields, fmt_make_arg<FC>(it));
+            return this;
+        }
+
+        template <typename T>
+        format_list *entries(T *begin, T *end) {
+            return entries(array_view<T>(begin, end - begin));
+        }
+
+        template <typename T>
+        format_list *entries(T *begin, s64 count) {
+            return entries(array_view<T>(begin, count));
+        }
+
+        void finish();
+    };
+
+    //
+    // The implementations of the above functions follow:
+    //
 
     template <types::is_integral T>
-    void write(format_context * f, T value) {
+    void write(fmt_context * f, T value) {
         u64 absValue = (u64) value;
         bool negative = sign_bit(value);
         if (negative) absValue = 0 - absValue;
@@ -71,7 +213,7 @@ export {
     }
 
     template <types::is_floating_point T>
-    void write(format_context * f, T value) {
+    void write(fmt_context * f, T value) {
         if (f->Specs) {
             write_f64(f, (f64) value, *f->Specs);
         } else {
@@ -79,25 +221,8 @@ export {
         }
     }
 
-    void write(format_context * f, bool value);
-
-    // We check for specs here, so the non-spec version just calls this one...
-    void write(format_context * f, const void *value);
-
-    // Write directly, without looking at formatting specs
-    inline void write_no_specs(format_context * f, const string &str) { write(f->Out, *((array<byte> *) &str)); }
-
-    // We need this overload for format_context because otherwise the pointer overload
-    // of write_no_specs gets chosen (utf8* gets casted automatically to void*.. sigh!)
-    inline void write_no_specs(format_context * f, const utf8 *str) { write(f->Out, (const byte *) str, c_string_length(str)); }
-    inline void write_no_specs(format_context * f, const char8_t *str) { write(f->Out, (const byte *) str, c_string_length(str)); }
-
-    inline void write_no_specs(format_context * f, const utf8 *str, s64 size) { write(f->Out, (const byte *) str, size); }
-
-    inline void write_no_specs(format_context * f, utf32 cp) { write(f->Out, cp); }
-
     template <types::is_integral T>
-    void write_no_specs(format_context * f, T value) {
+    void write_no_specs(fmt_context * f, T value) {
         u64 absValue = (u64) value;
         bool negative = sign_bit(value);
         if (negative) absValue = 0 - absValue;
@@ -105,26 +230,26 @@ export {
     }
 
     template <types::is_floating_point T>
-    void write_no_specs(format_context * f, T value) {
+    void write_no_specs(fmt_context * f, T value) {
         write_f64(f, (f64) value, {});
     }
 
-    inline void write_no_specs(format_context * f, bool value) { write_no_specs(f, value ? 1 : 0); }
+    inline void write_no_specs(fmt_context * f, bool value) { write_no_specs(f, value ? 1 : 0); }
 
-    inline void write_no_specs(format_context * f, const void *value) {
+    inline void write_no_specs(fmt_context * f, const void *value) {
         auto *old = f->Specs;
         f->Specs = null;
         write(f, value);
         f->Specs = old;
     }
 
-    namespace internal {
+    // Used to dispatch values to write/write_no_specs functions. Used in conjunction with fmt_visit_fmt_arg.
     template <typename FC>
-    struct format_context_visitor {
+    struct fmt_context_visitor {
         FC *F;
         bool NoSpecs;
 
-        format_context_visitor(FC *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
+        fmt_context_visitor(FC *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
 
         void operator()(s32 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(u32 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
@@ -134,161 +259,76 @@ export {
         void operator()(f64 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(const string &value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(const void *value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
-        void operator()(const typename value<FC>::custom &custom) { custom.FormatFunc(custom.Data, F); }
+        void operator()(const typename fmt_value<FC>::custom &custom) { custom.FormatFunc(custom.Data, F); }
 
         void operator()(types::unused) {
-            on_error(F, "Internal error while formatting");
+            F->on_error("Internal error while formatting");
             assert(false);
         }
     };
-    }  // namespace internal
 
     template <typename FC>
-    struct format_struct_helper {
-        struct field_entry {
-            string Name;
-            fmt_arg<FC> Arg;
-        };
-
-        format_context *F;
-        string Name;
-        array<field_entry> Fields;
-        bool NoSpecs;  // Write the result without taking into account specs for individual arguments
-
-        format_struct_helper(format_context *f, const string &name, bool noSpecs) : F(f), Name(name), NoSpecs(noSpecs) {}
-
-        // I know we are against hidden freeing but having this destructor is actually really fine.
-        // Things would be a whole more ugly and complicated without it.
-        ~format_struct_helper() { free(Fields); }
-
-        template <typename T>
-        format_struct_helper *field(const string &name, const T &value) {
-            append(Fields, {name, fmt_make_arg<FC>(value)});
-            return this;
-        }
-
-        void finish() {
-            write_no_specs(F, Name);
-            write_no_specs(F, " {");
-
-            auto *begin = Fields.begin();
-            if (begin != Fields.end()) {
-                write_no_specs(F, " ");
-                write_field(begin);
-                ++begin;
-                while (begin != Fields.end()) {
-                    write_no_specs(F, ", ");
-                    write_field(begin);
-                    ++begin;
-                }
-            }
-            write_no_specs(F, " }");
-        }
-
-       private:
-        void write_field(field_entry *entry) {
+    void format_struct<FC>::finish() {
+        auto write_field = [&](field_entry *entry) {
             write_no_specs(F, entry->Name);
             write_no_specs(F, ": ");
-            fmt_visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), entry->Arg);
-        }
-    };
+            fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), entry->Arg);
+        };
 
-    template <typename FC>
-    struct format_tuple_helper {
-        FC *F;
-        string Name;
-        array<fmt_arg<FC>> Fields;
-        bool NoSpecs;  // Write the result without taking into account specs for individual arguments
+        write_no_specs(F, Name);
+        write_no_specs(F, " {");
 
-        format_tuple_helper(FC *f, const string &name, bool noSpecs) : F(f), Name(name), NoSpecs(noSpecs) {}
-
-        // I know we are against hidden freeing but having this destructor is actually really fine.
-        // Things would be a whole more ugly and complicated without it.
-        ~format_tuple_helper() { free(Fields); }
-
-        template <typename T>
-        format_tuple_helper *field(const T &value) {
-            append(Fields, fmt_make_arg<FC>(value));
-            return this;
-        }
-
-        void finish() {
-            write_no_specs(F, Name);
-            write_no_specs(F, "(");
-
-            auto *begin = Fields.begin();
-            if (begin != Fields.end()) {
-                fmt_visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), *begin);
+        auto *begin = Fields.begin();
+        if (begin != Fields.end()) {
+            write_no_specs(F, " ");
+            write_field(begin);
+            ++begin;
+            while (begin != Fields.end()) {
+                write_no_specs(F, ", ");
+                write_field(begin);
                 ++begin;
-                while (begin != Fields.end()) {
-                    write_no_specs(F, ", ");
-                    fmt_visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), *begin);
-                    ++begin;
-                }
             }
-            write_no_specs(F, ")");
         }
-    };
+        write_no_specs(F, " }");
+    }
 
     template <typename FC>
-    struct format_list_helper {
-        FC *F;
-        array<fmt_arg<FC>> Fields;
-        bool NoSpecs;  // Write the result without taking into account specs for individual arguments
+    void format_tuple<FC>::finish() {
+        write_no_specs(F, Name);
+        write_no_specs(F, "(");
 
-        format_list_helper(FC *f, bool noSpecs) : F(f), NoSpecs(noSpecs) {}
-
-        // I know we are against hidden freeing but having this destructor is actually really fine.
-        // Things would be a whole more ugly and complicated without it.
-        ~format_list_helper() { free(Fields); }
-
-        template <typename T>
-        format_list_helper *entries(const array_view<T> &values) {
-            For(values) append(Fields, fmt_make_arg<FC>(it));
-            return this;
-        }
-
-        template <typename T>
-        format_list_helper *entries(T *begin, T *end) {
-            return entries(array_view<T>(begin, end - begin));
-        }
-
-        template <typename T>
-        format_list_helper *entries(T *begin, s64 count) {
-            return entries(array_view<T>(begin, count));
-        }
-
-        void finish() {
-            write_no_specs(F, "[");
-
-            auto *begin = Fields.begin();
-            if (begin != Fields.end()) {
-                fmt_visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), *begin);
+        auto *begin = Fields.begin();
+        if (begin != Fields.end()) {
+            fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *begin);
+            ++begin;
+            while (begin != Fields.end()) {
+                write_no_specs(F, ", ");
+                fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *begin);
                 ++begin;
-                while (begin != Fields.end()) {
-                    write_no_specs(F, ", ");
-                    fmt_visit_fmt_arg(internal::format_context_visitor(F, NoSpecs), *begin);
-                    ++begin;
-                }
             }
-            write_no_specs(F, "]");
         }
-    };
+        write_no_specs(F, ")");
+    }
 
-    // _noSpecs_ means don't take specifiers into account when writing individual arguments in the end
-    // These return an object which collects elements and then outputs them in the following way:
-    // struct:    *name* { field1: value, field2: value, ... }
-    // tuple:     *name*(element1, element2, ...)
-    // list:      [element1, element2, ...]
     template <typename FC>
-    auto format_struct(FC * f, const string &name, bool noSpecs = true) { return format_struct_helper(f, name, noSpecs); }
-    template <typename FC>
-    auto format_tuple(FC * f, const string &name, bool noSpecs = true) { return format_tuple_helper(f, name, noSpecs); }
-    template <typename FC>
-    auto format_list(FC * f, bool noSpecs = true) { return format_list_helper(f, noSpecs); }
+    void format_list<FC>::finish() {
+        write_no_specs(F, "[");
+
+        auto *begin = Fields.begin();
+        if (begin != Fields.end()) {
+            fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *begin);
+            ++begin;
+            while (begin != Fields.end()) {
+                write_no_specs(F, ", ");
+                fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *begin);
+                ++begin;
+            }
+        }
+        write_no_specs(F, "]");
+    }
 }
 
-file_scope utf8 DIGITS[] =
+utf8 DIGITS[] =
     "0001020304050607080910111213141516171819"
     "2021222324252627282930313233343536373839"
     "4041424344454647484950515253545556575859"
@@ -296,7 +336,7 @@ file_scope utf8 DIGITS[] =
     "8081828384858687888990919293949596979899";
 
 template <typename UInt>
-file_scope utf8 *format_uint_decimal(utf8 *buffer, UInt value, s64 formattedSize, const string &thousandsSep = "") {
+utf8 *format_uint_decimal(utf8 *buffer, UInt value, s64 formattedSize, const string &thousandsSep = "") {
     u32 digitIndex = 0;
 
     buffer += formattedSize;
@@ -332,7 +372,7 @@ file_scope utf8 *format_uint_decimal(utf8 *buffer, UInt value, s64 formattedSize
 }
 
 template <u32 BASE_BITS, typename UInt>
-file_scope utf8 *format_uint_base(utf8 *buffer, UInt value, s64 formattedSize, bool upper = false) {
+utf8 *format_uint_base(utf8 *buffer, UInt value, s64 formattedSize, bool upper = false) {
     buffer += formattedSize;
     do {
         const utf8 *digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
@@ -345,12 +385,12 @@ file_scope utf8 *format_uint_base(utf8 *buffer, UInt value, s64 formattedSize, b
 // Writes pad code points and the actual contents with f(),
 // _fSize_ needs to be the size of the output from _f_ in code points (in order to calculate padding properly)
 template <typename F>
-file_scope void write_padded_helper(format_context *f, const format_specs &specs, F &&func, s64 fSize) {
+void write_padded_helper(fmt_context *f, const fmt_specs &specs, F &&func, s64 fSize) {
     u32 padding = (u32)(specs.Width > fSize ? specs.Width - fSize : 0);
-    if (specs.Align == alignment::RIGHT) {
+    if (specs.Align == fmt_alignment::RIGHT) {
         For(range(padding)) write_no_specs(f, specs.Fill);
         func();
-    } else if (specs.Align == alignment::CENTER) {
+    } else if (specs.Align == fmt_alignment::CENTER) {
         u32 leftPadding = padding / 2;
         For(range(leftPadding)) write_no_specs(f, specs.Fill);
         func();
@@ -361,7 +401,7 @@ file_scope void write_padded_helper(format_context *f, const format_specs &specs
     }
 }
 
-void write_helper(format_context *f, const byte *data, s64 size) {
+void write_helper(fmt_context *f, const byte *data, s64 size) {
     if (!f->Specs) {
         write_no_specs(f, (const utf8 *) data, size);
         return;
@@ -373,7 +413,7 @@ void write_helper(format_context *f, const byte *data, s64 size) {
             return;
         }
         if (f->Specs->Type != 's') {
-            on_error(f, "Invalid type specifier for a string", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
+            f->on_error("Invalid type specifier for a string", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
             return;
         }
     }
@@ -391,12 +431,12 @@ void write_helper(format_context *f, const byte *data, s64 size) {
         f, *f->Specs, [&]() { write_no_specs(f, (const utf8 *) data, size); }, length);
 }
 
-void format_context::write(const byte *data, s64 count) { write_helper(this, data, count); }
+void fmt_context::write(const byte *data, s64 count) { write_helper(this, data, count); }
 
 // @Threadsafety ???
-file_scope utf8 U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
+utf8 U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
 
-void write(format_context *f, bool value) {
+void write(fmt_context *f, bool value) {
     if (f->Specs && f->Specs->Type) {
         write(f, value ? 1 : 0);
     } else {
@@ -404,9 +444,9 @@ void write(format_context *f, bool value) {
     }
 }
 
-void write(format_context *f, const void *value) {
+void write(fmt_context *f, const void *value) {
     if (f->Specs && f->Specs->Type && f->Specs->Type != 'p') {
-        on_error(f, "Invalid type specifier for a pointer", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
+        f->on_error("Invalid type specifier for a pointer", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
         return;
     }
 
@@ -427,12 +467,12 @@ void write(format_context *f, const void *value) {
         return;
     }
 
-    format_specs specs = *f->Specs;
-    if (specs.Align == alignment::NONE) specs.Align = alignment::RIGHT;
+    fmt_specs specs = *f->Specs;
+    if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
     write_padded_helper(f, specs, func, numDigits + 2);
 }
 
-void write_u64(format_context *f, u64 value, bool negative, format_specs specs) {
+void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs) {
     utf8 type = specs.Type;
     if (!type) type = 'd';
 
@@ -446,8 +486,8 @@ void write_u64(format_context *f, u64 value, bool negative, format_specs specs) 
     } else if (to_lower(type) == 'x') {
         numDigits = count_digits<4>(value);
     } else if (type == 'c') {
-        if (specs.Align == alignment::NUMERIC || specs.Sign != fmt_sign::NONE || specs.Hash) {
-            on_error(f, "Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", f->Parse.It.Data - f->Parse.FormatString.Data);
+        if (specs.Align == fmt_alignment::NUMERIC || specs.Sign != fmt_sign::NONE || specs.Hash) {
+            f->on_error("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", f->Parse.It.Data - f->Parse.FormatString.Data);
             return;
         }
         auto cp = (utf32) value;
@@ -455,7 +495,7 @@ void write_u64(format_context *f, u64 value, bool negative, format_specs specs) 
             f, specs, [&]() { write_no_specs(f, cp); }, get_size_of_cp(cp));
         return;
     } else {
-        on_error(f, "Invalid type specifier for an integer", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
+        f->on_error("Invalid type specifier for an integer", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
         return;
     }
 
@@ -485,7 +525,7 @@ void write_u64(format_context *f, u64 value, bool negative, format_specs specs) 
 
     s64 formattedSize = prefix.Length + numDigits;
     s64 padding = 0;
-    if (specs.Align == alignment::NUMERIC) {
+    if (specs.Align == fmt_alignment::NUMERIC) {
         if (specs.Width > formattedSize) {
             padding = specs.Width - formattedSize;
             formattedSize = specs.Width;
@@ -495,7 +535,7 @@ void write_u64(format_context *f, u64 value, bool negative, format_specs specs) 
         padding = (u32) specs.Precision - numDigits;
         specs.Fill = '0';
     }
-    if (specs.Align == alignment::NONE) specs.Align = alignment::RIGHT;
+    if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
 
     type = (utf8) to_lower(type);
     if (type == 'd') {
@@ -555,12 +595,12 @@ void write_u64(format_context *f, u64 value, bool negative, format_specs specs) 
 }
 
 // Writes a float with given formatting specs
-void write_f64(format_context *f, f64 value, format_specs specs) {
+void write_f64(fmt_context *f, f64 value, fmt_specs specs) {
     utf8 type = specs.Type;
     if (type) {
         utf8 lower = (utf8) to_lower(type);
         if (lower != 'g' && lower != 'e' && lower != '%' && lower != 'f' && lower != 'a') {
-            on_error(f, "Invalid type specifier for a float", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
+            f->on_error("Invalid type specifier for a float", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
             return;
         }
     } else {
@@ -641,15 +681,15 @@ void write_f64(format_context *f, f64 value, format_specs specs) {
 
     if (percentage) append(formatBuffer, '%');
 
-    if (specs.Align == alignment::NUMERIC) {
+    if (specs.Align == fmt_alignment::NUMERIC) {
         if (sign) {
             write_no_specs(f, sign);
             sign = 0;
             if (specs.Width) --specs.Width;
         }
-        specs.Align = alignment::RIGHT;
-    } else if (specs.Align == alignment::NONE) {
-        specs.Align = alignment::RIGHT;
+        specs.Align = fmt_alignment::RIGHT;
+    } else if (specs.Align == fmt_alignment::NONE) {
+        specs.Align = fmt_alignment::RIGHT;
     }
 
     auto formattedSize = formatBuffer.Count + (sign ? 1 : 0);

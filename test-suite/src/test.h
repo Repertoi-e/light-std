@@ -8,7 +8,7 @@
 import path;
 
 import fmt;
-import fmt.format_context;
+import fmt.context;
 #include <lstd/fmt/formatter_specializations.h>  // Modules don't export template specializations so we still need a header for that.
 
 // This is a helper function to shorten the name of test files.

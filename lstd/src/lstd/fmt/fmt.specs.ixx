@@ -14,11 +14,11 @@ export {
     //         in the form '+000000120'. This alignment option is only
     //         valid for numeric types.
     //   '^' - Forces the field to be centered within the available space
-    enum class alignment { NONE = 0,
-                           LEFT,     // <
-                           RIGHT,    // >
-                           NUMERIC,  // =
-                           CENTER    // ^
+    enum class fmt_alignment { NONE = 0,
+                               LEFT,     // <
+                               RIGHT,    // >
+                               NUMERIC,  // =
+                               CENTER    // ^
     };
 
     // The 'sign' option is only valid for numeric types, and can be one of the following:
@@ -37,9 +37,9 @@ export {
         SPACE,
     };
 
-    struct format_specs {
+    struct fmt_specs {
         utf32 Fill = ' ';
-        alignment Align = alignment::NONE;
+        fmt_alignment Align = fmt_alignment::NONE;
 
         fmt_sign Sign = fmt_sign::NONE;
         bool Hash = false;
@@ -51,7 +51,7 @@ export {
     };
 
     // Dynamic means that the width/precision was specified in a separate argument and not as a constant in the format string
-    struct dynamic_format_specs : format_specs {
+    struct dynamic_format_specs : fmt_specs {
         s64 WidthIndex = -1;
         s64 PrecisionIndex = -1;
     };

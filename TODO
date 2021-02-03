@@ -3,14 +3,10 @@ Fix threads once and for all..
 .. also use a lock-free queue in console output instead of a mutex 
 (TEST PERFOMANCE FOR THIS!) 
 ---------------------------------------------------------------------------------
-Rework file:: (handles and paths) api to make more sense.
----------------------------------------------------------------------------------
 Replace with our own math functions in order to not depend on the runtime lib
 (BENCHMARK!)
 ---------------------------------------------------------------------------------
-File I/O and writer implementations
-(File mapping too)
-+ Tests
+File mapping
 ---------------------------------------------------------------------------------
 API for watching directory changes
 ... and an asset catalog system
@@ -20,8 +16,6 @@ inline eat_bytes_result eat_bytes_until_any(bytes buffer, bytes delims) {
     // @Speed Benchmark this!
 
 make_sequence improvements from DataFlow
-
-Modules
 
 
 #define LSTD_DONT_DEFINE_INITIALIZER_LIST // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers
@@ -38,9 +32,6 @@ Tests with parse_guid_options
 // bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true; 
 
 
-Remove traverse functions (bad API)
-
-
 concept Hashable
 ---------------------------------------------------------------------------------
 Speed up hasher
@@ -53,13 +44,13 @@ String iterator doesn't work with constexpr
 Allow users to add more variables to Implicit_Context
 Won't work with headers tho
 ---------------------------------------------------------------------------------
-Implement the other part of platform specific functionality and compile on linux.
----------------------------------------------------------------------------------
-- Locale?
-- Time?
+- Locale?  + fmt
+- Time?    + fmt
 - Random?
 - Regex?
 - Complex numbers?
+---------------------------------------------------------------------------------
+Implement platform specific functionality and compile on linux.
 ---------------------------------------------------------------------------------
 
 LOC:            80394
@@ -70,6 +61,7 @@ LOC:            80394
 				79196
 				79005
 				78949
+				77359
 
 LOC no vendor:  ----
                 28816
@@ -81,6 +73,8 @@ LOC no vendor:  ----
 				27277
 				27221
 				27150
+				25631
 
 LOC no tests:   24972 (2700 less)
 				24768
+				23029 (1700 less)

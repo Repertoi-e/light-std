@@ -5,7 +5,7 @@ namespace fmt {
 
 template <>
 struct formatter<string_builder> {
-    void format(const string_builder &src, format_context *f) {
+    void format(const string_builder &src, fmt_context *f) {
         auto *buffer = &src.BaseBuffer;
         while (buffer) {
             write_no_specs(f, buffer->Data, buffer->Occupied);
@@ -29,7 +29,7 @@ struct formatter<string_builder> {
 // The default format is the same as 'd'.
 template <>
 struct formatter<guid> {
-    void format(const guid &src, format_context *f) {
+    void format(const guid &src, fmt_context *f) {
         char type = 'd';
         if (f->Specs) {
             type = f->Specs->Type;
@@ -39,7 +39,7 @@ struct formatter<guid> {
         type = (char) to_lower(type);
 
         if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
-            on_error(f, "Invalid type specifier for a guid", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
+            f->on_error("Invalid type specifier for a guid", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
             return;
         }
 
@@ -97,19 +97,19 @@ struct formatter<guid> {
 // Formatts array in the following way: [1, 2, ...]
 template <typename T>
 struct formatter<array<T>> {
-    void format(const array<T> &src, format_context *f) { format_list(f).entries(src.Data, src.Count)->finish(); }
+    void format(const array<T> &src, fmt_context *f) { format_list(f).entries(src.Data, src.Count)->finish(); }
 };
 
 // Formatts stack array in the following way: [1, 2, ...]
 template <typename T, s64 N>
 struct formatter<stack_array<T, N>> {
-    void format(const stack_array<T, N> &src, format_context *f) { format_list(f).entries(src.Data, src.Count)->finish(); }
+    void format(const stack_array<T, N> &src, fmt_context *f) { format_list(f).entries(src.Data, src.Count)->finish(); }
 };
 
 // Formatter for thread::id
 template <>
 struct formatter<thread::id> {
-    void format(thread::id src, format_context *f) { write(f, src.Value); }
+    void format(thread::id src, fmt_context *f) { write(f, src.Value); }
 };
 
 //
@@ -119,7 +119,7 @@ struct formatter<thread::id> {
 // Formats vector in the following way: [1, 2, ...]
 template <typename T, s32 Dim, bool Packed>
 struct formatter<vec<T, Dim, Packed>> {
-    void format(const vec<T, Dim, Packed> &src, format_context *f) {
+    void format(const vec<T, Dim, Packed> &src, fmt_context *f) {
         format_list(f).entries(src.Data, src.DIM)->finish();
     }
 };
@@ -131,7 +131,7 @@ struct formatter<vec<T, Dim, Packed>> {
 //  157,   8,   9]
 template <typename T, s64 R, s64 C, bool Packed>
 struct formatter<mat<T, R, C, Packed>> {
-    void format(const mat<T, R, C, Packed> &src, format_context *f) {
+    void format(const mat<T, R, C, Packed> &src, fmt_context *f) {
         write(f, "[");
 
         bool alternate = f->Specs && f->Specs->Hash;
@@ -184,7 +184,7 @@ struct formatter<mat<T, R, C, Packed>> {
 //  157,   8,   9]
 template <typename T, s64 R, s64 C, bool Packed, s64 SR, s64 SC>
 struct formatter<mat_view<mat<T, R, C, Packed>, SR, SC>> {
-    void format(const mat_view<mat<T, R, C, Packed>, SR, SC> &src, format_context *f) {
+    void format(const mat_view<mat<T, R, C, Packed>, SR, SC> &src, fmt_context *f) {
         mat<T, SR, SC, Packed> v = src;
         fmt_to_writer(f, "{}", v);  // yES. We are lazy.
     }
@@ -194,7 +194,7 @@ struct formatter<mat_view<mat<T, R, C, Packed>, SR, SC>> {
 // Alternate (using # specifier): [ 60 deg @ [0, 1, 0] ] (rotation in degrees around axis)
 template <typename T, bool Packed>
 struct formatter<tquat<T, Packed>> {
-    void format(const tquat<T, Packed> &src, format_context *f) {
+    void format(const tquat<T, Packed> &src, fmt_context *f) {
         bool alternate = f->Specs && f->Specs->Hash;
         if (alternate) {
             write(f, "[");
