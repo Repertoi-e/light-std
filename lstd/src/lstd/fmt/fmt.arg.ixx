@@ -1,9 +1,8 @@
 module;
 
-#include "../io.h"
+#include "../memory/string.h"
 
 export module fmt.arg;
-
 export import fmt.fmt_type;
 
 export {

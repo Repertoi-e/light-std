@@ -3,7 +3,6 @@ module;
 #include "../io.h"
 #include "../types/numeric_info.h"
 #include "format_float.inl"
-#include "parse_error_handler.h"
 
 export module fmt.context;
 
@@ -27,9 +26,9 @@ export {
     struct fmt_context : writer {
         writer *Out;  // The real output
 
-        fmt_args Args;            // Storage for the arguments (gets set by the constructor)
         fmt_parse_context Parse;  // Holds the format string (and how much we've parsed) and some
                                   // state about the argument ids (when using automatic indexing).
+        fmt_args Args;            // Storage for the arguments (gets set by the constructor)
 
         // null if no specs were parsed.
         // When writing a custom formatter use this for checking specifiers.
@@ -40,10 +39,7 @@ export {
         // been specified by another argument (instead of being a literal in the format string).
         dynamic_format_specs *Specs = null;
 
-        fmt_context() {}  // @TODO: Can we remove this?
-
-        fmt_context(writer *out, const string &fmtString, const fmt_args &args, parse_error_handler_t errorHandlerFunc)
-            : Out(out), Args(args), Parse(fmtString, errorHandlerFunc) {}
+        fmt_context(writer *out = null, const string &fmtString = "", const fmt_args &args = {}) : Out(out), Args(args), Parse(fmtString) {}
 
         void write(const byte *data, s64 count) override;
         void flush() override { Out->flush(); }

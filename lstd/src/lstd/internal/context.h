@@ -17,9 +17,11 @@ struct array;
 struct os_function_call;
 struct string;
 
-typedef void os_panic_handler_t(const string &message, const array<os_function_call> &callStack);
-
+using panic_handler_t = void (*)(const string &message, const array<os_function_call> &callStack);
 void default_panic_handler(const string &message, const array<os_function_call> &callStack);
+
+using fmt_parse_error_handler_t = void (*)(const string &message, const string &formatString, s64 position);
+void fmt_default_parse_error_handler(const string &message, const string &formatString, s64 position);
 
 //
 // Thread local global variable to control certain behaviours of the program.
@@ -96,14 +98,18 @@ struct context {
     // Gets called when the program encounters an unhandled expection.
     // This can be used to view the stack trace before the program terminates.
     // The default handler prints the crash message and stack trace to _Log_.
-    os_panic_handler_t *PanicHandler = default_panic_handler;
-    bool HandlingPanic;  // Used to avoid infinite looping when handling panics
+    panic_handler_t PanicHandler = default_panic_handler;
+    bool HandlingPanic;  // Used to avoid infinite looping when handling panics. Don't touch!
 
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.
     // By default it points to io::cout (the console).
     writer *Log = internal::g_ConsoleLog;  // We need to do this namespace hack because we can't include writers here with circular dependency..
                                            // In reality it's just "&cout";
+
+    // By default when we encounter an invalid format string we panic the program.
+    // One might want to silence such errors and just continue executing, or redirect the error - like we do in the tests.
+    fmt_parse_error_handler_t FmtParseErrorHandler = fmt_default_parse_error_handler;
 
     // Disable stylized text output (colors, background colors, and bold/italic/strikethrough/underline text).
     // This is useful when logging to a file and not a console. The ansi escape codes look like garbage in files.
@@ -116,7 +122,7 @@ struct context {
 // This used to be const, but with casting and stuff in C++ I don't it's worth the hassle honestly.
 // Const just fights the programmer more than it helps him.
 // Now that allows us to modify the context cleanly without ugly casting.
-// 
+//
 // .. Even though I really really recommend using WITH_CONTEXT_VAR, WITH_ALLOC, WITH_ALIGNMENT
 // since these restore the old value at the end of the scope and in most cases that's what you want.
 inline thread_local context Context;
@@ -180,7 +186,6 @@ inline void *operator new(size_t, void *p) noexcept { return p; }
 #else
 #include <new>
 #endif
-
 
 template <non_void T>
 T *lstd_allocate_impl(s64 count, u32 alignment, allocator alloc, u64 options, const utf8 *file = "", s64 fileLine = -1) {

@@ -4,7 +4,6 @@ module;
 #include "../math.h"
 #include "../memory/array.h"
 #include "../memory/guid.h"
-#include "parse_error_handler.h"
 
 export module fmt;
 
@@ -166,6 +165,40 @@ export import fmt.parse_context;
 export import fmt.context;
 export import fmt.text_style;
 
+export {
+    //
+    // These are the most common functions.
+    // If you are doing something specific, you can look 
+    // into the implementation details further down this file.
+    //
+
+    // Formats to a writer.
+    template <typename... Args>
+    void fmt_to_writer(writer * out, const string &fmtString, Args &&...arguments);
+
+    // Formats to a counting writer and returns the result - how many bytes would be written with the given format string and args.
+    template <typename... Args>
+    s64 fmt_calculate_length(const string &fmtString, Args &&...arguments);
+
+    // Formats to a string. The caller is responsible for freeing.
+    template <typename... Args>
+    [[nodiscard("Leak")]] string sprint(const string &fmtString, Args &&...arguments);
+
+    // Formats to a string. Uses the temporary allocator.
+    template <typename... Args>
+    [[nodiscard("Leak")]] string tsprint(const string &fmtString, Args &&...arguments);
+    
+    // Calls fmt_to_writer on Context.Log - which is usually pointing to the console
+    // but that can be changed to redirect the output!
+    template <typename... Args>
+    void print(const string &fmtString, Args &&...arguments);
+}
+
+// Calls fmt_to_writer on Context.Log - which is usually pointing to the console
+// but that can be changed to redirect the output!
+export template <typename... Args>
+void print(const string &fmtString, Args &&...arguments);
+
 fmt_type get_type(fmt_args ars, s64 index) {
     u64 shift = (u64) index * 4;
     return (fmt_type)((ars.Types & (0xfull << shift)) >> shift);
@@ -312,7 +345,7 @@ export void fmt_parse_and_format(fmt_context *f) {
         }
         if (p->It[0] == '}') {
             // Implicit {} means "get the next argument"
-            currentArg = fmt_get_arg_from_index(f, next_arg_id(p));
+            currentArg = fmt_get_arg_from_index(f, p->next_arg_id());
             if (currentArg.Type == fmt_type::None) return;  // The error was reported in _f->get_arg_from_ref_
 
             fmt_visit_fmt_arg(fmt_context_visitor(f), currentArg);
@@ -384,7 +417,7 @@ export template <typename... Args>
 void fmt_to_writer(writer *out, const string &fmtString, Args &&...arguments) {
     // @TODO: Can we remove this? (the fmt_context{})
     auto args = fmt_args_on_the_stack(fmt_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
-    auto f = fmt_context(out, fmtString, args, default_parse_error_handler);
+    auto f = fmt_context(out, fmtString, args);
 
     fmt_parse_and_format(&f);
     f.flush();

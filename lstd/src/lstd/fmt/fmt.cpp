@@ -1,7 +1,16 @@
+#include "../io.h"
 #include "../math.h"
-#include "formatter.h"
+#include "../memory/guid.h"
+#include "../memory/string_builder.h"
 
-namespace fmt {
+//
+// This file includes useful formatters for some complex types:
+//     string_builder, guid, arrays, thread id, math types.
+//
+// This means you can use them as format arguments directly.
+//
+
+import fmt;
 
 template <>
 struct formatter<string_builder> {
@@ -207,4 +216,35 @@ struct formatter<tquat<T, Packed>> {
         }
     }
 };
-}  // namespace fmt
+
+void fmt_default_parse_error_handler(const string &message, const string &formatString, s64 position) {
+    // An error during formatting occured.
+    // If you are running a debugger it has now hit a breakpoint.
+
+    // Make escape characters appear as they would in a string literal
+    string str = formatString;
+    replace_all(str, '\"', "\\\"");
+    replace_all(str, '\\', "\\\\");
+    replace_all(str, '\a', "\\a");
+    replace_all(str, '\b', "\\b");
+    replace_all(str, '\f', "\\f");
+    replace_all(str, '\n', "\\n");
+    replace_all(str, '\r', "\\r");
+    replace_all(str, '\t', "\\t");
+    replace_all(str, '\v', "\\v");
+
+    string_builder_writer output;
+    fmt_to_writer(&output, "\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
+    fmt_to_writer(&output, "    ... the error happened here:\n");
+    fmt_to_writer(&output, "        {!}{}{!GRAY}\n", str);
+    fmt_to_writer(&output, "        {: >{}} {!} \n\n", "^", position + 1);
+#if defined NDEBUG
+    Context.PanicHandler(output.Builder.combine(), {});
+#else
+    print("{}", combine(output.Builder));
+
+    // More info has been printed to the console but here's the error message:
+    auto errorMessage = message;
+    assert(false);
+#endif
+}

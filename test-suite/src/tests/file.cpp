@@ -126,7 +126,7 @@ TEST(test_introspection) {
 }
 */
 
-#define DO_READ_EVERY_FILE 1
+#define DO_READ_EVERY_FILE 0
 
 #if DO_READ_EVERY_FILE
 TEST(read_every_file_in_project) {

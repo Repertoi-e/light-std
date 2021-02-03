@@ -2,16 +2,16 @@
 
 #include "../test.h"
 
-#define CHECK_WRITE(expected, fmtString, ...)             \
-    {                                                     \
+#define CHECK_WRITE(expected, fmtString, ...)        \
+    {                                                \
         string t = sprint(fmtString, ##__VA_ARGS__); \
-        assert_eq(t, expected);                           \
-        free(t);                                          \
+        assert_eq(t, expected);                      \
+        free(t);                                     \
     }
 
 file_scope string LAST_ERROR;
 
-file_scope void test_error_handler(const string &message, const string &formatString, s64 position) {
+file_scope void test_parse_error_handler(const string &message, const string &formatString, s64 position) {
     LAST_ERROR = message;
 
     // We test visually for the correctness of the ^.
@@ -35,12 +35,14 @@ file_scope void test_error_handler(const string &message, const string &formatSt
 }
 
 template <typename... Args>
-void format_test_error(const string &fmtString, Args &&... arguments) {
+void format_test_error(const string &fmtString, Args &&...arguments) {
     counting_writer dummy;
 
-    auto args = fmt_args_on_the_stack(fmt_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
-    auto f = fmt_context(&dummy, fmtString, args, test_error_handler);
-    fmt_parse_and_format(&f);
+    WITH_CONTEXT_VAR(FmtParseErrorHandler, test_parse_error_handler) {
+        auto args = fmt_args_on_the_stack(fmt_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+        auto f = fmt_context(&dummy, fmtString, args);
+        fmt_parse_and_format(&f);
+    }
 }
 
 #define EXPECT_ERROR(expected, fmtString, ...)   \

@@ -5,11 +5,8 @@
 #include <lstd/memory/hash_table.h>
 #include <lstd/os.h>
 
-import path;
-
 import fmt;
-import fmt.context;
-#include <lstd/fmt/formatter_specializations.h>  // Modules don't export template specializations so we still need a header for that.
+import path;
 
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.
