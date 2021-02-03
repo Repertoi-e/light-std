@@ -35,7 +35,7 @@ approx_helper<T> approx(T arg) {
 
 template <typename T>
 struct formatter<approx_helper<T>> {
-    void format(approx_helper<T> src, void *data) { fmt_to_writer((format_context *) data, "{}", src.Value); }
+    void format(approx_helper<T> src, format_context *f) { fmt_to_writer(f, "{}", src.Value); }
 };
 
 template <typename Linalg>
@@ -68,5 +68,5 @@ approx_helper2<Linalg> approx_vec(const Linalg &arg) {
 
 template <typename T>
 struct formatter<approx_helper2<T>> {
-    void format(approx_helper2<T> src, void *data) { fmt_to_writer((format_context *) data, "{}", src.Object); }
+    void format(approx_helper2<T> src, format_context *f) { fmt_to_writer(f, "{}", src.Object); }
 };

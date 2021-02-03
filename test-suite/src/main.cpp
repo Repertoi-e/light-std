@@ -90,7 +90,7 @@ s32 main() {
     // WITH_ALLOC(allocator(free_list_allocator, allocData)) {
 
     WITH_ALLOC(Context.Temp) {
-        build_test_table();
+        // build_test_table();
         run_tests();
         release_temporary_allocator();
     }

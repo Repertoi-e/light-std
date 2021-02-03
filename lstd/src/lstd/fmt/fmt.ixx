@@ -171,21 +171,22 @@ fmt_type get_type(fmt_args ars, s64 index) {
     return (fmt_type)((ars.Types & (0xfull << shift)) >> shift);
 }
 
-fmt_arg get_arg(fmt_args ars, s64 index) {
+template <typename FC>
+fmt_arg<FC> get_arg(fmt_args ars, s64 index) {
     if (index >= ars.Count) return {};
 
-    if (!(ars.Types & FMT_IS_UNPACKED_BIT)) {
-        if (index > FMT_MAX_PACKED_ARGS) return {};
+    if (!(ars.Types & fmt_internal::IS_UNPACKED_BIT)) {
+        if (index > fmt_internal::MAX_PACKED_ARGS) return {};
 
         auto type = get_type(ars, index);
         if (type == fmt_type::None) return {};
 
-        fmt_arg result;
+        fmt_arg<FC> result;
         result.Type = type;
-        result.Value = ((value *) ars.Data)[index];
+        result.Value = ((value<FC> *) ars.Data)[index];
         return result;
     }
-    return ((fmt_arg *) ars.Data)[index];
+    return ((fmt_arg<FC> *) ars.Data)[index];
 }
 
 struct width_checker {
@@ -235,56 +236,12 @@ struct precision_checker {
 //
 
 export {
-    void fmt_parse_and_format(format_context * f);  // Defined further down
-
-    template <typename... Args>
-    void fmt_to_writer(writer * out, const string &fmtString, Args &&...arguments) {
-        auto args = fmt_args_on_the_stack(((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
-        auto f = format_context(out, fmtString, args, default_parse_error_handler);
-
-        fmt_parse_and_format(&f);
-        f.flush();
-    }
-
-    // Formats to a counting writer and returns the result
-    template <typename... Args>
-    s64 calculate_formatted_size(const string &fmtString, Args &&...arguments) {
-        counting_writer writer;
-        fmt_to_writer(&writer, fmtString, ((Args &&) arguments)...);
-        return writer.Count;
-    }
-
-    // Formats to a string. The caller is responsible for freeing.
-    template <typename... Args>
-    [[nodiscard("Leak")]] string sprint(const string &fmtString, Args &&...arguments) {
-        auto writer = string_builder_writer();
-        fmt_to_writer(&writer, fmtString, ((Args &&) arguments)...);
-
-        string combined = combine(writer.Builder);
-        free(writer);
-
-        return combined;
-    }
-
-    // Formats to a string. Uses the temporary allocator.
-    template <typename... Args>
-    [[nodiscard("Leak")]] string tsprint(const string &fmtString, Args &&...arguments) {
-        WITH_ALLOC(Context.Temp) {
-            return sprint(fmtString, ((Args &&) arguments)...);
-        }
-    }
-
-    // Formats to Context.Log
-    template <typename... Args>
-    void print(const string &fmtString, Args &&...arguments) {
-        fmt_to_writer(Context.Log, fmtString, ((Args &&) arguments)...);
-    }
-
     // Returns an argument from index and reports an error if it is out of bounds.
     // Doesn't support negative indexing! (@Robustness ?)
-    fmt_arg fmt_get_arg_from_index(format_context * f, s64 index) {
+    template <typename FC>
+    fmt_arg<FC> fmt_get_arg_from_index(FC * f, s64 index) {
         if (index < f->Args.Count) {
-            return get_arg(f->Args, index);
+            return get_arg<FC>(f->Args, index);
         }
         on_error(f, "Argument index out of range");
         return {};
@@ -312,7 +269,7 @@ export {
     }
 
     void fmt_parse_and_format(format_context * f) {
-        parse_context *p = &f->Parse;
+        fmt_parse_context *p = &f->Parse;
 
         auto write_until = [&](const utf8 *end) {
             if (!p->It.Count) return;
@@ -339,7 +296,7 @@ export {
             }
         };
 
-        fmt_arg currentArg;
+        fmt_arg<format_context> currentArg;
 
         while (p->It.Count) {
             s64 bracket = find_cp(p->It, '{');
@@ -426,5 +383,49 @@ export {
             }
             ++p->It.Data, --p->It.Count;  // Go to the next byte
         }
+    }
+
+    template <typename... Args>
+    void fmt_to_writer(writer * out, const string &fmtString, Args &&...arguments) {
+        // @TODO: Can we remove this? (the format_context{})
+        auto args = fmt_args_on_the_stack(format_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+        auto f = format_context(out, fmtString, args, default_parse_error_handler);
+
+        fmt_parse_and_format(&f);
+        f.flush();
+    }
+
+    // Formats to a counting writer and returns the result
+    template <typename... Args>
+    s64 calculate_formatted_size(const string &fmtString, Args &&...arguments) {
+        counting_writer writer;
+        fmt_to_writer(&writer, fmtString, ((Args &&) arguments)...);
+        return writer.Count;
+    }
+
+    // Formats to a string. The caller is responsible for freeing.
+    template <typename... Args>
+    [[nodiscard("Leak")]] string sprint(const string &fmtString, Args &&...arguments) {
+        auto writer = string_builder_writer();
+        fmt_to_writer(&writer, fmtString, ((Args &&) arguments)...);
+
+        string combined = combine(writer.Builder);
+        free(writer);
+
+        return combined;
+    }
+
+    // Formats to a string. Uses the temporary allocator.
+    template <typename... Args>
+    [[nodiscard("Leak")]] string tsprint(const string &fmtString, Args &&...arguments) {
+        WITH_ALLOC(Context.Temp) {
+            return sprint(fmtString, ((Args &&) arguments)...);
+        }
+    }
+
+    // Formats to Context.Log
+    template <typename... Args>
+    void print(const string &fmtString, Args &&...arguments) {
+        fmt_to_writer(Context.Log, fmtString, ((Args &&) arguments)...);
     }
 }

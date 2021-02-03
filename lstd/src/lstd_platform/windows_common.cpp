@@ -134,7 +134,6 @@ s32 c_init() {
 // We need to reinit the context after the TLS initalizer fires and resets our state.. sigh.
 // We can't just do it once because global variables might still use the context and TLS fires a bit later.
 s32 tls_init() {
-    release_temporary_allocator();
     init_context();
     return 0;
 }

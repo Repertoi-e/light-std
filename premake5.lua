@@ -6,7 +6,7 @@ newoption {
 newoption {
     trigger = "python",
     value = "path",
-    description = "Path to Python 3.7 (e.g. C:/ProgramData/Anaconda3/, we use C:/ProgramData/Anaconda3/include etc...)"
+    description = "Path to Python 3.7 (e.g. C:/ProgramData/Anaconda3/ etc..., by default we try to find this automatically. We need the subdirectories include and lib)"
 }
 
 workspace "light-std"
@@ -44,6 +44,7 @@ function common_settings()
         staticruntime "On"
         excludes "%{prj.name}/src/windows_no_crt.cpp"
 
+	-- Setup build flags if we are doing no-crt.
     filter { "system:windows", "options:no-crt" }
         defines "BUILD_NO_CRT"
         flags { "NoRuntimeChecks", "NoBufferSecurityCheck" }
@@ -57,6 +58,7 @@ function common_settings()
     filter { "system:windows", "options:no-crt", "kind:ConsoleApp or WindowedApp" }
         entrypoint "main_no_crt"
 
+	-- Setup configurations and optimization level
     filter "configurations:Debug"
         defines "DEBUG"
         symbols "On"
@@ -78,7 +80,7 @@ outputFolder = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 project "lstd"
     location "%{prj.name}"
-    kind "ConsoleApp"
+    kind "StaticLib"
 
     targetdir("bin/" .. outputFolder .. "/%{prj.name}")
     objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
@@ -140,10 +142,6 @@ project "test-suite"
 
     links { "lstd" }
     includedirs { "lstd/src" }
-
-    pchheader "test.h"
-    pchsource "%{prj.name}/src/test.cpp"
-    forceincludes { "test.h" }
     
     common_settings()
 
@@ -170,6 +168,7 @@ project "benchmark"
         links { "benchmark" }
 
 project "game"
+	location "%{prj.name}"
 	location "%{prj.name}"
     kind "ConsoleApp"
 

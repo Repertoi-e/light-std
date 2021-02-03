@@ -8,6 +8,7 @@
 import path;
 
 import fmt;
+import fmt.format_context;
 #include <lstd/fmt/formatter_specializations.h>  // Modules don't export template specializations so we still need a header for that.
 
 // This is a helper function to shorten the name of test files.
@@ -90,6 +91,20 @@ struct test {
 // Key is a file, and array<test> contains all tests.
 inline hash_table<string, array<test>> g_TestTable;
 
-void build_test_table();
+// void build_test_table();
+// #define TEST(name) void test_##name()
 
-#define TEST(name) void test_##name()
+#define _TEST(name)                                                     \
+    struct _MACRO_CONCAT(test_, __LINE__)##_##name {                    \
+        _MACRO_CONCAT(test_, __LINE__)                                  \
+        ##_##name() {                                                   \
+            string shortFile = get_short_file_path(__FILE__);           \
+            append(*g_TestTable[shortFile], {#name, &run});             \
+        }                                                               \
+        static void run();                                              \
+    };                                                                  \
+    static _MACRO_CONCAT(test_, __LINE__)##_##name g_TestStruct_##name; \
+    void _MACRO_CONCAT(test_, __LINE__)##_##name::run()
+
+#define TEST(name) _TEST(name)
+

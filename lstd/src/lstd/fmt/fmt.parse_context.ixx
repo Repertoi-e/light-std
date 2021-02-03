@@ -10,7 +10,7 @@ import fmt.specs;
 import fmt.text_style;
 
 export {
-    struct parse_context {
+    struct fmt_parse_context {
         string FormatString;
         string It;  // How much left we have to parse from the format string
 
@@ -18,40 +18,42 @@ export {
 
         parse_error_handler_t ErrorHandlerFunc = default_parse_error_handler;
 
-        parse_context(const string &formatString, parse_error_handler_t errorHandlerFunc) : FormatString(formatString), It(formatString), ErrorHandlerFunc(errorHandlerFunc) {}
+        fmt_parse_context() {} // @TODO: Can we remove this?
+
+        fmt_parse_context(const string &formatString, parse_error_handler_t errorHandlerFunc) : FormatString(formatString), It(formatString), ErrorHandlerFunc(errorHandlerFunc) {}
     };
 
-    u32 next_arg_id(parse_context * p);
+    u32 next_arg_id(fmt_parse_context * p);
 
     // Note: When parsing, if we reach the end before } or : or whatever we don't report an error.
     // The caller of this should handle that. Returns -1 if an error occured (the error is reported).
-    s64 parse_arg_id(parse_context * p);
+    s64 parse_arg_id(fmt_parse_context * p);
 
     // _argType_ is the type of the argument for which we are parsing the specs.
     // It is used for error checking, e.g, to check if it's numeric when we encounter numeric-only specs.
     //
     // Note: When parsing, if we reach the end before } we don't report an error. The caller of this should handle that.
-    bool parse_fmt_specs(parse_context * p, fmt_type argType, dynamic_format_specs * specs);
+    bool parse_fmt_specs(fmt_parse_context * p, fmt_type argType, dynamic_format_specs * specs);
 
     // @TODO: Return text_style with the bool in a pair
-    bool parse_text_style(parse_context * p, text_style * textStyle);
+    bool parse_text_style(fmt_parse_context * p, text_style * textStyle);
 
     // The position tells where to point the caret in the format string, so it is clear where exactly the error happened.
     // If left as -1 we calculate using the current It.
     // We may want to pass a different position if we are in the middle of parsing and the It is not pointing at the right place.
-    inline void on_error(parse_context * p, const string &message, s64 position = -1) {
+    inline void on_error(fmt_parse_context * p, const string &message, s64 position = -1) {
         if (position == -1) position = p->It.Data - p->FormatString.Data;
         if (p->ErrorHandlerFunc) p->ErrorHandlerFunc(message, p->FormatString, position);
     }
     // Some specifiers require numeric arguments and we do error checking, CUSTOM arguments don't get checked
-    void require_arithmetic_arg(parse_context * p, fmt_type argType, s64 errorPosition = -1) {
+    void require_arithmetic_arg(fmt_parse_context * p, fmt_type argType, s64 errorPosition = -1) {
         assert(argType != fmt_type::None);
         if (argType == fmt_type::Custom) return;
         if (!fmt_is_type_arithmetic(argType)) on_error(p, "Format specifier requires an arithmetic argument", errorPosition);
     }
 
     // Some specifiers require signed numeric arguments and we do error checking, CUSTOM arguments don't get checked
-    void require_signed_arithmetic_arg(parse_context * p, fmt_type argType, s64 errorPosition = -1) {
+    void require_signed_arithmetic_arg(fmt_parse_context * p, fmt_type argType, s64 errorPosition = -1) {
         assert(argType != fmt_type::None);
         if (argType == fmt_type::Custom) return;
 
@@ -62,7 +64,7 @@ export {
     }
 
     // Integer values and pointers aren't allowed to get precision. CUSTOM argument is again, not checked.
-    void check_precision_for_arg(parse_context * p, fmt_type argType, s64 errorPosition = -1) {
+    void check_precision_for_arg(fmt_parse_context * p, fmt_type argType, s64 errorPosition = -1) {
         assert(argType != fmt_type::None);
         if (argType == fmt_type::Custom) return;
         if (fmt_is_type_integral(argType)) {
@@ -73,13 +75,13 @@ export {
         }
     }
 
-    u32 next_arg_id(parse_context * p) {
+    u32 next_arg_id(fmt_parse_context * p) {
         if (p->NextArgID >= 0) return (u32) p->NextArgID++;
         on_error(p, "Cannot switch from manual to automatic argument indexing");
         return 0;
     }
 
-    bool check_arg_id(parse_context * p, u32) {
+    bool check_arg_id(fmt_parse_context * p, u32) {
         if (p->NextArgID > 0) {
             on_error(p, "Cannot switch from automatic to manual argument indexing");
             return false;
@@ -88,7 +90,7 @@ export {
         return true;
     }
 
-    s64 parse_arg_id(parse_context * p) {
+    s64 parse_arg_id(fmt_parse_context * p) {
         utf32 ch = p->It[0];
         if (ch == '}' || ch == ':') {
             return next_arg_id(p);
@@ -135,7 +137,7 @@ export {
         return alignment::NONE;
     }
 
-    bool parse_fill_and_align(parse_context * p, fmt_type argType, format_specs * specs) {
+    bool parse_fill_and_align(fmt_parse_context * p, fmt_type argType, format_specs * specs) {
         auto [fill, status, rest] = eat_code_point(p->It);
         if (status == PARSE_INVALID) {
             on_error(p, "Invalid UTF8 encountered in format string");
@@ -181,7 +183,7 @@ export {
         return true;
     }
 
-    bool parse_width(parse_context * p, dynamic_format_specs * specs) {
+    bool parse_width(fmt_parse_context * p, dynamic_format_specs * specs) {
         if (is_digit(p->It[0])) {
             auto [value, status, rest] = parse_int<u32, parse_int_options{.ParseSign = false}>(p->It, 10);
             p->It = string(rest);
@@ -210,7 +212,7 @@ export {
         return true;
     }
 
-    bool parse_precision(parse_context * p, fmt_type argType, dynamic_format_specs * specs) {
+    bool parse_precision(fmt_parse_context * p, fmt_type argType, dynamic_format_specs * specs) {
         ++p->It.Data, --p->It.Count;  // Skip the .
 
         if (!p->It.Count) {
@@ -251,7 +253,7 @@ export {
     }
 
     // Note: When parsing this if we reach the end before } we don't report an error. The caller of this should handle that.
-    bool parse_fmt_specs(parse_context * p, fmt_type argType, dynamic_format_specs * specs) {
+    bool parse_fmt_specs(fmt_parse_context * p, fmt_type argType, dynamic_format_specs * specs) {
         if (p->It[0] == '}') return true;  // No specs to parse
 
         if (!parse_fill_and_align(p, argType, specs)) return false;
@@ -320,7 +322,7 @@ export {
         return true;
     }
 
-    bool handle_emphasis(parse_context * p, text_style * textStyle) {
+    bool handle_emphasis(fmt_parse_context * p, text_style * textStyle) {
         // We get here either by failing to match a color name or by parsing a color first and then reaching another ';'
         while (p->It.Count && is_alpha(p->It[0])) {
             switch (p->It[0]) {
@@ -346,7 +348,7 @@ export {
         return true;
     }
 
-    u32 parse_rgb_channel(parse_context * p, bool last) {
+    u32 parse_rgb_channel(fmt_parse_context * p, bool last) {
         auto [channel, status, rest] = parse_int<u8, parse_int_options{.ParseSign = false, .LookForBasePrefix = true}>(p->It);
 
         if (status == PARSE_INVALID) {
@@ -382,7 +384,7 @@ export {
         return channel;
     }
 
-    bool parse_text_style(parse_context * p, text_style * textStyle) {
+    bool parse_text_style(fmt_parse_context * p, text_style * textStyle) {
         if (is_alpha(p->It[0])) {
             bool terminal = false;
             if (p->It[0] == 't') {

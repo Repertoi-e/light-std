@@ -1,7 +1,7 @@
 module;
 
-#include "../types/numeric_info.h"
 #include "../io.h"
+#include "../types/numeric_info.h"
 #include "format_float.inl"
 #include "parse_error_handler.h"
 
@@ -20,17 +20,19 @@ export {
     //
     // This object also has functions for writing pointers, integers and floats.
     // You can use this without a format string but just directly to write formatted stuff to an output writer.
-    // @TODO: Separate parse_context from format_context for less confusion.
+    // @TODO: Separate fmt_parse_context from format_context for less confusion.
     struct format_context : writer {
         writer *Out;
         fmt_args Args;
-        parse_context Parse;
+        fmt_parse_context Parse;
 
         // null if no specs were parsed.
         // When writing a custom formatter use this for checking specifiers.
         // e.g.
         //     if (f->Specs && f->Specs...) { ... }
         dynamic_format_specs *Specs = null;
+
+        format_context() {} // @TODO: Can we remove this?
 
         format_context(writer *out, const string &fmtString, const fmt_args &args, parse_error_handler_t errorHandlerFunc)
             : Out(out), Args(args), Parse(fmtString, errorHandlerFunc) {}
@@ -117,11 +119,12 @@ export {
     }
 
     namespace internal {
+    template <typename FC>
     struct format_context_visitor {
-        format_context *F;
+        FC *F;
         bool NoSpecs;
 
-        format_context_visitor(format_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
+        format_context_visitor(FC *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
 
         void operator()(s32 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(u32 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
@@ -131,7 +134,7 @@ export {
         void operator()(f64 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(const string &value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(const void *value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
-        void operator()(const value::custom &custom) { custom.FormatFunc(F, custom.Data); }
+        void operator()(const typename value<FC>::custom &custom) { custom.FormatFunc(custom.Data, F); }
 
         void operator()(types::unused) {
             on_error(F, "Internal error while formatting");
@@ -140,10 +143,11 @@ export {
     };
     }  // namespace internal
 
+    template <typename FC>
     struct format_struct_helper {
         struct field_entry {
             string Name;
-            fmt_arg Arg;
+            fmt_arg<FC> Arg;
         };
 
         format_context *F;
@@ -159,7 +163,7 @@ export {
 
         template <typename T>
         format_struct_helper *field(const string &name, const T &value) {
-            append(Fields, {name, fmt_make_arg(value)});
+            append(Fields, {name, fmt_make_arg<FC>(value)});
             return this;
         }
 
@@ -189,13 +193,14 @@ export {
         }
     };
 
+    template <typename FC>
     struct format_tuple_helper {
-        format_context *F;
+        FC *F;
         string Name;
-        array<fmt_arg> Fields;
+        array<fmt_arg<FC>> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_tuple_helper(format_context *f, const string &name, bool noSpecs) : F(f), Name(name), NoSpecs(noSpecs) {}
+        format_tuple_helper(FC *f, const string &name, bool noSpecs) : F(f), Name(name), NoSpecs(noSpecs) {}
 
         // I know we are against hidden freeing but having this destructor is actually really fine.
         // Things would be a whole more ugly and complicated without it.
@@ -203,7 +208,7 @@ export {
 
         template <typename T>
         format_tuple_helper *field(const T &value) {
-            append(Fields, fmt_make_arg(value));
+            append(Fields, fmt_make_arg<FC>(value));
             return this;
         }
 
@@ -225,12 +230,13 @@ export {
         }
     };
 
+    template <typename FC>
     struct format_list_helper {
-        format_context *F;
-        array<fmt_arg> Fields;
+        FC *F;
+        array<fmt_arg<FC>> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_list_helper(format_context *f, bool noSpecs) : F(f), NoSpecs(noSpecs) {}
+        format_list_helper(FC *f, bool noSpecs) : F(f), NoSpecs(noSpecs) {}
 
         // I know we are against hidden freeing but having this destructor is actually really fine.
         // Things would be a whole more ugly and complicated without it.
@@ -238,7 +244,7 @@ export {
 
         template <typename T>
         format_list_helper *entries(const array_view<T> &values) {
-            For(values) append(Fields, fmt_make_arg(it));
+            For(values) append(Fields, fmt_make_arg<FC>(it));
             return this;
         }
 
@@ -274,9 +280,12 @@ export {
     // struct:    *name* { field1: value, field2: value, ... }
     // tuple:     *name*(element1, element2, ...)
     // list:      [element1, element2, ...]
-    format_struct_helper format_struct(format_context * f, const string &name, bool noSpecs = true) { return format_struct_helper(f, name, noSpecs); }
-    format_tuple_helper format_tuple(format_context * f, const string &name, bool noSpecs = true) { return format_tuple_helper(f, name, noSpecs); }
-    format_list_helper format_list(format_context * f, bool noSpecs = true) { return format_list_helper(f, noSpecs); }
+    template <typename FC>
+    auto format_struct(FC * f, const string &name, bool noSpecs = true) { return format_struct_helper(f, name, noSpecs); }
+    template <typename FC>
+    auto format_tuple(FC * f, const string &name, bool noSpecs = true) { return format_tuple_helper(f, name, noSpecs); }
+    template <typename FC>
+    auto format_list(FC * f, bool noSpecs = true) { return format_list_helper(f, noSpecs); }
 }
 
 file_scope utf8 DIGITS[] =

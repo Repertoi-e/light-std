@@ -38,7 +38,7 @@ template <typename... Args>
 void format_test_error(const string &fmtString, Args &&... arguments) {
     counting_writer dummy;
 
-    auto args = fmt_args_on_the_stack(((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+    auto args = fmt_args_on_the_stack(format_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
     auto f = format_context(&dummy, fmtString, args, test_error_handler);
     fmt_parse_and_format(&f);
 }
@@ -215,7 +215,7 @@ struct Answer {};
 
 template <>
 struct formatter<Answer> {
-    void format(const Answer &, void *data) { write((format_context *) data, 42); }
+    void format(const Answer &, format_context *f) { write(f, 42); }
 };
 
 TEST(format_custom) {

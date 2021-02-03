@@ -110,13 +110,14 @@ struct context {
     bool FmtDisableAnsiCodes = false;
 };
 
-// Immutable context available everywhere
-// The current state gets copied from parent thread to the new thread when creating a thread
+// Immutable context available everywhere.
+// The current state gets copied from parent thread to the new thread when creating a thread.
 //
 // This used to be const, but with casting and stuff in C++ I don't it's worth the hassle honestly.
 // Const just fights the programmer more than it helps him.
-// Now that allows us to modify the context cleanly without ugly casting without restricting to scope.
-// Even though I really really recommend using WITH_CONTEXT_VAR, WITH_ALLOC, WITH_ALIGNMENT
+// Now that allows us to modify the context cleanly without ugly casting.
+// 
+// .. Even though I really really recommend using WITH_CONTEXT_VAR, WITH_ALLOC, WITH_ALIGNMENT
 // since these restore the old value at the end of the scope and in most cases that's what you want.
 inline thread_local context Context;
 
