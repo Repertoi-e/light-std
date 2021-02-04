@@ -11,8 +11,8 @@ template <typename T, s64 R, s64 C, bool Packed>
 struct decomposition_qr {
     using MatrixT = mat<T, R, C, Packed>;
 
-    mat<T, R, R, Packed> Q = {no_init};
-    mat<T, R, C, Packed> R = {no_init};
+    mat<T, R, R, Packed> Q;
+    mat<T, R, C, Packed> R;
 };
 
 // Calculates the QR decomposition of the matrix using Householder transforms.
@@ -21,15 +21,15 @@ template <typename T, s64 R_, s64 C, bool Packed>
 auto decompose_qr(mat<T, R_, C, Packed> m) {
     static_assert(R_ >= C);
 
-    mat<T, R_, R_, Packed> Q = {no_init};
-    mat<T, R_, C, Packed> R = {no_init};
+    mat<T, R_, R_, Packed> Q;
+    mat<T, R_, C, Packed> R;
 
     R = m;
     Q = identity();
 
-    mat<T, R_, R_, Packed> Qi = {no_init};
-    vec<T, R_, Packed> u = {no_init};
-    mat<T, R_, 1, Packed> v = {no_init};
+    mat<T, R_, R_, Packed> Qi;
+    vec<T, R_, Packed> u;
+    mat<T, R_, 1, Packed> v;
 
     For_as(col, range(m.C)) {
         u = R.col(col);

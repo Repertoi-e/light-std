@@ -23,11 +23,9 @@ struct tquat {
         };
         vec<T, 4, Packed> Vec;
     };
-
-    tquat() : tquat(T(0), T(0), T(0), T(0)) {}
-
-    // :MathTypesNoInit By default we zero-init but you can call a special constructor with the value no_init which doesn't initialize the object
-    tquat(no_init_t) {}
+    
+    // :MathTypesNoInit By default we don't init (to save on performance) but you can call a constructor with a scalar value of 0 to zero-init.
+    tquat() {}
 
     tquat(const tquat &rhs) : Vec(rhs.Vec) {}
     tquat(T scalar, T x, T y, T z) : w(scalar), x(x), y(y), z(z) {}
@@ -143,7 +141,7 @@ struct tquat {
     mat<U, R, C, PackedA> to_mat() const {
         assert(is_normalized(Vec));
 
-        mat<U, R, C, PackedA> result = {no_init};
+        mat<U, R, C, PackedA> result;
         result(0, 0) = 1 - 2 * (j * j + k * k);
         result(0, 1) = 2 * (i * j - k * s);
         result(0, 2) = 2 * (i * k + j * s);

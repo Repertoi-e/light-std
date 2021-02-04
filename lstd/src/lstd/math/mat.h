@@ -6,10 +6,14 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename MatrixT>
-struct mat_info_helper {};
+struct mat_info_helper {
+    static constexpr bool IS_MAT = false;
+};
 
 template <typename T_, s64 R_, s64 C_, bool Packed_>
 struct mat_info_helper<mat<T_, R_, C_, Packed_>> {
+    static constexpr bool IS_MAT = true;
+
     using T = T_;
 
     static constexpr s64 R = R_;
@@ -19,6 +23,11 @@ struct mat_info_helper<mat<T_, R_, C_, Packed_>> {
 
 template <typename MatrixT>
 struct mat_info : public mat_info_helper<types::decay_t<MatrixT>> {};
+
+// @TODO: Use this inplace of templates.
+// I guess we did this for vectors but not fully for matrices.
+template <typename T>
+concept any_mat = mat_info<T>::IS_MAT;
 
 template <typename T, typename U>
 using mat_mul_elem_t = decltype(T() * U() + T() * U());
@@ -33,10 +42,8 @@ struct mat_data {
     static constexpr s64 StripeDim = C;
     static constexpr s64 StripeCount = R;
 
-    // Construct stripes with _no_init_
     using StripeVecT = vec<T, StripeDim, Packed>;
-    stack_array<StripeVecT, StripeCount> Stripes =
-        make_stack_array_of_uninitialized_math_type<StripeVecT, StripeCount>();
+    stack_array<StripeVecT, StripeCount> Stripes;
 
    protected:
     always_inline T &get_element(s64 row, s64 col) {
@@ -67,14 +74,14 @@ struct mat_view : non_copyable {
 
     template <typename U, bool UPacked>
     operator mat<U, SR, SC, UPacked>() const {
-        mat<U, SR, SC, UPacked> result = {no_init};
+        mat<U, SR, SC, UPacked> result;
         For_as(i, range(SR)) { For_as(j, range(SC)) result(i, j) = (U)(*this)(i, j); }
         return result;
     }
 
     template <typename U, bool Packed2>
     requires(VecAssignable) operator vec<U, VecDim, Packed2>() const {
-        vec<U, max(SR, SC), Packed2> v = {no_init};
+        vec<U, max(SR, SC), Packed2> v;
         s64 k = 0;
         For_as(i, range(SR)) {
             For_as(j, range(SC)) {
@@ -136,7 +143,7 @@ struct mat_view : non_copyable {
     typename Info::T operator()(s64 row, s64 col) const { return Mat(this->Row + row, this->Col + col); }
 };
 
-#if COMPILER == MSVC
+#if THE_COMPILER == MSVC
 #define OPTIMIZATION __declspec(empty_bases)
 #else
 #define OPTIMIZATION
@@ -166,12 +173,13 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
     struct FromStripes_ {};
     static constexpr FromStripes_ FromStripes = {};
 
-    mat() {
-        For_as(i, range(R)) { For_as(j, range(C)) (*this)(i, j) = T(0); }
-    }
+    // :MathTypesNoInit By default we don't init (to save on performance) but you can call a constructor with a scalar value of 0 to zero-init.
+    mat() {}
 
-    // :MathTypesNoInit By default we zero-init but you can call a special constructor with the value no_init which doesn't initialize the object
-    mat(no_init_t) {}
+    template <types::is_scalar H>
+    mat(H h) {
+        For(Stripes) it = StripeVecT(h);
+    }
 
     template <typename T2, bool Packed2>
     mat(const mat<T2, R, C, Packed2> &rhs) {
@@ -226,6 +234,34 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
         return mat_view<const mat, SR, SC>(*this, r, c);
     }
 
+    template <s64 SC>
+    mat_view<mat, R, SC> get_column_view(s64 col) {
+        s64 c = translate_index(col, C);
+        assert(SC + c <= C);
+        return mat_view<mat, R, SC>(*this, 0, c);
+    }
+
+    template <s64 SC>
+    mat_view<const mat, R, SC> get_column_view(s64 col) const {
+        s64 c = translate_index(col, C);
+        assert(SC + c <= C);
+        return mat_view<const mat, R, SC>(*this, 0, c);
+    }
+
+    template <s64 SR>
+    mat_view<mat, SR, C> get_row_view(s64 row) {
+        s64 r = translate_index(row, R);
+        assert(SR + r <= R);
+        return mat_view<mat, SR, C>(*this, r, 0);
+    }
+
+    template <s64 SR>
+    mat_view<const mat, SR, C> get_row_view(s64 row) const {
+        s64 r = translate_index(row, R);
+        assert(SR + r <= R);
+        return mat_view<const mat, SR, C>(*this, r, 0);
+    }
+
     auto col(s64 col) { return get_view<R, 1>(0, col); }
     auto row(s64 row) { return get_view<1, C>(row, 0); }
     auto col(s64 col) const { return get_view<R, 1>(0, col); }
@@ -234,7 +270,7 @@ struct OPTIMIZATION mat : public mat_data<T, R_, C_, Packed> {
     // Conversion to vector if applicable
     template <typename T2, bool Packed2>
     requires(VecAssignable) operator vec<T2, VecDim, Packed2>() const {
-        vec<T2, max(R, C), Packed2> v = {no_init};
+        vec<T2, max(R, C), Packed2> v;
         s64 k = 0;
         For_as(i, range(R)) {
             For_as(j, range(C)) {

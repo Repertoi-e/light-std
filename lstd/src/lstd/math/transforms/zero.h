@@ -10,14 +10,14 @@ struct zero_helper : non_copyable {
 
     template <typename T, s64 Dim, bool Packed>
     operator vec<T, Dim, Packed>() const {
-        vec<T, Dim, Packed> v = {no_init};
+        vec<T, Dim, Packed> v;
         fill(v, T(0));
         return v;
     }
 
     template <typename T, s64 R, s64 C, bool Packed>
     operator mat<T, R, C, Packed>() const {
-        mat<T, R, C, Packed> m = {no_init};
+        mat<T, R, C, Packed> m;
         For(range(m.StripeCount)) fill(m.Stripes[it], T(0));
         return m;
     }

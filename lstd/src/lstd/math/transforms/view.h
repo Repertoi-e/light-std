@@ -19,14 +19,14 @@ struct view_helper : non_copyable {
 
     template <typename U, bool MPacked>
     operator mat<U, Dim + 1, Dim + 1, MPacked>() const {
-        mat<U, Dim + 1, Dim + 1, MPacked> m = {no_init};
+        mat<U, Dim + 1, Dim + 1, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, Dim + 1, Dim, MPacked>() const {
-        mat<U, Dim + 1, Dim, MPacked> m = {no_init};
+        mat<U, Dim + 1, Dim, MPacked> m;
         set_impl(m);
         return m;
     }
@@ -97,7 +97,7 @@ auto look_at(const vec<T, Dim, Packed> &eye, const vec<T, Dim, Packed> &target,
 // _flipX_ - true to flip X in camera space
 template <typename T, bool Packed>
 auto look_at(const vec<T, 2, Packed> &eye, const vec<T, 2, Packed> &target, bool positiveYForward, bool flipX) {
-    return look_at(eye, target, stack_array<vec<T, 2, Packed>, 0>{{no_init}}, stack_array<bool, 2>{flipX, positiveYForward});
+    return look_at(eye, target, stack_array<vec<T, 2, Packed>, 0>{}, stack_array<bool, 2>{flipX, positiveYForward});
 }
 
 // Creates a 3D look-at matrix.

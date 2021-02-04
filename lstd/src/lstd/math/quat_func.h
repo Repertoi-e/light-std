@@ -7,7 +7,7 @@ LSTD_BEGIN_NAMESPACE
 namespace impl {
 template <typename T, bool Packed>
 requires(!tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) {
-    tquat<T, Packed> result = {no_init};
+    tquat<T, Packed> result;
     result.w = lhs.s * rhs.s - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z;
     result.x = lhs.s * rhs.x + lhs.x * rhs.s + lhs.y * rhs.z - lhs.z * rhs.y;
     result.y = lhs.s * rhs.y - lhs.x * rhs.z + lhs.y * rhs.s + lhs.z * rhs.x;
@@ -17,7 +17,7 @@ requires(!tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tqua
 
 template <typename T, bool Packed>
 requires(tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) {
-    tquat<T, Packed> result = {no_init};
+    tquat<T, Packed> result;
     using SimdT = simd<T, 4>;
 
     SimdT dabc = lhs.Vec.Simd;
@@ -149,7 +149,7 @@ bool is_normalized(const tquat<T, Packed> &q) {
 template <typename T, bool Packed>
 vec<T, 3, Packed> to_euler_angles(const tquat<T, Packed> &q) {
     assert(is_normalized(q.Vec));
-    vec<T, 3, Packed> result = {no_init};
+    vec<T, 3, Packed> result;
 
     // Roll/X
     double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);

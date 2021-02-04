@@ -12,21 +12,21 @@ struct scale_helper : non_copyable {
 
     template <typename U, bool MPacked>
     operator mat<U, Dim + 1, Dim + 1, MPacked>() const {
-        mat<U, Dim + 1, Dim + 1, MPacked> m = {no_init};
+        mat<U, Dim + 1, Dim + 1, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, Dim, Dim, MPacked>() const {
-        mat<U, Dim, Dim, MPacked> m = {no_init};
+        mat<U, Dim, Dim, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, Dim + 1, Dim, MPacked>() const {
-        mat<U, Dim + 1, Dim, MPacked> m = {no_init};
+        mat<U, Dim + 1, Dim, MPacked> m;
         set_impl(m);
         return m;
     }

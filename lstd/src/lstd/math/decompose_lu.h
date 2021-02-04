@@ -11,9 +11,9 @@ struct decomposition_lu {
     using MatrixT = mat<T, Dim, Dim, Packed>;
 
     // Lower triangular matrix, LU=P'A.
-    MatrixT L = {no_init};
+    MatrixT L;
     // Upper triangular matrix, LU=P'A.
-    MatrixT U = {no_init};
+    MatrixT U;
 
     // Solves the equation system Ax=b, that is LUx=b
     // If the equation is singular or the LU decomposition fails, garbage is returned.
@@ -40,11 +40,11 @@ struct decomposition_lup {
     using MatrixT = mat<T, Dim, Dim, Packed>;
 
     // Lower triangular matrix, LU=P'A.
-    MatrixT L = {no_init};
+    MatrixT L;
     // Upper triangular matrix, LU=P'A.
-    MatrixT U = {no_init};
+    MatrixT U;
     // Row permutations. LU=P'A, where P' is a matrix whose i-th row's P[i]-th element is one.
-    vec<s64, Dim, false> P = {no_init};
+    vec<s64, Dim, false> P;
 
     // Solves the equation system Ax=b, that is LUx=Pb
     // If the equation is singular garbage is returned
@@ -66,8 +66,7 @@ template <typename T, s64 Dim, bool Packed>
 auto decompose_lu(const mat<T, Dim, Dim, Packed> &m) {
     // From:
     // https://www.gamedev.net/resources/_/technical/math-and-physics/matrix-inversion-using-lu-decomposition-r3637
-    mat<T, Dim, Dim, Packed> L = {no_init};
-    mat<T, Dim, Dim, Packed> U = {no_init};
+    mat<T, Dim, Dim, Packed> L, U;
 
     const auto &A = m;
     constexpr s64 n = Dim;
@@ -120,9 +119,8 @@ auto decompose_lu(const mat<T, Dim, Dim, Packed> &m) {
 // The parity of the permutation described with odd: 1, even: -1
 template <typename T, s64 Dim, bool Packed>
 auto decompose_lup(const mat<T, Dim, Dim, Packed> &m, s64 &parity) {
-    mat<T, Dim, Dim, Packed> L = {no_init};
-    mat<T, Dim, Dim, Packed> U = {no_init};
-    vec<s64, Dim, false> P = {no_init};
+    mat<T, Dim, Dim, Packed> L, U;
+    vec<s64, Dim, false> P;
     U = m;
 
     s64 n = m.R;
@@ -181,7 +179,7 @@ template <typename T, s64 Dim, bool Packed>
 vec<f32, Dim, Packed> decomposition_lu<T, Dim, Packed>::solve_impl(const MatrixT &L, const MatrixT &U,
                                                                    const vec<T, Dim, Packed> &b) {
     // Matrix to do Gaussian elimination with
-    mat<T, Dim, Dim + 1, Packed> E = {no_init};
+    mat<T, Dim, Dim + 1, Packed> E;
 
     // Solve Ld = b;
     E.get_view<Dim, Dim>(0, 0) = L;
@@ -216,7 +214,7 @@ vec<f32, Dim, Packed> decomposition_lu<T, Dim, Packed>::solve_impl(const MatrixT
 template <typename T, s64 Dim, bool Packed>
 vec<f32, Dim, Packed> decomposition_lup<T, Dim, Packed>::solve(const vec<T, Dim, Packed> &b) const {
     // Permute b
-    vec<T, Dim, Packed> bp = {no_init};
+    vec<T, Dim, Packed> bp;
     For(range(P.DIM)) bp[it] = b[P[it]];
 
     return decomposition_lu<T, Dim, Packed>::solve_impl(L, U, bp);

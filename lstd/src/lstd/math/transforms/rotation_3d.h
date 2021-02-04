@@ -15,21 +15,21 @@ struct rotation_3d_axis_helper : non_copyable {
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 4, MPacked>() const {
-        mat<U, 4, 4, MPacked> m = {no_init};
+        mat<U, 4, 4, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, 3, 3, MPacked>() const {
-        mat<U, 3, 3, MPacked> m = {no_init};
+        mat<U, 3, 3, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 3, MPacked>() const {
-        mat<U, 4, 3, MPacked> m = {no_init};
+        mat<U, 4, 3, MPacked> m;
         set_impl(m);
         return m;
     }
@@ -135,21 +135,21 @@ struct rotation_3d_tri_axis_helper : non_copyable {
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 4, MPacked>() const {
-        mat<U, 4, 4, MPacked> m = {no_init};
+        mat<U, 4, 4, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, 3, 3, MPacked>() const {
-        mat<U, 3, 3, MPacked> m = {no_init};
+        mat<U, 3, 3, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 3, MPacked>() const {
-        mat<U, 4, 3, MPacked> m = {no_init};
+        mat<U, 4, 3, MPacked> m;
         set_impl(m);
         return m;
     }
@@ -209,21 +209,21 @@ struct rotation_3d_axis_angle_helper : non_copyable {
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 4, MPacked>() const {
-        mat<U, 4, 4, MPacked> m = {no_init};
+        mat<U, 4, 4, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, 3, 3, MPacked>() const {
-        mat<U, 3, 3, MPacked> m = {no_init};
+        mat<U, 3, 3, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 3, MPacked>() const {
-        mat<U, 4, 3, MPacked> m = {no_init};
+        mat<U, 4, 3, MPacked> m;
         set_impl(m);
         return m;
     }
@@ -292,7 +292,7 @@ rotation_3d_axis_helper<T>::operator tquat<U, QPacked>() const {
         return QuatT(rotation_axis_angle(vec<U, 3, QPacked>(0, 0, 1), Angle));
     }
     assert(false);
-    return {no_init};
+    return {};
 }
 
 template <typename T>

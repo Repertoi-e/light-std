@@ -73,7 +73,7 @@ requires(vecs_same_dim<Vec, Other>) bool almost_equal(const Vec &lhs, const Othe
 
 template <any_vec Vec, typename U>
 requires(vec_same_type<Vec, U>) auto operator|(const Vec &lhs, U rhs) {
-    same_vec_with_extra_dims<Vec, 1> result = {no_init};
+    same_vec_with_extra_dims<Vec, 1> result;
     For(range(lhs.DIM)) result[it] = lhs[it];
     result[lhs.DIM] = rhs;
     return result;
@@ -81,7 +81,7 @@ requires(vec_same_type<Vec, U>) auto operator|(const Vec &lhs, U rhs) {
 
 template <any_vec Vec, typename U>
 requires(vec_same_type<Vec, U>) auto operator|(U lhs, const Vec &rhs) {
-    same_vec_with_extra_dims<Vec, 1> result = {no_init};
+    same_vec_with_extra_dims<Vec, 1> result;
     result[0] = lhs;
     For(range(rhs.DIM)) result[it + 1] = rhs[it];
     return result;
@@ -89,7 +89,7 @@ requires(vec_same_type<Vec, U>) auto operator|(U lhs, const Vec &rhs) {
 
 template <any_vec Vec, any_vec Other>
 requires(vecs_same_types<Vec, Other>) auto operator|(const Vec &lhs, const Other &rhs) {
-    same_vec_with_extra_dims<Vec, vec_info<Other>::Dims> result = {no_init};
+    same_vec_with_extra_dims<Vec, vec_info<Other>::Dims> result;
     For(range(lhs.DIM)) result[it] = lhs[it];
     For(range(rhs.DIM)) result[lhs.DIM + it] = rhs[it];
     return result;
@@ -134,7 +134,7 @@ requires(vec_same_type<VectorData1, U>) auto operator|(U lhs, const swizzle<Vect
     template <any_vec Vec>                                                    \
     always_inline Vec operator##op(const Vec &lhs, const Vec &rhs) {          \
         if constexpr (!has_simd<Vec>) {                                       \
-            Vec result = {no_init};                                           \
+            Vec result;                                           \
             For(range(Vec::DIM)) result[it] = lhs.Data[it] op rhs.Data[it];   \
             return result;                                                    \
         } else {                                                              \

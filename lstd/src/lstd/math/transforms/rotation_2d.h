@@ -12,21 +12,21 @@ struct rotation_2d_helper : non_copyable {
 
     template <typename U, bool MPacked>
     operator mat<U, 3, 3, MPacked>() const {
-        mat<U, 3, 3, MPacked> m = {no_init};
+        mat<U, 3, 3, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, 2, 2, MPacked>() const {
-        mat<U, 2, 2, MPacked> m = {no_init};
+        mat<U, 2, 2, MPacked> m;
         set_impl(m);
         return m;
     }
 
     template <typename U, bool MPacked>
     operator mat<U, 3, 2, MPacked>() const {
-        mat<U, 3, 2, MPacked> m = {no_init};
+        mat<U, 3, 2, MPacked> m;
         set_impl(m);
         return m;
     }
