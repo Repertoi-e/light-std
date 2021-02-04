@@ -1,7 +1,5 @@
 #pragma once
 
-#include <lstd/math.h>
-
 template <typename T>
 struct approx_helper {
     T Value;

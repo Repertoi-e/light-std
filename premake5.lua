@@ -142,6 +142,10 @@ project "test-suite"
 
     links { "lstd" }
     includedirs { "lstd/src" }
+	
+	pchheader "pch.h"
+    pchsource "%{prj.name}/src/pch.cpp"
+    forceincludes { "pch.h" }
     
     common_settings()
 
