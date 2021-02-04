@@ -154,6 +154,20 @@ constexpr auto enumerate_impl(T &&in) {
 #define For_enumerate_as(it_index, it, in) for (auto [it_index, it] : enumerate_impl(in))
 #define For_enumerate(in) For_enumerate_as(it_index, it, in)
 
+// This template function unrolls a loop at compile-time.
+// The lambda should take "auto it" as a parameter and
+// that can be used as a compile-time constant index.
+//
+// This is useful for when you can just write a for-loop
+// instead of using template functional recursive programming.
+template <s64 First, s64 Last, typename Lambda>
+void static_for(Lambda &&f) {
+    if constexpr (First < Last) {
+        f(types::integral_constant<s64, First>{});
+        static_for<First + 1, Last>(f);
+    }
+}
+
 LSTD_BEGIN_NAMESPACE
 
 // Base classes to reduce boiler plate code
