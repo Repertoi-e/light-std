@@ -1,11 +1,11 @@
 #pragma once
 
+#include <lstd/fmt/fmt.h>  // See note in header why we can't import the module directly
 #include <lstd/io.h>
 #include <lstd/memory/array.h>
 #include <lstd/memory/hash_table.h>
 #include <lstd/os.h>
 
-import fmt;
 import path;
 
 // This is a helper function to shorten the name of test files.
@@ -104,4 +104,3 @@ inline hash_table<string, array<test>> g_TestTable;
     void _MACRO_CONCAT(test_, __LINE__)##_##name::run()
 
 #define TEST(name) _TEST(name)
-

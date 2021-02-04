@@ -60,7 +60,7 @@ inline auto dot(const vec<Vt, Vd, Packed>& v, const mat<Mt, Vd, Mcol, Packed>& m
 	using Rt = mat_mul_elem_t<Vt, Mt>;
 	vec<Rt, Mcol, Packed> result = v[0] * mat.Stripes[0];
 	For(range(1, Vd)) result += v[it] * mat.Stripes[it];
-	return result.Data[0];
+	return result;
 }
 
 // (v|1)*M

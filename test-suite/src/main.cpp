@@ -1,8 +1,13 @@
-#include "test.h"
-
 #include <lstd/types/type_info.h>
 
+#include "test.h"
+
 void run_tests() {
+    formatter<array<f32>>{};
+
+    auto a = to_stack_array(1, 2, 3);
+    print("{}\n", a);
+
     print("\n");
     for (auto [fileName, tests] : g_TestTable) {
         print("{}:\n", *fileName);

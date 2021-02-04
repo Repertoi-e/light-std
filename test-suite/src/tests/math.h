@@ -2,9 +2,6 @@
 
 #include <lstd/math.h>
 
-template <s32 Dim, bool Packed = false>
-using vecf = vec<f32, Dim, Packed>;
-
 template <typename T>
 struct approx_helper {
     T Value;
@@ -40,7 +37,7 @@ struct formatter<approx_helper<T>> {
 
 template <typename Linalg>
 struct approx_helper2 {
-    Linalg Object = {no_init};
+    Linalg Object;
 
     approx_helper2() {}
     approx_helper2(Linalg object) { Object = object; }

@@ -33,7 +33,7 @@ struct view_helper : non_copyable {
 
     template <typename U, s64 R, s64 C, bool MPacked>
     void set_impl(mat<U, R, C, MPacked> &m) const {
-        auto columns = make_stack_array_of_uninitialized_math_type<VectorT, Dim>();
+        stack_array<VectorT, Dim> columns;
 
         stack_array<const VectorT *, Dim - 1> crossTable = {};
         For(range(Bases.Count)) crossTable[it] = &Bases[it];

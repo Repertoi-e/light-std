@@ -733,13 +733,13 @@ TEST(safe_normalize_specific_null) {
 }
 
 TEST(fill_vec) {
-    vecf<3> a = {no_init};
+    vecf<3> a ;
     vecf<3> b(4);
     fill(a, 4);
 
     assert_eq(a, b);
 
-    vecf<5> c = {no_init};
+    vecf<5> c ;
     vecf<5> d(4);
     fill(c, 4);
 
@@ -750,14 +750,14 @@ TEST(element_wise_min_max) {
     vecf<3> a(1, 2, 3);
     vecf<3> b(3, 2, 1);
 
-    assert_eq(element_wise_min(a, b), vecf<3>(1, 2, 1));
-    assert_eq(element_wise_max(a, b), vecf<3>(3, 2, 3));
+    assert_eq(min(a, b), vecf<3>(1, 2, 1));
+    assert_eq(max(a, b), vecf<3>(3, 2, 3));
 
     vecf<5> c(1, 2, 3, 4, 5);
     vecf<5> d(5, 4, 3, 2, 1);
 
-    assert_eq(element_wise_min(c, d), vecf<5>(1, 2, 3, 2, 1));
-    assert_eq(element_wise_max(c, d), vecf<5>(5, 4, 3, 4, 5));
+    assert_eq(min(c, d), vecf<5>(1, 2, 3, 2, 1));
+    assert_eq(max(c, d), vecf<5>(5, 4, 3, 4, 5));
 }
 
 TEST(dot) {

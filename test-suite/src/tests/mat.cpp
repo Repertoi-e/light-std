@@ -3,7 +3,7 @@
 
 TEST(ctor_and_index) {
     matf<3, 3> m = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    matf<3, 3> n = {no_init};
+    matf<3, 3> n;
     n(0, 0) = 1;
     n(0, 1) = 2;
     n(0, 2) = 3;
@@ -354,7 +354,7 @@ TEST(lu_decomposition) {
 TEST(lu_solve) {
     matf<3, 3> A = {3, -0.1f, -0.2f, 0.1f, 7, -0.3f, 0.3f, -0.2f, 10};
     vec<f32, 3> b(7.85, -19.3, 71.4);
-    vec<f32, 3> x(no_init);
+    vec<f32, 3> x;
     vec<f32, 3> xexp(3, -2.5, 7);
 
     x = decompose_lu(A).solve(b);
@@ -383,7 +383,7 @@ TEST(lup_decomposition) {
 TEST(lup_solve) {
     matf<4, 4> A = {1, 3, 4, 6, 3, 6, 2, 6, 9, 2, 6, 7, 6, 2, 7, 5};
     vec<f32, 4> b(3, 4, 2, 8);
-    vec<f32, 4> x(no_init);
+    vec<f32, 4> x;
     vec<f32, 4> xexp(-94.f / 497, 895.f / 497, 1000.f / 497, -850.f / 497);
 
     x = decompose_lup(A).solve(b);
@@ -544,7 +544,7 @@ TEST(transform_orthographic) {
     using Vec = vec<f32, 3>;
     using VecF = vec<f32, 3, false>;
     Vec worldFrustum[2] = {{-0.25f, -0.44444444f, 0.5f}, {5.0f, 8.8888888f, 10.f}};
-    Vec ndcFrustum[2] = {no_init, no_init};
+    Vec ndcFrustum[2];
 
     // Z forward
     matf<4, 4> m = orthographic(VecF(worldFrustum[0]), VecF(worldFrustum[1]), 0.f, 1.f);
@@ -557,10 +557,10 @@ TEST(transform_orthographic) {
 
 template <typename T>
 struct Basis {
-    vec<T, 3> Basis1 = {no_init};
-    vec<T, 3> Basis2 = {no_init};
-    vec<T, 3> Basis3 = {no_init};
-    vec<T, 3> Center = {no_init};
+    vec<T, 3> Basis1;
+    vec<T, 3> Basis2;
+    vec<T, 3> Basis3;
+    vec<T, 3> Center;
 
     Basis() {
         Basis1 = normalize(vec<T, 3>(-1, 3, 0));
@@ -587,7 +587,8 @@ TEST(transform_view) {
         Vec(9, 3, 4),
         Vec(-4, -3, 4),
     };
-    stack_array<Vec, 6> worldVecs = make_stack_array_of_uninitialized_math_type<Vec, 6>();
+    
+    stack_array<Vec, 6> worldVecs;
     For(range(6)) worldVecs[it] = basis.express(viewVecs[it]);
 
     vec<f32, 3, false> eye = basis.Center;
