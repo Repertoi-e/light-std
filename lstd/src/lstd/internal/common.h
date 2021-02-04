@@ -4,9 +4,32 @@
 
 #include <intrin.h>
 
-#include "../types/basic_types.h"
+#include "../types/type_info.h"
 #include "debug_break.h"
 #include "scalar_functions.h"
+
+// Use this to get the location where a function was called without using macros.
+// Uses built-in compiler functions. @TODO: Works on MSVC. Should work on GNU and Clang?
+//
+// e.g. useful for tracing where allocations came from:
+//
+// void my_allocate(s64 size, source_location loc = source_location::current()) { ... }
+//
+struct source_location {
+    const char *File = "Unknown";
+    const char *Function = "Unknown";
+    s64 Line = 0;
+
+    constexpr source_location() {}
+
+    static constexpr source_location current(const char *file = __builtin_FILE(), const char *func = __builtin_FUNCTION(), s64 line = __builtin_LINE()) {
+        source_location loc;
+        loc.File = file;
+        loc.Function = func;
+        loc.Line = line;
+        return loc;
+    }
+};
 
 // Convenience storage literal operators, allows for specifying sizes like this:
 //  s64 a = 10_MiB;
@@ -71,12 +94,65 @@ LSTD_END_NAMESPACE
 #define assert(condition) ((void) 0)
 #endif
 
+template <typename T, typename TIter = decltype(types::declval<T>().begin()), typename = decltype(types::declval<T>().end())>
+constexpr auto enumerate_impl(T &&in) {
+    struct iterator {
+        s64 I;
+        TIter Iter;
+
+        bool operator!=(const iterator &other) const { return Iter != other.Iter; }
+        void operator++() { ++I, ++Iter; }
+
+        struct dereference_result {
+            s64 Index;
+            decltype(*types::declval<TIter>()) Value;
+        };
+
+        auto operator*() const {
+            return dereference_result{I, *Iter};
+        }
+    };
+
+    struct iterable_wrapper {
+        T Iterable;
+
+        auto begin() { return iterator{0, Iterable.begin()}; }
+        auto end() { return iterator{0, Iterable.end()}; }
+    };
+
+    return iterable_wrapper{(T &&) in};
+}
+
 // Shortcut macros for "for each" loops (really up to personal style if you want to use this)
 //
 //  For(array) print(it);
 //
 #define For_as(x, in) for (auto &&x : in)
 #define For(in) For_as(it, in)
+
+//
+// Inspired from Python's enumerate().
+// Example usage:
+//
+//    For_enumerate(data) {
+//        other_data[it_index] = it + 1;
+//    }
+//
+// .. which is the same as:
+//
+//    For(range(data.Count)) {
+//        other_data[it] = data[it] + 1;
+//    }
+//
+// Might not look much shorter but you don't a separate
+// variable if you use data[it] more than once.
+// It's just a convenience.
+//
+// You can change the names of the internal
+// variables by using _For_enumerate_as_.
+//
+#define For_enumerate_as(it_index, it, in) for (auto [it_index, it] : enumerate_impl(in))
+#define For_enumerate(in) For_enumerate_as(it_index, it, in)
 
 LSTD_BEGIN_NAMESPACE
 

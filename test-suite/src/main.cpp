@@ -1,5 +1,7 @@
 #include "test.h"
 
+#include <lstd/types/type_info.h>
+
 void run_tests() {
     print("\n");
     for (auto [fileName, tests] : g_TestTable) {
