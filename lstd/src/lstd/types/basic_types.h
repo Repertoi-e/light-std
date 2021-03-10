@@ -4,16 +4,18 @@
 
 //
 // The following integral types are defined: s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)
-//		as well as: f32 (float), f64 (double), lf64 (long double), null (nullptr), utf8 (char), byte (unsigned char)
+//		as well as: f32 (float), f64 (double), null (nullptr), utf8 (char), byte (unsigned char)
 //      as well as: null (same as nullptr)
 //      as well as: initializer_list (if not included from the std)
+//
+// Note: We don't support long doubles (lf64) or operations with them. That's why we don't even provide type info.
 //
 
 // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers.
 // As far as I can tell every header in the STD includes some common file which contains the def for initializer_list
 // which is a good test to turn off to check if we include any headers from the STD for the time when we become clean.
 // This also applies to compare.h
-#define LSTD_DONT_DEFINE_INITIALIZER_LIST
+// #define LSTD_DONT_DEFINE_INITIALIZER_LIST
 
 #if defined LSTD_DONT_DEFINE_INITIALIZER_LIST
 #include <initializer_list>
@@ -23,12 +25,10 @@
 #if !defined LSTD_DONT_DEFINE_INITIALIZER_LIST
 namespace std {
 template <typename T>
-class initializer_list {
-   private:
+struct initializer_list {
     const T *First = null;
     const T *Last = null;
 
-   public:
     using value_type = T;
     using reference = const T &;
     using const_reference = const T &;
@@ -96,7 +96,6 @@ using byte = unsigned char;
 
 using f32 = float;
 using f64 = double;
-using lf64 = long double;
 
 #define F64_DECIMAL_DIG 17                    // # of decimal digits of rounding precision
 #define F64_DIG 15                            // # of decimal digits of precision
@@ -128,19 +127,6 @@ using lf64 = long double;
 #define F32_RADIX 2                    // exponent radix
 #define F32_TRUE_MIN 1.401298464e-45F  // min positive value
 
-#define LONG_F64_DIG F64_DIG                  // # of decimal digits of precision
-#define LONG_F64_EPSILON F64_EPSILON          // smallest such that 1.0+LONG_F64_EPSILON != 1.0
-#define LONG_F64_HAS_SUBNORM F64_HAS_SUBNORM  // type does support subnormal numbers
-#define LONG_F64_MANT_DIG F64_MANT_DIG        // # of bits in mantissa
-#define LONG_F64_MAX F64_MAX                  // max value
-#define LONG_F64_MAX_10_EXP F64_MAX_10_EXP    // max decimal exponent
-#define LONG_F64_MAX_EXP F64_MAX_EXP          // max binary exponent
-#define LONG_F64_MIN F64_MIN                  // min normalized positive value
-#define LONG_F64_MIN_10_EXP F64_MIN_10_EXP    // min decimal exponent
-#define LONG_F64_MIN_EXP F64_MIN_EXP          // min binary exponent
-#define LONG_F64_RADIX F64_RADIX              // exponent radix
-#define LONG_F64_TRUE_MIN F64_TRUE_MIN        // min positive value
-
 //
 // Extra types:
 //
@@ -148,6 +134,8 @@ using lf64 = long double;
 // Personal preference
 // I prefer to type null over nullptr but they are exactly the same
 constexpr auto null = nullptr;
+
+using null_t = decltype(nullptr);
 
 template <typename T>
 using initializer_list = std::initializer_list<T>;

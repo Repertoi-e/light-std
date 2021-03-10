@@ -86,7 +86,7 @@ tquat<T, Packed> conjugate(const tquat<T, Packed> &q) {
     return tquat<T, Packed>{q.Vec * vec<T, 4, Packed>{T(1), T(-1), T(-1), T(-1)}};
 }
 
-// Natural quaternion exponentiation, base e
+// Natural quaternion exponentiation
 template <typename T, bool Packed>
 tquat<T, Packed> exp(const tquat<T, Packed> &q) {
     auto a = q.scalar_part();
@@ -100,18 +100,18 @@ tquat<T, Packed> exp(const tquat<T, Packed> &q) {
     return ret;
 }
 
-// Natural quaternion logarithm, base e
+// Natural quaternion logarithm
 template <typename T, bool Packed>
-tquat<T, Packed> log(const tquat<T, Packed> &q) {
+tquat<T, Packed> ln(const tquat<T, Packed> &q) {
     auto magq = len(q);
     auto vn = normalize(q.vector_part());
-    return {(T) log(magq), vn * (T) acos(q.s / magq)};
+    return {(T) ln(magq), vn * (T) acos(q.s / magq)};
 }
 
 // Raises _q_ to the power of _a_
 template <typename T, bool Packed>
 tquat<T, Packed> pow(const tquat<T, Packed> &q, T a) {
-    return exp(a * log(q));
+    return exp(a * ln(q));
 }
 
 // Returns the square of the absolute value.

@@ -1,5 +1,7 @@
 #include "fmt.h"
 
+LSTD_BEGIN_NAMESPACE
+
 void fmt_default_parse_error_handler(const string &message, const string &formatString, s64 position) {
     // An error during formatting occured.
     // If you are running a debugger it has now hit a breakpoint.
@@ -31,3 +33,5 @@ void fmt_default_parse_error_handler(const string &message, const string &format
     assert(false);
 #endif
 }
+
+LSTD_END_NAMESPACE

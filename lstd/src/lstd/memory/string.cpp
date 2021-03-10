@@ -43,13 +43,13 @@ string::string(const utf32 *str) {
 void reserve(string &s, s64 target) {
     if (s.Count + target < s.Allocated) return;
 
-    target = max<s64>(ceil_pow_of_2(target + s.Count + 1), 8);
+    target = max(ceil_pow_of_2(target + s.Count + 1), 8);
 
     if (s.Allocated) {
         s.Data = reallocate_array(s.Data, target);
     } else {
         auto *oldData = s.Data;
-        s.Data = allocate_array(utf8, target);
+        s.Data = allocate_array<utf8>(target);
         // We removed the ownership system.
         // encode_owner(Data, this);
         if (s.Count) copy_memory(s.Data, oldData, s.Count);
@@ -70,7 +70,7 @@ void free(string &s) {
 // Allocates a buffer, copies the string's contents and also appends a zero terminator.
 // The caller is responsible for freeing.
 [[nodiscard("Leak")]] utf8 *to_c_string(const string &s, allocator alloc) {
-    utf8 *result = allocate_array(utf8, s.Count + 1, alloc);
+    utf8 *result = allocate_array<utf8>(s.Count + 1, {.Alloc = alloc});
     copy_memory(result, s.Data, s.Count);
     result[s.Count] = '\0';
     return result;

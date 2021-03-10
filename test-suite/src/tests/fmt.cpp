@@ -100,7 +100,7 @@ template <typename T>
 void check_unknown_types(T value, const string &types, const string &expectedMessage) {
     string special = ".0123456789}";
 
-    For(range(1, CHAR_MAX)) {
+    For(range(1, S8_MAX)) {
         if (has(special, (utf32) it) || has(types, (utf32) it)) continue;
 
         string fmtString = sprint("{{0:10{:c}}}", it);

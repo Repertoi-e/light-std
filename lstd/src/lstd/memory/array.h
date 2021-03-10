@@ -94,10 +94,10 @@ stack_array<T, N>::operator array_view<T>() const { return array_view<T>((T *) D
 //
 // You can also specify a specific alignment for the elements directly (instead of using the Context variable).
 template <typename T>
-void reserve(array<T> &arr, s64 target, u32 alignment = 0) {
-    if (arr.Count + target < arr.Allocated) return;
+void reserve(array<T> &arr, s64 targetCount, u32 alignment = 0) {
+    if (arr.Count + targetCount < arr.Allocated) return;
 
-    target = max<s64>(ceil_pow_of_2(target + arr.Count + 1), 8);
+    targetCount = max<s64>(ceil_pow_of_2(targetCount + arr.Count + 1), 8);
 
     if (arr.Allocated) {
         auto oldAlignment = ((allocation_header *) arr.Data - 1)->Alignment;
@@ -107,15 +107,15 @@ void reserve(array<T> &arr, s64 target, u32 alignment = 0) {
             assert(alignment == oldAlignment && "Reserving with an alignment but the object already has a buffer with a different alignment. Specify alignment 0 to automatically use the old one.");
         }
 
-        arr.Data = reallocate_array(arr.Data, target);
+        arr.Data = reallocate_array(arr.Data, targetCount);
     } else {
         auto *oldData = arr.Data;
-        arr.Data = allocate_array_aligned(T, target, alignment);
+        arr.Data = allocate_array<T>(targetCount, {.Alignment = alignment});
         // We removed the ownership system.
         // encode_owner(Data, this);
         if (arr.Count) copy_memory(arr.Data, oldData, arr.Count * sizeof(T));
     }
-    arr.Allocated = target;
+    arr.Allocated = targetCount;
 }
 
 // Call destructor on each element if the buffer is allocated, don't free the buffer, just move Count to 0

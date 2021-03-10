@@ -26,13 +26,13 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 
             if (p->Used + size >= p->Allocated) {
                 assert(!p->Next);
-                p->Next = allocate(temporary_allocator_data::page, Malloc);
+                p->Next = allocate<temporary_allocator_data::page>({.Alloc = DefaultAlloc});
 
                 // Random log-based growth thing I came up at the time, not real science.
                 s64 loggedSize = (s64) ceil(p->Allocated * (log2(p->Allocated * 10.0) / 3));
                 s64 reserveTarget = (max<s64>(ceil_pow_of_2(size * 2), ceil_pow_of_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
 
-                p->Next->Storage = allocate_array(byte, reserveTarget, Malloc);
+                p->Next->Storage = allocate_array<byte>(reserveTarget, {.Alloc = DefaultAlloc});
                 p->Next->Allocated = reserveTarget;
                 p = p->Next;
             }
@@ -91,7 +91,7 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
             if (targetSize != data->Base.Allocated) {
                 free(data->Base.Storage);
 
-                data->Base.Storage = allocate_array(byte, targetSize, Malloc);
+                data->Base.Storage = allocate_array<byte>(targetSize, {.Alloc = DefaultAlloc});
                 data->Base.Allocated = targetSize;
             }
 
@@ -119,7 +119,7 @@ void release_temporary_allocator() {
     free_all(Context.Temp);
 
     free(Context.TempAllocData.Base.Storage);
-    Context.TempAllocData = {};
+    ((context *) &Context)->TempAllocData = {};  // @Constcast
 }
 
 LSTD_END_NAMESPACE

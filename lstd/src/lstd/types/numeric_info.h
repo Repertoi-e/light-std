@@ -401,26 +401,4 @@ struct numeric_info<f64> : public numeric_info_float_base {
     static constexpr s32 min_exponent10 = F64_MIN_10_EXP;
 };
 
-template <>
-struct numeric_info<lf64> : public numeric_info_float_base {
-   public:
-    static constexpr lf64 min() { return LONG_F64_MIN; }
-    static constexpr lf64 max() { return LONG_F64_MAX; }
-    static constexpr lf64 lowest() { return -max(); }
-    static constexpr lf64 epsilon() { return LONG_F64_EPSILON; }
-    static constexpr lf64 round_error() { return 0.5L; }
-    static constexpr lf64 denorm_min() { return LONG_F64_TRUE_MIN; }
-    static constexpr lf64 infinity() { return __builtin_huge_val(); }
-    static constexpr lf64 quiet_NaN() { return __builtin_nan("0"); }
-    static constexpr lf64 signaling_NaN() { return __builtin_nans("1"); }
-
-    static constexpr s32 digits = LONG_F64_MANT_DIG;
-    static constexpr s32 digits10 = LONG_F64_DIG;
-    static constexpr s32 max_digits10 = 17;
-    static constexpr s32 max_exponent = LONG_F64_MAX_EXP;
-    static constexpr s32 max_exponent10 = LONG_F64_MAX_10_EXP;
-    static constexpr s32 min_exponent = LONG_F64_MIN_EXP;
-    static constexpr s32 min_exponent10 = LONG_F64_MIN_10_EXP;
-};
-
 LSTD_END_NAMESPACE

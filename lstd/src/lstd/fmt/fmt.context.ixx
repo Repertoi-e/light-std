@@ -10,6 +10,8 @@ import fmt.arg;
 import fmt.specs;
 import fmt.parse_context;
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     // This writer is kinda specific.
     // We have a pointer (_Out_) to a writer that gets the writes with certain formatting behaviour.
@@ -429,7 +431,7 @@ void write_helper(fmt_context *f, const byte *data, s64 size) {
 
 void fmt_context::write(const byte *data, s64 count) { write_helper(this, data, count); }
 
-// @Threadsafety ???
+// @ThreadSafety ???
 utf8 U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
 
 void write(fmt_context *f, bool value) {
@@ -626,7 +628,7 @@ void write_f64(fmt_context *f, f64 value, fmt_specs specs) {
             f, specs,
             [&]() {
                 if (sign) write_no_specs(f, sign);
-                write_no_specs(f, (bits.W & ((1ll << 52) - 1)) ? (is_upper(specs.Type) ? "NAN" : "nan") : (is_upper(specs.Type) ? "INF" : "inf"));
+                write_no_specs(f, (bits.DW & ((1ll << 52) - 1)) ? (is_upper(specs.Type) ? "NAN" : "nan") : (is_upper(specs.Type) ? "INF" : "inf"));
                 if (percentage) write_no_specs(f, U'%');
             },
             3 + (sign ? 1 : 0) + (percentage ? 1 : 0));
@@ -697,3 +699,5 @@ void write_f64(fmt_context *f, f64 value, fmt_specs specs) {
         },
         formattedSize);
 }
+
+LSTD_END_NAMESPACE

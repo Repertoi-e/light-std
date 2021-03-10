@@ -180,15 +180,15 @@ void reserve(T &table, s64 target, u32 alignment = 0) {
 
             s64 sizeInBytes = target * (sizeof(u64) + sizeof(K) + sizeof(V)) + padding1 + padding2;
 
-            byte *block = allocate_array_aligned(byte, sizeInBytes, alignment);
+            byte *block = allocate_array<byte>(sizeInBytes, {.Alignment = alignment});
             table.Hashes = (u64 *) block;
             table.Keys = (K *) (block + target * sizeof(u64) + padding1);
             table.Values = (V *) (block + target * (sizeof(u64) + sizeof(K)) + padding2);
             zero_memory(table.Hashes, target * sizeof(u64));
         } else {
-            table.Hashes = allocate_array_aligned(u64, target, alignment);
-            table.Keys = allocate_array_aligned(K, target, alignment);
-            table.Values = allocate_array_aligned(V, target, alignment);
+            table.Hashes = allocate_array<u64>(target, {.Alignment = alignment});
+            table.Keys = allocate_array<K>(target, {.Alignment = alignment});
+            table.Values = allocate_array<V>(target, {.Alignment = alignment});
             zero_memory(table.Hashes, target * sizeof(u64));
         }
     };

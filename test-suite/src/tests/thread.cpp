@@ -161,7 +161,7 @@ TEST(condition_variable) {
 }
 
 TEST(context) {
-    WITH_CONTEXT_VAR(Alloc, Malloc) {
+    WITH_CONTEXT_VAR(Alloc, DefaultAlloc) {
         auto *old = Context.Alloc.Function;
 
         auto differentAlloc = Context.Temp;

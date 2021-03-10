@@ -150,9 +150,9 @@ TEST(chaining) {
     chaining_test<false>();
 }
 
-TEST(exp_log) {
+TEST(exp_ln) {
     quat q(1.0f, 2.0f, 0.5f, -0.7f);
-    quat p = exp(log(q));
+    quat p = exp(ln(q));
     assert_eq(approx_vec(q), p);
 }
 

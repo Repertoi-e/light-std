@@ -7,15 +7,18 @@
 
 //
 // This file includes useful formatters for some complex types:
-//     string_builder, guid, arrays, thread id, math types.
+//     guid, arrays, math types, etc.
 //
 // This means you can use them as format arguments directly.
 //
 // The reason it is a header file is because on 04.02.2021, VS has 
 // a bug where template specializations aren't picked up from
-// separate modules. Hopefully it gets fixed soon.
+// separate modules. Hopefully this gets fixed in the future.
+//
 
 import fmt;
+
+LSTD_BEGIN_NAMESPACE
 
 template <>
 struct formatter<string_builder> {
@@ -120,7 +123,6 @@ struct formatter<stack_array<T, N>> {
     void format(const stack_array<T, N> &src, fmt_context *f) { format_list(f).entries(src.Data, src.Count)->finish(); }
 };
 
-// Formatter for thread::id
 template <>
 struct formatter<thread::id> {
     void format(thread::id src, fmt_context *f) { write(f, src.Value); }
@@ -221,3 +223,5 @@ struct formatter<tquat<T, Packed>> {
         }
     }
 };
+
+LSTD_END_NAMESPACE

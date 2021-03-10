@@ -9,7 +9,7 @@ void run_tests() {
 
         u32 sucessfulProcs = 0;
         For(*tests) {
-            auto length = min<s64>(30, it.Name.Length);
+            auto length = min(it.Name.Length, 30);
             print("        {:.{}} {:.^{}} ", it.Name, length, "", 35 - length);
 
             auto failedAssertsStart = asserts::GlobalFailed.Count;
@@ -74,27 +74,39 @@ void write_output_to_file() {
 
 s32 main() {
 #if LOG_TO_FILE
+    // logger.Builder.Alloc = Malloc;  // Otherwise we use the temporary alloc which gets freed after we run the tests
 
-    Context.LogAllAllocations = true;
+    // Context.LogAllAllocations = true;
+    // Context.Log = &logger;
 
-    logger.Builder.Alloc = Malloc;  // Otherwise we use the temporary alloc which gets freed after we run the tests
-    Context.Log = &logger;
-
-    Context.FmtDisableAnsiCodes = true;
+    // Context.FmtDisableAnsiCodes = true;
 #endif
-    Context.AllocAlignment = 16;
-    Context.DebugMemoryVerifyHeapFrequency = 1;
-
     time_t start = os_get_time();
 
-    // auto *allocData = allocate(free_list_allocator_data, Malloc);
-    // allocData->init(10_MiB, free_list_allocator_data::Find_First);
-    // WITH_ALLOC(allocator(free_list_allocator, allocData)) {
+#if defined DEBUG_MEMORY
+    DEBUG_memory_info::MemoryVerifyHeapFrequency = 1;
+#endif
 
-    WITH_ALLOC(Context.Temp) {
-        // build_test_table();
-        run_tests();
-        release_temporary_allocator();
+    // @TODO: Allow multiple context variables to be modified in one go.
+    //
+    // Something like this:
+    //
+    // context newContext = Context;
+    // newContext.AllocAlignment = 16;
+    // newContext.DebugMemoryVerifyHeapFrequency = 1;
+    //
+    // WITH_CONTEXT(newContext) {
+    //
+    // }
+    WITH_ALIGNMENT(16) {
+        // auto *allocData = allocate(free_list_allocator_data, Malloc);
+        // allocData->init(10_MiB, free_list_allocator_data::Find_First);
+        // WITH_ALLOC(allocator(free_list_allocator, allocData)) {
+        WITH_ALLOC(Context.Temp) {
+            // build_test_table();
+            run_tests();
+            release_temporary_allocator();
+        }
     }
 
     print("\nFinished tests, time taken: {:f} seconds\n\n", os_time_to_seconds(os_get_time() - start));

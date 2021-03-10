@@ -252,7 +252,7 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
             maxValue = negative ? -(numeric_info<IntT>::min()) : numeric_info<IntT>::max();
         }
 
-        cutOff = const_abs(maxValue / base);
+        cutOff = abs(maxValue / base);
         cutLim = maxValue % (IntT) base;
     }
 

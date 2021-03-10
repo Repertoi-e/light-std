@@ -23,6 +23,8 @@ import path.general;
 // If you want to explicitly work with Windows paths, import this module directly.
 //
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     constexpr char OS_PATH_SEPARATOR = '\\';
 
@@ -240,7 +242,7 @@ utf16 *utf8_to_utf16_temp(const string &str) {
     if (!str.Length) return null;
 
     s32 size = wchar_size_required(str) + 1;
-    auto *result = allocate_array(utf16, size, Context.Temp);
+    auto *result = allocate_array<utf16>(size, {.Alloc = Context.Temp });
     utf8_to_utf16(str.Data, str.Length, result);
     return result;
 }
@@ -272,7 +274,7 @@ string get_path_from_here_to(const string &here, const string &there) {
 }
 
 //
-// EXPORTS BEGIN HERE.
+// Definitions for exports begin here.
 //
 
 export {
@@ -710,3 +712,5 @@ export {
         return true;
     }
 }
+
+LSTD_END_NAMESPACE

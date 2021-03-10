@@ -4,9 +4,15 @@
 
 #include <intrin.h>
 
+#include "../scalar_math/scalar_math.h"
 #include "../types/type_info.h"
 #include "debug_break.h"
-#include "scalar_functions.h"
+
+#if OS == WINDOWS
+#define LSTD_NO_CRT
+#endif
+
+LSTD_BEGIN_NAMESPACE
 
 // Use this to get the location where a function was called without using macros.
 // Uses built-in compiler functions. @TODO: Works on MSVC. Should work on GNU and Clang?
@@ -71,7 +77,6 @@ constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
 //
 #undef defer
 
-LSTD_BEGIN_NAMESPACE
 struct Defer_Dummy {};
 template <typename F>
 struct Deferrer {
@@ -82,9 +87,8 @@ template <typename F>
 Deferrer<F> operator*(Defer_Dummy, F func) {
     return {func};
 }
-LSTD_END_NAMESPACE
 
-#define defer(x) auto LINE_NAME(LSTD_defer) = LSTD_NAMESPACE ::Defer_Dummy{} * [&]() { x; }
+#define defer(x) auto LINE_NAME(LSTD_defer) = Defer_Dummy{} * [&]() { x; }
 
 #undef assert
 
@@ -153,22 +157,6 @@ constexpr auto enumerate_impl(T &&in) {
 //
 #define For_enumerate_as(it_index, it, in) for (auto [it_index, it] : enumerate_impl(in))
 #define For_enumerate(in) For_enumerate_as(it_index, it, in)
-
-// This template function unrolls a loop at compile-time.
-// The lambda should take "auto it" as a parameter and
-// that can be used as a compile-time constant index.
-//
-// This is useful for when you can just write a for-loop
-// instead of using template functional recursive programming.
-template <s64 First, s64 Last, typename Lambda>
-void static_for(Lambda &&f) {
-    if constexpr (First < Last) {
-        f(types::integral_constant<s64, First>{});
-        static_for<First + 1, Last>(f);
-    }
-}
-
-LSTD_BEGIN_NAMESPACE
 
 // Base classes to reduce boiler plate code
 struct non_copyable {
@@ -610,9 +598,8 @@ struct delegate;
 //
 // Runs also when calling _os_exit(exitCode)_.
 //
-// Note that we don't try to be as general as possible _exit_schedule_ is merely a utility that might be useful
-// to ensure files are flushed or something (not recommended for just deallocation, the os claims back the memory anyway..
-// don't make your program slow!!).
+// Note: We don't try to be as general as possible. _exit_schedule_ is merely a utility that might be useful
+// to ensure e.g. files are flushed or handles closed. (Don't use this for freeing memory, the OS claims it back anyway!!).
 void exit_schedule(const delegate<void()> &function);
 
 // Runs all scheduled exit functions.

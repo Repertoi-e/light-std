@@ -8,6 +8,8 @@ import fmt.arg;
 import fmt.specs;
 import fmt.text_style;
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     //
     // In this file we define how we parse a format string - specs, colors and text style, etc.
@@ -477,3 +479,5 @@ export bool parse_text_style(fmt_parse_context *p, text_style *textStyle) {
     }
     return true;
 }
+
+LSTD_END_NAMESPACE

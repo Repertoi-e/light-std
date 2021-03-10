@@ -10,6 +10,8 @@ export module path.general;
 // Here we define functions that are not specific to a platform
 //
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     [[nodiscard("Leak")]] array<string> path_split_into_components(const string &path, const string seps = "\\/") {
         array<string> result;
@@ -78,3 +80,5 @@ export {
         Overwrite_Entire,
     };
 }
+
+LSTD_END_NAMESPACE

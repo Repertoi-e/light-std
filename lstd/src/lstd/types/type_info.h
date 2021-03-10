@@ -118,6 +118,11 @@ struct same_helper<T, T> : public true_t {};
 template <typename T, typename U>
 concept is_same = same_helper<T, U>::value;
 
+// Are the decayed versions of "T" and "U" the same basic type?
+// Gets around the fact that is_same will treat, say "bool" and "bool&" as different types.
+template <typename T, typename U>
+concept is_same_decayed = same_helper<decay_t<T>, decay_t<U>>::value;
+
 // Checks if T has const-qualification
 template <typename T>
 struct is_const_helper_1 : public false_t {};
@@ -472,7 +477,7 @@ template <typename T>
 concept is_unsigned_integral = is_integral<T> && !is_signed_integral<T>;
 
 //
-// Concept satisfied if T is float, double, long double
+// Concept satisfied if T is float, double
 //
 template <typename T>
 struct is_floating_point_helper : public false_t {};
@@ -481,8 +486,6 @@ template <>
 struct is_floating_point_helper<float> : public true_t {};
 template <>
 struct is_floating_point_helper<double> : public true_t {};
-template <>
-struct is_floating_point_helper<long double> : public true_t {};
 
 // Use this macro to declare your custom type as a floating point
 #define DECLARE_FLOATING_POINT(T)                          \

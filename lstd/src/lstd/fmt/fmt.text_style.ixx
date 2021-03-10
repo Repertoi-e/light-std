@@ -5,6 +5,8 @@ module;
 
 export module fmt.text_style;
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     // Colors are defined all-uppercase.
     // This enum contains names for popular colors and values for them in hex.
@@ -89,7 +91,7 @@ export {
         u8 Emphasis = 0;
     };
 
-    namespace internal {
+    namespace fmt_internal {
     // Used when making ANSI escape codes for text styles
     inline utf8 *u8_to_esc(utf8 *p, utf8 delimiter, u8 c) {
         *p++ = '0' + c / 100;
@@ -151,5 +153,7 @@ export {
         }
         return p;
     }
-    }  // namespace internal
+    }  // namespace fmt_internal
 }
+
+LSTD_END_NAMESPACE

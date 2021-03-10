@@ -40,7 +40,13 @@ void os_read_shared_block(const string &name, void *out, s64 size);
 
 // Exits the application with the given exit code.
 // Also runs all callbacks registered with _exit_schedule()_.
+// @TODO: Rename this to just _exit_
 void os_exit(s32 exitCode = 0);
+
+// Produces an abnormal program termination.
+// Doesn't call any callbacks registered with _exit_schedule()_.
+// @TODO: Rename this to just _abort_
+void os_abort();
 
 // Returns a time stamp that can be used for time-interval measurements
 time_t os_get_time();

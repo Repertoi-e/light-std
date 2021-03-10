@@ -11,20 +11,18 @@ LSTD_BEGIN_NAMESPACE
 //
 // The "typename" before vec_info.. here is very important. It took me 2 hours of debugging. C++ is hell sometimes.
 template <any_vec Vec, typename U>
-requires(types::is_convertible<U, typename vec_info<Vec>::T>) void fill(Vec& lhs, U all)
-{
+requires(types::is_convertible<U, typename vec_info<Vec>::T>) void fill(Vec &lhs, U all) {
     if constexpr (!has_simd<Vec>) {
-        For(lhs) it = (typename Vec::T)all;
+        For(lhs) it = (typename Vec::T) all;
     } else {
         using SimdT = decltype(Vec::Simd);
-        lhs.Simd = SimdT::spread((typename Vec::T)all);
+        lhs.Simd = SimdT::spread((typename Vec::T) all);
     }
 }
 
 // Calculates the scalar product (dot product) of the two arguments.
 template <any_vec Vec>
-auto dot(const Vec& lhs, const Vec& rhs)
-{
+auto dot(const Vec &lhs, const Vec &rhs) {
     if constexpr (!has_simd<Vec>) {
         auto sum = Vec::T(0);
         For(range(Vec::DIM)) sum += lhs.Data[it] * rhs.Data[it];
@@ -39,27 +37,25 @@ auto dot(const Vec& lhs, const Vec& rhs)
 // "Too small" means smaller than the square root of the smallest number representable by the underlying scalar.
 // This value is ~10^-18 for floats and ~10^-154 for doubles.
 template <any_vec Vec>
-bool is_null_vector(const Vec& v)
-{
+bool is_null_vector(const Vec &v) {
     using T = typename Vec::T;
 
-    static constexpr T epsilon = T(1) / const_exp10<T>(const_abs(numeric_info<T>::min_exponent10) / 2);
+    static constexpr T epsilon = T(1) / const_exp10<T>(abs(numeric_info<T>::min_exponent10) / 2);
     T length = len(v);
     return length < epsilon;
 }
 
 // Returns the squared length of the vector
 template <any_vec Vec>
-auto len_sq(const Vec& v) { return dot(v, v); }
+auto len_sq(const Vec &v) { return dot(v, v); }
 
 // Returns the length of the vector
 template <any_vec Vec>
-auto len(const Vec& v) { return (typename Vec::T)sqrt((typename Vec::T)len_sq(v)); }
+auto len(const Vec &v) { return (typename Vec::T) sqrt((typename Vec::T) len_sq(v)); }
 
 // Returns the length of the vector, avoids overflow and underflow, so it's more expensive
 template <any_vec Vec>
-auto len_precise(const Vec& v)
-{
+auto len_precise(const Vec &v) {
     using T = typename Vec::T;
 
     T maxElement = abs(v[0]);
@@ -69,28 +65,25 @@ auto len_precise(const Vec& v)
         return T(0);
 
     auto scaled = v / maxElement;
-    return (T)sqrt(dot(scaled, scaled)) * maxElement;
+    return (T) sqrt(dot(scaled, scaled)) * maxElement;
 }
 
 // Returns the euclidean distance between to vectors
 template <any_vec Vec, any_vec Other>
-requires(vec_info<Vec>::DIM == vec_info<Other>::DIM) auto distance(const Vec& lhs, const Other& rhs)
-{
+requires(vec_info<Vec>::DIM == vec_info<Other>::DIM) auto distance(const Vec &lhs, const Other &rhs) {
     return len(lhs - rhs);
 }
 
 // Makes a unit vector, but keeps direction
 template <any_vec Vec>
-Vec normalize(const Vec& v)
-{
+Vec normalize(const Vec &v) {
     assert(!is_null_vector(v));
     return v / len(v);
 }
 
 // Checks if the vector is unit vector. There's some tolerance due to floating points
 template <any_vec Vec>
-bool is_normalized(const Vec& v)
-{
+bool is_normalized(const Vec &v) {
     using T = typename Vec::T;
 
     T n = len_sq(v);
@@ -99,8 +92,7 @@ bool is_normalized(const Vec& v)
 
 // Makes a unit vector, but keeps direction. Leans towards (1,0,0...) for nullvectors, costs more
 template <any_vec Vec>
-Vec safe_normalize(const Vec& v)
-{
+Vec safe_normalize(const Vec &v) {
     using T = typename Vec::T;
 
     Vec vmod = v;
@@ -112,8 +104,7 @@ Vec safe_normalize(const Vec& v)
 // Makes a unit vector, but keeps direction. Leans towards _degenerate_ for nullvectors, costs more.
 // _degenerate_ Must be a unit vector.
 template <any_vec Vec>
-Vec safe_normalize(const Vec& v, const Vec& degenerate)
-{
+Vec safe_normalize(const Vec &v, const Vec &degenerate) {
     assert(is_normalized(degenerate));
     typename Vec::T length = len_precise(v);
     if (length == 0)
@@ -126,30 +117,27 @@ Vec safe_normalize(const Vec& v, const Vec& degenerate)
 // The function returns the generalized cross product as defined by
 // https://en.wikipedia.org/wiki/Cross_product#Multilinear_algebra.
 template <any_vec Vec, typename... Args>
-Vec cross(const Vec& head, Args&&... args);
+Vec cross(const Vec &head, Args &&...args);
 
 // Returns the generalized cross-product in N dimensions.
 // See https://en.wikipedia.org/wiki/Cross_product#Multilinear_algebra for definition.
 template <any_vec Vec>
-Vec cross(const stack_array<const Vec*, vec_info<Vec>::DIM - 1>& args);
+Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args);
 
 // Returns the 2-dimensional cross product, which is a vector perpendicular to the argument
 template <any_vec Vec>
-requires(vec_info<Vec>::DIM == 2) Vec cross(const Vec& arg)
-{
+requires(vec_info<Vec>::DIM == 2) Vec cross(const Vec &arg) {
     return Vec(-arg.y, arg.x);
 }
 // Returns the 2-dimensional cross product, which is a vector perpendicular to the argument
 template <any_vec Vec>
-requires(vec_info<Vec>::DIM == 2) Vec cross(const stack_array<const Vec*, 1>& arg)
-{
+requires(vec_info<Vec>::DIM == 2) Vec cross(const stack_array<const Vec *, 1> &arg) {
     return cross(*(arg[0]));
 }
 
 // Returns the 3-dimensional cross-product
 template <any_vec Vec>
-requires(vec_info<Vec>::DIM == 3) Vec cross(const Vec& lhs, const Vec& rhs)
-{
+requires(vec_info<Vec>::DIM == 3) Vec cross(const Vec &lhs, const Vec &rhs) {
     if constexpr (has_simd<Vec>) {
         return Vec(lhs.yzx) * Vec(rhs.zxy) - Vec(lhs.zxy) * Vec(rhs.yzx);
     } else {
@@ -159,15 +147,13 @@ requires(vec_info<Vec>::DIM == 3) Vec cross(const Vec& lhs, const Vec& rhs)
 
 // Returns the 3-dimensional cross-product
 template <any_vec Vec>
-requires(vec_info<Vec>::DIM == 3) Vec cross(const stack_array<const Vec*, 2>& args)
-{
+requires(vec_info<Vec>::DIM == 3) Vec cross(const stack_array<const Vec *, 2> &args) {
     return cross(*(args[0]), *(args[1]));
 }
 
 // Returns the element-wise minimum of arguments
 template <any_vec Vec>
-always_inline Vec min(const Vec& lhs, const Vec& rhs)
-{
+always_inline Vec min(const Vec &lhs, const Vec &rhs) {
     Vec result;
     For(range(Vec::DIM)) result[it] = min(lhs[it], rhs[it]);
     return result;
@@ -175,8 +161,7 @@ always_inline Vec min(const Vec& lhs, const Vec& rhs)
 
 // Returns the element-wise maximum of arguments
 template <any_vec Vec>
-always_inline Vec max(const Vec& lhs, const Vec& rhs)
-{
+always_inline Vec max(const Vec &lhs, const Vec &rhs) {
     Vec result;
     For(range(Vec::DIM)) result[it] = max(lhs[it], rhs[it]);
     return result;
@@ -184,26 +169,23 @@ always_inline Vec max(const Vec& lhs, const Vec& rhs)
 
 // Clamps each vector value with specified bounds
 template <any_vec Vec>
-always_inline Vec clamp(const Vec& arg, typename vec_info<Vec>::T lower, typename vec_info<Vec>::T upper)
-{
+always_inline Vec clamp(const Vec &arg, typename vec_info<Vec>::T lower, typename vec_info<Vec>::T upper) {
     Vec result;
     For(range(Vec::DIM)) result[it] = clamp(arg[it], lower, upper);
     return result;
 }
 
-// Returns the element-wise log of the vector
+// Returns the element-wise natural log of the vector
 template <any_vec Vec>
-always_inline Vec log(const Vec& vec)
-{
+always_inline Vec ln(const Vec &vec) {
     Vec result;
-    For(range(Vec::DIM)) result[it] = log(vec[it]);
+    For(range(Vec::DIM)) result[it] = ln(vec[it]);
     return result;
 }
 
 // Returns the element-wise exp of the vector
 template <any_vec Vec>
-always_inline Vec exp(const Vec& vec)
-{
+always_inline Vec exp(const Vec &vec) {
     Vec result;
     For(range(Vec::DIM)) result[it] = exp(vec[it]);
     return result;
@@ -211,8 +193,7 @@ always_inline Vec exp(const Vec& vec)
 
 // Returns the element-wise sqrt of the vector
 template <any_vec Vec>
-always_inline Vec sqrt(const Vec& vec)
-{
+always_inline Vec sqrt(const Vec &vec) {
     Vec result;
     For(range(Vec::DIM)) result[it] = sqrt(vec[it]);
     return result;
@@ -220,8 +201,7 @@ always_inline Vec sqrt(const Vec& vec)
 
 // Returns the element-wise abs of the vector
 template <any_vec Vec>
-always_inline Vec abs(const Vec& vec)
-{
+always_inline Vec abs(const Vec &vec) {
     Vec result;
     For(range(Vec::DIM)) result[it] = abs(vec[it]);
     return result;
@@ -229,8 +209,7 @@ always_inline Vec abs(const Vec& vec)
 
 // Returns the sum of the elements in the vector
 template <any_vec Vec>
-always_inline auto sum(const Vec& vec)
-{
+always_inline auto sum(const Vec &vec) {
     auto result = vec[0];
     For(range(1, Vec::DIM)) result += vec[it];
     return result;
@@ -238,8 +217,7 @@ always_inline auto sum(const Vec& vec)
 
 // Returns the max of the elements in the vector
 template <any_vec Vec>
-always_inline auto max(const Vec& vec)
-{
+always_inline auto max(const Vec &vec) {
     auto result = vec[0];
     For(range(1, Vec::DIM)) if (vec[it] > result) result = vec[it];
     return result;
@@ -247,19 +225,21 @@ always_inline auto max(const Vec& vec)
 
 // Returns the min of the elements in the vector
 template <any_vec Vec>
-always_inline auto min(const Vec& vec)
-{
+always_inline auto min(const Vec &vec) {
     auto result = vec[0];
     For(range(1, Vec::DIM)) if (vec[it] < result) result = vec[it];
-    return result; 
+    return result;
 }
+
+LSTD_END_NAMESPACE
 
 // We need this for the generalized cross product
 #include "mat_func.h"
 
+LSTD_BEGIN_NAMESPACE
+
 template <any_vec Vec>
-Vec cross(const stack_array<const Vec*, vec_info<Vec>::DIM - 1>& args)
-{
+Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args) {
     Vec result;
     mat<typename Vec::T, Vec::DIM - 1, Vec::DIM - 1, false> d;
 
@@ -267,13 +247,11 @@ Vec cross(const stack_array<const Vec*, vec_info<Vec>::DIM - 1>& args)
     s64 sign = 2 * (Vec::DIM % 2) - 1;
     for (s64 base = 0; base < Vec::DIM; ++base, sign *= -1) {
         // Fill up sub-matrix the determinant of which yields the coefficient of base-vector
-        For_as(j, range(base))
-        {
+        For_as(j, range(base)) {
             For_as(i, range(d.R)) { d(i, j) = (*(args[i]))[j]; }
         }
 
-        For_as(j, range(base + 1, result.DIM))
-        {
+        For_as(j, range(base + 1, result.DIM)) {
             For_as(i, range(d.R)) { d(i, j - 1) = (*(args[i]))[j]; }
         }
 
@@ -284,11 +262,10 @@ Vec cross(const stack_array<const Vec*, vec_info<Vec>::DIM - 1>& args)
 }
 
 template <any_vec Vec, typename... Args>
-Vec cross(const Vec& head, Args&&... args)
-{
+Vec cross(const Vec &head, Args &&...args) {
     static_assert(1 + sizeof...(args) == Vec::DIM - 1, "Number of arguments must be (Dim - 1).");
 
-    stack_array<const Vec*, Vec::DIM - 1> vectors = { &head, &args... };
+    stack_array<const Vec *, Vec::DIM - 1> vectors = {&head, &args...};
     return cross(vectors);
 }
 

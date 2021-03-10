@@ -7,35 +7,29 @@
 // partial_ordering, weak_ordering, strong_ordering, comparison_category_of
 //
 
-// @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers.
-// As far as I can tell every header in the STD includes some common file which contains the def for these comparison types.
-// This also applies for initializer_list.
-#define LSTD_DONT_DEFINE_INITIALIZER_LIST
-
 #if defined LSTD_DONT_DEFINE_INITIALIZER_LIST
 #include <compare>
 #else
-LSTD_BEGIN_NAMESPACE
 
 namespace std {
-using literal_zero = decltype(null);
+using literal_zero = decltype(nullptr);
 
 // These "pretty" enumerator names are safe since they reuse names of user-facing entities.
-enum class compare_result_eq : s8 { EQUAL = 0 };  // -0.0 is equal to +0.0
+enum class compare_result_eq : char { EQUAL = 0 };  // -0.0 is equal to +0.0
 
-enum class compare_result_ord : s8 {
+enum class compare_result_ord : char {
     LESS = -1,
     GREATER = 1
 };
 
-enum class compare_result_unord : s8 { UNORDERED = -127 };
+enum class compare_result_unord : char { UNORDERED = -127 };
 
 struct partial_ordering {
-    s8 Value;
+    char Value;
 
-    constexpr explicit partial_ordering(const compare_result_eq value) : Value((s8) value) {}
-    constexpr explicit partial_ordering(const compare_result_ord value) : Value((s8) value) {}
-    constexpr explicit partial_ordering(const compare_result_unord value) : Value((s8) value) {}
+    constexpr explicit partial_ordering(const compare_result_eq value) : Value((char) value) {}
+    constexpr explicit partial_ordering(const compare_result_ord value) : Value((char) value) {}
+    constexpr explicit partial_ordering(const compare_result_unord value) : Value((char) value) {}
 
     static const partial_ordering less;
     static const partial_ordering equivalent;
@@ -44,7 +38,7 @@ struct partial_ordering {
 
     friend constexpr bool operator==(const partial_ordering &, const partial_ordering &) = default;
 
-    constexpr bool is_ordered() const { return Value != (s8) compare_result_unord::UNORDERED; }
+    constexpr bool is_ordered() const { return Value != (char) compare_result_unord::UNORDERED; }
 };
 
 inline constexpr partial_ordering partial_ordering::less(compare_result_ord::LESS);
@@ -54,7 +48,7 @@ inline constexpr partial_ordering partial_ordering::unordered(compare_result_uno
 
 constexpr bool operator==(const partial_ordering value, literal_zero) { return value.Value == 0; }
 
-constexpr bool operator<(const partial_ordering value, literal_zero) { return value.Value == (s8) compare_result_ord::LESS; }
+constexpr bool operator<(const partial_ordering value, literal_zero) { return value.Value == (char) compare_result_ord::LESS; }
 constexpr bool operator<(literal_zero, const partial_ordering value) { return 0 < value.Value; }
 
 constexpr bool operator>(const partial_ordering value, literal_zero) { return value.Value > 0; }
@@ -70,10 +64,10 @@ constexpr partial_ordering operator<=>(const partial_ordering value, literal_zer
 constexpr partial_ordering operator<=>(literal_zero, const partial_ordering value) { return partial_ordering{(compare_result_ord) -value.Value}; }
 
 struct weak_ordering {
-    s8 Value;
+    char Value;
 
-    constexpr explicit weak_ordering(const compare_result_eq value) : Value((s8) value) {}
-    constexpr explicit weak_ordering(const compare_result_ord value) : Value((s8) value) {}
+    constexpr explicit weak_ordering(const compare_result_eq value) : Value((char) value) {}
+    constexpr explicit weak_ordering(const compare_result_ord value) : Value((char) value) {}
 
     static const weak_ordering less;
     static const weak_ordering equivalent;
@@ -106,10 +100,10 @@ constexpr weak_ordering operator<=>(const weak_ordering value, literal_zero) { r
 constexpr weak_ordering operator<=>(literal_zero, const weak_ordering value) { return weak_ordering{(compare_result_ord) -value.Value}; }
 
 struct strong_ordering {
-    s8 Value;
+    char Value;
 
-    constexpr explicit strong_ordering(const compare_result_eq value) : Value((s8) value) {}
-    constexpr explicit strong_ordering(const compare_result_ord value) : Value((s8) value) {}
+    constexpr explicit strong_ordering(const compare_result_eq value) : Value((char) value) {}
+    constexpr explicit strong_ordering(const compare_result_ord value) : Value((char) value) {}
 
     static const strong_ordering less;
     static const strong_ordering equal;
@@ -144,6 +138,8 @@ constexpr bool operator>=(literal_zero, const strong_ordering value) { return 0 
 constexpr strong_ordering operator<=>(const strong_ordering value, literal_zero) { return value; }
 constexpr strong_ordering operator<=>(literal_zero, const strong_ordering value) { return strong_ordering{(compare_result_ord)(-value.Value)}; }
 }  // namespace std
+
+LSTD_BEGIN_NAMESPACE
 
 using partial_ordering = std::partial_ordering;
 using weak_ordering = std::weak_ordering;

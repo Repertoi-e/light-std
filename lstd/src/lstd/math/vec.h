@@ -1,10 +1,9 @@
 #pragma once
 
-#include <cmath>  // @DependencyCleanup
-
 #include "../memory/array.h"
 #include "../memory/string_utils.h"
 #include "simd.h"
+
 #include "swizzle_1.inl"
 #include "swizzle_2.inl"
 #include "swizzle_3.inl"

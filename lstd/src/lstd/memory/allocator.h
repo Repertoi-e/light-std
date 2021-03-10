@@ -12,7 +12,7 @@ LSTD_BEGIN_NAMESPACE
 // That work is measureable in performance so we don't want to do it in Dist configuration.
 // If you want to disable it for debug/release as well, define FORCE_NO_DEBUG_MEMORY.
 // You can read the comments in this file (around where DEBUG_MEMORY is mentioned)
-// and see what extra stuff we do.
+// and see what extra safety stuff we do.
 
 #if defined DEBUG || defined RELEASE
 #if !defined DEBUG_MEMORY && !defined FORCE_NO_DEBUG_MEMORY
@@ -20,6 +20,8 @@ LSTD_BEGIN_NAMESPACE
 #endif
 #else
 // Don't enable extra info when in Dist configuration unless predefined
+// Note: "#define DEBUG_MEMORY 0" is WRONG. We check with "#if defined DEBUG_MEMORY",
+// so that means in order to disable DEBUG_MEMORY you mustn't set DEBUG_MEMORY to anything at all.
 #endif
 
 //
@@ -41,9 +43,8 @@ constexpr u64 LEAK = 1ull << 62;
 
 // This specifies what the signature of each allocation function should look like.
 //
-// _mode_ is what we are doing currently, allocating, resizing,
-//      freeing a block or freeing everything
-//      (*implementing FREE_ALL is NOT a requirement, depends on the use case of the user)
+// _mode_ is what we are doing currently: allocating, resizing, freeing a block or freeing everything
+//      (*implementing FREE_ALL is NOT a requirement, depends on the use case of the user code)
 // _context_ is used as a pointer to any data the allocator needs (state)
 // _size_ is the size of the allocation
 // _oldMemory_ is used when resizing or freeing a block
@@ -63,14 +64,17 @@ constexpr u64 LEAK = 1ull << 62;
 // !!! When called with RESIZE, this doesn't mean "reallocate"!
 //     Only valid return here is _oldMemory_ (memory was grown/shrank in place)
 //     or null - memory can't be resized and needs to be moved.
-//     In the second case we allocate a new block and copy the old data there.
+//     In the second case we allocate a new block and copy the old data there (in general_reallocate).
 //
-// Alignment is handled internally. Allocator implementations needn't pay attention to it.
-// When an aligned allocation is being made, we send a request at least _alignment_ bytes larger,
-// so when the allocator function returns an unaligned pointer we can freely bump it.
-// The information about the alignment is saved in the header, that's how we know what
-// the old pointer was when freeing or reallocating.
-using allocator_func_t = types::add_pointer_t<void *(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *)>;
+// !!! Alignment is handled internally. Allocator implementations needn't pay attention to it.
+//     When an aligned allocation is being made, we send a request at least _alignment_ bytes larger,
+//     so when the allocator function returns an unaligned pointer we can freely bump it.
+//     The information about the alignment is saved in the header, that's how we know what
+//     the old pointer was when freeing or reallocating.
+//
+// We do this so custom allocator implementations don't require boiler plate code.
+// For examples see how we implement default allocator, temporary allocator, linked list allocator, etc.
+using allocator_func_t = void *(*) (allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *);
 
 struct allocator {
     allocator_func_t Function = null;
@@ -216,15 +220,27 @@ struct DEBUG_memory_info {
     // @TODO: @Speed: Lock-free linked list!
     inline static thread::mutex Mutex;
 
+    // After every allocation we check the heap for corruption.
+    // The problem is that this involves iterating over a (possibly) large linked list of every allocation made.
+    // We use the frequency variable below to specify how often we perform that expensive operation.
+    // By default we check the heap every 255 allocations, but if a problem is found you may want to decrease
+    // this to 1 so you catch the corruption at just the right time.
+    inline static u8 MemoryVerifyHeapFrequency = 255;
+
+    // Set this to true to print a list of unfreed memory blocks when the library uninitializes.
+    // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
+    // which make EVEN program termination slow, we are just providing this information to the programmer because they might
+    // want to debug crashes/bugs related to memory. (I had to debug a bug with loading/unloading DLLs during runtime).
+    inline static bool CheckForLeaksAtTermination = false;
+
     static void unlink_header(allocation_header *header);                                 // Removes a header from the list
     static void add_header(allocation_header *header);                                    // This adds the header to the front - making it the new head
     static void swap_header(allocation_header *oldHeader, allocation_header *newHeader);  // Replaces _oldHeader_ with _newHeader_ in the list
 
     // Assuming that the heap is not corrupted, this reports any unfreed allocations.
     // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
-    // which make even program termination slow, we are just providing this information to the user because they might
-    // want to load/unload DLLs during the runtime of the application, and those DLLs might use all kinds of complex
-    // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
+    // which make EVEN program termination slow, we are just providing this information to the programmer because they might
+    // want to debug crashes/bugs related to memory. (I had to debug a bug with loading/unloading DLLs during runtime).
     static void report_leaks();
 
     // Verifies the integrity of headers in all allocations (only if DEBUG_MEMORY is on).
@@ -241,28 +257,28 @@ struct DEBUG_memory_info {
 };
 #endif
 
-void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options = 0, const utf8 *file = "", s64 fileLine = -1);
+void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options = 0, source_location loc = {});
 
-// This is static, because it doesn't depend on the allocator object you call it from.
 // Each pointer has a header which has information about the allocator it was allocated with.
-void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, const utf8 *file = "", s64 fileLine = -1);
+void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, source_location loc = {});
 
-// This is static, because it doesn't depend on the allocator object you call it from.
 // Each pointer has a header which has information about the allocator it was allocated with.
 // Calling free on a null pointer doesn't do anything.
+//
+// @TODO: source_location? Idea for the future: Turn on a switch to remember every freed allocation and have a way to
+// display all that information in a visual way. This will help the programmer see what the program is doing with memory exactly.
 void general_free(void *ptr, u64 options = 0);
 
 // Note: Not all allocators must support this.
 void free_all(allocator alloc, u64 options = 0);
 
 //
-// Default allocator:
+// Default allocators:
 //
 
-// General purpose allocator (like malloc)
+// General purpose allocator.
 void *default_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *);
-
-inline allocator Malloc = {default_allocator, null};
+inline allocator DefaultAlloc = {default_allocator, null};
 
 //
 // Temporary allocator:
@@ -281,6 +297,7 @@ struct temporary_allocator_data {
     s64 TotalUsed = 0;
 };
 
+// :TemporaryAllocator:
 // This allocator works like an arena allocator.
 // It's super fast because it basically bumps a pointer.
 // It can be used globally to allocate memory that is not meant to last long
@@ -289,8 +306,8 @@ struct temporary_allocator_data {
 // With this allocator you don't free individual allocations, but instead free the entire thing (with FREE_ALL)
 // when you are sure nobody uses memory the "temporary memory" anymore.
 //
-// It initializes itself the first time you allocate with it, the available space is always a multiple of 8 KiB,
-// when we run out of space we allocate "overflow pages" and keep a list of them. The next time you FREE_ALL,
+// It initializes itself the first time you allocate with it, the available space is always a multiple of 8 KiB.
+// When we run out of space we allocate "overflow pages" and keep a list of them. The next time you FREE_ALL,
 // these pages are merged and the default buffer is resized (new size is the combined size of all allocated buffers).
 //
 // Example use case: if you are programming a game and you need to calculate some stuff for a given frame,
@@ -299,6 +316,10 @@ struct temporary_allocator_data {
 void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *options);
 
 // Frees the memory held by the temporary allocator (if any).
+// This is called automatically when closing a thread (created with our thread API).
+//
+// @Platform
+// It's not called when that thread was created by a different API (although it still has a valid temporary allocator - see tls_init).
 void release_temporary_allocator();
 
 LSTD_END_NAMESPACE

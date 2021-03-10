@@ -1,5 +1,3 @@
-#include <math.h>  // @DependencyCleanup
-
 #include "../memory/array.h"
 #include "common.h"
 #include "context.h"
@@ -1242,63 +1240,25 @@ s64 optimized_compare_memory(const void *ptr1, const void *ptr2, u64 size) {
 
 s64 (*compare_memory)(const void *ptr1, const void *ptr2, u64 size) = optimized_compare_memory;
 
-f32 min(f32 x, f32 y) {
-#if BUILD_NO_CRT
-    if (is_nan(x) || is_nan(y)) return x + y;
-    return x < y ? x : y;
-#else
-    return fminf(x, y);
-#endif
-}
-
-f32 max(f32 x, f32 y) {
-#if BUILD_NO_CRT
-    if (is_nan(x) || is_nan(y)) return x + y;
-    return x > y ? x : y;
-#else
-    return fmaxf(x, y);
-#endif
-}
-
-f64 min(f64 x, f64 y) {
-#if BUILD_NO_CRT
-    if (is_nan(x) || is_nan(y)) return x + y;
-    return x < y ? x : y;
-#else
-    return fmin(x, y);
-#endif
-}
-
-f64 max(f64 x, f64 y) {
-#if BUILD_NO_CRT
-    if (is_nan(x) || is_nan(y)) return x + y;
-    return x > y ? x : y;
-#else
-    return fmax(x, y);
-#endif
-}
-
 void default_panic_handler(const string &message, const array<os_function_call> &callStack) {
     if (Context.HandlingPanic) return;
 
-    Context.HandlingPanic = true;
-
-    print("\n\n{!}(context.cpp / default_crash_handler): A panic occured and the program must terminate.\n");
-    print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
-    print("        ... and here is the call stack:\n");
-    if (callStack.Count) {
-        print("\n");
+    WITH_CONTEXT_VAR(HandlingPanic, true) {
+        print("\n\n{!}(context.cpp / default_crash_handler): A panic occured and the program must terminate.\n");
+        print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
+        print("        ... and here is the call stack:\n");
+        if (callStack.Count) {
+            print("\n");
+        }
+        For(callStack) {
+            print("        {!YELLOW}{}{!}\n", it.Name);
+            print("          in file: {}:{}\n", it.File, it.LineNumber);
+        }
+        if (!callStack.Count) {
+            print("          [No call stack available]\n");
+        }
+        print("\n\n");
     }
-    For(callStack) {
-        print("        {!YELLOW}{}{!}\n", it.Name);
-        print("          in file: {}:{}\n", it.File, it.LineNumber);
-    }
-    if (!callStack.Count) {
-        print("          [No call stack available]\n");
-    }
-    print("\n\n");
-
-    Context.HandlingPanic = false;
 }
 
 LSTD_END_NAMESPACE

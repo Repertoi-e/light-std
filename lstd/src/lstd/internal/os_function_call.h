@@ -2,6 +2,8 @@
 
 #include "../memory/string.h"
 
+LSTD_BEGIN_NAMESPACE
+
 struct os_function_call {
     string Name;
     string File;
@@ -14,3 +16,5 @@ inline os_function_call *clone(os_function_call *dest, os_function_call src) {
     dest->LineNumber = src.LineNumber;
     return dest;
 }
+
+LSTD_END_NAMESPACE

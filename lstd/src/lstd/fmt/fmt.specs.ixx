@@ -5,6 +5,8 @@ module;
 
 export module fmt.specs;
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     // The optional align is one of the following:
     //   '<' - Forces the field to be left-aligned within the available space (default)
@@ -56,3 +58,5 @@ export {
         s64 PrecisionIndex = -1;
     };
 }
+
+LSTD_END_NAMESPACE

@@ -1,10 +1,10 @@
 #include "lstd/internal/common.h"
 
-#if OS == WINDOWS && defined BUILD_NO_CRT
+#if OS == WINDOWS 
 
 #include "lstd/internal/context.h"
 
-extern "C" int _fltused = 0;
+using namespace lstd; // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX @TODO: Tidy up this file!
 
 #include <Windows.h>
 #include <limits.h>
@@ -107,7 +107,7 @@ int __cdecl atexit(_PVFV function) {
             if (ExitTable._first) {
                 newFirst = reallocate_array(first, newCount);
             } else {
-                newFirst = allocate_array(_PVFV, newCount);
+                newFirst = allocate_array<_PVFV>(newCount);
             }
         }
         if (newFirst == null) return -1;
@@ -158,11 +158,17 @@ __declspec(allocate(".rdata$T")) extern const IMAGE_TLS_DIRECTORY _tls_used = {
 static __declspec(allocate(".CRT$XDA")) _PVFV __xd_a = null;
 static __declspec(allocate(".CRT$XDZ")) _PVFV __xd_z = null;
 
+[[msvc::no_tls_guard]] __declspec(thread) bool __tls_guard = false;
+
 // When any thread starts up, walk the array of function pointers found
 // in sections.CRT$XD*, calling each non - null entry to dynamically
 // initialize that thread's copy of a __declspec(thread) variable.
 void __stdcall __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) {
-    if (dwReason != DLL_THREAD_ATTACH) return;
+    if (dwReason != DLL_THREAD_ATTACH || __tls_guard == true) return;
+
+    // Guard against repeated initialization by setting the tls guard tested
+    // by the compiler before we run any initializers.
+    __tls_guard = true;
 
 #pragma warning(push)
 #pragma warning(disable : 26000)
@@ -223,10 +229,30 @@ file_scope void __stdcall tls_uninit(HANDLE, DWORD const dwReason, LPVOID) {
     }
 }
 
+/*
+ * Define an initialized callback function pointer, so CRT startup code knows
+ * we have dynamically initialized __declspec(thread) variables that need to
+ * be initialized at process startup for the primary thread.
+ */
+
 extern const PIMAGE_TLS_CALLBACK __dyn_tls_init_callback = __dyn_tls_init;
-extern const _tls_callback_type __dyn_tls_dtor_callback = tls_uninit;
+
+/*
+ * Enter a callback function pointer into the .CRT$XL* array, which is the
+ * callback array pointed to by the IMAGE_TLS_DIRECTORY in the PE header, so
+ * the OS knows we want to be notified on each thread startup/shutdown.
+ */
 static __declspec(allocate(".CRT$XLC")) PIMAGE_TLS_CALLBACK __xl_c = __dyn_tls_init;
+
+extern const _tls_callback_type __dyn_tls_dtor_callback = tls_uninit;
 static __declspec(allocate(".CRT$XLD")) _tls_callback_type __xl_d = tls_uninit;
+
+// Helper function invoked by the compiler for on-demand initialization of
+// TLS variables when the initializers have not run because a DLL is dynamically
+// loaded after the thread(s) have started.
+void __cdecl __dyn_tls_on_demand_init() noexcept {
+    __dyn_tls_init(nullptr, DLL_THREAD_ATTACH, nullptr);
+}
 
 // Access to these variables is guarded in the below functions.  They may only
 // be modified while the lock is held.  _Tss_epoch is readable from user
@@ -267,11 +293,6 @@ void __cdecl _Init_thread_footer(int *const pOnce) noexcept {
 
     WakeAllConditionVariable(&g_TssCv);
 }
-}
-
-int _cdecl _purecall(void) {
-    // TODO: Tell the user, and terminate process!
-    return 0;
 }
 
 // Terminator for synchronization data structures.

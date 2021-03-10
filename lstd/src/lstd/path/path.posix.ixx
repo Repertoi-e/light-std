@@ -16,6 +16,8 @@ import path.general;
 // If you want to explicitly work with POSIX paths, import this module directly.
 //
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     constexpr char OS_PATH_SEPARATOR = '/';
 
@@ -105,3 +107,5 @@ export {
         return path_split_extension_general(path, '/', 0, '.');
     }
 }
+
+LSTD_END_NAMESPACE

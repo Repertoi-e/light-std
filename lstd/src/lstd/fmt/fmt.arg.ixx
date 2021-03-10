@@ -5,6 +5,8 @@ module;
 export module fmt.arg;
 export import fmt.fmt_type;
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     //
     // Specialize this for custom types,
@@ -92,8 +94,6 @@ export {
     template <typename U>
     auto fmt_map_arg(const U &v) {
         using T = typename types::remove_cvref_t<U>;
-
-        static_assert(!types::is_same<T, long double>, "Argument of type 'long double' is not supported");
 
         if constexpr (formattable<T>) {
             return &v;
@@ -205,3 +205,5 @@ export {
         fmt_args(const fmt_args_on_the_stack<FC, Args...> &store) : Data((void *) store.Data.Data), Types(store.Types), Count(sizeof...(Args)) {}
     };
 }
+
+LSTD_END_NAMESPACE

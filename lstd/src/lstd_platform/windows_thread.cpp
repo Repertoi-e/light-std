@@ -140,16 +140,22 @@ struct thread_start_info {
 
     // Pointer to the implicit context in the "parent" thread.
     // We copy its members to the newly created thread.
-    context *ContextPtr = null;
+    const context *ContextPtr = null;
 };
 
 u32 __stdcall thread::wrapper_function(void *data) {
     auto *ti = (thread_start_info *) data;
 
-    // Copy the context variables from the parent thread
+    // Context was already (partially) initialized (see tls_init @Platform).
+    // Now we copy the context variables from the parent thread.
     s64 firstByte = offsetof(context, Temp) + sizeof(context::Temp);
-
     copy_memory((byte *) &Context + firstByte, (byte *) ti->ContextPtr + firstByte, sizeof(context) - firstByte);
+
+    // If the parent thread was using the temporary allocator, set the new thread to also use the temporary allocator,
+    // but it needs to point to its own temp data (otherwise we are not thread-safe).
+    if (ti->ContextPtr->Alloc == ti->ContextPtr->Temp) {
+        ((context *) &Context)->Alloc = Context.Temp;  // @Constcast
+    }
 
     ti->Function(ti->UserData);  // Call the thread function with the user data
 
@@ -157,9 +163,10 @@ u32 __stdcall thread::wrapper_function(void *data) {
     // CloseHandle(ti->ThreadPtr->Handle);
 
     release_temporary_allocator();
+
     free(ti);
 
-#if defined BUILD_NO_CRT
+#if defined LSTD_NO_CRT
     ExitThread(0);
     if (ti->Module) FreeLibrary(ti->Module);
 #else
@@ -171,13 +178,13 @@ u32 __stdcall thread::wrapper_function(void *data) {
 
 void thread::init_and_launch(const delegate<void(void *)> &function, void *userData) {
     // Passed to the thread wrapper, which will eventually free it
-    auto *ti = allocate(thread_start_info);
+    auto *ti = allocate<thread_start_info>();
     ti->Function = function;
     ti->UserData = userData;
     ti->ThreadPtr = this;
     ti->ContextPtr = &Context;
 
-#if defined BUILD_NO_CRT
+#if defined LSTD_NO_CRT
     // Create the thread
     GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR) wrapper_function, &ti->Module);
     auto handle = CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, (DWORD *) &Win32ThreadId);
@@ -204,7 +211,7 @@ void thread::terminate() {
 }
 
 // return _pthread_t_to_ID(mHandle);
-::thread::id thread::get_id() const {
+::LSTD_NAMESPACE::thread::id thread::get_id() const {
     return id((u64) Win32ThreadId);
 }
 

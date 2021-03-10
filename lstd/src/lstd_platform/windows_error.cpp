@@ -47,6 +47,8 @@ import fmt;
     case HRESULT_FROM_WIN32b(hrchk):      \
         return strOut;
 
+LSTD_BEGIN_NAMESPACE
+
 const char *get_error_string(HRESULT hr) {
     switch (hr) {
         // Commmented out codes are actually alises for other codes
@@ -3638,5 +3640,7 @@ void windows_report_hresult_error(long hresult, const string &call, const string
     print_error_description(hresult);
     print("{!}\n\n");
 }
+
+LSTD_END_NAMESPACE
 
 #endif  // OS == WINDOWS

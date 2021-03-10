@@ -1,5 +1,6 @@
 module;
 
+#include "../internal/context.h"
 #include "../io.h"
 #include "../math.h"
 #include "../memory/guid.h"
@@ -163,6 +164,8 @@ export import fmt.arg;
 export import fmt.parse_context;
 export import fmt.context;
 export import fmt.text_style;
+
+LSTD_BEGIN_NAMESPACE
 
 export {
     //
@@ -360,13 +363,13 @@ export {
 
                 if (!Context.FmtDisableAnsiCodes) {
                     utf8 ansiBuffer[7 + 3 * 4 + 1];
-                    auto *ansiEnd = internal::color_to_ansi(ansiBuffer, style);
+                    auto *ansiEnd = fmt_internal::color_to_ansi(ansiBuffer, style);
                     write_no_specs(f, ansiBuffer, ansiEnd - ansiBuffer);
 
                     u8 emphasis = (u8) style.Emphasis;
                     if (emphasis) {
                         assert(!style.Background);
-                        ansiEnd = internal::emphasis_to_ansi(ansiBuffer, emphasis);
+                        ansiEnd = fmt_internal::emphasis_to_ansi(ansiBuffer, emphasis);
                         write_no_specs(f, ansiBuffer, ansiEnd - ansiBuffer);
                     }
                 }
@@ -440,16 +443,17 @@ export {
 
     // Formats to a string. Uses the temporary allocator.
     template <typename... Args>
-    [[nodiscard("Leak")]] string tsprint(const string &fmtString, Args &&...arguments) {
+    string tsprint(const string &fmtString, Args &&...arguments) {
         WITH_ALLOC(Context.Temp) {
             return sprint(fmtString, ((Args &&) arguments)...);
         }
     }
 
     // Calls fmt_to_writer on Context.Log - which is usually pointing to the console
-    // but that can be changed to redirect the output!
     template <typename... Args>
     void print(const string &fmtString, Args &&...arguments) {
         fmt_to_writer(Context.Log, fmtString, ((Args &&) arguments)...);
     }
 }
+
+LSTD_END_NAMESPACE

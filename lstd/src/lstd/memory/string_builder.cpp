@@ -47,7 +47,7 @@ void append_pointer_and_size(string_builder &builder, const utf8 *data, s64 size
         // If the entire string doesn't fit inside the available space,
         // allocate the next buffer and continue appending.
         if (!builder.Alloc) builder.Alloc = Context.Alloc;
-        auto *b = allocate(string_builder::buffer, builder.Alloc);
+        auto *b = allocate<string_builder::buffer>({.Alloc = builder.Alloc});
 
         currentBuffer->Next = b;
         builder.CurrentBuffer = b;

@@ -31,6 +31,11 @@ function common_settings()
 	
     includedirs { "%{prj.name}/src" }
 
+	-- We need to link with the CRT with a DLL in order to redirect the malloc/free calls with ours.
+	filter { "not options:no-crt" }
+		staticruntime "Off"
+		excludes "%{prj.name}/src/windows_no_crt.cpp"
+		
     filter "system:windows"
         excludes "%{prj.name}/**/posix_*.cpp"
         systemversion "latest"
@@ -39,20 +44,16 @@ function common_settings()
         defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SECURE_NO_WARNINGS", "_CRT_SUPPRESS_RESTRICT" }
         links { "dwmapi.lib", "dbghelp.lib" }
 
-    -- Exclude windows files on non-windows platforms since they would cause a compilation failure
-    filter { "system:windows", "not options:no-crt" }
-        staticruntime "On"
-        excludes "%{prj.name}/src/windows_no_crt.cpp"
-
 	-- Setup build flags if we are doing no-crt.
     filter { "system:windows", "options:no-crt" }
         defines "BUILD_NO_CRT"
         flags { "NoRuntimeChecks", "NoBufferSecurityCheck" }
         buildoptions { "/Gs9999999" }
+	filter { "system:windows", "options:no-crt"}
+	    flags { "OmitDefaultLibrary" }	
     filter { "system:windows", "options:no-crt", "not kind:StaticLib" }
         linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
         links { "kernel32", "shell32", "winmm", "ole32" }
-        flags { "OmitDefaultLibrary" }
     filter { "system:windows", "options:no-crt", "kind:SharedLib" }
         entrypoint "main_no_crt_dll"
     filter { "system:windows", "options:no-crt", "kind:ConsoleApp or WindowedApp" }
@@ -64,12 +65,12 @@ function common_settings()
         symbols "On"
         buildoptions { "/FS" }
     filter "configurations:Release"
-        defines "RELEASE"
+        defines { "RELEASE", "NDEBUG"}
         optimize "On"
         symbols "On"
         buildoptions { "/FS" }
     filter "configurations:Dist"
-        defines "DIST"
+        defines { "DIST", "NDEBUG" } 
         optimize "Full"
         floatingpoint "Fast"
     filter {}
@@ -77,6 +78,40 @@ end
 
 
 outputFolder = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+
+-- Vendor. We use mimalloc as our default malloc replacement. 
+-- We modify the source code in order to be better suited for our uses.
+project "mimalloc"
+    location "%{prj.name}"
+    kind "SharedLib"
+
+    targetdir("bin/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+
+	includedirs { "%{prj.name}/include" }
+	
+    files {
+		"%{prj.name}/include/**.h",
+		"%{prj.name}/src/**.c",
+		"%{prj.name}/src/**.h"
+	}
+	
+	excludes { "%{prj.name}/src/page-queue.c", "%{prj.name}/src/static.c", "%{prj.name}/src/alloc-override.c" }
+	
+	filter "system:windows"
+		excludes "%{prj.name}/src/*-osx.c"
+	filter {}
+	
+	defines { "MI_SHARED_LIB", "MI_SHARED_LIB_EXPORT", "MI_MALLOC_OVERRIDE" }
+	
+	links { "%{prj.location}/bin/mimalloc-redirect.lib" }
+	
+	-- Copy the x64 version to the target dir
+	postbuildcommands {
+		"{COPY} %{prj.location}/bin/mimalloc-redirect.dll %{cfg.targetdir}"
+	}
+    
+    common_settings()
 
 project "lstd"
     location "%{prj.name}"
@@ -86,16 +121,14 @@ project "lstd"
     objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
 
     files {
-        "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.inc",
-        "%{prj.name}/src/**.c",
-        "%{prj.name}/src/**.cpp",
-        "%{prj.name}/src/**.def",
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.inc",
+		"%{prj.name}/src/**.c",
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.def",
 		"%{prj.name}/src/**.ixx"
-    }
-
-    filter {}
-    
+	}
+	
     common_settings()
 
 project "lstd-graphics"
@@ -106,12 +139,13 @@ project "lstd-graphics"
     objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
 
     files {
-        "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.inc",
-        "%{prj.name}/src/**.c",
-        "%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.inc",
+		"%{prj.name}/src/**.c",
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.def",
 		"%{prj.name}/src/**.ixx"
-    }
+	}
 
     -- Exclude directx files on non-windows platforms since they would cause a compilation failure
     filter "not system:windows"
@@ -136,9 +170,15 @@ project "test-suite"
     objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
 
     files {
-        "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.cpp"
-    }
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.inc",
+		"%{prj.name}/src/**.c",
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/src/**.def",
+		"%{prj.name}/src/**.ixx"
+	}
+
+	excludes "%{prj.name}/src/build_test_table.cpp"
 
     links { "lstd" }
     includedirs { "lstd/src" }

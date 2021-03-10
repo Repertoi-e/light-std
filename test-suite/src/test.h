@@ -1,6 +1,8 @@
 #pragma once
 
-#include <lstd/fmt/fmt.h>  // See note in header why we can't import the module directly
+#include <lstd/fmt/fmt.h>  // See note in header why we can't import as module directly
+
+using namespace lstd;
 
 import path;
 

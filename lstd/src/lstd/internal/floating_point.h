@@ -11,8 +11,9 @@
 LSTD_BEGIN_NAMESPACE
 
 union ieee754_f32 {
-    f32 F;
-    u32 W;
+    f32 F;   // FLOAT
+    u32 W;   // WORD
+    s32 SW;  // Signed WORD
 
     // This is the IEEE 754 single-precision format.
     struct {
@@ -44,8 +45,9 @@ union ieee754_f32 {
 };
 
 union ieee754_f64 {
-    f64 F;
-    u64 W;
+    f64 F;    // FLOAT
+    u64 DW;   // DWORD
+    s64 SDW;  // Signed DWORD
 
     struct {
 #if ENDIAN == BIG_ENDIAN

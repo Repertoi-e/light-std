@@ -1,7 +1,9 @@
 #include "../internal/common.h"
 
+LSTD_BEGIN_NAMESPACE
+
 template <typename T, typename U>
-T bit_cast(U u) {
+file_scope T bit_cast(U u) {
     union {
         T t;
         U u;
@@ -51,54 +53,56 @@ T bit_cast(U u) {
 #define ddmultlo(oh, ol, xh, xl, yh, yl) ol = ol + (xh * yl + xl * yh);
 #define ddmultlos(oh, ol, xh, yl) ol = ol + (xh * yl);
 
-f64 BOT[23] = {1e+000, 1e+001, 1e+002, 1e+003, 1e+004, 1e+005, 1e+006, 1e+007, 1e+008, 1e+009, 1e+010, 1e+011,
-               1e+012, 1e+013, 1e+014, 1e+015, 1e+016, 1e+017, 1e+018, 1e+019, 1e+020, 1e+021, 1e+022};
-f64 NEGBOT[22] = {1e-001, 1e-002, 1e-003, 1e-004, 1e-005, 1e-006, 1e-007, 1e-008, 1e-009, 1e-010, 1e-011,
-                  1e-012, 1e-013, 1e-014, 1e-015, 1e-016, 1e-017, 1e-018, 1e-019, 1e-020, 1e-021, 1e-022};
-f64 NEGBOTERR[22] = {
+file_scope f64 BOT[23] = {1e+000, 1e+001, 1e+002, 1e+003, 1e+004, 1e+005, 1e+006, 1e+007, 1e+008, 1e+009, 1e+010, 1e+011,
+                          1e+012, 1e+013, 1e+014, 1e+015, 1e+016, 1e+017, 1e+018, 1e+019, 1e+020, 1e+021, 1e+022};
+file_scope f64 NEGBOT[22] = {1e-001, 1e-002, 1e-003, 1e-004, 1e-005, 1e-006, 1e-007, 1e-008, 1e-009, 1e-010, 1e-011,
+                             1e-012, 1e-013, 1e-014, 1e-015, 1e-016, 1e-017, 1e-018, 1e-019, 1e-020, 1e-021, 1e-022};
+file_scope f64 NEGBOTERR[22] = {
     -5.551115123125783e-018, -2.0816681711721684e-019, -2.0816681711721686e-020, -4.7921736023859299e-021,
     -8.1803053914031305e-022, 4.5251888174113741e-023, 4.5251888174113739e-024, -2.0922560830128471e-025,
     -6.2281591457779853e-026, -3.6432197315497743e-027, 6.0503030718060191e-028, 2.0113352370744385e-029,
     -3.0373745563400371e-030, 1.1806906454401013e-032, -7.7705399876661076e-032, 2.0902213275965398e-033,
     -7.1542424054621921e-034, -7.1542424054621926e-035, 2.4754073164739869e-036, 5.4846728545790429e-037,
     9.2462547772103625e-038, -4.8596774326570872e-039};
-f64 TOP[13] = {1e+023, 1e+046, 1e+069, 1e+092, 1e+115, 1e+138, 1e+161,
-               1e+184, 1e+207, 1e+230, 1e+253, 1e+276, 1e+299};
-f64 NEGTOP[13] = {1e-023, 1e-046, 1e-069, 1e-092, 1e-115, 1e-138, 1e-161,
-                  1e-184, 1e-207, 1e-230, 1e-253, 1e-276, 1e-299};
-f64 TOPERR[13] = {8388608,
-                  6.8601809640529717e+028,
-                  -7.253143638152921e+052,
-                  -4.3377296974619174e+075,
-                  -1.5559416129466825e+098,
-                  -3.2841562489204913e+121,
-                  -3.7745893248228135e+144,
-                  -1.7356668416969134e+167,
-                  -3.8893577551088374e+190,
-                  -9.9566444326005119e+213,
-                  6.3641293062232429e+236,
-                  -5.2069140800249813e+259,
-                  -5.2504760255204387e+282};
-f64 NEGTOPERR[13] = {3.9565301985100693e-040, -2.299904345391321e-063, 3.6506201437945798e-086,
-                     1.1875228833981544e-109, -5.0644902316928607e-132, -6.7156837247865426e-155,
-                     -2.812077463003139e-178, -5.7778912386589953e-201, 7.4997100559334532e-224,
-                     -4.6439668915134491e-247, -6.3691100762962136e-270, -9.436808465446358e-293,
-                     8.0970921678014997e-317};
+file_scope f64 TOP[13] = {1e+023, 1e+046, 1e+069, 1e+092, 1e+115, 1e+138, 1e+161,
+                          1e+184, 1e+207, 1e+230, 1e+253, 1e+276, 1e+299};
+file_scope f64 NEGTOP[13] = {1e-023, 1e-046, 1e-069, 1e-092, 1e-115, 1e-138, 1e-161,
+                             1e-184, 1e-207, 1e-230, 1e-253, 1e-276, 1e-299};
+file_scope f64 TOPERR[13] = {8388608,
+                             6.8601809640529717e+028,
+                             -7.253143638152921e+052,
+                             -4.3377296974619174e+075,
+                             -1.5559416129466825e+098,
+                             -3.2841562489204913e+121,
+                             -3.7745893248228135e+144,
+                             -1.7356668416969134e+167,
+                             -3.8893577551088374e+190,
+                             -9.9566444326005119e+213,
+                             6.3641293062232429e+236,
+                             -5.2069140800249813e+259,
+                             -5.2504760255204387e+282};
+file_scope f64 NEGTOPERR[13] = {3.9565301985100693e-040, -2.299904345391321e-063, 3.6506201437945798e-086,
+                                1.1875228833981544e-109, -5.0644902316928607e-132, -6.7156837247865426e-155,
+                                -2.812077463003139e-178, -5.7778912386589953e-201, 7.4997100559334532e-224,
+                                -4.6439668915134491e-247, -6.3691100762962136e-270, -9.436808465446358e-293,
+                                8.0970921678014997e-317};
 
-struct {
+struct digit_pair {
     u16 Temp;  // Force next field to be 2-byte aligned
     utf8 Pair[201];
-} DIGITPAIR = {0,
-               "00010203040506070809101112131415161718192021222324"
-               "25262728293031323334353637383940414243444546474849"
-               "50515253545556575859606162636465666768697071727374"
-               "75767778798081828384858687888990919293949596979899"};
+};
+
+file_scope digit_pair DIGITPAIR = {0,
+                                   "00010203040506070809101112131415161718192021222324"
+                                   "25262728293031323334353637383940414243444546474849"
+                                   "50515253545556575859606162636465666768697071727374"
+                                   "75767778798081828384858687888990919293949596979899"};
 
 using format_float_callback_t = utf8 *(*) (void *user, utf8 *buf, s64 length);
 
 #define MIN_BYTES 512
 
-void get_float_info(s64 *bits, s32 *exp, f64 value) {
+file_scope void get_float_info(s64 *bits, s32 *exp, f64 value) {
     union {
         f64 v;
         s64 b;
@@ -110,7 +114,7 @@ void get_float_info(s64 *bits, s32 *exp, f64 value) {
 }
 
 // _power_ can be -323 to +350
-void raise_to_power_10(f64 *ohi, f64 *olo, f64 d, s32 power) {
+file_scope void raise_to_power_10(f64 *ohi, f64 *olo, f64 d, s32 power) {
     f64 ph, pl;
     if ((power >= 0) && (power <= 22)) {
         ddmulthi(ph, pl, d, BOT[power]);
@@ -172,7 +176,7 @@ void raise_to_power_10(f64 *ohi, f64 *olo, f64 d, s32 power) {
 // Given a float value, returns the significant bits in bits, and the position of the decimal point in _decimal_pos_
 // NAN/INF are ignored and assumed to have been already handled
 // _frac_digits_ is absolute normally, but if you want from first significant digits (got %g and %e), or in 0x80000000
-void get_float_string_internal(utf8 **start, u32 *length, utf8 *out, s32 *decimalPos, f64 value, u32 fracDigits) {
+file_scope void get_float_string_internal(utf8 **start, u32 *length, utf8 *out, s32 *decimalPos, f64 value, u32 fracDigits) {
     s32 e, tens;
 
     f64 d = value;
@@ -312,7 +316,7 @@ void get_float_string_internal(utf8 **start, u32 *length, utf8 *out, s32 *decima
     if (cl > lg) cl = lg;
 
 // Pass -1 for precision for default value
-void format_float(format_float_callback_t callback, void *user, utf8 *buf, utf8 specType, f64 fv, s32 pr, bool commas = false) {
+file_scope void format_float(format_float_callback_t callback, void *user, utf8 *buf, utf8 specType, f64 fv, s32 pr, bool commas = false) {
     assert(callback);
 
     utf8 *bf = buf;
@@ -720,3 +724,5 @@ void format_float(format_float_callback_t callback, void *user, utf8 *buf, utf8 
 done:
     return;
 }
+
+LSTD_END_NAMESPACE

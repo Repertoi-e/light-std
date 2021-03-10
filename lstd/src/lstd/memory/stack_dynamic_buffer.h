@@ -60,20 +60,20 @@ concept any_stack_dynamic_buffer = is_stack_dynamic_buffer<T>::value;
 //
 // ! Reserves only if there is not enough space on the stack
 template <any_stack_dynamic_buffer T>
-void reserve(T &buffer, s64 target) {
-    if (target < sizeof(buffer.StackData)) return;
-    if (buffer.Count + target < buffer.Allocated) return;
+void reserve(T &buffer, s64 targetCount) {
+    if (targetCount < sizeof(buffer.StackData)) return;
+    if (buffer.Count + targetCount < buffer.Allocated) return;
 
-    target = max<s64>(ceil_pow_of_2(target + buffer.Count + 1), 8);
+    targetCount = max<s64>(ceil_pow_of_2(targetCount + buffer.Count + 1), 8);
 
     if (buffer.Allocated) {
-        buffer.Data = reallocate_array(buffer.Data, target);
+        buffer.Data = reallocate_array(buffer.Data, targetCount);
     } else {
         auto *oldData = buffer.Data;
-        buffer.Data = allocate_array(byte, target);
+        buffer.Data = allocate_array<byte>(targetCount);
         if (buffer.Count) copy_memory(buffer.Data, oldData, buffer.Count);
     }
-    buffer.Allocated = target;
+    buffer.Allocated = targetCount;
 }
 
 // Releases the memory allocated by this buffer.

@@ -3,8 +3,6 @@
 #include "../internal/common.h"
 #include "array_like.h"
 
-LSTD_BEGIN_NAMESPACE
-
 //
 // This file is a modified implementation of a delegate by Vadim Karkhin.
 // https://github.com/tarigo/delegate
@@ -34,11 +32,28 @@ LSTD_BEGIN_NAMESPACE
 // SOFTWARE.
 //
 
+LSTD_BEGIN_NAMESPACE
+
 template <typename T>
 struct delegate;
 
-// This is an object which can store a global function, a method (binded to some instance), or a functor / lambda.
-// It doesn't allocate any dynamic memory.
+// This is an object which can store a global function, a method (binded to some object instance), or a functor/lambda.
+// It doesn't allocate any dynamic memory (contrary to std::function). It does this by keeping a pointer to the functor/lambda,
+// which means that the variable needs to outlive the delegate. 
+//
+// e.g.
+//     auto appender = [&](const string &str) { append_string(*dest, str); };
+//     traverse(src, &appender);
+//
+// Where traverse just takes a delegate:
+// 
+//     void traverse(const string_builder &builder, const delegate<void(const string &)> &func) {
+//
+// Which allows us to call it with any function/method/lambda that matches the signature (this shows why this class is useful in the first place).
+// 
+// @API @TODO: This example uses the traverse API for string builders which is ugly and dumb and I want to get rid of it.
+// Remember to update this!
+//
 template <typename R, typename... A>
 struct delegate<R(A...)> {
     using stub_t = R (*)(void *, A &&...);
@@ -63,9 +78,9 @@ struct delegate<R(A...)> {
     alignas(stub_t) stub_t Invoker = null;
 
     // Invoke static method / free function
-    template <decltype(null), typename Signature>
+    template <null_t, typename Signature>
     static R invoke(void *data, A &&... args) {
-        return (*reinterpret_cast<const target<decltype(null), Signature> *>(data)->FunctionPtr)((A &&)(args)...);
+        return (*reinterpret_cast<const target<null_t, Signature> *>(data)->FunctionPtr)((A &&)(args)...);
     }
 
     // Invoke method
@@ -75,21 +90,21 @@ struct delegate<R(A...)> {
     }
 
     // Invoke function object (functor)
-    template <typename Type, decltype(null)>
+    template <typename Type, null_t>
     static R invoke(void *data, A &&... args) {
-        return (*reinterpret_cast<const target<Type, decltype(null)> *>(data)->InstancePtr)((A &&)(args)...);
+        return (*reinterpret_cast<const target<Type, null_t> *>(data)->InstancePtr)((A &&)(args)...);
     }
 
     delegate() {}
 
     // Construct from null
-    delegate(decltype(null)) {}
+    delegate(null_t) {}
 
     // Construct delegate with static method / free function
     delegate(R (*function)(A...)) {
         using Signature = decltype(function);
 
-        auto storage = (target<decltype(null), Signature> *) &Data[0];
+        auto storage = (target<null_t, Signature> *) &Data[0];
         storage->InstancePtr = null;
         storage->FunctionPtr = function;
         Invoker = &delegate::invoke<null, Signature>;
@@ -104,30 +119,28 @@ struct delegate<R(A...)> {
         Invoker = &delegate::invoke<Type, Signature>;
     }
 
-    // using nullptr_t = decltype(null);
-
     // Construct delegate with function object (functor) / lambda
     template <typename Type>
     delegate(Type *functor) {
-        auto storage = (target<Type, nullptr_t> *) &Data[0];
+        auto storage = (target<Type, null_t> *) &Data[0];
         storage->InstancePtr = functor;
         storage->FunctionPtr = null;
         Invoker = &delegate::invoke<Type, null>;
     }
 
     // Assign null pointer
-    delegate &operator=(decltype(null)) {
+    delegate &operator=(null_t) {
         zero_memory(Data, Count);
         Invoker = null;
         return *this;
     }
 
-    bool operator==(decltype(null)) const { return !Invoker; }
-    bool operator!=(decltype(null)) const { return Invoker; }
+    bool operator==(null_t) const { return !Invoker; }
+    bool operator!=(null_t) const { return Invoker; }
 
     operator bool() const { return Invoker; }
 
-    // Call delegate
+    // Calls the delegate
     R operator()(A... args) const {
         return (*Invoker)((void *) &Data[0], (A &&)(args)...);
     }

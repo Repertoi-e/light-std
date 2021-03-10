@@ -132,6 +132,6 @@ union alignas(16) simd {
     }
 };
 
-#include "simd_sse2.h"
-
 LSTD_END_NAMESPACE
+
+#include "simd_sse2.h"

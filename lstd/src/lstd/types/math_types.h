@@ -3,6 +3,8 @@
 #include "../internal/namespace.h"
 #include "../platform.h"
 
+LSTD_BEGIN_NAMESPACE
+
 //
 // This file provides forward definitions for math types: vec_data, vec, swizzle, mat, mat_view, tquat,
 //  as well as concepts:
@@ -100,3 +102,5 @@ template <typename T>
 constexpr bool is_quat = is_quat_helper<T>::value;
 
 }  // namespace types
+
+LSTD_END_NAMESPACE

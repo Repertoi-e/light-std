@@ -2,6 +2,10 @@
 
 #include "../types/basic_types.h"
 
+LSTD_BEGIN_NAMESPACE
+
+// @TODO: Where is this used... Really?
+
 struct rect {
     s32 Left = 0, Top = 0;
     s32 Right = 0, Bot = 0;
@@ -14,3 +18,5 @@ struct rect {
     }
     bool operator!=(rect other) const { return !(*this == other); }
 };
+
+LSTD_END_NAMESPACE

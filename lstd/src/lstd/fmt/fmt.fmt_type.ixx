@@ -4,6 +4,8 @@ module;
 
 export module fmt.fmt_type;
 
+LSTD_BEGIN_NAMESPACE
+
 export {
     enum class fmt_type {
         None = 0,
@@ -57,3 +59,5 @@ export {
     constexpr auto type_constant_v = type_constant<types::remove_cvref_t<T>>::value;
     }  // namespace fmt_internal
 }
+
+LSTD_END_NAMESPACE
