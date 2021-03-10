@@ -74,6 +74,9 @@ LOC no vendor:  ----
 				27221
 				27150
 				25631
+				
+LOC (lstd + tests):
+				19048
 
 LOC no tests:   24972 (2700 less)
 				24768

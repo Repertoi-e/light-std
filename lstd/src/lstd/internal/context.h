@@ -76,7 +76,7 @@ struct context {
     //
     // The idea for this comes from the implicit context in Jai.
     allocator Alloc;  // = DefaultAlloc by default. Initialized in windows_common.cpp. @Platform
-    
+
     u16 AllocAlignment = POINTER_SIZE;  // By default
 
     // Any options that get OR'd with the options in any allocation (options are implemented as flags).
@@ -177,17 +177,24 @@ using size_t = LSTD_NAMESPACE::u32;
 #endif
 using align_val_t = size_t;
 
+// :AvoidSTDs:
+// Normally <new> defines the placement new operator but if we avoid using headers from the C++ STD we define our own implementation here.
+// Note: You must tell us with a macro: LSTD_DONT_DEFINE_STD.
 //
-// Normally <new> defines the placement new operator but since we don't include it (to avoid including STL at all) we define our own implementation here.
-//
-#if !defined LSTD_DONT_DEFINE_INITIALIZER_LIST
+// By default we avoid STDs (like in real life) but if e.g. a library relies on it we would get definition errors.
+// In general this library can work WITH or WITHOUT the normal standard library.
+#if defined LSTD_DONT_DEFINE_STD
+#include <new>
+#else
 #if COMPILER == MSVC
+// Note: If you get many compile errors (but you have defined LSTD_DONT_DEFINE_STD).
+// You probably need to define it globally, because not all headers from this library see the macro.
 inline void *__cdecl operator new(size_t, void *p) noexcept { return p; }
+inline void *__cdecl operator new[](size_t, void *p) noexcept { return p; }
 #else
 inline void *operator new(size_t, void *p) noexcept { return p; }
+inline void *operator new[](size_t, void *p) noexcept { return p; }
 #endif
-#else
-#include <new>
 #endif
 
 LSTD_BEGIN_NAMESPACE
@@ -313,11 +320,29 @@ LSTD_END_NAMESPACE
 // We overload the new/delete operators so we handle the allocations. The allocator used is the one specified in the Context.
 //
 
-void *operator new(size_t size, LSTD_NAMESPACE::source_location loc = LSTD_NAMESPACE::source_location::current());
-void *operator new[](size_t size, LSTD_NAMESPACE::source_location loc = LSTD_NAMESPACE::source_location::current());
+// If we define our new operator with user arguments and also include STD headers then overload resolution is ambiguous.
 
-void *operator new(size_t size, align_val_t alignment, LSTD_NAMESPACE::source_location loc = LSTD_NAMESPACE::source_location::current());
-void *operator new[](size_t size, align_val_t alignment, LSTD_NAMESPACE::source_location loc = LSTD_NAMESPACE::source_location::current());
+// #if defined LSTD_DONT_DEFINE_STD
+// #define L
+// #else
+// #define L , LSTD_NAMESPACE::source_location loc = LSTD_NAMESPACE::source_location::current()
+// #endif
+
+#if not defined LSTD_DONT_DEFINE_STD
+#define L , LSTD_NAMESPACE::source_location loc = LSTD_NAMESPACE::source_location::current()
+[[nodiscard]] void *operator new(size_t size L);
+[[nodiscard]] void *operator new[](size_t size L);
+
+[[nodiscard]] void *operator new(size_t size, align_val_t alignment L);
+[[nodiscard]] void *operator new[](size_t size, align_val_t alignment L);
+
+[[nodiscard]] void *operator new(size_t size, const std::nothrow_t &tag L) noexcept;
+[[nodiscard]] void *operator new[](size_t size, const std::nothrow_t &tag L) noexcept;
+
+[[nodiscard]] void *operator new(size_t size, align_val_t alignment, const std::nothrow_t &tag L) noexcept;
+[[nodiscard]] void *operator new[](size_t size, align_val_t alignment, const std::nothrow_t &tag L) noexcept;
+#undef L
+#endif
 
 void operator delete(void *ptr) noexcept;
 void operator delete[](void *ptr) noexcept;

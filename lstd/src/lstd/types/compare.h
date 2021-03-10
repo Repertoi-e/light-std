@@ -7,9 +7,17 @@
 // partial_ordering, weak_ordering, strong_ordering, comparison_category_of
 //
 
-#if defined LSTD_DONT_DEFINE_INITIALIZER_LIST
+// :AvoidSTDs:
+// Normally <compare> provides the needed definitions but if we avoid using headers from the C++ STD we define our own implementation here.
+// Note: You must tell us with a macro: LSTD_DONT_DEFINE_STD.
+//
+// By default we avoid STDs (like in real life) but if e.g. a library relies on it we would get definition errors.
+// In general this library can work WITH or WITHOUT the normal standard library.
+#if defined LSTD_DONT_DEFINE_STD
 #include <compare>
 #else
+// Note: If you get many compile errors (but you have defined LSTD_DONT_DEFINE_STD).
+// You probably need to define it globally, because not all headers from this library see the macro.
 
 namespace std {
 using literal_zero = decltype(nullptr);

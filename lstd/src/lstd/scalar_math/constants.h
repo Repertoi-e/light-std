@@ -8,7 +8,7 @@ LSTD_BEGIN_NAMESPACE
 // This should be way more than enough for normal cases.
 //
 // @TODO: In the future maybe we should look into arbitrary precision math?
-// i.e. big integers and no limit on real number precision. It would be very useful for e.g. calculators/graphing.
+// i.e. big integers and no limit on real number precision. It would be very useful e.g. for calculators/graphing.
 // I don't think there are good C++ libraries that do that, so we will maybe interface with a C one, instead of porting from zero.
 constexpr f64 TAU = (f64) 6.28318530717958647692;
 constexpr f64 PI = (f64) 3.14159265358979323846;

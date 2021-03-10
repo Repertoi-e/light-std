@@ -8,10 +8,6 @@
 #include "../types/type_info.h"
 #include "debug_break.h"
 
-#if OS == WINDOWS
-#define LSTD_NO_CRT
-#endif
-
 LSTD_BEGIN_NAMESPACE
 
 // Use this to get the location where a function was called without using macros.
@@ -92,7 +88,7 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 
 #undef assert
 
-#if defined DEBUG || defined RELEASE
+#if not defined NDEBUG 
 #define assert(condition) (!!(condition)) ? (void) 0 : debug_break()
 #else
 #define assert(condition) ((void) 0)

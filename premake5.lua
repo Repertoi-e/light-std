@@ -7,7 +7,7 @@
 
 workspace "light-std"
     architecture "x64"
-    configurations { "Debug", "Release", "Dist" }
+    configurations { "Debug", "DebugOptimized", "Release" }
 
 function common_settings()
     architecture "x64"
@@ -17,42 +17,38 @@ function common_settings()
     -- We can't specify C++20 but at least on Windows, our generate_projects.bat replaces language standard with stdcpplatest in the .vcxproj files
     cppdialect "C++17" 
 
-    rtti "Off"
     characterset "Unicode"
     
+    rtti "Off"
     editandcontinue "Off"
-
-    defines "_HAS_EXCEPTIONS=0"
-    exceptionhandling "Off"
+    exceptionhandling "On"
 	
-    includedirs { "%{prj.name}/src" }
-
-	-- We need to link with the CRT with a DLL in order to redirect the malloc/free calls with ours.
-	filter { "not options:no-crt" }
-		staticruntime "Off"
-		excludes "%{prj.name}/src/windows_no_crt.cpp"
-		
+	-- Define this if you include headers from the normal standard library (STL).
+	-- If this macro is not defined we provide our own implementations of certain things 
+	-- that are normally defined in the STL and on which certain C++ features rely on.
+	-- (e.g. the compare header - required by the spaceship operator, placement new and initializer_lists)
+	defines { "LSTD_DONT_DEFINE_STD" }
+	
     filter "system:windows"
-        excludes "%{prj.name}/**/posix_*.cpp"
-        systemversion "latest"
+		systemversion "latest"
         buildoptions { "/utf-8" }
         
-        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SECURE_NO_WARNINGS", "_CRT_SUPPRESS_RESTRICT" }
-        links { "dwmapi.lib", "dbghelp.lib" }
+		excludes "%{prj.name}/**/posix_*.cpp"
 
-	-- Setup build flags if we are doing no-crt.
-    filter { "system:windows", "options:no-crt" }
-        defines "BUILD_NO_CRT"
-        flags { "NoRuntimeChecks", "NoBufferSecurityCheck" }
-        buildoptions { "/Gs9999999" }
-	filter { "system:windows", "options:no-crt"}
-	    flags { "OmitDefaultLibrary" }	
-    filter { "system:windows", "options:no-crt", "not kind:StaticLib" }
+        defines { "LSTD_NO_CRT", "NOMINMAX", "WIN32_LEAN_AND_MEAN" }
+    
+		buildoptions { "/Gs9999999" }
+		
+        links { "dwmapi.lib", "dbghelp.lib" }
+		flags { "OmitDefaultLibrary", "NoRuntimeChecks", "NoBufferSecurityCheck" }
+    filter { "system:windows", "not kind:StaticLib" }
         linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
         links { "kernel32", "shell32", "winmm", "ole32" }
-    filter { "system:windows", "options:no-crt", "kind:SharedLib" }
+		
+	-- Setup entry point
+    filter { "system:windows", "kind:SharedLib" }
         entrypoint "main_no_crt_dll"
-    filter { "system:windows", "options:no-crt", "kind:ConsoleApp or WindowedApp" }
+    filter { "system:windows", "kind:ConsoleApp or WindowedApp" }
         entrypoint "main_no_crt"
 
 	-- Setup configurations and optimization level
@@ -60,13 +56,13 @@ function common_settings()
         defines "DEBUG"
         symbols "On"
         buildoptions { "/FS" }
-    filter "configurations:Release"
-        defines { "RELEASE", "NDEBUG"}
+    filter "configurations:DebugOptimized"
+        defines { "DEBUG", "DEBUG_OPTIMIZED" }
         optimize "On"
         symbols "On"
         buildoptions { "/FS" }
-    filter "configurations:Dist"
-        defines { "DIST", "NDEBUG" } 
+    filter "configurations:Release"
+        defines { "RELEASE", "NDEBUG" } 
         optimize "Full"
         floatingpoint "Fast"
     filter {}
@@ -74,7 +70,6 @@ end
 
 
 outputFolder = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
-
 
 project "lstd"
     location "%{prj.name}"
@@ -89,13 +84,16 @@ project "lstd"
 		"%{prj.name}/src/**.c",
 		"%{prj.name}/src/**.cpp",
 		"%{prj.name}/src/**.def",
-		"%{prj.name}/src/**.ixx"
+		"%{prj.name}/src/**.ixx",
+		"%{prj.name}/lstd.natvis"
 	}
+	
+    includedirs { "%{prj.name}/src" }
 	
     common_settings()
 
 
-project "test-suite"
+project "test_suite"
     location "%{prj.name}"
     kind "ConsoleApp"
 
@@ -111,10 +109,11 @@ project "test-suite"
 		"%{prj.name}/src/**.ixx"
 	}
 
+	-- This is used when we don't want to rely on global constructors for registering tests.
 	excludes "%{prj.name}/src/build_test_table.cpp"
 
     links { "lstd" }
-    includedirs { "lstd/src" }
+    includedirs { "lstd/src", "%{prj.name}/src" }
 	
 	pchheader "pch.h"
     pchsource "%{prj.name}/src/pch.cpp"

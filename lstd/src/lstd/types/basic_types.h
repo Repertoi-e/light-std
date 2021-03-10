@@ -11,18 +11,18 @@
 // Note: We don't support long doubles (lf64) or operations with them. That's why we don't even provide type info.
 //
 
-// @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers.
-// As far as I can tell every header in the STD includes some common file which contains the def for initializer_list
-// which is a good test to turn off to check if we include any headers from the STD for the time when we become clean.
-// This also applies to compare.h
-// #define LSTD_DONT_DEFINE_INITIALIZER_LIST
-
-#if defined LSTD_DONT_DEFINE_INITIALIZER_LIST
+// :AvoidSTDs:
+// Normally initializer_list would be included but if we avoid using headers from the C++ STD we define our own implementation here.
+// Note: You must tell us with a macro: LSTD_DONT_DEFINE_STD.
+// 
+// By default we avoid STDs (like in real life) but if e.g. a library relies on it we would get definition errors.
+// In general this library can work WITH or WITHOUT the normal standard library.
+#if defined LSTD_DONT_DEFINE_STD
 #include <initializer_list>
-#endif
+#else
+// Note: If you get many compile errors (but you have defined LSTD_DONT_DEFINE_STD).
+// You probably need to define it globally, because not all headers from this library see the macro.
 
-// The user might include stuff from the STL and it that case the compiler would complain for two definitions
-#if !defined LSTD_DONT_DEFINE_INITIALIZER_LIST
 namespace std {
 template <typename T>
 struct initializer_list {

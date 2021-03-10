@@ -10,16 +10,16 @@ LSTD_BEGIN_NAMESPACE
 
 // By default we do some extra work when allocating to make it easier to catch memory related bugs.
 // That work is measureable in performance so we don't want to do it in Dist configuration.
-// If you want to disable it for debug/release as well, define FORCE_NO_DEBUG_MEMORY.
+// If you want to disable it for debug as well, define FORCE_NO_DEBUG_MEMORY.
 // You can read the comments in this file (around where DEBUG_MEMORY is mentioned)
 // and see what extra safety stuff we do.
 
-#if defined DEBUG || defined RELEASE
+#if not defined NDEBUG 
 #if !defined DEBUG_MEMORY && !defined FORCE_NO_DEBUG_MEMORY
 #define DEBUG_MEMORY 1
 #endif
 #else
-// Don't enable extra info when in Dist configuration unless predefined
+// Don't enable extra info when in Release configuration unless predefined
 // Note: "#define DEBUG_MEMORY 0" is WRONG. We check with "#if defined DEBUG_MEMORY",
 // so that means in order to disable DEBUG_MEMORY you mustn't set DEBUG_MEMORY to anything at all.
 #endif

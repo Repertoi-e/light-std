@@ -128,8 +128,8 @@ void windows_report_hresult_error(long hresult, const string &call, const string
     }
 
 // DX_CHECK is used for checking directx calls. The difference from WIN32_CHECKHR is that
-// in Dist configuration, the macro expands to just the call (no error checking).
-#if defined DEBUG || defined RELEASE
+// in Release configuration, the macro expands to just the call (no error checking).
+#if not defined NDEBUG
 #define DX_CHECK(call) WIN32_CHECKHR(call)
 #else
 #define DX_CHECK(call) call

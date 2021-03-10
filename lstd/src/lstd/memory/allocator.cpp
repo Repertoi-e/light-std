@@ -487,16 +487,37 @@ void free_all(allocator alloc, u64 options) {
 
 LSTD_END_NAMESPACE
 
-using LSTD_NAMESPACE::source_location;
-using LSTD_NAMESPACE::u32;
 using LSTD_NAMESPACE::general_allocate;
 using LSTD_NAMESPACE::general_free;
+using LSTD_NAMESPACE::source_location;
+using LSTD_NAMESPACE::u32;
 #define C LSTD_NAMESPACE::Context
 
-void *operator new(size_t size, source_location loc) { return general_allocate(C.Alloc, size, 0, 0, loc); }
-void *operator new[](size_t size, source_location loc) { return general_allocate(C.Alloc, size, 0, 0, loc); }
-void *operator new(size_t size, align_val_t alignment, source_location loc) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
-void *operator new[](size_t size, align_val_t alignment, source_location loc) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
+// #if defined LSTD_DONT_DEFINE_STD
+// #define L
+// #define loc LSTD_NAMESPACE::source_location()
+// #else
+// #define L , LSTD_NAMESPACE::source_location loc
+// #endif
+
+#define L , LSTD_NAMESPACE::source_location loc
+
+[[nodiscard]] void *operator new(size_t size L) { return general_allocate(C.Alloc, size, 0, 0, loc); }
+[[nodiscard]] void *operator new[](size_t size L) { return general_allocate(C.Alloc, size, 0, 0, loc); }
+
+[[nodiscard]] void *operator new(size_t size, align_val_t alignment L) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
+[[nodiscard]] void *operator new[](size_t size, align_val_t alignment L) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
+
+[[nodiscard]] void *operator new(size_t size, const std::nothrow_t &tag L) noexcept { return general_allocate(C.Alloc, size, 0, 0, loc); }
+[[nodiscard]] void *operator new[](size_t size, const std::nothrow_t &tag L) noexcept { return general_allocate(C.Alloc, size, 0, 0, loc); }
+
+[[nodiscard]] void *operator new(size_t size, align_val_t alignment, const std::nothrow_t &tag L) noexcept { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
+[[nodiscard]] void *operator new[](size_t size, align_val_t alignment, const std::nothrow_t &tag L) noexcept { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
+
+// void *operator new(size_t size, source_location loc) { return general_allocate(C.Alloc, size, 0, 0, loc); }
+// void *operator new[](size_t size, source_location loc) { return general_allocate(C.Alloc, size, 0, 0, loc); }
+// void *operator new(size_t size, align_val_t alignment, source_location loc) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
+// void *operator new[](size_t size, align_val_t alignment, source_location loc) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
 
 void operator delete(void *ptr) noexcept { general_free(ptr); }
 void operator delete[](void *ptr) noexcept { general_free(ptr); }
