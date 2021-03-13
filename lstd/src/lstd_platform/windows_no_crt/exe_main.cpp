@@ -2,10 +2,10 @@
 
 #if defined LSTD_NO_CRT
 
-#include "../pch.h"  // For Windows.h
 #include "common.h"
 #include "lstd/internal/context.h"
 #include "lstd/os.h"
+#include "lstd/types/windows.h"  // For definitions
 
 #if OS != WINDOWS
 #error LSTD_NO_CRT is Windows-only
@@ -128,7 +128,6 @@ file_scope int __cdecl pre_c_initialization() {
 // * _CRTALLOC(".CRT$XCAA")
 // * static _PVFV pre_cpp_initializer = pre_cpp_initialization;
 
-
 // int argc, char *argv[] <- we don't pass in these. Use os_get_command_line_arguments().
 extern "C" int main();
 
@@ -144,6 +143,18 @@ extern void win32_common_init_global_state();
 extern void win32_common_init_context();
 extern void win32_crash_handler_init();
 LSTD_END_NAMESPACE
+
+// We need to reinit the context after the TLS initalizer fires and resets our state.. sigh.
+// We can't just do it once because global variables might still use the context and TLS fires a bit later.
+s32 tls_init() {
+    LSTD_NAMESPACE::win32_common_init_context();
+    return 0;
+}
+
+#pragma const_seg(".CRT$XDU")
+__declspec(allocate(".CRT$XDU")) _PIFV g_TLSInit = tls_init;
+#pragma const_seg()
+
 
 //
 // Entry point for executables

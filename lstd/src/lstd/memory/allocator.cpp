@@ -152,14 +152,15 @@ file_scope void verify_header_unlocked(allocation_header *header) {
     // We check for several problems here:
     //   * Accessing headers which were freed. Note: This doesn't mean that the user code attempted to modify/access
     //     memory which we marked as freed. When calling free() we unlink the header from our list but before that we
-    //     fill it with DEAD_LAND_FILL. The idea is to make the memory invalid so the user code crashes if a read is attempted.
-    //     Here we check if _header_ was freed but for some reason we are trying to verify it.
+    //     fill it with DEAD_LAND_FILL. The idea is to make the memory invalid so the user code (hopefully) crashes if 
+    //     it is still interpreted as a valid object. BUT Here we check if _header_ was freed but for some reason we are 
+    //     trying to verify it.
     //   * Alignment should not be 0, should be more than POINTER_SIZE (4 or 8) and should be a power of 2.
     //     If any of these is not true, then the header was definitely corrupted.
     //   * We store a pointer to the memory block at the end of the header, any valid header will have this pointer point after itself.
     //     Otherwise the header was definitely corrupted.
     //   * No man's land was modified. This means that you wrote before or after the allocated block.
-    //     This catches programmer errors related to writing stuff to memory which is not *supposed* to be valid.
+    //     This catches programmer errors (buffer underflows/overflows) related to writing stuff to memory which is not supposed to be valid.
     //
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -490,7 +491,6 @@ LSTD_END_NAMESPACE
 using LSTD_NAMESPACE::general_allocate;
 using LSTD_NAMESPACE::general_free;
 using LSTD_NAMESPACE::source_location;
-using LSTD_NAMESPACE::u32;
 #define C LSTD_NAMESPACE::Context
 
 // #if defined LSTD_DONT_DEFINE_STD
@@ -501,23 +501,11 @@ using LSTD_NAMESPACE::u32;
 // #endif
 
 #define L , LSTD_NAMESPACE::source_location loc
-
 [[nodiscard]] void *operator new(size_t size L) { return general_allocate(C.Alloc, size, 0, 0, loc); }
 [[nodiscard]] void *operator new[](size_t size L) { return general_allocate(C.Alloc, size, 0, 0, loc); }
 
 [[nodiscard]] void *operator new(size_t size, align_val_t alignment L) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
 [[nodiscard]] void *operator new[](size_t size, align_val_t alignment L) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
-
-[[nodiscard]] void *operator new(size_t size, const std::nothrow_t &tag L) noexcept { return general_allocate(C.Alloc, size, 0, 0, loc); }
-[[nodiscard]] void *operator new[](size_t size, const std::nothrow_t &tag L) noexcept { return general_allocate(C.Alloc, size, 0, 0, loc); }
-
-[[nodiscard]] void *operator new(size_t size, align_val_t alignment, const std::nothrow_t &tag L) noexcept { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
-[[nodiscard]] void *operator new[](size_t size, align_val_t alignment, const std::nothrow_t &tag L) noexcept { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
-
-// void *operator new(size_t size, source_location loc) { return general_allocate(C.Alloc, size, 0, 0, loc); }
-// void *operator new[](size_t size, source_location loc) { return general_allocate(C.Alloc, size, 0, 0, loc); }
-// void *operator new(size_t size, align_val_t alignment, source_location loc) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
-// void *operator new[](size_t size, align_val_t alignment, source_location loc) { return general_allocate(C.Alloc, size, (u32) alignment, 0, loc); }
 
 void operator delete(void *ptr) noexcept { general_free(ptr); }
 void operator delete[](void *ptr) noexcept { general_free(ptr); }

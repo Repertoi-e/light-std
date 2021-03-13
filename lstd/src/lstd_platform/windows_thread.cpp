@@ -4,7 +4,7 @@
 
 #include "lstd/internal/context.h"
 #include "lstd/os.h"
-#include "pch.h"
+#include "lstd/types/windows.h"  // For API calls and definitions
 
 LSTD_BEGIN_NAMESPACE
 
@@ -59,8 +59,8 @@ struct CV_Data {
 void condition_variable::init() {
     auto *data = (CV_Data *) Handle;
 
-    data->Events[_CONDITION_EVENT_ONE] = CreateEvent(null, FALSE, FALSE, null);
-    data->Events[_CONDITION_EVENT_ALL] = CreateEvent(null, TRUE, FALSE, null);
+    data->Events[_CONDITION_EVENT_ONE] = CreateEventW(null, 0, 0, null);
+    data->Events[_CONDITION_EVENT_ALL] = CreateEventW(null, 1, 0, null);
     InitializeCriticalSection(&data->WaitersCountLock);
 }
 
@@ -86,7 +86,7 @@ void condition_variable::do_wait() {
     auto *data = (CV_Data *) Handle;
 
     // Wait for either event to become signaled due to notify_one() or notify_all() being called
-    s32 result = WaitForMultipleObjects(2, data->Events, FALSE, INFINITE);
+    s32 result = WaitForMultipleObjects(2, data->Events, 0, INFINITE);
 
     // Check if we are the last waiter
     EnterCriticalSection(&data->WaitersCountLock);
@@ -146,9 +146,9 @@ struct thread_start_info {
 u32 __stdcall thread::wrapper_function(void *data) {
     auto *ti = (thread_start_info *) data;
 
-    // Context was already (partially) initialized (see tls_init @Platform).
+    // Context was already (partially) initialized (see win32_common_init_context @Platform).
     // Now we copy the context variables from the parent thread.
-    s64 firstByte = offsetof(context, Temp) + sizeof(context::Temp);
+    s64 firstByte = FIELD_OFFSET(context, Temp) + sizeof(context::Temp);
     copy_memory((byte *) &Context + firstByte, (byte *) ti->ContextPtr + firstByte, sizeof(context) - firstByte);
 
     // If the parent thread was using the temporary allocator, set the new thread to also use the temporary allocator,

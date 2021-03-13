@@ -92,9 +92,9 @@ tquat<T, Packed> exp(const tquat<T, Packed> &q) {
     auto a = q.scalar_part();
     auto v = q.vector_part();
     T mag = len(v);
-    T es = (T) exp(a);
+    T es = (T) Math_Exp_flt32(a);
 
-    tquat<T, Packed> ret = {(T) cos(mag), v * ((T) sin(mag) / mag)};
+    tquat<T, Packed> ret = {(T) Math_Cos_flt32(mag), v * ((T) Math_Sin_flt32(mag) / mag)};
     ret *= es;
 
     return ret;
@@ -105,7 +105,7 @@ template <typename T, bool Packed>
 tquat<T, Packed> ln(const tquat<T, Packed> &q) {
     auto magq = len(q);
     auto vn = normalize(q.vector_part());
-    return {(T) ln(magq), vn * (T) acos(q.s / magq)};
+    return {(T) Math_Log_flt32(magq), vn * (T) Math_ArcCos_flt32(q.s / magq)};
 }
 
 // Raises _q_ to the power of _a_
@@ -159,7 +159,7 @@ vec<T, 3, Packed> to_euler_angles(const tquat<T, Packed> &q) {
     // Pitch/Y
     double sinp = 2 * (q.w * q.y - q.z * q.x);
     if (abs(sinp) >= 1) {
-        result.y = TAU / 4 * sign_no_zero(sinp);  // Use 90 degrees if out of range
+        result.y = M_PI / 2 * sign_no_zero(sinp);  // Use 90 degrees if out of range
     } else {
         result.y = (T) asin(sinp);
     }

@@ -272,7 +272,7 @@ TEST(trace) {
 
     matf<5, 5> m5 = {5, 7, 3, 6, 4, 4, 7, 4, 6, 3, 6, 2, 8, 9, 7, 1, 2, 7, 4, 8, 5, 9, 7, 1, 5};
     t = trace(m5);
-    assert_eq(approx(t), 29);
+    assert_eq(approx(t), 29.0f);
 }
 
 TEST(transpose) {
@@ -285,18 +285,18 @@ TEST(transpose) {
 
 TEST(det_small) {
     matf<2, 2> m2 = {1, 3, 4, 5};
-    assert_eq(approx(det(m2)), -7);
+    assert_eq(approx(det(m2)), -7.0);
 
     matf<4, 4> m4 = {1, 3, 2, 1, 4, 5, 6, 2, 7, 8, 9, 3, 1, 2, 3, 4};
-    assert_eq(approx(det(m4)), 27);
+    assert_eq(approx(det(m4)), 27.0);
 
     matf<3, 3> m3 = {1, 3, 2, 4, 5, 6, 7, 8, 9};
-    assert_eq(approx(det(m3)), 9);
+    assert_eq(approx(det(m3)), 9.0);
 }
 
 TEST(det) {
     matf<5, 5> m5 = {5, 7, 3, 6, 4, 4, 7, 4, 6, 3, 6, 2, 8, 9, 7, 1, 2, 7, 4, 8, 5, 9, 7, 1, 5};
-    assert_eq(approx(det(m5)), 4134);
+    assert_eq(approx(det(m5)), 4134.0);
 }
 
 TEST(inverse_small) {

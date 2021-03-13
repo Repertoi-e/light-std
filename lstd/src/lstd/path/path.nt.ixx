@@ -4,10 +4,8 @@ module;
 #include "../memory/string.h"
 #include "../os.h"
 #include "../parse.h"
-
-#undef MAC
-#undef _MAC
-#include <Windows.h>
+#include "../types/windows.h"  // Declarations of API functions
+#include "../types/windows_status_codes.h"
 
 export module path.nt;
 
@@ -242,7 +240,7 @@ utf16 *utf8_to_utf16_temp(const string &str) {
     if (!str.Length) return null;
 
     s32 size = wchar_size_required(str) + 1;
-    auto *result = allocate_array<utf16>(size, {.Alloc = Context.Temp });
+    auto *result = allocate_array<utf16>(size, {.Alloc = Context.Temp});
     utf8_to_utf16(str.Data, str.Length, result);
     return result;
 }
@@ -490,7 +488,7 @@ export {
     }
 
     bool path_is_symbolic_link(const string &path) {
-        auto attribs = GetFileAttributesW(utf8_to_utf16_temp(path));
+        DWORD attribs = GetFileAttributesW(utf8_to_utf16_temp(path));
         if (attribs != INVALID_FILE_ATTRIBUTES) {
             return (attribs & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
         }

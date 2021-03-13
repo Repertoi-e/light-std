@@ -1,6 +1,6 @@
 #pragma once
 
-#include "basic_types.h"
+#include "types.h"
 
 //
 // numeric_info is useful when writing template functions and you don't know the specific integral type, so you cannot just use S32_MAX for example.

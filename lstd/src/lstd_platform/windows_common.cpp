@@ -6,7 +6,8 @@
 #include "lstd/memory/dynamic_library.h"
 #include "lstd/memory/guid.h"
 #include "lstd/os.h"
-#include "pch.h"
+#include "lstd/types/windows.h"  // Declarations of API functions
+#include "lstd/types/windows_status_codes.h"
 
 import path;
 import fmt;
@@ -352,6 +353,13 @@ void win32_common_init_global_state() {
 
         ShowWindow(S->HelperWindowHandle, SW_HIDE);
 
+        // The guid for GUID_DEVINTERFACE_HID.
+        //
+        // GUID_DEVINTERFACE_HID = {4D1E55B2-F16F-11CF-88CB-001111000030};
+        // b2551e4d6ff1cf1188cb001111000030
+        // b2551e4d, 6ff1, cf11, {88, cb, 00, 11, 11, 00, 00, 30}
+        //
+
         // Register for HID device notifications
         {
             DEV_BROADCAST_DEVICEINTERFACE_W dbi;
@@ -359,7 +367,7 @@ void win32_common_init_global_state() {
             {
                 dbi.dbcc_size = sizeof(dbi);
                 dbi.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE;
-                dbi.dbcc_classguid = GUID_DEVINTERFACE_HID;
+                dbi.dbcc_classguid = {0xb2551e4d, 0x6ff1, 0xcf11, {0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30}};  // GUID_DEVINTERFACE_HID
             }
             S->DeviceNotificationHandle = RegisterDeviceNotificationW(S->HelperWindowHandle, (DEV_BROADCAST_HDR *) &dbi, DEVICE_NOTIFY_WINDOW_HANDLE);
         }
@@ -560,7 +568,7 @@ string os_get_working_dir() {
     auto *dir16 = allocate_array<utf16>(required + 1, {.Alloc = Context.Temp});
 
     if (!GetCurrentDirectoryW(required + 1, dir16)) {
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectoryW", __FILE__, __LINE__);
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), "GetCurrentDirectory", __FILE__, __LINE__);
         return "";
     }
 

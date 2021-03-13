@@ -1,4 +1,5 @@
 #include "../internal/context.h"
+#include "../os.h"
 #include "allocator.h"
 #include "array.h"
 
@@ -29,7 +30,7 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
                 p->Next = allocate<temporary_allocator_data::page>({.Alloc = DefaultAlloc});
 
                 // Random log-based growth thing I came up at the time, not real science.
-                s64 loggedSize = (s64) ceil(p->Allocated * (log2(p->Allocated * 10.0) / 3));
+                s64 loggedSize = (s64) Math_RoundUp_flt32(p->Allocated * (Math_Log2_flt32(p->Allocated * 10.0f) / 3));
                 s64 reserveTarget = (max<s64>(ceil_pow_of_2(size * 2), ceil_pow_of_2(loggedSize)) + 8_KiB - 1) & -8_KiB;
 
                 p->Next->Storage = allocate_array<byte>(reserveTarget, {.Alloc = DefaultAlloc});
@@ -89,9 +90,12 @@ void *temporary_allocator(allocator_mode mode, void *context, s64 size, void *ol
 
             // Resize _Storage_ to fit all allocations which previously required overflow pages
             if (targetSize != data->Base.Allocated) {
-                free(data->Base.Storage);
+                // @XXX @TODO: We don't allocate this block with malloc
+                os_free_block(Context.TempAllocData.Base.Storage);
 
-                data->Base.Storage = allocate_array<byte>(targetSize, {.Alloc = DefaultAlloc});
+                // free(data->Base.Storage);
+
+                data->Base.Storage = (byte *) os_allocate_block(targetSize);  // @XXX allocate_array<byte>(targetSize, {.Alloc = DefaultAlloc});
                 data->Base.Allocated = targetSize;
             }
 
@@ -118,7 +122,8 @@ void release_temporary_allocator() {
     // Free any left-over overflow pages!
     free_all(Context.Temp);
 
-    free(Context.TempAllocData.Base.Storage);
+    // @XXX @TODO: We don't allocate this block with malloc
+    os_free_block(Context.TempAllocData.Base.Storage);
     ((context *) &Context)->TempAllocData = {};  // @Constcast
 }
 

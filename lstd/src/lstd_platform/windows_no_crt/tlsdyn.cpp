@@ -1,5 +1,5 @@
-#include "../pch.h"  // For Windows.h
 #include "common.h"
+#include "lstd/types/windows.h"
 
 //
 // These are taken from vcruntime/utility.cpp:
@@ -20,13 +20,13 @@ static bool __cdecl is_potentially_valid_image_base(void *const image_base) noex
     }
 
     auto const nt_header_address = reinterpret_cast<PBYTE>(dos_header) + dos_header->e_lfanew;
-    auto const nt_header = reinterpret_cast<PIMAGE_NT_HEADERS>(nt_header_address);
+    auto const nt_header = reinterpret_cast<PIMAGE_NT_HEADERS64>(nt_header_address);
     if (nt_header->Signature != IMAGE_NT_SIGNATURE) {
         return false;
     }
 
     auto const optional_header = &nt_header->OptionalHeader;
-    if (optional_header->Magic != IMAGE_NT_OPTIONAL_HDR_MAGIC) {
+    if (optional_header->Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
         return false;
     }
 
@@ -38,7 +38,7 @@ static bool __cdecl is_potentially_valid_image_base(void *const image_base) noex
 static PIMAGE_SECTION_HEADER __cdecl find_pe_section(unsigned char *const image_base, uintptr_t const rva) noexcept {
     auto const dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(image_base);
     auto const nt_header_address = reinterpret_cast<PBYTE>(dos_header) + dos_header->e_lfanew;
-    auto const nt_header = reinterpret_cast<PIMAGE_NT_HEADERS>(nt_header_address);
+    auto const nt_header = reinterpret_cast<PIMAGE_NT_HEADERS64>(nt_header_address);
 
     // * Find the section holding the RVA.  We make no assumptions here about the
     // * sort order of the section descriptors, though they always appear to be
@@ -194,10 +194,6 @@ void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept  // terminate
     }
 #pragma warning(pop)
 }
-
-#ifdef _M_ARM64EC
-#pragma comment(linker, "-arm64xsameaddress:__dyn_tls_init")
-#endif
 
 /*
  * Define an initialized callback function pointer, so CRT startup code knows

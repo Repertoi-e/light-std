@@ -171,9 +171,9 @@ concept non_void = !types::is_same<T, void>;
 LSTD_END_NAMESPACE
 
 #if BITS == 64
-using size_t = LSTD_NAMESPACE::u64;
+using size_t = u64;
 #else
-using size_t = LSTD_NAMESPACE::u32;
+using size_t = u32;
 #endif
 using align_val_t = size_t;
 
@@ -335,12 +335,6 @@ LSTD_END_NAMESPACE
 
 [[nodiscard]] void *operator new(size_t size, align_val_t alignment L);
 [[nodiscard]] void *operator new[](size_t size, align_val_t alignment L);
-
-[[nodiscard]] void *operator new(size_t size, const std::nothrow_t &tag L) noexcept;
-[[nodiscard]] void *operator new[](size_t size, const std::nothrow_t &tag L) noexcept;
-
-[[nodiscard]] void *operator new(size_t size, align_val_t alignment, const std::nothrow_t &tag L) noexcept;
-[[nodiscard]] void *operator new[](size_t size, align_val_t alignment, const std::nothrow_t &tag L) noexcept;
 #undef L
 #endif
 

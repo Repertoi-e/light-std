@@ -362,7 +362,7 @@ T norm_sq(const mat<T, R, C, Packed> &m) {
 // Calculates the Frobenius norm of the matrix
 template <typename T, s64 R, s64 C, bool Packed>
 T norm(const mat<T, R, C, Packed> &m) {
-    return (T) sqrt(norm_sq(m));
+    return (T) Math_Sqrt_flt32(norm_sq(m));
 }
 
 // Returns the element-wise minimum of arguments

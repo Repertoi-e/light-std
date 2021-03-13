@@ -3,7 +3,8 @@
 #if OS == WINDOWS
 
 #include "lstd/os.h"
-#include "pch.h"
+#include "lstd/types/windows.h"
+#include "lstd/types/windows_status_codes.h"
 
 import fmt;
 
@@ -3242,22 +3243,21 @@ const char *get_error_string(HRESULT hr) {
 #undef CHK_ERRA
 #undef CHK_ERR
 
-#define CHK_ERRA(hrchk)           \
-    case hrchk:                   \
+#define CHK_ERRA(hrchk)      \
+    case hrchk:              \
         print("{}", #hrchk); \
         break;
 
-#define CHK_ERR(hrchk, strOut)    \
-    case hrchk:                   \
-        print("{}", strOut); \
+#define CHK_ERR(hrchk, strOut) \
+    case hrchk:                \
+        print("{}", strOut);   \
         break;
 
 void print_error_description(HRESULT hr) {
     char *desc = null;
 
     // First try to see if FormatMessage knows this hr
-    DWORD result = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, nullptr, hr,
-                                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (char *) &desc, 0, nullptr);
+    DWORD result = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, nullptr, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (char *) &desc, 0, nullptr);
     if (result > 0 && desc) {
         print("{}", desc);
         LocalFree(desc);

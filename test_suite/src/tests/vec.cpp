@@ -804,3 +804,4 @@ TEST(cross_nd) {
     auto d = abs(dot(a4, r4)) + abs(dot(b4, r4)) + abs(dot(c4, r4));
     assert_lt(d, 1e-5f);
 }
+ 

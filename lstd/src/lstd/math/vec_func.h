@@ -51,7 +51,7 @@ auto len_sq(const Vec &v) { return dot(v, v); }
 
 // Returns the length of the vector
 template <any_vec Vec>
-auto len(const Vec &v) { return (typename Vec::T) sqrt((typename Vec::T) len_sq(v)); }
+auto len(const Vec &v) { return (typename Vec::T) Math_Sqrt_flt32((typename Vec::T) len_sq(v)); }
 
 // Returns the length of the vector, avoids overflow and underflow, so it's more expensive
 template <any_vec Vec>
@@ -65,7 +65,7 @@ auto len_precise(const Vec &v) {
         return T(0);
 
     auto scaled = v / maxElement;
-    return (T) sqrt(dot(scaled, scaled)) * maxElement;
+    return (T) Math_Sqrt_flt32(dot(scaled, scaled)) * maxElement;
 }
 
 // Returns the euclidean distance between to vectors

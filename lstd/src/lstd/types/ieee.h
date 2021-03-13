@@ -5,8 +5,7 @@
 // floating point number according to the IEEE 754 standard.
 //
 
-#include "../types/basic_types.h"
-#include "../types/type_info.h"
+#include "../types.h"
 
 LSTD_BEGIN_NAMESPACE
 

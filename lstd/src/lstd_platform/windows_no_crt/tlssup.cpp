@@ -7,8 +7,8 @@
 *
 ****/
 
-#include "../pch.h"  // For Windows.h
 #include "common.h"
+#include "lstd/types/windows.h"  // For definitions
 
 extern "C" {
 
@@ -52,6 +52,15 @@ PIMAGE_TLS_CALLBACK __xl_a = 0;
 
 _CRTALLOC(".CRT$XLZ")
 PIMAGE_TLS_CALLBACK __xl_z = 0;
+
+typedef struct _IMAGE_TLS_DIRECTORY64 {
+    ULONGLONG StartAddressOfRawData;
+    ULONGLONG EndAddressOfRawData;
+    ULONGLONG AddressOfIndex;
+    ULONGLONG AddressOfCallBacks;
+    DWORD SizeOfZeroFill;
+    DWORD Characteristics;
+} IMAGE_TLS_DIRECTORY64, *PIMAGE_TLS_DIRECTORY64;
 
 _CRTALLOC(".rdata$T")
 extern const IMAGE_TLS_DIRECTORY64 _tls_used =

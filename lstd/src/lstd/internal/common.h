@@ -4,9 +4,9 @@
 
 #include <intrin.h>
 
-#include "../scalar_math/scalar_math.h"
-#include "../types/type_info.h"
 #include "debug_break.h"
+#include "vendor/linasm/include/Math.h"
+#include "../types/type_info.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -88,7 +88,7 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 
 #undef assert
 
-#if not defined NDEBUG 
+#if not defined NDEBUG
 #define assert(condition) (!!(condition)) ? (void) 0 : debug_break()
 #else
 #define assert(condition) ((void) 0)

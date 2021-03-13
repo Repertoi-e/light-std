@@ -39,8 +39,8 @@ struct rotation_3d_axis_helper : non_copyable {
 
     template <typename U, s64 R, s64 C_, bool MPacked>
     void set_impl(mat<U, R, C_, MPacked> &m) const {
-        T C = (T) cos(Angle);
-        T S = (T) sin(Angle);
+        T C = (T) Math_Cos_flt32(Angle);
+        T S = (T) Math_Sin_flt32(Angle);
 
         assert(0 <= Axis && Axis < 3);
 
@@ -235,8 +235,8 @@ struct rotation_3d_axis_angle_helper : non_copyable {
     void set_impl(mat<U, RC, CC, MPacked> &m) const {
         assert(is_normalized(Axis));
 
-        T C = (T) cos(Angle);
-        T S = (T) sin(Angle);
+        T C = (T) Math_Cos_flt32(Angle);
+        T S = (T) Math_Sin_flt32(Angle);
 
         // 3x3 rotation sub-matrix
         using RotMat = mat<U, 3, 3, Packed>;
@@ -306,7 +306,7 @@ template <typename T, bool Packed>
 template <typename U, bool QPacked>
 rotation_3d_axis_angle_helper<T, Packed>::operator tquat<U, QPacked>() const {
     auto halfAngle = U(Angle) * U(0.5);
-    return tquat<U, QPacked>((U) cos(halfAngle), vec<U, 3, QPacked>(Axis) * (U) sin(halfAngle));
+    return tquat<U, QPacked>((U) Math_Cos_flt32(halfAngle), vec<U, 3, QPacked>(Axis) * (U) Math_Sin_flt32(halfAngle));
 }
 
 LSTD_END_NAMESPACE

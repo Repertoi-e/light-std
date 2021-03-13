@@ -22,7 +22,7 @@ typedef void(__cdecl *_PVFI)(int);
 // #pragma section(".CRT$XIAA", long, read)  // Startup C Initializer
 // #pragma section(".CRT$XIAB", long, read)  // PGO C Initializer
 // #pragma section(".CRT$XIAC", long, read)  // Post-PGO C Initializer
-// #pragma section(".CRT$XIC", long, read)  // CRT C Initializers
+#pragma section(".CRT$XIC", long, read)  // CRT C Initializers
 // #pragma section(".CRT$XIYA", long, read)  // VCCorLib Threading Model Initializer
 // #pragma section(".CRT$XIYAA", long, read)  // XAML Designer Threading Model Override Initializer
 // #pragma section(".CRT$XIYB", long, read)  // VCCorLib Main Initializer

@@ -5,7 +5,7 @@
 #include "lstd/io.h"
 #include "lstd/memory/hash_table.h"
 #include "lstd/os.h"
-#include "pch.h"
+#include "lstd/types/windows.h"
 
 import fmt;
 
@@ -15,6 +15,8 @@ LSTD_BEGIN_NAMESPACE
 
 file_scope DWORD MachineType;
 file_scope hash_table<DWORD, const char *> CodeDescs;
+
+// @TODO: Factor the stack walking part of this function into a os_get_call_stack() which can be used anywhere in the program.
 
 file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     u32 exceptionCode = e->ExceptionRecord->ExceptionCode;
@@ -27,7 +29,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     auto c = e->ContextRecord;
 
     STACKFRAME64 sf;
-    fill_memory(&sf, 0, sizeof(STACKFRAME));
+    fill_memory(&sf, 0, sizeof(STACKFRAME64));
 
     sf.AddrPC.Offset = c->Rip;
     sf.AddrStack.Offset = c->Rsp;
@@ -59,10 +61,10 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
             }
         }
 
-        IMAGEHLP_LINE64 lineInfo = {sizeof(IMAGEHLP_LINE64)};
+        IMAGEHLP_LINEW64 lineInfo = {sizeof(IMAGEHLP_LINEW64)};
 
         DWORD lineDisplacement = 0;
-        if (SymGetLineFromAddr64(hProcess, sf.AddrPC.Offset, &lineDisplacement, &lineInfo)) {
+        if (SymGetLineFromAddrW64(hProcess, sf.AddrPC.Offset, &lineDisplacement, &lineInfo)) {
             clone(&call.File, string(lineInfo.FileName));
             if (call.File.Length == 0) {
                 free(call.File);
@@ -131,7 +133,7 @@ void win32_crash_handler_init() {
     add(CodeDescs, CODE_DESCR(EXCEPTION_INVALID_DISPOSITION));
     add(CodeDescs, CODE_DESCR(EXCEPTION_GUARD_PAGE));
     add(CodeDescs, CODE_DESCR(EXCEPTION_INVALID_HANDLE));
-    // add(CodeDescs, CODE_DESCR(EXCEPTION_POSSIBLE_DEADLOCK));
+    add(CodeDescs, CODE_DESCR(EXCEPTION_POSSIBLE_DEADLOCK));
 
     SetUnhandledExceptionFilter(exception_filter);
 }

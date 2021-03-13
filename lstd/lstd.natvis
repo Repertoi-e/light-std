@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-  <Type Name="string">
+  <Type Name="lstd::string">
     <DisplayString>{{{Data,[Count]s8}, Count={Count}, Length={Length}}}</DisplayString>
     <Expand>
       <Item Name="Data">Data,[Count]s8</Item>
@@ -9,7 +9,7 @@
       <Item Name="Allocated">Allocated</Item>
     </Expand>
   </Type>
-  <Type Name="array_view&lt;*&gt;">
+  <Type Name="lstd::array_view&lt;*&gt;">
     <DisplayString>{{Count={Count}}}</DisplayString>
     <Expand>
       <ArrayItems>
@@ -18,7 +18,7 @@
       </ArrayItems>
     </Expand>
   </Type>
-  <Type Name="array&lt;*&gt;">
+  <Type Name="lstd::array&lt;*&gt;">
     <DisplayString>{{Count={Count}, Allocated={Allocated}}}</DisplayString>
     <Expand>
       <ArrayItems>

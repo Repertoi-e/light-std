@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../memory/string_utils.h"
-#include "../types/basic_types.h"
+#include "../types.h"
 
 //
 // :CodeReusability: This file implements find, find_not, find_any_of, find_not_any_of, has, 

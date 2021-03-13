@@ -248,11 +248,12 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
         // If however our parsing overflow behaviour is greedy we don't do this.
         if constexpr (types::is_unsigned_integral<IntT>) {
             maxValue = (numeric_info<IntT>::max)();
+            cutOff = maxValue / base;
         } else {
             maxValue = negative ? -(numeric_info<IntT>::min()) : numeric_info<IntT>::max();
+            cutOff = maxValue / base; 
+            if (cutOff < 0) cutOff = -cutOff; // abs complains when passing unsigned integer type (doesn't make sense)
         }
-
-        cutOff = abs(maxValue / base);
         cutLim = maxValue % (IntT) base;
     }
 

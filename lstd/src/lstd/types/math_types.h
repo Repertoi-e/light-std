@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../internal/namespace.h"
-#include "../platform.h"
+#include "scalar_types.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -12,9 +11,6 @@ LSTD_BEGIN_NAMESPACE
 //  - is_mat, is_mat_view
 //  - is_quat
 //
-
-// Defined here and not in basic_types.h.. to avoid circular dependencies
-using s64 = long long;
 
 template <typename T, s64 Dim, bool Packed>
 struct vec_data;

@@ -431,9 +431,6 @@ void write_helper(fmt_context *f, const byte *data, s64 size) {
 
 void fmt_context::write(const byte *data, s64 count) { write_helper(this, data, count); }
 
-// @ThreadSafety ???
-utf8 U64_FORMAT_BUFFER[numeric_info<u64>::digits10 + 1];
-
 void write(fmt_context *f, bool value) {
     if (f->Specs && f->Specs->Type) {
         write(f, value ? 1 : 0);
@@ -534,6 +531,8 @@ void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs) {
         specs.Fill = '0';
     }
     if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
+
+    utf8 U64_FORMAT_BUFFER[numeric_info<u64>::digits + 1] {};
 
     type = (utf8) to_lower(type);
     if (type == 'd') {
