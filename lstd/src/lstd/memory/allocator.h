@@ -117,7 +117,7 @@ inline constexpr u8 NO_MANS_LAND_FILL = 0xFD;
 // When freeing we fill the block with this value (detects bugs when accessing memory that's freed)
 inline constexpr u8 DEAD_LAND_FILL = 0xDD;
 
-// When allocating a new block and DO_INIT_0 was not specified we fill it with this value
+// When allocating a new block we fill it with this value
 // (detects bugs when accessing memory before initializing it)
 inline constexpr u8 CLEAN_LAND_FILL = 0xCD;
 #endif

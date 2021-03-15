@@ -80,9 +80,7 @@ struct context {
     u16 AllocAlignment = POINTER_SIZE;  // By default
 
     // Any options that get OR'd with the options in any allocation (options are implemented as flags).
-    // e.g. use this to mark some allocation a function does (in which you have no control of) as a LEAK.
-    // Currently there are three allocator options:
-    //   - LEAK:                Marks the allocation as a known leak (doesn't get reported when calling allocator::DEBUG_report_leaks())
+    // e.g. using the LEAK flag, you can mark the allocation as a leak (doesn't get reported when calling DEBUG_memory_info::report_leaks()).
     u64 AllocOptions = 0;
 
     // Used for debugging. Every time an allocation is made, logs info about it.
@@ -268,14 +266,12 @@ struct allocate_options {
 // @TODO: Document why we don't use new/delete.
 
 // T is used to initialize the resulting memory (uses placement new to call the constructor).
-// When you pass DO_INIT_0 as an allocator option we initialize the memory with zeroes before initializing T.
 template <typename T>
 T *allocate(allocate_options options = {}, source_location loc = source_location::current()) {
     return lstd_allocate_impl<T>(1, options.Alloc, options.Alignment, options.Options, loc);
 }
 
 // T is used to initialize the resulting memory (uses placement new to call the constructor).
-// When you pass DO_INIT_0 as an allocator option we initialize the memory with zeroes before initializing T.
 template <typename T>
 T *allocate_array(s64 count, allocate_options options = {}, source_location loc = source_location::current()) {
     return lstd_allocate_impl<T>(count, options.Alloc, options.Alignment, options.Options, loc);
@@ -284,7 +280,6 @@ T *allocate_array(s64 count, allocate_options options = {}, source_location loc 
 // Note: We don't support "non-trivially copyable" types (types that can have logic in the copy constructor).
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
-// When you pass DO_INIT_0 as an allocator option we initialize the expanded memory with zeroes before initializing T.
 template <typename T>
 T *reallocate_array(T *block, s64 newCount, s64 reallocateOptions = 0, source_location loc = source_location::current()) {
     return lstd_reallocate_array_impl<T>(block, newCount, reallocateOptions, loc);
