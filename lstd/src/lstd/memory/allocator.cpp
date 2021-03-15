@@ -20,8 +20,6 @@ LSTD_BEGIN_NAMESPACE
 
 #if defined DEBUG_MEMORY
 void DEBUG_memory_info::unlink_header(allocation_header *header) {
-    thread::scoped_lock<thread::mutex> _(&Mutex);
-
     assert(header);
     assert(Head);
 
@@ -39,8 +37,6 @@ void DEBUG_memory_info::unlink_header(allocation_header *header) {
 }
 
 void DEBUG_memory_info::add_header(allocation_header *header) {
-    thread::scoped_lock<thread::mutex> _(&Mutex);
-
     header->DEBUG_Next = Head;
     if (Head) {
         Head->DEBUG_Previous = header;
@@ -53,7 +49,6 @@ void DEBUG_memory_info::swap_header(allocation_header *oldHeader, allocation_hea
 
     assert(Head);  // ?
 
-    thread::scoped_lock<thread::mutex> _(&Mutex);
     if (prev) {
         prev->DEBUG_Next = newHeader;
         newHeader->DEBUG_Previous = prev;
@@ -95,6 +90,8 @@ constexpr string get_short_file_name(const string &str) {
 }
 
 void DEBUG_memory_info::report_leaks() {
+    thread::scoped_lock<thread::mutex> _(&Mutex);
+
     // First we check their integrity of the heap
     maybe_verify_heap();
 
@@ -104,7 +101,6 @@ void DEBUG_memory_info::report_leaks() {
 
     s64 leaksCount = 0;
     {
-        thread::scoped_lock<thread::mutex> _(&Mutex);
         auto *it = Head;
         while (it) {
             if (!it->MarkedAsLeak) ++leaksCount;
@@ -116,7 +112,6 @@ void DEBUG_memory_info::report_leaks() {
     leaksID = ((allocation_header *) leaks - 1)->ID;
 
     {
-        thread::scoped_lock<thread::mutex> _(&Mutex);
         auto *p = leaks;
         auto *it = Head;
         while (it) {
@@ -152,8 +147,8 @@ file_scope void verify_header_unlocked(allocation_header *header) {
     // We check for several problems here:
     //   * Accessing headers which were freed. Note: This doesn't mean that the user code attempted to modify/access
     //     memory which we marked as freed. When calling free() we unlink the header from our list but before that we
-    //     fill it with DEAD_LAND_FILL. The idea is to make the memory invalid so the user code (hopefully) crashes if 
-    //     it is still interpreted as a valid object. BUT Here we check if _header_ was freed but for some reason we are 
+    //     fill it with DEAD_LAND_FILL. The idea is to make the memory invalid so the user code (hopefully) crashes if
+    //     it is still interpreted as a valid object. BUT Here we check if _header_ was freed but for some reason we are
     //     trying to verify it.
     //   * Alignment should not be 0, should be more than POINTER_SIZE (4 or 8) and should be a power of 2.
     //     If any of these is not true, then the header was definitely corrupted.
@@ -200,8 +195,6 @@ void DEBUG_memory_info::verify_header(allocation_header *header) {
 
 void DEBUG_memory_info::maybe_verify_heap() {
     // We need to lock here because another thread can free a header while we are reading from it.
-    thread::scoped_lock<thread::mutex> _(&Mutex);
-
     if (AllocationCount % MemoryVerifyHeapFrequency) return;
 
     auto *it = Head;
@@ -301,6 +294,8 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     }
 
 #if defined DEBUG_MEMORY
+    thread::scoped_lock<thread::mutex> _(&DEBUG_memory_info::Mutex);
+
     DEBUG_memory_info::maybe_verify_heap();
 
     s64 id = DEBUG_memory_info::AllocationCount;
@@ -349,6 +344,8 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
     if (header->Size == newUserSize) return ptr;
 
 #if defined DEBUG_MEMORY
+    thread::scoped_lock<thread::mutex> _(&DEBUG_memory_info::Mutex);
+
     DEBUG_memory_info::maybe_verify_heap();
 
     auto id = header->ID;
@@ -452,6 +449,8 @@ void general_free(void *ptr, u64 options) {
     s64 size = header->Size + extra;
 
 #if defined DEBUG_MEMORY
+    thread::scoped_lock<thread::mutex> _(&DEBUG_memory_info::Mutex);
+
     DEBUG_memory_info::maybe_verify_heap();
 
     auto id = header->ID;
@@ -467,6 +466,8 @@ void general_free(void *ptr, u64 options) {
 
 void free_all(allocator alloc, u64 options) {
 #if defined DEBUG_MEMORY
+    thread::scoped_lock<thread::mutex> _(&DEBUG_memory_info::Mutex);
+
     // Remove allocations made with the allocator from the the linked list so we don't corrupt the heap
     WITH_ALLOC(DefaultAlloc) {
         array<allocation_header *> allocations;
