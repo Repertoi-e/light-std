@@ -3631,10 +3631,10 @@ void print_error_description(HRESULT hr) {
     }
 }
 
-void windows_report_hresult_error(long hresult, const string &call, const string &file, s32 line) {
-    print("\n{!}(windows_error.cpp): An error occured while calling a function returning an HRESULT.\n");
+void windows_report_hresult_error(long hresult, const string &call, source_location loc) {
+    print("\n{!}>>> An error occured while calling a function returning an HRESULT.\n");
     print("    {!GRAY}{}{!}\n", call);
-    print("        ... was called at {!YELLOW}{}:{}{!} and returned {!GRAY}{:#x}\n", file, line, hresult);
+    print("        ... was called at {!YELLOW}{}:{} (in function: {}) {!} and returned {!GRAY}{:#x}\n", loc.File, loc.Line, loc.Function, hresult);
     print("        Error: {!RED}{}\n", get_error_string(hresult));
     print("               ");
     print_error_description(hresult);

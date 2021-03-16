@@ -7,11 +7,6 @@ LSTD_BEGIN_NAMESPACE
 
 struct writer;
 
-// @Cleanup
-namespace internal {
-extern writer *g_ConsoleLog;
-}  // namespace internal
-
 template <typename T>
 struct array;
 
@@ -26,23 +21,36 @@ void fmt_default_parse_error_handler(const string &message, const string &format
 
 //
 // Thread local global variable to control certain behaviours of the program.
-// A way to store options that are valid in a certain scope or for certain threads.
+// A way to store options that change the behaviour of the code without passing a bunch of parameters to routines.
 //
 // Gets initialized when the program runs for the main thread and tls_init (take a look at windows_common.cpp) initializes allocators.
 // Options get copied to new threads (take a look at thread_wrapper in windows_thread.cpp).
 //
 struct context {
-    // The current thread's ID
-    thread::id ThreadID;
+    thread::id ThreadID;  // The current thread's ID (Context is thread-local)
 
+    //
     // :TemporaryAllocator: Take a look at the docs of this allocator in "allocator.h"
     // (or the allocator module if you are living in the future).
     //
+    // We store a arena allocator in the Context that is meant to be used as temporary storage.
+    // It can be used to allocate memory that is not meant to last long (e.g. returning arrays or strings from functions
+    // that don't need to last long and you shouldn't worry about freeing it - e.g. converting utf8 to utf16 to pass to a windows call).
+    //
+    // One very good example use case for the temporary allocator: if you are programming a game and you need to calculate
+    //   some mesh stuff for a given frame, using this allocator means having the freedom of dynamically allocating
+    //   without compromising performance. At the end of the frame when the memory is no longer used you call free_all(Context.TempAlloc)
+    //   and start the next frame.
+    //
     // This gets initialized the first time it gets used in a thread.
     // Each thread gets a unique temporary allocator to prevent data races and to remain fast.
-    // Default size is 8 KiB but you can increase that by allocating a large block and then calling free_all.
-    temporary_allocator_data TempAllocData{};  // Initialized the first time it is used
-    allocator Temp;                            // The "allocator object" with which allocations are made.
+    // Default size is 8 KiB but you can increase that by adding a pool with allocator_add_pool().
+    // When out of memory, it allocates and adds a new bigger pool.
+    //
+    // We print warnings when allocating new pools. Use that as a guide to see where you need to pay more attention
+    // - perhaps increase the pool size or call free_all() more often.
+    //
+    allocator TempAlloc;
 
     ///////////////////////////////////////////////////////////////////////////////////////
     //
@@ -69,43 +77,52 @@ struct context {
     //
     ///////////////////////////////////////////////////////////////////////////////////////
 
-    // When allocating you should use the context's allocator
-    // This makes it so when users call your functions they
-    // can specify an allocator beforehand by pushing a new context variable,
-    // without having to pass you anything as a parameter for example.
+    //
+    // This is a pair of a function and a data pointer.
+    // Gets initialized to default (malloc) in *platform*_common.cpp
+    // Change this (recommended way is to use the PUSH_ALLOC macro) in order to
+    // change the allocator which a piece of code uses transparently.
+    //
+    // This makes it so when you call a function, the caller doesn't have to pass a parameter,
+    // the function can just allocate normally, without knowing that the caller has changed the allocator.
+    //
+    // When allocating you should use the context's allocator (allocate<> and allocate_array<> does
+    // that by default - unless overriden explicitly, we also override operator new and delete @TODO malloc).
     //
     // The idea for this comes from the implicit context in Jai.
-    allocator Alloc;  // = DefaultAlloc by default. Initialized in windows_common.cpp. @Platform
 
-    u16 AllocAlignment = POINTER_SIZE;  // By default
+    allocator Alloc;  // = null by default. The user should provide an allocator at the start of the program.
+                      // We encourage using several different allocators depending on the memory requirements and the specific use case.
+                      // See :BigPhilosophyTime: in allocator.h for the reasoning behind this.
+
+    u16 AllocAlignment = POINTER_SIZE;
 
     // Any options that get OR'd with the options in any allocation (options are implemented as flags).
-    // e.g. using the LEAK flag, you can mark the allocation as a leak (doesn't get reported when calling DEBUG_memory_info::report_leaks()).
+    // e.g. using the LEAK flag, you can mark the allocations done in a whole scope as leaks (don't get reported when calling DEBUG_memory->report_leaks()).
     u64 AllocOptions = 0;
 
-    // Used for debugging. Every time an allocation is made, logs info about it.
-    bool LogAllAllocations = false;
-    bool LoggingAnAllocation = false;  // Don't set. Used to avoid infinite looping when the above bool is true.
+    bool LogAllAllocations = false;  // Used for debugging. Every time an allocation is made, logs info about it.
 
     // Gets called when the program encounters an unhandled expection.
     // This can be used to view the stack trace before the program terminates.
     // The default handler prints the crash message and stack trace to _Log_.
     panic_handler_t PanicHandler = default_panic_handler;
-    bool HandlingPanic;  // Don't set. Used to avoid infinite looping when handling panics. Don't touch!
 
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.
-    // By default it points to io::cout (the console).
-    writer *Log = internal::g_ConsoleLog;  // We need to do this namespace hack because we can't include writers here with circular dependency..
-                                           // In reality it's just "&cout";
+    // By default it points to cout (the console).
+    writer *Log;
 
     // By default when we encounter an invalid format string we panic the program.
     // One might want to silence such errors and just continue executing, or redirect the error - like we do in the tests.
     fmt_parse_error_handler_t FmtParseErrorHandler = fmt_default_parse_error_handler;
 
     // Disable stylized text output (colors, background colors, and bold/italic/strikethrough/underline text).
-    // This is useful when logging to a file and not a console. The ansi escape codes look like garbage in files.
+    // This is useful when logging to files/strings and not the console. The ansi escape codes look like garbage in files/strings.
     bool FmtDisableAnsiCodes = false;
+
+    bool _HandlingPanic = false;        // Don't set. Used to avoid infinite looping when handling panics. Don't touch!
+    bool _LoggingAnAllocation = false;  // Don't set. Used to avoid infinite looping when the above bool is true. Don't touch!
 };
 
 // Immutable context available everywhere. Contains certain variables that are "global" to the program,
@@ -115,53 +132,70 @@ struct context {
 //
 // The current state gets copied from parent thread to the new thread when creating a thread.
 //
-// Modify this with the macros WITH_CONTEXT_VAR, WITH_ALLOC, ... etc,
-// they restore the old value at the end of the scope that immediately follows them.
+// Modify this with the macros PUSH_CONTEXT or OVERRIDE_CONTEXT, the first one restores the old value at the
+// end of the following scope, while the latter changes the context globally.
 //
 // Note that you can modify this "globally" by using a cast and circumventing the C++ type system,
 // but please don't do that :D. The reason this is a const variable is that it enforces the programmer
 // to not do things that aren't meant to be done (imagine a library just blindly setting a Context variable
 // inside a function and not restoring it at the end, now your whole program is using that new variable
 // even though you may not want that ... the author of the library may still be able to do that maliciously
-// but he can also do 1000 different things that completely break your program so... at least this way we
-// are sure it's not a programmer bug).
+// with a const cast but he can also do 1000 different things that completely break your program so...
+// at least this way we are sure it's not a bug).
 inline const thread_local context Context;
+
+// We store this outside the context because having a member point to another member in the struct is dangerous.
+// It is invalidated the moment when the Context is copied. One of our points in the type policy says that
+// stuff should work if it is copied byte by byte.
+inline const thread_local arena_allocator_data __TempAllocData;
+
 
 // This is a helper macro to safely modify a variable in the implicit context in a block of code.
 // Usage:
-//    WITH_CONTEXT_VAR(variable, newVariableValue) {
-//        ... code with new context variable ...
-//    }
-//    ... old context variable value is restored ...
+//    auto newContext = Context;
+//    newContext.var1 = newValue1;
+//    newContext.var2 = newValue2;
 //
-// @Constcast
-#define WITH_CONTEXT_VAR(var, newValue)                          \
-    auto LINE_NAME(oldVar) = Context.var;                        \
-    auto LINE_NAME(restored) = false;                            \
-    defer({                                                      \
-        if (!LINE_NAME(restored)) {                              \
-            ((context *) &Context)->var = LINE_NAME(oldVar);     \
-        }                                                        \
-    });                                                          \
-    if (true) {                                                  \
-        ((context *) &Context)->var = newValue;                  \
-        goto LINE_NAME(body);                                    \
-    } else                                                       \
-        while (true)                                             \
-            if (true) {                                          \
-                ((context *) &Context)->var = LINE_NAME(oldVar); \
-                LINE_NAME(restored) = true;                      \
-                break;                                           \
-            } else                                               \
+//    PUSH_CONTEXT(newContext) {
+//        ... code with new context variables ...
+//    }
+//    ... old context variables are restored ...
+//
+//    OVERRIDE_CONTEXT(newContext);   // Changes the context variables globally (useful at program startup to set the allocator and the logging output).
+//
+
+#define OVERRIDE_CONTEXT(newContext) *((LSTD_NAMESPACE::context *) &LSTD_NAMESPACE::Context) = (newContext)
+
+#define PUSH_CONTEXT(newContext)                          \
+    auto LINE_NAME(oldContext) = LSTD_NAMESPACE::Context; \
+    auto LINE_NAME(restored) = false;                     \
+    defer({                                               \
+        if (!LINE_NAME(restored)) {                       \
+            OVERRIDE_CONTEXT(LINE_NAME(oldContext));      \
+        }                                                 \
+    });                                                   \
+    if (true) {                                           \
+        OVERRIDE_CONTEXT(newContext);                     \
+        goto LINE_NAME(body);                             \
+    } else                                                \
+        while (true)                                      \
+            if (true) {                                   \
+                OVERRIDE_CONTEXT(LINE_NAME(oldContext));  \
+                LINE_NAME(restored) = true;               \
+                break;                                    \
+            } else                                        \
                 LINE_NAME(body) :
 
-// Shortcuts for allocations
-#define WITH_ALLOC(newAlloc) WITH_CONTEXT_VAR(Alloc, newAlloc)
-#define WITH_ALIGNMENT(newAlignment) WITH_CONTEXT_VAR(AllocAlignment, newAlignment)
+#define PUSH_ALLOC(newAlloc)                              \
+    auto LINE_NAME(newContext) = LSTD_NAMESPACE::Context; \
+    LINE_NAME(newContext).Alloc = newAlloc;               \
+    PUSH_CONTEXT(LINE_NAME(newContext))
 
+//
 // These were moved from allocator.h where they made sense to be, but we need to access Context.Alloc here.
 // In the future we hopefully find a way to structure the library so these problems are avoided.
-// We can't make them non-templates because we need the type info...
+// We can't make them non-templates because we need the type info of T...
+//
 
 template <typename T>
 concept non_void = !types::is_same<T, void>;
@@ -172,6 +206,7 @@ LSTD_END_NAMESPACE
 using size_t = u64;
 #else
 using size_t = u32;
+#error We don't support 32 bits, do we?
 #endif
 using align_val_t = size_t;
 
@@ -202,6 +237,8 @@ T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, so
     s64 size = count * sizeof(T);
 
     if (!alloc) alloc = Context.Alloc;
+    assert(alloc && "Context allocator was null. The programmer should set it before calling allocate functions.");
+
     auto *result = (T *) general_allocate(alloc, size, alignment, options, loc);
 
     if constexpr (!types::is_scalar<T>) {
@@ -257,13 +294,75 @@ requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCou
     return result;
 }
 
+//
+// :BigPhilosophyTime: Some more stuff..
+//
+// We don't use new and delete.
+// 1) The syntax is ugly in my opinion.
+// 2) You have to be careful not to mix "new" with "delete[]"/"new[]" and "delete".
+// 3) It's an operator and can be overriden by structs/classes.
+// 4) Modern C++ people say not to use new/delete as well, so ..
+//
+// Now seriously, there are two ways to allocate memory in C++: malloc and new.
+// Both are far from optimal, so let's introduce another way (haha)!
+// Note: We override the default operator new/delete to call our version.
+//       When we don't link with the CRT, malloc is undefined, we provide a replacement.
+//       When we link with the CRT, we do it dynamically, so we can redirect calls to malloc to our replacement. @TODO: We don't do that yet..
+//
+// The following functions are defined:
+//  allocate,
+//  allocate_array,
+//  reallocate_array
+//  free
+//
+// All work as expected.
+//
+// Note: allocate and allocate_array call constructors on non-scalar values, free calls destructors (make sure you pass the right pointer type to free!)
+//
+// We allocate a bit of space before the block to store a header with information (the size of the allocation, the alignment,
+// the allocator with which it was allocated, and debugging info if DEBUG_MEMORY is defined - see comments in allocator.h).
+//              (* this overhead should become smaller, right now we haven't bothered yet! @TODO)
+//
+// There are some assumptions we make:
+//   Your types are "trivially copyable" which means that they can be copied byte by byte to another place and still work.
+//   That means that we don't call copy/move constructors when reallocating.
+//
+// We are following a data oriented design with this library.
+// Our array<> type also expects type to be simple data. If you need extra logic when copying memory, implement that explicitly
+// (not with a copy constructor). We do that to avoid C++ complicated shit that drives sane people insane.
+// Here we don't do C++ style exceptions, we don't do copy/move constructors, we don't do destructors, we don't do any of that.
+//
+// Note: I said we don't do destructors but we still call them. That's because sometimes they are useful and can really simplify the code.
+//   However since arrays and even the basic allocation functions copy byte by byte, that means that types that own memory (like string) must
+//   be implemented differently - which means that destructors become useless (take a look at the type policy in context.h).
+//   The recommended way to implement "destructors" is to override the free() function with your type as a reference parameter.
+//
+// e.g
+//   string a;
+//   free(a);       // Not free(&a)!
+//
+//
+// The functions also allow certain options to be specified. Using C++20 syntax, here are a few examples on how calls look:
+//
+//     auto *node = allocate<ast_binop>();
+//     auto *node = allocate<ast_binop>({.Alloc = AstNodeAllocator});
+//     auto *node = allocate<ast_binop>({.Options = LEAK});
+//
+//     auto *simdType = allocate<f32v4>({.Alignment = 16});
+//
+//     auto *memory = allocate_array<byte>(200);
+//     auto *memory = allocate_array<byte>(200, {.Alloc = Context.TempAlloc, .Alignment = 64, .Options = LEAK});
+//
+//
+// The functions take source_location as a final parameter. This is set to current() automatically which means the caller's site.
+// This info is saved to the header when DEBUG_MEMORY is defined.
+//
+
 struct allocate_options {
     allocator Alloc = {};
     u32 Alignment = 0;
     u64 Options = 0;
 };
-
-// @TODO: Document why we don't use new/delete.
 
 // T is used to initialize the resulting memory (uses placement new to call the constructor).
 template <typename T>
@@ -311,26 +410,12 @@ requires(!types::is_const<T>) void free(T *block, u64 options = 0) {
 
 LSTD_END_NAMESPACE
 
-//
-// We overload the new/delete operators so we handle the allocations. The allocator used is the one specified in the Context.
-//
-
-// If we define our new operator with user arguments and also include STD headers then overload resolution is ambiguous.
-
-// #if defined LSTD_DONT_DEFINE_STD
-// #define L
-// #else
-// #define L , LSTD_NAMESPACE::source_location loc = LSTD_NAMESPACE::source_location::current()
-// #endif
-
 #if not defined LSTD_DONT_DEFINE_STD
-#define L , LSTD_NAMESPACE::source_location loc = LSTD_NAMESPACE::source_location::current()
-[[nodiscard]] void *operator new(size_t size L);
-[[nodiscard]] void *operator new[](size_t size L);
+[[nodiscard]] void *operator new(size_t size);
+[[nodiscard]] void *operator new[](size_t size);
 
-[[nodiscard]] void *operator new(size_t size, align_val_t alignment L);
-[[nodiscard]] void *operator new[](size_t size, align_val_t alignment L);
-#undef L
+[[nodiscard]] void *operator new(size_t size, align_val_t alignment);
+[[nodiscard]] void *operator new[](size_t size, align_val_t alignment);
 #endif
 
 void operator delete(void *ptr) noexcept;

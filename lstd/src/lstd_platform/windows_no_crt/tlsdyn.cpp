@@ -33,6 +33,8 @@ static bool __cdecl is_potentially_valid_image_base(void *const image_base) noex
     return true;
 }
 
+using uintptr_t = u64;
+
 // * Given an RVA, finds the PE section in the pointed-to image that includes the
 // * RVA.  Returns null if no such section exists or the section is not found.
 static PIMAGE_SECTION_HEADER __cdecl find_pe_section(unsigned char *const image_base, uintptr_t const rva) noexcept {

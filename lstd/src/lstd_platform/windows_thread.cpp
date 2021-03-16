@@ -8,6 +8,8 @@
 
 LSTD_BEGIN_NAMESPACE
 
+allocator win64_get_persistent_allocator();
+
 namespace thread {
 
 // Block the calling thread until a lock on the mutex can
@@ -146,23 +148,27 @@ struct thread_start_info {
 u32 __stdcall thread::wrapper_function(void *data) {
     auto *ti = (thread_start_info *) data;
 
-    // Context was already (partially) initialized (see win32_common_init_context @Platform).
-    // Now we copy the context variables from the parent thread.
-    s64 firstByte = FIELD_OFFSET(context, Temp) + sizeof(context::Temp);
+    // Initialize the default context for a new thread
+    // win64_common_init_context();
+    // The context has been initialized already (see tls_init in windows_common.cpp).
+
+    // @TODO: Make this optional:
+    // Now we copy the context variables from the parent thread
+    s64 firstByte = offset_of(context, TempAlloc) + sizeof(context::TempAlloc);
     copy_memory((byte *) &Context + firstByte, (byte *) ti->ContextPtr + firstByte, sizeof(context) - firstByte);
 
     // If the parent thread was using the temporary allocator, set the new thread to also use the temporary allocator,
     // but it needs to point to its own temp data (otherwise we are not thread-safe).
-    if (ti->ContextPtr->Alloc == ti->ContextPtr->Temp) {
-        ((context *) &Context)->Alloc = Context.Temp;  // @Constcast
+    if (ti->ContextPtr->Alloc == ti->ContextPtr->TempAlloc) {
+        auto newContext = Context;
+        newContext.Alloc = Context.TempAlloc;
+        OVERRIDE_CONTEXT(newContext);
     }
 
     ti->Function(ti->UserData);  // Call the thread function with the user data
 
     // Do we need this?
     // CloseHandle(ti->ThreadPtr->Handle);
-
-    release_temporary_allocator();
 
     free(ti);
 
@@ -178,7 +184,7 @@ u32 __stdcall thread::wrapper_function(void *data) {
 
 void thread::init_and_launch(const delegate<void(void *)> &function, void *userData) {
     // Passed to the thread wrapper, which will eventually free it
-    auto *ti = allocate<thread_start_info>();
+    auto *ti = allocate<thread_start_info>({.Alloc = win64_get_persistent_allocator()});
     ti->Function = function;
     ti->UserData = userData;
     ti->ThreadPtr = this;

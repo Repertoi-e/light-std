@@ -82,32 +82,20 @@ s32 main() {
     time_t start = os_get_time();
 
 #if defined DEBUG_MEMORY
-    DEBUG_memory_info::MemoryVerifyHeapFrequency = 1;
+    DEBUG_memory->MemoryVerifyHeapFrequency = 1;
 #endif
 
-    // @TODO: Allow multiple context variables to be modified in one go.
-    //
-    // Something like this:
-    //
-    // context newContext = Context;
-    // newContext.AllocAlignment = 16;
-    // newContext.DebugMemoryVerifyHeapFrequency = 1;
-    //
-    // WITH_CONTEXT(newContext) {
-    //
-    // }
-    WITH_ALIGNMENT(16) {
-        // auto *allocData = allocate(free_list_allocator_data, Malloc);
-        // allocData->init(10_MiB, free_list_allocator_data::Find_First);
-        // WITH_ALLOC(allocator(free_list_allocator, allocData)) {
-        WITH_ALLOC(Context.Temp) {
-            // build_test_table();
-            run_tests();
-            release_temporary_allocator();
-        }
-    }
+    auto newContext = Context;
+    newContext.AllocAlignment = 16;
+    newContext.Alloc = Context.TempAlloc;
 
-    print("\nFinished tests, time taken: {:f} seconds\n\n", os_time_to_seconds(os_get_time() - start));
+    allocator_add_pool(Context.TempAlloc, os_allocate_block(1_MiB), 1_MiB);
+
+    PUSH_CONTEXT(newContext) {
+        build_test_table();
+        run_tests();
+    }
+    print("\nFinished tests, time taken: {:f} seconds, bytes used: {}, pools used: {}\n\n", os_time_to_seconds(os_get_time() - start), __TempAllocData.TotalUsed, __TempAllocData.PoolsCount);
 
 #if LOG_TO_FILE
     // exit_schedule(write_output_to_file);
@@ -115,7 +103,7 @@ s32 main() {
 #endif
 
 #if defined DEBUG_MEMORY
-    DEBUG_memory_info::report_leaks();
+    DEBUG_memory->report_leaks();
 #endif
 
     return 0;

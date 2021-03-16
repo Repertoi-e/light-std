@@ -39,12 +39,12 @@ template <typename T>
 bool almost_equal(T d1, T d2, types::true_t) {
     if (abs(d1) < 1e-38 && abs(d2) < 1e-38) return true;
     if ((d1 == 0 && d2 < 1e-4) || (d2 == 0 && d1 < 1e-4)) return true;
-    T s = (T) Math_ExpB_flt32(T(10), Math_RoundDown_flt32(Math_Log10_flt32(abs(d1))));
+    T s = (T) pow(T(10), floor(log10(abs(d1))));
     d1 /= s;
     d2 /= s;
     d1 *= T(1000.0);
     d2 *= T(1000.0);
-    return Math_Round_flt32(d1) == Math_Round_flt32(d2);
+    return round(d1) == round(d2);
 }
 
 // Specialization for int, complex and custom types: simple equality.

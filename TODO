@@ -1,36 +1,23 @@
----------------------------------------------------------------------------------
-Fix threads once and for all..
-.. also use a lock-free queue in console output instead of a mutex 
-(TEST PERFOMANCE FOR THIS!) 
----------------------------------------------------------------------------------
-Replace with our own math functions in order to not depend on the runtime lib
-(BENCHMARK!)
+
 ---------------------------------------------------------------------------------
 File mapping
 ---------------------------------------------------------------------------------
 API for watching directory changes
 ... and an asset catalog system
+
 ---------------------------------------------------------------------------------
-
-inline eat_bytes_result eat_bytes_until_any(bytes buffer, bytes delims) {
-    // @Speed Benchmark this!
-
-make_sequence improvements from DataFlow
-
-
-#define LSTD_DONT_DEFINE_INITIALIZER_LIST // @DependencyCleanup We still have dependencies on the math library which prevents us from not including STD headers
-#include <cmath> // @DependencyCleanup
-
-
 // @Bug value.Length is not enough (2 wide chars for one char)
 
 
+---------------------------------------------------------------------------------
 Tests with parse_guid_options
 
+---------------------------------------------------------------------------------
 // @TODO: Potentially useful?
 // bool BasePrefixCountedTowardsMaxDigits = true;
 // bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true; 
 
+---------------------------------------------------------------------------------
 
 concept Hashable
 ---------------------------------------------------------------------------------
@@ -44,13 +31,13 @@ String iterator doesn't work with constexpr
 Allow users to add more variables to Implicit_Context
 Won't work with headers tho
 ---------------------------------------------------------------------------------
-- Locale?  + fmt
-- Time?    + fmt
+- Locale?  
+- Time?    
 - Random?
 - Regex?
-- Complex numbers?
 ---------------------------------------------------------------------------------
 Implement platform specific functionality and compile on linux.
+This is probably never going to happen if I continue to work on this alone LMAO.
 ---------------------------------------------------------------------------------
 
 LOC:            80394
@@ -62,22 +49,11 @@ LOC:            80394
 				79005
 				78949
 				77359
-
-LOC no vendor:  ----
-                28816
-				28387
-				28381
-				27936
-				27608
-				27468
-				27277
-				27221
-				27150
-				25631
+				62125 <-- interesting this still dropped, because we added a million 
+				          lines in order to get rid of every header dependency (CRT and Windows.h)
+				63004 <-- +1000 lines in windows.h (API used in lstd-graphics)
+				35362 <-- big win here!
 				
-LOC (lstd + tests):
-				19048
-
-LOC no tests:   24972 (2700 less)
-				24768
-				23029 (1700 less)
+				
+				
+				

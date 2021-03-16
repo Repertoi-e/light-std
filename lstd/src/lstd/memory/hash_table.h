@@ -392,13 +392,27 @@ bool remove(T &table, const key_t<T> &key) {
 // Returns true if the hash table has the given key.
 // We calculate the hash of the key using the global get_hash() specialized functions.
 template <any_hash_table T>
-bool has(const T &table, const key_t<T> &key) { return find(table, key) != null; }
+bool has(const T &table, const key_t<T> &key) { return find(table, key).Key != null; }
 
 // Returns true if the hash table has the given key.
 // In normal _hash_ we calculate the hash of the key using the global get_hash() specialized functions.
 // This method is useful if you have cached the hash.
 template <any_hash_table T>
 bool has_prehashed(const T &table, u64 hash, const key_t<T> &key) { return find_prehashed(table, hash, key) != null; }
+
+template <any_hash_table T>
+bool operator==(const T &t, const T &u) {
+    if (t.Count != u.Count) return false;
+
+    for (auto [k, v] : t) {
+        if (!has(u, *k)) return false;
+        if (*v != *find(u, *k).Value) return false;
+    }
+    return true;
+}
+
+template <any_hash_table T>
+bool operator!=(const T &t, const T &u) { return !(t == u); }
 
 #undef key_t
 #undef value_t

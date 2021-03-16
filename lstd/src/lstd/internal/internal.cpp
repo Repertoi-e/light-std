@@ -999,6 +999,13 @@ void *(*copy_memory)(void *dst, const void *src, u64 size) = apex::dispatcher;
 // If the platform doesn't support SSE, it still writes 4 bytes at a time (instead of 16)
 //
 
+file_scope void fill_single_byte(void *dst, char c, u64 size) {
+    // This needs to be marked volatile to avoid compiler optimizing with memset intrinsic
+    // and thus causing a stack overflow in optimized_fill_memory.
+    auto *b = (volatile byte *) dst; 
+    while (size--) *b++ = c;
+}
+
 void *optimized_fill_memory(void *dst, char c, u64 size) {
     char *d = (char *) dst;
 
@@ -1012,7 +1019,7 @@ void *optimized_fill_memory(void *dst, char c, u64 size) {
         remaining = size;
     }
 
-    const_fill_memory(d, c, offset);
+    fill_single_byte(d, c, offset);
     d += offset;
 
     __m128i c16 = _mm_set_epi8(c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c);
@@ -1020,25 +1027,9 @@ void *optimized_fill_memory(void *dst, char c, u64 size) {
         _mm_store_si128((__m128i *) d, c16);
         d += 16;
     }
-    const_fill_memory(d, c, remaining);
+    fill_single_byte(d, c, remaining);
 #else
-    s64 offset = ((s64) dst) % 4;
-    s64 num4bytes = (size - offset) / 4;
-    s64 remaining = size - num16bytes * 4 - offset;
-
-    const_fill_memory(d, c, offset);
-    d += offset;
-
-    union {
-        u32 Word;
-        char Bytes[4] = {c, c, c, c};
-    } c4;
-
-    For(range(num4bytes)) {
-        *((u32 *) d) = c4.Word;
-        d += 4;
-    }
-    const_fill_memory(d, c, remaining);
+    const_fill_memory(dst, c, size);
 #endif
     return dst;
 }
@@ -1241,9 +1232,12 @@ s64 optimized_compare_memory(const void *ptr1, const void *ptr2, u64 size) {
 s64 (*compare_memory)(const void *ptr1, const void *ptr2, u64 size) = optimized_compare_memory;
 
 void default_panic_handler(const string &message, const array<os_function_call> &callStack) {
-    if (Context.HandlingPanic) return;
+    if (Context._HandlingPanic) return;
 
-    WITH_CONTEXT_VAR(HandlingPanic, true) {
+    auto newContext = Context;
+    newContext._HandlingPanic = true;
+
+    PUSH_CONTEXT(newContext) {
         print("\n\n{!}(context.cpp / default_crash_handler): A panic occured and the program must terminate.\n");
         print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
         print("        ... and here is the call stack:\n");

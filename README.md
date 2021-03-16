@@ -1,6 +1,6 @@
 
 # light-std
-A C++17 library created for personal use that aims to replace the standard C/C++ library. It's performance-oriented and designed for general programming.
+A C++20 library created for personal use that aims to replace the standard C/C++ library. It's performance-oriented and designed for general programming.
 It attempts to mimic some of Jai's (Jonathan Blow's new language) features (implicit context and allocator system).
 
 This library is supposed to be a replacement of C/C++'s standard library in but designed entirely differently. 

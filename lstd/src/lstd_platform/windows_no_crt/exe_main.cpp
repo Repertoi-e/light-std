@@ -139,22 +139,23 @@ extern "C" int main();
 extern "C" const PIMAGE_TLS_CALLBACK __dyn_tls_init_callback;
 
 LSTD_BEGIN_NAMESPACE
-extern void win32_common_init_global_state();
-extern void win32_common_init_context();
-extern void win32_crash_handler_init();
+extern void win64_common_init_global_state();
+extern void win64_common_init_context();
+extern void win64_crash_handler_init();
+
+extern allocator win64_get_persistent_allocator();
 LSTD_END_NAMESPACE
 
 // We need to reinit the context after the TLS initalizer fires and resets our state.. sigh.
 // We can't just do it once because global variables might still use the context and TLS fires a bit later.
 s32 tls_init() {
-    LSTD_NAMESPACE::win32_common_init_context();
+    LSTD_NAMESPACE::win64_common_init_context();
     return 0;
 }
 
 #pragma const_seg(".CRT$XDU")
 __declspec(allocate(".CRT$XDU")) _PIFV g_TLSInit = tls_init;
 #pragma const_seg()
-
 
 //
 // Entry point for executables
@@ -172,9 +173,9 @@ extern "C" void main_no_crt() {
     // We can put these in the beginning of the linker tables (CRT does this), but why bother?
     // This also needs to happen for DLLs.
     //
-    LSTD_NAMESPACE::win32_common_init_context();  // This prepares the global thread-local immutable Context variable (see "lstd/internal/context.h")
-    LSTD_NAMESPACE::win32_common_init_global_state();
-    LSTD_NAMESPACE::win32_crash_handler_init();
+    LSTD_NAMESPACE::win64_common_init_context();  // This prepares the global thread-local immutable Context variable (see "lstd/internal/context.h")
+    LSTD_NAMESPACE::win64_common_init_global_state();
+    LSTD_NAMESPACE::win64_crash_handler_init();
 
     // These call the tables that the linker has filled with initialization routines for global variables
     if (lstd_initterm_e(__xi_a, __xi_z) != 0) {

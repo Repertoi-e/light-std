@@ -161,26 +161,24 @@ TEST(condition_variable) {
 }
 
 TEST(context) {
-    WITH_CONTEXT_VAR(Alloc, DefaultAlloc) {
-        auto *old = Context.Alloc.Function;
+    auto *old = Context.Alloc.Function;
 
-        auto differentAlloc = Context.Temp;
-        WITH_CONTEXT_VAR(Alloc, differentAlloc) {
-            auto threadFunction = [&](void *) {
-                assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
-                []() {
-                    WITH_CONTEXT_VAR(Alloc, Context.Temp) {
-                        assert_eq((void *) Context.Alloc.Function, (void *) Context.Temp.Function);
-                        return;
-                    }
-                }();
-                assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
-            };
+    allocator differentAlloc = {};
+    PUSH_ALLOC(differentAlloc) {
+        auto threadFunction = [&](void *) {
+            assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
+            []() {
+                PUSH_ALLOC(Context.TempAlloc) {
+                    assert_eq((void *) Context.Alloc.Function, (void *) Context.TempAlloc.Function);
+                    return;
+                }
+            }();
+            assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
+        };
 
-            thread::thread t1;
-            t1.init_and_launch(&threadFunction);
-            t1.wait();
-        }
-        assert_eq((void *) Context.Alloc.Function, (void *) old);
+        thread::thread t1;
+        t1.init_and_launch(&threadFunction);
+        t1.wait();
     }
+    assert_eq((void *) Context.Alloc.Function, (void *) old);
 }

@@ -5,8 +5,8 @@ void build_test_table() {
     append(*g_TestTable[string("file.cpp")], {"path_manipulation", test_path_manipulation});
     extern void test_file_size();
     append(*g_TestTable[string("file.cpp")], {"file_size", test_file_size});
-    extern void test_read_every_file_in_project();
-    append(*g_TestTable[string("file.cpp")], {"read_every_file_in_project", test_read_every_file_in_project});
+    // extern void test_read_every_file_in_project();
+    // append(*g_TestTable[string("file.cpp")], {"read_every_file_in_project", test_read_every_file_in_project});
     extern void test_write_bool();
     append(*g_TestTable[string("fmt.cpp")], {"write_bool", test_write_bool});
     extern void test_write_integer_16();
@@ -199,8 +199,8 @@ void build_test_table() {
     append(*g_TestTable[string("quat.cpp")], {"vec_rotation", test_vec_rotation});
     extern void test_chaining();
     append(*g_TestTable[string("quat.cpp")], {"chaining", test_chaining});
-    extern void test_exp_log();
-    append(*g_TestTable[string("quat.cpp")], {"exp_log", test_exp_log});
+    extern void test_exp_ln();
+    append(*g_TestTable[string("quat.cpp")], {"exp_ln", test_exp_ln});
     extern void test_pow();
     append(*g_TestTable[string("quat.cpp")], {"pow", test_pow});
     extern void test_basic();

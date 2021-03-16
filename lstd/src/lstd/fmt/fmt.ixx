@@ -188,7 +188,11 @@ export {
 
     // Formats to a string. Uses the temporary allocator.
     template <typename... Args>
-    [[nodiscard("Leak")]] string tsprint(const string &fmtString, Args &&...arguments);
+    string tsprint(const string &fmtString, Args &&...arguments);
+
+    // Formats to a string then converts to null-terminated string. Uses the temporary allocator.
+    template <typename... Args>
+    utf8 *mprint(const string &fmtString, Args &&...arguments);
 
     // Calls fmt_to_writer on Context.Log - which is usually pointing to the console
     // but that can be changed to redirect the output!
@@ -444,14 +448,23 @@ export {
     // Formats to a string. Uses the temporary allocator.
     template <typename... Args>
     string tsprint(const string &fmtString, Args &&...arguments) {
-        WITH_ALLOC(Context.Temp) {
+        PUSH_ALLOC(Context.TempAlloc) {
             return sprint(fmtString, ((Args &&) arguments)...);
+        }
+    }
+
+    // Formats to a string. Uses the temporary allocator.
+    template <typename... Args>
+    utf8 *mprint(const string &fmtString, Args &&...arguments) {
+        PUSH_ALLOC(Context.TempAlloc) {
+            return to_c_string(sprint(fmtString, ((Args &&) arguments)...));
         }
     }
 
     // Calls fmt_to_writer on Context.Log - which is usually pointing to the console
     template <typename... Args>
     void print(const string &fmtString, Args &&...arguments) {
+        assert(Context.Log && "Context log was null. By default it points to cout.");
         fmt_to_writer(Context.Log, fmtString, ((Args &&) arguments)...);
     }
 }

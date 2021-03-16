@@ -16,8 +16,8 @@ LSTD_BEGIN_NAMESPACE
 // the end of the string, so -1 is the last code point -2 the one before that, etc. (Python-style)
 struct string : public array_view<utf8> {
     struct code_point_ref {
-        string *Parent;
-        s64 Index;
+        string *Parent = null;
+        s64 Index = -1;
 
         code_point_ref() {}
         code_point_ref(string *parent, s64 index) : Parent(parent), Index(index) {}
@@ -168,6 +168,10 @@ void free(string &s);
 // Allocates a buffer, copies the string's contents and also appends a zero terminator.
 // The caller is responsible for freeing.
 [[nodiscard("Leak")]] utf8 *to_c_string(const string &s, allocator alloc = {});
+
+// Allocates a buffer, copies the string's contents and also appends a zero terminator.
+// Uses the temporary allocator.
+utf8 *temp_to_c_string(const string &s);
 
 // Gets the _index_'th code point in the string.
 constexpr utf32 get(const string &s, s64 index) { return decode_cp(get_cp_at_index(s.Data, s.Length, index)); }
@@ -614,6 +618,8 @@ constexpr bool has(const string &s, const string &str) { return find_substring(s
 // This function doesn't allocate, but just returns a "view".
 // We can do this because we don't store strings with a zero terminator.
 constexpr string substring(const string &s, s64 begin, s64 end) {
+    if (begin == end) return "";
+
     s64 beginIndex = translate_index(begin, s.Length);
     s64 endIndex = translate_index(end, s.Length, true);
 

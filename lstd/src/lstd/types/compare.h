@@ -153,7 +153,7 @@ using partial_ordering = std::partial_ordering;
 using weak_ordering = std::weak_ordering;
 using strong_ordering = std::strong_ordering;
 
-enum comparison_category : u8 {
+enum comparison_category : char {
     Comparison_Category_None = 1,
     Comparison_Category_Partial = 2,
     Comparison_Category_Weak = 4,
@@ -164,16 +164,16 @@ enum comparison_category : u8 {
 // inline constexpr unsigned char comparison_category_of = get_comparison_category{(get_comparison_category<Types> | ... | Comparison_Category_Strong)};
 
 template <typename T>
-inline constexpr byte comparison_category_of = Comparison_Category_None;
+inline constexpr unsigned char comparison_category_of = Comparison_Category_None;
 
 template <>
-inline constexpr byte comparison_category_of<partial_ordering> = Comparison_Category_Partial;
+inline constexpr unsigned char comparison_category_of<partial_ordering> = Comparison_Category_Partial;
 
 template <>
-inline constexpr byte comparison_category_of<weak_ordering> = Comparison_Category_Weak;
+inline constexpr unsigned char comparison_category_of<weak_ordering> = Comparison_Category_Weak;
 
 template <>
-inline constexpr byte comparison_category_of<strong_ordering> = Comparison_Category_Strong;
+inline constexpr unsigned char comparison_category_of<strong_ordering> = Comparison_Category_Strong;
 
 LSTD_END_NAMESPACE
 #endif

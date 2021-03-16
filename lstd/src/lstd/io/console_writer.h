@@ -9,7 +9,7 @@ struct console_writer : writer {
     // If you don't use seperate threads and aim for maximum console output performance, set this to false.
     bool LockMutex = true;
 
-    byte *Buffer, *Current;
+    byte *Buffer = null, *Current = null;
     s64 Available = 0, BufferSize = 0;
 
     enum output_type {
@@ -19,6 +19,7 @@ struct console_writer : writer {
 
     output_type OutputType;
 
+    console_writer() {}
     console_writer(output_type type) : OutputType(type) {}
 
     // Defined in *platform*_common.cpp
@@ -26,7 +27,7 @@ struct console_writer : writer {
     void flush() override;
 };
 
-inline auto cout = console_writer(console_writer::COUT);
-inline auto cerr = console_writer(console_writer::CERR);
+inline auto cout = console_writer(console_writer::COUT); 
+inline auto cerr = console_writer(console_writer::CERR); 
 
 LSTD_END_NAMESPACE

@@ -5,10 +5,11 @@
 // decoration character for x86 and hybrid and leaves names unmodified for other
 // architectures.
 
-#define DECLARE_ALTERNATE_NAME_DATA(name, alternate_name) \
-    __pragma(comment(linker, "/alternatename:" #name "=" #alternate_name))
+#define DECLARE_ALTERNATE_NAME_DATA(name, alternate_name) __pragma(comment(linker, "/alternatename:" #name "=" #alternate_name))
+
 // If we are building a dll that links to this library we don't need a valid "main"
-// since it will never get called anyways. This is here as a stub and only called when on an .exe.
+// since it will never get called anyways. This is here as a stub and only called when on an .exe
+// and the programmer forgot their entry point.
 extern "C" int main_stub(int argc, char *argv[]) {
     debug_break();
     (void) ("Did you forget to add an entry point to your program?");

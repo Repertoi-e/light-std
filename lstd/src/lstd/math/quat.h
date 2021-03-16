@@ -105,7 +105,7 @@ struct tquat {
 
     // Returns the angle of the rotation represented by quaternion.
     // Only valid for unit quaternions.
-    const T angle() const { return (sign_bit(s) ? -1 : 1) * 2 * (T) Math_ArcCos_flt32(clamp(abs(s) / len(Vec), T(-1), T(1))); }
+    const T angle() const { return (sign_bit(s) ? -1 : 1) * 2 * (T) acos(clamp(abs(s) / len(Vec), T(-1), T(1))); }
 
     // Returns the axis of rotation represented by quaternion.
     // Only valid for unit quaternions. Returns (1,0,0) for near 180 degree rotations.
@@ -160,7 +160,7 @@ struct tquat {
     void from_mat(const mat<U, R, C, PackedA> &m) {
         assert(is_rotation_mat_3d(m));
 
-        w = (T) Math_Sqrt_flt32(1 + m(0, 0) + m(1, 1) + m(2, 2)) * T(0.5);
+        w = (T) sqrt(1 + m(0, 0) + m(1, 1) + m(2, 2)) * T(0.5);
 
         T div = T(1) / (T(4) * w);
         x = (m(2, 1) - m(1, 2)) * div;

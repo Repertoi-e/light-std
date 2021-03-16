@@ -2,6 +2,8 @@
 
 #include "../internal/context.h"
 
+LSTD_BEGIN_NAMESPACE
+
 template <typename T_, s64 ElementsPerBucket = 128>
 struct bucket_array {
     using T = T_;
@@ -71,8 +73,8 @@ auto *append(T &arr, const typename T::T &element, allocator alloc = {}) {
         b = b->Next;
     }
 
-    b = last->Next = allocate(T::bucket, alloc);
-    b->Elements = allocate_array(typename T::T, T::ELEMENTS_PER_BUCKET, alloc);
+    b = last->Next = allocate<T::bucket>({.Alloc = alloc});
+    b->Elements = allocate_array<typename T::T>(T::ELEMENTS_PER_BUCKET, {.Alloc = alloc});
     b->Allocated = T::ELEMENTS_PER_BUCKET;
     clone(b->Elements, element);
     b->Count = 1;
@@ -86,7 +88,9 @@ auto *find_or_create(const T &arr, const U &toMatch, const delegate<U(typename T
     T *result = find(arr, [&](T *element) { return map(element) == toMatch; });
     if (result) return result;
 
-    result = allocate(T, alloc);
+    result = allocate<T>({.Alloc = alloc});
     append(arr, *result);
     return result;
 }
+
+LSTD_END_NAMESPACE

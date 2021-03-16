@@ -7,7 +7,7 @@ LSTD_BEGIN_NAMESPACE
 struct os_function_call {
     string Name;
     string File;
-    u32 LineNumber;
+    u32 LineNumber = -1;
 };
 
 inline os_function_call *clone(os_function_call *dest, os_function_call src) {

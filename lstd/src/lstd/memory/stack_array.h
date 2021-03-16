@@ -8,32 +8,43 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
-constexpr T *quick_sort_partition(T *first, T *last, T *pivot) {
+using quick_sort_comparison_func = s32 (*)(const T *, const T *);
+
+template <typename T>
+constexpr T *quick_sort_partition(T *first, T *last, T *pivot, quick_sort_comparison_func<T> func) {
     --last;
     swap(*pivot, *last);
     pivot = last;
 
     while (true) {
-        while (*first < *pivot) ++first;
+        while (func(first, pivot) < 0) ++first;
         --last;
-        while (*pivot < *last) --last;
-        if (first >= last) {
+        while (func(pivot, last) < 0) --last;
+        if (func(first, last) > 0) {
             swap(*pivot, *first);
             return first;
+        } else {
+            swap(*first, *last);
+            ++first;
         }
-        swap(*first, *last);
-        ++first;
     }
 }
 
 template <typename T>
-constexpr void quick_sort(T *first, T *last) {
+s32 default_comparison(const T *lhs, const T *rhs) {
+    if (*lhs > *rhs) return 1;
+    if (*lhs < *rhs) return -1;
+    return 0;
+}
+
+template <typename T>
+constexpr void quick_sort(T *first, T *last, quick_sort_comparison_func<T> func = default_comparison<T>) {
     if (first >= last) return;
 
     auto *pivot = first + (last - first) / 2;
-    auto *nextPivot = quick_sort_partition(first, last, pivot);
-    quick_sort(first, nextPivot);
-    quick_sort(nextPivot + 1, last);
+    auto *nextPivot = quick_sort_partition(first, last, pivot, func);
+    quick_sort(first, nextPivot, func);
+    quick_sort(nextPivot + 1, last, func);
 }
 
 template <typename T>
@@ -41,22 +52,22 @@ struct array_view;
 
 //
 // A wrapper around T arr[..] which makes it easier to pass around and work with.
-// 
+//
 // To make an array from a list of elements use:
 //
 //  auto arr1 = to_stack_array(1, 4, 9);
 //  auto arr2 = to_stack_array<s64>(1, 4, 9);
-// 
+//
 // To iterate:
 // For(arr1) {
 //     ...
 // }
-// 
+//
 // For(range(arr1.Count)) {
 //     T element = arr1[it];
 //     ...
 // }
-// 
+//
 // Different from array<T>, because the latter supports dynamic resizing.
 // This object contains no other member than T Data[N], _Count_ is a static member for the given type and doesn't take space.
 template <typename T_, s64 N>
@@ -104,7 +115,7 @@ constexpr stack_array<types::remove_cv_t<T>, N> to_array_impl(T (&a)[N], integer
 }  // namespace internal
 
 template <typename D = void, class... Types>
-constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, sizeof...(Types)> to_stack_array(Types &&... t) {
+constexpr stack_array<typename internal::return_type_helper<D, Types...>::type, sizeof...(Types)> to_stack_array(Types &&...t) {
     return {(Types &&)(t)...};
 }
 

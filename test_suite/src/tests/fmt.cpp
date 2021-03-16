@@ -38,7 +38,9 @@ template <typename... Args>
 void format_test_error(const string &fmtString, Args &&...arguments) {
     counting_writer dummy;
 
-    WITH_CONTEXT_VAR(FmtParseErrorHandler, test_parse_error_handler) {
+    auto newContext = Context;
+    newContext.FmtParseErrorHandler = test_parse_error_handler;
+    PUSH_CONTEXT(newContext) {
         auto args = fmt_args_on_the_stack(fmt_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
         auto f = fmt_context(&dummy, fmtString, args);
         fmt_parse_and_format(&f);

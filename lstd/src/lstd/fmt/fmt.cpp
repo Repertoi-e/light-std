@@ -24,7 +24,7 @@ void fmt_default_parse_error_handler(const string &message, const string &format
     fmt_to_writer(&output, "        {!}{}{!GRAY}\n", str);
     fmt_to_writer(&output, "        {: >{}} {!} \n\n", "^", position + 1);
 #if defined NDEBUG
-    Context.PanicHandler(output.Builder.combine(), {});
+    Context.PanicHandler(combine(output.Builder), {});
 #else
     print("{}", combine(output.Builder));
 

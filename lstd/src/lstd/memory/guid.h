@@ -9,7 +9,9 @@ LSTD_BEGIN_NAMESPACE
 struct guid {
     stack_array<byte, 16> Data;
 
-    constexpr guid() {}  // By default the guid is zero
+    constexpr guid() {
+        const_zero_memory(&Data[0], 16);
+    }  // By default the guid is zero
 
     constexpr explicit guid(bytes data) {
         assert(data.Count >= 16);

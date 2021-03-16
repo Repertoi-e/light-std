@@ -81,11 +81,8 @@ project "lstd"
         "%{prj.name}/src/**.c",
         "%{prj.name}/src/**.cpp",
         "%{prj.name}/src/**.def",
-        "%{prj.name}/src/**.ixx",
-        "%{prj.name}/src/**.obj"
+        "%{prj.name}/src/**.ixx"
     }
-    
-	includedirs { "%{prj.name}/src/vendor/linasm/include" }
     
     common_settings()
 
@@ -106,10 +103,11 @@ project "test_suite"
         "%{prj.name}/src/**.ixx"
     }
 
-    excludes "%{prj.name}/src/build_test_table.cpp"
+    -- excludes "%{prj.name}/src/build_test_table.cpp"
 
-    links { "lstd" }
-    includedirs { "lstd/src", "lstd/src/vendor/linasm/include" } -- @TODO
+    includedirs { "lstd/src" } 
+    
+	links { "lstd" }
     
     pchheader "pch.h"
     pchsource "%{prj.name}/src/pch.cpp"

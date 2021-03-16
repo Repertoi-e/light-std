@@ -11,8 +11,7 @@ namespace thread {
 struct id {
     u64 Value;
 
-    // The default constructed ID is that of thread without a thread of execution.
-    id() : Value(0){};
+    id() {}
     id(u64 value) : Value(value){};
 
     friend bool operator==(const id &id1, const id &id2) { return (id1.Value == id2.Value); }

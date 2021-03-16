@@ -214,7 +214,7 @@ struct formatter<tquat<T, Packed>> {
         bool alternate = f->Specs && f->Specs->Hash;
         if (alternate) {
             write(f, "[");
-            fmt_to_writer(f, "{.f}", src.angle() / M_PI * 180);
+            fmt_to_writer(f, "{.f}", src.angle() / TAU * 360);
             write(f, " deg @ ");
             fmt_to_writer(f, "{}", src.axis());
             write(f, "]");

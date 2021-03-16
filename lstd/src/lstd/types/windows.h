@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdarg.h>
-
 #include "types.h"
 
 //
@@ -73,6 +71,8 @@ using INT16 = s16;
 using UINT16 = u16;
 
 using SHORT = s16;
+using USHORT = u16;
+
 using ATOM = u16;
 using WORD = u16;
 
@@ -86,6 +86,7 @@ using PDWORD64 = u64 *;
 using DWORD_PTR = u64;
 
 using UINT = u32;
+using PUINT = UINT *;
 
 using INT64 = s64;
 using UINT64 = u64;
@@ -120,6 +121,7 @@ using LPCSTR = const utf8 *;
 using PWSTR = utf16 *;
 using LPWSTR = utf16 *;
 using LPCWSTR = const utf16 *;
+using LPCWCH = const utf16 *;
 
 using PVOID = void *;
 using LPVOID = void *;
@@ -135,6 +137,8 @@ using PCHAR = char *;
 using BOOL = s32;
 using BOOLEAN = byte;
 
+using LPBOOL = BOOL *;
+
 using HANDLE = void *;
 using HWND = HANDLE;
 using HMODULE = HANDLE;
@@ -142,8 +146,315 @@ using HDEVNOTIFY = HANDLE;
 using HLOCAL = HANDLE;
 using HGLOBAL = HANDLE;
 using HMENU = HANDLE;
+using HRGN = HANDLE;
+using HMONITOR = HANDLE;
+using DPI_AWARENESS_CONTEXT = HANDLE;
+using HDC = HANDLE;
+using HGDIOBJ = HANDLE;
+using HBITMAP = HANDLE;
+using HRAWINPUT = HANDLE;
+using HDROP = HANDLE;
+
+using COLORREF = DWORD;
+using LPCOLORREF = DWORD *;
 
 using FARPROC = void *;
+
+typedef struct _OSVERSIONINFOEXW {
+    DWORD dwOSVersionInfoSize;
+    DWORD dwMajorVersion;
+    DWORD dwMinorVersion;
+    DWORD dwBuildNumber;
+    DWORD dwPlatformId;
+    WCHAR szCSDVersion[128];
+    WORD wServicePackMajor;
+    WORD wServicePackMinor;
+    WORD wSuiteMask;
+    BYTE wProductType;
+    BYTE wReserved;
+} OSVERSIONINFOEXW, *POSVERSIONINFOEXW, *LPOSVERSIONINFOEXW, RTL_OSVERSIONINFOEXW, *PRTL_OSVERSIONINFOEXW;
+
+#define VER_BUILDNUMBER 0x0000004
+#define VER_MAJORVERSION 0x0000002
+#define VER_MINORVERSION 0x0000001
+#define VER_PLATFORMID 0x0000008
+#define VER_SERVICEPACKMAJOR 0x0000020
+#define VER_SERVICEPACKMINOR 0x0000010
+#define VER_SUITENAME 0x0000040
+#define VER_PRODUCT_TYPE 0x0000080
+
+#define VER_EQUAL 1
+#define VER_GREATER 2
+#define VER_GREATER_EQUAL 3
+#define VER_LESS 4
+#define VER_LESS_EQUAL 5
+
+#define _WIN32_WINNT_NT4 0x0400  // Windows NT 4.0
+#define _WIN32_WINNT_WIN2K 0x0500  // Windows 2000
+#define _WIN32_WINNT_WINXP 0x0501  // Windows XP
+#define _WIN32_WINNT_WS03 0x0502  // Windows Server 2003
+#define _WIN32_WINNT_WIN6 0x0600  // Windows Vista
+#define _WIN32_WINNT_VISTA 0x0600  // Windows Vista
+#define _WIN32_WINNT_WS08 0x0600  // Windows Server 2008
+#define _WIN32_WINNT_LONGHORN 0x0600  // Windows Vista
+#define _WIN32_WINNT_WIN7 0x0601  // Windows 7
+#define _WIN32_WINNT_WIN8 0x0602  // Windows 8
+#define _WIN32_WINNT_WINBLUE 0x0603  // Windows 8.1
+#define _WIN32_WINNT_WINTHRESHOLD 0x0A00  // Windows 10
+#define _WIN32_WINNT_WIN10 0x0A00  // Windows 10
+
+#define NTSYSAPI __declspec(dllimport)
+
+#define HIBYTE(w) ((BYTE)(((WORD)(w) >> 8) & 0xFF))
+#define LOBYTE(w) ((BYTE)(w))
+
+#define DRIVERVERSION 0
+#define TECHNOLOGY 2
+#define HORZSIZE 4
+#define VERTSIZE 6
+#define HORZRES 8
+#define VERTRES 10
+#define LOGPIXELSX 88
+#define LOGPIXELSY 90
+#define BITSPIXEL 12
+#define PLANES 14
+#define NUMBRUSHES 16
+#define NUMPENS 18
+#define NUMFONTS 22
+#define NUMCOLORS 24
+#define ASPECTX 40
+#define ASPECTY 42
+#define ASPECTXY 44
+#define CLIPCAPS 36
+#define SIZEPALETTE 104
+#define NUMRESERVED 106
+#define COLORRES 108
+#define PHYSICALWIDTH 110
+#define PHYSICALHEIGHT 111
+#define PHYSICALOFFSETX 112
+#define PHYSICALOFFSETY 113
+#define SCALINGFACTORX 114
+#define SCALINGFACTORY 115
+#define RASTERCAPS 38
+#define CURVECAPS 28
+#define LINECAPS 30
+#define POLYGONALCAPS 32
+#define TEXTCAPS 34
+
+typedef struct _POINTL {
+    LONG x;
+    LONG y;
+} POINTL, *PPOINTL;
+
+typedef struct _BORDERWIDTHS {
+    LONG left;
+    LONG top;
+    LONG right;
+    LONG bottom;
+} BORDERWIDTHS, *LPBORDERWIDTHS;
+
+using LPCBORDERWIDTHS = const BORDERWIDTHS *;
+
+using RECT = BORDERWIDTHS;
+using LPRECT = LPBORDERWIDTHS;
+using LPCRECT = LPCBORDERWIDTHS;
+
+#define CCHDEVICENAME 32
+#define CCHFORMNAME 32
+
+typedef struct _devicemodeW {
+    WCHAR dmDeviceName[CCHDEVICENAME];
+    WORD dmSpecVersion;
+    WORD dmDriverVersion;
+    WORD dmSize;
+    WORD dmDriverExtra;
+    DWORD dmFields;
+    union {
+        struct {
+            short dmOrientation;
+            short dmPaperSize;
+            short dmPaperLength;
+            short dmPaperWidth;
+            short dmScale;
+            short dmCopies;
+            short dmDefaultSource;
+            short dmPrintQuality;
+        } DUMMYSTRUCTNAME;
+        POINTL dmPosition;
+        struct {
+            POINTL dmPosition;
+            DWORD dmDisplayOrientation;
+            DWORD dmDisplayFixedOutput;
+        } DUMMYSTRUCTNAME2;
+    } DUMMYUNIONNAME;
+    short dmColor;
+    short dmDuplex;
+    short dmYResolution;
+    short dmTTOption;
+    short dmCollate;
+    WCHAR dmFormName[CCHFORMNAME];
+    WORD dmLogPixels;
+    DWORD dmBitsPerPel;
+    DWORD dmPelsWidth;
+    DWORD dmPelsHeight;
+    union {
+        DWORD dmDisplayFlags;
+        DWORD dmNup;
+    } DUMMYUNIONNAME2;
+    DWORD dmDisplayFrequency;
+    DWORD dmICMMethod;
+    DWORD dmICMIntent;
+    DWORD dmMediaType;
+    DWORD dmDitherType;
+    DWORD dmReserved1;
+    DWORD dmReserved2;
+    DWORD dmPanningWidth;
+    DWORD dmPanningHeight;
+} DEVMODEW, *PDEVMODEW, *NPDEVMODEW, *LPDEVMODEW;
+
+typedef struct tagMONITORINFO {
+    DWORD cbSize;
+    RECT rcMonitor;
+    RECT rcWork;
+    DWORD dwFlags;
+} MONITORINFO, *LPMONITORINFO;
+
+typedef struct tagMONITORINFOEXW : tagMONITORINFO {
+    WCHAR szDevice[CCHDEVICENAME];
+} MONITORINFOEXW, *LPMONITORINFOEXW;
+
+#define CALLBACK __stdcall
+#define WINAPI __stdcall
+#define IMAGEAPI __stdcall
+#define NTAPI __stdcall
+
+typedef BOOL(CALLBACK *MONITORENUMPROC)(HMONITOR, HDC, LPRECT, LPARAM);
+
+#define DM_BITSPERPEL 0x40000
+#define DM_PELSWIDTH 0x80000
+#define DM_PELSHEIGHT 0x100000
+#define DM_DISPLAYFREQUENCY 0x400000
+
+#define CDS_TEST 2
+#define CDS_FULLSCREEN 4
+
+#define DISP_CHANGE_SUCCESSFUL 0
+#define DISP_CHANGE_RESTART 1
+#define DISP_CHANGE_BADFLAGS (-4)
+#define DISP_CHANGE_BADPARAM (-5)
+#define DISP_CHANGE_BADDUALVIEW (-6)
+#define DISP_CHANGE_FAILED (-1)
+#define DISP_CHANGE_BADMODE (-2)
+#define DISP_CHANGE_NOTUPDATED (-3)
+
+#define DISPLAY_DEVICE_ACTIVE 0x00000001
+#define DISPLAY_DEVICE_ATTACHED_TO_DESKTOP 0x00000001
+#define DISPLAY_DEVICE_MULTI_DRIVER 0x00000002
+#define DISPLAY_DEVICE_PRIMARY_DEVICE 0x00000004
+#define DISPLAY_DEVICE_MIRRORING_DRIVER 0x00000008
+#define DISPLAY_DEVICE_VGA_COMPATIBLE 0x00000010
+#define DISPLAY_DEVICE_MODESPRUNED 0x8000000
+
+#define MONITOR_DEFAULTTONULL 0x00000000
+#define MONITOR_DEFAULTTOPRIMARY 0x00000001
+#define MONITOR_DEFAULTTONEAREST 0x00000002
+#define MONITORINFOF_PRIMARY 0x00000001
+
+#define EDS_ROTATEDMODE 0x00000004
+
+typedef struct _DISPLAY_DEVICEW {
+    DWORD cb;
+    WCHAR DeviceName[32];
+    WCHAR DeviceString[128];
+    DWORD StateFlags;
+    WCHAR DeviceID[128];
+    WCHAR DeviceKey[128];
+} DISPLAY_DEVICEW, *PDISPLAY_DEVICEW, *LPDISPLAY_DEVICEW;
+
+#define USER_DEFAULT_SCREEN_DPI 96
+
+extern "C" {
+HDC GetDC(
+    HWND hWnd);
+
+int ReleaseDC(
+    HWND hWnd,
+    HDC hDC);
+
+BOOL InvalidateRect(
+    HWND hWnd,
+    const RECT *lpRect,
+    BOOL bErase);
+
+HMONITOR MonitorFromWindow(
+    HWND hwnd,
+    DWORD dwFlags);
+
+BOOL EnumDisplayDevicesW(
+    LPCWSTR lpDevice,
+    DWORD iDevNum,
+    PDISPLAY_DEVICEW lpDisplayDevice,
+    DWORD dwFlags);
+
+LONG ChangeDisplaySettingsExW(
+    LPCWSTR lpszDeviceName,
+    DEVMODEW *lpDevMode,
+    HWND hwnd,
+    DWORD dwflags,
+    LPVOID lParam);
+
+BOOL GetMonitorInfoW(
+    HMONITOR hMonitor,
+    LPMONITORINFO lpmi);
+
+BOOL EnumDisplayMonitors(
+    HDC hdc,
+    LPCRECT lprcClip,
+    MONITORENUMPROC lpfnEnum,
+    LPARAM dwData);
+
+BOOL EnumDisplaySettingsW(
+    LPCWSTR lpszDeviceName,
+    DWORD iModeNum,
+    DEVMODEW *lpDevMode);
+
+BOOL EnumDisplaySettingsExW(
+    LPCWSTR lpszDeviceName,
+    DWORD iModeNum,
+    DEVMODEW *lpDevMode,
+    DWORD dwFlags);
+
+int GetDeviceCaps(
+    HDC hdc,
+    int index);
+
+BOOL DeleteDC(
+    HDC hdc);
+
+HDC CreateDCW(
+    LPCWSTR pwszDriver,
+    LPCWSTR pwszDevice,
+    LPCWSTR pszPort,
+    const DEVMODEW *pdm);
+
+NTSYSAPI ULONGLONG VerSetConditionMask(
+    ULONGLONG ConditionMask,
+    DWORD TypeMask,
+    BYTE Condition);
+
+BOOL SetProcessDpiAwarenessContext(
+    DPI_AWARENESS_CONTEXT value);
+
+BOOL SetProcessDPIAware();
+
+BOOL SystemParametersInfoW(
+    UINT uiAction,
+    UINT uiParam,
+    PVOID pvParam,
+    UINT fWinIni);
+}
+
+#define ENUM_CURRENT_SETTINGS 0xFFFFFFFF
 
 typedef struct _FILETIME {
     DWORD dwLowDateTime;
@@ -202,11 +513,6 @@ typedef struct _GUID {
     unsigned short Data3;
     unsigned char Data4[8];
 } GUID;
-
-#define CALLBACK __stdcall
-#define WINAPI __stdcall
-#define IMAGEAPI __stdcall
-#define NTAPI __stdcall
 
 typedef LRESULT(CALLBACK *WNDPROC)(HWND, UINT, WPARAM, LPARAM);
 
@@ -468,7 +774,6 @@ LONG WINAPI DispatchMessageW(CONST MSG *lpMsg);
 
 LRESULT WINAPI CallWindowProc(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg,
                               WPARAM wParam, LPARAM lParam);
-LRESULT WINAPI SendMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 BOOL WINAPI PostMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 BOOL WINAPI PostThreadMessage(DWORD dwThreadId, UINT Msg, WPARAM wParam,
                               LPARAM lParam);
@@ -573,6 +878,12 @@ typedef struct _DEV_BROADCAST_HDR {
 #define HTCLOSE 20
 #define HTHELP 21
 
+#define LOWORD(l) ((WORD)(((DWORD_PTR)(l)) & 0xffff))
+#define HIWORD(l) ((WORD)((((DWORD_PTR)(l)) >> 16) & 0xffff))
+
+#define HIDWORD(dw, hw) LOWORD(dw) | (hw << 16)
+#define LODWORD(dw, lw) (HIWORD(dw) << 16) | lw
+
 #define POINTSTOPOINT(pt, pts)                         \
     {                                                  \
         (pt).x = (LONG)(SHORT) LOWORD(*(LONG *) &pts); \
@@ -585,6 +896,8 @@ typedef struct _DEV_BROADCAST_HDR {
 #define MAKELRESULT(l, h) (LRESULT) MAKELONG(l, h)
 
 /* window messages*/
+#define SC_MONITORPOWER 0xF170
+
 #define WM_NULL 0x0000
 #define WM_CREATE 0x0001
 #define WM_DESTROY 0x0002
@@ -1642,6 +1955,22 @@ typedef struct _BY_HANDLE_FILE_INFORMATION {
 #define TRUNCATE_EXISTING 5
 #define FILE_FLAG_FIRST_PIPE_INSTANCE 0x00080000
 
+#ifndef _VA_LIST_DEFINED
+#define _VA_LIST_DEFINED
+typedef char *va_list;
+#endif
+
+#ifndef va_start
+#if COMPILER == MSVC
+#define va_start __crt_va_start
+#define va_arg __crt_va_arg
+#define va_end __crt_va_end
+#define va_copy(destination, source) ((destination) = (source))
+#else
+#error Define for other compilers
+#endif
+#endif
+
 extern "C" {
 BOOL GetFileSizeEx(
     HANDLE hFile,
@@ -1713,6 +2042,16 @@ BOOL MoveFileExW(
 
 BOOL FindClose(
     HANDLE hFindFile);
+
+int WideCharToMultiByte(
+    UINT CodePage,
+    DWORD dwFlags,
+    LPCWCH lpWideCharStr,
+    int cchWideChar,
+    LPSTR lpMultiByteStr,
+    int cbMultiByte,
+    LPCCH lpDefaultChar,
+    LPBOOL lpUsedDefaultChar);
 
 int MultiByteToWideChar(
     UINT CodePage,
@@ -1864,9 +2203,7 @@ typedef struct _IMAGE_SECTION_HEADER {
     DWORD Characteristics;
 } IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
 
-#define FIELD_OFFSET(s, field) ((u64) & ((s *) (0))->field)
-
-#define IMAGE_FIRST_SECTION(ntheader) ((PIMAGE_SECTION_HEADER)((ULONG_PTR) ntheader + FIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader) + ((PIMAGE_NT_HEADERS64)(ntheader))->FileHeader.SizeOfOptionalHeader))
+#define IMAGE_FIRST_SECTION(ntheader) ((PIMAGE_SECTION_HEADER)((ULONG_PTR) ntheader + offset_of(IMAGE_NT_HEADERS64, OptionalHeader) + ((PIMAGE_NT_HEADERS64)(ntheader))->FileHeader.SizeOfOptionalHeader))
 #define IMAGE_SCN_MEM_WRITE 0x80000000
 
 struct _RTL_CRITICAL_SECTION;
@@ -2046,3 +2383,763 @@ DWORD WaitForSingleObjectEx(
     DWORD dwMilliseconds,
     BOOL bAlertable);
 }
+
+#define SPI_GETFOREGROUNDLOCKTIMEOUT 0x2000
+#define SPI_SETFOREGROUNDLOCKTIMEOUT 0x2001
+#define UIntToPtr(ui) ((VOID *) (UINT_PTR)((unsigned int) ui))
+
+#define SPIF_SENDCHANGE 2
+
+#define WM_COPYGLOBALDATA 0x0049
+#define WM_UNICHAR 0x0109
+#define UNICODE_NOCHAR 0xFFFF
+#define WM_DPICHANGED 0x02E0
+#define GET_XBUTTON_WPARAM(w) (HIWORD(w))
+#define EDS_ROTATEDMODE 0x00000004
+#define DISPLAY_DEVICE_ACTIVE 0x00000001
+#define WM_GETDPISCALEDSIZE 0x02e4
+#define USER_DEFAULT_SCREEN_DPI 96
+
+#ifndef DWMAPI
+#define DWMAPI extern "C" __declspec(dllimport) HRESULT WINAPI
+#define DWMAPI_(type) extern "C" __declspec(dllimport) type WINAPI
+#endif
+
+#ifndef SUCCEEDED
+#define SUCCEEDED(hr) ((HRESULT)(hr) >= 0)
+#endif
+
+#ifndef FAILED
+#define FAILED(hr) ((HRESULT)(hr) < 0)
+#endif
+
+typedef struct _DWM_BLURBEHIND {
+    DWORD dwFlags;
+    BOOL fEnable;
+    HRGN hRgnBlur;
+    BOOL fTransitionOnMaximized;
+} DWM_BLURBEHIND, *PDWM_BLURBEHIND;
+
+DWMAPI DwmEnableBlurBehindWindow(
+    HWND hWnd,
+    const DWM_BLURBEHIND *pBlurBehind);
+
+DWMAPI DwmIsCompositionEnabled(
+    BOOL *pfEnabled);
+
+typedef struct tagCHANGEFILTERSTRUCT {
+    DWORD cbSize;
+    DWORD ExtStatus;
+} CHANGEFILTERSTRUCT, *PCHANGEFILTERSTRUCT;
+
+extern "C" {
+HRGN CreateRectRgn(
+    int x1,
+    int y1,
+    int x2,
+    int y2);
+
+LONG GetWindowLongW(
+    HWND hWnd,
+    int nIndex);
+
+LONG SetWindowLongW(
+    HWND hWnd,
+    int nIndex,
+    LONG dwNewLong);
+
+BOOL SetLayeredWindowAttributes(
+    HWND hwnd,
+    COLORREF crKey,
+    BYTE bAlpha,
+    DWORD dwFlags);
+
+BOOL DeleteObject(
+    HGDIOBJ ho);
+
+BOOL RedrawWindow(
+    HWND hWnd,
+    const RECT *lprcUpdate,
+    HRGN hrgnUpdate,
+    UINT flags);
+
+BOOL SetPropW(
+    HWND hWnd,
+    LPCWSTR lpString,
+    HANDLE hData);
+
+BOOL AdjustWindowRectEx(
+    LPRECT lpRect,
+    DWORD dwStyle,
+    BOOL bMenu,
+    DWORD dwExStyle);
+
+BOOL AdjustWindowRectExForDpi(
+    LPRECT lpRect,
+    DWORD dwStyle,
+    BOOL bMenu,
+    DWORD dwExStyle,
+    UINT dpi);
+
+BOOL ChangeWindowMessageFilterEx(
+    HWND hwnd,
+    UINT message,
+    DWORD action,
+    PCHANGEFILTERSTRUCT pChangeFilterStruct);
+}
+
+#define DWM_BB_ENABLE 0x00000001
+#define DWM_BB_BLURREGION 0x00000002
+#define DWM_BB_TRANSITIONONMAXIMIZED 0x00000004
+
+#define GWL_EXSTYLE (-20)
+
+#define LWA_COLORKEY 0x00000001
+#define LWA_ALPHA 0x00000002
+
+#define RGB(r, g, b) ((COLORREF)(((BYTE)(r) | ((WORD)((BYTE)(g)) << 8)) | (((DWORD)(BYTE)(b)) << 16)))
+
+#define RDW_INVALIDATE 0x0001
+#define RDW_INTERNALPAINT 0x0002
+#define RDW_ERASE 0x0004
+
+#define RDW_VALIDATE 0x0008
+#define RDW_NOINTERNALPAINT 0x0010
+#define RDW_NOERASE 0x0020
+
+#define RDW_NOCHILDREN 0x0040
+#define RDW_ALLCHILDREN 0x0080
+
+#define RDW_UPDATENOW 0x0100
+#define RDW_ERASENOW 0x0200
+
+#define RDW_FRAME 0x0400
+#define RDW_NOFRAME 0x0800
+
+#define WM_COPYDATA 0x004A
+
+#define WM_DEVICECHANGE 0x0219
+
+#define WM_MDICREATE 0x0220
+#define WM_MDIDESTROY 0x0221
+#define WM_MDIACTIVATE 0x0222
+#define WM_MDIRESTORE 0x0223
+#define WM_MDINEXT 0x0224
+#define WM_MDIMAXIMIZE 0x0225
+#define WM_MDITILE 0x0226
+#define WM_MDICASCADE 0x0227
+#define WM_MDIICONARRANGE 0x0228
+#define WM_MDIGETACTIVE 0x0229
+
+#define WM_MDISETMENU 0x0230
+#define WM_ENTERSIZEMOVE 0x0231
+#define WM_EXITSIZEMOVE 0x0232
+#define WM_DROPFILES 0x0233
+#define WM_MDIREFRESHMENU 0x0234
+#define WM_POINTERDEVICECHANGE 0x238
+#define WM_POINTERDEVICEINRANGE 0x239
+#define WM_POINTERDEVICEOUTOFRANGE 0x23a
+#define WM_TOUCH 0x0240
+#define WM_NCPOINTERUPDATE 0x0241
+#define WM_NCPOINTERDOWN 0x0242
+#define WM_NCPOINTERUP 0x0243
+#define WM_POINTERUPDATE 0x0245
+#define WM_POINTERDOWN 0x0246
+#define WM_POINTERUP 0x0247
+#define WM_POINTERENTER 0x0249
+#define WM_POINTERLEAVE 0x024a
+#define WM_POINTERACTIVATE 0x024b
+#define WM_POINTERCAPTURECHANGED 0x024c
+#define WM_TOUCHHITTESTING 0x024d
+#define WM_POINTERWHEEL 0x024e
+#define WM_POINTERHWHEEL 0x024f
+
+#define WM_IME_SETCONTEXT 0x0281
+#define WM_IME_NOTIFY 0x0282
+#define WM_IME_CONTROL 0x0283
+#define WM_IME_COMPOSITIONFULL 0x0284
+#define WM_IME_SELECT 0x0285
+#define WM_IME_CHAR 0x0286
+#define WM_IME_REQUEST 0x0288
+#define WM_IME_KEYDOWN 0x0290
+#define WM_IME_KEYUP 0x0291
+
+#define WM_MOUSEHOVER 0x02A1
+#define WM_MOUSELEAVE 0x02A3
+#define WM_NCMOUSEHOVER 0x02A0
+#define WM_NCMOUSELEAVE 0x02A2
+#define WM_WTSSESSION_CHANGE 0x02B1
+#define WM_TABLET_FIRST 0x02c0
+#define WM_TABLET_LAST 0x02df
+#define WM_CUT 0x0300
+#define WM_COPY 0x0301
+#define WM_PASTE 0x0302
+#define WM_CLEAR 0x0303
+#define WM_UNDO 0x0304
+#define WM_RENDERFORMAT 0x0305
+#define WM_RENDERALLFORMATS 0x0306
+#define WM_DESTROYCLIPBOARD 0x0307
+#define WM_DRAWCLIPBOARD 0x0308
+#define WM_PAINTCLIPBOARD 0x0309
+#define WM_VSCROLLCLIPBOARD 0x030A
+#define WM_SIZECLIPBOARD 0x030B
+#define WM_ASKCBFORMATNAME 0x030C
+#define WM_CHANGECBCHAIN 0x030D
+#define WM_HSCROLLCLIPBOARD 0x030E
+#define WM_QUERYNEWPALETTE 0x030F
+#define WM_PALETTEISCHANGING 0x0310
+#define WM_PALETTECHANGED 0x0311
+#define WM_HOTKEY 0x0312
+#define WM_PRINT 0x0317
+#define WM_PRINTCLIENT 0x0318
+#define WM_APPCOMMAND 0x0319
+#define WM_THEMECHANGED 0x031A
+#define WM_WININICHANGE 0x001A
+#define WM_SETTINGCHANGE WM_WININICHANGE
+#define WM_CLIPBOARDUPDATE 0x031d
+#define WM_DWMCOMPOSITIONCHANGED 0x031e
+#define WM_DWMNCRENDERINGCHANGED 0x031f
+#define WM_DWMCOLORIZATIONCOLORCHANGED 0x0320
+#define WM_DWMWINDOWMAXIMIZEDCHANGE 0x0321
+#define WM_DWMSENDICONICTHUMBNAIL 0x0323
+#define WM_DWMSENDICONICLIVEPREVIEWBITMAP 0x0326
+#define WM_GETTITLEBARINFOEX 0x033f
+
+#define WM_HANDHELDFIRST 0x0358
+#define WM_HANDHELDLAST 0x035F
+#define WM_AFXFIRST 0x0360
+#define WM_AFXLAST 0x037F
+#define WM_PENWINFIRST 0x0380
+#define WM_PENWINLAST 0x038F
+#define WM_APP 0x8000
+#define WM_USER 0x0400
+
+#define MSGFLT_RESET (0)
+#define MSGFLT_ALLOW (1)
+#define MSGFLT_DISALLOW (2)
+
+typedef struct tagWINDOWPLACEMENT {
+    UINT length;
+    UINT flags;
+    UINT showCmd;
+    POINT ptMinPosition;
+    POINT ptMaxPosition;
+    RECT rcNormalPosition;
+    RECT rcDevice;
+} WINDOWPLACEMENT;
+
+extern "C" {
+void DragAcceptFiles(
+    HWND hWnd,
+    BOOL fAccept);
+
+BOOL ClientToScreen(
+    HWND hWnd,
+    LPPOINT lpPoint);
+
+UINT GetDpiForWindow(
+    HWND hwnd);
+
+BOOL SetWindowPlacement(
+    HWND hWnd,
+    const WINDOWPLACEMENT *lpwndpl);
+
+BOOL GetWindowPlacement(
+    HWND hWnd,
+    WINDOWPLACEMENT *lpwndpl);
+}
+
+#define VK_SHIFT 0x10
+#define VK_LSHIFT 0xA0
+#define VK_RSHIFT 0xA1
+#define VK_SNAPSHOT 0x2C
+
+using EXECUTION_STATE = DWORD;
+
+extern "C" {
+HWND GetActiveWindow();
+
+HANDLE GetPropW(
+    HWND hWnd,
+    LPCWSTR lpString);
+
+SHORT GetAsyncKeyState(
+    int vKey);
+
+EXECUTION_STATE SetThreadExecutionState(
+    EXECUTION_STATE esFlags);
+
+BOOL SystemParametersInfoW(
+    UINT uiAction,
+    UINT uiParam,
+    PVOID pvParam,
+    UINT fWinIni);
+
+HANDLE RemovePropW(
+    HWND hWnd,
+    LPCWSTR lpString);
+
+BOOL DestroyIcon(
+    HICON hIcon);
+
+BOOL SetWindowTextW(
+    HWND hWnd,
+    LPWSTR lpString);
+
+BOOL SetWindowPos(
+    HWND hWnd,
+    HWND hWndInsertAfter,
+    int X,
+    int Y,
+    int cx,
+    int cy,
+    UINT uFlags);
+
+int WINAPI GetWindowTextW(HWND hWnd, LPWSTR lpString, int nMaxCount);
+int WINAPI GetWindowTextLengthW(HWND hWnd);
+BOOL WINAPI GetClientRect(HWND hWnd, LPRECT lpRect);
+BOOL WINAPI GetWindowRect(HWND hWnd, LPRECT lpRect);
+BOOL WINAPI AdjustWindowRect(LPRECT lpRect, DWORD dwStyle, BOOL bMenu);
+}
+
+#define ES_SYSTEM_REQUIRED 0x00000001
+#define ES_DISPLAY_REQUIRED 0x00000002
+#define ES_USER_PRESENT 0x00000004
+#define ES_CONTINUOUS 0x80000000
+
+#define SPI_SETMOUSETRAILS 0x005D
+#define SPI_GETMOUSETRAILS 0x005E
+
+#define SWP_NOSIZE 0x0001
+#define SWP_NOMOVE 0x0002
+#define SWP_NOZORDER 0x0004
+#define SWP_NOREDRAW 0x0008
+#define SWP_NOACTIVATE 0x0010
+#define SWP_FRAMECHANGED 0x0020
+#define SWP_SHOWWINDOW 0x0040
+#define SWP_HIDEWINDOW 0x0080
+#define SWP_NOCOPYBITS 0x0100
+#define SWP_NOOWNERZORDER 0x0200
+#define SWP_NOSENDCHANGING 0x0400
+
+#define SWP_DRAWFRAME SWP_FRAMECHANGED
+#define SWP_NOREPOSITION SWP_NOOWNERZORDER
+#define SWP_DEFERERASE 0x2000
+#define SWP_ASYNCWINDOWPOS 0x4000
+
+#define HWND_TOP ((HWND) 0)
+#define HWND_BOTTOM ((HWND) 1)
+#define HWND_TOPMOST ((HWND) -1)
+#define HWND_NOTOPMOST ((HWND) -2)
+
+#define GWL_STYLE (-16)
+
+#define BI_BITFIELDS 3
+
+typedef long FXPT2DOT30;
+
+typedef struct tagCIEXYZ {
+    FXPT2DOT30 ciexyzX;
+    FXPT2DOT30 ciexyzY;
+    FXPT2DOT30 ciexyzZ;
+} CIEXYZ;
+
+typedef struct tagICEXYZTRIPLE {
+    CIEXYZ ciexyzRed;
+    CIEXYZ ciexyzGreen;
+    CIEXYZ ciexyzBlue;
+} CIEXYZTRIPLE;
+
+typedef struct {
+    DWORD bV5Size;
+    LONG bV5Width;
+    LONG bV5Height;
+    WORD bV5Planes;
+    WORD bV5BitCount;
+    DWORD bV5Compression;
+    DWORD bV5SizeImage;
+    LONG bV5XPelsPerMeter;
+    LONG bV5YPelsPerMeter;
+    DWORD bV5ClrUsed;
+    DWORD bV5ClrImportant;
+    DWORD bV5RedMask;
+    DWORD bV5GreenMask;
+    DWORD bV5BlueMask;
+    DWORD bV5AlphaMask;
+    DWORD bV5CSType;
+    CIEXYZTRIPLE bV5Endpoints;
+    DWORD bV5GammaRed;
+    DWORD bV5GammaGreen;
+    DWORD bV5GammaBlue;
+    DWORD bV5Intent;
+    DWORD bV5ProfileData;
+    DWORD bV5ProfileSize;
+    DWORD bV5Reserved;
+} BITMAPV5HEADER, *LPBITMAPV5HEADER, *PBITMAPV5HEADER;
+
+typedef struct _ICONINFO {
+    BOOL fIcon;
+    DWORD xHotspot;
+    DWORD yHotspot;
+    HBITMAP hbmMask;
+    HBITMAP hbmColor;
+} ICONINFO;
+
+typedef struct tagBITMAPINFOHEADER {
+    DWORD biSize;
+    LONG biWidth;
+    LONG biHeight;
+    WORD biPlanes;
+    WORD biBitCount;
+    DWORD biCompression;
+    DWORD biSizeImage;
+    LONG biXPelsPerMeter;
+    LONG biYPelsPerMeter;
+    DWORD biClrUsed;
+    DWORD biClrImportant;
+} BITMAPINFOHEADER, *LPBITMAPINFOHEADER, *PBITMAPINFOHEADER;
+
+typedef struct tagRGBQUAD {
+    BYTE rgbBlue;
+    BYTE rgbGreen;
+    BYTE rgbRed;
+    BYTE rgbReserved;
+} RGBQUAD;
+
+typedef struct tagBITMAPINFO {
+    BITMAPINFOHEADER bmiHeader;
+    RGBQUAD bmiColors[1];
+} BITMAPINFO, *LPBITMAPINFO, *PBITMAPINFO;
+
+using PICONINFO = ICONINFO *;
+
+extern "C" {
+HBITMAP CreateDIBSection(
+    HDC hdc,
+    const BITMAPINFO *pbmi,
+    UINT usage,
+    VOID **ppvBits,
+    HANDLE hSection,
+    DWORD offset);
+
+HICON CreateIconIndirect(
+    PICONINFO piconinfo);
+
+HBITMAP CreateBitmap(
+    int nWidth,
+    int nHeight,
+    UINT nPlanes,
+    UINT nBitCount,
+    const VOID *lpBits);
+
+int GetSystemMetrics(
+    int nIndex);
+
+ULONG_PTR GetClassLongPtrW(
+    HWND hWnd,
+    int nIndex);
+
+BOOL ClipCursor(
+    const RECT *lpRect);
+
+HCURSOR SetCursor(
+    HCURSOR hCursor);
+}
+
+#define WM_SETICON 0x0080
+
+#define DIB_RGB_COLORS 0
+
+#define SM_CXICON 11
+#define SM_CYICON 12
+
+#define SM_CXSMICON 49
+#define SM_CYSMICON 50
+
+#define GCLP_HICON (-14)
+#define GCLP_HICONSM (-34)
+
+#define ICON_SMALL 0
+#define ICON_BIG 1
+#define ICON_SMALL2 2
+
+typedef struct tagRAWINPUTDEVICE {
+    USHORT usUsagePage;
+    USHORT usUsage;
+    DWORD dwFlags;
+    HWND hwndTarget;
+} RAWINPUTDEVICE, *PRAWINPUTDEVICE, *LPRAWINPUTDEVICE;
+
+extern "C" {
+BOOL RegisterRawInputDevices(
+    const RAWINPUTDEVICE *pRawInputDevices,
+    UINT uiNumDevices,
+    UINT cbSize);
+
+BOOL GetCursorPos(
+    LPPOINT lpPoint);
+
+BOOL ScreenToClient(
+    HWND hWnd,
+    LPPOINT lpPoint);
+
+BOOL SetCursorPos(
+    int X,
+    int Y);
+
+BOOL MoveWindow(
+    HWND hWnd,
+    int X,
+    int Y,
+    int nWidth,
+    int nHeight,
+    BOOL bRepaint);
+
+BOOL SetRect(
+    LPRECT lprc,
+    int xLeft,
+    int yTop,
+    int xRight,
+    int yBottom);
+
+BOOL GetLayeredWindowAttributes(
+    HWND hwnd,
+    COLORREF *pcrKey,
+    BYTE *pbAlpha,
+    DWORD *pdwFlags);
+
+HWND WindowFromPoint(
+    POINT Point);
+
+BOOL PtInRect(
+    const RECT *lprc,
+    POINT pt);
+
+BOOL BringWindowToTop(
+    HWND hWnd);
+
+BOOL SetForegroundWindow(
+    HWND hWnd);
+
+HWND SetFocus(
+    HWND hWnd);
+
+BOOL FlashWindow(
+    HWND hWnd,
+    BOOL bInvert);
+}
+
+#define RIDEV_REMOVE 0x00000001
+#define RIDEV_EXCLUDE 0x00000010
+#define RIDEV_PAGEONLY 0x00000020
+#define RIDEV_NOLEGACY 0x00000030
+#define RIDEV_INPUTSINK 0x00000100
+#define RIDEV_CAPTUREMOUSE 0x00000200
+#define RIDEV_NOHOTKEYS 0x00000200
+#define RIDEV_APPKEYS 0x00000400
+#define RIDEV_EXINPUTSINK 0x00001000
+#define RIDEV_DEVNOTIFY 0x00002000
+
+#define WMSZ_LEFT 1
+#define WMSZ_RIGHT 2
+#define WMSZ_TOP 3
+#define WMSZ_TOPLEFT 4
+#define WMSZ_TOPRIGHT 5
+#define WMSZ_BOTTOM 6
+#define WMSZ_BOTTOMLEFT 7
+#define WMSZ_BOTTOMRIGHT 8
+
+#define WM_NCCREATE 0x0081
+#define WM_NCCALCSIZE 0x0083
+#define WM_NCHITTEST 0x0084
+#define WM_NCPAINT 0x0085
+#define WM_NCACTIVATE 0x0086
+#define WM_GETDLGCODE 0x0087
+
+#define WM_DISPLAYCHANGE 0x007E
+#define WM_MOUSEACTIVATE 0x0021
+
+#define WM_SIZING 0x0214
+#define WM_CAPTURECHANGED 0x0215
+#define WM_MOVING 0x0216
+
+#define WM_SETFOCUS 0x0007
+#define WM_KILLFOCUS 0x0008
+#define WM_ENABLE 0x000A
+
+#define WM_SETREDRAW 0x000B
+#define WM_SETTEXT 0x000C
+#define WM_GETTEXT 0x000D
+#define WM_GETTEXTLENGTH 0x000E
+#define WM_PAINT 0x000F
+#define WM_CLOSE 0x0010
+
+#define WM_XBUTTONDOWN 0x020B
+#define WM_XBUTTONUP 0x020C
+#define WM_XBUTTONDBLCLK 0x020D
+#define WM_MOUSEHWHEEL 0x020e
+
+typedef struct tagTRACKMOUSEEVENT {
+    DWORD cbSize;
+    DWORD dwFlags;
+    HWND hwndTrack;
+    DWORD dwHoverTime;
+} TRACKMOUSEEVENT, *LPTRACKMOUSEEVENT;
+
+extern "C" {
+BOOL EnableNonClientDpiScaling(
+    HWND hwnd);
+
+LRESULT SendMessageW(
+    HWND hWnd,
+    UINT Msg,
+    WPARAM wParam,
+    LPARAM lParam);
+
+HWND SetCapture(
+    HWND hWnd);
+
+BOOL ReleaseCapture();
+
+BOOL TrackMouseEvent(
+    LPTRACKMOUSEEVENT lpEventTrack);
+
+UINT GetRawInputData(
+    HRAWINPUT hRawInput,
+    UINT uiCommand,
+    LPVOID pData,
+    PUINT pcbSize,
+    UINT cbSizeHeader);
+}
+
+#define XBUTTON1 0x0001
+#define XBUTTON2 0x0002
+
+#define GET_WPARAM(wp, lp) (wp)
+#define GET_LPARAM(wp, lp) (lp)
+
+#define GET_X_LPARAM(lp) ((int) (short) LOWORD(lp))
+#define GET_Y_LPARAM(lp) ((int) (short) HIWORD(lp))
+
+#define TME_HOVER 0x00000001
+#define TME_LEAVE 0x00000002
+#define TME_NONCLIENT 0x00000010
+#define TME_QUERY 0x40000000
+#define TME_CANCEL 0x80000000
+
+#define WM_INPUT 0x00FF
+
+typedef struct tagRAWINPUTHEADER {
+    DWORD dwType;
+    DWORD dwSize;
+    HANDLE hDevice;
+    WPARAM wParam;
+} RAWINPUTHEADER, *PRAWINPUTHEADER, *LPRAWINPUTHEADER;
+
+typedef struct tagRAWKEYBOARD {
+    USHORT MakeCode;
+    USHORT Flags;
+    USHORT Reserved;
+    USHORT VKey;
+    UINT Message;
+    ULONG ExtraInformation;
+} RAWKEYBOARD, *PRAWKEYBOARD, *LPRAWKEYBOARD;
+
+typedef struct tagRAWMOUSE {
+    USHORT usFlags;
+    union {
+        ULONG ulButtons;
+        struct {
+            USHORT usButtonFlags;
+            USHORT usButtonData;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+    ULONG ulRawButtons;
+    LONG lLastX;
+    LONG lLastY;
+    ULONG ulExtraInformation;
+} RAWMOUSE, *PRAWMOUSE, *LPRAWMOUSE;
+
+typedef struct tagRAWHID {
+    DWORD dwSizeHid;
+    DWORD dwCount;
+    BYTE bRawData[1];
+} RAWHID, *PRAWHID, *LPRAWHID;
+
+typedef struct tagRAWINPUT {
+    RAWINPUTHEADER header;
+    union {
+        RAWMOUSE mouse;
+        RAWKEYBOARD keyboard;
+        RAWHID hid;
+    } data;
+} RAWINPUT, *PRAWINPUT, *LPRAWINPUT;
+
+#define WHEEL_DELTA 120
+#define GET_WHEEL_DELTA_WPARAM(wParam) ((short) HIWORD(wParam))
+
+#define RID_INPUT 0x10000003
+#define RID_HEADER 0x10000005
+
+#define MOUSE_MOVE_RELATIVE 0
+#define MOUSE_MOVE_ABSOLUTE 1
+
+#define WM_ENTERMENULOOP 0x0211
+#define WM_EXITMENULOOP 0x0212
+#define WM_NEXTMENU 0x0213
+#define WM_GETMINMAXINFO 0x0024
+
+typedef struct tagMINMAXINFO {
+    POINT ptReserved;
+    POINT ptMaxSize;
+    POINT ptMaxPosition;
+    POINT ptMinTrackSize;
+    POINT ptMaxTrackSize;
+} MINMAXINFO, *PMINMAXINFO, *LPMINMAXINFO;
+
+typedef struct tagSIZE {
+    LONG cx;
+    LONG cy;
+} SIZE, *PSIZE, *LPSIZE;
+
+#define WM_SETCURSOR 0x0020
+
+typedef struct tagCOMPOSITIONFORM {
+    DWORD dwStyle;
+    POINT ptCurrentPos;
+    RECT rcArea;
+} COMPOSITIONFORM, *PCOMPOSITIONFORM, *NPCOMPOSITIONFORM, *LPCOMPOSITIONFORM;
+
+typedef DWORD HIMC;
+typedef DWORD HIMCC;
+
+extern "C" {
+BOOL DragQueryPoint(
+    HDROP hDrop,
+    POINT *ppt);
+
+UINT DragQueryFileW(
+    HDROP hDrop,
+    UINT iFile,
+    LPWSTR lpszFile,
+    UINT cch);
+
+void DragFinish(
+    HDROP hDrop);
+
+BOOL DestroyCursor(
+    HCURSOR hCursor);
+
+HIMC ImmGetContext(
+    HWND Arg1);
+
+BOOL ImmSetCompositionWindow(
+    HIMC,
+    LPCOMPOSITIONFORM lpCompForm);
+
+BOOL ImmReleaseContext(
+    HWND,
+    HIMC);
+}
+
+#define CFS_FORCE_POSITION 32
