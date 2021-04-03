@@ -4,7 +4,6 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// @AvoidInclude
 template <typename T>
 struct array;
 

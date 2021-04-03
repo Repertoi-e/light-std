@@ -302,7 +302,6 @@ T *append_list(array<T> &arr, const initializer_list<T> &list) { return insert_l
 
 // Be careful not to call this with _dest_ pointing to _src_!
 // Returns just _dest_.
-// @TODO: Take reference instead of pointer?
 template <typename T>
 array<T> *clone(array<T> *dest, const array<T> &src) {
     reset(*dest);

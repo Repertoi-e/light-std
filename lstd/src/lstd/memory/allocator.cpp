@@ -170,7 +170,7 @@ file_scope void verify_header_unlocked(allocation_header *header) {
     //     fill it with DEAD_LAND_FILL. The idea is to make the memory invalid so the user code (hopefully) crashes if
     //     it is still interpreted as a valid object. BUT Here we check if _header_ was freed but for some reason we are
     //     trying to verify it.
-    //   * Alignment should not be 0, should be more than POINTER_SIZE (4 or 8) and should be a power of 2.
+    //   * Alignment should not be 0, should be more than POINTER_SIZE (8 bytes) and should be a power of 2.
     //     If any of these is not true, then the header was definitely corrupted.
     //   * We store a pointer to the memory block at the end of the header, any valid header will have this pointer point after itself.
     //     Otherwise the header was definitely corrupted.
@@ -185,9 +185,9 @@ file_scope void verify_header_unlocked(allocation_header *header) {
         assert(false && "Trying to access freed memory!");
     }
 
-    assert(header->Alignment && "Alignment is zero. Definitely corrupted.");
-    assert(header->Alignment >= POINTER_SIZE && "Alignment smaller than pointer size. Definitely corrupted.");
-    assert(is_pow_of_2(header->Alignment) && "Alignment not a power of 2. Definitely corrupted.");
+    assert(header->Alignment && "Stored alignment is zero. Definitely corrupted.");
+    assert(header->Alignment >= POINTER_SIZE && "Stored alignment smaller than pointer size (8 bytes). Definitely corrupted.");
+    assert(is_pow_of_2(header->Alignment) && "Stored alignment not a power of 2. Definitely corrupted.");
 
     assert(header->DEBUG_Pointer == header + 1 && "Debug pointer doesn't match. They should always match.");
 

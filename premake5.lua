@@ -23,6 +23,13 @@ function common_settings()
     -- that are normally defined in the STL and on which certain C++ features rely on.
     -- (e.g. the compare header - required by the spaceship operator, placement new and initializer_lists)
     -- defines { "LSTD_DONT_DEFINE_STD" }
+	
+	-- Uncomment this to build the library without a namespace
+	-- defines { "LSTD_NO_NAMESPACE" }
+	
+	-- Uncomment this to use a custom namespace name for the library
+	-- defines { "LSTD_NAMESPACE=my_lstd" }
+	
     
     includedirs { "%{prj.name}/src" }
     filter "system:windows"
@@ -92,7 +99,7 @@ project "lstd"
     --
     -- (KiB and MiB are literal operators that are defined in the library, 1_KiB = 1024, 1_MiB = 1024 * 1024)
     defines { "PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB", "PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB" }
-    
+	
     common_settings()
 
 

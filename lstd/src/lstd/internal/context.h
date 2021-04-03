@@ -202,12 +202,7 @@ concept non_void = !types::is_same<T, void>;
 
 LSTD_END_NAMESPACE
 
-#if BITS == 64
-using size_t = u64;
-#else
-using size_t = u32;
-#error We don't support 32 bits, do we?
-#endif
+using size_t = u64; // We don't support 32 bits, do we?
 using align_val_t = size_t;
 
 // :AvoidSTDs:

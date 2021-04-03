@@ -21,7 +21,7 @@ export {
 
         s32 NextArgID = 0;
 
-        fmt_parse_context(const string &formatString = "") : FormatString(formatString), It(formatString) {}  
+        fmt_parse_context(const string &formatString = "") : FormatString(formatString), It(formatString) {}
 
         bool check_arg_id(u32) {
             if (NextArgID > 0) {
@@ -90,8 +90,12 @@ export {
     // Note: When parsing, if we reach the end before } we don't report an error. The caller of this should handle that.
     bool parse_fmt_specs(fmt_parse_context * p, fmt_type argType, dynamic_format_specs * specs);
 
-    // @TODO: Return text_style with the bool in a pair
-    bool parse_text_style(fmt_parse_context * p, text_style * textStyle);
+    struct parse_text_style_result {
+        bool Success;
+        text_style TextStyle;
+    };
+
+    parse_text_style_result parse_text_style(fmt_parse_context * p);
 }
 
 fmt_alignment get_alignment_from_char(utf8 ch) {
@@ -391,7 +395,9 @@ u32 parse_rgb_channel(fmt_parse_context *p, bool last) {
     return channel;
 }
 
-export bool parse_text_style(fmt_parse_context *p, text_style *textStyle) {
+export parse_text_style_result parse_text_style(fmt_parse_context *p) {
+    text_style textStyle = {};
+
     if (is_alpha(p->It[0])) {
         bool terminal = false;
         if (p->It[0] == 't') {
@@ -405,7 +411,7 @@ export bool parse_text_style(fmt_parse_context *p, text_style *textStyle) {
             ++it, --n;
         } while (n && is_identifier_start(*it));
 
-        if (!n) return true;  // The caller should check for closing }
+        if (!n) return {true, textStyle};  // The caller should check for closing }
 
         auto name = string(p->It.Data, it - p->It.Data);
 
@@ -413,7 +419,7 @@ export bool parse_text_style(fmt_parse_context *p, text_style *textStyle) {
 
         if (p->It[0] != ';' && p->It[0] != '}') {
             p->on_error("Invalid color name - it must be a valid identifier (without digits)");
-            return false;
+            return {false, {}};
         }
 
         if (terminal) {
@@ -422,42 +428,42 @@ export bool parse_text_style(fmt_parse_context *p, text_style *textStyle) {
                 // Color with that name not found, roll back and treat it as emphasis
                 p->It.Data -= name.Count, p->It.Count += name.Count;
 
-                if (!handle_emphasis(p, textStyle)) return false;
-                return true;
+                if (!handle_emphasis(p, &textStyle)) return {false, {}};
+                return {true, textStyle};
             }
-            textStyle->ColorKind = text_style::color_kind::TERMINAL;
-            textStyle->Color.Terminal = c;
+            textStyle.ColorKind = text_style::color_kind::TERMINAL;
+            textStyle.Color.Terminal = c;
         } else {
             color c = string_to_color(name);
             if (c == color::NONE) {
                 // Color with that name not found, roll back and treat it as emphasis
                 p->It.Data -= name.Count, p->It.Count += name.Count;
 
-                if (!handle_emphasis(p, textStyle)) return false;
-                return true;
+                if (!handle_emphasis(p, &textStyle)) return {false, {}};
+                return {true, textStyle};
             }
-            textStyle->ColorKind = text_style::color_kind::RGB;
-            textStyle->Color.RGB = (u32) c;
+            textStyle.ColorKind = text_style::color_kind::RGB;
+            textStyle.Color.RGB = (u32) c;
         }
     } else if (is_digit(p->It[0])) {
         // Parse an RGB true color
         u32 r = parse_rgb_channel(p, false);
-        if (r == (u32) -1) return false;
+        if (r == (u32) -1) return {false, {}};
         ++p->It.Data, --p->It.Count;  // Skip the ;
 
         u32 g = parse_rgb_channel(p, false);
-        if (g == (u32) -1) return false;
+        if (g == (u32) -1) return {false, {}};
         ++p->It.Data, --p->It.Count;  // Skip the ;
 
         u32 b = parse_rgb_channel(p, true);
-        if (b == (u32) -1) return false;
-        textStyle->ColorKind = text_style::color_kind::RGB;
-        textStyle->Color.RGB = (r << 16) | (g << 8) | b;
+        if (b == (u32) -1) return {false, {}};
+        textStyle.ColorKind = text_style::color_kind::RGB;
+        textStyle.Color.RGB = (r << 16) | (g << 8) | b;
     } else if (p->It[0] == '#') {
         assert(false && "Parse #ffffff rgb color");
     } else if (p->It[0] == '}') {
         // Empty text style ({!}) spec means "reset the formatting"
-        return true;
+        return {true, textStyle};
     }
 
     // Handle emphasis or BG, if specified
@@ -465,19 +471,19 @@ export bool parse_text_style(fmt_parse_context *p, text_style *textStyle) {
         ++p->It.Data, --p->It.Count;  // Skip the ;
         if (p->It.Count > 2) {
             if (string(p->It.Data, 2) == "BG") {
-                if (textStyle->ColorKind == text_style::color_kind::NONE) {
+                if (textStyle.ColorKind == text_style::color_kind::NONE) {
                     p->on_error("Color specified as background but there was no color parsed");
-                    return false;
+                    return {false, {}};
                 }
 
-                textStyle->Background = true;
+                textStyle.Background = true;
                 p->It.Data += 2, p->It.Count -= 2;
-                return true;
+                return {true, textStyle};
             }
         }
-        if (!handle_emphasis(p, textStyle)) return false;
+        if (!handle_emphasis(p, &textStyle)) return {false, {}};
     }
-    return true;
+    return {true, textStyle};
 }
 
 LSTD_END_NAMESPACE

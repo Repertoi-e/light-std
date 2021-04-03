@@ -1,13 +1,10 @@
+- More data structures and lock-free data structures
 
 ---------------------------------------------------------------------------------
 File mapping
 ---------------------------------------------------------------------------------
 API for watching directory changes
 ... and an asset catalog system
-
----------------------------------------------------------------------------------
-// @Bug value.Length is not enough (2 wide chars for one char)
-
 
 ---------------------------------------------------------------------------------
 Tests with parse_guid_options
@@ -31,14 +28,16 @@ String iterator doesn't work with constexpr
 Allow users to add more variables to Implicit_Context
 Won't work with headers tho
 ---------------------------------------------------------------------------------
+Implement platform specific functionality and compile on linux.
+This is probably never going to happen if I continue to work on this alone LMAO.
+---------------------------------------------------------------------------------
+
+Not even looked at yet:
 - Locale?  
 - Time?    
 - Random?
 - Regex?
----------------------------------------------------------------------------------
-Implement platform specific functionality and compile on linux.
-This is probably never going to happen if I continue to work on this alone LMAO.
----------------------------------------------------------------------------------
+
 
 LOC:            80394
 		        ----

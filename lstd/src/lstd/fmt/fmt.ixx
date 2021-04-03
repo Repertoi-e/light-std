@@ -357,8 +357,7 @@ export {
             } else if (p->It[0] == '!') {
                 ++p->It.Data, --p->It.Count;  // Skip the !
 
-                text_style style = {};
-                bool success = parse_text_style(p, &style);
+                auto [success, style] = parse_text_style(p);
                 if (!success) return;
                 if (!p->It.Count || p->It[0] != '}') {
                     f->on_error("\"}\" expected");

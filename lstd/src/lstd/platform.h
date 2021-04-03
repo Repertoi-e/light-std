@@ -69,16 +69,11 @@
 #define BITS 32
 #endif
 
-#define POINTER_SIZE (BITS / 8)
-
-// This defines the minimal alignment that the platform's malloc
-// implementation will return. This should be used when writing custom
-// allocators to ensure that the alignment matches that of malloc
-#if OS == APPLE
-#define MIN_MALLOC_ALIGNMENT 16
-#else
-#define MIN_MALLOC_ALIGNMENT (POINTER_SIZE * 2)
+#if BITS == 32
+#error We don't target 32 bit platforms.
 #endif
+
+#define POINTER_SIZE (BITS / 8)
 
 // Detect endianness
 #define LITTLE_ENDIAN 1234
@@ -147,6 +142,7 @@
 #define local_persist static
 
 #if COMPILER == MSVC
+// These macros are used to aid the compiler at certain optimizations.
 #define always_inline __forceinline
 #define never_inline __declspec(noinline)
 #define no_vtable __declspec(novtable)
