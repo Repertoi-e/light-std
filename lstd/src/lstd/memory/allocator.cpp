@@ -3,10 +3,10 @@
 #include "../internal/context.h"
 #include "../io.h"
 #include "../math.h"
-#include "../os.h"
 
 import path;
 import fmt;
+import os;
 
 #if defined BRACE_B
 #error ""
@@ -104,8 +104,6 @@ constexpr string get_short_file_name(const string &str) {
     return substring(result, findResult, result.Length);
 }
 
-extern allocator win64_get_persistent_allocator();
-
 void debug_memory::report_leaks() {
     thread::scoped_lock<thread::mutex> _(&Mutex);
 
@@ -125,8 +123,8 @@ void debug_memory::report_leaks() {
         }
     }
     
-    // @Cleanup @Platform @TODO Don't use the platform allocator. In the future we should have a seperate allocator for debug info.
-    leaks = allocate_array<allocation_header *>(leaksCount, {.Alloc = win64_get_persistent_allocator()});
+    // @Cleanup @Platform @TODO @Memory Don't use the platform allocator. In the future we should have a seperate allocator for debug info.
+    leaks = allocate_array<allocation_header *>(leaksCount, {.Alloc = internal::platform_get_persistent_allocator()});
     defer(free(leaks));
 
     leaksID = ((allocation_header *) leaks - 1)->ID;

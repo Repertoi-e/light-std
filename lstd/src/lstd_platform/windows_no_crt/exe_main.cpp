@@ -4,8 +4,9 @@
 
 #include "common.h"
 #include "lstd/internal/context.h"
-#include "lstd/os.h"
 #include "lstd/types/windows.h"  // For definitions
+
+import os;
 
 #if OS != WINDOWS
 #error LSTD_NO_CRT is Windows-only
@@ -139,23 +140,8 @@ extern "C" int main();
 extern "C" const PIMAGE_TLS_CALLBACK __dyn_tls_init_callback;
 
 LSTD_BEGIN_NAMESPACE
-extern void win64_common_init_global_state();
-extern void win64_common_init_context();
-extern void win64_crash_handler_init();
-
-extern allocator win64_get_persistent_allocator();
+void win64_crash_handler_init();
 LSTD_END_NAMESPACE
-
-// We need to reinit the context after the TLS initalizer fires and resets our state.. sigh.
-// We can't just do it once because global variables might still use the context and TLS fires a bit later.
-s32 tls_init() {
-    LSTD_NAMESPACE::win64_common_init_context();
-    return 0;
-}
-
-#pragma const_seg(".CRT$XDU")
-__declspec(allocate(".CRT$XDU")) _PIFV g_TLSInit = tls_init;
-#pragma const_seg()
 
 //
 // Entry point for executables
@@ -173,8 +159,8 @@ extern "C" void main_no_crt() {
     // We can put these in the beginning of the linker tables (CRT does this), but why bother?
     // This also needs to happen for DLLs.
     //
-    LSTD_NAMESPACE::win64_common_init_context();  // This prepares the global thread-local immutable Context variable (see "lstd/internal/context.h")
-    LSTD_NAMESPACE::win64_common_init_global_state();
+    LSTD_NAMESPACE::internal::platform_init_context();  // This prepares the global thread-local immutable Context variable (see "lstd/internal/context.h")
+    LSTD_NAMESPACE::internal::platform_init_global_state();
     LSTD_NAMESPACE::win64_crash_handler_init();
 
     // These call the tables that the linker has filled with initialization routines for global variables
@@ -206,9 +192,9 @@ extern "C" void main_no_crt() {
     // if (!__scrt_is_managed_app())
     //     exit(main_result);
 
-    // os_exit does any uninitting we need to do.
-    // os_exit also calls functions scheduled with exit_schedule.
-    LSTD_NAMESPACE::os_exit(mainResult);
+    // exit does any uninitting we need to do.
+    // exit also calls functions scheduled with exit_schedule.
+    LSTD_NAMESPACE::exit(mainResult);
 }
 
 #endif

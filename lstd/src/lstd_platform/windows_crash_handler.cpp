@@ -4,8 +4,7 @@
 #include "lstd/internal/os_function_call.h"
 #include "lstd/io.h"
 #include "lstd/memory/hash_table.h"
-#include "lstd/os.h"
-#include "lstd/types/windows.h"
+#include "lstd/types/windows.h" // Declarations of Win32 functions
 
 import fmt;
 
@@ -14,8 +13,6 @@ LSTD_BEGIN_NAMESPACE
 #define CALLSTACK_DEPTH 6
 
 file_scope DWORD MachineType;
-
-extern allocator win64_get_persistent_allocator();
 
 // @TODO: Factor the stack walking part of this function into a os_get_call_stack() which can be used anywhere in the program.
 

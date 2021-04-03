@@ -82,8 +82,6 @@ struct array : public array_view<T> {
 template <typename T, s64 N>
 stack_array<T, N>::operator array_view<T>() const { return array_view<T>((T *) Data, Count); }
 
-#define data_t array_like_data_t
-
 // Makes sure the array has reserved enough space for at least _target_ new elements.
 // Note that it may reserve way more than required.
 // Final reserve amount is equal to the next power of two bigger than (_target_ + Count), starting at 8.
@@ -146,7 +144,7 @@ constexpr bool has_space_for(const array<T> &arr, s64 n) { return (arr.Count + n
 
 // Sets the _index_'th element in the array (also calls the destructor on the old one)
 template <typename T>
-void *set(array<T> &arr, s64 index, const data_t<array<T>> &element) {
+void *set(array<T> &arr, s64 index, const array_data_t<array<T>> &element) {
     auto i = translate_index(index, arr.Count);
     arr.Data[i].~T();
     arr.Data[i] = element;
@@ -154,7 +152,7 @@ void *set(array<T> &arr, s64 index, const data_t<array<T>> &element) {
 
 // Inserts an element at a specified index and returns a pointer to it in the buffer
 template <typename T>
-T *insert(array<T> &arr, s64 index, const data_t<array<T>> &element) {
+T *insert(array<T> &arr, s64 index, const array_data_t<array<T>> &element) {
     reserve(arr, 1);
 
     s64 offset = translate_index(index, arr.Count, true);
@@ -166,8 +164,6 @@ T *insert(array<T> &arr, s64 index, const data_t<array<T>> &element) {
     ++arr.Count;
     return where;
 }
-
-#undef data_t
 
 // Inserts an empty element at a specified index and returns a pointer to it in the buffer.
 //

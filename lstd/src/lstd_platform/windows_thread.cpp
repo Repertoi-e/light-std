@@ -3,12 +3,11 @@
 #if OS == WINDOWS
 
 #include "lstd/internal/context.h"
-#include "lstd/os.h"
-#include "lstd/types/windows.h"  // For API calls and definitions
+#include "lstd/types/windows.h" // Declarations of Win32 functions
+
+import os;
 
 LSTD_BEGIN_NAMESPACE
-
-allocator win64_get_persistent_allocator();
 
 namespace thread {
 
@@ -184,7 +183,9 @@ u32 __stdcall thread::wrapper_function(void *data) {
 
 void thread::init_and_launch(const delegate<void(void *)> &function, void *userData) {
     // Passed to the thread wrapper, which will eventually free it
-    auto *ti = allocate<thread_start_info>({.Alloc = win64_get_persistent_allocator()});
+    // @TODO @Speed @Memory Fragmentation! We should have a dedicated pool allocator for thread_start_info 
+    // because threads could be created/destroyed very often.
+    auto *ti = allocate<thread_start_info>({.Alloc = internal::platform_get_persistent_allocator()});
     ti->Function = function;
     ti->UserData = userData;
     ti->ThreadPtr = this;

@@ -1,7 +1,8 @@
 #include "../internal/context.h"
-#include "../os.h"
 #include "allocator.h"
 #include "string.h"
+
+import os;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -89,8 +90,6 @@ void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMem
     return null;
 }
 
-void platform_report_warning(string, source_location loc = source_location::current());
-
 void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
     auto *data = (arena_allocator_data *) context;
 
@@ -111,7 +110,7 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
         // This is default behaviour which you can override by providing your own custom allocator extension.
         //
         // You can avoid this by freeing all periodically or by manually adding a large enough pool at the beginning of your program.
-        platform_report_warning("Not enough space in temporary allocator; adding a pool");
+        internal::platform_report_warning("Not enough space in temporary allocator; adding a pool");
 
         s64 poolSize = 8_KiB;
         if (poolSize < size) poolSize = ceil_pow_of_2(size * 2);

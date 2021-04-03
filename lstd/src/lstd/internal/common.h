@@ -631,31 +631,6 @@ always_inline constexpr void byte_swap_8(void *ptr) {
     *(u64 *) ptr = (x << 32) | (x >> 32);
 }
 
-template <typename T>
-struct delegate;
-
-// Schedule a function to run when this library uninitializes - before any global C++ destructors are called
-// and before the CRT (if we are linking against it) uninitializes.
-//
-// Runs also when calling _os_exit(exitCode)_.
-//
-// Note: We don't try to be as general as possible. _exit_schedule_ is merely a utility that might be useful
-// to ensure e.g. files are flushed or handles closed. (Don't use this for freeing memory, the OS claims it back anyway!!).
-void exit_schedule(const delegate<void()> &function);
-
-// Runs all scheduled exit functions.
-// We supply this if you are doing something very weird and want to exit without calling _os_exit_.
-// This is here if you are doing something very weird and hacky.
-void exit_call_scheduled_functions();
-
-template <typename T>
-struct array;
-
-// We return a pointer so you can modify the array.
-// Again, this is if you are doing something very very hacky.
-// .. We don't want to limit you.
-array<delegate<void()>> *exit_get_scheduled_functions();
-
 LSTD_END_NAMESPACE
 
 #if COMPILER != MSVC

@@ -1,4 +1,7 @@
-#include "lstd/os.h"
+#include "lstd/internal/namespace.h"
+#include "lstd/internal/debug_break.h"
+
+import os;
 
 // The DECLARE_ALTERNATE_NAME macro provides an architecture-neutral way
 // of specifying /alternatename comments to the linker.  It prepends the leading
@@ -20,7 +23,7 @@ DECLARE_ALTERNATE_NAME_DATA(main, main_stub)
 
 extern "C" int __cdecl _purecall() {
     debug_break();
-    LSTD_NAMESPACE::os_abort();
+    LSTD_NAMESPACE::abort();
     return 0;
 }
 

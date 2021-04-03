@@ -4,45 +4,60 @@
 #include "../types.h"
 
 //
-// :CodeReusability: This file implements find, find_not, find_any_of, find_not_any_of, has, 
-//                                        compare, compare_lexicographically and operators ==, !=, <, <=, >, >=
-// for structures that have members Data and Count and a flag IS_ARRAY_LIKE - we call these array-likes.
+// :CodeReusability: This file implements:
+//  * find, find_not, find_any_of, find_not_any_of, has, compare, compare_lexicographically and operators ==, !=, <, <=, >, >=
+// for structures that have members Data and Count - we call these array-likes.
 //
-// The flag is there to not collide with user types that can have Data and Count members but should not be considered array-like..
-// The flag is good because it is explicit!
+// You can flag your custom types with a member "static constexpr bool IS_ARRAY = false;"
 //
-// e.g. stack_array, array, delegate, guid, have these members, so != is automatically generated to all three types using the definition below.
+// e.g. stack_array, array, delegate, guid, all have the members Data and Count, so != is automatically generated to all three types using the definition below.
 // It also resolves for different types, e.g. stack_array != array, etc. for which otherwise we need a combinatorial amount of code.
-// 
-// Your flagged types will also automatically get this treatment.
+//
+// Your custom types (which aren't explicitly flagged) will also automatically get this treatment.
 //
 
 LSTD_BEGIN_NAMESPACE
 
-// True if the type has _Data_ and _Count_ members.
-// We use this for generic methods below that work on either array or stack_array or your own custom array types! We want code reusability!
 template <typename T>
-concept array_like = requires(T t) {
-    {t.IS_ARRAY_LIKE == true};
+concept array_has_flag = requires(T t) {
+    {t.IS_ARRAY};
+};
+
+template <typename T>
+concept array_flag_false = requires(T t) {
+    {t.IS_ARRAY == false};
+};
+
+template <typename T>
+concept array_has_members = requires(T t) {
     {t.Data};
     {t.Count};
 };
 
-// This returns the type of the _Data_ member of an array-like object
-template <typename ArrayT>
-using array_like_data_t = types::remove_pointer_t<decltype(ArrayT::Data)>;
+// True if the type has _Data_ and _Count_ members (and the optional explicit flag is not false).
+// We use this for generic methods below that work on either array or stack_array or your own custom array types! We want code reusability!
+template <typename T>
+concept is_array = array_has_members<T> && ((array_has_flag<T> && !array_flag_false<T>) || (!array_has_flag<T>) );
 
-// We undef this at the end of the file.. short name just for brevity
-#define data_t array_like_data_t
+// This returns the type of the _Data_ member of an array-like object
+template <is_array T>
+using array_data_t = types::remove_pointer_t<decltype(T::Data)>;
 
 //
 // Search functions for arrays:
 //
 
+//
+// @TODO @Speed Optimize these functions for scalars
+//
+
+template <typename T>
+struct delegate;
+
 // Find the first occurence of an element which matches the predicate and is after a specified index.
 // Predicate must take a single argument (the current element) and return if it matches.
-template <array_like T>
-constexpr s64 find(const T &arr, const delegate<bool(data_t<T> &)> &predicate, s64 start = 0, bool reversed = false) {
+template <is_array T>
+constexpr s64 find(const T &arr, const delegate<bool(array_data_t<T> &)> &predicate, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     start = translate_index(start, arr.Count);
     For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) if (predicate(arr.Data[it])) return it;
@@ -50,8 +65,8 @@ constexpr s64 find(const T &arr, const delegate<bool(data_t<T> &)> &predicate, s
 }
 
 // Find the first occurence of an element that is after a specified index
-template <array_like T>
-constexpr s64 find(const T &arr, const data_t<T> &element, s64 start = 0, bool reversed = false) {
+template <is_array T>
+constexpr s64 find(const T &arr, const array_data_t<T> &element, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     start = translate_index(start, arr.Count);
     For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) if (arr.Data[it] == element) return it;
@@ -59,7 +74,7 @@ constexpr s64 find(const T &arr, const data_t<T> &element, s64 start = 0, bool r
 }
 
 // Find the first occurence of a subarray that is after a specified index
-template <array_like T>
+template <is_array T>
 constexpr s64 find(const T &arr, const T &arr2, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     if (!arr2.Data || arr2.Count == 0) return -1;
@@ -76,7 +91,7 @@ constexpr s64 find(const T &arr, const T &arr2, s64 start = 0, bool reversed = f
 }
 
 // Find the first occurence of any element in the specified subarray that is after a specified index
-template <array_like T>
+template <is_array T>
 constexpr s64 find_any_of(const T &arr, const T &allowed, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     if (!allowed.Data || allowed.Count == 0) return -1;
@@ -86,8 +101,8 @@ constexpr s64 find_any_of(const T &arr, const T &allowed, s64 start = 0, bool re
 }
 
 // Find the first absence of an element that is after a specified index
-template <array_like T>
-constexpr s64 find_not(const T &arr, const data_t<T> &element, s64 start = 0, bool reversed = false) {
+template <is_array T>
+constexpr s64 find_not(const T &arr, const array_data_t<T> &element, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     start = translate_index(start, arr.Count);
     For(range(start, (reversed ? -1 : arr.Count), (reversed ? -1 : 1))) if (arr.Data[it] != element) return it;
@@ -95,7 +110,7 @@ constexpr s64 find_not(const T &arr, const data_t<T> &element, s64 start = 0, bo
 }
 
 // Find the first absence of any element in the specified subarray that is after a specified index
-template <array_like T>
+template <is_array T>
 constexpr s64 find_not_any_of(const T &arr, const T &banned, s64 start = 0, bool reversed = false) {
     if (!arr.Data || arr.Count == 0) return -1;
     if (!banned.Data || banned.Count == 0) return -1;
@@ -105,26 +120,26 @@ constexpr s64 find_not_any_of(const T &arr, const T &banned, s64 start = 0, bool
 }
 
 // Checks if _item_ is contained in the array
-template <array_like T>
-constexpr bool has(const T &arr, const data_t<T> &item) { return find(arr, item) != -1; }
+template <is_array T>
+constexpr bool has(const T &arr, const array_data_t<T> &item) { return find(arr, item) != -1; }
 
 //
 // Compare functions for arrays:
 //
 
 template <typename T, typename U>
-concept array_likes_comparable = requires(T t, U u) { t.Data[0] == u.Data[0]; };
+concept arrays_comparable = requires(T t, U u) { t.Data[0] == u.Data[0]; };
 
 template <typename T, typename U>
-concept array_likes_lexicographically_comparable = requires(T t, U u) {
+concept arrays_lexicographically_comparable = requires(T t, U u) {
     t.Data[0] == u.Data[0];
     t.Data[0] < u.Data[0];
 };
 
 // Compares this array to _arr_ and returns the index of the first element that is different.
 // If the arrays are equal, the returned value is -1.
-template <array_like T, array_like U>
-requires array_likes_comparable<T, U> constexpr s64 compare(const T &arr1, const U &arr2) {
+template <is_array T, is_array U>
+requires arrays_comparable<T, U> constexpr s64 compare(const T &arr1, const U &arr2) {
     if ((void *) arr1.Data == (void *) arr2.Data && arr1.Count == arr2.Count) return -1;
 
     if (!arr1.Count && !arr2.Count) return -1;
@@ -145,8 +160,8 @@ requires array_likes_comparable<T, U> constexpr s64 compare(const T &arr1, const
 
 // Compares this array to to _arr_ lexicographically.
 // The result is -1 if this array sorts before the other, 0 if they are equal, and +1 otherwise.
-template <array_like T, array_like U>
-requires array_likes_lexicographically_comparable<T, U> s32 compare_lexicographically(const T &arr1, const U &arr2) {
+template <is_array T, is_array U>
+requires arrays_lexicographically_comparable<T, U> s32 compare_lexicographically(const T &arr1, const U &arr2) {
     if ((void *) arr1.Data == (void *) arr2.Data && arr1.Count == arr2.Count) return 0;
 
     if (!arr1.Count && !arr2.Count) return 0;
@@ -174,36 +189,34 @@ requires array_likes_lexicographically_comparable<T, U> s32 compare_lexicographi
 // .. except that I tried it and it doesn't work for some reason?
 // For now let's implement them separately..
 
-template <array_like T, array_like U>
-requires array_likes_comparable<T, U> constexpr bool operator==(const T &arr1, const U &arr2) {
+template <is_array T, is_array U>
+requires arrays_comparable<T, U> constexpr bool operator==(const T &arr1, const U &arr2) {
     return compare(arr1, arr2) == -1;
 }
 
-template <array_like T, array_like U>
-requires array_likes_comparable<T, U> constexpr bool operator!=(const T &arr1, const U &arr2) {
+template <is_array T, is_array U>
+requires arrays_comparable<T, U> constexpr bool operator!=(const T &arr1, const U &arr2) {
     return compare(arr1, arr2) != -1;
 }
 
-template <array_like T, array_like U>
-requires array_likes_lexicographically_comparable<T, U> constexpr bool operator<(const T &arr1, const U &arr2) {
+template <is_array T, is_array U>
+requires arrays_lexicographically_comparable<T, U> constexpr bool operator<(const T &arr1, const U &arr2) {
     return compare_lexicographically(arr1, arr2) < 0;
 }
 
-template <array_like T, array_like U>
-requires array_likes_lexicographically_comparable<T, U> constexpr bool operator<=(const T &arr1, const U &arr2) {
+template <is_array T, is_array U>
+requires arrays_lexicographically_comparable<T, U> constexpr bool operator<=(const T &arr1, const U &arr2) {
     return !(compare_lexicographically(arr1, arr2) > 0);
 }
 
-template <array_like T, array_like U>
-requires array_likes_lexicographically_comparable<T, U> constexpr bool operator>(const T &arr1, const U &arr2) {
+template <is_array T, is_array U>
+requires arrays_lexicographically_comparable<T, U> constexpr bool operator>(const T &arr1, const U &arr2) {
     return compare_lexicographically(arr1, arr2) > 0;
 }
 
-template <array_like T, array_like U>
-requires array_likes_lexicographically_comparable<T, U> constexpr bool operator>=(const T &arr1, const U &arr2) {
+template <is_array T, is_array U>
+requires arrays_lexicographically_comparable<T, U> constexpr bool operator>=(const T &arr1, const U &arr2) {
     return !(compare_lexicographically(arr1, arr2) < 0);
 }
-
-#undef data_t
 
 LSTD_END_NAMESPACE

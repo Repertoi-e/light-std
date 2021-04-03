@@ -1,8 +1,5 @@
 module;
 
-#include "../internal/common.h"
-#include "../memory/string.h"
-#include "../os.h"
 #include "../parse.h"
 #include "../types/windows.h"  // Declarations of API functions
 
@@ -10,6 +7,8 @@ export module path.nt;
 
 import fmt;
 import path.general;
+
+import os.win64.memory;
 
 //
 // This module provides facilities to work with paths and files, WindowsNT/95 version.
@@ -21,13 +20,6 @@ import path.general;
 //
 
 LSTD_BEGIN_NAMESPACE
-
-extern "C" { 
-    wchar_t *utf8_to_utf16(const string &str, allocator alloc);
-}
-
-wchar_t *utf8_to_utf16_temp(const string &str) { return utf8_to_utf16(str, {}); }
-
 
 export {
     constexpr char OS_PATH_SEPARATOR = '\\';
@@ -237,13 +229,15 @@ export {
     HANDLE handleName = call;                                                                                  \
     if (handleName == INVALID_HANDLE_VALUE) {                                                                  \
         string extendedCallSite = sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
-        defer(free(extendedCallSite));                                                                         \
-        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), extendedCallSite);                    \
+        char *cStr = to_c_string(extendedCallSite);                                                            \
+        windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);                                \
+        free(extendedCallSite);                                                                                \
+        free(cStr);                                                                                            \
         return returnOnFail;                                                                                   \
     }
 
-#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                                                                                       \
-    CREATE_FILE_HANDLE_CHECKED(x, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL), fail); \
+#define GET_READONLY_EXISTING_HANDLE(x, fail)                                                                                                                                  \
+    CREATE_FILE_HANDLE_CHECKED(x, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL), fail); \
     defer(CloseHandle(x));
 
 string get_path_from_here_to(const string &here, const string &there) {
@@ -258,6 +252,8 @@ string get_path_from_here_to(const string &here, const string &there) {
         }
     }
 }
+
+utf16 *utf8_to_utf16(const string &str) { return internal::platform_utf8_to_utf16(str); }
 
 //
 // Definitions for exports begin here.
@@ -450,14 +446,14 @@ export {
 
     // == is_file() || is_directory()
     bool path_exists(const string &path) {
-        HANDLE file = CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
+        HANDLE file = CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
         if (file == INVALID_HANDLE_VALUE) return false;
         CloseHandle(file);
         return true;
     }
 
     bool path_is_file(const string &path) {
-        HANDLE file = CreateFileW(utf8_to_utf16_temp(path), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+        HANDLE file = CreateFileW(utf8_to_utf16(path), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
         if (file == INVALID_HANDLE_VALUE) return false;
         defer(CloseHandle(file));
 
@@ -467,7 +463,7 @@ export {
     }
 
     bool path_is_directory(const string &path) {
-        HANDLE file = CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
+        HANDLE file = CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
         if (file == INVALID_HANDLE_VALUE) return false;
         defer(CloseHandle(file));
 
@@ -477,7 +473,7 @@ export {
     }
 
     bool path_is_symbolic_link(const string &path) {
-        DWORD attribs = GetFileAttributesW(utf8_to_utf16_temp(path));
+        DWORD attribs = GetFileAttributesW(utf8_to_utf16(path));
         if (attribs != INVALID_FILE_ATTRIBUTES) {
             return (attribs & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
         }
@@ -487,7 +483,7 @@ export {
     s64 path_file_size(const string &path) {
         if (path_is_directory(path)) return 0;
 
-        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null), 0);
+        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null), 0);
         defer(CloseHandle(file));
 
         LARGE_INTEGER size = {0};
@@ -518,32 +514,32 @@ export {
 
     bool path_create_directory(const string &path) {
         if (path_exists(path)) return false;
-        return CreateDirectoryW(utf8_to_utf16_temp(path), null);
+        return CreateDirectoryW(utf8_to_utf16(path), null);
     }
 
     bool path_delete_file(const string &path) {
         if (!path_is_file(path)) return false;
-        return DeleteFileW(utf8_to_utf16_temp(path));
+        return DeleteFileW(utf8_to_utf16(path));
     }
 
     bool path_delete_directory(const string &path) {
         if (!path_is_directory(path)) return false;
-        return RemoveDirectoryW(utf8_to_utf16_temp(path));
+        return RemoveDirectoryW(utf8_to_utf16(path));
     }
 
     // @Robustness: Handle directories?
     bool path_copy(const string &path, const string &dest, bool overwrite) {
         if (!path_is_file(path)) return false;
 
-        auto *u16 = utf8_to_utf16_temp(path);
+        auto *u16 = utf8_to_utf16(path);
 
         if (path_is_directory(dest)) {
             auto p = path_join(dest, path_base_name(path));
             defer(free(p));
 
-            return CopyFileW(u16, utf8_to_utf16_temp(p), !overwrite);
+            return CopyFileW(u16, utf8_to_utf16(p), !overwrite);
         }
-        return CopyFileW(u16, utf8_to_utf16_temp(dest), !overwrite);
+        return CopyFileW(u16, utf8_to_utf16(dest), !overwrite);
     }
 
     // @Robustness: Handle directories?
@@ -554,9 +550,9 @@ export {
             auto p = path_join(dest, path_base_name(path));
             defer(free(p));
 
-            return MoveFileExW(utf8_to_utf16_temp(path), utf8_to_utf16_temp(p), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
+            return MoveFileExW(utf8_to_utf16(path), utf8_to_utf16(p), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
         }
-        return MoveFileExW(utf8_to_utf16_temp(path), utf8_to_utf16_temp(dest), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
+        return MoveFileExW(utf8_to_utf16(path), utf8_to_utf16(dest), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
     }
 
     bool path_rename(const string &path, const string &newName) {
@@ -565,13 +561,13 @@ export {
         auto p = path_join(path_directory(path), newName);
         defer(free(p));
 
-        return MoveFileW(utf8_to_utf16_temp(path), utf8_to_utf16_temp(p));
+        return MoveFileW(utf8_to_utf16(path), utf8_to_utf16(p));
     }
 
     bool path_create_hard_link(const string &path, const string &dest) {
         if (!path_is_directory(path)) return false;
         if (!path_is_directory(dest)) return false;
-        return CreateHardLinkW(utf8_to_utf16_temp(dest), utf8_to_utf16_temp(path), null);
+        return CreateHardLinkW(utf8_to_utf16(dest), utf8_to_utf16(path), null);
     }
 
     bool path_create_symbolic_link(const string &path, const string &dest) {
@@ -579,7 +575,7 @@ export {
         if (!path_exists(dest)) return false;
 
         u32 flag = path_is_directory(dest) ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
-        return CreateSymbolicLinkW(utf8_to_utf16_temp(dest), utf8_to_utf16_temp(path), flag);
+        return CreateSymbolicLinkW(utf8_to_utf16(dest), utf8_to_utf16(path), flag);
     }
 
     void path_read_next_entry(path_walker & walker) {
@@ -589,7 +585,7 @@ export {
                     string queryPath = path_join(walker.Path, "*");
                     defer(free(queryPath));
 
-                    walker.Path16 = utf8_to_utf16_temp(queryPath);
+                    walker.Path16 = utf8_to_utf16(queryPath);
                 }
 
                 string path = walker.Path;
@@ -604,7 +600,7 @@ export {
             windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), #call); \
         }                                                                            \
         if (walker.Handle != INVALID_HANDLE_VALUE) {                                 \
-            WIN32_CHECKBOOL(FindClose((HANDLE) walker.Handle));                      \
+            WIN_CHECKBOOL(FindClose((HANDLE) walker.Handle));                        \
         }                                                                            \
                                                                                      \
         walker.Handle = null; /* No more files.. terminate */                        \
@@ -670,7 +666,7 @@ export {
 
     [[nodiscard("Leak")]] path_read_entire_file_result path_read_entire_file(const string &path) {
         path_read_entire_file_result fail = {array<byte>{}, false};
-        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16_temp(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), fail);
+        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), fail);
         defer(CloseHandle(file));
 
         LARGE_INTEGER size = {0};
@@ -687,7 +683,7 @@ export {
     }
 
     bool path_write_to_file(const string &path, const string &contents, path_write_mode mode) {
-        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16_temp(path), GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
+        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
         defer(CloseHandle(file));
 
         LARGE_INTEGER pointer = {};

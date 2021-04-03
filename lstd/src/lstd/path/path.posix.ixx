@@ -3,7 +3,7 @@ module;
 #include "../internal/common.h"
 #include "../memory/string.h"
 
-export module path.general;
+export module path.posix;
 
 import path.general;
 

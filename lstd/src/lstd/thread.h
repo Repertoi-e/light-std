@@ -81,6 +81,9 @@ inline mutex *clone(mutex *dest, const mutex &src) {
     return null;
 }
 
+//
+// @Cleanup: We don't need this with defer.
+// 
 // Scoped lock.
 // The constructor locks the mutex, and the destructor unlocks the mutex, so
 // the mutex will automatically be unlocked when the lock guard goes out of
