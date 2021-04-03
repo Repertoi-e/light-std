@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../internal/common.h"
-#include "../types/sequence.h"
+#include "../types.h"
 #include "array_like.h"
 #include "string_utils.h"
 
@@ -48,7 +47,7 @@ constexpr void quick_sort(T *first, T *last, quick_sort_comparison_func<T> func 
 }
 
 template <typename T>
-struct array_view;
+struct array;
 
 //
 // A wrapper around T arr[..] which makes it easier to pass around and work with.
@@ -69,13 +68,13 @@ struct array_view;
 // }
 //
 // Different from array<T>, because the latter supports dynamic resizing.
-// This object contains no other member than T Data[N], _Count_ is a static member for the given type and doesn't take space.
+// This object contains no other member than T Data[N], _Count_ is a static member for the given type and doesn't take space,
+// which means that sizeof(stack_array<T, N>) == sizeof(T) * N.
+//
+// :CodeReusability: This is considered array_like (take a look at array_like.h)
 template <typename T_, s64 N>
 struct stack_array {
     using T = T_;
-
-    // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
-    static constexpr bool IS_ARRAY_LIKE = true;
 
     T Data[N ? N : 1];
     static constexpr s64 Count = N;
@@ -94,7 +93,7 @@ struct stack_array {
     //
     // Operators:
     //
-    operator array_view<T>() const;
+    operator array<T>() const;
 
     constexpr T &operator[](s64 index) { return Data[translate_index(index, Count)]; }
     constexpr const T &operator[](s64 index) const { return Data[translate_index(index, Count)]; }

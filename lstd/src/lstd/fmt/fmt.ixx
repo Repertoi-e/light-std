@@ -312,7 +312,7 @@ export {
                     return;
                 }
 
-                auto *pbracket = get_cp_at_index(searchString.Data, searchString.Length, bracket);
+                auto *pbracket = get_cp_at_index(searchString.Data, bracket);
                 if (*(pbracket + 1) != '}') {
                     f->on_error("Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", pbracket - f->Parse.FormatString.Data);
                     return;
@@ -335,7 +335,7 @@ export {
                 return;
             }
 
-            auto *pbracket = get_cp_at_index(p->It.Data, p->It.Length, bracket);
+            auto *pbracket = get_cp_at_index(p->It.Data, bracket);
             write_until(pbracket);
 
             s64 advance = pbracket + 1 - p->It.Data;

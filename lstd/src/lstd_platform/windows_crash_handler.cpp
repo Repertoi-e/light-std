@@ -4,9 +4,10 @@
 #include "lstd/internal/os_function_call.h"
 #include "lstd/io.h"
 #include "lstd/memory/hash_table.h"
-#include "lstd/types/windows.h" // Declarations of Win32 functions
+#include "lstd/types/windows.h"  // Declarations of Win32 functions
 
 import fmt;
+import os;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -52,7 +53,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
 
         DWORD64 symDisplacement = 0;
         if (SymFromAddr(hProcess, sf.AddrPC.Offset, &symDisplacement, symbol)) {
-            clone(&call.Name, string(symbol->Name));
+            call.Name = string(symbol->Name);
             if (call.Name.Length == 0) {
                 free(call.Name);
                 call.Name = "UnknownFunction";
@@ -63,7 +64,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
 
         DWORD lineDisplacement = 0;
         if (SymGetLineFromAddrW64(hProcess, sf.AddrPC.Offset, &lineDisplacement, &lineInfo)) {
-            clone(&call.File, string(lineInfo.FileName));
+            call.File = internal::platform_utf16_to_utf8(lineInfo.FileName, internal::platform_get_persistent_allocator());
             if (call.File.Length == 0) {
                 free(call.File);
                 call.File = "UnknownFile";
@@ -71,7 +72,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
             call.LineNumber = lineInfo.LineNumber;
         }
 
-        append(callStack, call);
+        array_append(callStack, call);
     }
 
 #define CODE_DESCR(code) \

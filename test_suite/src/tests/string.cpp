@@ -20,10 +20,10 @@ TEST(code_point_size) {
     assert_eq(supplementary.Length, 3);
 
     string mixed;
-    append_string(mixed, ascii);
-    append_string(mixed, cyrillic);
-    append_string(mixed, devanagari);
-    append_string(mixed, supplementary);
+    string_append(mixed, ascii);
+    string_append(mixed, cyrillic);
+    string_append(mixed, devanagari);
+    string_append(mixed, supplementary);
 
     assert_eq(mixed.Count, 12 + 9 + 6 + 3);
     assert_eq(mixed.Length, 3 + 3 + 3 + 3);
@@ -59,39 +59,39 @@ TEST(index) {
 
 TEST(insert) {
     string a = "e";
-    insert(a, 1, 'l');
-    insert(a, 0, 'H');
+    string_insert_at(a, 1, 'l');
+    string_insert_at(a, 0, 'H');
     assert_eq(a, "Hel");
 
-    insert_string(a, 3, "lo");
+    string_insert_at(a, 3, "lo");
     assert_eq(a, "Hello");
 
-    insert_string(a, 0, "Hello ");
+    string_insert_at(a, 0, "Hello ");
     assert_eq(a, "Hello Hello");
 
-    insert_string(a, 5, " world");
+    string_insert_at(a, 5, " world");
     assert_eq(a, "Hello world Hello");
     free(a);
 }
 
 TEST(remove) {
     string a = "Hello world Hello";
-    remove_range(a, -6, a.Length);
+    string_remove_range(a, -6, a.Length);
     assert_eq(a, "Hello world");
-    remove_at_index(a, 1);
+    string_remove_at(a, 1);
     assert_eq(a, "Hllo world");
-    remove_at_index(a, 1);
+    string_remove_at(a, 1);
     assert_eq(a, "Hlo world");
-    remove_at_index(a, 0);
+    string_remove_at(a, 0);
     assert_eq(a, "lo world");
-    remove_at_index(a, -1);
+    string_remove_at(a, -1);
     assert_eq(a, "lo worl");
-    remove_at_index(a, -2);
+    string_remove_at(a, -2);
     assert_eq(a, "lo wol");
     free(a);
 
     a = "Hello world";
-    remove_range(a, 0, 5);
+    string_remove_range(a, 0, 5);
     assert_eq(a, " world");
     free(a);
 }
@@ -119,11 +119,11 @@ TEST(match_end) {
 
 TEST(set) {
     string a = "aDc";
-    set(a, 1, 'b');
+    string_set(a, 1, 'b');
     assert_eq(a, "abc");
-    set(a, 1, U'Д');
+    string_set(a, 1, U'Д');
     assert_eq(a, u8"aДc");
-    set(a, 1, 'b');
+    string_set(a, 1, 'b');
     assert_eq(a, "abc");
     assert_eq(a[0], 'a');
     assert_eq(a[1], 'b');
@@ -153,7 +153,7 @@ TEST(iterator) {
 
     string result = "";
     for (auto ch : a) {
-        append_cp(result, ch);
+        string_append(result, ch);
     }
     assert_eq(result, a);
 
@@ -178,8 +178,8 @@ TEST(iterator) {
 TEST(append) {
     {
         string result = "Hello";
-        append_pointer_and_size(result, ",THIS IS GARBAGE", 1);
-        append_string(result, " world!");
+        string_append(result, ",THIS IS GARBAGE", 1);
+        string_append(result, " world!");
 
         assert_eq(result, "Hello, world!");
         free(result);
@@ -189,9 +189,9 @@ TEST(append) {
         string b = ",";
         string c = " world!";
         string result;
-        append_string(result, a);
-        append_string(result, b);
-        append_string(result, c);
+        string_append(result, a);
+        string_append(result, b);
+        string_append(result, c);
 
         assert_eq(result, "Hello, world!");
         free(result);
@@ -199,13 +199,13 @@ TEST(append) {
 
     string result;
     For(range(10)) {
-        append_cp(result , 'i');
+        string_append(result , 'i');
         assert_eq(result.Count, it + 1);
         assert_eq(result.Length, it + 1);
     }
     free(result);
     For(range(10)) {
-        append_string(result, u8"Д");
+        string_append(result, u8"Д");
         assert_eq(result.Count, 2 * (it + 1));
         assert_eq(result.Length, it + 1);
     }
@@ -221,10 +221,10 @@ TEST(count) {
 
 TEST(builder) {
     string_builder builder;
-    append_string(builder, "Hello");
-    append_pointer_and_size(builder, ",THIS IS GARBAGE", 1);
-    append_string(builder, string(" world"));
-    append_cp(builder, '!');
+    string_append(builder, "Hello");
+    string_append(builder, ",THIS IS GARBAGE", 1);
+    string_append(builder, string(" world"));
+    string_append(builder, '!');
     defer(free(builder));
 
     string result;
@@ -237,27 +237,27 @@ TEST(remove_all) {
     string a = "Hello world!";
     string b = a;
 
-    remove_all(b, 'l');
+    string_remove_all(b, 'l');
     assert_eq(b, "Heo word!");
     free(b);
 
     b = a;
-    remove_all(b, "ll");
+    string_remove_all(b, "ll");
     assert_eq(b, "Heo world!");
     free(b);
 
     b = a;
-    remove_all(a, "x");
+    string_remove_all(a, "x");
     assert_eq(b, a);
     free(b);
 
     b = "llHello world!ll";
-    remove_all(b, 'l');
+    string_remove_all(b, 'l');
     assert_eq(b, "Heo word!");
     free(b);
 
     b = "llHello world!ll";
-    remove_all(b, "ll");
+    string_remove_all(b, "ll");
     assert_eq(b, "Heo world!");
     free(b);
 }
@@ -266,41 +266,41 @@ TEST(replace_all) {
     string a = "Hello world!";
     string b = a;
 
-    replace_all(b, "l", "ll");
+    string_replace_all(b, "l", "ll");
     assert_eq(b, "Hellllo worlld!");
     free(b);
 
     b = a;
-    replace_all(b, "l", "");
+    string_replace_all(b, "l", "");
 
     string c = a;
-    remove_all(c, 'l');
+    string_remove_all(c, 'l');
     assert_eq(b, c);
     free(b);
     free(c);
 
     b = a;
-    replace_all(b, "x", "");
+    string_replace_all(b, "x", "");
     assert_eq(b, a);
     free(b);
 
     b = a;
-    replace_all(b, "Hello", "olleH");
+    string_replace_all(b, "Hello", "olleH");
     assert_eq(b, "olleH world!");
     free(b);
 
     b = a = "llHello world!ll";
-    replace_all(b, "ll", "l");
+    string_replace_all(b, "ll", "l");
     assert_eq(b, "lHelo world!l");
     free(b);
 
     b = a;
-    replace_all(b, "l", "ll");
+    string_replace_all(b, "l", "ll");
     assert_eq(b, "llllHellllo worlld!llll");
     free(b);
 
     b = a;
-    replace_all(b, "l", "K");
+    string_replace_all(b, "l", "K");
     assert_eq(b, "KKHeKKo worKd!KK");
     free(b);
 }

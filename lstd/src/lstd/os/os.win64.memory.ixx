@@ -223,7 +223,7 @@ string platform_utf16_to_utf8(const utf16 *str, allocator alloc = {}) {
     PUSH_ALLOC(alloc) {
         // String length * 4 because one unicode character might take 4 bytes in utf8.
         // This is just an approximation, not all space will be used!
-        reserve(result, c_string_length(str) * 4);
+        string_reserve(result, c_string_length(str) * 4);
     }
 
     utf16_to_utf8(str, (utf8 *) result.Data, &result.Count);
@@ -301,7 +301,7 @@ export {
     HANDLE handleName = call;                                                                                  \
     if (!handleName) {                                                                                         \
         string extendedCallSite = sprint("{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name); \
-        char *cStr = to_c_string(extendedCallSite);                                                            \
+        char *cStr = string_to_c_string(extendedCallSite);                                                     \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);                                \
         free(cStr);                                                                                            \
         free(extendedCallSite);                                                                                \

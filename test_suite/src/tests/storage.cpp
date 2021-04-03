@@ -2,7 +2,7 @@
 
 TEST(stack_array) {
     auto stackArray = to_stack_array(0, 1, 2, 3, 4);
-    array_view<s32> a = stackArray;
+    array<s32> a = stackArray;
 
     For(range(a.Count)) { assert_eq(a[it], it); }
 
@@ -25,26 +25,26 @@ TEST(array) {
     array<s64> a;
     defer(free(a));
 
-    For(range(10)) { append(a, it); }
+    For(range(10)) { array_append(a, it); }
     For(range(10)) { assert_eq(a[it], it); }
 
-    insert(a, 3, -3);
+    array_insert_at(a, 3, -3);
     assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
 
-    remove_at_index(a, 4);
+    array_remove_at(a, 4);
     assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
     s64 count = a.Count;
-    For(range(count)) { remove_at_index(a, -1); }
+    For(range(count)) { array_remove_at(a, -1); }
     assert_eq(a.Count, 0);
 
-    For(range(10)) { insert(a, 0, it); }
+    For(range(10)) { array_insert_at(a, 0, it); }
     assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 
-    remove_at_index(a, -1);
+    array_remove_at(a, -1);
     assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1));
 
-    remove_at_index(a, 0);
+    array_remove_at(a, 0);
     assert_eq(a, to_stack_array<s64>(8, 7, 6, 5, 4, 3, 2, 1));
 
     s64 f = find(a, 9);

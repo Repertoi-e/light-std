@@ -31,19 +31,19 @@ struct string_builder {
 };
 
 // Don't free the buffers, just reset cursor
-void reset(string_builder &builder);
+void string_builder_reset(string_builder &builder);
 
 // Free any memory allocated by this object and reset cursor
 void free(string_builder &builder);
 
 // Append a code point to the builder
-void append_cp(string_builder &builder, utf32 codePoint);
+void string_append(string_builder &builder, utf32 codePoint);
 
 // Append a string to the builder
-void append_string(string_builder &builder, const string &str);
+void string_append(string_builder &builder, const string &str);
 
 // Append _size_ bytes from _data_ to the builder
-void append_pointer_and_size(string_builder &builder, const utf8 *data, s64 size);
+void string_append(string_builder &builder, const utf8 *data, s64 size);
 
 string_builder::buffer *get_current_buffer(string_builder &builder);
 

@@ -131,7 +131,7 @@ export {
 
         template <typename T>
         format_struct *field(const string &name, const T &value) {
-            append(Fields, {name, fmt_make_arg<FC>(value)});
+            array_append(Fields, {name, fmt_make_arg<FC>(value)});
             return this;
         }
 
@@ -154,7 +154,7 @@ export {
 
         template <typename T>
         format_tuple *field(const T &value) {
-            append(Fields, fmt_make_arg<FC>(value));
+            array_append(Fields, fmt_make_arg<FC>(value));
             return this;
         }
 
@@ -175,19 +175,19 @@ export {
         ~format_list() { free(Fields); }
 
         template <typename T>
-        format_list *entries(const array_view<T> &values) {
-            For(values) append(Fields, fmt_make_arg<FC>(it));
+        format_list *entries(const array<T> &values) {
+            For(values) array_append(Fields, fmt_make_arg<FC>(it));
             return this;
         }
 
         template <typename T>
         format_list *entries(T *begin, T *end) {
-            return entries(array_view<T>(begin, end - begin));
+            return entries(array<T>(begin, end - begin));
         }
 
         template <typename T>
         format_list *entries(T *begin, s64 count) {
-            return entries(array_view<T>(begin, count));
+            return entries(array<T>(begin, count));
         }
 
         void finish();
@@ -423,7 +423,7 @@ void write_helper(fmt_context *f, const byte *data, s64 size) {
     if (f->Specs->Precision != -1) {
         assert(f->Specs->Precision >= 0);
         length = f->Specs->Precision;
-        size = get_cp_at_index((const utf8 *) data, length, length, true) - (const utf8 *) data;
+        size = get_cp_at_index((const utf8 *) data, length) - (const utf8 *) data;
     }
     write_padded_helper(
         f, *f->Specs, [&]() { write_no_specs(f, (const utf8 *) data, size); }, length);
@@ -672,7 +672,7 @@ void write_f64(fmt_context *f, f64 value, fmt_specs specs) {
             }
         } else if (p == end) {
             // There was no dot at all
-            append_pointer_and_size(formatBuffer, (byte *) ".0", 2);
+            string_append(formatBuffer, (byte *) ".0", 2);
         }
     }
 

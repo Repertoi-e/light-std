@@ -25,15 +25,15 @@ void reset(string_builder &builder) {
     }
 }
 
-void append_cp(string_builder &builder, utf32 cp) {
+void string_append(string_builder &builder, utf32 cp) {
     utf8 encoded[4];
     encode_cp(encoded, cp);
-    append_pointer_and_size(builder, encoded, get_size_of_cp(cp));
+    string_append(builder, encoded, get_size_of_cp(cp));
 }
 
-void append_string(string_builder &builder, const string &str) { append_pointer_and_size(builder, str.Data, str.Count); }
+void string_append(string_builder &builder, const string &str) { string_append(builder, str.Data, str.Count); }
 
-void append_pointer_and_size(string_builder &builder, const utf8 *data, s64 size) {
+void string_append(string_builder &builder, const utf8 *data, s64 size) {
     auto *currentBuffer = get_current_buffer(builder);
 
     s64 availableSpace = builder.BUFFER_SIZE - currentBuffer->Occupied;
@@ -54,7 +54,7 @@ void append_pointer_and_size(string_builder &builder, const utf8 *data, s64 size
 
         builder.IndirectionCount++;
 
-        append_pointer_and_size(builder, data + availableSpace, size - availableSpace);
+        string_append(builder, data + availableSpace, size - availableSpace);
     }
 }
 
@@ -65,10 +65,10 @@ string_builder::buffer *get_current_buffer(string_builder &builder) {
 
 string combine(const string_builder &builder) {
     string result;
-    reserve(result, (builder.IndirectionCount + 1) * builder.BUFFER_SIZE);
+    string_reserve(result, (builder.IndirectionCount + 1) * builder.BUFFER_SIZE);
     auto *b = &builder.BaseBuffer;
     while (b) {
-        append_pointer_and_size(result, b->Data, b->Occupied);
+        string_append(result, b->Data, b->Occupied);
         b = b->Next;
     }
     return result;
@@ -85,7 +85,7 @@ void traverse(const string_builder &builder, const delegate<void(const string &)
 
 string_builder *clone(string_builder *dest, const string_builder &src) {
     *dest = {};
-    auto appender = [&](const string &str) { append_string(*dest, str); };
+    auto appender = [&](const string &str) { string_append(*dest, str); };
     traverse(src, &appender);
     return dest;
 }

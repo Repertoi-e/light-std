@@ -36,13 +36,11 @@ extern "C" bool lstd_init_global_stub() { return true; }
 
 LSTD_BEGIN_NAMESPACE
 
-// We use to do this on MSVC but since then we no longer link the CRT and do all of this ourselves. (take a look at no_crt/exe_main.cpp)
-//
-// This trick makes all of the above requirements work on the MSVC compiler.
-//
+#if 0 
 // How it works is described in this awesome article:
 // https://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm#page-2
 #if COMPILER == MSVC
+
 file_scope s32 c_init() {
     internal::platform_init_context();
     internal::platform_init_global_state();
@@ -77,6 +75,7 @@ __declspec(allocate(".CRT$XPU")) cb *g_PreTermination = pre_termination;
 
 #else
 #error @TODO: See how this works on other compilers!
+#endif
 #endif
 
 guid guid_new() {

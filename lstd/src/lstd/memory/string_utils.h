@@ -1,6 +1,40 @@
 #pragma once
 
-/// Provides ascii and utf8 string utility functions
+//
+// Provides ASCII, c-style string and utf8 string utility functions:
+// * c_string_length - strlen
+// * utf8_length
+// * compare_c_string 
+// * compare_c_string_lexicographically - strcmp
+// * compare_c_string_ignore_case
+// * compare_c_string_lexicographically_ignore_case
+// 
+// Code points:
+// * to_upper
+// * to_lower
+// * is_upper
+// * is_lower
+// * get_size_of_cp
+// * encode_cp
+// * decode_cp
+// * is_valid_utf8
+//
+// These work only for ascii:
+// * is_digit
+// * is_hex_digit
+// * is_space
+// * is_blank
+// * is_alpha
+// * is_alphanumeric
+// * is_identifier_start
+// * is_print
+//
+// Conversions:
+// * utf8_to_utf16
+// * utf8_to_utf32
+// * utf16_to_utf8
+// * utf32_to_utf8
+//
 
 #include "../internal/common.h"
 
@@ -219,7 +253,8 @@ constexpr utf32 to_lower(utf32 cp) {
 constexpr bool is_upper(utf32 ch) { return ch != to_lower(ch); }
 constexpr bool is_lower(utf32 ch) { return ch != to_upper(ch); }
 
-constexpr s64 compare_c_string_ignore_case(const utf8 *one, const utf8 *other) {
+template <c_string T>
+constexpr s64 compare_c_string_ignore_case(T one, T other) {
     assert(one);
     assert(other);
 
@@ -235,55 +270,8 @@ constexpr s64 compare_c_string_ignore_case(const utf8 *one, const utf8 *other) {
     return index;
 }
 
-constexpr s64 compare_c_string_ignore_case(const utf16 *one, const utf16 *other) {
-    assert(one);
-    assert(other);
-
-    if (!*one && !*other) return -1;
-
-    s64 index = 0;
-    while (to_lower((utf32) *one) == to_lower((utf32) *other)) {
-        ++one, ++other;
-        if (!*one && !*other) return -1;
-        if (!*one || !*other) return index;
-        ++index;
-    }
-    return index;
-}
-
-constexpr s64 compare_c_string_ignore_case(const utf32 *one, const utf32 *other) {
-    assert(one);
-    assert(other);
-
-    if (!*one && !*other) return -1;
-
-    s64 index = 0;
-    while (to_lower(*one) == to_lower(*other)) {
-        ++one, ++other;
-        if (!*one && !*other) return -1;
-        if (!*one || !*other) return index;
-        ++index;
-    }
-    return index;
-}
-
-constexpr s32 compare_c_string_lexicographically_ignore_case(const utf8 *one, const utf8 *other) {
-    assert(one);
-    assert(other);
-
-    while (*one && (to_lower(*one) == to_lower(*other))) ++one, ++other;
-    return (*one > *other) - (*other > *one);
-}
-
-constexpr s32 compare_c_string_lexicographically_ignore_case(const utf16 *one, const utf16 *other) {
-    assert(one);
-    assert(other);
-
-    while (*one && (to_lower((utf32) *one) == to_lower((utf32) *other))) ++one, ++other;
-    return (*one > *other) - (*other > *one);
-}
-
-constexpr s32 compare_c_string_lexicographically_ignore_case(const utf32 *one, const utf32 *other) {
+template <c_string T>
+constexpr s32 compare_c_string_lexicographically_ignore_case(T one, T other) {
     assert(one);
     assert(other);
 
@@ -321,7 +309,7 @@ constexpr s8 get_size_of_cp(utf32 codePoint) {
     }
 }
 
-// Encodes code point at _str_, assumes there is enough space.
+// Encodes code point at _str_, assumes there is enough space. @Speed
 constexpr void encode_cp(utf8 *str, utf32 codePoint) {
     s64 size = get_size_of_cp(codePoint);
     if (size == 1) {
@@ -367,10 +355,6 @@ constexpr utf32 decode_cp(const utf8 *str) {
 }
 
 // Checks whether the encoded code point in data is valid utf8
-//
-// @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
-// @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
-// @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed @Speed
 constexpr bool is_valid_utf8(const utf8 *data) {
     u8 *p = (u8 *) data;
 
@@ -422,40 +406,13 @@ constexpr bool is_valid_utf8(const utf8 *data) {
     return true;
 }
 
-//
-//
-// @TODO: We use this for arrays too!
-// Maybe move it somewhere else?
-
-// This function translates an index that may be negative to an actual index.
-// For example 5 maps to 5
-// but -5 maps to length - 5
-// This function is used to support python-like negative indexing.
-//
-// This function checks if the index is in range.
-//
-// If _toleratePastLast_ is true, pointing to one past the end is accepted.
-constexpr always_inline s64 translate_index(s64 index, s64 length, bool toleratePastLast = false) {
-    s64 checkLength = toleratePastLast ? (length + 1) : length;
-
-    if (index < 0) {
-        s64 actual = length + index;
-        assert(actual >= 0);
-        assert(actual < checkLength);
-        return actual;
-    }
-    assert(index < checkLength);
-    return index;
-}
-
 // This returns a pointer to the code point at a specified index in an utf8 string.
-// If _toleratePastLast_ is true, pointing to one past the end is accepted.
-constexpr const utf8 *get_cp_at_index(const utf8 *str, s64 length, s64 index, bool toleratePastLast = false) {
-    For(range(translate_index(index, length, toleratePastLast))) str += get_size_of_cp(str);
+// This is unsafe, doesn't check if we go over bounds. In the general case you should 
+// call this with a result from translate_index(...), which handles out of bounds indexing.
+constexpr const utf8 *get_cp_at_index(const utf8 *str, s64 index) {
+    For(range(index)) str += get_size_of_cp(str);
     return str;
 }
-//
-//
 
 // Converts utf8 to utf16 and stores in _out_ (assumes there is enough space).
 // Also adds a null-terminator at the end.

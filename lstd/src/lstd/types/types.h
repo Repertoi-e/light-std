@@ -67,7 +67,7 @@ using initializer_list = std::initializer_list<T>;
 //
 
 template <typename F, typename... Rest>
-struct tuple : public tuple<Rest...> {
+struct tuple : tuple<Rest...> {
     F First;
 
     constexpr tuple() {}

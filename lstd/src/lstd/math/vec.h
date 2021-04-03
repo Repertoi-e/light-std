@@ -221,7 +221,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
     // Constructs the vector from an array of elements.
     // The number of elements in the array must be at least as the vector's dimension.
     template <typename U>
-    requires(types::is_convertible<U, T>) vec(const array_view<U> &data) {
+    requires(types::is_convertible<U, T>) vec(const array<U> &data) {
         assert(DIM <= data.Count);
         for (s64 i = 0; i < DIM; ++i) {
             this->Data[i] = T(data.Data[i]);
@@ -234,7 +234,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
 
     // Truncates last coordinate of homogenous vector to create non-homogeneous
     template <any_vec Vec>
-    requires(Vec::DIM == DIM + 1) explicit vec(const Vec &v) : vec(array_view<Vec::T>((typename Vec::T *) v.Data, v.DIM)) {}
+    requires(Vec::DIM == DIM + 1) explicit vec(const Vec &v) : vec(array<Vec::T>((typename Vec::T *) v.Data, v.DIM)) {}
 
     // Initializes the vector from the given elements - either just scalars or mixed with vectors and swizzles.
     //   e.g. vec3(pos.xy, 0) or just vec3(pos, 0).

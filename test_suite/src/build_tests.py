@@ -35,7 +35,7 @@ def output_test(file, test_name):
     func_name = "test_" + test_name
 
     build_test_table_contents += f"    extern void {func_name}();\n"
-    build_test_table_contents += f'    append(*g_TestTable[string("{file}")], {{"{test_name}", {func_name}}});\n'
+    build_test_table_contents += f'    array_append(*g_TestTable[string("{file}")], {{"{test_name}", {func_name}}});\n'
     
 def handle_file(path, file_name):
     global build_test_table_contents

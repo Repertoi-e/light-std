@@ -64,7 +64,7 @@ export {
     // Joins two or more paths.
     // Ignore the previous parts if a part is absolute.
     // This is the de facto way to build paths. Takes care of slashes automatically.
-    [[nodiscard("Leak")]] string path_join(const array_view<string> &paths);
+    [[nodiscard("Leak")]] string path_join(const array<string> &paths);
 
     [[nodiscard("Leak")]] string path_join(const string &one, const string &other);
 
@@ -229,7 +229,7 @@ export {
     HANDLE handleName = call;                                                                                  \
     if (handleName == INVALID_HANDLE_VALUE) {                                                                  \
         string extendedCallSite = sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
-        char *cStr = to_c_string(extendedCallSite);                                                            \
+        char *cStr = string_to_c_string(extendedCallSite);                                                     \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);                                \
         free(extendedCallSite);                                                                                \
         free(cStr);                                                                                            \
@@ -296,7 +296,7 @@ export {
         return rest && path_is_sep(rest[0]);
     }
 
-    [[nodiscard("Leak")]] string path_join(const array_view<string> &paths) {
+    [[nodiscard("Leak")]] string path_join(const array<string> &paths) {
         assert(paths.Count >= 2);
 
         auto [result_drive, result_path] = path_split_drive(paths[0]);
@@ -333,16 +333,16 @@ export {
 
             // Second path is relative to the first
             if (result && !path_is_sep(result[-1])) {
-                append_cp(result, '\\');
+                string_append(result, '\\');
             }
-            append_string(result, p_path);
+            string_append(result, p_path);
         }
 
         // Add separator between UNC and non-absolute path if needed
         if (result && !path_is_sep(result[0]) && result_drive && result_drive[-1] != ':') {
-            insert(result, 0, '\\');
+            string_insert_at(result, 0, '\\');
         } else {
-            insert_string(result, 0, result_drive);
+            string_insert_at(result, 0, result_drive);
         }
         return result;
     }
@@ -354,7 +354,7 @@ export {
 
     [[nodiscard("Leak")]] string path_normalize(const string &path) {
         string result;
-        reserve(result, path.Length);
+        string_reserve(result, path.Length);
 
         if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\")) {
             // In the case of paths with these prefixes:
@@ -367,12 +367,12 @@ export {
 
         auto [DriveOrUNC, rest] = path_split_drive(path);
         if (DriveOrUNC) {
-            append_string(result, DriveOrUNC);
+            string_append(result, DriveOrUNC);
         }
 
         // Collapse leading slashes
         if (path_is_sep(rest[0])) {
-            append_cp(result, '\\');
+            string_append(result, '\\');
             while (path_is_sep(rest[0])) advance_cp(&rest, 1);
         }
 
@@ -383,13 +383,13 @@ export {
         while (i < components.Count) {
             auto it = components[i];
             if (!it || it == ".") {
-                remove_at_index(components, i);
+                array_remove_at(components, i);
             } else if (it == "..") {
                 if (i > 0 && components[i - 1] != "..") {
-                    remove_range(components, i - 1, i + 1);
+                    array_remove_range(components, i - 1, i + 1);
                     --i;
                 } else if (i == 0 && result && path_is_sep(result[-1])) {
-                    remove_at_index(components, i);
+                    array_remove_at(components, i);
                 } else {
                     ++i;
                 }
@@ -404,11 +404,11 @@ export {
         }
 
         For(components) {
-            append_string(result, it);
-            append_cp(result, '\\');
+            string_append(result, it);
+            string_append(result, '\\');
         }
         // Remove the trailing slash we added in the final iteration of the loop
-        remove_at_index(result, -1);
+        string_remove_at(result, -1);
 
         return result;
     }
@@ -613,7 +613,7 @@ export {
             free(walker.CurrentFileName);
 
             auto *fileName = ((WIN32_FIND_DATAW *) walker.PlatformFileInfo)->cFileName;
-            reserve(walker.CurrentFileName, c_string_length(fileName) * 4);                                // @Cleanup
+            string_reserve(walker.CurrentFileName, c_string_length(fileName) * 4);                         // @Cleanup
             utf16_to_utf8(fileName, (utf8 *) walker.CurrentFileName.Data, &walker.CurrentFileName.Count);  // @Constcast
             walker.CurrentFileName.Length = utf8_length(walker.CurrentFileName.Data, walker.CurrentFileName.Count);
         } while (walker.CurrentFileName == ".." || walker.CurrentFileName == ".");
@@ -633,7 +633,7 @@ void path_walk_recursively_impl(const string &path, const string &first, array<s
         if (!walker.Handle) break;
 
         string p = path_join(get_path_from_here_to(first, path), walker.CurrentFileName);
-        append(result, p);
+        array_append(result, p);
 
         if (path_is_directory(p)) {
             path_walk_recursively_impl(p, first, result);
@@ -656,7 +656,7 @@ export {
                 if (!walker.Handle) break;
 
                 string file = path_join(path, walker.CurrentFileName);
-                append(result, file);
+                array_append(result, file);
             }
         } else {
             path_walk_recursively_impl(path, path, result);
@@ -673,7 +673,7 @@ export {
         GetFileSizeEx(file, &size);
 
         array<byte> result;
-        reserve(result, size.QuadPart);
+        array_reserve(result, size.QuadPart);
         DWORD bytesRead;
         if (!ReadFile(file, result.Data, (u32) size.QuadPart, &bytesRead, null)) return {{}, false};
         assert(size.QuadPart == bytesRead);

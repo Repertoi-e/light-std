@@ -66,7 +66,7 @@ struct asserts {
                 "                LHS : {!YELLOW}\"{}\"{!GRAY},\n"                                           \
                 "                RHS: {!YELLOW}\"{}\"{!}",                                                  \
                 get_short_file_path(__FILE__), __LINE__, u8## #x, op, u8## #y, LINE_NAME(a), LINE_NAME(b)); \
-            append(asserts::GlobalFailed, message);                                                         \
+            array_append(asserts::GlobalFailed, message);                                                   \
         }                                                                                                   \
     }
 
@@ -95,11 +95,11 @@ void build_test_table();
 //         _MACRO_CONCAT(test_, __LINE__)                                  \
 //         ##_##name() {                                                   \
 //             string shortFile = get_short_file_path(__FILE__);           \
-//             append(*g_TestTable[shortFile], {#name, &run});             \
+//             array_append(*g_TestTable[shortFile], {#name, &run});       \
 //         }                                                               \
 //         static void run();                                              \
 //     };                                                                  \
 //     static _MACRO_CONCAT(test_, __LINE__)##_##name g_TestStruct_##name; \
 //     void _MACRO_CONCAT(test_, __LINE__)##_##name::run()
-// 
+//
 // #define TEST(name) _TEST(name)

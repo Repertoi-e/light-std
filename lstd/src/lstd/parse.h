@@ -165,7 +165,7 @@ inline void advance_bytes(bytes *p, s64 count) {
 
 // Unsafe
 inline void advance_cp(string *p, s64 count) {
-    auto *t = get_cp_at_index(p->Data, p->Length, count, true);
+    auto *t = get_cp_at_index(p->Data, count);
     p->Count -= t - p->Data;
     p->Data = (utf8 *) t;
     p->Length -= count;

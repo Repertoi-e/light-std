@@ -118,20 +118,20 @@ void insert(T &buffer, s64 index, byte b, bool unsafe = false) {
 // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
 template <any_stack_dynamic_buffer T>
 void insert_array(T &buffer, s64 index, const array<byte> &arr, bool unsafe = false) {
-    insert_pointer_and_size(buffer, index, arr.Data, arr.Count, unsafe);
+    string_insert_at(buffer, index, arr.Data, arr.Count, unsafe);
 }
 
 // Insert data after a specified index
 // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
 template <any_stack_dynamic_buffer T>
 void insert_array(T &buffer, s64 index, const initializer_list<byte> &list, bool unsafe = false) {
-    insert_pointer_and_size(buffer, index, list.begin(), list.size(), unsafe);
+    string_insert_at(buffer, index, list.begin(), list.size(), unsafe);
 }
 
 // Insert a buffer of bytes at a specified index
 // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
 template <any_stack_dynamic_buffer T>
-void insert_pointer_and_size(T &buffer, s64 index, const byte *data, s64 count, bool unsafe = false) {
+void string_insert_at(T &buffer, s64 index, const byte *data, s64 count, bool unsafe = false) {
     if (!unsafe) reserve(buffer, buffer.Count + count);
 
     auto *target = buffer.Data + translate_index(index, buffer.Count, true);
@@ -155,7 +155,7 @@ void remove(T &buffer, s64 index) {
 // Remove a range of bytes.
 // [begin, end)
 template <any_stack_dynamic_buffer T>
-void remove_range(T &buffer, s64 begin, s64 end) {
+void string_remove_range(T &buffer, s64 begin, s64 end) {
     auto *targetBegin = buffer.Data + translate_index(begin, buffer.Count);
     auto *targetEnd = buffer.Data + translate_index(begin, buffer.Count, true);
 
@@ -176,22 +176,22 @@ void append(T &buffer, byte b, bool unsafe = false) { insert(buffer, buffer.Coun
 // Append _count_ bytes of string contained in _data_
 // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
 template <any_stack_dynamic_buffer T>
-void append_pointer_and_size(T &buffer, const byte *data, s64 count, bool unsafe = false) {
-    insert_pointer_and_size(buffer, buffer.Count, data, count, unsafe);
+void string_append(T &buffer, const byte *data, s64 count, bool unsafe = false) {
+    string_insert_at(buffer, buffer.Count, data, count, unsafe);
 }
 
 // Append one view to another
 // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
 template <any_stack_dynamic_buffer T>
 void append_array(T &buffer, const array<byte> &view, bool unsafe = false) {
-    append_pointer_and_size(buffer, view.Data, view.Count, unsafe);
+    string_append(buffer, view.Data, view.Count, unsafe);
 }
 
 // Append a list
 // _unsafe_ - avoid reserving (may attempt to write past buffer if there is not enough space!)
 template <any_stack_dynamic_buffer T>
 void append_list(T &buffer, const initializer_list<byte> &list, bool unsafe = false) {
-    append_pointer_and_size(buffer, list.begin(), list.size(), unsafe);
+    string_append(buffer, list.begin(), list.size(), unsafe);
 }
 
 LSTD_END_NAMESPACE

@@ -111,10 +111,10 @@ using enable_if_t = typename enable_if<B, T>::type;
 // Checks if two types are the same
 //
 template <typename T, typename U>
-struct same_helper : public false_t {};
+struct same_helper : false_t {};
 
 template <typename T>
-struct same_helper<T, T> : public true_t {};
+struct same_helper<T, T> : true_t {};
 
 template <typename T, typename U>
 concept is_same = same_helper<T, U>::value;
@@ -126,73 +126,73 @@ concept is_same_decayed = same_helper<decay_t<T>, decay_t<U>>::value;
 
 // Checks if T has const-qualification
 template <typename T>
-struct is_const_helper_1 : public false_t {};
+struct is_const_helper_1 : false_t {};
 template <typename T>
-struct is_const_helper_1<volatile T *> : public true_t {};
+struct is_const_helper_1<volatile T *> : true_t {};
 template <typename T>
-struct is_const_helper_1<const volatile T *> : public true_t {};
+struct is_const_helper_1<const volatile T *> : true_t {};
 
 template <typename T>
-struct is_const_helper_2 : public is_const_helper_1<T *> {};
+struct is_const_helper_2 : is_const_helper_1<T *> {};
 
 template <typename T>
-struct is_const_helper_2<T &> : public false_t {};  // Note here that T is const, not the reference to T. So is_const is false.
+struct is_const_helper_2<T &> : false_t {};  // Note here that T is const, not the reference to T. So is_const is false.
 
 template <typename T>
 concept is_const = is_const_helper_2<T>::value;
 
 // Checks if T has volatile-qualification
 template <typename T>
-struct is_volatile_helper_1 : public false_t {};
+struct is_volatile_helper_1 : false_t {};
 template <typename T>
-struct is_volatile_helper_1<const T *> : public true_t {};
+struct is_volatile_helper_1<const T *> : true_t {};
 template <typename T>
-struct is_volatile_helper_1<const volatile T *> : public true_t {};
+struct is_volatile_helper_1<const volatile T *> : true_t {};
 
 template <typename T>
-struct is_volatile_helper_2 : public is_volatile_helper_1<T *> {};
+struct is_volatile_helper_2 : is_volatile_helper_1<T *> {};
 template <typename T>
-struct is_volatile_helper_2<T &> : public false_t {};  // Note here that T is volatile, not the reference to T. So is_volatile is false.
+struct is_volatile_helper_2<T &> : false_t {};  // Note here that T is volatile, not the reference to T. So is_volatile is false.
 
 template <typename T>
 concept is_volatile = is_volatile_helper_2<T>::value;
 
 // Checks if T is a reference (includes reference to function types)
 template <typename T>
-struct is_reference_helper : public false_t {};
+struct is_reference_helper : false_t {};
 template <typename T>
-struct is_reference_helper<T &> : public true_t {};
+struct is_reference_helper<T &> : true_t {};
 
 template <typename T>
 concept is_reference = is_reference_helper<T>::value;
 
 // Checks if T is a r-value reference (includes reference to function types)
 template <typename T>
-struct is_rvalue_reference_helper : public false_t {};
+struct is_rvalue_reference_helper : false_t {};
 template <typename T>
-struct is_rvalue_reference_helper<T &&> : public true_t {};
+struct is_rvalue_reference_helper<T &&> : true_t {};
 
 template <typename T>
 concept is_rvalue_reference = is_rvalue_reference_helper<T>::value;
 
 // Checks if T is a function type (doesn't include member functions)
 template <typename>
-struct is_function_helper : public false_t {};
+struct is_function_helper : false_t {};
 
 template <typename R, typename... Args>
-struct is_function_helper<R(Args...)> : public true_t {};
+struct is_function_helper<R(Args...)> : true_t {};
 
 template <typename R, typename... Args>
-struct is_function_helper<R(Args..., ...)> : public true_t {};
+struct is_function_helper<R(Args..., ...)> : true_t {};
 
 template <typename T>
 concept is_function = is_function_helper<T>::value;
 
 template <typename T>
-struct is_void_helper : public false_t {};
+struct is_void_helper : false_t {};
 
 template <>
-struct is_void_helper<void> : public true_t {};
+struct is_void_helper<void> : true_t {};
 
 template <typename T>
 concept is_void = is_void_helper<remove_cv_t<T>>::value;
@@ -421,51 +421,51 @@ typename add_rvalue_reference<T>::type declval() noexcept;
 // Concept satisfied if T is one of the following types: bool, char, wchar_t, short, int, long long (and unsigned variants)
 //
 template <typename T>
-struct is_integral_helper : public false_t {};
+struct is_integral_helper : false_t {};
 
 template <>
-struct is_integral_helper<unsigned char> : public true_t {};
+struct is_integral_helper<unsigned char> : true_t {};
 template <>
-struct is_integral_helper<unsigned short> : public true_t {};
+struct is_integral_helper<unsigned short> : true_t {};
 template <>
-struct is_integral_helper<unsigned int> : public true_t {};
+struct is_integral_helper<unsigned int> : true_t {};
 template <>
-struct is_integral_helper<unsigned long> : public true_t {};
+struct is_integral_helper<unsigned long> : true_t {};
 template <>
-struct is_integral_helper<unsigned long long> : public true_t {};
+struct is_integral_helper<unsigned long long> : true_t {};
 
 template <>
-struct is_integral_helper<signed char> : public true_t {};
+struct is_integral_helper<signed char> : true_t {};
 template <>
-struct is_integral_helper<signed short> : public true_t {};
+struct is_integral_helper<signed short> : true_t {};
 template <>
-struct is_integral_helper<signed int> : public true_t {};
+struct is_integral_helper<signed int> : true_t {};
 template <>
-struct is_integral_helper<signed long> : public true_t {};
+struct is_integral_helper<signed long> : true_t {};
 template <>
-struct is_integral_helper<signed long long> : public true_t {};
+struct is_integral_helper<signed long long> : true_t {};
 
 template <>
-struct is_integral_helper<bool> : public true_t {};
+struct is_integral_helper<bool> : true_t {};
 template <>
-struct is_integral_helper<char> : public true_t {};
+struct is_integral_helper<char> : true_t {};
 template <>
-struct is_integral_helper<char8_t> : public true_t {};
+struct is_integral_helper<char8_t> : true_t {};
 template <>
-struct is_integral_helper<char16_t> : public true_t {};
+struct is_integral_helper<char16_t> : true_t {};
 template <>
-struct is_integral_helper<char32_t> : public true_t {};
+struct is_integral_helper<char32_t> : true_t {};
 
 #if defined _NATIVE_WCHAR_T_DEFINED
 template <>
-struct is_integral_helper<wchar_t> : public true_t {};
+struct is_integral_helper<wchar_t> : true_t {};
 #endif
 
 // Use this macro to declare your custom type as an integral
 #define DECLARE_INTEGRAL(T)                          \
     LSTD_BEGIN_NAMESPACE                             \
     template <>                                      \
-    struct is_integral_helper<T> : public true_t {}; \
+    struct is_integral_helper<T> : true_t {}; \
     LSTD_END_NAMESPACE
 
 template <typename T>
@@ -481,18 +481,18 @@ concept is_unsigned_integral = is_integral<T> && !is_signed_integral<T>;
 // Concept satisfied if T is float, double
 //
 template <typename T>
-struct is_floating_point_helper : public false_t {};
+struct is_floating_point_helper : false_t {};
 
 template <>
-struct is_floating_point_helper<float> : public true_t {};
+struct is_floating_point_helper<float> : true_t {};
 template <>
-struct is_floating_point_helper<double> : public true_t {};
+struct is_floating_point_helper<double> : true_t {};
 
 // Use this macro to declare your custom type as a floating point
 #define DECLARE_FLOATING_POINT(T)                          \
     LSTD_BEGIN_NAMESPACE                                   \
     template <>                                            \
-    struct is_floating_point_helper<T> : public true_t {}; \
+    struct is_floating_point_helper<T> : true_t {}; \
     LSTD_END_NAMESPACE
 
 template <typename T>
@@ -593,13 +593,13 @@ using underlying_type_t = typename underlying_type_helper<T>::type;
 
 // Rank returns the number of dimensions on af array
 template <typename T>
-struct rank_helper : public integral_constant<int, 0> {};
+struct rank_helper : integral_constant<int, 0> {};
 
 template <typename T>
-struct rank_helper<T[]> : public integral_constant<int, rank_helper<T>::value + 1> {};
+struct rank_helper<T[]> : integral_constant<int, rank_helper<T>::value + 1> {};
 
 template <typename T, int N>
-struct rank_helper<T[N]> : public integral_constant<int, rank_helper<T>::value + 1> {};
+struct rank_helper<T[N]> : integral_constant<int, rank_helper<T>::value + 1> {};
 
 template <typename T>
 constexpr int rank = rank<T>::value;
@@ -613,42 +613,42 @@ constexpr int rank = rank<T>::value;
 // For a given array type of unknown extent T[], extent<T[], 0>::value == 0.
 // For a given non-array type T and an arbitrary dimension I, extent<T, I>::value == 0.
 template <typename T, int N>
-struct extent_helper : public integral_constant<int, 0> {};
+struct extent_helper : integral_constant<int, 0> {};
 
 template <typename T, int I>
-struct extent_helper<T[I], 0> : public integral_constant<int, I> {};
+struct extent_helper<T[I], 0> : integral_constant<int, I> {};
 
 template <typename T, int N, int I>
-struct extent_helper<T[I], N> : public extent_helper<T, N - 1> {};
+struct extent_helper<T[I], N> : extent_helper<T, N - 1> {};
 
 template <typename T, int N>
-struct extent_helper<T[], N> : public extent_helper<T, N - 1> {};
+struct extent_helper<T[], N> : extent_helper<T, N - 1> {};
 
 template <typename T, int N = 0>
 constexpr int extent_v = extent_helper<T, N>::value;
 
 template <typename T>
-struct is_array_helper : public false_t {};
+struct is_array_helper : false_t {};
 
 template <typename T>
-struct is_array_helper<T[]> : public true_t {};
+struct is_array_helper<T[]> : true_t {};
 
 template <typename T, int N>
-struct is_array_helper<T[N]> : public true_t {};
+struct is_array_helper<T[N]> : true_t {};
 
 template <typename T>
 concept is_array = is_array_helper<T>::value;
 
 // Not part of the C++ Standard.
 template <typename T>
-struct is_array_of_known_bounds : public integral_constant<bool, extent_v<T> != 0> {};
+struct is_array_of_known_bounds : integral_constant<bool, extent_v<T> != 0> {};
 
 template <typename T>
 constexpr bool is_array_of_known_bounds_v = is_array_of_known_bounds<T>::value;
 
 // Not part of the C++ Standard.
 template <typename T>
-struct is_array_of_unknown_bounds : public integral_constant<bool, is_array<T> && (extent_v<T> == 0)> {};
+struct is_array_of_unknown_bounds : integral_constant<bool, is_array<T> && (extent_v<T> == 0)> {};
 
 template <typename T>
 constexpr bool is_array_of_unknown_bounds_v = is_array_of_unknown_bounds<T>::value;

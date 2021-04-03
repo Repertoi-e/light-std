@@ -264,11 +264,11 @@ void parse_arguments() {
     defer(LocalFree(argv));
 
     PUSH_ALLOC(PERSISTENT) {
-        reserve(S->Argv, argc - 1);
+        array_reserve(S->Argv, argc - 1);
     }
 
     // Loop over all arguments and add them, skip the .exe name
-    For(range(1, argc)) append(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
+    For(range(1, argc)) array_append(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
 }
 
 export namespace internal {
@@ -345,7 +345,7 @@ export {
         thread::scoped_lock _(&S->ExitScheduleMutex);
 
         PUSH_ALLOC(PERSISTENT) {
-            append(S->ExitFunctions, function);
+            array_append(S->ExitFunctions, function);
         }
     }
 

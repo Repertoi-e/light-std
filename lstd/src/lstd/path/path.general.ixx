@@ -17,7 +17,7 @@ export {
         array<string> result;
         s64 start = 0, prev = 0;
         while ((start = find_any_of(path, "/\\", start + 1)) != -1) {
-            append(result, path(prev, start));
+            array_append(result, path(prev, start));
             prev = start + 1;
         }
 
@@ -27,7 +27,7 @@ export {
         // Note that both /home/user/dir and /home/user/dir/ mean the same thing.
         // You can use other functions to check if they are really directories (querying the OS).
         if (prev < path.Length) {
-            append(result, path(prev, path.Length));
+            array_append(result, substring(path, prev, path.Length));
         }
         return result;
     }

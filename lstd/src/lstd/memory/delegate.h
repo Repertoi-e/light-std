@@ -42,7 +42,7 @@ struct delegate;
 // which means that the variable needs to outlive the delegate. 
 //
 // e.g.
-//     auto appender = [&](const string &str) { append_string(*dest, str); };
+//     auto appender = [&](const string &str) { string_append(*dest, str); };
 //     traverse(src, &appender);
 //
 // Where traverse just takes a delegate:

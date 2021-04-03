@@ -36,7 +36,7 @@ export {
     // Joins two or more paths.
     // Ignore the previous parts if a part is absolute.
     // This is the de facto way to build paths. Takes care of slashes automatically.
-    [[nodiscard("Leak")]] string path_join(const array_view<string> &paths) {
+    [[nodiscard("Leak")]] string path_join(const array<string> &paths) {
         assert(false && "Not implemented");
         return "";
     }
