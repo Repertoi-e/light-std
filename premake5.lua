@@ -8,7 +8,8 @@ function common_settings()
 
     language "C++"
 
-    -- We can't specify C++20 but at least on Windows, our generate_projects.bat replaces language standard with stdcpplatest in the .vcxproj files
+    -- We can't specify C++20 in premake (yet). 
+    -- On Windows our generate_projects.bat replaces language standard with stdcpplatest in the .vcxproj files
     cppdialect "C++17" 
 
     rtti "Off"
@@ -83,6 +84,14 @@ project "lstd"
         "%{prj.name}/src/**.def",
         "%{prj.name}/src/**.ixx"
     }
+    
+    -- These options control how much memory the platform allocators reserve upfront.
+    -- Increase this if you get platform warnings with the message "Not enough memory in the temporary/persistent allocator; expanding the pool".
+    -- Decrease this if you want to tweak the memory footprint of your application.
+    -- Note: Feel free to modify the library source code however you like. We just try to be as general as possible.
+    --
+    -- (KiB and MiB are literal operators that are defined in the library, 1_KiB = 1024, 1_MiB = 1024 * 1024)
+    defines { "PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB", "PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB" }
     
     common_settings()
 

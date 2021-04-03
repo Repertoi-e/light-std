@@ -109,10 +109,6 @@ void platform_report_error(string message, source_location loc = source_location
     print(">>> {!RED}Platform error{!} {}:{} (in function: {}): {}.\n", loc.File, loc.Line, loc.Function, message);
 }
 
-// @TODO: Make these macros so the user (programmer) can modify them easily.
-constexpr s64 TEMPORARY_STORAGE_STARTING_POOL_SIZE = 16_KiB;
-constexpr s64 PERSISTENT_STORAGE_STARTING_POOL_SIZE = 1_MiB;
-
 // Some global state about our temporary allocator.
 // We don't use the one bundled with the Context because we don't want to mess with the user's memory.
 file_scope void *TempStorageBlock;
@@ -188,8 +184,8 @@ file_scope void create_persistent_alloc_block(s64 size) {
 }
 
 file_scope void init_allocators() {
-    create_temp_storage_block(TEMPORARY_STORAGE_STARTING_POOL_SIZE);
-    create_persistent_alloc_block(PERSISTENT_STORAGE_STARTING_POOL_SIZE);
+    create_temp_storage_block(PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE);
+    create_persistent_alloc_block(PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
 }
 
 // This zeroes out the global variables (stored in State) and initializes the mutexes
