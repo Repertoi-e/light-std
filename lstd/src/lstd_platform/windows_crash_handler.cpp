@@ -6,7 +6,6 @@
 #include "lstd/memory/hash_table.h"
 #include "lstd/os.h"
 #include "lstd/types/windows.h"
-#include "lstd/types/windows_status_codes.h"
 
 import fmt;
 
@@ -121,6 +120,8 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
+
+constexpr u32 ERROR_ENVVAR_NOT_FOUND = 203;
 
 void win64_crash_handler_init() {
     const DWORD bufferSize = 65535;

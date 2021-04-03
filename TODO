@@ -53,7 +53,7 @@ LOC:            80394
 				          lines in order to get rid of every header dependency (CRT and Windows.h)
 				63004 <-- +1000 lines in windows.h (API used in lstd-graphics)
 				35362 <-- big win here!
-				
+				24642 <-- removed manual windows error code descriptions
 				
 				
 				

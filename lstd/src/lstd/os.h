@@ -155,17 +155,19 @@ u32 os_get_pid();
 // Don't free the result of this function. This library follows the convention that if the function is not marked as [[nodiscard]], the returned value should not be freed.
 bytes os_read_from_console();
 
-// Utility to report hresult errors produces by calling windows functions.
+//
+// Utilities to report hresult errors produces by calling windows functions.
 // Shouldn't be used on other platforms
+//
 #if OS == WINDOWS
 
 // Logs a formatted error message.
-void windows_report_hresult_error(long hresult, const string &call, source_location loc = source_location::current());
+void windows_report_hresult_error(u32 hresult, const string &call, source_location loc = source_location::current());
 
 // CHECKHR checks the return value of _call_ and if the returned HRESULT is less than zero, reports an error.
 #define WIN32_CHECKHR(call)                                          \
     {                                                                \
-        long result = call;                                          \
+        u32 result = call;                                           \
         if (result < 0) windows_report_hresult_error(result, #call); \
     }
 

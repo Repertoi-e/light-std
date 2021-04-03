@@ -7,7 +7,6 @@
 #include "lstd/memory/guid.h"
 #include "lstd/os.h"
 #include "lstd/types/windows.h"  // Declarations of API functions
-#include "lstd/types/windows_status_codes.h"
 
 import path;
 import fmt;
@@ -155,7 +154,7 @@ file_scope void create_temp_storage_block(s64 size) {
     allocator_add_pool(S->TempAlloc, pool, size);
 
     TempStorageBlock = pool;
-    TempStorageSize = size; 
+    TempStorageSize = size;
 }
 
 void *win64_persistent_alloc(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
@@ -381,6 +380,8 @@ file_scope void setup_console() {
     GetConsoleMode(S->CerrHandle, &dw);
     SetConsoleMode(S->CerrHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 }
+
+constexpr u32 ERROR_INSUFFICIENT_BUFFER = 122;
 
 file_scope void get_module_name() {
     // Get the module name
@@ -650,6 +651,8 @@ void os_set_working_dir(const string &dir) {
         clone(&S->WorkingDir, dir);
     }
 }
+
+constexpr u32 ERROR_ENVVAR_NOT_FOUND = 203;
 
 //
 // @TODO: Cache environment variables when running the program in order to avoid allocating.

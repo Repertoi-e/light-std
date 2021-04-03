@@ -5,7 +5,6 @@ module;
 #include "../os.h"
 #include "../parse.h"
 #include "../types/windows.h"  // Declarations of API functions
-#include "../types/windows_status_codes.h"
 
 export module path.nt;
 
@@ -597,6 +596,8 @@ export {
                 CREATE_FILE_HANDLE_CHECKED(f, FindFirstFileW(walker.Path16, (WIN32_FIND_DATAW *) walker.PlatformFileInfo), ;);
                 walker.Handle = (void *) f;
             } else {
+                u32 ERROR_NO_MORE_FILES = 18;
+
 #define CHECK_FIND_NEXT(call)                                                        \
     if (!call) {                                                                     \
         if (GetLastError() != ERROR_NO_MORE_FILES) {                                 \
