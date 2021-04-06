@@ -407,8 +407,8 @@ inline void *allocator_pool_remove_from_linked_list(allocator_pool **base, alloc
 // Forcing you to think about your allocator algorithm, as well as the pool management, instead
 // of providing a one fit all solution, results (hypothesis) in better software overall.
 //
-// C++ is a low-level language (was high-level in old days when ASM was low-level, but in the modern world we consider it low-level).
-// Usually modern high-level languages abstract much of the memory management behind walls of abstraction.
+// C++ is a low-level language (was high-level in old days when ASM was low-level, but now we consider it low-level).
+// Usually modern high-level languages put much of the memory management behind walls of abstraction.
 // Somewhere in all that progress of abstraction we began writing very very slow software (take a look at a
 // complicated modern piece of software (games are an exception, but games/engines are high quality software,
 // game programmers know all this stuff) - it's SLOW. Hardware has gotten blazingly fast, but software has deteriorated.

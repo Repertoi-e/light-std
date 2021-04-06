@@ -13,10 +13,10 @@ export module path.general;
 LSTD_BEGIN_NAMESPACE
 
 export {
-    [[nodiscard("Leak")]] array<string> path_split_into_components(const string &path, const string seps = "\\/") {
+    [[nodiscard("Leak")]] array<string> path_split_into_components(const string &path, const string &seps = "\\/") {
         array<string> result;
         s64 start = 0, prev = 0;
-        while ((start = find_any_of(path, "/\\", start + 1)) != -1) {
+        while ((start = find_any_of(path, seps, start + 1)) != -1) {
             array_append(result, path(prev, start));
             prev = start + 1;
         }
@@ -25,8 +25,9 @@ export {
         // The if is here so we don't crash with index out of bounds.
         //
         // Note that both /home/user/dir and /home/user/dir/ mean the same thing.
-        // You can use other functions to check if they are really directories (querying the OS).
+        // You can use other functions to check if the former is really a directory or a file (querying the OS).
         if (prev < path.Length) {
+            // Add the last component - from prev to path.Length
             array_append(result, substring(path, prev, path.Length));
         }
         return result;

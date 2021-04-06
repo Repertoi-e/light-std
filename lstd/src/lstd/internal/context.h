@@ -79,7 +79,6 @@ struct context {
 
     //
     // This is a pair of a function and a data pointer.
-    // Gets initialized to default (malloc) in *platform*_common.cpp
     // Change this (recommended way is to use the PUSH_ALLOC macro) in order to
     // change the allocator which a piece of code uses transparently.
     //
@@ -318,9 +317,9 @@ requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCou
 // the allocator with which it was allocated, and debugging info if DEBUG_MEMORY is defined - see comments in allocator.h).
 //              (* this overhead should become smaller, right now we haven't bothered yet! @TODO)
 //
-// There are some assumptions we make:
+// There is one big assumption we make:
 //   Your types are "trivially copyable" which means that they can be copied byte by byte to another place and still work.
-//   That means that we don't call copy/move constructors when reallocating.
+//   We don't call copy/move constructors when reallocating.
 //
 // We are following a data oriented design with this library.
 // Our array<> type also expects type to be simple data. If you need extra logic when copying memory, implement that explicitly

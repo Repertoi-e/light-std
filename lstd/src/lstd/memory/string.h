@@ -198,7 +198,7 @@ inline void string_append(string &s, const string &str) { return string_append(s
 // Replace all occurences of _oldStr_ with _newStr_
 inline void string_replace_all(string &s, const string &oldStr, const string &newStr) {
     array_replace_all(s, oldStr, newStr);
-    s.Length = utf8_length(s.Data, s.Count); // @Speed
+    s.Length = utf8_length(s.Data, s.Count);  // @Speed. @TODO Make replace/remove functions return an integer that says how much we've removed
 }
 
 // Replace all occurences of _oldCp_ with _newCp_
@@ -246,8 +246,8 @@ inline void string_replace_all(string &s, const string &oldStr, utf32 newCp) {
 // Compares two utf8 encoded strings and returns the index
 // of the code point at which they are different or _-1_ if they are the same.
 constexpr s64 compare(const string &s, const string &other) {
-    if (s.Length == 0 && other.Length == 0) return -1;
-    if (s.Length == 0 || other.Length == 0) return 0;
+    if (!s && !other) return -1;
+    if (!s || !other) return 0;
 
     auto *p1 = s.Data, *p2 = other.Data;
     auto *e1 = p1 + s.Count, *e2 = p2 + other.Count;
@@ -266,8 +266,8 @@ constexpr s64 compare(const string &s, const string &other) {
 // Compares two utf8 encoded strings while ignoring case and returns the index
 // of the code point at which they are different or _-1_ if they are the same.
 constexpr s64 compare_ignore_case(const string &s, const string &other) {
-    if (s.Length == 0 && other.Length == 0) return -1;
-    if (s.Length == 0 || other.Length == 0) return 0;
+    if (!s && !other) return -1;
+    if (!s || !other) return 0;
 
     auto *p1 = s.Data, *p2 = other.Data;
     auto *e1 = p1 + s.Count, *e2 = p2 + other.Count;
@@ -288,9 +288,9 @@ constexpr s64 compare_ignore_case(const string &s, const string &other) {
 //   0 if a == b
 //   1 if _b_ is before _a_
 constexpr s32 compare_lexicographically(const string &a, const string &b) {
-    if (a.Length == 0 && b.Length == 0) return 0;
-    if (a.Length == 0) return -1;
-    if (b.Length == 0) return 1;
+    if (!a && !b) return 0;
+    if (!a) return -1;
+    if (!b) return 1;
 
     auto *p1 = a.Data, *p2 = b.Data;
     auto *e1 = p1 + a.Count, *e2 = p2 + b.Count;
@@ -312,9 +312,9 @@ constexpr s32 compare_lexicographically(const string &a, const string &b) {
 //   0 if a == b
 //   1 if _b_ is before _a_
 constexpr s32 compare_lexicographically_ignore_case(const string &a, const string &b) {
-    if (a.Length == 0 && b.Length == 0) return 0;
-    if (a.Length == 0) return -1;
-    if (b.Length == 0) return 1;
+    if (!a && !b) return 0;
+    if (!a) return -1;
+    if (!b) return 1;
 
     auto *p1 = a.Data, *p2 = b.Data;
     auto *e1 = p1 + a.Count, *e2 = p2 + b.Count;
