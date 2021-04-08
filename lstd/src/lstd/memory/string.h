@@ -135,7 +135,12 @@ struct string : array<utf8> {
     constexpr utf32 operator[](s64 index) const { return decode_cp(get_cp_at_index(Data, translate_index(index, Length))); }
 
     // Substring operator:
-    constexpr string operator()(s64 begin, s64 end) const;
+    // constexpr string operator()(s64 begin, s64 end) const;
+
+    struct substring_indices {
+        s64 b, e;
+    };
+    constexpr string operator[](substring_indices range) const;
 };
 
 // We need to tell the is_array helper, because string is non-templated.
@@ -687,7 +692,10 @@ constexpr bool operator<=(const utf8 *one, const string &other) { return !(one >
 constexpr bool operator>=(const utf8 *one, const string &other) { return !(one < other); }
 
 // Substring operator:
-constexpr string string::operator()(s64 begin, s64 end) const { return substring(*this, begin, end); }
+// constexpr string string::operator()(s64 begin, s64 end) const { return substring(*this, begin, end); }
+
+constexpr string string::operator[](substring_indices range) const { return substring(*this, range.b, range.e); }
+
 
 // Be careful not to call this with _dest_ pointing to _src_!
 // Returns just _dest_.

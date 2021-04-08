@@ -247,7 +247,7 @@ string get_path_from_here_to(const string &here, const string &there) {
         if (here.Length == there.Length) {
             return here;
         } else {
-            string difference = substring(there, here.Length, there.Length);
+            string difference = there[{here.Length, there.Length}];
             return difference;
         }
     }
@@ -262,7 +262,7 @@ utf16 *utf8_to_utf16(const string &str) { return internal::platform_utf8_to_utf1
 export {
     constexpr path_split_drive_result path_split_drive(const string &path) {
         if (path.Length >= 2) {
-            if (path(0, 2) == "\\\\" && path[2] != '\\') {
+            if (path[{0, 2}] == "\\\\" && path[2] != '\\') {
                 // It is an UNC path
 
                 //  vvvvvvvvvvvvvvvvvvvv drive letter or UNC path
@@ -280,11 +280,11 @@ export {
                 if (index2 == -1) {
                     index2 = path.Length;
                 }
-                return {path(0, index2), path(index2, path.Length)};
+                return {path[{0, index2}], path[{index2, path.Length}]};
             }
 
             if (path[1] == ':') {
-                return {path(0, 2), path(2, path.Length)};
+                return {path[{0, 2}], path[{2, path.Length}]};
             }
         }
 
@@ -419,13 +419,13 @@ export {
         // Set i to index beyond path's last slash
         s64 i = find_reverse_any_of(rest, "/\\") + 1;
 
-        string head = rest(0, i);
-        string tail = rest(i, rest.Length);
+        string head = rest[{0, i}];
+        string tail = rest[{i, rest.Length}];
 
-        string trimmed = head(0, find_reverse_not_any_of(head, "/\\") + 1);
+        string trimmed = substring(head, 0, find_reverse_not_any_of(head, "/\\") + 1);
         if (trimmed) head = trimmed;
 
-        head = path(0, head.Length + DriveOrUNC.Length);
+        head = substring(path, 0, head.Length + DriveOrUNC.Length);
 
         return {head, tail};
     }

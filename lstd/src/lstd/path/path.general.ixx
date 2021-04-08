@@ -17,7 +17,7 @@ export {
         array<string> result;
         s64 start = 0, prev = 0;
         while ((start = find_any_of(path, seps, start + 1)) != -1) {
-            array_append(result, path(prev, start));
+            array_append(result, path[{prev, start}]);
             prev = start + 1;
         }
 
@@ -28,7 +28,7 @@ export {
         // You can use other functions to check if the former is really a directory or a file (querying the OS).
         if (prev < path.Length) {
             // Add the last component - from prev to path.Length
-            array_append(result, substring(path, prev, path.Length));
+            array_append(result, path[{prev, path.Length}]);
         }
         return result;
     }
@@ -52,7 +52,7 @@ export {
             s64 filenameIndex = sepIndex + 1;
             while (filenameIndex < dotIndex) {
                 if (path[filenameIndex] != extensionSep)
-                    return {path(0, dotIndex), path(dotIndex, path.Length)};
+                    return {path[{0, dotIndex}], path[{dotIndex, path.Length}]};
                 ++filenameIndex;
             }
         }

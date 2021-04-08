@@ -60,12 +60,12 @@ export {
     path_split_result path_split(const string &path) {
         s64 i = find_cp_reverse(path, '/') + 1;
 
-        string head = path(0, i);
-        string tail = path(i, path.Length);
+        string head = path[{0, i}];
+        string tail = path[{i, path.Length}];
 
         // If head exists and doesn not consist only of slashes
         if (head && find_cp_not(head, '/') != -1) {
-            head = head(0, find_cp_not(head, '/', true) + 1);
+            head = substring(head, 0, find_cp_not(head, '/', true) + 1);
         }
 
         return {head, tail};

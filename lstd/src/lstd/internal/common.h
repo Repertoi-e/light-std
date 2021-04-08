@@ -323,7 +323,7 @@ struct range {
 //
 //            // This doesn't allocate memory but it points to the buffer in _path_.
 //            // The substring is valid as long as the original string is valid.
-//            string pathWithoutDot = path.substring(2, -1);
+//            string pathWithoutDot = path[{2, -1}];
 //
 //            // Doesn't release the string here, but instead runs at scope exit.
 //            // It runs exactly like a destructor, but it's explicit and not hidden.

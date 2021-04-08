@@ -7,8 +7,9 @@
 //
 
 #include "common.h"
-#include "lstd/os.h"
 #include "lstd/types/windows.h"
+
+import os;
 
 static DWORD const xp_timeout = 100;  // ms
 static int const uninitialized = 0;
@@ -62,7 +63,7 @@ static void __cdecl __scrt_initialize_thread_safe_statics_platform_specific() no
 
     if (kernel_dll == nullptr) {
         // __scrt_fastfail(FAST_FAIL_FATAL_APP_EXIT);
-        LSTD_NAMESPACE::os_exit(-1);
+        LSTD_NAMESPACE::exit(-1);
     }
 
 #define GET_PROC_ADDRESS(m, f) reinterpret_cast<decltype(f) *>(GetProcAddress(m, _CRT_STRINGIZE(f)))
@@ -79,7 +80,7 @@ static void __cdecl __scrt_initialize_thread_safe_statics_platform_specific() no
         g_tss_event = CreateEventW(NULL, 1, 0, NULL);
         if (g_tss_event == nullptr) {
             // __scrt_fastfail(FAST_FAIL_FATAL_APP_EXIT);
-            LSTD_NAMESPACE::os_exit(-1);
+            LSTD_NAMESPACE::exit(-1);
         }
     }
 }

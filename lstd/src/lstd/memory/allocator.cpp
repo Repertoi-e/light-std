@@ -101,7 +101,7 @@ constexpr string get_short_file_name(const string &str) {
     }
 
     string result = str;
-    return substring(result, findResult, result.Length);
+    return result[{findResult, result.Length}];
 }
 
 void debug_memory::report_leaks() {
@@ -122,7 +122,7 @@ void debug_memory::report_leaks() {
             it = it->DEBUG_Next;
         }
     }
-    
+
     // @Cleanup @Platform @TODO @Memory Don't use the platform allocator. In the future we should have a seperate allocator for debug info.
     leaks = allocate_array<allocation_header *>(leaksCount, {.Alloc = internal::platform_get_persistent_allocator()});
     defer(free(leaks));

@@ -31,18 +31,18 @@ TEST(code_point_size) {
 
 TEST(substring) {
     string a = "Hello, world!";
-    assert_eq(substring(a, 2, 5), "llo");
-    assert_eq(substring(a, 7, a.Length), "world!");
-    assert_eq(substring(a, 0, -1), "Hello, world");
-    assert_eq(substring(a, -6, -1), "world");
+    assert_eq((a[{2, 5}]), "llo");
+    assert_eq((a[{7, a.Length}]), "world!");
+    assert_eq((a[{0, -1}]), "Hello, world");
+    assert_eq((a[{-6, -1}]), "world");
 }
 
 TEST(substring_mixed_sizes) {
     string a = u8"Хеllo, уоrлd!";
-    assert_eq(substring(a, 2, 5), "llo");
-    assert_eq(substring(a, 7, a.Length), u8"уоrлd!");
-    assert_eq(substring(a, 0, -1), u8"Хеllo, уоrлd");
-    assert_eq(substring(a, -6, -1), u8"уоrлd");
+    assert_eq((a[{2, 5}]), "llo");
+    assert_eq((a[{7, a.Length}]), u8"уоrлd!");
+    assert_eq((a[{0, -1}]), u8"Хеllo, уоrлd");
+    assert_eq((a[{-6, -1}]), u8"уоrлd");
 }
 
 TEST(index) {
@@ -199,7 +199,7 @@ TEST(append) {
 
     string result;
     For(range(10)) {
-        string_append(result , 'i');
+        string_append(result, 'i');
         assert_eq(result.Count, it + 1);
         assert_eq(result.Length, it + 1);
     }
