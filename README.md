@@ -705,7 +705,7 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
 
 > MIT License
 > 
-> Copyright (c) 2020 Dimitar Sotirov
+> Copyright (c) 2021 Dimitar Sotirov
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
@@ -727,8 +727,8 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
 
 ### Credits
 
-- [Cephes](https://www.netlib.org/cephes/) math library, Stephen L. Moshier. Used as a replacement to avoid linking with the CRT.
-- [tlsf](https://github.com/mattconte/tlsf) - Two-Level Segregated Fit memory allocator implementation, Matthew Conte.
+- [Cephes](https://www.netlib.org/cephes/) Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
+- [tlsf](https://github.com/mattconte/tlsf), Matthew Conte, Two-Level Segregated Fit memory allocator implementation.
 
 ### Projects using this library
 
