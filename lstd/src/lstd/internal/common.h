@@ -438,46 +438,86 @@ constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, u64 size)
 
 #if COMPILER == MSVC
 #pragma intrinsic(_BitScanReverse)
-inline u32 msb(u32 x) {
-    assert(x != 0);
-
-    unsigned long r = 0;
-    _BitScanReverse(&r, x);
-    return 31 - r;
-}
-
 #pragma intrinsic(_BitScanReverse64)
-inline u32 msb_64(u64 x) {
-    assert(x != 0);
-
-    unsigned long r = 0;
-    _BitScanReverse64(&r, x);
-    return 63 - r;
-}
 
 #pragma intrinsic(_BitScanForward)
-inline u32 lsb(u32 x) {
-    assert(x != 0);
-
-    unsigned long r = 0;
-    _BitScanForward(&r, x);
-    return r;
-}
-
 #pragma intrinsic(_BitScanForward64)
-inline u32 lsb_64(u64 x) {
+#endif
+
+template <typename T>
+constexpr always_inline u32 msb(T x) {
+    // We can't use a concept here because we need the msb forward declaration in u128.h, 
+    // but that file can't include type_info.h C++ is bullshit.
+    static_assert(types::is_unsigned_integral<T>); 
+
     assert(x != 0);
 
-    unsigned long r = 0;
-    _BitScanForward64(&r, x);
-    return r;
-}
-#else
-#define msb(n) __builtin_clz(n)
-#define msb_64(n) __builtin_clzll(n)
-#define lsb(n) __builtin_ctz(n)
-#define lsb_64(n) __builtin_ctzll(n)
+    if constexpr (sizeof(T) == 16) {
+        // 128 bit integers
+        if (x.hi != 0) return 64 + msb(x.hi);
+        return msb(x.lo);
+    }
+
+    if constexpr (is_constant_evaluated()) {
+        // Used at compile time and when said instructions are not supported.
+        // See "Hacker's Delight" section 5-3.
+        T y = 0;
+
+        u32 n = numeric_info<T>::digits;
+        u32 c = numeric_info<T>::digits / 2;
+        do {
+            y = (T)(x >> c);
+            if (y != 0) {
+                n -= c;
+                x = y;
+            }
+            c >>= 1;
+        } while (c != 0);
+        return (s32) n - (s32) x;
+    } else {
+#if COMPILER == MSVC
+        if constexpr (sizeof(T) == 8) {
+            unsigned long r = 0;
+            _BitScanReverse64(&r, x);
+            return 63 - r;
+        } else {
+            unsigned long r = 0;
+            _BitScanReverse(&r, x);
+            return 31 - r;
+        }
 #endif
+    }
+}
+
+template <types::is_unsigned_integral T>
+constexpr always_inline u32 lsb(T x) {
+    assert(x != 0);
+
+    if constexpr (sizeof(T) == 16) {
+        // 128 bit integers
+        if (x.lo == 0) return 64 + lsb(x.hi);
+        return lsb(x.lo);
+    }
+
+    if constexpr (is_constant_evaluated()) {
+        // Used at compile time and when said instructions are not supported.
+        // see "Hacker's Delight" section 5-4.
+        constexpr s32 digits = numeric_info<T>::digits;
+        return digits - msb((T)((T)(~x) & (T)(x - 1)));
+    } else {
+#if COMPILER == MSVC
+        if constexpr (sizeof(T) == 8) {
+            unsigned long r = 0;
+            _BitScanForward64(&r, x);
+            return r;
+        } else {
+            unsigned long r = 0;
+            _BitScanForward(&r, x);
+            return r;
+        }
+#endif
+    }
+}
 
 constexpr u32 rotate_left_32(u32 x, u32 bits) { return (x << bits) | (x >> (32 - bits)); }
 constexpr u64 rotate_left_64(u64 x, u32 bits) { return (x << bits) | (x >> (64 - bits)); }
@@ -547,7 +587,7 @@ constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000
 // Returns the number of decimal digits in n. Leading zeros are not counted
 // except for n == 0 in which case count_digits returns 1.
 inline u32 count_digits(u64 n) {
-    s32 t = (64 - msb_64(n | 1)) * 1233 >> 12;
+    s32 t = (64 - msb(n | 1)) * 1233 >> 12;
     return (u32) t - (n < ZERO_OR_POWERS_OF_10_64[t]) + 1;
 }
 

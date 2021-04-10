@@ -717,33 +717,6 @@ MAKE_UNSIGNED_HELPER(s16, u16)
 MAKE_UNSIGNED_HELPER(s32, u32)
 MAKE_UNSIGNED_HELPER(s64, u64)
 
-
-// Use this macro to declare your custom type as an integral
-#define DECLARE_INTEGRAL(T)                   \
-    LSTD_BEGIN_NAMESPACE                      \
-    template <>                               \
-    struct is_integral_helper<T> : true_t {}; \
-                                              \
-    LSTD_END_NAMESPACE
-
-// Use this macro to declare your custom types as an integral, this version takes a pair of signed and unsigned,
-// so it provides definitions for make_signed, make_unsigned
-#define DECLARE_INTEGRAL_PAIR(Tsigned, Tunsigned)     \
-    LSTD_BEGIN_NAMESPACE                              \
-    namespace types {                                 \
-    template <>                                       \
-    struct is_integral_helper<Tsigned> : true_t {};   \
-    template <>                                       \
-    struct is_integral_helper<Tunsigned> : true_t {}; \
-    MAKE_SIGNED_HELPER(Tunsigned, Tsigned)            \
-    MAKE_UNSIGNED_HELPER(Tsigned, Tunsigned)          \
-    }                                                 \
-    LSTD_END_NAMESPACE
-
-// @Cleanup
-// #undef MAKE_UNSIGNED_HELPER
-// #undef MAKE_SIGNED_HELPER
-
 template <typename T>
 using make_unsigned_t = typename make_unsigned<T>::type;
 
@@ -902,6 +875,33 @@ using common_type_t = typename common_type<T...>::type;
 //     using type = common_comparison_category_t<Types...>;
 // };
 }  // namespace types
+
+// Use this macro to declare your custom type as an integral
+#define DECLARE_INTEGRAL(T)                   \
+    LSTD_BEGIN_NAMESPACE                      \
+    namespace types {                         \
+    template <>                               \
+    struct is_integral_helper<T> : true_t {}; \
+    }                                         \
+    LSTD_END_NAMESPACE
+
+// Use this macro to declare your custom types as an integral, this version takes a pair of signed and unsigned,
+// so it provides definitions for make_signed, make_unsigned
+#define DECLARE_INTEGRAL_PAIR(Tsigned, Tunsigned)     \
+    LSTD_BEGIN_NAMESPACE                              \
+    namespace types {                                 \
+    template <>                                       \
+    struct is_integral_helper<Tsigned> : true_t {};   \
+    template <>                                       \
+    struct is_integral_helper<Tunsigned> : true_t {}; \
+    MAKE_SIGNED_HELPER(Tunsigned, Tsigned)            \
+    MAKE_UNSIGNED_HELPER(Tsigned, Tunsigned)          \
+    }                                                 \
+    LSTD_END_NAMESPACE
+
+// @Cleanup
+// #undef MAKE_UNSIGNED_HELPER
+// #undef MAKE_SIGNED_HELPER
 
 //
 // Some common functions:
