@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../types/compare.h"
 #include "stack_array.h"
 
 LSTD_BEGIN_NAMESPACE

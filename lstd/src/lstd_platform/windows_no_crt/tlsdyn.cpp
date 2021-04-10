@@ -1,6 +1,8 @@
 #include "common.h"
 #include "lstd/types/windows.h"
 
+import os;
+
 //
 // These are taken from vcruntime/utility.cpp:
 //
@@ -186,6 +188,11 @@ void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept  // terminate
      * by the compiler before we run any initializers.
      */
     __tls_guard = true;
+    
+    // Each new thread must get an initalized context.
+    // When we are linking with the CRT, we inject a callback into a linker table.
+    // See e.g. windows_common.cpp
+    LSTD_NAMESPACE::internal::platform_init_context();
 
 /* prefast assumes we are overflowing __xd_a */
 #pragma warning(push)

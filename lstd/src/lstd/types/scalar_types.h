@@ -133,7 +133,7 @@ union alignas(16) s64v2 {
 // using u16v8 = base_vector_type<u16, 8>;
 // using u32v4 = base_vector_type<u32, 4>;
 // using u64v2 = base_vector_type<u64, 2>;
-// 
+//
 // using s8v16 = base_vector_type<s8, 16>;
 // using s16v8 = base_vector_type<s16, 8>;
 // using s32v4 = base_vector_type<s32, 4>;

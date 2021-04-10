@@ -3,7 +3,6 @@
 #include "memory/array.h"
 #include "memory/guid.h"
 #include "memory/string.h"
-#include "types/numeric_info.h"
 
 LSTD_BEGIN_NAMESPACE
 

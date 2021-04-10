@@ -1,6 +1,5 @@
 #pragma once
 
-#include "intrin.h"
 #include "memory/delegate.h"
 
 LSTD_BEGIN_NAMESPACE

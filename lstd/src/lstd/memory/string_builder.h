@@ -5,7 +5,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-// This is good for large strings because it doesn't have to constantly reallocate
+// This is good for building large strings because it doesn't have to constantly reallocate
 struct string_builder {
     static constexpr s64 BUFFER_SIZE = 1_KiB;
 
@@ -45,13 +45,13 @@ void string_append(string_builder &builder, const string &str);
 // Append _size_ bytes from _data_ to the builder
 void string_append(string_builder &builder, const utf8 *data, s64 size);
 
-string_builder::buffer *get_current_buffer(string_builder &builder);
+string_builder::buffer *string_builder_get_current_buffer(string_builder &builder);
 
 // Merges all buffers in one string. The caller is responsible for freeing.
-[[nodiscard("Leak")]] string combine(const string_builder &builder);
+[[nodiscard("Leak")]] string string_builder_combine(const string_builder &builder);
 
 // @API Remove this, iterators? Literally anything else..
-void traverse(const string_builder &builder, const delegate<void(const string &)> &func);
+void string_builder_traverse(const string_builder &builder, const delegate<void(const string &)> &func);
 
 string_builder *clone(string_builder *dest, const string_builder &src);
 

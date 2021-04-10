@@ -228,7 +228,7 @@ TEST(builder) {
     defer(free(builder));
 
     string result;
-    result = combine(builder);
+    result = string_builder_combine(builder);
     defer(free(result));
     assert_eq(result, "Hello, world!");
 }

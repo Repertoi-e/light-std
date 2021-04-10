@@ -461,13 +461,6 @@ template <>
 struct is_integral_helper<wchar_t> : true_t {};
 #endif
 
-// Use this macro to declare your custom type as an integral
-#define DECLARE_INTEGRAL(T)                          \
-    LSTD_BEGIN_NAMESPACE                             \
-    template <>                                      \
-    struct is_integral_helper<T> : true_t {}; \
-    LSTD_END_NAMESPACE
-
 template <typename T>
 concept is_integral = is_integral_helper<remove_cv_t<T>>::value;
 
@@ -489,9 +482,9 @@ template <>
 struct is_floating_point_helper<double> : true_t {};
 
 // Use this macro to declare your custom type as a floating point
-#define DECLARE_FLOATING_POINT(T)                          \
-    LSTD_BEGIN_NAMESPACE                                   \
-    template <>                                            \
+#define DECLARE_FLOATING_POINT(T)                   \
+    LSTD_BEGIN_NAMESPACE                            \
+    template <>                                     \
     struct is_floating_point_helper<T> : true_t {}; \
     LSTD_END_NAMESPACE
 
@@ -690,8 +683,6 @@ MAKE_SIGNED_HELPER(char8_t, s8)
 MAKE_SIGNED_HELPER(char16_t, s16)
 MAKE_SIGNED_HELPER(char32_t, s32)
 
-#undef MAKE_SIGNED_HELPER
-
 template <typename T>
 using make_signed_t = typename make_signed<T>::type;
 
@@ -726,7 +717,32 @@ MAKE_UNSIGNED_HELPER(s16, u16)
 MAKE_UNSIGNED_HELPER(s32, u32)
 MAKE_UNSIGNED_HELPER(s64, u64)
 
-#undef MAKE_UNSIGNED_HELPER
+
+// Use this macro to declare your custom type as an integral
+#define DECLARE_INTEGRAL(T)                   \
+    LSTD_BEGIN_NAMESPACE                      \
+    template <>                               \
+    struct is_integral_helper<T> : true_t {}; \
+                                              \
+    LSTD_END_NAMESPACE
+
+// Use this macro to declare your custom types as an integral, this version takes a pair of signed and unsigned,
+// so it provides definitions for make_signed, make_unsigned
+#define DECLARE_INTEGRAL_PAIR(Tsigned, Tunsigned)     \
+    LSTD_BEGIN_NAMESPACE                              \
+    namespace types {                                 \
+    template <>                                       \
+    struct is_integral_helper<Tsigned> : true_t {};   \
+    template <>                                       \
+    struct is_integral_helper<Tunsigned> : true_t {}; \
+    MAKE_SIGNED_HELPER(Tunsigned, Tsigned)            \
+    MAKE_UNSIGNED_HELPER(Tsigned, Tunsigned)          \
+    }                                                 \
+    LSTD_END_NAMESPACE
+
+// @Cleanup
+// #undef MAKE_UNSIGNED_HELPER
+// #undef MAKE_SIGNED_HELPER
 
 template <typename T>
 using make_unsigned_t = typename make_unsigned<T>::type;
@@ -922,10 +938,10 @@ constexpr T copy_sign(T x, T y) {
 constexpr bool is_nan(types::is_floating_point auto x) {
     if constexpr (sizeof(x) == sizeof(f32)) {
         ieee754_f32 format = {x};
-        return format.ieee.E == 255 && format.ieee.M != 0;
+        return format.ieee.E == 0xFF && format.ieee.M != 0;
     } else {
         ieee754_f64 format = {x};
-        return format.ieee.E == 2048 && (format.ieee.M0 != 0 || format.ieee.M1 != 0);
+        return format.ieee.E == 0x7FF && (format.ieee.M0 != 0 || format.ieee.M1 != 0);
     }
 }
 
@@ -939,18 +955,18 @@ constexpr bool is_signaling_nan(types::is_floating_point auto x) {
 constexpr bool is_infinite(types::is_floating_point auto x) {
     if constexpr (sizeof(x) == sizeof(f32)) {
         ieee754_f32 format = {x};
-        return format.ieee.E == 255 && format.ieee.M == 0;
+        return format.ieee.E == 0xFF && format.ieee.M == 0;
     } else {
         ieee754_f64 format = {x};
-        return format.ieee.E == 2048 && format.ieee.M0 == 0 && format.ieee.M1 == 0;
+        return format.ieee.E == 0x7FF && format.ieee.M0 == 0 && format.ieee.M1 == 0;
     }
 }
 
 constexpr bool is_finite(types::is_floating_point auto x) {
     if constexpr (sizeof(x) == sizeof(f32))
-        return ieee754_f32{x}.ieee.E != 255;
+        return ieee754_f32{x}.ieee.E != 0xFF;
     else
-        return ieee754_f64{x}.ieee.E != 2048;
+        return ieee754_f64{x}.ieee.E != 0x7FF;
 }
 
 template <typename T, typename U>

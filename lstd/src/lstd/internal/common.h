@@ -4,7 +4,7 @@
 
 #include <intrin.h>
 
-#include "../types/type_info.h"
+#include "../types.h"
 #include "debug_break.h"
 
 //

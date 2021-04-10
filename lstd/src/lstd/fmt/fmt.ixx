@@ -438,7 +438,7 @@ export {
         auto writer = string_builder_writer();
         fmt_to_writer(&writer, fmtString, ((Args &&) arguments)...);
 
-        string combined = combine(writer.Builder);
+        string combined = string_builder_combine(writer.Builder);
         free(writer);
 
         return combined;

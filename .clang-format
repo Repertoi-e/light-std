@@ -6,3 +6,9 @@ SpaceAfterCStyleCast: true
 DerivePointerAlignment: false
 PointerAlignment: Right
 ColumnLimit: 0
+
+BinPackArguments: false
+BinPackParameters: false
+
+AllowShortBlocksOnASingleLine: true
+AllowShortFunctionsOnASingleLine: true

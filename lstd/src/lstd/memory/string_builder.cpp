@@ -34,7 +34,7 @@ void string_append(string_builder &builder, utf32 cp) {
 void string_append(string_builder &builder, const string &str) { string_append(builder, str.Data, str.Count); }
 
 void string_append(string_builder &builder, const utf8 *data, s64 size) {
-    auto *currentBuffer = get_current_buffer(builder);
+    auto *currentBuffer = string_builder_get_current_buffer(builder);
 
     s64 availableSpace = builder.BUFFER_SIZE - currentBuffer->Occupied;
     if (availableSpace >= size) {
@@ -58,12 +58,12 @@ void string_append(string_builder &builder, const utf8 *data, s64 size) {
     }
 }
 
-string_builder::buffer *get_current_buffer(string_builder &builder) {
+string_builder::buffer *string_builder_get_current_buffer(string_builder &builder) {
     if (builder.CurrentBuffer == null) return &builder.BaseBuffer;
     return builder.CurrentBuffer;
 }
 
-string combine(const string_builder &builder) {
+string string_builder_combine(const string_builder &builder) {
     string result;
     string_reserve(result, (builder.IndirectionCount + 1) * builder.BUFFER_SIZE);
     auto *b = &builder.BaseBuffer;
@@ -75,7 +75,7 @@ string combine(const string_builder &builder) {
 }
 
 // @API Remove this, iterators? Literally anything else..
-void traverse(const string_builder &builder, const delegate<void(const string &)> &func) {
+void string_builder_traverse(const string_builder &builder, const delegate<void(const string &)> &func) {
     auto *buffer = &builder.BaseBuffer;
     while (buffer) {
         func(string(buffer->Data, buffer->Occupied));
@@ -86,7 +86,7 @@ void traverse(const string_builder &builder, const delegate<void(const string &)
 string_builder *clone(string_builder *dest, const string_builder &src) {
     *dest = {};
     auto appender = [&](const string &str) { string_append(*dest, str); };
-    traverse(src, &appender);
+    string_builder_traverse(src, &appender);
     return dest;
 }
 

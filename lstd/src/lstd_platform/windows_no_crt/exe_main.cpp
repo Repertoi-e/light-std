@@ -153,12 +153,13 @@ LSTD_END_NAMESPACE
 extern "C" void main_no_crt() {
     // This initializaton is similar to the CRT initialization that happens before calling the user main function.
     // Actually these happen before calling any C/C++ initialization functions/constructors,
-    // because the user code might want to use stuff from the library in e.g. a constructor of a global variable.
+    // because the user code might want to use stuff from the library in e.g. in a constructor of a global variable.
     // Basically all this stuff needs to work before ANY actual programmer code is run.
     //
-    // We can put these in the beginning of the linker tables (CRT does this), but why bother?
-    // This also needs to happen for DLLs.
-    //
+    // When we link with the CRT (and don't compile all this stub code) we put these in the in linker tables. 
+    // See e.g. windows_common.cpp
+    
+    // :PlatformStateInit
     LSTD_NAMESPACE::internal::platform_init_context();  // This prepares the global thread-local immutable Context variable (see "lstd/internal/context.h")
     LSTD_NAMESPACE::internal::platform_init_global_state();
     LSTD_NAMESPACE::win64_crash_handler_init();

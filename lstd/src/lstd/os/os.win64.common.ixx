@@ -332,6 +332,7 @@ void platform_uninit_state() {
 
 export {
     void exit(s32 exitCode) {
+        // :PlatformExitTermination
         exit_call_scheduled_functions();
         internal::platform_uninit_state();
         ExitProcess(exitCode);
