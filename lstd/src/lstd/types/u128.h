@@ -511,10 +511,10 @@ constexpr s128 &s128::operator^=(s128 other) { return (*this = *this ^ other), *
 constexpr s128(&s128::operator<<=(s32 amount)) { return (*this = *this << amount), *this; }
 constexpr s128 &s128::operator>>=(s32 amount) { return (*this = *this >> amount), *this; }
 
-// Defined in common.h
+// Defined in common.h, but common.h includes this file (through types.h)
 LSTD_BEGIN_NAMESPACE
 template <typename T>
-constexpr always_inline u32 msb(T x);
+constexpr always_inline s32 msb(T x);
 LSTD_END_NAMESPACE
 
 // Long division/modulo for u128 implemented using the shift-subtract division algorithm adapted from:

@@ -156,7 +156,9 @@ TEST(format_int_hexadecimal) {
     CHECK_WRITE("90ABCDEF", "{0:X}", 0x90ABCDEF);
 }
 
-// format\(([^)]*)\)
+// format\(([^)]*)\)    
+
+// @Locale
 TEST(format_int_localeish) {
     CHECK_WRITE("123", "{:n}", 123);
     CHECK_WRITE("1,234", "{:n}", 1234);

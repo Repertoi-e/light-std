@@ -25,28 +25,28 @@ enum class float_denorm_style {
 
 struct numeric_info_base {
     static constexpr float_denorm_style has_denorm = float_denorm_style::Absent;
-    static constexpr bool has_denorm_loss = false;
-    static constexpr bool has_infinity = false;
-    static constexpr bool has_quiet_NaN = false;
-    static constexpr bool has_signaling_NaN = false;
-    static constexpr bool is_bounded = false;
-    static constexpr bool is_exact = false;
-    static constexpr bool is_iec559 = false;
-    static constexpr bool is_integral = false;
-    static constexpr bool is_modulo = false;
-    static constexpr bool is_signed = false;
-    static constexpr bool is_specialized = false;
-    static constexpr bool tinyness_before = false;
-    static constexpr bool traps = false;
+    static constexpr bool has_denorm_loss          = false;
+    static constexpr bool has_infinity             = false;
+    static constexpr bool has_quiet_NaN            = false;
+    static constexpr bool has_signaling_NaN        = false;
+    static constexpr bool is_bounded               = false;
+    static constexpr bool is_exact                 = false;
+    static constexpr bool is_iec559                = false;
+    static constexpr bool is_integral              = false;
+    static constexpr bool is_modulo                = false;
+    static constexpr bool is_signed                = false;
+    static constexpr bool is_specialized           = false;
+    static constexpr bool tinyness_before          = false;
+    static constexpr bool traps                    = false;
     static constexpr float_round_style round_style = float_round_style::To_Zero;
-    static constexpr s32 digits = 0;
-    static constexpr s32 digits10 = 0;
-    static constexpr s32 max_digits10 = 0;
-    static constexpr s32 max_exponent = 0;
-    static constexpr s32 max_exponent10 = 0;
-    static constexpr s32 min_exponent = 0;
-    static constexpr s32 min_exponent10 = 0;
-    static constexpr s32 radix = 0;
+    static constexpr s32 digits                    = 0;
+    static constexpr s32 digits10                  = 0;
+    static constexpr s32 max_digits10              = 0;
+    static constexpr s32 max_exponent              = 0;
+    static constexpr s32 max_exponent10            = 0;
+    static constexpr s32 min_exponent              = 0;
+    static constexpr s32 min_exponent10            = 0;
+    static constexpr s32 radix                     = 0;
 };
 
 template <typename T>
@@ -76,25 +76,25 @@ struct numeric_info<const volatile T> : public numeric_info<T> {};
 
 // Base for integer types
 struct numeric_info_int_base : numeric_info_base {
-    static constexpr bool is_bounded = true;
-    static constexpr bool is_exact = true;
-    static constexpr bool is_integral = true;
+    static constexpr bool is_bounded     = true;
+    static constexpr bool is_exact       = true;
+    static constexpr bool is_integral    = true;
     static constexpr bool is_specialized = true;
-    static constexpr s32 radix = 2;
+    static constexpr s32 radix           = 2;
 };
 
 // Base for floating-point types
 struct numeric_info_float_base : numeric_info_base {
     static constexpr float_denorm_style has_denorm = float_denorm_style::Present;
-    static constexpr bool has_infinity = true;
-    static constexpr bool has_quiet_NaN = true;
-    static constexpr bool has_signaling_NaN = true;
-    static constexpr bool is_bounded = true;
-    static constexpr bool is_iec559 = true;
-    static constexpr bool is_signed = true;
-    static constexpr bool is_specialized = true;
+    static constexpr bool has_infinity             = true;
+    static constexpr bool has_quiet_NaN            = true;
+    static constexpr bool has_signaling_NaN        = true;
+    static constexpr bool is_bounded               = true;
+    static constexpr bool is_iec559                = true;
+    static constexpr bool is_signed                = true;
+    static constexpr bool is_specialized           = true;
     static constexpr float_round_style round_style = float_round_style::To_Nearest;
-    static constexpr s32 radix = F32_RADIX;
+    static constexpr s32 radix                     = 2;
 };
 
 template <>
@@ -111,8 +111,8 @@ struct numeric_info<char> : public numeric_info_int_base {
 
     static constexpr bool is_signed = S8_MIN != 0;
     static constexpr bool is_modulo = S8_MIN == 0;
-    static constexpr s32 digits = 8 - (S8_MIN != 0);
-    static constexpr s32 digits10 = 2;
+    static constexpr s32 digits     = 8 - (S8_MIN != 0);
+    static constexpr s32 digits10   = 2;
 };
 
 template <>
@@ -128,8 +128,8 @@ struct numeric_info<wchar_t> : public numeric_info_int_base {
     static constexpr wchar_t signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 16;
-    static constexpr s32 digits10 = 4;
+    static constexpr s32 digits     = 16;
+    static constexpr s32 digits10   = 4;
 };
 
 template <>
@@ -160,8 +160,8 @@ struct numeric_info<u8> : public numeric_info_int_base {
     static constexpr u8 signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 8;
-    static constexpr s32 digits10 = 2;
+    static constexpr s32 digits     = 8;
+    static constexpr s32 digits10   = 2;
 };
 
 template <>
@@ -177,8 +177,8 @@ struct numeric_info<s16> : public numeric_info_int_base {
     static constexpr s16 signaling_NaN() { return 0; }
 
     static constexpr bool is_signed = true;
-    static constexpr s32 digits = 15;
-    static constexpr s32 digits10 = 4;
+    static constexpr s32 digits     = 15;
+    static constexpr s32 digits10   = 4;
 };
 
 #ifdef _NATIVE_WCHAR_T_DEFINED
@@ -195,8 +195,8 @@ struct numeric_info<u16> : public numeric_info_int_base {
     static constexpr u16 signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 16;
-    static constexpr s32 digits10 = 4;
+    static constexpr s32 digits     = 16;
+    static constexpr s32 digits10   = 4;
 };
 #endif
 
@@ -213,8 +213,8 @@ struct numeric_info<char8_t> : public numeric_info_int_base {
     static constexpr char8_t signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 8;
-    static constexpr s32 digits10 = 2;
+    static constexpr s32 digits     = 8;
+    static constexpr s32 digits10   = 2;
 };
 
 template <>
@@ -230,8 +230,8 @@ struct numeric_info<char16_t> : public numeric_info_int_base {
     static constexpr char16_t signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 16;
-    static constexpr s32 digits10 = 4;
+    static constexpr s32 digits     = 16;
+    static constexpr s32 digits10   = 4;
 };
 
 template <>
@@ -247,8 +247,8 @@ struct numeric_info<s32> : public numeric_info_int_base {
     static constexpr s32 signaling_NaN() { return 0; }
 
     static constexpr bool is_signed = true;
-    static constexpr s32 digits = 31;
-    static constexpr s32 digits10 = 9;
+    static constexpr s32 digits     = 31;
+    static constexpr s32 digits10   = 9;
 };
 
 template <>
@@ -264,8 +264,8 @@ struct numeric_info<u32> : public numeric_info_int_base {
     static constexpr u32 signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 32;
-    static constexpr s32 digits10 = 9;
+    static constexpr s32 digits     = 32;
+    static constexpr s32 digits10   = 9;
 };
 
 template <>
@@ -282,8 +282,8 @@ struct numeric_info<long> : public numeric_info_int_base {
     static constexpr long signaling_NaN() { return 0; }
 
     static constexpr bool is_signed = true;
-    static constexpr s32 digits = 31;
-    static constexpr s32 digits10 = 9;
+    static constexpr s32 digits     = 31;
+    static constexpr s32 digits10   = 9;
 };
 
 template <>
@@ -300,8 +300,8 @@ struct numeric_info<unsigned long> : public numeric_info_int_base {
     static constexpr unsigned long signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 32;
-    static constexpr s32 digits10 = 9;
+    static constexpr s32 digits     = 32;
+    static constexpr s32 digits10   = 9;
 };
 
 template <>
@@ -318,8 +318,8 @@ struct numeric_info<char32_t> : public numeric_info_int_base {
     static constexpr char32_t signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 32;
-    static constexpr s32 digits10 = 9;
+    static constexpr s32 digits     = 32;
+    static constexpr s32 digits10   = 9;
 };
 
 template <>
@@ -335,8 +335,8 @@ struct numeric_info<s64> : public numeric_info_int_base {
     static constexpr s64 signaling_NaN() { return 0; }
 
     static constexpr bool is_signed = true;
-    static constexpr s32 digits = 63;
-    static constexpr s32 digits10 = 18;
+    static constexpr s32 digits     = 63;
+    static constexpr s32 digits10   = 18;
 };
 
 template <>
@@ -353,8 +353,8 @@ struct numeric_info<u64> : public numeric_info_int_base {
     static constexpr u64 signaling_NaN() { return 0; }
 
     static constexpr bool is_modulo = true;
-    static constexpr s32 digits = 64;
-    static constexpr s32 digits10 = 19;
+    static constexpr s32 digits     = 64;
+    static constexpr s32 digits10   = 19;
 };
 
 template <>
@@ -370,13 +370,18 @@ struct numeric_info<f32> : public numeric_info_float_base {
     static constexpr f32 quiet_NaN() { return __builtin_nanf("0"); }
     static constexpr f32 signaling_NaN() { return __builtin_nansf("1"); }
 
-    static constexpr s32 digits = F32_MANT_DIG;
-    static constexpr s32 digits10 = F32_DIG;
-    static constexpr s32 max_digits10 = 9;
-    static constexpr s32 max_exponent = F32_MAX_EXP;
+    static constexpr s32 digits         = F32_MANT_BITS + 1;  // including the hidden bit
+    static constexpr s32 digits10       = F32_DIG;
+    static constexpr s32 max_digits10   = F32_DECIMAL_DIG;
+    static constexpr s32 max_exponent   = F32_MAX_EXP;
     static constexpr s32 max_exponent10 = F32_MAX_10_EXP;
-    static constexpr s32 min_exponent = F32_MIN_EXP;
+    static constexpr s32 min_exponent   = F32_MIN_EXP;
     static constexpr s32 min_exponent10 = F32_MIN_10_EXP;
+
+    // Extra (not in std::):
+    static constexpr s32 bits_mantissa = F32_MANT_BITS;
+    static constexpr s32 bits_exponent = F32_EXP_BITS;
+    static constexpr s32 exponent_bias = F32_EXP_BIAS;
 };
 
 template <>
@@ -392,13 +397,18 @@ struct numeric_info<f64> : public numeric_info_float_base {
     static constexpr f64 quiet_NaN() { return __builtin_nan("0"); }
     static constexpr f64 signaling_NaN() { return __builtin_nans("1"); }
 
-    static constexpr s32 digits = F64_MANT_DIG;
-    static constexpr s32 digits10 = F64_DIG;
-    static constexpr s32 max_digits10 = 17;
-    static constexpr s32 max_exponent = F64_MAX_EXP;
+    static constexpr s32 digits         = F64_MANT_BITS + 1;  // including the hidden bit
+    static constexpr s32 digits10       = F64_DIG;
+    static constexpr s32 max_digits10   = F64_DECIMAL_DIG;
+    static constexpr s32 max_exponent   = F64_MAX_EXP;
     static constexpr s32 max_exponent10 = F64_MAX_10_EXP;
-    static constexpr s32 min_exponent = F64_MIN_EXP;
+    static constexpr s32 min_exponent   = F64_MIN_EXP;
     static constexpr s32 min_exponent10 = F64_MIN_10_EXP;
+
+    // Extra (not in std::):
+    static constexpr s32 bits_mantissa = F64_MANT_BITS;
+    static constexpr s32 bits_exponent = F64_EXP_BITS;
+    static constexpr s32 exponent_bias = F64_EXP_BIAS;
 };
 
 LSTD_END_NAMESPACE

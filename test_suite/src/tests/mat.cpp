@@ -59,14 +59,11 @@ TEST(thin_mat_short_index) {
 }
 
 TEST(view) {
-    mat<utf8, 5, 5> m1 = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-                          'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y'};
+    mat<utf8, 5, 5> m1 = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y'};
 
-    mat<utf8, 5, 5> m2 = {'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z',
-                          'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z'};
+    mat<utf8, 5, 5> m2 = {'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z'};
 
-    mat<utf8, 5, 5> r = {'z', 'z', 'z', 'p', 'q', 'z', 'z', 'z', 'u', 'v', 'c', 'd', 'e',
-                         'z', 'z', 'h', 'i', 'j', 'z', 'z', 'm', 'n', 'o', 'z', 'z'};
+    mat<utf8, 5, 5> r = {'z', 'z', 'z', 'p', 'q', 'z', 'z', 'z', 'u', 'v', 'c', 'd', 'e', 'z', 'z', 'h', 'i', 'j', 'z', 'z', 'm', 'n', 'o', 'z', 'z'};
 
     mat<utf8, 2, 2> sm = m1.get_view<2, 2>(3, 0);
     m2.get_view<3, 3>(2, 0) = m1.get_view<3, 3>(0, 2);
@@ -131,8 +128,7 @@ TEST(mat_multiply_square) {
 
     matf<5, 5> m5 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25};
     matf<5, 5> n5 = {9, 8, 7, 6, 5, 4, 2, 7, 3, 5, 3, 6, 2, 7, 2, 9, 4, 1, 4, 7, 5, 7, 5, 5, 1};
-    decltype(dot(m5, n5)) exp5 = {87, 81, 56, 74, 54, 237, 216, 166, 199, 154, 387, 351, 276,
-                                  324, 254, 537, 486, 386, 449, 354, 687, 621, 496, 574, 454};
+    decltype(dot(m5, n5)) exp5 = {87, 81, 56, 74, 54, 237, 216, 166, 199, 154, 387, 351, 276, 324, 254, 537, 486, 386, 449, 354, 687, 621, 496, 574, 454};
 
     assert_eq(dot(m5, n5), exp5);
 }
@@ -158,10 +154,10 @@ TEST(mat_multiply_arbitrary) {
 
 #define TEST_MAT_SCALAR_OP(NAME, OPERATOR)                                                                   \
     TEST(mat_scalar_##NAME) {                                                                                \
-        const matf<2, 2> sm = {1, 2, 3, 4};                                                                  \
-        const matf<2, 5> m = {1, 2, 5, 6, 9, 3, 4, 7, 8, 10};                                                \
+        matf<2, 2> sm = {1, 2, 3, 4};                                                                        \
+        matf<2, 5> m = {1, 2, 5, 6, 9, 3, 4, 7, 8, 10};                                                      \
                                                                                                              \
-        const f32 b = 27;                                                                                    \
+        f32 b = 27;                                                                                          \
         auto smr = sm OPERATOR b;                                                                            \
         auto mr = m OPERATOR b;                                                                              \
                                                                                                              \
@@ -171,10 +167,10 @@ TEST(mat_multiply_arbitrary) {
 
 #define TEST_SCALAR_MAT_OP(NAME, OPERATOR)                                                                   \
     TEST(scalar_mat_##NAME) {                                                                                \
-        const matf<2, 2> sm = {1, 2, 3, 4};                                                                  \
-        const matf<2, 5> m = {1, 2, 5, 6, 9, 3, 4, 7, 8, 10};                                                \
+        matf<2, 2> sm = {1, 2, 3, 4};                                                                        \
+        matf<2, 5> m = {1, 2, 5, 6, 9, 3, 4, 7, 8, 10};                                                      \
                                                                                                              \
-        const f32 b = 27;                                                                                    \
+        f32 b = 27;                                                                                          \
         auto smr = b OPERATOR sm;                                                                            \
         auto mr = b OPERATOR m;                                                                              \
                                                                                                              \
@@ -182,31 +178,31 @@ TEST(mat_multiply_arbitrary) {
         For_as(i, range(m.R)) { For_as(j, range(m.C)) assert_eq(approx(b OPERATOR m(i, j)), mr(i, j)); }     \
     }
 
-#define TEST_MAT_SCALAR_COMPOUND_OP(NAME, OPERATOR)           \
-    TEST(scalar_compound_##NAME) {                            \
-        const matf<2, 2> sm = {1, 2, 3, 4};                   \
-        const matf<2, 5> m = {1, 2, 5, 6, 9, 3, 4, 7, 8, 10}; \
-                                                              \
-        const f32 b = 27;                                     \
-        auto smr = sm;                                        \
-        auto mr = m;                                          \
-        smr OPERATOR b;                                       \
-        mr OPERATOR b;                                        \
-                                                              \
-        For_as(i, range(sm.R)) {                              \
-            For_as(j, range(sm.C)) {                          \
-                auto elem = sm(i, j);                         \
-                elem OPERATOR b;                              \
-                assert_eq(approx(elem), smr(i, j));           \
-            }                                                 \
-        }                                                     \
-        For_as(i, range(m.R)) {                               \
-            For_as(j, range(m.C)) {                           \
-                auto elem = m(i, j);                          \
-                elem OPERATOR b;                              \
-                assert_eq(approx(elem), mr(i, j));            \
-            }                                                 \
-        }                                                     \
+#define TEST_MAT_SCALAR_COMPOUND_OP(NAME, OPERATOR)     \
+    TEST(scalar_compound_##NAME) {                      \
+        matf<2, 2> sm = {1, 2, 3, 4};                   \
+        matf<2, 5> m = {1, 2, 5, 6, 9, 3, 4, 7, 8, 10}; \
+                                                        \
+        f32 b = 27;                                     \
+        auto smr = sm;                                  \
+        auto mr = m;                                    \
+        smr OPERATOR b;                                 \
+        mr OPERATOR b;                                  \
+                                                        \
+        For_as(i, range(sm.R)) {                        \
+            For_as(j, range(sm.C)) {                    \
+                auto elem = sm(i, j);                   \
+                elem OPERATOR b;                        \
+                assert_eq(approx(elem), smr(i, j));     \
+            }                                           \
+        }                                               \
+        For_as(i, range(m.R)) {                         \
+            For_as(j, range(m.C)) {                     \
+                auto elem = m(i, j);                    \
+                elem OPERATOR b;                        \
+                assert_eq(approx(elem), mr(i, j));      \
+            }                                           \
+        }                                               \
     }
 
 // A note to tell our script to do special work because of the macros we use.
@@ -314,8 +310,7 @@ TEST(inverse_small) {
 
     matf<4, 4> m4 = {1, 3, 2, 1, 4, 5, 6, 2, 7, 8, 9, 3, 1, 2, 3, 4};
     matf<4, 4> mI4 = inverse(m4);
-    matf<4, 4> mexp4 = {-0.333333, -1.296296, 0.925926, 0.037037, 0.666667, -0.407407, 0.148148, -0.074074,
-                        -0.333333, 1.592593, -0.851852, -0.074074, 0, -0.666667, 0.333333, 0.333333};
+    matf<4, 4> mexp4 = {-0.333333, -1.296296, 0.925926, 0.037037, 0.666667, -0.407407, 0.148148, -0.074074, -0.333333, 1.592593, -0.851852, -0.074074, 0, -0.666667, 0.333333, 0.333333};
 
     assert_eq(approx_vec(mI4), mexp4);
 }
@@ -464,13 +459,11 @@ TEST(transform_rotation_principal) {
     assert_eq(approx_vec(m33), m33exp);
 
     matf<4, 3> m43 = rotation_y(1.f);
-    matf<4, 3> m43exp = {0.540302, 0.000000, -0.841471, 0.000000, 1.000000, 0.000000,
-                         0.841471, 0.000000, 0.540302, 0, 0, 0};
+    matf<4, 3> m43exp = {0.540302, 0.000000, -0.841471, 0.000000, 1.000000, 0.000000, 0.841471, 0.000000, 0.540302, 0, 0, 0};
     assert_eq(approx_vec(m43), m43exp);
 
     matf<4, 4> m44 = rotation_z(1.f);
-    matf<4, 4> m44exp = {0.540302, 0.841471, 0.000000, 0, -0.841471, 0.540302, 0.000000, 0,
-                         0.000000, 0.000000, 1.000000, 0, 0, 0, 0, 1};
+    matf<4, 4> m44exp = {0.540302, 0.841471, 0.000000, 0, -0.841471, 0.540302, 0.000000, 0, 0.000000, 0.000000, 1.000000, 0, 0, 0, 0, 1};
     assert_eq(approx_vec(m44), m44exp);
 }
 
@@ -480,13 +473,11 @@ TEST(transform_rotation_tri_axis) {
     assert_eq(approx_vec(m33), m33exp);
 
     matf<4, 3> m43 = rotation_axis_3<0, 1, 2>(0.0f, 1.f, 0.0f);
-    matf<4, 3> m43exp = {0.540302, 0.000000, -0.841471, 0.000000, 1.000000, 0.000000,
-                         0.841471, 0.000000, 0.540302, 0, 0, 0};
+    matf<4, 3> m43exp = {0.540302, 0.000000, -0.841471, 0.000000, 1.000000, 0.000000, 0.841471, 0.000000, 0.540302, 0, 0, 0};
     assert_eq(approx_vec(m43), m43exp);
 
     matf<4, 4> m44 = rotation_axis_3<0, 0, 2>(-1.0f, 1.0f, 1.f);
-    matf<4, 4> m44exp = {0.540302, 0.841471, 0.000000, 0, -0.841471, 0.540302, 0.000000, 0,
-                         0.000000, 0.000000, 1.000000, 0, 0, 0, 0, 1};
+    matf<4, 4> m44exp = {0.540302, 0.841471, 0.000000, 0, -0.841471, 0.540302, 0.000000, 0, 0.000000, 0.000000, 1.000000, 0, 0, 0, 0, 1};
     assert_eq(approx_vec(m44), m44exp);
 }
 
@@ -496,13 +487,11 @@ TEST(transform_rotation_axis_angle) {
     assert_eq(approx_vec(m33), m33exp);
 
     matf<4, 3> m43 = rotation_axis_angle(normalize(vec<f32, 3>(1, 2, 3)), 1.0f);
-    matf<4, 3> m43exp = {0.573138, 0.740349, -0.351279, -0.609007, 0.671645, 0.421906,
-                         0.548292, -0.027879, 0.835822, 0, 0, 0};
+    matf<4, 3> m43exp = {0.573138, 0.740349, -0.351279, -0.609007, 0.671645, 0.421906, 0.548292, -0.027879, 0.835822, 0, 0, 0};
     assert_eq(approx_vec(m43), m43exp);
 
     matf<4, 4> m44 = rotation_axis_angle(normalize(vec<f32, 3>(1, 2, 3)), 1.0f);
-    matf<4, 4> m44exp = {0.573138, 0.740349, -0.351279, 0, -0.609007, 0.671645, 0.421906, 0,
-                         0.548292, -0.027879, 0.835822, 0, 0, 0, 0, 1};
+    matf<4, 4> m44exp = {0.573138, 0.740349, -0.351279, 0, -0.609007, 0.671645, 0.421906, 0, 0.548292, -0.027879, 0.835822, 0, 0, 0, 0, 1};
     assert_eq(approx_vec(m44), m44exp);
 }
 
@@ -587,7 +576,7 @@ TEST(transform_view) {
         Vec(9, 3, 4),
         Vec(-4, -3, 4),
     };
-    
+
     stack_array<Vec, 6> worldVecs;
     For(range(6)) worldVecs[it] = basis.express(viewVecs[it]);
 

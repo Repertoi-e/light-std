@@ -198,7 +198,6 @@ struct vec : public vec_data<T_, Dim, Packed> {
     static constexpr bool PACKED = Packed;
 
     // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
-    static constexpr bool IS_ARRAY_LIKE = true;
     static constexpr s64 Count = DIM;
 
     // :MathTypesNoInit By default we don't init (to save on performance) but you can call a constructor with a scalar value of 0 to zero-init.

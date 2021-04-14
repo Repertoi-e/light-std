@@ -1,12 +1,14 @@
 #include "test.h"
 
 void build_test_table() {
+    extern void test_msb();
+    array_append(*g_TestTable[string("bits.cpp")], {"msb", test_msb});
+    extern void test_lsb();
+    array_append(*g_TestTable[string("bits.cpp")], {"lsb", test_lsb});
     extern void test_path_manipulation();
     array_append(*g_TestTable[string("file.cpp")], {"path_manipulation", test_path_manipulation});
     extern void test_file_size();
     array_append(*g_TestTable[string("file.cpp")], {"file_size", test_file_size});
-    // extern void test_read_every_file_in_project();
-    // array_append(*g_TestTable[string("file.cpp")], {"read_every_file_in_project", test_read_every_file_in_project});
     extern void test_write_bool();
     array_append(*g_TestTable[string("fmt.cpp")], {"write_bool", test_write_bool});
     extern void test_write_integer_16();
@@ -252,7 +254,7 @@ void build_test_table() {
     extern void test_iterator();
     array_append(*g_TestTable[string("string.cpp")], {"iterator", test_iterator});
     extern void test_append();
-    array_append(*g_TestTable[string("string.cpp")], {"array_append", test_append});
+    array_append(*g_TestTable[string("string.cpp")], {"append", test_append});
     extern void test_count();
     array_append(*g_TestTable[string("string.cpp")], {"count", test_count});
     extern void test_builder();

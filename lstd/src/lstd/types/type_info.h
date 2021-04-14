@@ -787,7 +787,6 @@ struct remove_all_extents<T[]> {
 template <typename T>
 using remove_all_extents_t = typename remove_all_extents<T>::type;
 
-// :CopyMemory
 extern void (*copy_memory)(void *dest, const void *src, s64 num);
 
 // Safely converts between unrelated types that have a binary equivalency.

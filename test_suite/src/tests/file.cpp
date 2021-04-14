@@ -129,7 +129,7 @@ TEST(test_introspection) {
 #define DO_READ_EVERY_FILE 0
 
 #if DO_READ_EVERY_FILE
-TEST(read_every_file_in_project) {
+TE-ST(read_every_file_in_project) {
     string rootFolder = path_normalize(path_join(path_directory(string(__FILE__)), "../../../"));
 
     hash_table<string, s64> fileMap;

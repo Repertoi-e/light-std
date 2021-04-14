@@ -119,8 +119,6 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-constexpr u32 ERROR_ENVVAR_NOT_FOUND = 203;
-
 void win64_crash_handler_init() {
     const DWORD bufferSize = 65535;
     utf16 buffer[bufferSize];

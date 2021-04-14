@@ -61,20 +61,16 @@ export {
     inline void write(fmt_context * f, const char8_t *str) { f->write((const byte *) str, c_string_length(str)); }
 
     // General formatting routimes which take specifiers into account:
-    template <types::is_integral T>
-    void write(fmt_context * f, T value);
-    template <types::is_floating_point T>
-    void write(fmt_context * f, T value);
+    void write(fmt_context * f, types::is_integral auto value);
+    void write(fmt_context * f, types::is_floating_point auto value);
     void write(fmt_context * f, bool value);
     void write(fmt_context * f, const void *value);
 
     // These routines write the value directly, without looking at formatting specs.
     // Useful when writing a custom formatter and there were specifiers but they
     // shouldn't propagate downwards when printing simpler types.
-    template <types::is_integral T>
-    void write_no_specs(fmt_context * f, T value);
-    template <types::is_floating_point T>
-    void write_no_specs(fmt_context * f, T value);
+    void write_no_specs(fmt_context * f, types::is_integral auto value);
+    void write_no_specs(fmt_context * f, types::is_floating_point auto value);
     inline void write_no_specs(fmt_context * f, bool value);
     inline void write_no_specs(fmt_context * f, const void *value);
 
@@ -193,17 +189,15 @@ void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs);
 
 // Writes a float with given formatting specs.
 // Note: This is not exported, instead use one of the overloads of the general write() function.
-template <types::is_floating_point T>
-void write_float(fmt_context *f, T value, fmt_specs specs);
+void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs specs);
 
 export {
     //
     // The implementations of the above functions follow:
     //
 
-    template <types::is_integral T>
-    void write(fmt_context * f, T value) {
-        u64 absValue = (u64) value;
+    void write(fmt_context * f, types::is_integral auto value) {
+        u64 absValue  = (u64) value;
         bool negative = sign_bit(value);
         if (negative) absValue = 0 - absValue;
 
@@ -214,8 +208,7 @@ export {
         }
     }
 
-    template <types::is_floating_point T>
-    void write(fmt_context * f, T value) {
+    void write(fmt_context * f, types::is_floating_point auto value) {
         if (f->Specs) {
             write_float(f, (f64) value, *f->Specs);
         } else {
@@ -223,16 +216,14 @@ export {
         }
     }
 
-    template <types::is_integral T>
-    void write_no_specs(fmt_context * f, T value) {
-        u64 absValue = (u64) value;
+    void write_no_specs(fmt_context * f, types::is_integral auto value) {
+        u64 absValue  = (u64) value;
         bool negative = sign_bit(value);
         if (negative) absValue = 0 - absValue;
         write_u64(f, absValue, negative, {});
     }
 
-    template <types::is_floating_point T>
-    void write_no_specs(fmt_context * f, T value) {
+    void write_no_specs(fmt_context * f, types::is_floating_point auto value) {
         write_float(f, (f64) value, {});
     }
 
@@ -240,7 +231,7 @@ export {
 
     inline void write_no_specs(fmt_context * f, const void *value) {
         auto *old = f->Specs;
-        f->Specs = null;
+        f->Specs  = null;
         write(f, value);
         f->Specs = old;
     }
@@ -378,8 +369,8 @@ utf8 *format_uint_base(utf8 *buffer, UInt value, s64 formattedSize, bool upper =
     buffer += formattedSize;
     do {
         const utf8 *digits = upper ? "0123456789ABCDEF" : "0123456789abcdef";
-        u32 digit = (value & ((1 << BASE_BITS) - 1));
-        *--buffer = (utf8)(BASE_BITS < 4 ? (utf8)('0' + digit) : digits[digit]);
+        u32 digit          = (value & ((1 << BASE_BITS) - 1));
+        *--buffer          = (utf8)(BASE_BITS < 4 ? (utf8)('0' + digit) : digits[digit]);
     } while ((value >>= BASE_BITS) != 0);
     return buffer;
 }
@@ -427,7 +418,7 @@ void write_helper(fmt_context *f, const byte *data, s64 size) {
     if (f->Specs->Precision != -1) {
         assert(f->Specs->Precision >= 0);
         length = f->Specs->Precision;
-        size = get_cp_at_index((const utf8 *) data, length) - (const utf8 *) data;
+        size   = get_cp_at_index((const utf8 *) data, length) - (const utf8 *) data;
     }
     write_padded_helper(
         f, *f->Specs, [&]() { write_no_specs(f, (const utf8 *) data, size); }, length);
@@ -449,7 +440,7 @@ void write(fmt_context *f, const void *value) {
         return;
     }
 
-    auto uptr = bit_cast<u64>(value);
+    auto uptr     = bit_cast<u64>(value);
     u32 numDigits = count_digits<4>(uptr);
 
     auto func = [&, f]() {
@@ -524,81 +515,54 @@ export {
         auto prefix = string(prefixBuffer, prefixPointer - prefixBuffer);
 
         s64 formattedSize = prefix.Length + numDigits;
-        s64 padding = 0;
+        s64 padding       = 0;
         if (specs.Align == fmt_alignment::NUMERIC) {
             if (specs.Width > formattedSize) {
-                padding = specs.Width - formattedSize;
+                padding       = specs.Width - formattedSize;
                 formattedSize = specs.Width;
             }
         } else if (specs.Precision > (s32) numDigits) {
             formattedSize = (u32) prefix.Length + (u32) specs.Precision;
-            padding = (u32) specs.Precision - numDigits;
-            specs.Fill = '0';
+            padding       = (u32) specs.Precision - numDigits;
+            specs.Fill    = '0';
         }
         if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
 
         utf8 U64_FORMAT_BUFFER[numeric_info<u64>::digits + 1]{};
 
-        type = (utf8) to_lower(type);
-        if (type == 'd') {
-            write_padded_helper(
-                f, specs,
-                [&]() {
-                    if (prefix.Length) write_no_specs(f, prefix);
-                    For(range(padding)) write_no_specs(f, specs.Fill);
-                    auto *p = format_uint_decimal(U64_FORMAT_BUFFER, value, numDigits);
-                    write_no_specs(f, p, U64_FORMAT_BUFFER + numDigits - p);
-                },
-                formattedSize);
-        } else if (type == 'b') {
-            write_padded_helper(
-                f, specs,
-                [&]() {
-                    if (prefix.Length) write_no_specs(f, prefix);
-                    For(range(padding)) write_no_specs(f, specs.Fill);
-                    auto *p = format_uint_base<1>(U64_FORMAT_BUFFER, value, numDigits);
-                    write_no_specs(f, p, U64_FORMAT_BUFFER + numDigits - p);
-                },
-                formattedSize);
-        } else if (type == 'o') {
-            write_padded_helper(
-                f, specs,
-                [&]() {
-                    if (prefix.Length) write_no_specs(f, prefix);
-                    For(range(padding)) write_no_specs(f, specs.Fill);
-                    auto *p = format_uint_base<3>(U64_FORMAT_BUFFER, value, numDigits);
-                    write_no_specs(f, p, U64_FORMAT_BUFFER + numDigits - p);
-                },
-                formattedSize);
-        } else if (type == 'x') {
-            write_padded_helper(
-                f, specs,
-                [&]() {
-                    if (prefix.Length) write_no_specs(f, prefix);
-                    For(range(padding)) write_no_specs(f, specs.Fill);
-                    auto *p = format_uint_base<4>(U64_FORMAT_BUFFER, value, numDigits, is_upper(specs.Type));
-                    write_no_specs(f, p, U64_FORMAT_BUFFER + numDigits - p);
-                },
-                formattedSize);
-        } else if (type == 'n') {
+        if (type == 'n') {
             formattedSize += ((numDigits - 1) / 3);
-            write_padded_helper(
-                f, specs,
-                [&]() {
-                    if (prefix.Length) write_no_specs(f, prefix);
-                    For(range(padding)) write_no_specs(f, specs.Fill);
-                    auto *p = format_uint_decimal(U64_FORMAT_BUFFER, value, formattedSize, "," /*@Locale*/);
-                    write_no_specs(f, p, U64_FORMAT_BUFFER + formattedSize - p);
-                },
-                formattedSize);
-        } else {
-            assert(false && "Invalid type");  // sanity
         }
+
+        type = (utf8) to_lower(type);
+        write_padded_helper(
+            f, specs, [&]() {
+                if (prefix.Length) write_no_specs(f, prefix);
+                For(range(padding)) write_no_specs(f, specs.Fill);
+
+                utf8 *p = null;
+                if (type == 'd') {
+                    p = format_uint_decimal(U64_FORMAT_BUFFER, value, numDigits);
+                } else if (type == 'b') {
+                    p = format_uint_base<1>(U64_FORMAT_BUFFER, value, numDigits);
+                } else if (type == 'o') {
+                    p = format_uint_base<3>(U64_FORMAT_BUFFER, value, numDigits);
+                } else if (type == 'x') {
+                    p = format_uint_base<4>(U64_FORMAT_BUFFER, value, numDigits, is_upper(specs.Type));
+                } else if (type == 'n') {
+                    numDigits = formattedSize;  // To include extra chars (like commas)
+                    p         = format_uint_decimal(U64_FORMAT_BUFFER, value, formattedSize, "," /*@Locale*/);
+                } else {
+                    assert(false && "Invalid type");  // sanity
+                }
+
+                write_no_specs(f, p, U64_FORMAT_BUFFER + numDigits - p);
+            },
+            formattedSize);
     }
 
     // Writes a float with given formatting specs
-    template <types::is_floating_point T>
-    void write_float(fmt_context * f, T value, fmt_specs specs) {
+    void write_float(fmt_context * f, types::is_floating_point auto value, fmt_specs specs) {
         fmt_float_specs floatSpecs = fmt_parse_float_specs(&f->Parse, specs);
 
         utf32 sign = 0;
@@ -606,7 +570,7 @@ export {
         // Check the sign bit instead of just checking "value < 0" since the latter is always false for NaN
         if (sign_bit(value)) {
             value = -value;
-            sign = '-';
+            sign  = '-';
         } else {
             // value is positive
             if (specs.Sign == fmt_sign::PLUS) {
@@ -622,13 +586,14 @@ export {
         bool percentage = specs.Type == '%';
         if (percentage) {
             value *= 100;
+
+            // @TODO: Handle width/precision for the '%'?
         }
 
         if (!is_finite(value)) {
             // Handle INF or NAN
             write_padded_helper(
-                f, specs,
-                [&]() {
+                f, specs, [&]() {
                     if (sign) write_no_specs(f, sign);
                     write_no_specs(f, is_nan(value) ? (is_upper(specs.Type) ? "NAN" : "nan") : (is_upper(specs.Type) ? "INF" : "inf"));
                     if (percentage) write_no_specs(f, U'%');
@@ -636,9 +601,6 @@ export {
                 3 + (sign ? 1 : 0) + (percentage ? 1 : 0));
             return;
         }
-
-        // @Locale The decimal point written in _internal::format_float_ should be locale-dependent.
-        // Also if we decide to add a thousands separator we should do it inside _format_float_
 
         if (floatSpecs.Format == fmt_float_specs::HEX) {
             // @TODO
@@ -653,8 +615,85 @@ export {
             ++floatSpecs.Precision;
         }
 
+        // Handle numeric and none alignment
+        if (specs.Align == fmt_alignment::NUMERIC) {
+            if (sign) {
+                write_no_specs(f, sign);
+                sign = 0;
+                if (specs.Width) --specs.Width;
+            }
+            specs.Align = fmt_alignment::RIGHT;
+        } else if (specs.Align == fmt_alignment::NONE) {
+            specs.Align = fmt_alignment::RIGHT;
+        }
+
         string_builder floatBuffer;
+
+        // This routine writes the significand in the floatBuffer, then we handle the exponent
         s32 exp = fmt_format_non_negative_float(floatBuffer, value, floatSpecs);
+
+        s64 significandSize = floatBuffer.BaseBuffer.Occupied;
+        s64 outputExp       = exp + significandSize - 1;
+
+        s64 size = significandSize + sign ? 1 : 0;
+
+        // @Locale The decimal point written in _internal::format_float_ should be locale-dependent.
+        // Also if we decide to add a thousands separator we should do it inside _format_float_
+        utf32 decimalPoint = '.';
+
+        bool useExpFormat = false;
+        if (floatSpecs.Format == fmt_float_specs::EXP) useExpFormat = true;
+        if (floatSpecs.Format == fmt_float_specs::GENERAL) {
+            // Use the fixed notation if the exponent is in [EXP_LOWER, EXP_UPPER),
+            // e.g. 0.0001 instead of 1e-04. Otherwise use the exponent notation.
+            constexpr s64 EXP_LOWER = -4;
+            constexpr s64 EXP_UPPER = 16;
+
+            useExpFormat = outputExp < EXP_UPPER || outputExp >= (floatSpecs.Precision > 0 ? floatSpecs.Precision : EXP_UPPER);
+        }
+
+        if (useExpFormat) {
+            s64 numZeros = 0;
+            if (floatSpecs.ShowPoint) {
+                numZeros = floatSpecs.Precision - significandSize;
+                if (numZeros < 0) numZeros = 0;
+                size += numZeros;
+            } else if (significandSize == 1) {
+                decimalPoint = 0;
+            }
+
+            // Choose 2, 3 or 4 exponent digits depending on the magnitude
+            s64 absOutputExp = abs(outputExp);
+            s32 expDigits    = 2;
+            if (absOutputExp >= 100) expDigits = absOutputExp >= 1000 ? 4 : 3;
+
+            size += (decimalPoint ? 1 : 0) + 2 + expDigits;
+
+            utf32 expChar = floatSpecs.Upper ? 'E' : 'e';
+
+            if (specs.Width > 0) {
+                write_padded_helper(
+                    f, specs, [&]() {
+                        if (sign) write_no_specs(f, sign);
+                        // write_no_specs(f, is_nan(value) ? (is_upper(specs.Type) ? "NAN" : "nan") : (is_upper(specs.Type) ? "INF" : "inf"));
+                        // if (percentage) write_no_specs(f, U'%');
+                    },
+                    size);
+            }
+
+            // auto write = [=](iterator it) {
+            //     if (sign) *it++ = static_cast<Char>(data::signs[sign]);
+            //
+            //     // Insert a decimal point after the first digit
+            //     it = write_significand(it, significand, significand_size, 1, decimal_point);
+            //
+            //     if (num_zeros > 0) it = detail::fill_n(it, num_zeros, zero);
+            //     *it++ = static_cast<Char>(exp_char);
+            //     return write_exponent<Char>(output_exp, it);
+            // };
+            // return specs.width > 0 ? write_padded<align::right>(out, specs, size, write)
+            //                        : base_iterator(out, write(reserve(out, size)));
+        }
 
         // auto fp = big_decimal_fp{buffer.data(), static_cast<int>(buffer.size()), exp};
         // return write_float(out, fp, specs, fspecs, '.'); // @Locale The dot.
@@ -684,35 +723,22 @@ export {
         // }
         if (percentage) string_append(floatBuffer, '%');
 
-        if (specs.Align == fmt_alignment::NUMERIC) {
-            if (sign) {
-                write_no_specs(f, sign);
-                sign = 0;
-                if (specs.Width) --specs.Width;
-            }
-            specs.Align = fmt_alignment::RIGHT;
-        } else if (specs.Align == fmt_alignment::NONE) {
-            specs.Align = fmt_alignment::RIGHT;
-        }
-
         //
         // Assert we haven't allocated, which would be bad, because our formatting library is not supposed to allocate by itself.
-        // We need to think about how to handle this case!
-        // 
+        //
         // Note that string builder allocates if the default buffer (size 1 KiB) runs out of space,
         // would anybody even try to format such a big float?
         //
-        // I'm more inclined to say "f it" and don't handle the case when the formatted float is bigger,
+        // I'm more into the idea to say "f it" and just don't handle the case when the formatted float is bigger (truncate),
         // instead of adding to the documentation "Hey, by the way, formatting floats may allocate memory."
-        // 
-        // @TODO: Make string_builder not add additional buffers with an option (maybe a template option?).
+        //
+        // @TODO: Make string_builder not add additional buffers with an option (maybe a template?).
         //
         assert(!floatBuffer.IndirectionCount);
 
         s64 formattedSize = floatBuffer.BaseBuffer.Occupied + (sign ? 1 : 0);
         write_padded_helper(
-            f, specs,
-            [&]() {
+            f, specs, [&]() {
                 if (sign) write_no_specs(f, sign);
                 write_no_specs(f, (utf8 *) floatBuffer.BaseBuffer.Data, floatBuffer.BaseBuffer.Occupied);
             },

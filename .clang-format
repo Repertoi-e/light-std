@@ -12,3 +12,5 @@ BinPackParameters: false
 
 AllowShortBlocksOnASingleLine: true
 AllowShortFunctionsOnASingleLine: true
+
+AlignConsecutiveAssignments: true

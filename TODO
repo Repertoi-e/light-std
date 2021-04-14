@@ -39,6 +39,7 @@ Not even looked at yet:
 - Regex?
 
 
+
 LOC:            80394
 		        ----
 		        80115
@@ -55,5 +56,7 @@ LOC:            80394
 				24642 <-- removed manual windows error code descriptions
 				24064
 				23978
-				
+				24497
+				24307
+				24403
 				

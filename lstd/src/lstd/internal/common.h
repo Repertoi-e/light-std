@@ -41,17 +41,17 @@ LSTD_BEGIN_NAMESPACE
 // void my_allocate(s64 size, source_location loc = source_location::current()) { ... }
 //
 struct source_location {
-    const char *File = "Unknown";
+    const char *File     = "Unknown";
     const char *Function = "Unknown";
-    s64 Line = 0;
+    s64 Line             = 0;
 
     constexpr source_location() {}
 
     static constexpr source_location current(const char *file = __builtin_FILE(), const char *func = __builtin_FUNCTION(), s64 line = __builtin_LINE()) {
         source_location loc;
-        loc.File = file;
+        loc.File     = file;
         loc.Function = func;
-        loc.Line = line;
+        loc.Line     = line;
         return loc;
     }
 };
@@ -360,8 +360,8 @@ T *clone(T *dest, T src) {
 template <typename T>
 constexpr void swap(T &a, T &b) {
     T c = a;
-    a = b;
-    b = c;
+    a   = b;
+    b   = c;
 }
 
 template <typename T, s64 N>
@@ -375,7 +375,6 @@ constexpr void swap(T (&a)[N], T (&b)[N]) {
 //
 
 // In this library, copy_memory works like memmove in the std (handles overlapping buffers)
-// :CopyMemory (declared in types.h also to avoid circular includes)
 extern void *(*copy_memory)(void *dst, const void *src, u64 size);
 constexpr void *const_copy_memory(void *dst, const void *src, u64 size) {
     auto *d = (char *) dst;
@@ -400,15 +399,15 @@ constexpr void *const_copy_memory(void *dst, const void *src, u64 size) {
 
 extern void *(*fill_memory)(void *dst, char value, u64 size);
 constexpr void *const_fill_memory(void *dst, char value, u64 size) {
-    u64 uValue = (u64) value;
+    u64 uValue     = (u64) value;
     u64 largeValue = uValue << 56 | uValue << 48 | uValue << 40 | uValue << 32 | uValue << 24 | uValue << 16 | uValue << 8 | uValue;
 
     u64 offset = ((u64) dst) % sizeof(u64);
-    byte *b = (byte *) dst;
+    byte *b    = (byte *) dst;
     while (offset--) *b++ = value;
 
     u64 *dstBig = (u64 *) b;
-    u64 bigNum = (size & (~sizeof(u64) + 1)) / sizeof(u64);
+    u64 bigNum  = (size & (~sizeof(u64) + 1)) / sizeof(u64);
     while (bigNum--) *dstBig++ = largeValue;
 
     size &= (sizeof(u64) - 1);
@@ -444,78 +443,74 @@ constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, u64 size)
 #pragma intrinsic(_BitScanForward64)
 #endif
 
+// Returns the index of the most significant set bit.
+// The index always starts at the LSB.
+//   e.g msb(12) (binary - 1100) -> returns 3
+//       lsb(12) (binary - 1100) -> returns 2
+// If x is 0, returned value is -1.
 template <typename T>
-constexpr always_inline u32 msb(T x) {
-    // We can't use a concept here because we need the msb forward declaration in u128.h, 
-    // but that file can't include type_info.h C++ is bullshit.
-    static_assert(types::is_unsigned_integral<T>); 
-
-    assert(x != 0);
+constexpr always_inline s32 msb(T x) {
+    // We can't use a concept here because we need the msb forward declaration in u128.h,
+    // but that file can't include "type_info.h". C++ is bullshit.
+    static_assert(types::is_unsigned_integral<T>);
 
     if constexpr (sizeof(T) == 16) {
         // 128 bit integers
         if (x.hi != 0) return 64 + msb(x.hi);
         return msb(x.lo);
-    }
-
-    if constexpr (is_constant_evaluated()) {
-        // Used at compile time and when said instructions are not supported.
-        // See "Hacker's Delight" section 5-3.
-        T y = 0;
-
-        u32 n = numeric_info<T>::digits;
-        u32 c = numeric_info<T>::digits / 2;
-        do {
-            y = (T)(x >> c);
-            if (y != 0) {
-                n -= c;
-                x = y;
-            }
-            c >>= 1;
-        } while (c != 0);
-        return (s32) n - (s32) x;
     } else {
-#if COMPILER == MSVC
-        if constexpr (sizeof(T) == 8) {
-            unsigned long r = 0;
-            _BitScanReverse64(&r, x);
-            return 63 - r;
+        if (x == 0) return -1;
+
+        if (is_constant_evaluated()) {
+            s32 r = 0;
+            while (x >>= 1) ++r;
+            return r;
         } else {
-            unsigned long r = 0;
-            _BitScanReverse(&r, x);
-            return 31 - r;
-        }
+#if COMPILER == MSVC
+            if constexpr (sizeof(T) == 8) {
+                unsigned long r = 0;
+                _BitScanReverse64(&r, x);
+                return (s32) r;
+            } else {
+                unsigned long r = 0;
+                _BitScanReverse(&r, x);
+                return (s32) r;
+            }
 #endif
+        }
     }
 }
 
-template <types::is_unsigned_integral T>
-constexpr always_inline u32 lsb(T x) {
-    assert(x != 0);
-
-    if constexpr (sizeof(T) == 16) {
+// Returns the index of the least significant set bit.
+// The index always starts at the LSB.
+//   e.g msb(12) (binary - 1100) -> returns 3
+//       lsb(12) (binary - 1100) -> returns 2
+// If x is 0, returned value is -1.
+constexpr always_inline s32 lsb(types::is_unsigned_integral auto x) {
+    if constexpr (sizeof(x) == 16) {
         // 128 bit integers
         if (x.lo == 0) return 64 + lsb(x.hi);
         return lsb(x.lo);
-    }
-
-    if constexpr (is_constant_evaluated()) {
-        // Used at compile time and when said instructions are not supported.
-        // see "Hacker's Delight" section 5-4.
-        constexpr s32 digits = numeric_info<T>::digits;
-        return digits - msb((T)((T)(~x) & (T)(x - 1)));
     } else {
-#if COMPILER == MSVC
-        if constexpr (sizeof(T) == 8) {
-            unsigned long r = 0;
-            _BitScanForward64(&r, x);
+        if (x == 0) return -1;
+
+        if (is_constant_evaluated()) {
+            s32 r = 0;
+            while (!(x & 1)) ++r, x >>= 1;
             return r;
         } else {
-            unsigned long r = 0;
-            _BitScanForward(&r, x);
-            return r;
-        }
+#if COMPILER == MSVC
+            if constexpr (sizeof(x) == 8) {
+                unsigned long r = 0;
+                _BitScanForward64(&r, x);
+                return (s32) r;
+            } else {
+                unsigned long r = 0;
+                _BitScanForward(&r, x);
+                return (s32) r;
+            }
 #endif
+        }
     }
 }
 
@@ -563,12 +558,6 @@ constexpr u64 rotate_right_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 
 #pragma warning(disable : 4146)
 #endif
 
-template <types::is_integral T>
-constexpr void set_bit(T *number, T bit, bool value) {
-    auto enabled = (types::make_unsigned_t<T>) value;
-    *number ^= (-enabled ^ *number) & bit;
-}
-
 #if COMPILER == MSVC
 #pragma warning(pop)
 #endif
@@ -584,16 +573,19 @@ constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
 constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
 #undef POWERS_OF_10
 
+//
 // Returns the number of decimal digits in n. Leading zeros are not counted
 // except for n == 0 in which case count_digits returns 1.
-inline u32 count_digits(u64 n) {
-    s32 t = (64 - msb(n | 1)) * 1233 >> 12;
+//
+// Source: Bit-Twiddling hacks
+always_inline u32 count_digits(u64 n) {
+    s32 t = (msb(n | 1)) * 1233 >> 12;
     return (u32) t - (n < ZERO_OR_POWERS_OF_10_64[t]) + 1;
 }
 
 template <u32 Bits, types::is_integral T>
 constexpr u32 count_digits(T value) {
-    T n = value;
+    T n           = value;
     u32 numDigits = 0;
     do {
         ++numDigits;
@@ -653,21 +645,21 @@ always_inline constexpr T atomic_compare_and_swap(T *ptr, T exchange, T comperan
 
 // Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
 always_inline constexpr void byte_swap_2(void *ptr) {
-    u16 x = *(u16 *) ptr;
+    u16 x        = *(u16 *) ptr;
     *(u16 *) ptr = x << 8 & 0xFF00 | x >> 8 & 0x00FF;
 }
 
 // Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
 always_inline constexpr void byte_swap_4(void *ptr) {
-    u32 x = *(u32 *) ptr;
+    u32 x        = *(u32 *) ptr;
     *(u32 *) ptr = x << 24 & 0xFF000000 | x << 8 & 0x00FF0000 | x >> 8 & 0x0000FF00 | x >> 24 & 0x000000FF;
 }
 
 // Function for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
 always_inline constexpr void byte_swap_8(void *ptr) {
-    u64 x = *(u64 *) ptr;
-    x = ((x << 8) & 0xFF00FF00FF00FF00ULL) | ((x >> 8) & 0x00FF00FF00FF00FFULL);
-    x = ((x << 16) & 0xFFFF0000FFFF0000ULL) | ((x >> 16) & 0x0000FFFF0000FFFFULL);
+    u64 x        = *(u64 *) ptr;
+    x            = ((x << 8) & 0xFF00FF00FF00FF00ULL) | ((x >> 8) & 0x00FF00FF00FF00FFULL);
+    x            = ((x << 16) & 0xFFFF0000FFFF0000ULL) | ((x >> 16) & 0x0000FFFF0000FFFFULL);
     *(u64 *) ptr = (x << 32) | (x >> 32);
 }
 

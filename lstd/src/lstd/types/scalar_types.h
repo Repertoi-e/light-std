@@ -23,12 +23,12 @@ LSTD_END_NAMESPACE
 //
 // Fundamental types:
 //
-using s8 = char;
+using s8  = char;
 using s16 = short;
 using s32 = int;
 using s64 = long long;
 
-using u8 = unsigned char;
+using u8  = unsigned char;
 using u16 = unsigned short;
 using u32 = unsigned;
 using u64 = unsigned long long;
@@ -68,35 +68,41 @@ using byte = unsigned char;
 using f32 = float;
 using f64 = double;
 
-#define F64_DECIMAL_DIG 17  // # of decimal digits of rounding precision
-#define F64_DIG 15  // # of decimal digits of precision
-#define F64_EPSILON 2.2204460492503131e-016  // smallest such that 1.0+F64_EPSILON != 1.0
-#define F64_HAS_SUBNORM 1  // type does support subnormal numbers
-#define F64_MANT_DIG 53  // # of bits in mantissa
-#define F64_MAX 1.7976931348623158e+308  // max value
-#define F64_MAX_10_EXP 308  // max decimal exponent
-#define F64_MAX_EXP 1024  // max binary exponent
-#define F64_MIN 2.2250738585072014e-308  // min positive value
-#define F64_MIN_10_EXP (-307)  // min decimal exponent
-#define F64_MIN_EXP (-1021)  // min binary exponent
-#define F64_RADIX 2  // exponent radix
-#define F64_TRUE_MIN 4.9406564584124654e-324  // min positive value
+constexpr s32 F64_DECIMAL_DIG = 17;                       // # of decimal digits of rounding precision
+constexpr s32 F64_DIG         = 15;                       // # of decimal digits of precision
+constexpr f64 F64_EPSILON     = 2.2204460492503131e-016;  // smallest such that 1.0 + F64_EPSILON != 1.0
 
-#define F32_DECIMAL_DIG 9  // # of decimal digits of rounding precision
-#define F32_DIG 6  // # of decimal digits of precision
-#define F32_EPSILON 1.192092896e-07F  // smallest such that 1.0+F32_EPSILON != 1.0
-#define F32_HAS_SUBNORM 1  // type does support subnormal numbers
-#define F32_GUARD 0
-#define F32_MANT_DIG 24  // # of bits in mantissa
-#define F32_MAX 3.402823466e+38F  // max value
-#define F32_MAX_10_EXP 38  // max decimal exponent
-#define F32_MAX_EXP 128  // max binary exponent
-#define F32_MIN 1.175494351e-38F  // min normalized positive value
-#define F32_MIN_10_EXP (-37)  // min decimal exponent
-#define F32_MIN_EXP (-125)  // min binary exponent
-#define F32_NORMALIZE 0
-#define F32_RADIX 2  // exponent radix
-#define F32_TRUE_MIN 1.401298464e-45F  // min positive value
+constexpr s32 F64_MANT_BITS = 52;  // # of bits in mantissa, excluding the hidden bit (which is always interpreted as 1 for normal numbers)
+
+constexpr s32 F64_EXP_BITS   = 11;     // # of bits in exponent
+constexpr s32 F64_EXP_BIAS   = 1023;   // also called zero offset
+constexpr s32 F64_MAX_EXP    = 1023;   // max binary exponent
+constexpr s32 F64_MIN_EXP    = -1022;  // min binary exponent
+constexpr s32 F64_MAX_10_EXP = 308;    // max decimal exponent
+constexpr s32 F64_MIN_10_EXP = -307;   // min decimal exponent
+
+constexpr f64 F64_MAX = 1.7976931348623158e+308;  // max value
+constexpr f64 F64_MIN = 2.2250738585072014e-308;  // min positive value
+
+constexpr f64 F64_TRUE_MIN = 4.9406564584124654e-324;  // min positive value, denormal
+
+constexpr s32 F32_DECIMAL_DIG = 9;                 // # of decimal digits of rounding precision
+constexpr s32 F32_DIG         = 6;                 // # of decimal digits of precision
+constexpr f64 F32_EPSILON     = 1.192092896e-07F;  // smallest such that 1.0 + F64_EPSILON != 1.0
+
+constexpr s32 F32_MANT_BITS = 23;  // # of bits in mantissa, excluding the hidden bit (which is always interpreted as 1 for normal numbers)
+
+constexpr s32 F32_EXP_BITS = 8;     // # of bits in exponent
+constexpr s32 F32_EXP_BIAS = 127;   // also called zero offset
+constexpr s32 F32_MAX_EXP  = 127;   // max binary exponent
+constexpr s32 F32_MIN_EXP  = -126;  // min binary exponent
+constexpr s32 F32_MAX_10_EXP   = 38;    // max decimal exponent
+constexpr s32 F32_MIN_10_EXP   = -37;   // min decimal exponent
+
+constexpr f64 F32_MAX = 3.402823466e+38F;  // max value
+constexpr f64 F32_MIN = 1.175494351e-38F;  // min positive value
+
+constexpr f64 F32_TRUE_MIN = 1.401298464e-45F;  // min positive value, denormal
 
 //
 // Vector types (aligned on 16 byte boundaries for SIMDs)

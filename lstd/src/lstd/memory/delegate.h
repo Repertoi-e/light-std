@@ -69,9 +69,6 @@ struct delegate<R(A...)> {
     using default_function = void (default_type_::*)(void);        // Unknown default function (undefined)
     using default_type = target<default_type_, default_function>;  // Default target type
 
-    // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
-    static constexpr bool IS_ARRAY_LIKE = true;
-
     static constexpr s64 Count = sizeof(default_type);
 
     alignas(default_type) byte Data[Count]{};
