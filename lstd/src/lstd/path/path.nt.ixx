@@ -204,7 +204,7 @@ export {
        private:
         utf16 *Path16 = null;
 
-        char PlatformFileInfo[sizeof(WIN32_FIND_DATAW)]{};  // We don't want to export the symbol.
+        char PlatformFileInfo[sizeof(WIN32_FIND_DATAW)]{};
 
         // I don't usually use "private" but we seriously don't need to expose this garbage to users...
         friend void path_read_next_entry(path_walker &walker);
@@ -229,7 +229,7 @@ export {
     HANDLE handleName = call;                                                                                  \
     if (handleName == INVALID_HANDLE_VALUE) {                                                                  \
         string extendedCallSite = sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
-        char *cStr = string_to_c_string(extendedCallSite);                                                     \
+        char *cStr              = string_to_c_string(extendedCallSite);                                        \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);                                \
         free(extendedCallSite);                                                                                \
         free(cStr);                                                                                            \
@@ -255,344 +255,339 @@ string get_path_from_here_to(const string &here, const string &there) {
 
 utf16 *utf8_to_utf16(const string &str) { return internal::platform_utf8_to_utf16(str); }
 
-//
-// Definitions for exports begin here.
-//
+constexpr path_split_drive_result path_split_drive(const string &path) {
+    if (path.Length >= 2) {
+        if (path[{0, 2}] == "\\\\" && path[2] != '\\') {
+            // It is an UNC path
 
-export {
-    constexpr path_split_drive_result path_split_drive(const string &path) {
-        if (path.Length >= 2) {
-            if (path[{0, 2}] == "\\\\" && path[2] != '\\') {
-                // It is an UNC path
+            //  vvvvvvvvvvvvvvvvvvvv drive letter or UNC path
+            //  \\machine\mountpoint\directory\etc\...
+            //             directory ^^^^^^^^^^^^^^^
 
-                //  vvvvvvvvvvvvvvvvvvvv drive letter or UNC path
-                //  \\machine\mountpoint\directory\etc\...
-                //             directory ^^^^^^^^^^^^^^^
+            s64 index = find_any_of(path, "\\/", 2);
+            if (index == -1) return {"", path};
 
-                s64 index = find_any_of(path, "\\/", 2);
-                if (index == -1) return {"", path};
+            s64 index2 = find_any_of(path, "\\/", index + 1);
 
-                s64 index2 = find_any_of(path, "\\/", index + 1);
-
-                // A UNC path can't have two slashes in a row
-                // (after the initial two)
-                if (index2 == index + 1) return {"", path};
-                if (index2 == -1) {
-                    index2 = path.Length;
-                }
-                return {path[{0, index2}], path[{index2, path.Length}]};
+            // A UNC path can't have two slashes in a row
+            // (after the initial two)
+            if (index2 == index + 1) return {"", path};
+            if (index2 == -1) {
+                index2 = path.Length;
             }
-
-            if (path[1] == ':') {
-                return {path[{0, 2}], path[{2, path.Length}]};
-            }
+            return {path[{0, index2}], path[{index2, path.Length}]};
         }
 
-        return {"", path};
+        if (path[1] == ':') {
+            return {path[{0, 2}], path[{2, path.Length}]};
+        }
     }
 
-    constexpr bool path_is_absolute(const string &path) {
-        auto [_, rest] = path_split_drive(path);
-        return rest && path_is_sep(rest[0]);
-    }
+    return {"", path};
+}
 
-    [[nodiscard("Leak")]] string path_join(const array<string> &paths) {
-        assert(paths.Count >= 2);
+constexpr bool path_is_absolute(const string &path) {
+    auto [_, rest] = path_split_drive(path);
+    return rest && path_is_sep(rest[0]);
+}
 
-        auto [result_drive, result_path] = path_split_drive(paths[0]);
+[[nodiscard("Leak")]] string path_join(const array<string> &paths) {
+    assert(paths.Count >= 2);
 
-        string result;
-        clone(&result, result_path);
+    auto [result_drive, result_path] = path_split_drive(paths[0]);
 
-        For(range(1, paths.Count)) {
-            auto p = paths[it];
-            auto [p_drive, p_path] = path_split_drive(p);
-            if (p_path && path_is_sep(p_path[0])) {
-                // Second path is absolute
-                if (p_drive || !result_drive) {
-                    result_drive = p_drive;  // These are just substrings so it's fine
-                }
+    string result;
+    clone(&result, result_path);
+
+    For(range(1, paths.Count)) {
+        auto p                 = paths[it];
+        auto [p_drive, p_path] = path_split_drive(p);
+        if (p_path && path_is_sep(p_path[0])) {
+            // Second path is absolute
+            if (p_drive || !result_drive) {
+                result_drive = p_drive;  // These are just substrings so it's fine
+            }
+
+            free(result);
+            clone(&result, p_path);
+
+            continue;
+        } else if (p_drive && p_drive != result_drive) {
+            if (compare_ignore_case(p_drive, result_drive) != -1) {
+                // Different drives => ignore the first path entirely
+                result_drive = p_drive;
 
                 free(result);
                 clone(&result, p_path);
 
                 continue;
-            } else if (p_drive && p_drive != result_drive) {
-                if (compare_ignore_case(p_drive, result_drive) != -1) {
-                    // Different drives => ignore the first path entirely
-                    result_drive = p_drive;
-
-                    free(result);
-                    clone(&result, p_path);
-
-                    continue;
-                }
-                // Same drives, different case
-                result_drive = p_drive;
             }
-
-            // Second path is relative to the first
-            if (result && !path_is_sep(result[-1])) {
-                string_append(result, '\\');
-            }
-            string_append(result, p_path);
+            // Same drives, different case
+            result_drive = p_drive;
         }
 
-        // Add separator between UNC and non-absolute path if needed
-        if (result && !path_is_sep(result[0]) && result_drive && result_drive[-1] != ':') {
-            string_insert_at(result, 0, '\\');
-        } else {
-            string_insert_at(result, 0, result_drive);
+        // Second path is relative to the first
+        if (result && !path_is_sep(result[-1])) {
+            string_append(result, '\\');
         }
+        string_append(result, p_path);
+    }
+
+    // Add separator between UNC and non-absolute path if needed
+    if (result && !path_is_sep(result[0]) && result_drive && result_drive[-1] != ':') {
+        string_insert_at(result, 0, '\\');
+    } else {
+        string_insert_at(result, 0, result_drive);
+    }
+    return result;
+}
+
+[[nodiscard("Leak")]] string path_join(const string &one, const string &other) {
+    auto arr = to_stack_array(one, other);
+    return path_join(arr);
+}
+
+[[nodiscard("Leak")]] string path_normalize(const string &path) {
+    string result;
+    string_reserve(result, path.Length);
+
+    if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\")) {
+        // In the case of paths with these prefixes:
+        // \\.\ -> device names
+        // \\?\ -> literal paths
+        // do not do any normalization, but return the path unchanged.
+        clone(&result, path);
         return result;
     }
 
-    [[nodiscard("Leak")]] string path_join(const string &one, const string &other) {
-        auto arr = to_stack_array(one, other);
-        return path_join(arr);
+    auto [DriveOrUNC, rest] = path_split_drive(path);
+    if (DriveOrUNC) {
+        string_append(result, DriveOrUNC);
     }
 
-    [[nodiscard("Leak")]] string path_normalize(const string &path) {
-        string result;
-        string_reserve(result, path.Length);
+    // Collapse leading slashes
+    if (path_is_sep(rest[0])) {
+        string_append(result, '\\');
+        while (path_is_sep(rest[0])) advance_cp(&rest, 1);
+    }
 
-        if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\")) {
-            // In the case of paths with these prefixes:
-            // \\.\ -> device names
-            // \\?\ -> literal paths
-            // do not do any normalization, but return the path unchanged.
-            clone(&result, path);
-            return result;
-        }
+    auto components = path_split_into_components(rest);
+    defer(free(components));
 
-        auto [DriveOrUNC, rest] = path_split_drive(path);
-        if (DriveOrUNC) {
-            string_append(result, DriveOrUNC);
-        }
-
-        // Collapse leading slashes
-        if (path_is_sep(rest[0])) {
-            string_append(result, '\\');
-            while (path_is_sep(rest[0])) advance_cp(&rest, 1);
-        }
-
-        auto components = path_split_into_components(rest);
-        defer(free(components));
-
-        s64 i = 0;
-        while (i < components.Count) {
-            auto it = components[i];
-            if (!it || it == ".") {
+    s64 i = 0;
+    while (i < components.Count) {
+        auto it = components[i];
+        if (!it || it == ".") {
+            array_remove_at(components, i);
+        } else if (it == "..") {
+            if (i > 0 && components[i - 1] != "..") {
+                array_remove_range(components, i - 1, i + 1);
+                --i;
+            } else if (i == 0 && result && path_is_sep(result[-1])) {
                 array_remove_at(components, i);
-            } else if (it == "..") {
-                if (i > 0 && components[i - 1] != "..") {
-                    array_remove_range(components, i - 1, i + 1);
-                    --i;
-                } else if (i == 0 && result && path_is_sep(result[-1])) {
-                    array_remove_at(components, i);
-                } else {
-                    ++i;
-                }
             } else {
                 ++i;
             }
+        } else {
+            ++i;
         }
-
-        // If the path is now empty, substitute "."
-        if (!result && !components) {
-            return ".";
-        }
-
-        For(components) {
-            string_append(result, it);
-            string_append(result, '\\');
-        }
-        // Remove the trailing slash we added in the final iteration of the loop
-        string_remove_at(result, -1);
-
-        return result;
     }
 
-    constexpr path_split_result path_split(const string &path) {
-        auto [DriveOrUNC, rest] = path_split_drive(path);
-
-        // Set i to index beyond path's last slash
-        s64 i = find_reverse_any_of(rest, "/\\") + 1;
-
-        string head = rest[{0, i}];
-        string tail = rest[{i, rest.Length}];
-
-        string trimmed = substring(head, 0, find_reverse_not_any_of(head, "/\\") + 1);
-        if (trimmed) head = trimmed;
-
-        head = substring(path, 0, head.Length + DriveOrUNC.Length);
-
-        return {head, tail};
+    // If the path is now empty, substitute "."
+    if (!result && !components) {
+        return ".";
     }
 
-    constexpr string path_base_name(const string &path) {
-        auto [_, tail] = path_split(path);
-        return tail;
+    For(components) {
+        string_append(result, it);
+        string_append(result, '\\');
     }
+    // Remove the trailing slash we added in the final iteration of the loop
+    string_remove_at(result, -1);
 
-    constexpr string path_directory(const string &path) {
-        auto [head, _] = path_split(path);
-        return head;
+    return result;
+}
+
+constexpr path_split_result path_split(const string &path) {
+    auto [DriveOrUNC, rest] = path_split_drive(path);
+
+    // Set i to index beyond path's last slash
+    s64 i = find_reverse_any_of(rest, "/\\") + 1;
+
+    string head = rest[{0, i}];
+    string tail = rest[{i, rest.Length}];
+
+    string trimmed = substring(head, 0, find_reverse_not_any_of(head, "/\\") + 1);
+    if (trimmed) head = trimmed;
+
+    head = substring(path, 0, head.Length + DriveOrUNC.Length);
+
+    return {head, tail};
+}
+
+constexpr string path_base_name(const string &path) {
+    auto [_, tail] = path_split(path);
+    return tail;
+}
+
+constexpr string path_directory(const string &path) {
+    auto [head, _] = path_split(path);
+    return head;
+}
+
+constexpr path_split_extension_result path_split_extension(const string &path) {
+    return path_split_extension_general(path, '/', '\\', '.');
+}
+
+// == is_file() || is_directory()
+bool path_exists(const string &path) {
+    HANDLE file = CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    CloseHandle(file);
+    return true;
+}
+
+bool path_is_file(const string &path) {
+    HANDLE file = CreateFileW(utf8_to_utf16(path), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    defer(CloseHandle(file));
+
+    BY_HANDLE_FILE_INFORMATION info;
+    if (!GetFileInformationByHandle(file, &info)) return false;
+    return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
+
+bool path_is_directory(const string &path) {
+    HANDLE file = CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    defer(CloseHandle(file));
+
+    BY_HANDLE_FILE_INFORMATION info;
+    if (!GetFileInformationByHandle(file, &info)) return false;
+    return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
+bool path_is_symbolic_link(const string &path) {
+    DWORD attribs = GetFileAttributesW(utf8_to_utf16(path));
+    if (attribs != INVALID_FILE_ATTRIBUTES) {
+        return (attribs & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
     }
+    return false;
+}
 
-    constexpr path_split_extension_result path_split_extension(const string &path) {
-        return path_split_extension_general(path, '/', '\\', '.');
-    }
+s64 path_file_size(const string &path) {
+    if (path_is_directory(path)) return 0;
 
-    // == is_file() || is_directory()
-    bool path_exists(const string &path) {
-        HANDLE file = CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
-        if (file == INVALID_HANDLE_VALUE) return false;
-        CloseHandle(file);
-        return true;
-    }
+    CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null), 0);
+    defer(CloseHandle(file));
 
-    bool path_is_file(const string &path) {
-        HANDLE file = CreateFileW(utf8_to_utf16(path), 0, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
-        if (file == INVALID_HANDLE_VALUE) return false;
-        defer(CloseHandle(file));
+    LARGE_INTEGER size = {0};
+    GetFileSizeEx(file, &size);
+    return size.QuadPart;
+}
 
-        BY_HANDLE_FILE_INFORMATION info;
-        if (!GetFileInformationByHandle(file, &info)) return false;
-        return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
-    }
+time_t path_creation_time(const string &path) {
+    GET_READONLY_EXISTING_HANDLE(handle, 0);
+    FILETIME time;
+    if (!GetFileTime(handle, &time, null, null)) return 0;
+    return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+}
 
-    bool path_is_directory(const string &path) {
-        HANDLE file = CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
-        if (file == INVALID_HANDLE_VALUE) return false;
-        defer(CloseHandle(file));
+time_t path_last_access_time(const string &path) {
+    GET_READONLY_EXISTING_HANDLE(handle, 0);
+    FILETIME time;
+    if (!GetFileTime(handle, null, &time, null)) return 0;
+    return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+}
 
-        BY_HANDLE_FILE_INFORMATION info;
-        if (!GetFileInformationByHandle(file, &info)) return false;
-        return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
-    }
+time_t path_last_modification_time(const string &path) {
+    GET_READONLY_EXISTING_HANDLE(handle, 0);
+    FILETIME time;
+    if (!GetFileTime(handle, null, null, &time)) return 0;
+    return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
+}
 
-    bool path_is_symbolic_link(const string &path) {
-        DWORD attribs = GetFileAttributesW(utf8_to_utf16(path));
-        if (attribs != INVALID_FILE_ATTRIBUTES) {
-            return (attribs & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
-        }
-        return false;
-    }
+bool path_create_directory(const string &path) {
+    if (path_exists(path)) return false;
+    return CreateDirectoryW(utf8_to_utf16(path), null);
+}
 
-    s64 path_file_size(const string &path) {
-        if (path_is_directory(path)) return 0;
+bool path_delete_file(const string &path) {
+    if (!path_is_file(path)) return false;
+    return DeleteFileW(utf8_to_utf16(path));
+}
 
-        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, null), 0);
-        defer(CloseHandle(file));
+bool path_delete_directory(const string &path) {
+    if (!path_is_directory(path)) return false;
+    return RemoveDirectoryW(utf8_to_utf16(path));
+}
 
-        LARGE_INTEGER size = {0};
-        GetFileSizeEx(file, &size);
-        return size.QuadPart;
-    }
+// @Robustness: Handle directories?
+bool path_copy(const string &path, const string &dest, bool overwrite) {
+    if (!path_is_file(path)) return false;
 
-    time_t path_creation_time(const string &path) {
-        GET_READONLY_EXISTING_HANDLE(handle, 0);
-        FILETIME time;
-        if (!GetFileTime(handle, &time, null, null)) return 0;
-        return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
-    }
+    auto *u16 = utf8_to_utf16(path);
 
-    time_t path_last_access_time(const string &path) {
-        GET_READONLY_EXISTING_HANDLE(handle, 0);
-        FILETIME time;
-        if (!GetFileTime(handle, null, &time, null)) return 0;
-        return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
-    }
-
-    time_t path_last_modification_time(const string &path) {
-        GET_READONLY_EXISTING_HANDLE(handle, 0);
-        FILETIME time;
-        if (!GetFileTime(handle, null, null, &time)) return 0;
-        return ((time_t) time.dwHighDateTime) << 32 | time.dwLowDateTime;
-    }
-
-    bool path_create_directory(const string &path) {
-        if (path_exists(path)) return false;
-        return CreateDirectoryW(utf8_to_utf16(path), null);
-    }
-
-    bool path_delete_file(const string &path) {
-        if (!path_is_file(path)) return false;
-        return DeleteFileW(utf8_to_utf16(path));
-    }
-
-    bool path_delete_directory(const string &path) {
-        if (!path_is_directory(path)) return false;
-        return RemoveDirectoryW(utf8_to_utf16(path));
-    }
-
-    // @Robustness: Handle directories?
-    bool path_copy(const string &path, const string &dest, bool overwrite) {
-        if (!path_is_file(path)) return false;
-
-        auto *u16 = utf8_to_utf16(path);
-
-        if (path_is_directory(dest)) {
-            auto p = path_join(dest, path_base_name(path));
-            defer(free(p));
-
-            return CopyFileW(u16, utf8_to_utf16(p), !overwrite);
-        }
-        return CopyFileW(u16, utf8_to_utf16(dest), !overwrite);
-    }
-
-    // @Robustness: Handle directories?
-    bool path_move(const string &path, const string &dest, bool overwrite) {
-        if (!path_is_file(path)) return false;
-
-        if (path_is_directory(dest)) {
-            auto p = path_join(dest, path_base_name(path));
-            defer(free(p));
-
-            return MoveFileExW(utf8_to_utf16(path), utf8_to_utf16(p), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
-        }
-        return MoveFileExW(utf8_to_utf16(path), utf8_to_utf16(dest), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
-    }
-
-    bool path_rename(const string &path, const string &newName) {
-        if (!path_exists(path)) return false;
-
-        auto p = path_join(path_directory(path), newName);
+    if (path_is_directory(dest)) {
+        auto p = path_join(dest, path_base_name(path));
         defer(free(p));
 
-        return MoveFileW(utf8_to_utf16(path), utf8_to_utf16(p));
+        return CopyFileW(u16, utf8_to_utf16(p), !overwrite);
     }
+    return CopyFileW(u16, utf8_to_utf16(dest), !overwrite);
+}
 
-    bool path_create_hard_link(const string &path, const string &dest) {
-        if (!path_is_directory(path)) return false;
-        if (!path_is_directory(dest)) return false;
-        return CreateHardLinkW(utf8_to_utf16(dest), utf8_to_utf16(path), null);
+// @Robustness: Handle directories?
+bool path_move(const string &path, const string &dest, bool overwrite) {
+    if (!path_is_file(path)) return false;
+
+    if (path_is_directory(dest)) {
+        auto p = path_join(dest, path_base_name(path));
+        defer(free(p));
+
+        return MoveFileExW(utf8_to_utf16(path), utf8_to_utf16(p), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
     }
+    return MoveFileExW(utf8_to_utf16(path), utf8_to_utf16(dest), MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED | (overwrite ? MOVEFILE_REPLACE_EXISTING : 0));
+}
 
-    bool path_create_symbolic_link(const string &path, const string &dest) {
-        if (!path_exists(path)) return false;
-        if (!path_exists(dest)) return false;
+bool path_rename(const string &path, const string &newName) {
+    if (!path_exists(path)) return false;
 
-        u32 flag = path_is_directory(dest) ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
-        return CreateSymbolicLinkW(utf8_to_utf16(dest), utf8_to_utf16(path), flag);
-    }
+    auto p = path_join(path_directory(path), newName);
+    defer(free(p));
 
-    void path_read_next_entry(path_walker & walker) {
-        do {
-            if (!walker.Handle) {
-                if (!walker.Path16) {
-                    string queryPath = path_join(walker.Path, "*");
-                    defer(free(queryPath));
+    return MoveFileW(utf8_to_utf16(path), utf8_to_utf16(p));
+}
 
-                    walker.Path16 = utf8_to_utf16(queryPath);
-                }
+bool path_create_hard_link(const string &path, const string &dest) {
+    if (!path_is_directory(path)) return false;
+    if (!path_is_directory(dest)) return false;
+    return CreateHardLinkW(utf8_to_utf16(dest), utf8_to_utf16(path), null);
+}
 
-                string path = walker.Path;
-                CREATE_FILE_HANDLE_CHECKED(f, FindFirstFileW(walker.Path16, (WIN32_FIND_DATAW *) walker.PlatformFileInfo), ;);
-                walker.Handle = (void *) f;
-            } else {
-                u32 ERROR_NO_MORE_FILES = 18;
+bool path_create_symbolic_link(const string &path, const string &dest) {
+    if (!path_exists(path)) return false;
+    if (!path_exists(dest)) return false;
+
+    u32 flag = path_is_directory(dest) ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
+    return CreateSymbolicLinkW(utf8_to_utf16(dest), utf8_to_utf16(path), flag);
+}
+
+void path_read_next_entry(path_walker &walker) {
+    do {
+        if (!walker.Handle) {
+            if (!walker.Path16) {
+                string queryPath = path_join(walker.Path, "*");
+                defer(free(queryPath));
+
+                walker.Path16 = utf8_to_utf16(queryPath);
+            }
+
+            string path = walker.Path;
+            CREATE_FILE_HANDLE_CHECKED(f, FindFirstFileW(walker.Path16, (WIN32_FIND_DATAW *) walker.PlatformFileInfo), ;);
+            walker.Handle = (void *) f;
+        } else {
+            u32 ERROR_NO_MORE_FILES = 18;
 
 #define CHECK_FIND_NEXT(call)                                                        \
     if (!call) {                                                                     \
@@ -606,19 +601,18 @@ export {
         walker.Handle = null; /* No more files.. terminate */                        \
         return;                                                                      \
     }
-                CHECK_FIND_NEXT(FindNextFileW((HANDLE) walker.Handle, (WIN32_FIND_DATAW *) walker.PlatformFileInfo));
-            }
-            ++walker.Index;
+            CHECK_FIND_NEXT(FindNextFileW((HANDLE) walker.Handle, (WIN32_FIND_DATAW *) walker.PlatformFileInfo));
+        }
+        ++walker.Index;
 
-            free(walker.CurrentFileName);
+        free(walker.CurrentFileName);
 
-            auto *fileName = ((WIN32_FIND_DATAW *) walker.PlatformFileInfo)->cFileName;
-            string_reserve(walker.CurrentFileName, c_string_length(fileName) * 4);                         // @Cleanup
-            utf16_to_utf8(fileName, (utf8 *) walker.CurrentFileName.Data, &walker.CurrentFileName.Count);  // @Constcast
-            walker.CurrentFileName.Length = utf8_length(walker.CurrentFileName.Data, walker.CurrentFileName.Count);
-        } while (walker.CurrentFileName == ".." || walker.CurrentFileName == ".");
-        assert(walker.CurrentFileName != ".." && walker.CurrentFileName != ".");
-    }
+        auto *fileName = ((WIN32_FIND_DATAW *) walker.PlatformFileInfo)->cFileName;
+        string_reserve(walker.CurrentFileName, c_string_length(fileName) * 4);                         // @Cleanup
+        utf16_to_utf8(fileName, (utf8 *) walker.CurrentFileName.Data, &walker.CurrentFileName.Count);  // @Constcast
+        walker.CurrentFileName.Length = utf8_length(walker.CurrentFileName.Data, walker.CurrentFileName.Count);
+    } while (walker.CurrentFileName == ".." || walker.CurrentFileName == ".");
+    assert(walker.CurrentFileName != ".." && walker.CurrentFileName != ".");
 }
 
 // This version appends paths to the array _result_. Copy this and modify it to suit your use case.
@@ -641,61 +635,59 @@ void path_walk_recursively_impl(const string &path, const string &first, array<s
     }
 }
 
-export {
-    [[nodiscard("Leak")]] array<string> path_walk(const string &path, bool recursively) {
-        assert(path_is_directory(path));
+[[nodiscard("Leak")]] array<string> path_walk(const string &path, bool recursively) {
+    assert(path_is_directory(path));
 
-        array<string> result;
+    array<string> result;
 
-        if (!recursively) {
-            auto walker = path_walker(path);
-            defer(free(walker));
+    if (!recursively) {
+        auto walker = path_walker(path);
+        defer(free(walker));
 
-            while (true) {
-                path_read_next_entry(walker);
-                if (!walker.Handle) break;
+        while (true) {
+            path_read_next_entry(walker);
+            if (!walker.Handle) break;
 
-                string file = path_join(path, walker.CurrentFileName);
-                array_append(result, file);
-            }
-        } else {
-            path_walk_recursively_impl(path, path, result);
+            string file = path_join(path, walker.CurrentFileName);
+            array_append(result, file);
         }
-        return result;
+    } else {
+        path_walk_recursively_impl(path, path, result);
     }
+    return result;
+}
 
-    [[nodiscard("Leak")]] path_read_entire_file_result path_read_entire_file(const string &path) {
-        path_read_entire_file_result fail = {array<byte>{}, false};
-        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), fail);
-        defer(CloseHandle(file));
+[[nodiscard("Leak")]] path_read_entire_file_result path_read_entire_file(const string &path) {
+    path_read_entire_file_result fail = {array<byte>{}, false};
+    CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), fail);
+    defer(CloseHandle(file));
 
-        LARGE_INTEGER size = {0};
-        GetFileSizeEx(file, &size);
+    LARGE_INTEGER size = {0};
+    GetFileSizeEx(file, &size);
 
-        array<byte> result;
-        array_reserve(result, size.QuadPart);
-        DWORD bytesRead;
-        if (!ReadFile(file, result.Data, (u32) size.QuadPart, &bytesRead, null)) return {{}, false};
-        assert(size.QuadPart == bytesRead);
+    array<byte> result;
+    array_reserve(result, size.QuadPart);
+    DWORD bytesRead;
+    if (!ReadFile(file, result.Data, (u32) size.QuadPart, &bytesRead, null)) return {{}, false};
+    assert(size.QuadPart == bytesRead);
 
-        result.Count += bytesRead;
-        return {result, true};
-    }
+    result.Count += bytesRead;
+    return {result, true};
+}
 
-    bool path_write_to_file(const string &path, const string &contents, path_write_mode mode) {
-        CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
-        defer(CloseHandle(file));
+bool path_write_to_file(const string &path, const string &contents, path_write_mode mode) {
+    CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_WRITE, 0, null, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, null), false);
+    defer(CloseHandle(file));
 
-        LARGE_INTEGER pointer = {};
-        pointer.QuadPart = 0;
-        if (mode == path_write_mode::Append) SetFilePointerEx(file, pointer, null, FILE_END);
-        if (mode == path_write_mode::Overwrite_Entire) SetEndOfFile(file);
+    LARGE_INTEGER pointer = {};
+    pointer.QuadPart      = 0;
+    if (mode == path_write_mode::Append) SetFilePointerEx(file, pointer, null, FILE_END);
+    if (mode == path_write_mode::Overwrite_Entire) SetEndOfFile(file);
 
-        DWORD bytesWritten;
-        if (!WriteFile(file, contents.Data, (u32) contents.Count, &bytesWritten, null)) return false;
-        if (bytesWritten != contents.Count) return false;
-        return true;
-    }
+    DWORD bytesWritten;
+    if (!WriteFile(file, contents.Data, (u32) contents.Count, &bytesWritten, null)) return false;
+    if (bytesWritten != contents.Count) return false;
+    return true;
 }
 
 LSTD_END_NAMESPACE
