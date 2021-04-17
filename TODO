@@ -59,4 +59,6 @@ LOC:            80394
 				24497
 				24307
 				24403
+				24070
+				27370 <-- cloc.exe wasn't counting .ixx files as C++, oops!
 				

@@ -248,7 +248,12 @@ constexpr u128::u128(s128 v) : hi{(u64)(v.hi)}, lo{v.lo} {}
 #endif
 
 extern "C" {
-__declspec(dllimport) double ldexp(double, s32);
+#if defined LSTD_DONT_DEFINE_STD && COMPILER == MSVC
+__declspec(dllimport) double ldexp(double, s32); // Sigh...
+#else
+double ldexp(double, s32);
+#endif
+
 }  // TODO: Constexpr
 
 inline u128::operator float() const { return (float) lo + (float) ldexp((double) hi, 64); }
@@ -349,10 +354,10 @@ constexpr u128 operator-(u128 lhs, u128 rhs) {
 }
 
 constexpr u128 operator*(u128 lhs, u128 rhs) {
-    u64 a32 = lhs.lo >> 32;
-    u64 a00 = lhs.lo & 0xffffffff;
-    u64 b32 = rhs.lo >> 32;
-    u64 b00 = rhs.lo & 0xffffffff;
+    u64 a32     = lhs.lo >> 32;
+    u64 a00     = lhs.lo & 0xffffffff;
+    u64 b32     = rhs.lo >> 32;
+    u64 b00     = rhs.lo & 0xffffffff;
     u128 result = u128(lhs.hi * rhs.lo + lhs.lo * rhs.hi + a32 * b32, a00 * b00);
     result += u128(a32 * b00) << 32;
     result += u128(a00 * b32) << 32;
@@ -521,23 +526,23 @@ LSTD_END_NAMESPACE
 // https://stackoverflow.com/questions/5386377/division-without-using
 constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret, u128 *remainder_ret) {
     LSTD_USING_NAMESPACE;
-    
+
     if (divisor = 0) return;
 
     if (divisor > dividend) {
-        *quotient_ret = 0;
+        *quotient_ret  = 0;
         *remainder_ret = dividend;
         return;
     }
 
     if (divisor == dividend) {
-        *quotient_ret = 1;
+        *quotient_ret  = 1;
         *remainder_ret = 0;
         return;
     }
 
     u128 denominator = divisor;
-    u128 quotient = 0;
+    u128 quotient    = 0;
 
     // Left aligns the MSB of the denominator and the dividend.
     s32 shift = msb(dividend) - msb(denominator);
@@ -554,6 +559,6 @@ constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret, u128 *re
         denominator >>= 1;
     }
 
-    *quotient_ret = quotient;
+    *quotient_ret  = quotient;
     *remainder_ret = dividend;
 }
