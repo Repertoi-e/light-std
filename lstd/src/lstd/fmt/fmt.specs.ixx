@@ -53,7 +53,7 @@ export {
     };
 
     // Dynamic means that the width/precision was specified in a separate argument and not as a constant in the format string
-    struct dynamic_format_specs : fmt_specs {
+    struct fmt_dynamic_specs : fmt_specs {
         s64 WidthIndex = -1;
         s64 PrecisionIndex = -1;
     };

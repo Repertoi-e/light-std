@@ -76,7 +76,7 @@ export {
                          UNDERLINE = BIT(2),
                          STRIKETHROUGH = BIT(3) };
 
-    struct text_style {
+    struct fmt_text_style {
         enum class color_kind { NONE = 0,
                                 RGB,
                                 TERMINAL };
@@ -101,10 +101,10 @@ export {
         return p;
     }
 
-    inline utf8 *color_to_ansi(utf8 *buffer, text_style style) {
+    inline utf8 *color_to_ansi(utf8 *buffer, fmt_text_style style) {
         utf8 *p = buffer;
-        if (style.ColorKind != text_style::color_kind::NONE) {
-            if (style.ColorKind == text_style::color_kind::TERMINAL) {
+        if (style.ColorKind != fmt_text_style::color_kind::NONE) {
+            if (style.ColorKind == fmt_text_style::color_kind::TERMINAL) {
                 // Background terminal colors are 10 more than the foreground ones
                 u32 value = (u32) style.Color.Terminal + (style.Background ? 10 : 0);
 

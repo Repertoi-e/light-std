@@ -53,7 +53,7 @@ export {
             const void *Pointer;
             string String;
 
-            custom Custom;
+            custom CUSTOM;
         };
 
         fmt_value(s64 v = 0) : S64(v) {}
@@ -65,8 +65,8 @@ export {
 
         template <typename T>
         fmt_value(const T *v) {
-            Custom.Data = (void *) v;
-            Custom.FormatFunc = call_formatter_on_custom_arg<T, FC>;
+            CUSTOM.Data = (void *) v;
+            CUSTOM.FormatFunc = call_formatter_on_custom_arg<T, FC>;
         }
     };
 
@@ -75,7 +75,7 @@ export {
     // That means that the parameters need to outlive the parse and format function itself.
     template <typename FC>
     struct fmt_arg {
-        fmt_type Type = fmt_type::None;
+        fmt_type Type = fmt_type::NONE;
         fmt_value<FC> Value;
     };
 
@@ -143,22 +143,22 @@ export {
     template <typename Visitor, typename FC>
     auto fmt_visit_fmt_arg(Visitor && visitor, const fmt_arg<FC> &ar)->decltype(visitor(0)) {
         switch (ar.Type) {
-            case fmt_type::None:
+            case fmt_type::NONE:
                 break;
             case fmt_type::S64:
                 return visitor(ar.Value.S64);
             case fmt_type::U64:
                 return visitor(ar.Value.U64);
-            case fmt_type::Bool:
+            case fmt_type::BOOL:
                 return visitor(ar.Value.S64 != 0);  // We store bools in S64
             case fmt_type::F64:
                 return visitor(ar.Value.F64);
-            case fmt_type::String:
+            case fmt_type::STRING:
                 return visitor(ar.Value.String);
-            case fmt_type::Pointer:
+            case fmt_type::POINTER:
                 return visitor(ar.Value.Pointer);
-            case fmt_type::Custom:
-                return visitor(ar.Value.Custom);
+            case fmt_type::CUSTOM:
+                return visitor(ar.Value.CUSTOM);
         }
         return visitor(types::unused{});
     }

@@ -8,28 +8,28 @@ LSTD_BEGIN_NAMESPACE
 
 export {
     enum class fmt_type {
-        None = 0,
+        NONE = 0,
 
         S64,
         U64,
-        Bool,
-        Last_Integral = Bool,
+        BOOL,
+        LAST_INTEGRAL = BOOL,
 
         F64,
-        Last_Arithmetic = F64,
+        LAST_ARITHMETIC = F64,
 
-        String,
-        Pointer,
+        STRING,
+        POINTER,
 
-        Custom
+        CUSTOM
     };
 
     constexpr bool fmt_is_type_integral(fmt_type type) {
-        return type > fmt_type::None && type <= fmt_type::Last_Integral;
+        return type > fmt_type::NONE && type <= fmt_type::LAST_INTEGRAL;
     }
 
     constexpr bool fmt_is_type_arithmetic(fmt_type type) {
-        return type > fmt_type::None && type <= fmt_type::Last_Arithmetic;
+        return type > fmt_type::NONE && type <= fmt_type::LAST_ARITHMETIC;
     }
 
     namespace fmt_internal {
@@ -38,7 +38,7 @@ export {
     constexpr u32 MAX_PACKED_ARGS = 15;
 
     template <typename T>
-    struct type_constant : types::integral_constant<fmt_type, fmt_type::Custom> {};
+    struct type_constant : types::integral_constant<fmt_type, fmt_type::CUSTOM> {};
 
 #define TYPE_CONSTANT(Type, constant) \
     template <>                       \
@@ -49,10 +49,10 @@ export {
     TYPE_CONSTANT(s64, fmt_type::S64);
     TYPE_CONSTANT(u32, fmt_type::U64);
     TYPE_CONSTANT(u64, fmt_type::U64);
-    TYPE_CONSTANT(bool, fmt_type::Bool);
+    TYPE_CONSTANT(bool, fmt_type::BOOL);
     TYPE_CONSTANT(f64, fmt_type::F64);
-    TYPE_CONSTANT(string, fmt_type::String);
-    TYPE_CONSTANT(const void *, fmt_type::Pointer);
+    TYPE_CONSTANT(string, fmt_type::STRING);
+    TYPE_CONSTANT(const void *, fmt_type::POINTER);
 #undef TYPE_CONSTANT
 
     template <typename T>

@@ -1,7 +1,6 @@
 module;
 
 #include "../io.h"
-#include "format_float.inl"
 
 export module fmt.context;
 
@@ -35,7 +34,7 @@ export {
         //
         // These are "dynamic" format specs because width or precision might have
         // been specified by another argument (instead of being a literal in the format string).
-        dynamic_format_specs *Specs = null;
+        fmt_dynamic_specs *Specs = null;
 
         fmt_context(writer *out = null, const string &fmtString = "", const fmt_args &args = {}) : Out(out), Args(args), Parse(fmtString) {}
 
@@ -176,61 +175,6 @@ export {
 
         void finish();
     };
-}
-
-// Writes an unsigned integer with given formatting specs.
-// We format signed integers by writing "-" if the integer is negative and then calling this routine as if the integer is positive.
-// Note: This is not exported, instead use one of the overloads of the general write() function.
-void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs);
-
-// Writes a float with given formatting specs.
-// Note: This is not exported, instead use one of the overloads of the general write() function.
-void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs specs);
-
-export {
-    //
-    // The implementations of the above functions follow:
-    //
-
-    void write(fmt_context * f, types::is_integral auto value) {
-        u64 absValue  = (u64) value;
-        bool negative = sign_bit(value);
-        if (negative) absValue = 0 - absValue;
-
-        if (f->Specs) {
-            write_u64(f, absValue, negative, *f->Specs);
-        } else {
-            write_u64(f, absValue, negative, {});
-        }
-    }
-
-    void write(fmt_context * f, types::is_floating_point auto value) {
-        if (f->Specs) {
-            write_float(f, (f64) value, *f->Specs);
-        } else {
-            write_float(f, (f64) value, {});
-        }
-    }
-
-    void write_no_specs(fmt_context * f, types::is_integral auto value) {
-        u64 absValue  = (u64) value;
-        bool negative = sign_bit(value);
-        if (negative) absValue = 0 - absValue;
-        write_u64(f, absValue, negative, {});
-    }
-
-    void write_no_specs(fmt_context * f, types::is_floating_point auto value) {
-        write_float(f, (f64) value, {});
-    }
-
-    inline void write_no_specs(fmt_context * f, bool value) { write_no_specs(f, value ? 1 : 0); }
-
-    inline void write_no_specs(fmt_context * f, const void *value) {
-        auto *old = f->Specs;
-        f->Specs  = null;
-        write(f, value);
-        f->Specs = old;
-    }
 
     // Used to dispatch values to write/write_no_specs functions. Used in conjunction with fmt_visit_fmt_arg.
     template <typename FC>
@@ -255,66 +199,119 @@ export {
             assert(false);
         }
     };
+}
 
-    template <typename FC>
-    void format_struct<FC>::finish() {
-        auto write_field = [&](field_entry *entry) {
-            write_no_specs(F, entry->Name);
-            write_no_specs(F, ": ");
-            fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), entry->Arg);
-        };
+// Writes an unsigned integer with given formatting specs.
+// We format signed integers by writing "-" if the integer is negative and then calling this routine as if the integer is positive.
+// Note: This is not exported, instead use one of the overloads of the general write() function.
+void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs);
 
-        write_no_specs(F, Name);
-        write_no_specs(F, " {");
+// Writes a float with given formatting specs.
+// Note: This is not exported, instead use one of the overloads of the general write() function.
+void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs specs);
 
-        auto *p = Fields.begin();
-        if (p != Fields.end()) {
-            write_no_specs(F, " ");
+//
+// The implementations of the above functions follow:
+//
+
+void write(fmt_context *f, types::is_integral auto value) {
+    u64 absValue  = (u64) value;
+    bool negative = sign_bit(value);
+    if (negative) absValue = 0 - absValue;
+
+    if (f->Specs) {
+        write_u64(f, absValue, negative, *f->Specs);
+    } else {
+        write_u64(f, absValue, negative, {});
+    }
+}
+
+void write(fmt_context *f, types::is_floating_point auto value) {
+    if (f->Specs) {
+        write_float(f, (f64) value, *f->Specs);
+    } else {
+        write_float(f, (f64) value, {});
+    }
+}
+
+void write_no_specs(fmt_context *f, types::is_integral auto value) {
+    u64 absValue  = (u64) value;
+    bool negative = sign_bit(value);
+    if (negative) absValue = 0 - absValue;
+    write_u64(f, absValue, negative, {});
+}
+
+void write_no_specs(fmt_context *f, types::is_floating_point auto value) {
+    write_float(f, (f64) value, {});
+}
+
+inline void write_no_specs(fmt_context *f, bool value) { write_no_specs(f, value ? 1 : 0); }
+
+inline void write_no_specs(fmt_context *f, const void *value) {
+    auto *old = f->Specs;
+    f->Specs  = null;
+    write(f, value);
+    f->Specs = old;
+}
+
+template <typename FC>
+void format_struct<FC>::finish() {
+    auto write_field = [&](field_entry *entry) {
+        write_no_specs(F, entry->Name);
+        write_no_specs(F, ": ");
+        fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), entry->Arg);
+    };
+
+    write_no_specs(F, Name);
+    write_no_specs(F, " {");
+
+    auto *p = Fields.begin();
+    if (p != Fields.end()) {
+        write_no_specs(F, " ");
+        write_field(p);
+        ++p;
+        while (p != Fields.end()) {
+            write_no_specs(F, ", ");
             write_field(p);
             ++p;
-            while (p != Fields.end()) {
-                write_no_specs(F, ", ");
-                write_field(p);
-                ++p;
-            }
         }
-        write_no_specs(F, " }");
     }
+    write_no_specs(F, " }");
+}
 
-    template <typename FC>
-    void format_tuple<FC>::finish() {
-        write_no_specs(F, Name);
-        write_no_specs(F, "(");
+template <typename FC>
+void format_tuple<FC>::finish() {
+    write_no_specs(F, Name);
+    write_no_specs(F, "(");
 
-        auto *p = Fields.begin();
-        if (p != Fields.end()) {
+    auto *p = Fields.begin();
+    if (p != Fields.end()) {
+        fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *p);
+        ++p;
+        while (p != Fields.end()) {
+            write_no_specs(F, ", ");
             fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *p);
             ++p;
-            while (p != Fields.end()) {
-                write_no_specs(F, ", ");
-                fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *p);
-                ++p;
-            }
         }
-        write_no_specs(F, ")");
     }
+    write_no_specs(F, ")");
+}
 
-    template <typename FC>
-    void format_list<FC>::finish() {
-        write_no_specs(F, "[");
+template <typename FC>
+void format_list<FC>::finish() {
+    write_no_specs(F, "[");
 
-        auto *p = Fields.begin();
-        if (p != Fields.end()) {
+    auto *p = Fields.begin();
+    if (p != Fields.end()) {
+        fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *p);
+        ++p;
+        while (p != Fields.end()) {
+            write_no_specs(F, ", ");
             fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *p);
             ++p;
-            while (p != Fields.end()) {
-                write_no_specs(F, ", ");
-                fmt_visit_fmt_arg(fmt_context_visitor(F, NoSpecs), *p);
-                ++p;
-            }
         }
-        write_no_specs(F, "]");
     }
+    write_no_specs(F, "]");
 }
 
 utf8 DIGITS[] =
@@ -373,7 +370,7 @@ utf8 *format_uint_base(utf8 *buffer, UInt value, s64 formattedSize, bool upper =
 
 // Writes pad code points and the actual contents with f(),
 // _fSize_ needs to be the size of the output from _f_ in code points (in order to calculate padding properly)
-export template <typename F>
+template <typename F>
 void write_padded_helper(fmt_context *f, const fmt_specs &specs, F &&func, s64 fSize) {
     u32 padding = (u32)(specs.Width > fSize ? specs.Width - fSize : 0);
     if (specs.Align == fmt_alignment::RIGHT) {
@@ -420,44 +417,42 @@ void write_helper(fmt_context *f, const byte *data, s64 size) {
         f, *f->Specs, [&]() { write_no_specs(f, (const utf8 *) data, size); }, length);
 }
 
-export {
-    void fmt_context::write(const byte *data, s64 count) { write_helper(this, data, count); }
+void fmt_context::write(const byte *data, s64 count) { write_helper(this, data, count); }
 
-    void write(fmt_context * f, bool value) {
-        if (f->Specs && f->Specs->Type) {
-            write(f, value ? 1 : 0);
-        } else {
-            write(f, value ? "true" : "false");
-        }
+void write(fmt_context *f, bool value) {
+    if (f->Specs && f->Specs->Type) {
+        write(f, value ? 1 : 0);
+    } else {
+        write(f, value ? "true" : "false");
+    }
+}
+
+void write(fmt_context *f, const void *value) {
+    if (f->Specs && f->Specs->Type && f->Specs->Type != 'p') {
+        f->on_error("Invalid type specifier for a pointer", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
+        return;
     }
 
-    void write(fmt_context * f, const void *value) {
-        if (f->Specs && f->Specs->Type && f->Specs->Type != 'p') {
-            f->on_error("Invalid type specifier for a pointer", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
-            return;
-        }
+    auto uptr     = types::bit_cast<u64>(value);
+    s32 numDigits = count_digits<4>(uptr);
 
-        auto uptr     = bit_cast<u64>(value);
-        s32 numDigits = count_digits<4>(uptr);
+    auto func = [&, f]() {
+        write_no_specs(f, U'0');
+        write_no_specs(f, U'x');
 
-        auto func = [&, f]() {
-            write_no_specs(f, U'0');
-            write_no_specs(f, U'x');
+        utf8 formatBuffer[numeric_info<u64>::digits / 4 + 2];
+        auto *p = format_uint_base<4>(formatBuffer, uptr, numDigits);
+        write_no_specs(f, p, formatBuffer + numDigits - p);
+    };
 
-            utf8 formatBuffer[numeric_info<u64>::digits / 4 + 2];
-            auto *p = format_uint_base<4>(formatBuffer, uptr, numDigits);
-            write_no_specs(f, p, formatBuffer + numDigits - p);
-        };
-
-        if (!f->Specs) {
-            func();
-            return;
-        }
-
-        fmt_specs specs = *f->Specs;
-        if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
-        write_padded_helper(f, specs, func, numDigits + 2);
+    if (!f->Specs) {
+        func();
+        return;
     }
+
+    fmt_specs specs = *f->Specs;
+    if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
+    write_padded_helper(f, specs, func, numDigits + 2);
 }
 
 void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs) {
@@ -735,33 +730,6 @@ void write_float_fixed(fmt_context *f, const string &significand, s32 decimalExp
                 outputSize);
         }
     }
-
-    // } else {
-    //     // exp < 0
-    //
-    //     // 1234e-6 -> 0.001234
-    //     s64 numZeros = -exp;
-    //     if (significand.Count == 0 && floatSpecs.Precision >= 0 && floatSpecs.Precision < numZeros) {
-    //         numZeros = floatSpecs.Precision;
-    //     }
-    //
-    //     bool pointy = numZeros != 0 || significand.Count != 0 || floatSpecs.ShowPoint;
-    //     size += 1 + (pointy ? 1 : 0) + numZeros;
-    //
-    //     write_padded_helper(
-    //         f, specs, [&]() {
-    //             if (sign) write_no_specs(f, sign);
-    //
-    //             write_no_specs(f, U'0');
-    //             if (pointy) {
-    //                 write_no_specs(f, decimalPoint);
-    //                 For(range(numZeros)) write_no_specs(f, U'0');
-    //
-    //                 writeSignificant(significand.Count, 0);
-    //             }
-    //         },
-    //         size);
-    // }
 }
 
 // Writes a float with given formatting specs
@@ -872,36 +840,6 @@ void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs 
     } else {
         write_float_fixed(f, significand, exp, sign, specs, floatSpecs, percentage);
     }
-
-    // Note: We set _type_ to 'g' if it's zero, but here we check specs.Type (which we didn't modify)
-    // This is because '0' is similar to 'g', except that it prints at least one digit after the decimal point,
-    // which we do here (python-like formatting)
-    // if (!specs.Type) {
-    //     auto *p = formatBuffer.begin(), *end = formatBuffer.end();
-    //     while (p < end && is_digit(*p)) ++p;
-    //     if (p < end && to_lower(*p) != 'e') {
-    //         ++p;
-    //         if (*p == '0') ++p;
-    //         while (p != end && *p >= '1' && *p <= '9') ++p;
-    //
-    //         byte *where = p;
-    //         while (p != end && *p == '0') ++p;
-    //
-    //         if (p == end || !is_digit(*p)) {
-    //             if (p != end) copy_memory(where, p, (s64)(end - p));
-    //             formatBuffer.Count -= (s64)(p - where);
-    //         }
-    //     } else if (p == end) {
-    //         // There was no dot at all
-    //         string_append(formatBuffer, (byte *) ".0", 2);
-    //     }
-    // }
-    // if (percentage) string_append(floatBuffer, '%');
-
-    // 'e' counts as a digit? Why do we do this?
-    // if (specs.Format == fmt_float_specs::EXP) {
-    //     ++specs.Precision;
-    // }
 }
 
 LSTD_END_NAMESPACE

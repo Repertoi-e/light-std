@@ -40,15 +40,15 @@ export {
 
         // Some specifiers require numeric arguments and we do error checking, CUSTOM arguments don't get checked
         void require_arithmetic_arg(fmt_type argType, s64 errorPosition = -1) {
-            assert(argType != fmt_type::None);
-            if (argType == fmt_type::Custom) return;
+            assert(argType != fmt_type::NONE);
+            if (argType == fmt_type::CUSTOM) return;
             if (!fmt_is_type_arithmetic(argType)) on_error("Format specifier requires an arithmetic argument", errorPosition);
         }
 
         // Some specifiers require signed numeric arguments and we do error checking, CUSTOM arguments don't get checked
         void require_signed_arithmetic_arg(fmt_type argType, s64 errorPosition = -1) {
-            assert(argType != fmt_type::None);
-            if (argType == fmt_type::Custom) return;
+            assert(argType != fmt_type::NONE);
+            if (argType == fmt_type::CUSTOM) return;
 
             require_arithmetic_arg(argType, errorPosition);
             if (fmt_is_type_integral(argType) && argType != fmt_type::S64) {
@@ -58,12 +58,12 @@ export {
 
         // Integer values and pointers aren't allowed to get precision. CUSTOM argument is again, not checked.
         void check_precision_for_arg(fmt_type argType, s64 errorPosition = -1) {
-            assert(argType != fmt_type::None);
-            if (argType == fmt_type::Custom) return;
+            assert(argType != fmt_type::NONE);
+            if (argType == fmt_type::CUSTOM) return;
             if (fmt_is_type_integral(argType)) {
                 on_error("Precision is not allowed for integer types", errorPosition);
             }
-            if (argType == fmt_type::Pointer) {
+            if (argType == fmt_type::POINTER) {
                 on_error("Precision is not allowed for pointer type", errorPosition);
             }
         }
@@ -82,20 +82,20 @@ export {
 
     // Note: When parsing, if we reach the end before } or : or whatever we don't report an error.
     // The caller of this should handle that. Returns -1 if an error occured (the error is reported).
-    s64 parse_arg_id(fmt_parse_context * p);
+    s64 fmt_parse_arg_id(fmt_parse_context * p);
 
     // _argType_ is the type of the argument for which we are parsing the specs.
     // It is used for error checking, e.g, to check if it's numeric when we encounter numeric-only specs.
     //
     // Note: When parsing, if we reach the end before } we don't report an error. The caller of this should handle that.
-    bool parse_fmt_specs(fmt_parse_context * p, fmt_type argType, dynamic_format_specs * specs);
+    bool fmt_parse_specs(fmt_parse_context * p, fmt_type argType, fmt_dynamic_specs * specs);
 
-    struct parse_text_style_result {
+    struct fmt_parse_text_style_result {
         bool Success;
-        text_style TextStyle;
+        fmt_text_style TextStyle;
     };
 
-    parse_text_style_result parse_text_style(fmt_parse_context * p);
+    fmt_parse_text_style_result fmt_parse_text_style(fmt_parse_context * p);
 }
 
 fmt_alignment get_alignment_from_char(utf8 ch) {
@@ -113,7 +113,7 @@ fmt_alignment get_alignment_from_char(utf8 ch) {
 
 // Note: When parsing, if we reach the end before } or : or whatever we don't report an error.
 // The caller of this should handle that. Returns -1 if an error occured (the error is reported).
-export s64 parse_arg_id(fmt_parse_context *p) {
+s64 fmt_parse_arg_id(fmt_parse_context *p) {
     utf32 ch = p->It[0];
     if (ch == '}' || ch == ':') {
         return p->next_arg_id();
@@ -193,7 +193,7 @@ bool parse_fill_and_align(fmt_parse_context *p, fmt_type argType, fmt_specs *spe
     return true;
 }
 
-bool parse_width(fmt_parse_context *p, dynamic_format_specs *specs) {
+bool parse_width(fmt_parse_context *p, fmt_dynamic_specs *specs) {
     if (is_digit(p->It[0])) {
         auto [value, status, rest] = parse_int<u32, parse_int_options{.ParseSign = false}>(p->It, 10);
         p->It = string(rest);
@@ -209,8 +209,8 @@ bool parse_width(fmt_parse_context *p, dynamic_format_specs *specs) {
         ++p->It.Data, --p->It.Count;  // Skip the }
 
         if (p->It.Count) {
-            specs->WidthIndex = parse_arg_id(p);
-            if (specs->WidthIndex == -1) return false;  // The error was reported in _parse_arg_id_
+            specs->WidthIndex = fmt_parse_arg_id(p);
+            if (specs->WidthIndex == -1) return false;  // The error was reported in _fmt_parse_arg_id_
         }
         if (!p->It.Count || p->It[0] != '}') {
             p->on_error("Expected a closing \"}\" after parsing an argument ID for a dynamic width");
@@ -222,7 +222,7 @@ bool parse_width(fmt_parse_context *p, dynamic_format_specs *specs) {
     return true;
 }
 
-bool parse_precision(fmt_parse_context *p, fmt_type argType, dynamic_format_specs *specs) {
+bool parse_precision(fmt_parse_context *p, fmt_type argType, fmt_dynamic_specs *specs) {
     ++p->It.Data, --p->It.Count;  // Skip the .
 
     if (!p->It.Count) {
@@ -246,8 +246,8 @@ bool parse_precision(fmt_parse_context *p, fmt_type argType, dynamic_format_spec
         ++p->It.Data, --p->It.Count;  // Skip the }
 
         if (p->It.Count) {
-            specs->PrecisionIndex = parse_arg_id(p);
-            if (specs->PrecisionIndex == -1) return false;  // The error was reported in _parse_arg_id_
+            specs->PrecisionIndex = fmt_parse_arg_id(p);
+            if (specs->PrecisionIndex == -1) return false;  // The error was reported in _fmt_parse_arg_id_
         }
         if (!p->It.Count || p->It[0] != '}') {
             p->on_error("Expected a closing \"}\" after parsing an argument ID for a dynamic precision");
@@ -264,7 +264,7 @@ bool parse_precision(fmt_parse_context *p, fmt_type argType, dynamic_format_spec
 }
 
 // Note: When parsing this if we reach the end before } we don't report an error. The caller of this should handle that.
-export bool parse_fmt_specs(fmt_parse_context *p, fmt_type argType, dynamic_format_specs *specs) {
+bool fmt_parse_specs(fmt_parse_context *p, fmt_type argType, fmt_dynamic_specs *specs) {
     if (p->It[0] == '}') return true;  // No specs to parse
 
     if (!parse_fill_and_align(p, argType, specs)) return false;
@@ -333,7 +333,7 @@ export bool parse_fmt_specs(fmt_parse_context *p, fmt_type argType, dynamic_form
     return true;
 }
 
-bool handle_emphasis(fmt_parse_context *p, text_style *textStyle) {
+bool handle_emphasis(fmt_parse_context *p, fmt_text_style *textStyle) {
     // We get here either by failing to match a color name or by parsing a color first and then reaching another ';'
     while (p->It.Count && is_alpha(p->It[0])) {
         switch (p->It[0]) {
@@ -395,8 +395,8 @@ u32 parse_rgb_channel(fmt_parse_context *p, bool last) {
     return channel;
 }
 
-export parse_text_style_result parse_text_style(fmt_parse_context *p) {
-    text_style textStyle = {};
+fmt_parse_text_style_result fmt_parse_text_style(fmt_parse_context *p) {
+    fmt_text_style textStyle = {};
 
     if (is_alpha(p->It[0])) {
         bool terminal = false;
@@ -431,7 +431,7 @@ export parse_text_style_result parse_text_style(fmt_parse_context *p) {
                 if (!handle_emphasis(p, &textStyle)) return {false, {}};
                 return {true, textStyle};
             }
-            textStyle.ColorKind = text_style::color_kind::TERMINAL;
+            textStyle.ColorKind = fmt_text_style::color_kind::TERMINAL;
             textStyle.Color.Terminal = c;
         } else {
             color c = string_to_color(name);
@@ -442,7 +442,7 @@ export parse_text_style_result parse_text_style(fmt_parse_context *p) {
                 if (!handle_emphasis(p, &textStyle)) return {false, {}};
                 return {true, textStyle};
             }
-            textStyle.ColorKind = text_style::color_kind::RGB;
+            textStyle.ColorKind = fmt_text_style::color_kind::RGB;
             textStyle.Color.RGB = (u32) c;
         }
     } else if (is_digit(p->It[0])) {
@@ -457,7 +457,7 @@ export parse_text_style_result parse_text_style(fmt_parse_context *p) {
 
         u32 b = parse_rgb_channel(p, true);
         if (b == (u32) -1) return {false, {}};
-        textStyle.ColorKind = text_style::color_kind::RGB;
+        textStyle.ColorKind = fmt_text_style::color_kind::RGB;
         textStyle.Color.RGB = (r << 16) | (g << 8) | b;
     } else if (p->It[0] == '#') {
         assert(false && "Parse #ffffff rgb color");
@@ -471,7 +471,7 @@ export parse_text_style_result parse_text_style(fmt_parse_context *p) {
         ++p->It.Data, --p->It.Count;  // Skip the ;
         if (p->It.Count > 2) {
             if (string(p->It.Data, 2) == "BG") {
-                if (textStyle.ColorKind == text_style::color_kind::NONE) {
+                if (textStyle.ColorKind == fmt_text_style::color_kind::NONE) {
                     p->on_error("Color specified as background but there was no color parsed");
                     return {false, {}};
                 }
