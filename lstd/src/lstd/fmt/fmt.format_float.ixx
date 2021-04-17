@@ -1,6 +1,7 @@
 module;
 
 #include "../memory/string_builder.h"
+#include "impl.h"
 
 export module fmt.format_float;
 
@@ -14,6 +15,15 @@ import fmt.parse_context;
 LSTD_BEGIN_NAMESPACE
 
 export {
+    // Used to store a floating point number as F * pow(2, E), where F is the significand and E is the exponent
+    template <types::is_floating_point F>
+    struct decimal_fp {
+        using significand_t = types::select_t<sizeof(F) == sizeof(f32), u32, u64>;
+
+        significand_t Significand;
+        s32 Exponent;
+    };
+
     // @Locale
     struct fmt_float_specs {
         enum format {
@@ -22,11 +32,6 @@ export {
             FIXED,    // Fixed point with the default precision of 6, e.g. 0.0012.
             HEX
         };
-
-        s32 Precision;
-        u32 Width;
-
-        fmt_sign Sign;
 
         bool ShowPoint;  // Whether to add a decimal point (even if no digits follow it)
 
@@ -37,15 +42,13 @@ export {
     fmt_float_specs fmt_parse_float_specs(fmt_parse_context * p, const fmt_specs &specs) {
         fmt_float_specs result;
 
-        result.Precision = specs.Precision;
-        result.Width     = specs.Width;
-
         result.ShowPoint = specs.Hash;
         result.Upper     = false;
 
         switch (specs.Type) {
             case 0:
                 result.Format = fmt_float_specs::GENERAL;
+                // result.ShowPoint = true;  // :PythonLikeConsistency: See other note with this tag in fmt.context.ixx
                 break;
             case 'G':
                 result.Upper = true;
@@ -208,7 +211,7 @@ bool check_divisibility_and_divide_by_pow5(u32 *n) {
 // f32:
 // Computes floor(n / pow(10, 1)) for small n.
 // Precondition: n <= pow(10, 2).
-// 
+//
 // f64:
 // Computes floor(n / pow(10, 2)) for small n.
 // Precondition: n <= pow(10, 3).
@@ -397,14 +400,6 @@ always_inline s32 remove_trailing_zeros(u64 *n) {
     return 7;
 }
 
-export template <types::is_floating_point F>
-struct decimal_fp {
-    using significand_t = types::select_t<sizeof(F) == sizeof(f32), u32, u64>;
-
-    significand_t Significand;
-    s32 Exponent;
-};
-
 bool is_left_endpoint_integer_shorter_interval(s32 exponent) { return exponent >= 2 && exponent <= 3; }
 
 template <bool IS_F32>
@@ -484,22 +479,36 @@ always_inline auto shorter_interval_case(s32 exponent) {
     return result;
 }
 
+// Normalized 64-bit significands of pow(10, k), for k = -348, -340, ..., 340.
+constexpr u64 GRISU_POW10_SIGNIFICANDS[] = {0xfa8fd5a0081c0288, 0xbaaee17fa23ebf76, 0x8b16fb203055ac76, 0xcf42894a5dce35ea, 0x9a6bb0aa55653b2d, 0xe61acf033d1a45df, 0xab70fe17c79ac6ca, 0xff77b1fcbebcdc4f, 0xbe5691ef416bd60c, 0x8dd01fad907ffc3c, 0xd3515c2831559a83, 0x9d71ac8fada6c9b5, 0xea9c227723ee8bcb, 0xaecc49914078536d, 0x823c12795db6ce57, 0xc21094364dfb5637, 0x9096ea6f3848984f, 0xd77485cb25823ac7, 0xa086cfcd97bf97f4, 0xef340a98172aace5, 0xb23867fb2a35b28e, 0x84c8d4dfd2c63f3b, 0xc5dd44271ad3cdba, 0x936b9fcebb25c996, 0xdbac6c247d62a584, 0xa3ab66580d5fdaf6, 0xf3e2f893dec3f126, 0xb5b5ada8aaff80b8, 0x87625f056c7c4a8b, 0xc9bcff6034c13053, 0x964e858c91ba2655, 0xdff9772470297ebd, 0xa6dfbd9fb8e5b88f, 0xf8a95fcf88747d94, 0xb94470938fa89bcf, 0x8a08f0f8bf0f156b, 0xcdb02555653131b6, 0x993fe2c6d07b7fac, 0xe45c10c42a2b3b06, 0xaa242499697392d3, 0xfd87b5f28300ca0e, 0xbce5086492111aeb, 0x8cbccc096f5088cc, 0xd1b71758e219652c, 0x9c40000000000000, 0xe8d4a51000000000, 0xad78ebc5ac620000, 0x813f3978f8940984, 0xc097ce7bc90715b3, 0x8f7e32ce7bea5c70, 0xd5d238a4abe98068, 0x9f4f2726179a2245, 0xed63a231d4c4fb27, 0xb0de65388cc8ada8, 0x83c7088e1aab65db, 0xc45d1df942711d9a, 0x924d692ca61be758, 0xda01ee641a708dea, 0xa26da3999aef774a, 0xf209787bb47d6b85, 0xb454e4a179dd1877, 0x865b86925b9bc5c2, 0xc83553c5c8965d3d, 0x952ab45cfa97a0b3, 0xde469fbd99a05fe3, 0xa59bc234db398c25, 0xf6c69a72a3989f5c, 0xb7dcbf5354e9bece, 0x88fcf317f22241e2, 0xcc20ce9bd35c78a5, 0x98165af37b2153df, 0xe2a0b5dc971f303a, 0xa8d9d1535ce3b396, 0xfb9b7cd9a4a7443c, 0xbb764c4ca7a44410, 0x8bab8eefb6409c1a, 0xd01fef10a657842c, 0x9b10a4e5e9913129, 0xe7109bfba19c0c9d, 0xac2820d9623bf429, 0x80444b5e7aa7cf85, 0xbf21e44003acdd2d, 0x8e679c2f5e44ff8f, 0xd433179d9c8cb841, 0x9e19db92b4e31ba9, 0xeb96bf6ebadf77d9, 0xaf87023b9bf0ee6b};
+
+// Binary exponents of pow(10, k), for k = -348, -340, ..., 340, corresponding
+// to significands above.
+constexpr s16 GRISU_POW10_EXPONENTS[] = {
+    -1220, -1193, -1166, -1140, -1113, -1087, -1060, -1034, -1007, -980, -954, -927, -901, -874, -847, -821, -794, -768, -741, -715, -688, -661, -635, -608, -582, -555, -529, -502, -475, -449, -422, -396, -369, -343, -316, -289, -263, -236, -210, -183, -157, -130, -103, -77, -50, -24, 3, 30, 56, 83, 109, 136, 162, 189, 216, 242, 269, 295, 322, 348, 375, 402, 428, 455, 481, 508, 534, 561, 588, 614, 641, 667, 694, 720, 747, 774, 800, 827, 853, 880, 907, 933, 960, 986, 1013, 1039, 1066};
+
 void string_append_u64(string_builder &builder, u64 value) {
     constexpr s32 BUFFER_SIZE = numeric_info<u64>::digits10;
     utf8 buffer[BUFFER_SIZE];
 
     auto *p = buffer + BUFFER_SIZE - 1;
 
+    if (!value) {
+        *p-- = '0';
+    }
+
     while (value) {
         auto d = value % 10;
         *p--   = (utf8)('0' + d);
         value /= 10;
     }
+
+    ++p;  // Roll back
     string_append(builder, p, buffer + BUFFER_SIZE - p);
 }
 
 export {
-    namespace dragonbox {
+    namespace dragonbox_ours {
     auto to_decimal(types::is_floating_point auto x) {
         //
         // Step 1: integer promotion & Schubfach multiplier calculation
@@ -559,7 +568,7 @@ export {
         // Step 2: Try larger divisor; remove trailing zeros if necessary
         //
 
-        constexpr s32 BIG_DIVISOR = IS_F32 ? 100 : 1000;
+        constexpr s32 BIG_DIVISOR   = IS_F32 ? 100 : 1000;
         constexpr s32 SMALL_DIVISOR = IS_F32 ? 10 : 100;
 
         // Using an upper bound on zi, we might be able to optimize the division
@@ -642,23 +651,465 @@ export {
         }
         return result;
     }
-    }  // namespace dragonbox
+    }  // namespace dragonbox_ours
 
-    s32 fmt_format_non_negative_float(string_builder & floatBuffer, types::is_floating_point auto value, const fmt_float_specs &specs) {
+    using fp = decimal_fp<f64>;
+
+    // Assigns _d_ to this and return true if predecessor is closer than successor.
+    bool fp_assign_new(fp & f, f64 newValue) {
+        u64 implicitBit     = 1ull << numeric_info<f64>::bits_mantissa;
+        u64 significandMask = implicitBit - 1;
+
+        u64 exponentMask = ((1ull << numeric_info<f64>::bits_exponent) - 1) << numeric_info<f64>::bits_mantissa;
+
+        auto br = types::bit_cast<u64>(newValue);
+
+        f.Significand = br & significandMask;
+        s32 biasedExp = (s32)((br & exponentMask) >> numeric_info<f64>::bits_mantissa);
+
+        // Predecessor is closer if _f_ is a normalized power of 2 (f.Significand == 0)
+        // other than the smallest normalized number (biasedExp > 1).
+        bool isPredecessorCloser = f.Significand == 0 && biasedExp > 1;
+        if (biasedExp) {
+            f.Significand += implicitBit;
+        } else {
+            biasedExp = 1;  // Subnormals use biased exponent 1 (min exponent).
+        }
+        f.Exponent = biasedExp - numeric_info<f64>::exponent_bias - numeric_info<f64>::bits_mantissa;
+        return isPredecessorCloser;
+    }
+
+    // Normalizes the value converted from double and multiplied by (1 << SHIFT).
+    template <s32 SHIFT>
+    fp normalize(fp value) {
+        constexpr u64 IMPLICIT_BIT = 1ull << numeric_info<f64>::bits_mantissa;
+
+        // Handle subnormals.
+        u64 shifted_implicit_bit = IMPLICIT_BIT << SHIFT;
+        while ((value.Significand & shifted_implicit_bit) == 0) {
+            value.Significand <<= 1;
+            --value.Exponent;
+        }
+
+        // Subtract 1 to account for hidden bit.
+        u64 offset = (sizeof(u64) * 8) - numeric_info<f64>::bits_mantissa - SHIFT - 1;
+        value.Significand <<= offset;
+        value.Exponent -= (s32) offset;
+        return value;
+    }
+
+    always_inline fp operator*(fp x, fp y) {
+        // Computes x.Significand * y.Significand / pow(2, 64) rounded to nearest with half-up tie breaking.
+        u128 product = u128(x.Significand) * y.Significand;
+
+        u64 f         = (u64)(product >> 64);
+        x.Significand = ((u64) product & (1ull << 63)) != 0 ? f + 1 : f;
+
+        x.Exponent += y.Exponent + 64;
+        return x;
+    }
+
+    // Use Grisu + Dragon4 for formatting a given precision:
+    // https://www.cs.tufts.edu/~nr/cs257/archive/florian-loitsch/printf.pdf.
+    namespace grisu {
+    // Returns a cached power of 10 'c_k = c_k.Significand * pow(2, c_k.Exponent)' such that its
+    // (binary) exponent satisfies 'minExponent <= c_k.Exponent <= minExponent + 28'.
+    fp get_cached_power(s32 minExponent, s32 *pow10) {
+        constexpr s32 SHIFT       = 32;
+        constexpr s64 SIGNIFICAND = (s64) LOG10_2_SIGNIFICAND;
+
+        s32 index = (s32)(((minExponent + (sizeof(u64) * 8) - 1) * (SIGNIFICAND >> SHIFT) + ((1ll << SHIFT) - 1)) >> 32);
+
+        // Decimal exponent of the first (smallest) cached power of 10.
+        constexpr s32 FIRST_DEC_EXP = -348;
+        constexpr s32 DEC_EXP_STEP  = 8;
+
+        // Difference between 2 consecutive decimal exponents in cached powers of 10.
+        index  = (index - FIRST_DEC_EXP - 1) / DEC_EXP_STEP + 1;
+        *pow10 = FIRST_DEC_EXP + index * DEC_EXP_STEP;
+        return {GRISU_POW10_SIGNIFICANDS[index], GRISU_POW10_EXPONENTS[index]};
+    }
+
+    enum class gen_digits_result {
+        MORE,  // Generate more digits.
+        DONE,  // Done generating digits.
+        ERROR  // Digit generation cancelled due to an error.
+    };
+
+    struct gen_digits_state {
+        utf8 *Buffer;
+        s32 Size;
+
+        bool Fixed;
+        s32 Exp10;
+        s32 Precision;
+    };
+
+    enum class round_direction { UNKNOWN,
+                                 UP,
+                                 DOWN };
+
+    // Given the divisor (normally a power of 10), the remainder = v % divisor for
+    // some number v and the error, returns whether v should be rounded up, down, or
+    // whether the rounding direction can't be determined due to error.
+    //
+    // _error_ should be less than divisor / 2.
+    always_inline round_direction get_round_direction(u64 divisor, u64 remainder, u64 error) {
+        assert(remainder < divisor);      // divisor - remainder won't overflow.
+        assert(error < divisor);          // divisor - error won't overflow.
+        assert(error < divisor - error);  // error * 2 won't overflow.
+
+        // Round down if (remainder + error) * 2 <= divisor.
+        if (remainder <= divisor - remainder && error * 2 <= divisor - remainder * 2) return round_direction::DOWN;
+
+        // Round up if (remainder - error) * 2 >= divisor.
+        if (remainder >= error && remainder - error >= divisor - (remainder - error)) {
+            return round_direction::UP;
+        }
+        return round_direction::UNKNOWN;
+    }
+
+    gen_digits_result gen_digits_on_start(gen_digits_state &state, u64 divisor, u64 remainder, u64 error, s32 exp) {
+        // Non-fixed formats require at least one digit and no precision adjustment.
+        if (!state.Fixed) return gen_digits_result::MORE;
+
+        // Adjust fixed precision by exponent because it is relative to decimal point.
+        state.Precision += exp + state.Exp10;
+
+        // Check if precision is satisfied just by leading zeros, e.g.
+        // "{:.2f}", 0.001 gives "0.00" without generating any digits.
+        if (state.Precision > 0) return gen_digits_result::MORE;
+        if (state.Precision < 0) return gen_digits_result::DONE;
+
+        auto dir = get_round_direction(divisor, remainder, error);
+        if (dir == round_direction::UNKNOWN) return gen_digits_result::ERROR;
+
+        state.Buffer[state.Size++] = dir == round_direction::UP ? '1' : '0';
+        return gen_digits_result::DONE;
+    }
+
+    gen_digits_result gen_digits_on_digit(gen_digits_state &state, char digit, u64 divisor, u64 remainder, u64 error, bool integral) {
+        assert(remainder < divisor);
+
+        state.Buffer[state.Size++] = digit;
+
+        if (!integral && error >= remainder) return gen_digits_result::ERROR;
+        if (state.Size < state.Precision) return gen_digits_result::MORE;
+
+        if (!integral) {
+            // Check if error * 2 < divisor with overflow prevention.
+            // The check is not needed for the integral part because error = 1 and divisor > (1 << 32) there.
+            if (error >= divisor || error >= divisor - error) return gen_digits_result::ERROR;
+        } else {
+            assert(error == 1 && divisor > 2);
+        }
+
+        auto dir = get_round_direction(divisor, remainder, error);
+        if (dir != round_direction::UP) {
+            return dir == round_direction::DOWN ? gen_digits_result::DONE : gen_digits_result::ERROR;
+        }
+
+        // Add one to the last digit, because we are rounding up
+        state.Buffer[state.Size - 1] += 1;
+
+        // Carry on with adding one to the previous digits if we have reached past 9
+        for (s32 i = state.Size - 1; i > 0 && state.Buffer[i] > '9'; --i) {
+            state.Buffer[i] = '0';
+            state.Buffer[i - 1] += 1;
+        }
+
+        // If we have reached the beginning, transform 9 to 10 , e.g. 0.9 -> 1.0
+        if (state.Buffer[0] > '9') {
+            state.Buffer[0] = '1';
+            if (state.Fixed) {
+                state.Buffer[state.Size++] = '0';
+            } else {
+                ++state.Exp10;
+            }
+        }
+        return gen_digits_result::DONE;
+    }
+
+    // Generates output using the Grisu digit-gen algorithm.
+    // error: the size of the region (lower, upper) outside of which numbers
+    // definitely do not round to value (Delta in Grisu3).
+    gen_digits_result gen_digits(gen_digits_state &state, fp value, u64 error, s32 *exp) {
+        fp one = {1ull << -value.Exponent, value.Exponent};
+
+        // The integral part of scaled value (p1 in Grisu) = value / one.
+        // It cannot be zero because it contains a product of two 64-bit numbers with MSB set
+        // (due to normalization) - 1, shifted right by at most 60 bits.
+        auto integral = (u32)(value.Significand >> -one.Exponent);
+        assert(integral != 0);
+        assert(integral == value.Significand >> -one.Exponent);
+
+        // The fractional part of scaled value (p2 in Grisu) c = value % one.
+        u64 fractional = value.Significand & (one.Significand - 1);
+
+        *exp = count_digits(integral);  // kappa in Grisu.
+
+        // Divide by 10 to prevent overflow.
+        auto result = gen_digits_on_start(state, POWERS_OF_10_64[*exp - 1] << -one.Exponent, value.Significand / 10, error * 10, *exp);
+        if (result != gen_digits_result::MORE) return result;
+
+        // Generate digits for the integral part. This can produce up to 10 digits.
+        do {
+            u32 digit = 0;
+
+            auto divmod_integral = [&](u32 divisor) {
+                digit = integral / divisor;
+                integral %= divisor;
+            };
+
+            // This optimization by Milo Yip reduces the number of integer divisions by
+            // one per iteration.
+            switch (*exp) {
+                case 10:
+                    divmod_integral(1000000000);
+                    break;
+                case 9:
+                    divmod_integral(100000000);
+                    break;
+                case 8:
+                    divmod_integral(10000000);
+                    break;
+                case 7:
+                    divmod_integral(1000000);
+                    break;
+                case 6:
+                    divmod_integral(100000);
+                    break;
+                case 5:
+                    divmod_integral(10000);
+                    break;
+                case 4:
+                    divmod_integral(1000);
+                    break;
+                case 3:
+                    divmod_integral(100);
+                    break;
+                case 2:
+                    divmod_integral(10);
+                    break;
+                case 1:
+                    digit    = integral;
+                    integral = 0;
+                    break;
+                default:
+                    assert(false && "Invalid number of digits");
+            }
+
+            --*exp;
+
+            auto remainder = ((u64) integral << -one.Exponent) + fractional;
+
+            result = gen_digits_on_digit(state, (char) ('0' + digit), POWERS_OF_10_64[*exp] << -one.Exponent, remainder, error, true);
+            if (result != gen_digits_result::MORE) return result;
+        } while (*exp > 0);
+
+        // Generate digits for the fractional part.
+        while (true) {
+            fractional *= 10;
+            error *= 10;
+
+            char digit = (char) ('0' + (fractional >> -one.Exponent));
+            fractional &= one.Significand - 1;
+            --*exp;
+
+            result = gen_digits_on_digit(state, digit, one.Significand, fractional, error, false);
+            if (result != gen_digits_result::MORE) return result;
+        }
+    }
+
+    // Formats value using a variation of the Fixed-Precision Positive
+    // Floating-Point Printout ((FPP)^2) algorithm by Steele & White:
+    // https://fmt.dev/papers/p372-steele.pdf.
+
+    /*
+    void fallback_format(f64 d, s32 numDigits, bool binary32, buffer<char> &buf, int &exp10) {
+        bigint numerator;    // 2 * R in (FPP)^2.
+        bigint denominator;  // 2 * S in (FPP)^2.
+
+        // lower and upper are differences between value and corresponding boundaries.
+        bigint lower;             // (M^- in (FPP)^2).
+        bigint upper_store;       // upper's value if different from lower.
+        bigint *upper = nullptr;  // (M^+ in (FPP)^2).
+
+        fp value;
+        // Shift numerator and denominator by an extra bit or two (if lower boundary
+        // is closer) to make lower and upper integers. This eliminates multiplication
+        // by 2 during later computations.
+        const bool is_predecessor_closer =
+            binary32 ? value.assign(static_cast<float>(d)) : value.assign(d);
+        int shift            = is_predecessor_closer ? 2 : 1;
+        uint64_t significand = value.f << shift;
+        if (value.e >= 0) {
+            numerator.assign(significand);
+            numerator <<= value.e;
+            lower.assign(1);
+            lower <<= value.e;
+            if (shift != 1) {
+                upper_store.assign(1);
+                upper_store <<= value.e + 1;
+                upper = &upper_store;
+            }
+            denominator.assign_pow10(exp10);
+            denominator <<= shift;
+        } else if (exp10 < 0) {
+            numerator.assign_pow10(-exp10);
+            lower.assign(numerator);
+            if (shift != 1) {
+                upper_store.assign(numerator);
+                upper_store <<= 1;
+                upper = &upper_store;
+            }
+            numerator *= significand;
+            denominator.assign(1);
+            denominator <<= shift - value.e;
+        } else {
+            numerator.assign(significand);
+            denominator.assign_pow10(exp10);
+            denominator <<= shift - value.e;
+            lower.assign(1);
+            if (shift != 1) {
+                upper_store.assign(1ULL << 1);
+                upper = &upper_store;
+            }
+        }
+
+        // Invariant: value == (numerator / denominator) * pow(10, exp10).
+        if (numDigits < 0) {
+            // Generate the shortest representation.
+            if (!upper) upper = &lower;
+            bool even  = (value.f & 1) == 0;
+            num_digits = 0;
+            char *data = buf.data();
+            for (;;) {
+                int digit = numerator.divmod_assign(denominator);
+                bool low  = compare(numerator, lower) - even < 0;  // numerator <[=] lower.
+                // numerator + upper >[=] pow10:
+                bool high          = add_compare(numerator, *upper, denominator) + even > 0;
+                data[num_digits++] = static_cast<char>('0' + digit);
+                if (low || high) {
+                    if (!low) {
+                        ++data[num_digits - 1];
+                    } else if (high) {
+                        int result = add_compare(numerator, numerator, denominator);
+                        // Round half to even.
+                        if (result > 0 || (result == 0 && (digit % 2) != 0))
+                            ++data[num_digits - 1];
+                    }
+                    buf.try_resize(to_unsigned(num_digits));
+                    exp10 -= num_digits - 1;
+                    return;
+                }
+                numerator *= 10;
+                lower *= 10;
+                if (upper != &lower) *upper *= 10;
+            }
+        }
+        // Generate the given number of digits.
+        exp10 -= num_digits - 1;
+        if (num_digits == 0) {
+            buf.try_resize(1);
+            denominator *= 10;
+            buf[0] = add_compare(numerator, numerator, denominator) > 0 ? '1' : '0';
+            return;
+        }
+        buf.try_resize(to_unsigned(num_digits));
+        for (int i = 0; i < num_digits - 1; ++i) {
+            int digit = numerator.divmod_assign(denominator);
+            buf[i]    = static_cast<char>('0' + digit);
+            numerator *= 10;
+        }
+        int digit   = numerator.divmod_assign(denominator);
+        auto result = add_compare(numerator, numerator, denominator);
+        if (result > 0 || (result == 0 && (digit % 2) != 0)) {
+            if (digit == 9) {
+                const auto overflow = '0' + 10;
+                buf[num_digits - 1] = overflow;
+                // Propagate the carry.
+                for (int i = num_digits - 1; i > 0 && buf[i] == overflow; --i) {
+                    buf[i] = '0';
+                    ++buf[i - 1];
+                }
+                if (buf[0] == overflow) {
+                    buf[0] = '1';
+                    ++exp10;
+                }
+                return;
+            }
+            ++digit;
+        }
+        buf[num_digits - 1] = static_cast<char>('0' + digit);
+    }*/
+
+    s32 to_decimal(string_builder &builder, f64 value, s32 precision, const fmt_float_specs &specs) {
+        constexpr s32 MIN_EXP = -60;  // alpha in Grisu.
+
+        fp normalized;
+        fp_assign_new(normalized, value);
+        normalized = normalize<0>(normalized);
+
+        s32 cachedExp10 = 0;  // K in Grisu.
+
+        fp cachedPow = get_cached_power(MIN_EXP - (normalized.Exponent + (sizeof(u64) * 8)), &cachedExp10);
+        normalized   = normalized * cachedPow;
+
+        // Limit precision to the maximum possible number of significant digits in an
+        // IEEE754 double because we don't need to generate zeros.
+        constexpr s32 MAX_DOUBLE_DIGITS = 767;
+        if (precision > MAX_DOUBLE_DIGITS) precision = MAX_DOUBLE_DIGITS;
+
+        bool fixed = specs.Format == fmt_float_specs::FIXED;
+
+        gen_digits_state state;
+        state.Buffer    = builder.BaseBuffer.Data + builder.BaseBuffer.Occupied;
+        state.Size      = 0;
+        state.Fixed     = fixed;
+        state.Exp10     = -cachedExp10;
+        state.Precision = precision;
+
+        s32 exp = 0;
+        if (gen_digits(state, normalized, 1, &exp) == gen_digits_result::ERROR) {
+            // exp += state.Size - cachedExp10 - 1;
+            // builder.BaseBuffer.Occupied += state.Size;
+            // fallback_format(value, handler.precision, specs.binary32, buf, exp);
+            // exp += state.Exp10;
+            // builder.BaseBuffer.Occupied += state.Size;
+        } else {
+            // Success!
+            exp += state.Exp10;
+            builder.BaseBuffer.Occupied += state.Size;
+        }
+
+        // Remove trailing zeros after decimal point
+        if (!fixed && !specs.ShowPoint) {
+            s64 size = builder.BaseBuffer.Occupied;
+
+            while (size > 0 && builder.BaseBuffer.Data[size - 1] == '0') {
+                --size;
+                ++exp;
+            }
+            builder.BaseBuffer.Occupied = size;
+        }
+        return exp;
+    }
+    }  // namespace grisu
+
+    s32 fmt_format_non_negative_float(string_builder & floatBuffer, types::is_floating_point auto value, s32 precision, const fmt_float_specs &specs) {
         assert(value >= 0);
-
-        s32 precision = specs.Precision;
 
         bool fixed = specs.Format == fmt_float_specs::FIXED;
         if (value == 0) {
             if (precision <= 0 || !fixed) {
-                string_append(floatBuffer, '0');
+                string_append(floatBuffer, U'0');
                 return 0;
             }
 
             // @Speed
             For(range(precision)) {
-                string_append(floatBuffer, '0');
+                string_append(floatBuffer, U'0');
             }
             return -precision;
         }
@@ -667,44 +1118,16 @@ export {
         // We set a default precision to 6 before calling this routine in the cases when the format string didn't specify a precision,
         // but specified a specific format (GENERAL, EXP, FIXED, etc.)
         if (precision < 0) {
-            auto dec = dragonbox::to_decimal(value);
-            string_append_u64(floatBuffer, dec.Significand);
-            return dec.Exponent;
+            return to_decimal_impl(floatBuffer, value);
+
+            // auto dec = jkj::dragonbox::to_decimal(value);
+            // string_append_u64(floatBuffer, dec.significand);
+            // return dec.exponent;
         }
 
         // Use Grisu + Dragon4 for the given precision:
         // https://www.cs.tufts.edu/~nr/cs257/archive/florian-loitsch/printf.pdf.
-        // s32 exp = 0;
-        // constexpr s32 min_exp = -60; // alpha in Grisu.
-        // s32 cached_exp10 = 0;         // K in Grisu.
-        //
-        // fp normalized = normalize(fp(value));
-        // const auto cached_pow = get_cached_power(
-        //     min_exp - (normalized.e + fp::significand_size), cached_exp10);
-        // normalized = normalized * cached_pow;
-        // // Limit precision to the maximum possible number of significant digits in an
-        // // IEEE754 double because we don't need to generate zeros.
-        // const s32 max_double_digits = 767;
-        // if (precision > max_double_digits) precision = max_double_digits;
-        // fixed_handler handler{buf.data(), 0, precision, -cached_exp10, fixed};
-        // if (grisu_gen_digits(normalized, 1, exp, handler) == digits::error) {
-        //     exp += handler.size - cached_exp10 - 1;
-        //     fallback_format(value, handler.precision, specs.binary32, buf, exp);
-        // } else {
-        //     exp += handler.exp10;
-        //     buf.try_resize(to_unsigned(handler.size));
-        // }
-        // if (!fixed && !specs.showpoint) {
-        //     // Remove trailing zeros.
-        //     auto num_digits = buf.size();
-        //     while (num_digits > 0 && buf[num_digits - 1] == '0') {
-        //         --num_digits;
-        //         ++exp;
-        //     }
-        //     buf.try_resize(num_digits);
-        // }
-        // return exp;
-        return 0;
+        return grisu::to_decimal(floatBuffer, (f64) value, precision, specs);
     }
 }
 

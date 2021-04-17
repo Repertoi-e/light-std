@@ -795,8 +795,8 @@ extern void (*copy_memory)(void *dest, const void *src, s64 num);
 // the possibility of undefined runtime behavior due to type aliasing.
 //
 // Example usage:
-//    float f32 = 1.234f;
-//    uint32_t n32 = bit_cast<uint32_t>(f32);
+//    f32 f = 1.234f;
+//    u32 br = bit_cast<u32>(f);
 template <typename DestType, typename SourceType>
 DestType bit_cast(const SourceType &sourceValue) {
     static_assert(sizeof(DestType) == sizeof(SourceType));

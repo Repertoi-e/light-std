@@ -27,7 +27,7 @@ import os;
 //
 // @Cleanup @Cleanup @Cleanup @Cleanup @Cleanup @Cleanup @Cleanup @Cleanup  There should be a better way and we should get rid of this.
 //                                                                          I haven't thought much about it yet.
-extern "C" bool lstd_init_global();
+extern "C" bool lstd_init_global() { return true;  }
 
 // If the user didn't provide a definition for lstd_init_global, the linker shouldn't complain,
 // but instead provide a stub function which returns true.

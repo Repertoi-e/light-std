@@ -13,6 +13,7 @@
 #if defined LSTD_DONT_DEFINE_STD
 #include <stdarg.h>
 
+#include <tuple>
 #include <initializer_list>
 #else
 // Note: If you get many compile errors (but you have defined LSTD_DONT_DEFINE_STD).

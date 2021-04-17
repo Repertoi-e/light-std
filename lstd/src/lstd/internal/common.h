@@ -578,15 +578,23 @@ constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000
 // except for n == 0 in which case count_digits returns 1.
 //
 // Source: Bit-Twiddling hacks
-always_inline u32 count_digits(u64 n) {
-    s32 t = (msb(n | 1)) * 1233 >> 12;
-    return (u32) t - (n < ZERO_OR_POWERS_OF_10_64[t]) + 1;
+always_inline s32 count_digits(u64 n) {
+    s64 integerLog2 = msb(n | 1);  // log_2(n) == msb(n) (not the fastest way, but hey)
+                                   // W also | 1 (if n is 0, we treat is as 1)
+
+    // Divide by log_2(10), which is approx. 1233 / 4096
+    s64 t = (integerLog2 + 1) * 1233 >> 12;  // We add 1 to integerLog2 because it rounds down.
+
+    s64 integerLog10 = t - (n < POWERS_OF_10_64[t]);  // t may be off by 1, correct it.
+
+    return (s32)(integerLog10 + 1);  // Number of digits in 'n' is log_10(n) + 1
 }
 
 template <u32 Bits, types::is_integral T>
-constexpr u32 count_digits(T value) {
-    T n           = value;
-    u32 numDigits = 0;
+constexpr s32 count_digits(T value) {
+    T n = value;
+
+    s32 numDigits = 0;
     do {
         ++numDigits;
     } while ((n >>= Bits) != 0);

@@ -7,6 +7,10 @@ extern "C" {
 
 #include "mconf.h"
 
+#define LSTD_DONT_DEFINE_STD
+
+#if not defined LSTD_DONT_DEFINE_STD
+
 double acosh(double x);
 int airy(double, double *, double *, double *, double *);
 double asin(double);
@@ -154,8 +158,10 @@ double smirnovi(int, double);
 double kolmogorov(double);
 double kolmogi(double);
 
+#endif
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif // CEPHES_CMATH
+#endif  // CEPHES_CMATH

@@ -38,11 +38,11 @@ template <typename... Args>
 void format_test_error(const string &fmtString, Args &&...arguments) {
     counting_writer dummy;
 
-    auto newContext = Context;
+    auto newContext                 = Context;
     newContext.FmtParseErrorHandler = test_parse_error_handler;
     PUSH_CONTEXT(newContext) {
         auto args = fmt_args_on_the_stack(fmt_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
-        auto f = fmt_context(&dummy, fmtString, args);
+        auto f    = fmt_context(&dummy, fmtString, args);
         fmt_parse_and_format(&f);
     }
 }
@@ -92,8 +92,8 @@ TEST(write_integer_64) {
 TEST(write_f64) {
     CHECK_WRITE("4.2", "{}", 4.2);
     CHECK_WRITE("-4.2", "{}", -4.2);
-    CHECK_WRITE("2.22507e-308", "{}", numeric_info<f64>::min());
-    CHECK_WRITE("1.79769e+308", "{}", numeric_info<f64>::max());
+    CHECK_WRITE("2.2250738585072014e-308", "{}", numeric_info<f64>::min());
+    CHECK_WRITE("1.7976931348623157e+308", "{}", numeric_info<f64>::max());
 }
 
 TEST(write_code_point) { CHECK_WRITE("X", "{:c}", 'X'); }
@@ -156,7 +156,7 @@ TEST(format_int_hexadecimal) {
     CHECK_WRITE("90ABCDEF", "{0:X}", 0x90ABCDEF);
 }
 
-// format\(([^)]*)\)    
+// format\(([^)]*)\)
 
 // @Locale
 TEST(format_int_localeish) {
@@ -167,6 +167,7 @@ TEST(format_int_localeish) {
 }
 
 TEST(format_f32) {
+    CHECK_WRITE("0", "{}", 0.0f);
     CHECK_WRITE("392.500000", "{0:f}", 392.5f);
     CHECK_WRITE("12.500000%", "{0:%}", 0.125f);
 }
@@ -174,22 +175,28 @@ TEST(format_f32) {
 TEST(format_f64) {
     // check_unknown_types(1.2, "eEfFgGaAn%", "Invalid type specifier for a float");
 
-    CHECK_WRITE("0.0", "{:}", 0.0);
+    CHECK_WRITE("0", "{}", 0.0);
+
+    CHECK_WRITE("0", "{:}", 0.0);
     CHECK_WRITE("0.000000", "{:f}", 0.0);
     CHECK_WRITE("0", "{:g}", 0.0);
-    CHECK_WRITE("392.649", "{:}", 392.649);
-    CHECK_WRITE("392.649", "{:g}", 392.649);
-    CHECK_WRITE("392.649", "{:G}", 392.649);
-    CHECK_WRITE("392.649000", "{:f}", 392.649);
-    CHECK_WRITE("392.649000", "{:F}", 392.649);
+    CHECK_WRITE("392.65", "{:}", 392.65);
+    CHECK_WRITE("392.65", "{:g}", 392.65);
+    CHECK_WRITE("392.65", "{:G}", 392.65);
+    CHECK_WRITE("4.9014e+06", "{:g}", 4.9014e6);
+    CHECK_WRITE("392.650000", "{:f}", 392.65);
+    CHECK_WRITE("392.650000", "{:F}", 392.65);
+
     CHECK_WRITE("12.500000%", "{:%}", 0.125);
     CHECK_WRITE("12.34%", "{:.2%}", 0.1234432);
 
     CHECK_WRITE("3.926490e+02", "{0:e}", 392.649);
     CHECK_WRITE("3.926490E+02", "{0:E}", 392.649);
     CHECK_WRITE("+0000392.6", "{0:+010.4g}", 392.649);
-    CHECK_WRITE("-0x1.500000p+5", "{:a}", -42.0);
-    CHECK_WRITE("-0x1.500000P+5", "{:A}", -42.0);
+
+    // @TODO: Hex floats
+    // CHECK_WRITE("-0x1.500000p+5", "{:a}", -42.0);
+    // CHECK_WRITE("-0x1.500000P+5", "{:A}", -42.0);
 }
 
 TEST(format_nan) {
@@ -233,13 +240,38 @@ TEST(precision_rounding) {
     CHECK_WRITE("0", "{:.0f}", 0.0);
     CHECK_WRITE("0", "{:.0f}", 0.01);
     CHECK_WRITE("0", "{:.0f}", 0.1);
+
     CHECK_WRITE("0.000", "{:.3f}", 0.00049);
-    CHECK_WRITE("0.001", "{:.3f}", 0.0015);
+    CHECK_WRITE("0.001", "{:.3f}", 0.0005);
     CHECK_WRITE("0.001", "{:.3f}", 0.00149);
-    CHECK_WRITE("0.002", "{:.3f}", 0.0025);
-    CHECK_WRITE("0.999", "{:.3f}", 0.9999);
-    CHECK_WRITE("0.00122", "{:.3}", 0.00123);
+    CHECK_WRITE("0.002", "{:.3f}", 0.0015);
+    CHECK_WRITE("1.000", "{:.3f}", 0.9999);
+    CHECK_WRITE("0.00123", "{:.3}", 0.00123);
     CHECK_WRITE("0.1", "{:.16g}", 0.1);
+    CHECK_WRITE("1", "{:.0}", 1.0);
+    CHECK_WRITE("225.51575035152063720", "{:.17f}", 225.51575035152064);
+    CHECK_WRITE("-761519619559038.2", "{:.1f}", -761519619559038.2);
+    CHECK_WRITE("1.9156918820264798e-56", "{}", 1.9156918820264798e-56);
+    CHECK_WRITE("0.0000", "{:.4f}", 7.2809479766055470e-15);
+
+    // Trigger a rounding error in Grisu by a specially chosen number.
+    CHECK_WRITE("3788512123356.985352", "{:f}", 3788512123356.985352);
+}
+
+TEST(prettify_float) {
+    CHECK_WRITE("0.0001", "{}", 1e-4);
+    CHECK_WRITE("1e-05", "{}", 1e-5);
+    CHECK_WRITE("1000000000000000", "{}", 1e15);
+    CHECK_WRITE("1e+16", "{}", 1e16);
+    CHECK_WRITE("9.999e-05", "{}", 9.999e-5);
+    CHECK_WRITE("10000000000", "{}", 1e10);
+    CHECK_WRITE("100000000000", "{}", 1e11);
+    CHECK_WRITE("12340000000", "{}", 1234e7);
+    CHECK_WRITE("12.34", "{}", 1234e-2);
+    CHECK_WRITE("0.001234", "{}", 1234e-6);
+    CHECK_WRITE("0.1", "{}", 0.1f);
+    CHECK_WRITE("0.10000000149011612", "{}", 0.1);
+    CHECK_WRITE("1.3563156e-19", "{}", 1.35631564e-19f);
 }
 
 TEST(escape_brackets) {
@@ -278,8 +310,7 @@ TEST(args_errors) {
 }
 
 TEST(many_args) {
-    CHECK_WRITE("1234567891011121314151617181920", "{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", 1, 2, 3, 4, 5, 6, 7, 8,
-                9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
+    CHECK_WRITE("1234567891011121314151617181920", "{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
 }
 
 TEST(auto_arg_index) {
@@ -306,7 +337,7 @@ TEST(left_align) {
     CHECK_WRITE("42   ", "{0:<5}", 42ul);
     CHECK_WRITE("-42  ", "{0:<5}", -42ll);
     CHECK_WRITE("42   ", "{0:<5}", 42ull);
-    CHECK_WRITE("-42.0  ", "{0:<7}", -42.0);
+    CHECK_WRITE("-42  ", "{0:<5}", -42.0);
     CHECK_WRITE("c    ", "{0:<5}", "c");
     CHECK_WRITE("abc  ", "{0:<5}", "abc");
     CHECK_WRITE("0xface  ", "{0:<8}", (void *) 0xface);
@@ -322,7 +353,7 @@ TEST(right_align) {
     CHECK_WRITE("   42", "{0:>5}", 42ul);
     CHECK_WRITE("  -42", "{0:>5}", -42ll);
     CHECK_WRITE("   42", "{0:>5}", 42ull);
-    CHECK_WRITE("  -42.0", "{0:>7}", -42.0);
+    CHECK_WRITE("  -42", "{0:>5}", -42.0);
     CHECK_WRITE("    c", "{0:>5}", "c");
     CHECK_WRITE("  abc", "{0:>5}", "abc");
     CHECK_WRITE("  0xface", "{0:>8}", (void *) 0xface);
@@ -341,14 +372,14 @@ TEST(numeric_align) {
     CHECK_WRITE("   42", "{0:=5}", 42ul);
     CHECK_WRITE("-  42", "{0:=5}", -42ll);
     CHECK_WRITE("   42", "{0:=5}", 42ull);
-    CHECK_WRITE("-  42.0", "{0:=7}", -42.0);
+    CHECK_WRITE("-  42", "{0:=5}", -42.0);
 
     EXPECT_ERROR("\"}\" expected", "{0:=5", 'a');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:=5c}", 'a');
     EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:=5}", "abc");
     EXPECT_ERROR("Format specifier requires an arithmetic argument", "{0:=8}", (void *) 0xface);
 
-    CHECK_WRITE(" 1.0", "{:= }", 1.0);
+    CHECK_WRITE(" 1", "{:= }", 1.0);
 }
 
 TEST(center_align) {
@@ -361,7 +392,7 @@ TEST(center_align) {
     CHECK_WRITE(" 42  ", "{0:^5}", 42ul);
     CHECK_WRITE(" -42 ", "{0:^5}", -42ll);
     CHECK_WRITE(" 42  ", "{0:^5}", 42ull);
-    CHECK_WRITE(" -42.0 ", "{0:^7}", -42.0);
+    CHECK_WRITE(" -42 ", "{0:^5}", -42.0);
     CHECK_WRITE("  c  ", "{0:^5}", "c");
     CHECK_WRITE(" abc  ", "{0:^6}", "abc");
     CHECK_WRITE(" 0xface ", "{0:^8}", (void *) 0xface);
@@ -377,7 +408,7 @@ TEST(fill) {
     CHECK_WRITE("***42", "{0:*>5}", 42ul);
     CHECK_WRITE("**-42", "{0:*>5}", -42ll);
     CHECK_WRITE("***42", "{0:*>5}", 42ull);
-    CHECK_WRITE("**-42.0", "{0:*>7}", -42.0);
+    CHECK_WRITE("**-42", "{0:*>5}", -42.0);
     CHECK_WRITE("c****", "{0:*<5}", "c");
     CHECK_WRITE("abc**", "{0:*<5}", "abc");
     CHECK_WRITE("**0xface", "{0:*>8}", (void *) 0xface);
@@ -394,7 +425,7 @@ TEST(plus_sign) {
     CHECK_WRITE("+42", "{0:+}", 42);
     CHECK_WRITE("+42", "{0:+}", 42l);
     CHECK_WRITE("+42", "{0:+}", 42ll);
-    CHECK_WRITE("+42.0", "{0:+}", 42.0);
+    CHECK_WRITE("+42", "{0:+}", 42.0);
 
     EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:+}", 42u);
     EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:+}", 42ul);
@@ -411,7 +442,7 @@ TEST(minus_sign) {
     CHECK_WRITE("42", "{0:-}", 42);
     CHECK_WRITE("42", "{0:-}", 42l);
     CHECK_WRITE("42", "{0:-}", 42ll);
-    CHECK_WRITE("42.0", "{0:-}", 42.0);
+    CHECK_WRITE("42", "{0:-}", 42.0);
 
     EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:-}", 42u);
     EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0:-}", 42ul);
@@ -428,7 +459,7 @@ TEST(space_sign) {
     CHECK_WRITE(" 42", "{0: }", 42);
     CHECK_WRITE(" 42", "{0: }", 42l);
     CHECK_WRITE(" 42", "{0: }", 42ll);
-    CHECK_WRITE(" 42.0", "{0: }", 42.0);
+    CHECK_WRITE(" 42", "{0: }", 42.0);
 
     EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0: }", 42u);
     EXPECT_ERROR("Format specifier requires a signed integer argument (got unsigned)", "{0: }", 42ul);
@@ -473,6 +504,12 @@ TEST(hash_flag) {
     CHECK_WRITE("042", "{0:#o}", 042ull);
 
     CHECK_WRITE("-42.0", "{0:#}", -42.0);
+    CHECK_WRITE("-42.0", "{0:#}", -42.01);
+    CHECK_WRITE("4.e+01", "{0:#e}", 42.0);
+
+    CHECK_WRITE("0.", "{:#.0f}", 0.01);
+    CHECK_WRITE("0.50", "{:#.2g}", 0.5);
+    CHECK_WRITE("0.", "{:#.0f}", 0.5);
 
     EXPECT_ERROR("\"}\" expected", "{0:#", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:#c}", 'c');
@@ -488,7 +525,7 @@ TEST(zero_flag) {
     CHECK_WRITE("00042", "{0:05}", 42ul);
     CHECK_WRITE("-0042", "{0:05}", -42ll);
     CHECK_WRITE("00042", "{0:05}", 42ull);
-    CHECK_WRITE("-0042.0", "{0:07}", -42.0);
+    CHECK_WRITE("-0042", "{0:05}", -42.0);
 
     EXPECT_ERROR("\"}\" expected", "{0:0", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:0c}", 'c');
@@ -539,6 +576,13 @@ TEST(dynamic_width) {
     CHECK_WRITE("    0xcafe", "{0:{1}}", (void *) 0xcafe, 10);
     CHECK_WRITE("x          ", "{0:{1}}", "x", 11);
     CHECK_WRITE("str         ", "{0:{1}}", "str", 12);
+
+    CHECK_WRITE(u8"**🤡**", "{:*^5}", u8"🤡");
+    CHECK_WRITE(u8"**🤡**", "{:*^5c}", U'🤡');
+    CHECK_WRITE(u8"**你好**", "{:*^6}", u8"你好");
+    CHECK_WRITE("  42.0", "{:#6}", 42.0);
+    CHECK_WRITE("x     ", "{:6c}", 'x');
+    CHECK_WRITE("000000", "{:>06.0f}", 0.00884311);
 }
 
 TEST(precision) {
@@ -565,6 +609,28 @@ TEST(precision) {
 
     CHECK_WRITE("1.2", "{0:.2}", 1.2345);
 
+    CHECK_WRITE("1.2e+56", "{:.2}", 1.234e56);
+    CHECK_WRITE("1.1", "{0:.3}", 1.1);
+    CHECK_WRITE("  0.0e+00", "{:9.1e}", 0.0);
+
+    CHECK_WRITE(
+        "4.9406564584124654417656879286822137236505980261432476442558568250067550"
+        "727020875186529983636163599237979656469544571773092665671035593979639877"
+        "479601078187812630071319031140452784581716784898210368871863605699873072"
+        "305000638740915356498438731247339727316961514003171538539807412623856559"
+        "117102665855668676818703956031062493194527159149245532930545654440112748"
+        "012970999954193198940908041656332452475714786901472678015935523861155013"
+        "480352649347201937902681071074917033322268447533357208324319361e-324",
+        "{:.494}",
+        4.9406564584124654E-324);
+
+    CHECK_WRITE("123.", "{:#.0f}", 123.0);
+    CHECK_WRITE("1.23", "{:.02f}", 1.234);
+    CHECK_WRITE("0.001", "{:.1g}", 0.001);
+    CHECK_WRITE("1019666400", "{}", 1019666432.0f);
+    CHECK_WRITE("1e+01", "{:.0e}", 9.5);
+    CHECK_WRITE("1.0e-34", "{:.1e}", 1e-34);
+
     EXPECT_ERROR("Precision is not allowed for pointer type", "{0:.2}", (void *) 0xcafe);
     EXPECT_ERROR("Invalid type specifier for a pointer", "{0:.2f}", (void *) 0xcafe);
 
@@ -572,8 +638,7 @@ TEST(precision) {
 }
 
 TEST(benchmark_string) {
-    CHECK_WRITE("0.1250000000:0042:+0.25:str:0x3e8:X:%", "{0:0.10f}:{1:04}:{2:+g}:{3}:{4}:{5:c}:%", 0.125, 42, 0.25,
-                "str", (void *) 1000, 'X');
+    CHECK_WRITE("0.1250000000:0042:+0.25:str:0x3e8:X:%", "{0:0.10f}:{1:04}:{2:+g}:{3}:{4}:{5:c}:%", 0.125, 42, 0.25, "str", (void *) 1000, 'X');
 }
 
 TEST(dynamic_precision) {

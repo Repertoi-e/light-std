@@ -248,7 +248,7 @@ constexpr u128::u128(s128 v) : hi{(u64)(v.hi)}, lo{v.lo} {}
 #endif
 
 extern "C" {
-double ldexp(double, s32);
+__declspec(dllimport) double ldexp(double, s32);
 }  // TODO: Constexpr
 
 inline u128::operator float() const { return (float) lo + (float) ldexp((double) hi, 64); }
