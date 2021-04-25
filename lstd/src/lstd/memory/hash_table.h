@@ -96,7 +96,7 @@ struct hash_table {
             return *this;
         }
 
-        iterator_ operator++(int) {
+        iterator_ operator++(s32) {
             iterator_ pre = *this;
             ++(*this);
             return pre;

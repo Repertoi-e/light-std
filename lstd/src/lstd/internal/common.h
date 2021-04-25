@@ -240,7 +240,7 @@ struct range {
         constexpr s64 operator*() const { return I; }
         constexpr iterator operator++() { return I += Step, *this; }
 
-        constexpr iterator operator++(int) {
+        constexpr iterator operator++(s32) {
             iterator temp(*this);
             return I += Step, temp;
         }
@@ -428,8 +428,9 @@ constexpr void *const_zero_memory(void *dst, u64 size) { return const_fill_memor
 // If the memory regions are equal, the returned value is -1
 extern s64 (*compare_memory)(const void *ptr1, const void *ptr2, u64 size);
 constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, u64 size) {
-    auto *s1 = (const char *) ptr1;
-    auto *s2 = (const char *) ptr2;
+    // @TODO: This doesn't work. Complains about casting.
+    auto *s1 = (byte *) ptr1;
+    auto *s2 = (byte *) ptr2;
 
     For(range(size)) if (*s1++ != *s2++) return it;
     return -1;
@@ -447,7 +448,7 @@ constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, u64 size)
 // The index always starts at the LSB.
 //   e.g msb(12) (binary - 1100) -> returns 3
 //       lsb(12) (binary - 1100) -> returns 2
-// If x is 0, returned value is -1.
+// If x is 0, returned value is -1 (no set bits).
 template <typename T>
 constexpr always_inline s32 msb(T x) {
     // We can't use a concept here because we need the msb forward declaration in u128.h,
@@ -459,8 +460,6 @@ constexpr always_inline s32 msb(T x) {
         if (x.hi != 0) return 64 + msb(x.hi);
         return msb(x.lo);
     } else {
-        if (x == 0) return -1;
-
         if (is_constant_evaluated()) {
             s32 r = 0;
             while (x >>= 1) ++r;
@@ -469,12 +468,10 @@ constexpr always_inline s32 msb(T x) {
 #if COMPILER == MSVC
             if constexpr (sizeof(T) == 8) {
                 unsigned long r = 0;
-                _BitScanReverse64(&r, x);
-                return (s32) r;
+                return _BitScanReverse64(&r, x) ? ((s32) r) : -1;
             } else {
                 unsigned long r = 0;
-                _BitScanReverse(&r, x);
-                return (s32) r;
+                return _BitScanReverse(&r, x) ? ((s32) r) : -1;
             }
 #endif
         }
@@ -485,15 +482,13 @@ constexpr always_inline s32 msb(T x) {
 // The index always starts at the LSB.
 //   e.g msb(12) (binary - 1100) -> returns 3
 //       lsb(12) (binary - 1100) -> returns 2
-// If x is 0, returned value is -1.
+// If x is 0, returned value is -1 (no set bits).
 constexpr always_inline s32 lsb(types::is_unsigned_integral auto x) {
     if constexpr (sizeof(x) == 16) {
         // 128 bit integers
         if (x.lo == 0) return 64 + lsb(x.hi);
         return lsb(x.lo);
     } else {
-        if (x == 0) return -1;
-
         if (is_constant_evaluated()) {
             s32 r = 0;
             while (!(x & 1)) ++r, x >>= 1;
@@ -502,12 +497,10 @@ constexpr always_inline s32 lsb(types::is_unsigned_integral auto x) {
 #if COMPILER == MSVC
             if constexpr (sizeof(x) == 8) {
                 unsigned long r = 0;
-                _BitScanForward64(&r, x);
-                return (s32) r;
+                return _BitScanForward64(&r, x) ? ((s32) r) : -1;
             } else {
                 unsigned long r = 0;
-                _BitScanForward(&r, x);
-                return (s32) r;
+                return _BitScanForward(&r, x) ? ((s32) r) : -1;
             }
 #endif
         }
@@ -573,28 +566,38 @@ constexpr u32 ZERO_OR_POWERS_OF_10_32[] = {0, POWERS_OF_10(1)};
 constexpr u64 ZERO_OR_POWERS_OF_10_64[] = {0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull};
 #undef POWERS_OF_10
 
+// Returns the number of bits (base 2 digits) needed to represent n. Leading zeroes
+// are not counted, except for n == 0, in which case count_digits_base_2 returns 1.
 //
+// Source: Bit-Twiddling hacks
+always_inline u32 count_digits_base_2(types::is_unsigned_integral auto n) {
+    s32 integerLog2 = msb(n | 1);  // log_2(n) == msb(n) (@Speed Not the fastest way)
+                                   // We also | 1 (if n is 0, we treat is as 1)
+
+    return (u32)(integerLog2 + 1);  // Number of bits in 'n' is [log_2(n)] + 1
+}
+
 // Returns the number of decimal digits in n. Leading zeros are not counted
 // except for n == 0 in which case count_digits returns 1.
 //
 // Source: Bit-Twiddling hacks
-always_inline s32 count_digits(u64 n) {
-    s64 integerLog2 = msb(n | 1);  // log_2(n) == msb(n) (not the fastest way, but hey)
-                                   // W also | 1 (if n is 0, we treat is as 1)
+always_inline u32 count_digits(types::is_unsigned_integral auto n) {
+    s32 integerLog2 = msb(n | 1);  // log_2(n) == msb(n) (@Speed Not the fastest way)
+                                   // We also | 1 (if n is 0, we treat is as 1)
 
     // Divide by log_2(10), which is approx. 1233 / 4096
-    s64 t = (integerLog2 + 1) * 1233 >> 12;  // We add 1 to integerLog2 because it rounds down.
+    u32 t = ((u32) integerLog2 + 1) * 1233 >> 12;  // We add 1 to integerLog2 because it rounds down.
 
-    s64 integerLog10 = t - (n < POWERS_OF_10_64[t]);  // t may be off by 1, correct it.
+    u32 integerLog10 = t - (n < POWERS_OF_10_64[t]);  // t may be off by 1, correct it.
 
-    return (s32)(integerLog10 + 1);  // Number of digits in 'n' is log_10(n) + 1
+    return integerLog10 + 1;  // Number of digits in 'n' is [log_10(n)] + 1
 }
 
 template <u32 Bits, types::is_integral T>
-constexpr s32 count_digits(T value) {
+constexpr u32 count_digits(T value) {
     T n = value;
 
-    s32 numDigits = 0;
+    u32 numDigits = 0;
     do {
         ++numDigits;
     } while ((n >>= Bits) != 0);

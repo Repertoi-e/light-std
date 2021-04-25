@@ -434,7 +434,7 @@ void write(fmt_context *f, const void *value) {
     }
 
     auto uptr     = types::bit_cast<u64>(value);
-    s32 numDigits = count_digits<4>(uptr);
+    u32 numDigits = count_digits<4>(uptr);
 
     auto func = [&, f]() {
         write_no_specs(f, U'0');

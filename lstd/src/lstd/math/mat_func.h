@@ -28,7 +28,7 @@ inline mat<T, R1, C2, Packed> dot(const mat<T, R1, Match, Packed> &lhs, const ma
         for (s32 i = 0; i < 4; i++) row[i] = _mm_load_ps((f32 *) &rhs.Stripes[i]);
         for (s32 i = 0; i < 4; i++) {
             sum[i] = _mm_setzero_ps();
-            for (int j = 0; j < 4; j++) {
+            for (s32 j = 0; j < 4; j++) {
                 sum[i] = _mm_add_ps(_mm_mul_ps(_mm_set1_ps(lhs(i, j)), row[j]), sum[i]);
             }
         }

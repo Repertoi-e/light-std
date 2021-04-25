@@ -36,7 +36,7 @@
 // - underlying_type (returns the underlying integral type on the enum)
 //
 // - remove_pointer/add_pointer
-// - remove_extent (for arrays, e.g. s32[][] -> int[])
+// - remove_extent (for arrays, e.g. s32[][] -> s32[])
 // - remove_all_extents (for arrays, e.g. s32[][] -> s32)
 //
 // - decay (applies lvalue-to-rvalue, array-to-pointer, function-to-pointer implicit conversions to the type T, removes cv-qualifiers)
@@ -223,7 +223,7 @@ struct remove_const<const T[]> {
     using type = T[];
 };
 
-template <typename T, int N>
+template <typename T, s64 N>
 struct remove_const<const T[N]> {
     using type = T[N];
 };
@@ -254,7 +254,7 @@ struct remove_volatile<volatile T[]> {
     using type = T[];
 };
 
-template <typename T, int N>
+template <typename T, s64 N>
 struct remove_volatile<volatile T[N]> {
     using type = T[N];
 };
@@ -294,7 +294,7 @@ using remove_reference_t = typename remove_reference<T>::type;
 // The remove_cvref transformation trait removes top-level const and/or volatile
 // qualification (if any) from the reference type to which it is applied. For a given type T&,
 // remove_cvref<T& const volatile>::type is equivalent to T. For example,
-// remove_cv<int& volatile>::type is equivalent to int.
+// remove_cv<s32& volatile>::type is equivalent to s32.
 template <typename T>
 struct remove_cvref {
     using type = remove_volatile_t<remove_const_t<remove_reference_t<T>>>;
@@ -418,7 +418,7 @@ template <typename T>
 typename add_rvalue_reference<T>::type declval() noexcept;
 
 //
-// Concept satisfied if T is one of the following types: bool, char, wchar_t, short, int, long long (and unsigned variants)
+// Concept satisfied if T is one of the following types: bool, char, wchar_t, s16, s32, s64 (and unsigned variants)
 //
 template <typename T>
 struct is_integral_helper : false_t {};
@@ -586,16 +586,16 @@ using underlying_type_t = typename underlying_type_helper<T>::type;
 
 // Rank returns the number of dimensions on af array
 template <typename T>
-struct rank_helper : integral_constant<int, 0> {};
+struct rank_helper : integral_constant<s64, 0> {};
 
 template <typename T>
-struct rank_helper<T[]> : integral_constant<int, rank_helper<T>::value + 1> {};
+struct rank_helper<T[]> : integral_constant<s64, rank_helper<T>::value + 1> {};
 
-template <typename T, int N>
-struct rank_helper<T[N]> : integral_constant<int, rank_helper<T>::value + 1> {};
+template <typename T, s64 N>
+struct rank_helper<T[N]> : integral_constant<s64, rank_helper<T>::value + 1> {};
 
 template <typename T>
-constexpr int rank = rank<T>::value;
+constexpr s64 rank = rank<T>::value;
 
 // An integral type representing the number of elements in the Ith dimension of array type T.
 //
@@ -605,20 +605,20 @@ constexpr int rank = rank<T>::value;
 // For a given array type T and a given dimension I where I >= rank<T>::value, extent<T, I>::value == 0.
 // For a given array type of unknown extent T[], extent<T[], 0>::value == 0.
 // For a given non-array type T and an arbitrary dimension I, extent<T, I>::value == 0.
-template <typename T, int N>
-struct extent_helper : integral_constant<int, 0> {};
+template <typename T, s64 N>
+struct extent_helper : integral_constant<s64, 0> {};
 
-template <typename T, int I>
-struct extent_helper<T[I], 0> : integral_constant<int, I> {};
+template <typename T, s64 I>
+struct extent_helper<T[I], 0> : integral_constant<s64, I> {};
 
-template <typename T, int N, int I>
+template <typename T, s64 N, s64 I>
 struct extent_helper<T[I], N> : extent_helper<T, N - 1> {};
 
-template <typename T, int N>
+template <typename T, s64 N>
 struct extent_helper<T[], N> : extent_helper<T, N - 1> {};
 
-template <typename T, int N = 0>
-constexpr int extent_v = extent_helper<T, N>::value;
+template <typename T, s64 N = 0>
+constexpr s64 extent_v = extent_helper<T, N>::value;
 
 template <typename T>
 struct is_array_helper : false_t {};

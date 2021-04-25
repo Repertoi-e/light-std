@@ -28,9 +28,9 @@
 
 CPPU_BEGIN_NAMESPACE
 
-void os_exit_program(int code) { _exit(code); }
+void os_exit_program(s32 code) { _exit(code); }
 
-void os_assert_failed(const char *file, int line, const char *condition) {
+void os_assert_failed(const char *file, s64 line, const char *condition) {
     fmt::print("{}>>> {}:{}, Assert failed: {}{}\n", fmt::FG::Red, file, line, condition, fmt::FG::Reset);
 #if COMPILER == GCC || COMPILER == CLANG
     std::raise(SIGINT);
