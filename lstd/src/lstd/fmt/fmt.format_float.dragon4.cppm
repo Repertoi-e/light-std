@@ -314,7 +314,7 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 prec
     }
 
     s32 cutoffMinExp = digitExp;  
-    if (precision > 0) {
+    if (precision >= 0) {
         desiredCutoffExponent = digitExp - precision;
         if (desiredCutoffExponent < cutoffMinExp) {
             cutoffMinExp = desiredCutoffExponent;
@@ -382,8 +382,27 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 prec
 
     // Print the rounded digit.
     if (roundDown) {
-        *curDigit = (char) ('0' + outputDigit);
-        ++curDigit;
+         if (precision == 0) {
+             // @Hack
+             // This is not in the original algorithm.
+             // We check for precision 0 here because we need to generate
+             // a lonely zero in this case. Otherwise our formatting looks incorrect.
+             //
+             // Precisely, the format string "{:#.0f}" should produce "0." when given the value 0.5 or lower.
+             // When fed with e.g. 0.7, we take the outside branch and round up, and correctly produce "1.".
+             // If you are confused about the pointy dot: the # specifier tells the formatter to output a dot despite
+             // the fact that the specified precision is 0. This is useful when you want to be explicit that you are 
+             // printing a floating point number, and not to be confused with an integer.
+             // 
+             // Normally "{:.0f}" with value 42.2 would print "42", which is indistinguishable from printing the integer 42.
+             //
+             *outExp += 1;
+             *curDigit = '0';
+             ++curDigit;
+         } else {
+             *curDigit = (char) ('0' + outputDigit);
+             ++curDigit;
+         }
     } else {
         if (outputDigit == 9) {
             // Find the first non-nine prior digit.

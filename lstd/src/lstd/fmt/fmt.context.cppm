@@ -475,8 +475,7 @@ void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs) {
             return;
         }
         auto cp = (utf32) value;
-        write_padded_helper(
-            f, specs, [&]() { write_no_specs(f, cp); }, get_size_of_cp(cp));
+        write_padded_helper(f, specs, [&]() { write_no_specs(f, cp); }, 1);
         return;
     } else {
         f->on_error("Invalid type specifier for an integer", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
