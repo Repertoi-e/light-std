@@ -2,8 +2,7 @@
 workspace "light-std"
     architecture "x64"
     configurations { "Debug", "DebugOptimized", "Release" }
-	startproject "test_suite"
-
+	
 function common_settings()
     architecture "x64"
 
@@ -15,21 +14,35 @@ function common_settings()
     
     editandcontinue "Off"
     exceptionhandling "Off" -- SEH still works
-    
+	
+	outputFolder = "%{cfg.buildcfg}"
+
+	targetdir("bin/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin/" .. outputFolder .. "/%{prj.name}/int")
+	
+	files {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.inc",
+        "%{prj.name}/src/**.c",
+        "%{prj.name}/src/**.cpp",
+        "%{prj.name}/src/**.def",
+        "%{prj.name}/src/**.cppm"
+    }
+	
     -- Define this if you include headers from the normal standard library (STL).
     -- If this macro is not defined we provide our own implementations of certain things 
     -- that are normally defined in the STL and on which certain C++ features rely on.
     -- (e.g. the compare header - required by the spaceship operator, placement new and initializer_lists)
     -- defines { "LSTD_DONT_DEFINE_STD" }
-	
-	-- Uncomment this to build the library without a namespace
-	-- defines { "LSTD_NO_NAMESPACE" }
-	
-	-- Uncomment this to use a custom namespace name for the library
-	-- defines { "LSTD_NAMESPACE=my_lstd" }
-	
+    
+    -- Uncomment this to build the library without a namespace
+    -- defines { "LSTD_NO_NAMESPACE" }
+    
+    -- Uncomment this to use a custom namespace name for the library
+    -- defines { "LSTD_NAMESPACE=my_lstd" }
     
     includedirs { "%{prj.name}/src" }
+	
     filter "system:windows"
         systemversion "latest"
         buildoptions { "/utf-8" }
@@ -70,62 +83,34 @@ function common_settings()
     filter {}
 end
 
-
-outputFolder = "%{cfg.buildcfg}_%{cfg.system}_%{cfg.architecture}"
-
-
 project "lstd"
     location "%{prj.name}"
     kind "StaticLib"
-
-    targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-    objdir("bin_int/" .. outputFolder .. "/%{prj.name}")
-
-    files {
-        "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.inc",
-        "%{prj.name}/src/**.c",
-        "%{prj.name}/src/**.cpp",
-        "%{prj.name}/src/**.def",
-        "%{prj.name}/src/**.cppm"
-    }
-    
+	
     -- These options control how much memory the platform allocators reserve upfront.
     -- Increase this if you get platform warnings with the message "Not enough memory in the temporary/persistent allocator; expanding the pool".
     -- Decrease this if you want to tweak the memory footprint of your application.
     -- Note: Feel free to modify the library source code however you like. We just try to be as general as possible.
     --
     -- (KiB and MiB are literal operators that are defined in the library, 1_KiB = 1024, 1_MiB = 1024 * 1024)
-	--
-	-- @TODO: Have a clearer picture on memory usage. Persisent storage size can be calculated. 
-	--        Allow turning off certain options in order to make the persistent block smaller,
-	--        thus reducing the memory footprint of the library.
+    --
+    -- @TODO: Have a clearer picture on memory usage. Persisent storage size can be calculated. 
+    --        Allow turning off certain options in order to make the persistent block smaller,
+    --        thus reducing the memory footprint of the library.
     defines { "PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB", "PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB" }
-	
+    
     common_settings()
 
 
 project "test_suite"
     location "%{prj.name}"
     kind "ConsoleApp"
-
-    targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-    objdir("bin_int/" .. outputFolder .. "/%{prj.name}")
-
-    files {
-        "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.inc",
-        "%{prj.name}/src/**.c",
-        "%{prj.name}/src/**.cpp",
-        "%{prj.name}/src/**.def",
-        "%{prj.name}/src/**.cppm"
-    }
-
+	
     -- excludes "%{prj.name}/src/build_test_table.cpp"
 
     includedirs { "lstd/src" } 
     
-	links { "lstd" }
+    links { "lstd" }
     
     pchheader "pch.h"
     pchsource "%{prj.name}/src/pch.cpp"

@@ -1,0 +1,10 @@
+
+I modified the source code of premake in order to treat .cppm and .ixx files as
+module files for C++20 (otherwise they don't get included in the build process).
+
+For now this concerns only Visual Studio since other compilers don't support C++20.
+
+I have provided a prebuilt binary in vendor/Windows/premake5.exe as to keep the
+build process as simple and dependency free as possible.
+
+
