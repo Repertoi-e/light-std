@@ -1,6 +1,6 @@
 module;
 
-#include "../internal/context.h"
+#include "../common/context.h"
 #include "../io.h"
 #include "../math.h"
 #include "../memory/guid.h"

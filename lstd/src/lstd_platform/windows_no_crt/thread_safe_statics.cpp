@@ -7,7 +7,7 @@
 //
 
 #include "common.h"
-#include "lstd/types/windows.h"
+#include "lstd/common/windows.h"
 
 import os;
 

@@ -13,13 +13,13 @@
 // https://www.netlib.org/cephes/
 // Note: We don't include everything, just cmath for now.
 //       Statistics is a thing we will most definitely include as well in the future.
-//       Everything else you can include on your own in your project (we don't want to be bloaty).
+//       Everything else you can include on your own in your project (we don't want to be bloat-y).
 //
 // Note: Important difference,
 // atan2's return range is 0 to 2PI, and not -PI to PI (as per normal in the C standard library).
 //
 //
-// Parts of the source code that we modifed are marked with :WEMODIFIEDCEPHES:
+// Parts of the source code that we modified are marked with :WEMODIFIEDCEPHES:
 //
 
 /*

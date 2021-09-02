@@ -1,6 +1,6 @@
 #pragma once
 
-#include "internal/common.h"
+#include "common/common.h"
 #include "math/decompose_lu.h"
 #include "math/decompose_qr.h"
 // #include "math/decompose_svd.h"

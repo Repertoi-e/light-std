@@ -1,4 +1,4 @@
-#include <lstd/types/numeric_info.h>
+#include <lstd/common/numeric_info.h>
 
 #include "../test.h"
 

@@ -3,7 +3,7 @@
 /// Defines the structure of allocators in this library.
 /// Provides a default thread-safe global allocator and thread local temporary allocator.
 
-#include "../internal/common.h"
+#include "../common/common.h"
 #include "../thread.h"
 #include "vendor/tlsf/tlsf.h"
 

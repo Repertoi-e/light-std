@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../internal/common.h"
+#include "../common/common.h"
 #include "array_like.h"
 
 //

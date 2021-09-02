@@ -1,5 +1,5 @@
-#include "lstd/internal/namespace.h"
-#include "lstd/internal/debug_break.h"
+#include "lstd/common/namespace.h"
+#include "lstd/common/debug_break.h"
 
 import os;
 

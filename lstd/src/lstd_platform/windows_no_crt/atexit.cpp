@@ -1,5 +1,5 @@
 #include "common.h"
-#include "lstd/internal/common.h"
+#include "lstd/common/common.h"
 #include "lstd/memory/delegate.h"
 
 import os;

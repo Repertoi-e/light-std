@@ -1,6 +1,6 @@
 #include "allocator.h"
 
-#include "../internal/context.h"
+#include "../common/context.h"
 #include "../io.h"
 #include "../math.h"
 

@@ -20,7 +20,7 @@ using fmt_parse_error_handler_t = void (*)(const string &message, const string &
 void fmt_default_parse_error_handler(const string &message, const string &formatString, s64 position);
 
 //
-// Thread local global variable to control certain behaviours of the program.
+// Thread local global variable to control certain behaviors of the program.
 // A way to store options that change the behaviour of the code without passing a bunch of parameters to routines.
 //
 // Gets initialized when the program runs for the main thread and tls_init (take a look at windows_common.cpp) initializes allocators.
@@ -116,7 +116,7 @@ struct context {
     // One might want to silence such errors and just continue executing, or redirect the error - like we do in the tests.
     fmt_parse_error_handler_t FmtParseErrorHandler = fmt_default_parse_error_handler;
 
-    // Disable stylized text output (colors, background colors, and bold/italic/strikethrough/underline text).
+    // Disable stylized text output (colors, background colors, and bold/italic/strike-through/underline text).
     // This is useful when logging to files/strings and not the console. The ansi escape codes look like garbage in files/strings.
     bool FmtDisableAnsiCodes = false;
 

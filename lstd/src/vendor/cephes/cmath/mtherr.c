@@ -56,7 +56,7 @@ Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 
 #include "mconf.h"
 
-#include "lstd/internal/debug_break.h"
+#include "lstd/common/debug_break.h"
 
 int merror = 0;
 

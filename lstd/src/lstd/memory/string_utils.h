@@ -36,7 +36,7 @@
 // * utf32_to_utf8
 //
 
-#include "../internal/common.h"
+#include "../common/common.h"
 
 LSTD_BEGIN_NAMESPACE
 

@@ -1,46 +1,58 @@
-- More data structures and lock-free data structures
+fmt module:
+- Printable
+- Escaping (+ unicode) - this would cerror reporting in the default error function
+- Digit grouping
+- Locale
 
----------------------------------------------------------------------------------
+math module:
+- Make it C++20
+- Remove it all together?
+
+
+README.md:
+- Build section
+- Note about licenses and foreign code
+
+
+
 File mapping
----------------------------------------------------------------------------------
+
 API for watching directory changes
 ... and an asset catalog system
 
----------------------------------------------------------------------------------
+More robust memory model for stuff the library allocates (see note in premake5.lua)
+
 Tests with parse_guid_options
 
----------------------------------------------------------------------------------
+
+String iterator doesn't work with constexpr
+
+
 // @TODO: Potentially useful?
 // bool BasePrefixCountedTowardsMaxDigits = true;
 // bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true; 
 
----------------------------------------------------------------------------------
 
-concept Hashable
----------------------------------------------------------------------------------
-Speed up hasher
----------------------------------------------------------------------------------
-String iterator doesn't work with constexpr
----------------------------------------------------------------------------------
+concept Hashable and speed up hasher
 
-... Things not hapenning for a while probably:
----------------------------------------------------------------------------------
+
+----------------- Things not hapenning for a while probably:
+
+- Time module?    
+- Random module?
+- Regex module?
+
+Data structures and lock-free data structures
+
 Allow users to add more variables to Implicit_Context
-Won't work with headers tho
----------------------------------------------------------------------------------
+
 Implement platform specific functionality and compile on linux.
-This is probably never going to happen if I continue to work on this alone LMAO.
----------------------------------------------------------------------------------
-
-Not even looked at yet:
-- Locale?  
-- Time?    
-- Random?
-- Regex?
+(This is probably never going to happen if I continue to work on this alone LMAO)
 
 
-
-LOC:            80394
+-----------------LOC:      
+      
+			    80394
 		        ----
 		        80115
 		        79664

@@ -1,4 +1,4 @@
-#include "lstd/internal/common.h"
+#include "lstd/common/common.h"
 
 #if OS == WINDOWS
 

@@ -1,6 +1,31 @@
 #pragma once
 
-/// A header which detects OS, cpu architecture and compiler
+///
+/// A header which detects the OS, the cpu architecture, endianness and the compiler
+///
+/// e.g. usage:
+///
+/// #if OS == WINDOWS
+/// ..
+/// #endif
+///
+///
+/// #if BITS == 64 && ENDIAN == LITTLE_ENDIAN
+/// ...
+/// #endif
+///
+///
+/// #if COMPILER == MSVC
+/// ...
+/// #endif
+///
+///
+/// Also provides the following defines:
+///     #define file_scope static
+///     #define local_persist static
+///
+/// Used instead of the keyword static (because that keyword has too many meanings...).
+/// This is just a personal preference.
 
 // OS constants
 #define WINDOWS 1

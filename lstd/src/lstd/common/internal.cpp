@@ -1238,7 +1238,7 @@ void default_panic_handler(const string &message, const array<os_function_call> 
     newContext._HandlingPanic = true;
 
     PUSH_CONTEXT(newContext) {
-        print("\n\n{!}(context.cpp / default_crash_handler): A panic occured and the program must terminate.\n");
+        print("\n\n{!}(context.cpp / default_crash_handler): A panic occurred and the program must terminate.\n");
         print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
         print("        ... and here is the call stack:\n");
         if (callStack.Count) {

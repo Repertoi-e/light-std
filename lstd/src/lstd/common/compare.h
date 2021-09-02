@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../internal/namespace.h"
+#include "../common/namespace.h"
 
 //
 // This file defines the necessary types for the spaceship <=> operator in C++20 to work.

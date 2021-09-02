@@ -1,7 +1,7 @@
 module;
 
 #include "../parse.h"
-#include "../types/windows.h"  // Declarations of API functions
+#include "../common/windows.h"  // Declarations of API functions
 
 export module path.nt;
 

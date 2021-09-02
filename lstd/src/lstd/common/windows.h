@@ -4,7 +4,7 @@
 // This file includes declarations for the Win32/64 API we use, as well as helper macros for error reporting.
 //
 
-#include "../internal/common.h"
+#include "../common/common.h"
 #include "windows_api.h"
 
 LSTD_BEGIN_NAMESPACE

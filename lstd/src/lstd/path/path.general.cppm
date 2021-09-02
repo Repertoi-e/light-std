@@ -1,6 +1,6 @@
 module;
 
-#include "../internal/context.h"
+#include "../common/context.h"
 #include "../memory/array.h"
 #include "../memory/string.h"
 

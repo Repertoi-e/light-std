@@ -1,10 +1,10 @@
-#include "lstd/internal/common.h"
+#include "lstd/common/common.h"
 
 #if OS == WINDOWS
 
 #include "lstd/io.h"
 #include "lstd/memory/guid.h"
-#include "lstd/types/windows.h"  // Declarations of Win32 functions
+#include "lstd/common/windows.h"  // Declarations of Win32 functions
 
 import path;
 import fmt;

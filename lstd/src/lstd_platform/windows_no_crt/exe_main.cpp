@@ -1,10 +1,10 @@
-#include "lstd/internal/common.h"
+#include "lstd/common/common.h"
 
 #if defined LSTD_NO_CRT
 
 #include "common.h"
-#include "lstd/internal/context.h"
-#include "lstd/types/windows.h"  // For definitions
+#include "lstd/common/context.h"
+#include "lstd/common/windows.h"  // For definitions
 
 import os;
 
@@ -160,7 +160,7 @@ extern "C" void main_no_crt() {
     // See e.g. windows_common.cpp
     
     // :PlatformStateInit
-    LSTD_NAMESPACE::internal::platform_init_context();  // This prepares the global thread-local immutable Context variable (see "lstd/internal/context.h")
+    LSTD_NAMESPACE::internal::platform_init_context();  // This prepares the global thread-local immutable Context variable (see "lstd/common/context.h")
     LSTD_NAMESPACE::internal::platform_init_global_state();
     LSTD_NAMESPACE::win64_crash_handler_init();
 

@@ -8,7 +8,7 @@
 ****/
 
 #include "common.h"
-#include "lstd/types/windows.h"  // For definitions
+#include "lstd/common/windows.h"  // For definitions
 
 extern "C" {
 
