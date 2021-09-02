@@ -514,7 +514,9 @@ TEST(hash_flag) {
     CHECK_WRITE("0.50", "{:#.2g}", 0.5);
     CHECK_WRITE("0.", "{:#.0f}", 0.5);
     CHECK_WRITE("0.", "{:#.0f}", 0.2);
-    CHECK_WRITE("1.", "{:#.0f}", 0.7);
+    CHECK_WRITE("1.", "{:#.0f}", 0.51);
+    CHECK_WRITE("1.e+01", "{:#.0e}", 9.5);
+    CHECK_WRITE("9.e+00", "{:#.0e}", 9.1);
 
     EXPECT_ERROR("\"}\" expected", "{0:#", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:#c}", 'c');
@@ -634,6 +636,7 @@ TEST(precision) {
     CHECK_WRITE("0.001", "{:.1g}", 0.001);
     CHECK_WRITE("1019666400", "{}", 1019666432.0f);
     CHECK_WRITE("1e+01", "{:.0e}", 9.5);
+    CHECK_WRITE("9e+00", "{:.0e}", 9.1);
     CHECK_WRITE("1.0e-34", "{:.1e}", 1e-34);
 
     EXPECT_ERROR("Precision is not allowed for pointer type", "{0:.2}", (void *) 0xcafe);

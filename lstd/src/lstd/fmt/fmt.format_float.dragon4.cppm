@@ -307,14 +307,14 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 prec
     }
 
     s32 cutoffMaxExp = digitExp - 16 * 1024 * 1024;  // Dummy buffer size
-  
-    s32 desiredCutoffExponent = -precision;
-    if (desiredCutoffExponent > cutoffMaxExp) {
-        cutoffMaxExp = desiredCutoffExponent;
-    }
-
     s32 cutoffMinExp = digitExp;  
+  
     if (precision >= 0) {
+        s32 desiredCutoffExponent = -precision;
+        if (desiredCutoffExponent > cutoffMaxExp) {
+            cutoffMaxExp = desiredCutoffExponent;
+        }
+        
         desiredCutoffExponent = digitExp - precision;
         if (desiredCutoffExponent < cutoffMinExp) {
             cutoffMinExp = desiredCutoffExponent;
