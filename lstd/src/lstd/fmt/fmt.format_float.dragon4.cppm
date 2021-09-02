@@ -146,11 +146,11 @@ big_int_2048 bigint_pow10(s32 exp) {
 // Arguments:
 // _b_           - buffer, should be big enough to hold the output.
 // _outWritten_  - contains the number of digits written.
-// _outExp_      - the base 10 exponent of the first digit, this could have been overriden by the function.
-// _cutoffMax_  - cut off printing after this many digits; -1 for no cutoff.
+// _outExp_      - the base 10 exponent of the first digit.
+// _precision_   - print at least and at most this many digits; -1 for unspecified.
 // _v_           - f32 or f64; contains the value of the float to be formatted.
 //
-export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 cutoffMax, types::is_floating_point auto v) {
+export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 precision, types::is_floating_point auto v) {
     // We compute values in integer format by rescaling as
     //   significand = scaledValue / scale
     //   marginLow = scaledMarginLow / scale
@@ -306,21 +306,20 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 cuto
         }
     }
 
-    // Compute the cutoffMax exponent (the exponent of the final digit to
-    // print). Default to the maximum size of the output buffer.
     s32 cutoffMaxExp = digitExp - 16 * 1024 * 1024;  // Dummy buffer size
-    
-    s32 desiredCutoffExponent = -cutoffMax;
+  
+    s32 desiredCutoffExponent = -precision;
     if (desiredCutoffExponent > cutoffMaxExp) {
         cutoffMaxExp = desiredCutoffExponent;
     }
 
-    // Otherwise it's CutoffMode_FractionLength. Print cutoffMax digits
-    // past the decimal point or until we reach the buffer size
-    // * desiredCutoffExponent = -cutoffMax;
-    // * if (desiredCutoffExponent > cutoffMaxExp) {
-    // *     cutoffMaxExp = desiredCutoffExponent;
-    // * }
+    s32 cutoffMinExp = digitExp;  
+    if (precision > 0) {
+        desiredCutoffExponent = digitExp - precision;
+        if (desiredCutoffExponent < cutoffMinExp) {
+            cutoffMinExp = desiredCutoffExponent;
+        }
+    }
 
     // Output the exponent of the first digit we will print .
     *outExp = digitExp - 1;
@@ -346,7 +345,7 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 cuto
         low = isEven ? (cmp <= 0) : (cmp < 0);
         cmp = compare(scaledValueHigh, scale);
         high = isEven ? (cmp >= 0) : (cmp > 0);
-        if ((low || high) || digitExp == cutoffMaxExp) break;
+        if (((low || high) & (digitExp <= cutoffMinExp)) || digitExp == cutoffMaxExp) break;
 
         // Store the output digit.
         *curDigit = (utf8) ('0' + outputDigit);

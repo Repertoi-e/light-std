@@ -510,9 +510,9 @@ TEST(hash_flag) {
     CHECK_WRITE("-42.01", "{0:#}", -42.01);
     CHECK_WRITE("4.e+01", "{0:#e}", 42.0);
 
-    CHECK_WRITE("0", "{:#.0f}", 0.01);
+    CHECK_WRITE("0.", "{:#.0f}", 0.01);
     CHECK_WRITE("0.50", "{:#.2g}", 0.5);
-    CHECK_WRITE("0", "{:#.0f}", 0.5);
+    CHECK_WRITE("0.", "{:#.0f}", 0.5);
 
     EXPECT_ERROR("\"}\" expected", "{0:#", 'c');
     EXPECT_ERROR("Invalid format specifier(s) for code point - code points can't have numeric alignment, signs or #", "{0:#c}", 'c');
