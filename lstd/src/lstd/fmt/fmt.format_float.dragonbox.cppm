@@ -222,7 +222,7 @@ u64 cache_compute_round_up_for_shorter_interval_case(u128 cache, s32 beta_minus_
 always_inline s32 remove_trailing_zeros(u32 *n) {
     constexpr s32 F32_MAX_TRAILING_ZEROS = 7;
 
-    s32 t = msb(*n);
+    s32 t = lsb(*n);
     if (t > F32_MAX_TRAILING_ZEROS) t = F32_MAX_TRAILING_ZEROS;
 
     constexpr u32 mod_inv1      = 0xcccccccd;
@@ -247,7 +247,7 @@ always_inline s32 remove_trailing_zeros(u32 *n) {
 always_inline s32 remove_trailing_zeros(u64 *n) {
     constexpr s32 F64_MAX_TRAILING_ZEROS = 16;
 
-    s32 t = msb(*n);
+    s32 t = lsb(*n);
     if (t > F64_MAX_TRAILING_ZEROS) t = F64_MAX_TRAILING_ZEROS;
 
     // Divide by 10^8 and reduce to 32-bits

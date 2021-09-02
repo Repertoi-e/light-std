@@ -62,6 +62,10 @@ using byte = unsigned char;
 #define U32_MAX (4294967295U)
 #define U64_MAX (U64_C(18446744073709551615))
 
+#define S128_MIN s128(S64_MIN, 0)
+#define S128_MAX s128(S64_MAX, U64_MAX)
+#define U128_MAX u128(U64_MAX, U64_MAX)
+
 #define WCHAR_MIN 0x0000
 #define WCHAR_MAX 0xffff
 
