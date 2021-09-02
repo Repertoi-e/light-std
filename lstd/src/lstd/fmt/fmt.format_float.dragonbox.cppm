@@ -363,6 +363,9 @@ bool is_center_integer(auto two_f, s32 exponent, s32 minus_k) {
 // The main algorithm for shorter interval case
 template <bool IS_F32>
 always_inline auto shorter_interval_case(s32 exponent) {
+    using uint_t = types::select_t<IS_F32, u32, u64>;
+    using cache_t = types::select_t<IS_F32, u64, u128>;
+
     decimal_fp<types::select_t<IS_F32, f32, f64>> result;
 
     // Compute k and beta
@@ -370,7 +373,13 @@ always_inline auto shorter_interval_case(s32 exponent) {
     s32 beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
 
     // Compute xi and zi
-    auto cache = IS_F32 ? get_cached_power_f32(-minus_k) : get_cached_power_f64(-minus_k);
+    
+    cache_t cache;
+    if constexpr(IS_F32) { 
+        cache = get_cached_power_f32(-minus_k); 
+    } else { 
+        cache = get_cached_power_f64(-minus_k);
+    }
 
     auto xi = cache_compute_left_endpoint_for_shorter_interval_case(cache, beta_minus_1);
     auto zi = cache_compute_right_endpoint_for_shorter_interval_case(cache, beta_minus_1);
@@ -379,7 +388,7 @@ always_inline auto shorter_interval_case(s32 exponent) {
     if (!is_left_endpoint_integer_shorter_interval(exponent)) ++xi;
 
     // Try bigger divisor
-    result.Significand = zi / 10;
+    result.Significand = (uint_t) (zi / 10);
 
     // If succeed, remove trailing zeros if necessary and return
     if (result.Significand * 10 >= xi) {
@@ -389,7 +398,7 @@ always_inline auto shorter_interval_case(s32 exponent) {
     }
 
     // Otherwise, compute the round-up of y
-    result.Significand = cache_compute_round_up_for_shorter_interval_case(cache, beta_minus_1);
+    result.Significand = (uint_t) cache_compute_round_up_for_shorter_interval_case(cache, beta_minus_1);
     result.Exponent    = minus_k;
 
     constexpr s32 SHORTER_INTERVAL_TIE_THRESHOLD = IS_F32 ? -35 : -77;
@@ -411,6 +420,7 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
 
     constexpr bool IS_F32 = sizeof(x) == sizeof(f32);
     using uint_t          = types::select_t<IS_F32, u32, u64>;
+    using cache_t         = types::select_t<IS_F32, u64, u128>;
 
     constexpr s32 KAPPA = IS_F32 ? 1 : 2;
 
@@ -447,8 +457,15 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
     bool include_right_endpoint = include_left_endpoint;
 
     // Compute k and beta.
-    s32 minus_k      = floor_log10_pow2(exponent) - KAPPA;
-    auto cache       = IS_F32 ? get_cached_power_f32(-minus_k) : get_cached_power_f64(-minus_k);
+    s32 minus_k = floor_log10_pow2(exponent) - KAPPA;
+    
+    cache_t cache;
+    if constexpr(IS_F32) { 
+        cache = get_cached_power_f32(-minus_k); 
+    } else { 
+        cache = get_cached_power_f64(-minus_k);
+    }
+    
     s32 beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
 
     // Compute zi and deltai
@@ -456,7 +473,7 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
     u32 deltai    = cache_compute_delta(cache, beta_minus_1);
     uint_t two_fc = significand << 1;
     uint_t two_fr = two_fc | 1;
-    uint_t zi     = cache_compute_mul(two_fr << beta_minus_1, cache);
+    uint_t zi     = (uint_t) cache_compute_mul(two_fr << beta_minus_1, cache);
 
     //
     // Step 2: Try larger divisor; remove trailing zeros if necessary

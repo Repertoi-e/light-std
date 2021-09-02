@@ -15,6 +15,7 @@ export {
         BOOL,
         LAST_INTEGRAL = BOOL,
 
+        F32,
         F64,
         LAST_ARITHMETIC = F64,
 
@@ -50,6 +51,7 @@ export {
     TYPE_CONSTANT(u32, fmt_type::U64);
     TYPE_CONSTANT(u64, fmt_type::U64);
     TYPE_CONSTANT(bool, fmt_type::BOOL);
+    TYPE_CONSTANT(f32, fmt_type::F32);
     TYPE_CONSTANT(f64, fmt_type::F64);
     TYPE_CONSTANT(string, fmt_type::STRING);
     TYPE_CONSTANT(const void *, fmt_type::POINTER);

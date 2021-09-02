@@ -231,6 +231,8 @@ gen_digits_result gen_digits(gen_digits_state &state, fp value, u64 error, s32 *
     }
 }
 
+// The returned exponent is "by which power of 10 to multiply the (currently only an integer without a dot) 
+// written in floatBuffer as such to get the proper value, i.e. the exponent base 10 of the LAST written digit. 
 export s32 grisu_format_float(string_builder &builder, types::is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
     constexpr s32 MIN_EXP = -60;  // alpha in Grisu.
 
@@ -266,6 +268,15 @@ export s32 grisu_format_float(string_builder &builder, types::is_floating_point 
         utf8 *buf = builder.BaseBuffer.Data + builder.BaseBuffer.Occupied;
         s64 written;
         dragon4_format_float(buf, &written, &exp, precision, v);
+
+        // dragon4 returns the exponent of the first digit in the buffer,
+        // e.g. 395.20, exp is 2...
+        // 
+        // But the rest of the format expects the returned exponent 
+        // to signify the exponent of the LAST written digit. 
+        // 
+        // e.g. in the example above returned exp should be -2 
+        exp -= (s32)(written - 1);
 
         builder.BaseBuffer.Occupied += written;
     } else {

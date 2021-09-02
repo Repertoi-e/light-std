@@ -189,6 +189,7 @@ export {
         void operator()(s64 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(u64 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(bool value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+        void operator()(f32 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(f64 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(const string &value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(const void *value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
@@ -228,9 +229,9 @@ void write(fmt_context *f, types::is_integral auto value) {
 
 void write(fmt_context *f, types::is_floating_point auto value) {
     if (f->Specs) {
-        write_float(f, (f64) value, *f->Specs);
+        write_float(f, value, *f->Specs);
     } else {
-        write_float(f, (f64) value, {});
+        write_float(f, value, {});
     }
 }
 
@@ -588,7 +589,7 @@ void write_significand(fmt_context *f, const string &significand, s64 integralSi
 }
 
 // Routine to write a float in EXP format
-void write_float_exp(fmt_context *f, const string &significand, s32 decimalExp, utf32 sign, const fmt_specs &specs, const fmt_float_specs &floatSpecs) {
+void write_float_exp(fmt_context *f, const string &significand, s32 exp, utf32 sign, const fmt_specs &specs, const fmt_float_specs &floatSpecs) {
     s64 outputSize = (sign ? 1 : 0) + significand.Count;  // Further we add the number of zeros/the size of the exponent to this tally
 
     utf32 decimalPoint = '.';  // @Locale... Also if we decide to add a thousands separator?
@@ -602,7 +603,8 @@ void write_float_exp(fmt_context *f, const string &significand, s32 decimalExp, 
         decimalPoint = 0;
     }
 
-    s64 exp = decimalExp + significand.Count - 1;
+    // Convert exp to the first digit
+    exp += (s32)(significand.Count - 1);
 
     //
     // Choose 2, 3 or 4 exponent digits depending on the magnitude
@@ -631,21 +633,19 @@ void write_float_exp(fmt_context *f, const string &significand, s32 decimalExp, 
 }
 
 // Routine to write a float in FIXED format
-void write_float_fixed(fmt_context *f, const string &significand, s32 decimalExp, utf32 sign, const fmt_specs &specs, const fmt_float_specs &floatSpecs, bool percentage) {
+void write_float_fixed(fmt_context *f, const string &significand, s32 exp, utf32 sign, const fmt_specs &specs, const fmt_float_specs &floatSpecs, bool percentage) {
     s64 outputSize = (sign ? 1 : 0) + (percentage ? 1 : 0) + significand.Count;  // Further down we add the number of extra zeros needed and the decimal point
 
     utf32 decimalPoint = '.';  // @Locale... Also if we decide to add a thousands separator?
 
-    // s64 exp = decimalExp + significand.Count - 1;
-
-    if (decimalExp >= 0) {
+    if (exp >= 0) {
         // Case: 1234e5 -> 123400000[.0+]
 
-        outputSize += decimalExp;
+        outputSize += exp;
 
         // Determine how many zeros we need to add after the decimal point to match the precision,
         // note that this is different than the zeroes we add BEFORE the decimal point that are needed to match the magnitude of the number.
-        s64 numZeros = decimalPoint ? specs.Precision - decimalExp : 0;
+        s64 numZeros = decimalPoint ? specs.Precision - exp : 0;
 
         if (floatSpecs.ShowPoint) {
             //
@@ -666,7 +666,7 @@ void write_float_fixed(fmt_context *f, const string &significand, s32 decimalExp
                 if (sign) write_no_specs(f, sign);
 
                 write_significand(f, significand, significand.Count);  // Write the whole significand, without putting the dot anywhere
-                For(range(decimalExp)) write_no_specs(f, U'0');        // Add any needed zeroes to match the magnitude
+                For(range(exp)) write_no_specs(f, U'0');        // Add any needed zeroes to match the magnitude
 
                 // Add the decimal point if needed
                 if (floatSpecs.ShowPoint) {
@@ -676,21 +676,21 @@ void write_float_fixed(fmt_context *f, const string &significand, s32 decimalExp
                 if (percentage) write_no_specs(f, U'%');
             },
             outputSize);
-    } else if (decimalExp < 0) {
-        s64 absDecimalExp = abs(decimalExp);
+    } else if (exp < 0) {
+        s64 absExp = abs(exp);
 
-        if (absDecimalExp < significand.Count) {
+        if (absExp < significand.Count) {
             // Case: 1234e-2 -> 12.34[0+]
 
-            s64 numZeros = floatSpecs.ShowPoint ? specs.Precision - absDecimalExp : 0;
+            s64 numZeros = floatSpecs.ShowPoint ? specs.Precision - absExp : 0;
             outputSize += 1 + (numZeros > 0 ? numZeros : 0);
 
             write_padded_helper(
                 f, specs, [&]() {
                     if (sign) write_no_specs(f, sign);
 
-                    // The decimal point is positioned at 'absDecimalExp' symbols before the end of the significand
-                    s64 decimalPointPos = significand.Count - absDecimalExp;
+                    // The decimal point is positioned at _absExp_ symbols before the end of the significand
+                    s64 decimalPointPos = significand.Count - absExp;
 
                     // Write the significand, then write any zeroes if needed (for the precision)
                     write_significand(f, significand, decimalPointPos, decimalPoint);
@@ -701,8 +701,8 @@ void write_float_fixed(fmt_context *f, const string &significand, s32 decimalExp
         } else {
             // Case: 1234e-6 -> 0.001234
 
-            // We know that absDecimalExp >= significand.Count
-            s64 numZeros = absDecimalExp - significand.Count;
+            // We know that absExp >= significand.Count
+            s64 numZeros = absExp - significand.Count;
 
             // Edge case when we are formatting a 0 with given precision
             if (!significand && specs.Precision >= 0 && specs.Precision < numZeros) {
@@ -800,7 +800,9 @@ void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs 
         specs.Align = fmt_alignment::RIGHT;
     }
 
-    // This routine writes the significand in the floatBuffer, then we use the returned exponent to choose how to format the final string
+    // This routine writes the significand in the floatBuffer, then we use the returned exponent to choose how to format the final string.
+    // The returned exponent is "by which power of 10 to multiply the (currently only an integer without a dot) 
+	// written in floatBuffer as such to get the proper value, i.e. the exponent base 10 of the LAST written digit. 
     string_builder floatBuffer;
     s32 exp = fmt_format_non_negative_float(floatBuffer, value, specs.Precision, floatSpecs);
 

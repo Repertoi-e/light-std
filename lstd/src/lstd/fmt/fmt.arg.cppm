@@ -48,6 +48,7 @@ export {
         union {
             s64 S64;
             u64 U64;
+            f32 F32;
             f64 F64;
 
             const void *Pointer;
@@ -59,6 +60,7 @@ export {
         fmt_value(s64 v = 0) : S64(v) {}
         fmt_value(bool v) : S64(v) {}  // We store bools in S64
         fmt_value(u64 v) : U64(v) {}
+        fmt_value(f32 v) : F32(v) {}
         fmt_value(f64 v) : F64(v) {}
         fmt_value(const void *v) : Pointer(v) {}
         fmt_value(const string &v) : String(v) {}
@@ -109,7 +111,7 @@ export {
         } else if constexpr (types::is_unsigned_integral<T>) {
             return (u64) v;
         } else if constexpr (types::is_floating_point<T>) {
-            return (f64) v;
+            return v;
         } else if constexpr (types::is_same<T, string::code_point_ref>) {
             return (u64) v;
         } else if constexpr (types::is_enum<T>) {
@@ -151,6 +153,8 @@ export {
                 return visitor(ar.Value.U64);
             case fmt_type::BOOL:
                 return visitor(ar.Value.S64 != 0);  // We store bools in S64
+            case fmt_type::F32:
+                return visitor(ar.Value.F32);
             case fmt_type::F64:
                 return visitor(ar.Value.F64);
             case fmt_type::STRING:

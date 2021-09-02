@@ -309,8 +309,8 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 cuto
     // Compute the cutoffMax exponent (the exponent of the final digit to
     // print). Default to the maximum size of the output buffer.
     s32 cutoffMaxExp = digitExp - 16 * 1024 * 1024;  // Dummy buffer size
-
-    s32 desiredCutoffExponent = digitExp - cutoffMax;
+    
+    s32 desiredCutoffExponent = -cutoffMax;
     if (desiredCutoffExponent > cutoffMaxExp) {
         cutoffMaxExp = desiredCutoffExponent;
     }
@@ -325,38 +325,10 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 cuto
     // Output the exponent of the first digit we will print .
     *outExp = digitExp - 1;
     
-    // In preparation for calling BigInt_DivideWithRemainder_MaxQuotient9(), we
-    // need to scale up our values such that the highest block of the
-    // denominator is greater than or equal to 8. We also need to guarantee that
-    // the numerator can never have a length greater than the denominator after
-    // each loop iteration.  This requires the highest block of the denominator
-    // to be less than or equal to 429496729 which is the highest number that
-    // can be multiplied by 10 without overflowing to a new block.
-    /* assert(scale.Size > 0);
-    u32 hiBlock = scale.Bigits[scale.Size - 1];
-    if (hiBlock < 8 || hiBlock > 429496729) {
-        // Perform a bit shift on all values to get the highest block of the
-        // denominator into the range [8,429496729]. We are more likely to make
-        // accurate quotient estimations in
-        // BigInt_DivideWithRemainder_MaxQuotient9() with higher denominator
-        // values so we shift the denominator to place the highest bit at index
-        // 27 of the highest block.  This is safe because (2^28 - 1) = 268435455
-        // which is less than 429496729. This means that all values with a
-        // highest bit at index 27 are within range.
-        u32 hiBlockLog2 = msb(hiBlock | 1); // Integer log2
-        assert(hiBlockLog2 < 3 || hiBlockLog2 > 27);
-        u32 shift = (32 + 27 - hiBlockLog2) % 32;
-
-        scale <<= shift;
-        scaledValue <<= shift;
-        scaledMarginLow <<= shift;
-        if (scaledMarginHigh != &scaledMarginLow) {
-            *scaledMarginHigh = scaledMarginLow * 2;
-        }
-    }*/
-
     utf8 *curDigit = b;
     u32 outputDigit;
+
+    bool high, low;
 
     while (true) {
         digitExp -= 1;
@@ -368,7 +340,13 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 cuto
         assert(digit < 10);
         outputDigit = digit.Bigits[0];
 
-        if ((scaledValue.Size == 0) | (digitExp == cutoffMaxExp)) break;
+        auto scaledValueHigh = scaledValue + *scaledMarginHigh;
+
+        s64 cmp = compare(scaledValue, scaledMarginLow);
+        low = isEven ? (cmp <= 0) : (cmp < 0);
+        cmp = compare(scaledValueHigh, scale);
+        high = isEven ? (cmp >= 0) : (cmp > 0);
+        if ((low || high) || digitExp == cutoffMaxExp) break;
 
         // Store the output digit.
         *curDigit = (utf8) ('0' + outputDigit);
@@ -376,21 +354,31 @@ export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 cuto
 
         // Multiply larger by the output base.
         scaledValue *= 10;
+        scaledMarginLow *= 10;
+        if (scaledMarginHigh != &scaledMarginLow) {
+            *scaledMarginHigh = scaledMarginLow *2;
+        }
     }
 
-    // Round to the closest digit by comparing value with 0.5. To do this we
-    // need to convert the inequality to large integer values.
-    //  compare(value, 0.)
-    //  compare(scale * value, scale * 0.5)
-    //  compare(2 * scale * value, scale)
-    scaledValue *= 2;
+    bool roundDown = low;
 
-    s64 cmp        = compare(scaledValue, scale);
-    bool roundDown = cmp < 0;
+    if (low == high) {
+        // It's legal to round up and down
 
-    // If we are directly in the middle, round towards the even digit (i.e. IEEE rounding rules).
-    if (cmp == 0) {
-        roundDown = (outputDigit & 1) == 0;
+        // Round to the closest digit by comparing value with 0.5. To do this we
+        // need to convert the inequality to large integer values.
+        //  compare(value, 0.)
+        //  compare(scale * value, scale * 0.5)
+        //  compare(2 * scale * value, scale)
+        scaledValue *= 2;
+
+        s64 cmp   = compare(scaledValue, scale);
+        roundDown = cmp < 0;
+
+        // If we are directly in the middle, round towards the even digit (i.e. IEEE rounding rules).
+        if (cmp == 0) {
+            roundDown = (outputDigit & 1) == 0;
+        }
     }
 
     // Print the rounded digit.
