@@ -104,26 +104,26 @@ static unsigned short MXL[] = {0041430,0166131,0047761,0154130,};
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0x2dd4,0xf306,0xfd75,0x3fa4,
-0x5934,0x74c5,0x7d94,0x4027,
-0x49e4,0x0503,0x6b7a,0x4079,
-0x4a01,0x8e13,0xb479,0x40a2,
+    0x2dd4, 0xf306, 0xfd75, 0x3fa4,
+    0x5934, 0x74c5, 0x7d94, 0x4027,
+    0x49e4, 0x0503, 0x6b7a, 0x4079,
+    0x4a01, 0x8e13, 0xb479, 0x40a2,
 };
 static unsigned short Q[] = {
-/*0x0000,0x0000,0x0000,0x3ff0,*/
-0xca08,0xce51,0x45fd,0x4055,
-0x7782,0xefd6,0xe05e,0x4093,
-0xf6e2,0x650d,0x3f37,0x40a0,
+    /*0x0000,0x0000,0x0000,0x3ff0,*/
+    0xca08, 0xce51, 0x45fd, 0x4055,
+    0x7782, 0xefd6, 0xe05e, 0x4093,
+    0xf6e2, 0x650d, 0x3f37, 0x40a0,
 };
 /*
 static unsigned short L102[] = {0x79ff,0x509f,0x4413,0x3fd3};
 #define LOG102 *(double *)L102
 */
-static unsigned short L210[] = {0xa371,0x0979,0x934f,0x400a};
+static unsigned short L210[] = {0xa371, 0x0979, 0x934f, 0x400a};
 #define LOG210 *(double *)L210
-static unsigned short L102A[] = {0x0000,0x0000,0x4400,0x3fd3,};
+static unsigned short L102A[] = {0x0000, 0x0000, 0x4400, 0x3fd3,};
 #define LG102A *(double *)L102A
-static unsigned short L102B[] = {0xf312,0x79fe,0x509f,0x3ed3,};
+static unsigned short L102B[] = {0xf312, 0x79fe, 0x509f, 0x3ed3,};
 #define LG102B *(double *)L102B
 static double MAXL10 = 308.2547155599167;
 #endif
@@ -155,12 +155,12 @@ static double MAXL10 = 308.2547155599167;
 #endif
 
 #ifdef ANSIPROT
-extern double floor ( double );
-extern double ldexp ( double, int );
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern int isnan ( double );
-extern int isfinite ( double );
+extern double floor(double);
+extern double ldexp(double, int);
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern int isnan(double);
+extern int isfinite(double);
 #else
 double floor(), ldexp(), polevl(), p1evl();
 int isnan(), isfinite();
@@ -171,53 +171,51 @@ extern double INFINITY;
 #endif
 
 double exp10(x)
-double x;
-{
-double px, xx;
-short n;
+double x; {
+    double px, xx;
+    short n;
 
 #ifdef NANS
-if( isnan(x) )
-	return(x);
+    if (isnan(x))
+        return x;
 #endif
-if( x > MAXL10 )
-	{
+    if (x > MAXL10) {
 #ifdef INFINITIES
-	return( INFINITY );
+        return INFINITY;
 #else
 	mtherr( "exp10", OVERFLOW );
 	return( MAXNUM );
 #endif
-	}
+    }
 
-if( x < -MAXL10 )	/* Would like to use MINLOG but can't */
-	{
+    if (x < -MAXL10) /* Would like to use MINLOG but can't */
+    {
 #ifndef INFINITIES
 	mtherr( "exp10", UNDERFLOW );
 #endif
-	return(0.0);
-	}
+        return 0.0;
+    }
 
-/* Express 10**x = 10**g 2**n
- *   = 10**g 10**( n log10(2) )
- *   = 10**( g + n log10(2) )
- */
-px = floor( LOG210 * x + 0.5 );
-n = px;
-x -= px * LG102A;
-x -= px * LG102B;
+    /* Express 10**x = 10**g 2**n
+     *   = 10**g 10**( n log10(2) )
+     *   = 10**( g + n log10(2) )
+     */
+    px = floor(LOG210 * x + 0.5);
+    n  = px;
+    x -= px * LG102A;
+    x -= px * LG102B;
 
-/* rational approximation for exponential
- * of the fractional part:
- * 10**x = 1 + 2x P(x**2)/( Q(x**2) - P(x**2) )
- */
-xx = x * x;
-px = x * polevl( xx, P, 3 );
-x =  px/( p1evl( xx, Q, 3 ) - px );
-x = 1.0 + ldexp( x, 1 );
+    /* rational approximation for exponential
+     * of the fractional part:
+     * 10**x = 1 + 2x P(x**2)/( Q(x**2) - P(x**2) )
+     */
+    xx = x * x;
+    px = x * polevl(xx, P, 3);
+    x  = px / (p1evl(xx, Q, 3) - px);
+    x  = 1.0 + ldexp(x, 1);
 
-/* multiply by power of 2 */
-x = ldexp( x, n );
+    /* multiply by power of 2 */
+    x = ldexp(x, n);
 
-return(x);
+    return x;
 }

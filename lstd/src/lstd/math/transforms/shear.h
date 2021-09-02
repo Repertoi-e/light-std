@@ -11,7 +11,10 @@ struct shear_helper : non_copyable {
     s64 ModulatorAxis;
 
     shear_helper(T slope, s64 principalAxis, s64 modulatorAxis)
-        : Slope(slope), PrincipalAxis(principalAxis), ModulatorAxis(modulatorAxis) {}
+        : Slope(slope),
+          PrincipalAxis(principalAxis),
+          ModulatorAxis(modulatorAxis) {
+    }
 
     template <typename U, s64 R, s64 C, bool MPacked>
     operator mat<U, R, C, MPacked>() const {

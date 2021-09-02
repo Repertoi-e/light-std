@@ -79,18 +79,18 @@ static unsigned short Q[] = {
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0x1168,0x7221,0xbec3,0xbf71,
-0xdd2a,0x2405,0xef9e,0xbfe2,
-0xcacc,0x3c0b,0x7ee0,0xc011,
-0x7f96,0x8028,0x2e3c,0xc022,
-0xd6dd,0x0ec8,0x446d,0xc016
+    0x1168, 0x7221, 0xbec3, 0xbf71,
+    0xdd2a, 0x2405, 0xef9e, 0xbfe2,
+    0xcacc, 0x3c0b, 0x7ee0, 0xc011,
+    0x7f96, 0x8028, 0x2e3c, 0xc022,
+    0xd6dd, 0x0ec8, 0x446d, 0xc016
 };
 static unsigned short Q[] = {
-/* 0x0000,0x0000,0x0000,0x3ff0,*/
-0x1ec5,0xc70a,0xc05b,0x4029,
-0x8453,0x02cc,0x4d58,0x4048,
-0xdac6,0xc769,0x649f,0x4051,
-0xa12e,0xcb16,0xb351,0x4040
+    /* 0x0000,0x0000,0x0000,0x3ff0,*/
+    0x1ec5, 0xc70a, 0xc05b, 0x4029,
+    0x8453, 0x02cc, 0x4d58, 0x4048,
+    0xdac6, 0xc769, 0x649f, 0x4051,
+    0xa12e, 0xcb16, 0xb351, 0x4040
 };
 #endif
 
@@ -111,55 +111,49 @@ static unsigned short Q[] = {
 #endif
 
 #ifdef ANSIPROT
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern double sqrt ( double );
-extern double log ( double );
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern double sqrt(double);
+extern double log(double);
 #else
 double log(), sqrt(), polevl(), p1evl();
 #endif
 extern double LOGE2, INFINITY;
 
 double asinh(xx)
-double xx;
-{
-double a, z, x;
-int sign;
+double xx; {
+    double a, z, x;
+    int sign;
 
 #ifdef MINUSZERO
-if( xx == 0.0 )
-  return(xx);
+    if (xx == 0.0)
+        return xx;
 #endif
-if( xx < 0.0 )
-	{
-	sign = -1;
-	x = -xx;
-	}
-else
-	{
-	sign = 1;
-	x = xx;
-	}
+    if (xx < 0.0) {
+        sign = -1;
+        x    = -xx;
+    } else {
+        sign = 1;
+        x    = xx;
+    }
 
-if( x > 1.0e8 )
-	{
+    if (x > 1.0e8) {
 #ifdef INFINITIES
-	  if( x == INFINITY )
-	    return(xx);
+        if (x == INFINITY)
+            return xx;
 #endif
-	return( sign * (log(x) + LOGE2) );
-	}
+        return sign * (log(x) + LOGE2);
+    }
 
-z = x * x;
-if( x < 0.5 )
-	{
-	a = ( polevl(z, P, 4)/p1evl(z, Q, 4) ) * z;
-	a = a * x  +  x;
-	if( sign < 0 )
-		a = -a;
-	return(a);
-	}	
+    z = x * x;
+    if (x < 0.5) {
+        a = polevl(z, P, 4) / p1evl(z, Q, 4) * z;
+        a = a * x + x;
+        if (sign < 0)
+            a = -a;
+        return a;
+    }
 
-a = sqrt( z + 1.0 );
-return( sign * log(x + a) );
+    a = sqrt(z + 1.0);
+    return sign * log(x + a);
 }

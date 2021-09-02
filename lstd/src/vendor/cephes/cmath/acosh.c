@@ -91,19 +91,19 @@ static unsigned short Q[] = {
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0x59a4,0xb900,0xb345,0x405d,
-0x1a18,0x7b4d,0xd688,0x40ae,
-0x3cbd,0x00c2,0xcbde,0x40e0,
-0xab95,0xff52,0x646d,0x40fa,
-0xc1b4,0x2804,0x107f,0x40fb
+    0x59a4, 0xb900, 0xb345, 0x405d,
+    0x1a18, 0x7b4d, 0xd688, 0x40ae,
+    0x3cbd, 0x00c2, 0xcbde, 0x40e0,
+    0xab95, 0xff52, 0x646d, 0x40fa,
+    0xc1b4, 0x2804, 0x107f, 0x40fb
 };
 static unsigned short Q[] = {
-/*0x0000,0x0000,0x0000,0x3ff0,*/
-0x0853,0xf5b7,0x44a6,0x4067,
-0x4702,0xda8c,0x3986,0x40b0,
-0xa588,0xf44e,0x1215,0x40dd,
-0xe6cf,0x6736,0x41c8,0x40f4,
-0x63e7,0xdf6f,0x232f,0x40f3
+    /*0x0000,0x0000,0x0000,0x3ff0,*/
+    0x0853, 0xf5b7, 0x44a6, 0x4067,
+    0x4702, 0xda8c, 0x3986, 0x40b0,
+    0xa588, 0xf44e, 0x1215, 0x40dd,
+    0xe6cf, 0x6736, 0x41c8, 0x40f4,
+    0x63e7, 0xdf6f, 0x232f, 0x40f3
 };
 #endif
 
@@ -125,43 +125,39 @@ static unsigned short Q[] = {
 #endif
 
 #ifdef ANSIPROT
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern double log ( double );
-extern double sqrt ( double );
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern double log(double);
+extern double sqrt(double);
 #else
 double log(), sqrt(), polevl(), p1evl();
 #endif
 extern double LOGE2, INFINITY, NAN;
 
 double acosh(x)
-double x;
-{
-double a, z;
+double x; {
+    double a, z;
 
-if( x < 1.0 )
-	{
-	mtherr( "acosh", DOMAIN );
-	return(NAN);
-	}
+    if (x < 1.0) {
+        mtherr("acosh", DOMAIN);
+        return NAN;
+    }
 
-if( x > 1.0e8 )
-	{
+    if (x > 1.0e8) {
 #ifdef INFINITIES
-	if( x == INFINITY )
-		return( INFINITY );
+        if (x == INFINITY)
+            return INFINITY;
 #endif
-	return( log(x) + LOGE2 );
-	}
+        return log(x) + LOGE2;
+    }
 
-z = x - 1.0;
+    z = x - 1.0;
 
-if( z < 0.5 )
-	{
-	a = sqrt(z) * (polevl(z, P, 4) / p1evl(z, Q, 5) );
-	return( a );
-	}
+    if (z < 0.5) {
+        a = sqrt(z) * (polevl(z, P, 4) / p1evl(z, Q, 5));
+        return a;
+    }
 
-a = sqrt( z*(x+1.0) );
-return( log(x + a) );
+    a = sqrt(z * (x + 1.0));
+    return log(x + a);
 }

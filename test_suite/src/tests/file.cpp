@@ -42,7 +42,7 @@ TEST(path_manipulation) {
 }
 
 TEST(file_size) {
-    auto thisFile = string(__FILE__);
+    auto thisFile     = string(__FILE__);
     string dataFolder = path_join(path_directory(thisFile), "data");
     defer(free(dataFolder));
 

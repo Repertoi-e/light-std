@@ -79,19 +79,19 @@ static unsigned short Q[] = {
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0xb618,0xb17f,0x5493,0xbfeb,
-0xe73a,0xf520,0x15da,0x4028,
-0xf62c,0x7370,0x1009,0xc047,
-0xe2f7,0x20d5,0x5d3a,0x4050,
-0x697d,0xddb7,0xe8c4,0xc03e
+    0xb618, 0xb17f, 0x5493, 0xbfeb,
+    0xe73a, 0xf520, 0x15da, 0x4028,
+    0xf62c, 0x7370, 0x1009, 0xc047,
+    0xe2f7, 0x20d5, 0x5d3a, 0x4050,
+    0x697d, 0xddb7, 0xe8c4, 0xc03e
 };
 static unsigned short Q[] = {
-/*0x0000,0x0000,0x0000,0x3ff0,*/
-0x172f,0xc366,0x905a,0xc033,
-0x2685,0xb3a5,0x3c09,0x405b,
-0x5dd3,0x602b,0x3adc,0xc06f,
-0x8019,0xaff0,0x8036,0x406f,
-0x8f20,0xa649,0x2e93,0xc057
+    /*0x0000,0x0000,0x0000,0x3ff0,*/
+    0x172f, 0xc366, 0x905a, 0xc033,
+    0x2685, 0xb3a5, 0x3c09, 0x405b,
+    0x5dd3, 0x602b, 0x3adc, 0xc06f,
+    0x8019, 0xaff0, 0x8036, 0x406f,
+    0x8f20, 0xa649, 0x2e93, 0xc057
 };
 #endif
 
@@ -113,44 +113,41 @@ static unsigned short Q[] = {
 #endif
 
 #ifdef ANSIPROT
-extern double fabs ( double );
-extern double log ( double x );
-extern double polevl ( double x, void *P, int N );
-extern double p1evl ( double x, void *P, int N );
+extern double fabs(double);
+extern double log(double x);
+extern double polevl(double x, void *P, int N);
+extern double p1evl(double x, void *P, int N);
 #else
 double fabs(), log(), polevl(), p1evl();
 #endif
 extern double INFINITY, NAN;
 
 double atanh(x)
-double x;
-{
-double s, z;
+double x; {
+    double s, z;
 
 #ifdef MINUSZERO
-if( x == 0.0 )
-	return(x);
+    if (x == 0.0)
+        return x;
 #endif
-z = fabs(x);
-if( z >= 1.0 )
-	{
-	if( x == 1.0 )
-		return( INFINITY );
-	if( x == -1.0 )
-		return( -INFINITY );
-	mtherr( "atanh", DOMAIN );
-	return( NAN );
-	}
+    z = fabs(x);
+    if (z >= 1.0) {
+        if (x == 1.0)
+            return INFINITY;
+        if (x == -1.0)
+            return -INFINITY;
+        mtherr("atanh", DOMAIN);
+        return NAN;
+    }
 
-if( z < 1.0e-7 )
-	return(x);
+    if (z < 1.0e-7)
+        return x;
 
-if( z < 0.5 )
-	{
-	z = x * x;
-	s = x   +  x * z * (polevl(z, P, 4) / p1evl(z, Q, 5));
-	return(s);
-	}
+    if (z < 0.5) {
+        z = x * x;
+        s = x + x * z * (polevl(z, P, 4) / p1evl(z, Q, 5));
+        return s;
+    }
 
-return( 0.5 * log((1.0+x)/(1.0-x)) );
+    return 0.5 * log((1.0 + x) / (1.0 - x));
 }

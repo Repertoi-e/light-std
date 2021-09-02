@@ -7,21 +7,21 @@ void free(string_builder &builder) {
     auto *b = builder.BaseBuffer.Next;
     while (b) {
         auto *old = b;
-        b = b->Next;
+        b         = b->Next;
         free(old);
     }
 
-    builder.CurrentBuffer = null;  // null means BaseBuffer
+    builder.CurrentBuffer       = null; // null means BaseBuffer
     builder.BaseBuffer.Occupied = 0;
 }
 
 void reset(string_builder &builder) {
-    builder.CurrentBuffer = null;  // null means BaseBuffer
+    builder.CurrentBuffer = null; // null means BaseBuffer
 
     auto *b = &builder.BaseBuffer;
     while (b) {
         b->Occupied = 0;
-        b = b->Next;
+        b           = b->Next;
     }
 }
 
@@ -49,7 +49,7 @@ void string_append(string_builder &builder, const utf8 *data, s64 size) {
         if (!builder.Alloc) builder.Alloc = Context.Alloc;
         auto *b = allocate<string_builder::buffer>({.Alloc = builder.Alloc});
 
-        currentBuffer->Next = b;
+        currentBuffer->Next   = b;
         builder.CurrentBuffer = b;
 
         builder.IndirectionCount++;
@@ -84,7 +84,7 @@ void string_builder_traverse(const string_builder &builder, const delegate<void(
 }
 
 string_builder *clone(string_builder *dest, const string_builder &src) {
-    *dest = {};
+    *dest         = {};
     auto appender = [&](const string &str) { string_append(*dest, str); };
     string_builder_traverse(src, &appender);
     return dest;

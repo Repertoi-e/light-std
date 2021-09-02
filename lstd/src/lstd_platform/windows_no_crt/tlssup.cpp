@@ -64,13 +64,13 @@ typedef struct _IMAGE_TLS_DIRECTORY64 {
 
 _CRTALLOC(".rdata$T")
 extern const IMAGE_TLS_DIRECTORY64 _tls_used =
-    {
-        (ULONGLONG) &_tls_start,   // start of tls data
-        (ULONGLONG) &_tls_end,     // end of tls data
-        (ULONGLONG) &_tls_index,   // address of tls_index
-        (ULONGLONG)(&__xl_a + 1),  // pointer to call back array
-        (ULONG) 0,                 // size of tls zero fill
-        (ULONG) 0                  // characteristics
+{
+    (ULONGLONG) &_tls_start,   // start of tls data
+    (ULONGLONG) &_tls_end,     // end of tls data
+    (ULONGLONG) &_tls_index,   // address of tls_index
+    (ULONGLONG) (&__xl_a + 1), // pointer to call back array
+    (ULONG) 0,                 // size of tls zero fill
+    (ULONG) 0                  // characteristics
 };
 
-}  // extern "C"
+} // extern "C"

@@ -14,9 +14,10 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     byte *Data = StackData;
 
     s64 Allocated = 0;
-    s64 Count = 0;
+    s64 Count     = 0;
 
-    stack_dynamic_buffer() {}
+    stack_dynamic_buffer() {
+    }
 
     // We no longer use destructors for deallocation.
     // ~stack_dynamic_buffer() { free(); }
@@ -36,7 +37,7 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
     //
     // Operators:
     //
-    operator array<byte>() { return array<byte>(Data, Count); }
+    operator array<byte>() { return array(Data, Count); }
     explicit operator bool() const { return Count; }
 
     // Read/write [] operator
@@ -46,10 +47,12 @@ struct stack_dynamic_buffer : non_copyable, non_movable, non_assignable {
 };
 
 template <typename T>
-struct is_stack_dynamic_buffer : types::false_t {};
+struct is_stack_dynamic_buffer : types::false_t {
+};
 
 template <s64 StackSize>
-struct is_stack_dynamic_buffer<stack_dynamic_buffer<StackSize>> : types::true_t {};
+struct is_stack_dynamic_buffer<stack_dynamic_buffer<StackSize>> : types::true_t {
+};
 
 template <typename T>
 concept any_stack_dynamic_buffer = is_stack_dynamic_buffer<T>::value;
@@ -61,7 +64,7 @@ concept any_stack_dynamic_buffer = is_stack_dynamic_buffer<T>::value;
 // ! Reserves only if there is not enough space on the stack
 template <any_stack_dynamic_buffer T>
 void reserve(T &buffer, s64 targetCount) {
-    if (targetCount < sizeof(buffer.StackData)) return;
+    if (targetCount < sizeof buffer.StackData) return;
     if (buffer.Count + targetCount < buffer.Allocated) return;
 
     targetCount = max<s64>(ceil_pow_of_2(targetCount + buffer.Count + 1), 8);
@@ -70,7 +73,7 @@ void reserve(T &buffer, s64 targetCount) {
         buffer.Data = reallocate_array(buffer.Data, targetCount);
     } else {
         auto *oldData = buffer.Data;
-        buffer.Data = allocate_array<byte>(targetCount);
+        buffer.Data   = allocate_array<byte>(targetCount);
         if (buffer.Count) copy_memory(buffer.Data, oldData, buffer.Count);
     }
     buffer.Allocated = targetCount;
@@ -81,7 +84,7 @@ void reserve(T &buffer, s64 targetCount) {
 template <any_stack_dynamic_buffer T>
 void free(T &buffer) {
     if (buffer.Allocated) free(buffer.Data);
-    buffer.Data = null;
+    buffer.Data  = null;
     buffer.Count = buffer.Allocated = 0;
 }
 
@@ -107,7 +110,7 @@ void insert(T &buffer, s64 index, byte b, bool unsafe = false) {
     if (!unsafe) reserve(buffer, buffer.Count + 1);
 
     auto *target = buffer.Data + translate_index(index, buffer.Count, true);
-    u64 offset = (u64)(target - buffer.Data);
+    u64 offset   = (u64) (target - buffer.Data);
     copy_memory((byte *) buffer.Data + offset + 1, target, buffer.Count - (target - buffer.Data));
     *target = b;
 
@@ -135,7 +138,7 @@ void string_insert_at(T &buffer, s64 index, const byte *data, s64 count, bool un
     if (!unsafe) reserve(buffer, buffer.Count + count);
 
     auto *target = buffer.Data + translate_index(index, buffer.Count, true);
-    u64 offset = (u64)(target - buffer.Data);
+    u64 offset   = (u64) (target - buffer.Data);
     copy_memory((byte *) buffer.Data + offset + count, target, buffer.Count - (target - buffer.Data));
     copy_memory(target, data, count);
 
@@ -146,7 +149,7 @@ void string_insert_at(T &buffer, s64 index, const byte *data, s64 count, bool un
 template <any_stack_dynamic_buffer T>
 void remove(T &buffer, s64 index) {
     auto *targetBegin = buffer.Data + translate_index(index, buffer.Count);
-    u64 offset = (u64)(targetBegin - buffer.Data);
+    u64 offset        = (u64) (targetBegin - buffer.Data);
     copy_memory((byte *) buffer.Data + offset, targetBegin + 1, buffer.Count - offset - 1);
 
     --buffer.Count;
@@ -157,12 +160,12 @@ void remove(T &buffer, s64 index) {
 template <any_stack_dynamic_buffer T>
 void string_remove_range(T &buffer, s64 begin, s64 end) {
     auto *targetBegin = buffer.Data + translate_index(begin, buffer.Count);
-    auto *targetEnd = buffer.Data + translate_index(begin, buffer.Count, true);
+    auto *targetEnd   = buffer.Data + translate_index(begin, buffer.Count, true);
 
     assert(targetEnd > targetBegin);
 
-    s64 bytes = targetEnd - targetBegin;
-    u64 offset = (u64)(targetBegin - buffer.Data);
+    s64 bytes  = targetEnd - targetBegin;
+    u64 offset = (u64) (targetBegin - buffer.Data);
     copy_memory((byte *) buffer.Data + offset, targetEnd, buffer.Count - offset - bytes);
 
     buffer.Count -= bytes;

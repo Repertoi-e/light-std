@@ -9,7 +9,8 @@ LSTD_BEGIN_NAMESPACE
 //
 // The "typename" before vec_info.. here is very important. It took me 2 hours of debugging. C++ is hell sometimes.
 template <any_vec Vec, typename U>
-requires(types::is_convertible<U, typename vec_info<Vec>::T>) void fill(Vec &lhs, U all) {
+    requires(types::is_convertible<U, typename vec_info<Vec>::T>)
+void fill(Vec &lhs, U all) {
     if constexpr (!has_simd<Vec>) {
         For(lhs) it = (typename Vec::T) all;
     } else {
@@ -39,7 +40,7 @@ bool is_null_vector(const Vec &v) {
     using T = typename Vec::T;
 
     static constexpr T epsilon = T(1) / const_exp10<T>(abs(numeric_info<T>::min_exponent10) / 2);
-    T length = len(v);
+    T length                   = len(v);
     return length < epsilon;
 }
 
@@ -57,7 +58,7 @@ auto len_precise(const Vec &v) {
     using T = typename Vec::T;
 
     T maxElement = abs(v[0]);
-    for (s64 i = 1; i < v.DIM; ++i)
+    for (s64 i     = 1; i < v.DIM; ++i)
         maxElement = max(maxElement, abs(v[i]));
     if (maxElement == T(0))
         return T(0);
@@ -68,7 +69,8 @@ auto len_precise(const Vec &v) {
 
 // Returns the euclidean distance between to vectors
 template <any_vec Vec, any_vec Other>
-requires(vec_info<Vec>::DIM == vec_info<Other>::DIM) auto distance(const Vec &lhs, const Other &rhs) {
+    requires(vec_info<Vec>::DIM == vec_info<Other>::DIM)
+auto distance(const Vec &lhs, const Other &rhs) {
     return len(lhs - rhs);
 }
 
@@ -94,8 +96,8 @@ Vec safe_normalize(const Vec &v) {
     using T = typename Vec::T;
 
     Vec vmod = v;
-    vmod[0] = abs(v[0]) > numeric_info<T>::denorm_min() ? v[0] : numeric_info<T>::denorm_min();
-    T l = len_precise(vmod);
+    vmod[0]  = abs(v[0]) > numeric_info<T>::denorm_min() ? v[0] : numeric_info<T>::denorm_min();
+    T l      = len_precise(vmod);
     return vmod / l;
 }
 
@@ -124,18 +126,22 @@ Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args);
 
 // Returns the 2-dimensional cross product, which is a vector perpendicular to the argument
 template <any_vec Vec>
-requires(vec_info<Vec>::DIM == 2) Vec cross(const Vec &arg) {
+    requires(vec_info<Vec>::DIM == 2)
+Vec cross(const Vec &arg) {
     return Vec(-arg.y, arg.x);
 }
+
 // Returns the 2-dimensional cross product, which is a vector perpendicular to the argument
 template <any_vec Vec>
-requires(vec_info<Vec>::DIM == 2) Vec cross(const stack_array<const Vec *, 1> &arg) {
-    return cross(*(arg[0]));
+    requires(vec_info<Vec>::DIM == 2)
+Vec cross(const stack_array<const Vec *, 1> &arg) {
+    return cross(*arg[0]);
 }
 
 // Returns the 3-dimensional cross-product
 template <any_vec Vec>
-requires(vec_info<Vec>::DIM == 3) Vec cross(const Vec &lhs, const Vec &rhs) {
+    requires(vec_info<Vec>::DIM == 3)
+Vec cross(const Vec &lhs, const Vec &rhs) {
     if constexpr (has_simd<Vec>) {
         return Vec(lhs.yzx) * Vec(rhs.zxy) - Vec(lhs.zxy) * Vec(rhs.yzx);
     } else {
@@ -145,8 +151,9 @@ requires(vec_info<Vec>::DIM == 3) Vec cross(const Vec &lhs, const Vec &rhs) {
 
 // Returns the 3-dimensional cross-product
 template <any_vec Vec>
-requires(vec_info<Vec>::DIM == 3) Vec cross(const stack_array<const Vec *, 2> &args) {
-    return cross(*(args[0]), *(args[1]));
+    requires(vec_info<Vec>::DIM == 3)
+Vec cross(const stack_array<const Vec *, 2> &args) {
+    return cross(*args[0], *args[1]);
 }
 
 // Returns the element-wise minimum of arguments
@@ -246,14 +253,14 @@ Vec cross(const stack_array<const Vec *, vec_info<Vec>::DIM - 1> &args) {
     for (s64 base = 0; base < Vec::DIM; ++base, sign *= -1) {
         // Fill up sub-matrix the determinant of which yields the coefficient of base-vector
         For_as(j, range(base)) {
-            For_as(i, range(d.R)) { d(i, j) = (*(args[i]))[j]; }
+            For_as(i, range(d.R)) { d(i, j) = (*args[i])[j]; }
         }
 
         For_as(j, range(base + 1, result.DIM)) {
-            For_as(i, range(d.R)) { d(i, j - 1) = (*(args[i]))[j]; }
+            For_as(i, range(d.R)) { d(i, j - 1) = (*args[i])[j]; }
         }
 
-        auto coef = typename Vec::T(sign) * det(d);
+        auto coef    = typename Vec::T(sign) * det(d);
         result[base] = coef;
     }
     return result;

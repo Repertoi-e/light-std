@@ -6,20 +6,20 @@ LSTD_BEGIN_NAMESPACE
 
 namespace impl {
 template <typename T, typename U, s64 R1, s64 Match, s64 C2, bool Packed, s64... MatchIndices>
-inline auto small_product_row_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs, s64 row, integer_sequence<MatchIndices...>) {
+auto small_product_row_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs, s64 row, integer_sequence<MatchIndices...>) {
     return (... + (rhs.Stripes[MatchIndices] * lhs(row, MatchIndices)));
 }
 
 template <typename T, typename U, s64 R1, s64 Match, s64 C2, bool Packed, s64... RowIndices>
-inline auto small_product_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs, integer_sequence<RowIndices...>) {
+auto small_product_rr(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs, integer_sequence<RowIndices...>) {
     using V = mat_mul_elem_t<T, U>;
     using ResultT = mat<V, R1, C2, Packed>;
     return ResultT{ResultT::FromStripes, small_product_row_rr(lhs, rhs, RowIndices, make_integer_sequence<Match>{})...};
 }
-}  // namespace impl
+} // namespace impl
 
 template <typename T, typename U, s64 R1, s64 Match, s64 C2, bool Packed>
-inline mat<T, R1, C2, Packed> dot(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs) {
+mat<T, R1, C2, Packed> dot(const mat<T, R1, Match, Packed> &lhs, const mat<U, Match, C2, Packed> &rhs) {
     if constexpr (R1 == 4 && Match == 4 && C2 == 4 && types::is_same<T, f32> && types::is_same<U, f32>) {
         using V = mat_mul_elem_t<T, U>;
         mat<V, 4, 4, Packed> result;
@@ -55,7 +55,7 @@ inline mat<T, R1, C2, Packed> dot(const mat<T, R1, Match, Packed> &lhs, const ma
 
 // v*M
 template <typename Vt, typename Mt, s64 Vd, s64 Mcol, bool Packed>
-inline auto dot(const vec<Vt, Vd, Packed> &v, const mat<Mt, Vd, Mcol, Packed> &mat) {
+auto dot(const vec<Vt, Vd, Packed> &v, const mat<Mt, Vd, Mcol, Packed> &mat) {
     using Rt = mat_mul_elem_t<Vt, Mt>;
     vec<Rt, Mcol, Packed> result = v[0] * mat.Stripes[0];
     For(range(1, Vd)) result += v[it] * mat.Stripes[it];
@@ -64,14 +64,14 @@ inline auto dot(const vec<Vt, Vd, Packed> &v, const mat<Mt, Vd, Mcol, Packed> &m
 
 // (v|1)*M
 template <typename Vt, typename Mt, s64 Vd, bool Packed>
-inline auto dot(const vec<Vt, Vd, Packed> &v, const mat<Mt, Vd + 1, Vd, Packed> &mat) {
-    return dot((v | Vt(1)), mat);
+auto dot(const vec<Vt, Vd, Packed> &v, const mat<Mt, Vd + 1, Vd, Packed> &mat) {
+    return dot(v | Vt(1), mat);
 }
 
 template <typename Vt, typename Mt, s64 Vd, bool Packed>
-inline auto dot(const vec<Vt, Vd, Packed> &v, const mat<Mt, Vd + 1, Vd + 1, Packed> &mat) {
+auto dot(const vec<Vt, Vd, Packed> &v, const mat<Mt, Vd + 1, Vd + 1, Packed> &mat) {
     using Rt = mat_mul_elem_t<Vt, Mt>;
-    auto result = dot((v | Vt(1)), mat);
+    auto result = dot(v | Vt(1), mat);
     result /= result[-1];
     return vec<Rt, Vd, Packed>(result);
 }
@@ -113,7 +113,7 @@ T det(const mat<T, 4, 4, Packed> &m) {
     using Vec4 = vec<T, 4, false>;
 
     Vec4 evenPair = {1, -1, -1, 1};
-    Vec4 oddPair = {-1, 1, 1, -1};
+    Vec4 oddPair  = {-1, 1, 1, -1};
 
     const Vec4 &r0 = m.Stripes[0];
     const Vec4 &r1 = m.Stripes[1];
@@ -142,13 +142,13 @@ T det(const mat<T, 4, 4, Packed> &m) {
     Vec3 r2_xwy = r2.xwy;
     Vec3 r3_xwy = r3.xwy;
     Vec3 r1_wyx = r1.wyx;
-    T r0_w = r0.w;
-    T r0_z = r0.z;
+    T r0_w      = r0.w;
+    T r0_z      = r0.z;
 
     T det = dot(evenPair, r0_yyxx * r1_wzwz * r2_zwzw * r3_xxyy) + dot(oddPair, r0_yxyx * r1_wwxy * r2_xyww * r3_zzzz) +
             dot(evenPair, r0_yxyx * r1_zzxy * r2_xyzz * r3_wwww) +
-            (r0_w * dot(r1_zyx, r2_yxz * r3_xzy - r2_xzy * r3_yxz)) +
-            (r0_z * dot(r1_wyx, r2_xwy * r3_yxw - r2_yxw * r3_xwy));
+            r0_w * dot(r1_zyx, r2_yxz * r3_xzy - r2_xzy * r3_yxz) +
+            r0_z * dot(r1_wyx, r2_xwy * r3_yxw - r2_yxw * r3_xwy);
 
     return det;
 }
@@ -159,7 +159,7 @@ T det(const mat<T, Dim, Dim, Packed> &m) {
     // Only works if L's diagonal is 1s
     s64 parity;
     auto [L, U, P] = decompose_lup(m, parity);
-    T prod = U(0, 0);
+    T prod         = U(0, 0);
     for (s64 i = 1; i < U.R; ++i) {
         prod *= U(i, i);
     }
@@ -240,10 +240,10 @@ auto inverse(const mat<T, 4, 4, Packed> &m) {
     using Vec3 = vec<T, 3, false>;
     using Vec4 = vec<T, 4, false>;
 
-    Vec4 even = {1, -1, 1, -1};
-    Vec4 odd = {-1, 1, -1, 1};
+    Vec4 even     = {1, -1, 1, -1};
+    Vec4 odd      = {-1, 1, -1, 1};
     Vec4 evenPair = {1, -1, -1, 1};
-    Vec4 oddPair = {-1, 1, 1, -1};
+    Vec4 oddPair  = {-1, 1, 1, -1};
 
     const Vec4 &r0 = m.Stripes[0];
     const Vec4 &r1 = m.Stripes[1];
@@ -312,13 +312,13 @@ auto inverse(const mat<T, 4, 4, Packed> &m) {
     Vec3 r2_xwy = r2.xwy;
     Vec3 r3_xwy = r3.xwy;
     Vec3 r1_wyx = r1.wyx;
-    T r0_w = r0.w;
-    T r0_z = r0.z;
+    T r0_w      = r0.w;
+    T r0_z      = r0.z;
 
     T det = dot(evenPair, r0_yyxx * r1_wzwz * r2_zwzw * r3_xxyy) + dot(oddPair, r0_yxyx * r1_wwxy * r2_xyww * r3_zzzz) +
             dot(evenPair, r0_yxyx * r1_zzxy * r2_xyzz * r3_wwww) +
-            (r0_w * dot(r1_zyx, r2_yxz * r3_xzy - r2_xzy * r3_yxz)) +
-            (r0_z * dot(r1_wyx, r2_xwy * r3_yxw - r2_yxw * r3_xwy));
+            r0_w * dot(r1_zyx, r2_yxz * r3_xzy - r2_xzy * r3_yxz) +
+            r0_z * dot(r1_wyx, r2_xwy * r3_yxw - r2_yxw * r3_xwy);
 
     T invDet = 1 / det;
 
@@ -341,8 +341,8 @@ mat<T, Dim, Dim, Packed> inverse(const mat<T, Dim, Dim, Packed> &m) {
     vec<T, Dim, Packed> x;
     for (s64 col = 0; col < Dim; ++col) {
         b[max(col - 1, 0)] = 0;
-        b[col] = 1;
-        x = lup.solve(b);
+        b[col]             = 1;
+        x                  = lup.solve(b);
         for (s64 i = 0; i < Dim; ++i) {
             result(i, col) = x[i];
         }

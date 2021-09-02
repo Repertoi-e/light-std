@@ -101,19 +101,19 @@ static unsigned short sc2[] = {0033277,0137216,0075715,0057117};
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0x4be8,0xd5e4,0x89cd,0x3f20,
-0x2c7e,0x0cca,0x06d1,0x3f9f,
-0x0000,0x0000,0x0000,0x3ff0,
+    0x4be8, 0xd5e4, 0x89cd, 0x3f20,
+    0x2c7e, 0x0cca, 0x06d1, 0x3f9f,
+    0x0000, 0x0000, 0x0000, 0x3ff0,
 };
 static unsigned short Q[] = {
-0x5fa0,0xbc36,0x2eb6,0x3ec9,
-0xb6c0,0xb508,0xae39,0x3f64,
-0xe074,0x9887,0x1709,0x3fcd,
-0x0000,0x0000,0x0000,0x4000,
+    0x5fa0, 0xbc36, 0x2eb6, 0x3ec9,
+    0xb6c0, 0xb508, 0xae39, 0x3f64,
+    0xe074, 0x9887, 0x1709, 0x3fcd,
+    0x0000, 0x0000, 0x0000, 0x4000,
 };
-static unsigned short sc1[] = {0x0000,0x0000,0x2e40,0x3fe6};
+static unsigned short sc1[] = {0x0000, 0x0000, 0x2e40, 0x3fe6};
 #define C1 (*(double *)sc1)
-static unsigned short sc2[] = {0xabca,0xcf79,0xf7d1,0x3eb7};
+static unsigned short sc2[] = {0xabca, 0xcf79, 0xf7d1, 0x3eb7};
 #define C2 (*(double *)sc2)
 #endif
 
@@ -136,12 +136,12 @@ static unsigned short sc2[] = {0x3eb7,0xf7d1,0xcf79,0xabca};
 #endif
 
 #ifdef ANSIPROT
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern double floor ( double );
-extern double ldexp ( double, int );
-extern int isnan ( double );
-extern int isfinite ( double );
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern double floor(double);
+extern double ldexp(double, int);
+extern int isnan(double);
+extern int isfinite(double);
 #else
 double polevl(), p1evl(), floor(), ldexp();
 int isnan(), isfinite();
@@ -154,54 +154,51 @@ extern double INFINITY;
 #if INTRINSIC
 
 double exp(x)
-double x;
-{
-double px, xx;
-int n;
+double x; {
+    double px, xx;
+    int n;
 
 #ifdef NANS
-if( isnan(x) )
-	return(x);
+    if (isnan(x))
+        return x;
 #endif
-if( x > MAXLOG)
-	{
+    if (x > MAXLOG) {
 #ifdef INFINITIES
-	return( INFINITY );
+        return INFINITY;
 #else
 	mtherr( "exp", OVERFLOW );
 	return( MAXNUM );
 #endif
-	}
+    }
 
-if( x < MINLOG )
-	{
+    if (x < MINLOG) {
 #ifndef INFINITIES
 	mtherr( "exp", UNDERFLOW );
 #endif
-	return(0.0);
-	}
+        return 0.0;
+    }
 
-/* Express e**x = e**g 2**n
- *   = e**g e**( n loge(2) )
- *   = e**( g + n loge(2) )
- */
-px = floor( LOG2E * x + 0.5 ); /* floor() truncates toward -infinity. */
-n = px;
-x -= px * C1;
-x -= px * C2;
+    /* Express e**x = e**g 2**n
+     *   = e**g e**( n loge(2) )
+     *   = e**( g + n loge(2) )
+     */
+    px = floor(LOG2E * x + 0.5); /* floor() truncates toward -infinity. */
+    n  = px;
+    x -= px * C1;
+    x -= px * C2;
 
-/* rational approximation for exponential
- * of the fractional part:
- * e**x = 1 + 2x P(x**2)/( Q(x**2) - P(x**2) )
- */
-xx = x * x;
-px = x * polevl( xx, P, 2 );
-x =  px/( polevl( xx, Q, 3 ) - px );
-x = 1.0 + 2.0 * x;
+    /* rational approximation for exponential
+     * of the fractional part:
+     * e**x = 1 + 2x P(x**2)/( Q(x**2) - P(x**2) )
+     */
+    xx = x * x;
+    px = x * polevl(xx, P, 2);
+    x  = px / (polevl(xx, Q, 3) - px);
+    x  = 1.0 + 2.0 * x;
 
-/* multiply by power of 2 */
-x = ldexp( x, n );
-return(x);
+    /* multiply by power of 2 */
+    x = ldexp(x, n);
+    return x;
 }
 
 #endif  // INTRINSIC

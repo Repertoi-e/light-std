@@ -34,37 +34,34 @@ Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 */
 #include "mconf.h"
 #ifdef ANSIPROT
-double floor ( double );
+double floor(double);
 #else
 double floor();
 #endif
 
 double round(x)
-double x;
-{
-double y, r;
+double x; {
+    double y, r;
 
-/* Largest integer <= x */
-y = floor(x);
+    /* Largest integer <= x */
+    y = floor(x);
 
-/* Fractional part */
-r = x - y;
+    /* Fractional part */
+    r = x - y;
 
-/* Round up to nearest. */
-if( r > 0.5 )
-	goto rndup;
+    /* Round up to nearest. */
+    if (r > 0.5)
+        goto rndup;
 
-/* Round to even */
-if( r == 0.5 )
-	{
-	r = y - 2.0 * floor( 0.5 * y );
-	if( r == 1.0 )
-		{
-rndup:
-		y += 1.0;
-		}
-	}
+    /* Round to even */
+    if (r == 0.5) {
+        r = y - 2.0 * floor(0.5 * y);
+        if (r == 1.0) {
+        rndup:
+            y += 1.0;
+        }
+    }
 
-/* Else round down. */
-return(y);
+    /* Else round down. */
+    return y;
 }

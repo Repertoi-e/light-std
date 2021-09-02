@@ -95,7 +95,7 @@ struct hasher {
 
         auto *p = Buffer;
         while (p + 8 < BufferPtr) {
-            result = rotate_left_64(result ^ (rotate_left_64(*(u64 *) p * 14029467366897019727ULL, 31)), 27);
+            result = rotate_left_64(result ^ rotate_left_64(*(u64 *) p * 14029467366897019727ULL, 31), 27);
             result *= 11400714785074694791ULL;
             result += 9650029242287828579ULL;
 
@@ -103,14 +103,14 @@ struct hasher {
         }
 
         if (p + 4 <= BufferPtr) {
-            result = rotate_left_64(result ^ (*(u32 *) p) * 11400714785074694791ULL, 23);
+            result = rotate_left_64(result ^ *(u32 *) p * 11400714785074694791ULL, 23);
             result *= 14029467366897019727ULL;
             result += 1609587929392839161ULL;
             p += 4;
         }
 
         while (p != BufferPtr) {
-            result = rotate_left_64(result ^ (*p++) * 2870177450012600261ULL, 11) * 11400714785074694791ULL;
+            result = rotate_left_64(result ^ *p++ * 2870177450012600261ULL, 11) * 11400714785074694791ULL;
         }
 
         result ^= result >> 33;
@@ -121,13 +121,13 @@ struct hasher {
         return result;
     }
 
-   private:
+private:
     void process(const void *data) {
         auto *block = (const u64 *) data;
-        State[0] = rotate_left_64(State[0] + block[0] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
-        State[1] = rotate_left_64(State[1] + block[1] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
-        State[2] = rotate_left_64(State[2] + block[2] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
-        State[3] = rotate_left_64(State[3] + block[3] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+        State[0]    = rotate_left_64(State[0] + block[0] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+        State[1]    = rotate_left_64(State[1] + block[1] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+        State[2]    = rotate_left_64(State[2] + block[2] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
+        State[3]    = rotate_left_64(State[3] + block[3] * 14029467366897019727ULL, 31) * 11400714785074694791ULL;
     }
 };
 

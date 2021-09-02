@@ -21,7 +21,7 @@ struct decomposition_lu {
 
     bool solvable() const {
         T prod = L(0, 0);
-        T sum = abs(prod);
+        T sum  = abs(prod);
         for (s64 i = 1; i < Dim; ++i) {
             prod *= L(i, i);
             sum += abs(L(i, i));
@@ -52,7 +52,7 @@ struct decomposition_lup {
 
     bool solvable() {
         T prod = L(0, 0);
-        T sum = abs(prod);
+        T sum  = abs(prod);
         for (s64 i = 1; i < Dim; ++i) {
             prod *= L(i, i);
             sum += abs(L(i, i));
@@ -68,7 +68,7 @@ auto decompose_lu(const mat<T, Dim, Dim, Packed> &m) {
     // https://www.gamedev.net/resources/_/technical/math-and-physics/matrix-inversion-using-lu-decomposition-r3637
     mat<T, Dim, Dim, Packed> L, U;
 
-    const auto &A = m;
+    const auto &A   = m;
     constexpr s64 n = Dim;
 
     for (s64 i = 0; i < n; ++i) {
@@ -123,7 +123,7 @@ auto decompose_lup(const mat<T, Dim, Dim, Packed> &m, s64 &parity) {
     vec<s64, Dim, false> P;
     U = m;
 
-    s64 n = m.R;
+    s64 n  = m.R;
     parity = 1;
 
     For(range(n)) P[it] = it;
@@ -136,14 +136,14 @@ auto decompose_lup(const mat<T, Dim, Dim, Packed> &m, s64 &parity) {
         For_as(i, range(j, n)) {
             if (abs(U(i, j)) > p) {
                 largest = i;
-                p = abs(U(i, j));
+                p       = abs(U(i, j));
             }
         }
         if (p == 0) continue;
 
         // swap rows to move pivot to top row
         swap(P[j], P[largest]);
-        parity *= (j != largest ? -1 : 1);
+        parity *= j != largest ? -1 : 1;
         For(range(n)) swap(U(j, it), U(largest, it));
 
         // Do some magic
@@ -176,14 +176,15 @@ auto decompose_lup(const mat<T, Dim, Dim, Packed> &m) {
 }
 
 template <typename T, s64 Dim, bool Packed>
-vec<f32, Dim, Packed> decomposition_lu<T, Dim, Packed>::solve_impl(const MatrixT &L, const MatrixT &U,
+vec<f32, Dim, Packed> decomposition_lu<T, Dim, Packed>::solve_impl(const MatrixT &L,
+                                                                   const MatrixT &U,
                                                                    const vec<T, Dim, Packed> &b) {
     // Matrix to do Gaussian elimination with
     mat<T, Dim, Dim + 1, Packed> E;
 
     // Solve Ld = b;
-    E.get_view<Dim, Dim>(0, 0) = L;
-    E.col(Dim) = b;
+    E.get_view < Dim, Dim > (0, 0) = L;
+    E.col(Dim)                     = b;
 
     for (s64 i = 0; i < Dim - 1; ++i) {
         for (s64 i2 = i + 1; i2 < Dim; ++i2) {
@@ -196,7 +197,7 @@ vec<f32, Dim, Packed> decomposition_lu<T, Dim, Packed>::solve_impl(const MatrixT
     // d is now the last column of E
 
     // Solve Ux = d
-    E.get_view<Dim, Dim>(0, 0) = U;
+    E.get_view < Dim, Dim > (0, 0) = U;
 
     for (s64 i = Dim - 1; i > 0; --i) {
         for (s64 i2 = i - 1; i2 >= 0; --i2) {

@@ -10,32 +10,35 @@ struct bucket_array {
     constexpr static s64 ELEMENTS_PER_BUCKET = ElementsPerBucket;
 
     struct bucket {
-        T *Elements = null;
-        s64 Count = 0, Allocated = 0;
+        T *Elements  = null;
+        s64 Count    = 0, Allocated = 0;
         bucket *Next = null;
     };
 
     bucket BaseBucket;
-    bucket *BucketHead = null;  // null means BaseBucket
+    bucket *BucketHead = null; // null means BaseBucket
 
-    bucket_array() {}
+    bucket_array() {
+    }
 };
 
 template <typename T>
-struct is_bucket_array_helper : types::false_t {};
+struct is_bucket_array_helper : types::false_t {
+};
 
 template <typename T, s64 ElementsPerBucket>
-struct is_bucket_array_helper<bucket_array<T, ElementsPerBucket>> : types::true_t {};
+struct is_bucket_array_helper<bucket_array<T, ElementsPerBucket>> : types::true_t {
+};
 
 template <typename T>
 concept is_bucket_array = is_bucket_array_helper<T>::value;
 
 template <is_bucket_array T>
 void free(T &arr) {
-    auto *b = arr.BucketHead->Next;  // The first bucket is on the stack
+    auto *b = arr.BucketHead->Next; // The first bucket is on the stack
     while (b) {
         auto *toFree = b;
-        b = b->Next;
+        b            = b->Next;
         free(toFree);
     }
 }
@@ -70,11 +73,11 @@ auto *append(T &arr, const typename T::T &element, allocator alloc = {}) {
             return b->Elements + b->Count - 1;
         }
         last = b;
-        b = b->Next;
+        b    = b->Next;
     }
 
-    b = last->Next = allocate<T::bucket>({.Alloc = alloc});
-    b->Elements = allocate_array<typename T::T>(T::ELEMENTS_PER_BUCKET, {.Alloc = alloc});
+    b            = last->Next = allocate<typename T::bucket>({.Alloc = alloc});
+    b->Elements  = allocate_array<typename T::T>(T::ELEMENTS_PER_BUCKET, {.Alloc = alloc});
     b->Allocated = T::ELEMENTS_PER_BUCKET;
     clone(b->Elements, element);
     b->Count = 1;

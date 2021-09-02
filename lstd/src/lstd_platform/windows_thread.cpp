@@ -92,7 +92,7 @@ void condition_variable::do_wait() {
     // Check if we are the last waiter
     EnterCriticalSection(&data->WaitersCountLock);
     --data->WaitersCount;
-    bool lastWaiter = (result == (WAIT_OBJECT_0 + _CONDITION_EVENT_ALL)) && (data->WaitersCount == 0);
+    bool lastWaiter = result == WAIT_OBJECT_0 + _CONDITION_EVENT_ALL && data->WaitersCount == 0;
     LeaveCriticalSection(&data->WaitersCountLock);
 
     // If we are the last waiter to be notified to stop waiting, reset the event
@@ -104,7 +104,7 @@ void condition_variable::notify_one() {
 
     // Are there any waiters?
     EnterCriticalSection(&data->WaitersCountLock);
-    bool haveWaiters = (data->WaitersCount > 0);
+    bool haveWaiters = data->WaitersCount > 0;
     LeaveCriticalSection(&data->WaitersCountLock);
 
     // If we have any waiting threads, send them a signal
@@ -116,7 +116,7 @@ void condition_variable::notify_all() {
 
     // Are there any waiters?
     EnterCriticalSection(&data->WaitersCountLock);
-    bool haveWaiters = (data->WaitersCount > 0);
+    bool haveWaiters = data->WaitersCount > 0;
     LeaveCriticalSection(&data->WaitersCountLock);
 
     // If we have any waiting threads, send them a signal
@@ -153,18 +153,18 @@ u32 __stdcall thread::wrapper_function(void *data) {
 
     // @TODO: Make this optional:
     // Now we copy the context variables from the parent thread
-    s64 firstByte = offset_of(context, TempAlloc) + sizeof(context::TempAlloc);
+    s64 firstByte = offset_of(context, TempAlloc) + sizeof context::TempAlloc;
     copy_memory((byte *) &Context + firstByte, (byte *) ti->ContextPtr + firstByte, sizeof(context) - firstByte);
 
     // If the parent thread was using the temporary allocator, set the new thread to also use the temporary allocator,
     // but it needs to point to its own temp data (otherwise we are not thread-safe).
     if (ti->ContextPtr->Alloc == ti->ContextPtr->TempAlloc) {
-        auto newContext = Context;
+        auto newContext  = Context;
         newContext.Alloc = Context.TempAlloc;
         OVERRIDE_CONTEXT(newContext);
     }
 
-    ti->Function(ti->UserData);  // Call the thread function with the user data
+    ti->Function(ti->UserData); // Call the thread function with the user data
 
     // Do we need this?
     // CloseHandle(ti->ThreadPtr->Handle);
@@ -185,16 +185,16 @@ void thread::init_and_launch(const delegate<void(void *)> &function, void *userD
     // Passed to the thread wrapper, which will eventually free it
     // @TODO @Speed @Memory Fragmentation! We should have a dedicated pool allocator for thread_start_info 
     // because threads could be created/destroyed very often.
-    auto *ti = allocate<thread_start_info>({.Alloc = internal::platform_get_persistent_allocator()});
-    ti->Function = function;
-    ti->UserData = userData;
-    ti->ThreadPtr = this;
+    auto *ti       = allocate<thread_start_info>({.Alloc = internal::platform_get_persistent_allocator()});
+    ti->Function   = function;
+    ti->UserData   = userData;
+    ti->ThreadPtr  = this;
     ti->ContextPtr = &Context;
 
 #if defined LSTD_NO_CRT
     // Create the thread
     GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR) wrapper_function, &ti->Module);
-    auto handle = CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, (DWORD *) &Win32ThreadId);
+    auto handle = CreateThread(null, 0, (LPTHREAD_START_ROUTINE) wrapper_function, ti, 0, &Win32ThreadId);
 #else
     auto handle = _beginthreadex(null, 0, wrapper_function, ti, 0, &Win32ThreadId);
 #endif
@@ -207,7 +207,7 @@ void thread::init_and_launch(const delegate<void(void *)> &function, void *userD
 }
 
 void thread::wait() {
-    assert(get_id() != Context.ThreadID);  // A thread cannot wait for itself!
+    assert(get_id() != Context.ThreadID); // A thread cannot wait for itself!
     WaitForSingleObject(Handle, INFINITE);
 }
 
@@ -218,18 +218,18 @@ void thread::terminate() {
 }
 
 // return _pthread_t_to_ID(mHandle);
-::LSTD_NAMESPACE::thread::id thread::get_id() const {
+id thread::get_id() const {
     return id((u64) Win32ThreadId);
 }
 
-void sleep(u32 ms) { Sleep((DWORD) ms); }
+void sleep(u32 ms) { Sleep(ms); }
 
-}  // namespace thread
+} // namespace thread
 
 u32 os_get_hardware_concurrency() {
     SYSTEM_INFO si;
     GetSystemInfo(&si);
-    return (u32) si.dwNumberOfProcessors;
+    return si.dwNumberOfProcessors;
 }
 
 LSTD_END_NAMESPACE

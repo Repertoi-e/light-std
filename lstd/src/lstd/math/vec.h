@@ -24,7 +24,7 @@ struct vec_info_helper<vec<T_, Dim, Packed>> {
     static constexpr bool IS_VEC = true;
 
     using T = T_;
-    static constexpr s64 DIM = Dim;
+    static constexpr s64 DIM     = Dim;
     static constexpr bool PACKED = Packed;
 };
 
@@ -33,15 +33,17 @@ struct vec_info_helper<vec_data<T_, Dim, Packed>> {
     static constexpr bool IS_VEC = true;
 
     using T = T_;
-    static constexpr s64 DIM = Dim;
+    static constexpr s64 DIM     = Dim;
     static constexpr bool PACKED = Packed;
 };
 
 template <typename T>
-struct vec_info : public vec_info_helper<types::remove_cvref_t<T>> {};
+struct vec_info : public vec_info_helper<types::remove_cvref_t<T>> {
+};
 
 template <typename T>
-concept has_simd = requires(T t) {
+concept has_simd = requires(T t)
+{
     vec_info<T>::IS_VEC == true;
     t.Simd;
 };
@@ -59,7 +61,7 @@ struct swizzle {
     using T = typename vec_info<VecData>::T;
 
     inline static constexpr s64 INDEX_TABLE[] = {Indices...};
-    static constexpr s64 DIM = sizeof...(Indices);
+    static constexpr s64 DIM                  = sizeof...(Indices);
 
     operator vec<T, sizeof...(Indices), false>() const;
     operator vec<T, sizeof...(Indices), true>() const;
@@ -68,7 +70,8 @@ struct swizzle {
     swizzle &operator=(const vec<T, sizeof...(Indices), true> &rhs);
 
     template <typename T2, s64... Indices2>
-    requires(sizeof...(Indices) == sizeof...(Indices2)) swizzle &operator=(const swizzle<T2, Indices2...> &rhs) {
+        requires(sizeof...(Indices) == sizeof...(Indices2))
+    swizzle &operator=(const swizzle<T2, Indices2...> &rhs) {
         *this = vec<T, sizeof...(Indices2), false>(rhs);
         return *this;
     }
@@ -79,9 +82,11 @@ struct swizzle {
     template <bool Packed = false>
     const auto to_vec() const { return vec<T, DIM, Packed>(*this); }
 
-   private:
+private:
     template <s64... Rest>
-    requires(sizeof...(Rest) == 0) void assign(const T *) {}
+        requires(sizeof...(Rest) == 0)
+    void assign(const T *) {
+    }
 
     template <s64 Index, s64... Rest>
     void assign(const T *rhs) {
@@ -148,7 +153,9 @@ struct vec_data {
     }
 
 VEC_DATA_DEF(2);
+
 VEC_DATA_DEF(3);
+
 VEC_DATA_DEF(4);
 #undef VEC_DATA_DEF
 
@@ -179,14 +186,18 @@ VEC_DATA_DEF(4);
         };                                                 \
     }
 VEC_DATA_DEF(f32, 2, 2);
-VEC_DATA_DEF(f32, 3, 4);  // :SimdForVec3: We turn on SIMD for vectors with three components (but we treat them as having 4)
+
+VEC_DATA_DEF(f32, 3, 4); // :SimdForVec3: We turn on SIMD for vectors with three components (but we treat them as having 4)
 VEC_DATA_DEF(f32, 4, 4);
+
 VEC_DATA_DEF(f32, 8, 8);
 
 // Small SIMD f64 vectors
 VEC_DATA_DEF(f64, 2, 2);
-VEC_DATA_DEF(f64, 3, 4);  // :SimdForVec3: We turn on SIMD for vectors with three components (but we treat them as having 4)
+
+VEC_DATA_DEF(f64, 3, 4); // :SimdForVec3: We turn on SIMD for vectors with three components (but we treat them as having 4)
 VEC_DATA_DEF(f64, 4, 4);
+
 VEC_DATA_DEF(f64, 8, 8);
 
 template <typename T_, s64 Dim, bool Packed = false>
@@ -194,14 +205,16 @@ struct vec : public vec_data<T_, Dim, Packed> {
     static_assert(Dim >= 1, "Dimension must be >= 1");
 
     using T = T_;
-    static constexpr s64 DIM = Dim;
+    static constexpr s64 DIM     = Dim;
     static constexpr bool PACKED = Packed;
 
     // :CodeReusability: Automatically generates ==, !=, <, <=, >, >=, compare_*, find_*, has functions etc.. take a look at "array_like.h"
     static constexpr s64 Count = DIM;
 
     // :MathTypesNoInit By default we don't init (to save on performance) but you can call a constructor with a scalar value of 0 to zero-init.
-    vec() : vec_data<T, DIM, PACKED>() {}
+    vec()
+        : vec_data<T, DIM, PACKED>() {
+    }
 
     // Sets all elements to the same value
     explicit vec(T all) {
@@ -215,12 +228,16 @@ struct vec : public vec_data<T_, Dim, Packed> {
 
     // Convertible if the vectors are of the same size and the elements are convertible
     template <any_vec Vec>
-    requires(types::is_convertible<T, vec_info<Vec>::T> && (vec_info<Vec>::DIM == DIM)) vec(const Vec &v) { For(range(DIM)) this->Data[it] = T(v.Data[it]); }
+        requires(types::is_convertible<T, vec_info<Vec>::T> && (vec_info<Vec>::DIM == DIM))
+    vec(const Vec &v) {
+        For(range(DIM)) this->Data[it] = T(v.Data[it]);
+    }
 
     // Constructs the vector from an array of elements.
     // The number of elements in the array must be at least as the vector's dimension.
     template <typename U>
-    requires(types::is_convertible<U, T>) vec(const array<U> &data) {
+        requires(types::is_convertible<U, T>)
+    vec(const array<U> &data) {
         assert(DIM <= data.Count);
         for (s64 i = 0; i < DIM; ++i) {
             this->Data[i] = T(data.Data[i]);
@@ -229,11 +246,17 @@ struct vec : public vec_data<T_, Dim, Packed> {
 
     // Creates a homogeneous vector by appending a 1
     template <any_vec Vec>
-    requires(DIM >= 2 && (Vec::DIM == DIM - 1)) explicit vec(const Vec &v) : vec(v, 1) {}
+        requires(DIM >= 2 && (Vec::DIM == DIM - 1))
+    explicit vec(const Vec &v)
+        : vec(v, 1) {
+    }
 
     // Truncates last coordinate of homogenous vector to create non-homogeneous
     template <any_vec Vec>
-    requires(Vec::DIM == DIM + 1) explicit vec(const Vec &v) : vec(array<Vec::T>((typename Vec::T *) v.Data, v.DIM)) {}
+        requires(Vec::DIM == DIM + 1)
+    explicit vec(const Vec &v)
+        : vec(array<typename Vec::T>((typename Vec::T *) v.Data, v.DIM)) {
+    }
 
     // Initializes the vector from the given elements - either just scalars or mixed with vectors and swizzles.
     //   e.g. vec3(pos.xy, 0) or just vec3(pos, 0).
@@ -243,7 +266,8 @@ struct vec : public vec_data<T_, Dim, Packed> {
     // The sum of the dimensions of the arguments must be equal to the dimension of the vector (scalars have one dimension).
     // We don't support arrays here - they get treated as scalars and fail because they might not be convertible to the type of the vector.
     template <typename... Args>
-    requires((sizeof...(Args) >= 1) && ((dim_of_v<Args> + ...) == DIM)) vec(const Args &... args) {
+        requires((sizeof...(Args) >= 1) && ((dim_of_v<Args> + ...) == DIM))
+    vec(const Args &... args) {
         // If not all are convertible to T we treat as mixed.
         if constexpr ((!types::is_convertible<Args, T> || ...)) {
             assign_from_mixed(0, args...);
@@ -268,11 +292,14 @@ struct vec : public vec_data<T_, Dim, Packed> {
     }
 
     // We use this type to validate constructing a vector from SIMD
-    struct from_simd_t {};
+    struct from_simd_t {
+    };
+
     static constexpr from_simd_t FROM_SIMD = {};
 
     template <typename SimdArgT>
-    vec(from_simd_t, SimdArgT simd) : vec_data<T, DIM, PACKED>(simd) { static_assert(has_simd<vec>); }
+    vec(from_simd_t, SimdArgT simd)
+        : vec_data<T, DIM, PACKED>(simd) { static_assert(has_simd<vec>); }
 
     //
     // Iterators:
@@ -293,7 +320,7 @@ struct vec : public vec_data<T_, Dim, Packed> {
     T operator[](s64 index) const { return this->Data[translate_index(index, DIM)]; }
     T &operator[](s64 index) { return this->Data[translate_index(index, DIM)]; }
 
-   private:
+private:
     template <typename Head, typename... Rest>
     void assign_from_mixed(s64 index, const Head &head, const Rest &... rest) {
         using H = types::remove_cvref_t<Head>;
@@ -353,22 +380,22 @@ swizzle<VectorDataU, Indices...>::operator vec<typename swizzle<VectorDataU, Ind
 
 template <typename VectorDataU, s64... Indices>
 swizzle<VectorDataU, Indices...> &swizzle<VectorDataU, Indices...>::operator=(const vec<T, sizeof...(Indices), false> &rhs) {
-    if (((typename vec_info<VectorDataU>::T *) this) != rhs.Data) {
+    if ((typename vec_info<VectorDataU>::T *) this != rhs.Data) {
         assign<Indices...>(rhs.Data);
     } else {
         vec<T, sizeof...(Indices), false> temp = rhs;
-        *this = temp;
+        *this                                  = temp;
     }
     return *this;
 }
 
 template <typename VectorDataU, s64... Indices>
 swizzle<VectorDataU, Indices...> &swizzle<VectorDataU, Indices...>::operator=(const vec<T, sizeof...(Indices), true> &rhs) {
-    if (((typename vec_info<VectorDataU>::T *) this) != rhs.Data) {
+    if ((typename vec_info<VectorDataU>::T *) this != rhs.Data) {
         assign<Indices...>(rhs.Data);
     } else {
         vec<T, sizeof...(Indices), false> temp = rhs;
-        *this = temp;
+        *this                                  = temp;
     }
     return *this;
 }

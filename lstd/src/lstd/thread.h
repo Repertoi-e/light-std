@@ -10,15 +10,19 @@ namespace thread {
 struct id {
     u64 Value;
 
-    id() {}
-    id(u64 value) : Value(value){};
+    id() {
+    }
 
-    friend bool operator==(const id &id1, const id &id2) { return (id1.Value == id2.Value); }
-    friend bool operator!=(const id &id1, const id &id2) { return (id1.Value != id2.Value); }
-    friend bool operator<=(const id &id1, const id &id2) { return (id1.Value <= id2.Value); }
-    friend bool operator<(const id &id1, const id &id2) { return (id1.Value < id2.Value); }
-    friend bool operator>=(const id &id1, const id &id2) { return (id1.Value >= id2.Value); }
-    friend bool operator>(const id &id1, const id &id2) { return (id1.Value > id2.Value); }
+    id(u64 value)
+        : Value(value) {
+    };
+
+    friend bool operator==(const id &id1, const id &id2) { return id1.Value == id2.Value; }
+    friend bool operator!=(const id &id1, const id &id2) { return id1.Value != id2.Value; }
+    friend bool operator<=(const id &id1, const id &id2) { return id1.Value <= id2.Value; }
+    friend bool operator<(const id &id1, const id &id2) { return id1.Value < id2.Value; }
+    friend bool operator>=(const id &id1, const id &id2) { return id1.Value >= id2.Value; }
+    friend bool operator>(const id &id1, const id &id2) { return id1.Value > id2.Value; }
 };
 
 // Mutex class.
@@ -116,7 +120,7 @@ struct scoped_lock : non_assignable {
 
 // @Pedantic We want to make sure the user doesn't clone things that don't make sense.
 template <typename T>
-inline scoped_lock<T> *clone(scoped_lock<T> *dest, const scoped_lock<T> &src) {
+scoped_lock<T> *clone(scoped_lock<T> *dest, const scoped_lock<T> &src) {
     assert(false && "We don't deep copy scoped locks");
     return null;
 }
@@ -146,15 +150,15 @@ inline scoped_lock<T> *clone(scoped_lock<T> *dest, const scoped_lock<T> &src) {
 //         cond.notify_all();
 //       }
 struct condition_variable : non_assignable {
-   private:
+private:
 #if OS == WINDOWS
     // Implement platform specific Windows code for wait() in these functions,
     // because wait() is templated
     void pre_wait();
     void do_wait();
 #endif
-   public:
-    char Handle[64] = {0};  // pthread_cond_t
+public:
+    char Handle[64] = {0}; // pthread_cond_t
 
     // This condition variable won't work until init() is called.
     //
@@ -211,7 +215,8 @@ struct thread : non_assignable {
     void *Handle = null;
 
     // Non-starting constructor.
-    thread() {}
+    thread() {
+    }
 
     void init_and_launch(const delegate<void(void *)> &function, void *userData = null);
 
@@ -222,7 +227,7 @@ struct thread : non_assignable {
 
     id get_id() const;
 
-   private:
+private:
     // Unique thread ID. Used only on Windows.
     u32 Win32ThreadId = 0;
 
@@ -285,7 +290,7 @@ inline fast_mutex *clone(fast_mutex *dest, const fast_mutex &src) {
 // sleep(0) supposedly tells the os to yield execution to another thread.
 void sleep(u32 ms);
 
-}  // namespace thread
+} // namespace thread
 
 // The number of threads which can execute concurrently on the current hardware (may be different from the number of cores because of hyperthreads).
 u32 os_get_hardware_concurrency();

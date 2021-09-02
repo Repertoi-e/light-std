@@ -23,6 +23,7 @@ TEST(global_function) {
 
 struct Member_Test {
     s32 value = 10;
+
     s32 member_callback(s32 i) const {
         s32 j = 42;
         return i + value;

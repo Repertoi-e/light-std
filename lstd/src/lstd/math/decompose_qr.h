@@ -41,7 +41,7 @@ auto decompose_qr(mat<T, R_, C, Packed> m) {
         if (norm == 0) continue;
 
         u /= norm;
-        v = u;
+        v  = u;
         Qi = dot(T(-2) * v, ::T(v));
 
         For(range(Q.C)) Qi(it, it) += T(1);

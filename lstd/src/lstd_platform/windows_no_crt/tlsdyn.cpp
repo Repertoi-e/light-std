@@ -22,7 +22,7 @@ static bool __cdecl is_potentially_valid_image_base(void *const image_base) noex
     }
 
     auto const nt_header_address = reinterpret_cast<PBYTE>(dos_header) + dos_header->e_lfanew;
-    auto const nt_header = reinterpret_cast<PIMAGE_NT_HEADERS64>(nt_header_address);
+    auto const nt_header         = reinterpret_cast<PIMAGE_NT_HEADERS64>(nt_header_address);
     if (nt_header->Signature != IMAGE_NT_SIGNATURE) {
         return false;
     }
@@ -40,15 +40,15 @@ using uintptr_t = u64;
 // * Given an RVA, finds the PE section in the pointed-to image that includes the
 // * RVA.  Returns null if no such section exists or the section is not found.
 static PIMAGE_SECTION_HEADER __cdecl find_pe_section(unsigned char *const image_base, uintptr_t const rva) noexcept {
-    auto const dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(image_base);
+    auto const dos_header        = reinterpret_cast<PIMAGE_DOS_HEADER>(image_base);
     auto const nt_header_address = reinterpret_cast<PBYTE>(dos_header) + dos_header->e_lfanew;
-    auto const nt_header = reinterpret_cast<PIMAGE_NT_HEADERS64>(nt_header_address);
+    auto const nt_header         = reinterpret_cast<PIMAGE_NT_HEADERS64>(nt_header_address);
 
     // * Find the section holding the RVA.  We make no assumptions here about the
     // * sort order of the section descriptors, though they always appear to be
     // * sorted by ascending section RVA.
     PIMAGE_SECTION_HEADER const first_section = IMAGE_FIRST_SECTION(nt_header);
-    PIMAGE_SECTION_HEADER const last_section = first_section + nt_header->FileHeader.NumberOfSections;
+    PIMAGE_SECTION_HEADER const last_section  = first_section + nt_header->FileHeader.NumberOfSections;
     for (auto it = first_section; it != last_section; ++it) {
         if (rva >= it->VirtualAddress && rva < it->VirtualAddress + it->Misc.VirtualSize) {
             return it;
@@ -66,7 +66,7 @@ extern "C" {
 // * writable.
 bool __cdecl __scrt_is_nonwritable_in_current_image(void const *const target) {
     auto const target_address = reinterpret_cast<unsigned char const *>(target);
-    auto const image_base = reinterpret_cast<unsigned char *>(&__ImageBase);
+    auto const image_base     = reinterpret_cast<unsigned char *>(&__ImageBase);
 
     __try {
         // * Make sure __ImageBase is the address of a valid PE image.  This is
@@ -81,7 +81,7 @@ bool __cdecl __scrt_is_nonwritable_in_current_image(void const *const target) {
         // * Convert the target address to an RVA within the image and find the
         // * corresponding PE section.  Return failure if the target address is
         // * not found within the current image:
-        uintptr_t const rva_target = target_address - image_base;
+        uintptr_t const rva_target                 = target_address - image_base;
         PIMAGE_SECTION_HEADER const section_header = find_pe_section(image_base, rva_target);
         if (!section_header) {
             return false;
@@ -176,9 +176,9 @@ static _CRTALLOC(".CRT$XDZ") _PVFV __xd_z = nullptr;
  *      __declspec(thread) variables in the primary thread at process startup.
  */
 
-void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept  // terminate on any C++ exception that leaves a
-                                                                    // namespace-scope thread-local initializer
-                                                                    // N4830 [basic.start.dynamic]/7
+void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept // terminate on any C++ exception that leaves a
+// namespace-scope thread-local initializer
+// N4830 [basic.start.dynamic]/7
 {
     if (dwReason != DLL_THREAD_ATTACH || __tls_guard == true)
         return;
@@ -188,13 +188,13 @@ void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept  // terminate
      * by the compiler before we run any initializers.
      */
     __tls_guard = true;
-    
+
     // Each new thread must get an initalized context.
     // When we are linking with the CRT, we inject a callback into a linker table.
     // See e.g. windows_common.cpp
     LSTD_NAMESPACE::internal::platform_init_context();
 
-/* prefast assumes we are overflowing __xd_a */
+    /* prefast assumes we are overflowing __xd_a */
 #pragma warning(push)
 #pragma warning(disable : 26000)
     for (_PVFV *pfunc = &__xd_a + 1; pfunc != &__xd_z; ++pfunc) {
@@ -229,4 +229,4 @@ void __cdecl __dyn_tls_on_demand_init() noexcept {
     __dyn_tls_init(nullptr, DLL_THREAD_ATTACH, nullptr);
 }
 
-}  // extern "C"
+} // extern "C"

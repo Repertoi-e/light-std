@@ -104,19 +104,17 @@ Copyright 1984, 1987, 1989, 1995 by Stephen L. Moshier
 
 
 /* Complex numeral.  */
-typedef struct
-	{
-	double r;
-	double i;
-	} cmplx;
+typedef struct {
+    double r;
+    double i;
+} cmplx;
 
 #ifdef HAVE_LONG_DOUBLE
 /* Long double complex numeral.  */
-typedef struct
-	{
-	long double r;
-	long double i;
-	} cmplxl;
+typedef struct {
+    long double r;
+    long double i;
+} cmplxl;
 #endif
 
 
@@ -128,7 +126,7 @@ typedef struct
 
 /* Intel IEEE, low order words come first:
  */
-#define IBMPC 1 
+#define IBMPC 1
 
 /* Motorola IEEE, high order words come first
  * (Sun 680x0 workstation):
@@ -191,7 +189,7 @@ typedef struct
 #if 1
 /* #ifdef __STDC__ */
 #define ANSIPROT 1
-int mtherr ( char *, int );
+int mtherr(char *, int);
 #else
 int mtherr();
 #endif
@@ -206,4 +204,3 @@ extern int merror;
 #else
 #define INTRINSIC 0
 #endif
-

@@ -16,7 +16,7 @@ import os;
 //
 constexpr string get_short_file_path(const string &str) {
     char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
-    string src = srcData;
+    string src     = srcData;
 
     s64 findResult = find_substring_reverse(str, src);
     if (findResult == -1) {

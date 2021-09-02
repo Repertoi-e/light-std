@@ -106,19 +106,22 @@ tquat<T, Packed> operator-(const tquat<T, Packed> &arg) {
 // @Cleanup Combine with * above. Better yet, remove * from the math library because it's ambigious (element wise or dot product???????)
 // Multiplies all coefficients of the quaternion by _s_
 template <typename T, bool Packed, typename U>
-requires(!types::is_same<U, tquat<T, Packed>>) tquat<T, Packed> operator*(U s, const tquat<T, Packed> &rhs) {
+    requires(!types::is_same<U, tquat<T, Packed>>)
+tquat<T, Packed> operator*(U s, const tquat<T, Packed> &rhs) {
     return rhs * s;
 }
 
 // Divides all coefficients of the quaternion by _s_
 template <typename T, bool Packed, typename U>
-requires(!types::is_same<U, tquat<T, Packed>>) tquat<T, Packed> operator/(U s, const tquat<T, Packed> &rhs) {
+    requires(!types::is_same<U, tquat<T, Packed>>)
+tquat<T, Packed> operator/(U s, const tquat<T, Packed> &rhs) {
     return rhs / s;
 }
 
 // Adds a real to the real part of the quaternion
 template <typename T, bool Packed, typename U>
-requires(!types::is_quat<U>::value) tquat<T, Packed> operator+(const U &lhs, const tquat<T, Packed> &rhs) {
+    requires(!types::is_quat<U>::value)
+tquat<T, Packed> operator+(const U &lhs, const tquat<T, Packed> &rhs) {
     return tquat<T, Packed>(rhs.w + lhs, rhs.x, rhs.y, rhs.z);
 }
 

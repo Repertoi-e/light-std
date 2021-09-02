@@ -9,7 +9,7 @@ string::code_point_ref &string::code_point_ref::operator=(utf32 other) {
     return *this;
 }
 
-string::code_point_ref::operator utf32() const { return (*((const string *) Parent))[Index]; }
+string::code_point_ref::operator utf32() const { return (*(const string *) Parent)[Index]; }
 
 string::string(utf32 codePoint, s64 repeat) {
     string_reserve(*this, get_size_of_cp(codePoint) * repeat);
@@ -43,13 +43,13 @@ utf8 *string_to_c_string_temp(const string &s) { return string_to_c_string(s, Co
 void string_set(string &s, s64 index, utf32 codePoint) {
     utf8 *targetOctet = (utf8 *) get_cp_at_index(s.Data, translate_index(index, s.Length));
 
-    s64 cpSize = get_size_of_cp(codePoint);
+    s64 cpSize       = get_size_of_cp(codePoint);
     s64 cpTargetSize = get_size_of_cp(targetOctet);
 
     s64 diff = cpSize - cpTargetSize;
 
     // Calculate the offset, because string_reserve might move the memory
-    u64 offset = (u64)(targetOctet - s.Data);
+    u64 offset = (u64) (targetOctet - s.Data);
 
     // We need to reserve in any case (even if the diff is 0 or negative),
     // because we need to make sure we can modify the string (it's not a view).
@@ -71,14 +71,14 @@ void string_insert_at(string &s, s64 index, utf32 codePoint) {
     utf8 data[4];
     encode_cp(data, codePoint);
 
-    s64 offset = (s64)(get_cp_at_index(s.Data, translate_index(index, s.Length, true)) - s.Data);
+    s64 offset = get_cp_at_index(s.Data, translate_index(index, s.Length, true)) - s.Data;
     array_insert_at(s, offset, data, get_size_of_cp(data));
 
     ++s.Length;
 }
 
 void string_insert_at(string &s, s64 index, const utf8 *str, s64 size) {
-    s64 offset = (s64)(get_cp_at_index(s.Data, translate_index(index, s.Length, true)) - s.Data);
+    s64 offset = get_cp_at_index(s.Data, translate_index(index, s.Length, true)) - s.Data;
 
     array_insert_at(s, offset, str, size);
     s.Length += utf8_length(str, size);
@@ -86,7 +86,7 @@ void string_insert_at(string &s, s64 index, const utf8 *str, s64 size) {
 
 void string_remove_at(string &s, s64 index) {
     auto *target = get_cp_at_index(s.Data, translate_index(index, s.Length, true));
-    s64 offset = (s64)(target - s.Data);
+    s64 offset   = target - s.Data;
 
     array_remove_range(s, offset, offset + get_size_of_cp(target));
 
@@ -95,11 +95,11 @@ void string_remove_at(string &s, s64 index) {
 
 void string_remove_range(string &s, s64 begin, s64 end) {
     s64 tbegin = translate_index(begin, s.Length);
-    s64 tend = translate_index(end, s.Length, true);
+    s64 tend   = translate_index(end, s.Length, true);
 
     auto *t1 = get_cp_at_index(s.Data, tbegin), *t2 = get_cp_at_index(s.Data, tend);
 
-    s64 bi = (s64)(t1 - s.Data), ei = (s64)(t2 - s.Data);
+    s64 bi = t1 - s.Data, ei = t2 - s.Data;
     array_remove_range(s, bi, ei);
 
     s.Length -= tend - tbegin;

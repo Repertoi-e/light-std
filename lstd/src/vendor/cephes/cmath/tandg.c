@@ -36,7 +36,7 @@
  *                    x > 1.0e14 (IEEE)
  * tandg singularity  x = 180 k  +  90     MAXNUM
  */
-/*							cotdg.c
+ /*							cotdg.c
  *
  *	Circular cotangent of argument in degrees
  *
@@ -111,18 +111,18 @@ static double lossth = 8.0e14;
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0x3f38,0xd24f,0x92d8,0xc0c9,
-0x9ddd,0xa5fc,0x99ec,0x4131,
-0x9176,0xd329,0x1fea,0xc171
+    0x3f38, 0xd24f, 0x92d8, 0xc0c9,
+    0x9ddd, 0xa5fc, 0x99ec, 0x4131,
+    0x9176, 0xd329, 0x1fea, 0xc171
 };
 static unsigned short Q[] = {
-/*0x0000,0x0000,0x0000,0x3ff0,*/
-0x6572,0xeeb3,0xb8a5,0x40ca,
-0xbc96,0x582a,0x27bc,0xc134,
-0xd8ef,0xc2ea,0xd98f,0x4177,
-0x5a31,0x3cbe,0xafe0,0xc189
+    /*0x0000,0x0000,0x0000,0x3ff0,*/
+    0x6572, 0xeeb3, 0xb8a5, 0x40ca,
+    0xbc96, 0x582a, 0x27bc, 0xc134,
+    0xd8ef, 0xc2ea, 0xd98f, 0x4177,
+    0x5a31, 0x3cbe, 0xafe0, 0xc189
 };
-static unsigned short P1[] = {0x9d39,0xa252,0xdf46,0x3f91};
+static unsigned short P1[] = {0x9d39, 0xa252, 0xdf46, 0x3f91};
 #define PI180 *(double *)P1
 static double lossth = 1.0e14;
 #endif
@@ -147,11 +147,11 @@ static double lossth = 1.0e14;
 #endif
 
 #ifdef ANSIPROT
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern double floor ( double );
-extern double ldexp ( double, int );
-static double tancot( double, int );
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern double floor(double);
+extern double ldexp(double, int);
+static double tancot(double, int);
 #else
 double polevl(), p1evl(), floor(), ldexp();
 static double tancot();
@@ -161,107 +161,90 @@ extern double PIO4;
 
 
 double tandg(x)
-double x;
-{
+double x; {
 
-return( tancot(x,0) );
+    return tancot(x, 0);
 }
 
 
 double cotdg(x)
-double x;
-{
+double x; {
 
-return( tancot(x,1) );
+    return tancot(x, 1);
 }
 
 
-static double tancot( xx, cotflg )
+static double tancot(xx, cotflg)
 double xx;
-int cotflg;
-{
-double x, y, z, zz;
-int j, sign;
+int cotflg; {
+    double x, y, z, zz;
+    int j, sign;
 
-/* make argument positive but save the sign */
-if( xx < 0 )
-	{
-	x = -xx;
-	sign = -1;
-	}
-else
-	{
-	x = xx;
-	sign = 1;
-	}
+    /* make argument positive but save the sign */
+    if (xx < 0) {
+        x    = -xx;
+        sign = -1;
+    } else {
+        x    = xx;
+        sign = 1;
+    }
 
-if( x > lossth )
-	{
-	mtherr( "tandg", TLOSS );
-	return(0.0);
-	}
+    if (x > lossth) {
+        mtherr("tandg", TLOSS);
+        return 0.0;
+    }
 
-/* compute x mod PIO4 */
-y = floor( x/45.0 );
+    /* compute x mod PIO4 */
+    y = floor(x / 45.0);
 
-/* strip high bits of integer part */
-z = ldexp( y, -3 );
-z = floor(z);		/* integer part of y/8 */
-z = y - ldexp( z, 3 );  /* y - 16 * (y/16) */
+    /* strip high bits of integer part */
+    z = ldexp(y, -3);
+    z = floor(z);        /* integer part of y/8 */
+    z = y - ldexp(z, 3); /* y - 16 * (y/16) */
 
-/* integer and fractional part modulo one octant */
-j = z;
+    /* integer and fractional part modulo one octant */
+    j = z;
 
-/* map zeros and singularities to origin */
-if( j & 1 )
-	{
-	j += 1;
-	y += 1.0;
-	}
+    /* map zeros and singularities to origin */
+    if (j & 1) {
+        j += 1;
+        y += 1.0;
+    }
 
-z = x - y * 45.0;
-z *= PI180;
+    z = x - y * 45.0;
+    z *= PI180;
 
-zz = z * z;
+    zz = z * z;
 
-if( zz > 1.0e-14 )
-	y = z  +  z * (zz * polevl( zz, P, 2 )/p1evl(zz, Q, 4));
-else
-	y = z;
-	
-if( j & 2 )
-	{
-	if( cotflg )
-		y = -y;
-	else
-		{
-		if( y != 0.0 )
-			{
-			y = -1.0/y;
-			}
-		else
-			{
-			mtherr( "tandg", SING );
-			y = MAXNUM;
-			}
-		}
-	}
-else
-	{
-	if( cotflg )
-		{
-		if( y != 0.0 )
-			y = 1.0/y;
-		else
-			{
-			mtherr( "cotdg", SING );
-			y = MAXNUM;
-			}
-		}
-	}
+    if (zz > 1.0e-14)
+        y = z + z * (zz * polevl(zz, P, 2) / p1evl(zz, Q, 4));
+    else
+        y = z;
 
-if( sign < 0 )
-	y = -y;
+    if (j & 2) {
+        if (cotflg)
+            y = -y;
+        else {
+            if (y != 0.0) {
+                y = -1.0 / y;
+            } else {
+                mtherr("tandg", SING);
+                y = MAXNUM;
+            }
+        }
+    } else {
+        if (cotflg) {
+            if (y != 0.0)
+                y = 1.0 / y;
+            else {
+                mtherr("cotdg", SING);
+                y = MAXNUM;
+            }
+        }
+    }
 
-return( y );
+    if (sign < 0)
+        y = -y;
+
+    return y;
 }

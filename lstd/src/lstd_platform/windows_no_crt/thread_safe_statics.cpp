@@ -11,16 +11,16 @@
 
 import os;
 
-static DWORD const xp_timeout = 100;  // ms
-static int const uninitialized = 0;
+static DWORD const xp_timeout      = 100; // ms
+static int const uninitialized     = 0;
 static int const being_initialized = -1;
-static int const epoch_start = S32_MIN;
+static int const epoch_start       = S32_MIN;
 
 // Access to these variables is guarded in the below functions.  They may only
 // be modified while the lock is held.  _Tss_epoch is readable from user
 // code and is read without taking the lock.
 extern "C" {
-int _Init_global_epoch = epoch_start;
+int _Init_global_epoch                    = epoch_start;
 __declspec(thread) int _Init_thread_epoch = epoch_start;
 }
 
@@ -214,7 +214,7 @@ extern "C" void __cdecl _Init_thread_abort(int *const pOnce) noexcept {
 extern "C" void __cdecl _Init_thread_footer(int *const pOnce) noexcept {
     _Init_thread_lock();
     ++_Init_global_epoch;
-    *pOnce = _Init_global_epoch;
+    *pOnce             = _Init_global_epoch;
     _Init_thread_epoch = _Init_global_epoch;
     _Init_thread_unlock();
     _Init_thread_notify();

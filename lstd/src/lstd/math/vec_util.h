@@ -38,7 +38,7 @@ constexpr bool determine_packed = vec_info<Vec>::PACKED || vec_info<Other>::PACK
 template <typename T>
 bool almost_equal(T d1, T d2, types::true_t) {
     if (abs(d1) < 1e-38 && abs(d2) < 1e-38) return true;
-    if ((d1 == 0 && d2 < 1e-4) || (d2 == 0 && d1 < 1e-4)) return true;
+    if (d1 == 0 && d2 < 1e-4 || d2 == 0 && d1 < 1e-4) return true;
     T s = (T) pow(T(10), floor(log10(abs(d1))));
     d1 /= s;
     d2 /= s;
@@ -55,13 +55,15 @@ bool almost_equal(T d1, T d2, types::false_t) {
 
 // Check equivalence with tolerance.
 template <typename T, typename U>
-requires(!types::is_vec<T> && !types::is_mat<T> && !types::is_quat<T>) bool almost_equal(T d1, U d2) {
+    requires(!types::is_vec<T> && !types::is_mat<T> && !types::is_quat<T>)
+bool almost_equal(T d1, U d2) {
     using P = mat_mul_elem_t<T, U>;
     return almost_equal(P(d1), P(d2), types::integral_constant<bool, types::is_floating_point<P>>());
 }
 
 template <any_vec Vec, any_vec Other>
-requires(vecs_same_dim<Vec, Other>) bool almost_equal(const Vec &lhs, const Other &rhs) {
+    requires(vecs_same_dim<Vec, Other>)
+bool almost_equal(const Vec &lhs, const Other &rhs) {
     bool equal = true;
     For(range(Vec::DIM)) equal = equal && almost_equal(lhs[it], rhs[it]);
     return equal;
@@ -72,7 +74,8 @@ requires(vecs_same_dim<Vec, Other>) bool almost_equal(const Vec &lhs, const Othe
 //
 
 template <any_vec Vec, typename U>
-requires(vec_same_type<Vec, U>) auto operator|(const Vec &lhs, U rhs) {
+    requires(vec_same_type<Vec, U>)
+auto operator|(const Vec &lhs, U rhs) {
     same_vec_with_extra_dims<Vec, 1> result;
     For(range(lhs.DIM)) result[it] = lhs[it];
     result[lhs.DIM] = rhs;
@@ -80,7 +83,8 @@ requires(vec_same_type<Vec, U>) auto operator|(const Vec &lhs, U rhs) {
 }
 
 template <any_vec Vec, typename U>
-requires(vec_same_type<Vec, U>) auto operator|(U lhs, const Vec &rhs) {
+    requires(vec_same_type<Vec, U>)
+auto operator|(U lhs, const Vec &rhs) {
     same_vec_with_extra_dims<Vec, 1> result;
     result[0] = lhs;
     For(range(rhs.DIM)) result[it + 1] = rhs[it];
@@ -88,7 +92,8 @@ requires(vec_same_type<Vec, U>) auto operator|(U lhs, const Vec &rhs) {
 }
 
 template <any_vec Vec, any_vec Other>
-requires(vecs_same_types<Vec, Other>) auto operator|(const Vec &lhs, const Other &rhs) {
+    requires(vecs_same_types<Vec, Other>)
+auto operator|(const Vec &lhs, const Other &rhs) {
     same_vec_with_extra_dims<Vec, vec_info<Other>::Dims> result;
     For(range(lhs.DIM)) result[it] = lhs[it];
     For(range(rhs.DIM)) result[lhs.DIM + it] = rhs[it];
@@ -96,7 +101,8 @@ requires(vecs_same_types<Vec, Other>) auto operator|(const Vec &lhs, const Other
 }
 
 template <any_vec Vec, s64... Indices1, any_vec Other, s64... Indices2>
-requires(vecs_same_types<Vec, Other>) auto operator|(const swizzle<Vec, Indices1...> &lhs, const swizzle<Other, Indices2...> &rhs) {
+    requires(vecs_same_types<Vec, Other>)
+auto operator|(const swizzle<Vec, Indices1...> &lhs, const swizzle<Other, Indices2...> &rhs) {
     using T = typename vec_info<Vec>::T;
     using U = typename vec_info<Other>::T;
 
@@ -105,22 +111,26 @@ requires(vecs_same_types<Vec, Other>) auto operator|(const swizzle<Vec, Indices1
 }
 
 template <any_vec Vec, s64... Indices1, any_vec Other>
-requires(vecs_same_types<Vec, Other>) auto operator|(const swizzle<Vec, Indices1...> &lhs, const Other &rhs) {
+    requires(vecs_same_types<Vec, Other>)
+auto operator|(const swizzle<Vec, Indices1...> &lhs, const Other &rhs) {
     return vec<typename vec_info<Vec>::T, sizeof...(Indices1), determine_packed<Vec, Other>>(lhs) | rhs;
 }
 
 template <any_vec Vec, s64... Indices1, any_vec Other>
-requires(vecs_same_types<Vec, Other>) auto operator|(const Vec &lhs, const swizzle<Other, Indices1...> &rhs) {
+    requires(vecs_same_types<Vec, Other>)
+auto operator|(const Vec &lhs, const swizzle<Other, Indices1...> &rhs) {
     return lhs | vec<typename vec_info<Other>::T, sizeof...(Indices1), determine_packed<Vec, Other>>(rhs);
 }
 
 template <any_vec Vec, s64... Indices1, typename U>
-requires(vec_same_type<Vec, U>) auto operator|(const swizzle<Vec, Indices1...> &lhs, U rhs) {
+    requires(vec_same_type<Vec, U>)
+auto operator|(const swizzle<Vec, Indices1...> &lhs, U rhs) {
     return vec<typename vec_info<Vec>::T, sizeof...(Indices1), vec_info<Vec>::PACKED>(lhs) | rhs;
 }
 
 template <typename VectorData1, s64... Indices1, typename U>
-requires(vec_same_type<VectorData1, U>) auto operator|(U lhs, const swizzle<VectorData1, Indices1...> &rhs) {
+    requires(vec_same_type<VectorData1, U>)
+auto operator|(U lhs, const swizzle<VectorData1, Indices1...> &rhs) {
     return lhs | vec<typename vec_info<VectorData1>::T, sizeof...(Indices1), vec_info<VectorData1>::PACKED>(rhs);
 }
 
@@ -211,25 +221,29 @@ ELEMENT_WISE_SCALAR_OPERATOR(-, sub);
 
 // Scales vector by _lhs_
 template <any_vec Vec, typename U>
-requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator*(U lhs, const Vec &rhs) {
+    requires(types::is_convertible<U, typename vec_info<Vec>::T>)
+always_inline Vec operator*(U lhs, const Vec &rhs) {
     return rhs * lhs;
 }
 
 // Adds _lhs_ to all elements of the vector
 template <any_vec Vec, typename U>
-requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator+(U lhs, const Vec &rhs) {
+    requires(types::is_convertible<U, typename vec_info<Vec>::T>)
+always_inline Vec operator+(U lhs, const Vec &rhs) {
     return rhs + lhs;
 }
 
 // Makes a vector with _lhs_ as all elements, then subtracts _rhs_ from it
 template <any_vec Vec, typename U>
-requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator-(U lhs, const Vec &rhs) {
+    requires(types::is_convertible<U, typename vec_info<Vec>::T>)
+always_inline Vec operator-(U lhs, const Vec &rhs) {
     return Vec(lhs) - rhs;
 }
 
 // Makes a vector with _lhs_ as all elements, then divides it by _rhs_
 template <any_vec Vec, typename U>
-requires(types::is_convertible<U, typename vec_info<Vec>::T>) always_inline Vec operator/(U lhs, const Vec &rhs) {
+    requires(types::is_convertible<U, typename vec_info<Vec>::T>)
+always_inline Vec operator/(U lhs, const Vec &rhs) {
     auto result = Vec(lhs);
     result /= rhs;
     return result;
@@ -251,7 +265,7 @@ always_inline Vec operator+(const Vec &arg) {
 // Swizzles...
 //
 template <typename Vec, typename Other, s64... Indices>
-concept swizzle_and_vec_match = ((vec_info<Vec>::DIM == sizeof...(Indices)) && (types::is_same<typename vec_info<Vec>::T, typename vec_info<Other>::T>) );
+concept swizzle_and_vec_match = vec_info<Vec>::DIM == sizeof...(Indices) && types::is_same<typename vec_info<Vec>::T, typename vec_info<Other>::T>;
 
 #define SWIZZLE_OPERATOR(op)                                                                                                      \
     template <any_vec Vec, any_vec Other, s64... Indices>                                                                         \
@@ -271,42 +285,50 @@ SWIZZLE_OPERATOR(-)
 #undef SWIZZLE_OPERATOR
 
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
-requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>) vec<T, Dim, Packed> &operator*=(vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
+    requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>)
+vec<T, Dim, Packed> &operator*=(vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
     return v *= decltype(v)(s);
 }
 
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
-requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>) vec<T, Dim, Packed> &operator/=(vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
+    requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>)
+vec<T, Dim, Packed> &operator/=(vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
     return v /= decltype(v)(s);
 }
 
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
-requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>) vec<T, Dim, Packed> &operator+=(vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
+    requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>)
+vec<T, Dim, Packed> &operator+=(vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
     return v += decltype(v)(s);
 }
 
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
-requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>) vec<T, Dim, Packed> &operator-=(vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
+    requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>)
+vec<T, Dim, Packed> &operator-=(vec<T, Dim, Packed> &v, const swizzle<VectorDataT, Indices...> &s) {
     return v -= decltype(v)(s);
 }
 
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
-requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>) swizzle<VectorDataT, Indices...> &operator*=(swizzle<VectorDataT, Indices...> &s, const vec<T, Dim, Packed> &v) {
+    requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>)
+swizzle<VectorDataT, Indices...> &operator*=(swizzle<VectorDataT, Indices...> &s, const vec<T, Dim, Packed> &v) {
     return s = decltype(v)(s) * v;
 }
 
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
-requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>) swizzle<VectorDataT, Indices...> &operator/=(swizzle<VectorDataT, Indices...> &s, const vec<T, Dim, Packed> &v) {
+    requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>)
+swizzle<VectorDataT, Indices...> &operator/=(swizzle<VectorDataT, Indices...> &s, const vec<T, Dim, Packed> &v) {
     return s = decltype(v)(s) / v;
 }
 
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
-requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>) swizzle<VectorDataT, Indices...> &operator+=(swizzle<VectorDataT, Indices...> &s, const vec<T, Dim, Packed> &v) {
+    requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>)
+swizzle<VectorDataT, Indices...> &operator+=(swizzle<VectorDataT, Indices...> &s, const vec<T, Dim, Packed> &v) {
     return s = decltype(v)(s) + v;
 }
 
 template <typename T, s64 Dim, bool Packed, typename VectorDataT, s64... Indices>
-requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>) swizzle<VectorDataT, Indices...> &operator-=(swizzle<VectorDataT, Indices...> &s, const vec<T, Dim, Packed> &v) {
+    requires(Dim == sizeof...(Indices) && types::is_same<T, typename vec_info<VectorDataT>::T>)
+swizzle<VectorDataT, Indices...> &operator-=(swizzle<VectorDataT, Indices...> &s, const vec<T, Dim, Packed> &v) {
     return s = decltype(v)(s) - v;
 }
 
@@ -362,74 +384,86 @@ template <typename U, typename VectorDataT>
 concept u_to_vector_type = types::is_convertible<U, typename vec_info<VectorDataT>::T>;
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto operator*(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto operator*(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return VectorT(lhs) * rhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto operator/(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto operator/(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return VectorT(lhs) / rhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto operator+(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto operator+(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return VectorT(lhs) + rhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto operator-(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto operator-(const swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return VectorT(lhs) - rhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto operator*(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto operator*(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
     return rhs * lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto operator/(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto operator/(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return lhs / VectorT(rhs);
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto operator+(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto operator+(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
     return rhs + lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto operator-(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto operator-(U lhs, const swizzle<VectorDataT, Indices...> &rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     return lhs - VectorT(rhs);
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto &operator*=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto &operator*=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     lhs = VectorT(lhs) * rhs;
     return lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto &operator/=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto &operator/=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     lhs = VectorT(lhs) / rhs;
     return lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto &operator+=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto &operator+=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     lhs = VectorT(lhs) + rhs;
     return lhs;
 }
 
 template <typename VectorDataT, s64... Indices, typename U>
-requires u_to_vector_type<U, VectorDataT> auto &operator-=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
+    requires u_to_vector_type<U, VectorDataT>
+auto &operator-=(swizzle<VectorDataT, Indices...> &lhs, U rhs) {
     using VectorT = vec<typename vec_info<VectorDataT>::T, vec_info<VectorDataT>::DIM, vec_info<VectorDataT>::PACKED>;
     lhs = VectorT(lhs) - rhs;
     return lhs;

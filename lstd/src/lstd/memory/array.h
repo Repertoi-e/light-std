@@ -34,12 +34,18 @@ template <typename T_>
 struct array {
     using T = T_;
 
-    T *Data = null;
-    s64 Count = 0;
+    T *Data       = null;
+    s64 Count     = 0;
     s64 Allocated = 0;
 
-    constexpr array() {}
-    constexpr array(T *data, s64 count) : Data(data), Count(count), Allocated(0) {}
+    constexpr array() {
+    }
+
+    constexpr array(T *data, s64 count)
+        : Data(data),
+          Count(count) {
+    }
+
     constexpr array(const initializer_list<T> &items) {
         static_assert(false, "This bug bit me hard... Don't create arrays which are views into initializer lists (they get optimized in Release).");
         static_assert(false, "You may want to reserve a dynamic array with those values. In that case make an empty array and use append_list().");
@@ -69,10 +75,12 @@ struct array {
     // They are identical (both are unsigned bytes) but we use them to differentiate when we are working with just arrays of bytes or
     // arrays that contain encoded utf8. It's more of an "intent of use" kind of thing and being explicit with it is, I think, good.
     template <typename U = T>
-    requires(types::is_same<types::remove_const_t<U>, utf8>) operator array<byte>() const { return array<byte>((byte *) Data, Count); }
+        requires(types::is_same<types::remove_const_t<U>, utf8>)
+    operator array<byte>() const { return array((byte *) Data, Count); }
 
     template <typename U = T>
-    requires(types::is_same<types::remove_const_t<U>, byte>) operator array<utf8>() const { return array<utf8>((utf8 *) Data, Count); }
+        requires(types::is_same<types::remove_const_t<U>, byte>)
+    operator array<utf8>() const { return array((utf8 *) Data, Count); }
 };
 
 // Short-hand name for just saying "a bunch of bytes" and it doesn't matter where they came from.
@@ -85,10 +93,12 @@ stack_array<T, N>::operator array<T>() const { return array<T>((T *) Data, Count
 
 // We need this because we can't check templated types with types::is_same...
 template <typename T>
-struct is_array_helper : types::false_t {};
+struct is_array_helper : types::false_t {
+};
 
 template <typename T>
-struct is_array_helper<array<T>> : types::true_t {};
+struct is_array_helper<array<T>> : types::true_t {
+};
 
 template <typename T>
 concept is_array = is_array_helper<T>::value;
@@ -125,7 +135,7 @@ void array_reserve(is_array auto &arr, s64 n) {
         arr.Data = reallocate_array(arr.Data, target);
     } else {
         auto *oldView = arr.Data;
-        arr.Data = allocate_array<types::remove_pointer_t<decltype(arr.Data)>>(target);
+        arr.Data      = allocate_array<types::remove_pointer_t<decltype(arr.Data)>>(target);
         if (arr.Count) copy_elements(arr.Data, oldView, arr.Count);
     }
     arr.Allocated = target;
@@ -148,12 +158,12 @@ void array_reset(is_array auto &arr) {
 void free(is_array auto &arr) {
     array_reset(arr);
     if (arr.Allocated) free(arr.Data);
-    arr.Data = null;
+    arr.Data      = null;
     arr.Allocated = 0;
 }
 
 // Checks if there is enough reserved space for _n_ elements
-constexpr bool array_has_space_for(const is_array auto &arr, s64 n) { return (arr.Count + n) <= arr.Allocated; }
+constexpr bool array_has_space_for(const is_array auto &arr, s64 n) { return arr.Count + n <= arr.Allocated; }
 
 // Sets the _index_'th element in the array (also calls the destructor on the old one)
 template <is_array T>
@@ -169,7 +179,7 @@ template <is_array T>
 auto *array_insert_at(T &arr, s64 index, const array_data_t<T> &element) {
     array_reserve(arr, 1);
 
-    s64 offset = translate_index(index, arr.Count, true);
+    s64 offset  = translate_index(index, arr.Count, true);
     auto *where = arr.Data + offset;
     if (offset < arr.Count) {
         copy_elements(where + 1, where, arr.Count - offset);
@@ -194,7 +204,7 @@ template <is_array T>
 auto *array_insert_at(T &arr, s64 index, const array_data_t<T> *ptr, s64 size) {
     array_reserve(arr, size);
 
-    s64 offset = translate_index(index, arr.Count, true);
+    s64 offset  = translate_index(index, arr.Count, true);
     auto *where = arr.Data + offset;
     if (offset < arr.Count) {
         copy_elements(where + size, where, arr.Count - offset);
@@ -265,9 +275,9 @@ void array_remove_range(is_array auto &arr, s64 begin, s64 end) {
     if (!arr.Allocated) array_reserve(arr, 0);
 
     s64 targetBegin = translate_index(begin, arr.Count);
-    s64 targetEnd = translate_index(end, arr.Count, true);
+    s64 targetEnd   = translate_index(end, arr.Count, true);
 
-    auto where = arr.Data + targetBegin;
+    auto where    = arr.Data + targetBegin;
     auto whereEnd = arr.Data + targetEnd;
 
     for (auto *d = where; d != whereEnd; ++d) destroy_at(d);
@@ -305,7 +315,8 @@ void array_replace_all(T &arr, const T &arr2, const T &arr3) {
     if (!arr.Data || arr.Count == 0) return;
     if (!arr2.Data || arr2.Count == 0) return;
 
-    if (arr3.Count) assert(arr3.Data);
+    if (arr3.Count)
+        assert(arr3.Data);
 
     s64 diff = arr3.Count - arr2.Count;
 
@@ -340,7 +351,7 @@ void array_replace_all(T &arr, const T &arr2, const T &arr3) {
 // Wrapper.
 template <is_array T>
 void array_replace_all(T &arr, const array_data_t<T> &target, const array_data_t<T> &replace) {
-    auto targetArr = to_stack_array(target);
+    auto targetArr  = to_stack_array(target);
     auto replaceArr = to_stack_array(replace);
     array_replace_all(arr, targetArr, replaceArr);
 }
@@ -365,7 +376,7 @@ void array_replace_all(T &arr, const T &target, const array_data_t<T> &replace) 
 // Wrapper.
 template <is_array T>
 void array_remove_all(T &arr, const T &target) {
-    array_replace_all(arr, target, {});  // Replace with an empty array
+    array_replace_all(arr, target, {}); // Replace with an empty array
 }
 
 // Removes all occurences of an element from an array.

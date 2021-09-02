@@ -18,29 +18,57 @@ struct tquat {
         struct {
             T s, i, j, k;
         };
+
         struct {
             T w, x, y, z;
         };
+
         vec<T, 4, Packed> Vec;
     };
-    
+
     // :MathTypesNoInit By default we don't init (to save on performance) but you can call a constructor with a scalar value of 0 to zero-init.
-    tquat() {}
+    tquat() {
+    }
 
-    tquat(const tquat &rhs) : Vec(rhs.Vec) {}
-    tquat(T scalar, T x, T y, T z) : w(scalar), x(x), y(y), z(z) {}
+    tquat(const tquat &rhs)
+        : Vec(rhs.Vec) {
+    }
+
+    tquat(T scalar, T x, T y, T z)
+        : w(scalar),
+          x(x),
+          y(y),
+          z(z) {
+    }
 
     // Note: This is not axis angle rotation
-    tquat(T scalar, const vec<T, 3, true> &vector) : w(scalar), x(vector.x), y(vector.y), z(vector.z) {}
+    tquat(T scalar, const vec<T, 3, true> &vector)
+        : w(scalar),
+          x(vector.x),
+          y(vector.y),
+          z(vector.z) {
+    }
 
     // Note: This is not axis angle rotation
-    tquat(T scalar, const vec<T, 3, false> &vector) : w(scalar), x(vector.x), y(vector.y), z(vector.z) {}
+    tquat(T scalar, const vec<T, 3, false> &vector)
+        : w(scalar),
+          x(vector.x),
+          y(vector.y),
+          z(vector.z) {
+    }
 
-    explicit tquat(const vec<T, 3, true> &vector) : tquat(0, vector) {}
-    explicit tquat(const vec<T, 3, false> &vector) : tquat(0, vector) {}
+    explicit tquat(const vec<T, 3, true> &vector)
+        : tquat(0, vector) {
+    }
+
+    explicit tquat(const vec<T, 3, false> &vector)
+        : tquat(0, vector) {
+    }
 
     template <typename U, bool P>
-    tquat(const tquat<U, P> &rhs) : Vec(rhs.Vec) {}
+    tquat(const tquat<U, P> &rhs)
+        : Vec(rhs.Vec) {
+    }
 
     // Convert a rotation matrix to equivalent quaternion.
     // Matrix must be in SO(3).
@@ -63,7 +91,9 @@ struct tquat {
         from_mat(rhs);
     }
 
-    explicit tquat(const vec<T, 4, false> &vec) : Vec(vec) {}
+    explicit tquat(const vec<T, 4, false> &vec)
+        : Vec(vec) {
+    }
 
     tquat &operator=(const tquat &rhs) {
         Vec = rhs.Vec;
@@ -136,7 +166,7 @@ struct tquat {
         return {x, y, z};
     }
 
-   protected:
+protected:
     template <typename U, s64 R, s64 C, bool PackedA>
     mat<U, R, C, PackedA> to_mat() const {
         assert(is_normalized(Vec));
@@ -163,9 +193,9 @@ struct tquat {
         w = (T) sqrt(1 + m(0, 0) + m(1, 1) + m(2, 2)) * T(0.5);
 
         T div = T(1) / (T(4) * w);
-        x = (m(2, 1) - m(1, 2)) * div;
-        y = (m(0, 2) - m(2, 0)) * div;
-        z = (m(1, 0) - m(0, 1)) * div;
+        x     = (m(2, 1) - m(1, 2)) * div;
+        y     = (m(0, 2) - m(2, 0)) * div;
+        z     = (m(1, 0) - m(0, 1)) * div;
     }
 };
 

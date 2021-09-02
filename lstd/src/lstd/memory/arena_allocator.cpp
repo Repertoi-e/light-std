@@ -16,8 +16,8 @@ void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMem
 
     switch (mode) {
         case allocator_mode::ADD_POOL: {
-            auto *pool = (allocator_pool *) oldMemory;  // _oldMemory_ is the parameter which should contain the block to be added
-                                                        // the _size_ parameter contains the size of the block
+            auto *pool = (allocator_pool *) oldMemory; // _oldMemory_ is the parameter which should contain the block to be added
+            // the _size_ parameter contains the size of the block
 
             if (!allocator_pool_initialize(pool, size)) return null;
             allocator_pool_add_to_linked_list(&data->Base, pool);
@@ -45,10 +45,10 @@ void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMem
                 p = p->Next;
             }
 
-            if (p->Used + size >= p->Size) return null;  // Not enough space
+            if (p->Used + size >= p->Size) return null; // Not enough space
 
             void *usableBlock = p + 1;
-            void *result = (byte *) usableBlock + p->Used;
+            void *result      = (byte *) usableBlock + p->Used;
 
             p->Used += size;
             data->TotalUsed += size;
@@ -75,7 +75,7 @@ void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMem
             auto *p = data->Base;
             while (p) {
                 p->Used = 0;
-                p = p->Next;
+                p       = p->Next;
             }
 
             data->TotalUsed = 0;
@@ -99,7 +99,8 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
         // Make sure the starting pool has enough space for the allocation we are about to do
         if (mode == allocator_mode::ALLOCATE) {
             if (startingPoolSize < size) startingPoolSize = ceil_pow_of_2(size * 2);
-        } else if (mode != allocator_mode::ADD_POOL) {  // If we called with ADD_POOL, don't add the starting pool.
+        } else if (mode != allocator_mode::ADD_POOL) {
+            // If we called with ADD_POOL, don't add the starting pool.
             allocator_add_pool({arena_allocator, data}, os_allocate_block(startingPoolSize), startingPoolSize);
         }
     }

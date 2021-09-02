@@ -9,7 +9,8 @@ LSTD_BEGIN_NAMESPACE
 struct string_builder_writer : writer {
     string_builder Builder;
 
-    string_builder_writer() {}
+    string_builder_writer() {
+    }
 
     void write(const byte *data, s64 size) override {
         //

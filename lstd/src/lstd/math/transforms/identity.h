@@ -7,7 +7,8 @@
 LSTD_BEGIN_NAMESPACE
 
 struct identity_helper : non_copyable {
-    identity_helper() {}
+    identity_helper() {
+    }
 
     template <typename T, s64 R, s64 C, bool Packed>
     operator mat<T, R, C, Packed>() const {

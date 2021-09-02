@@ -23,15 +23,20 @@ namespace std {
 template <typename T>
 struct initializer_list {
     const T *First = null;
-    const T *Last = null;
+    const T *Last  = null;
 
     using value_type = T;
     using reference = const T &;
     using const_reference = const T &;
     using size_type = size_t;
 
-    constexpr initializer_list() noexcept {}
-    constexpr initializer_list(const T *first, const T *last) noexcept : First(first), Last(last) {}
+    constexpr initializer_list() noexcept {
+    }
+
+    constexpr initializer_list(const T *first, const T *last) noexcept
+        : First(first),
+          Last(last) {
+    }
 
     using iterator = const T *;
     using const_iterator = const T *;
@@ -41,7 +46,7 @@ struct initializer_list {
 
     constexpr size_t size() const noexcept { return static_cast<size_t>(Last - First); }
 };
-}  // namespace std
+} // namespace std
 
 #define va_start __crt_va_start
 #define va_arg __crt_va_arg
@@ -71,16 +76,25 @@ template <typename F, typename... Rest>
 struct tuple : tuple<Rest...> {
     F First;
 
-    constexpr tuple() {}
-    constexpr tuple(const F &first, Rest &&...rest) : tuple<Rest...>(((Rest &&) rest)...), First(first) {}
+    constexpr tuple() {
+    }
+
+    constexpr tuple(const F &first, Rest &&...rest)
+        : tuple<Rest...>((Rest &&) rest...),
+          First(first) {
+    }
 };
 
 template <typename F>
 struct tuple<F> {
     F First;
 
-    constexpr tuple() {}
-    constexpr tuple(const F &first) : First(first) {}
+    constexpr tuple() {
+    }
+
+    constexpr tuple(const F &first)
+        : First(first) {
+    }
 };
 
 template <s64 Index, typename F, typename... Rest>
@@ -121,7 +135,7 @@ struct tuple_element;
 
 template <size_t Index, typename F, typename... Rest>
 struct tuple_element<Index, tuple<F, Rest...>> {
-    using type = tuple_element<Index - 1, tuple<Rest...>>::type;
+    using type = typename tuple_element<Index - 1, tuple<Rest...>>::type;
 };
 
 template <typename F, typename... Rest>
@@ -129,8 +143,8 @@ struct tuple_element<0, tuple<F, Rest...>> {
     using type = decltype(tuple<F, Rest...>().First);
 };
 
-template <s64 Index, typename T>  // This shouldn't compile on types that are not tuples
-using tuple_get_t = tuple_element<Index, T>::type;
+template <s64 Index, typename T> // This shouldn't compile on types that are not tuples
+using tuple_get_t = typename tuple_element<Index, T>::type;
 
 LSTD_END_NAMESPACE
 
@@ -153,7 +167,7 @@ struct tuple_size;
 
 template <size_t Index, typename F, typename... Rest>
 struct tuple_element<Index, LSTD_NAMESPACE::tuple<F, Rest...>> {
-    using type = tuple_element<Index - 1, LSTD_NAMESPACE::tuple<Rest...>>::type;
+    using type = typename tuple_element<Index - 1, LSTD_NAMESPACE::tuple<Rest...>>::type;
 };
 
 template <typename F, typename... Rest>
@@ -178,4 +192,4 @@ constexpr auto &get(LSTD_NAMESPACE::tuple<Args...> &t) { return LSTD_NAMESPACE::
 
 template <s64 Index, typename... Args>
 constexpr auto &get(LSTD_NAMESPACE::tuple<Args...> &&t) { return LSTD_NAMESPACE::tuple_get<Index>(t); }
-}  // namespace std
+} // namespace std

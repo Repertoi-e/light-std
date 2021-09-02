@@ -4,7 +4,9 @@ template <typename T>
 struct approx_helper {
     T Value;
 
-    approx_helper() {}
+    approx_helper() {
+    }
+
     approx_helper(T value) { Value = value; }
 };
 
@@ -37,7 +39,9 @@ template <typename Linalg>
 struct approx_helper2 {
     Linalg Object;
 
-    approx_helper2() {}
+    approx_helper2() {
+    }
+
     approx_helper2(Linalg object) { Object = object; }
 };
 

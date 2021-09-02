@@ -19,14 +19,16 @@ struct string_builder {
     s64 IndirectionCount = 0;
 
     buffer BaseBuffer;
-    buffer *CurrentBuffer = null;  // null means BaseBuffer. We don't point directly to BaseBuffer because if we copy this object by value then the copy has the base buffer of the original buffer.
+    buffer *CurrentBuffer = null; // null means BaseBuffer. We don't point directly to BaseBuffer because if we copy this object by value then the copy has the base buffer of the original buffer.
 
     // The allocator used for allocating new buffers past the first one (which is stack allocated).
     // This value is null until this object allocates memory (in which case it sets it to the Context's allocator)
     // or the user sets it manually.
     allocator Alloc;
 
-    string_builder() {}
+    string_builder() {
+    }
+
     // ~string_builder() { free(); }
 };
 

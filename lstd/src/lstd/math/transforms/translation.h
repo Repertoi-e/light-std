@@ -8,7 +8,9 @@ template <typename T, s64 Dim, bool Packed>
 struct translation_helper : non_copyable {
     vec<T, Dim, Packed> Translation;
 
-    translation_helper(const vec<T, Dim, Packed> &translation) : Translation(translation) {}
+    translation_helper(const vec<T, Dim, Packed> &translation)
+        : Translation(translation) {
+    }
 
     template <typename U, bool MPacked>
     operator mat<U, Dim + 1, Dim + 1, MPacked>() const {
@@ -24,7 +26,7 @@ struct translation_helper : non_copyable {
         return m;
     }
 
-   private:
+private:
     template <typename U, s64 R, s64 C, bool MPacked>
     void set_impl(mat<U, R, C, MPacked> &m) const {
         m = identity();

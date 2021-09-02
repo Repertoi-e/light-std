@@ -38,7 +38,7 @@
  *                    x > 1.0e14 (IEEE)
  *
  */
-/*							cosdg.c
+ /*							cosdg.c
  *
  *	Circular cosine of angle in degrees
  *
@@ -126,24 +126,24 @@ static double lossth = 8.0e14;
 
 #ifdef IBMPC
 static unsigned short sincof[] = {
-0x0ec1,0x1fcf,0xd8fd,0x3de5,
-0x1691,0xa929,0xe5e5,0xbe5a,
-0x4896,0x567d,0x1de3,0x3ec7,
-0xdf03,0x19bf,0x01a0,0xbf2a,
-0xf7d0,0x1110,0x1111,0x3f81,
-0x5548,0x5555,0x5555,0xbfc5
+    0x0ec1, 0x1fcf, 0xd8fd, 0x3de5,
+    0x1691, 0xa929, 0xe5e5, 0xbe5a,
+    0x4896, 0x567d, 0x1de3, 0x3ec7,
+    0xdf03, 0x19bf, 0x01a0, 0xbf2a,
+    0xf7d0, 0x1110, 0x1111, 0x3f81,
+    0x5548, 0x5555, 0x5555, 0xbfc5
 };
 static unsigned short coscof[] = {
-0xb219,0x1ad9,0xff83,0x3da8,
-0x14d4,0xc1e5,0xeea7,0xbe21,
-0xd9a5,0x8e06,0x7e4f,0x3e92,
-0xbcd9,0x19dd,0x01a0,0xbefa,
-0x5d47,0x16c1,0xc16c,0x3f56,
-0x5551,0x5555,0x5555,0xbfa5,
-0x0000,0x0000,0x0000,0x3fe0
+    0xb219, 0x1ad9, 0xff83, 0x3da8,
+    0x14d4, 0xc1e5, 0xeea7, 0xbe21,
+    0xd9a5, 0x8e06, 0x7e4f, 0x3e92,
+    0xbcd9, 0x19dd, 0x01a0, 0xbefa,
+    0x5d47, 0x16c1, 0xc16c, 0x3f56,
+    0x5551, 0x5555, 0x5555, 0xbfa5,
+    0x0000, 0x0000, 0x0000, 0x3fe0
 };
 
-static unsigned short P1[] = {0x9d39,0xa252,0xdf46,0x3f91};
+static unsigned short P1[] = {0x9d39, 0xa252, 0xdf46, 0x3f91};
 #define PI180 *(double *)P1
 static double lossth = 1.0e14;
 #endif
@@ -175,134 +175,117 @@ static double lossth = 1.0e14;
 #endif
 
 #ifdef ANSIPROT
-extern double polevl ( double, void *, int );
-extern double floor ( double );
-extern double ldexp ( double, int );
+extern double polevl(double, void *, int);
+extern double floor(double);
+extern double ldexp(double, int);
 #else
 double polevl(), floor(), ldexp();
 #endif
 extern double PIO4;
 
 double sindg(x)
-double x;
-{
-double y, z, zz;
-int j, sign;
+double x; {
+    double y, z, zz;
+    int j, sign;
 
-/* make argument positive but save the sign */
-sign = 1;
-if( x < 0 )
-	{
-	x = -x;
-	sign = -1;
-	}
+    /* make argument positive but save the sign */
+    sign = 1;
+    if (x < 0) {
+        x    = -x;
+        sign = -1;
+    }
 
-if( x > lossth )
-	{
-	mtherr( "sindg", TLOSS );
-	return(0.0);
-	}
+    if (x > lossth) {
+        mtherr("sindg", TLOSS);
+        return 0.0;
+    }
 
-y = floor( x/45.0 ); /* integer part of x/PIO4 */
+    y = floor(x / 45.0); /* integer part of x/PIO4 */
 
-/* strip high bits of integer part to prevent integer overflow */
-z = ldexp( y, -4 );
-z = floor(z);           /* integer part of y/8 */
-z = y - ldexp( z, 4 );  /* y - 16 * (y/16) */
+    /* strip high bits of integer part to prevent integer overflow */
+    z = ldexp(y, -4);
+    z = floor(z);        /* integer part of y/8 */
+    z = y - ldexp(z, 4); /* y - 16 * (y/16) */
 
-j = z; /* convert to integer for tests on the phase angle */
-/* map zeros to origin */
-if( j & 1 )
-	{
-	j += 1;
-	y += 1.0;
-	}
-j = j & 07; /* octant modulo 360 degrees */
-/* reflect in x axis */
-if( j > 3)
-	{
-	sign = -sign;
-	j -= 4;
-	}
+    j = z; /* convert to integer for tests on the phase angle */
+    /* map zeros to origin */
+    if (j & 1) {
+        j += 1;
+        y += 1.0;
+    }
+    j = j & 07; /* octant modulo 360 degrees */
+    /* reflect in x axis */
+    if (j > 3) {
+        sign = -sign;
+        j -= 4;
+    }
 
-z = x - y * 45.0; /* x mod 45 degrees */
-z *= PI180;	/* multiply by pi/180 to convert to radians */
-zz = z * z;
+    z = x - y * 45.0; /* x mod 45 degrees */
+    z *= PI180;       /* multiply by pi/180 to convert to radians */
+    zz = z * z;
 
-if( (j==1) || (j==2) )
-	{
-	y = 1.0 - zz * polevl( zz, coscof, 6 );
-	}
-else
-	{
-	y = z  +  z * (zz * polevl( zz, sincof, 5 ));
-	}
+    if (j == 1 || j == 2) {
+        y = 1.0 - zz * polevl(zz, coscof, 6);
+    } else {
+        y = z + z * (zz * polevl(zz, sincof, 5));
+    }
 
-if(sign < 0)
-	y = -y;
+    if (sign < 0)
+        y = -y;
 
-return(y);
+    return y;
 }
 
 
-
-
-
 double cosdg(x)
-double x;
-{
-double y, z, zz;
-int j, sign;
+double x; {
+    double y, z, zz;
+    int j, sign;
 
-/* make argument positive */
-sign = 1;
-if( x < 0 )
-	x = -x;
+    /* make argument positive */
+    sign = 1;
+    if (x < 0)
+        x = -x;
 
-if( x > lossth )
-	{
-	mtherr( "cosdg", TLOSS );
-	return(0.0);
-	}
+    if (x > lossth) {
+        mtherr("cosdg", TLOSS);
+        return 0.0;
+    }
 
-y = floor( x/45.0 );
-z = ldexp( y, -4 );
-z = floor(z);		/* integer part of y/8 */
-z = y - ldexp( z, 4 );  /* y - 16 * (y/16) */
+    y = floor(x / 45.0);
+    z = ldexp(y, -4);
+    z = floor(z);        /* integer part of y/8 */
+    z = y - ldexp(z, 4); /* y - 16 * (y/16) */
 
-/* integer and fractional part modulo one octant */
-j = z;
-if( j & 1 )	/* map zeros to origin */
-	{
-	j += 1;
-	y += 1.0;
-	}
-j = j & 07;
-if( j > 3)
-	{
-	j -=4;
-	sign = -sign;
-	}
+    /* integer and fractional part modulo one octant */
+    j = z;
+    if (j & 1) /* map zeros to origin */
+    {
+        j += 1;
+        y += 1.0;
+    }
+    j = j & 07;
+    if (j > 3) {
+        j -= 4;
+        sign = -sign;
+    }
 
-if( j > 1 )
-	sign = -sign;
+    if (j > 1)
+        sign = -sign;
 
-z = x - y * 45.0; /* x mod 45 degrees */
-z *= PI180;	/* multiply by pi/180 to convert to radians */
+    z = x - y * 45.0; /* x mod 45 degrees */
+    z *= PI180;       /* multiply by pi/180 to convert to radians */
 
-zz = z * z;
+    zz = z * z;
 
-if( (j==1) || (j==2) )
-	{
-	y = z  +  z * (zz * polevl( zz, sincof, 5 ));
-	}
-else
-	{
-	y = 1.0 - zz * polevl( zz, coscof, 6 );
-	}
+    if (j == 1 || j == 2) {
+        y = z + z * (zz * polevl(zz, sincof, 5));
+    } else {
+        y = 1.0 - zz * polevl(zz, coscof, 6);
+    }
 
-if(sign < 0)
-	y = -y;
+    if (sign < 0)
+        y = -y;
 
-return(y);
+    return y;
 }

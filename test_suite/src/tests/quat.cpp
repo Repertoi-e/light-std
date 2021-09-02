@@ -34,13 +34,13 @@ TEST(tri_axis) {
     quat q2 = rotation_axis_angle(vecf<3>{0, 0, 1}, 0.8f);
     quat q3 = rotation_axis_angle(vecf<3>{0, 1, 0}, 1.0f);
 
-    quat qexp = qmul(q1, qmul(q2, q3));  // Quaternion multipliation is associative (but not commutative)
+    quat qexp = qmul(q1, qmul(q2, q3)); // Quaternion multipliation is associative (but not commutative)
     assert_eq(approx_vec(q), qexp);
 }
 
 TEST(query_axis_angle) {
     vecf<3> axis(1, 2, 3);
-    axis = normalize(axis);
+    axis      = normalize(axis);
     f32 angle = 0.83f;
 
     quat q = rotation_axis_angle(axis, angle);
@@ -48,8 +48,8 @@ TEST(query_axis_angle) {
     assert_eq(approx_vec(axis), q.axis());
     assert_eq(approx(angle), q.angle());
 
-    q = {1, 0, 0, 0};
-    axis = {1, 0, 0};
+    q          = {1, 0, 0, 0};
+    axis       = {1, 0, 0};
     auto qaxis = q.axis();
     assert_eq(approx_vec(axis), q.axis());
     assert_eq(approx(0.0f), q.angle());
@@ -73,7 +73,7 @@ TEST(from_mat) {
     quat q(0.9151163f, 0.107757f, 0.2155141f, 0.3232711f);
     mat<f32, 3, 3> m331 = (decltype(m331)) q;
     mat<f32, 3, 3> m332 = (decltype(m332)) q;
-    mat<f32, 4, 3> m34 = (decltype(m34)) q;
+    mat<f32, 4, 3> m34  = (decltype(m34)) q;
     mat<f32, 4, 4> m441 = (decltype(m441)) q;
     mat<f32, 4, 4> m442 = (decltype(m442)) q;
 
@@ -107,7 +107,7 @@ TEST(product) {
 
 template <bool Packed>
 void vec_rotation_test() {
-    quat q = rotation_axis_angle(normalize(vec<f32, 3, Packed>{1, 2, 3}), 0.83f);
+    quat q                   = rotation_axis_angle(normalize(vec<f32, 3, Packed>{1, 2, 3}), 0.83f);
     mat<f32, 3, 3, Packed> M = rotation_axis_angle(normalize(vec<f32, 3, Packed>{1, 2, 3}), 0.83f);
 
     vec<f32, 3, Packed> v(3, 2, 6);
@@ -127,20 +127,20 @@ template <bool Packed>
 void chaining_test() {
     vec<f32, 3, Packed> axis1(1, 2, 3);
     vec<f32, 3, Packed> axis2(3, 1, 2);
-    axis1 = normalize(axis1);
-    axis2 = normalize(axis2);
+    axis1      = normalize(axis1);
+    axis2      = normalize(axis2);
     f32 angle1 = 0.83f;
     f32 angle2 = 1.92f;
 
-    tquat<f32, Packed> q1 = rotation_axis_angle(axis1, angle1);
-    tquat<f32, Packed> q2 = rotation_axis_angle(axis2, angle2);
+    tquat<f32, Packed> q1     = rotation_axis_angle(axis1, angle1);
+    tquat<f32, Packed> q2     = rotation_axis_angle(axis2, angle2);
     mat<f32, 3, 3, Packed> M2 = rotation_axis_angle(axis2, angle2);
     mat<f32, 3, 3, Packed> M1 = rotation_axis_angle(axis1, angle1);
 
     vec<f32, 3, Packed> v(3, 2, 6);
 
     auto r1 = rotate_vec(v, qmul(q2, q1));
-    auto r2 = dot(v, (dot(M1, M2)));
+    auto r2 = dot(v, dot(M1, M2));
 
     assert_eq(approx_vec(r1), r2);
 }
@@ -159,8 +159,8 @@ TEST(exp_ln) {
 TEST(pow) {
     quat q(1.0f, 2.0f, 0.5f, -0.7f);
 
-    quat p = pow(q, 3.0f);
-    quat pexp = qmul(q, qmul(q, q));  // Quaternion multipliation is associative (but not commutative)
+    quat p    = pow(q, 3.0f);
+    quat pexp = qmul(q, qmul(q, q)); // Quaternion multipliation is associative (but not commutative)
 
     assert_eq(approx_vec(p), pexp);
 }

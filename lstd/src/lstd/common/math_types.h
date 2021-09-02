@@ -48,6 +48,7 @@ template <typename T>
 struct is_swizzle_helper {
     static constexpr bool value = false;
 };
+
 template <typename T, s64... Indices>
 struct is_swizzle_helper<swizzle<T, Indices...>> {
     static constexpr bool value = true;
@@ -76,6 +77,7 @@ template <typename T>
 struct is_mat_view_helper {
     static constexpr bool value = false;
 };
+
 template <typename M, s64 R, s64 C>
 struct is_mat_view_helper<mat_view<M, R, C>> {
     static constexpr bool value = true;
@@ -97,6 +99,6 @@ struct is_quat_helper<tquat<T, Packed>> {
 template <typename T>
 constexpr bool is_quat = is_quat_helper<T>::value;
 
-}  // namespace types
+} // namespace types
 
 LSTD_END_NAMESPACE

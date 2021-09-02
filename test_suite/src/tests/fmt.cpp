@@ -41,7 +41,7 @@ void format_test_error(const string &fmtString, Args &&...arguments) {
     auto newContext                 = Context;
     newContext.FmtParseErrorHandler = test_parse_error_handler;
     PUSH_CONTEXT(newContext) {
-        auto args = fmt_args_on_the_stack(fmt_context{}, ((types::remove_reference_t<Args> &&) arguments)...);  // This needs to outlive _parse_fmt_string_
+        auto args = fmt_args_on_the_stack(fmt_context{}, (types::remove_reference_t<Args> &&) arguments...); // This needs to outlive _parse_fmt_string_
         auto f    = fmt_context(&dummy, fmtString, args);
         fmt_parse_and_format(&f);
     }
@@ -96,7 +96,9 @@ TEST(write_f64) {
     CHECK_WRITE("1.7976931348623157e+308", "{}", numeric_info<f64>::max());
 }
 
-TEST(write_code_point) { CHECK_WRITE("X", "{:c}", 'X'); }
+TEST(write_code_point) {
+    CHECK_WRITE("X", "{:c}", 'X');
+}
 
 template <typename T>
 void check_unknown_types(T value, const string &types, const string &expectedMessage) {
@@ -224,7 +226,8 @@ TEST(format_inf) {
     CHECK_WRITE("inf%", "{:%}", inf);
 }
 
-struct Answer {};
+struct Answer {
+};
 
 template <>
 struct formatter<Answer> {
@@ -304,7 +307,7 @@ TEST(args_errors) {
     EXPECT_ERROR("Format string ended abruptly", "{0");
     EXPECT_ERROR("Argument index out of range", "{0}");
 
-    EXPECT_ERROR("Invalid format string", "{");  //-V1002
+    EXPECT_ERROR("Invalid format string", "{"); //-V1002
     EXPECT_ERROR("Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", "}");
     EXPECT_ERROR("Expected \":\" or \"}\"", "{0{}");
 }
@@ -325,7 +328,9 @@ TEST(auto_arg_index) {
     EXPECT_ERROR("Cannot switch from automatic to manual argument indexing", "{:.{1}}", 1.2345, 2);
 }
 
-TEST(empty_specs) { CHECK_WRITE("42", "{0:}", 42); }
+TEST(empty_specs) {
+    CHECK_WRITE("42", "{0:}", 42);
+}
 
 TEST(left_align) {
     CHECK_WRITE("42  ", "{0:<4}", 42);

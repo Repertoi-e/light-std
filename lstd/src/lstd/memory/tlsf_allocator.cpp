@@ -12,15 +12,14 @@ void *tlsf_allocator(allocator_mode mode, void *context, s64 size, void *oldMemo
 
     switch (mode) {
         case allocator_mode::ADD_POOL: {
-            auto *pool = (allocator_pool *) oldMemory;  // _oldMemory_ is the parameter which should contain the block to be added,
-                                                        // the _size_ parameter contains the size of the block
+            auto *pool = (allocator_pool *) oldMemory; // _oldMemory_ is the parameter which should contain the block to be added,
+            // the _size_ parameter contains the size of the block
 
             if (!data->State) {
                 data->State = tlsf_create_with_pool(pool, (u64) size);
                 return data->State;
-            } else {
-                return tlsf_add_pool(data->State, pool, (u64) size);
             }
+            return tlsf_add_pool(data->State, pool, (u64) size);
         }
         case allocator_mode::REMOVE_POOL: {
             auto *pool = (allocator_pool *) oldMemory;

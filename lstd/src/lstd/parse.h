@@ -13,14 +13,15 @@ enum parse_status : u32 {
     // The caller should get more bytes and concatenate it with the original buffer and call the function again (usually that is what you want).
     PARSE_EXHAUSTED,
 
-    PARSE_INVALID,  // Means the input was malformed/in the wrong format
+    PARSE_INVALID,
+    // Means the input was malformed/in the wrong format
 
-    PARSE_TOO_MANY_DIGITS  // Used in _parse_int_ when the resulting value overflowed or underflowed
+    PARSE_TOO_MANY_DIGITS // Used in _parse_int_ when the resulting value overflowed or underflowed
 };
 
 // Used in parse functions for some special behaviour/special return values
-constexpr static byte BYTE_NOT_VALID = (byte) -1;
-constexpr static byte IGNORE_THIS_BYTE = '\x7f';  // This is the non-printable DEL char in ascii, arbritralily chosen..
+constexpr static byte BYTE_NOT_VALID   = (byte) -1;
+constexpr static byte IGNORE_THIS_BYTE = '\x7f'; // This is the non-printable DEL char in ascii, arbritralily chosen..
 
 typedef s32 (*byte_to_digit_t)(byte);
 
@@ -29,9 +30,11 @@ typedef s32 (*byte_to_digit_t)(byte);
 inline s32 byte_to_digit_default(byte value) {
     if (value >= '0' && value <= '9') {
         return value - '0';
-    } else if (value >= 'a' && value <= 'z') {
+    }
+    if (value >= 'a' && value <= 'z') {
         return value - 'a' + 10;
-    } else if (value >= 'A' && value <= 'Z') {
+    }
+    if (value >= 'A' && value <= 'Z') {
         return value - 'A' + 10;
     }
     return BYTE_NOT_VALID;
@@ -42,7 +45,8 @@ inline s32 byte_to_digit_default(byte value) {
 inline s32 byte_to_digit_force_lower(byte value) {
     if (value >= '0' && value <= '9') {
         return value - '0';
-    } else if (value >= 'a' && value <= 'z') {
+    }
+    if (value >= 'a' && value <= 'z') {
         return value - 'a' + 10;
     }
     return BYTE_NOT_VALID;
@@ -53,7 +57,8 @@ inline s32 byte_to_digit_force_lower(byte value) {
 inline s32 byte_to_digit_force_upper(byte value) {
     if (value >= '0' && value <= '9') {
         return value - '0';
-    } else if (value >= 'A' && value <= 'Z') {
+    }
+    if (value >= 'A' && value <= 'Z') {
         return value - 'A' + 10;
     }
     return BYTE_NOT_VALID;
@@ -112,13 +117,14 @@ struct parse_int_options {
     // Remember that this function is actually specified at compile time!!! The compiler inlines it.
     byte_to_digit_t ByteToDigit = byte_to_digit_default;
 
-    bool ParseSign = true;           // If true, looks for +/- before trying to parse any digits. If '-' the result is negated.
-    bool AllowPlusSign = true;       // If true, allows explicit + as a sign, if false, results in parse failure.
-    bool LookForBasePrefix = false;  // If true, looks for 0x and 0 for hex and oct respectively and if found, overwrites the base parameter.
+    bool ParseSign         = true;  // If true, looks for +/- before trying to parse any digits. If '-' the result is negated.
+    bool AllowPlusSign     = true;  // If true, allows explicit + as a sign, if false, results in parse failure.
+    bool LookForBasePrefix = false; // If true, looks for 0x and 0 for hex and oct respectively and if found, overwrites the base parameter.
 
     enum too_many_digits : s32 {
-        BAIL,     // Stop parsing when an overflow happens and bail out of the function.
-        CONTINUE  // Parse as much digits as possible while ignoring the overflow/underflow.
+        BAIL,
+        // Stop parsing when an overflow happens and bail out of the function.
+        CONTINUE // Parse as much digits as possible while ignoring the overflow/underflow.
     };
 
     too_many_digits TooManyDigitsBehaviour = BAIL;
@@ -173,7 +179,7 @@ inline void advance_cp(string *p, s64 count) {
 template <typename T>
 struct parse_result {
     T Value;
-    parse_status Status;  // If the status was PARSE_INVALID then some bytes could have been consumed (for example +/- or the base prefix).
+    parse_status Status; // If the status was PARSE_INVALID then some bytes could have been consumed (for example +/- or the base prefix).
     bytes Rest;
 };
 
@@ -229,7 +235,7 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
 
     if constexpr (Options.LookForBasePrefix) {
         if (p[0] == '0') {
-            if ((p.Count - 1) && (p[1] == 'x' || p[1] == 'X')) {
+            if (p.Count - 1 && (p[1] == 'x' || p[1] == 'X')) {
                 base = 16;
                 advance_bytes(&p, 2);
             } else {
@@ -247,10 +253,10 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
         // If however our parsing overflow behaviour is greedy we don't do this.
         if constexpr (types::is_unsigned_integral<IntT>) {
             maxValue = (numeric_info<IntT>::max)();
-            cutOff = maxValue / base;
+            cutOff   = maxValue / base;
         } else {
-            maxValue = negative ? -(numeric_info<IntT>::min()) : numeric_info<IntT>::max();
-            cutOff = maxValue / base; 
+            maxValue = negative ? -numeric_info<IntT>::min() : numeric_info<IntT>::max();
+            cutOff   = maxValue / base;
             if (cutOff < 0) cutOff = -cutOff; // abs complains when passing unsigned integer type (doesn't make sense)
         }
         cutLim = maxValue % (IntT) base;
@@ -310,7 +316,7 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
             // If we have parsed a number that is too big to store in our integer type we bail.
             // If however _OverflowBehaviour_ is set to integer_parse_too_many_digits::IGNORE then we don't execute this code and
             // continue to parse until all digits have been read from the buffer.
-            if (value > cutOff || (value == cutOff && (s32) digit > cutLim)) {
+            if (value > cutOff || value == cutOff && digit > cutLim) {
                 // If we haven't parsed a sign there is no need to handle negative
 
                 if constexpr (Options.ReturnLimitOnTooManyDigits) value = maxValue;
@@ -336,7 +342,7 @@ parse_result<IntT> parse_int(bytes buffer, u32 base = 10) {
 
 // If _IgnoreCase_ is true, then _value_ must be lower case (to save on performance)
 template <bool IgnoreCase = false>
-inline parse_status expect_byte(bytes *p, byte value) {
+parse_status expect_byte(bytes *p, byte value) {
     if (!*p) return PARSE_EXHAUSTED;
 
     byte ch = (*p)[0];
@@ -345,14 +351,13 @@ inline parse_status expect_byte(bytes *p, byte value) {
     if (ch == value) {
         advance_bytes(p, 1);
         return PARSE_SUCCESS;
-    } else {
-        return PARSE_INVALID;
     }
+    return PARSE_INVALID;
 }
 
 // If _IgnoreCase_ is true, then _sequence_ must be lower case (to save on performance)
 template <bool IgnoreCase = false>
-inline parse_status expect_sequence(bytes *p, bytes sequence) {
+parse_status expect_sequence(bytes *p, bytes sequence) {
     For(sequence) {
         parse_status status = expect_byte<IgnoreCase>(p, it);
         if (status != PARSE_SUCCESS) return status;
@@ -362,9 +367,9 @@ inline parse_status expect_sequence(bytes *p, bytes sequence) {
 
 // Similar to parse_int, these options compile different versions of parse_bool and turn off certain code paths.
 struct parse_bool_options {
-    bool ParseNumbers = true;  // Attemps to parse 0/1.
-    bool ParseWords = true;    // Attemps to parse the words "true" and "false".
-    bool IgnoreCase = true;    // Ignores case when parsing the words.
+    bool ParseNumbers = true; // Attemps to parse 0/1.
+    bool ParseWords   = true; // Attemps to parse the words "true" and "false".
+    bool IgnoreCase   = true; // Ignores case when parsing the words.
 };
 
 // Attemps to parse a bool.
@@ -385,9 +390,9 @@ struct parse_bool_options {
 //
 template <parse_bool_options Options = parse_bool_options{}>
 parse_result<bool> parse_bool(bytes buffer) {
-    static_assert(Options.ParseNumbers || Options.ParseWords);  // Sanity
+    static_assert(Options.ParseNumbers || Options.ParseWords); // Sanity
 
-    if (!buffer) return {0, PARSE_EXHAUSTED, buffer};
+    if (!buffer) return {false, PARSE_EXHAUSTED, buffer};
 
     bytes p = buffer;
     if constexpr (Options.ParseNumbers) {
@@ -435,7 +440,7 @@ eat_hex_byte_result eat_hex_byte(bytes *p) {
 
     if (status == PARSE_TOO_MANY_DIGITS) status = PARSE_SUCCESS;
     if (status == PARSE_SUCCESS) advance_bytes(p, 2);
-    return {(byte) value, status};
+    return {value, status};
 }
 
 // Similar to parse_int, these options compile different versions of parse_guid and turn off certain code paths.
@@ -474,7 +479,7 @@ parse_result<guid> parse_guid(bytes buffer) {
     if constexpr (Options.Parentheses) {
         if (p[0] == '(' || p[0] == '{') {
             parentheses = true;
-            curly = p[0] == '{';
+            curly       = p[0] == '{';
             advance_bytes(&p, 1);
             if (!p) return {empty, PARSE_EXHAUSTED, buffer};
         }
@@ -482,7 +487,7 @@ parse_result<guid> parse_guid(bytes buffer) {
 
     guid result;
 
-    if ((p.Count - 1) && p[0] == '0') {
+    if (p.Count - 1 && p[0] == '0') {
         // Parse following format:
         // {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
         // We detect that if the first byte begins with 0x.
@@ -582,7 +587,7 @@ parse_result<guid> parse_guid(bytes buffer) {
 
     if constexpr (Options.Parentheses) {
         if (parentheses) {
-            parse_status status = expect_byte(&p, (curly ? '}' : ')'));
+            parse_status status = expect_byte(&p, curly ? '}' : ')');
             if (status == PARSE_INVALID) return {empty, PARSE_INVALID, p};
             if (status == PARSE_EXHAUSTED) return {empty, PARSE_EXHAUSTED, buffer};
         }
@@ -591,9 +596,9 @@ parse_result<guid> parse_guid(bytes buffer) {
 }
 
 struct eat_bytes_result {
-    bytes Value;   // The stuff read
-    bool Success;  // False if the buffer was exhausted
-    bytes Rest;    // The rest of the buffer
+    bytes Value;  // The stuff read
+    bool Success; // False if the buffer was exhausted
+    bytes Rest;   // The rest of the buffer
 };
 
 // Returns: the bytes read, a success flag (false if buffer was exhausted), and the rest of the buffer
@@ -812,7 +817,7 @@ struct eat_white_space_result {
 // :ParseInvalidConsumesByte
 // Read the doc in _eat_code_points_until_!
 inline eat_white_space_result eat_white_space(const string &str) {
-    bytes p = (bytes) str;
+    bytes p = str;
     while (true) {
         auto [cp, status, rest] = eat_code_point(p);
         if (status == PARSE_EXHAUSTED) return {PARSE_EXHAUSTED, str};

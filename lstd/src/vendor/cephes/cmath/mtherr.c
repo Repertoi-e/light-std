@@ -65,43 +65,42 @@ int merror = 0;
  * in mconf.h.
  */
 static const char *ermsg[7] = {
-"unknown",      /* error code 0 */
-"domain",       /* error code 1 */
-"singularity",  /* et seq.      */
-"overflow",
-"underflow",
-"total loss of precision",
-"partial loss of precision"
+    "unknown",     /* error code 0 */
+    "domain",      /* error code 1 */
+    "singularity", /* et seq.      */
+    "overflow",
+    "underflow",
+    "total loss of precision",
+    "partial loss of precision"
 };
 
 // import fmt; // :WEMODIFIEDCEPHES: Instead of using printf
 
-int mtherr(char *name, int code)
-{
+int mtherr(char *name, int code) {
 
-/* Display string passed by calling program,
- * which is supposed to be the name of the
- * function in which the error occurred:
- */
+    /* Display string passed by calling program,
+     * which is supposed to be the name of the
+     * function in which the error occurred:
+     */
 
-// lstd::print( "\n{} ", name ); // :WEMODIFIEDCEPHES:
+    // lstd::print( "\n{} ", name ); // :WEMODIFIEDCEPHES:
 
-/* Set global error message word */
-merror = code;
+    /* Set global error message word */
+    merror = code;
 
-/* Display error message defined
- * by the code argument.
- */
-if( (code <= 0) || (code >= 7) )
-	code = 0;
+    /* Display error message defined
+     * by the code argument.
+     */
+    if (code <= 0 || code >= 7)
+        code = 0;
 
-// :WEMODIFIEDCEPHES:
-debug_break();
-// assert(false);
-// lstd::print("{} error\n", ermsg[code]);  
+    // :WEMODIFIEDCEPHES:
+    debug_break();
+    // assert(false);
+    // lstd::print("{} error\n", ermsg[code]);  
 
-/* Return to calling
- * program
- */
-return( 0 );
+    /* Return to calling
+     * program
+     */
+    return 0;
 }

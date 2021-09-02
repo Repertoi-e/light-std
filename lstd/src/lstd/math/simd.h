@@ -18,62 +18,62 @@ union alignas(16) simd {
 
     T reg[Dim];
 
-    static inline simd mul(const simd &lhs, const simd &rhs) {
+    static simd mul(const simd &lhs, const simd &rhs) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = lhs.reg[i] * rhs.reg[i];
         return result;
     }
 
-    static inline simd div(const simd &lhs, const simd &rhs) {
+    static simd div(const simd &lhs, const simd &rhs) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = lhs.reg[i] / rhs.reg[i];
         return result;
     }
 
-    static inline simd add(const simd &lhs, const simd &rhs) {
+    static simd add(const simd &lhs, const simd &rhs) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = lhs.reg[i] + rhs.reg[i];
         return result;
     }
 
-    static inline simd sub(const simd &lhs, const simd &rhs) {
+    static simd sub(const simd &lhs, const simd &rhs) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = lhs.reg[i] - rhs.reg[i];
         return result;
     }
 
-    static inline simd mul(const simd &lhs, T rhs) {
+    static simd mul(const simd &lhs, T rhs) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = lhs.reg[i] * rhs;
         return result;
     }
 
-    static inline simd div(const simd &lhs, T rhs) {
+    static simd div(const simd &lhs, T rhs) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = lhs.reg[i] / rhs;
         return result;
     }
 
-    static inline simd add(const simd &lhs, T rhs) {
+    static simd add(const simd &lhs, T rhs) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = lhs.reg[i] + rhs;
         return result;
     }
 
-    static inline simd sub(const simd &lhs, T rhs) {
+    static simd sub(const simd &lhs, T rhs) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = lhs.reg[i] - rhs;
         return result;
     }
 
-    static inline simd spread(T value) {
+    static simd spread(T value) {
         simd result;
         for (s64 i = 0; i < Dim; ++i) result.reg[i] = value;
         return result;
     }
 
     template <typename... Args>
-    static inline simd set(Args... args) {
+    static simd set(Args ... args) {
         simd result;
 
         static_assert(sizeof...(Args) == Dim, "Number of arguments must be equal to dimension.");
@@ -84,7 +84,7 @@ union alignas(16) simd {
     }
 
     template <s64 Count = Dim>
-    static inline T dot(const simd &lhs, const simd &rhs) {
+    static T dot(const simd &lhs, const simd &rhs) {
         static_assert(Count <= Dim, "Number of elements to dot must be smaller or equal to dimension.");
         static_assert(Count > 0, "Count must not be zero.");
 
@@ -94,7 +94,7 @@ union alignas(16) simd {
     }
 
     template <s64 i0, s64 i1>
-    static inline simd shuffle(simd arg) {
+    static simd shuffle(simd arg) {
         static_assert(Dim == 2, "Only for 2-way simd.");
 
         simd result;
@@ -104,7 +104,7 @@ union alignas(16) simd {
     }
 
     template <s64 i0, s64 i1, s64 i2, s64 i3>
-    static inline simd shuffle(simd arg) {
+    static simd shuffle(simd arg) {
         static_assert(Dim == 4, "Only for 4-way simd.");
 
         simd result;
@@ -116,7 +116,7 @@ union alignas(16) simd {
     }
 
     template <s64 i0, s64 i1, s64 i2, s64 i3, s64 i4, s64 i5, s64 i6, s64 i7>
-    static inline simd shuffle(simd arg) {
+    static simd shuffle(simd arg) {
         static_assert(Dim == 8, "Only for 8-way simd.");
 
         simd result;

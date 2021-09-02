@@ -96,22 +96,22 @@ static unsigned short Q[] = {
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0x974f,0x6a5f,0x09a7,0x3f08,
-0x5a1a,0xd979,0xe7ee,0x3fdf,
-0x74c9,0xc66c,0x40a2,0x401a,
-0x411d,0x7e3d,0xc9a9,0x403d,
-0xdcdc,0x64eb,0x4e6d,0x404e,
-0xd312,0x2519,0x5e12,0x404c,
-0x3130,0x89b1,0xe3a5,0x4033
+    0x974f, 0x6a5f, 0x09a7, 0x3f08,
+    0x5a1a, 0xd979, 0xe7ee, 0x3fdf,
+    0x74c9, 0xc66c, 0x40a2, 0x401a,
+    0x411d, 0x7e3d, 0xc9a9, 0x403d,
+    0xdcdc, 0x64eb, 0x4e6d, 0x404e,
+    0xd312, 0x2519, 0x5e12, 0x404c,
+    0x3130, 0x89b1, 0xe3a5, 0x4033
 };
 static unsigned short Q[] = {
-/*0x0000,0x0000,0x0000,0x3ff0,*/
-0xd0a2,0x0dfb,0x1016,0x402e,
-0x79c7,0x47ae,0xaf6d,0x4054,
-0x455a,0xa44b,0x9542,0x406b,
-0x10d7,0x2983,0x3411,0x4073,
-0x3423,0x2a8d,0xde94,0x406a,
-0xc9c8,0x4e89,0xd578,0x404d
+    /*0x0000,0x0000,0x0000,0x3ff0,*/
+    0xd0a2, 0x0dfb, 0x1016, 0x402e,
+    0x79c7, 0x47ae, 0xaf6d, 0x4054,
+    0x455a, 0xa44b, 0x9542, 0x406b,
+    0x10d7, 0x2983, 0x3411, 0x4073,
+    0x3423, 0x2a8d, 0xde94, 0x406a,
+    0xc9c8, 0x4e89, 0xd578, 0x404d
 };
 #endif
 
@@ -142,12 +142,12 @@ static unsigned short Q[] = {
 #define L10EB 7.00731903251827651129E-4
 
 #ifdef ANSIPROT
-extern double frexp ( double, int * );
-extern double ldexp ( double, int );
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern int isnan ( double );
-extern int isfinite ( double );
+extern double frexp(double, int *);
+extern double ldexp(double, int);
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern int isnan(double);
+extern int isfinite(double);
 #else
 double frexp(), ldexp(), polevl(), p1evl();
 int isnan(), isfinite();
@@ -157,39 +157,34 @@ extern double LOGE2, SQRT2, INFINITY, NAN;
 #if INTRINSIC
 
 double log10(x)
-double x;
-{
-VOLATILE double z;
-double y;
+double x; {
+    VOLATILE double z;
+    double y;
 #ifdef DEC
 short *q;
 #endif
-int e;
+    int e;
 
 #ifdef NANS
-if( isnan(x) )
-	return(x);
+    if (isnan(x))
+        return x;
 #endif
 #ifdef INFINITIES
-if( x == INFINITY )
-	return(x);
+    if (x == INFINITY)
+        return x;
 #endif
-/* Test for domain */
-if( x <= 0.0 )
-	{
-	if( x == 0.0 )
-	        {
-		mtherr( fname, SING );
-		return( -INFINITY );
-	        }
-	else
-	        {
-		mtherr( fname, DOMAIN );
-		return( NAN );
-	        }
-	}
+    /* Test for domain */
+    if (x <= 0.0) {
+        if (x == 0.0) {
+            mtherr(fname, SING);
+            return -INFINITY;
+        } else {
+            mtherr(fname, DOMAIN);
+            return NAN;
+        }
+    }
 
-/* separate mantissa from exponent */
+    /* separate mantissa from exponent */
 
 #ifdef DEC
 q = (short *)&x;
@@ -200,18 +195,18 @@ e = ((e >> 7) & 0377) - 0200;	/* the exponent */
 #endif
 
 #ifdef IBMPC
-x = frexp( x, &e );
-/*
-q = (short *)&x;
-q += 3;
-e = *q;
-e = ((e >> 4) & 0x0fff) - 0x3fe;
-*q &= 0x0f;
-*q |= 0x3fe0;
-*/
+    x = frexp(x, &e);
+    /*
+    q = (short *)&x;
+    q += 3;
+    e = *q;
+    e = ((e >> 4) & 0x0fff) - 0x3fe;
+    *q &= 0x0f;
+    *q |= 0x3fe0;
+    */
 #endif
 
-/* Equivalent C language standard library function: */
+    /* Equivalent C language standard library function: */
 #ifdef UNK
 x = frexp( x, &e );
 #endif
@@ -220,35 +215,30 @@ x = frexp( x, &e );
 x = frexp( x, &e );
 #endif
 
-/* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
+    /* logarithm using log(1+x) = x - .5x**2 + x**3 P(x)/Q(x) */
 
-if( x < SQRTH )
-	{
-	e -= 1;
-	x = ldexp( x, 1 ) - 1.0; /*  2x - 1  */
-	}	
-else
-	{
-	x = x - 1.0;
-	}
+    if (x < SQRTH) {
+        e -= 1;
+        x = ldexp(x, 1) - 1.0; /*  2x - 1  */
+    } else {
+        x = x - 1.0;
+    }
 
+    /* rational form */
+    z = x * x;
+    y = x * (z * polevl(x, P, 6) / p1evl(x, Q, 6));
+    y = y - ldexp(z, -1); /*  y - 0.5 * x**2  */
 
-/* rational form */
-z = x*x;
-y = x * ( z * polevl( x, P, 6 ) / p1evl( x, Q, 6 ) );
-y = y - ldexp( z, -1 );   /*  y - 0.5 * x**2  */
+    /* multiply log of fraction by log10(e)
+     * and base 2 exponent by log10(2)
+     */
+    z = (x + y) * L10EB; /* accumulate terms in order of size */
+    z += y * L10EA;
+    z += x * L10EA;
+    z += e * L102B;
+    z += e * L102A;
 
-/* multiply log of fraction by log10(e)
- * and base 2 exponent by log10(2)
- */
-z = (x + y) * L10EB;  /* accumulate terms in order of size */
-z += y * L10EA;
-z += x * L10EA;
-z += e * L102B;
-z += e * L102A;
-
-
-return( z );
+    return z;
 }
 
 #endif  // INTRINSIC

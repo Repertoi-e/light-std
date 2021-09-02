@@ -6,7 +6,8 @@ LSTD_BEGIN_NAMESPACE
 
 namespace impl {
 template <typename T, bool Packed>
-requires(!tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) {
+    requires(!tquat<T, Packed>::SimdAccelerated)
+tquat<T, Packed> product(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) {
     tquat<T, Packed> result;
     result.w = lhs.s * rhs.s - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z;
     result.x = lhs.s * rhs.x + lhs.x * rhs.s + lhs.y * rhs.z - lhs.z * rhs.y;
@@ -16,7 +17,8 @@ requires(!tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tqua
 }
 
 template <typename T, bool Packed>
-requires(tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) {
+    requires(tquat<T, Packed>::SimdAccelerated)
+tquat<T, Packed> product(const tquat<T, Packed> &lhs, const tquat<T, Packed> &rhs) {
     tquat<T, Packed> result;
     using SimdT = simd<T, 4>;
 
@@ -24,10 +26,10 @@ requires(tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tquat
     SimdT wxyz = rhs.Vec.Simd;
     SimdT alternate;
     auto *v = (T *) &alternate.reg;
-    v[0] = -1;
-    v[1] = 1;
-    v[2] = -1;
-    v[3] = 1;
+    v[0]    = -1;
+    v[1]    = 1;
+    v[2]    = -1;
+    v[3]    = 1;
 
     // [ 3, 2, 1, 0 ]
     // [ 0, 3, 2, 1 ]
@@ -50,16 +52,16 @@ requires(tquat<T, Packed>::SimdAccelerated) tquat<T, Packed> product(const tquat
     SimdT m3 = SimdT::mul(t6, t7);
 
     SimdT e = SimdT::add(m0, SimdT::mul(alternate, m1));
-    e = SimdT::template shuffle<1, 3, 0, 2>(e);
-    e = SimdT::add(e, SimdT::mul(alternate, m2));
-    e = SimdT::template shuffle<2, 0, 1, 3>(e);
-    e = SimdT::add(e, SimdT::mul(alternate, m3));
-    e = SimdT::template shuffle<3, 1, 0, 2>(e);
+    e       = SimdT::template shuffle<1, 3, 0, 2>(e);
+    e       = SimdT::add(e, SimdT::mul(alternate, m2));
+    e       = SimdT::template shuffle<2, 0, 1, 3>(e);
+    e       = SimdT::add(e, SimdT::mul(alternate, m3));
+    e       = SimdT::template shuffle<3, 1, 0, 2>(e);
 
     result.Vec.Simd = e;
     return result;
 }
-}  // namespace impl
+} // namespace impl
 
 // Multiplies two quaterions (normal operator * does element wise!)
 template <typename T, bool Packed>
@@ -91,8 +93,8 @@ template <typename T, bool Packed>
 tquat<T, Packed> exp(const tquat<T, Packed> &q) {
     auto a = q.scalar_part();
     auto v = q.vector_part();
-    T mag = len(v);
-    T es = (T) ::exp(a);
+    T mag  = len(v);
+    T es   = (T) ::exp(a);
 
     tquat<T, Packed> ret = {(T) cos(mag), v * ((T) sin(mag) / mag)};
     ret *= es;
@@ -104,7 +106,7 @@ tquat<T, Packed> exp(const tquat<T, Packed> &q) {
 template <typename T, bool Packed>
 tquat<T, Packed> ln(const tquat<T, Packed> &q) {
     auto magq = len(q);
-    auto vn = normalize(q.vector_part());
+    auto vn   = normalize(q.vector_part());
     return {(T) log(magq), vn * (T) acos(q.s / magq)};
 }
 
@@ -154,12 +156,12 @@ vec<T, 3, Packed> to_euler_angles(const tquat<T, Packed> &q) {
     // Roll/X
     double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
     double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
-    result.x = (T) atan2(sinr_cosp, cosr_cosp);
+    result.x         = (T) atan2(sinr_cosp, cosr_cosp);
 
     // Pitch/Y
     double sinp = 2 * (q.w * q.y - q.z * q.x);
     if (abs(sinp) >= 1) {
-        result.y = TAU / 4 * sign_no_zero(sinp);  // Use 90 degrees if out of range
+        result.y = TAU / 4 * sign_no_zero(sinp); // Use 90 degrees if out of range
     } else {
         result.y = (T) asin(sinp);
     }
@@ -167,7 +169,7 @@ vec<T, 3, Packed> to_euler_angles(const tquat<T, Packed> &q) {
     // Yaw/Z
     double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
     double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-    result.z = (T) atan2(siny_cosp, cosy_cosp);
+    result.z         = (T) atan2(siny_cosp, cosy_cosp);
 
     return result;
 }

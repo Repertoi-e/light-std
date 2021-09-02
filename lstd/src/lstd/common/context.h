@@ -27,7 +27,7 @@ void fmt_default_parse_error_handler(const string &message, const string &format
 // Options get copied to new threads (take a look at thread_wrapper in windows_thread.cpp).
 //
 struct context {
-    thread::id ThreadID;  // The current thread's ID (Context is thread-local)
+    thread::id ThreadID; // The current thread's ID (Context is thread-local)
 
     //
     // :TemporaryAllocator: Take a look at the docs of this allocator in "allocator.h"
@@ -90,9 +90,9 @@ struct context {
     //
     // The idea for this comes from the implicit context in Jai.
 
-    allocator Alloc;  // = null by default. The user should provide an allocator at the start of the program.
-                      // We encourage using several different allocators depending on the memory requirements and the specific use case.
-                      // See :BigPhilosophyTime: in allocator.h for the reasoning behind this.
+    allocator Alloc; // = null by default. The user should provide an allocator at the start of the program.
+    // We encourage using several different allocators depending on the memory requirements and the specific use case.
+    // See :BigPhilosophyTime: in allocator.h for the reasoning behind this.
 
     u16 AllocAlignment = POINTER_SIZE;
 
@@ -100,7 +100,7 @@ struct context {
     // e.g. using the LEAK flag, you can mark the allocations done in a whole scope as leaks (don't get reported when calling DEBUG_memory->report_leaks()).
     u64 AllocOptions = 0;
 
-    bool LogAllAllocations = false;  // Used for debugging. Every time an allocation is made, logs info about it.
+    bool LogAllAllocations = false; // Used for debugging. Every time an allocation is made, logs info about it.
 
     // Gets called when the program encounters an unhandled expection.
     // This can be used to view the stack trace before the program terminates.
@@ -120,8 +120,8 @@ struct context {
     // This is useful when logging to files/strings and not the console. The ansi escape codes look like garbage in files/strings.
     bool FmtDisableAnsiCodes = false;
 
-    bool _HandlingPanic = false;        // Don't set. Used to avoid infinite looping when handling panics. Don't touch!
-    bool _LoggingAnAllocation = false;  // Don't set. Used to avoid infinite looping when the above bool is true. Don't touch!
+    bool _HandlingPanic       = false; // Don't set. Used to avoid infinite looping when handling panics. Don't touch!
+    bool _LoggingAnAllocation = false; // Don't set. Used to avoid infinite looping when the above bool is true. Don't touch!
 };
 
 // Immutable context available everywhere. Contains certain variables that are "global" to the program,
@@ -236,10 +236,10 @@ T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, so
     auto *result = (T *) general_allocate(alloc, size, alignment, options, loc);
 
     if constexpr (!types::is_scalar<T>) {
-        auto *p = result;
+        auto *p   = result;
         auto *end = result + count;
         while (p != end) {
-            new (p) T;
+            new(p) T;
             ++p;
         }
     }
@@ -250,7 +250,8 @@ T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, so
 // We assume your type can be copied to another place in memory and just work.
 // We assume that the destructor of the old copy doesn't invalidate the new copy.
 template <non_void T>
-requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, source_location loc) {
+    requires(!types::is_const<T>)
+T *lstd_reallocate_array_impl(T *block, s64 newCount, u64 options, source_location loc) {
     if (!block) return null;
 
     // I think the standard implementation frees in this case but we need to decide
@@ -263,7 +264,7 @@ requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCou
 
     if constexpr (!types::is_scalar<T>) {
         if (newCount < oldCount) {
-            auto *p = block + newCount;
+            auto *p   = block + newCount;
             auto *end = block + oldCount;
             while (p != end) {
                 p->~T();
@@ -272,15 +273,15 @@ requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCou
         }
     }
 
-    s64 newSize = newCount * sizeof(T);
+    s64 newSize  = newCount * sizeof(T);
     auto *result = (T *) general_reallocate(block, newSize, options, loc);
 
     if constexpr (!types::is_scalar<T>) {
         if (oldCount < newCount) {
-            auto *p = result + oldCount;
+            auto *p   = result + oldCount;
             auto *end = result + newCount;
             while (p != end) {
-                new (p) T;
+                new(p) T;
                 ++p;
             }
         }
@@ -354,8 +355,8 @@ requires(!types::is_const<T>) T *lstd_reallocate_array_impl(T *block, s64 newCou
 
 struct allocate_options {
     allocator Alloc = {};
-    u32 Alignment = 0;
-    u64 Options = 0;
+    u32 Alignment   = 0;
+    u64 Options     = 0;
 };
 
 // T is used to initialize the resulting memory (uses placement new to call the constructor).
@@ -380,7 +381,8 @@ T *reallocate_array(T *block, s64 newCount, s64 reallocateOptions = 0, source_lo
 
 // If T is non-scalar we call the destructors on the objects in the memory block (determined by T, so make sure you pass a correct pointer type)
 template <typename T>
-requires(!types::is_const<T>) void free(T *block, u64 options = 0) {
+    requires(!types::is_const<T>)
+void free(T *block, u64 options = 0) {
     if (!block) return;
 
     s64 sizeT = 1;
@@ -389,7 +391,7 @@ requires(!types::is_const<T>) void free(T *block, u64 options = 0) {
     }
 
     auto *header = (allocation_header *) block - 1;
-    s64 count = header->Size / sizeT;
+    s64 count    = header->Size / sizeT;
 
     if constexpr (!types::is_same<T, void> && !types::is_scalar<T>) {
         auto *p = block;

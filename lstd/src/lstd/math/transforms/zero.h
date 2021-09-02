@@ -6,7 +6,8 @@
 LSTD_BEGIN_NAMESPACE
 
 struct zero_helper : non_copyable {
-    zero_helper() {}
+    zero_helper() {
+    }
 
     template <typename T, s64 Dim, bool Packed>
     operator vec<T, Dim, Packed>() const {

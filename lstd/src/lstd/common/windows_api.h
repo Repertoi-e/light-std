@@ -48,7 +48,7 @@ using HRESULT = u32;
 //
 #define __HRESULT_FROM_WIN32(x) ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT)(((x) &0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000)))
 always_inline HRESULT HRESULT_FROM_WIN32(unsigned long x) {
-    return (HRESULT)(x) <= 0 ? (HRESULT)(x) : (HRESULT)(((x) &0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000);
+    return (HRESULT) x <= 0 ? (HRESULT) x : (HRESULT) (x & 0x0000FFFF | FACILITY_WIN32 << 16 | 0x80000000);
 }
 
 #define MAX_PATH 260
@@ -265,6 +265,7 @@ typedef struct _devicemodeW {
     WORD dmSize;
     WORD dmDriverExtra;
     DWORD dmFields;
+
     union {
         struct {
             short dmOrientation;
@@ -276,13 +277,16 @@ typedef struct _devicemodeW {
             short dmDefaultSource;
             short dmPrintQuality;
         } DUMMYSTRUCTNAME;
+
         POINTL dmPosition;
+
         struct {
             POINTL dmPosition;
             DWORD dmDisplayOrientation;
             DWORD dmDisplayFixedOutput;
         } DUMMYSTRUCTNAME2;
     } DUMMYUNIONNAME;
+
     short dmColor;
     short dmDuplex;
     short dmYResolution;
@@ -293,10 +297,12 @@ typedef struct _devicemodeW {
     DWORD dmBitsPerPel;
     DWORD dmPelsWidth;
     DWORD dmPelsHeight;
+
     union {
         DWORD dmDisplayFlags;
         DWORD dmNup;
     } DUMMYUNIONNAME2;
+
     DWORD dmDisplayFrequency;
     DWORD dmICMMethod;
     DWORD dmICMIntent;
@@ -324,7 +330,7 @@ typedef struct tagMONITORINFOEXW : tagMONITORINFO {
 #define IMAGEAPI __stdcall
 #define NTAPI __stdcall
 
-typedef BOOL(CALLBACK *MONITORENUMPROC)(HMONITOR, HDC, LPRECT, LPARAM);
+typedef BOOL (CALLBACK *MONITORENUMPROC)(HMONITOR, HDC, LPRECT, LPARAM);
 
 #define DM_BITSPERPEL 0x40000
 #define DM_PELSWIDTH 0x80000
@@ -459,11 +465,11 @@ typedef struct _FILETIME {
 
 typedef struct _LARGE_INTEGER {
     union {
-        struct
-        {
+        struct {
             ULONG LowPart;
             LONG HighPart;
         };
+
         INT64 QuadPart;
     };
 } LARGE_INTEGER, *PLARGE_INTEGER;
@@ -471,13 +477,16 @@ typedef struct _LARGE_INTEGER {
 typedef struct _OVERLAPPED {
     ULONG_PTR Internal;
     ULONG_PTR InternalHigh;
+
     union {
         struct {
             DWORD Offset;
             DWORD OffsetHigh;
         } DUMMYSTRUCTNAME;
+
         PVOID Pointer;
     } DUMMYUNIONNAME;
+
     HANDLE hEvent;
 } OVERLAPPED, *LPOVERLAPPED;
 
@@ -510,7 +519,7 @@ typedef struct _GUID {
     unsigned char Data4[8];
 } GUID;
 
-typedef LRESULT(CALLBACK *WNDPROC)(HWND, UINT, WPARAM, LPARAM);
+typedef LRESULT (CALLBACK *WNDPROC)(HWND, UINT, WPARAM, LPARAM);
 
 using HBRUSH = HANDLE;
 using HICON = HANDLE;
@@ -763,15 +772,23 @@ BOOL ShowWindow(
     HWND hWnd,
     int nCmdShow);
 
-BOOL WINAPI PeekMessageW(LPMSG lpMsg, HWND hwnd, UINT uMsgFilterMin,
-                         UINT uMsgFilterMax, UINT wRemoveMsg);
+BOOL WINAPI PeekMessageW(LPMSG lpMsg,
+                         HWND hwnd,
+                         UINT uMsgFilterMin,
+                         UINT uMsgFilterMax,
+                         UINT wRemoveMsg);
 BOOL WINAPI TranslateMessage(CONST MSG *lpMsg);
 LONG WINAPI DispatchMessageW(CONST MSG *lpMsg);
 
-LRESULT WINAPI CallWindowProc(WNDPROC lpPrevWndFunc, HWND hwnd, UINT Msg,
-                              WPARAM wParam, LPARAM lParam);
+LRESULT WINAPI CallWindowProc(WNDPROC lpPrevWndFunc,
+                              HWND hwnd,
+                              UINT Msg,
+                              WPARAM wParam,
+                              LPARAM lParam);
 BOOL WINAPI PostMessage(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
-BOOL WINAPI PostThreadMessage(DWORD dwThreadId, UINT Msg, WPARAM wParam,
+BOOL WINAPI PostThreadMessage(DWORD dwThreadId,
+                              UINT Msg,
+                              WPARAM wParam,
                               LPARAM lParam);
 VOID WINAPI PostQuitMessage(int nExitCode);
 
@@ -1383,10 +1400,12 @@ typedef struct _CONTEXT {
     DWORD64 R14;
     DWORD64 R15;
     DWORD64 Rip;
+
     union {
         XMM_SAVE_AREA32 FltSave;
         NEON128 Q[16];
         ULONGLONG D[32];
+
         struct {
             M128A Header[2];
             M128A Legacy[8];
@@ -1407,8 +1426,10 @@ typedef struct _CONTEXT {
             M128A Xmm14;
             M128A Xmm15;
         } DUMMYSTRUCTNAME;
+
         DWORD S[32];
     } DUMMYUNIONNAME;
+
     M128A VectorRegister[26];
     DWORD64 VectorControl;
     DWORD64 DebugControl;
@@ -1424,10 +1445,12 @@ typedef struct _EXCEPTION_POINTERS {
 
 } EXCEPTION_POINTERS, *PEXCEPTION_POINTERS, *LPEXCEPTION_POINTERS;
 
-typedef enum { AddrMode1616,
-               AddrMode1632,
-               AddrModeReal,
-               AddrModeFlat } ADDRESS_MODE;
+typedef enum {
+    AddrMode1616,
+    AddrMode1632,
+    AddrModeReal,
+    AddrModeFlat
+} ADDRESS_MODE;
 
 typedef struct _KDHELP64 {
     DWORD64 Thread;
@@ -1487,13 +1510,13 @@ typedef struct _SYMBOL_INFO {
     CHAR Name[1];
 } SYMBOL_INFO, *PSYMBOL_INFO;
 
-typedef BOOL(__stdcall *PREAD_PROCESS_MEMORY_ROUTINE64)(HANDLE hProcess, DWORD64 qwBaseAddress, PVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead);
+typedef BOOL (__stdcall *PREAD_PROCESS_MEMORY_ROUTINE64)(HANDLE hProcess, DWORD64 qwBaseAddress, PVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead);
 
-typedef PVOID(__stdcall *PFUNCTION_TABLE_ACCESS_ROUTINE64)(HANDLE ahProcess, DWORD64 AddrBase);
+typedef PVOID (__stdcall *PFUNCTION_TABLE_ACCESS_ROUTINE64)(HANDLE ahProcess, DWORD64 AddrBase);
 
-typedef DWORD64(__stdcall *PGET_MODULE_BASE_ROUTINE64)(HANDLE hProcess, DWORD64 Address);
+typedef DWORD64 (__stdcall *PGET_MODULE_BASE_ROUTINE64)(HANDLE hProcess, DWORD64 Address);
 
-typedef DWORD64(__stdcall *PTRANSLATE_ADDRESS_ROUTINE64)(HANDLE hProcess, HANDLE hThread, LPADDRESS64 lpaddr);
+typedef DWORD64 (__stdcall *PTRANSLATE_ADDRESS_ROUTINE64)(HANDLE hProcess, HANDLE hThread, LPADDRESS64 lpaddr);
 
 typedef struct _IMAGEHLP_LINEW64 {
     DWORD SizeOfStruct;
@@ -1503,7 +1526,7 @@ typedef struct _IMAGEHLP_LINEW64 {
     DWORD64 Address;
 } IMAGEHLP_LINEW64, *PIMAGEHLP_LINEW64;
 
-typedef LONG(CALLBACK *PTOP_LEVEL_EXCEPTION_FILTER)(LPEXCEPTION_POINTERS);
+typedef LONG (CALLBACK *PTOP_LEVEL_EXCEPTION_FILTER)(LPEXCEPTION_POINTERS);
 typedef PTOP_LEVEL_EXCEPTION_FILTER LPTOP_LEVEL_EXCEPTION_FILTER;
 
 extern "C" {
@@ -1783,7 +1806,7 @@ DWORD FormatMessageW(
 #define SUBLANG_CUSTOM_UNSPECIFIED 0x04  // Unspecified custom sublanguage
 #define SUBLANG_UI_CUSTOM_DEFAULT 0x05  // Default custom MUI sublanguage
 
-typedef VOID(NTAPI *PIMAGE_TLS_CALLBACK)(
+typedef VOID (NTAPI *PIMAGE_TLS_CALLBACK)(
     PVOID DllHandle,
     DWORD Reason,
     PVOID Reserved);
@@ -1866,10 +1889,12 @@ typedef struct _IMAGE_NT_HEADERS64 {
 
 typedef struct _IMAGE_SECTION_HEADER {
     BYTE Name[IMAGE_SIZEOF_SHORT_NAME];
+
     union {
         DWORD PhysicalAddress;
         DWORD VirtualSize;
     } Misc;
+
     DWORD VirtualAddress;
     DWORD SizeOfRawData;
     DWORD PointerToRawData;
@@ -1912,9 +1937,9 @@ typedef struct _RTL_CRITICAL_SECTION {
 
     LONG LockCount;
     LONG RecursionCount;
-    HANDLE OwningThread;  // from the thread's ClientId->UniqueThread
+    HANDLE OwningThread; // from the thread's ClientId->UniqueThread
     HANDLE LockSemaphore;
-    ULONG_PTR SpinCount;  // force size on 64-bit systems when packed
+    ULONG_PTR SpinCount; // force size on 64-bit systems when packed
 } RTL_CRITICAL_SECTION, *PRTL_CRITICAL_SECTION;
 
 typedef RTL_CRITICAL_SECTION CRITICAL_SECTION;
@@ -1924,11 +1949,13 @@ using PCRITICAL_SECTION = CRITICAL_SECTION *;
 typedef struct _SYSTEM_INFO {
     union {
         DWORD dwOemId;
+
         struct {
             WORD wProcessorArchitecture;
             WORD wReserved;
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
+
     DWORD dwPageSize;
     LPVOID lpMinimumApplicationAddress;
     LPVOID lpMaximumApplicationAddress;
@@ -1940,7 +1967,7 @@ typedef struct _SYSTEM_INFO {
     WORD wProcessorRevision;
 } SYSTEM_INFO, *LPSYSTEM_INFO;
 
-typedef DWORD(__stdcall *LPTHREAD_START_ROUTINE)(
+typedef DWORD (__stdcall *LPTHREAD_START_ROUTINE)(
     LPVOID lpThreadParameter);
 
 extern "C" {
@@ -2724,13 +2751,16 @@ typedef struct tagRAWKEYBOARD {
 
 typedef struct tagRAWMOUSE {
     USHORT usFlags;
+
     union {
         ULONG ulButtons;
+
         struct {
             USHORT usButtonFlags;
             USHORT usButtonData;
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
+
     ULONG ulRawButtons;
     LONG lLastX;
     LONG lLastY;
@@ -2745,6 +2775,7 @@ typedef struct tagRAWHID {
 
 typedef struct tagRAWINPUT {
     RAWINPUTHEADER header;
+
     union {
         RAWMOUSE mouse;
         RAWKEYBOARD keyboard;

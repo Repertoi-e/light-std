@@ -50,24 +50,23 @@ Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 */
 
 
-double polevl( x, coef, N )
+double polevl(x, coef, N)
 double x;
 double coef[];
-int N;
-{
-double ans;
-int i;
-double *p;
+int N; {
+    double ans;
+    int i;
+    double *p;
 
-p = coef;
-ans = *p++;
-i = N;
+    p   = coef;
+    ans = *p++;
+    i   = N;
 
-do
-	ans = ans * x  +  *p++;
-while( --i );
+    do {
+        ans = ans * x + *p++;
+    } while (--i);
 
-return( ans );
+    return ans;
 }
 
 /*							p1evl()	*/
@@ -76,22 +75,21 @@ return( ans );
  * Otherwise same as polevl.
  */
 
-double p1evl( x, coef, N )
+double p1evl(x, coef, N)
 double x;
 double coef[];
-int N;
-{
-double ans;
-double *p;
-int i;
+int N; {
+    double ans;
+    double *p;
+    int i;
 
-p = coef;
-ans = x + *p++;
-i = N-1;
+    p   = coef;
+    ans = x + *p++;
+    i   = N - 1;
 
-do
-	ans = ans * x  + *p++;
-while( --i );
+    do {
+        ans = ans * x + *p++;
+    } while (--i);
 
-return( ans );
+    return ans;
 }

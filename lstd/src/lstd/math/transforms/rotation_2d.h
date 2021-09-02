@@ -8,7 +8,9 @@ template <typename T>
 struct rotation_2d_helper : non_copyable {
     T Angle;
 
-    rotation_2d_helper(T angle) : Angle(angle) {}
+    rotation_2d_helper(T angle)
+        : Angle(angle) {
+    }
 
     template <typename U, bool MPacked>
     operator mat<U, 3, 3, MPacked>() const {

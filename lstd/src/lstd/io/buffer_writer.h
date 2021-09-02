@@ -12,9 +12,10 @@ struct buffer_writer : writer {
     byte *Buffer, *Current;
     s64 BufferSize, Available;
 
-    buffer_writer(stack_dynamic_buffer<N> *buffer) : StackDynamicBuffer(buffer) {
-        Buffer = Current = buffer->Data;
-        BufferSize = Available = (buffer->Allocated ? buffer->Allocated : sizeof(buffer->StackData));
+    buffer_writer(stack_dynamic_buffer<N> *buffer)
+        : StackDynamicBuffer(buffer) {
+        Buffer     = Current   = buffer->Data;
+        BufferSize = Available = buffer->Allocated ? buffer->Allocated : sizeof buffer->StackData;
     }
 
     void write(const byte *data, s64 size) override {
@@ -41,7 +42,7 @@ struct buffer_writer : writer {
         if (StackDynamicBuffer->Allocated) {
             Available = StackDynamicBuffer->Reserved - StackDynamicBuffer->Count;
         } else {
-            Available = sizeof(StackDynamicBuffer->StackData) - StackDynamicBuffer->Count;
+            Available = sizeof StackDynamicBuffer->StackData - StackDynamicBuffer->Count;
         }
         BufferSize = Available;
     }

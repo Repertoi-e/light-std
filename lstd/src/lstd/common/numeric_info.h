@@ -18,9 +18,11 @@ enum class float_round_style {
 };
 
 enum class float_denorm_style {
-    Indeterminate = -1,  // It cannot be determined whether or not the type allows denormalized values.
-    Absent,              // The type does not allow denormalized values.
-    Present              // The type allows denormalized values.
+    Indeterminate = -1,
+    // It cannot be determined whether or not the type allows denormalized values.
+    Absent,
+    // The type does not allow denormalized values.
+    Present // The type allows denormalized values.
 };
 
 struct numeric_info_base {
@@ -66,13 +68,16 @@ struct numeric_info : public numeric_info_base {
 
 // Const/volatile variations of numeric_info.
 template <typename T>
-struct numeric_info<const T> : public numeric_info<T> {};
+struct numeric_info<const T> : public numeric_info<T> {
+};
 
 template <typename T>
-struct numeric_info<volatile T> : public numeric_info<T> {};
+struct numeric_info<volatile T> : public numeric_info<T> {
+};
 
 template <typename T>
-struct numeric_info<const volatile T> : public numeric_info<T> {};
+struct numeric_info<const volatile T> : public numeric_info<T> {
+};
 
 // Base for integer types
 struct numeric_info_int_base : numeric_info_base {
@@ -133,16 +138,17 @@ struct numeric_info<wchar_t> : public numeric_info_int_base {
 };
 
 template <>
-struct numeric_info<bool> : public numeric_info_int_base {  // limits for type bool
+struct numeric_info<bool> : public numeric_info_int_base {
+    // limits for type bool
     static constexpr bool min() { return false; }
     static constexpr bool max() { return true; }
     static constexpr bool lowest() { return min(); }
-    static constexpr bool epsilon() { return 0; }
-    static constexpr bool round_error() { return 0; }
-    static constexpr bool denorm_min() { return 0; }
-    static constexpr bool infinity() { return 0; }
-    static constexpr bool quiet_NaN() { return 0; }
-    static constexpr bool signaling_NaN() { return 0; }
+    static constexpr bool epsilon() { return false; }
+    static constexpr bool round_error() { return false; }
+    static constexpr bool denorm_min() { return false; }
+    static constexpr bool infinity() { return false; }
+    static constexpr bool quiet_NaN() { return false; }
+    static constexpr bool signaling_NaN() { return false; }
 
     static constexpr s32 digits = 1;
 };
@@ -270,7 +276,7 @@ struct numeric_info<u32> : public numeric_info_int_base {
 
 template <>
 struct numeric_info<long> : public numeric_info_int_base {
-    static_assert(sizeof(s32) == sizeof(long));
+    static_assert(sizeof s32 == sizeof(long));
     static constexpr long min() { return S32_MIN; }
     static constexpr long max() { return S32_MAX; }
     static constexpr long lowest() { return min(); }
@@ -288,7 +294,7 @@ struct numeric_info<long> : public numeric_info_int_base {
 
 template <>
 struct numeric_info<unsigned long> : public numeric_info_int_base {
-    static_assert(sizeof(u32) == sizeof(unsigned long));
+    static_assert(sizeof u32 == sizeof(unsigned long));
     static constexpr unsigned long min() { return 0; }
     static constexpr unsigned long max() { return U32_MAX; }
     static constexpr unsigned long lowest() { return min(); }
@@ -306,7 +312,7 @@ struct numeric_info<unsigned long> : public numeric_info_int_base {
 
 template <>
 struct numeric_info<char32_t> : public numeric_info_int_base {
-   public:
+public:
     static constexpr char32_t min() { return 0; }
     static constexpr char32_t max() { return U32_MAX; }
     static constexpr char32_t lowest() { return min(); }
@@ -341,7 +347,7 @@ struct numeric_info<s64> : public numeric_info_int_base {
 
 template <>
 struct numeric_info<u64> : public numeric_info_int_base {
-   public:
+public:
     static constexpr u64 min() { return 0; }
     static constexpr u64 max() { return U64_MAX; }
     static constexpr u64 lowest() { return min(); }
@@ -359,7 +365,7 @@ struct numeric_info<u64> : public numeric_info_int_base {
 
 template <>
 struct numeric_info<f32> : public numeric_info_float_base {
-   public:
+public:
     static constexpr f32 min() { return F32_MIN; }
     static constexpr f32 max() { return F32_MAX; }
     static constexpr f32 lowest() { return -max(); }
@@ -370,7 +376,7 @@ struct numeric_info<f32> : public numeric_info_float_base {
     static constexpr f32 quiet_NaN() { return __builtin_nanf("0"); }
     static constexpr f32 signaling_NaN() { return __builtin_nansf("1"); }
 
-    static constexpr s32 digits         = F32_MANT_BITS + 1;  // including the hidden bit
+    static constexpr s32 digits         = F32_MANT_BITS + 1; // including the hidden bit
     static constexpr s32 digits10       = F32_DIG;
     static constexpr s32 max_digits10   = F32_DECIMAL_DIG;
     static constexpr s32 max_exponent   = F32_MAX_EXP;
@@ -386,7 +392,7 @@ struct numeric_info<f32> : public numeric_info_float_base {
 
 template <>
 struct numeric_info<f64> : public numeric_info_float_base {
-   public:
+public:
     static constexpr f64 min() { return F64_MIN; }
     static constexpr f64 max() { return F64_MAX; }
     static constexpr f64 lowest() { return -max(); }
@@ -397,7 +403,7 @@ struct numeric_info<f64> : public numeric_info_float_base {
     static constexpr f64 quiet_NaN() { return __builtin_nan("0"); }
     static constexpr f64 signaling_NaN() { return __builtin_nans("1"); }
 
-    static constexpr s32 digits         = F64_MANT_BITS + 1;  // including the hidden bit
+    static constexpr s32 digits         = F64_MANT_BITS + 1; // including the hidden bit
     static constexpr s32 digits10       = F64_DIG;
     static constexpr s32 max_digits10   = F64_DECIMAL_DIG;
     static constexpr s32 max_exponent   = F64_MAX_EXP;

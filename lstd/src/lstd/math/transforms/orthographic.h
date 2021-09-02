@@ -12,7 +12,11 @@ struct ortographic_helper : non_copyable {
     T ProjNearPlane, ProjFarPlane;
 
     ortographic_helper(const VectorT &minBounds, const VectorT &maxBounds, T projNearPlane, T projFarPlane)
-        : MinBounds(minBounds), MaxBounds(maxBounds), ProjNearPlane(projNearPlane), ProjFarPlane(projFarPlane) {}
+        : MinBounds(minBounds),
+          MaxBounds(maxBounds),
+          ProjNearPlane(projNearPlane),
+          ProjFarPlane(projFarPlane) {
+    }
 
     template <typename U, bool MPacked>
     operator mat<U, Dim + 1, Dim + 1, MPacked>() const {
@@ -42,7 +46,7 @@ struct ortographic_helper : non_copyable {
 
         m = identity();
         For(range(scale.DIM)) {
-            m(it, it) = scale[it];
+            m(it, it)        = scale[it];
             m(scale.DIM, it) = offset[it];
         }
     }

@@ -11,7 +11,7 @@ import os;
 LSTD_BEGIN_NAMESPACE
 
 string get_error_string(HRESULT hr) {
-    if (!hr) return "No error"; 
+    if (!hr) return "No error";
 
     utf16 *message16 = null;
 

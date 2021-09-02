@@ -27,7 +27,7 @@ import os;
 //
 // @Cleanup @Cleanup @Cleanup @Cleanup @Cleanup @Cleanup @Cleanup @Cleanup  There should be a better way and we should get rid of this.
 //                                                                          I haven't thought much about it yet.
-extern "C" bool lstd_init_global() { return true;  }
+extern "C" bool lstd_init_global() { return true; }
 
 // If the user didn't provide a definition for lstd_init_global, the linker shouldn't complain,
 // but instead provide a stub function which returns true.
@@ -88,15 +88,25 @@ guid guid_new() {
     GUID g;
     CoCreateGuid(&g);
 
-    auto data = to_stack_array((byte)((g.Data1 >> 24) & 0xFF), (byte)((g.Data1 >> 16) & 0xFF),
-                               (byte)((g.Data1 >> 8) & 0xFF), (byte)((g.Data1) & 0xff),
+    auto data = to_stack_array((byte) (g.Data1 >> 24 & 0xFF),
+                               (byte) (g.Data1 >> 16 & 0xFF),
+                               (byte) (g.Data1 >> 8 & 0xFF),
+                               (byte) (g.Data1 & 0xff),
 
-                               (byte)((g.Data2 >> 8) & 0xFF), (byte)((g.Data2) & 0xff),
+                               (byte) (g.Data2 >> 8 & 0xFF),
+                               (byte) (g.Data2 & 0xff),
 
-                               (byte)((g.Data3 >> 8) & 0xFF), (byte)((g.Data3) & 0xFF),
+                               (byte) (g.Data3 >> 8 & 0xFF),
+                               (byte) (g.Data3 & 0xFF),
 
-                               (byte) g.Data4[0], (byte) g.Data4[1], (byte) g.Data4[2], (byte) g.Data4[3],
-                               (byte) g.Data4[4], (byte) g.Data4[5], (byte) g.Data4[6], (byte) g.Data4[7]);
+                               g.Data4[0],
+                               g.Data4[1],
+                               g.Data4[2],
+                               g.Data4[3],
+                               g.Data4[4],
+                               g.Data4[5],
+                               g.Data4[6],
+                               g.Data4[7]);
     return guid(data);
 }
 

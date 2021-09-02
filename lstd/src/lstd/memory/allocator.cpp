@@ -224,7 +224,7 @@ void debug_memory::maybe_verify_heap() {
 #endif
 
 file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc, u64 flags) {
-    u32 padding = calculate_padding_for_pointer_with_header(p, align, sizeof(allocation_header));
+    u32 padding          = calculate_padding_for_pointer_with_header(p, align, sizeof(allocation_header));
     u32 alignmentPadding = padding - sizeof(allocation_header);
 
     auto *result = (allocation_header *) ((char *) p + alignmentPadding);
@@ -242,9 +242,9 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc
 #endif
 
     result->Alloc = alloc;
-    result->Size = userSize;
+    result->Size  = userSize;
 
-    result->Alignment = align;
+    result->Alignment        = align;
     result->AlignmentPadding = alignmentPadding;
 
     //
@@ -292,7 +292,7 @@ file_scope void log_file_and_line(source_location loc) {
 
     auto line = loc.Line;
 
-    auto *numberP = number + 19;
+    auto *numberP  = number + 19;
     s64 numberSize = 0;
     {
         while (line) {
@@ -330,7 +330,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
 #endif
 
     if (Context.LogAllAllocations && !Context._LoggingAnAllocation) {
-        auto newContext = Context;
+        auto newContext                 = Context;
         newContext._LoggingAnAllocation = true;
 
         PUSH_CONTEXT(newContext) {
@@ -343,7 +343,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
     assert(is_pow_of_2(alignment));
 
-    s64 required = userSize + alignment + sizeof(allocation_header) + (sizeof(allocation_header) % alignment);
+    s64 required = userSize + alignment + sizeof(allocation_header) + sizeof(allocation_header) % alignment;
 #if defined DEBUG_MEMORY
     required += NO_MANS_LAND_SIZE;  // This is for the bytes after the requested block
 #endif
@@ -387,7 +387,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
 #endif
 
     if (Context.LogAllAllocations && !Context._LoggingAnAllocation) {
-        auto newContext = Context;
+        auto newContext                 = Context;
         newContext._LoggingAnAllocation = true;
 
         PUSH_CONTEXT(newContext) {
@@ -399,7 +399,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
 
     // The header stores the size of the requested allocation
     // (so the user code can look at the header and not be confused with garbage)
-    s64 extra = sizeof(allocation_header) + header->Alignment + (sizeof(allocation_header) % header->Alignment);
+    s64 extra = sizeof(allocation_header) + header->Alignment + sizeof(allocation_header) % header->Alignment;
 
     s64 oldUserSize = header->Size;
 
@@ -451,7 +451,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
         p = (void *) (newHeader + 1);
     } else {
         // The block was resized sucessfully and it doesn't need moving
-        assert(block == newBlock);  // Sanity
+        assert(block == newBlock); // Sanity
 
 #if defined DEBUG_MEMORY
         ++header->RID;
@@ -487,11 +487,11 @@ void general_free(void *ptr, u64 options) {
 
     auto *header = (allocation_header *) ptr - 1;
 
-    auto alloc = header->Alloc;
+    auto alloc  = header->Alloc;
     void *block = (char *) header - header->AlignmentPadding;
 
-    s64 extra = header->Alignment + sizeof(allocation_header) + (sizeof(allocation_header) % header->Alignment);
-    s64 size = header->Size + extra;
+    s64 extra = header->Alignment + sizeof(allocation_header) + sizeof(allocation_header) % header->Alignment;
+    s64 size  = header->Size + extra;
 
 #if defined DEBUG_MEMORY
     if (DEBUG_memory) {

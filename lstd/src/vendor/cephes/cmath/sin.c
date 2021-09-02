@@ -43,7 +43,7 @@
  * x > 2**49 = 5.6e14.  The routine as implemented flags a
  * TLOSS error for x > 2**30 and returns 0.0.
  */
-/*							cos.c
+ /*							cos.c
  *
  *	Circular cosine
  *
@@ -140,29 +140,29 @@ static unsigned short P3[] = {0021523,0011431,0105056,0001560,};
 
 #ifdef IBMPC
 static unsigned short sincof[] = {
-0x9ccd,0x1fd1,0xd8fd,0x3de5,
-0x1f5d,0xa929,0xe5e5,0xbe5a,
-0x48a1,0x567d,0x1de3,0x3ec7,
-0xdf03,0x19bf,0x01a0,0xbf2a,
-0xf7d0,0x1110,0x1111,0x3f81,
-0x5548,0x5555,0x5555,0xbfc5,
+    0x9ccd, 0x1fd1, 0xd8fd, 0x3de5,
+    0x1f5d, 0xa929, 0xe5e5, 0xbe5a,
+    0x48a1, 0x567d, 0x1de3, 0x3ec7,
+    0xdf03, 0x19bf, 0x01a0, 0xbf2a,
+    0xf7d0, 0x1110, 0x1111, 0x3f81,
+    0x5548, 0x5555, 0x5555, 0xbfc5,
 };
 static unsigned short coscof[24] = {
-0x1a9b,0xa086,0xfa49,0xbda8,
-0x3f05,0x7b4e,0xee9d,0x3e21,
-0x4bc6,0x7eac,0x7e4f,0xbe92,
-0x44f5,0x19c8,0x01a0,0x3efa,
-0x4f91,0x16c1,0xc16c,0xbf56,
-0x554b,0x5555,0x5555,0x3fa5,
+    0x1a9b, 0xa086, 0xfa49, 0xbda8,
+    0x3f05, 0x7b4e, 0xee9d, 0x3e21,
+    0x4bc6, 0x7eac, 0x7e4f, 0xbe92,
+    0x44f5, 0x19c8, 0x01a0, 0x3efa,
+    0x4f91, 0x16c1, 0xc16c, 0xbf56,
+    0x554b, 0x5555, 0x5555, 0x3fa5,
 };
 /*
   7.85398125648498535156E-1,
   3.77489470793079817668E-8,
   2.69515142907905952645E-15,
 */
-static unsigned short P1[] = {0x0000,0x4000,0x21fb,0x3fe9};
-static unsigned short P2[] = {0x0000,0x0000,0x442d,0x3e64};
-static unsigned short P3[] = {0x5170,0x98cc,0x4698,0x3ce8};
+static unsigned short P1[] = {0x0000, 0x4000, 0x21fb, 0x3fe9};
+static unsigned short P2[] = {0x0000, 0x0000, 0x442d, 0x3e64};
+static unsigned short P3[] = {0x5170, 0x98cc, 0x4698, 0x3ce8};
 #define DP1 *(double *)P1
 #define DP2 *(double *)P2
 #define DP3 *(double *)P3
@@ -194,12 +194,12 @@ static unsigned short P3[] = {0x3ce8,0x4698,0x98cc,0x5170};
 #endif
 
 #ifdef ANSIPROT
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern double floor ( double );
-extern double ldexp ( double, int );
-extern int isnan ( double );
-extern int isfinite ( double );
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern double floor(double);
+extern double ldexp(double, int);
+extern int isnan(double);
+extern int isfinite(double);
 #else
 double polevl(), floor(), ldexp();
 int isnan(), isfinite();
@@ -216,159 +216,138 @@ extern double INFINITY;
 #if INTRINSIC
 
 double sin(x)
-double x;
-{
-double y, z, zz;
-int j, sign;
+double x; {
+    double y, z, zz;
+    int j, sign;
 
 #ifdef MINUSZERO
-if( x == 0.0 )
-	return(x);
+    if (x == 0.0)
+        return x;
 #endif
 #ifdef NANS
-if( isnan(x) )
-	return(x);
-if( !isfinite(x) )
-	{
-	mtherr( "sin", DOMAIN );
-	return(NAN);
-	}
+    if (isnan(x))
+        return x;
+    if (!isfinite(x)) {
+        mtherr("sin", DOMAIN);
+        return NAN;
+    }
 #endif
-/* make argument positive but save the sign */
-sign = 1;
-if( x < 0 )
-	{
-	x = -x;
-	sign = -1;
-	}
+    /* make argument positive but save the sign */
+    sign = 1;
+    if (x < 0) {
+        x    = -x;
+        sign = -1;
+    }
 
-if( x > lossth )
-	{
-	mtherr( "sin", TLOSS );
-	return(0.0);
-	}
+    if (x > lossth) {
+        mtherr("sin", TLOSS);
+        return 0.0;
+    }
 
-y = floor( x/PIO4 ); /* integer part of x/PIO4 */
+    y = floor(x / PIO4); /* integer part of x/PIO4 */
 
-/* strip high bits of integer part to prevent integer overflow */
-z = ldexp( y, -4 );
-z = floor(z);           /* integer part of y/8 */
-z = y - ldexp( z, 4 );  /* y - 16 * (y/16) */
+    /* strip high bits of integer part to prevent integer overflow */
+    z = ldexp(y, -4);
+    z = floor(z);        /* integer part of y/8 */
+    z = y - ldexp(z, 4); /* y - 16 * (y/16) */
 
-j = z; /* convert to integer for tests on the phase angle */
-/* map zeros to origin */
-if( j & 1 )
-	{
-	j += 1;
-	y += 1.0;
-	}
-j = j & 07; /* octant modulo 360 degrees */
-/* reflect in x axis */
-if( j > 3)
-	{
-	sign = -sign;
-	j -= 4;
-	}
+    j = z; /* convert to integer for tests on the phase angle */
+    /* map zeros to origin */
+    if (j & 1) {
+        j += 1;
+        y += 1.0;
+    }
+    j = j & 07; /* octant modulo 360 degrees */
+    /* reflect in x axis */
+    if (j > 3) {
+        sign = -sign;
+        j -= 4;
+    }
 
-/* Extended precision modular arithmetic */
-z = ((x - y * DP1) - y * DP2) - y * DP3;
+    /* Extended precision modular arithmetic */
+    z = x - y * DP1 - y * DP2 - y * DP3;
 
-zz = z * z;
+    zz = z * z;
 
-if( (j==1) || (j==2) )
-	{
-	y = 1.0 - ldexp(zz,-1) + zz * zz * polevl( zz, coscof, 5 );
-	}
-else
-	{
-/*	y = z  +  z * (zz * polevl( zz, sincof, 5 ));*/
-	y = z  +  z * z * z * polevl( zz, sincof, 5 );
-	}
+    if (j == 1 || j == 2) {
+        y = 1.0 - ldexp(zz, -1) + zz * zz * polevl(zz, coscof, 5);
+    } else {
+        /*	y = z  +  z * (zz * polevl( zz, sincof, 5 ));*/
+        y = z + z * z * z * polevl(zz, sincof, 5);
+    }
 
-if(sign < 0)
-	y = -y;
+    if (sign < 0)
+        y = -y;
 
-return(y);
+    return y;
 }
-
-
-
 
 
 double cos(x)
-double x;
-{
-double y, z, zz;
-long i;
-int j, sign;
+double x; {
+    double y, z, zz;
+    long i;
+    int j, sign;
 
 #ifdef NANS
-if( isnan(x) )
-	return(x);
-if( !isfinite(x) )
-	{
-	mtherr( "cos", DOMAIN );
-	return(NAN);
-	}
+    if (isnan(x))
+        return x;
+    if (!isfinite(x)) {
+        mtherr("cos", DOMAIN);
+        return NAN;
+    }
 #endif
 
-/* make argument positive */
-sign = 1;
-if( x < 0 )
-	x = -x;
+    /* make argument positive */
+    sign = 1;
+    if (x < 0)
+        x = -x;
 
-if( x > lossth )
-	{
-	mtherr( "cos", TLOSS );
-	return(0.0);
-	}
+    if (x > lossth) {
+        mtherr("cos", TLOSS);
+        return 0.0;
+    }
 
-y = floor( x/PIO4 );
-z = ldexp( y, -4 );
-z = floor(z);		/* integer part of y/8 */
-z = y - ldexp( z, 4 );  /* y - 16 * (y/16) */
+    y = floor(x / PIO4);
+    z = ldexp(y, -4);
+    z = floor(z);        /* integer part of y/8 */
+    z = y - ldexp(z, 4); /* y - 16 * (y/16) */
 
-/* integer and fractional part modulo one octant */
-i = z;
-if( i & 1 )	/* map zeros to origin */
-	{
-	i += 1;
-	y += 1.0;
-	}
-j = i & 07;
-if( j > 3)
-	{
-	j -=4;
-	sign = -sign;
-	}
+    /* integer and fractional part modulo one octant */
+    i = z;
+    if (i & 1) /* map zeros to origin */
+    {
+        i += 1;
+        y += 1.0;
+    }
+    j = i & 07;
+    if (j > 3) {
+        j -= 4;
+        sign = -sign;
+    }
 
-if( j > 1 )
-	sign = -sign;
+    if (j > 1)
+        sign = -sign;
 
-/* Extended precision modular arithmetic */
-z = ((x - y * DP1) - y * DP2) - y * DP3;
+    /* Extended precision modular arithmetic */
+    z = x - y * DP1 - y * DP2 - y * DP3;
 
-zz = z * z;
+    zz = z * z;
 
-if( (j==1) || (j==2) )
-	{
-/*	y = z  +  z * (zz * polevl( zz, sincof, 5 ));*/
-	y = z  +  z * z * z * polevl( zz, sincof, 5 );
-	}
-else
-	{
-	y = 1.0 - ldexp(zz,-1) + zz * zz * polevl( zz, coscof, 5 );
-	}
+    if (j == 1 || j == 2) {
+        /*	y = z  +  z * (zz * polevl( zz, sincof, 5 ));*/
+        y = z + z * z * z * polevl(zz, sincof, 5);
+    } else {
+        y = 1.0 - ldexp(zz, -1) + zz * zz * polevl(zz, coscof, 5);
+    }
 
-if(sign < 0)
-	y = -y;
+    if (sign < 0)
+        y = -y;
 
-return(y);
+    return y;
 }
 
 #endif  // INTRINSIC
-
-
 
 
 /* Degrees, minutes, seconds to radians: */
@@ -381,10 +360,8 @@ static unsigned short P648[] = {034513,054170,0176773,0116043,};
 static double P64800 = 4.8481368110953599358991410e-5;
 #endif
 
-double radian(d,m,s)
-double d,m,s;
-{
+double radian(d, m, s)
+double d, m, s; {
 
-return( ((d*60.0 + m)*60.0 + s)*P64800 );
+    return ((d * 60.0 + m) * 60.0 + s) * P64800;
 }
-

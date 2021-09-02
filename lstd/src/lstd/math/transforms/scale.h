@@ -8,7 +8,9 @@ template <typename T, s64 Dim, bool Packed>
 struct scale_helper : non_copyable {
     vec<T, Dim, Packed> Scale;
 
-    scale_helper(const vec<T, Dim, Packed> &scale) : Scale(scale) {}
+    scale_helper(const vec<T, Dim, Packed> &scale)
+        : Scale(scale) {
+    }
 
     template <typename U, bool MPacked>
     operator mat<U, Dim + 1, Dim + 1, MPacked>() const {

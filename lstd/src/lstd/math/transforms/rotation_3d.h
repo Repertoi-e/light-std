@@ -11,7 +11,10 @@ struct rotation_3d_axis_helper : non_copyable {
     f32 Angle;
     s64 Axis;
 
-    rotation_3d_axis_helper(const T &angle, s64 axis) : Angle(angle), Axis(axis) {}
+    rotation_3d_axis_helper(const T &angle, s64 axis)
+        : Angle(angle),
+          Axis(axis) {
+    }
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 4, MPacked>() const {
@@ -131,7 +134,10 @@ struct rotation_3d_tri_axis_helper : non_copyable {
     stack_array<T, 3> Angles;
     stack_array<s64, 3> Axes;
 
-    rotation_3d_tri_axis_helper(stack_array<T, 3> angles, stack_array<s64, 3> axes) : Angles(angles), Axes(axes) {}
+    rotation_3d_tri_axis_helper(stack_array<T, 3> angles, stack_array<s64, 3> axes)
+        : Angles(angles),
+          Axes(axes) {
+    }
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 4, MPacked>() const {
@@ -160,7 +166,7 @@ struct rotation_3d_tri_axis_helper : non_copyable {
     template <typename U, s64 R, s64 C, bool MPacked>
     void set_impl(mat<U, R, C, MPacked> &m) const {
         using MatT = mat<U, 3, 3, MPacked>;
-        m.get_view<3, 3>(0, 0) =
+        m.get_view < 3, 3 > (0, 0) =
             dot(MatT(rotation_axis(Angles[0], Axes[0])),
                 dot(MatT(rotation_axis(Angles[1], Axes[1])), MatT(rotation_axis(Angles[2], Axes[2]))));
         For_as(j, range(m.C)) { For_as(i, range(j < 3 ? 3 : 0, m.R)) m(i, j) = U(j == i); }
@@ -205,7 +211,10 @@ struct rotation_3d_axis_angle_helper : non_copyable {
     const vec<T, 3, Packed> Axis;
     const T Angle;
 
-    rotation_3d_axis_angle_helper(const vec<T, 3, Packed> &axis, T angle) : Axis(axis), Angle(angle) {}
+    rotation_3d_axis_angle_helper(const vec<T, 3, Packed> &axis, T angle)
+        : Axis(axis),
+          Angle(angle) {
+    }
 
     template <typename U, bool MPacked>
     operator mat<U, 4, 4, MPacked>() const {
@@ -242,7 +251,7 @@ struct rotation_3d_axis_angle_helper : non_copyable {
         using RotMat = mat<U, 3, 3, Packed>;
         mat<U, 3, 1, Packed> u(Axis[0], Axis[1], Axis[2]);
         RotMat cross = {U(0), -u(2), u(1), u(2), U(0), -u(0), -u(1), u(0), U(0)};
-        RotMat rot = C * RotMat(identity()) + S * cross + (1 - C) * dot(u, ::T(u));
+        RotMat rot   = C * RotMat(identity()) + S * cross + (1 - C) * dot(u, ::T(u));
 
         // Elements
         For_as(j, range(3)) { For_as(i, range(3)) m(j, i) = rot(i, j); }
@@ -276,7 +285,7 @@ bool is_rotation_mat_3d(const mat<T, R, C, Packed> &m) {
 
     bool rowsOrthogonal = abs(dot(r[0], r[1])) + abs(dot(r[0], r[2])) + abs(dot(r[1], r[2])) < T(0.0005);
     bool rowsNormalized = is_normalized(r[0]) && is_normalized(r[1]) && is_normalized(r[2]);
-    bool properRotation = det(mat<T, 3, 3, Packed>(m.get_view<3, 3>(0, 0))) > 0;
+    bool properRotation = det(mat<T, 3, 3, Packed>(m.get_view < 3, 3 > (0, 0))) > 0;
     return rowsOrthogonal && rowsNormalized && properRotation;
 }
 
@@ -286,9 +295,11 @@ rotation_3d_axis_helper<T>::operator tquat<U, QPacked>() const {
     using QuatT = tquat<U, QPacked>;
     if (Axis == 0) {
         return QuatT(rotation_axis_angle(vec<U, 3, QPacked>(1, 0, 0), Angle));
-    } else if (Axis == 1) {
+    }
+    if (Axis == 1) {
         return QuatT(rotation_axis_angle(vec<U, 3, QPacked>(0, 1, 0), Angle));
-    } else if (Axis == 2) {
+    }
+    if (Axis == 2) {
         return QuatT(rotation_axis_angle(vec<U, 3, QPacked>(0, 0, 1), Angle));
     }
     assert(false);

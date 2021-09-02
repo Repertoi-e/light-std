@@ -15,7 +15,7 @@ import os;
 // and the programmer forgot their entry point.
 extern "C" int main_stub(int argc, char *argv[]) {
     debug_break();
-    (void) ("Did you forget to add an entry point to your program?");
+    (void) "Did you forget to add an entry point to your program?";
     return 666;
 }
 

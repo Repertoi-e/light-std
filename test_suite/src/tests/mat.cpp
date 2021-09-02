@@ -65,34 +65,34 @@ TEST(view) {
 
     mat<utf8, 5, 5> r = {'z', 'z', 'z', 'p', 'q', 'z', 'z', 'z', 'u', 'v', 'c', 'd', 'e', 'z', 'z', 'h', 'i', 'j', 'z', 'z', 'm', 'n', 'o', 'z', 'z'};
 
-    mat<utf8, 2, 2> sm = m1.get_view<2, 2>(3, 0);
+    mat<utf8, 2, 2> sm      = m1.get_view<2, 2>(3, 0);
     m2.get_view<3, 3>(2, 0) = m1.get_view<3, 3>(0, 2);
     m2.get_view<2, 2>(0, 3) = sm;
     assert_eq(m2, r);
 
     m2.col(4) = vec<f32, 5>('0');
-    r(0, 4) = r(1, 4) = r(2, 4) = r(3, 4) = r(4, 4) = '0';
+    r(0, 4)   = r(1, 4) = r(2, 4) = r(3, 4) = r(4, 4) = '0';
     assert_eq(m2, r);
 
-    vec<utf8, 3> v = m1.get_view<3, 1>(0, 0);
+    vec<utf8, 3> v  = m1.get_view<3, 1>(0, 0);
     vec<utf8, 3> vr = {'a', 'f', 'k'};
     assert_eq(v, vr);
-    v = m1.get_view<1, 3>(0, 0);
+    v  = m1.get_view<1, 3>(0, 0);
     vr = {'a', 'b', 'c'};
     assert_eq(v, vr);
 }
 
 TEST(mat_add) {
-    matf<3, 3> m1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    matf<3, 3> m2 = {7, 6, 5, 4, 3, 2, 1, 0, -1};
+    matf<3, 3> m1           = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    matf<3, 3> m2           = {7, 6, 5, 4, 3, 2, 1, 0, -1};
     decltype(m1 + m2) rexp1 = {8, 8, 8, 8, 8, 8, 8, 8, 8};
 
-    matf<4, 5> m3 = {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4};
-    matf<4, 5> m4 = {4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1};
+    matf<4, 5> m3           = {1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4};
+    matf<4, 5> m4           = {4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1};
     decltype(m3 + m4) rexp2 = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
 
-    matf<2, 2> m5 = {1, 2, 3, 4};
-    matf<2, 2> m6 = {4, 3, 2, 1};
+    matf<2, 2> m5           = {1, 2, 3, 4};
+    matf<2, 2> m6           = {4, 3, 2, 1};
     decltype(m5 + m6) rexp3 = {5, 5, 5, 5};
 
     assert_eq(m1 + m2, rexp1);
@@ -101,12 +101,12 @@ TEST(mat_add) {
 }
 
 TEST(mat_subtract) {
-    matf<3, 3> m1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    matf<3, 3> m2 = {2, 3, 4, 5, 6, 7, 8, 9, 10};
+    matf<3, 3> m1           = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    matf<3, 3> m2           = {2, 3, 4, 5, 6, 7, 8, 9, 10};
     decltype(m1 - m2) rexp1 = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
 
-    matf<2, 2> m3 = {1, 2, 3, 4};
-    matf<2, 2> m4 = {2, 3, 4, 5};
+    matf<2, 2> m3           = {1, 2, 3, 4};
+    matf<2, 2> m4           = {2, 3, 4, 5};
     decltype(m3 - m4) rexp2 = {-1, -1, -1, -1};
 
     assert_eq(m1 - m2, rexp1);
@@ -114,20 +114,20 @@ TEST(mat_subtract) {
 }
 
 TEST(mat_multiply_square) {
-    matf<2, 2> m2 = {1, 2, 3, 4};
-    matf<2, 2> n2 = {5, 6, 7, 8};
+    matf<2, 2> m2              = {1, 2, 3, 4};
+    matf<2, 2> n2              = {5, 6, 7, 8};
     decltype(dot(m2, n2)) exp2 = {19, 22, 43, 50};
 
     assert_eq(dot(m2, n2), exp2);
 
-    matf<3, 3> m = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    matf<3, 3> n = {5, 6, 8, 1, 3, 5, 7, 8, 4};
+    matf<3, 3> m            = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    matf<3, 3> n            = {5, 6, 8, 1, 3, 5, 7, 8, 4};
     decltype(dot(m, n)) exp = {28, 36, 30, 67, 87, 81, 106, 138, 132};
 
     assert_eq(dot(m, n), exp);
 
-    matf<5, 5> m5 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25};
-    matf<5, 5> n5 = {9, 8, 7, 6, 5, 4, 2, 7, 3, 5, 3, 6, 2, 7, 2, 9, 4, 1, 4, 7, 5, 7, 5, 5, 1};
+    matf<5, 5> m5              = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25};
+    matf<5, 5> n5              = {9, 8, 7, 6, 5, 4, 2, 7, 3, 5, 3, 6, 2, 7, 2, 9, 4, 1, 4, 7, 5, 7, 5, 5, 1};
     decltype(dot(m5, n5)) exp5 = {87, 81, 56, 74, 54, 237, 216, 166, 199, 154, 387, 351, 276, 324, 254, 537, 486, 386, 449, 354, 687, 621, 496, 574, 454};
 
     assert_eq(dot(m5, n5), exp5);
@@ -262,18 +262,18 @@ TEST(vec_implicit_homogeneous_multiply) {
 
 TEST(trace) {
     matf<3, 3> m = {1, 3, 2, 4, 5, 6, 7, 8, 9};
-    auto t = trace(m);
+    auto t       = trace(m);
 
     assert_eq(approx(t), 15.f);
 
     matf<5, 5> m5 = {5, 7, 3, 6, 4, 4, 7, 4, 6, 3, 6, 2, 8, 9, 7, 1, 2, 7, 4, 8, 5, 9, 7, 1, 5};
-    t = trace(m5);
+    t             = trace(m5);
     assert_eq(approx(t), 29.0f);
 }
 
 TEST(transpose) {
-    matf<4, 2> m = {1, 2, 3, 4, 5, 6, 7, 8};
-    matf<2, 4> mT = T(m);
+    matf<4, 2> m    = {1, 2, 3, 4, 5, 6, 7, 8};
+    matf<2, 4> mT   = T(m);
     matf<2, 4> mexp = {1, 3, 5, 7, 2, 4, 6, 8};
 
     assert_eq(mT, mexp);
@@ -296,29 +296,29 @@ TEST(det) {
 }
 
 TEST(inverse_small) {
-    matf<2, 2> m2 = {1, 3, 4, 5};
-    matf<2, 2> mI2 = inverse(m2);
+    matf<2, 2> m2    = {1, 3, 4, 5};
+    matf<2, 2> mI2   = inverse(m2);
     matf<2, 2> mexp2 = {-0.714286, 0.428571, 0.571429, -0.142857};
 
     assert_eq(approx_vec(mI2), mexp2);
 
-    matf<3, 3> m3 = {1, 3, 2, 4, 5, 6, 7, 8, 9};
-    matf<3, 3> mI3 = inverse(m3);
+    matf<3, 3> m3    = {1, 3, 2, 4, 5, 6, 7, 8, 9};
+    matf<3, 3> mI3   = inverse(m3);
     matf<3, 3> mexp3 = {-0.333333, -1.222222, 0.888889, 0.666667, -0.555556, 0.222222, -0.333333, 1.444444, -0.777778};
 
     assert_eq(approx_vec(mI3), mexp3);
 
-    matf<4, 4> m4 = {1, 3, 2, 1, 4, 5, 6, 2, 7, 8, 9, 3, 1, 2, 3, 4};
-    matf<4, 4> mI4 = inverse(m4);
+    matf<4, 4> m4    = {1, 3, 2, 1, 4, 5, 6, 2, 7, 8, 9, 3, 1, 2, 3, 4};
+    matf<4, 4> mI4   = inverse(m4);
     matf<4, 4> mexp4 = {-0.333333, -1.296296, 0.925926, 0.037037, 0.666667, -0.407407, 0.148148, -0.074074, -0.333333, 1.592593, -0.851852, -0.074074, 0, -0.666667, 0.333333, 0.333333};
 
     assert_eq(approx_vec(mI4), mexp4);
 }
 
 TEST(inverse) {
-    matf<5, 5> n = {1, 56, 8, 4, 3, 4, 2, 7, 8, 4, 1, 5, 7, 4, 3, 9, 5, 3, 8, 4, 7, 2, 83, 46, 4};
-    matf<5, 5> nI = inverse(n);
-    matf<5, 5> iden = dot(n, nI);
+    matf<5, 5> n       = {1, 56, 8, 4, 3, 4, 2, 7, 8, 4, 1, 5, 7, 4, 3, 9, 5, 3, 8, 4, 7, 2, 83, 46, 4};
+    matf<5, 5> nI      = inverse(n);
+    matf<5, 5> iden    = dot(n, nI);
     matf<5, 5> idenexp = identity();
 
     assert_eq(approx_vec(idenexp), iden);
@@ -407,8 +407,8 @@ TEST(lup_decomposition_singular) {
 
 TEST(qr_decomposition) {
     // example from wikipedia SVD article
-    matf<5, 4> A1 = T(matf<4, 5>{1, 0, 0, 1, 2, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0});
-    auto [Q1, R1] = decompose_qr(A1);
+    matf<5, 4> A1          = T(matf<4, 5>{1, 0, 0, 1, 2, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0});
+    auto [Q1, R1]          = decompose_qr(A1);
     matf<5, 4> A1assembled = dot(Q1, R1);
     assert_eq(approx_vec(A1assembled), A1);
 
@@ -422,19 +422,19 @@ TEST(qr_decomposition) {
 }
 
 TEST(transform_identity) {
-    matf<3, 3> m = identity();
+    matf<3, 3> m    = identity();
     matf<3, 3> mexp = {1, 0, 0, 0, 1, 0, 0, 0, 1};
 
     assert_eq(m, mexp);
 
-    matf<3, 5> m5 = identity();
+    matf<3, 5> m5    = identity();
     matf<3, 5> mexp5 = {1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0};
 
     assert_eq(m5, mexp5);
 }
 
 TEST(transform_zero) {
-    matf<3, 4> m = zero();
+    matf<3, 4> m    = zero();
     matf<3, 4> mexp = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     assert_eq(m, mexp);
@@ -454,43 +454,43 @@ TEST(transform_rotation_2d) {
 }
 
 TEST(transform_rotation_principal) {
-    matf<3, 3> m33 = rotation_x(1.f);
+    matf<3, 3> m33    = rotation_x(1.f);
     matf<3, 3> m33exp = {1.000000, 0.000000, 0.000000, 0.000000, 0.540302, 0.841471, 0.000000, -0.841471, 0.540302};
     assert_eq(approx_vec(m33), m33exp);
 
-    matf<4, 3> m43 = rotation_y(1.f);
+    matf<4, 3> m43    = rotation_y(1.f);
     matf<4, 3> m43exp = {0.540302, 0.000000, -0.841471, 0.000000, 1.000000, 0.000000, 0.841471, 0.000000, 0.540302, 0, 0, 0};
     assert_eq(approx_vec(m43), m43exp);
 
-    matf<4, 4> m44 = rotation_z(1.f);
+    matf<4, 4> m44    = rotation_z(1.f);
     matf<4, 4> m44exp = {0.540302, 0.841471, 0.000000, 0, -0.841471, 0.540302, 0.000000, 0, 0.000000, 0.000000, 1.000000, 0, 0, 0, 0, 1};
     assert_eq(approx_vec(m44), m44exp);
 }
 
 TEST(transform_rotation_tri_axis) {
-    matf<3, 3> m33 = rotation_axis_3<0, 1, 1>(1.f, 1.0f, -1.0f);
+    matf<3, 3> m33    = rotation_axis_3<0, 1, 1>(1.f, 1.0f, -1.0f);
     matf<3, 3> m33exp = {1.000000, 0.000000, 0.000000, 0.000000, 0.540302, 0.841471, 0.000000, -0.841471, 0.540302};
     assert_eq(approx_vec(m33), m33exp);
 
-    matf<4, 3> m43 = rotation_axis_3<0, 1, 2>(0.0f, 1.f, 0.0f);
+    matf<4, 3> m43    = rotation_axis_3<0, 1, 2>(0.0f, 1.f, 0.0f);
     matf<4, 3> m43exp = {0.540302, 0.000000, -0.841471, 0.000000, 1.000000, 0.000000, 0.841471, 0.000000, 0.540302, 0, 0, 0};
     assert_eq(approx_vec(m43), m43exp);
 
-    matf<4, 4> m44 = rotation_axis_3<0, 0, 2>(-1.0f, 1.0f, 1.f);
+    matf<4, 4> m44    = rotation_axis_3<0, 0, 2>(-1.0f, 1.0f, 1.f);
     matf<4, 4> m44exp = {0.540302, 0.841471, 0.000000, 0, -0.841471, 0.540302, 0.000000, 0, 0.000000, 0.000000, 1.000000, 0, 0, 0, 0, 1};
     assert_eq(approx_vec(m44), m44exp);
 }
 
 TEST(transform_rotation_axis_angle) {
-    matf<3, 3> m33 = rotation_axis_angle(normalize(vec<f32, 3>(1, 2, 3)), 1.0f);
+    matf<3, 3> m33    = rotation_axis_angle(normalize(vec<f32, 3>(1, 2, 3)), 1.0f);
     matf<3, 3> m33exp = {0.573138, 0.740349, -0.351279, -0.609007, 0.671645, 0.421906, 0.548292, -0.027879, 0.835822};
     assert_eq(approx_vec(m33), m33exp);
 
-    matf<4, 3> m43 = rotation_axis_angle(normalize(vec<f32, 3>(1, 2, 3)), 1.0f);
+    matf<4, 3> m43    = rotation_axis_angle(normalize(vec<f32, 3>(1, 2, 3)), 1.0f);
     matf<4, 3> m43exp = {0.573138, 0.740349, -0.351279, -0.609007, 0.671645, 0.421906, 0.548292, -0.027879, 0.835822, 0, 0, 0};
     assert_eq(approx_vec(m43), m43exp);
 
-    matf<4, 4> m44 = rotation_axis_angle(normalize(vec<f32, 3>(1, 2, 3)), 1.0f);
+    matf<4, 4> m44    = rotation_axis_angle(normalize(vec<f32, 3>(1, 2, 3)), 1.0f);
     matf<4, 4> m44exp = {0.573138, 0.740349, -0.351279, 0, -0.609007, 0.671645, 0.421906, 0, 0.548292, -0.027879, 0.835822, 0, 0, 0, 0, 1};
     assert_eq(approx_vec(m44), m44exp);
 }
@@ -510,13 +510,13 @@ TEST(transform_scale) {
 }
 
 TEST(transform_translation) {
-    matf<3, 3> m2d_33a = translation(1, 2);
-    matf<3, 3> m2d_33b = translation(vec<f32, 2, false>(1, 2));
+    matf<3, 3> m2d_33a   = translation(1, 2);
+    matf<3, 3> m2d_33b   = translation(vec<f32, 2, false>(1, 2));
     matf<3, 3> m2d_33exp = {1, 0, 0, 0, 1, 0, 1, 2, 1};
     assert_eq(approx_vec(m2d_33a), m2d_33exp);
     assert_eq(approx_vec(m2d_33b), m2d_33exp);
 
-    matf<3, 2> m2d_32 = translation(1, 2);
+    matf<3, 2> m2d_32    = translation(1, 2);
     matf<3, 2> m2d_32exp = {1, 0, 0, 1, 1, 2};
     assert_eq(approx_vec(m2d_32), m2d_32exp);
 
@@ -536,7 +536,7 @@ TEST(transform_orthographic) {
     Vec ndcFrustum[2];
 
     // Z forward
-    matf<4, 4> m = orthographic(VecF(worldFrustum[0]), VecF(worldFrustum[1]), 0.f, 1.f);
+    matf<4, 4> m  = orthographic(VecF(worldFrustum[0]), VecF(worldFrustum[1]), 0.f, 1.f);
     ndcFrustum[0] = dot(worldFrustum[0], m);
     ndcFrustum[1] = dot(worldFrustum[1], m);
 
@@ -580,11 +580,11 @@ TEST(transform_view) {
     stack_array<Vec, 6> worldVecs;
     For(range(6)) worldVecs[it] = basis.express(viewVecs[it]);
 
-    vec<f32, 3, false> eye = basis.Center;
+    vec<f32, 3, false> eye    = basis.Center;
     vec<f32, 3, false> target = basis.Center + 2 * basis.Basis1;
-    vec<f32, 3, false> up = normalize(basis.Basis3 + f32(0.1) * basis.Basis1);
+    vec<f32, 3, false> up     = normalize(basis.Basis3 + f32(0.1) * basis.Basis1);
 
-    matf<4, 4> m = look_at(eye, target, up, true, false, false);
+    matf<4, 4> m    = look_at(eye, target, up, true, false, false);
     matf<4, 4> mfff = look_at(eye, target, up, false, false, false);
     matf<4, 4> mftf = look_at(eye, target, up, false, true, false);
     matf<4, 4> mftt = look_at(eye, target, up, false, true, true);

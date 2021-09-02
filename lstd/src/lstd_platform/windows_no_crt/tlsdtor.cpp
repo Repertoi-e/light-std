@@ -51,7 +51,7 @@ static __declspec(thread) TlsDtorNode dtor_list_head;
 int __cdecl __tlregdtor(
     _PVFV func) {
     if (dtor_list == nullptr) {
-        dtor_list = &dtor_list_head;
+        dtor_list            = &dtor_list_head;
         dtor_list_head.count = 0;
     } else if (dtor_list->count == FUNCS_PER_NODE) {
         auto *pnode = (TlsDtorNode *) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(TlsDtorNode) * 1);
@@ -59,8 +59,8 @@ int __cdecl __tlregdtor(
             return -1;
         }
         pnode->count = 0;
-        pnode->next = dtor_list;
-        dtor_list = pnode;
+        pnode->next  = dtor_list;
+        dtor_list    = pnode;
         /* this helps prefast make sure dtor_list->count is 0 */
         dtor_list->count = 0;
     }

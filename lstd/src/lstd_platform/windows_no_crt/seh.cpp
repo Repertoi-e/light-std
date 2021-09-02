@@ -1,4 +1,4 @@
-#include "lstd/common/windows.h"  
+#include "lstd/common/windows.h"
 
 extern "C" {
 // This is needed for SEH exceptions
@@ -13,7 +13,7 @@ __C_specific_handler(
 
     if (!FunctionPtr) {
         HMODULE Library = LoadLibraryW(L"msvcrt.dll");
-        FunctionPtr = (Function *) GetProcAddress(Library, "__C_specific_handler");
+        FunctionPtr     = (Function *) GetProcAddress(Library, "__C_specific_handler");
     }
 
     return FunctionPtr(ExceptionRecord, EstablisherFrame, ContextRecord, DispatcherContext);

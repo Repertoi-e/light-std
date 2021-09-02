@@ -13,14 +13,14 @@ import os;
 #endif
 
 // Define these as nullptr
-extern "C" _CRTALLOC(".CRT$XIA") _PIFV __xi_a[] = {nullptr};  // C initializers (first)
-extern "C" _CRTALLOC(".CRT$XIZ") _PIFV __xi_z[] = {nullptr};  // C initializers (last)
-extern "C" _CRTALLOC(".CRT$XCA") _PVFV __xc_a[] = {nullptr};  // C++ initializers (first)
-extern "C" _CRTALLOC(".CRT$XCZ") _PVFV __xc_z[] = {nullptr};  // C++ initializers (last)
-extern "C" _CRTALLOC(".CRT$XPA") _PVFV __xp_a[] = {nullptr};  // C pre-terminators (first)
-extern "C" _CRTALLOC(".CRT$XPZ") _PVFV __xp_z[] = {nullptr};  // C pre-terminators (last)
-extern "C" _CRTALLOC(".CRT$XTA") _PVFV __xt_a[] = {nullptr};  // C terminators (first)
-extern "C" _CRTALLOC(".CRT$XTZ") _PVFV __xt_z[] = {nullptr};  // C terminators (last)
+extern "C" _CRTALLOC(".CRT$XIA") _PIFV __xi_a[] = {nullptr}; // C initializers (first)
+extern "C" _CRTALLOC(".CRT$XIZ") _PIFV __xi_z[] = {nullptr}; // C initializers (last)
+extern "C" _CRTALLOC(".CRT$XCA") _PVFV __xc_a[] = {nullptr}; // C++ initializers (first)
+extern "C" _CRTALLOC(".CRT$XCZ") _PVFV __xc_z[] = {nullptr}; // C++ initializers (last)
+extern "C" _CRTALLOC(".CRT$XPA") _PVFV __xp_a[] = {nullptr}; // C pre-terminators (first)
+extern "C" _CRTALLOC(".CRT$XPZ") _PVFV __xp_z[] = {nullptr}; // C pre-terminators (last)
+extern "C" _CRTALLOC(".CRT$XTA") _PVFV __xt_a[] = {nullptr}; // C terminators (first)
+extern "C" _CRTALLOC(".CRT$XTZ") _PVFV __xt_z[] = {nullptr}; // C terminators (last)
 
 // Commented out the stuff we don't care about.
 // Turns out we commented the entire function.
@@ -158,9 +158,9 @@ extern "C" void main_no_crt() {
     //
     // When we link with the CRT (and don't compile all this stub code) we put these in the in linker tables. 
     // See e.g. windows_common.cpp
-    
+
     // :PlatformStateInit
-    LSTD_NAMESPACE::internal::platform_init_context();  // This prepares the global thread-local immutable Context variable (see "lstd/common/context.h")
+    LSTD_NAMESPACE::internal::platform_init_context(); // This prepares the global thread-local immutable Context variable (see "lstd/common/context.h")
     LSTD_NAMESPACE::internal::platform_init_global_state();
     LSTD_NAMESPACE::win64_crash_handler_init();
 
@@ -172,7 +172,7 @@ extern "C" void main_no_crt() {
     lstd_initterm(__xc_a, __xc_z);
 
     // Defined in tls.cpp.
-    extern bool __cdecl __scrt_is_nonwritable_in_current_image(void const *const target);
+    extern bool __cdecl __scrt_is_nonwritable_in_current_image(void const *target);
 
     // * If this module has any dynamically initialized __declspec(thread) (thread local) variables,
     // * then we invoke their initialization for the primary thread used to start the process:

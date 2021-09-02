@@ -35,7 +35,7 @@
  * tan total loss   x > 1.073741824e9     0.0
  *
  */
-/*							cot.c
+ /*							cot.c
  *
  *	Circular cotangent
  *
@@ -127,25 +127,25 @@ static double lossth = 1.073741824e9;
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0x3f38,0xd24f,0x92d8,0xc0c9,
-0x9ddd,0xa5fc,0x99ec,0x4131,
-0x9176,0xd329,0x1fea,0xc171
+    0x3f38, 0xd24f, 0x92d8, 0xc0c9,
+    0x9ddd, 0xa5fc, 0x99ec, 0x4131,
+    0x9176, 0xd329, 0x1fea, 0xc171
 };
 static unsigned short Q[] = {
-/*0x0000,0x0000,0x0000,0x3ff0,*/
-0x6572,0xeeb3,0xb8a5,0x40ca,
-0xbc96,0x582a,0x27bc,0xc134,
-0xd8ef,0xc2ea,0xd98f,0x4177,
-0x5a31,0x3cbe,0xafe0,0xc189
+    /*0x0000,0x0000,0x0000,0x3ff0,*/
+    0x6572, 0xeeb3, 0xb8a5, 0x40ca,
+    0xbc96, 0x582a, 0x27bc, 0xc134,
+    0xd8ef, 0xc2ea, 0xd98f, 0x4177,
+    0x5a31, 0x3cbe, 0xafe0, 0xc189
 };
 /*
   7.85398125648498535156E-1,
   3.77489470793079817668E-8,
   2.69515142907905952645E-15,
 */
-static unsigned short P1[] = {0x0000,0x4000,0x21fb,0x3fe9};
-static unsigned short P2[] = {0x0000,0x0000,0x442d,0x3e64};
-static unsigned short P3[] = {0x5170,0x98cc,0x4698,0x3ce8};
+static unsigned short P1[] = {0x0000, 0x4000, 0x21fb, 0x3fe9};
+static unsigned short P2[] = {0x0000, 0x0000, 0x442d, 0x3e64};
+static unsigned short P3[] = {0x5170, 0x98cc, 0x4698, 0x3ce8};
 #define DP1 *(double *)P1
 #define DP2 *(double *)P2
 #define DP3 *(double *)P3
@@ -180,12 +180,12 @@ static double lossth = 1.073741824e9;
 #endif
 
 #ifdef ANSIPROT
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern double floor ( double );
-extern double ldexp ( double, int );
-extern int isnan ( double );
-extern int isfinite ( double );
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern double floor(double);
+extern double ldexp(double, int);
+extern int isnan(double);
+extern int isfinite(double);
 static double tancot(double, int);
 #else
 double polevl(), p1evl(), floor(), ldexp();
@@ -199,110 +199,97 @@ extern double NAN;
 #if INTRINSIC
 
 double tan(x)
-double x;
-{
+double x; {
 #ifdef MINUSZERO
-if( x == 0.0 )
-	return(x);
+    if (x == 0.0)
+        return x;
 #endif
 #ifdef NANS
-if( isnan(x) )
-	return(x);
-if( !isfinite(x) )
-	{
-	mtherr( "tan", DOMAIN );
-	return(NAN);
-	}
+    if (isnan(x))
+        return x;
+    if (!isfinite(x)) {
+        mtherr("tan", DOMAIN);
+        return NAN;
+    }
 #endif
-return( tancot(x,0) );
+    return tancot(x, 0);
 }
 
 
 double cot(x)
-double x;
-{
+double x; {
 
-if( x == 0.0 )
-	{
-	mtherr( "cot", SING );
-	return( INFINITY );
-	}
-return( tancot(x,1) );
+    if (x == 0.0) {
+        mtherr("cot", SING);
+        return INFINITY;
+    }
+    return tancot(x, 1);
 }
 
 
-static double tancot( xx, cotflg )
+static double tancot(xx, cotflg)
 double xx;
-int cotflg;
-{
-double x, y, z, zz;
-int j, sign;
+int cotflg; {
+    double x, y, z, zz;
+    int j, sign;
 
-/* make argument positive but save the sign */
-if( xx < 0 )
-	{
-	x = -xx;
-	sign = -1;
-	}
-else
-	{
-	x = xx;
-	sign = 1;
-	}
+    /* make argument positive but save the sign */
+    if (xx < 0) {
+        x    = -xx;
+        sign = -1;
+    } else {
+        x    = xx;
+        sign = 1;
+    }
 
-if( x > lossth )
-	{
-	if( cotflg )
-		mtherr( "cot", TLOSS );
-	else
-		mtherr( "tan", TLOSS );
-	return(0.0);
-	}
+    if (x > lossth) {
+        if (cotflg)
+            mtherr("cot", TLOSS);
+        else
+            mtherr("tan", TLOSS);
+        return 0.0;
+    }
 
-/* compute x mod PIO4 */
-y = floor( x/PIO4 );
+    /* compute x mod PIO4 */
+    y = floor(x / PIO4);
 
-/* strip high bits of integer part */
-z = ldexp( y, -3 );
-z = floor(z);		/* integer part of y/8 */
-z = y - ldexp( z, 3 );  /* y - 16 * (y/16) */
+    /* strip high bits of integer part */
+    z = ldexp(y, -3);
+    z = floor(z);        /* integer part of y/8 */
+    z = y - ldexp(z, 3); /* y - 16 * (y/16) */
 
-/* integer and fractional part modulo one octant */
-j = z;
+    /* integer and fractional part modulo one octant */
+    j = z;
 
-/* map zeros and singularities to origin */
-if( j & 1 )
-	{
-	j += 1;
-	y += 1.0;
-	}
+    /* map zeros and singularities to origin */
+    if (j & 1) {
+        j += 1;
+        y += 1.0;
+    }
 
-z = ((x - y * DP1) - y * DP2) - y * DP3;
+    z = x - y * DP1 - y * DP2 - y * DP3;
 
-zz = z * z;
+    zz = z * z;
 
-if( zz > 1.0e-14 )
-	y = z  +  z * (zz * polevl( zz, P, 2 )/p1evl(zz, Q, 4));
-else
-	y = z;
-	
-if( j & 2 )
-	{
-	if( cotflg )
-		y = -y;
-	else
-		y = -1.0/y;
-	}
-else
-	{
-	if( cotflg )
-		y = 1.0/y;
-	}
+    if (zz > 1.0e-14)
+        y = z + z * (zz * polevl(zz, P, 2) / p1evl(zz, Q, 4));
+    else
+        y = z;
 
-if( sign < 0 )
-	y = -y;
+    if (j & 2) {
+        if (cotflg)
+            y = -y;
+        else
+            y = -1.0 / y;
+    } else {
+        if (cotflg)
+            y = 1.0 / y;
+    }
 
-return( y );
+    if (sign < 0)
+        y = -y;
+
+    return y;
 }
 
 #endif  // INTRINSIC

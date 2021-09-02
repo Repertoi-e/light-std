@@ -32,12 +32,14 @@ LSTD_BEGIN_NAMESPACE
 // Maximum size of an allocation we will attemp to request
 #define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0  // Around 16384 PiB
 
-enum class allocator_mode { ADD_POOL = 0,
-                            REMOVE_POOL,
-                            ALLOCATE,
-                            RESIZE,
-                            FREE,
-                            FREE_ALL };
+enum class allocator_mode {
+    ADD_POOL = 0,
+    REMOVE_POOL,
+    ALLOCATE,
+    RESIZE,
+    FREE,
+    FREE_ALL
+};
 
 // This is an option when allocating.
 // Allocations marked explicitly as leaks don't get reported with DEBUG_memory->report_leaks().
@@ -80,13 +82,16 @@ constexpr u64 LEAK = 1ull << 63;
 //
 // We do this so custom allocator implementations can be kept as simple as possible.
 // For examples see how we implement the arena allocator, pool allocator, tlsf (two-level segmented fit), etc.
-using allocator_func_t = void *(*) (allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
+using allocator_func_t = void *(*)(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
 
 struct allocator {
     allocator_func_t Function;
     void *Context;
 
-    allocator(allocator_func_t function = null, void *context = null) : Function(function), Context(context) {}
+    allocator(allocator_func_t function = null, void *context = null)
+        : Function(function),
+          Context(context) {
+    }
 
     bool operator==(allocator other) const { return Function == other.Function && Context == other.Context; }
     bool operator!=(allocator other) const { return Function != other.Function || Context != other.Context; }
@@ -193,8 +198,8 @@ struct allocation_header {
     //   ...[..Alignment padding..][............Header..................]............
     //      ^ The pointer returned by the allocator implementation       ^ The resulting pointer (aligned)
     //
-    u16 Alignment;         // We allow a maximum of 65535 bit (8191 byte) alignment
-    u16 AlignmentPadding;  // Offset from the block that needs to be there in order for the result to be aligned
+    u16 Alignment;        // We allow a maximum of 65535 bit (8191 byte) alignment
+    u16 AlignmentPadding; // Offset from the block that needs to be there in order for the result to be aligned
 
 #if defined DEBUG_MEMORY
     // When allocating we can mark the next allocation as a leak.
@@ -219,7 +224,7 @@ struct allocation_header {
 // Calculates the required padding in bytes which needs to be added to _ptr_ in order to be aligned
 inline u16 calculate_padding_for_pointer(void *ptr, s32 alignment) {
     assert(alignment > 0 && is_pow_of_2(alignment));
-    return (u16)((((u64) ptr + (alignment - 1)) & -alignment) - (u64) ptr);
+    return (u16) (((u64) ptr + (alignment - 1) & -alignment) - (u64) ptr);
 }
 
 // Like calculate_padding_for_pointer but padding must be at least the header size
@@ -228,7 +233,7 @@ inline u16 calculate_padding_for_pointer_with_header(void *ptr, s32 alignment, u
     if (padding < headerSize) {
         headerSize -= padding;
         if (headerSize % alignment) {
-            padding += alignment * (1 + (headerSize / alignment));
+            padding += alignment * (1 + headerSize / alignment);
         } else {
             padding += alignment * (headerSize / alignment);
         }
@@ -264,9 +269,9 @@ struct debug_memory {
     // want to debug crashes/bugs related to memory. (I had to debug a bug with loading/unloading DLLs during runtime).
     bool CheckForLeaksAtTermination = false;
 
-    void unlink_header(allocation_header *header);                                 // Removes a header from the list
-    void add_header(allocation_header *header);                                    // This adds the header to the front - making it the new head
-    void swap_header(allocation_header *oldHeader, allocation_header *newHeader);  // Replaces _oldHeader_ with _newHeader_ in the list
+    void unlink_header(allocation_header *header);                                // Removes a header from the list
+    void add_header(allocation_header *header);                                   // This adds the header to the front - making it the new head
+    void swap_header(allocation_header *oldHeader, allocation_header *newHeader); // Replaces _oldHeader_ with _newHeader_ in the list
 
     // Assuming that the heap is not corrupted, this reports any unfreed allocations.
     // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
@@ -353,7 +358,7 @@ inline bool allocator_pool_initialize(void *block, s64 size) {
 inline void allocator_pool_add_to_linked_list(allocator_pool **base, allocator_pool *pool) {
     // @Cleanup Make macros for linked lists (don't make a data structure, that's over-abstraction).
     // Then we can get rid of this function as well.
-    if (!(*base)) {
+    if (!*base) {
         *base = pool;
     } else {
         auto *it = *base;
@@ -366,15 +371,15 @@ inline void *allocator_pool_remove_from_linked_list(allocator_pool **base, alloc
     // @Cleanup Make macros for linked lists (don't make a data structure, that's over-abstraction).
     // Then we can get rid of this function as well.
 
-    if (!(*base)) {
+    if (!*base) {
         assert(false && "No pools have been added yet");
         return null;
     }
 
-    allocator_pool *it = (*base), *prev = null;
+    allocator_pool *it = *base, *prev = null;
     while (it != pool && it->Next) {
         prev = it;
-        it = it->Next;
+        it   = it->Next;
     }
 
     if (it != pool) {
@@ -385,7 +390,7 @@ inline void *allocator_pool_remove_from_linked_list(allocator_pool **base, alloc
     if (prev) {
         prev->Next = it->Next;
     } else {
-        (*base) = (*base)->Next;
+        *base = (*base)->Next;
     }
 
     return it;
@@ -451,7 +456,7 @@ inline void *allocator_pool_remove_from_linked_list(allocator_pool **base, alloc
 //
 
 struct tlsf_allocator_data {
-    tlsf_t State = null;  // We use a vendor library that implements the algorithm.
+    tlsf_t State = null; // We use a vendor library that implements the algorithm.
 };
 
 // Two-Level Segregated Fit memory allocator implementation. Wrapper around tlsf.h/cpp (in vendor folder),
@@ -474,10 +479,10 @@ void *tlsf_allocator(allocator_mode mode, void *context, s64 size, void *oldMemo
 //
 
 struct arena_allocator_data {
-    allocator_pool *Base = null;  // Linked list of pools, see arena_allocator.cpp for example usage of the helper routines we provide to manage this.
-                                  // Of course, you can implement an entirely different way to store pools in your custom allocator!
+    allocator_pool *Base = null; // Linked list of pools, see arena_allocator.cpp for example usage of the helper routines we provide to manage this.
+    // Of course, you can implement an entirely different way to store pools in your custom allocator!
     s64 PoolsCount = 0;
-    s64 TotalUsed = 0;
+    s64 TotalUsed  = 0;
 };
 
 //

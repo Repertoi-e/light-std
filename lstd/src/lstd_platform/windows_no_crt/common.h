@@ -1,8 +1,8 @@
 #pragma once
 
-typedef void(__cdecl *_PVFV)(void);
-typedef int(__cdecl *_PIFV)(void);
-typedef void(__cdecl *_PVFI)(int);
+typedef void (__cdecl *_PVFV)(void);
+typedef int (__cdecl *_PIFV)(void);
+typedef void (__cdecl *_PVFI)(int);
 
 // These tables are filled by the linker and are usually called before the main function by the CRT.
 // Since we don't have the CRT we have to call them manually.
@@ -60,8 +60,8 @@ typedef void(__cdecl *_PVFI)(int);
 #pragma comment(linker, "/merge:.CRT=.rdata")
 
 // We prefix these with "lstd_" because Windows.h includes corecrt_startup.h with declares _initterm_ and _initterm_e_ as dllimport. Sigh. 
-extern "C" void __cdecl lstd_initterm(_PVFV *const first, _PVFV *const last);
-extern "C" int __cdecl lstd_initterm_e(_PIFV *const first, _PIFV *const last);
+extern "C" void __cdecl lstd_initterm(_PVFV *first, _PVFV *last);
+extern "C" int __cdecl lstd_initterm_e(_PIFV *first, _PIFV *last);
 
 // Taken from "ucrt/process.h":
-typedef void(__stdcall *_tls_callback_type)(void *, unsigned long, void *);
+typedef void (__stdcall *_tls_callback_type)(void *, unsigned long, void *);

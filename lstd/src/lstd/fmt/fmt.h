@@ -53,7 +53,7 @@ struct formatter<guid> {
         }
 
         bool upper = is_upper(type);
-        type = (char) to_lower(type);
+        type       = (char) to_lower(type);
 
         if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
             f->on_error("Invalid type specifier for a guid", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
@@ -61,27 +61,25 @@ struct formatter<guid> {
         }
 
         utf32 openParenthesis = 0, closedParenthesis = 0;
-        bool hyphen = true;
+        bool hyphen           = true;
 
         if (type == 'n') {
             hyphen = false;
         } else if (type == 'b') {
-            openParenthesis = '{';
+            openParenthesis   = '{';
             closedParenthesis = '}';
         } else if (type == 'p') {
-            openParenthesis = '(';
+            openParenthesis   = '(';
             closedParenthesis = ')';
         } else if (type == 'x') {
             auto *old = f->Specs;
-            f->Specs = null;
+            f->Specs  = null;
 
             u8 *p = (u8 *) src.Data.Data;
             if (upper) {
-                fmt_to_writer(f, "{{{:#04X}{:02X}{:02X}{:02X},{:#04X}{:02X},{:#04X}{:02X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}",
-                              p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
+                fmt_to_writer(f, "{{{:#04X}{:02X}{:02X}{:02X},{:#04X}{:02X},{:#04X}{:02X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
             } else {
-                fmt_to_writer(f, "{{{:#04x}{:02x}{:02x}{:02x},{:#04x}{:02x},{:#04x}{:02x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}",
-                              p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
+                fmt_to_writer(f, "{{{:#04x}{:02x}{:02x}{:02x},{:#04x}{:02x},{:#04x}{:02x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
             }
 
             f->Specs = old;
@@ -91,7 +89,7 @@ struct formatter<guid> {
         if (openParenthesis) write_no_specs(f, openParenthesis);
 
         auto *old = f->Specs;
-        f->Specs = null;
+        f->Specs  = null;
 
         const byte *p = src.Data.Data;
         For(range(16)) {
@@ -151,7 +149,7 @@ struct formatter<mat<T, R, C, Packed>> {
         write(f, "[");
 
         bool alternate = f->Specs && f->Specs->Hash;
-        s64 max = 0;
+        s64 max        = 0;
         if (alternate) {
             for (s32 i = 0; i < src.Height; ++i) {
                 for (s32 j = 0; j < src.Width; ++j) {
@@ -167,7 +165,7 @@ struct formatter<mat<T, R, C, Packed>> {
         }
 
         auto *old = f->Specs;
-        f->Specs = null;
+        f->Specs  = null;
         for (s32 i = 0; i < src.Height; ++i) {
             for (s32 j = 0; j < src.Width; ++j) {
                 if (alternate) {
@@ -202,7 +200,7 @@ template <typename T, s64 R, s64 C, bool Packed, s64 SR, s64 SC>
 struct formatter<mat_view<mat<T, R, C, Packed>, SR, SC>> {
     void format(const mat_view<mat<T, R, C, Packed>, SR, SC> &src, fmt_context *f) {
         mat<T, SR, SC, Packed> v = src;
-        fmt_to_writer(f, "{}", v);  // yES. We are lazy.
+        fmt_to_writer(f, "{}", v); // yES. We are lazy.
     }
 };
 

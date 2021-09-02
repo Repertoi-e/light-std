@@ -55,7 +55,6 @@ Copyright 1984, 1995, 2000 by Stephen L. Moshier
 */
 
 
-
 #include "mconf.h"
 
 #ifdef UNK
@@ -90,14 +89,14 @@ static unsigned short Q[] = {
 
 #ifdef IBMPC
 static unsigned short P[] = {
-0xead3,0x549a,0xa5c8,0x3f97,
-0x5bde,0x9361,0x33ba,0x4034,
-0x7693,0x907b,0xa7a0,0x4097,
+    0xead3, 0x549a, 0xa5c8, 0x3f97,
+    0x5bde, 0x9361, 0x33ba, 0x4034,
+    0x7693, 0x907b, 0xa7a0, 0x4097,
 };
 static unsigned short Q[] = {
-/*0x0000,0x0000,0x0000,0x3ff0,*/
-0x5c3c,0x0ffb,0x25e5,0x406d,
-0x0bae,0x2fed,0x1036,0x40b1,
+    /*0x0000,0x0000,0x0000,0x3ff0,*/
+    0x5c3c, 0x0ffb, 0x25e5, 0x406d,
+    0x0bae, 0x2fed, 0x1036, 0x40b1,
 };
 #define MAXL2 1024.0
 #define MINL2 -1022.0
@@ -119,12 +118,12 @@ static unsigned short Q[] = {
 #endif
 
 #ifdef ANSIPROT
-extern double polevl ( double, void *, int );
-extern double p1evl ( double, void *, int );
-extern double floor ( double );
-extern double ldexp ( double, int );
-extern int isnan ( double );
-extern int isfinite ( double );
+extern double polevl(double, void *, int);
+extern double p1evl(double, void *, int);
+extern double floor(double);
+extern double ldexp(double, int);
+extern int isnan(double);
+extern int isfinite(double);
 #else
 double polevl(), p1evl(), floor(), ldexp();
 int isnan(), isfinite();
@@ -135,49 +134,46 @@ extern double INFINITY;
 extern double MAXNUM;
 
 double exp2(x)
-double x;
-{
-double px, xx;
-short n;
+double x; {
+    double px, xx;
+    short n;
 
 #ifdef NANS
-if( isnan(x) )
-	return(x);
+    if (isnan(x))
+        return x;
 #endif
-if( x > MAXL2)
-	{
+    if (x > MAXL2) {
 #ifdef INFINITIES
-	return( INFINITY );
+        return INFINITY;
 #else
 	mtherr( "exp2", OVERFLOW );
 	return( MAXNUM );
 #endif
-	}
+    }
 
-if( x < MINL2 )
-	{
+    if (x < MINL2) {
 #ifndef INFINITIES
 	mtherr( "exp2", UNDERFLOW );
 #endif
-	return(0.0);
-	}
+        return 0.0;
+    }
 
-xx = x;	/* save x */
-/* separate into integer and fractional parts */
-px = floor(x+0.5);
-n = px;
-x = x - px;
+    xx = x; /* save x */
+    /* separate into integer and fractional parts */
+    px = floor(x + 0.5);
+    n  = px;
+    x  = x - px;
 
-/* rational approximation
- * exp2(x) = 1 +  2xP(xx)/(Q(xx) - P(xx))
- * where xx = x**2
- */
-xx = x * x;
-px = x * polevl( xx, P, 2 );
-x =  px / ( p1evl( xx, Q, 2 ) - px );
-x = 1.0 + ldexp( x, 1 );
+    /* rational approximation
+     * exp2(x) = 1 +  2xP(xx)/(Q(xx) - P(xx))
+     * where xx = x**2
+     */
+    xx = x * x;
+    px = x * polevl(xx, P, 2);
+    x  = px / (p1evl(xx, Q, 2) - px);
+    x  = 1.0 + ldexp(x, 1);
 
-/* scale by power of 2 */
-x = ldexp( x, n );
-return(x);
+    /* scale by power of 2 */
+    x = ldexp(x, n);
+    return x;
 }
