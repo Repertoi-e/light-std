@@ -5,8 +5,6 @@ def handle_file(file):
     with open(file, "r") as f :
         filedata = f.read()
     
-    filedata = filedata.replace("stdcpp17", "stdcpplatest")
-    
     lines = filedata.split("\n")
     filedata = ""
     for l in lines:

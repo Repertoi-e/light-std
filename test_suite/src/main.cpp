@@ -2,23 +2,7 @@
 
 import lstd.big_integer;
 
-void test_integers() {
-    s256 a = 12446744073709551615ull;
-    a      = a + 2000000000000000000ull;
-
-    s256 b = 14446744073709551615ull;
-    s256 c = b + b + b + b;
-    s256 d = c / 14446744073709551615ull;
-
-    s256 dd = b * a;
-    s256 ddd = (b + 1) * a;
-
-    s32 bbbbbbbbb = 42;
-}
-
 void run_tests() {
-    test_integers();
-
     print("\n");
     for (auto [fileName, tests] : g_TestTable) {
         print("{}:\n", *fileName);

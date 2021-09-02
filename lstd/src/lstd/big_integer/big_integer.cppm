@@ -27,9 +27,9 @@ export {
     using double_digit  = u64;
     using sdouble_digit = s64;
 
-    constexpr u32 SHIFT = 30;
-    constexpr u32 BASE  = (digit) 1 << SHIFT;
-    constexpr u32 MASK  = BASE - 1;
+    constexpr u32 SHIFT  = 30;
+    constexpr digit BASE = (digit) 1 << SHIFT;
+    constexpr digit MASK = BASE - 1;
     }  // namespace big_integer_implementation
 
     struct big_integer_nan {
@@ -41,19 +41,19 @@ export {
         constexpr bool ensure_bigits(s64 n) { return false; }
     };
 
-    // This is a special value which is returned when certain errors in arithmetic occur: overflows/underflows, division by zero.
+    // This is a special value which is returned when certain errors in arithmetic occur: overflows/underflows, division by zero, etc.
     constexpr big_integer_nan NAN = {};
 
-    // This are the requirements for an object to be considered a big integer and on which operations are compiled.
+    // These are the requirements for an object to be considered a big integer and on which operations are compiled.
     // We do this in order to reuse code. That way we can have a big integer on the stack and a big integer which grows dynamically,
     // operations are implemented transparently despite the underlying storage. Operations also work between stack and dynamic big integers for example.
     // This is like compile-time inheritance but it doesn't have runtime overhead.
-    // Concepts allow us to write both type-safe and clean, readable, reusable code. Kudos for C++20.
+    // Kudos for C++20 concepts.
     //
     // We also use a similar trick in "array_like.h". :CodeReusability:
     template <typename T>
     concept is_big_integer = requires(T t) {
-        // Storage for digits in base 2^30 ("bigits").
+        // Storage for digits in base 2^30.
         // Index 0 being the least significant one.
         {t.Bigits};
         {t.Bigits[0]};
@@ -69,6 +69,11 @@ export {
         {t.ensure_bigits(0)};
     };
 
+    template <is_big_integer T>
+    struct div_result {
+        T Quot, Rem;
+    };
+
     namespace big_integer_implementation {
     // Assign an integral value (s8, s16, s32, s64, u8, u16, u32, u64, s128, u128, other big integers,
     // as well as user integral types - declared with DECLARE_INTEGRAL or DECLARE_INTEGRAL_PAIR) to a big integer _b_.
@@ -78,7 +83,7 @@ export {
     template <s64 Capacity_>
     struct big_integer_on_the_stack {
         static constexpr s64 Capacity = Capacity_;
-        static_assert(Capacity > 4, "For smaller values, use s8, s16, s32, s64, s128. They are faster.");
+        static_assert(Capacity > 4, "For smaller values use s8, s16, s32, s64, s128. They are faster.");
 
         stack_array<big_integer_implementation::digit, Capacity> Bigits{};
         s64 Size = 0;
@@ -88,7 +93,7 @@ export {
 
         constexpr big_integer_on_the_stack(const types::is_integral auto &value) { big_integer_implementation::assign(*this, value); }
 
-        big_integer_on_the_stack &operator=(const types::is_integral auto &value) {
+        auto &operator=(const types::is_integral auto &value) {
             big_integer_implementation::assign(*this, value);
             return *this;
         }
@@ -190,34 +195,20 @@ export {
         return borrow;
     }
 
-    // Shift digit vector a[0:m] d bits left, with 0 <= d < SHIFT.  Put
-    // result in z[0:m], and return the d bits shifted out of the top.
-    constexpr digit v_lshift(digit *z, const digit *a, s64 m, s32 d) {
-        assert(0 <= d && d < SHIFT);
+    // Multiply digit vector[0:m] by _d_ and return the carry (if any).
+    // Store the result in z[0:m]. If z has enough space the caller can then store the carry in it.
+    constexpr digit v_product(digit *z, const digit *a, s64 m, digit d) {
+        double_digit carry = 0;
 
-        digit carry = 0;
         For(range(m)) {
-            double_digit acc = (double_digit) a[it] << d | carry;
-            z[it]            = (digit) acc & MASK;
-            carry            = (digit)(acc >> SHIFT);
+            carry += (double_digit) a[it] * d;
+
+            z[it] = (digit) (carry & MASK);
+            carry >>= SHIFT;
+            assert(carry <= MASK);
         }
-        return carry;
-    }
 
-    // Shift digit vector a[0:m] d bits right, with 0 <= d < SHIFT.  Put
-    // result in z[0:m], and return the d bits shifted out of the bottom.
-    constexpr digit v_rshift(digit *z, const digit *a, s64 m, s32 d) {
-        assert(0 <= d && d < SHIFT);
-
-        digit carry = 0;
-        digit mask  = ((digit) 1 << d) - 1U;
-
-        For(range(m - 1, -1, -1)) {
-            double_digit acc = (double_digit) carry << SHIFT | a[it];
-            carry            = (digit) acc & mask;
-            z[it]            = (digit)(acc >> d);
-        }
-        return carry;
+        return (digit) carry;
     }
 
     // Normalize (remove leading zeros from) from a big integer.
@@ -248,8 +239,9 @@ export {
                 b.Size = value.Size;
             }
         } else {
-            // Note: Big integers should have minimum storage of 5 u32s (bigger than u128). We static_assert that.
-            // Otherwise you'd better be using the smaller intrinsic types..
+            // Note: Big integers should have minimum storage of 5 u32s (bigger than u128).
+            // We static_assert in the type itself for that.
+            // For smaller integers you'd better be using the smaller intrinsic types..
             b.ensure_bigits(5);
 
             s64 size = 0;
@@ -409,7 +401,7 @@ export {
 
                 double_digit carry = *pz + f * f;
 
-                *pz++ = (digit)(carry & MASK);
+                *pz++ = (digit) (carry & MASK);
 
                 carry >>= SHIFT;
                 assert(carry <= MASK);
@@ -419,18 +411,18 @@ export {
                 f <<= 1;
                 while (pa < paend) {
                     carry += *pz + *pa++ * f;
-                    *pz++ = (digit)(carry & MASK);
+                    *pz++ = (digit) (carry & MASK);
                     carry >>= SHIFT;
                     assert(carry <= (MASK << 1));
                 }
 
                 if (carry) {
                     carry += *pz;
-                    *pz++ = (digit)(carry & MASK);
+                    *pz++ = (digit) (carry & MASK);
                     carry >>= SHIFT;
                 }
 
-                if (carry) *pz += (digit)(carry & MASK);
+                if (carry) *pz += (digit) (carry & MASK);
 
                 assert((carry >> SHIFT) == 0);
             }
@@ -448,12 +440,12 @@ export {
 
                 while (pb < pbend) {
                     carry += *pz + *pb++ * f;
-                    *pz++ = (digit)(carry & MASK);
+                    *pz++ = (digit) (carry & MASK);
                     carry >>= SHIFT;
                     assert(carry <= MASK);
                 }
 
-                if (carry) *pz += (digit)(carry & MASK);
+                if (carry) *pz += (digit) (carry & MASK);
 
                 assert((carry >> SHIFT) == 0);
             }
@@ -484,8 +476,10 @@ export {
         if (!high->ensure_bigits(sizehi)) return false;
         if (!low->ensure_bigits(sizelo)) return false;
 
-        copy_memory(low->Bigits.Data, n.Bigits.Data, sizelo * sizeof(digit));
-        copy_memory(high->Bigits.Data, n.Bigits.Data + sizelo, sizehi * sizeof(digit));
+        copy_elements(low->Bigits.Data, n.Bigits.Data, sizelo);
+        copy_elements(high->Bigits.Data, n.Bigits.Data + sizelo, sizehi);
+        high->Size = sizehi;
+        low->Size  = sizelo;
 
         normalize(*high);
         normalize(*low);
@@ -525,7 +519,7 @@ export {
 
             // Multiply the next slice of b by a
 
-            copy_memory(bslice.Bigits.Data, b->Bigits.Data + nbdone, nbtouse * sizeof(digit));
+            copy_elements(bslice.Bigits.Data, b->Bigits.Data + nbdone, nbtouse);
             bslice.Size = nbtouse;
 
             T product = k_mul(*a, bslice);
@@ -623,8 +617,8 @@ export {
         result.Size = sizea + sizeb;
 
 #ifdef Py_DEBUG
-            // Fill with trash, to catch reference to uninitialized digits.
-            // fill_memory(result.Bigits.Data, 0xDF, result.Size * sizeof(digit));
+        // Fill with trash, to catch reference to uninitialized digits.
+        // fill_memory(result.Bigits.Data, 0xDF, result.Size * sizeof(digit));
 #endif
         T t1;
 
@@ -633,7 +627,7 @@ export {
 
         assert(t1.Size >= 0);
         assert(2 * shift + t1.Size <= result.Size);
-        copy_memory(result.Bigits.Data + 2 * shift, t1.Bigits.Data, t1.Size * sizeof(digit));
+        copy_elements(result.Bigits.Data + 2 * shift, t1.Bigits.Data, t1.Size);
 
         // Zero-out the digits higher than the ah*bh copy
         i = result.Size - 2 * shift - t1.Size;
@@ -646,11 +640,11 @@ export {
 
         assert(t2.Size >= 0);
         assert(t2.Size <= 2 * shift); /* no overlap with high digits */
-        copy_memory(result.Bigits.Data, t2.Bigits.Data, t2.Size * sizeof(digit));
+        copy_elements(result.Bigits.Data, t2.Bigits.Data, t2.Size);
 
         // Zero out remaining digits
         i = 2 * shift - t2.Size;  // number of uninitialized digits
-        if (i) copy_memory(result.Bigits.Data + t2.Size, 0, i * sizeof(digit));
+        if (i) zero_memory(result.Bigits.Data + t2.Size, i * sizeof(digit));
 
         // 4 & 5. Subtract ah*bh (t1) and al*bl (t2).
         // We do al*bl first because it's fresher in cache.
@@ -733,16 +727,17 @@ export {
         pout += size;
         while (--size >= 0) {
             digit hi;
-            rem     = (rem << SHIFT) | *--pin;
-            *--pout = hi = (digit)(rem / n);
+            rem = (rem << SHIFT) | *--pin;
+
+            *--pout = hi = (digit) (rem / n);
             rem -= (double_digit) hi * n;
         }
         return (digit) rem;
     }
 
     template <is_big_integer T>
-    struct divrem1_result {
-        T Div;
+    struct div1_result {
+        T Quot;
         digit Rem;
     };
 
@@ -751,255 +746,504 @@ export {
     // Returns NAN on error.
     template <is_big_integer T>
     constexpr auto divrem1(const T &a, digit n) {
-        if (a == NAN) return divrem1_result<T>{a, 0};
+        if (a == NAN) return div1_result<T>{a, 0};
 
         assert(n > 0 && n <= MASK);
 
         s64 size = abs(a.Size);
 
         T result;
-        if (!result.ensure_bigits(size)) return divrem1_result<T>{NAN, 0};
+        if (!result.ensure_bigits(size)) return div1_result<T>{NAN, 0};
         result.Size = size;
 
         digit rem = inplace_divrem1(result.Bigits.Data, a.Bigits.Data, size, n);
         normalize(result);
 
-        return divrem1_result<T>{result, rem};
+        return div1_result<T>{result, rem};
     }
 
-    // Gives the remainder after division of |a| by |b|, with the sign of a.
-    // This is also expressed as a - b * trunc(a/b), if trunc truncates towards zero.
-    // Some examples:
-    //   a           b      a rem b
-    //   13          10      3
-    //  -13          10     -3
-    //   13         -10      3
-    //  -13         -10     -3
     template <is_big_integer T>
-    struct divrem_result {
-        T Div, Rem;
-    };
+    constexpr auto x_divrem(const T &a, const T &b) {
+        // We follow Knuth [The Art of Computer Programming, Vol. 2 (3rd edn.), section 4.3.1, Algorithm D].
+        // This divides an n-word dividend by an m-word divisor
+        // and gives an n-m+1-word quotient and m-word remainder.
 
-    // Returns NAN on error.
+        //
+        // https://skanthak.homepage.t-online.de/division.html
+        // https://surface.syr.edu/cgi/viewcontent.cgi?article=1162&context=eecs_techreports
+        //
+
+        s64 sizea = abs(a.Size), sizeb = abs(b.Size);
+
+        T na, nb;  // Normalized form of _a_ and _b_; _na_ also stores the normalized remainder in the end.
+
+        // Normalize by shifting _b_ left just enough so that its high-order
+        // bit is on, and shift _a_ left the same amount. We may have to append a
+        // high-order digit on the dividend; we do that unconditionally.
+
+        // This counts the number of leading zeros
+        auto s = SHIFT - (msb(b.Bigits[sizeb - 1]) + 1);
+
+        assert(s >= 0 && s <= 31);
+
+        na = lshift(a, s);
+        nb = lshift(b, s);
+
+        // No need to check ub, it can't overflow by definition of _s_
+        if (na == NAN) {
+            assert(false && "Overflow");
+            return div_result<T>{NAN, NAN};
+        }
+
+        // If _a_ overflows..
+        sizea = abs(na.Size);
+
+        if (na.Bigits[sizea - 1] >= nb.Bigits[sizeb - 1]) {
+            bool ensured = na.ensure_bigits(sizea + 1);
+            assert(ensured && "Overflow");
+
+            na.Bigits[sizea] = 0;
+            sizea += 1;
+        }
+
+        s64 j = sizea - sizeb;
+
+        T q;  // _q_ holds the quotient
+        q.ensure_bigits(j);
+        q.Size = j;
+
+        while (j--) {
+            digit atop = na.Bigits[j + sizeb];
+            assert(atop <= nb.Bigits[sizeb - 1]);
+
+            // Compute estimate qhat; may overestimate by 1 (rare).
+            double_digit vv = ((double_digit) atop << SHIFT) | na.Bigits[j + sizeb - 1];
+
+            digit qhat = (digit) (vv / nb.Bigits[sizeb - 1]);
+            digit rhat = (digit) (vv - qhat * (double_digit) nb.Bigits[sizeb - 1]);
+
+            while ((double_digit) nb.Bigits[sizeb - 2] * qhat > (((double_digit) rhat << SHIFT) | na.Bigits[j + sizeb - 2])) {
+                --qhat;
+                rhat += nb.Bigits[sizeb - 1];
+                if (rhat >= BASE) break;
+            }
+            assert(qhat <= BASE);
+
+            // Multiply and subtract (qhat*nb[0:sizeb] from na[j:j+sizeb+1])
+            sdouble_digit z;
+            sdigit zhi = 0;
+
+            For(range(sizeb)) {
+                // Invariants: -BASE <= -qhat <= zhi <= 0;
+                //             -BASE * qhat <= z < BASE
+
+                z = (sdigit) na.Bigits[it + j] + zhi -
+                    (sdouble_digit) qhat * (sdouble_digit) nb.Bigits[it];
+
+                na.Bigits[it + j] = z & MASK;
+                zhi               = (sdigit) (z >> SHIFT);
+            }
+
+            assert((sdigit) atop + zhi == -1 || (sdigit) atop + zhi == 0);
+
+            // If we subtracted too much, add back.
+            if ((sdigit) atop + zhi < 0) [[unlikely]] {
+                digit carry = 0;
+                For(range(sizeb)) {
+                    carry += na.Bigits[it + j] + nb.Bigits[it];
+                    na.Bigits[it + j] = carry & MASK;
+                    carry >>= SHIFT;
+                }
+                --qhat;
+            }
+
+            // Store quotient digit
+            assert(qhat < BASE);
+            q.Bigits[j] = qhat;
+        }
+
+        // Unnormalize the remainder, which was stored in _na_ during the computation.
+        na.Size = sizeb;
+        T r     = rshift(na, s);
+
+        normalize(q);
+        normalize(r);
+
+        return div_result<T>{q, r};
+    }
+
+    // divmod is NOT the same as divrem.
+    // divrem gives the remainder after division of |a| by |b|, with the sign of a.
+    //
+    // a mod b == a - b * floor(a/b)
+    // a rem b == a - b * trunc(a/b) (if trunc truncates toward zero).
+    //
+    // Some examples:
+    //   a           b      a mod b    a rem b
+    //   13          10      3          3
+    //  -13          10      7         -3
+    //   13         -10     -7          3
+    //  -13         -10     -3         -3
+    //
+    // divmod is defined in terms of divrem, but we adjust the remainder.
+    // Operator % is defined in terms of divmod.
+    //
+    // Both functions return NAN on error (e.g. division by zero).
     template <is_big_integer T>
     constexpr auto divrem(const T &lhs, const types::is_integral auto &rhs_) {
         auto rhs = cast_to_same_big_integer<T>(rhs_);
 
-        if (lhs == NAN) return divrem_result<T>{NAN, NAN};
-        if (rhs == NAN) return divrem_result<T>{NAN, NAN};
+        if (lhs == NAN) return div_result<T>{NAN, NAN};
+        if (rhs == NAN) return div_result<T>{NAN, NAN};
 
         s64 sizea = abs(lhs.Size), sizeb = abs(rhs.Size);
 
-        divrem_result<T> result;  // _lhs_ determines the resulting types
+        div_result<T> result;  // _lhs_ determines the resulting types
 
         if (!sizeb) {
             assert(false && "Division by zero");
-            return divrem_result<T>{NAN, NAN};
+            return div_result<T>{NAN, NAN};
         }
 
         if (sizea < sizeb || (sizea == sizeb && (lhs.Bigits[sizea - 1] < rhs.Bigits[sizeb - 1]))) {
             // |lhs| < |rhs|
-            assign(result.Div, 0);
-
-            // result.Div = 0;
-            result.Rem = lhs;
-        } else {
-            // |lhs| >= |rhs|
-            if (sizeb == 1) {
-                auto [div, rem] = big_integer_implementation::divrem1(lhs, rhs.Bigits[0]);
-                result.Div      = div;
-                assign(result.Rem, rem);
-            } else {
-                // We follow Knuth [The Art of Computer Programming, Vol. 2 (3rd edn.), section 4.3.1, Algorithm D],
-                // except that we don't explicitly handle the special case when the initial estimate q for a quotient
-                // digit is >= BASE: the max value for q is BASE + 1, and that won't overflow a digit.
-
-                T v;
-                if (!v.ensure_bigits(sizea + 1)) {
-                    assert(false && "Overflow");
-                    return divrem_result<T>{NAN, NAN};
-                }
-
-                auto &w      = result.Rem;  // Short-hand. _w_ holds the remainder.
-                bool ensured = w.ensure_bigits(sizeb);
-                assert(ensured && "Impossible! sizea >= sizeb!!!");
-
-                // Normalize: shift lhs left so that its top digit is >= BASE / 2.
-                // Shift rhs left by the same amount.
-                // Results go into w and v.
-
-                digit d, carry;
-
-                d = SHIFT - (count_digits_base_2(rhs.Bigits[sizeb - 1]) + 1);
-
-                carry = v_lshift(w.Bigits.Data, rhs.Bigits.Data, sizeb, d);
-                assert(carry == 0);
-                carry = v_lshift(v.Bigits.Data, lhs.Bigits.Data, sizea, d);
-
-                if (carry || v.Bigits[sizea - 1] >= w.Bigits[sizeb - 1]) {
-                    v.Bigits[sizea] = carry;
-                    sizea++;  // Before we ensured _v_ has sizea + 1 digits.
-                }
-
-                // Now v.Bigits[sizea - 1] < w.Bigits[sizeb - 1],
-                // so the quotient has at most (and usually exactly)
-                // k = sizea - sizeb digits.
-
-                s64 k = sizea - sizeb;
-                assert(k >= 0);
-
-                auto &a = result.Div;  // Short-hand. _a_ holds the quotient.
-                ensured = a.ensure_bigits(k);
-                assert(ensured);
-
-                auto *v0  = v.Bigits.Data;
-                auto *w0  = w.Bigits.Data;
-                digit wm1 = w0[sizeb - 1];
-                digit wm2 = w0[sizeb - 2];
-
-                auto *vk = v0 + k;
-                auto *ak = a.Bigits.Data + k;
-
-                while (vk-- > v0) {
-                    // Inner loop: Divide vk[0:sizeb+1] by w0[0:sizeb],
-                    // giving single-digit quotient q, remainder in vk[0:sizeb].
-
-                    // Estimate quotient digit q; may overestimate by 1 (rare)
-
-                    digit vtop = vk[sizeb];
-                    assert(vtop <= wm1);
-
-                    double_digit vv = ((double_digit) vtop << SHIFT) | vk[sizeb - 1];
-
-                    digit q = (digit)(vv / wm1);
-                    digit r = (digit)(vv - (double_digit) wm1 * q);  // r = vv % wm1
-
-                    while ((double_digit) wm2 * q > (((double_digit) r << SHIFT) | vk[sizeb - 2])) {
-                        --q;
-                        r += wm1;
-                        if (r >= BASE) break;
-                    }
-                    assert(q <= BASE);
-
-                    // Subtract q * w0[0:sizeb] from vk[0:sizeb+1]
-                    sdigit zhi = 0;
-
-                    For(range(sizeb)) {
-                        // Invariants: -BASE <= -q <= zhi <= 0;
-                        //             -BASE * q <= z < BASE
-                        sdigit z = (sdigit) vk[it] + zhi - (sdouble_digit) q * (sdouble_digit) w0[it];
-                        vk[it]   = (digit) z & MASK;
-                        zhi      = z >> SHIFT;
-                    }
-
-                    // Add w back if q was too large
-                    assert((sdigit) vtop + zhi == -1 || (sdigit) vtop + zhi == 0);
-                    if ((sdigit) vtop + zhi < 0) [[unlikely]] {
-                        carry = 0;
-                        For(range(sizeb)) {
-                            carry += vk[it] + w0[it];
-                            vk[it] = carry & MASK;
-                            carry >>= SHIFT;
-                        }
-                        --q;
-                    }
-
-                    // Store quotient digit
-                    assert(q < BASE);
-                    *--ak = q;
-                }
-
-                // Unshift remainder; we reuse w to store the result
-                carry = v_rshift(w0, v0, sizeb, d);
-                assert(carry == 0);
-            }
+            result.Quot = 0;
+            result.Rem  = lhs;
+            return result;
         }
+
+        //
+        // |lhs| >= |rhs|
+        //
+
+        if (sizeb == 1) {
+            auto [div, rem] = big_integer_implementation::divrem1(lhs, rhs.Bigits[0]);
+            result.Quot     = div;
+            result.Rem      = rem;
+        } else {
+            result = x_divrem(lhs, rhs);
+        }
+
+        if (result.Quot == NAN) return result;
 
         // Set the signs.
         // The quotient z has the sign of lhs * rhs;
         // the remainder r has the sign of lhs, so lhs = rhs * z + r.
         if ((lhs.Size < 0) != (rhs.Size < 0)) {
-            result.Div.Size = -result.Div.Size;
+            result.Quot.Size = -result.Quot.Size;
         }
         if (lhs.Size < 0 && result.Rem.Size != 0) {
             result.Rem.Size = -result.Rem.Size;
         }
         return result;
     }
+
+    template <is_big_integer T>
+    constexpr auto lshift(const T &lhs, s64 n) {
+        if (lhs == NAN) return (T) NAN;
+
+        if (n == 0) return lhs;
+        if (lhs == T(0)) return T(0);
+
+        s64 wordshift = n / SHIFT;
+        u32 remshift  = n % SHIFT;
+
+        // This version due to Tim Peters
+
+        s64 oldSize = abs(lhs.Size);
+        s64 newSize = oldSize + wordshift;
+
+        if (remshift) ++newSize;
+
+        T result;
+        if (!result.ensure_bigits(newSize)) return (T) NAN;
+
+        if (lhs.Size < 0) {
+            result.Size = -newSize;
+        } else {
+            result.Size = newSize;
+        }
+
+        For(range(wordshift)) {
+            result.Bigits[it] = 0;
+        }
+
+        s64 accum = 0;
+
+        s64 i = wordshift;
+        For_as(j, range(oldSize)) {
+            accum |= (double_digit) lhs.Bigits[j] << remshift;
+            result.Bigits[i] = (digit) (accum & MASK);
+            accum >>= SHIFT;
+
+            ++i;
+        }
+
+        if (remshift) {
+            result.Bigits[newSize - 1] = (digit) accum;
+        } else {
+            assert(!accum);
+        }
+
+        normalize(result);
+        return result;
+    }
+
+    template <is_big_integer T>
+    constexpr T invert(const T &lhs) {
+        if (lhs == NAN) return (T) NAN;
+
+        T result    = lhs + 1;
+        result.Size = -result.Size;
+        return result;
+    }
+
+    template <is_big_integer T>
+    constexpr T rshift(const T &lhs, s64 n) {
+        if (lhs == NAN) return (T) NAN;
+
+        if (n == 0) return lhs;
+        if (lhs == 0) return T(0);
+
+        s64 wordshift = n / SHIFT;
+        u32 remshift  = n % SHIFT;
+
+        if (lhs.Size < 0) {
+            // Right shifting negative numbers is harder
+            return invert(rshift(invert(lhs), n));
+        } else {
+            s64 newSize = lhs.Size - wordshift;
+            if (newSize <= 0) return T(0);
+
+            s64 hishift  = SHIFT - remshift;
+            digit lomask = (1ul << hishift) - 1;
+            digit himask = MASK ^ lomask;
+
+            T result;
+            if (!result.ensure_bigits(newSize)) return (T) NAN;
+            result.Size = newSize;
+
+            s64 i = 0, j = wordshift;
+            while (i < newSize) {
+                result.Bigits[i] = (lhs.Bigits[j] >> remshift) & lomask;
+                if (i + 1 < newSize) {
+                    result.Bigits[i] |= (lhs.Bigits[j + 1] << hishift) & himask;
+                }
+                ++i, ++j;
+            }
+            normalize(result);
+            return result;
+        }
+    }
+
+    // Compute two's complement of digit vector a[0:m], writing result to
+    // z[0:m]. The digit vector a need not be normalized, but should not
+    // be entirely zero. a and z may point to the same digit vector. */
+    constexpr void v_complement(digit *z, digit *a, s64 m) {
+        digit carry = 1;
+        For(range(m)) {
+            carry += a[it] ^ MASK;
+            z[it] = carry & MASK;
+            carry >>= SHIFT;
+        }
+        assert(carry == 0);
+    }
+
+    // _op_ is one of the following: '&', '|', '^'
+    template <is_big_integer T>
+    T bitwise(const T &lhs, byte op, const T &rhs) {
+        // Bitwise operations for negative numbers operate as though
+        // on a two's complement representation. So convert arguments
+        // from sign-magnitude to two's complement, and convert the
+        // result back to sign-magnitude at the end.
+
+        s64 sizea = abs(lhs.Size), sizeb = abs(rhs.Size);
+        bool negLhs = lhs.Size < 0, negRhs = rhs.Size < 0;
+
+        T aComp, bComp;
+
+        T *a = &lhs, *b = &rhs;
+
+        if (negLhs) {
+            bool ensured = aComp.ensure_bigits(sizea);
+            assert(ensured);  // Sanity
+            aComp.size = sizea;
+
+            v_complement(aComp.Bigits, lhs.Bigits, sizea);
+            a = &aComp;
+        }
+
+        if (negRhs) {
+            bool ensured = bComp.ensure_bigits(sizeb);
+            assert(ensured);  // Sanity
+            bComp.size = sizeb;
+
+            v_complement(bComp.Bigits, rhs.Bigits, sizeb);
+            b = &bComp;
+        }
+
+        // Swap a and b if necessary to ensure sizea >= sizeb
+        if (sizea < sizeb) {
+            swap(a, b);
+            swap(sizea, sizeb);
+            swap(negLhs, negRhs);
+        }
+
+        s64 sizez;
+        bool negZ;
+
+        // JRH: The original logic here was to allocate the result value (z)
+        // as the longer of the two operands. However, there are some cases
+        // where the result is guaranteed to be shorter than that: AND of two
+        // positives, OR of two negatives: use the shorter number.  AND with
+        // mixed signs: use the positive number.  OR with mixed signs: use the
+        // negative number.
+        if (op == '&') {
+            negZ  = negLhs & negRhs;
+            sizez = negRhs ? sizea : sizeb;
+        } else if (op == '|') {
+            negZ  = negLhs | negRhs;
+            sizez = negRhs ? sizeb : sizea;
+        } else if (op == '^') {
+            negZ  = negLhs ^ negRhs;
+            sizez = sizea;
+        } else {
+            assert(false);
+        }
+
+        T result;
+
+        // We allow an extra digit if z is negative, to make sure that
+        // the final two's complement of z doesn't overflow.
+        s64 rsize = sizea + (negZ ? 1 : 0);
+        if (!ensure_bigits(result, rsize)) return (T) NAN;
+        result.Size = rsize;
+
+        s64 i = 0;
+
+        // Compute digits for overlap of a and b
+        if (op == '&') {
+            while (i < sizeb) {
+                result.Bigits[i] = a->Bigits[i] & b->Bigits[i];
+                ++i;
+            }
+        } else if (op == '|') {
+            while (i < sizeb) {
+                result.Bigits[i] = a->Bigits[i] | b->Bigits[i];
+                ++i;
+            }
+        } else if (op == '^') {
+            while (i < sizeb) {
+                result.Bigits[i] = a->Bigits[i] ^ b->Bigits[i];
+                ++i;
+            }
+        } else {
+            assert(false);
+        }
+
+        // Copy any remaining digits of a, inverting if necessary
+        if (op == '^' && negRhs) {
+            while (i < sizez) {
+                result.Bigits[i] = a->Bigits[i] ^ MASK;
+                ++i;
+            }
+        } else if (i < sizez) {
+            copy_elements(&result.Bigits[i], &a->Bigits[i], sizez - i);
+        }
+
+        // Complement result if negative
+        if (negZ) {
+            result.Size          = -result.Size;
+            result.Bigits[sizez] = MASK;
+            v_complement(result.Bigits, result.Bigits, sizez + 1);
+        }
+
+        normalize(result);
+        return result;
+    }
+
     }  // namespace big_integer_implementation
 
     using big_integer_implementation::divrem;
+    using big_integer_implementation::invert;
 
-    template <is_big_integer T>
-    struct divmod_result {
-        T Div, Mod;
-    };
-
-    // The expression a mod b has the value a - b * floor(a/b).
+    // divmod is NOT the same as divrem.
+    // divrem gives the remainder after division of |a| by |b|, with the sign of a.
+    //
+    // a mod b == a - b * floor(a/b)
+    // a rem b == a - b * trunc(a/b) (if trunc truncates toward zero).
+    //
     // Some examples:
-    //   a           b      a mod b
-    //   13          10      3
-    //  -13          10      7
-    //   13         -10     -7
-    //  -13         -10     -3
+    //   a           b      a mod b    a rem b
+    //   13          10      3          3
+    //  -13          10      7         -3
+    //   13         -10     -7          3
+    //  -13         -10     -3         -3
     //
-    // The / and % operators are now defined in terms of divmod().
+    // divmod is defined in terms of divrem, but we adjust the remainder.
+    // Operator % is defined in terms of divmod.
     //
-    // Returns NAN on error.
+    // Both functions return NAN on error (e.g. division by zero).
     template <is_big_integer T>
     constexpr auto divmod(const T &lhs, const types::is_integral auto &rhs_) {
         auto rhs = cast_to_same_big_integer<T>(rhs_);
 
-        if (lhs == NAN) return divmod_result<T>{NAN, NAN};
-        if (rhs == NAN) return divmod_result<T>{NAN, NAN};
+        if (lhs == NAN) return div_result<T>{NAN, NAN};
+        if (rhs == NAN) return div_result<T>{NAN, NAN};
 
         auto [div, mod] = divrem(lhs, rhs);
 
         // To get from rem to mod, we have to add rhs if lhs and rhs
-        // have different signs.  We then subtract one from the 'div'
+        // have different signs. We then subtract one from the 'div'
         // part of the outcome to keep the invariant intact.
-
         if ((mod.Size < 0 && rhs.Size > 0) || (mod.Size > 0 && rhs.Size < 0)) {
-            mod += rhs;
-            div -= 1;
-        }
-
-        return divmod_result<T>{div, mod};
-    }
-
-    constexpr bool operator==(const is_big_integer auto &lhs, const is_big_integer auto &rhs) {
-        if (lhs.Size != rhs.Size) return false;
-        For(range(lhs.Size)) {
-            if (lhs.Bigits[it] != rhs.Bigits[it]) return false;
-        }
-        return true;
-    }
-
-    constexpr bool operator!=(const is_big_integer auto &lhs, const is_big_integer auto &rhs) { return !(lhs == rhs); }
-
-    constexpr bool operator<(const is_big_integer auto &lhs, const is_big_integer auto &rhs) {
-        s64 sizea = abs(lhs.Size), sizeb = abs(rhs.Size);
-        if (sizea > sizeb) {
-            return false;
-        } else if (sizea < sizeb) {
-            return true;
+            return div_result<T>{div - 1, rhs + mod};
         } else {
-            // Find highest digit where a and b differ
-            s64 i = sizea;
-            while (--i >= 0 && lhs.Bigits[i] == rhs.Bigits[i])
-                ;
-
-            if (lhs.Bigits[i] < rhs.Bigits[i]) {
-                return true;
-            } else {
-                return false;
-            }
+            return div_result<T>{div, mod};
         }
     }
 
-    constexpr bool operator>(const is_big_integer auto &lhs, const is_big_integer auto &rhs) { return rhs < lhs; }
-    constexpr bool operator<=(const is_big_integer auto &lhs, const is_big_integer auto &rhs) { return !(rhs < lhs); }
-    constexpr bool operator>=(const is_big_integer auto &lhs, const is_big_integer auto &rhs) { return !(lhs < rhs); }
+    // if a < b, returns a negative number
+    // if a == b, returns 0
+    // if a > b, returns a positive number
+    template <is_big_integer T>
+    constexpr s64 compare(const T &a, const types::is_integral auto &b_) {
+        // We need to check for this case because we can't cast to big_integer_nan in cast_to_same_big_integer..
+        if constexpr (types::is_same<T, big_integer_nan>) {
+            if (b_.Size == S64_MAX) return 0;
+            return S64_MAX;  // We treat NAN as bigger than anything imaginable
+        } else {
+            auto b = cast_to_same_big_integer<T>(b_);
+
+            using big_integer_implementation::sdigit;
+
+            // The type of _a_ was not big_integer_nan, but it has the same value.
+            // A bit confusing... @Cleanup: Can we handle NAN better?
+            if (a.Size == S64_MAX) {
+                if (b.Size == S64_MAX) return 0;
+                return S64_MAX;  // We treat NAN as bigger than anything imaginable
+            }
+
+            s64 sign = a.Size - b.Size;
+            if (sign == 0) {
+                s64 i       = abs(a.Size);
+                sdigit diff = 0;
+                while (--i >= 0) {
+                    diff = (sdigit) a.Bigits[i] - (sdigit) b.Bigits[i];
+                    if (diff) break;
+                }
+                sign = a.Size < 0 ? -diff : diff;
+            }
+            return sign;
+        }
+    }
+
+    constexpr bool operator==(const is_big_integer auto &lhs, const types::is_integral auto &rhs) { return compare(lhs, rhs) == 0; }
+    constexpr bool operator!=(const is_big_integer auto &lhs, const types::is_integral auto &rhs) { return compare(lhs, rhs) != 0; }
+    constexpr bool operator<(const is_big_integer auto &lhs, const types::is_integral auto &rhs) { return compare(lhs, rhs) < 0; }
+    constexpr bool operator>(const is_big_integer auto &lhs, const types::is_integral auto &rhs) { return compare(lhs, rhs) > 0; }
+    constexpr bool operator<=(const is_big_integer auto &lhs, const types::is_integral auto &rhs) { return !(lhs > rhs); }
+    constexpr bool operator>=(const is_big_integer auto &lhs, const types::is_integral auto &rhs) { return !(lhs < rhs); }
 
     template <is_big_integer T>
     constexpr auto operator+(const T &lhs, const types::is_integral auto &rhs_) {
@@ -1089,35 +1333,98 @@ export {
     }
 
     template <is_big_integer T>
-    constexpr auto &operator+=(T &one, const types::is_integral auto &other_) {
-        auto other = cast_to_same_big_integer<T>(other_);
-
+    constexpr auto &operator+=(T &one, const types::is_integral auto &other) {
         one = one + other;
         return one;
     }
 
     template <is_big_integer T>
-    constexpr auto &operator-=(T &one, const types::is_integral auto &other_) {
-        auto other = cast_to_same_big_integer<T>(other_);
-
+    constexpr auto &operator-=(T &one, const types::is_integral auto &other) {
         one = one - other;
         return one;
     }
 
-    // constexpr u128 &operator+=(u128 other);
-    // constexpr u128 &operator-=(u128 other);
-    // constexpr u128 &operator*=(u128 other);
-    // constexpr u128 &operator/=(u128 other);
-    // constexpr u128 &operator%=(u128 other);
+    template <is_big_integer T>
+    constexpr auto &operator*=(T &one, const types::is_integral auto &other) {
+        one = one * other;
+        return one;
+    }
+
+    template <is_big_integer T>
+    constexpr auto &operator/=(T &one, const types::is_integral auto &other) {
+        one = one / other;
+        return one;
+    }
+
+    template <is_big_integer T>
+    constexpr auto &operator%=(T &one, const types::is_integral auto &other) {
+        one = one % other;
+        return one;
+    }
+
+    // We don't support these.
     // constexpr u128 operator++(s32);
     // constexpr u128 operator--(s32);
-    // constexpr u128 &operator<<=(s32);
-    // constexpr u128 &operator>>=(s32);
-    // constexpr u128 &operator&=(u128 other);
-    // constexpr u128 &operator|=(u128 other);
-    // constexpr u128 &operator^=(u128 other);
     // constexpr u128 &operator++();
     // constexpr u128 &operator--();
+
+    template <is_big_integer T>
+    constexpr auto operator>>(const T &lhs, s64 n) {
+        return big_integer_implementation::rshift(lhs, n);
+    }
+
+    template <is_big_integer T>
+    constexpr auto operator<<(const T &lhs, s64 n) {
+        return big_integer_implementation::lshift(lhs, n);
+    }
+
+    template <is_big_integer T>
+    constexpr auto &operator>>=(T &one, s64 n) {
+        one = one >> n;
+        return one;
+    }
+
+    template <is_big_integer T>
+    constexpr auto &operator<<=(T &one, s64 n) {
+        one = one << n;
+        return one;
+    }
+
+    template <is_big_integer T>
+    constexpr auto operator&(const T &lhs, const types::is_integral auto &rhs_) {
+        auto rhs = cast_to_same_big_integer<T>(rhs_);
+        return big_integer_implementation::bitwise(lhs, '&', rhs);
+    }
+
+    template <is_big_integer T>
+    constexpr auto operator|(const T &lhs, const types::is_integral auto &rhs_) {
+        auto rhs = cast_to_same_big_integer<T>(rhs_);
+        return big_integer_implementation::bitwise(lhs, '|', rhs);
+    }
+
+    template <is_big_integer T>
+    constexpr auto operator^(const T &lhs, const types::is_integral auto &rhs_) {
+        auto rhs = cast_to_same_big_integer<T>(rhs_);
+        return big_integer_implementation::bitwise(lhs, '^', rhs);
+    }
+
+    template <is_big_integer T>
+    constexpr auto &operator&=(T &one, const types::is_integral auto &other_) {
+        one = one & other_;
+        return one;
+    }
+
+    template <is_big_integer T>
+    constexpr auto &operator|=(T &one, const types::is_integral auto &other_) {
+        one = one | other_;
+        return one;
+    }
+
+    template <is_big_integer T>
+    constexpr auto &operator^=(T &one, const types::is_integral auto &other_) {
+        one = one ^ other_;
+        return one;
+    }
 
     // Note: For when you don't know how large the number would be, we provide big_integer_dynamic which allocates memory as it grows.
     //
@@ -1129,11 +1436,18 @@ export {
     //
     // These (contrary to s128/u128) are not guaranteed to be memory aligned to their respective sizes.
     // Operations with these don't overflow but simply fail and assert and return a special value - NAN.
-    using s256  = big_integer_on_the_stack<8>;
-    using s512  = big_integer_on_the_stack<16>;
-    using s1024 = big_integer_on_the_stack<32>;
-    using s2048 = big_integer_on_the_stack<64>;
-    using s4096 = big_integer_on_the_stack<128>;
+    //
+    // These (like normal integers) are immutable. Which means that each operation you do creates a new big integer.
+    // This seems more natural than to provide methods which modify the integer in place:
+    //  1) You'd rarely want to discard the old value when doing an operation and having to copy is tedious.
+    //  2) For when you want to discard it, use assignment operators (e.g. +=, -=, *=, ... ).
+    // @TODO @Speed We can provide specialized implementations for case 2 which are way
+    //              faster than what we are currently doing (just calling the normal operator).
+    using big_int_256  = big_integer_on_the_stack<8>;
+    using big_int_512  = big_integer_on_the_stack<16>;
+    using big_int_1024 = big_integer_on_the_stack<32>;
+    using big_int_2048 = big_integer_on_the_stack<64>;
+    using big_int_4096 = big_integer_on_the_stack<128>;
 }
 
 LSTD_END_NAMESPACE

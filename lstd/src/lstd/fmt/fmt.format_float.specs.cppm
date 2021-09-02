@@ -79,31 +79,37 @@ export {
 
         significand_t Significand;
         s32 Exponent;
+        s32 MantissaBit;  // Required by dragon4
     };
 
     using fp = decimal_fp<f64>;
 
-    // Assigns _d_ to this and return true if predecessor is closer than successor.
-    bool fp_assign_new(fp & f, f64 newValue) {
-        u64 implicitBit     = 1ull << numeric_info<f64>::bits_mantissa;
+    // Assigns _d_ to this and return true if predecessor is closer than successor (is the high margin twice as large as the low margin).
+    template <types::is_floating_point F>
+    bool fp_assign_new(fp & f, F newValue) {
+        u64 implicitBit     = 1ull << numeric_info<F>::bits_mantissa;
         u64 significandMask = implicitBit - 1;
 
-        u64 exponentMask = ((1ull << numeric_info<f64>::bits_exponent) - 1) << numeric_info<f64>::bits_mantissa;
+        u64 exponentMask = ((1ull << numeric_info<F>::bits_exponent) - 1) << numeric_info<F>::bits_mantissa;
 
-        auto br = types::bit_cast<u64>(newValue);
+        auto br = types::bit_cast<types::select_t<sizeof(F) == sizeof(f32), u32, u64>>(newValue);
 
         f.Significand = br & significandMask;
-        s32 biasedExp = (s32)((br & exponentMask) >> numeric_info<f64>::bits_mantissa);
+        s32 biasedExp = (s32) ((br & exponentMask) >> numeric_info<F>::bits_mantissa);
 
         // Predecessor is closer if _f_ is a normalized power of 2 (f.Significand == 0)
         // other than the smallest normalized number (biasedExp > 1).
         bool isPredecessorCloser = f.Significand == 0 && biasedExp > 1;
+
         if (biasedExp) {
             f.Significand += implicitBit;
+            f.MantissaBit = numeric_info<F>::bits_mantissa;
         } else {
-            biasedExp = 1;  // Subnormals use biased exponent 1 (min exponent).
+            biasedExp     = 1;                       // Subnormals use biased exponent 1 (min exponent).
+            f.MantissaBit = msb(f.Significand | 1);  // Integer log2
         }
-        f.Exponent = biasedExp - numeric_info<f64>::exponent_bias - numeric_info<f64>::bits_mantissa;
+        f.Exponent = biasedExp - numeric_info<F>::exponent_bias - numeric_info<F>::bits_mantissa;
+
         return isPredecessorCloser;
     }
 
@@ -130,7 +136,7 @@ export {
         // Computes x.Significand * y.Significand / pow(2, 64) rounded to nearest with half-up tie breaking.
         u128 product = u128(x.Significand) * y.Significand;
 
-        u64 f         = (u64)(product >> 64);
+        u64 f         = (u64) (product >> 64);
         x.Significand = ((u64) product & (1ull << 63)) != 0 ? f + 1 : f;
 
         x.Exponent += y.Exponent + 64;

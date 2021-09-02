@@ -55,13 +55,13 @@ struct integral_constant {
     static constexpr T value = Value;
 
     using value_t = T;
-    using type = integral_constant<T, Value>;
+    using type    = integral_constant<T, Value>;
 
     constexpr operator value_t() const { return value; }
     constexpr value_t operator()() const { return value; }
 };
 
-using true_t = integral_constant<bool, true>;    // == to std::true_type
+using true_t  = integral_constant<bool, true>;   // == to std::true_type
 using false_t = integral_constant<bool, false>;  // == to std::false_type
 
 // Used to denote a special template argument that means it's an unused argument
@@ -198,7 +198,8 @@ template <typename T>
 concept is_void = is_void_helper<remove_cv_t<T>>::value;
 
 template <typename T>
-concept is_null = is_same<remove_cv_t<T>, decltype(null)>;
+concept is_null = is_same < remove_cv_t<T>,
+decltype(null) > ;
 
 // The remove_const transformation trait removes top-level const
 // qualification (if any) from the type to which it is applied.
@@ -798,7 +799,7 @@ extern void (*copy_memory)(void *dest, const void *src, s64 num);
 //    f32 f = 1.234f;
 //    u32 br = bit_cast<u32>(f);
 template <typename DestType, typename SourceType>
-DestType bit_cast(const SourceType &sourceValue) {
+constexpr DestType bit_cast(const SourceType &sourceValue) {
     static_assert(sizeof(DestType) == sizeof(SourceType));
 
     if constexpr (alignof(DestType) == alignof(SourceType)) {
@@ -810,7 +811,11 @@ DestType bit_cast(const SourceType &sourceValue) {
         return u.destValue;
     } else {
         DestType destValue;
-        copy_memory(&destValue, &sourceValue, sizeof(DestType));
+        if constexpr (is_constant_evaluated()) {
+            copy_memory(&destValue, &sourceValue, sizeof(DestType));
+        } else {
+            const_copy_memory(&destValue, &sourceValue, sizeof(DestType));
+        }
         return destValue;
     }
 }
@@ -1038,11 +1043,11 @@ constexpr auto abs(types::is_scalar auto x) {
     if constexpr (types::is_floating_point<decltype(x)>) {
         if constexpr (sizeof(x) == sizeof(f32)) {
             ieee754_f32 u = {x};
-            u.ieee.S = 0;
+            u.ieee.S      = 0;
             return u.F;
         } else {
             ieee754_f64 u = {x};
-            u.ieee.S = 0;
+            u.ieee.S      = 0;
             return u.F;
         }
     } else {

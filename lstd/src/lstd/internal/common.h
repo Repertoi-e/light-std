@@ -447,7 +447,6 @@ constexpr s64 const_compare_memory(const void *ptr1, const void *ptr2, u64 size)
 // Returns the index of the most significant set bit.
 // The index always starts at the LSB.
 //   e.g msb(12) (binary - 1100) -> returns 3
-//       lsb(12) (binary - 1100) -> returns 2
 // If x is 0, returned value is -1 (no set bits).
 template <typename T>
 constexpr always_inline s32 msb(T x) {
@@ -480,8 +479,7 @@ constexpr always_inline s32 msb(T x) {
 
 // Returns the index of the least significant set bit.
 // The index always starts at the LSB.
-//   e.g msb(12) (binary - 1100) -> returns 3
-//       lsb(12) (binary - 1100) -> returns 2
+//   e.g lsb(12) (binary - 1100) -> returns 2
 // If x is 0, returned value is -1 (no set bits).
 constexpr always_inline s32 lsb(types::is_unsigned_integral auto x) {
     if constexpr (sizeof(x) == 16) {

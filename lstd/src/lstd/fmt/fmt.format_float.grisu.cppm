@@ -5,6 +5,7 @@ module;
 export module fmt.format_float.grisu;
 
 import fmt.format_float.specs;
+import fmt.format_float.dragon4;
 
 //
 // Use Grisu + Dragon4 when formatting a float with a given precision:
@@ -24,10 +25,10 @@ constexpr s16 POW10_EXPONENTS[] = {
 // Returns a cached power of 10 'c_k = c_k.Significand * pow(2, c_k.Exponent)' such that its
 // (binary) exponent satisfies 'minExponent <= c_k.Exponent <= minExponent + 28'.
 fp get_cached_power(s32 minExponent, s32 *pow10) {
-    constexpr s32 SHIFT = 32;
+    constexpr s32 SHIFT       = 32;
     constexpr s64 SIGNIFICAND = (s64) 0x4d104d427de7fbcc;
 
-    s32 index = (s32)(((minExponent + (sizeof(u64) * 8) - 1) * (SIGNIFICAND >> SHIFT) + ((1ll << SHIFT) - 1)) >> 32);
+    s32 index = (s32) (((minExponent + (sizeof(u64) * 8) - 1) * (SIGNIFICAND >> SHIFT) + ((1ll << SHIFT) - 1)) >> 32);
 
     // Decimal exponent of the first (smallest) cached power of 10.
     constexpr s32 FIRST_DEC_EXP = -348;
@@ -148,7 +149,7 @@ gen_digits_result gen_digits(gen_digits_state &state, fp value, u64 error, s32 *
     // The integral part of scaled value (p1 in Grisu) = value / one.
     // It cannot be zero because it contains a product of two 64-bit numbers with MSB set
     // (due to normalization) - 1, shifted right by at most 60 bits.
-    auto integral = (u32)(value.Significand >> -one.Exponent);
+    auto integral = (u32) (value.Significand >> -one.Exponent);
     assert(integral != 0);
     assert(integral == value.Significand >> -one.Exponent);
 
@@ -230,11 +231,11 @@ gen_digits_result gen_digits(gen_digits_state &state, fp value, u64 error, s32 *
     }
 }
 
-export s32 grisu_to_decimal(string_builder &builder, f64 value, s32 precision, const fmt_float_specs &specs) {
+export s32 grisu_format_float(string_builder &builder, types::is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
     constexpr s32 MIN_EXP = -60;  // alpha in Grisu.
 
     fp normalized;
-    fp_assign_new(normalized, value);
+    fp_assign_new(normalized, v);
     normalized = fp_normalize<0>(normalized);
 
     s32 cachedExp10 = 0;  // K in Grisu.
@@ -258,11 +259,15 @@ export s32 grisu_to_decimal(string_builder &builder, f64 value, s32 precision, c
 
     s32 exp = 0;
     if (gen_digits(state, normalized, 1, &exp) == gen_digits_result::ERROR) {
-        // exp += state.Size - cachedExp10 - 1;
-        // builder.BaseBuffer.Occupied += state.Size;
-        // fallback_format(value, handler.precision, specs.binary32, buf, exp);
-        // exp += state.Exp10;
-        // builder.BaseBuffer.Occupied += state.Size;
+        // On error we fallback to the dragon4 algorithm...
+
+        exp += state.Size - cachedExp10 - 1;
+
+        utf8 *buf = builder.BaseBuffer.Data + builder.BaseBuffer.Occupied;
+        s64 written;
+        dragon4_format_float(buf, &written, &exp, precision, v);
+
+        builder.BaseBuffer.Occupied += written;
     } else {
         // Success!
         exp += state.Exp10;

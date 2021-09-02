@@ -110,7 +110,7 @@ struct context {
     // When printing you should use this variable.
     // This makes it so users can redirect logging output.
     // By default it points to cout (the console).
-    writer *Log;
+    writer *Log = null;
 
     // By default when we encounter an invalid format string we panic the program.
     // One might want to silence such errors and just continue executing, or redirect the error - like we do in the tests.

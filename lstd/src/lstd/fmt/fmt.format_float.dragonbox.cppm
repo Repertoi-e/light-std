@@ -403,7 +403,7 @@ always_inline auto shorter_interval_case(s32 exponent) {
     return result;
 }
 
-export auto dragonbox_to_decimal(types::is_floating_point auto x) {
+export auto dragonbox_format_float(types::is_floating_point auto x) {
     //
     // Step 1: integer promotion & Schubfach multiplier calculation
     //

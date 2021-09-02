@@ -1,0 +1,62 @@
+module;
+
+#include "../memory/string_builder.h"
+
+export module fmt.format_float;
+
+export import fmt.format_float.specs;
+import fmt.format_float.dragonbox;
+import fmt.format_float.grisu;
+
+LSTD_BEGIN_NAMESPACE
+
+void string_append_u64(string_builder &builder, u64 value) {
+    constexpr s32 BUFFER_SIZE = numeric_info<u64>::digits10;
+    utf8 buffer[BUFFER_SIZE];
+
+    auto *p = buffer + BUFFER_SIZE - 1;
+
+    if (!value) {
+        *p-- = '0';
+    }
+
+    while (value) {
+        auto d = value % 10;
+        *p--   = (utf8)('0' + d);
+        value /= 10;
+    }
+
+    ++p;  // Roll back
+    string_append(builder, p, buffer + BUFFER_SIZE - p);
+}
+
+export s32 fmt_format_non_negative_float(string_builder &floatBuffer, types::is_floating_point auto value, s32 precision, const fmt_float_specs &specs) {
+    assert(value >= 0);
+
+    bool fixed = specs.Format == fmt_float_specs::FIXED;
+    if (value == 0) {
+        if (precision <= 0 || !fixed) {
+            string_append(floatBuffer, U'0');
+            return 0;
+        }
+
+        // @Speed
+        For(range(precision)) {
+            string_append(floatBuffer, U'0');
+        }
+        return -precision;
+    }
+
+    // If precision is still -1 (because no precision and no spec type was specified), use Dragonbox for the shortest format.
+    // We set a default precision to 6 before calling this routine in the cases when the format string didn't specify a precision,
+    // but specified a specific format (GENERAL, EXP, FIXED, etc.)
+    if (precision < 0) {
+        auto dec = dragonbox_format_float(value);
+        string_append_u64(floatBuffer, dec.Significand);
+        return dec.Exponent;
+    }
+
+    return grisu_format_float(floatBuffer, value, precision, specs);
+}
+
+LSTD_END_NAMESPACE

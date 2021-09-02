@@ -2,15 +2,13 @@
 workspace "light-std"
     architecture "x64"
     configurations { "Debug", "DebugOptimized", "Release" }
+	startproject "test_suite"
 
 function common_settings()
     architecture "x64"
 
     language "C++"
-
-    -- We can't specify C++20 in premake (yet). 
-    -- On Windows our generate_projects.bat replaces language standard with stdcpplatest in the .vcxproj files
-    cppdialect "C++17" 
+    cppdialect "C++20" 
 
     rtti "Off"
     characterset "Unicode"
@@ -73,7 +71,7 @@ function common_settings()
 end
 
 
-outputFolder = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+outputFolder = "%{cfg.buildcfg}_%{cfg.system}_%{cfg.architecture}"
 
 
 project "lstd"
@@ -81,7 +79,7 @@ project "lstd"
     kind "StaticLib"
 
     targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-    objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin_int/" .. outputFolder .. "/%{prj.name}")
 
     files {
         "%{prj.name}/src/**.h",
@@ -89,7 +87,7 @@ project "lstd"
         "%{prj.name}/src/**.c",
         "%{prj.name}/src/**.cpp",
         "%{prj.name}/src/**.def",
-        "%{prj.name}/src/**.ixx"
+        "%{prj.name}/src/**.cppm"
     }
     
     -- These options control how much memory the platform allocators reserve upfront.
@@ -98,6 +96,10 @@ project "lstd"
     -- Note: Feel free to modify the library source code however you like. We just try to be as general as possible.
     --
     -- (KiB and MiB are literal operators that are defined in the library, 1_KiB = 1024, 1_MiB = 1024 * 1024)
+	--
+	-- @TODO: Have a clearer picture on memory usage. Persisent storage size can be calculated. 
+	--        Allow turning off certain options in order to make the persistent block smaller,
+	--        thus reducing the memory footprint of the library.
     defines { "PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB", "PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB" }
 	
     common_settings()
@@ -108,7 +110,7 @@ project "test_suite"
     kind "ConsoleApp"
 
     targetdir("bin/" .. outputFolder .. "/%{prj.name}")
-    objdir("bin-int/" .. outputFolder .. "/%{prj.name}")
+    objdir("bin_int/" .. outputFolder .. "/%{prj.name}")
 
     files {
         "%{prj.name}/src/**.h",
@@ -116,7 +118,7 @@ project "test_suite"
         "%{prj.name}/src/**.c",
         "%{prj.name}/src/**.cpp",
         "%{prj.name}/src/**.def",
-        "%{prj.name}/src/**.ixx"
+        "%{prj.name}/src/**.cppm"
     }
 
     -- excludes "%{prj.name}/src/build_test_table.cpp"
