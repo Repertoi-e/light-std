@@ -800,8 +800,7 @@ void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs 
     }
 
     // This routine writes the significand in the floatBuffer, then we use the returned exponent to choose how to format the final string.
-    // The returned exponent is "by which power of 10 to multiply the (currently only an integer without a dot) 
-	// written in floatBuffer as such to get the proper value, i.e. the exponent base 10 of the LAST written digit. 
+    // The returned exponent is the exponent base 10 of the LAST written digit in _floatBuffer_.
     string_builder floatBuffer;
     s32 exp = fmt_format_non_negative_float(floatBuffer, value, specs.Precision, floatSpecs);
 

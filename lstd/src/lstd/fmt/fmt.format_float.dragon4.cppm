@@ -134,10 +134,10 @@ big_int_2048 bigint_pow10(s32 exp) {
 //
 // This code also has a few implementation differences from Ryan Juckett's
 // version:
-//  1. fixed overflow problems when significand was 64 bits (in float128 types),
-//     by replacing multiplication by 2 or 4 by BigInt_ShiftLeft calls.
-//  2. Increased c_BigInt_MaxBlocks, for 128-bit floats
-//  3. Added more entries to the g_PowerOf10_Big table, for 128-bit floats.
+//  1. fixed overflow problems when significand was 64 bits (in float128 types),   -- These are not relevant to lstd
+//     by replacing multiplication by 2 or 4 by BigInt_ShiftLeft calls.            -- These are not relevant to lstd
+//  2. Increased c_BigInt_MaxBlocks, for 128-bit floats                            -- These are not relevant to lstd
+//  3. Added more entries to the g_PowerOf10_Big table, for 128-bit floats.        -- These are not relevant to lstd
 //  4. Added unbiased rounding calculation with isEven. Ryan Juckett's
 //     implementation did not implement "IEEE unbiased rounding", except in the
 //     last digit. This has been added back, following the Burger & Dybvig
@@ -146,291 +146,183 @@ big_int_2048 bigint_pow10(s32 exp) {
 // Arguments:
 // _b_           - buffer, should be big enough to hold the output.
 // _outWritten_  - contains the number of digits written.
-// _outExp_      - the base 10 exponent of the first digit.
+// _outExp_      - the base 10 exponent of the last digit.
+//               ^ This is different in our implementation, originally this returns the base10 exponent of the FIRST digit.
+//                 But the rest of our formatting expects it to be in this format. It's a simple conversion to get the
+//                 exponent of the first digit (if needed).
+//
 // _precision_   - print at least and at most this many digits; -1 for unspecified.
+//                 Precision here means not how much to write after the decimal point,
+//                 but how many digits in TOTAL.
+//
 // _v_           - f32 or f64; contains the value of the float to be formatted.
 //
 export void dragon4_format_float(utf8 *b, s64 *outWritten, s32 *outExp, s32 precision, types::is_floating_point auto v) {
-    // We compute values in integer format by rescaling as
-    //   significand = scaledValue / scale
-    //   marginLow = scaledMarginLow / scale
-    //   marginHigh = scaledMarginHigh / scale
-    // Here, marginLow and marginHigh represent 1/2 of the distance to the next
     // floating point value above/below the significand.
-    big_int_2048 scale, scaledValue, scaledMarginLow, optionalMarginHigh;
 
-    // scaledMarginHigh will point to scaledMarginLow in the case they must be
-    // equal to each other, otherwise it will point to optionalMarginHigh.
-    big_int_2048 *scaledMarginHigh = null;
+    // Lower and upper are differences between value and corresponding boundaries.
+    big_int_2048 numerator, denominator, lower, upperStore;
+    big_int_2048 *upper = null;  // Optional, may point to upperStore.
 
     fp value;
     bool isPredecessorCloser = fp_assign_new(value, v);  // Called "hasUnequalMargins" in the original
 
-    s32 exponent = value.Exponent;
-    scaledValue  = value.Significand;
+    s32 shift = isPredecessorCloser ? 2 : 1;
 
-    bool isEven = scaledValue % 2 == 0;
+    s32 exponent    = value.Exponent;
+    u64 significand = value.Significand << shift;
 
-    if (isPredecessorCloser) {
-        if (exponent > 0) {
-            // If we have no fractional component
-            //
-            // 1) Expand the input value by multiplying out the significand and
-            //    exponent. This represents the input value in its whole number
-            //    representation.
-            // 2) Apply an additional scale of 2 such that later comparisons
-            //    against the margin values are simplified.
-            // 3) Set the margin value to the lowest significand bit's scale.
+    if (exponent >= 0) {
+        // If we have no fractional component
+        //
+        // 1) Expand the input value by multiplying out the significand and
+        //    exponent. This represents the input value in its whole number
+        //    representation.
+        // 2) Apply an additional scale of 2 such that later comparisons
+        //    against the margin values are simplified.
+        // 3) Set the margin value to the lowest significand bit's scale.
 
-            // scaledValue = 2 * 2 * significand * 2^exponent
-            scaledValue <<= (exponent + 2);
-
-            // scale = 2 * 2 * 1
-            scale = 4;
-
-            // scaledMarginLow = 2 * 2^(exponent-1)
-            scaledMarginLow = 1;
-            scaledMarginLow <<= exponent;
-
-            // scaledMarginHigh   = 2 * 2 * 2^(exponent-1)
-            optionalMarginHigh = 1;
-            optionalMarginHigh <<= (exponent + 1);
+        numerator = significand;
+        numerator <<= exponent;
+        lower = 1;
+        lower <<= exponent;
+        if (shift != 1) {
+            upperStore = 1;
+            upperStore <<= exponent + 1;
+            upper = &upperStore;
         }
-
-        else {
-            // We have a fractional exponent.
-            //
-            // In order to track the significand data as an integer, we store it as
-            // is with a large scale
-
-            // scaledValue = 2 * 2 * significand
-            scaledValue <<= 2;
-
-            // scale = 2 * 2 * 2^(-exponent)
-            scale = 1;
-            scale <<= (-exponent + 2);
-
-            // scaledMarginLow = 2 * 2^(-1)
-            scaledMarginLow = 1;
-
-            // scaledMarginHigh = 2 * 2 * 2^(-1)
-            optionalMarginHigh = 2;
+        denominator = bigint_pow10(*outExp);
+        denominator <<= shift;
+    } else if (*outExp < 0) {
+        numerator = bigint_pow10(-(*outExp));
+        lower     = numerator;
+        if (shift != 1) {
+            upperStore = numerator;
+            upperStore <<= 1;
+            upper = &upperStore;
         }
-
-        // The high and low margins are different
-        scaledMarginHigh = &optionalMarginHigh;
+        numerator *= significand;
+        denominator = 1;
+        denominator <<= shift - exponent;
     } else {
-        if (exponent > 0) {
-            // If we have no fractional component
-
-            // scaledValue = 2 * significand * 2^exponent
-            scaledValue <<= (exponent + 1);
-
-            // scale = 2 * 1
-            scale = 2;
-
-            // scaledMarginLow = 2 * 2^(exponent-1)
-            scaledMarginLow = 1;
-            scaledMarginLow <<= exponent;
-        } else {
-            // We have a fractional exponent.
-            //
-            // In order to track the significand data as an integer, we store it as
-            // is with a large scale
-
-            // scaledValue = 2 * significand
-            scaledValue <<= 1;
-
-            // scale = 2 * 2^(-exponent)
-            scale = 1;
-            scale <<= (-exponent + 1);
-
-            // scaledMarginLow =  2 * 2^(-1)
-            scaledMarginLow = 1;
+        numerator   = significand;
+        denominator = bigint_pow10(*outExp);
+        denominator <<= shift - exponent;
+        lower = 1;
+        if (shift != 1) {
+            upperStore = 2;
+            upper      = &upperStore;
         }
-
-        // The high and low margins are equal.
-        scaledMarginHigh = &scaledMarginLow;
     }
 
-    constexpr f64 LOG10_2 = 0.30102999566398119521373889472449;
+    // Invariant: value == (numerator / denominator) * pow(10, outExp).
+    if (precision < 0) {
+        // Generate the shortest unique representation
+        if (!upper) upper = &lower;
+        bool even = (value.Significand & 1) == 0;
 
-    // Compute an estimate for digitExp that will be correct or undershoot
-    // by one.  This optimization is based on the paper "Printing Floating-Point
-    // Numbers Quickly and Accurately" by Burger and Dybvig
-    // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.72.4656
-    // We perform an additional subtraction of 0.69 to increase the frequency of
-    // a failed estimate because that lets us take a faster branch in the code.
-    // 0.69 is chosen because 0.69 + log10(2) is less than one by a reasonable
-    // epsilon that will account for any floating point error.
+        precision = 0;
+        while (true) {
+            // Divide out the scale to extract the digit.
+            auto [digit, mod] = divmod(numerator, denominator);
+            numerator         = mod;
+
+            assert(digit < 10);
+            u32 outputDigit = digit.Bigits[0];
+
+            bool low  = compare(numerator, lower) - even < 0;
+            bool high = compare(numerator + *upper, denominator) + even > 0;
+
+            // Store the output digit.
+            b[precision++] = (utf8) ('0' + outputDigit);
+
+            if (low || high) {
+                if (low) {
+                    ++b[precision - 1];
+                } else if (high) {
+                    s64 cmp = compare(numerator * 2, denominator);
+
+                    // Round half to even.
+                    if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {
+                        ++b[precision - 1];
+                    }
+                }
+
+                *outWritten = precision;
+                *outExp -= precision - 1;
+
+                return;
+            }
+
+            numerator *= 10;
+            lower *= 10;
+            if (upper != &lower) *upper *= 10;
+        }
+    }
+
+    // If 0 precision, write out 1 or 0.
+    // @Hack
+    // This is not in the original algorithm.
+    // We check for precision 0 here because we need to generate
+    // a lonely zero in this case. Otherwise our formatting looks incorrect.
     //
-    // We want to set digitExp to floor(log10(v)) + 1
-    //  v = significand * 2^exponent
-    //  log2(v) = log2(significand) + exponent;
-    //  log10(v) = log2(v) * log10(2)
-    //  floor(log2(v)) = mantissaBit + exponent;
-    //  log10(v) - log10(2) < (mantissaBit + exponent) * log10(2) <= log10(v)
-    //  log10(v) < (mantissaBit + exponent) * log10(2) + log10(2) <= log10(v) + log10(2)
-    //  floor(log10(v)) < ceil((mantissaBit + exponent) * log10(2)) <= floor(log10(v)) + 1
-    s32 digitExp = (s32) (ceil((f64) (value.MantissaBit + exponent) * LOG10_2 - 0.69));
-
-    // Divide value by 10^digitExp.
-    if (digitExp > 0) {
-        // A positive exponent creates a division so we multiply the scale.
-        scale *= bigint_pow10(digitExp);
-    } else if (digitExp < 0) {
-        // A negative exponent creates a multiplication so we multiply up the
-        // scaledValue, scaledMarginLow and scaledMarginHigh.
-        auto pow10 = bigint_pow10(-digitExp);
-        scaledValue *= pow10;
-        scaledMarginLow *= pow10;
-
-        if (scaledMarginHigh != &scaledMarginLow) {
-            *scaledMarginHigh = scaledMarginLow * 2;
-        }
+    // Precisely, the format string "{:#.0f}" should produce "0." when given the value 0.5 or lower.
+    // When fed with e.g. 0.7, we take the outside branch and round up, and correctly produce "1.".
+    // If you are confused about the pointy dot: the # specifier tells the formatter to output a dot despite
+    // the fact that the specified precision is 0. This is useful when you want to be explicit that you are
+    // printing a floating point number, and not to be confused with an integer.
+    //
+    // Normally "{:.0f}" with value 42.2 would print "42", which is indistinguishable from printing the integer 42.
+    //
+    *outExp -= precision - 1;
+    if (precision == 0) {
+        *outWritten = 1;
+        denominator *= 10;
+        b[0] = compare(numerator * 2, denominator) > 0 ? '1' : '0';
+        return;
     }
 
-    // If (value >= 1), our estimate for digitExp was too low.
-    if (compare(scaledValue, scale) >= 0) {
-        // The exponent estimate was incorrect.
-        // Increment the exponent and don't perform the premultiply needed
-        // for the first loop iteration.
-        digitExp += 1;
-    } else {
-        // The exponent estimate was correct.
-        // Multiply larger by the output base to prepare for the first loop iteration.
-        scaledValue *= 10;
-        scaledMarginLow *= 10;
-        if (scaledMarginHigh != &scaledMarginLow) {
-            *scaledMarginHigh = scaledMarginLow * 2;
-        }
-    }
-
-    s32 cutoffMaxExp = digitExp - 16 * 1024 * 1024;  // Dummy buffer size
-    s32 cutoffMinExp = digitExp;  
-  
-    if (precision >= 0) {
-        s32 desiredCutoffExponent = -precision;
-        if (desiredCutoffExponent > cutoffMaxExp) {
-            cutoffMaxExp = desiredCutoffExponent;
-        }
-        
-        desiredCutoffExponent = digitExp - precision;
-        if (desiredCutoffExponent < cutoffMinExp) {
-            cutoffMinExp = desiredCutoffExponent;
-        }
-    }
-
-    // Output the exponent of the first digit we will print .
-    *outExp = digitExp - 1;
-    
-    utf8 *curDigit = b;
-    u32 outputDigit;
-
-    bool high, low;
-
-    while (true) {
-        digitExp -= 1;
-
-        // Divide out the scale to extract the digit.
-        auto [digit, mod] = divmod(scaledValue, scale);
-        scaledValue       = mod;
+    // Write out however many digits were requested
+    *outWritten = precision;
+    For(range(precision - 1)) {
+        auto [digit, mod] = divmod(numerator, denominator);
+        numerator         = mod;
 
         assert(digit < 10);
-        outputDigit = digit.Bigits[0];
+        u32 outputDigit = digit.Bigits[0];
 
-        auto scaledValueHigh = scaledValue + *scaledMarginHigh;
+        b[it] = (utf8) ('0' + outputDigit);
 
-        s64 cmp = compare(scaledValue, scaledMarginLow);
-        low = isEven ? (cmp <= 0) : (cmp < 0);
-        cmp = compare(scaledValueHigh, scale);
-        high = isEven ? (cmp >= 0) : (cmp > 0);
-        if (((low || high) & (digitExp <= cutoffMinExp)) || digitExp == cutoffMaxExp) break;
-
-        // Store the output digit.
-        *curDigit = (utf8) ('0' + outputDigit);
-        ++curDigit;
-
-        // Multiply larger by the output base.
-        scaledValue *= 10;
-        scaledMarginLow *= 10;
-        if (scaledMarginHigh != &scaledMarginLow) {
-            *scaledMarginHigh = scaledMarginLow *2;
-        }
+        numerator *= 10;
     }
 
-    bool roundDown = low;
+    // The final one, also handle rounding..
+    auto [digit, mod] = divmod(numerator, denominator);
+    numerator         = mod;
 
-    if (low == high) {
-        // It's legal to round up and down
+    assert(digit < 10);
+    u32 outputDigit = digit.Bigits[0];
 
-        // Round to the closest digit by comparing value with 0.5. To do this we
-        // need to convert the inequality to large integer values.
-        //  compare(value, 0.)
-        //  compare(scale * value, scale * 0.5)
-        //  compare(2 * scale * value, scale)
-        scaledValue *= 2;
-
-        s64 cmp   = compare(scaledValue, scale);
-        roundDown = cmp < 0;
-
-        // If we are directly in the middle, round towards the even digit (i.e. IEEE rounding rules).
-        if (cmp == 0) {
-            roundDown = (outputDigit & 1) == 0;
-        }
-    }
-
-    // Print the rounded digit.
-    if (roundDown) {
-         if (precision == 0) {
-             // @Hack
-             // This is not in the original algorithm.
-             // We check for precision 0 here because we need to generate
-             // a lonely zero in this case. Otherwise our formatting looks incorrect.
-             //
-             // Precisely, the format string "{:#.0f}" should produce "0." when given the value 0.5 or lower.
-             // When fed with e.g. 0.7, we take the outside branch and round up, and correctly produce "1.".
-             // If you are confused about the pointy dot: the # specifier tells the formatter to output a dot despite
-             // the fact that the specified precision is 0. This is useful when you want to be explicit that you are 
-             // printing a floating point number, and not to be confused with an integer.
-             // 
-             // Normally "{:.0f}" with value 42.2 would print "42", which is indistinguishable from printing the integer 42.
-             //
-             *outExp += 1;
-             *curDigit = '0';
-             ++curDigit;
-         } else {
-             *curDigit = (char) ('0' + outputDigit);
-             ++curDigit;
-         }
-    } else {
+    s64 cmp = compare(numerator * 2, denominator);
+    if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {
         if (outputDigit == 9) {
-            // Find the first non-nine prior digit.
-            while (true) {
-                if (curDigit == b) {
-                    // If we are at the first digit.
-                    *curDigit = '1';
-                    ++curDigit;
-                    *outExp += 1;
-                    break;
-                }
+            utf8 overflow    = (utf8) ('0' + 10);
+            b[precision - 1] = overflow;
 
-                --curDigit;
-                if (*curDigit != '9') {
-                    *curDigit += 1;
-                    ++curDigit;
-                    break;
-                }
+            // Propagate the carry.
+            for (s32 i = precision - 1; i > 0 && b[i] == overflow; --i) {
+                b[i] = '0';
+                ++b[i - 1];
             }
-        } else {
-            // Values in the range [0,8] can perform a simple round up.
-            *curDigit = (char) ('0' + outputDigit + 1);
-            ++curDigit;
+            if (b[0] == overflow) {
+                b[0] = '1';
+                ++*outExp;
+            }
+            return;
         }
+        ++outputDigit;
     }
-
-    // Return the number of digits output.
-    *outWritten = (u32) (curDigit - b);
+    b[precision - 1] = (utf8) ('0' + outputDigit);
 }
 
 LSTD_END_NAMESPACE

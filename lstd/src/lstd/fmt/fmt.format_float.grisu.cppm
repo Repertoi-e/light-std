@@ -231,9 +231,9 @@ gen_digits_result gen_digits(gen_digits_state &state, fp value, u64 error, s32 *
     }
 }
 
-// The returned exponent is "by which power of 10 to multiply the (currently only an integer without a dot) 
-// written in floatBuffer as such to get the proper value, i.e. the exponent base 10 of the LAST written digit. 
-export s32 grisu_format_float(string_builder &builder, types::is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
+// The returned exponent is the exponent base 10 of the LAST written digit in _floatBuffer_.
+// In the end, _floatBuffer_ contains the digits of the final number to be written out, without the dot.
+export s32 grisu_format_float(string_builder &floatBuffer, types::is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
     constexpr s32 MIN_EXP = -60;  // alpha in Grisu.
 
     fp normalized;
@@ -253,7 +253,7 @@ export s32 grisu_format_float(string_builder &builder, types::is_floating_point 
     bool fixed = specs.Format == fmt_float_specs::FIXED;
 
     gen_digits_state state;
-    state.Buffer    = builder.BaseBuffer.Data + builder.BaseBuffer.Occupied;
+    state.Buffer    = floatBuffer.BaseBuffer.Data + floatBuffer.BaseBuffer.Occupied;
     state.Size      = 0;
     state.Fixed     = fixed;
     state.Exp10     = -cachedExp10;
@@ -262,38 +262,35 @@ export s32 grisu_format_float(string_builder &builder, types::is_floating_point 
     s32 exp = 0;
     if (gen_digits(state, normalized, 1, &exp) == gen_digits_result::ERROR) {
         // On error we fallback to the dragon4 algorithm...
-
         exp += state.Size - cachedExp10 - 1;
 
-        utf8 *buf = builder.BaseBuffer.Data + builder.BaseBuffer.Occupied;
+        utf8 *buf = floatBuffer.BaseBuffer.Data + floatBuffer.BaseBuffer.Occupied;
         s64 written;
-        dragon4_format_float(buf, &written, &exp, precision, v);
 
-        // dragon4 returns the exponent of the first digit in the buffer,
-        // e.g. 395.20, exp is 2...
-        // 
-        // But the rest of the format expects the returned exponent 
-        // to signify the exponent of the LAST written digit. 
-        // 
-        // e.g. in the example above returned exp should be -2 
-        exp -= (s32)(written - 1);
+        // Here we pass handler.Precision, and not the raw precision we
+        // are given when calling this function, because that one specifies
+        // how many digits to print AFTER the decimal point.
+        // Grisu updates it to include the stuff before that.
+        // So essentially handler.Precision contains the number of digits
+        // to be generated, and dragon4 expects that.
+        dragon4_format_float(buf, &written, &exp, state.Precision, v);
 
-        builder.BaseBuffer.Occupied += written;
+        floatBuffer.BaseBuffer.Occupied += written;
     } else {
         // Success!
         exp += state.Exp10;
-        builder.BaseBuffer.Occupied += state.Size;
+        floatBuffer.BaseBuffer.Occupied += state.Size;
     }
 
     // Remove trailing zeros after decimal point
     if (!fixed && !specs.ShowPoint) {
-        s64 size = builder.BaseBuffer.Occupied;
+        s64 size = floatBuffer.BaseBuffer.Occupied;
 
-        while (size > 0 && builder.BaseBuffer.Data[size - 1] == '0') {
+        while (size > 0 && floatBuffer.BaseBuffer.Data[size - 1] == '0') {
             --size;
             ++exp;
         }
-        builder.BaseBuffer.Occupied = size;
+        floatBuffer.BaseBuffer.Occupied = size;
     }
     return exp;
 }

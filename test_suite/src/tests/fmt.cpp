@@ -41,7 +41,7 @@ void format_test_error(const string &fmtString, Args &&...arguments) {
     auto newContext                 = Context;
     newContext.FmtParseErrorHandler = test_parse_error_handler;
     PUSH_CONTEXT(newContext) {
-        auto args = fmt_args_on_the_stack(fmt_context{}, (types::remove_reference_t<Args> &&) arguments...); // This needs to outlive _parse_fmt_string_
+        auto args = fmt_args_on_the_stack(fmt_context{}, (types::remove_reference_t<Args> &&) arguments...);  // This needs to outlive _parse_fmt_string_
         auto f    = fmt_context(&dummy, fmtString, args);
         fmt_parse_and_format(&f);
     }
@@ -252,11 +252,11 @@ TEST(precision_rounding) {
     CHECK_WRITE("0.00123", "{:.3}", 0.00123);
     CHECK_WRITE("0.1", "{:.16g}", 0.1);
     CHECK_WRITE("1", "{:.0}", 1.0);
-    CHECK_WRITE("225.51575035152064000", "{:.17f}", 225.51575035152064);
+    CHECK_WRITE("225.51575035152063720", "{:.17f}", 225.51575035152064);
     CHECK_WRITE("-761519619559038.2", "{:.1f}", -761519619559038.2);
     CHECK_WRITE("1.9156918820264798e-56", "{}", 1.9156918820264798e-56);
     CHECK_WRITE("0.0000", "{:.4f}", 7.2809479766055470e-15);
-    CHECK_WRITE("3788512123356.985400", "{:f}", 3788512123356.985352);
+    CHECK_WRITE("3788512123356.985352", "{:f}", 3788512123356.985352);
 }
 
 TEST(prettify_float) {
@@ -305,7 +305,7 @@ TEST(args_errors) {
     EXPECT_ERROR("Format string ended abruptly", "{0");
     EXPECT_ERROR("Argument index out of range", "{0}");
 
-    EXPECT_ERROR("Invalid format string", "{"); //-V1002
+    EXPECT_ERROR("Invalid format string", "{");  //-V1002
     EXPECT_ERROR("Unmatched \"}\" in format string - if you want to print it use \"}}\" to escape", "}");
     EXPECT_ERROR("Expected \":\" or \"}\"", "{0{}");
 }

@@ -30,8 +30,8 @@ void string_append_u64(string_builder &builder, u64 value) {
     string_append(builder, p, buffer + BUFFER_SIZE - p);
 }
 
-// The returned exponent is "by which power of 10 to multiply the (currently only an integer without a dot) 
-// written in floatBuffer as such to get the proper value, i.e. the exponent base 10 of the LAST written digit. 
+// The returned exponent is the exponent base 10 of the LAST written digit in _floatBuffer_.
+// In the end, _floatBuffer_ contains the digits of the final number to be written out, without the dot.
 export s32 fmt_format_non_negative_float(string_builder &floatBuffer, types::is_floating_point auto value, s32 precision, const fmt_float_specs &specs) {
     assert(value >= 0);
 
