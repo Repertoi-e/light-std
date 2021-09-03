@@ -1,14 +1,14 @@
 #include "test.h"
 
 void build_test_table() {
-    // extern void test_msb();
-    // array_append(*g_TestTable[string("bits.cpp")], {"msb", test_msb});
-    // extern void test_lsb();
-    // array_append(*g_TestTable[string("bits.cpp")], {"lsb", test_lsb});
-    // extern void test_path_manipulation();
-    // array_append(*g_TestTable[string("file.cpp")], {"path_manipulation", test_path_manipulation});
-    // extern void test_file_size();
-    // array_append(*g_TestTable[string("file.cpp")], {"file_size", test_file_size});
+    extern void test_msb();
+    array_append(*g_TestTable[string("bits.cpp")], {"msb", test_msb});
+    extern void test_lsb();
+    array_append(*g_TestTable[string("bits.cpp")], {"lsb", test_lsb});
+    extern void test_path_manipulation();
+    array_append(*g_TestTable[string("file.cpp")], {"path_manipulation", test_path_manipulation});
+    extern void test_file_size();
+    array_append(*g_TestTable[string("file.cpp")], {"file_size", test_file_size});
     extern void test_write_bool();
     array_append(*g_TestTable[string("fmt.cpp")], {"write_bool", test_write_bool});
     extern void test_write_integer_16();
@@ -91,7 +91,6 @@ void build_test_table() {
     array_append(*g_TestTable[string("fmt.cpp")], {"dynamic_precision", test_dynamic_precision});
     extern void test_colors_and_emphasis();
     array_append(*g_TestTable[string("fmt.cpp")], {"colors_and_emphasis", test_colors_and_emphasis});
-    /*
     extern void test_ctor_and_index();
     array_append(*g_TestTable[string("mat.cpp")], {"ctor_and_index", test_ctor_and_index});
     extern void test_thin_mat_from_vec();
@@ -506,5 +505,4 @@ void build_test_table() {
     array_append(*g_TestTable[string("vec.cpp")], {"cross", test_cross});
     extern void test_cross_nd();
     array_append(*g_TestTable[string("vec.cpp")], {"cross_nd", test_cross_nd});
-    */
 }
