@@ -4,10 +4,10 @@
 
 // * c_string_length - strlen
 // * utf8_length
-// * compare_c_string
-// * compare_c_string_lexicographically - strcmp
-// * compare_c_string_ignore_case
-// * compare_c_string_lexicographically_ignore_case
+// * compare_string
+// * compare_string_lexicographically - strcmp
+// * compare_string_ignore_case
+// * compare_string_lexicographically_ignore_case
 // * strings_match
 //
 // Working with code points:
@@ -45,19 +45,23 @@ export module lstd.string_utils;
 
 LSTD_BEGIN_NAMESPACE
 
+template <typename C>
+using c_string_type = types::add_pointer_t<types::remove_cvref_t<types::remove_pointer_t<types::remove_cvref_t<C>>>>;
+
 export {
-    template <typename T>
-    using c_string_type = types::remove_const_t<types::remove_pointer_t<T>> *;
-
     // C++ mess
-    template <typename T>
-    concept c_string = types::is_same < c_string_type<T>,
-    char * > || types::is_same<c_string_type<T>, s8 *> || types::is_same<c_string_type<T>, u8 *> || types::is_same<c_string_type<T>, wchar *> || types::is_same<c_string_type<T>, char8_t *> || types::is_same<c_string_type<T>, char16_t *> || types::is_same<c_string_type<T>, char32_t *> || types::is_same<c_string_type<T>, code_point *>;
+    template <typename C>
+    concept any_c_string = types::is_pointer<C> && types::is_same_to_one_of < c_string_type<C>,
+    char *, wchar *, char8_t *, char16_t *, char32_t *, code_point * > ;
 
-    // Retrieve the length of a null-terminated. Doesn't care about encoding.
+    template <typename C>
+    concept any_c_string_one_byte = types::is_pointer<C> && types::is_same_to_one_of < c_string_type<C>,
+    char *, char8_t * > ;
+
+    // The length of a null-terminated string. Doesn't care about encoding.
     // Note that this calculation does not include the null byte.
     // @Speed @TODO Vectorize
-    constexpr s64 c_string_length(c_string auto str) {
+    constexpr s64 c_string_length(any_c_string auto str) {
         if (!str) return 0;
 
         s64 length = 0;
@@ -65,7 +69,7 @@ export {
         return length;
     }
 
-    // Retrieve the length (in code points) for a utf-8 string
+    // The length (in code points) of a utf-8 string
     // @Speed @TODO Vectorize
     constexpr s64 utf8_length(const char *str, s64 size) {
         if (!str || size == 0) return 0;
@@ -80,8 +84,8 @@ export {
 
     // Returns -1 if strings match, else returns the index of the first different byte
     // @Speed @TODO Vectorize
-    template <c_string T>
-    constexpr s64 compare_c_string(T one, T other) {
+    template <any_c_string C>
+    constexpr s64 compare_string(C one, C other) {
         assert(one);
         assert(other);
 
@@ -99,8 +103,8 @@ export {
 
     // Return -1 if one < other, 0 if one == other and 1 if one > other (not the pointers)
     // @Speed @TODO Vectorize
-    template <c_string T>
-    constexpr s32 compare_c_string_lexicographically(T one, T other) {
+    template <any_c_string C>
+    constexpr s32 compare_string_lexicographically(C one, C other) {
         assert(one);
         assert(other);
 
@@ -277,8 +281,8 @@ export {
     // Returns -1 if strings match, else returns the index of the first different byte.
     // Ignores the case of the characters.
     // @Speed @TODO Vectorize
-    template <c_string T>
-    constexpr s64 compare_c_string_ignore_case(T one, T other) {
+    template <any_c_string C>
+    constexpr s64 compare_string_ignore_case(C one, C other) {
         assert(one);
         assert(other);
 
@@ -297,8 +301,8 @@ export {
     // Return -1 if one < other, 0 if one == other and 1 if one > other (not the pointers).
     // Ignores the case of the characters.
     // @Speed @TODO Vectorize
-    template <c_string T>
-    constexpr s32 compare_c_string_lexicographically_ignore_case(T one, T other) {
+    template <any_c_string C>
+    constexpr s32 compare_string_lexicographically_ignore_case(C one, C other) {
         assert(one);
         assert(other);
 
@@ -307,12 +311,12 @@ export {
     }
 
     // true if strings are equal (not the pointers)
-    template <c_string T>
-    constexpr bool strings_match(T one, T other) { return compare_c_string(one, other) == -1; }
+    template <any_c_string C>
+    constexpr bool strings_match(C one, C other) { return compare_string(one, other) == -1; }
 
     // true if strings are equal (not the pointers)
-    template <c_string T>
-    constexpr bool strings_match_ignore_case(T one, T other) { return compare_c_string_ignore_case(one, other) == -1; }
+    template <any_c_string C>
+    constexpr bool strings_match_ignore_case(C one, C other) { return compare_string_ignore_case(one, other) == -1; }
 
     // Returns the size in bytes of the code point that _str_ points to.
     // If the byte pointed by _str_ is a countinuation utf-8 byte, this function returns 0.

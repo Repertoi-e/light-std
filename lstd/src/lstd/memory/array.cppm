@@ -61,9 +61,15 @@ export {
         constexpr array() {}
         constexpr array(T *data, s64 count) : Data(data), Count(count) {}
 
-        // We allow converting from const char * (we treat it as a c-style string)
-        constexpr array(const char *data) : Data((char *) data), Count(c_string_length(data)) {}
-        constexpr array(const char *data, s64 n) : Data((char *) data), Count(n) {}
+        // We allow converting from c-style strings (char* or char8_t*)
+        constexpr array(any_c_string_one_byte auto data) : Data((char *) data), Count(c_string_length(data)) {
+            static_assert(types::is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
+        }
+
+        // Take data + size
+        constexpr array(any_c_string_one_byte auto data, s64 n) : Data((char *) data), Count(n) {
+            static_assert(types::is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
+        }
 
         constexpr array(const initializer_list<T> &items) {
             // A bug caused by this bit me hard...

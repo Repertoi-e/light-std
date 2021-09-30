@@ -6,8 +6,7 @@ Project structure
   with functions that should run with the initialization of the lstd.
   This would be flexible enough to allow easily adding new modules
   just by linking with them and even allow the user to add their own routines.
-  
-- Simplify signal.h
+
   
 - make it MODULES, hehe
        This is probably going to be the biggest restructure this project has even seen.
@@ -31,13 +30,6 @@ Project structure
 	
 - common.h: @TODO: Merge using is_constant_evaluated()
 	
-- Rename free to dispose when referring to object cleanup,
-  right now we are calling "free" on stack objects which may confused the heck out of people.
-	
-- I have finally decided... We don't like references. Don't use references anywhere in the code. Huge cleanup incoming! 
-	
-- Rename os to lstd.os and path to lstd.path,
-  
   
   
 - File reading API (currently we have two functions, is that enough?)
@@ -63,6 +55,9 @@ math module:
 README.md:
 - Build section
 - Section about attributions
+- Credit Python for big_integer and path module
+- Credit apex memmove
+- Credit MSVC standard library source code for windows_no_crt
 
 
 

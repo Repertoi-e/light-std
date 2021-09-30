@@ -22,6 +22,9 @@
 #include "common/sequence.h"
 #include "common/u128.h"
 
+// This is basically std::forward, we use by_ref (&&) when we don't want to copy arguments.
+constexpr auto ref(auto t) { return (types::remove_reference_t<decltype(t)> by_ref) t; }
+
 //
 // Provides replacements for the math functions found in virtually all standard libraries.
 // Also provides functions for extended precision arithmetic, statistical functions, physics, astronomy, etc.
@@ -63,7 +66,7 @@ LSTD_BEGIN_NAMESPACE
 
 // Loop that gets unrolled at compile-time
 template <s64 First, s64 Last, typename Lambda>
-void static_for(Lambda &&f) {
+void static_for(Lambda by_ref f) {
     if constexpr (First < Last) {
         f(types::integral_constant<s64, First>{});
         static_for<First + 1, Last>(f);

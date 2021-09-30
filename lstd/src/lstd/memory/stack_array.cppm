@@ -68,7 +68,7 @@ export {
     auto end(any_stack_array auto &arr) { return arr.Data + arr.Count; }
 
     template <typename D = void, class... Types>
-    constexpr stack_array<typename return_type_helper<D, Types...>::type, sizeof...(Types)> make_stack_array(Types && ...t);
+    constexpr stack_array<typename return_type_helper<D, Types...>::type, sizeof...(Types)> make_stack_array(Types by_ref... t);
 
     template <typename T, s64 N>
     constexpr stack_array<types::remove_cv_t<T>, N> make_stack_array(T(&a)[N]);
@@ -80,8 +80,8 @@ constexpr stack_array<types::remove_cv_t<T>, N> to_array_impl(T (&a)[N], integer
 }
 
 template <typename D, class... Types>
-constexpr stack_array<typename return_type_helper<D, Types...>::type, sizeof...(Types)> make_stack_array(Types &&...t) {
-    return {(Types &&) t...};
+constexpr stack_array<typename return_type_helper<D, Types...>::type, sizeof...(Types)> make_stack_array(Types by_ref... t) {
+    return {ref<Types>(t)...};
 }
 
 template <typename T, s64 N>

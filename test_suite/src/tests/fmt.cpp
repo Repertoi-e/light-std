@@ -5,13 +5,13 @@
 #define CHECK_WRITE(expected, fmtString, ...)        \
     {                                                \
         string t = sprint(fmtString, ##__VA_ARGS__); \
-        assert_eq(t, expected);                      \
-        free(t);                                     \
+        assert_eq(t, string(expected));              \
+        free(t.Data);                                \
     }
 
 file_scope string LAST_ERROR;
 
-file_scope void test_parse_error_handler(const string &message, const string &formatString, s64 position) {
+file_scope void test_parse_error_handler(string message, string formatString, s64 position) {
     LAST_ERROR = message;
 
     // We test visually for the correctness of the ^.
@@ -35,21 +35,25 @@ file_scope void test_parse_error_handler(const string &message, const string &fo
 }
 
 template <typename... Args>
-void format_test_error(const string &fmtString, Args &&...arguments) {
-    counting_writer dummy;
-
+void format_test_error(string fmtString, Args &&...arguments) {
     auto newContext                 = Context;
     newContext.FmtParseErrorHandler = test_parse_error_handler;
     PUSH_CONTEXT(newContext) {
-        auto args = fmt_args_on_the_stack(fmt_context{}, (types::remove_reference_t<Args> &&) arguments...);  // This needs to outlive _parse_fmt_string_
-        auto f    = fmt_context(&dummy, fmtString, args);
+        static constexpr s64 NUM_ARGS = sizeof...(Args);
+        stack_array<fmt_arg, NUM_ARGS> args;
+
+        args = {fmt_make_arg(arguments)...};
+
+        counting_writer dummy;
+        auto f = fmt_context(&dummy, fmtString, args);
+
         fmt_parse_and_format(&f);
     }
 }
 
 #define EXPECT_ERROR(expected, fmtString, ...)   \
     format_test_error(fmtString, ##__VA_ARGS__); \
-    assert_eq(LAST_ERROR, expected);             \
+    assert_eq(LAST_ERROR, string(expected));     \
     LAST_ERROR = "";
 
 TEST(write_bool) {
@@ -101,15 +105,15 @@ TEST(write_code_point) {
 }
 
 template <typename T>
-void check_unknown_types(T value, const string &types, const string &expectedMessage) {
+void check_unknown_types(T value, string types, string expectedMessage) {
     string special = ".0123456789}";
 
     For(range(1, S8_MAX)) {
-        if (has(special, (utf32) it) || has(types, (utf32) it)) continue;
+        if (string_has(special, it) || string_has(types, it)) continue;
 
         string fmtString = sprint("{{0:10{:c}}}", it);
         EXPECT_ERROR(expectedMessage, fmtString, value);
-        fmtString.release();
+        free(fmtString.Data);
     }
 }
 
@@ -231,7 +235,7 @@ struct Answer {
 
 template <>
 struct formatter<Answer> {
-    void format(const Answer &, fmt_context *f) { write(f, 42); }
+    void format(fmt_context *f, Answer *) { write(f, 42); }
 };
 
 TEST(format_custom) {

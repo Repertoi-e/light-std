@@ -47,7 +47,7 @@ export {
     //
     template <typename R, typename... A>
     struct delegate<R(A...)> {
-        using stub_t   = R (*)(void *, A &&...);
+        using stub_t   = R (*)(void *, A by_ref...);
         using return_t = R;
 
         template <typename Type, typename Signature>
@@ -67,20 +67,20 @@ export {
 
         // Invoke static method / free function
         template <null_t, typename Signature>
-        static R invoke(void *data, A &&...args) {
-            return (*reinterpret_cast<const target<null_t, Signature> *>(data)->FunctionPtr)((A &&) args...);
+        static R invoke(void *data, A by_ref... args) {
+            return (*reinterpret_cast<const target<null_t, Signature> *>(data)->FunctionPtr)(ref(args)...);
         }
 
         // Invoke method
         template <typename Type, typename Signature>
-        static R invoke(void *data, A &&...args) {
-            return (reinterpret_cast<const target<Type, Signature> *>(data)->InstancePtr->*reinterpret_cast<const target<Type, Signature> *>(data)->FunctionPtr)((A &&) args...);
+        static R invoke(void *data, A by_ref... args) {
+            return (reinterpret_cast<const target<Type, Signature> *>(data)->InstancePtr->*reinterpret_cast<const target<Type, Signature> *>(data)->FunctionPtr)(ref(args)...);
         }
 
         // Invoke function object (functor)
         template <typename Type, null_t>
-        static R invoke(void *data, A &&...args) {
-            return (*reinterpret_cast<const target<Type, null_t> *>(data)->InstancePtr)((A &&) args...);
+        static R invoke(void *data, A by_ref... args) {
+            return (*reinterpret_cast<const target<Type, null_t> *>(data)->InstancePtr)(ref(args)...);
         }
 
         delegate() {}
@@ -130,7 +130,7 @@ export {
 
         // Call operator
         R operator()(A... args) const {
-            return (*Invoker)((void *) &Data[0], (A &&) args...);
+            return (*Invoker)((void *) &Data[0], ref<A>(args)...);
         }
     };
 }

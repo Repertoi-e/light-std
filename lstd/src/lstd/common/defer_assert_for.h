@@ -4,6 +4,8 @@
 
 LSTD_BEGIN_NAMESPACE
 
+#define by_ref &&
+
 // Used in macros to get "unique" variable names
 #define LINE_NAME(name) _MACRO_CONCAT(name, __LINE__)
 #define _MACRO_DO_CONCAT(s1, s2) s1##s2
@@ -45,7 +47,7 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #endif
 
 template <typename T, typename TIter = decltype(types::declval<T>().begin()), typename = decltype(types::declval<T>().end())>
-constexpr auto enumerate_impl(T &&in) {
+constexpr auto enumerate_impl(T by_ref in) {
     struct iterator {
         s64 I;
         TIter Iter;
@@ -77,7 +79,7 @@ constexpr auto enumerate_impl(T &&in) {
 //
 //  For(array) print(it);
 //
-#define For_as(x, in) for (auto &&x : in)
+#define For_as(x, in) for (auto by_ref x : in)
 #define For(in) For_as(it, in)
 
 //

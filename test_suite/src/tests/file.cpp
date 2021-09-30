@@ -1,24 +1,24 @@
-import path;
-
 #include "../test.h"
+
+import lstd.path;
 
 TEST(path_manipulation) {
     {
         string a = path_normalize("/home/data.txt");
         assert(path_is_absolute(a));
 
-        assert_eq(path_base_name(a), "data.txt");
+        assert_eq(path_base_name(a), string("data.txt"));
         assert_eq(path_split_extension(a).Root, path_normalize("/home/data"));
-        assert_eq(path_split_extension(a).Extension, ".txt");
+        assert_eq(path_split_extension(a).Extension, string(".txt"));
         assert_eq(path_directory(a), path_normalize("/home/"));
     }
     {
         string a = path_normalize("/home/data/bin");
         assert(path_is_absolute(a));
 
-        assert_eq(path_base_name(a), "bin");
+        assert_eq(path_base_name(a), string("bin"));
         assert_eq(path_split_extension(a).Root, path_normalize("/home/data/bin"));
-        assert_eq(path_split_extension(a).Extension, "");
+        assert_eq(path_split_extension(a).Extension, string(""));
         assert_eq(path_directory(a), path_normalize("/home/data"));
 
         auto b = path_join(a, "lstd");
@@ -34,9 +34,9 @@ TEST(path_manipulation) {
 
         assert_eq(a, path_normalize("../../data/bin/debug/lstd.exe"));
 
-        assert_eq(path_base_name(a), "lstd.exe");
+        assert_eq(path_base_name(a), string("lstd.exe"));
         assert_eq(path_split_extension(a).Root, path_normalize("../../data/bin/debug/lstd"));
-        assert_eq(path_split_extension(a).Extension, ".exe");
+        assert_eq(path_split_extension(a).Extension, string(".exe"));
         assert_eq(path_directory(a), path_normalize("../../data/bin/debug"));
     }
 }
@@ -44,13 +44,13 @@ TEST(path_manipulation) {
 TEST(file_size) {
     auto thisFile     = string(__FILE__);
     string dataFolder = path_join(path_directory(thisFile), "data");
-    defer(free(dataFolder));
+    defer(free(dataFolder.Data));
 
     string fiveBytes = path_join(dataFolder, "five_bytes");
-    defer(free(fiveBytes));
+    defer(free(fiveBytes.Data));
 
     string text = path_join(dataFolder, "text");
-    defer(free(text));
+    defer(free(text.Data));
 
     assert_eq(path_file_size(fiveBytes), 5);
     assert_eq(path_file_size(text), 277);
@@ -129,7 +129,7 @@ TEST(test_introspection) {
 #define DO_READ_EVERY_FILE 0
 
 #if DO_READ_EVERY_FILE
-TE-ST(read_every_file_in_project) {
+TE - ST(read_every_file_in_project) {
     string rootFolder = path_normalize(path_join(path_directory(string(__FILE__)), "../../../"));
 
     hash_table<string, s64> fileMap;

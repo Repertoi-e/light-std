@@ -65,8 +65,8 @@ export {
 
         // Returns a pointer to the value associated with _key_.
         // If the key doesn't exist, this adds a new element and returns it.
-        V *operator[](K key) {
-            auto [kp, vp] = find(this, key);
+        V *operator[](K by_ref key) {
+            auto [kp, vp] = find(this, ref(key));
             if (vp) return vp;
             return add(this, key).Value;
         }
@@ -190,7 +190,7 @@ export {
 
             // Add the old items
             For(range(oldAllocated)) {
-                if (oldHashes[it] >= table->FIRST_VALID_HASH) add_prehashed(table, oldHashes[it], oldKeys[it], oldValues[it]);
+                if (oldHashes[it] >= table->FIRST_VALID_HASH) add_prehashed(table, oldHashes[it], ref(oldKeys[it]), ref(oldValues[it]));
             }
 
             free(oldHashes);
@@ -242,7 +242,7 @@ export {
     // In normal _find_ we calculate the hash of the key using the global get_hash() specialized functions.
     // This method is useful if you have cached the hash.
     template <any_hash_table T>
-    key_value_pair<T> find_prehashed(T * table, u64 hash, key_t<T> key) {
+    key_value_pair<T> find_prehashed(T * table, u64 hash, key_t<T> by_ref key) {
         if (!table->Count) return {null, null};
 
         s64 index = hash & table->Allocated - 1;
@@ -263,8 +263,8 @@ export {
 
     // We calculate the hash of the key using the global get_hash() specialized functions.
     template <any_hash_table T>
-    auto find(T * table, key_t<T> key) {
-        return find_prehashed(table, get_hash(key), key);
+    auto find(T * table, key_t<T> by_ref key) {
+        return find_prehashed(table, get_hash(key), ref(key));
     }
 
     // Adds key and value to the hash table using the given hash.
@@ -272,7 +272,7 @@ export {
     // This method is useful if you have cached the hash.
     // Returns pointers to the added key and value.
     template <any_hash_table T>
-    key_value_pair<T> add_prehashed(T * table, u64 hash, key_t<T> key, value_t<T> value) {
+    key_value_pair<T> add_prehashed(T * table, u64 hash, key_t<T> by_ref key, value_t<T> by_ref value) {
         // The + 1 here handles the case when the hash table size is 1 and you add the first item.
         if ((table->SlotsFilled + 1) * 2 >= table->Allocated) resize(table, table->SlotsFilled);  // Make sure the hash table is never more than 50% full
 
@@ -305,7 +305,7 @@ export {
     //
     // Because _add_ returns a pointer where the object is placed, clone() can place the deep copy there directly.
     template <any_hash_table T>
-    key_value_pair<T> add(T * table, key_t<T> key) { return add(table, key, value_t<T>()); }
+    key_value_pair<T> add(T * table, key_t<T> by_ref key) { return add(table, ref(key), value_t<T>()); }
 
     // Inserts an empty key/value pair with a given hash.
     // Use the returned pointers to fill out the slots.
@@ -317,31 +317,31 @@ export {
 
     // Returns pointers to the added key and value.
     template <any_hash_table T>
-    key_value_pair<T> add(T * table, key_t<T> key, value_t<T> value) {
-        return add_prehashed(table, get_hash(key), key, value);
+    key_value_pair<T> add(T * table, key_t<T> by_ref key, value_t<T> by_ref value) {
+        return add_prehashed(table, get_hash(key), ref(key), ref(value));
     }
 
     // This method is useful if you have cached the hash.
     template <any_hash_table T>
-    key_value_pair<T> set_prehashed(T * table, u64 hash, key_t<T> key, value_t<T> value) {
-        auto [kp, vp] = find_prehashed(table, hash, key);
+    key_value_pair<T> set_prehashed(T * table, u64 hash, key_t<T> by_ref key, value_t<T> by_ref value) {
+        auto [kp, vp] = find_prehashed(table, hash, ref(key));
         if (vp) {
             *vp = value;
             return {kp, vp};
         }
-        return add(table, key, value);
+        return add(table, ref(key), ref(value));
     }
 
     template <any_hash_table T>
-    key_value_pair<T> set(T * table, key_t<T> key, value_t<T> value) {
-        return set_prehashed(table, get_hash(key), key, value);
+    key_value_pair<T> set(T * table, key_t<T> by_ref key, value_t<T> by_ref value) {
+        return set_prehashed(table, get_hash(key), ref(key), ref(value));
     }
 
     // Returns true if the key was found and removed.
     // This method is useful if you have cached the hash.
     template <any_hash_table T>
-    bool remove_prehashed(T * table, u64 hash, key_t<T> key) {
-        auto [kp, vp] = find_prehashed(table, hash, key);
+    bool remove_prehashed(T * table, u64 hash, key_t<T> by_ref key) {
+        auto [kp, vp] = find_prehashed(table, hash, ref(key));
         if (vp) {
             s64 index            = vp - table->Values;
             table->Hashes[index] = 1;
@@ -352,21 +352,21 @@ export {
 
     // Returns true if the key was found and removed.
     template <any_hash_table T>
-    bool remove(T * table, key_t<T> key) {
-        return remove_prehashed(table, get_hash(key), key);
+    bool remove(T * table, key_t<T> by_ref key) {
+        return remove_prehashed(table, get_hash(key), ref(key));
     }
 
     // Returns true if the hash table has the given key.
     template <any_hash_table T>
-    bool has(T * table, key_t<T> key) { return find(table, key).Key != null; }
+    bool has(T * table, key_t<T> by_ref key) { return find(table, ref(key)).Key != null; }
 
     // Returns true if the hash table has the given key.
     // This method is useful if you have cached the hash.
     template <any_hash_table T>
-    bool has_prehashed(T * table, u64 hash, key_t<T> key) { return find_prehashed(table, hash, key) != null; }
+    bool has_prehashed(T * table, u64 hash, key_t<T> by_ref key) { return find_prehashed(table, hash, ref(key)) != null; }
 
     template <any_hash_table T>
-    bool operator==(const T &t, const T &u) {
+    bool operator==(T by_ref t, T by_ref u) {
         if (t.Count != u.Count) return false;
 
         for (auto [k, v] : t) {
@@ -377,7 +377,7 @@ export {
     }
 
     template <any_hash_table T>
-    bool operator!=(const T &t, const T &u) { return !(t == u); }
+    bool operator!=(T by_ref t, T by_ref u) { return !(t == u); }
 
     template <any_hash_table T>
     T clone(T * src) {

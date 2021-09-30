@@ -139,7 +139,7 @@ void debug_memory::report_leaks() {
         //
         // @Cleanup D I R T Y @Cleanup @Cleanup @Cleanup
         //
-        if (compare_c_string(it->FileName, "") != -1) {
+        if (compare_string(it->FileName, "") != -1) {
             file = get_short_file_name(it->FileName);
         }
 

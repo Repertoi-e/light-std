@@ -5,32 +5,13 @@ module;
 export module lstd.fmt.arg;
 
 export import lstd.fmt.fmt_type;
+export import lstd.fmt.formatter;
+
 import lstd.fmt.fmt_type_constant;
 
 LSTD_BEGIN_NAMESPACE
 
 export {
-    //
-    // Specialize this for custom types.
-    //
-    // e.g.
-    //
-    // template <>
-    // struct formatter<my_vector> {
-    //     void format(fmt_context *f, my_vector *value) {
-    //         fmt_to_writer(f, "x: {}, y: {}", value->x, value->y);
-    // 		   ...
-    // 	   }
-    // };
-    template <typename T, typename Enable = void>
-    struct formatter {
-        formatter() = delete;
-    };
-
-    // Can T be formatted with a custom formatter
-    template <typename T>
-    concept formattable = requires(T) { {formatter<T>{}}; };
-
     struct fmt_custom_value {
         void *Data;
         void (*FormatFunc)(void *formatContext, void *arg);
@@ -98,38 +79,34 @@ export {
             return &v;
         } else if constexpr (types::is_same<string, T> || types::is_constructible<string, T>) {
             return string(v);
-        } else if constexpr (types::is_pointer<T>) {
-            static_assert(types::is_same<T, void *>, "Formatting of non-void pointers is disallowed");
-            return (void *) v;
-        } else if constexpr (types::is_same<bool, T>) {
-            return (bool) v;
-        } else if constexpr (types::is_signed_integral<T>) {
-            return (s64) v;
+        } else if constexpr (types::is_same<T, code_point_ref>) {
+            return (u64) v;
         } else if constexpr (types::is_unsigned_integral<T>) {
             return (u64) v;
-        } else if constexpr (types::is_same<T, code_point_ref> || types::is_same<T, char8_t> || types::is_same<T, char16_t> || types::is_same<T, char32_t> || types::is_same<T, wchar>) {
-            return (u64) v;
+        } else if constexpr (types::is_signed_integral<T>) {
+            return (s64) v;
         } else if constexpr (types::is_enum<T>) {
             return fmt_map_arg((types::underlying_type_t<T>) v);
         } else if constexpr (types::is_floating_point<T>) {
+            return v;
+        } else if constexpr (types::is_pointer<T>) {
+            static_assert(types::is_same<T, void *>, "Formatting of non-void pointers is disallowed");
+            return v;
+        } else if constexpr (types::is_same<bool, T>) {
             return v;
         } else {
             static_assert(false, "Argument doesn't have a way to be formatted. Specialize formatter<T> for custom types.");
         }
     }
 
-    // !!!
-    // If you get a compiler error here it's probably because you passed in an argument that can't be formatted
-    // To format custom types, implement a formatter specialization.
-    // !!!
     template <typename T>
     constexpr auto fmt_mapped_type_constant_v = type_constant_v<decltype(fmt_map_arg(types::declval<T>()))>;
 
-    fmt_arg fmt_make_arg(const auto &v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(v))}; }
+    fmt_arg fmt_make_arg(auto by_ref v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(v))}; }
 
     // Visits an argument dispatching with the right value based on the argument type
     template <typename Visitor>
-    auto fmt_visit_arg(Visitor && visitor, fmt_arg ar)->decltype(visitor(0)) {
+    auto fmt_visit_arg(Visitor by_ref visitor, fmt_arg ar)->decltype(visitor(0)) {
         switch (ar.Type) {
             case fmt_type::NONE:
                 break;
