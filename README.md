@@ -55,10 +55,10 @@ Note: Games are an exception to this trend, because engine programmers always tr
 > Readibility is most important. Comments are a powerful tool. 
 
 - **Less code is better.**
-> Every line of code is a liability and a possible source of code. Avoid big dependencies, 
+> Every line of code is a liability and a possible source of bugs and security holes. Avoid big dependencies, 
 > if you need just one function - write it. Don't import a giant library.
 
-- Closer to C than to C++.
+- Closer to C than to modern C++ mess.
 > Ditch copy/move constructors, destructors, exceptions. This reduces the amount of bloat code and supposedly increases confidence that your code is doing what you expect.
 
 - Code reusability. 
@@ -92,29 +92,26 @@ Note: Games are an exception to this trend, because engine programmers always tr
 >          auto [content, success] = path_read_entire_file("data/hello.txt");
 
 #### Example
-'array' is this library implemented the following way:
-    A struct that contains 2 fields (Data and Count).
+`array` is this library is a struct that contains 2 fields (`Data` and `Count`).
+It has no sense of ownership. That is determined explictly in code and by the programmer.
 
-    It has no sense of ownership. That is determined explictly in code and by the programmer.
+By default arrays are views, to make them dynamic, call `make_dynamic(&arr)`.
+After that you can modify them (add/remove elements)
 
-    By default arrays are views, to make them dynamic, call `make_dynamic(&arr)`.
-    After that you can modify them (add/remove elements)
+You can safely pass around copies and return arrays from functions because
+there is no hidden destructor which will free the memory.
 
-    You can safely pass around copies and return arrays from functions because
-    there is no hidden destructor which will free the memory.
+When a dynamic array is no longer needed call `free(arr.Data)`;
 
-    When a dynamic array is no longer needed call `free(arr.Data)`;
+We provide a defer macro which runs at the end of the scope (like a destructor),
+you can use this for functions which return from multiple places,
+so you are absolutely sure `free` gets called and there were no leaks.
 
-    We provide a defer macro which runs at the end of the scope (like a destructor),
-    you can use this for functions which return from multiple places,
-    so you are absolutely sure `free` gets called and there were no leaks.
-
-    e.g.
-    ```cpp
-    array<string> pathComponents;
-    make_dynamic(&pathComponents, 8);
-    defer(free(pathComponents.Data));
-    ```
+```cpp
+array<string> pathComponents;
+make_dynamic(&pathComponents, 8);
+defer(free(pathComponents.Data));
+```
 
 `string`s are just `array<char>`. All of this applies to them as well.
 They are not null-terminated, which means that taking substrings doesn't allocate memory.
@@ -130,12 +127,11 @@ They are not null-terminated, which means that taking substrings doesn't allocat
 
     string pathWithoutDot = substring(path, 2, -1);
 
-To make a deep copy of an array use clone().
-e.g. `string newPath = clone(path) // Allocates a new buffer and copies contents in _path_`
+To make a deep copy of an array use clone(): `newPath = clone(&path)`.
 
 ### Arrays by example
 
-> ex.1 Arrays as views. Constructing an array object doesn't allocate any memory (since it's detached from the idea of ownership).
+> ex.1 Constructing an array object doesn't allocate any memory. They are views by default.
 > ```cpp
 >      byte data[100];
 >      auto subArray = array<byte>(data + 20, 30); 
@@ -143,7 +139,7 @@ e.g. `string newPath = clone(path) // Allocates a new buffer and copies contents
 >      auto shallowCopy = subArray;
 > ```
 
-> ex.2 Arrays allocate memory explicitly.
+> ex.2 Arrays may allocate memory explicitly.
 > ```cpp
 >      array<char> sequence;
 >      make_dynamic(&sequence 8);
@@ -402,7 +398,7 @@ not always possible, e.g. a prebuilt library).
 `free<T>`
 - Also calls the destructor (we are against destructors usually but some syntax-sugar code might rely on that).
 
-You might be annoyed already but for more philosophy (like why we don't like exceptions, copy or move constructors) you can look at the :TypePolicy:.
+You might be annoyed already but for more philosophy (like why we don't like exceptions, copy or move constructors) you can look at the type policy.
 
 
 ### Context and allocators by example
@@ -469,6 +465,11 @@ Feel free to add more variables to your copy of the library.
 
 The context gets initialized when the program runs and also when creating a thread with our API. In the second case know the parent thread, so we copy the options from it (otherwise it's zero-initialized leaving the behaviour up to the caller).
 
+
+### Memory
+
+The library's allocating functions reserve a bit of space before a block to store a header with information (the size of the allocation, the alignment, the allocator with which it was allocated, and debugging info if DEBUG_MEMORY is defined).
+
 > ex.1 Allocating memory.
 > ```cpp
 > void *memory;
@@ -482,13 +483,6 @@ The context gets initialized when the program runs and also when creating a thre
 > allocator myAlloctor = { my_allocator_function, null };
 > memory = malloc<char>({.Count = 150, .Alloc = myAlloctor});;
 > ```
-
-
-### Memory
-
-The library's allocating functions reserve a bit of space before a block to store a header with information (the size of the allocation, the alignment, the allocator with which it was allocated, and debugging info if DEBUG_MEMORY is defined).
-
-These functions also allow certain options to be specified.
 
 > ex.2 Using C++20 syntax for allocator options.
 > ```cpp
@@ -724,9 +718,8 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
 
 - [LIBFT](https://github.com/beloff-ZA/LIBFT/blob/master/libft.h) beloff, 2018, some implementations of functions found in the CRT.
 - [minlibc]( https://github.com/GaloisInc/minlibc), Galois Inc., 2014, `strtod` and `atof` implementations.
+> Here is the appropriate license:
 ```cpp
-// Here is the license that came with it:
-
 /*
  * Copyright (c) 2014 
  * All rights reserved.
@@ -764,13 +757,13 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
 - [Cephes](https://www.netlib.org/cephes/), Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
 
 - [tlsf](https://github.com/mattconte/tlsf), Matthew Conte (http://tlsf.baisoku.org), Two-Level Segregated Fit memory allocator, version 3.1.
->> Based on the original documentation by Miguel Masmano:
->>	http://www.gii.upv.es/tlsf/main/docs
+> Based on the original documentation by Miguel Masmano: http://www.gii.upv.es/tlsf/main/docs \
+> Here is the appropriate license:
 ```cpp
-// Here is the appropriate license:
-
+//
 // This implementation was written to the specification
 // of the document, therefore no GPL restrictions apply.
+//
 
 /* 
  * Copyright (c) 2006-2016, Matthew Conte
@@ -798,10 +791,11 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+```
 
 - Rolf Neugebauer, 2003, `sccanf` implementation.
 ```cpp
-// Here is the appropriate license:
+> Here is the appropriate license:
 /*
  ****************************************************************************
  * (C) 2003 - Rolf Neugebauer - Intel Research Cambridge
@@ -850,9 +844,9 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
 ```
 
 - [delegate](https://github.com/tarigo/delegate), Vadim Karkhin, 2015
+> Here is the appropriate license:
 ```cpp
-// Here is the appropriate license:
-/* The MIT License (MIT)
+/*  The MIT License (MIT)
  * 
  * Copyright (c) 2015 Vadim Karkhin
  * 
@@ -877,21 +871,22 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
 ```
 
 - Ryan Juckett, 2014, implementation the Dragon4 algorithm (used in the `fmt` module for formatting floats).
-
-> See the following papers for more information on the algorithm:
->  "How to Print Floating-Point Numbers Accurately"
->    Steele and White
->    http://kurtstephens.com/files/p372-steele.pdf
->  "Printing Floating-Point Numbers Quickly and Accurately"
->    Burger and Dybvig
->    http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.72.4656
-> 
-> 
-> It is a modified version of numpy's dragon4 implementation,
-> ... which is a modification of Ryan Juckett's version.
-
+> Here is the appropriate note:
 ```cpp
-// Here are the appropriate licenses:
+//
+// See the following papers for more information on the algorithm:
+//  "How to Print Floating-Point Numbers Accurately"
+//    Steele and White
+//    http://kurtstephens.com/files/p372-steele.pdf
+//  "Printing Floating-Point Numbers Quickly and Accurately"
+//    Burger and Dybvig
+//    http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.72.4656
+// 
+// 
+// It is a modified version of numpy's dragon4 implementation,
+// ... which is a modification of Ryan Juckett's version.
+//
+
 /*
  * Copyright (c) 2014 Ryan Juckett
  *
