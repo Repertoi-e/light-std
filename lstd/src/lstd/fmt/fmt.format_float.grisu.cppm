@@ -1,11 +1,11 @@
 module;
 
-#include "../memory/string_builder.h"
+#include "../common.h"
 
-export module fmt.format_float.grisu;
+export module lstd.fmt.format_float.grisu;
 
-import fmt.format_float.specs;
-import fmt.format_float.dragon4;
+import lstd.fmt.format_float.specs;
+import lstd.fmt.format_float.dragon4;
 
 //
 // Use Grisu + Dragon4 when formatting a float with a given precision:
@@ -47,7 +47,7 @@ enum class gen_digits_result {
 };
 
 struct gen_digits_state {
-    utf8 *Buffer;
+    char *Buffer;
     s32 Size;
 
     bool Fixed;
@@ -233,7 +233,7 @@ gen_digits_result gen_digits(gen_digits_state &state, fp value, u64 error, s32 *
 
 // The returned exponent is the exponent base 10 of the LAST written digit in _floatBuffer_.
 // In the end, _floatBuffer_ contains the digits of the final number to be written out, without the dot.
-export s32 grisu_format_float(string_builder &floatBuffer, types::is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
+export s32 grisu_format_float(string_builder *floatBuffer, types::is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
     constexpr s32 MIN_EXP = -60;  // alpha in Grisu.
 
     fp normalized;
@@ -253,7 +253,7 @@ export s32 grisu_format_float(string_builder &floatBuffer, types::is_floating_po
     bool fixed = specs.Format == fmt_float_specs::FIXED;
 
     gen_digits_state state;
-    state.Buffer    = floatBuffer.BaseBuffer.Data + floatBuffer.BaseBuffer.Occupied;
+    state.Buffer    = floatBuffer->BaseBuffer.Data + floatBuffer->BaseBuffer.Occupied;
     state.Size      = 0;
     state.Fixed     = fixed;
     state.Exp10     = -cachedExp10;
@@ -264,7 +264,7 @@ export s32 grisu_format_float(string_builder &floatBuffer, types::is_floating_po
         // On error we fallback to the dragon4 algorithm...
         exp += state.Size - cachedExp10 - 1;
 
-        utf8 *buf = floatBuffer.BaseBuffer.Data + floatBuffer.BaseBuffer.Occupied;
+        char *buf = floatBuffer->BaseBuffer.Data + floatBuffer->BaseBuffer.Occupied;
         s64 written;
 
         // Here we pass handler.Precision, and not the raw precision we
@@ -273,24 +273,40 @@ export s32 grisu_format_float(string_builder &floatBuffer, types::is_floating_po
         // Grisu updates it to include the stuff before that.
         // So essentially handler.Precision contains the number of digits
         // to be generated, and dragon4 expects that.
-        dragon4_format_float(buf, &written, &exp, state.Precision, v);
 
-        floatBuffer.BaseBuffer.Occupied += written;
+        // We do big integer operations which require dynamic memory.
+        // We are sure they are not as big though so we can allocate them on the stack.
+
+        arena_allocator_data stackAllocData;
+        allocator stackAlloc = {arena_allocator, &stackAllocData};
+
+        constexpr s64 BUFFER_SIZE = 2_KiB;
+
+        u8 buffer[BUFFER_SIZE];
+        allocator_add_pool(stackAlloc, buffer, BUFFER_SIZE);
+
+        PUSH_ALLOC(stackAlloc) {
+            dragon4_format_float(buf, &written, &exp, state.Precision, v);
+        }
+
+        // No need to free, alloc is on the stack
+
+        floatBuffer->BaseBuffer.Occupied += written;
     } else {
         // Success!
         exp += state.Exp10;
-        floatBuffer.BaseBuffer.Occupied += state.Size;
+        floatBuffer->BaseBuffer.Occupied += state.Size;
     }
 
     // Remove trailing zeros after decimal point
     if (!fixed && !specs.ShowPoint) {
-        s64 size = floatBuffer.BaseBuffer.Occupied;
+        s64 size = floatBuffer->BaseBuffer.Occupied;
 
-        while (size > 0 && floatBuffer.BaseBuffer.Data[size - 1] == '0') {
+        while (size > 0 && floatBuffer->BaseBuffer.Data[size - 1] == '0') {
             --size;
             ++exp;
         }
-        floatBuffer.BaseBuffer.Occupied = size;
+        floatBuffer->BaseBuffer.Occupied = size;
     }
     return exp;
 }

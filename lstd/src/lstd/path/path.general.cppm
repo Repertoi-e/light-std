@@ -1,10 +1,10 @@
 module;
 
-#include "../common/context.h"
-#include "../memory/array.h"
-#include "../memory/string.h"
+#include "../common.h"
 
-export module path.general;
+export module lstd.path.general;
+
+export import lstd.string;
 
 //
 // Here we define functions that are not specific to a platform
@@ -13,11 +13,11 @@ export module path.general;
 LSTD_BEGIN_NAMESPACE
 
 export {
-    [[nodiscard("Leak")]] array<string> path_split_into_components(const string &path, const string &seps = "\\/") {
+    [[nodiscard("Leak")]] array<string> path_split_into_components(string path, string seps = "\\/") {
         array<string> result;
         s64 start = 0, prev = 0;
-        while ((start = find_any_of(path, seps, start + 1)) != -1) {
-            array_append(result, path[{prev, start}]);
+        while ((start = string_find_any_of(path, seps, start + 1)) != -1) {
+            add(&result, substring(path, prev, start));
             prev = start + 1;
         }
 
@@ -26,9 +26,9 @@ export {
         //
         // Note that both /home/user/dir and /home/user/dir/ mean the same thing.
         // You can use other functions to check if the former is really a directory or a file (querying the OS).
-        if (prev < path.Length) {
+        if (prev < string_length(path)) {
             // Add the last component - from prev to path.Length
-            array_append(result, path[{prev, path.Length}]);
+            add(&result, substring(path, prev, string_length(path)));
         }
         return result;
     }
@@ -37,48 +37,34 @@ export {
         string Root, Extension;
     };
 
-    constexpr path_split_extension_result path_split_extension_general(const string &path, char32_t sep, char32_t altSep, char32_t extensionSep) {
-        s64 sepIndex = find_cp_reverse(path, sep);
+    constexpr path_split_extension_result path_split_extension_general(string path, code_point sep, code_point altSep, code_point extensionSep) {
+        s64 sepIndex = string_find(path, sep, string_length(path), true);
         if (altSep) {
-            s64 altSepIndex = find_cp_reverse(path, altSep);
+            s64 altSepIndex = string_find(path, altSep, string_length(path), true);
             if (altSepIndex > sepIndex) sepIndex = altSepIndex;
         }
 
         // Most OSes use a dot to separate extensions but we support other characters as well
-        s64 dotIndex = find_cp_reverse(path, extensionSep);
+        s64 dotIndex = string_find(path, extensionSep, string_length(path), true);
 
         if (dotIndex > sepIndex) {
             // Skip leading dots
             s64 filenameIndex = sepIndex + 1;
             while (filenameIndex < dotIndex) {
-                if (path[filenameIndex] != extensionSep)
-                    return {path[{0, dotIndex}], path[{dotIndex, path.Length}]};
+                if (path[filenameIndex] != extensionSep) {
+                    return {substring(path, 0, dotIndex), substring(path, dotIndex, string_length(path))};
+                }
                 ++filenameIndex;
             }
         }
         return {path, ""};
     }
 
-    // Used by _path_split_ implement in platform-specific modules. Exported here for sanity to make sure they use the same struct.
+    // Used by _path_split_ implement in platform-specific modules.
+    // Exported here for sanity.
+    // @TODO: Forward declare API here as well!
     struct path_split_result {
         string Head, Tail;
-    };
-
-    // Used by _path_read_entire_file_.
-    struct path_read_entire_file_result {
-        bytes Content;
-        bool Success;
-    };
-
-    // Used by _path_write_to_file_.
-    enum path_write_mode {
-        Append = 0,
-
-        // If the file is 50 bytes and you write 20,
-        // "Overwrite" keeps those 30 bytes at the end
-        // while "Overwrite_Entire" deletes them.
-        Overwrite,
-        Overwrite_Entire,
     };
 }
 

@@ -9,7 +9,7 @@
 #include "tlsf.h"
 
 // :WEMODIFIED: We replaced printf with our print.
-#include <lstd/fmt/fmt.h>
+import lstd.fmt;
 using LSTD_NAMESPACE::print;
 
 #if defined(__cplusplus)

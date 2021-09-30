@@ -1,10 +1,10 @@
 module;
 
-#include "../memory/string_builder.h"
+#include "../common.h"
 
-export module fmt.format_float.dragonbox;
+export module lstd.fmt.format_float.dragonbox;
 
-import fmt.format_float.specs;
+import lstd.fmt.format_float.specs;
 
 //
 // In this file we implement the Dragonbox algorithm: https://github.com/jk-jeon/dragonbox.
@@ -54,7 +54,7 @@ always_inline s32 floor_log10_pow2(s32 e) {
     assert(e <= 1700 && e >= -1700 && "Exponent too big");
 
     constexpr s32 shift = 22;
-    return (e * (s32)(LOG10_2_SIGNIFICAND >> (64 - shift))) >> shift;
+    return (e * (s32) (LOG10_2_SIGNIFICAND >> (64 - shift))) >> shift;
 }
 
 // Various fast log computations.
@@ -64,7 +64,7 @@ always_inline s32 floor_log2_pow10(s32 e) {
     constexpr u64 log2_10_integer_part      = 3;
     constexpr u64 log2_10_fractional_digits = 0x5269e12f346e2bf9;
     constexpr s32 shift_amount              = 19;
-    return (e * (s32)((log2_10_integer_part << shift_amount) | (log2_10_fractional_digits >> (64 - shift_amount)))) >> shift_amount;
+    return (e * (s32) ((log2_10_integer_part << shift_amount) | (log2_10_fractional_digits >> (64 - shift_amount)))) >> shift_amount;
 }
 
 always_inline s32 floor_log10_pow2_minus_log10_4_over_3(s32 e) {
@@ -72,7 +72,7 @@ always_inline s32 floor_log10_pow2_minus_log10_4_over_3(s32 e) {
 
     constexpr u64 log10_4_over_3_fractional_digits = 0x1ffbfc2bbc780375;
     constexpr s32 shift_amount                     = 22;
-    return (e * (s32)(LOG10_2_SIGNIFICAND >> (64 - shift_amount)) - (s32)(log10_4_over_3_fractional_digits >> (64 - shift_amount))) >> shift_amount;
+    return (e * (s32) (LOG10_2_SIGNIFICAND >> (64 - shift_amount)) - (s32) (log10_4_over_3_fractional_digits >> (64 - shift_amount))) >> shift_amount;
 }
 
 // Returns true iff x is divisible by pow(2, exp).
@@ -176,7 +176,7 @@ u128 get_cached_power_f64(s32 k) {
 
 u32 cache_compute_mul(u32 u, u64 cache) { return umul96_upper32(u, cache); }
 
-u32 cache_compute_delta(u64 cache, s32 beta_minus_1) { return (u32)(cache >> (64 - 1 - beta_minus_1)); }
+u32 cache_compute_delta(u64 cache, s32 beta_minus_1) { return (u32) (cache >> (64 - 1 - beta_minus_1)); }
 
 bool cache_compute_mul_parity(u32 two_f, u64 cache, s32 beta_minus_1) {
     assert(beta_minus_1 >= 1);
@@ -186,18 +186,18 @@ bool cache_compute_mul_parity(u32 two_f, u64 cache, s32 beta_minus_1) {
 }
 
 u32 cache_compute_left_endpoint_for_shorter_interval_case(u64 cache, s32 beta_minus_1) {
-    return (u32)((cache - (cache >> (numeric_info<f32>::bits_mantissa + 2))) >> (64 - numeric_info<f32>::bits_mantissa - 1 - beta_minus_1));
+    return (u32) ((cache - (cache >> (numeric_info<f32>::bits_mantissa + 2))) >> (64 - numeric_info<f32>::bits_mantissa - 1 - beta_minus_1));
 }
 
 u32 cache_compute_right_endpoint_for_shorter_interval_case(u64 cache, s32 beta_minus_1) {
-    return (u32)((cache + (cache >> (numeric_info<f32>::bits_mantissa + 1))) >> (64 - numeric_info<f32>::bits_mantissa - 1 - beta_minus_1));
+    return (u32) ((cache + (cache >> (numeric_info<f32>::bits_mantissa + 1))) >> (64 - numeric_info<f32>::bits_mantissa - 1 - beta_minus_1));
 }
 
-u32 cache_compute_round_up_for_shorter_interval_case(u64 cache, s32 beta_minus_1) { return ((u32)(cache >> (64 - numeric_info<f32>::bits_mantissa - 2 - beta_minus_1)) + 1) / 2; }
+u32 cache_compute_round_up_for_shorter_interval_case(u64 cache, s32 beta_minus_1) { return ((u32) (cache >> (64 - numeric_info<f32>::bits_mantissa - 2 - beta_minus_1)) + 1) / 2; }
 
 u64 cache_compute_mul(u64 u, u128 cache) { return umul192_upper64(u, cache); }
 
-u32 cache_compute_delta(u128 cache, s32 beta_minus_1) { return (u32)(cache.hi >> (64 - 1 - beta_minus_1)); }
+u32 cache_compute_delta(u128 cache, s32 beta_minus_1) { return (u32) (cache.hi >> (64 - 1 - beta_minus_1)); }
 
 bool cache_compute_mul_parity(u64 two_f, u128 cache, s32 beta_minus_1) {
     assert(beta_minus_1 >= 1);
@@ -264,7 +264,7 @@ always_inline s32 remove_trailing_zeros(u64 *n) {
         auto quotient_candidate = *n * mod_inv8;
 
         if (quotient_candidate <= max_quotient8) {
-            auto quotient = (u32)(quotient_candidate >> 8);
+            auto quotient = (u32) (quotient_candidate >> 8);
 
             s32 s = 8;
             for (; s < t; ++s) {
@@ -278,8 +278,8 @@ always_inline s32 remove_trailing_zeros(u64 *n) {
     }
 
     // Otherwise, work with the remainder
-    auto quotient  = (u32)(*n / 100000000);
-    auto remainder = (u32)(*n - 100000000 * quotient);
+    auto quotient  = (u32) (*n / 100000000);
+    auto remainder = (u32) (*n - 100000000 * quotient);
 
     if (t == 0 || remainder * mod_inv1 > max_quotient1) return 0;
     remainder *= mod_inv1;
@@ -363,7 +363,7 @@ bool is_center_integer(auto two_f, s32 exponent, s32 minus_k) {
 // The main algorithm for shorter interval case
 template <bool IS_F32>
 always_inline auto shorter_interval_case(s32 exponent) {
-    using uint_t = types::select_t<IS_F32, u32, u64>;
+    using uint_t  = types::select_t<IS_F32, u32, u64>;
     using cache_t = types::select_t<IS_F32, u64, u128>;
 
     decimal_fp<types::select_t<IS_F32, f32, f64>> result;
@@ -373,11 +373,11 @@ always_inline auto shorter_interval_case(s32 exponent) {
     s32 beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
 
     // Compute xi and zi
-    
+
     cache_t cache;
-    if constexpr(IS_F32) { 
-        cache = get_cached_power_f32(-minus_k); 
-    } else { 
+    if constexpr (IS_F32) {
+        cache = get_cached_power_f32(-minus_k);
+    } else {
         cache = get_cached_power_f64(-minus_k);
     }
 
@@ -432,7 +432,7 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
     uint_t significand     = (br & significandMask);
 
     uint_t exponentMask = ((uint_t(1) << float_info::bits_exponent) - 1) << float_info::bits_mantissa;
-    s32 exponent        = (s32)((br & exponentMask) >> float_info::bits_mantissa);
+    s32 exponent        = (s32) ((br & exponentMask) >> float_info::bits_mantissa);
 
     // Check if normal
     if (exponent != 0) {
@@ -458,14 +458,14 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
 
     // Compute k and beta.
     s32 minus_k = floor_log10_pow2(exponent) - KAPPA;
-    
+
     cache_t cache;
-    if constexpr(IS_F32) { 
-        cache = get_cached_power_f32(-minus_k); 
-    } else { 
+    if constexpr (IS_F32) {
+        cache = get_cached_power_f32(-minus_k);
+    } else {
         cache = get_cached_power_f64(-minus_k);
     }
-    
+
     s32 beta_minus_1 = exponent + floor_log2_pow10(-minus_k);
 
     // Compute zi and deltai
@@ -487,7 +487,7 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
     decimal_fp<types::select_t<IS_F32, f32, f64>> result;
     result.Significand = divide_by_10_to_kappa_plus_1(zi);
 
-    u32 r = (u32)(zi - BIG_DIVISOR * result.Significand);
+    u32 r = (u32) (zi - BIG_DIVISOR * result.Significand);
 
     if (r > deltai) {
         goto small_divisor_case_label;

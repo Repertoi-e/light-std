@@ -2,7 +2,7 @@
 workspace "light-std"
     architecture "x64"
     configurations { "Debug", "DebugOptimized", "Release" }
-	
+
 function common_settings()
     architecture "x64"
 
@@ -11,6 +11,12 @@ function common_settings()
 
     rtti "Off"
     characterset "Unicode"
+	
+	-- We don't link with the runtime library but this makes certain warnings
+	-- having to do with us replacing malloc/free disappear. 
+	-- (Including certain CRT headers define those functions with 
+	-- __declspec(dllimport) which don't match with our definitions).
+	staticruntime "On"
     
     editandcontinue "Off"
     exceptionhandling "Off" -- SEH still works
@@ -34,16 +40,16 @@ function common_settings()
     -- that are normally defined in the STL and on which certain C++ features rely on.
     -- (e.g. the compare header - required by the spaceship operator, placement new and initializer_lists)
     -- defines { "LSTD_DONT_DEFINE_STD" }
-    
+	
     -- Uncomment this to build the library without a namespace
-    -- defines { "LSTD_NO_NAMESPACE" }
+    defines { "LSTD_NO_NAMESPACE" }
     
     -- Uncomment this to use a custom namespace name for the library
     -- defines { "LSTD_NAMESPACE=my_lstd" }
     
     includedirs { "%{prj.name}/src" }
 	
-    filter "system:windows"
+	filter "system:windows"
         systemversion "latest"
         buildoptions { "/utf-8" }
         
@@ -52,34 +58,48 @@ function common_settings()
         -- We need _CRT_SUPPRESS_RESTRICT for some dumb reason
         defines { "LSTD_NO_CRT", "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SUPPRESS_RESTRICT" } 
     
-        buildoptions { "/Gs9999999" }
-        
-        links { "dwmapi.lib", "dbghelp.lib" }
-        flags { "OmitDefaultLibrary", "NoRuntimeChecks", "NoBufferSecurityCheck" }
+		flags { "OmitDefaultLibrary", "NoRuntimeChecks", "NoBufferSecurityCheck" }
+		buildoptions { "/Gs9999999" }        
     filter { "system:windows", "not kind:StaticLib" }
-        linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
-        links { "kernel32", "shell32", "winmm", "ole32" }
+		linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
+        links { "kernel32", "shell32", "winmm", "ole32", "dwmapi", "dbghelp" }
         
     -- Setup entry point
     filter { "system:windows", "kind:SharedLib" }
-        entrypoint "main_no_crt_dll"
+	    entrypoint "main_no_crt_dll"
     filter { "system:windows", "kind:ConsoleApp or WindowedApp" }
-        entrypoint "main_no_crt"
-
+	    entrypoint "main_no_crt"
+ 
     -- Setup configurations and optimization level
     filter "configurations:Debug"
         defines "DEBUG"
+		
+		-- Trips an assert if you try to access an element out of bounds.
+		-- Works for arrays and strings in the library. I don't think we can check raw C arrays...
+		defines "LSTD_ARRAY_BOUNDS_CHECK"
+		
         symbols "On"
         buildoptions { "/FS" }
     filter "configurations:DebugOptimized"
         defines { "DEBUG", "DEBUG_OPTIMIZED" }
-        optimize "On"
+        
+		defines "LSTD_ARRAY_BOUNDS_CHECK"
+		
+		optimize "On"
+		
+		 -- Otherwise MSVC generates internal undocumented intrinsics which we can't provide .. shame
+		floatingpoint "Strict"
+
         symbols "On"
-        buildoptions { "/FS" }
+        
+		buildoptions { "/FS" }
     filter "configurations:Release"
         defines { "RELEASE", "NDEBUG" } 
+
         optimize "Full"
-        floatingpoint "Fast"
+		floatingpoint "Strict"
+
+		symbols "Off"
     filter {}
 end
 
@@ -99,6 +119,10 @@ project "lstd"
     --        thus reducing the memory footprint of the library.
     defines { "PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB", "PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB" }
     
+	files {
+		"lstd/lstd.natvis"
+	}
+	
     common_settings()
 
 
@@ -111,10 +135,6 @@ project "test_suite"
     includedirs { "lstd/src" } 
     
     links { "lstd" }
-    
-    pchheader "pch.h"
-    pchsource "%{prj.name}/src/pch.cpp"
-    forceincludes { "pch.h" }
     
     common_settings()
 

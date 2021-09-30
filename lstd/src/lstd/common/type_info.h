@@ -1,9 +1,10 @@
 #pragma once
 
-#include "compare.h"
+#include "cpp/space_ship.h"
 #include "ieee.h"
-#include "types.h"
 
+//
+// @Cleanup: We can remove most of this. It's useless.
 //
 // This file defines the following types:
 // - integral_constant (a struct with a type and compile-time value, usually in the context of integrals)
@@ -16,6 +17,7 @@
 //
 // Concepts:
 // - is_same (checks if two types are the same)
+// - is_same_template (checks if two types are the same, regardless of their template parameters - doesn't work if you mix types and typenames...)
 // - is_const, is_volatile, is_reference, is_rvalue_reference, is_pointer, is_function (doesn't include member functions)
 // - is_void, is_null (decltype(null))
 // - is_integral, is_signed_integral, is_unsigned_integral, is_floating_point, is_arithmetic
@@ -55,14 +57,14 @@ struct integral_constant {
     static constexpr T value = Value;
 
     using value_t = T;
-    using type = integral_constant<T, Value>;
+    using type    = integral_constant<T, Value>;
 
     constexpr operator value_t() const { return value; }
     constexpr value_t operator()() const { return value; }
 };
 
-using true_t = integral_constant<bool, true>;   // == to std::true_type
-using false_t = integral_constant<bool, false>; // == to std::false_type
+using true_t  = integral_constant<bool, true>;   // == to std::true_type
+using false_t = integral_constant<bool, false>;  // == to std::false_type
 
 // Used to denote a special template argument that means it's an unused argument
 struct unused {
@@ -123,6 +125,21 @@ struct same_helper<T, T> : true_t {
 template <typename T, typename U>
 concept is_same = same_helper<T, U>::value;
 
+//
+// Checks if two types are the same, regardless of their template parameters.
+// Doesn't work if you mix types and typenames...
+// but we provide a specialization for stuff with the signature of a stack_array - typename and s64
+// which is one of the most common cases.
+//
+template <typename, typename>
+constexpr bool is_same_template_helper = false;
+
+template <template <typename...> typename T, typename... A, typename... B>
+constexpr bool is_same_template_helper<T<A...>, T<B...>> = true;
+
+template <typename T, typename U>
+concept is_same_template = is_same_template_helper<T, U>;
+
 // Are the decayed versions of "T" and "U" the same basic type?
 // Gets around the fact that is_same will treat, say "bool" and "bool&" as different types.
 template <typename T, typename U>
@@ -147,7 +164,7 @@ struct is_const_helper_2 : is_const_helper_1<T *> {
 
 template <typename T>
 struct is_const_helper_2<T &> : false_t {
-}; // Note here that T is const, not the reference to T. So is_const is false.
+};  // Note here that T is const, not the reference to T. So is_const is false.
 
 template <typename T>
 concept is_const = is_const_helper_2<T>::value;
@@ -171,7 +188,7 @@ struct is_volatile_helper_2 : is_volatile_helper_1<T *> {
 
 template <typename T>
 struct is_volatile_helper_2<T &> : false_t {
-}; // Note here that T is volatile, not the reference to T. So is_volatile is false.
+};  // Note here that T is volatile, not the reference to T. So is_volatile is false.
 
 template <typename T>
 concept is_volatile = is_volatile_helper_2<T>::value;
@@ -206,11 +223,11 @@ struct is_function_helper : false_t {
 };
 
 template <typename R, typename... Args>
-struct is_function_helper<R(Args ...)> : true_t {
+struct is_function_helper<R(Args...)> : true_t {
 };
 
 template <typename R, typename... Args>
-struct is_function_helper<R(Args ..., ...)> : true_t {
+struct is_function_helper<R(Args..., ...)> : true_t {
 };
 
 template <typename T>
@@ -228,8 +245,8 @@ template <typename T>
 concept is_void = is_void_helper<remove_cv_t<T>>::value;
 
 template <typename T>
-concept is_null = is_same<remove_cv_t<T>,
-                          decltype(null)> ;
+concept is_null = is_same < remove_cv_t<T>,
+decltype(null) > ;
 
 // The remove_const transformation trait removes top-level const
 // qualification (if any) from the type to which it is applied.
@@ -301,6 +318,9 @@ struct remove_cv {
 
 template <typename T>
 using remove_cv_t = typename remove_cv<T>::type;
+
+template <typename T, typename U>
+concept is_same_template_decayed = is_same_template<remove_cv_t<T>, remove_cv_t<U>>;
 
 // The remove_reference transformation trait removes top-level of
 // indirection by reference (if any) from the type to which it is applied.
@@ -533,7 +553,8 @@ template <typename T>
 concept is_integral = is_integral_helper<remove_cv_t<T>>::value;
 
 template <typename T>
-concept is_signed_integral = is_integral<T> && T(-1) < T(0);
+concept is_signed_integral = is_integral<T> && T(-1)
+< T(0);
 
 template <typename T>
 concept is_unsigned_integral = is_integral<T> && !is_signed_integral<T>;
@@ -911,9 +932,10 @@ constexpr DestType bit_cast(const SourceType &sourceValue) {
     } else {
         DestType destValue;
         if constexpr (is_constant_evaluated()) {
-            copy_memory(&destValue, &sourceValue, sizeof(DestType));
+            // Too bad.. undefined behavior. I hate C++.
+            // const_copy_memory(&destValue, &sourceValue, sizeof(DestType));
         } else {
-            const_copy_memory(&destValue, &sourceValue, sizeof(DestType));
+            copy_memory(&destValue, &sourceValue, sizeof(DestType));
         }
         return destValue;
     }
@@ -977,7 +999,7 @@ using common_type_t = typename common_type<T...>::type;
 // struct common_comparison_category {
 //     using type = common_comparison_category_t<Types...>;
 // };
-} // namespace types
+}  // namespace types
 
 // Use this macro to declare your custom type as an integral
 #define DECLARE_INTEGRAL(T)                   \
@@ -1001,162 +1023,5 @@ using common_type_t = typename common_type<T...>::type;
     MAKE_UNSIGNED_HELPER(Tsigned, Tunsigned)          \
     }                                                 \
     LSTD_END_NAMESPACE
-
-// @Cleanup
-// #undef MAKE_UNSIGNED_HELPER
-// #undef MAKE_SIGNED_HELPER
-
-//
-// Some common functions:
-//
-
-constexpr bool sign_bit(types::is_signed_integral auto x) { return x < 0; }
-constexpr bool sign_bit(types::is_unsigned_integral auto) { return false; }
-
-constexpr bool sign_bit(f32 x) { return ieee754_f32{x}.ieee.S; }
-constexpr bool sign_bit(f64 x) { return ieee754_f64{x}.ieee.S; }
-
-// Returns -1 if x is negative, 1 otherwise
-constexpr s32 sign_no_zero(types::is_scalar auto x) { return sign_bit(x) ? -1 : 1; }
-
-// Returns -1 if x is negative, 1 if positive, 0 otherwise
-constexpr s32 sign(types::is_scalar auto x) {
-    if (x == decltype(x)(0)) return 0;
-    return sign_no_zero(x);
-}
-
-template <types::is_floating_point T>
-constexpr T copy_sign(T x, T y) {
-    if constexpr (sizeof x == sizeof f32) {
-        ieee754_f32 formatx = {x}, formaty = {y};
-        formatx.ieee.S      = formaty.ieee.S;
-        return formatx.F;
-    } else {
-        ieee754_f64 formatx = {x}, formaty = {y};
-        formatx.ieee.S      = formaty.ieee.S;
-        return formatx.F;
-    }
-}
-
-constexpr bool is_nan(types::is_floating_point auto x) {
-    if constexpr (sizeof x == sizeof f32) {
-        ieee754_f32 format = {x};
-        return format.ieee.E == 0xFF && format.ieee.M != 0;
-    } else {
-        ieee754_f64 format = {x};
-        return format.ieee.E == 0x7FF && (format.ieee.M0 != 0 || format.ieee.M1 != 0);
-    }
-}
-
-constexpr bool is_signaling_nan(types::is_floating_point auto x) {
-    if constexpr (sizeof x == sizeof f32)
-        return is_nan(x) && ieee754_f32{x}.ieee_nan.N == 0;
-    else
-        return is_nan(x) && ieee754_f64{x}.ieee_nan.N == 0;
-}
-
-constexpr bool is_infinite(types::is_floating_point auto x) {
-    if constexpr (sizeof x == sizeof f32) {
-        ieee754_f32 format = {x};
-        return format.ieee.E == 0xFF && format.ieee.M == 0;
-    } else {
-        ieee754_f64 format = {x};
-        return format.ieee.E == 0x7FF && format.ieee.M0 == 0 && format.ieee.M1 == 0;
-    }
-}
-
-constexpr bool is_finite(types::is_floating_point auto x) {
-    if constexpr (sizeof x == sizeof f32)
-        return ieee754_f32{x}.ieee.E != 0xFF;
-    else
-        return ieee754_f64{x}.ieee.E != 0x7FF;
-}
-
-template <typename T, typename U>
-concept are_same_signage = types::is_signed_integral<T> && types::is_signed_integral<U> || types::is_unsigned_integral<T> && types::is_unsigned_integral<U>;
-
-template <typename T, typename U>
-    requires(types::is_scalar<T> && types::is_scalar<U>)
-constexpr T cast_numeric_safe(U y) {
-    if constexpr (types::is_floating_point<T>) {
-        static_assert(types::is_integral<U> || sizeof(T) >= sizeof(U), "T is a float. U must be a float of the same size or smaller, or an integer. Otherwise information may be lost when casting.");
-    } else if constexpr (types::is_integral<T> && types::is_integral<U>) {
-        static_assert(sizeof(T) > sizeof(U) || sizeof(T) == sizeof(U) && are_same_signage<T, U>, "Both T and U are integers. T must be larger than U, or if they have the same size, they must have the same signage. Otherwise information may be lost when casting.");
-    } else {
-        static_assert(false, "T was an integer, but U was a floating point. Information may be lost when casting.");
-    }
-    return (T) y;
-}
-
-constexpr auto min_(auto x, auto y) {
-    auto y_casted = cast_numeric_safe<decltype(x)>(y);
-    if constexpr (types::is_floating_point<decltype(x)>) {
-        if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
-    }
-    return x < y_casted ? x : y_casted;
-}
-
-constexpr auto max_(auto x, auto y) {
-    auto y_casted = cast_numeric_safe<decltype(x)>(y);
-    if constexpr (types::is_floating_point<decltype(x)>) {
-        if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
-    }
-    return x > y_casted ? x : y_casted;
-}
-
-template <types::is_scalar... Args>
-constexpr auto min(types::is_scalar auto x, Args ... rest) {
-    auto result     = x;
-    ((void) (result = min_(result, rest)), ...);
-    return result;
-}
-
-template <types::is_scalar... Args>
-constexpr auto max(types::is_scalar auto x, Args ... rest) {
-    auto result     = x;
-    ((void) (result = max_(result, rest)), ...);
-    return result;
-}
-
-// Returns lower if x < lower, return upper if x > upper, returns x otherwise
-constexpr always_inline auto clamp(auto x, auto lower, auto upper) { return max(lower, min(upper, x)); }
-
-// Checks if x is a power of 2
-constexpr bool is_pow_of_2(types::is_integral auto x) { return (x & x - 1) == 0; }
-
-// Returns the smallest power of 2 bigger or equal to x.
-template <types::is_integral T>
-constexpr auto ceil_pow_of_2(T x) {
-    if (x <= 1) return T(1);
-
-    T power = 2;
-    --x;
-    while (x >>= 1) power <<= 1;
-    return power;
-}
-
-// Returns 10 ** exp at compile-time. Uses recursion.
-template <typename T>
-constexpr T const_exp10(s32 exp) { return exp == 0 ? T(1) : T(10) * const_exp10<T>(exp - 1); }
-
-constexpr auto abs(types::is_scalar auto x) {
-    if constexpr (types::is_floating_point<decltype(x)>) {
-        if constexpr (sizeof x == sizeof f32) {
-            ieee754_f32 u = {x};
-            u.ieee.S      = 0;
-            return u.F;
-        } else {
-            ieee754_f64 u = {x};
-            u.ieee.S      = 0;
-            return u.F;
-        }
-    } else {
-        if constexpr (types::is_unsigned_integral<decltype(x)>) {
-            return x; // Unsigned integrals are always positive
-        } else {
-            return x < 0 ? -x : x;
-        }
-    }
-}
 
 LSTD_END_NAMESPACE

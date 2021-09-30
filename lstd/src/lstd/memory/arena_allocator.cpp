@@ -1,8 +1,7 @@
-#include "../common/context.h"
-#include "allocator.h"
-#include "string.h"
+#include "../common.h"
 
-import os;
+import lstd.basic;
+import lstd.os;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -16,7 +15,7 @@ void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMem
 
     switch (mode) {
         case allocator_mode::ADD_POOL: {
-            auto *pool = (allocator_pool *) oldMemory; // _oldMemory_ is the parameter which should contain the block to be added
+            auto *pool = (allocator_pool *) oldMemory;  // _oldMemory_ is the parameter which should contain the block to be added
             // the _size_ parameter contains the size of the block
 
             if (!allocator_pool_initialize(pool, size)) return null;
@@ -45,7 +44,7 @@ void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMem
                 p = p->Next;
             }
 
-            if (p->Used + size >= p->Size) return null; // Not enough space
+            if (p->Used + size >= p->Size) return null;  // Not enough space
 
             void *usableBlock = p + 1;
             void *result      = (byte *) usableBlock + p->Used;
@@ -80,12 +79,8 @@ void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMem
 
             data->TotalUsed = 0;
 
-            // null means successful FREE_ALL
-            // (void *) -1 means that the allocator doesn't support FREE_ALL (by design)
             return null;
         }
-        default:
-            assert(false);
     }
     return null;
 }
@@ -111,7 +106,7 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
         // This is default behaviour which you can override by providing your own custom allocator extension.
         //
         // You can avoid this by freeing all periodically or by manually adding a large enough pool at the beginning of your program.
-        internal::platform_report_warning("Not enough space in temporary allocator; adding a pool");
+        platform_report_warning("Not enough space in temporary allocator; adding a pool");
 
         s64 poolSize = 8_KiB;
         if (poolSize < size) poolSize = ceil_pow_of_2(size * 2);

@@ -1,11 +1,13 @@
 module;
 
-#include "../memory/string_builder.h"
+#include "../common.h"
 
-export module fmt.format_float.specs;
+export module lstd.fmt.format_float.specs;
 
-export import fmt.specs;
-export import fmt.parse_context;
+export import lstd.string_builder;
+
+export import lstd.fmt.specs;
+export import lstd.fmt.parse_context;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -25,7 +27,7 @@ export {
         bool Upper;
     };
 
-    fmt_float_specs fmt_parse_float_specs(fmt_parse_context * p, const fmt_specs &specs) {
+    fmt_float_specs fmt_parse_float_specs(fmt_interp * p, const fmt_specs &specs) {
         fmt_float_specs result;
 
         result.ShowPoint = specs.Hash;
@@ -65,7 +67,7 @@ export {
                 result.Format = fmt_float_specs::HEX;
                 break;
             default:
-                p->on_error("Invalid type specifier for a f32", p->It.Data - p->FormatString.Data - 1);
+                on_error(p, "Invalid type specifier for a f32", p->It.Data - p->FormatString.Data - 1);
                 break;
         }
         return result;

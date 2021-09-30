@@ -1,18 +1,18 @@
 module;
 
-#include "../memory/string_builder.h"
+#include "../common.h"
 
-export module fmt.format_float;
+export module lstd.fmt.format_float;
 
-export import fmt.format_float.specs;
-import fmt.format_float.dragonbox;
-import fmt.format_float.grisu;
+export import lstd.fmt.format_float.specs;
+import lstd.fmt.format_float.dragonbox;
+import lstd.fmt.format_float.grisu;
 
 LSTD_BEGIN_NAMESPACE
 
-void string_append_u64(string_builder &builder, u64 value) {
+void append_u64(string_builder *builder, u64 value) {
     constexpr s32 BUFFER_SIZE = numeric_info<u64>::digits10;
-    utf8 buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE];
 
     auto *p = buffer + BUFFER_SIZE - 1;
 
@@ -22,29 +22,29 @@ void string_append_u64(string_builder &builder, u64 value) {
 
     while (value) {
         auto d = value % 10;
-        *p--   = (utf8)('0' + d);
+        *p--   = (char) ('0' + d);
         value /= 10;
     }
 
     ++p;  // Roll back
-    string_append(builder, p, buffer + BUFFER_SIZE - p);
+    append(builder, p, buffer + BUFFER_SIZE - p);
 }
 
 // The returned exponent is the exponent base 10 of the LAST written digit in _floatBuffer_.
 // In the end, _floatBuffer_ contains the digits of the final number to be written out, without the dot.
-export s32 fmt_format_non_negative_float(string_builder &floatBuffer, types::is_floating_point auto value, s32 precision, const fmt_float_specs &specs) {
+export s32 fmt_format_non_negative_float(string_builder *floatBuffer, types::is_floating_point auto value, s32 precision, const fmt_float_specs &specs) {
     assert(value >= 0);
 
     bool fixed = specs.Format == fmt_float_specs::FIXED;
     if (value == 0) {
         if (precision <= 0 || !fixed) {
-            string_append(floatBuffer, U'0');
+            append(floatBuffer, U'0');
             return 0;
         }
 
         // @Speed
         For(range(precision)) {
-            string_append(floatBuffer, U'0');
+            append(floatBuffer, U'0');
         }
         return -precision;
     }
@@ -54,7 +54,7 @@ export s32 fmt_format_non_negative_float(string_builder &floatBuffer, types::is_
     // but specified a specific format (GENERAL, EXP, FIXED, etc.)
     if (precision < 0) {
         auto dec = dragonbox_format_float(value);
-        string_append_u64(floatBuffer, dec.Significand);
+        append_u64(floatBuffer, dec.Significand);
         return dec.Exponent;
     }
 

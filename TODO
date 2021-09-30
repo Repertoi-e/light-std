@@ -1,26 +1,74 @@
+Project structure
+- vendor
+- common functions with no crt
+- decouple lstd and lstd-graphics
+  This would probably involve somehow managing a linker table
+  with functions that should run with the initialization of the lstd.
+  This would be flexible enough to allow easily adding new modules
+  just by linking with them and even allow the user to add their own routines.
+  
+- Simplify signal.h
+  
+- make it MODULES, hehe
+       This is probably going to be the biggest restructure this project has even seen.
+	   
+- Constexpr allocations, fully constexpr string, array, etc.
+	 
+- Make monitors and cursors handles (like window).
+  Typedef them to void * and move all functions outside? There is really no need for a class. 
+	   
+	   
+// They are provided in a file called "common_standard_library_functions.h".
+	  
+	  
+	  
+- More robust memory model for stuff the library allocates (see note in premake5.lua)
+	
+	Save even mOrE info and make an awesome memory viewer,
+	so you can see what your program is doing.
+	
+	Also profiler in the future?
+	
+- common.h: @TODO: Merge using is_constant_evaluated()
+	
+- Rename free to dispose when referring to object cleanup,
+  right now we are calling "free" on stack objects which may confused the heck out of people.
+	
+- I have finally decided... We don't like references. Don't use references anywhere in the code. Huge cleanup incoming! 
+	
+- Rename os to lstd.os and path to lstd.path,
+  
+  
+  
+- File reading API (currently we have two functions, is that enough?)
+  At least file_writer...
+- Also file mapping
+
+
+- Fix check stack 
+
 fmt module:
-- Printable
+- Printable code point
 - Escaping (+ unicode) - this would cerror reporting in the default error function
 - Digit grouping
 - Locale
+- printf-like format string parsing (because it is used so commonly)
+- Check arguments at compile time
 
 math module:
 - Make it C++20
-- Remove it all together?
+- Actually remove it all together
 
 
 README.md:
 - Build section
-- Note about licenses and foreign code
+- Section about attributions
 
 
 
-File mapping
+- API for watching directory changes
+  ... and an asset catalog system
 
-API for watching directory changes
-... and an asset catalog system
-
-More robust memory model for stuff the library allocates (see note in premake5.lua)
 
 Tests with parse_guid_options
 
@@ -49,6 +97,21 @@ Allow users to add more variables to Implicit_Context
 Implement platform specific functionality and compile on linux.
 (This is probably never going to happen if I continue to work on this alone LMAO)
 
+				
+
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 
 -----------------LOC:      
       
@@ -74,4 +137,7 @@ Implement platform specific functionality and compile on linux.
 				24070
 				27370 <-- cloc.exe wasn't counting .ixx files as C++, oops!
 				28935
+				
+				18953
+				
 				

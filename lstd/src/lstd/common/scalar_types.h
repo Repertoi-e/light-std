@@ -1,46 +1,36 @@
 #pragma once
 
-#include "../common/namespace.h"
+#include "../namespace.h"
 #include "../platform.h"
-
-LSTD_BEGIN_NAMESPACE
-// Replacement for the std::is_constant_evaluated
-#if COMPILER == MSVC
-[[nodiscard]] constexpr bool is_constant_evaluated() noexcept { return __builtin_is_constant_evaluated(); }
-#else
-#error Implement.
-#endif
-LSTD_END_NAMESPACE
+#include "cpp/is_constant_evaluated.h"
 
 //
 // The following integral types are defined: s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)
-//		f32 (float), f64 (double), utf8 (char), byte (unsigned char)
+//		f32 (float), f64 (double), wchar (for Windows), code_point (for Unicode), byte (unsigned char)
 // This file also defines vector types (to be used with streaming SIMD extensions).
 //
-// Note: We don't support long doubles (lf64) or operations with them. That's why we don't even provide type info.
+// Note: We don't support long doubles (lf64) or operations with them.
 //
 
 //
 // Fundamental types:
 //
-using s8 = char;
+using s8  = char;
 using s16 = short;
 using s32 = int;
 using s64 = long long;
 
-using u8 = unsigned char;
+using u8  = unsigned char;
 using u16 = unsigned short;
 using u32 = unsigned;
 using u64 = unsigned long long;
 
-// We use utf8 for bytes which are supposed to be encoded in utf8
-// instead of using just char (which generally has the meaning of byte).
-// We also define byte which is an unsigned type and can store [0-255].
-// Strings in C++ are char* which makes them compatible with utf8*.
-using utf8 = char;
-
-using utf16 = wchar_t; // There is char16_t but since utf16 is only used on Windows (or you should die in hell) and windows headers use wchar_t
-using utf32 = char32_t;
+#if COMPILER == MSVC
+using wchar      = wchar_t;   // Only useful for Windows calls. Please don't use UTF16 in your programs...
+using code_point = char32_t;  // Holds the integer value of a Unicode cp.
+#else
+#error Check what keywords other compilers use
+#endif
 
 using byte = unsigned char;
 
@@ -72,41 +62,41 @@ using byte = unsigned char;
 using f32 = float;
 using f64 = double;
 
-constexpr s32 F64_DECIMAL_DIG = 17;                      // # of decimal digits of rounding precision
-constexpr s32 F64_DIG         = 15;                      // # of decimal digits of precision
-constexpr f64 F64_EPSILON     = 2.2204460492503131e-016; // smallest such that 1.0 + F64_EPSILON != 1.0
+constexpr s32 F64_DECIMAL_DIG = 17;                       // # of decimal digits of rounding precision
+constexpr s32 F64_DIG         = 15;                       // # of decimal digits of precision
+constexpr f64 F64_EPSILON     = 2.2204460492503131e-016;  // smallest such that 1.0 + F64_EPSILON != 1.0
 
-constexpr s32 F64_MANT_BITS = 52; // # of bits in mantissa, excluding the hidden bit (which is always interpreted as 1 for normal numbers)
+constexpr s32 F64_MANT_BITS = 52;  // # of bits in mantissa, excluding the hidden bit (which is always interpreted as 1 for normal numbers)
 
-constexpr s32 F64_EXP_BITS   = 11;    // # of bits in exponent
-constexpr s32 F64_EXP_BIAS   = 1023;  // also called zero offset
-constexpr s32 F64_MAX_EXP    = 1023;  // max binary exponent
-constexpr s32 F64_MIN_EXP    = -1022; // min binary exponent
-constexpr s32 F64_MAX_10_EXP = 308;   // max decimal exponent
-constexpr s32 F64_MIN_10_EXP = -307;  // min decimal exponent
+constexpr s32 F64_EXP_BITS   = 11;     // # of bits in exponent
+constexpr s32 F64_EXP_BIAS   = 1023;   // also called zero offset
+constexpr s32 F64_MAX_EXP    = 1023;   // max binary exponent
+constexpr s32 F64_MIN_EXP    = -1022;  // min binary exponent
+constexpr s32 F64_MAX_10_EXP = 308;    // max decimal exponent
+constexpr s32 F64_MIN_10_EXP = -307;   // min decimal exponent
 
-constexpr f64 F64_MAX = 1.7976931348623158e+308; // max value
-constexpr f64 F64_MIN = 2.2250738585072014e-308; // min positive value
+constexpr f64 F64_MAX = 1.7976931348623158e+308;  // max value
+constexpr f64 F64_MIN = 2.2250738585072014e-308;  // min positive value
 
-constexpr f64 F64_TRUE_MIN = 4.9406564584124654e-324; // min positive value, denormal
+constexpr f64 F64_TRUE_MIN = 4.9406564584124654e-324;  // min positive value, denormal
 
-constexpr s32 F32_DECIMAL_DIG = 9;                // # of decimal digits of rounding precision
-constexpr s32 F32_DIG         = 6;                // # of decimal digits of precision
-constexpr f64 F32_EPSILON     = 1.192092896e-07F; // smallest such that 1.0 + F64_EPSILON != 1.0
+constexpr s32 F32_DECIMAL_DIG = 9;                 // # of decimal digits of rounding precision
+constexpr s32 F32_DIG         = 6;                 // # of decimal digits of precision
+constexpr f64 F32_EPSILON     = 1.192092896e-07F;  // smallest such that 1.0 + F64_EPSILON != 1.0
 
-constexpr s32 F32_MANT_BITS = 23; // # of bits in mantissa, excluding the hidden bit (which is always interpreted as 1 for normal numbers)
+constexpr s32 F32_MANT_BITS = 23;  // # of bits in mantissa, excluding the hidden bit (which is always interpreted as 1 for normal numbers)
 
-constexpr s32 F32_EXP_BITS   = 8;    // # of bits in exponent
-constexpr s32 F32_EXP_BIAS   = 127;  // also called zero offset
-constexpr s32 F32_MAX_EXP    = 127;  // max binary exponent
-constexpr s32 F32_MIN_EXP    = -126; // min binary exponent
-constexpr s32 F32_MAX_10_EXP = 38;   // max decimal exponent
-constexpr s32 F32_MIN_10_EXP = -37;  // min decimal exponent
+constexpr s32 F32_EXP_BITS   = 8;     // # of bits in exponent
+constexpr s32 F32_EXP_BIAS   = 127;   // also called zero offset
+constexpr s32 F32_MAX_EXP    = 127;   // max binary exponent
+constexpr s32 F32_MIN_EXP    = -126;  // min binary exponent
+constexpr s32 F32_MAX_10_EXP = 38;    // max decimal exponent
+constexpr s32 F32_MIN_10_EXP = -37;   // min decimal exponent
 
-constexpr f64 F32_MAX = 3.402823466e+38F; // max value
-constexpr f64 F32_MIN = 1.175494351e-38F; // min positive value
+constexpr f64 F32_MAX = 3.402823466e+38F;  // max value
+constexpr f64 F32_MIN = 1.175494351e-38F;  // min positive value
 
-constexpr f64 F32_TRUE_MIN = 1.401298464e-45F; // min positive value, denormal
+constexpr f64 F32_TRUE_MIN = 1.401298464e-45F;  // min positive value, denormal
 
 //
 // Vector types (aligned on 16 byte boundaries for SIMDs)

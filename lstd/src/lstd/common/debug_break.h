@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "../platform.h"
+#include "platform.h"
 
 #if COMPILER == MSVC
 #include <intrin.h>

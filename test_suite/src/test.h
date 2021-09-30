@@ -1,11 +1,8 @@
 #pragma once
 
-#include <lstd/fmt/fmt.h>  // See note in header why we can't import as module directly
-
-using namespace lstd;
-
-import path;
-import os;
+import "lstd.h";
+import lstd.fmt;
+import lstd.path;
 
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.
@@ -14,23 +11,23 @@ import os;
 //      /home/.../lstd-tests/src/tests/string.cpp ---> tests/string.cpp
 //      /home/.../lstd-tests/string.cpp           ---> string.cpp
 //
-constexpr string get_short_file_path(const string &str) {
+constexpr string get_short_file_path(string str) {
     char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
     string src     = srcData;
 
-    s64 findResult = find_substring_reverse(str, src);
+    s64 findResult = string_find(str, src, string_length(str), true);
     if (findResult == -1) {
-        findResult = find_cp_reverse(str, OS_PATH_SEPARATOR);
-        assert(findResult != str.Length - 1);
+        findResult = string_find(str, OS_PATH_SEPARATOR, string_length(str), true);
+        assert(findResult != string_length(str) - 1);
         // Skip the slash
         findResult++;
     } else {
         // Skip the src directory
-        findResult += src.Length;
+        findResult += string_length(src);
     }
 
     string result = str;
-    return substring(result, findResult, result.Length);
+    return substring(result, findResult, string_length(result));
 }
 
 struct asserts {
@@ -55,19 +52,25 @@ struct asserts {
 #define assert_gt(x, y) assert_helper(x, y, LINE_NAME(a) > LINE_NAME(b), ">")
 #define assert_ge(x, y) assert_helper(x, y, LINE_NAME(a) >= LINE_NAME(b), ">=")
 
-#define assert_helper(x, y, condition, op)                                                                  \
-    {                                                                                                       \
-        ++asserts::GlobalCalledCount;                                                                       \
-        auto LINE_NAME(a) = x;                                                                              \
-        auto LINE_NAME(b) = y;                                                                              \
-        if (!(condition)) {                                                                                 \
-            string message = sprint(                                                                        \
-                "{}:{} {!YELLOW}{} {} {}{!GRAY},\n"                                                         \
-                "                LHS : {!YELLOW}\"{}\"{!GRAY},\n"                                           \
-                "                RHS: {!YELLOW}\"{}\"{!}",                                                  \
-                get_short_file_path(__FILE__), __LINE__, u8## #x, op, u8## #y, LINE_NAME(a), LINE_NAME(b)); \
-            array_append(asserts::GlobalFailed, message);                                                   \
-        }                                                                                                   \
+#define assert_helper(x, y, condition, op)                        \
+    {                                                             \
+        ++asserts::GlobalCalledCount;                             \
+        auto LINE_NAME(a) = x;                                    \
+        auto LINE_NAME(b) = y;                                    \
+        if (!(condition)) {                                       \
+            string message = sprint(                              \
+                "{}:{} {!YELLOW}{} {} {}{!GRAY},\n"               \
+                "                LHS : {!YELLOW}\"{}\"{!GRAY},\n" \
+                "                RHS: {!YELLOW}\"{}\"{!}",        \
+                get_short_file_path(__FILE__),                    \
+                __LINE__,                                         \
+                u8## #x,                                          \
+                op,                                               \
+                u8## #y,                                          \
+                LINE_NAME(a),                                     \
+                LINE_NAME(b));                                    \
+            array_append(asserts::GlobalFailed, message);         \
+        }                                                         \
     }
 
 //

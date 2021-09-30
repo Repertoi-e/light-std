@@ -1,8 +1,8 @@
 module;
 
-#include "../platform.h"
+#include "../common.h"
 
-export module path;
+export module lstd.path;
 
 //
 // This module provides facilities to work with paths and files.
@@ -13,13 +13,13 @@ export module path;
 // The rationale is that paths are platform specific and so any program input dealing with
 // paths would be different and so we try to do the best thing.
 //
-// For specific cases - in order to work with specific path format you can e.g. explicitly import path.nt.
+// For specific cases - in order to work with specific path format you can e.g. explicitly import lstd.path.nt.
 //
 
-import path.general;
+import lstd.path.general;
 
 #if OS == WINDOWS
-export import path.nt;
+export import lstd.path.nt;
 #else
-export import path.posix;
+export import lstd.path.posix;
 #endif

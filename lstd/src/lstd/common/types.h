@@ -1,66 +1,25 @@
 #pragma once
 
+#include "cpp/arg.h"
+#include "cpp/initializer_list.h"
+#include "cpp/source_location.h"
 #include "scalar_types.h"
 
-// This file defines: initializer_list, null, null_t, tuple
-
-// :AvoidSTDs:
-// Normally initializer_list would be included but if we avoid using headers from the C++ STD we define our own implementation here.
-// Note: You must tell us with a macro: LSTD_DONT_DEFINE_STD.
 //
-// By default we avoid STDs (like in real life) but if e.g. a library relies on it we would get definition errors.
-// In general this library can work WITH or WITHOUT the normal standard library.
-#if defined LSTD_DONT_DEFINE_STD
-#include <stdarg.h>
-
-#include <tuple>
-#include <initializer_list>
-#else
-// Note: If you get many compile errors (but you have defined LSTD_DONT_DEFINE_STD).
-// You probably need to define it globally, because not all headers from this library see the macro.
-
-namespace std {
-template <typename T>
-struct initializer_list {
-    const T *First = null;
-    const T *Last  = null;
-
-    using value_type = T;
-    using reference = const T &;
-    using const_reference = const T &;
-    using size_type = size_t;
-
-    constexpr initializer_list() noexcept {
-    }
-
-    constexpr initializer_list(const T *first, const T *last) noexcept
-        : First(first),
-          Last(last) {
-    }
-
-    using iterator = const T *;
-    using const_iterator = const T *;
-
-    constexpr const T *begin() const noexcept { return First; }
-    constexpr const T *end() const noexcept { return Last; }
-
-    constexpr size_t size() const noexcept { return static_cast<size_t>(Last - First); }
-};
-} // namespace std
-
-#define va_start __crt_va_start
-#define va_arg __crt_va_arg
-#define va_end __crt_va_end
-#define va_copy(destination, source) ((destination) = (source))
-#endif
-
-#define offset_of(s, field) ((u64) & ((s *) (0))->field)
+// This file defines:
+//   macros for C-style varargs,
+//   initializer_list,
+//   source_location,
+//
+//   null,
+//   tuple,
+//   range,
+//
 
 // Personal preference
 // I prefer to type null over nullptr but they are exactly the same
 constexpr auto null = nullptr;
-
-using null_t = decltype(nullptr);
+using null_t        = decltype(nullptr);
 
 LSTD_BEGIN_NAMESPACE
 
@@ -143,8 +102,67 @@ struct tuple_element<0, tuple<F, Rest...>> {
     using type = decltype(tuple<F, Rest...>().First);
 };
 
-template <s64 Index, typename T> // This shouldn't compile on types that are not tuples
+template <s64 Index, typename T>  // This shouldn't compile on types that are not tuples
 using tuple_get_t = typename tuple_element<Index, T>::type;
+
+// Python-like range functionality
+// e.g.
+//
+//  for (auto it : range(20))        // [0, 20)
+//  for (auto it : range(3, 10, 2))  // every second integer (step 2) in [3, 10)
+//  for (auto it : range(10, 0, -1)) // reverse [10, 0)
+//
+// .. or with our For macro:
+//
+//  For(range(12)) {}
+//
+//    which is equivalent to:
+//
+//  For_as(it, range(12)) {}
+//
+struct range {
+    struct iterator {
+        s64 I, Step;
+
+        constexpr iterator(s64 i, s64 step = 1) : I(i), Step(step) {}
+
+        operator s32() const { return (s32) I; }
+        operator s64() const { return I; }
+
+        constexpr s64 operator*() const { return I; }
+        constexpr iterator operator++() { return I += Step, *this; }
+
+        constexpr iterator operator++(s32) {
+            iterator temp(*this);
+            return I += Step, temp;
+        }
+
+        constexpr bool operator==(iterator other) const { return Step < 0 ? (I <= other.I) : (I >= other.I); }
+        constexpr bool operator!=(iterator other) const { return Step < 0 ? (I > other.I) : (I < other.I); }
+    };
+
+    iterator Begin;
+    iterator End;
+
+    constexpr range(s64 start, s64 stop, s64 step) : Begin(start, step), End(stop) {}
+    constexpr range(s64 start, s64 stop) : range(start, stop, 1) {}
+    constexpr range(u64 stop) : range(0, stop, 1) {}
+
+    // Checks if a value is inside the given range.
+    // This also accounts for stepping.
+    constexpr bool has(s64 value) const {
+        if (Begin.Step > 0 ? (value >= Begin.I && value < End.I) : (value > End.I && value <= Begin.I)) {
+            s64 diff = value - Begin.I;
+            if (diff % Begin.Step == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    constexpr iterator begin() const { return Begin; }
+    constexpr iterator end() const { return End; }
+};
 
 LSTD_END_NAMESPACE
 
@@ -157,7 +175,7 @@ LSTD_END_NAMESPACE
 
 namespace std {
 
-#if not defined LSTD_DONT_DEFINE_STD
+#if !defined LSTD_DONT_DEFINE_STD
 template <size_t I, typename T>
 struct tuple_element;
 
@@ -192,4 +210,4 @@ constexpr auto &get(LSTD_NAMESPACE::tuple<Args...> &t) { return LSTD_NAMESPACE::
 
 template <s64 Index, typename... Args>
 constexpr auto &get(LSTD_NAMESPACE::tuple<Args...> &&t) { return LSTD_NAMESPACE::tuple_get<Index>(t); }
-} // namespace std
+}  // namespace std

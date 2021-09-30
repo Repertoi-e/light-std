@@ -4,7 +4,9 @@
 
 //
 // numeric_info is useful when writing template functions and you don't know the specific integral type, so you cannot just use S32_MAX for example.
-// These template definitions are == to std::numeric_limits.
+// In that case you can use numeric_info<T>::max()
+// 
+// Take a look at std::numeric_limits.
 //
 
 LSTD_BEGIN_NAMESPACE

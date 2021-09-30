@@ -1,9 +1,8 @@
 module;
 
-#include "../memory/string.h"
-#include "../memory/string_utils.h"
+#include "../common.h"
 
-export module fmt.specs;
+export module lstd.fmt.specs;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -40,7 +39,7 @@ export {
     };
 
     struct fmt_specs {
-        utf32 Fill = ' ';
+        code_point Fill = ' ';
         fmt_alignment Align = fmt_alignment::NONE;
 
         fmt_sign Sign = fmt_sign::NONE;

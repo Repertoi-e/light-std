@@ -1,9 +1,10 @@
 module;
 
-#include "../memory/string.h"
-#include "../memory/string_utils.h"
+#include "../common.h"
 
-export module fmt.text_style;
+export module lstd.fmt.text_style;
+
+export import lstd.string;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -16,11 +17,11 @@ export {
 #undef COLOR_DEF
     };
 
-    inline string color_to_string(color c) {
+    string color_to_string(color c) {
         switch (c) {
 #define COLOR_DEF(x, y) \
     case color::x:      \
-        return #x;
+        return string(#x);
 #include "colors.inl"
 #undef COLOR_DEF
             default:
@@ -31,9 +32,9 @@ export {
     // Colors are defined all-uppercase and this function is case-sensitive
     //   e.g. cornflower_blue doesn't return color::CORNFLOWER_BLUE
     // Returns color::NONE (with value of black) if not found.
-    inline color string_to_color(const string &str) {
+    color string_to_color(string str) {
 #define COLOR_DEF(x, y) \
-    if (str == #x) return color::x;
+    if (str == string(#x)) return color::x;
 #include "colors.inl"
 #undef COLOR_DEF
         return color::NONE;
@@ -48,11 +49,11 @@ export {
 #undef COLOR_DEF
     };
 
-    inline string terminal_color_to_string(terminal_color c) {
+    string terminal_color_to_string(terminal_color c) {
         switch (c) {
 #define COLOR_DEF(x, y)     \
     case terminal_color::x: \
-        return #x;
+        return string(#x);
 #include "terminal_colors.inl"
 #undef COLOR_DEF
             default:
@@ -63,17 +64,17 @@ export {
     // Colors are defined all-uppercase and this function is case-sensitive
     //   e.g. bright_black doesn't return color::BRIGHT_BLACK
     // Returns terminal_color::NONE (invalid) if not found.
-    inline terminal_color string_to_terminal_color(const string &str) {
+    terminal_color string_to_terminal_color(string str) {
 #define COLOR_DEF(x, y) \
-    if (str == #x) return terminal_color::x;
+    if (str == string(#x)) return terminal_color::x;
 #include "terminal_colors.inl"
 #undef COLOR_DEF
         return terminal_color::NONE;
     }
 
-    enum emphasis : u8 { BOLD = BIT(0),
-                         ITALIC = BIT(1),
-                         UNDERLINE = BIT(2),
+    enum emphasis : u8 { BOLD          = BIT(0),
+                         ITALIC        = BIT(1),
+                         UNDERLINE     = BIT(2),
                          STRIKETHROUGH = BIT(3) };
 
     struct fmt_text_style {
@@ -88,12 +89,11 @@ export {
         } Color{};
 
         bool Background = false;
-        u8 Emphasis = 0;
+        u8 Emphasis     = 0;
     };
 
-    namespace fmt_internal {
     // Used when making ANSI escape codes for text styles
-    inline utf8 *u8_to_esc(utf8 *p, utf8 delimiter, u8 c) {
+    char *u8_to_esc(char *p, char delimiter, u8 c) {
         *p++ = '0' + c / 100;
         *p++ = '0' + c / 10 % 10;
         *p++ = '0' + c % 10;
@@ -101,8 +101,8 @@ export {
         return p;
     }
 
-    inline utf8 *color_to_ansi(utf8 *buffer, fmt_text_style style) {
-        utf8 *p = buffer;
+    char *color_to_ansi(char *buffer, fmt_text_style style) {
+        char *p = buffer;
         if (style.ColorKind != fmt_text_style::color_kind::NONE) {
             if (style.ColorKind == fmt_text_style::color_kind::TERMINAL) {
                 // Background terminal colors are 10 more than the foreground ones
@@ -123,9 +123,9 @@ export {
                 copy_memory(p, style.Background ? "\x1b[48;2;" : "\x1b[38;2;", 7);
                 p += 7;
 
-                p = u8_to_esc(p, ';', (u8)((style.Color.RGB >> 16) & 0xFF));
-                p = u8_to_esc(p, ';', (u8)((style.Color.RGB >> 8) & 0xFF));
-                p = u8_to_esc(p, 'm', (u8)((style.Color.RGB) & 0xFF));
+                p = u8_to_esc(p, ';', (u8) ((style.Color.RGB >> 16) & 0xFF));
+                p = u8_to_esc(p, ';', (u8) ((style.Color.RGB >> 8) & 0xFF));
+                p = u8_to_esc(p, 'm', (u8) ((style.Color.RGB) & 0xFF));
             }
         } else if ((u8) style.Emphasis == 0) {
             // Empty text style means "reset"
@@ -135,14 +135,14 @@ export {
         return p;
     }
 
-    inline utf8 *emphasis_to_ansi(utf8 *buffer, u8 emphasis) {
+    char *emphasis_to_ansi(char *buffer, u8 emphasis) {
         u8 codes[4] = {};
         if (emphasis & BOLD) codes[0] = 1;
         if (emphasis & ITALIC) codes[1] = 3;
         if (emphasis & UNDERLINE) codes[2] = 4;
         if (emphasis & STRIKETHROUGH) codes[3] = 9;
 
-        utf8 *p = buffer;
+        char *p = buffer;
         For(range(4)) {
             if (!codes[it]) continue;
 
@@ -153,7 +153,6 @@ export {
         }
         return p;
     }
-    }  // namespace fmt_internal
 }
 
 LSTD_END_NAMESPACE
