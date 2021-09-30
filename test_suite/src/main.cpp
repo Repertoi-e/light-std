@@ -1,6 +1,6 @@
 #include "test.h"
 
-import lstd.big_integer;
+import lstd.os;
 
 void run_tests() {
     print("\n");
@@ -9,7 +9,7 @@ void run_tests() {
 
         u32 sucessfulProcs = 0;
         For(*tests) {
-            auto length = min(it.Name.Length, 30);
+            auto length = min(string_length(it.Name), 30);
             print("        {:.{}} {:.^{}} ", it.Name, length, "", 35 - length);
 
             auto failedAssertsStart = asserts::GlobalFailed.Count;
@@ -29,9 +29,8 @@ void run_tests() {
             } else {
                 print("{!RED}FAILED{!}\n");
 
-                auto it = asserts::GlobalFailed.begin() + failedAssertsStart;
-                for (; it != asserts::GlobalFailed.end(); ++it) {
-                    print("          {!GRAY}>>> {}{!}\n", *it);
+                For(range(failedAssertsStart, asserts::GlobalFailed.Count)) {
+                    print("          {!GRAY}>>> {}{!}\n", asserts::GlobalFailed[it]);
                 }
                 print("\n");
             }
@@ -57,7 +56,7 @@ void run_tests() {
 
     // These need to be reset in case we rerun the tests (we may spin this function up in a while loop a bunch of times when looking for rare bugs).
     asserts::GlobalCalledCount = 0;
-    free(asserts::GlobalFailed);
+    if (asserts::GlobalFailed) free(asserts::GlobalFailed.Data);
 }
 
 constexpr bool LOG_TO_FILE = false;
@@ -69,7 +68,7 @@ void write_output_to_file() {
     newContext.Log  = &cout;
     OVERRIDE_CONTEXT(newContext);
 
-    path_write_to_file("output.txt", string_builder_combine(g_Logger.Builder), Overwrite_Entire);
+    os_write_to_file("output.txt", builder_to_string(g_Logger.Builder), file_write_mode::Overwrite_Entire); // @Leak
 }
 
 s32 main() {
@@ -80,7 +79,7 @@ s32 main() {
 #endif
 
     auto newContext           = Context;
-    newContext.Alloc          = Context.TempAlloc;
+    newContext.Alloc          = TemporaryAllocator;
     newContext.AllocAlignment = 16;
 
     if (LOG_TO_FILE) {
@@ -90,7 +89,7 @@ s32 main() {
         newContext.FmtDisableAnsiCodes = true;
     }
 
-    allocator_add_pool(Context.TempAlloc, os_allocate_block(1_MiB), 1_MiB);
+    allocator_add_pool(TemporaryAllocator, os_allocate_block(1_MiB), 1_MiB);
 
     OVERRIDE_CONTEXT(newContext);
 
@@ -98,7 +97,7 @@ s32 main() {
         build_test_table();
         run_tests();
     }
-    print("\nFinished tests, time taken: {:f} seconds, bytes used: {}, pools used: {}\n\n", os_time_to_seconds(os_get_time() - start), __TempAllocData.TotalUsed, __TempAllocData.PoolsCount);
+    print("\nFinished tests, time taken: {:f} seconds, bytes used: {}, pools used: {}\n\n", os_time_to_seconds(os_get_time() - start), TemporaryAllocatorData.TotalUsed, TemporaryAllocatorData.PoolsCount);
 
     if (LOG_TO_FILE) {
         write_output_to_file();

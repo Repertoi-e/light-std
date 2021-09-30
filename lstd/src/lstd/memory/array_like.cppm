@@ -54,7 +54,7 @@ concept is_array_like = array_has_members<T> &&(array_has_flag<T> && !array_flag
 export {
     // True if the type has _Data_ and _Count_ members (and the optional explicit flag is not false).
     template <typename T>
-    concept any_array_like = is_array_like<types::decay_t<T>>;
+    concept any_array_like = is_array_like<types::remove_cv_t<T>>;
 
     // This returns the type of the _Data_ member of an array-like object
     template <any_array_like T>
@@ -212,8 +212,12 @@ export {
     //
     // Comparison operator, implements <, <=, ==, !=, >=, >
     //
+    // template <any_array_like Arr1, any_array_like Arr2>
+    // requires types::is_same<array_data_t<Arr1>, array_data_t<Arr2>>  // Require that the underlying types are//  the same
+    // constexpr auto operator<=>(const Arr1 &arr1, const Arr2 &arr2) { return compare_lexicographically(arr1,//  arr2); }
+
+    // Require that the underlying types are//  the same
     template <any_array_like Arr1, any_array_like Arr2>
-    requires types::is_same<array_data_t<Arr1>, array_data_t<Arr2>>  // Require that the underlying types are the same
     constexpr auto operator<=>(const Arr1 &arr1, const Arr2 &arr2) { return compare_lexicographically(arr1, arr2); }
 }
 

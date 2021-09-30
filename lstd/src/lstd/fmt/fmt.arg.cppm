@@ -107,12 +107,12 @@ export {
             return (s64) v;
         } else if constexpr (types::is_unsigned_integral<T>) {
             return (u64) v;
-        } else if constexpr (types::is_floating_point<T>) {
-            return v;
-        } else if constexpr (types::is_same<T, string::code_point_ref>) {
+        } else if constexpr (types::is_same<T, code_point_ref> || types::is_same<T, char8_t> || types::is_same<T, char16_t> || types::is_same<T, char32_t> || types::is_same<T, wchar>) {
             return (u64) v;
         } else if constexpr (types::is_enum<T>) {
             return fmt_map_arg((types::underlying_type_t<T>) v);
+        } else if constexpr (types::is_floating_point<T>) {
+            return v;
         } else {
             static_assert(false, "Argument doesn't have a way to be formatted. Specialize formatter<T> for custom types.");
         }

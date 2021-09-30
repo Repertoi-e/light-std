@@ -65,7 +65,7 @@ export {
 
         // Returns a pointer to the value associated with _key_.
         // If the key doesn't exist, this adds a new element and returns it.
-        V *operator[](const K &key) {
+        V *operator[](K key) {
             auto [kp, vp] = find(this, key);
             if (vp) return vp;
             return add(this, key).Value;
@@ -242,7 +242,7 @@ export {
     // In normal _find_ we calculate the hash of the key using the global get_hash() specialized functions.
     // This method is useful if you have cached the hash.
     template <any_hash_table T>
-    key_value_pair<T> find_prehashed(T * table, u64 hash, const key_t<T> &key) {
+    key_value_pair<T> find_prehashed(T * table, u64 hash, key_t<T> key) {
         if (!table->Count) return {null, null};
 
         s64 index = hash & table->Allocated - 1;
@@ -263,7 +263,7 @@ export {
 
     // We calculate the hash of the key using the global get_hash() specialized functions.
     template <any_hash_table T>
-    auto find(T * table, const key_t<T> &key) {
+    auto find(T * table, key_t<T> key) {
         return find_prehashed(table, get_hash(key), key);
     }
 
@@ -272,9 +272,9 @@ export {
     // This method is useful if you have cached the hash.
     // Returns pointers to the added key and value.
     template <any_hash_table T>
-    key_value_pair<T> add_prehashed(T * table, u64 hash, const key_t<T> &key, const value_t<T> &value) {
+    key_value_pair<T> add_prehashed(T * table, u64 hash, key_t<T> key, value_t<T> value) {
         // The + 1 here handles the case when the hash table size is 1 and you add the first item.
-        if ((table->SlotsFilled + 1) * 2 >= table->Allocated) reserve(table, table->SlotsFilled);  // Make sure the hash table is never more than 50% full
+        if ((table->SlotsFilled + 1) * 2 >= table->Allocated) resize(table, table->SlotsFilled);  // Make sure the hash table is never more than 50% full
 
         assert(table->SlotsFilled < table->Allocated);
 
@@ -305,7 +305,7 @@ export {
     //
     // Because _add_ returns a pointer where the object is placed, clone() can place the deep copy there directly.
     template <any_hash_table T>
-    key_value_pair<T> add(T * table, const key_t<T> &key) { return add(table, key, value_t<T>()); }
+    key_value_pair<T> add(T * table, key_t<T> key) { return add(table, key, value_t<T>()); }
 
     // Inserts an empty key/value pair with a given hash.
     // Use the returned pointers to fill out the slots.
@@ -317,13 +317,13 @@ export {
 
     // Returns pointers to the added key and value.
     template <any_hash_table T>
-    key_value_pair<T> add(T * table, const key_t<T> &key, const value_t<T> &value) {
+    key_value_pair<T> add(T * table, key_t<T> key, value_t<T> value) {
         return add_prehashed(table, get_hash(key), key, value);
     }
 
     // This method is useful if you have cached the hash.
     template <any_hash_table T>
-    key_value_pair<T> set_prehashed(T * table, u64 hash, const key_t<T> &key, const value_t<T> &value) {
+    key_value_pair<T> set_prehashed(T * table, u64 hash, key_t<T> key, value_t<T> value) {
         auto [kp, vp] = find_prehashed(table, hash, key);
         if (vp) {
             *vp = value;
@@ -333,14 +333,14 @@ export {
     }
 
     template <any_hash_table T>
-    key_value_pair<T> set(T * table, const key_t<T> &key, const value_t<T> &value) {
+    key_value_pair<T> set(T * table, key_t<T> key, value_t<T> value) {
         return set_prehashed(table, get_hash(key), key, value);
     }
 
     // Returns true if the key was found and removed.
     // This method is useful if you have cached the hash.
     template <any_hash_table T>
-    bool remove_prehashed(T * table, u64 hash, const key_t<T> &key) {
+    bool remove_prehashed(T * table, u64 hash, key_t<T> key) {
         auto [kp, vp] = find_prehashed(table, hash, key);
         if (vp) {
             s64 index            = vp - table->Values;
@@ -352,18 +352,18 @@ export {
 
     // Returns true if the key was found and removed.
     template <any_hash_table T>
-    bool remove(T * table, const key_t<T> &key) {
+    bool remove(T * table, key_t<T> key) {
         return remove_prehashed(table, get_hash(key), key);
     }
 
     // Returns true if the hash table has the given key.
     template <any_hash_table T>
-    bool has(T * table, const key_t<T> &key) { return find(table, key).Key != null; }
+    bool has(T * table, key_t<T> key) { return find(table, key).Key != null; }
 
     // Returns true if the hash table has the given key.
     // This method is useful if you have cached the hash.
     template <any_hash_table T>
-    bool has_prehashed(T * table, u64 hash, const key_t<T> &key) { return find_prehashed(table, hash, key) != null; }
+    bool has_prehashed(T * table, u64 hash, key_t<T> key) { return find_prehashed(table, hash, key) != null; }
 
     template <any_hash_table T>
     bool operator==(const T &t, const T &u) {

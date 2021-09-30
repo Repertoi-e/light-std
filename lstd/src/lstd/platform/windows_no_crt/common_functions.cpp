@@ -428,9 +428,6 @@ double atof(const char *s) {
  */
 
 /* vsprintf.c -- Lars Wirzenius & Linus Torvalds. */
-/*
- * Wirzenius wrote this portably, Torvalds fucked it up :-)
- */
 
 /*
  * Fri Jul 13 2001 Crutcher Dunnavant <crutcher+kernel@datastacks.com>

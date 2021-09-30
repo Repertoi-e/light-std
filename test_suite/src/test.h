@@ -69,7 +69,7 @@ struct asserts {
                 u8## #y,                                          \
                 LINE_NAME(a),                                     \
                 LINE_NAME(b));                                    \
-            array_append(asserts::GlobalFailed, message);         \
+            add(&asserts::GlobalFailed, message);                 \
         }                                                         \
     }
 

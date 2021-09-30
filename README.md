@@ -72,7 +72,7 @@ Note: Games are an exception to this trend, because engine programmers always tr
 > which otherwise we need a combinatorial amount of code).
 
 - Written for the future.
-> Some sacrifices are made. This library isn't 'backwards compatible, it uses C++20 `modules` and `concepts`, C++17 `if constexpr`, etc.
+> Some sacrifices are made. This library isn't backwards compatible, it uses C++20 `modules` and `concepts`, C++17 `if constexpr`, etc.
 > Eventually I plan to write a compiler that translates a custom language (an extension to C++) to C
 > which supports meta-programming and changes the syntax to avoid vexing parses. 
 
@@ -116,7 +116,7 @@ Note: Games are an exception to this trend, because engine programmers always tr
     defer(free(pathComponents.Data));
     ```
 
-'string's are just 'array<char>'. All of this applies to them as well.
+`string`s are just `array<char>`. All of this applies to them as well.
 They are not null-terminated, which means that taking substrings doesn't allocate memory.
 
 
@@ -167,7 +167,7 @@ e.g. `string newPath = clone(path) // Allocates a new buffer and copies contents
 > ```
 
 > ex.3 Arrays allocate functions by the implicit context allocator (more on that later). 
-> Here 'PERSISTENT' is an allocator that the platform layer uses for internal allocations (example is taken from the 'os' module).
+> Here `PERSISTENT` is an allocator that the platform layer uses for internal allocations (example is taken from the `os` module).
 > ```cpp
 > [[nodiscard("Leak")]] array<string> os_get_command_line_arguments() {
 >     s32 argc;
@@ -258,8 +258,8 @@ e.g. `string newPath = clone(path) // Allocates a new buffer and copies contents
 
 Strings in this library support unicode (UTF-8) and aren't null-terminated.
 
-'str.Count' tells you the number of bytes stored in the string. To get
-the number of code points call 'string_length(str)'.
+`str.Count` tells you the number of bytes stored in the string. To get
+the number of code points call `string_length(str)`.
 The number of code points is smaller or equal to the number of bytes,
 because a certain code point can be encoded in up to 4 bytes.
 
@@ -294,7 +294,7 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 >     greeting; // "здрасти"
 > ```
 
-> ex.4 Taken from the 'path' module.
+> ex.4 Taken from the `path` module.
 > ```cpp
 > [[nodiscard("Leak")]] array<string> path_split_into_components(string path) {
 >     array<string> result;
@@ -319,7 +319,7 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 > }
 > ```
 
-> ex.5 Taken from the 'path' module.
+> ex.5 Taken from the `path` module.
 > ```cpp
 > [[nodiscard("Leak")]] string path_join(array<string> paths) {
 >     auto [result_drive, result_path] = path_split_drive(paths[0]);
@@ -367,6 +367,43 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 >     return result;
 > }
 > ```
+
+### Allocating memory
+
+Don't use new and delete.
+1) You have to be careful not to mix `new` with `delete[]`/`new[]` with `delete`.
+2) It's an operator and can be overriden by structs/classes.
+3) Modern C++ people say not to use new/delete as well, so ..
+
+Now seriously, there are two ways to allocate memory in C++: `malloc` and `new`.
+For the sake of not introducing a THIRD way, we override malloc.
+We do that because :STANDARDLIBRARYISBANNED:.
+Since we don't link with the CRT, `malloc` is undefined, so we need to
+provide a replacement anyway (or modify code which is annoying and
+not always possible, e.g. a prebuilt library).
+
+> Caveat: A DLL may already have linked with the CRT, which means that in
+> that case problems occur. There are two options: rebuild your DLLs
+> to not use the standard library/or we could do some hacks
+> and redirect calls to malloc to our replacement (@TODO It may actually be possible).
+
+`new` and `delete` actually have some useful semantics (`new` - initializing the values,
+`delete` - calling a destructor if defined). So we provide templated versions of malloc/free:
+
+`malloc<T>`:
+- Calls constructors on non-scalar values.
+- Returns T* so you don't have to cast from void*
+- Can't call with T == void (use non-templated malloc in that case!)
+
+`realloc<T>`
+- Assumes your type can be copied to another place in memory and just work.
+- Doesn't call copy/move constructors.
+
+`free<T>`
+- Also calls the destructor (we are against destructors usually but some syntax-sugar code might rely on that).
+
+You might be annoyed already but for more philosophy (like why we don't like exceptions, copy or move constructors) you can look at the :TypePolicy:.
+
 
 ### Context and allocators by example
 
@@ -446,60 +483,12 @@ The context gets initialized when the program runs and also when creating a thre
 > memory = malloc<char>({.Count = 150, .Alloc = myAlloctor});;
 > ```
 
-Don't use new and delete.
-1) The syntax is ugly in my opinion.
-2) You have to be careful not to mix "new" with "delete[]"/"new[]" and "delete".
-3) It's an operator and can be overriden by structs/classes.
-4) Modern C++ people say not to use new/delete as well, so ..
 
-Now seriously, there are two ways to allocate memory in C++: 'malloc' and 'new'.
-For the sake of not introducing a THIRD way, we override malloc.
-We do that because :STANDARDLIBRARYISBANNED:.
-Since we don't link the CRT 'malloc' is undefined, so we need to
-provide a replacement anyway (or modify code which is annoying and
-not always possible, e.g. a prebuilt library).
+### Memory
 
-*** Caveat: A DLL may already have linked with the CRT, which means that in
-that case problems occur. There are two options: rebuild your DLLs
-to not use the standard library (ideally), or we could do some hacks
-and redirect calls to malloc to our replacement (@TODO It may actually be possible).
-new and delete actually have some useful semantics (new - initializing the values,
-delete - calling a destructor if defined). So we provide templated versions of malloc/free:
+The library's allocating functions reserve a bit of space before a block to store a header with information (the size of the allocation, the alignment, the allocator with which it was allocated, and debugging info if DEBUG_MEMORY is defined).
 
-'malloc<T>':
-- Calls constructors on non-scalar values.
-- Returns T* so you don't have to cast from void*
-- Can't call with T == void (use non-templated malloc in that case!)
-
-'realloc<T>'
-- Assumes your type can be copied to another place in memory and just work.
-- Doesn't call copy/move constructors.
-
-'free<T>'
-- Also calls the destructor (we are against destructors usually but some syntax-sugar code might rely on that).
-
-You might be annoyed already but for more philosophy (like why we don't like exceptions, copy or move constructors)
-you can look at the type policy (:TypePolicy: in common.h).
-
-Instead of destructors we do, e.g.
-
-> ```cpp
-> void free_the_string(string *s) { 
->     if (s.Data) free(s.Data);
-> }
-> 
-> // ...
-> 
-> string a;
-> // ...
->
-> free_the_string(&a);
-> ```
-
-Functions allocate a bit of space before a block to store a header with information (the size of the allocationalignment,
-the allocator with which it was allocated, and debugging info if DEBUG_MEMORY is defined - see comment in memory.cppm).
-
-The memory functions also allow certain options to be specified.
+These functions also allow certain options to be specified.
 
 > ex.2 Using C++20 syntax for allocator options.
 > ```cpp
@@ -623,7 +612,7 @@ The memory functions also allow certain options to be specified.
 > ```
 
 
-### Available allocator implementations
+### Available types of allocators
 
 See `"memory.cppm"`.
 
@@ -733,13 +722,234 @@ void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void 
 
 ### Credits
 
-- [Cephes](https://www.netlib.org/cephes/) Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
-- [tlsf](https://github.com/mattconte/tlsf), Matthew Conte, Two-Level Segregated Fit memory allocator implementation.
+- [LIBFT](https://github.com/beloff-ZA/LIBFT/blob/master/libft.h) beloff, 2018, some implementations of functions found in the CRT.
+- [minlibc]( https://github.com/GaloisInc/minlibc), Galois Inc., 2014, `strtod` and `atof` implementations.
+```cpp
+// Here is the license that came with it:
+
+/*
+ * Copyright (c) 2014 
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions 
+ * are met:
+ * 
+ *   * Redistributions of source code must retain the above copyright 
+ *     notice, this list of conditions and the following disclaimer.
+ * 
+ *   * Redistributions in binary form must reproduce the above copyright 
+ *     notice, this list of conditions and the following disclaimer in 
+ *     the documentation and/or other materials provided with the 
+ *     distribution.
+ * 
+ *   * Neither the name of Galois, Inc. nor the names of its contributors 
+ *     may be used to endorse or promote products derived from this 
+ *     software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+```
+
+- [Cephes](https://www.netlib.org/cephes/), Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
+
+- [tlsf](https://github.com/mattconte/tlsf), Matthew Conte (http://tlsf.baisoku.org), Two-Level Segregated Fit memory allocator, version 3.1.
+>> Based on the original documentation by Miguel Masmano:
+>>	http://www.gii.upv.es/tlsf/main/docs
+```cpp
+// Here is the appropriate license:
+
+// This implementation was written to the specification
+// of the document, therefore no GPL restrictions apply.
+
+/* 
+ * Copyright (c) 2006-2016, Matthew Conte
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the copyright holder nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL MATTHEW CONTE BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+- Rolf Neugebauer, 2003, `sccanf` implementation.
+```cpp
+// Here is the appropriate license:
+/*
+ ****************************************************************************
+ * (C) 2003 - Rolf Neugebauer - Intel Research Cambridge
+ ****************************************************************************
+ *
+ *        File: printf.c
+ *      Author: Rolf Neugebauer (neugebar@dcs.gla.ac.uk)
+ *     Changes: Grzegorz Milos (gm281@cam.ac.uk) 
+ *
+ *        Date: Aug 2003, Aug 2005
+ *
+ * Environment: Xen Minimal OS
+ * Description: Library functions for printing
+ *              (Linux port, mainly lib/vsprintf.c)
+ *
+ ****************************************************************************
+ */
+
+/*
+ * Copyright (C) 1991, 1992  Linus Torvalds
+ */
+
+/* vsprintf.c -- Lars Wirzenius & Linus Torvalds. */
+
+/*
+ * Fri Jul 13 2001 Crutcher Dunnavant <crutcher+kernel@datastacks.com>
+ * - changed to provide snprintf and vsnprintf functions
+ * So Feb  1 16:51:32 CET 2004 Juergen Quade <quade@hsnr.de>
+ * - scnprintf and vscnprintf
+ *
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+```
+
+- [delegate](https://github.com/tarigo/delegate), Vadim Karkhin, 2015
+```cpp
+// Here is the appropriate license:
+/* The MIT License (MIT)
+ * 
+ * Copyright (c) 2015 Vadim Karkhin
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+```
+
+- Ryan Juckett, 2014, implementation the Dragon4 algorithm (used in the `fmt` module for formatting floats).
+
+> See the following papers for more information on the algorithm:
+>  "How to Print Floating-Point Numbers Accurately"
+>    Steele and White
+>    http://kurtstephens.com/files/p372-steele.pdf
+>  "Printing Floating-Point Numbers Quickly and Accurately"
+>    Burger and Dybvig
+>    http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.72.4656
+> 
+> 
+> It is a modified version of numpy's dragon4 implementation,
+> ... which is a modification of Ryan Juckett's version.
+
+```cpp
+// Here are the appropriate licenses:
+/*
+ * Copyright (c) 2014 Ryan Juckett
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+/*
+ * Copyright (c) 2005-2021, NumPy Developers.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ * 
+ *     * Redistributions of source code must retain the above copyright
+ *        notice, this list of conditions and the following disclaimer.
+ * 
+ *     * Redistributions in binary form must reproduce the above
+ *        copyright notice, this list of conditions and the following
+ *        disclaimer in the documentation and/or other materials provided
+ *        with the distribution.
+ * 
+ *     * Neither the name of the NumPy Developers nor the names of any
+ *        contributors may be used to endorse or promote products derived
+ *        from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+```
 
 ### Projects using this library
 
-- [light-std-graphics](https://github.com/Repertoi-e/light-std-graphics) - high-level windowing API (like GLFW) and a high-level graphics API.
+- [light-std-graphics](https://github.com/Repertoi-e/light-std-graphics) - high-level windowing API (like GLFW) and a high-level graphics API (currently has only DirectX bindings).
 - [Physics engine](https://repertoi-e.github.io/Portfolio/Simulating-Rigid-Body-Physics.html) - simulating rigid bodies.
-- [Graphing calculator](https://github.com/Repertoi-e/light-std-graphics/tree/main/game/src).
-
 
