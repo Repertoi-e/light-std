@@ -83,49 +83,6 @@ TEST(writing_hello_250_times) {
 }
  */
 
-//
-// This is just causing more trouble that I want to cope with.
-// Not a good idea for a test at all honestly.
-// It was working the last time I tested it though.
-//                                                  - 3.04.2020
-//
-
-/*
-TEST(test_introspection) {
-    auto thisFile = string(__FILE__);
-    string testsFolder = thisFile.directory();
-
-    auto tests = file::handle(testsFolder);
-    For(tests) {
-        string testPath;
-        clone(&testPath, testsFolder);
-        testPath.combine_with(it);
-
-        auto test = file::handle(testPath);
-        if (!test.is_file()) continue;
-
-        string contents;
-        test.read_entire_file(&contents);
-        assert_eq(contents.Count, test.file_size());
-
-        string nativePath;
-        clone(&nativePath, testPath.Str);
-#if OS == WINDOWS
-        nativePath.replace_all('/', '\\');
-#endif
-        // Prevent counting the literal in this file
-        auto *testLiteral =
-            "TE"
-            "ST(";
-
-        auto *testArray = g_TestTable.find(get_short_file_name(nativePath));
-        if (testArray) {
-            assert_eq(contents.count(testLiteral), testArray->Count);
-        }
-    }
-}
-*/
-
 #define DO_READ_EVERY_FILE 0
 
 #if DO_READ_EVERY_FILE

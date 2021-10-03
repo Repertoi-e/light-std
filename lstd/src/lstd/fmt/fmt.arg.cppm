@@ -5,17 +5,29 @@ module;
 export module lstd.fmt.arg;
 
 export import lstd.fmt.fmt_type;
-export import lstd.fmt.formatter;
-
 import lstd.fmt.fmt_type_constant;
 
 LSTD_BEGIN_NAMESPACE
+
+struct fmt_context;
 
 export {
     struct fmt_custom_value {
         void *Data;
         void (*FormatFunc)(void *formatContext, void *arg);
     };
+
+    template <typename T>
+    void write(fmt_context * f, T *t) {
+        // static_assert(false, "Argument doesn't have a way to be formatted.");
+        // static_assert(false, "Specialize this function for a custom type.");
+        assert(false);
+        // e.g.
+        // void write(fmt_context *f, my_vector *value) {
+        //     fmt_to_writer(f, "x: {}, y: {}", value->x, value->y);
+        //     // ...
+        // }
+    }
 
     // Contains a value of any type
     struct fmt_value {
@@ -39,16 +51,17 @@ export {
         fmt_value(void *v) : Pointer(v) {}
         fmt_value(string v) : String(v) {}
 
-        template <formattable T>
+        // Attempt to call a custom formatter.
+        // Compile-time asserts if there was no overload.
+        template <typename T>
         fmt_value(T *v) {
             Custom.Data       = (void *) v;
-            Custom.FormatFunc = call_formatter_on_custom_arg<T>;
+            Custom.FormatFunc = call_write_on_custom_arg<T>;
         }
 
-        template <formattable T>
-        static void call_formatter_on_custom_arg(void *formatContext, void *arg) {
-            formatter<types::remove_cvref_t<T>> formatter;
-            formatter.format(formatContext, (T *) (arg));
+        template <typename T>
+        static void call_write_on_custom_arg(void *formatContext, void *arg) {
+            write((fmt_context *) formatContext, (T *) arg);
         }
     };
 
@@ -63,21 +76,19 @@ export {
     // Maps formatting arguments to types that can be used to construct a fmt_value.
     //
     // The order in which we look:
-    //   * does the type have a formatter? maps to &v (value then setups a function call to formatter<T>::format())
     //   * is string constructible from T? then we map to string(T)
+    //   * is the type a code_point_ref? maps to u64 (we want the value in that case)
+    //   * is the type an (un)integral? maps to u64 or s64
+    //   * is the type an enum? calls map_arg again with the underlying type
+    //   * is the type a floating point? maps to f64
     //   * is the type a pointer? if it's non-void we throw an error, otherwise we map to (void *) v
     //   * is the type a bool? maps to bool
-    //   * is the type an (un)integral? maps to u64 or s64
-    //   * is the type a floating point? maps to f64
-    //   * is the type a code_point_ref? maps to u64 (we want the value in that case)
-    //   * is the type an enum? calls map_arg again with the underlying type
-    // Otherwise we static_assert that the argument can't be formatted
-    auto fmt_map_arg(const auto &v) {
+    //   * otherwise maps to &v (value then setups a function call to a custom formatter)
+    // Otherwise we static_assert that the argument can't be formatted.
+    auto fmt_map_arg(auto by_ref v) {
         using T = typename types::remove_cvref_t<decltype(v)>;
 
-        if constexpr (formattable<T>) {
-            return &v;
-        } else if constexpr (types::is_same<string, T> || types::is_constructible<string, T>) {
+        if constexpr (types::is_same<string, T> || types::is_constructible<string, T>) {
             return string(v);
         } else if constexpr (types::is_same<T, code_point_ref>) {
             return (u64) v;
@@ -95,14 +106,14 @@ export {
         } else if constexpr (types::is_same<bool, T>) {
             return v;
         } else {
-            static_assert(false, "Argument doesn't have a way to be formatted. Specialize formatter<T> for custom types.");
+            return &v;
         }
     }
 
     template <typename T>
     constexpr auto fmt_mapped_type_constant_v = type_constant_v<decltype(fmt_map_arg(types::declval<T>()))>;
 
-    fmt_arg fmt_make_arg(auto by_ref v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(v))}; }
+    fmt_arg fmt_make_arg(auto by_ref v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(ref(v)))}; }
 
     // Visits an argument dispatching with the right value based on the argument type
     template <typename Visitor>

@@ -2,6 +2,7 @@
 #include "lstd/platform/windows.h"
 
 import lstd.os;
+import lstd.context;
 
 //
 // These are taken from vcruntime/utility.cpp:
@@ -176,7 +177,7 @@ static _CRTALLOC(".CRT$XDZ") _PVFV __xd_z = nullptr;
  *      __declspec(thread) variables in the primary thread at process startup.
  */
 
-void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept // terminate on any C++ exception that leaves a
+void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept  // terminate on any C++ exception that leaves a
 // namespace-scope thread-local initializer
 // N4830 [basic.start.dynamic]/7
 {
@@ -201,23 +202,23 @@ void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept // terminate 
     // :ThreadsContext:
     //
     // We don't guarantee a valid context for threads.
-    // 
+    //
     // LSTD_NAMESPACE::platform_init_context();
     //
     // The reason for this decision: we can't know the parent of the thread
-    // so we can't know which Context to copy. 
-    // 
-    // If you use lstd's API for creating a thread then we CAN know, 
-    // so in that case we provide a valid Context. However if you create 
-    // a thread with the raw OS API, then there is no way (as far as I know) 
+    // so we can't know which Context to copy.
+    //
+    // If you use lstd's API for creating a thread then we CAN know,
+    // so in that case we provide a valid Context. However if you create
+    // a thread with the raw OS API, then there is no way (as far as I know)
     // to get the parent thread. In that case we let it be zero filled
     // and let the user copy the Context manually.
-    // 
+    //
     // If in DEBUG then we fill it with a special value to catch bugs more
     // easily when reading values from the invalid context.
     //
 #if defined DEBUG_MEMORY
-    LSTD_NAMESPACE::fill_memory(&Context, DEAD_LAND_FILL, sizeof(Context))
+    LSTD_NAMESPACE::fill_memory((void *) &Context, DEAD_LAND_FILL, sizeof(Context));
 #endif
 }
 
@@ -246,4 +247,4 @@ void __cdecl __dyn_tls_on_demand_init() noexcept {
     __dyn_tls_init(nullptr, DLL_THREAD_ATTACH, nullptr);
 }
 
-} // extern "C"
+}  // extern "C"

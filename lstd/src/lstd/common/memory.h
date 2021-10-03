@@ -8,7 +8,8 @@
 // @TODO @Critical Currently hot loading DLLs causes all sorts of failures when using DEBUG_MEMORY
 // To fix them we need to restructure how we save the list of global allocations...
 // For now don't do DEBUG_MEMORY.
-#define FORCE_NO_DEBUG_MEMORY
+
+// #define FORCE_NO_DEBUG_MEMORY
 
 // In debug by default we do some extra checks to catch memory-related bugs.
 // See the lstd.memory module for details (or search for DEBUG_MEMORY) and see what extra stuff we do.

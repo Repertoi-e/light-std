@@ -321,7 +321,7 @@ constexpr bool path_is_absolute(string path) {
 
 [[nodiscard("Leak")]] string path_normalize(string path) {
     string result;
-    resize(&result, path.Count);
+    make_dynamic(&result, path.Count);
 
     if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\")) {
         // In the case of paths with these prefixes:

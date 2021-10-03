@@ -1,4 +1,8 @@
+module;
+
 #include "../common.h"
+
+module lstd.memory;
 
 import lstd.basic;
 import lstd.os;

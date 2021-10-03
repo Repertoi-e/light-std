@@ -64,7 +64,7 @@ export {
         void *block = os_allocate_block(size);
 
         s64 offset = 0;
-        static_for<0, sizeof...(Types)>([&](auto i) {
+        static_for<0, sizeof...(Types)>([&result, &offset, block, TYPE_SIZE](auto i) {
             using element_t = tuple_get_t<i, result_t>;
 
             auto *p              = (element_t) ((byte *) block + offset);
@@ -233,7 +233,7 @@ export {
         PUSH_ALLOC(alloc) {
             // String length * 4 because one unicode character might take 4 bytes in utf8.
             // This is just an approximation, not all space will be used!
-            resize(&result, c_string_length(str) * 4);
+            make_dynamic(&result, c_string_length(str) * 4);
         }
 
         utf16_to_utf8(str, (char *) result.Data, &result.Count);

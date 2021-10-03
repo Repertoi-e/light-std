@@ -188,7 +188,7 @@ export {
 
     // Formats to a string. Uses the temporary allocator.
     template <typename... Args>
-    string tsprint(string fmtString, Args by_ref... arguments);
+    string tprint(string fmtString, Args by_ref... arguments);
 
     // Formats to a string then converts to null-terminated string. Uses the temporary allocator.
     template <typename... Args>
@@ -207,20 +207,17 @@ export {
         assert(false);
     }
 
-    // Expects a valid format_context (take a look in the implementation of fmt_to_writer).
+    // Expects a valid fmt_context (take a look in the implementation of fmt_to_writer).
     // Does all the magic of parsing the format string and formatting the arguments.
     void fmt_parse_and_format(fmt_context * f);
 
-    template <>
-    struct formatter<string_builder> {
-        void format(fmt_context *f, string_builder *b) {
-            auto *buffer = &b->BaseBuffer;
-            while (buffer) {
-                write_no_specs(f, buffer->Data, buffer->Occupied);
-                buffer = buffer->Next;
-            }
+    void write(fmt_context * f, string_builder * b) {
+        auto *buffer = &b->BaseBuffer;
+        while (buffer) {
+            write_no_specs(f, buffer->Data, buffer->Occupied);
+            buffer = buffer->Next;
         }
-    };
+    }
 
     // Formats GUID in the following way: 00000000-0000-0000-0000-000000000000
     // Allows specifiers:
@@ -235,82 +232,71 @@ export {
     //   'x' - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
     //   'X' - Uppercase version of 'x'
     // The default format is the same as 'd'.
-    template <>
-    struct formatter<guid> {
-        void format(fmt_context *f, guid *g) {
-            char type = 'd';
-            if (f->Specs) {
-                type = f->Specs->Type;
-            }
+    void write(fmt_context * f, guid * g) {
+        char type = 'd';
+        if (f->Specs) {
+            type = f->Specs->Type;
+        }
 
-            bool upper = is_upper(type);
-            type       = (char) to_lower(type);
+        bool upper = is_upper(type);
+        type       = (char) to_lower(type);
 
-            if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
-                on_error(f, "Invalid type specifier for a guid", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
-                return;
-            }
+        if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
+            on_error(f, "Invalid type specifier for a guid", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
+            return;
+        }
 
-            code_point openParenthesis = 0, closedParenthesis = 0;
-            bool hyphen = true;
+        code_point openParenthesis = 0, closedParenthesis = 0;
+        bool hyphen = true;
 
-            if (type == 'n') {
-                hyphen = false;
-            } else if (type == 'b') {
-                openParenthesis   = '{';
-                closedParenthesis = '}';
-            } else if (type == 'p') {
-                openParenthesis   = '(';
-                closedParenthesis = ')';
-            } else if (type == 'x') {
-                auto *old = f->Specs;
-                f->Specs  = null;
-
-                u8 *p = (u8 *) g->Data.Data;
-                if (upper) {
-                    fmt_to_writer(f, "{{{:#04X}{:02X}{:02X}{:02X},{:#04X}{:02X},{:#04X}{:02X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
-                } else {
-                    fmt_to_writer(f, "{{{:#04x}{:02x}{:02x}{:02x},{:#04x}{:02x},{:#04x}{:02x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
-                }
-
-                f->Specs = old;
-                return;
-            }
-
-            if (openParenthesis) write_no_specs(f, openParenthesis);
-
+        if (type == 'n') {
+            hyphen = false;
+        } else if (type == 'b') {
+            openParenthesis   = '{';
+            closedParenthesis = '}';
+        } else if (type == 'p') {
+            openParenthesis   = '(';
+            closedParenthesis = ')';
+        } else if (type == 'x') {
             auto *old = f->Specs;
             f->Specs  = null;
 
-            const byte *p = g->Data.Data;
-            For(range(16)) {
-                if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
-                    write_no_specs(f, (code_point) '-');
-                }
-                if (upper) {
-                    fmt_to_writer(f, "{:02X}", (u8) *p);
-                } else {
-                    fmt_to_writer(f, "{:02x}", (u8) *p);
-                }
-                ++p;
+            u8 *p = (u8 *) g->Data.Data;
+            if (upper) {
+                fmt_to_writer(f, "{{{:#04X}{:02X}{:02X}{:02X},{:#04X}{:02X},{:#04X}{:02X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
+            } else {
+                fmt_to_writer(f, "{{{:#04x}{:02x}{:02x}{:02x},{:#04x}{:02x},{:#04x}{:02x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
             }
+
             f->Specs = old;
-
-            if (closedParenthesis) write_no_specs(f, closedParenthesis);
+            return;
         }
-    };
 
-    // Formatts array in the following way: [1, 2, ...]
-    template <typename T>
-    struct formatter<array<T>> {
-        void format(fmt_context *f, array<T> *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
-    };
+        if (openParenthesis) write_no_specs(f, openParenthesis);
 
-    // Formatts stack array in the following way: [1, 2, ...]
-    template <typename T, s64 N>
-    struct formatter<stack_array<T, N>> {
-        void format(fmt_context *f, stack_array<T, N> *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
-    };
+        auto *old = f->Specs;
+        f->Specs  = null;
+
+        const byte *p = g->Data.Data;
+        For(range(16)) {
+            if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
+                write_no_specs(f, (code_point) '-');
+            }
+            if (upper) {
+                fmt_to_writer(f, "{:02X}", (u8) *p);
+            } else {
+                fmt_to_writer(f, "{:02x}", (u8) *p);
+            }
+            ++p;
+        }
+        f->Specs = old;
+
+        if (closedParenthesis) write_no_specs(f, closedParenthesis);
+    }
+
+    // Format arrays in the following way: [1, 2, ...]
+    void write(fmt_context * f, any_array auto *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
+    void write(fmt_context * f, any_stack_array auto *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
 
     // @TODO: Formatter for hash table
 
@@ -633,7 +619,7 @@ template <typename... Args>
 }
 
 template <typename... Args>
-string tsprint(string fmtString, Args by_ref... arguments) {
+string tprint(string fmtString, Args by_ref... arguments) {
     PUSH_ALLOC(TemporaryAllocator) {
         return sprint(fmtString, ref(arguments)...);
     }
@@ -650,51 +636,6 @@ template <typename... Args>
 void print(string fmtString, Args by_ref... arguments) {
     assert(Context.Log && "Context log was null. By default it points to cout.");
     fmt_to_writer(Context.Log, fmtString, ref(arguments)...);
-}
-
-export void fmt_default_parse_error_handler(string message, string formatString, s64 position) {
-    // An error during formatting occured.
-    // If you are running a debugger it has now hit a breakpoint.
-    //
-    // You can replace this error handler in the Context with a less critical one.
-
-    string str = clone(formatString);
-    defer(free(str.Data));
-
-    // Make escape characters appear as they would in a string literal
-    replace_all(&str, '\"', "\\\"");
-    replace_all(&str, '\\', "\\\\");
-    replace_all(&str, '\a', "\\a");
-    replace_all(&str, '\b', "\\b");
-    replace_all(&str, '\f', "\\f");
-    replace_all(&str, '\n', "\\n");
-    replace_all(&str, '\r', "\\r");
-    replace_all(&str, '\t', "\\t");
-    replace_all(&str, '\v', "\\v");
-
-    string_builder b;
-    defer(free_buffers(&b));
-
-    string_builder_writer output;
-    output.Builder = &b;
-
-    fmt_to_writer(&output, "\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
-    fmt_to_writer(&output, "    ... the error happened here:\n");
-    fmt_to_writer(&output, "        {!}{}{!GRAY}\n", str);
-    fmt_to_writer(&output, "        {: >{}} {!} \n\n", "^", position + 1);
-
-    string info = builder_to_string(&b);
-    defer(free(info.Data));
-
-    print("{}", info);
-
-#if defined NDEBUG
-    panic("Error in the lstd.fmt module");
-#else
-    // More info has been printed to the console but here's the error message:
-    auto errorMessage = message;
-    assert(false);
-#endif
 }
 
 LSTD_END_NAMESPACE

@@ -1,7 +1,9 @@
+module;
+
 #include "../common.h"
 #include "vendor/tlsf/tlsf.h"
 
-import lstd.memory;
+module lstd.memory;
 
 LSTD_BEGIN_NAMESPACE
 

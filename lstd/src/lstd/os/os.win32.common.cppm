@@ -1,7 +1,6 @@
 module;
 
 #include "lstd/platform/windows.h"  // Declarations of Win32 functions
-#include "platform_uninit.h"
 
 //
 // Simple wrapper around dynamic libraries and getting addresses of procedures.
@@ -157,7 +156,7 @@ struct win32_common_state {
     HANDLE CinHandle, CoutHandle, CerrHandle;
     mutex CoutMutex, CinMutex;
 
-    array<delegate<void()>> ExitFunctions;  // Stores any functions to be called before the program terminates (naturally or by os_exit(exitCode))
+    array<delegate<void()>> ExitFunctions;  // Stores any functions to be called before the program terminates (naturally or by exit(exitCode))
     mutex ExitScheduleMutex;                // Used when modifying the ExitFunctions array
 
     LARGE_INTEGER PerformanceFrequency;  // Used to time stuff
@@ -214,8 +213,7 @@ void init_global_vars() {
     // @Cleanup
     if (lstd_init_global()) {
         DEBUG_memory = malloc<debug_memory>({.Alloc = PERSISTENT});  // @Leak This is ok
-        new (DEBUG_memory) debug_memory;
-        DEBUG_memory->Mutex = create_mutex();
+        DEBUG_memory->init_list();
     } else {
         DEBUG_memory = null;
     }
@@ -352,11 +350,6 @@ export {
         free_mutex(&S->CoutMutex);
         free_mutex(&S->ExitScheduleMutex);
         free_mutex(&S->WorkingDirMutex);
-#if defined DEBUG_MEMORY
-        if (lstd_init_global()) {
-            free_mutex(&DEBUG_memory->Mutex);
-        }
-#endif
     }
 }
 
@@ -366,8 +359,6 @@ void exit(s32 exitCode) {
     // We can't call this from a DLL because of ExitProcess.
     // Search for :PlatformExitTermination to see the other place we call this set of functions.
     exit_call_scheduled_functions();
-    win32_monitor_uninit();
-    win32_window_uninit();
     platform_uninit_state();
 
     ExitProcess(exitCode);
@@ -463,7 +454,7 @@ constexpr u32 ERROR_ENVVAR_NOT_FOUND = 203;
 
     if (r == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND) {
         if (!silent) {
-            platform_report_error(tsprint("Couldn't find environment variable with value \"{}\"", name));
+            platform_report_error(tprint("Couldn't find environment variable with value \"{}\"", name));
         }
         return {"", false};
     }

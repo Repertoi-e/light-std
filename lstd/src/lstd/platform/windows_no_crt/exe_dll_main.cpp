@@ -141,12 +141,6 @@ extern "C" const PIMAGE_TLS_CALLBACK __dyn_tls_init_callback;
 
 LSTD_BEGIN_NAMESPACE
 void win32_crash_handler_init();
-
-// @Cleanup: Decouple lstd lstd-graphics
-void win32_monitor_init();
-void win32_window_init();
-void win32_monitor_uninit();
-void win32_window_uninit();
 LSTD_END_NAMESPACE
 
 // Defined in tls.cpp.
@@ -159,8 +153,6 @@ void platform_state_init() {
 
     LSTD_NAMESPACE::platform_init_global_state();
     LSTD_NAMESPACE::win32_crash_handler_init();
-    LSTD_NAMESPACE::win32_monitor_init();
-    LSTD_NAMESPACE::win32_window_init();
 }
 
 //
@@ -369,8 +361,6 @@ static BOOL __cdecl dllmain_crt_process_detach(bool const is_terminating) {
 
     // :PlatformExitTermination
     LSTD_NAMESPACE::exit_call_scheduled_functions();
-    LSTD_NAMESPACE::win32_monitor_uninit();
-    LSTD_NAMESPACE::win32_window_uninit();
     LSTD_NAMESPACE::platform_uninit_state();
 
     BOOL result = 1;

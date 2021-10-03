@@ -209,7 +209,7 @@ s64 get_allocated(any_array auto arr) {
 
 bool is_dynamically_allocated(any_array auto *arr) {
 #if defined DEBUG_MEMORY
-// @TODO: Do work
+    assert(DEBUG_memory->list_contains((allocation_header *) arr->Data - 1));
 #endif
     return true;
 }

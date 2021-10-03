@@ -29,26 +29,26 @@ always_inline constexpr T atomic_inc(T *ptr) {
 // Returns the initial value in _ptr_
 template <appropriate_for_atomic T>
 always_inline constexpr T atomic_add(T *ptr, T value) {
-    if constexpr (sizeof(T) == 2) return (T) _InterlockedExchangeAdd16((volatile short *) ptr, value);
-    if constexpr (sizeof(T) == 4) return (T) _InterlockedExchangeAdd((volatile long *) ptr, value);
-    if constexpr (sizeof(T) == 8) return (T) _InterlockedExchangeAdd64((volatile long long *) ptr, value);
+    if constexpr (sizeof(T) == 2) return (T) _InterlockedExchangeAdd16((volatile short *) ptr, (short) value);
+    if constexpr (sizeof(T) == 4) return (T) _InterlockedExchangeAdd((volatile long *) ptr, (long) value);
+    if constexpr (sizeof(T) == 8) return (T) _InterlockedExchangeAdd64((volatile long long *) ptr, (long long) value);
 }
 
 // Returns the old value in _ptr_
 template <appropriate_for_atomic T>
 always_inline constexpr T atomic_swap(T *ptr, T value) {
-    if constexpr (sizeof(T) == 2) return (T) _InterlockedExchange16((volatile short *) ptr, value);
-    if constexpr (sizeof(T) == 4) return (T) _InterlockedExchange((volatile long *) ptr, value);
-    if constexpr (sizeof(T) == 8) return (T) _InterlockedExchange64((volatile long long *) ptr, value);
+    if constexpr (sizeof(T) == 2) return (T) _InterlockedExchange16((volatile short *) ptr, (short) value);
+    if constexpr (sizeof(T) == 4) return (T) _InterlockedExchange((volatile long *) ptr, (long) value);
+    if constexpr (sizeof(T) == 8) return (T) _InterlockedExchange64((volatile long long *) ptr, (long long) value);
 }
 
 // Returns the old value in _ptr_, exchanges values only if the old value is equal to comperand.
 // You can use this for a safe way to read a value, e.g. atomic_compare_and_swap(&value, 0, 0)
 template <appropriate_for_atomic T>
 always_inline constexpr T atomic_compare_and_swap(T *ptr, T exchange, T comperand) {
-    if constexpr (sizeof(T) == 2) return (T) _InterlockedCompareExchange16((volatile short *) ptr, exchange, comperand);
-    if constexpr (sizeof(T) == 4) return (T) _InterlockedCompareExchange((volatile long *) ptr, exchange, comperand);
-    if constexpr (sizeof(T) == 8) return (T) _InterlockedCompareExchange64((volatile long long *) ptr, exchange, comperand);
+    if constexpr (sizeof(T) == 2) return (T) _InterlockedCompareExchange16((volatile short *) ptr, (short) exchange, (short) comperand);
+    if constexpr (sizeof(T) == 4) return (T) _InterlockedCompareExchange((volatile long *) ptr, (long) exchange, (long) comperand);
+    if constexpr (sizeof(T) == 8) return (T) _InterlockedCompareExchange64((volatile long long *) ptr, (long long) exchange, (long long) comperand);
 }
 #else
 #define atomic_inc(ptr) __sync_add_and_fetch((ptr), 1)

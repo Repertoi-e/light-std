@@ -1,4 +1,8 @@
+module;
+
 #include "lstd/platform/windows.h"  // Declarations of Win32 functions
+
+module lstd.thread.win32;
 
 import lstd.thread.win32;
 import lstd.os.win32.memory;
@@ -7,7 +11,7 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 LSTD_BEGIN_NAMESPACE
 
-thread create_and_launch_thread(const delegate<void(void *)> &function, void *userData) {
+thread create_and_launch_thread(delegate<void(void *)> function, void *userData) {
     thread t;
 
     // Passed to the thread wrapper, which will eventually free it

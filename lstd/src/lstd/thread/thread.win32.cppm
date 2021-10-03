@@ -10,6 +10,11 @@ export import lstd.memory;
 
 LSTD_BEGIN_NAMESPACE
 
+struct condition_variable;
+
+void pre_wait(condition_variable *c);
+void do_wait(condition_variable *c);
+
 export {
     // Blocks the calling thread for at least a given period of time in ms.
     // sleep(0) supposedly tells the os to yield execution to another thread.
@@ -89,11 +94,6 @@ export {
     // Condition variable.
     // @TODO: Example usage
     struct condition_variable {
-#if OS == WINDOWS
-        void pre_wait();
-        void do_wait();
-#endif
-
         char Handle[64] = {0};
     };
 
@@ -107,7 +107,7 @@ export {
     template <typename MutexT>
     void wait(condition_variable * c, MutexT * m) {
 #if OS == WINDOWS
-        c->pre_wait();
+        pre_wait(c);
 #endif
 
         // Release the mutex while waiting for the condition (will decrease
@@ -115,7 +115,7 @@ export {
         unlock(m);
 
 #if OS == WINDOWS
-        c->do_wait();
+        do_wait(c);
 #endif
         lock(m);
     }
@@ -137,7 +137,7 @@ export {
         u32 ThreadID;
     };
 
-    thread create_and_launch_thread(const delegate<void(void *)> &function, void *userData = null);
+    thread create_and_launch_thread(delegate<void(void *)> function, void *userData = null);
 
     // Wait for the thread to finish
     void wait(thread t);
@@ -294,8 +294,6 @@ export u32 __stdcall thread_wrapper_function(void *data) {
 
     return 0;
 }
-
-thread create_and_launch_thread(const delegate<void(void *)> &function, void *userData);
 
 void wait(thread t) {
     assert(t.ThreadID != Context.ThreadID);  // A thread cannot wait for itself!

@@ -148,7 +148,7 @@ constexpr void swap(T (&a)[N], T (&b)[N]) {
 //
 
 template <typename T>
-void copy_elements(T *dst, auto *src, s64 n) {
+constexpr void copy_elements(T *dst, auto *src, s64 n) {
     For(range(n)) *dst++ = *src++;
 }
 

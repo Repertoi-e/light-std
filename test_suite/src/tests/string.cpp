@@ -1,52 +1,56 @@
-#include <lstd/memory/string_builder.h>
-
 #include "../test.h"
 
 TEST(code_point_size) {
     string ascii = "abc";
     assert_eq(ascii.Count, 3);
-    assert_eq(ascii.Length, 3);
+    assert_eq(string_length(ascii), 3);
 
     string cyrillic = u8"абв";
     assert_eq(cyrillic.Count, 6);
-    assert_eq(cyrillic.Length, 3);
+    assert_eq(string_length(cyrillic), 3);
 
     string devanagari = u8"\u0904\u0905\u0906";
     assert_eq(devanagari.Count, 9);
-    assert_eq(devanagari.Length, 3);
+    assert_eq(string_length(devanagari), 3);
 
     string supplementary = u8"\U0002070E\U00020731\U00020779";
     assert_eq(supplementary.Count, 12);
-    assert_eq(supplementary.Length, 3);
+    assert_eq(string_length(supplementary), 3);
 
     string mixed;
-    string_append(mixed, ascii);
-    string_append(mixed, cyrillic);
-    string_append(mixed, devanagari);
-    string_append(mixed, supplementary);
+    make_dynamic(&mixed, 50);
+    defer(free(mixed.Data));
+
+    string_append(&mixed, ascii);
+    string_append(&mixed, cyrillic);
+    string_append(&mixed, devanagari);
+    string_append(&mixed, supplementary);
 
     assert_eq(mixed.Count, 12 + 9 + 6 + 3);
-    assert_eq(mixed.Length, 3 + 3 + 3 + 3);
+    assert_eq(string_length(mixed), 3 + 3 + 3 + 3);
 }
 
 TEST(substring) {
     string a = "Hello, world!";
-    assert_eq((a[{2, 5}]), "llo");
-    assert_eq((a[{7, a.Length}]), "world!");
-    assert_eq((a[{0, -1}]), "Hello, world");
-    assert_eq((a[{-6, -1}]), "world");
+    assert_eq(substring(a, 2, 5), string("llo"));
+    assert_eq(substring(a, 7, string_length(a)), string("world!"));
+    assert_eq(substring(a, 0, -1), string("Hello, world"));
+    assert_eq(substring(a, -6, -1), string("world"));
 }
 
 TEST(substring_mixed_sizes) {
     string a = u8"Хеllo, уоrлd!";
-    assert_eq((a[{2, 5}]), "llo");
-    assert_eq((a[{7, a.Length}]), u8"уоrлd!");
-    assert_eq((a[{0, -1}]), u8"Хеllo, уоrлd");
-    assert_eq((a[{-6, -1}]), u8"уоrлd");
+    assert_eq(substring(a, 2, 5), string("llo"));
+    assert_eq(substring(a, 7, string_length(a)), string(u8"уоrлd!"));
+    assert_eq(substring(a, 0, -1), string(u8"Хеllo, уоrлd"));
+    assert_eq(substring(a, -6, -1), string(u8"уоrлd"));
 }
 
 TEST(index) {
     string a = "Hello";
+    make_dynamic(&a, 8);
+    defer(free(a.Data));
+
     assert_eq(a[0], 'H');
     assert_eq(a[1], 'e');
     assert_eq(a[2], 'l');
@@ -59,48 +63,52 @@ TEST(index) {
 
 TEST(insert) {
     string a = "e";
-    string_insert_at(a, 1, 'l');
-    string_insert_at(a, 0, 'H');
-    assert_eq(a, "Hel");
+    make_dynamic(&a, 8);
+    defer(free(a.Data));
 
-    string_insert_at(a, 3, "lo");
-    assert_eq(a, "Hello");
+    string_insert_at_index(&a, 1, 'l');
+    string_insert_at_index(&a, 0, 'H');
+    assert_eq(a, string("Hel"));
 
-    string_insert_at(a, 0, "Hello ");
-    assert_eq(a, "Hello Hello");
+    string_insert_at_index(&a, 3, "lo");
+    assert_eq(a, string("Hello"));
 
-    string_insert_at(a, 5, " world");
-    assert_eq(a, "Hello world Hello");
-    free(a);
+    string_insert_at_index(&a, 0, "Hello ");
+    assert_eq(a, string("Hello Hello"));
+
+    string_insert_at_index(&a, 5, " world");
+    assert_eq(a, string("Hello world Hello"));
 }
 
 TEST(remove) {
     string a = "Hello world Hello";
-    string_remove_range(a, -6, a.Length);
-    assert_eq(a, "Hello world");
-    string_remove_at(a, 1);
-    assert_eq(a, "Hllo world");
-    string_remove_at(a, 1);
-    assert_eq(a, "Hlo world");
-    string_remove_at(a, 0);
-    assert_eq(a, "lo world");
-    string_remove_at(a, -1);
-    assert_eq(a, "lo worl");
-    string_remove_at(a, -2);
-    assert_eq(a, "lo wol");
-    free(a);
+    make_dynamic(&a, 20);
+
+    string_remove_range(&a, -6, string_length(a));
+    assert_eq(a, string("Hello world"));
+    string_remove_at_index(&a, 1);
+    assert_eq(a, string("Hllo world"));
+    string_remove_at_index(&a, 1);
+    assert_eq(a, string("Hlo world"));
+    string_remove_at_index(&a, 0);
+    assert_eq(a, string("lo world"));
+    string_remove_at_index(&a, -1);
+    assert_eq(a, string("lo worl"));
+    string_remove_at_index(&a, -2);
+    assert_eq(a, string("lo wol"));
+    free(a.Data);
 
     a = "Hello world";
-    string_remove_range(a, 0, 5);
-    assert_eq(a, " world");
-    free(a);
+    string_remove_range(&a, 0, 5);
+    assert_eq(a, string(" world"));
+    free(a.Data);
 }
 
 TEST(trim) {
     string a = "\t\t    Hello, everyone!   \t\t   \n";
-    assert_eq(trim_start(a), "Hello, everyone!   \t\t   \n");
-    assert_eq(trim_end(a), "\t\t    Hello, everyone!");
-    assert_eq(trim(a), "Hello, everyone!");
+    assert_eq(trim_start(a), string("Hello, everyone!   \t\t   \n"));
+    assert_eq(trim_end(a), string("\t\t    Hello, everyone!"));
+    assert_eq(trim(a), string("Hello, everyone!"));
 }
 
 TEST(match_beginning) {
@@ -119,24 +127,26 @@ TEST(match_end) {
 
 TEST(set) {
     string a = "aDc";
-    string_set(a, 1, 'b');
-    assert_eq(a, "abc");
-    string_set(a, 1, U'Д');
-    assert_eq(a, u8"aДc");
-    string_set(a, 1, 'b');
-    assert_eq(a, "abc");
+    make_dynamic(&a, 20);
+
+    string_set(&a, 1, 'b');
+    assert_eq(a, string("abc"));
+    string_set(&a, 1, U'Д');
+    assert_eq(a, string(u8"aДc"));
+    string_set(&a, 1, 'b');
+    assert_eq(a, string("abc"));
     assert_eq(a[0], 'a');
     assert_eq(a[1], 'b');
     assert_eq(a[2], 'c');
-    free(a);
+    free(a.Data);
 
-    a = "aDc";
+    a     = "aDc";
     a[-2] = 'b';
-    assert_eq(a, "abc");
+    assert_eq(a, string("abc"));
     a[1] = U'Д';
-    assert_eq(a, u8"aДc");
+    assert_eq(a, string(u8"aДc"));
     a[1] = 'b';
-    assert_eq(a, "abc");
+    assert_eq(a, string("abc"));
     assert_eq(a[0], 'a');
     assert_eq(a[1], 'b');
     assert_eq(a[2], 'c');
@@ -144,16 +154,17 @@ TEST(set) {
     a[-3] = U'\U0002070E';
     a[-2] = U'\U00020731';
     a[-1] = U'\U00020779';
-    assert_eq(a, u8"\U0002070E\U00020731\U00020779");
-    free(a);
+    assert_eq(a, string(u8"\U0002070E\U00020731\U00020779"));
+    free(a.Data);
 }
 
 TEST(iterator) {
     string a = "Hello";
+    make_dynamic(&a, 10);
 
     string result = "";
     for (auto ch : a) {
-        string_append(result, ch);
+        string_append(&result, ch);
     }
     assert_eq(result, a);
 
@@ -164,11 +175,11 @@ TEST(iterator) {
     for (auto ch : b) {
         ch = to_lower(ch);
     }
-    assert_eq(b, "hello");
+    assert_eq(b, string("hello"));
     for (auto ch : b) {
         ch = U'Д';
     }
-    assert_eq(b, u8"ДДДДД");
+    assert_eq(b, string(u8"ДДДДД"));
 
     // for (utf32 &ch : b) { .. }
     // doesn't work since string isn't
@@ -178,199 +189,226 @@ TEST(iterator) {
 TEST(append) {
     {
         string result = "Hello";
-        string_append(result, ",THIS IS GARBAGE", 1);
-        string_append(result, " world!");
+        make_dynamic(&result, 20);
 
-        assert_eq(result, "Hello, world!");
-        free(result);
+        string_append(&result, ",THIS IS GARBAGE", 1);
+        string_append(&result, " world!");
+
+        assert_eq(result, string("Hello, world!"));
+        free(result.Data);
     }
     {
         string a = "Hello";
         string b = ",";
         string c = " world!";
-        string result;
-        string_append(result, a);
-        string_append(result, b);
-        string_append(result, c);
 
-        assert_eq(result, "Hello, world!");
-        free(result);
+        string result;
+        make_dynamic(&result, 50);
+
+        string_append(&result, a);
+        string_append(&result, b);
+        string_append(&result, c);
+
+        assert_eq(result, string("Hello, world!"));
+        free(result.Data);
     }
 
     string result;
-    For(range(10)) {
-        string_append(result, 'i');
-        assert_eq(result.Count, it + 1);
-        assert_eq(result.Length, it + 1);
-    }
-    free(result);
-    For(range(10)) {
-        string_append(result, u8"Д");
-        assert_eq(result.Count, 2 * (it + 1));
-        assert_eq(result.Length, it + 1);
-    }
-    free(result);
-}
+    make_dynamic(&result, 10);
 
-TEST(count) {
-    string a = "Hello";
-    assert_eq(count(a, 'l'), 2);
-    assert_eq(count(a, 'e'), 1);
-    assert_eq(count(a, 'o'), 1);
+    For(range(10)) {
+        string_append(&result, 'i');
+        assert_eq(result.Count, it + 1);
+        assert_eq(string_length(result), it + 1);
+    }
+    free(result.Data);
+
+    make_dynamic(&result, 20);
+    For(range(10)) {
+        string_append(&result, u8"Д");
+        assert_eq(result.Count, 2 * (it + 1));
+        assert_eq(string_length(result), it + 1);
+    }
+    free(result.Data);
 }
 
 TEST(builder) {
     string_builder builder;
-    string_append(builder, "Hello");
-    string_append(builder, ",THIS IS GARBAGE", 1);
-    string_append(builder, string(" world"));
-    string_append(builder, '!');
-    defer(free(builder));
+    append(&builder, "Hello");
+    append(&builder, ",THIS IS GARBAGE", 1);
+    append(&builder, string(" world"));
+    append(&builder, '!');
+    defer(free_buffers(&builder));
 
-    string result;
-    result = string_builder_combine(builder);
-    defer(free(result));
-    assert_eq(result, "Hello, world!");
+    string result = builder_to_string(&builder);
+    defer(free(result.Data));
+    assert_eq(result, string("Hello, world!"));
 }
 
 TEST(remove_all) {
     string a = "Hello world!";
+
     string b = a;
+    make_dynamic(&b, 20);
 
-    string_remove_all(b, 'l');
-    assert_eq(b, "Heo word!");
-    free(b);
-
-    b = a;
-    string_remove_all(b, "ll");
-    assert_eq(b, "Heo world!");
-    free(b);
+    remove_all(&b, 'l');
+    assert_eq(b, string("Heo word!"));
+    free(b.Data);
 
     b = a;
-    string_remove_all(a, "x");
+    make_dynamic(&b, 20);
+
+    remove_all(&b, "ll");
+    assert_eq(b, string("Heo world!"));
+    free(b.Data);
+
+    b = a;
+    make_dynamic(&b, 20);
+
+    remove_all(&a, "x");
     assert_eq(b, a);
-    free(b);
+    free(b.Data);
 
     b = "llHello world!ll";
-    string_remove_all(b, 'l');
-    assert_eq(b, "Heo word!");
-    free(b);
+    make_dynamic(&b, 20);
+
+    remove_all(&b, 'l');
+    assert_eq(b, string("Heo word!"));
+    free(b.Data);
 
     b = "llHello world!ll";
-    string_remove_all(b, "ll");
-    assert_eq(b, "Heo world!");
-    free(b);
+    make_dynamic(&b, 20);
+
+    remove_all(&b, "ll");
+    assert_eq(b, string("Heo world!"));
+    free(b.Data);
 }
 
 TEST(replace_all) {
     string a = "Hello world!";
-    string b = a;
 
-    string_replace_all(b, "l", "ll");
-    assert_eq(b, "Hellllo worlld!");
-    free(b);
+    string b = a;
+    make_dynamic(&b, 20);
+
+    replace_all(&b, string("l"), string("ll"));
+    assert_eq(b, string("Hellllo worlld!"));
+    free(b.Data);
 
     b = a;
-    string_replace_all(b, "l", "");
+    make_dynamic(&b, 20);
+
+    replace_all(&b, string("l"), string(""));
 
     string c = a;
-    string_remove_all(c, 'l');
+    make_dynamic(&c, 20);
+
+    remove_all(&c, 'l');
     assert_eq(b, c);
-    free(b);
-    free(c);
+    free(b.Data);
+    free(c.Data);
 
     b = a;
-    string_replace_all(b, "x", "");
+    make_dynamic(&b, 20);
+
+    replace_all(&b, string("x"), string(""));
     assert_eq(b, a);
-    free(b);
+    free(b.Data);
 
     b = a;
-    string_replace_all(b, "Hello", "olleH");
-    assert_eq(b, "olleH world!");
-    free(b);
+    make_dynamic(&b, 20);
+
+    replace_all(&b, string("Hello"), string("olleH"));
+    assert_eq(b, string("olleH world!"));
+    free(b.Data);
 
     b = a = "llHello world!ll";
-    string_replace_all(b, "ll", "l");
-    assert_eq(b, "lHelo world!l");
-    free(b);
+    make_dynamic(&b, 20);
+
+    replace_all(&b, string("ll"), string("l"));
+    assert_eq(b, string("lHelo world!l"));
+    free(b.Data);
 
     b = a;
-    string_replace_all(b, "l", "ll");
-    assert_eq(b, "llllHellllo worlld!llll");
-    free(b);
+    make_dynamic(&b, 20);
+
+    replace_all(&b, string("l"), string("ll"));
+    assert_eq(b, string("llllHellllo worlld!llll"));
+    free(b.Data);
 
     b = a;
-    string_replace_all(b, "l", "K");
-    assert_eq(b, "KKHeKKo worKd!KK");
-    free(b);
+    make_dynamic(&b, 20);
+
+    replace_all(&b, string("l"), string("K"));
+    assert_eq(b, string("KKHeKKo worKd!KK"));
+    free(b.Data);
 }
 
 TEST(find) {
     string a = "This is a string";
-    assert_eq(2, find_substring(a, "is"));
-    assert_eq(5, find_substring(a, "is", 5));
+    assert_eq(2, string_find(a, string("is")));
+    assert_eq(5, string_find(a, string("is"), 5));
 
-    assert_eq(0, find_substring(a, "This"));
-    assert_eq(0, find_substring_reverse(a, "This"));
-    assert_eq(10, find_substring(a, "string"));
-    assert_eq(10, find_substring_reverse(a, "string"));
+    assert_eq(0, string_find(a, string("This")));
+    assert_eq(0, string_find(a, string("This"), string_length(a), true));
+    assert_eq(10, string_find(a, string("string")));
+    assert_eq(10, string_find(a, string("string"), string_length(a), true));
 
-    assert_eq(5, find_substring_reverse(a, "is", 6));
-    assert_eq(2, find_substring_reverse(a, "is", 5));
-    assert_eq(2, find_substring_reverse(a, "is", 3));
+    assert_eq(5, string_find(a, string("is"), 6));
+    assert_eq(2, string_find(a, string("is"), 5));
+    assert_eq(2, string_find(a, string("is"), 3));
 
-    assert_eq(1, find_cp(a, 'h'));
-    assert_eq(1, find_cp(a, 'h', 1));
-    assert_eq(1, find_substring(a, "h", 1));
+    assert_eq(1, string_find(a, 'h'));
+    assert_eq(1, string_find(a, 'h', 1));
+    assert_eq(1, string_find(a, string("h"), 1));
 
-    assert_eq(0, find_cp(a, 'T'));
-    assert_eq(0, find_cp_reverse(a, 'T'));
+    assert_eq(0, string_find(a, 'T'));
+    assert_eq(0, string_find(a, 'T', string_length(a), true));
 
-    assert_eq(13, find_cp_reverse(a, 'i'));
-    assert_eq(5, find_cp_reverse(a, 'i', 13));
-    assert_eq(2, find_cp_reverse(a, 'i', 5));
+    assert_eq(13, string_find(a, 'i', string_length(a), true));
+    assert_eq(5, string_find(a, 'i', 13));
+    assert_eq(2, string_find(a, 'i', 5));
 
-    assert_eq(a.Length - 1, find_cp(a, 'g'));
-    assert_eq(a.Length - 1, find_cp_reverse(a, 'g'));
+    assert_eq(string_length(a) - 1, string_find(a, 'g'));
+    assert_eq(string_length(a) - 1, string_find(a, 'g', string_length(a), true));
 
-    assert_eq(1, find_cp_not(a, 'T'));
-    assert_eq(0, find_cp_not(a, 'Q'));
-    assert_eq(a.Length - 1, find_cp_reverse_not(a, 'Q'));
-    assert_eq(a.Length - 2, find_cp_reverse_not(a, 'g'));
+    assert_eq(1, string_find_not(a, 'T'));
+    assert_eq(0, string_find_not(a, 'Q'));
+    assert_eq(string_length(a) - 1, string_find_not(a, 'Q', string_length(a), true));
+    assert_eq(string_length(a) - 2, string_find_not(a, 'g', string_length(a), true));
 
-    assert_eq(-1, find_cp(a, 'Q'));
+    assert_eq(-1, string_find(a, 'Q'));
 
     a = u8"Това е низ от букви";
-    assert_eq(8, find_substring(a, u8"и"));
-    assert_eq(8, find_substring(a, u8"и", 8));
+    assert_eq(8, string_find(a, string(u8"и")));
+    assert_eq(8, string_find(a, string(u8"и"), 8));
 
-    assert_eq(8, find_cp(a, U'и'));
-    assert_eq(8, find_cp(a, U'и', 8));
+    assert_eq(8, string_find(a, U'и'));
+    assert_eq(8, string_find(a, U'и', 8));
 
-    assert_eq(14, find_cp(a, U'б'));
-    assert_eq(14, find_cp_reverse(a, U'б'));
+    assert_eq(14, string_find(a, U'б'));
+    assert_eq(14, string_find(a, U'б', string_length(a), true));
 
-    assert_eq(-1, find_cp(a, U'я'));
+    assert_eq(-1, string_find(a, U'я'));
 
     a = "aaabbbcccddd";
-    assert_eq(3, find_any_of(a, "DCb"));
-    assert_eq(3, find_any_of(a, "CbD"));
-    assert_eq(0, find_any_of(a, "PQa"));
+    assert_eq(3, string_find_any_of(a, "DCb"));
+    assert_eq(3, string_find_any_of(a, "CbD"));
+    assert_eq(0, string_find_any_of(a, "PQa"));
 
-    assert_eq(2, find_reverse_any_of(a, "PQa"));
-    assert_eq(1, find_reverse_any_of(a, "PQa", 2));
-    assert_eq(0, find_reverse_any_of(a, "PQa", 1));
+    assert_eq(2, string_find_any_of(a, "PQa", string_length(a), true));
+    assert_eq(1, string_find_any_of(a, "PQa", 2, true));
+    assert_eq(0, string_find_any_of(a, "PQa", 1, true));
 
-    assert_eq(find_cp(a, 'd'), find_not_any_of(a, "abc"));
-    assert_eq(0, find_not_any_of(a, "bcd"));
-    assert_eq(find_cp(a, 'b'), find_not_any_of(a, "ac"));
+    assert_eq(string_find(a, 'd'), string_find_not_any_of(a, "abc"));
+    assert_eq(0, string_find_not_any_of(a, "bcd"));
+    assert_eq(string_find(a, 'b'), string_find_not_any_of(a, "ac"));
 
-    assert_eq(2, find_reverse_not_any_of(a, "bcd"));
-    assert_eq(2, find_reverse_not_any_of(a, "bc", -3));
-    assert_eq(2, find_reverse_not_any_of(a, "bc", -4));
-    assert_eq(0, find_reverse_not_any_of(a, "bcd", 1));
+    assert_eq(2, string_find_not_any_of(a, "bcd", string_length(a), true));
+    assert_eq(2, string_find_not_any_of(a, "bc", -3, true));
+    assert_eq(2, string_find_not_any_of(a, "bc", -4, true));
+    assert_eq(0, string_find_not_any_of(a, "bcd", 1, true));
 
-    assert_eq(a.Length - 1, find_reverse_any_of(a, "CdB"));
+    assert_eq(string_length(a) - 1, string_find_any_of(a, "CdB", string_length(a), true));
 
-    assert_eq(-1, find_any_of(a, "QRT"));
+    assert_eq(-1, string_find_any_of(a, "QRT"));
 }

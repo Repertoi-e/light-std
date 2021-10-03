@@ -233,14 +233,13 @@ TEST(format_inf) {
 struct Answer {
 };
 
-template <>
-struct formatter<Answer> {
-    void format(fmt_context *f, Answer *) { write(f, 42); }
-};
+void write(fmt_context *f, Answer *) { write(f, 42); }
 
 TEST(format_custom) {
-    CHECK_WRITE("42", "{0}", Answer());
-    CHECK_WRITE("0042", "{:04}", Answer());
+    Answer a;
+
+    CHECK_WRITE("42", "{0}", a);
+    CHECK_WRITE("0042", "{:04}", a);
 }
 
 TEST(precision_rounding) {

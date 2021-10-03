@@ -137,7 +137,7 @@ export {
     requires(!types::is_const<T>) T *lstd_reallocate_impl(T * block, s64 newCount, u64 options, source_location loc);
 
     template <non_void T>
-    requires(!types::is_const<T>) void lstd_free_impl(T * block, u64 options);
+    requires(!types::is_const<T>) void lstd_free_impl(T * block, u64 options, source_location loc);
 
     //
     // :BigPhilosophyTime: Some more stuff..
@@ -242,6 +242,8 @@ export {
     };
 
     // T is used to initialize the resulting memory (uses placement new to call the constructor).
+    //
+    // In C++20 we can do constexpr allocations.
     template <non_void T>
     T *malloc(allocate_options options = {}, source_location loc = source_location::current()) {
         return lstd_allocate_impl<T>(options.Count, options.Alloc, options.Alignment, options.Options, loc);
@@ -260,32 +262,34 @@ export {
     // template <non_void T>
     // T *calloc(allocate_options options = {}, source_location loc = source_location::current()) { }
 
+    // If DEBUG_MEMORY is defined, calling reallocate on a block that is already freed panics the program and gives information about the site.
+    //
     // Note: We don't support "non-trivially copyable" types (types that can have logic in the copy constructor).
     // We assume your type can be copied to another place in memory and just work.
     // We assume that the destructor of the old copy doesn't invalidate the new copy.
     // We don't do destructors in this library but we still call them here because external code may have types that leak otherwise.
+    //
+    // In C++20 we can do constexpr allocations.
     template <non_void T>
     T *realloc(T * block, reallocate_options options, source_location loc = source_location::current()) {
         return lstd_reallocate_impl<T>(block, options.NewCount, options.Options, loc);
     }
 
+    // If DEBUG_MEMORY is defined, calling free on a block that is already freed panics the program and gives information about the site.
+    //
     // We don't do destructors in this library but we still call them here because external code may have types that leak otherwise.
     // If T is non-scalar we call the destructors on the objects in the memory block (the destructor is determined by T, like
     // in the C++ delete, so make sure you pass a correct pointer type).
     //
-    // How many objects are allocated in _block_ is saved in the allocation header.
-    // That's how we know how many destructors to call.
-    //
-    // new[] and delete[] are implemented the same way (save an integer before the returned block).
+    // The allocation header contains the size of the allocation, that's how we know how many destructors to call (assuming the T is valid).
+    // new[] and delete[] are implemented the same way (they save an integer before the returned block).
     // That's why it's dangerous to mix new and delete[] and new[] and delete.
+    // However we only have one type of free here.
     //
-    //
-    // In C++20 we can do constexpr allocations. They work by calling new/delete,
-    // it seems like the compiler doesn't care if they are overloaded or even defined,
-    // it just looks for those magic symbols.
+    // In C++20 we can do constexpr allocations.
     template <non_void T>
-    requires(!types::is_const<T>) void free(T * block, u64 options = 0) {
-        lstd_free_impl(block, options);
+    requires(!types::is_const<T>) void free(T * block, u64 options = 0, source_location loc = source_location::current()) {
+        lstd_free_impl(block, options, loc);
     }
 
     //
@@ -329,51 +333,6 @@ export {
     //        We can split allocations into small/medium/large, and use different headers (like https://nothings.org/stb/stb_malloc.h).
     //
     struct allocation_header {
-#if defined DEBUG_MEMORY
-        // We store a linked list of all allocations made, in order to look
-        // for leaks and check integrity of all allocations at once.
-        //
-        // @TODO: In the future we plan to build a very sophisticated tool which shows all allocations in a program visually,
-        //        we can even save a call stack for each allocation so it's easier to see what your program is exactly doing.
-        //
-        allocation_header *DEBUG_Next, *DEBUG_Previous;
-
-        //
-        // Useful for debugging (you can set a breakpoint with the ID in general_allocate() in this file).
-        // Every allocation has an unique ID == to the ID of the previous allocation + 1.
-        // This is useful for debugging bugs related to allocations because (assuming your program isn't multithreaded)
-        // each time you run your program the ID of each allocation is easily reproducible (assuming no randomness from
-        // the user side).
-        //
-        s64 ID;
-
-        //
-        // This ID is used to keep track of how many times this block has been reallocated.
-        // When realloc() is called we check if the block can be directly resized in place (using
-        // allocation_mode::RESIZE). If not, we allocate a new block and transfer all the information to
-        // it there. In both cases the ID above stays the same and this local ID is incremented. This always starts at 0.
-        //
-        // This helps debug memory allocations that are reallocated often (strings/arrays, etc.)
-        //
-        s64 RID;
-
-        //
-        // We mark the source of the allocation if such information was provided.
-        // On reallocation we overwrite these with the source location provided then.
-        //
-        // When allocating with the default malloc/calloc/realloc (the non-templated
-        // extern "C" versions which are replacements for the standard library functions)
-        // we don't get a very useful FileName and FileLine (we get the ones from the wrapper).
-        // This also applies when an allocation is made with C++ new.
-        //
-        // @TODO Remove this and instead save a call stack (optional!, that's a lot of info).
-        //
-        // To debug allocations you can try to use the _ID_ and set a breakpoint. See commment above.
-        //
-        const char *FileName;
-        s64 FileLine;
-#endif
-
         // The allocator used when allocating the memory. We need this when resizing/freeing
         // in order to call the right allocator procedure. By design, we can't get rid of this.
         allocator Alloc;
@@ -403,13 +362,6 @@ export {
         u16 AlignmentPadding;  // Offset from the block that needs to be there in order for the result to be aligned
 
 #if defined DEBUG_MEMORY
-        // When allocating a block we can mark it as a leak.
-        // That means that we don't free it before the end of the program (since the OS claims back the memory anyway).
-        // When DEBUG_memory->CheckForLeaksAtTermination is set to true we log a list of unfreed allocations at the end
-        // of the program. You can also call DEBUG_memory->report_leaks() at any time to see unfreed allocations.
-        // Blocks marked as leaks get skipped.
-        bool MarkedAsLeak;
-
         // This is used to detect buffer underruns.
         // There may be padding after this member, but we treat this region as "(allocation_header *) p + 1 - 4 bytes".
         // This doesn't matter since we just need AT LEAST 4 bytes free.
@@ -425,13 +377,73 @@ export {
     struct debug_memory {
         s64 AllocationCount = 0;
 
-        // We keep a linked list of all allocations. You can use this list to loop over them.
-        // _Head_ is the last allocation done.
-        allocation_header *Head = null;
+        // Right now nodes are allocated straight from the OS. This is bad. @TODO: Use an arena allocator.
+        struct node {
+            node *Next = null;
 
-        // Currently this mutex should be released in the OS implementations.
-        // @TODO: @Speed: Lock-free linked list!
-        mutex Mutex;
+            allocation_header *Header;  // This is _Block_ + some potential bytes of padding for the alignment
+
+            //
+            // Useful for debugging (you can set a breakpoint with the ID in general_allocate() in this file).
+            // Every allocation has an unique ID == to the ID of the previous allocation + 1.
+            // This is useful for debugging bugs related to allocations because (assuming your program isn't multithreaded)
+            // each time you run your program the ID of each allocation is easily reproducible (assuming no randomness from
+            // the user side).
+            //
+            s64 ID;
+
+            //
+            // This ID is used to keep track of how many times this block has been reallocated.
+            // When realloc() is called we check if the block can be directly resized in place (using
+            // allocation_mode::RESIZE). If not, we allocate a new block and transfer all the information to
+            // it there. In both cases the ID above stays the same and this ID is incremented. This always starts at 0.
+            //
+            // This helps debug memory allocations that are reallocated often (strings/arrays, etc.)
+            //
+            s64 RID;
+
+            //
+            // We mark the source of the allocation if such information was provided.
+            // On reallocation we overwrite these with the source location provided then.
+            //
+            // When allocating with the default malloc/calloc/realloc (the non-templated
+            // extern "C" versions which are replacements for the standard library functions)
+            // we don't get a very useful FileName and FileLine (we get the ones from the wrapper).
+            // This also applies when an allocation is made with C++ new.
+            //
+            // @TODO Remove this and instead save a call stack (optional!, that's a lot of info).
+            //
+            // To debug allocations you can try to use the _ID_ and set a breakpoint. See commment above.
+            //
+            source_location AllocatedAt;
+
+            // When allocating a block we can mark it as a leak.
+            // That means that we don't free it before the end of the program (since the OS claims back the memory anyway).
+            // When DEBUG_memory->CheckForLeaksAtTermination is set to true we log a list of unfreed allocations at the end
+            // of the program. You can also call DEBUG_memory->report_leaks() at any time to see unfreed allocations.
+            // Blocks marked as leaks get skipped.
+            bool MarkedAsLeak = false;
+
+            // When calling general_free() we free the block with the allocator implementation
+            // but keep the node live in the list. We do this in order to detect freeing the same pointer twice
+            // and to provide useful info where the first free happened.
+            // If we allocate a new block with the same memory address then we reuse this node and clear the MarkedAsFreed flag.
+            //
+            // Not freeing nodes might accummulate to large memory usage. @TODO Provide a clear_freed_nodes() routine.
+            // Fragmentation might be ok because we allocate nodes with an arena allocator (@TODO We don't right now!!!!!!).
+            //
+            bool MarkedAsFreed = false;
+
+            // See note above about not getting the right info from the extern "C" versions and C++ operators new/delete.
+            // @TODO Remove this and instead save a call stack (optional!, that's a lot of info).
+            source_location FreedAt;
+        };
+
+        // We store a list of all allocations made, in order to look for leaks and check memory integrity.
+        // The list is sorted by the value of the pointer of the allocation (in increasing order).
+        // We use a lock-free linked list. Don't look at these pointers directly.
+        node *Head;
+        node *Tail;
 
         // After every allocation we check the heap for corruption.
         // The problem is that this involves iterating over a (possibly) large linked list of every allocation made.
@@ -443,28 +455,43 @@ export {
         // Set this to true to print a list of unfreed memory blocks when the library uninitializes.
         bool CheckForLeaksAtTermination = false;
 
-        // Removes a header from the list
-        void unlink_header(allocation_header *header);
+        // Allocates starting sentinel values for the list.
+        // Called when allocating DEBUG_memory (e.g. in os.win32.common.cppm).
+        void init_list();
 
-        // This adds the header to the front - making it the new head
+        node *new_node(allocation_header *header, node *next);
 
-        void add_header(allocation_header *header);
+        // Returns Left - the node with the header immediately lower than _header_.
+        // Returns Rigth - the node containing _header_ if present, or its immediately higher value present in the list otherwise.
+        // Encountered nodes that are marked as logically deleted are physically removed from the list.
+        struct list_search_result {
+            node *Left, *Right;
+        };
+        list_search_result list_search(allocation_header *header);
+        bool list_contains(allocation_header *header);
 
-        // Replaces _oldHeader_ with _newHeader_ in the list
-        void swap_header(allocation_header *oldHeader, allocation_header *newHeader);
+        struct list_add_result {
+            node *Node;
+            bool AlreadyPresent;
+        };
+        list_add_result list_add(allocation_header *header);
+
+        // Returns false if the header is not present.
+        // Doesn't physically remove the node, instead just marks it.
+        // Somebody else will search through the list and remove it physically (either by list_add or when we check the heap).
+        bool list_remove(allocation_header *header);
 
         // Assuming that the heap is not corrupted, this reports any unfreed allocations.
         // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
         // which make EVEN program termination slow, we are just providing this information to the programmer because they might
-        // want to debug crashes/bugs related to memory. (I had to debug a bug with loading/unloading DLLs during runtime).
+        // want to debug crashes/bugs related to memory.
         void report_leaks();
 
         // Verifies the integrity of headers in all allocations.
+        void verify_heap();
+
         // See :MemoryVerifyHeapFrequency:
         void maybe_verify_heap();
-
-        // Verifies the integrity of a single header.
-        void verify_header(allocation_header *header);
     };
 
     debug_memory *DEBUG_memory;
@@ -601,12 +628,15 @@ export {
     //
     void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
 
-    // Handles populating the allocation header and alignment.
-    void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options = 0, source_location loc = {});
-    void *general_reallocate(void *ptr, s64 newSize, u64 options = 0, source_location loc = {});
+    // These handle alignment, populating the allocation header and debug memory stuff.
+    void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options, source_location loc);
+
+    // If DEBUG_MEMORY is defined, calling reallocate on a block that is already freed panics the program and gives information about the site.
+    void *general_reallocate(void *ptr, s64 newSize, u64 options, source_location loc);
 
     // Calling free on a null pointer doesn't do anything.
-    void general_free(void *ptr, u64 options = 0);
+    // If DEBUG_MEMORY is defined, calling free on a block that is already freed panics the program and gives information about the site.
+    void general_free(void *ptr, u64 options, source_location loc);
 
     // Calculates the required padding in bytes which needs to be added to _ptr_ in order to be aligned
     u16 calculate_padding_for_pointer(void *ptr, s32 alignment) {
@@ -686,7 +716,7 @@ T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, so
 }
 
 template <non_void T>
-requires(!types::is_const<T>) void lstd_free_impl(T *block, u64 options) {
+requires(!types::is_const<T>) void lstd_free_impl(T *block, u64 options, source_location loc) {
     if (!block) return;
 
     auto *header = (allocation_header *) block - 1;
@@ -706,7 +736,7 @@ requires(!types::is_const<T>) void lstd_free_impl(T *block, u64 options) {
     //    // Doesn't care if it's defined or not.
     //    delete block;
     //} else {
-    general_free(block, options);
+    general_free(block, options, loc);
     // }
 }
 

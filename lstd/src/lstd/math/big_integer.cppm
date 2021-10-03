@@ -153,8 +153,6 @@ export {
     constexpr big_integer operator^(big_integer lhs, big_integer rhs);
 }
 
-#if 0
-
 constexpr bool ensure_digits(big_integer *b, s64 n) {
     // @Cleanup, see note in get_allocated() in array.cppm
     s64 allocatedDigits = ((allocation_header *) b->Digits - 1)->Size / sizeof(digit);
@@ -624,78 +622,78 @@ constexpr big_integer k_mul(big_integer *a, big_integer *b) {
 
     assert(t2.Size >= 0);
     assert(t2.Size <= 2 * shift); /* no overlap with high digits */
-copy_elements(result.Digits, t2.Digits, t2.Size);
+    copy_elements(result.Digits, t2.Digits, t2.Size);
 
-// Zero out remaining digits
-i = 2 * shift - t2.Size;  // number of uninitialized digits
-if (i) zero_memory(result.Digits + t2.Size, i * sizeof(digit));
+    // Zero out remaining digits
+    i = 2 * shift - t2.Size;  // number of uninitialized digits
+    if (i) zero_memory(result.Digits + t2.Size, i * sizeof(digit));
 
-// 4 & 5. Subtract ah*bh (t1) and al*bl (t2).
-// We do al*bl first because it's fresher in cache.
-i = result.Size - shift;  // # digits after shift
-v_isub(result.Digits + shift, i, t2.Digits, t2.Size);
+    // 4 & 5. Subtract ah*bh (t1) and al*bl (t2).
+    // We do al*bl first because it's fresher in cache.
+    i = result.Size - shift;  // # digits after shift
+    v_isub(result.Digits + shift, i, t2.Digits, t2.Size);
 
-v_isub(result.Digits + shift, i, t1.Digits, t1.Size);
+    v_isub(result.Digits + shift, i, t1.Digits, t1.Size);
 
-// 6. t3 <- (ah+al)(bh+bl), and add into result
-t1 = x_add(ah, al);
-ah = al = null;
+    // 6. t3 <- (ah+al)(bh+bl), and add into result
+    t1 = x_add(ah, al);
+    ah = al = null;
 
-if (*a == *b) {
-    t2 = t1;
-} else {
-    t2 = x_add(bh, bl);
-}
+    if (*a == *b) {
+        t2 = t1;
+    } else {
+        t2 = x_add(bh, bl);
+    }
 
-bh = bl = null;
+    bh = bl = null;
 
-big_integer t3 = k_mul(&t1, &t2);
-assert(t3.Size >= 0);
+    big_integer t3 = k_mul(&t1, &t2);
+    assert(t3.Size >= 0);
 
-// Add t3. It's not obvious why we can't run out of room here.
-// Let f(x) mean the floor of x and c(x) mean the ceiling of x.  Some facts
-// to start with:
-// 1. For any integer i, i = c(i/2) + f(i/2). In particular, sizeb = c(sizeb/2) + f(sizeb/2).
-// 2. shift = f(sizeb/2)
-// 3. sizea <= sizeb
-// 4. Since we call k_lopsided_mul if sizea*2 <= sizeb, sizea*2 > sizeb in this
-//    routine, so sizea > sizeb/2 >= f(sizeb/2) in this routine.
-//
-// We allocated sizea + sizeb result digits, and add t3 into them at an offset
-// of shift.  This leaves sizea+sizeb-shift allocated digit positions for t3
-// to fit into, = (by #1 and #2) sizea + f(sizeb/2) + c(sizeb/2) - f(sizeb/2) =
-// sizea + c(sizeb/2) available digit positions.
-//
-// bh has c(sizeb/2) digits, and bl at most f(size/2) digits.  So bh+hl has
-// at most c(sizeb/2) digits + 1 bit.
-//
-// If sizea == sizeb, ah has c(sizeb/2) digits, else ah has at most f(sizeb/2)
-// digits, and al has at most f(sizeb/2) digits in any case.  So ah+al has at
-// most (sizea == sizeb ? c(sizeb/2) : f(sizeb/2)) digits + 1 bit.
-//
-// The product (ah+al)*(bh+bl) therefore has at most
-//     c(sizeb/2) + (sizea == sizeb ? c(sizeb/2) : f(sizeb/2)) digits + 2 bits
-// and we have sizea + c(sizeb/2) available digit positions.  We need to show
-// this is always enough.  An instance of c(sizeb/2) cancels out in both, so
-// the question reduces to whether sizea digits is enough to hold
-// (sizea == sizeb ? c(sizeb/2) : f(sizeb/2)) digits + 2 bits.
-//
-// If sizea < sizeb, then we're asking whether sizea digits >= f(sizeb/2) digits + 2 bits.
-// By #4, sizea is at least f(sizeb/2)+1 digits, so this in turn reduces to whether 1
-// digit is enough to hold 2 bits.  This is so since SHIFT=15 >= 2.
-//
-// If sizea == sizeb, then we're asking whether sizeb digits is enough to hold
-// c(sizeb/2) digits + 2 bits, or equivalently (by #1) whether f(sizeb/2) digits
-// is enough to hold 2 bits.  This is so if sizeb >= 2, which holds because
-// sizeb >= KARATSUBA_CUTOFF >= 2.
-//
-// Note that since there's always enough room for (ah+al)*(bh+bl), and that's
-// clearly >= each of ah*bh and al*bl, there's always enough room to subtract
-// ah*bh and al*bl too.
-v_iadd(result.Digits + shift, i, t3.Digits, t3.Size);
+    // Add t3. It's not obvious why we can't run out of room here.
+    // Let f(x) mean the floor of x and c(x) mean the ceiling of x.  Some facts
+    // to start with:
+    // 1. For any integer i, i = c(i/2) + f(i/2). In particular, sizeb = c(sizeb/2) + f(sizeb/2).
+    // 2. shift = f(sizeb/2)
+    // 3. sizea <= sizeb
+    // 4. Since we call k_lopsided_mul if sizea*2 <= sizeb, sizea*2 > sizeb in this
+    //    routine, so sizea > sizeb/2 >= f(sizeb/2) in this routine.
+    //
+    // We allocated sizea + sizeb result digits, and add t3 into them at an offset
+    // of shift.  This leaves sizea+sizeb-shift allocated digit positions for t3
+    // to fit into, = (by #1 and #2) sizea + f(sizeb/2) + c(sizeb/2) - f(sizeb/2) =
+    // sizea + c(sizeb/2) available digit positions.
+    //
+    // bh has c(sizeb/2) digits, and bl at most f(size/2) digits.  So bh+hl has
+    // at most c(sizeb/2) digits + 1 bit.
+    //
+    // If sizea == sizeb, ah has c(sizeb/2) digits, else ah has at most f(sizeb/2)
+    // digits, and al has at most f(sizeb/2) digits in any case.  So ah+al has at
+    // most (sizea == sizeb ? c(sizeb/2) : f(sizeb/2)) digits + 1 bit.
+    //
+    // The product (ah+al)*(bh+bl) therefore has at most
+    //     c(sizeb/2) + (sizea == sizeb ? c(sizeb/2) : f(sizeb/2)) digits + 2 bits
+    // and we have sizea + c(sizeb/2) available digit positions.  We need to show
+    // this is always enough.  An instance of c(sizeb/2) cancels out in both, so
+    // the question reduces to whether sizea digits is enough to hold
+    // (sizea == sizeb ? c(sizeb/2) : f(sizeb/2)) digits + 2 bits.
+    //
+    // If sizea < sizeb, then we're asking whether sizea digits >= f(sizeb/2) digits + 2 bits.
+    // By #4, sizea is at least f(sizeb/2)+1 digits, so this in turn reduces to whether 1
+    // digit is enough to hold 2 bits.  This is so since SHIFT=15 >= 2.
+    //
+    // If sizea == sizeb, then we're asking whether sizeb digits is enough to hold
+    // c(sizeb/2) digits + 2 bits, or equivalently (by #1) whether f(sizeb/2) digits
+    // is enough to hold 2 bits.  This is so if sizeb >= 2, which holds because
+    // sizeb >= KARATSUBA_CUTOFF >= 2.
+    //
+    // Note that since there's always enough room for (ah+al)*(bh+bl), and that's
+    // clearly >= each of ah*bh and al*bl, there's always enough room to subtract
+    // ah*bh and al*bl too.
+    v_iadd(result.Digits + shift, i, t3.Digits, t3.Size);
 
-normalize(&result);
-return result;
+    normalize(&result);
+    return result;
 }
 
 // Divide long pin, w/ size digits, by non-zero digit n, storing quotient
@@ -852,7 +850,7 @@ constexpr void v_complement(digit *z, digit *a, s64 m) {
 }
 
 // _op_ is one of the following: '&', '|', '^'
-big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
+constexpr big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
     // Bitwise operations for negative numbers operate as though
     // on a two's complement representation. So convert arguments
     // from sign-magnitude to two's complement, and convert the
@@ -957,9 +955,9 @@ big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
     return result;
 }
 
-    constexpr big_integer operator&(big_integer lhs, big_integer rhs) { return bitwise(lhs, '&', rhs); }
-    constexpr big_integer operator|(big_integer lhs, big_integer rhs) { return bitwise(lhs, '|', rhs); }
-    constexpr big_integer operator^(big_integer lhs, big_integer rhs) { return bitwise(lhs, '^', rhs); }
+constexpr big_integer operator&(big_integer lhs, big_integer rhs) { return bitwise(lhs, '&', rhs); }
+constexpr big_integer operator|(big_integer lhs, big_integer rhs) { return bitwise(lhs, '|', rhs); }
+constexpr big_integer operator^(big_integer lhs, big_integer rhs) { return bitwise(lhs, '^', rhs); }
 
 constexpr big_integer add_one(big_integer b) {
     if (!b.Size) return cast_big(1);
@@ -1075,7 +1073,7 @@ constexpr div_result divrem(big_integer lhs, big_integer rhs) {
 
     if (sizea < sizeb || (sizea == sizeb && (lhs.Digits[sizea - 1] < rhs.Digits[sizeb - 1]))) {
         // |lhs| < |rhs|
-        result.Q = 0;
+        result.Q = cast_big(0);
         result.R = lhs;
         return result;
     }
@@ -1087,7 +1085,7 @@ constexpr div_result divrem(big_integer lhs, big_integer rhs) {
     if (sizeb == 1) {
         auto [div, rem] = divrem1(lhs, rhs.Digits[0]);
         result.Q        = div;
-        result.R        = rem;
+        result.R        = cast_big(rem);
     } else {
         result = x_divrem(lhs, rhs);
     }
@@ -1111,7 +1109,7 @@ constexpr div_result divmod(big_integer lhs, big_integer rhs) {
     // have different signs. We then subtract one from the 'div'
     // part of the outcome to keep the invariant intact.
     if ((mod.Size < 0 && rhs.Size > 0) || (mod.Size > 0 && rhs.Size < 0)) {
-        return {div - 1, rhs + mod};
+        return {div - cast_big(1), rhs + mod};
     } else {
         return {div, mod};
     }
@@ -1138,17 +1136,17 @@ constexpr s32 compare(big_integer a, big_integer b_) {
 constexpr big_integer operator+(big_integer lhs, big_integer rhs) {
     if (lhs.Size < 0) {
         if (rhs.Size < 0) {
-            auto z = x_add(lhs, rhs);
+            auto z = x_add(&lhs, &rhs);
             z.Size = -z.Size;
             return z;
         } else {
-            return x_sub(rhs, lhs);
+            return x_sub(&rhs, &lhs);
         }
     } else {
         if (rhs.Size < 0) {
-            return x_sub(lhs, rhs);
+            return x_sub(&lhs, &rhs);
         } else {
-            return x_add(lhs, rhs);
+            return x_add(&lhs, &rhs);
         }
     }
 }
@@ -1156,23 +1154,23 @@ constexpr big_integer operator+(big_integer lhs, big_integer rhs) {
 constexpr big_integer operator-(big_integer lhs, big_integer rhs) {
     if (lhs.Size < 0) {
         if (rhs.Size < 0) {
-            return x_sub(rhs, lhs);
+            return x_sub(&rhs, &lhs);
         } else {
-            auto z = x_add(lhs, rhs);
+            auto z = x_add(&lhs, &rhs);
             z.Size = -z.Size;
             return z;
         }
     } else {
         if (rhs.Size < 0) {
-            return x_add(lhs, rhs);
+            return x_add(&lhs, &rhs);
         } else {
-            return x_sub(lhs, rhs);
+            return x_sub(&lhs, &rhs);
         }
     }
 }
 
 constexpr big_integer operator*(big_integer lhs, big_integer rhs) {
-    big_integer result = k_mul(lhs, rhs);
+    big_integer result = k_mul(&lhs, &rhs);
     // Negate if exactly one of the inputs is negative
     if ((lhs.Size ^ rhs.Size) < 0 && result.Size) {
         result.Size = -result.Size;
@@ -1190,6 +1188,5 @@ constexpr big_integer operator%(big_integer lhs, big_integer rhs) {
     auto [div, mod] = divmod(lhs, rhs);
     return mod;
 }
-#endif
 
 LSTD_END_NAMESPACE

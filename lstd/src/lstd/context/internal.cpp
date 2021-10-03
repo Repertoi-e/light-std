@@ -1027,28 +1027,4 @@ void *optimized_fill_memory(void *dst, char c, u64 size) {
 
 void *(*fill_memory)(void *dst, char value, u64 size) = optimized_fill_memory;
 
-void default_panic_handler(string message, const array<os_function_call> &callStack) {
-    if (Context._HandlingPanic) return;
-
-    auto newContext           = Context;
-    newContext._HandlingPanic = true;
-
-    PUSH_CONTEXT(newContext) {
-        print("\n\n{!}(context.cpp / default_crash_handler): A panic occurred and the program must terminate.\n");
-        print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
-        print("        ... and here is the call stack:\n");
-        if (callStack.Count) {
-            print("\n");
-        }
-        For(callStack) {
-            print("        {!YELLOW}{}{!}\n", it.Name);
-            print("          in file: {}:{}\n", it.File, it.LineNumber);
-        }
-        if (!callStack.Count) {
-            print("          [No call stack available]\n");
-        }
-        print("\n\n");
-    }
-}
-
 LSTD_END_NAMESPACE

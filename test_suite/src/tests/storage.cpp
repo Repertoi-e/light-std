@@ -1,7 +1,7 @@
 #include "../test.h"
 
 TEST(stack_array) {
-    auto stackArray = to_stack_array(0, 1, 2, 3, 4);
+    auto stackArray = make_stack_array(0, 1, 2, 3, 4);
     array<s32> a    = stackArray;
 
     For(range(a.Count)) { assert_eq(a[it], it); }
@@ -23,29 +23,30 @@ TEST(stack_array) {
 
 TEST(array) {
     array<s64> a;
-    defer(free(a));
+    make_dynamic(&a, 30);
+    defer(free(a.Data));
 
-    For(range(10)) { array_append(a, it); }
+    For(range(10)) { add(&a, it); }
     For(range(10)) { assert_eq(a[it], it); }
 
-    array_insert_at(a, 3, -3);
-    assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
+    insert_at_index(&a, 3, -3);
+    assert_eq(a, make_stack_array<s64>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
 
-    array_remove_at(a, 4);
-    assert_eq(a, to_stack_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
+    remove_ordered_at_index(&a, 4);
+    assert_eq(a, make_stack_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
     s64 count = a.Count;
-    For(range(count)) { array_remove_at(a, -1); }
+    For(range(count)) { remove_ordered_at_index(&a, -1); }
     assert_eq(a.Count, 0);
 
-    For(range(10)) { array_insert_at(a, 0, it); }
-    assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
+    For(range(10)) { insert_at_index(&a, 0, it); }
+    assert_eq(a, make_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 
-    array_remove_at(a, -1);
-    assert_eq(a, to_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1));
+    remove_ordered_at_index(&a, -1);
+    assert_eq(a, make_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1));
 
-    array_remove_at(a, 0);
-    assert_eq(a, to_stack_array<s64>(8, 7, 6, 5, 4, 3, 2, 1));
+    remove_ordered_at_index(&a, 0);
+    assert_eq(a, make_stack_array<s64>(8, 7, 6, 5, 4, 3, 2, 1));
 
     s64 f = find(a, 9);
     assert_eq(f, -1);
@@ -61,29 +62,29 @@ TEST(array) {
 
 TEST(hash_table) {
     hash_table<string, s32> t;
-    defer(free(t));
+    defer(free_table(&t));
 
-    set(t, "1", 1);
-    set(t, "4", 4);
-    set(t, "9", 10101);
+    set(&t, "1", 1);
+    set(&t, "4", 4);
+    set(&t, "9", 10101);
 
-    assert((void *) find(t, "1").Value);
-    assert_eq(*find(t, "1").Value, 1);
-    assert((void *) find(t, "4").Value);
-    assert_eq(*find(t, "4").Value, 4);
-    assert((void *) find(t, "9").Value);
-    assert_eq(*find(t, "9").Value, 10101);
+    assert((void *) find(&t, "1").Value);
+    assert_eq(*find(&t, "1").Value, 1);
+    assert((void *) find(&t, "4").Value);
+    assert_eq(*find(&t, "4").Value, 4);
+    assert((void *) find(&t, "9").Value);
+    assert_eq(*find(&t, "9").Value, 10101);
 
-    set(t, "9", 20202);
-    assert((void *) find(t, "9").Value);
-    assert_eq(*find(t, "9").Value, 20202);
-    set(t, "9", 9);
+    set(&t, "9", 20202);
+    assert((void *) find(&t, "9").Value);
+    assert_eq(*find(&t, "9").Value, 20202);
+    set(&t, "9", 9);
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
         string str = sprint("{}", *value);
         assert_eq(*key, str);
-        free(str);
+        free(str.Data);
 
         ++loopIterations;
     }
@@ -91,30 +92,29 @@ TEST(hash_table) {
 
     hash_table<string, s32> empty;
     for (auto [key, value] : empty) {
-        (void) key, value; // Unused variable
+        (void) key, value;  // Unused variable
         assert(false);
     }
 }
 
 TEST(hash_table_clone) {
     hash_table<string, s32> t;
-    defer(free(t));
+    defer(free_table(&t));
 
-    set(t, "1", 1);
-    set(t, "4", 4);
-    set(t, "9", 9);
+    set(&t, "1", 1);
+    set(&t, "4", 4);
+    set(&t, "9", 9);
 
-    hash_table<string, s32> copy;
-    clone(&copy, t);
-    defer(free(copy));
+    hash_table<string, s32> copy = clone(&t);
+    defer(free_table(&copy));
 
-    set(copy, "11", 20);
+    set(&copy, "11", 20);
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
         string str = sprint("{}", *value);
         assert_eq(*key, str);
-        free(str);
+        free(str.Data);
 
         ++loopIterations;
     }
@@ -124,13 +124,25 @@ TEST(hash_table_clone) {
     assert_eq(copy.Count, 4);
 }
 
+struct v2 {
+    f32 x, y;
+};
+
+struct v3 {
+    f32 x, y, z;
+};
+
+u64 get_hash(v2) {
+    return 10; // Ha-hA
+}
+
 TEST(hash_table_alignment) {
     // This test uses SIMD types which require a 16 byte alignment or otherwise crash.
     // It tests if the block allocation in the table handles alignment of key and value arrays.
 
     hash_table<v2, v3> simdTable;
-    reserve(simdTable, 0, 16);
+    resize(&simdTable, 0, 16);
 
-    add(simdTable, {1, 2}, {1, 2, 3});
-    add(simdTable, {1, 3}, {4, 7, 9});
+    add(&simdTable, {1, 2}, {1, 2, 3});
+    add(&simdTable, {1, 3}, {4, 7, 9});
 }

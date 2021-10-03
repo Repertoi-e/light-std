@@ -1,5 +1,8 @@
 #include "../test.h"
 
+import lstd.os;
+import lstd.thread;
+
 TEST(hardware_concurrency) {
     print("\n\t\tHardware concurrency: {}.\n", os_get_hardware_concurrency());
     For(range(45)) print(" ");
@@ -10,17 +13,14 @@ file_scope void thread_ids(void *) { print("\t\tMy thread id is {}.\n", Context.
 TEST(ids) {
     print("\n\t\tMain thread's id is {}.\n", Context.ThreadID);
 
-    thread::thread t1;
-    t1.init_and_launch(thread_ids);
-    t1.wait();
+    thread t1 = create_and_launch_thread(thread_ids);
+    wait(t1);
 
-    thread::thread t2;
-    t2.init_and_launch(thread_ids);
-    t2.wait();
+    thread t2 = create_and_launch_thread(thread_ids);
+    wait(t2);
 
-    thread::thread t3;
-    t3.init_and_launch(thread_ids);
-    t3.wait();
+    thread t3 = create_and_launch_thread(thread_ids);
+    wait(t3);
 
     For(range(45)) print(" ");
 }
@@ -31,14 +31,13 @@ file_scope void thread_tls(void *) { TLSVar = 2; }
 TEST(thread_local_storage) {
     TLSVar = 1;
 
-    thread::thread t1;
-    t1.init_and_launch(thread_tls);
-    t1.wait();
+    thread t1 = create_and_launch_thread(thread_tls);
+    wait(t1);
 
     assert_eq(TLSVar, 1);
 }
 
-file_scope thread::mutex Mutex;
+file_scope mutex Mutex;
 file_scope s32 Count = 0;
 
 file_scope void thread_lock_free(void *) {
@@ -50,15 +49,15 @@ file_scope void thread_lock_free(void *) {
 TEST(lock_free) {
     Count = 0;
 
-    array<thread::thread> threads;
-    defer(free(threads));
+    array<thread> threads;
+    defer(free(threads.Data));
 
     For(range(100)) {
-        array_append(threads)->init_and_launch(thread_lock_free);
+        add(&threads, create_and_launch_thread(thread_lock_free));
     }
 
     For(threads) {
-        it.wait();
+        wait(it);
     }
 
     assert_eq(Count, 100 * 10000);
@@ -66,98 +65,98 @@ TEST(lock_free) {
 
 file_scope void thread_lock(void *) {
     For(range(10000)) {
-        Mutex.lock();
+        lock(&Mutex);
         ++Count;
-        Mutex.unlock();
+        unlock(&Mutex);
     }
 }
 
 TEST(mutex_lock) {
     Count = 0;
 
-    Mutex.init();
+    Mutex = create_mutex();
 
-    array<thread::thread> threads;
-    defer(free(threads));
+    array<thread> threads;
+    defer(free(threads.Data));
 
     For(range(100)) {
-        array_append(threads)->init_and_launch(thread_lock);
+        add(&threads, create_and_launch_thread(thread_lock));
     }
 
     For(threads) {
-        it.wait();
+        wait(it);
     }
 
     assert_eq(Count, 100 * 10000);
 }
 
-file_scope thread::fast_mutex FastMutex;
+file_scope fast_mutex FastMutex;
 
 file_scope void thread_lock2(void *) {
     For(range(10000)) {
-        FastMutex.lock();
+        lock(&FastMutex);
         ++Count;
-        FastMutex.unlock();
+        unlock(&FastMutex);
     }
 }
 
 TEST(fast_mutex_lock) {
     Count = 0;
 
-    array<thread::thread> threads;
-    defer(free(threads));
+    array<thread> threads;
+    defer(free(threads.Data));
     For(range(100)) {
-        array_append(threads)->init_and_launch(thread_lock2);
+        add(&threads, create_and_launch_thread(thread_lock2));
     }
 
     For(threads) {
-        it.wait();
+        wait(it);
     }
 
     assert_eq(Count, 100 * 10000);
 }
 
-file_scope thread::condition_variable Cond;
+file_scope condition_variable Cond;
 
 file_scope void thread_condition_notifier(void *) {
-    Mutex.lock();
+    lock(&Mutex);
     --Count;
-    Cond.notify_all();
-    Mutex.unlock();
+    notify_all(&Cond);
+    unlock(&Mutex);
 }
 
 file_scope void thread_condition_waiter(void *) {
-    Mutex.lock();
+    lock(&Mutex);
     while (Count > 0) {
-        Cond.wait(&Mutex);
+        wait(&Cond, &Mutex);
     }
     assert_eq(Count, 0);
-    Mutex.unlock();
+    unlock(&Mutex);
 }
 
 TEST(condition_variable) {
     Count = 40;
 
-    Cond.init();
-    defer(Cond.release());
+    Cond = create_condition_variable();
+    defer(free_condition_variable(&Cond));
 
-    thread::thread t1;
-    t1.init_and_launch(thread_condition_waiter);
+    thread t1 = create_and_launch_thread(thread_condition_waiter);
 
     // These will decrease Count by 1 when they finish)
-    array<thread::thread> threads;
-    free(threads);
+    array<thread> threads;
+    defer(free(threads.Data));
+
     For(range(Count)) {
-        array_append(threads)->init_and_launch(thread_condition_notifier);
+        add(&threads, create_and_launch_thread(thread_condition_notifier));
     }
 
-    t1.wait();
+    wait(t1);
 
     For(threads) {
-        it.wait();
+        wait(it);
     }
 
-    Mutex.release();
+    free_mutex(&Mutex);
 }
 
 TEST(context) {
@@ -168,17 +167,16 @@ TEST(context) {
         auto threadFunction = [&](void *) {
             assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
             []() {
-                PUSH_ALLOC(Context.TempAlloc) {
-                    assert_eq((void *) Context.Alloc.Function, (void *) Context.TempAlloc.Function);
+                PUSH_ALLOC(TemporaryAllocator) {
+                    assert_eq((void *) Context.Alloc.Function, (void *) TemporaryAllocator.Function);
                     return;
                 }
             }();
             assert_eq((void *) Context.Alloc.Function, (void *) differentAlloc.Function);
         };
 
-        thread::thread t1;
-        t1.init_and_launch(&threadFunction);
-        t1.wait();
+        thread t1 = create_and_launch_thread(&threadFunction);
+        wait(t1);
     }
     assert_eq((void *) Context.Alloc.Function, (void *) old);
 }

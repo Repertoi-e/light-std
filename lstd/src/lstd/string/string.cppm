@@ -321,7 +321,8 @@ constexpr bool match_end(string s, string str) {
     return compare_memory(s.Data + s.Count - str.Count, str.Data, str.Count) == 0;
 }
 
-constexpr s64 string_find(string str, const delegate<bool(code_point)> &predicate, s64 start, bool reversed) {
+// This cannot be constexpr because predicate cannot be fully constexpr
+s64 string_find(string str, delegate<bool(code_point)> predicate, s64 start, bool reversed) {
     if (!str.Data || str.Count == 0) return -1;
     s64 length = string_length(str);
     start      = translate_index(start, length);

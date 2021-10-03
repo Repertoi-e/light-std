@@ -370,8 +370,8 @@ export {
         if (t.Count != u.Count) return false;
 
         for (auto [k, v] : t) {
-            if (!has(u, *k)) return false;
-            if (*v != *find(u, *k).Value) return false;
+            if (!has(u, ref(*k))) return false;
+            if (*v != *find(u, ref(*k)).Value) return false;
         }
         return true;
     }
@@ -382,7 +382,7 @@ export {
     template <any_hash_table T>
     T clone(T * src) {
         T table;
-        for (auto [k, v] : *src) add(&table, *k, *v);
+        for (auto [k, v] : *src) add(&table, ref(*k), ref(*v));
         return table;
     }
 }

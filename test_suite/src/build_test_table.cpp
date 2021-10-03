@@ -112,11 +112,7 @@ void build_test_table() {
     add(g_TestTable[string("range.cpp")], test{"variable_steps", test_variable_steps});
     extern void test_reverse();
     add(g_TestTable[string("range.cpp")], test{"reverse", test_reverse});
-    make_dynamic(g_TestTable[string("signal.cpp")], 5);
-    extern void test_global_function();
-    add(g_TestTable[string("signal.cpp")], test{"global_function", test_global_function});
-    extern void test_member_function();
-    add(g_TestTable[string("signal.cpp")], test{"member_function", test_member_function});
+    make_dynamic(g_TestTable[string("signal.cpp")], 3);
     extern void test_global_function_delegate();
     add(g_TestTable[string("signal.cpp")], test{"global_function_delegate", test_global_function_delegate});
     extern void test_member_function_delegate();
@@ -134,7 +130,7 @@ void build_test_table() {
     add(g_TestTable[string("storage.cpp")], test{"hash_table_clone", test_hash_table_clone});
     extern void test_hash_table_alignment();
     add(g_TestTable[string("storage.cpp")], test{"hash_table_alignment", test_hash_table_alignment});
-    make_dynamic(g_TestTable[string("string.cpp")], 17);
+    make_dynamic(g_TestTable[string("string.cpp")], 16);
     extern void test_code_point_size();
     add(g_TestTable[string("string.cpp")], test{"code_point_size", test_code_point_size});
     extern void test_substring();
@@ -159,8 +155,6 @@ void build_test_table() {
     add(g_TestTable[string("string.cpp")], test{"iterator", test_iterator});
     extern void test_append();
     add(g_TestTable[string("string.cpp")], test{"append", test_append});
-    extern void test_count();
-    add(g_TestTable[string("string.cpp")], test{"count", test_count});
     extern void test_builder();
     add(g_TestTable[string("string.cpp")], test{"builder", test_builder});
     extern void test_remove_all();
