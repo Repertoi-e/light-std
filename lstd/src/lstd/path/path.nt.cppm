@@ -230,7 +230,7 @@ wchar *utf8_to_utf16(string str) { return platform_utf8_to_utf16(str); }
 
 constexpr path_split_drive_result path_split_drive(string path) {
     if (string_length(path) >= 2) {
-        if (substring(path, 0, 2) == string("\\\\") && path[2] != '\\') {
+        if (strings_match(substring(path, 0, 2), "\\\\") && path[2] != '\\') {
             // It is an UNC path
 
             //  vvvvvvvvvvvvvvvvvvvv drive letter or UNC path
@@ -284,8 +284,8 @@ constexpr bool path_is_absolute(string path) {
             result = clone(p_path);
 
             continue;
-        } else if (p_drive && p_drive != result_drive) {
-            if (string_compare_ignore_case(p_drive, result_drive) != -1) {
+        } else if (p_drive && !strings_match(p_drive, result_drive)) {
+            if (!strings_match_ignore_case(p_drive, result_drive)) {
                 // Different drives => ignore the first path entirely
                 result_drive = p_drive;
 
@@ -350,10 +350,10 @@ constexpr bool path_is_absolute(string path) {
     s64 i = 0;
     while (i < components.Count) {
         auto it = components[i];
-        if (!it || it == string(".")) {
+        if (!it || strings_match(it, ".")) {
             remove_ordered_at_index(&components, i);
-        } else if (it == string("..")) {
-            if (i > 0 && components[i - 1] != string("..")) {
+        } else if (strings_match(it, "..")) {
+            if (i > 0 && !strings_match(components[i - 1], "..")) {
                 remove_range(&components, i - 1, i + 1);
                 --i;
             } else if (i == 0 && result && path_is_sep(result[-1])) {
@@ -385,12 +385,12 @@ constexpr path_split_result path_split(string path) {
     auto [DriveOrUNC, rest] = path_split_drive(path);
 
     // Set i to index beyond path's last slash
-    s64 i = string_find_any_of(rest, "/\\", string_length(rest), true) + 1;
+    s64 i = string_find_any_of(rest, "/\\", -1, true) + 1;
 
     string head = substring(rest, 0, i);
     string tail = substring(rest, i, string_length(rest));
 
-    string trimmed = substring(head, 0, string_find_not_any_of(head, "/\\", string_length(head), true) + 1);
+    string trimmed = substring(head, 0, string_find_not_any_of(head, "/\\", -1, true) + 1);
     if (trimmed) head = trimmed;
 
     head = substring(path, 0, string_length(head) + string_length(DriveOrUNC));
@@ -581,11 +581,11 @@ void path_read_next_entry(path_walker &walker) {
         free(walker.CurrentFileName.Data);
 
         auto *fileName = ((WIN32_FIND_DATAW *) walker.PlatformFileInfo)->cFileName;
-        resize(&walker.CurrentFileName, c_string_length(fileName) * 4);                                 // @Cleanup
+        resize(&walker.CurrentFileName, c_string_length(fileName) * 4);                                // @Cleanup
         utf16_to_utf8(fileName, (char *) walker.CurrentFileName.Data, &walker.CurrentFileName.Count);  // @Constcast
 
-    } while (walker.CurrentFileName == string("..") || walker.CurrentFileName == string("."));
-    assert(walker.CurrentFileName != string("..") && walker.CurrentFileName != string("."));
+    } while (strings_match(walker.CurrentFileName, "..") || strings_match(walker.CurrentFileName, "."));
+    assert(!strings_match(walker.CurrentFileName, "..") && !strings_match(walker.CurrentFileName, "."));
 }
 
 // This version appends paths to the array _result_. Copy this and modify it to suit your use case.

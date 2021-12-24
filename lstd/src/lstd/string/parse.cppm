@@ -57,6 +57,7 @@ export {
 
     // Unsafe, doesn't check bounds
     void advance_cp(string * p, s64 count) {
+        assert(count > 0);
         while (count--) {
             s64 c = utf8_get_size_of_cp(p->Data);
             p->Data += c;

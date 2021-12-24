@@ -21,29 +21,22 @@ LSTD_BEGIN_NAMESPACE
 
 export {
     enum class allocator_mode {
-        ADD_POOL = 0,
-        REMOVE_POOL,
         ALLOCATE,
         RESIZE,
         FREE,
         FREE_ALL
     };
 
-    // This is an option when allocating.
-    // Allocations marked explicitly as leaks don't get reported with DEBUG_memory->report_leaks().
+    // :AllocationFlags:
+    // Allocations marked explicitly as leaks don't get reported when calling debug_memory_report_leaks().
     // This is handled internally when passed, so allocator implementations needn't pay attention to it.
     constexpr u64 LEAK = 1ull << 63;
 
     //
     // This specifies what the signature of each allocation function should look like.
     //
-    // _mode_ is what we are doing currently: adding/removing a pool, allocating, resizing, freeing a block or freeing everything
+    // _mode_ is what we are doing currently: allocating, resizing, freeing a block or freeing everything
     //      Note: * Implementing FREE_ALL is not a requirement, some allocators can't support this by design.
-    //            * Allocators shouldn't request memory from the OS. They should use the pools added by the user
-    //              of the allocator. See :BigPhilosophyTime: near the bottom of this file for the reasoning behind this.
-    //
-    //              In order to request memory from the OS, call os_allocate_block(). And call the allocator with
-    //              allocator_add_pool(). Then the allocator has a pool from which it can do it's requests.
     //
     // _context_ is used as a pointer to any data the allocator needs as state
     // _size_ is the size of the allocation
@@ -73,11 +66,16 @@ export {
     //
     using allocator_func_t = void *(*) (allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
 
-    struct allocator {
-        allocator_func_t Function = null;
-        void *Context             = null;
+    // This is a hack that's used to get around Context's and TemporaryAllocator's constructors
+    // getting fired and overriding its allocator (which may have potentially been set by other global constructors).
+    struct allocator_dont_init_t {};
 
-        allocator() {}
+    struct allocator {
+        allocator_func_t Function;
+        void *Context;
+
+        allocator() : Function(null), Context(null) {}
+        allocator(allocator_dont_init_t) {}
         allocator(allocator_func_t function, void *context) : Function(function), Context(context) {}
 
         bool operator==(allocator other) const { return Function == other.Function && Context == other.Context; }
@@ -86,41 +84,7 @@ export {
         operator bool() const { return Function; }
     };
 
-    // When calling allocator_add_pool() we store this piece of data in the beginning of the block
-    // (in order to avoid allocating a separate linked list). So each block you add to an allocator
-    // should be larger than this structure.
-    struct allocator_pool {
-        allocator_pool *Next;
-        s64 Size;
-        s64 Used;
-    };
-
-    //
-    // Allocators don't ever request memory from the OS but instead require the programmer to have already passed
-    // a block of memory (a pool) which they divide into smaller allocations. The pool may be allocated by another allocator
-    // or os_allocate_block(). There is a reason we want to be explicit about this.
-    // See comment beginning with :BigPhilosophyTime: a bit further down in this file.
-    //
-    void allocator_add_pool(allocator alloc, void *block, s64 size, u64 options = 0);
-
-    // Should trip an assert if the block doesn't exist in the allocator's pool
-    void allocator_remove_pool(allocator alloc, void *block, u64 options = 0);
-
-    //
-    // These are helper routines which implement the basic logic of a linked list of pools.
-    // See example usage in lstd.arena_allocator
-    //
-    // Don't forget that you can do something entirely different in your custom allocator!
-    // We just provide this as a good, basic, robust, working solution so you don't have to write this manually every time.
-    //
-
-    // This stores an initialized pool in the beginning of the block
-    bool allocator_pool_initialize(void *block, s64 size);
-    void allocator_pool_add_to_linked_list(allocator_pool * *base, allocator_pool * pool);
-    void *allocator_pool_remove_from_linked_list(allocator_pool * *base, allocator_pool * pool);
-
     // Note: Not all allocators must support this.
-    // See comment near the beginning of this file.
     void free_all(allocator alloc, u64 options = 0);
 
     //
@@ -372,129 +336,137 @@ export {
 #endif
     };
 
-// #if'd so programs don't compile when debug info shouldn't be used.
+// #if'd so programs don't compile when debug memory info shouldn't be used.
 #if defined DEBUG_MEMORY
-    struct debug_memory {
-        s64 AllocationCount = 0;
+    thread_local s64 AllocationCount;
 
-        // Right now nodes are allocated straight from the OS. This is bad. @TODO: Use an arena allocator.
-        struct node {
-            node *Next = null;
+    struct debug_memory_node {
+        debug_memory_node *Next;
+        debug_memory_node *Prev;
 
-            allocation_header *Header;  // This is _Block_ + some potential bytes of padding for the alignment
+        allocation_header *Header;
 
-            //
-            // Useful for debugging (you can set a breakpoint with the ID in general_allocate() in this file).
-            // Every allocation has an unique ID == to the ID of the previous allocation + 1.
-            // This is useful for debugging bugs related to allocations because (assuming your program isn't multithreaded)
-            // each time you run your program the ID of each allocation is easily reproducible (assuming no randomness from
-            // the user side).
-            //
-            s64 ID;
+        //
+        // The thread which allocated this block. We use this to check if memory
+        // is freed by another thread. By default we treat that as an error.
+        // However sometimes that can be intentional, so we provide a way
+        // to disable this treatment explicitly (with the ALLOW_CROSSTHREAD_FREE allocation flag).
+        // See :AllocationFlags:
+        //
+        // @TODO: Currently :ThreadIDsAreRandom:
+        u32 TID;
 
-            //
-            // This ID is used to keep track of how many times this block has been reallocated.
-            // When realloc() is called we check if the block can be directly resized in place (using
-            // allocation_mode::RESIZE). If not, we allocate a new block and transfer all the information to
-            // it there. In both cases the ID above stays the same and this ID is incremented. This always starts at 0.
-            //
-            // This helps debug memory allocations that are reallocated often (strings/arrays, etc.)
-            //
-            s64 RID;
+        // @TODO: We don't support cross-thread freeing right now because
+        // our debug list of nodes is not thread safe. We can make a thread-safe queue
+        // for handling these cases. For now we ban it.
+        // bool MarkedAllowCrossThreadFree;
 
-            //
-            // We mark the source of the allocation if such information was provided.
-            // On reallocation we overwrite these with the source location provided then.
-            //
-            // When allocating with the default malloc/calloc/realloc (the non-templated
-            // extern "C" versions which are replacements for the standard library functions)
-            // we don't get a very useful FileName and FileLine (we get the ones from the wrapper).
-            // This also applies when an allocation is made with C++ new.
-            //
-            // @TODO Remove this and instead save a call stack (optional!, that's a lot of info).
-            //
-            // To debug allocations you can try to use the _ID_ and set a breakpoint. See commment above.
-            //
-            source_location AllocatedAt;
+        //
+        // The ID is useful for debugging bugs related to allocations.
+        // Every allocation has an unique number == to the ID of the previous allocation + 1.
+        // The allocation count is unique to each thread in order to ensure reproducibility.
+        //
+        // Each time you run your program with the same set of inputs the
+        // ID of each allocation is the same (assuming no randomness).
+        //
+        // You can set a breakpoint with the ID in general_allocate()
+        // to catch the allocation before it happens.
+        //
+        // Currently :ThreadIDsAreRandom:, so you may need to skip a few breaks,
+        // @TODO: We shouldn't use the OS thread id but keep our own state with sequential IDs.
+        //
+        s64 ID;
 
-            // When allocating a block we can mark it as a leak.
-            // That means that we don't free it before the end of the program (since the OS claims back the memory anyway).
-            // When DEBUG_memory->CheckForLeaksAtTermination is set to true we log a list of unfreed allocations at the end
-            // of the program. You can also call DEBUG_memory->report_leaks() at any time to see unfreed allocations.
-            // Blocks marked as leaks get skipped.
-            bool MarkedAsLeak = false;
+        //
+        // This ID keeps track how many times this block has been reallocated.
+        // When realloc() is called we check if the block can be directly resized in place (using
+        // allocation_mode::RESIZE). If not, we allocate a new block and copy the information there.
+        // In both cases the ID above stays the same and RID gets incremented. This always starts at 0.
+        //
+        // This helps debug memory allocations that are reallocated often (strings/arrays, etc.)
+        //
+        s64 RID;
 
-            // When calling general_free() we free the block with the allocator implementation
-            // but keep the node live in the list. We do this in order to detect freeing the same pointer twice
-            // and to provide useful info where the first free happened.
-            // If we allocate a new block with the same memory address then we reuse this node and clear the MarkedAsFreed flag.
-            //
-            // Not freeing nodes might accummulate to large memory usage. @TODO Provide a clear_freed_nodes() routine.
-            // Fragmentation might be ok because we allocate nodes with an arena allocator (@TODO We don't right now!!!!!!).
-            //
-            bool MarkedAsFreed = false;
+        //
+        // We mark the source of the (re)allocation if such information was provided.
+        // On subsequent reallocations we overwrite this.
+        //
+        // When allocating with the default malloc/calloc/realloc (the non-templated
+        // extern "C" versions which are replacements for the standard library functions)
+        // we don't get a very useful FileName and FileLine (we get the ones from the wrapper).
+        // This also applies when an allocation is made with C++ new.
+        //
+        // @TODO Remove this and instead save a call stack (optional!, that's a lot of info).
+        //
+        // To debug allocations you can try to use the _ID_ and set a breakpoint. See info above.
+        //
+        source_location AllocatedAt;
 
-            // See note above about not getting the right info from the extern "C" versions and C++ operators new/delete.
-            // @TODO Remove this and instead save a call stack (optional!, that's a lot of info).
-            source_location FreedAt;
-        };
+        //
+        // When calling general_free() we free the block with the allocator implementation
+        // but keep the node live in the list. We do this in order to detect freeing the same pointer twice.
+        // If the program requests a new block and the allocator implementation returns the same memory
+        // address then we reuse this node and clear the flag.
+        //
+        // Not freeing nodes might accummulate some memory overhead. @TODO Provide a clear_freed_nodes() routine.
+        // Fragmentation is not a problem because we allocate nodes from a pool allocator.
+        //
+        bool Freed;
 
-        // We store a list of all allocations made, in order to look for leaks and check memory integrity.
-        // The list is sorted by the value of the pointer of the allocation (in increasing order).
-        // We use a lock-free linked list. Don't look at these pointers directly.
-        node *Head;
-        node *Tail;
+        // See note above about not getting the right info from the extern "C" versions and C++ operators new/delete.
+        // @TODO Remove this and instead save a call stack (optional!, that's a lot of info).
+        source_location FreedAt;
 
-        // After every allocation we check the heap for corruption.
-        // The problem is that this involves iterating over a (possibly) large linked list of every allocation made.
-        // We use the frequency variable below to specify how often we perform that expensive operation.
-        // By default we check the heap every 255 allocations, but if a problem is found you may want to decrease
-        // this to 1 so you catch the corruption at just the right time.
-        u8 MemoryVerifyHeapFrequency = 255;
-
-        // Set this to true to print a list of unfreed memory blocks when the library uninitializes.
-        bool CheckForLeaksAtTermination = false;
-
-        // Allocates starting sentinel values for the list.
-        // Called when allocating DEBUG_memory (e.g. in os.win32.common.cppm).
-        void init_list();
-
-        node *new_node(allocation_header *header, node *next);
-
-        // Returns Left - the node with the header immediately lower than _header_.
-        // Returns Rigth - the node containing _header_ if present, or its immediately higher value present in the list otherwise.
-        // Encountered nodes that are marked as logically deleted are physically removed from the list.
-        struct list_search_result {
-            node *Left, *Right;
-        };
-        list_search_result list_search(allocation_header *header);
-        bool list_contains(allocation_header *header);
-
-        struct list_add_result {
-            node *Node;
-            bool AlreadyPresent;
-        };
-        list_add_result list_add(allocation_header *header);
-
-        // Returns false if the header is not present.
-        // Doesn't physically remove the node, instead just marks it.
-        // Somebody else will search through the list and remove it physically (either by list_add or when we check the heap).
-        bool list_remove(allocation_header *header);
-
-        // Assuming that the heap is not corrupted, this reports any unfreed allocations.
-        // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
-        // which make EVEN program termination slow, we are just providing this information to the programmer because they might
-        // want to debug crashes/bugs related to memory.
-        void report_leaks();
-
-        // Verifies the integrity of headers in all allocations.
-        void verify_heap();
-
-        // See :MemoryVerifyHeapFrequency:
-        void maybe_verify_heap();
+        //
+        // When allocating a block the caller can mark it as a leak (using the LEAK allocation flag).
+        // See :AllocationFlags:
+        //
+        // That means that it doesn't get freed before the end of the program (since the OS claims back the memory anyway).
+        // When DEBUG_memory->CheckForLeaksAtTermination is set to true we log a list of unfreed allocations
+        // at termination. You can also call debug_memory_report_leaks().
+        //
+        // Blocks which have this flag don't get reported (they are "meant" to be "leaks").
+        //
+        bool MarkedAsLeak;
     };
 
-    debug_memory *DEBUG_memory;
+    // We store a per-thread list of allocations made, in order to look for leaks and check memory integrity
+    // (detect buffer under/overruns, modifying freed memory, freeing the same pointer twice, etc.).
+    //
+    // The list is doubly-linked and sorted by the value of the pointer of the allocation (in increasing order).
+    //
+    // We also detect if allocator implementations return overlapping blocks,
+    // which may happen if two allocators use the same pool, or the implementation itself has a bug.
+    //
+    //
+    // Overall we have a pretty robust and helpful debug memory model which not a lot of
+    // runtimes care to provide although its trivial to do these checks.
+    thread_local debug_memory_node *DebugMemoryHead, *DebugMemoryTail;
+
+    // Called when creating a new thread (e.g. in os.win32.common.cppm).
+    // Allocates starting sentinel values for the list and the pool for futher nodes.
+    void debug_memory_init();
+
+    // Called on thread exit. Calls debug_memory_report_leaks
+    // and deallocates any left-over memory.
+    void debug_memory_uninit();
+
+    // Returns true if the allocation is in this thread's list.
+    // e.g. this is used in array<T> to check for crossthread access
+    // which may result in errors because array<T> is not thread-safe.
+    bool debug_memory_list_contains(allocation_header * header);
+
+    // Assuming that the heap is not corrupted, this reports any unfreed allocations.
+    // Yes, the OS claims back all the memory the program has allocated anyway; we are not promoting
+    // C++ style RAII which make EVEN program termination slow. We give this information to the
+    // programmer because they might find that useful.
+    void debug_memory_report_leaks();
+
+    // Verifies the integrity of headers in all allocations.
+    void debug_memory_verify_heap();
+
+    // See :MemoryVerifyHeapFrequency:
+    void debug_memory_maybe_verify_heap();
 #endif
 
     //
@@ -546,7 +518,7 @@ export {
     // Here we provide a wrapper around the TLSF algorithm.
     // Here is how you can get a general purpose allocator:
     // - Allocate a large block with the OS allocator
-    // - Call allocator_add_pool on your TLSF.
+    // - Call tlsf_allocator_add_pool on your TLSF.
     // - Don't take this as boilerplate which you need to write so you can then use this general purpose
     //   allocator for everything. Once you go beyond the quick and dirty sketching of your code, look for
     //   places which can benefit from a more specialized allocator (arena allocator, pool allocator, etc.)
@@ -565,7 +537,45 @@ export {
     // * Low overhead per TLSF management of pools (~3kB)
     // * Low fragmentation
     //
-    void *tlsf_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
+    void *tlsf_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
+        assert(context);
+
+        auto *data = (tlsf_allocator_data *) context;
+
+        if (!data->State) {
+            assert(false && "No pools have been added yet! Add the first one with tlsf_allocator_add_pool().");
+            return null;
+        }
+
+        switch (mode) {
+            case allocator_mode::ALLOCATE:
+                return tlsf_malloc(data->State, size);
+            case allocator_mode::RESIZE:
+                return tlsf_resize(data->State, oldMemory, size);
+            case allocator_mode::FREE: {
+                tlsf_free(data->State, oldMemory);
+                return null;
+            }
+            case allocator_mode::FREE_ALL: {
+                assert(false);  // Some allocators can't support this by design
+                return null;
+            }
+        }
+        return null;
+    }
+
+    void tlsf_allocator_add_pool(tlsf_allocator_data * data, void *block, s64 size) {
+        if (!data->State) {
+            data->State = tlsf_create_with_pool(block, (u64) size);
+        } else {
+            tlsf_add_pool(data->State, block, (u64) size);
+        }
+    }
+
+    // Assumes the block exists
+    void tlsf_allocator_remove_pool(tlsf_allocator_data * data, void *block) {
+        tlsf_remove_pool(data->State, block);
+    }
 
     //
     // void *default_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *);
@@ -575,12 +585,10 @@ export {
     //
 
     struct arena_allocator_data {
-        // Linked list of pools, see lstd.arena_allocator for example usage of the helper routines we provide to manage this.
-        allocator_pool *Base = null;
+        void *Block = null;  // This should be supplied before using the allocator
+        s64 Size    = 0;
 
-        // Of course, you can implement an entirely different way to store pools in your custom allocator!
-        s64 PoolsCount = 0;
-        s64 TotalUsed  = 0;
+        s64 Used = 0;
     };
 
     //
@@ -592,9 +600,8 @@ export {
     // Note that free_all doesn't free the added pools, but instead resets their
     // pointers to the beginning of the buffer.
     //
-    // The arena allocator doesn't handle overflows (when no pool has enough space for an allocation).
-    // When out of memory, you should add another pool (with allocator_add_pool()) or provide a larger starting pool.
-    // See :BigPhilosophyTime: a bit higher up in this file.
+    // The arena allocator doesn't handle overflows (when the block doesn't have enough space for an allocation).
+    // When out of memory, you should provide another block.
     //
     // You should avoid adding many pools with this allocator because when we searh for empty
     // space we walk the entire linked list (we stop at the first pool which has empty space).
@@ -602,31 +609,143 @@ export {
     //
     // Be wary that if you have many pools performance will not be optimal.
     // In that case I suggest writing a specialized allocator.
-    void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
+    void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
+        auto *data = (arena_allocator_data *) context;
+
+        switch (mode) {
+            case allocator_mode::ALLOCATE: {
+                if (data->Used + size >= data->Size) return null;  // Not enough space
+
+                void *result = (byte *) data->Block + data->Used;
+                data->Used += size;
+                return result;
+            }
+            case allocator_mode::RESIZE: {
+                void *p = (byte *) data->Block + data->Used - oldSize;
+                if (oldMemory == p) {
+                    // We can resize only if it's the last allocation
+                    data->Used += size - oldSize;
+                    return oldMemory;
+                }
+                return null;
+            }
+            case allocator_mode::FREE: {
+                // We don't free individual allocations in the arena allocator
+                return null;
+            }
+            case allocator_mode::FREE_ALL: {
+                data->Used = 0;
+                return null;
+            }
+        }
+        return null;
+    }
+
+    // Hack, the default constructor would otherwise zero init the debug memory pool's members,
+    // which is set before global constructors run. Similar thing happens with context.
+    struct pool_allocator_dont_init_t {};
 
     //
-    // :TemporaryAllocator: See context.h
+    // Pool allocator.
     //
-    // This is an extension to the arena allocator, things that are different:
-    // * This allocator is not initialized by default but the first allocation you do with it adds a
-    //   starting pool (of size 8_KiB). You can initialize it yourself in a given thread by calling
-    //   _allocator_add_pool()_ yourself.
-    // * When you try to allocate a block but there is no available space, this automatically adds another
-    //   pool (and prints a warning to the console).
+    // A variation of the fast bump arena allocator.
+    // Allows O(1) allocation and freeing of individual elements.
     //
-    // We store an arena allocator in the Context that is meant to be used as temporary storage.
-    // It can be used to allocate memory that is not meant to last long (e.g. converting utf8 to wchar
-    // to pass to a windows call).
+    // The limitation is that each allocation must have the same predefined size.
     //
-    // If you are programming a game and you need to do some calculations each frame,
-    // using this allocator means having the freedom of dynamically allocating without
-    // compromising performance. At the end of the frame when the memory is no longer
-    // used you call free_all(TemporaryAllocator) (which is extremely cheap - bumps a single pointer).
+    // This allocator is useful for managing a bunch of objects of the same type.
     //
-    // We print warnings when allocating new pools. Use that as a guide to see when you need
-    // to pay more attention: perhaps increase the starting pool size or call free_all() more often.
-    //
-    void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
+    struct pool_allocator_data {
+        s64 ElementSize;  // You must set this before using the allocator
+
+        struct block {
+            block *Next;
+            s64 Size;
+        };
+
+        block *Base;
+
+        struct chunk {
+            chunk *Next;
+        };
+        chunk *FreeList;
+
+        pool_allocator_data() : ElementSize(0), Base(null), FreeList(null) {}
+        pool_allocator_data(pool_allocator_dont_init_t) {}
+    };
+
+#if defined DEBUG_MEMORY
+    thread_local pool_allocator_data DebugMemoryNodesPool = pool_allocator_data(pool_allocator_dont_init_t{});
+#endif
+
+    void pool_allocator_add_free_chunks(pool_allocator_data * data, void *block, s64 size) {
+        auto *c = (pool_allocator_data::chunk *) block;
+
+        auto *oldFreeList = data->FreeList;
+        data->FreeList    = c;
+
+        For(range(size / data->ElementSize - 1)) {
+            c->Next = (pool_allocator_data::chunk *) ((byte *) c + data->ElementSize);
+            c       = c->Next;
+        }
+
+        c->Next = oldFreeList;
+    }
+
+    // Use this to provide more space in the pool allocator. Also inits the first block.
+    // Size needs to be multiple of _ElementSize_ + sizeof(allocator_pool_data::block).
+    // We avoid allocating a seperate linked list but use the first few bytes of _block_ as a header.
+    void pool_allocator_provide_block(pool_allocator_data * data, void *block, s64 size) {
+        assert(size >= (s64) sizeof(pool_allocator_data::block) + data->ElementSize);
+        assert(data->ElementSize > 0);
+
+        auto *b = (pool_allocator_data::block *) block;
+        b->Size = size - sizeof(pool_allocator_data::block);
+        assert(b->Size % data->ElementSize == 0);
+
+        b->Next    = data->Base;
+        data->Base = b;
+
+        pool_allocator_add_free_chunks(data, b + 1, b->Size);
+    }
+
+    void *pool_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
+        auto *data = (pool_allocator_data *) context;
+
+        switch (mode) {
+            case allocator_mode::ALLOCATE: {
+                assert(size == data->ElementSize);
+
+                if (data->FreeList) {
+                    auto *block    = data->FreeList;
+                    data->FreeList = block->Next;
+                    return block;
+                }
+                return null;
+            }
+            case allocator_mode::RESIZE: {
+                assert(false && "Can't do that");
+                return null;
+            }
+            case allocator_mode::FREE: {
+                auto *c        = (pool_allocator_data::chunk *) oldMemory;
+                c->Next        = data->FreeList;
+                data->FreeList = c;
+                return null;
+            }
+            case allocator_mode::FREE_ALL: {
+                data->FreeList = null;
+
+                auto *b = data->Base;
+                while (b) {
+                    pool_allocator_add_free_chunks(data, b + 1, b->Size);
+                    b = b->Next;
+                }
+                return null;
+            }
+        }
+        return null;
+    }
 
     // These handle alignment, populating the allocation header and debug memory stuff.
     void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options, source_location loc);
@@ -738,82 +857,6 @@ requires(!types::is_const<T>) void lstd_free_impl(T *block, u64 options, source_
     //} else {
     general_free(block, options, loc);
     // }
-}
-
-//
-// Allocators don't ever request memory from the OS but instead require the programmer to have already passed
-// a block of memory (a pool) which they divide into smaller allocations. The pool may be allocated by another allocator
-// or os_allocate_block(). There is a reason we want to be explicit about this.
-// See comment beginning with :BigPhilosophyTime: a bit further down in this file.
-//
-void allocator_add_pool(allocator alloc, void *block, s64 size, u64 options) {
-    if (size <= sizeof(allocator_pool)) {
-        assert(false && "Block is too small");
-        return;
-    }
-
-    auto *pool = alloc.Function(allocator_mode::ADD_POOL, alloc.Context, size, block, 0, options);
-    assert(pool == block && "Add pool failed");
-}
-
-// Should trip an assert if the block doesn't exist in the allocator's pool
-void allocator_remove_pool(allocator alloc, void *block, u64 options) {
-    auto *result = alloc.Function(allocator_mode::REMOVE_POOL, alloc.Context, 0, block, 0, options);
-    assert(result == block && "Remove pool failed");
-}
-
-bool allocator_pool_initialize(void *block, s64 size) {
-    if (size <= sizeof(allocator_pool)) {
-        assert(false && "Block is too small");
-        return false;
-    }
-
-    auto *pool = (allocator_pool *) block;
-    pool->Next = null;
-    pool->Size = size - sizeof(allocator_pool);
-    pool->Used = 0;
-    return true;
-}
-
-void allocator_pool_add_to_linked_list(allocator_pool **base, allocator_pool *pool) {
-    // @Cleanup Make macros for linked lists.
-    // Then we can get rid of this function as well.
-    if (!*base) {
-        *base = pool;
-    } else {
-        auto *it = *base;
-        while (it->Next) it = it->Next;
-        it->Next = pool;
-    }
-}
-
-void *allocator_pool_remove_from_linked_list(allocator_pool **base, allocator_pool *pool) {
-    // @Cleanup Make macros for linked lists.
-    // Then we can get rid of this function as well.
-
-    if (!*base) {
-        assert(false && "No pools have been added yet");
-        return null;
-    }
-
-    allocator_pool *it = *base, *prev = null;
-    while (it != pool && it->Next) {
-        prev = it;
-        it   = it->Next;
-    }
-
-    if (it != pool) {
-        assert(false && "Pool with this address was not found in this allocator's pool list");
-        return null;
-    }
-
-    if (prev) {
-        prev->Next = it->Next;
-    } else {
-        *base = (*base)->Next;
-    }
-
-    return it;
 }
 
 LSTD_END_NAMESPACE

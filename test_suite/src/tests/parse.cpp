@@ -87,7 +87,7 @@ TEST(guid) {
     auto formats = make_stack_array('n', 'N', 'd', 'D', 'b', 'B', 'p', 'P', 'x', 'X');
 
     // Random stuff we will append after the string to check _rest_
-    auto garbage = make_stack_array<string>("", "--", ")()-", "0xff and cafef00d and deadbeef");
+    auto garbage = make_stack_array("", "--", ")()-", "0xff and cafef00d and deadbeef");
 
     For_as(f, formats) {
         For_as(g, garbage) {
@@ -100,7 +100,7 @@ TEST(guid) {
             auto [parsed, status, rest] = parse_guid(guidFormatted);
             assert_eq(guid, parsed);
             assert_eq(status, PARSE_SUCCESS);
-            assert_eq(rest, g);
+            assert_eq(rest, string(g));
         }
     }
 }

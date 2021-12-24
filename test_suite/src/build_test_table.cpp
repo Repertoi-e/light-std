@@ -5,7 +5,7 @@
 //
 
 void build_test_table() {
-    make_dynamic(g_TestTable[string("bits.cpp")], 2);
+    make_dynamic(get(&g_TestTable, string("bits.cpp")), 2);
     extern void test_msb();
     add(g_TestTable[string("bits.cpp")], test{"msb", test_msb});
     extern void test_lsb();
@@ -180,5 +180,4 @@ void build_test_table() {
     add(g_TestTable[string("thread.cpp")], test{"condition_variable", test_condition_variable});
     extern void test_context();
     add(g_TestTable[string("thread.cpp")], test{"context", test_context});
-
 }

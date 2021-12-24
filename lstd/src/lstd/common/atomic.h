@@ -42,13 +42,17 @@ always_inline constexpr T atomic_swap(T *ptr, T value) {
     if constexpr (sizeof(T) == 8) return (T) _InterlockedExchange64((volatile long long *) ptr, (long long) value);
 }
 
-// Returns the old value in _ptr_, exchanges values only if the old value is equal to comperand.
-// You can use this for a safe way to read a value, e.g. atomic_compare_and_swap(&value, 0, 0)
+// Returns the old value in _ptr_, exchanges values only if the old value is equal to _oldValue_.
+// You can use this for a safe way to read a value, e.g. atomic_compare_and_swap(&value, 0, 0).
+//
+// It's also exceedingly useful for implementing lock-free algorithms and data structures.
+//
+// Note: ABA problem. Check it out.
 template <appropriate_for_atomic T>
-always_inline constexpr T atomic_compare_and_swap(T *ptr, T exchange, T comperand) {
-    if constexpr (sizeof(T) == 2) return (T) _InterlockedCompareExchange16((volatile short *) ptr, (short) exchange, (short) comperand);
-    if constexpr (sizeof(T) == 4) return (T) _InterlockedCompareExchange((volatile long *) ptr, (long) exchange, (long) comperand);
-    if constexpr (sizeof(T) == 8) return (T) _InterlockedCompareExchange64((volatile long long *) ptr, (long long) exchange, (long long) comperand);
+always_inline constexpr T atomic_compare_and_swap(T *ptr, T oldValue, T newValue) {
+    if constexpr (sizeof(T) == 2) return (T) _InterlockedCompareExchange16((volatile short *) ptr, (short) newValue, (short) oldValue);
+    if constexpr (sizeof(T) == 4) return (T) _InterlockedCompareExchange((volatile long *) ptr, (long) newValue, (long) oldValue);
+    if constexpr (sizeof(T) == 8) return (T) _InterlockedCompareExchange64((volatile long long *) ptr, (long long) newValue, (long long) oldValue);
 }
 #else
 #define atomic_inc(ptr) __sync_add_and_fetch((ptr), 1)

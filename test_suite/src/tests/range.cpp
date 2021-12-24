@@ -2,10 +2,10 @@
 
 template <typename U, s64 N>
 void test_expected(stack_array<U, N> expected, s64 start, s64 stop, s64 step = 1) {
-    array<s64> result;
+    array<U> result;
     make_dynamic(&result, 8);
 
-    For(range(start, stop, step)) add(&result, it);
+    For(range(start, stop, step)) add(&result, (U) it);
     assert_eq(result, expected);
     free(result.Data);
 }

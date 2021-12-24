@@ -108,6 +108,11 @@ big_integer bigint_pow10(s32 exp) {
     return b;
 }
 
+bool is_digit_in_valid_range(big_integer* b) {
+    if (b->Size == 0) return true;
+    return b->Size == 1 && b->Digits[0] < 10;
+}
+
 //
 // -- The original comment from numpy's source:
 // This implementation is essentially a port of the "Figure 3" Scheme code from
@@ -226,9 +231,8 @@ export void dragon4_format_float(char *b, s64 *outWritten, s32 *outExp, s32 prec
             auto [digit, mod] = divmod(numerator, denominator);
             numerator         = mod;
 
-            // Debug uses more memory now, lmao. Hope this is fine.
-            assert(digit.Size == 1 && digit.Digits[0] < 10);
-            u32 outputDigit = digit.Digits[0];
+            assert(is_digit_in_valid_range(&digit));
+            u32 outputDigit = digit.Size ? digit.Digits[0] : 0;
 
             bool low  = compare(numerator, lower) - even < 0;
             bool high = compare(numerator + *upper, denominator) + even > 0;
@@ -288,8 +292,8 @@ export void dragon4_format_float(char *b, s64 *outWritten, s32 *outExp, s32 prec
         auto [digit, mod] = divmod(numerator, denominator);
         numerator         = mod;
 
-        assert(digit.Size == 1 && digit.Digits[0] < 10);
-        u32 outputDigit = digit.Digits[0];
+        assert(is_digit_in_valid_range(&digit));
+        u32 outputDigit = digit.Size ? digit.Digits[0] : 0;
 
         b[it] = '0' + outputDigit;
 
@@ -300,8 +304,8 @@ export void dragon4_format_float(char *b, s64 *outWritten, s32 *outExp, s32 prec
     auto [digit, mod] = divmod(numerator, denominator);
     numerator         = mod;
 
-    assert(digit.Size == 1 && digit.Digits[0] < 10);
-    u32 outputDigit = digit.Digits[0];
+    assert(is_digit_in_valid_range(&digit));
+    u32 outputDigit = digit.Size ? digit.Digits[0] : 0;
 
     s64 cmp = compare(numerator * cast_big(2), denominator);
     if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {

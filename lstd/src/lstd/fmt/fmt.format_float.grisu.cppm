@@ -275,19 +275,24 @@ export s32 grisu_format_float(string_builder *floatBuffer, types::is_floating_po
         // to be generated, and dragon4 expects that.
 
         // We do big integer operations which require dynamic memory.
-        // We are sure they are not as big though so we can allocate them on the stack.
-
+        // They will not be big though so we can use "dynamic memory on the stack" like this:
         arena_allocator_data stackAllocData;
         allocator stackAlloc = {arena_allocator, &stackAllocData};
 
-        constexpr s64 BUFFER_SIZE = 2_KiB;
+        constexpr s64 BUFFER_SIZE = 512_KiB;
+        static u8 buffer[BUFFER_SIZE];
 
-        u8 buffer[BUFFER_SIZE];
-        allocator_add_pool(stackAlloc, buffer, BUFFER_SIZE);
+        stackAllocData.Block = buffer;
+        stackAllocData.Size  = BUFFER_SIZE;
 
         PUSH_ALLOC(stackAlloc) {
             dragon4_format_float(buf, &written, &exp, state.Precision, v);
         }
+
+        // Not needed but this marks the allocations in DEBUG_MEMORY linked list as freed.
+        // @TODO: Have a way to specify that allocators don't require headers,
+        // which are a giant waste of space for e.g. arena allocators.
+        free_all(stackAlloc);
 
         // No need to free, alloc is on the stack
 

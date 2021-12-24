@@ -196,30 +196,6 @@ void report_warning_no_allocations(string message) {
     WriteFile(S->CerrHandle, postMessage.Data, (DWORD) postMessage.Count, &ignored, null);
 }
 
-extern "C" bool lstd_init_global();
-
-// This zeroes out the global variables (stored in State) and initializes the mutexes
-void init_global_vars() {
-    zero_memory(&State, sizeof(win32_common_state));
-
-    platform_init_allocators();
-
-    // Init mutexes
-    S->CinMutex          = create_mutex();
-    S->CoutMutex         = create_mutex();
-    S->ExitScheduleMutex = create_mutex();
-    S->WorkingDirMutex   = create_mutex();
-#if defined DEBUG_MEMORY
-    // @Cleanup
-    if (lstd_init_global()) {
-        DEBUG_memory = malloc<debug_memory>({.Alloc = PERSISTENT});  // @Leak This is ok
-        DEBUG_memory->init_list();
-    } else {
-        DEBUG_memory = null;
-    }
-#endif
-}
-
 void setup_console() {
     if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
         AllocConsole();
@@ -304,19 +280,39 @@ export {
     // See windows_common.cpp for implementation details.
     // Note: You shouldn't ever call this.
     void platform_init_context() {
-        context newContext  = {};
-        newContext.ThreadID = GetCurrentThreadId();
-        newContext.Log      = &cout;
+        auto newContext                 = context(context_dont_init_t{});
+        newContext.ThreadID             = GetCurrentThreadId();
+        newContext.Alloc                = {};
+        newContext.AllocAlignment       = POINTER_SIZE;
+        newContext.AllocOptions         = 0;
+        newContext.LogAllAllocations    = false;
+        newContext.PanicHandler         = default_panic_handler;
+        newContext.Log                  = &cout;
+        newContext.FmtDisableAnsiCodes  = false;
+        newContext.FmtParseErrorHandler = fmt_default_parse_error_handler;
+        newContext._HandlingPanic       = false;
+        newContext._LoggingAnAllocation = false;
         OVERRIDE_CONTEXT(newContext);
 
-        *const_cast<allocator *>(&TemporaryAllocator) = {default_temp_allocator, (void *) &TemporaryAllocatorData};
+        *const_cast<allocator *>(&TemporaryAllocator) = {arena_allocator, (void *) &TemporaryAllocatorData};
     }
 
     //
     // Initializes the state we need to function.
     //
     void platform_init_global_state() {
-        init_global_vars();
+        zero_memory(&State, sizeof(win32_common_state));
+
+        S->CinMutex          = create_mutex();
+        S->CoutMutex         = create_mutex();
+        S->ExitScheduleMutex = create_mutex();
+        S->WorkingDirMutex   = create_mutex();
+
+        platform_init_allocators();
+
+#if defined DEBUG_MEMORY
+        debug_memory_init();
+#endif
 
         setup_console();
 
@@ -331,25 +327,13 @@ export {
     // Reports leaks, uninitializes mutexes.
     //
     void platform_uninit_state() {
-#if defined DEBUG_MEMORY
-        if (lstd_init_global()) {
-        } else {
-            // Now we check for memory leaks.
-            // Yes, the OS claims back all the memory the program has allocated anyway, and we are not promoting C++ style RAII
-            // which make even program termination slow, we are just providing this information to the user because they might
-            // want to load/unload DLLs during the runtime of the application, and those DLLs might use all kinds of complex
-            // cross-boundary memory stuff things, etc. This is useful for debugging crashes related to that.
-            if (DEBUG_memory->CheckForLeaksAtTermination) {
-                DEBUG_memory->report_leaks();
-            }
-        }
-#endif
-
         // Uninit mutexes
         free_mutex(&S->CinMutex);
         free_mutex(&S->CoutMutex);
         free_mutex(&S->ExitScheduleMutex);
         free_mutex(&S->WorkingDirMutex);
+
+        platform_uninit_allocators();
     }
 }
 
@@ -365,6 +349,7 @@ void exit(s32 exitCode) {
 }
 
 void abort() {
+    // Don't do any cleanup, just exit
     ExitProcess(3);
 }
 

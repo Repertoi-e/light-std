@@ -101,7 +101,7 @@ void append(string_builder *builder, const char *data, s64 size) {
 
 [[nodiscard("Leak")]] string builder_to_string(string_builder *builder) {
     string result;
-    resize(&result, (builder->IndirectionCount + 1) * builder->BUFFER_SIZE);
+    make_dynamic(&result, (builder->IndirectionCount + 1) * builder->BUFFER_SIZE);
 
     auto *b = &builder->BaseBuffer;
     while (b) {

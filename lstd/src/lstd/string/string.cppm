@@ -52,12 +52,13 @@ export {
             Index  = translate_index(index, string_length(*s));
         }
 
+        // @TODO: constexpr
         code_point_ref &operator=(code_point other) {
             string_set(String, Index, other);
             return *this;
         }
 
-        constexpr operator code_point() { return utf8_decode_cp(utf8_get_pointer_to_cp_at_translated_index(String->Data, String->Count, Index)); }
+        constexpr operator code_point() const { return utf8_decode_cp(utf8_get_pointer_to_cp_at_translated_index(String->Data, String->Count, Index)); }
     };
 
     // We return a special structure that allows assigning a new code point.
@@ -219,6 +220,9 @@ export {
     //   1 if _b_ is before _a_
     constexpr s32 string_compare_lexicographically_ignore_case(string a, string b);
 
+    constexpr s32 strings_match(string a, string b) { return string_compare(a, b) == -1; }
+    constexpr s32 strings_match_ignore_case(string a, string b) { return string_compare_ignore_case(a, b) == -1; }
+
     // Returns true if _s_ begins with _str_
     constexpr bool match_beginning(string s, string str);
 
@@ -229,7 +233,7 @@ export {
     constexpr string trim_start(string s) { return substring(s, string_find_not_any_of(s, " \n\r\t\v\f"), string_length(s)); }
 
     // Returns a substring with white space removed at the end
-    constexpr string trim_end(string s) { return substring(s, 0, string_find_not_any_of(s, " \n\r\t\v\f", string_length(s), true) + 1); }
+    constexpr string trim_end(string s) { return substring(s, 0, string_find_not_any_of(s, " \n\r\t\v\f", -1, true) + 1); }
 
     // Returns a substring with white space removed from both sides
     constexpr string trim(string s) { return trim_end(trim_start(s)); }
@@ -265,13 +269,6 @@ export {
 
     auto begin(const string &str) { return string_iterator<true>(&str, 0); }
     auto end(const string &str) { return string_iterator<true>(&str, string_length(str)); }
-
-    // Hashing strings...
-    u64 get_hash(string value) {
-        u64 hash        = 5381;
-        For(value) hash = ((hash << 5) + hash) + it;
-        return hash;
-    }
 }
 
 constexpr code_point string_get(const string &str, s64 index) {
@@ -296,7 +293,7 @@ constexpr code_point string_get(const string &str, s64 index) {
 
 constexpr string substring(string str, s64 begin, s64 end) {
     s64 length     = string_length(str);
-    s64 beginIndex = translate_index(begin, length);
+    s64 beginIndex = translate_index(begin, length, true);
     s64 endIndex   = translate_index(end, length, true);
 
     const char *beginPtr = utf8_get_pointer_to_cp_at_translated_index(str.Data, str.Count, beginIndex);
@@ -307,8 +304,6 @@ constexpr string substring(string str, s64 begin, s64 end) {
 
     return string((char *) beginPtr, (s64) (endPtr - beginPtr));
 }
-
-constexpr bool operator==(string one, const char *other) { return string_compare(one, string(other)) == -1; }
 
 constexpr bool match_beginning(string s, string str) {
     if (str.Count > s.Count) return false;
@@ -325,7 +320,7 @@ constexpr bool match_end(string s, string str) {
 s64 string_find(string str, delegate<bool(code_point)> predicate, s64 start, bool reversed) {
     if (!str.Data || str.Count == 0) return -1;
     s64 length = string_length(str);
-    start      = translate_index(start, length);
+    start      = translate_index(start, length, true);
     For(range(start, reversed ? -1 : length, reversed ? -1 : 1)) if (predicate(string_get(str, it))) return it;
     return -1;
 }
@@ -333,7 +328,7 @@ s64 string_find(string str, delegate<bool(code_point)> predicate, s64 start, boo
 constexpr s64 string_find(string str, code_point search, s64 start, bool reversed) {
     if (!str.Data || str.Count == 0) return -1;
     s64 length = string_length(str);
-    start      = translate_index(start, length);
+    start      = translate_index(start, length, true);
     For(range(start, reversed ? -1 : length, reversed ? -1 : 1)) if (string_get(str, it) == search) return it;
     return -1;
 }
@@ -343,8 +338,7 @@ constexpr s64 string_find(string str, string search, s64 start, bool reversed) {
     if (!search.Data || search.Count == 0) return -1;
 
     s64 length = string_length(str);
-    start      = translate_index(start, length);
-    start      = translate_index(start, string_length(str));
+    start      = translate_index(start, length, true);
 
     s64 searchLength = string_length(search);
 
@@ -368,7 +362,7 @@ constexpr bool string_has(string str, code_point cp) {
 constexpr s64 string_find_any_of(string str, string allowed, s64 start, bool reversed) {
     if (!str.Data || str.Count == 0) return -1;
     s64 length = string_length(str);
-    start      = translate_index(start, length);
+    start      = translate_index(start, length, true);
     For(range(start, reversed ? -1 : length, reversed ? -1 : 1)) if (string_has(allowed, string_get(str, it))) return it;
     return -1;
 }
@@ -376,7 +370,7 @@ constexpr s64 string_find_any_of(string str, string allowed, s64 start, bool rev
 constexpr s64 string_find_not(string str, code_point search, s64 start, bool reversed) {
     if (!str.Data || str.Count == 0) return -1;
     s64 length = string_length(str);
-    start      = translate_index(start, length);
+    start      = translate_index(start, length, true);
     For(range(start, reversed ? -1 : length, reversed ? -1 : 1)) if (string_get(str, it) != search) return it;
     return -1;
 }
@@ -384,7 +378,7 @@ constexpr s64 string_find_not(string str, code_point search, s64 start, bool rev
 constexpr s64 string_find_not_any_of(string str, string banned, s64 start, bool reversed) {
     if (!str.Data || str.Count == 0) return -1;
     s64 length = string_length(str);
-    start      = translate_index(start, length);
+    start      = translate_index(start, length, true);
     For(range(start, reversed ? -1 : length, reversed ? -1 : 1)) if (!string_has(banned, string_get(str, it))) return it;
     return -1;
 }
@@ -466,6 +460,8 @@ constexpr s32 string_compare_lexicographically_ignore_case(string a, string b) {
 }
 
 void string_set(string *str, s64 index, code_point cp) {
+    index = translate_index(index, string_length(*str));
+
     const char *target = utf8_get_pointer_to_cp_at_translated_index(str->Data, str->Count, index);
 
     char encodedCp[4];
@@ -482,8 +478,11 @@ void string_set(string *str, s64 index, code_point cp) {
 }
 
 void string_insert_at_index(string *s, s64 index, const char *str, s64 size) {
-    index = translate_index(index, string_length(*s));
-    insert_pointer_and_size_at_index(s, index, str, size);
+    index = translate_index(index, string_length(*s), true);
+
+    auto *t = utf8_get_pointer_to_cp_at_translated_index(s->Data, s->Count, index);
+
+    insert_pointer_and_size_at_index(s, t - s->Data, str, size);
 }
 
 void string_insert_at_index(string *s, s64 index, string str) { string_insert_at_index(s, index, str.Data, str.Count); }
@@ -496,7 +495,7 @@ void string_insert_at_index(string *s, s64 index, code_point cp) {
 
 void string_append(string *str, const char *ptr, s64 size) { insert_pointer_and_size_at_index(str, str->Count, ptr, size); }
 
-void string_append(string *str, string s) { insert_at_index(str, str->Count, s); }
+void string_append(string *str, string s) { insert_pointer_and_size_at_index(str, str->Count, s.Data, s.Count); }
 void string_append(string *str, code_point cp) { string_insert_at_index(str, string_length(*str), cp); }
 
 bool string_remove(string *s, code_point cp) {
@@ -524,7 +523,7 @@ void string_remove_range(string *s, s64 begin, s64 end) {
     s64 length = string_length(*s);
 
     begin = translate_index(begin, length);
-    end   = translate_index(end, length);
+    end   = translate_index(end, length, true);
 
     auto *tb = utf8_get_pointer_to_cp_at_translated_index(s->Data, s->Count, begin);
     auto *te = utf8_get_pointer_to_cp_at_translated_index(s->Data, s->Count, end);

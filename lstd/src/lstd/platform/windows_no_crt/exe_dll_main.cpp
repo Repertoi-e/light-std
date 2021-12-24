@@ -7,6 +7,7 @@
 #include "lstd/platform/windows.h"  // For definitions
 
 import lstd.os;
+import lstd.context;
 
 #if OS != WINDOWS
 #error LSTD_NO_CRT is Windows-only
@@ -151,8 +152,13 @@ void platform_state_init() {
     // This prepares the global thread-local immutable Context variable (see lstd.context)
     LSTD_NAMESPACE::platform_init_context();
 
+    // Rest of stuff we need
     LSTD_NAMESPACE::platform_init_global_state();
     LSTD_NAMESPACE::win32_crash_handler_init();
+}
+
+extern "C" {
+void *MainContext;
 }
 
 //
@@ -179,6 +185,9 @@ extern "C" void main_no_crt() {
         return;
     }
     lstd_initterm(__xc_a, __xc_z);
+
+    // We do this to avoid reinitializing in __dyn_tls_init (in tlsdyn.cpp)
+    MainContext = (void *) &LSTD_NAMESPACE::Context;
 
     // * If this module has any dynamically initialized __declspec(thread) (thread local) variables,
     // * then we invoke their initialization for the primary thread used to start the process:

@@ -99,7 +99,7 @@ export {
     // Find the first occurence of an element which matches the predicate and is after a specified index.
     // Predicate must take a single argument (the current element) and return if it matches.
     template <any_array_like Arr>
-    constexpr s64 find(const Arr &arr, const delegate<bool(const array_data_t<Arr> &)> &predicate, s64 start = 0, bool reversed = false) {
+    s64 find(Arr ref arr, delegate<bool(array_data_t<Arr> ref)> predicate, s64 start = 0, bool reversed = false) {
         if (!arr.Data || arr.Count == 0) return -1;
         start = translate_index(start, arr.Count);
         For(range(start, reversed ? -1 : arr.Count, reversed ? -1 : 1)) if (predicate(arr.Data[it])) return it;
@@ -108,7 +108,7 @@ export {
 
     // Find the first occurence of an element that is after a specified index, compares elements using ==
     template <any_array_like Arr>
-    constexpr s64 find(const Arr &arr, const array_data_t<Arr> &search, s64 start = 0, bool reversed = false) {
+    constexpr s64 find(Arr ref arr, array_data_t<Arr> ref search, s64 start = 0, bool reversed = false) {
         if (!arr.Data || arr.Count == 0) return -1;
         start = translate_index(start, arr.Count);
         For(range(start, reversed ? -1 : arr.Count, reversed ? -1 : 1)) if (arr.Data[it] == search) return it;
@@ -116,7 +116,7 @@ export {
     }
 
     // Find the first occurence of a subarray that is after a specified index, compares elements using ==
-    constexpr s64 find(const any_array_like auto &arr, const any_array_like auto &search, s64 start = 0, bool reversed = false) {
+    constexpr s64 find(any_array_like auto ref arr, any_array_like auto ref search, s64 start = 0, bool reversed = false) {
         if (!arr.Data || arr.Count == 0) return -1;
         if (!search.Data || search.Count == 0) return -1;
         start = translate_index(start, arr.Count);
@@ -134,7 +134,7 @@ export {
     }
 
     // Find the first occurence of any element in the specified subarray that is after a specified index
-    constexpr s64 find_any_of(const any_array_like auto &arr, const any_array_like auto &allowed, s64 start = 0, bool reversed = false) {
+    constexpr s64 find_any_of(any_array_like auto ref arr, any_array_like auto ref allowed, s64 start = 0, bool reversed = false) {
         if (!arr.Data || arr.Count == 0) return -1;
         if (!allowed.Data || allowed.Count == 0) return -1;
         start = translate_index(start, arr.Count);
@@ -144,7 +144,7 @@ export {
 
     // Find the first absence of an element that is after a specified index, compares elements using ==
     template <any_array_like Arr>
-    constexpr s64 find_not(const Arr &arr, const array_data_t<Arr> &element, s64 start = 0, bool reversed = false) {
+    constexpr s64 find_not(Arr ref arr, array_data_t<Arr> ref element, s64 start = 0, bool reversed = false) {
         if (!arr.Data || arr.Count == 0) return -1;
         start = translate_index(start, arr.Count);
         For(range(start, reversed ? -1 : arr.Count, reversed ? -1 : 1)) if (!(arr.Data[it] == element)) return it;
@@ -152,7 +152,7 @@ export {
     }
 
     // Find the first absence of any element in the specified subarray that is after a specified index
-    constexpr s64 find_not_any_of(const any_array_like auto &arr, const any_array_like auto &banned, s64 start = 0, bool reversed = false) {
+    constexpr s64 find_not_any_of(any_array_like auto ref arr, any_array_like auto ref banned, s64 start = 0, bool reversed = false) {
         if (!arr.Data || arr.Count == 0) return -1;
         if (!banned.Data || banned.Count == 0) return -1;
         start = translate_index(start, arr.Count);
@@ -162,7 +162,7 @@ export {
 
     // Checks if _item_ is contained in the array
     template <any_array_like Arr>
-    constexpr bool has(const Arr &arr, const array_data_t<Arr> &item) { return find(arr, item) != -1; }
+    constexpr bool has(Arr ref arr, array_data_t<Arr> ref item) { return find(arr, item) != -1; }
 
     //
     // Compare functions for arrays:
@@ -171,14 +171,14 @@ export {
     // Compares this array to _arr_ and returns the index of the first element that is different.
     // If the arrays are equal, the returned value is -1.
     // @Speed @TODO A simple memcmp for scalars is sufficient and way faster
-    template <any_array_like Arr1, any_array_like Arr2>
-    requires types::is_same<array_data_t<Arr1>, array_data_t<Arr2>>
-    constexpr s64 compare(const Arr1 &arr1, const Arr2 &arr2) {
+    constexpr s64 compare(any_array_like auto ref arr1, any_array_like auto ref arr2) {
         if (!arr1.Count && !arr2.Count) return -1;
         if (!arr1.Count || !arr2.Count) return 0;
 
-        auto *s1 = arr1.Data, *s2 = arr2.Data;
-        auto *end1 = arr1.Data + arr1.Count, *end2 = arr2.Data + arr2.Count;
+        auto *s1   = arr1.Data;
+        auto *s2   = arr2.Data;
+        auto *end1 = arr1.Data + arr1.Count;
+        auto *end2 = arr2.Data + arr2.Count;
         while (*s1 == *s2) {
             ++s1, ++s2;
             if (s1 == end1 && s2 == end2) return -1;
@@ -191,15 +191,15 @@ export {
     // Compares this array to to _arr_ lexicographically.
     // The result is -1 if this array sorts before the other, 0 if they are equal, and +1 otherwise.
     // @Speed @TODO A simple memcmp for scalars is sufficient and way faster
-    template <any_array_like Arr1, any_array_like Arr2>
-    requires types::is_same<array_data_t<Arr1>, array_data_t<Arr2>>  // Require that the underlying types are the same
-    constexpr s32 compare_lexicographically(const Arr1 &arr1, const Arr2 &arr2) {
+    constexpr s32 compare_lexicographically(any_array_like auto ref arr1, any_array_like auto ref arr2) {
         if (!arr1.Count && !arr2.Count) return 0;
         if (!arr1.Count) return -1;
         if (!arr2.Count) return 1;
 
-        auto *s1 = arr1.Data, *s2 = arr2.Data;
-        auto *end1 = arr1.Data + arr1.Count, *end2 = arr2.Data + arr2.Count;
+        auto *s1   = arr1.Data;
+        auto *s2   = arr2.Data;
+        auto *end1 = arr1.Data + arr1.Count;
+        auto *end2 = arr2.Data + arr2.Count;
         while (*s1 == *s2) {
             ++s1, ++s2;
             if (s1 == end1 && s2 == end2) return 0;
@@ -209,16 +209,7 @@ export {
         return *s1 < *s2 ? -1 : 1;
     }
 
-    //
-    // Comparison operator, implements <, <=, ==, !=, >=, >
-    //
-    // template <any_array_like Arr1, any_array_like Arr2>
-    // requires types::is_same<array_data_t<Arr1>, array_data_t<Arr2>>  // Require that the underlying types are//  the same
-    // constexpr auto operator<=>(const Arr1 &arr1, const Arr2 &arr2) { return compare_lexicographically(arr1,//  arr2); }
-
-    // Require that the underlying types are//  the same
-    template <any_array_like Arr1, any_array_like Arr2>
-    constexpr auto operator<=>(const Arr1 &arr1, const Arr2 &arr2) { return compare_lexicographically(arr1, arr2); }
+    constexpr bool arrays_match(any_array_like auto ref arr1, any_array_like auto ref arr2) { return compare(arr1, arr2) == -1; }
 }
 
 LSTD_END_NAMESPACE

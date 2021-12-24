@@ -11,119 +11,6 @@ import lstd.os;
 
 LSTD_BEGIN_NAMESPACE
 
-#if defined DEBUG_MEMORY
-
-/*
- * The five following functions handle the low-order mark bit that indicates
- * whether a node is logically deleted (1) or not (0).
- *  - is_marked_ref returns whether it is marked, 
- *  - (un)set_marked changes the mark,
- *  - get_(un)marked_ref sets the mark before returning the node.
- */
-
-bool is_marked_ref(void *i) { return ((u64) i) & 0x1LL; }
-void *get_unmarked_ref(void *w) { return (void *) (((u64) w) & ~0x1LL); }
-void *get_marked_ref(void *w) { return (void *) (((u64) w) | 0x1LL); }
-void *unset_mark(void *i) { return (void *) (((u64) i) & ~0x1LL); }
-void *set_mark(void *i) { return (void *) (((u64) i) | 0x1LL); }
-
-void debug_memory::init_list() {
-    // @Cleanup @Platform @TODO @Memory Don't use the os allocator. We should have a seperate allocator for debug info.
-    auto [sentinel1, sentinel2, _] = os_allocate_packed<node, node>(1);
-
-    sentinel1->Header = (allocation_header *) 0;
-    sentinel1->Header = (allocation_header *) U64_MAX;
-
-    Head       = sentinel1;
-    Tail       = sentinel2;
-    Head->Next = Tail;
-}
-
-debug_memory::node *debug_memory::new_node(allocation_header *header, node *next) {
-    // @Cleanup @Platform @TODO @Memory Don't use the os allocator. We should have a seperate allocator for debug info.
-    auto *result   = (node *) os_allocate_block(sizeof(node));
-    result->Header = header;
-    result->Next   = next;
-    return result;
-}
-
-debug_memory::list_search_result debug_memory::list_search(allocation_header *header) {
-    node *leftNodeNext = null;
-    node *leftNode = null, *rightNode = null;
-
-    while (true) {
-        node *t     = Head;
-        node *tNext = Head->Next;
-        while (is_marked_ref(tNext) || (t->Header < header)) {
-            if (!is_marked_ref(tNext)) {
-                leftNode     = t;
-                leftNodeNext = tNext;
-            }
-            t = (node *) get_unmarked_ref(tNext);
-            if (t == Tail) break;
-            tNext = t->Next;
-        }
-        rightNode = t;
-
-        if (leftNodeNext == rightNode) {
-            if (!is_marked_ref(rightNode->Next)) {
-                return {leftNode, rightNode};
-            }
-        } else {
-            if (atomic_compare_and_swap(&leftNode->Next, leftNodeNext, rightNode) == leftNodeNext) {
-                if (!is_marked_ref(rightNode->Next)) {
-                    return {leftNode, rightNode};
-                }
-            }
-        }
-    }
-}
-
-bool debug_memory::list_contains(allocation_header *header) {
-    auto *it = (node *) get_unmarked_ref(Head->Next);
-    while (it != Tail) {
-        if (!is_marked_ref(it->Next) && it->Header >= header) {
-            return it->Header == header;
-        }
-        it = (node *) get_unmarked_ref(it->Next);
-    }
-    return false;
-}
-
-debug_memory::list_add_result debug_memory::list_add(allocation_header *header) {
-    node *newNode = null;
-    while (true) {
-        auto [left, right] = list_search(header);
-        if (right != Tail && right->Header == header) {
-            return {right, true};
-        }
-
-        if (!newNode) {
-            newNode = new_node(header, right);
-        } else {
-            newNode->Next = right;
-        }
-
-        if (atomic_compare_and_swap(&left->Next, right, newNode) == right) {
-            return {newNode, false};
-        }
-    }
-}
-
-bool debug_memory::list_remove(allocation_header *header) {
-    while (true) {
-        auto [left, right] = list_search(header);
-
-        // Check if we found our node
-        if (right == Tail || right->Header != header) return false;
-
-        auto *rightNext = right->Next;
-        if (!is_marked_ref(rightNext)) {
-            if (atomic_compare_and_swap(&(right->Next), rightNext, (node *) get_marked_ref(rightNext)) == rightNext) return true;
-        }
-    }
-}
-
 // Copied from test.h
 //
 // We check if the path contains src/ and use the rest after that.
@@ -136,9 +23,9 @@ constexpr string get_short_file_name(string str) {
     char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
     string src     = srcData;
 
-    s64 findResult = string_find(str, src, string_length(str), true);
+    s64 findResult = string_find(str, src, -1, true);
     if (findResult == -1) {
-        findResult = string_find(str, OS_PATH_SEPARATOR, string_length(str), true);
+        findResult = string_find(str, OS_PATH_SEPARATOR, -1, true);
         assert(findResult != string_length(str) - 1);
         // Skip the slash
         findResult++;
@@ -151,33 +38,110 @@ constexpr string get_short_file_name(string str) {
     return substring(result, findResult, string_length(result));
 }
 
-void debug_memory::report_leaks() {
-    maybe_verify_heap();
+#if defined DEBUG_MEMORY
+debug_memory_node *new_node(allocation_header *header) {
+    auto *node = (debug_memory_node *) pool_allocator(allocator_mode::ALLOCATE, &DebugMemoryNodesPool, sizeof(debug_memory_node), null, 0, 0);
+    assert(node);
+
+    zero_memory(node, sizeof(debug_memory_node));
+
+    node->Header = header;
+
+    // Leave invalid for now, filled out later
+    node->ID = (u64) -1;
+
+    return node;
+}
+
+void debug_memory_init() {
+    AllocationCount = 0;
+
+    DebugMemoryNodesPool.ElementSize = sizeof(debug_memory_node);
+
+    s64 startingPoolSize = 5000 * sizeof(debug_memory_node) + sizeof(pool_allocator_data::block);
+
+    void *pool = os_allocate_block(startingPoolSize);
+    pool_allocator_provide_block(&DebugMemoryNodesPool, pool, startingPoolSize);
+
+    // We allocate sentinels to simplify linked list management code
+    auto sentinel1 = new_node((allocation_header *) 0);
+    auto sentinel2 = new_node((allocation_header *) U64_MAX);
+
+    sentinel1->Next = sentinel2;
+    sentinel2->Prev = sentinel1;
+    DebugMemoryHead = sentinel1;
+    DebugMemoryTail = sentinel2;
+}
+
+void debug_memory_uninit() {
+    if (Context.DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination) {
+        debug_memory_report_leaks();
+    }
+
+    auto *b = DebugMemoryNodesPool.Base;
+    while (b) {
+        auto *next = b->Next;
+        os_free_block(b);
+        b = next;
+    }
+}
+
+file_scope auto *list_search(allocation_header *header) {
+    debug_memory_node *t = DebugMemoryHead;
+    while (t != DebugMemoryTail && t->Header < header) t = t->Next;
+    return t;
+}
+
+file_scope debug_memory_node *list_add(allocation_header *header) {
+    auto *n = list_search(header);
+    assert(n->Header != header);
+
+    auto *node = new_node(header);
+
+    node->Next    = n;
+    node->Prev    = n->Prev;
+    n->Prev->Next = node;
+    n->Prev       = node;
+
+    return node;
+}
+
+file_scope debug_memory_node *list_remove(allocation_header *header) {
+    auto *n = list_search(header);
+    if (n->Header != header) return null;
+
+    n->Prev->Next = n->Next;
+    n->Next->Prev = n->Prev;
+
+    return n;
+}
+
+bool debug_memory_list_contains(allocation_header *header) {
+    return list_search(header)->Header == header;
+}
+
+void debug_memory_report_leaks() {
+    debug_memory_maybe_verify_heap();
 
     s64 leaksCount = 0;
 
     // @Cleanup: Factor this into a macro
-    auto *it = (node *) get_unmarked_ref(Head->Next);
-    while (it != Tail) {
-        if (!is_marked_ref(it->Next) && !it->MarkedAsFreed && !it->MarkedAsLeak) {
-            ++leaksCount;
-        }
-        it = (node *) get_unmarked_ref(it->Next);
+    auto *it = DebugMemoryHead->Next;
+    while (it != DebugMemoryTail) {
+        if (!it->Freed && !it->MarkedAsLeak) ++leaksCount;
+        it = it->Next;
     }
 
     // @Cleanup @Platform @TODO @Memory Don't use the platform allocator. We should have a seperate allocator for debug info.
-    node **leaks = malloc<node *>({.Count = leaksCount, .Alloc = platform_get_persistent_allocator(), .Options = LEAK});
+    auto **leaks = malloc<debug_memory_node *>({.Count = leaksCount, .Alloc = platform_get_persistent_allocator(), .Options = LEAK});
     defer(free(leaks));
 
     auto *p = leaks;
 
-    // @Cleanup: Factor this into a macro
-    it = (node *) get_unmarked_ref(Head->Next);
-    while (it != Tail) {
-        if (!is_marked_ref(it->Next) && !it->MarkedAsFreed && !it->MarkedAsLeak) {
-            *p++ = it;
-        }
-        it = (node *) get_unmarked_ref(it->Next);
+    it = DebugMemoryHead->Next;
+    while (it != DebugMemoryTail) {
+        if (!it->Freed && !it->MarkedAsLeak) *p++ = it;
+        it = it->Next;
     }
 
     if (leaksCount) {
@@ -200,96 +164,93 @@ void debug_memory::report_leaks() {
     }
 }
 
-file_scope void verify_header_integrity(allocation_header *header) {
+file_scope void verify_node_integrity(debug_memory_node *node) {
+    auto *header = node->Header;
+
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // If an assert fires here it means that memory was messed up in some way.
     //
     // We check for several problems here:
-    //   * Accessing headers which were freed.
-    //   * Alignment should not be 0, should be more than POINTER_SIZE (8 bytes) and should be a power of 2.
-    //     If any of these is not true, then the header was definitely corrupted.
-    //   * We store a pointer to the memory block at the end of the header, any valid header will have this pointer point after itself.
-    //     Otherwise the header was definitely corrupted.
     //   * No man's land was modified. This means that you wrote before or after the allocated block.
     //     This catches buffer underflows/overflows errors.
+    //   * Alignment should not be 0, should be more than POINTER_SIZE (8 bytes) and should be a power of 2.
+    //     If any of these is not true, then the header was definitely corrupted.
+    //   * We store a pointer to the memory block at the end of the header, any valid header will have this
+    //     pointer point after itself. Otherwise the header was definitely corrupted.
     //
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    char freedHeader[sizeof(allocation_header)];
-    fill_memory(freedHeader, DEAD_LAND_FILL, sizeof(allocation_header));
-    if (compare_memory((char *) header, freedHeader, sizeof(allocation_header)) == 0) {
-        assert(false && "Trying to access freed memory!");
+    if (node->Freed) {
+        // We can't verify the memory was not modified because
+        // it could be given back to the OS and to another program.
+
+        return;
     }
 
-    assert(header->Alignment && "Stored alignment is zero. Definitely corrupted.");
-    assert(header->Alignment >= POINTER_SIZE && "Stored alignment smaller than pointer size (8 bytes). Definitely corrupted.");
-    assert(is_pow_of_2(header->Alignment) && "Stored alignment not a power of 2. Definitely corrupted.");
-
-    assert(header->DEBUG_Pointer == header + 1 && "Debug pointer doesn't match. They should always match.");
-
-    auto *user = (char *) header + sizeof(allocation_header);
+    // The ID of the allocation to debug.
+    auto id = node->ID;
 
     char noMansLand[NO_MANS_LAND_SIZE];
     fill_memory(noMansLand, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
+
+    auto *user = (char *) header + sizeof(allocation_header);
     assert(compare_memory((char *) user - NO_MANS_LAND_SIZE, noMansLand, NO_MANS_LAND_SIZE) == 0 &&
            "No man's land was modified. This means that you wrote before the allocated block.");
+
+    assert(header->DEBUG_Pointer == user && "Debug pointer doesn't match. They should always match.");
 
     assert(compare_memory((char *) header->DEBUG_Pointer + header->Size, noMansLand, NO_MANS_LAND_SIZE) == 0 &&
            "No man's land was modified. This means that you wrote after the allocated block.");
 
-    //
-    // If one of these asserts was triggered in _maybe_verify_heap()_, this can also mean that the linked list is messed up in some way.
-    //
+    assert(header->Alignment && "Stored alignment is zero. Definitely corrupted.");
+    assert(header->Alignment >= POINTER_SIZE && "Stored alignment smaller than pointer size (8 bytes). Definitely corrupted.");
+    assert(is_pow_of_2(header->Alignment) && "Stored alignment not a power of 2. Definitely corrupted.");
 }
 
-void debug_memory::verify_heap() {
-    auto *it = (node *) get_unmarked_ref(Head->Next);
-    while (it != Tail) {
-        if (!is_marked_ref(it->Next) && !it->MarkedAsFreed) {
-            verify_header_integrity(it->Header);
-        }
-        it = (node *) get_unmarked_ref(it->Next);
+void debug_memory_verify_heap() {
+    auto *it = DebugMemoryHead->Next;
+    while (it != DebugMemoryTail) {
+        verify_node_integrity(it);
+        it = it->Next;
     }
 }
 
-void debug_memory::maybe_verify_heap() {
-    if (AllocationCount % MemoryVerifyHeapFrequency) return;
-    verify_heap();
+void debug_memory_maybe_verify_heap() {
+    if (AllocationCount % Context.DebugMemoryHeapVerifyFrequency) return;
+    debug_memory_verify_heap();
 }
 
-void check_for_overlapping_blocks(debug_memory::node *left, debug_memory::node *right, allocation_header *header) {
+void check_for_overlapping_blocks(debug_memory_node *node) {
     // Check for overlapping memory blocks.
     // We can do this because we keep the linked list sorted by the memory address
     // of individual allocated blocks and we have info about their size.
     // This might catch bugs in the allocator implementation/two allocators using the same pool.
 
-    while (right->MarkedAsFreed) {
-        right = (debug_memory::node *) get_unmarked_ref(right->Next);
-    }
+    auto *left = node->Prev;
+    while (left->Freed) left = left->Prev;
 
-    /*
-       @TODO: Because we need to skip nodes that are marked as freed, currently we don't check for overlapping blocks below.
-       In order to do this without abysmal performance we need a doubly-linked list. Figure out how to do this lock-free.
+    auto *right = node->Next;
+    while (right->Freed) right = right->Next;
 
-    // Check below
-    if (left != DEBUG_memory->Head) {
-        s64 size = left->Header->Size;
+    if (left != DebugMemoryHead) {
+        // Check below
+        s64 size = left->Header->Size + sizeof(allocation_header);
 #if defined DEBUG_MEMORY
         size += NO_MANS_LAND_SIZE;
 #endif
-        if (((byte *) left->Header + size) > (byte *) header) {
+        if (((byte *) left->Header + size) > ((byte *) node->Header - node->Header->AlignmentPadding)) {
             assert(false && "Allocator implementation returned a pointer which overlaps with another allocated block (below). This can be due to a bug in the allocator code or because two allocators use the same pool.");
         }
-    }*/
+    }
 
-    // Check above
-    if (right != DEBUG_memory->Tail) {
-        s64 size = header->Size;
+    if (right != DebugMemoryTail) {
+        // Check above
+        s64 size = node->Header->Size + sizeof(allocation_header);
 #if defined DEBUG_MEMORY
         size += NO_MANS_LAND_SIZE;
 #endif
 
-        if (((byte *) header + size) < ((byte *) right->Header - right->Header->AlignmentPadding)) {
+        if (((byte *) node->Header + size) >= ((byte *) right->Header - right->Header->AlignmentPadding)) {
             assert(false && "Allocator implementation returned a pointer which overlaps with another allocated block (above). This can be due to a bug in the allocator code or because two allocators share the same pool.");
         }
     }
@@ -310,19 +271,18 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc
 
     //
     // This is now safe since we handle alignment here (and not in general_(re)allocate).
-    // Before I wrote the fix the program was crashing because I was using SIMD types,
-    // which require to be aligned, on memory not 16-aligned.
-    // I tried allocating with specified alignment but it wasn't taking into
-    // account the size of the allocation header (accounting happened before bumping
-    // the resulting pointer here).
+    // Before I wrote the fix the program was crashing because of SIMD types,
+    // which require memory to be 16 byte aligned. I tried allocating with specified
+    // alignment but it wasn't taking into account the size of the allocation header
+    // (accounting happened before bumping the resulting pointer here).
     //
     // Since I had to redo how alignment was handled I decided to remove ALLOCATE_ALIGNED
     // and REALLOCATE_ALIGNED and drastically simplify allocator implementations.
-    // What we do now is request a block of memory with a size
-    // that was calculated with alignment in mind.
+    // What we do now is request a block of memory with extra size
+    // that takes into account possible padding for alignment.
     //                                                                              - 5.04.2020
     //
-    // Since then we do this again differently because there was a bug where reallocating was having
+    // Now we do this differently (again) because there was a bug where reallocating was having
     // issues with _AlignmentPadding_. Now we require allocators to implement RESIZE instead of REALLOCATE
     // which mustn't move the block but instead return null if resizing failed to tell us we need to allocate a new one.
     // This moves handling reallocation entirely on our side, which, again is even cleaner.
@@ -377,10 +337,10 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     }
 
 #if defined DEBUG_MEMORY
-    DEBUG_memory->maybe_verify_heap();
-    s64 id = DEBUG_memory->AllocationCount;
+    debug_memory_maybe_verify_heap();
+    s64 id = AllocationCount;
 
-    if (id == 75) {
+    if (id == 650) {
         s32 k = 42;
     }
 #endif
@@ -412,39 +372,37 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
 #if defined DEBUG_MEMORY
     auto *header = (allocation_header *) result - 1;
 
-    auto [left, right] = DEBUG_memory->list_search(header);
-    assert(right != DEBUG_memory->Tail && "?????");  // The Tail is a sentinel value with Header == max address. This should NEVER trip.
+    auto *node = list_search(header);
 
-    debug_memory::node *nodeToEncode = null;
+    debug_memory_node *nodeToEncode = null;
+    if (node->Header == header) {
+        if (!node->Freed) {
+            // Maybe this is a bug in the allocator implementation,
+            // or maybe two different allocators use the same pool.
+            assert(false && "Allocator implementation returning a pointer which is still live and wasn't freed yet");
+            return null;
+        }
 
-    if (right->Header == header) {
-        // Maybe we caught a bug in the allocator implementation,
-        // or maybe two different allocators use the same pool.
-        assert(right->MarkedAsFreed && "Allocator implementation returning a pointer which is still live and wasn't freed yet");
-
-        // Overwrite node which was freed.
-        right->Header = header;
-        nodeToEncode  = right;
-        right         = right->Next;  // We need the two adjacent nodes in order to check for overlapping blocks below
+        // Overwrite node which was marked as freed.
+        node->Header = header;
+        nodeToEncode = node;
     }
-
-    check_for_overlapping_blocks(left, right, header);
 
     if (!nodeToEncode) {
-        auto [addedNode, alreadyPresent] = DEBUG_memory->list_add(header);
-        assert(!alreadyPresent);
-        nodeToEncode = addedNode;
+        nodeToEncode = list_add(header);
     }
 
-    nodeToEncode->ID = DEBUG_memory->AllocationCount;
-    atomic_inc(&DEBUG_memory->AllocationCount);
+    check_for_overlapping_blocks(nodeToEncode);
+
+    nodeToEncode->ID = AllocationCount;
+    atomic_inc(&AllocationCount);
 
     nodeToEncode->AllocatedAt = loc;
 
     nodeToEncode->RID          = 0;
     nodeToEncode->MarkedAsLeak = options & LEAK;
 
-    nodeToEncode->MarkedAsFreed = false;
+    nodeToEncode->Freed = false;
 
     nodeToEncode->FreedAt = {};
 #endif
@@ -456,15 +414,13 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
     options |= Context.AllocOptions;
 
 #if defined DEBUG_MEMORY
-    DEBUG_memory->maybe_verify_heap();
+    debug_memory_maybe_verify_heap();
 #endif
 
     auto *header = (allocation_header *) ptr - 1;
 
-    auto [left, right] = DEBUG_memory->list_search(header);
-    assert(right != DEBUG_memory->Tail && "?????");  // The Tail is a sentinel value with Header == max address. This should NEVER trip.
-
-    if (right->Header != header) {
+    auto *node = list_search(header);
+    if (node->Header != header) {
         // @TODO: Callstack
         panic(tprint("{!RED}Attempting to reallocate a memory block which was not allocated in the heap.{!} This happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!}).", loc.File, loc.Line, loc.Function));
         return null;
@@ -500,9 +456,9 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
 
     void *block = (byte *) header - header->AlignmentPadding;
 
-    if (right->MarkedAsFreed) {
+    if (node->Freed) {
         // @TODO: Callstack
-        panic(tprint("{!RED}Attempting to reallocate a memory block which was freed.{!} The free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!}).", right->FreedAt.File, right->FreedAt.Line, right->FreedAt.Function));
+        panic(tprint("{!RED}Attempting to reallocate a memory block which was freed.{!} The free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!}).", node->FreedAt.File, node->FreedAt.Line, node->FreedAt.Function));
         return null;
     }
 
@@ -517,8 +473,31 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
 
         result = encode_header(newBlock, newUserSize, header->Alignment, alloc, options);
 
-        header        = (allocation_header *) result - 1;
-        right->Header = header;
+        // We can't just override the header cause we need to keep the list sorted by the header address
+
+        // See note in _general_free()_
+#if defined DEBUG_MEMORY
+        node->Freed   = true;
+        node->FreedAt = loc;
+
+        // @Volatile
+        auto id              = node->ID;
+        auto rid             = node->RID;
+        bool wasMarkedAsLeak = node->MarkedAsLeak;
+#else
+        DEBUG_memory->list_remove(header);
+#endif
+
+        header = (allocation_header *) result - 1;
+
+        node = list_add(header);
+
+        // Copy old state
+#if defined DEBUG_MEMORY
+        node->ID           = id;
+        node->RID          = rid;
+        node->MarkedAsLeak = wasMarkedAsLeak;
+#endif
 
         // Copy old stuff and free
         copy_memory(result, ptr, oldUserSize);
@@ -534,9 +513,10 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
     }
 
 #if defined DEBUG_MEMORY
-    check_for_overlapping_blocks(left, (debug_memory::node *) get_unmarked_ref(right->Next), header);
-    right->RID += 1;
-    right->AllocatedAt = loc;
+    check_for_overlapping_blocks(node);
+
+    node->RID += 1;
+    node->AllocatedAt = loc;
 
     if (oldSize < newSize) {
         // If we are expanding the memory, fill the new stuff with CLEAN_LAND_FILL
@@ -558,22 +538,23 @@ void general_free(void *ptr, u64 options, source_location loc) {
     options |= Context.AllocOptions;
 
 #if defined DEBUG_MEMORY
-    DEBUG_memory->maybe_verify_heap();
+    debug_memory_maybe_verify_heap();
 #endif
 
     auto *header = (allocation_header *) ptr - 1;
 
-    auto [left, right] = DEBUG_memory->list_search(header);
-    assert(right != DEBUG_memory->Tail && "?????");  // The Tail is a sentinel value with Header == max address. This should NEVER trip.
-
-    if (right->Header != header) {
+    auto *node = list_search(header);
+    if (node->Header != header) {
         // @TODO: Callstack
-        panic(tprint("Attempting to free a memory block which was not allocated in the heap."));
+        panic(tprint("Attempting to free a memory block which was not allocated in the (this thread's) heap."));
+
+        // Note: We don't support cross-thread freeing yet.
+
         return;
     }
 
-    if (right->MarkedAsFreed) {
-        panic(tprint("{!RED}Attempting to free a memory block which was already freed.{!} The previous free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!})", right->FreedAt.File, right->FreedAt.Line, right->FreedAt.Function));
+    if (node->Freed) {
+        panic(tprint("{!RED}Attempting to free a memory block which was already freed.{!} The previous free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!})", node->FreedAt.File, node->FreedAt.Line, node->FreedAt.Function));
         return;
     }
 
@@ -588,12 +569,15 @@ void general_free(void *ptr, u64 options, source_location loc) {
     s64 size = header->Size + extra;
 
 #if defined DEBUG_MEMORY
-    right->MarkedAsFreed = true;
-    right->FreedAt       = loc;
+    // If DEBUG_MEMORY we keep freed notes in the list
+    // but mark them as freed. This allows debugging double freeing the same memory block.
+
+    node->Freed   = true;
+    node->FreedAt = loc;
 
     fill_memory(block, DEAD_LAND_FILL, size);
 
-    auto id = right->ID;
+    auto id = node->ID;
 #endif
 
     alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, size, options);
@@ -602,15 +586,15 @@ void general_free(void *ptr, u64 options, source_location loc) {
 void free_all(allocator alloc, u64 options) {
 #if defined DEBUG_MEMORY
     // Remove allocations made with the allocator from the the linked list so we don't corrupt the heap
-    auto *it = (debug_memory::node *) get_unmarked_ref(DEBUG_memory->Head->Next);
-    while (it != DEBUG_memory->Tail) {
-        if (!is_marked_ref(it->Next) && !it->MarkedAsFreed) {
+    auto *it = DebugMemoryHead->Next;
+    while (it != DebugMemoryTail) {
+        if (!it->Freed) {
             if (it->Header->Alloc == alloc) {
-                it->MarkedAsFreed = true;
-                it->FreedAt       = source_location::current();
+                it->Freed   = true;
+                it->FreedAt = source_location::current();
             }
         }
-        it = (debug_memory::node *) get_unmarked_ref(it->Next);
+        it = it->Next;
     }
 #endif
 

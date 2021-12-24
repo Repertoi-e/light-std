@@ -9,25 +9,11 @@ import lstd.fmt.fmt_type_constant;
 
 LSTD_BEGIN_NAMESPACE
 
-struct fmt_context;
-
 export {
     struct fmt_custom_value {
         void *Data;
         void (*FormatFunc)(void *formatContext, void *arg);
     };
-
-    template <typename T>
-    void write(fmt_context * f, T *t) {
-        // static_assert(false, "Argument doesn't have a way to be formatted.");
-        // static_assert(false, "Specialize this function for a custom type.");
-        assert(false);
-        // e.g.
-        // void write(fmt_context *f, my_vector *value) {
-        //     fmt_to_writer(f, "x: {}, y: {}", value->x, value->y);
-        //     // ...
-        // }
-    }
 
     // Contains a value of any type
     struct fmt_value {
@@ -61,7 +47,7 @@ export {
 
         template <typename T>
         static void call_write_on_custom_arg(void *formatContext, void *arg) {
-            write((fmt_context *) formatContext, (T *) arg);
+            write_custom((fmt_context *) formatContext, (const T *) arg);
         }
     };
 
@@ -85,7 +71,7 @@ export {
     //   * is the type a bool? maps to bool
     //   * otherwise maps to &v (value then setups a function call to a custom formatter)
     // Otherwise we static_assert that the argument can't be formatted.
-    auto fmt_map_arg(auto by_ref v) {
+    auto fmt_map_arg(auto ref v) {
         using T = typename types::remove_cvref_t<decltype(v)>;
 
         if constexpr (types::is_same<string, T> || types::is_constructible<string, T>) {
@@ -113,11 +99,11 @@ export {
     template <typename T>
     constexpr auto fmt_mapped_type_constant_v = type_constant_v<decltype(fmt_map_arg(types::declval<T>()))>;
 
-    fmt_arg fmt_make_arg(auto by_ref v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(ref(v)))}; }
+    fmt_arg fmt_make_arg(auto ref v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(v))}; }
 
     // Visits an argument dispatching with the right value based on the argument type
     template <typename Visitor>
-    auto fmt_visit_arg(Visitor by_ref visitor, fmt_arg ar)->decltype(visitor(0)) {
+    auto fmt_visit_arg(Visitor visitor, fmt_arg ar)->decltype(visitor(0)) {
         switch (ar.Type) {
             case fmt_type::NONE:
                 break;

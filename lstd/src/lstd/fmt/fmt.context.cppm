@@ -265,7 +265,7 @@ void write(fmt_context *f, bool value) {
     if (f->Specs && f->Specs->Type) {
         write(f, value ? 1 : 0);
     } else {
-        write(f, value ? "true" : "false");
+        write(f, string(value ? "true" : "false"));
     }
 }
 

@@ -11,18 +11,17 @@ LSTD_BEGIN_NAMESPACE
 export {
     // Used for generating unique ids
     struct guid {
-        stack_array<u8, 16> Data;
+        u8 Data[16];
+        constexpr static s64 Count = 16;
 
         // By default the guid is zero
         constexpr guid() {
             For(range(16)) Data[it] = 0;
         }
 
-        constexpr auto operator<=>(guid other) const { return Data <=> other.Data; }
-
         constexpr operator bool() {
-            guid empty;
-            return Data != empty.Data;
+            For(range(16)) if (Data[it]) return true;
+            return false;
         }
     };
 
@@ -54,12 +53,6 @@ export {
         guid result;
         For(range(16)) result.Data[it] = data[it];
         return result;
-    }
-
-    u64 get_hash(guid value) {
-        u64 hash             = 5381;
-        For(value.Data) hash = (hash << 5) + hash + it;
-        return hash;
     }
 }
 

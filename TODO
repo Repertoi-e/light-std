@@ -6,19 +6,11 @@ Project structure
   with functions that should run with the initialization of the lstd.
   This would be flexible enough to allow easily adding new modules
   just by linking with them and even allow the user to add their own routines.
-
-  
-- make it MODULES, hehe
-       This is probably going to be the biggest restructure this project has even seen.
 	   
 - Constexpr allocations, fully constexpr string, array, etc.
 	 
 - Make monitors and cursors handles (like window).
   Typedef them to void * and move all functions outside? There is really no need for a class. 
-	   
-	   
-// They are provided in a file called "common_standard_library_functions.h".
-	  
 	  
 	  
 - More robust memory model for stuff the library allocates (see note in premake5.lua)
@@ -39,6 +31,11 @@ Project structure
 
 - Fix check stack 
 
+
+Hash table:
+- Default hasher for any type by looking at the bytes 
+
+
 fmt module:
 - Printable code point
 - Escaping (+ unicode) - this would cerror reporting in the default error function
@@ -46,10 +43,6 @@ fmt module:
 - Locale
 - printf-like format string parsing (because it is used so commonly)
 - Check arguments at compile time
-
-math module:
-- Make it C++20
-- Actually remove it all together
 
 
 README.md:
@@ -68,15 +61,9 @@ README.md:
 Tests with parse_guid_options
 
 
-String iterator doesn't work with constexpr
-
-
 // @TODO: Potentially useful?
 // bool BasePrefixCountedTowardsMaxDigits = true;
 // bool ByteToDigitIgnoreThisByteCountedTowardsMaxDigits = true; 
-
-
-concept Hashable and speed up hasher
 
 
 ----------------- Things not hapenning for a while probably:

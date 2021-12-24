@@ -49,9 +49,7 @@ using size_t = u64;  // We don't support 32 bits, do we?
 //
 // In order to get FreeType and imgui to work, I needed to provide definitions for some standard library
 // functions (sscanf, strtod, strlen, ... memcmp, ... strncpy, ..., etc..
-// They are provided in a file called "common_standard_library_functions.h".
-// To make life easier I won't change their cryptic names so they can be ready for
-// use if you link with a library which uses them.
+// They are provided in a file called "platform/windows_no_crt/common_functions.h".
 //
 // Reading files with fread, fopen is out of the question.
 // I modified the code to use the lstd.path module.

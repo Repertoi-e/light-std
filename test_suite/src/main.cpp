@@ -3,6 +3,8 @@
 import lstd.os;
 
 void run_tests() {
+    make_dynamic(&asserts::GlobalFailed, 8);
+
     print("\n");
     for (auto [fileName, tests] : g_TestTable) {
         print("{}:\n", *fileName);
@@ -68,19 +70,21 @@ void write_output_to_file() {
     newContext.Log  = &cout;
     OVERRIDE_CONTEXT(newContext);
 
-    os_write_to_file("output.txt", builder_to_string(g_Logger.Builder), file_write_mode::Overwrite_Entire); // @Leak
+    os_write_to_file("output.txt", builder_to_string(g_Logger.Builder), file_write_mode::Overwrite_Entire);  // @Leak
 }
 
 s32 main() {
     time_t start = os_get_time();
 
-#if defined DEBUG_MEMORY
-    DEBUG_memory->MemoryVerifyHeapFrequency = 1;
-#endif
+    TemporaryAllocatorData.Block = os_allocate_block(1_MiB);
+    TemporaryAllocatorData.Size  = 1_MiB;
 
     auto newContext           = Context;
     newContext.Alloc          = TemporaryAllocator;
     newContext.AllocAlignment = 16;
+#if defined DEBUG_MEMORY
+    newContext.DebugMemoryHeapVerifyFrequency = 1;
+#endif
 
     if (LOG_TO_FILE) {
         newContext.LogAllAllocations = true;
@@ -89,22 +93,19 @@ s32 main() {
         newContext.FmtDisableAnsiCodes = true;
     }
 
-    allocator_add_pool(TemporaryAllocator, os_allocate_block(1_MiB), 1_MiB);
-
     OVERRIDE_CONTEXT(newContext);
 
-    PUSH_CONTEXT(newContext) {
-        build_test_table();
-        run_tests();
-    }
-    print("\nFinished tests, time taken: {:f} seconds, bytes used: {}, pools used: {}\n\n", os_time_to_seconds(os_get_time() - start), TemporaryAllocatorData.TotalUsed, TemporaryAllocatorData.PoolsCount);
+    build_test_table();
+    run_tests();
+
+    print("\nFinished tests, time taken: {:f} seconds, bytes used: {}\n\n", os_time_to_seconds(os_get_time() - start), TemporaryAllocatorData.Used);
 
     if (LOG_TO_FILE) {
         write_output_to_file();
     }
 
 #if defined DEBUG_MEMORY
-    DEBUG_memory->report_leaks();
+    debug_memory_report_leaks();
 #endif
 
     return 0;

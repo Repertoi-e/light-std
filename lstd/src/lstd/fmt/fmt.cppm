@@ -176,33 +176,33 @@ export {
 
     // Formats to a writer.
     template <typename... Args>
-    void fmt_to_writer(writer * out, string fmtString, Args by_ref... arguments);
+    void fmt_to_writer(writer * out, string fmtString, Args ref... arguments);
 
     // Formats to a counting writer and returns the result - how many bytes would be written with the given format string and args.
     template <typename... Args>
-    s64 fmt_calculate_length(string fmtString, Args by_ref... arguments);
+    s64 fmt_calculate_length(string fmtString, Args ref... arguments);
 
     // Formats to a string. The caller is responsible for freeing.
     template <typename... Args>
-    [[nodiscard("Leak")]] string sprint(string fmtString, Args by_ref... arguments);
+    [[nodiscard("Leak")]] string sprint(string fmtString, Args ref... arguments);
 
     // Formats to a string. Uses the temporary allocator.
     template <typename... Args>
-    string tprint(string fmtString, Args by_ref... arguments);
+    string tprint(string fmtString, Args ref... arguments);
 
     // Formats to a string then converts to null-terminated string. Uses the temporary allocator.
     template <typename... Args>
-    char *mprint(string fmtString, Args by_ref... arguments);
+    char *mprint(string fmtString, Args ref... arguments);
 
     // Calls fmt_to_writer on Context.Log - which is pointing to the console by default, but that can be changed to redirect the output.
     template <typename... Args>
-    void print(string fmtString, Args by_ref... arguments);
+    void print(string fmtString, Args ref... arguments);
 
     // Same as print, but the format string is expected to contain standard printf syntax.
     // Type-safety, custom-formatters, etc. work here. You don't get all features, b
     // ut this is designed as a drop-in replacement for printf.
     template <typename... Args>
-    void printf(string fmtString, Args by_ref... arguments) {
+    void printf(string fmtString, Args ref... arguments) {
         // @TODO
         assert(false);
     }
@@ -211,7 +211,7 @@ export {
     // Does all the magic of parsing the format string and formatting the arguments.
     void fmt_parse_and_format(fmt_context * f);
 
-    void write(fmt_context * f, string_builder * b) {
+    void write_custom(fmt_context * f, const string_builder * b) {
         auto *buffer = &b->BaseBuffer;
         while (buffer) {
             write_no_specs(f, buffer->Data, buffer->Occupied);
@@ -232,7 +232,7 @@ export {
     //   'x' - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
     //   'X' - Uppercase version of 'x'
     // The default format is the same as 'd'.
-    void write(fmt_context * f, guid * g) {
+    void write_custom(fmt_context * f, const guid * g) {
         char type = 'd';
         if (f->Specs) {
             type = f->Specs->Type;
@@ -261,11 +261,11 @@ export {
             auto *old = f->Specs;
             f->Specs  = null;
 
-            u8 *p = (u8 *) g->Data.Data;
+            u8 *p = (u8 *) g->Data;
             if (upper) {
-                fmt_to_writer(f, "{{{:#04X}{:02X}{:02X}{:02X},{:#04X}{:02X},{:#04X}{:02X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
+                fmt_to_writer(f, "{{{:#04X}{:02X}{:02X}{:02X},{:#04X}{:02X},{:#04X}{:02X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
             } else {
-                fmt_to_writer(f, "{{{:#04x}{:02x}{:02x}{:02x},{:#04x}{:02x},{:#04x}{:02x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15], p[16]);
+                fmt_to_writer(f, "{{{:#04x}{:02x}{:02x}{:02x},{:#04x}{:02x},{:#04x}{:02x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
             }
 
             f->Specs = old;
@@ -277,7 +277,7 @@ export {
         auto *old = f->Specs;
         f->Specs  = null;
 
-        const byte *p = g->Data.Data;
+        const byte *p = g->Data;
         For(range(16)) {
             if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
                 write_no_specs(f, (code_point) '-');
@@ -295,8 +295,9 @@ export {
     }
 
     // Format arrays in the following way: [1, 2, ...]
-    void write(fmt_context * f, any_array auto *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
-    void write(fmt_context * f, any_stack_array auto *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
+
+    void write_custom(fmt_context * f, const any_array auto *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
+    void write_custom(fmt_context * f, const any_stack_array auto *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
 
     // @TODO: Formatter for hash table
 
@@ -586,7 +587,7 @@ void fmt_parse_and_format(fmt_context *f) {
 }
 
 template <typename... Args>
-void fmt_to_writer(writer *out, string fmtString, Args by_ref... arguments) {
+void fmt_to_writer(writer *out, string fmtString, Args ref... arguments) {
     static constexpr s64 NUM_ARGS = sizeof...(Args);
     stack_array<fmt_arg, NUM_ARGS> args;
 
@@ -598,19 +599,19 @@ void fmt_to_writer(writer *out, string fmtString, Args by_ref... arguments) {
 }
 
 template <typename... Args>
-s64 fmt_calculate_length(string fmtString, Args by_ref... arguments) {
+s64 fmt_calculate_length(string fmtString, Args ref... arguments) {
     counting_writer writer;
-    fmt_to_writer(&writer, fmtString, ref(arguments)...);
+    fmt_to_writer(&writer, fmtString, arguments...);
     return writer.Count;
 }
 
 template <typename... Args>
-[[nodiscard("Leak")]] string sprint(string fmtString, Args by_ref... arguments) {
+[[nodiscard("Leak")]] string sprint(string fmtString, Args ref... arguments) {
     string_builder b;
 
     string_builder_writer writer;
     writer.Builder = &b;
-    fmt_to_writer(&writer, fmtString, ref(arguments)...);
+    fmt_to_writer(&writer, fmtString, arguments...);
 
     string combined = builder_to_string(&b);
     free_buffers(&b);
@@ -619,23 +620,23 @@ template <typename... Args>
 }
 
 template <typename... Args>
-string tprint(string fmtString, Args by_ref... arguments) {
+string tprint(string fmtString, Args ref... arguments) {
     PUSH_ALLOC(TemporaryAllocator) {
-        return sprint(fmtString, ref(arguments)...);
+        return sprint(fmtString, arguments...);
     }
 }
 
 template <typename... Args>
-char *mprint(string fmtString, Args by_ref... arguments) {
+char *mprint(string fmtString, Args ref... arguments) {
     PUSH_ALLOC(TemporaryAllocator) {
-        return string_to_c_string(sprint(fmtString, ref(arguments)...));
+        return string_to_c_string(sprint(fmtString, arguments...));
     }
 }
 
 template <typename... Args>
-void print(string fmtString, Args by_ref... arguments) {
+void print(string fmtString, Args ref... arguments) {
     assert(Context.Log && "Context log was null. By default it points to cout.");
-    fmt_to_writer(Context.Log, fmtString, ref(arguments)...);
+    fmt_to_writer(Context.Log, fmtString, arguments...);
 }
 
 LSTD_END_NAMESPACE

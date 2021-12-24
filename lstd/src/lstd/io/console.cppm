@@ -14,14 +14,16 @@ export {
         // If you don't use seperate threads and aim for maximum console output performance, set this to false.
         bool LockMutex = true;
 
-        char *Buffer = null, *Current = null;
-        s64 Available = 0, BufferSize = 0;
-
         enum output_type {
             COUT,
             CERR
         };
         output_type OutputType;
+
+        // Used to keep track where in the buffer we are, see e.g. os.win32.common.cppm
+        char *Buffer = null, *Current = null;
+        s64 Available = 0, BufferSize = 0;
+
         console(output_type type) : OutputType(type) {}
 
         // Defined in os.*platform*.common.cppm

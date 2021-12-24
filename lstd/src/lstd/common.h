@@ -15,15 +15,13 @@
 #include "common/context.h"
 #include "common/debug_break.h"
 #include "common/defer_assert_for.h"
+#include "common/fmt.h"
 #include "common/math.h"
 #include "common/memory.h"
 #include "common/namespace.h"
 #include "common/numeric_info.h"
 #include "common/sequence.h"
 #include "common/u128.h"
-
-// This is basically std::forward, we use by_ref (&&) when we don't want to copy arguments.
-constexpr auto ref(auto t) { return (types::remove_reference_t<decltype(t)> by_ref) t; }
 
 //
 // Provides replacements for the math functions found in virtually all standard libraries.
@@ -66,7 +64,7 @@ LSTD_BEGIN_NAMESPACE
 
 // Loop that gets unrolled at compile-time
 template <s64 First, s64 Last, typename Lambda>
-void static_for(Lambda by_ref f) {
+void static_for(Lambda ref f) {
     if constexpr (First < Last) {
         f(types::integral_constant<s64, First>{});
         static_for<First + 1, Last>(f);
@@ -149,7 +147,27 @@ constexpr void swap(T (&a)[N], T (&b)[N]) {
 
 template <typename T>
 constexpr void copy_elements(T *dst, auto *src, s64 n) {
-    For(range(n)) *dst++ = *src++;
+    u64 to   = (u64) dst / sizeof(*dst);
+    u64 from = (u64) src / sizeof(*src);
+
+    if (to > from && (s64) (to - from) < n) {
+        // We'd better be copying with the same type size if buffers are overlapping...
+        assert(sizeof(*dst) == sizeof(*src));
+
+        // If overlapping in this way:
+        //   [from......]
+        //         [to........]
+        // copy in reverse.
+        For(range(n - 1, -1, -1)) dst[it] = src[it];
+    } else {
+        // Otherwise copy forwards..
+
+        if (from > to && (s64) (from - to) < n) {
+            // We'd better be copying with the same type size if buffers are overlapping...
+            assert(sizeof(*dst) == sizeof(*src));
+        }
+        For(range(0, n)) dst[it] = src[it];
+    }
 }
 
 extern void *(*copy_memory)(void *dst, const void *src, u64 size);
@@ -158,7 +176,10 @@ inline void *zero_memory(void *dst, u64 size) { return fill_memory(dst, 0, size)
 
 template <typename T>
 constexpr s32 compare_memory(const T *s1, const T *s2, s64 n) {
-    For(range(n)) if (*s1 != *s2) return *s1 - *s2;
+    For(range(n)) {
+        if (*s1 != *s2) return *s1 - *s2;
+        ++s1, ++s2;
+    }
     return 0;
 }
 

@@ -155,44 +155,44 @@ s64 fmt_parse_arg_id(fmt_interp *p) {
 
 bool parse_fill_and_align(fmt_interp *p, fmt_type argType, fmt_specs *specs) {
     code_point fill = p->It[0];
-    advance_cp(&p->It, 1);
+
+    string rest = substring(p->It, 1, string_length(p->It));
 
     // First we check if the code point we parsed was an alingment specifier, if it was then there was no fill.
     // We leave it as ' ' by default and continue afterwards for error checking.
     auto align = get_alignment_from_char(fill);
     if (align == fmt_alignment::NONE) {
-        if (!p->It) {
+        if (!rest) {
             // It wasn't a fill code point because there is no alignment...
             // We don't parse anything and roll back.
-            advance_cp(&p->It, -1);
             return true;
         }
 
         // We now check if the next char in rest is an alignment specifier.
-        align = get_alignment_from_char(p->It[0]);
-        advance_cp(&p->It, 1);  // Skip the align, later we advance _It_ to _rest_
+        align = get_alignment_from_char(rest[0]);
+        advance_bytes(&rest, 1);  // Skip the align, later we advance _It_ to _rest_
     } else {
         fill = ' ';  // If we parsed an alignment but no fill then the fill must be ' ' by default
     }
 
     // If we got here and didn't get an alignment specifier we roll back and don't parse anything.
     if (align != fmt_alignment::NONE) {
-        // s64 errorPosition = (const char *) p->It.Data - p->FormatString.Data;
+        s64 errorPosition = (const char *) rest.Data - p->FormatString.Data;
         if (fill == '{') {
-            on_error(p, "Invalid fill character \"{\"");
+            on_error(p, "Invalid fill character \"{\"", errorPosition - 2);
             return false;
         }
         if (fill == '}') {
-            on_error(p, "Invalid fill character \"}\"");
+            on_error(p, "Invalid fill character \"}\"", errorPosition - 2);
             return false;
         }
+
+        p->It = rest;  // Go forward
 
         specs->Fill  = fill;
         specs->Align = align;
 
         if (align == fmt_alignment::NUMERIC) p->require_arithmetic_arg(argType);
-    } else {
-        advance_cp(&p->It, -1);
     }
 
     return true;
@@ -473,7 +473,7 @@ fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
     if (p->It[0] == ';') {
         ++p->It.Data, --p->It.Count;  // Skip the ;
         if (p->It.Count > 2) {
-            if (string(p->It.Data, 2) == string("BG")) {
+            if (strings_match(string(p->It.Data, 2), "BG")) {
                 if (textStyle.ColorKind == fmt_text_style::color_kind::NONE) {
                     on_error(p, "Color specified as background but there was no color parsed");
                     return {false, {}};

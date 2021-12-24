@@ -90,20 +90,26 @@ export {
 struct win32_memory_state {
     // Used to store global state (e.g. cached command-line arguments/env variables or directories), a tlsf allocator
     allocator PersistentAlloc;
+    tlsf_allocator_data PersistentAllocData;
+
+    // Stores blocks that have been added as pools for the tlsf allocator or a large allocation which was handled by _os_allocate_block()_.
+    struct persistent_alloc_page {
+        persistent_alloc_page *Next;
+    };
+    persistent_alloc_page *PersistentAllocBasePage;
 
     mutex PersistentAllocMutex;
 
-    // We don't use the temporary allocator bundled with the Context because we don't want to mess with the user's memory.
+    //
+    // We don't use the default thread-local temporary allocator because we don't want to mess with the user's memory.
     //
     // Used for temporary storage (e.g. converting strings from utf8 to wchar for windows calls).
     // Memory returned is only guaranteed to be valid until the next call, because we call free_all
     // if we don't have enough space for the allocation. See note above _win32_temp_alloc()_.
     allocator TempAlloc;
+    arena_allocator_data TempAllocData;
 
-    void *TempStorageBlock;
-    s64 TempStorageSize;
-
-    mutex TempAllocMutex;
+    mutex TempAllocMutex;  // @TODO: Remove
 };
 
 // :GlobalStateNoConstructors:
@@ -112,12 +118,8 @@ byte State[sizeof(win32_memory_state)];
 // Short-hand macro for sanity
 #define S ((win32_memory_state *) &State[0])
 
-void create_temp_storage_block(s64);
-void create_persistent_alloc_block(s64);
-
-// @TODO: Print call stack
-
 export {
+    // @TODO: Print call stack
     void platform_report_warning(string message, source_location loc = source_location::current()) {
         print(">>> {!YELLOW}Platform warning{!} {}:{} (in function: {}): {}.\n", loc.File, loc.Line, loc.Function, message);
     }
@@ -127,9 +129,31 @@ export {
     }
 }
 
+void create_new_temp_storage_block(s64 size) {
+    if (S->TempAllocData.Block) {
+        if (!os_resize_block(S->TempAllocData.Block, size)) {
+            os_free_block(S->TempAllocData.Block);
+            S->TempAllocData.Block = os_allocate_block(size);
+        }
+    } else {
+        S->TempAllocData.Block = os_allocate_block(size);
+    }
+
+    S->TempAllocData.Size = size;
+    S->TempAllocData.Used = 0;
+}
+
 // An extension to the arena allocator. Calls free_all when not enough space. Because we are not running e.g. a game
 // there is no clear point at which to free_all the temporary allocator, that's why we assume that no allocation
 // made with TempAlloc should persist beyond the next allocation.
+//
+// Note: This allocator doesn't work 100% in a multithreaded situation because free_all could be called at 
+// an arbitrary point in time.
+// 
+// @TODO: Replace calls to the temporary alloc with calls to the persient alloc. They are both are fast. 
+// Obviously this allocator is faster, but there is no clear point as to when we can safely call free_all..
+// In a game free_all is called at the end of each frame which means there is no problem there
+// since temporary allocations shouldn't persist until the next frame.
 void *win32_temp_alloc(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
     auto *data = (arena_allocator_data *) context;
 
@@ -137,19 +161,21 @@ void *win32_temp_alloc(allocator_mode mode, void *context, s64 size, void *oldMe
     defer(unlock(&S->TempAllocMutex));
 
     auto *result = arena_allocator(mode, context, size, oldMemory, oldSize, options);
-    if (mode == allocator_mode::ALLOCATE) {
-        if (size > S->TempStorageSize) {
-            // If we try to allocate a block with size bigger than the temporary storage block, we make a new, larger temporary storage block
-            platform_report_warning("Not enough memory in the temporary allocator block; allocating a new pool");
-
-            allocator_remove_pool(S->TempAlloc, S->TempStorageBlock);
-            os_free_block((byte *) S->TempStorageBlock - sizeof(arena_allocator_data));
-
-            create_temp_storage_block(size * 2);
-            result = arena_allocator(allocator_mode::ALLOCATE, context, size, null, 0, options);
-        } else if (!result) {
+    if (!result && mode == allocator_mode::ALLOCATE) {
+        if (size < S->TempAllocData.Size) {
             // If we couldn't allocate but the temporary storage block has enough space, we just call free_all
             free_all(S->TempAlloc);
+            result = arena_allocator(allocator_mode::ALLOCATE, context, size, null, 0, options);
+            // Problem in multithreaded! See note above.
+        } else {
+            // If we try to allocate a block with size bigger than the temporary storage block,
+            // we make a new, larger temporary storage block.
+
+            platform_report_warning("Not enough memory in the temporary allocator block; reallocating the pool");
+
+            os_free_block(S->TempAllocData.Block);
+            create_new_temp_storage_block(size * 2);
+
             result = arena_allocator(allocator_mode::ALLOCATE, context, size, null, 0, options);
         }
     }
@@ -157,14 +183,18 @@ void *win32_temp_alloc(allocator_mode mode, void *context, s64 size, void *oldMe
     return result;
 }
 
-void create_temp_storage_block(s64 size) {
-    // We allocate the arena allocator data and the starting pool in one big block in order to reduce fragmentation.
-    auto [data, pool] = os_allocate_packed<arena_allocator_data>(size);
-    S->TempAlloc      = {win32_temp_alloc, data};
-    allocator_add_pool(S->TempAlloc, pool, size);
+// Returns a pointer to the usable memory
+void *create_persistent_alloc_page(s64 size) {
+    void *result = os_allocate_block(size + sizeof(win32_memory_state::persistent_alloc_page));
 
-    S->TempStorageBlock = pool;
-    S->TempStorageSize  = size;
+    auto *p = (win32_memory_state::persistent_alloc_page *) result;
+
+    p->Next = S->PersistentAllocBasePage;
+    if (!S->PersistentAllocBasePage) {
+        S->PersistentAllocBasePage = p;
+    }
+
+    return (void *) (p + 1);
 }
 
 void *win32_persistent_alloc(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
@@ -173,23 +203,22 @@ void *win32_persistent_alloc(allocator_mode mode, void *context, s64 size, void 
     lock(&S->PersistentAllocMutex);
     defer(unlock(&S->PersistentAllocMutex));
 
-    auto *result = tlsf_allocator(mode, context, size, oldMemory, oldSize, options);
-    if (mode == allocator_mode::ALLOCATE) {
-        if (!result) {
-            platform_report_warning("Not enough memory in the persistent allocator; adding a pool");
+    if (mode == allocator_mode::ALLOCATE && ((u64) (size * 2) > PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE)) {
+        platform_report_warning("Large allocation requested for the platform persistent allocator; querying the OS for memory directly");
+        return create_persistent_alloc_page(size);
+    }
 
-            create_persistent_alloc_block(size * 3);
-        }
+    auto *result = tlsf_allocator(mode, context, size, oldMemory, oldSize, options);
+    if (mode == allocator_mode::ALLOCATE && !result) {
+        platform_report_warning("Not enough memory in the persistent allocator; adding another pool");
+
+        void *block = create_persistent_alloc_page(PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
+        tlsf_allocator_add_pool(&S->PersistentAllocData, block, PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
+
         result = tlsf_allocator(allocator_mode::ALLOCATE, context, size, null, 0, options);
+        assert(result);
     }
     return result;
-}
-
-void create_persistent_alloc_block(s64 size) {
-    // We allocate the arena allocator data and the starting pool in one big block in order to reduce fragmentation.
-    auto [data, pool]  = os_allocate_packed<tlsf_allocator_data>(size);
-    S->PersistentAlloc = {win32_persistent_alloc, data};
-    allocator_add_pool(S->PersistentAlloc, pool, size);
 }
 
 // These functions are used by other windows platform files.
@@ -201,8 +230,44 @@ export {
         S->TempAllocMutex       = create_mutex();
         S->PersistentAllocMutex = create_mutex();
 
-        create_temp_storage_block(PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE);
-        create_persistent_alloc_block(PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
+        S->TempAlloc = {win32_temp_alloc, &S->TempAllocData};
+
+        S->TempAllocData.Block = null;
+
+        create_new_temp_storage_block(PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE);
+
+        S->PersistentAllocBasePage = null;
+        S->PersistentAlloc         = {win32_persistent_alloc, &S->PersistentAllocData};
+
+        void *block = create_persistent_alloc_page(PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
+        tlsf_allocator_add_pool(&S->PersistentAllocData, block, PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
+    }
+
+    void platform_uninit_allocators() {
+        lock(&S->TempAllocMutex);
+        lock(&S->PersistentAllocMutex);
+
+        // Free all pages (pools and big allocations)
+        auto *p = S->PersistentAllocBasePage;
+        while (p) {
+            auto *o = p;
+            p       = p->Next;
+            os_free_block(o);
+        }
+        S->PersistentAllocBasePage = null;
+
+        // Free temporary storage arena
+        os_free_block(S->TempAllocData.Block);
+        S->TempAllocData.Size = 0;
+        S->TempAllocData.Used = 0;
+
+        // Release mutexes
+
+        unlock(&S->TempAllocMutex);
+        unlock(&S->PersistentAllocMutex);
+
+        free_mutex(&S->TempAllocMutex);
+        free_mutex(&S->PersistentAllocMutex);
     }
 
     // Windows uses wchar.. Sigh...

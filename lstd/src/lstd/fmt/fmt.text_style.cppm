@@ -34,7 +34,7 @@ export {
     // Returns color::NONE (with value of black) if not found.
     color string_to_color(string str) {
 #define COLOR_DEF(x, y) \
-    if (str == string(#x)) return color::x;
+    if (strings_match(str, string(#x))) return color::x;
 #include "colors.inl"
 #undef COLOR_DEF
         return color::NONE;
@@ -66,7 +66,7 @@ export {
     // Returns terminal_color::NONE (invalid) if not found.
     terminal_color string_to_terminal_color(string str) {
 #define COLOR_DEF(x, y) \
-    if (str == string(#x)) return terminal_color::x;
+    if (strings_match(str, string(#x))) return terminal_color::x;
 #include "terminal_colors.inl"
 #undef COLOR_DEF
         return terminal_color::NONE;

@@ -268,15 +268,23 @@ export struct thread_start_info {
     bool ParentWasUsingTemporaryAllocator;
 };
 
+// Call this to init lstd specific thread-local variables
+void lstd_init_thread() {
+    // We are allowed to do this because we are the parents
+    *const_cast<allocator *>(&TemporaryAllocator) = {arena_allocator, (void *) &TemporaryAllocatorData};
+
+#if defined DEBUG_MEMORY
+    debug_memory_init();
+#endif
+
+    const_cast<context *>(&Context)->ThreadID = GetCurrentThreadId();
+}
+
 export u32 __stdcall thread_wrapper_function(void *data) {
     auto *ti = (thread_start_info *) data;
 
-    // We are allowed to do this because we are the parents
-    *const_cast<allocator *>(&TemporaryAllocator) = {default_temp_allocator, (void *) &TemporaryAllocatorData};
-
     // Copy the parent thread's context
-    auto newContext     = *ti->ContextPtr;
-    newContext.ThreadID = GetCurrentThreadId();
+    auto newContext = *ti->ContextPtr;
     // If the parent thread was using the temporary allocator,
     // set the new thread to also use the temporary allocator,
     // but it needs to point to its own temp data (otherwise we are not thread-safe).
@@ -285,9 +293,15 @@ export u32 __stdcall thread_wrapper_function(void *data) {
     }
     OVERRIDE_CONTEXT(newContext);
 
+    lstd_init_thread();
+
     ti->Function(ti->UserData);  // Call the thread function with the user data
 
-    free(ti);
+#if defined DEBUG_MEMORY
+    debug_memory_uninit();
+#endif
+
+    // free(ti); // Cross-thread free! @Leak
 
     ExitThread(0);
     if (ti->Module) FreeLibrary(ti->Module);

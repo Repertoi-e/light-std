@@ -15,6 +15,8 @@ LSTD_BEGIN_NAMESPACE
 export {
     [[nodiscard("Leak")]] array<string> path_split_into_components(string path, string seps = "\\/") {
         array<string> result;
+        make_dynamic(&result, 8);
+
         s64 start = 0, prev = 0;
         while ((start = string_find_any_of(path, seps, start + 1)) != -1) {
             add(&result, substring(path, prev, start));
@@ -38,14 +40,14 @@ export {
     };
 
     constexpr path_split_extension_result path_split_extension_general(string path, code_point sep, code_point altSep, code_point extensionSep) {
-        s64 sepIndex = string_find(path, sep, string_length(path), true);
+        s64 sepIndex = string_find(path, sep, -1, true);
         if (altSep) {
-            s64 altSepIndex = string_find(path, altSep, string_length(path), true);
+            s64 altSepIndex = string_find(path, altSep, -1, true);
             if (altSepIndex > sepIndex) sepIndex = altSepIndex;
         }
 
         // Most OSes use a dot to separate extensions but we support other characters as well
-        s64 dotIndex = string_find(path, extensionSep, string_length(path), true);
+        s64 dotIndex = string_find(path, extensionSep, -1, true);
 
         if (dotIndex > sepIndex) {
             // Skip leading dots

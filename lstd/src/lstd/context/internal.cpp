@@ -13,7 +13,7 @@ LSTD_BEGIN_NAMESPACE
 #endif
 #endif
 
-// Implements optimized copy_memory, fill_memory and compare_memory
+// Implements optimized copy_memory and fill_memory
 namespace apex {
 
 // apex memmove (tiberium, kryptonite and mithril) memcpy/memmove functions written by Trevor Herselman in 2014

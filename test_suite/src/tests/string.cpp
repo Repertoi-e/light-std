@@ -99,6 +99,8 @@ TEST(remove) {
     free(a.Data);
 
     a = "Hello world";
+    make_dynamic(&a, 20);
+
     string_remove_range(&a, 0, 5);
     assert_eq(a, string(" world"));
     free(a.Data);
@@ -141,6 +143,8 @@ TEST(set) {
     free(a.Data);
 
     a     = "aDc";
+    make_dynamic(&a, 8);
+
     a[-2] = 'b';
     assert_eq(a, string("abc"));
     a[1] = U'Д';
@@ -163,12 +167,15 @@ TEST(iterator) {
     make_dynamic(&a, 10);
 
     string result = "";
+    make_dynamic(&result, 10);
     for (auto ch : a) {
         string_append(&result, ch);
     }
     assert_eq(result, a);
 
     string b = "HeLLo";
+    make_dynamic(&b, 10);
+
     // In order to modify a character, use a string::code_point
     // This will be same as writing "for (string::code_point ch : b)", since b is non-const.
     // Note that when b is const, the type of ch is just utf32 (you can't take a code point reference)
@@ -265,9 +272,11 @@ TEST(remove_all) {
     b = a;
     make_dynamic(&b, 20);
 
+    make_dynamic(&a, 20);
     remove_all(&a, "x");
     assert_eq(b, a);
     free(b.Data);
+    free(a.Data);
 
     b = "llHello world!ll";
     make_dynamic(&b, 20);
@@ -349,9 +358,9 @@ TEST(find) {
     assert_eq(5, string_find(a, string("is"), 5));
 
     assert_eq(0, string_find(a, string("This")));
-    assert_eq(0, string_find(a, string("This"), string_length(a), true));
+    assert_eq(0, string_find(a, string("This"), -1, true));
     assert_eq(10, string_find(a, string("string")));
-    assert_eq(10, string_find(a, string("string"), string_length(a), true));
+    assert_eq(10, string_find(a, string("string"), -1, true));
 
     assert_eq(5, string_find(a, string("is"), 6));
     assert_eq(2, string_find(a, string("is"), 5));
@@ -362,19 +371,19 @@ TEST(find) {
     assert_eq(1, string_find(a, string("h"), 1));
 
     assert_eq(0, string_find(a, 'T'));
-    assert_eq(0, string_find(a, 'T', string_length(a), true));
+    assert_eq(0, string_find(a, 'T', -1, true));
 
-    assert_eq(13, string_find(a, 'i', string_length(a), true));
+    assert_eq(13, string_find(a, 'i', -1, true));
     assert_eq(5, string_find(a, 'i', 13));
     assert_eq(2, string_find(a, 'i', 5));
 
     assert_eq(string_length(a) - 1, string_find(a, 'g'));
-    assert_eq(string_length(a) - 1, string_find(a, 'g', string_length(a), true));
+    assert_eq(string_length(a) - 1, string_find(a, 'g', -1, true));
 
     assert_eq(1, string_find_not(a, 'T'));
     assert_eq(0, string_find_not(a, 'Q'));
-    assert_eq(string_length(a) - 1, string_find_not(a, 'Q', string_length(a), true));
-    assert_eq(string_length(a) - 2, string_find_not(a, 'g', string_length(a), true));
+    assert_eq(string_length(a) - 1, string_find_not(a, 'Q', -1, true));
+    assert_eq(string_length(a) - 2, string_find_not(a, 'g', -1, true));
 
     assert_eq(-1, string_find(a, 'Q'));
 
@@ -386,7 +395,7 @@ TEST(find) {
     assert_eq(8, string_find(a, U'и', 8));
 
     assert_eq(14, string_find(a, U'б'));
-    assert_eq(14, string_find(a, U'б', string_length(a), true));
+    assert_eq(14, string_find(a, U'б', -1, true));
 
     assert_eq(-1, string_find(a, U'я'));
 
@@ -395,7 +404,7 @@ TEST(find) {
     assert_eq(3, string_find_any_of(a, "CbD"));
     assert_eq(0, string_find_any_of(a, "PQa"));
 
-    assert_eq(2, string_find_any_of(a, "PQa", string_length(a), true));
+    assert_eq(2, string_find_any_of(a, "PQa", -1, true));
     assert_eq(1, string_find_any_of(a, "PQa", 2, true));
     assert_eq(0, string_find_any_of(a, "PQa", 1, true));
 
@@ -403,12 +412,12 @@ TEST(find) {
     assert_eq(0, string_find_not_any_of(a, "bcd"));
     assert_eq(string_find(a, 'b'), string_find_not_any_of(a, "ac"));
 
-    assert_eq(2, string_find_not_any_of(a, "bcd", string_length(a), true));
+    assert_eq(2, string_find_not_any_of(a, "bcd", -1, true));
     assert_eq(2, string_find_not_any_of(a, "bc", -3, true));
     assert_eq(2, string_find_not_any_of(a, "bc", -4, true));
     assert_eq(0, string_find_not_any_of(a, "bcd", 1, true));
 
-    assert_eq(string_length(a) - 1, string_find_any_of(a, "CdB", string_length(a), true));
+    assert_eq(string_length(a) - 1, string_find_any_of(a, "CdB", -1, true));
 
     assert_eq(-1, string_find_any_of(a, "QRT"));
 }

@@ -217,9 +217,11 @@ void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept  // terminate
     // If in DEBUG then we fill it with a special value to catch bugs more
     // easily when reading values from the invalid context.
     //
-#if defined DEBUG_MEMORY
-    LSTD_NAMESPACE::fill_memory((void *) &Context, DEAD_LAND_FILL, sizeof(Context));
-#endif
+
+    extern void *MainContext;
+    if ((void *) &Context != MainContext) {
+        LSTD_NAMESPACE::fill_memory((void *) &Context, DEAD_LAND_FILL, sizeof(Context));
+    }
 }
 
 /*

@@ -26,7 +26,7 @@ export {
     TYPE_CONSTANT(f32, fmt_type::F32);
     TYPE_CONSTANT(f64, fmt_type::F64);
     TYPE_CONSTANT(string, fmt_type::STRING);
-    TYPE_CONSTANT(const void *, fmt_type::POINTER);
+    TYPE_CONSTANT(void *, fmt_type::POINTER);
 #undef TYPE_CONSTANT
 
     template <typename T>

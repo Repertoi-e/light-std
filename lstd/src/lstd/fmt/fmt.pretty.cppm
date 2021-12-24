@@ -32,10 +32,12 @@ export {
         array<field_entry> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_struct(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {}
+        format_struct(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {
+            make_dynamic(&Fields, 8);  // @Cleanup
+        }
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
-        ~format_struct() { if (Fields) free(Fields.Data); }
+        ~format_struct() { free(Fields.Data); }
 
         template <typename T>
         format_struct *field(string name, const T &value) {
@@ -54,10 +56,12 @@ export {
         array<fmt_arg> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_tuple(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {}
+        format_tuple(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {
+            make_dynamic(&Fields, 8);  // @Cleanup
+        }
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
-        ~format_tuple() { if (Fields) free(Fields.Data); }
+        ~format_tuple() { free(Fields.Data); }
 
         template <typename T>
         format_tuple *field(const T &value) {
@@ -75,14 +79,16 @@ export {
         array<fmt_arg> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_list(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
+        format_list(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {
+            make_dynamic(&Fields, 8); // @Cleanup
+        }
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
-        ~format_list() { if (Fields) free(Fields.Data); }
+        ~format_list() { free(Fields.Data); }
 
         template <typename T>
         format_list *entries(array<T> values) {
-            For(values) add(Fields, fmt_make_arg(it));
+            For(values) add(&Fields, fmt_make_arg(it));
             return this;
         }
 

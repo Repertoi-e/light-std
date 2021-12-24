@@ -9,15 +9,6 @@ export import lstd.qsort;
 
 LSTD_BEGIN_NAMESPACE
 
-template <typename D, typename...>
-struct return_type_helper {
-    using type = D;
-};
-
-template <typename... Types>
-struct return_type_helper<void, Types...> : types::common_type<Types...> {
-};
-
 //
 // A wrapper around T arr[..] which makes it easier to pass around and work with.
 //
@@ -47,8 +38,8 @@ export {
         T Data[N ? N : 1];
         static constexpr s64 Count = N;
 
-        constexpr T &operator[](s64 index) { return Data[index]; }
-        constexpr operator bool() { return Count; }
+        constexpr T &operator[](s64 index) { return Data[translate_index(index, Count)]; }
+
         constexpr operator array<T>() { return array<T>(Data, Count); }
     };
 
@@ -63,30 +54,17 @@ export {
     template <typename T>
     concept any_stack_array = is_stack_array<types::remove_cv_t<T>>;
 
+    // @Cleanup Actually remove == operator overload for strings and arrays.
+    // May be error-prone due to pointers...
+    constexpr bool operator==(any_array auto a, any_stack_array auto b) { return compare(a, b) == -1; }
+    constexpr bool operator==(any_stack_array auto a, any_stack_array auto b) { return compare(a, b) == -1; }
+
     // To make range based for loops work.
     auto begin(any_stack_array auto &arr) { return arr.Data; }
     auto end(any_stack_array auto &arr) { return arr.Data + arr.Count; }
 
-    template <typename D = void, class... Types>
-    constexpr stack_array<typename return_type_helper<D, Types...>::type, sizeof...(Types)> make_stack_array(Types by_ref... t);
-
-    template <typename T, s64 N>
-    constexpr stack_array<types::remove_cv_t<T>, N> make_stack_array(T(&a)[N]);
-}
-
-template <class T, s64 N, s64... I>
-constexpr stack_array<types::remove_cv_t<T>, N> to_array_impl(T (&a)[N], integer_sequence<I...>) {
-    return {{a[I]...}};
-}
-
-template <typename D, class... Types>
-constexpr stack_array<typename return_type_helper<D, Types...>::type, sizeof...(Types)> make_stack_array(Types by_ref... t) {
-    return {ref<Types>(t)...};
-}
-
-template <typename T, s64 N>
-constexpr stack_array<types::remove_cv_t<T>, N> make_stack_array(T (&a)[N]) {
-    return to_array_impl(a, make_integer_sequence<N>{});
+    template <typename D = void, typename... Types>
+    constexpr stack_array<types::common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types && ...t) { return {(Types &&) t...}; }
 }
 
 LSTD_END_NAMESPACE

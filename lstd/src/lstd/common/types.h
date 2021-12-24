@@ -39,8 +39,7 @@ struct tuple : tuple<Rest...> {
     }
 
     constexpr tuple(const F &first, Rest &&...rest)
-        : tuple<Rest...>((Rest &&) rest...),
-          First(first) {
+        : tuple<Rest...>((Rest &&) rest...), First(first) {
     }
 };
 

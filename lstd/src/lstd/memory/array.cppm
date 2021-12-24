@@ -79,7 +79,7 @@ export {
         }
 
         constexpr auto operator[](s64 index) { return get_operator_square_brackets(this, index); }
-        constexpr operator bool() { return Count; }  // To check if empty
+        constexpr explicit operator bool() { return Count; }  // To check if empty
     };
 
     template <typename T>
@@ -179,19 +179,21 @@ export {
     // Removes all occurences of a subarray from an array.
     void remove_all(any_array auto *arr, any_array auto search) { replace_all(arr, search, {}); }
 
+    constexpr bool operator==(any_array auto a, any_array auto b) { return compare(a, b) == -1; }
+
     // Returns a deep copy of _src_
     auto clone(any_array auto src, allocator alloc = {}) {
         decltype(src) result;
         make_dynamic(&result, src.Count, alloc);
-        add(&result, src);
+        add_array(&result, src);
         return result;
     }
 }
 
 void make_dynamic(any_array auto *arr, s64 n, allocator alloc) {
-    auto *oldData = arr->Data;
-
     using T = types::remove_pointer_t<decltype(arr->Data)>;
+
+    auto *oldData = arr->Data;
 
     // If alloc is null we use the Context's allocator
     arr->Data = malloc<T>({.Count = n, .Alloc = alloc});
@@ -209,7 +211,16 @@ s64 get_allocated(any_array auto arr) {
 
 bool is_dynamically_allocated(any_array auto *arr) {
 #if defined DEBUG_MEMORY
-    assert(DEBUG_memory->list_contains((allocation_header *) arr->Data - 1));
+    //
+    // Attempting to modify an array view...
+    // Data wasn't dynamically allocated.
+    //
+    // Make sure you call make_dynamic(arr) beforehand.
+    // 
+    // Attempting to modify an array from another thread...
+    // Caution! This container is not thread-safe!
+    //
+    assert(debug_memory_list_contains((allocation_header *) arr->Data - 1));
 #endif
     return true;
 }
@@ -325,7 +336,6 @@ void replace_range(any_array auto *arr, s64 begin, s64 end, any_array auto repla
     s64 targetBegin = translate_index(begin, arr->Count);
     s64 targetEnd   = translate_index(end, arr->Count, true);
 
-    auto where    = arr->Data + targetBegin;
     s64 whereSize = targetEnd - targetBegin;
 
     s64 diff = replace.Count - whereSize;
@@ -333,6 +343,8 @@ void replace_range(any_array auto *arr, s64 begin, s64 end, any_array auto repla
     if (diff > 0) {
         maybe_grow(arr, diff);
     }
+
+    auto where = arr->Data + targetBegin;
 
     // Make space for the new elements
     copy_elements(where + replace.Count, where + whereSize, arr->Count - targetBegin - whereSize);
@@ -365,6 +377,7 @@ void replace_all(any_array auto *arr, any_array auto search, any_array auto repl
                 while (n != e && sp != se) {
                     // Require only operator == to be defined (and not !=).
                     if (!(*p == *sp)) break;
+                    ++n, ++sp;
                 }
 
                 if (sp == se) {

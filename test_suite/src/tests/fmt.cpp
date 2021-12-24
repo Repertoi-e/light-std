@@ -233,7 +233,7 @@ TEST(format_inf) {
 struct Answer {
 };
 
-void write(fmt_context *f, Answer *) { write(f, 42); }
+void write_custom(fmt_context *f, const Answer *) { write(f, 42); }
 
 TEST(format_custom) {
     Answer a;

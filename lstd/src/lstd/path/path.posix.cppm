@@ -57,14 +57,14 @@ export {
     //
     // Note: The returned strings are substrings so they shouldn't be freed.
     path_split_result path_split(string path) {
-        s64 i = string_find(path, '/', string_length(path), true) + 1;
+        s64 i = string_find(path, '/', -1, true) + 1;
 
         string head = substring(path, 0, i);
         string tail = substring(path, i, string_length(path));
 
         // If head exists and doesn not consist only of slashes
         if (head && string_find_not(head, '/') != -1) {
-            head = substring(head, 0, string_find_not(head, '/', string_length(path), true) + 1);
+            head = substring(head, 0, string_find_not(head, '/', -1, true) + 1);
         }
 
         return {head, tail};
