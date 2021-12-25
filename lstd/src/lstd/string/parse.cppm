@@ -391,7 +391,7 @@ export {
             if (p[0] == 'f') {
                 bool status = expect_sequence<Options.ParseWordsIgnoreCase>(&p, (string) "false");
                 if (!status) return FAIL;
-                return SUCCESS(true);
+                return SUCCESS(false);
             }
         }
         return FAIL;

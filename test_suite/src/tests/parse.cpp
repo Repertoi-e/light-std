@@ -11,8 +11,8 @@
 TEST(int) {
     test_parse_int(s32, parse_int_options{}, 10, "", 0, PARSE_INVALID, "");
 
-    test_parse_int(u64, parse_int_options{}, 10, "+", 0, PARSE_INVALID, "+");
-    test_parse_int(u64, parse_int_options{}, 10, "-", 0, PARSE_INVALID, "-");
+    test_parse_int(u64, parse_int_options{}, 10, "+", 0, PARSE_INVALID, "");
+    test_parse_int(u64, parse_int_options{}, 10, "-", 0, PARSE_INVALID, "");
 
     test_parse_int(s32, parse_int_options{}, 10, "-10101aaa", -10101, PARSE_SUCCESS, "aaa");
     test_parse_int(s32, parse_int_options{}, 10, "+00001aaa", +1, PARSE_SUCCESS, "aaa");
@@ -26,8 +26,8 @@ TEST(int) {
 
     test_parse_int(s32, parse_int_options{.AllowPlusSign = false}, 10, "+01aaa", 0, PARSE_INVALID, "01aaa");
 
-    test_parse_int(s32, parse_int_options{.LookForBasePrefix = true}, 10, "0x", 0, PARSE_INVALID, "0x");
-    test_parse_int(s32, parse_int_options{.LookForBasePrefix = true}, 10, "0", 0, PARSE_INVALID, "0");
+    test_parse_int(s32, parse_int_options{.LookForBasePrefix = true}, 10, "0x", 0, PARSE_INVALID, "");
+    test_parse_int(s32, parse_int_options{.LookForBasePrefix = true}, 10, "0", 0, PARSE_INVALID, "");
 
     test_parse_int(s32, parse_int_options{.LookForBasePrefix = true}, 10, "+0xff", 0xff, PARSE_SUCCESS, "");
     test_parse_int(s32, parse_int_options{.LookForBasePrefix = true}, 10, "-0712", -0712, PARSE_SUCCESS, "");
@@ -53,9 +53,9 @@ TEST(bool) {
     test_parse_bool(parse_bool_options{}, "0", false, PARSE_SUCCESS, "");
     test_parse_bool(parse_bool_options{}, "1", true, PARSE_SUCCESS, "");
 
-    test_parse_bool(parse_bool_options{}, "t", false, PARSE_INVALID, "t");
-    test_parse_bool(parse_bool_options{}, "tr", false, PARSE_INVALID, "tr");
-    test_parse_bool(parse_bool_options{}, "tru", false, PARSE_INVALID, "tru");
+    test_parse_bool(parse_bool_options{}, "t", false, PARSE_INVALID, "");
+    test_parse_bool(parse_bool_options{}, "tr", false, PARSE_INVALID, "");
+    test_parse_bool(parse_bool_options{}, "tru", false, PARSE_INVALID, "");
     test_parse_bool(parse_bool_options{}, "true", true, PARSE_SUCCESS, "");
 
     test_parse_bool(parse_bool_options{}, "tRuE", true, PARSE_SUCCESS, "");
@@ -63,10 +63,10 @@ TEST(bool) {
 
     test_parse_bool(parse_bool_options{}, "trff", false, PARSE_INVALID, "ff");
 
-    test_parse_bool(parse_bool_options{}, "f", false, PARSE_INVALID, "f");
-    test_parse_bool(parse_bool_options{}, "fa", false, PARSE_INVALID, "fa");
-    test_parse_bool(parse_bool_options{}, "fal", false, PARSE_INVALID, "fal");
-    test_parse_bool(parse_bool_options{}, "fals", false, PARSE_INVALID, "fals");
+    test_parse_bool(parse_bool_options{}, "f", false, PARSE_INVALID, "");
+    test_parse_bool(parse_bool_options{}, "fa", false, PARSE_INVALID, "");
+    test_parse_bool(parse_bool_options{}, "fal", false, PARSE_INVALID, "");
+    test_parse_bool(parse_bool_options{}, "fals", false, PARSE_INVALID, "");
     test_parse_bool(parse_bool_options{}, "false", false, PARSE_SUCCESS, "");
 
     test_parse_bool(parse_bool_options{}, "falff", false, PARSE_INVALID, "ff");
