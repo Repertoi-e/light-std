@@ -376,7 +376,7 @@ void replace_all(any_array auto *arr, any_array auto search, any_array auto repl
                 auto *se = search.Data + search.Count;
                 while (n != e && sp != se) {
                     // Require only operator == to be defined (and not !=).
-                    if (!(*p == *sp)) break;
+                    if (!(*n == *sp)) break;
                     ++n, ++sp;
                 }
 

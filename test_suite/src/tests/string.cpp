@@ -142,7 +142,7 @@ TEST(set) {
     assert_eq(a[2], 'c');
     free(a.Data);
 
-    a     = "aDc";
+    a = "aDc";
     make_dynamic(&a, 8);
 
     a[-2] = 'b';
@@ -220,23 +220,28 @@ TEST(append) {
         free(result.Data);
     }
 
-    string result;
-    make_dynamic(&result, 10);
+    {
+        string result;
+        make_dynamic(&result, 10);
 
-    For(range(10)) {
-        string_append(&result, 'i');
-        assert_eq(result.Count, it + 1);
-        assert_eq(string_length(result), it + 1);
+        For(range(10)) {
+            string_append(&result, 'i');
+            assert_eq(result.Count, it + 1);
+            assert_eq(string_length(result), it + 1);
+        }
+        free(result.Data);
     }
-    free(result.Data);
 
-    make_dynamic(&result, 20);
-    For(range(10)) {
-        string_append(&result, u8"Д");
-        assert_eq(result.Count, 2 * (it + 1));
-        assert_eq(string_length(result), it + 1);
+    {
+        string result;
+        make_dynamic(&result, 20);
+        For(range(10)) {
+            string_append(&result, u8"Д");
+            assert_eq(result.Count, 2 * (it + 1));
+            assert_eq(string_length(result), it + 1);
+        }
+        free(result.Data);
     }
-    free(result.Data);
 }
 
 TEST(builder) {
