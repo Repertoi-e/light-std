@@ -213,7 +213,7 @@ constexpr void ensure_digits(big_integer *b, s64 n) {
         b->Allocated = n;
 
         b->Digits[0] = d1;
-        b->Digits[1] = d1;
+        b->Digits[1] = d2;
     } else if (b->Allocated < n) {
         b->Digits = realloc(b->Digits, {.NewCount = n});
         zero_memory(b->Digits + b->Allocated, (n - b->Allocated) * sizeof(digit));
