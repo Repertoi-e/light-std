@@ -269,19 +269,25 @@ export void dragon4_format_float(char *b, s64 *outWritten, s32 *outExp, s32 prec
         }
     }
 
-    // If 0 precision, write out 1 or 0.
-    // @Hack
+    //
+    // If 0 precision, write out a 1 or 0.
+    // 
     // This is not in the original algorithm.
     // We check for precision 0 here because we need to generate
-    // a lonely zero in this case. Otherwise our formatting looks incorrect.
-    //
-    // Precisely, the format string "{:#.0f}" should produce "0." when given the value 0.5 or lower.
+    // a lonely 0 (or 1), otherwise our formatting looks incorrect.
+    // 
+    // Precisely, the format string "{:#.0f}" should produce "0." when given a value lower than 0.5.
+    // Note that Python would round 0.5 to 0, and not to 1 like we do here. I'm not exactly sure
+    // why its interpreter does that, however I dub our behaviour more correct.
+    // 
     // When fed with e.g. 0.7, we take the outside branch and round up, and correctly produce "1.".
-    // If you are confused about the pointy dot: the # specifier tells the formatter to output a dot despite
-    // the fact that the specified precision is 0. This is useful when you want to be explicit that you are
-    // printing a floating point number, and not to be confused with an integer.
-    //
-    // Normally "{:.0f}" with value 42.2 would print "42", which is indistinguishable from printing the integer 42.
+    // 
+    // Side note about the formatting syntax:
+    // If you are confused about the pointy dot produced in the final output: the # specifier tells the 
+    // formatter to output a dot despite the fact that the specified precision is 0. This is useful when 
+    // you want to be explicit that you are printing a floating point number, and not to be confused with 
+    // an integer. For e.g. "{:.0f}" (without the hash) with the value 42.2 would print "42", which is 
+    // indistinguishable from printing the integer 42.
     //
     *outExp -= precision - 1;
     if (precision == 0) {
