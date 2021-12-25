@@ -213,8 +213,6 @@ extern double NAN;
 extern double INFINITY;
 #endif
 
-#if INTRINSIC
-
 double sin(x)
 double x; {
     double y, z, zz;
@@ -346,8 +344,6 @@ double x; {
 
     return y;
 }
-
-#endif  // INTRINSIC
 
 
 /* Degrees, minutes, seconds to radians: */

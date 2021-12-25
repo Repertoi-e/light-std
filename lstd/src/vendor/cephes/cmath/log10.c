@@ -154,8 +154,6 @@ int isnan(), isfinite();
 #endif
 extern double LOGE2, SQRT2, INFINITY, NAN;
 
-#if INTRINSIC
-
 double log10(x)
 double x; {
     VOLATILE double z;
@@ -240,5 +238,3 @@ x = frexp( x, &e );
 
     return z;
 }
-
-#endif  // INTRINSIC

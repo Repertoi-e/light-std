@@ -29,8 +29,6 @@
 #endif
 #endif
 
-#if INTRINSIC
-
 double fabs(x)
 double x; {
     union {
@@ -54,5 +52,3 @@ if( u.d < 0 )
 #endif
     return u.d;
 }
-
-#endif // INTRINSIC

@@ -56,7 +56,6 @@ int isnan(), isfinite();
 extern double MAXLOG, INFINITY, LOGE2;
 
 
-#if INTRINSIC
 double cosh(x) double x; {
     double y;
 
@@ -79,4 +78,3 @@ double cosh(x) double x; {
     y = 0.5 * (y + 1.0 / y);
     return y;
 }
-#endif  // INTRINSIC

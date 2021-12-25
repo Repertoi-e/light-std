@@ -206,8 +206,6 @@ int isnan(), isfinite();
 #define SQRTH 0.70710678118654752440
 extern double INFINITY, NAN;
 
-#if INTRINSIC
-
 double log(x)
 double x; {
     int e;
@@ -325,5 +323,3 @@ ldone:
 
     return z;
 }
-
-#endif  // INTRINSIC

@@ -413,11 +413,10 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
 void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_location loc) {
     options |= Context.AllocOptions;
 
+    auto *header = (allocation_header *) ptr - 1;
+
 #if defined DEBUG_MEMORY
     debug_memory_maybe_verify_heap();
-#endif
-
-    auto *header = (allocation_header *) ptr - 1;
 
     auto *node = list_search(header);
     if (node->Header != header) {
@@ -425,6 +424,13 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
         panic(tprint("{!RED}Attempting to reallocate a memory block which was not allocated in the heap.{!} This happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!}).", loc.File, loc.Line, loc.Function));
         return null;
     }
+
+    if (node->Freed) {
+        // @TODO: Callstack
+        panic(tprint("{!RED}Attempting to reallocate a memory block which was freed.{!} The free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!}).", node->FreedAt.File, node->FreedAt.Line, node->FreedAt.Function));
+        return null;
+    }
+#endif
 
     if (header->Size == newUserSize) [[unlikely]] {
         return ptr;
@@ -456,12 +462,6 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
 
     void *block = (byte *) header - header->AlignmentPadding;
 
-    if (node->Freed) {
-        // @TODO: Callstack
-        panic(tprint("{!RED}Attempting to reallocate a memory block which was freed.{!} The free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!}).", node->FreedAt.File, node->FreedAt.Line, node->FreedAt.Function));
-        return null;
-    }
-
     void *result = ptr;
 
     // Try to resize the block, this returns null if the block can't be resized and we need to move it.
@@ -474,9 +474,10 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
         result = encode_header(newBlock, newUserSize, header->Alignment, alloc, options);
 
         // We can't just override the header cause we need to keep the list sorted by the header address
+        header = (allocation_header *) result - 1;
 
-        // See note in _general_free()_
 #if defined DEBUG_MEMORY
+        // See note in _general_free()_
         node->Freed   = true;
         node->FreedAt = loc;
 
@@ -484,13 +485,9 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
         auto id              = node->ID;
         auto rid             = node->RID;
         bool wasMarkedAsLeak = node->MarkedAsLeak;
-#else
-        DEBUG_memory->list_remove(header);
-#endif
-
-        header = (allocation_header *) result - 1;
 
         node = list_add(header);
+#endif
 
         // Copy old state
 #if defined DEBUG_MEMORY
@@ -537,16 +534,15 @@ void general_free(void *ptr, u64 options, source_location loc) {
 
     options |= Context.AllocOptions;
 
+    auto *header = (allocation_header *) ptr - 1;
+
 #if defined DEBUG_MEMORY
     debug_memory_maybe_verify_heap();
-#endif
-
-    auto *header = (allocation_header *) ptr - 1;
 
     auto *node = list_search(header);
     if (node->Header != header) {
         // @TODO: Callstack
-        panic(tprint("Attempting to free a memory block which was not allocated in the (this thread's) heap."));
+        panic(tprint("Attempting to free a memory block which was not heap allocated (in this thread)."));
 
         // Note: We don't support cross-thread freeing yet.
 
@@ -557,6 +553,8 @@ void general_free(void *ptr, u64 options, source_location loc) {
         panic(tprint("{!RED}Attempting to free a memory block which was already freed.{!} The previous free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!})", node->FreedAt.File, node->FreedAt.Line, node->FreedAt.Function));
         return;
     }
+#endif
+
 
     auto alloc  = header->Alloc;
     void *block = (byte *) header - header->AlignmentPadding;

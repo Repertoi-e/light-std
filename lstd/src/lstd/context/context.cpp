@@ -6,6 +6,7 @@ module lstd.context;
 
 import lstd.string;
 import lstd.fmt;
+import lstd.os;
 
 LSTD_BEGIN_NAMESPACE
 

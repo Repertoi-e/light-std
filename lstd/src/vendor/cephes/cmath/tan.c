@@ -196,8 +196,6 @@ extern double PIO4;
 extern double INFINITY;
 extern double NAN;
 
-#if INTRINSIC
-
 double tan(x)
 double x; {
 #ifdef MINUSZERO
@@ -291,5 +289,3 @@ int cotflg; {
 
     return y;
 }
-
-#endif  // INTRINSIC

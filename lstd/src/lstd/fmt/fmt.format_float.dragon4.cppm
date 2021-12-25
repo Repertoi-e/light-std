@@ -109,8 +109,13 @@ big_integer bigint_pow10(s32 exp) {
 }
 
 bool is_digit_in_valid_range(big_integer* b) {
-    if (b->Size == 0) return true;
-    return b->Size == 1 && b->Digits[0] < 10;
+    if (!b->Size) return true;
+    return b->Size == 1 && get_digit(b, 0) < 10;
+}
+
+u32 get_digit_or_zero(big_integer* b) {
+    if (b->Size) return get_digit(b, 0);
+    return 0;
 }
 
 //
@@ -232,7 +237,7 @@ export void dragon4_format_float(char *b, s64 *outWritten, s32 *outExp, s32 prec
             numerator         = mod;
 
             assert(is_digit_in_valid_range(&digit));
-            u32 outputDigit = digit.Size ? digit.Digits[0] : 0;
+            u32 outputDigit = get_digit_or_zero(&digit);
 
             bool low  = compare(numerator, lower) - even < 0;
             bool high = compare(numerator + *upper, denominator) + even > 0;
@@ -293,7 +298,7 @@ export void dragon4_format_float(char *b, s64 *outWritten, s32 *outExp, s32 prec
         numerator         = mod;
 
         assert(is_digit_in_valid_range(&digit));
-        u32 outputDigit = digit.Size ? digit.Digits[0] : 0;
+        u32 outputDigit = get_digit_or_zero(&digit);
 
         b[it] = '0' + outputDigit;
 
@@ -305,7 +310,7 @@ export void dragon4_format_float(char *b, s64 *outWritten, s32 *outExp, s32 prec
     numerator         = mod;
 
     assert(is_digit_in_valid_range(&digit));
-    u32 outputDigit = digit.Size ? digit.Digits[0] : 0;
+    u32 outputDigit = get_digit_or_zero(&digit);
 
     s64 cmp = compare(numerator * cast_big(2), denominator);
     if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {

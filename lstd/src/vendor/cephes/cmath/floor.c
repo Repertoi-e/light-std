@@ -106,8 +106,6 @@ int isnan(), isfinite();
 double ldexp();
 #endif
 
-#if INTRINSIC
-
 double ceil(x)
 double x; {
     double y;
@@ -237,8 +235,6 @@ p += 3;
 
     return u.y;
 }
-
-#endif  // INTRINSIC
 
 
 double frexp(x, pw2)

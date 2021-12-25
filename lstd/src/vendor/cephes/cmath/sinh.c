@@ -108,8 +108,6 @@ double fabs(), exp(), polevl(), p1evl();
 #endif
 extern double INFINITY, MINLOG, MAXLOG, LOGE2;
 
-#if INTRINSIC
-
 double sinh(x)
 double x; {
     double a;
@@ -144,5 +142,3 @@ double x; {
     a *= a;
     return x + x * a * (polevl(a, P, 3) / p1evl(a, Q, 3));
 }
-
-#endif  // INTRINSIC

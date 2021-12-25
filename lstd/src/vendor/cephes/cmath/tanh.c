@@ -104,8 +104,6 @@ double fabs(), exp(), polevl(), p1evl();
 #endif
 extern double MAXLOG;
 
-#if INTRINSIC
-
 double tanh(x)
 double x; {
     double s, z;
@@ -136,5 +134,3 @@ double x; {
     }
     return z;
 }
-
-#endif  // INTRINSIC

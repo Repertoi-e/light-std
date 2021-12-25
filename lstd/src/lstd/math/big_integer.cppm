@@ -63,7 +63,7 @@ export {
         digit *Digits = null;
 
         union {
-            digit SmallDigits[2];
+            digit SmallDigits[2]{};
             s64 Allocated;
         };
     };
@@ -94,12 +94,14 @@ export {
     }
 
     constexpr digit get_digit(big_integer * b, s64 index) {
-        index = translate_index(index, abs(b->Size));
+        s64 space = is_small(b) ? 2 : b->Allocated;
+        index     = translate_index(index, space);
         return get_digits(b)[index];
     }
 
     constexpr void set_digit(big_integer * b, s64 index, digit value) {
-        index                = translate_index(index, abs(b->Size));
+        s64 space            = is_small(b) ? 2 : b->Allocated;
+        index                = translate_index(index, space);
         get_digits(b)[index] = value;
     }
 
@@ -237,12 +239,10 @@ constexpr big_integer create_big_integer_and_set_size(s64 initialDigits) {
 }
 
 constexpr void normalize(big_integer *b) {
-    if (is_small(b)) return;
-
     s64 j = abs(b->Size);
     s64 i = j;
 
-    while (i > 0 && b->Digits[i - 1] == 0) --i;
+    while (i > 0 && get_digit(b, i - 1) == 0) --i;
 
     if (i != j) b->Size = b->Size < 0 ? -i : i;
     maybe_small(b);
@@ -261,8 +261,9 @@ constexpr bool assign(big_integer *b, types::is_integral auto v) {
         copy_elements(get_digits(b), get_digits(&v), abs(v.Size));
         b->Size = v.Size;
     } else {
-        auto binaryDigits = count_digits<1>(abs(v));
-        auto digits       = binaryDigits / BASE + (binaryDigits % BASE != 0);
+        auto binaryDigits = count_digits<1>(abs(v));  // How many bits do we need to store the value in _v_
+
+        auto digits = binaryDigits / BASE + (binaryDigits % BASE != 0);
         ensure_digits(b, digits);
 
         s64 size = 0, sign = 1;

@@ -188,7 +188,6 @@ extern double PI, PIO2, PIO4, INFINITY, NEGZERO, MAXNUM;
 #endif
 
 
-#if INTRINSIC
 double atan(x)
 double x; {
     double y, z;
@@ -377,5 +376,3 @@ if( fabs(x) <= (fabs(y) / MAXNUM) )
 #endif
     return z;
 }
-
-#endif  // INTRINSIC
