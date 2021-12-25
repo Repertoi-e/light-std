@@ -78,6 +78,8 @@ export {
             return string(v);
         } else if constexpr (types::is_same<T, code_point_ref>) {
             return (u64) v;
+        } else if constexpr (types::is_same<bool, T>) {
+            return v;
         } else if constexpr (types::is_unsigned_integral<T>) {
             return (u64) v;
         } else if constexpr (types::is_signed_integral<T>) {
@@ -88,8 +90,6 @@ export {
             return v;
         } else if constexpr (types::is_pointer<T>) {
             static_assert(types::is_same<T, void *>, "Formatting of non-void pointers is disallowed");
-            return v;
-        } else if constexpr (types::is_same<bool, T>) {
             return v;
         } else {
             return &v;
