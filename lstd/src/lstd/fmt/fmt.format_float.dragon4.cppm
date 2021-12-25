@@ -166,8 +166,11 @@ u32 get_digit_or_zero(big_integer* b) {
 //
 // _v_           - f32 or f64; contains the value of the float to be formatted.
 //
-export void dragon4_format_float(char *b, s64 *outWritten, s32 *outExp, s32 precision, types::is_floating_point auto v) {
+export void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outExp, s32 precision, types::is_floating_point auto v) {
     // floating point value above/below the significand.
+
+    // Cap precision to not overflow _b_
+    precision = min(precision, bSize);
 
     // Lower and upper are differences between value and corresponding boundaries.
     big_integer numerator, denominator, lower, upperStore;

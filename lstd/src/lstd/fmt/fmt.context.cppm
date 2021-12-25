@@ -637,7 +637,13 @@ void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs 
     // Default precision we do for floats is 6 (except if the spec type is none)
     if (specs.Precision < 0 && specs.Type) specs.Precision = 6;
 
-    if (floatSpecs.Format == fmt_float_specs::EXP && specs.Precision != 0) ++specs.Precision;
+    if (floatSpecs.Format == fmt_float_specs::EXP && specs.Precision != 0) {
+        if (specs.Precision == S32_MAX) {
+            on_error(f, "Number too big");
+            return;
+        }
+        ++specs.Precision;
+    }
 
     //
     // Handle alignment NUMERIC or NONE

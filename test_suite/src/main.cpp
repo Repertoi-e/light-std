@@ -83,7 +83,7 @@ s32 main() {
     newContext.Alloc          = TemporaryAllocator;
     newContext.AllocAlignment = 16;
 #if defined DEBUG_MEMORY
-    newContext.DebugMemoryHeapVerifyFrequency = 1;
+    // newContext.DebugMemoryHeapVerifyFrequency = 1;
 #endif
 
     if (LOG_TO_FILE) {

@@ -285,8 +285,10 @@ export s32 grisu_format_float(string_builder *floatBuffer, types::is_floating_po
         stackAllocData.Block = buffer;
         stackAllocData.Size  = BUFFER_SIZE;
 
+        s32 availableSize = (s32) (string_builder::BUFFER_SIZE - floatBuffer->BaseBuffer.Occupied);
+
         PUSH_ALLOC(stackAlloc) {
-            dragon4_format_float(buf, &written, &exp, state.Precision, v);
+            dragon4_format_float(buf, availableSize, &written, &exp, state.Precision, v);
         }
 
         // Not needed but this marks the allocations in DEBUG_MEMORY linked list as freed.
