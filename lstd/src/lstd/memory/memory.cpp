@@ -497,7 +497,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
 #endif
 
         // Copy old stuff and free
-        copy_memory(result, ptr, oldUserSize);
+        copy_memory_fast(result, ptr, oldUserSize);
         alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, oldSize, options);
     } else {
         //

@@ -376,7 +376,7 @@ void os_write_shared_block(string name, void *data, s64 size) {
     WIN32_CHECK_BOOL(result, MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size));
     if (!result) return;
 
-    copy_memory(result, data, size);
+    copy_memory_fast(result, data, size);
     UnmapViewOfFile(result);
 }
 
@@ -390,7 +390,7 @@ void os_read_shared_block(string name, void *out, s64 size) {
     WIN32_CHECK_BOOL(result, MapViewOfFile(h, FILE_MAP_READ, 0, 0, size));
     if (!result) return;
 
-    copy_memory(out, result, size);
+    copy_memory_fast(out, result, size);
     UnmapViewOfFile(result);
 }
 

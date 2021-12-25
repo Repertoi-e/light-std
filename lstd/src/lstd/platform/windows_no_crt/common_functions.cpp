@@ -39,8 +39,8 @@ extern "C" {
 #endif
 
 void *memset(void *ptr, int value, size_t n) { return fill_memory(ptr, value, n); }
-void *memcpy(void *dest, const void *src, size_t n) { return copy_memory(dest, src, n); }
-void *memmove(void *dest, const void *src, size_t n) { return copy_memory(dest, src, n); }
+void *memcpy(void *dest, const void *src, size_t n) { return copy_memory((char *) dest, (const char *) src, n); }
+void *memmove(void *dest, const void *src, size_t n) { return copy_memory((char *) dest, (const char *) src, n); }
 
 size_t strlen(const char *s) {
     int i;

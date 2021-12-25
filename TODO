@@ -51,7 +51,7 @@ README.md:
 - Credit Python for big_integer and path module
 - Credit apex memmove
 - Credit MSVC standard library source code for windows_no_crt
-
+- Credit glibc for fast memmove, memset, memcmp
 
 
 - API for watching directory changes
@@ -119,7 +119,6 @@ Implement platform specific functionality and compile on linux.
 				24070
 				27370 <-- cloc.exe wasn't counting .ixx files as C++, oops!
 				28935
-				
-				18953
+				23055
 				
 				
