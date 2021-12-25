@@ -367,9 +367,11 @@ TEST(find) {
     assert_eq(10, string_find(a, string("string")));
     assert_eq(10, string_find(a, string("string"), -1, true));
 
-    assert_eq(5, string_find(a, string("is"), 6));
-    assert_eq(2, string_find(a, string("is"), 5));
-    assert_eq(2, string_find(a, string("is"), 3));
+    assert_eq(5, string_find(a, string("is"), 6, true));
+    assert_eq(5, string_find(a, string("is"), 5, true));
+    assert_eq(2, string_find(a, string("is"), 3, true));
+    assert_eq(2, string_find(a, string("is"), 2, true));
+    assert_eq(-1, string_find(a, string("is"), 1, true));
 
     assert_eq(1, string_find(a, 'h'));
     assert_eq(1, string_find(a, 'h', 1));
@@ -379,8 +381,10 @@ TEST(find) {
     assert_eq(0, string_find(a, 'T', -1, true));
 
     assert_eq(13, string_find(a, 'i', -1, true));
-    assert_eq(5, string_find(a, 'i', 13));
-    assert_eq(2, string_find(a, 'i', 5));
+    assert_eq(13, string_find(a, 'i', 13, true));
+    assert_eq(5, string_find(a, 'i', 12, true));
+    assert_eq(5, string_find(a, 'i', 5, true));
+    assert_eq(2, string_find(a, 'i', 4, true));
 
     assert_eq(string_length(a) - 1, string_find(a, 'g'));
     assert_eq(string_length(a) - 1, string_find(a, 'g', -1, true));
@@ -410,17 +414,19 @@ TEST(find) {
     assert_eq(0, string_find_any_of(a, "PQa"));
 
     assert_eq(2, string_find_any_of(a, "PQa", -1, true));
-    assert_eq(1, string_find_any_of(a, "PQa", 2, true));
-    assert_eq(0, string_find_any_of(a, "PQa", 1, true));
+    assert_eq(2, string_find_any_of(a, "PQa", 2, true));
+    assert_eq(1, string_find_any_of(a, "PQa", 1, true));
+    assert_eq(0, string_find_any_of(a, "PQa", 0, true));
 
     assert_eq(string_find(a, 'd'), string_find_not_any_of(a, "abc"));
     assert_eq(0, string_find_not_any_of(a, "bcd"));
     assert_eq(string_find(a, 'b'), string_find_not_any_of(a, "ac"));
 
     assert_eq(2, string_find_not_any_of(a, "bcd", -1, true));
-    assert_eq(2, string_find_not_any_of(a, "bc", -3, true));
+    assert_eq(9, string_find_not_any_of(a, "bc", -3, true));
     assert_eq(2, string_find_not_any_of(a, "bc", -4, true));
-    assert_eq(0, string_find_not_any_of(a, "bcd", 1, true));
+    assert_eq(1, string_find_not_any_of(a, "bcd", 1, true));
+    assert_eq(0, string_find_not_any_of(a, "bcd", 0, true));
 
     assert_eq(string_length(a) - 1, string_find_any_of(a, "CdB", -1, true));
 
