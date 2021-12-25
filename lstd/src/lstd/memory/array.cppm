@@ -256,7 +256,7 @@ auto *insert_at_index(any_array auto *arr, s64 index, auto element) {
     if (offset < arr->Count) {
         copy_memory(where + 1, where, (arr->Count - offset) * sizeof(*where));
     }
-    copy_memory(where, &element, sizeof(*where));
+    *where = element;
     ++arr->Count;
     return where;
 }

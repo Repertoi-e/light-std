@@ -72,7 +72,7 @@ export {
 
         while (b) {
             if (b->Count != Arr::ELEMENTS_PER_BUCKET) {
-                copy_memory(b->Data + b->Count, &element, sizeof(element));
+                *(b->Data + b->Count) = element;
                 ++b->Count;
                 return b->Data + b->Count - 1;
             }
@@ -84,7 +84,7 @@ export {
 
         b = last->Next = malloc<typename Arr::bucket>({.Alloc = arr->Alloc});
         b->Elements    = malloc<typename Arr::T>({.Count = Arr::ELEMENTS_PER_BUCKET, .Alloc = arr->Alloc});
-        copy_memory(b->Data, &element, sizeof(element));
+        *b->Data       = element;
         b->Count = 1;
         return b->Data;
     }
