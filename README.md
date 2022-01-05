@@ -6,7 +6,7 @@ This library is supposed to be a replacement of C/C++'s standard library in but 
 
 It is completely stand-alone - it doesn't include any headers from the default standard library. Some C++ language features (like the spaceship operator, initializer lists, etc.) require certain definitions in the std:: namespace, but we provide our own placeholders (tested on the MSVC compiler). 
 
-## Manifest
+## Why
 
 Memory layout is very important for modern CPUs. The programmer should be very aware of that when writing code.
 
@@ -27,18 +27,8 @@ We should write fast software. We can slow down global warming by not wasting CP
 
 Caveat: Of course, writing abstractions which allows more rapid programming is the rational thing to do.
 After all we can do so much more stuff instead of micro-optimizing everything. But being a bit toocareless
-results in the modern mess of software that wastes most of CPU time doing nothing, because people decidedto
+results in the modern mess of software that wastes most of CPU time doing nothing, because people decided to
 abstract too much stuff.
-
-I am writing this in 2021 - in the midst of the COVID-19 crisis. We have been using online videoconferencing
-software for school and work for a year now. The worst example is MS Teams. Clicking a button takes a goosecond
-to open a chat. It lags constantly, bugs everywhere. No. Your computer is not slow. Your computer is a
-super-computer compared to what people had 30-40 years ago.
-
-Not only you waste electricity by being a careless programmer, you also waste USER'S TIME!
-If your program is used by millions of PC, 1 second to click a SIMPLE BUTTON quickly becomes hours and then days.
-
-Note: Games are an exception to this trend, because engine programmers always try to push the hardware limits.  
 
 ## This library provides:
 
@@ -51,17 +41,17 @@ Note: Games are an exception to this trend, because engine programmers always tr
 
 ## Principles 
 
-- **Clean code.**
+- **Clean code**
 > Readibility is most important. Comments are a powerful tool. 
 
-- **Less code is better.**
+- **Less code is better**
 > Every line of code is a liability and a possible source of bugs and security holes. Avoid big dependencies, 
 > if you need just one function - write it. Don't import a giant library.
 
-- Closer to C than to modern C++ mess.
+- **Closer to C than to modern C++**
 > Ditch copy/move constructors, destructors, exceptions. This reduces the amount of bloat code and supposedly increases confidence that your code is doing what you expect.
 
-- Code reusability. 
+- **Code reusability**
 > A trick: conditional procedure compilation. You can enable or disable features for a function depending
 > on template parameters. e.g. our `parse_int` function - one piece of code but it suits many cases.
 > It performs as if it's a specialized function, even though it's very general.
@@ -70,11 +60,6 @@ Note: Games are an exception to this trend, because engine programmers always tr
 > The following: search functions (`find`, `find_not`, `has`, etc.), `compare`, and operators `==`, `!=`, `<`, `<=`, `>`, `>=`
 > are written once and work with all array-like data structures (even comparing different types of arrays works, for 
 > which otherwise we need a combinatorial amount of code).
-
-- Written for the future.
-> Some sacrifices are made. This library isn't backwards compatible, it uses C++20 `modules` and `concepts`, C++17 `if constexpr`, etc.
-> Eventually I plan to write a compiler that translates a custom language (an extension to C++) to C
-> which supports meta-programming and changes the syntax to avoid vexing parses. 
 
 ## Documentation
 

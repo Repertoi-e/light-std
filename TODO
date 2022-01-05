@@ -52,6 +52,7 @@ README.md:
 - Credit apex memmove
 - Credit MSVC standard library source code for windows_no_crt
 - Credit glibc for fast memmove, memset, memcmp
+- Credit linalg.h (light-std-graphics)
 
 
 - API for watching directory changes
