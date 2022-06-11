@@ -120,7 +120,7 @@ export {
 
                 *p++ = 'm';
             } else {
-                copy_memory(p, style.Background ? "\x1b[48;2;" : "\x1b[38;2;", 7);
+                memcpy(p, style.Background ? "\x1b[48;2;" : "\x1b[38;2;", 7);
                 p += 7;
 
                 p = u8_to_esc(p, ';', (u8) ((style.Color.RGB >> 16) & 0xFF));
@@ -129,7 +129,7 @@ export {
             }
         } else if ((u8) style.Emphasis == 0) {
             // Empty text style means "reset"
-            copy_memory(p, "\x1b[0m", 4);
+            memcpy(p, "\x1b[0m", 4);
             p += 4;
         }
         return p;

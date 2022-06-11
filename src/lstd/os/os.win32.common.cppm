@@ -301,7 +301,7 @@ export {
     // Initializes the state we need to function.
     //
     void platform_init_global_state() {
-        zero_memory(&State, sizeof(win32_common_state));
+        memset0((char *) &State, sizeof(win32_common_state));
 
         S->CinMutex          = create_mutex();
         S->CoutMutex         = create_mutex();
@@ -589,7 +589,7 @@ void console::write(const char *data, s64 size) {
         flush();
     }
 
-    copy_memory(Current, data, size);
+    memcpy(Current, data, size);
 
     Current += size;
     Available -= size;

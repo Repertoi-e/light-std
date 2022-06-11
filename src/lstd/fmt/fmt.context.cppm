@@ -172,12 +172,12 @@ char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, string th
         *--buffer = DIGITS[index + 1];
         if (++digitIndex % 3 == 0) {
             buffer -= thousandsSep.Count;
-            copy_memory(buffer, thousandsSep.Data, thousandsSep.Count);
+            memcpy(buffer, thousandsSep.Data, thousandsSep.Count);
         }
         *--buffer = DIGITS[index];
         if (++digitIndex % 3 == 0) {
             buffer -= thousandsSep.Count;
-            copy_memory(buffer, thousandsSep.Data, thousandsSep.Count);
+            memcpy(buffer, thousandsSep.Data, thousandsSep.Count);
         }
     }
 
@@ -190,7 +190,7 @@ char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize, string th
     *--buffer = DIGITS[index + 1];
     if (++digitIndex % 3 == 0) {
         buffer -= thousandsSep.Count;
-        copy_memory(buffer, thousandsSep.Data, thousandsSep.Count);
+        memcpy(buffer, thousandsSep.Data, thousandsSep.Count);
     }
     *--buffer = DIGITS[index];
 

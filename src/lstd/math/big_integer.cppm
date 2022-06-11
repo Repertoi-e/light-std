@@ -209,14 +209,14 @@ constexpr void ensure_digits(big_integer *b, s64 n) {
         digit d2 = b->SmallDigits[1];
 
         b->Digits = malloc<digit>({.Count = n});
-        zero_memory(b->Digits, n * sizeof(digit));
+        memset0(b->Digits, n * sizeof(digit));
         b->Allocated = n;
 
         b->Digits[0] = d1;
         b->Digits[1] = d2;
     } else if (b->Allocated < n) {
         b->Digits = realloc(b->Digits, {.NewCount = n});
-        zero_memory(b->Digits + b->Allocated, (n - b->Allocated) * sizeof(digit));
+        memset0(b->Digits + b->Allocated, (n - b->Allocated) * sizeof(digit));
         b->Allocated = n;
     }
 }
@@ -258,7 +258,7 @@ constexpr bool assign(big_integer *b, types::is_integral auto v) {
     if constexpr (types::is_same<big_integer, decltype(v)>) {
         // Assign from another big integer
         ensure_digits(b, abs(v.Size));
-        copy_memory(get_digits(b), get_digits(&v), abs(v.Size) * sizeof(digit));
+        memcpy(get_digits(b), get_digits(&v), abs(v.Size) * sizeof(digit));
         b->Size = v.Size;
     } else {
         auto binaryDigits = count_digits<1>(abs(v));  // How many bits do we need to store the value in _v_
@@ -539,8 +539,8 @@ constexpr void kmul_split(big_integer n, s64 size, big_integer *high, big_intege
     ensure_digits(high, sizehi);
     ensure_digits(low, sizelo);
 
-    copy_memory(get_digits(low), get_digits(&n), sizelo * sizeof(digit));
-    copy_memory(get_digits(high), get_digits(&n) + sizelo, sizehi * sizeof(digit));
+    memcpy(get_digits(low), get_digits(&n), sizelo * sizeof(digit));
+    memcpy(get_digits(high), get_digits(&n) + sizelo, sizehi * sizeof(digit));
     high->Size = sizehi;
     low->Size  = sizelo;
 
@@ -574,7 +574,7 @@ constexpr big_integer k_lopsided_mul(big_integer *a, big_integer *b) {
 
         // Multiply the next slice of b by a
 
-        copy_memory(get_digits(&bslice), get_digits(b) + nbdone, nbtouse * sizeof(digit));
+        memcpy(get_digits(&bslice), get_digits(b) + nbdone, nbtouse * sizeof(digit));
         bslice.Size = nbtouse;
 
         big_integer product = k_mul(a, &bslice);
@@ -672,22 +672,22 @@ constexpr big_integer k_mul(big_integer *a, big_integer *b) {
 
     assert(t1.Size >= 0);
     assert(2 * shift + t1.Size <= result.Size);
-    copy_memory(get_digits(&result) + 2 * shift, get_digits(&t1), t1.Size * sizeof(digit));
+    memcpy(get_digits(&result) + 2 * shift, get_digits(&t1), t1.Size * sizeof(digit));
 
     // Zero-out the digits higher than the ah*bh copy
     i = result.Size - 2 * shift - t1.Size;
-    if (i) fill_memory((char *) (get_digits(&result) + 2 * shift + t1.Size), (char) 0, i * sizeof(digit));
+    if (i) memset0((char *) (get_digits(&result) + 2 * shift + t1.Size), i * sizeof(digit));
 
     // 3. t2 <- al*bl, and copy into the low digits
     big_integer t2 = k_mul(al, bl);
 
     assert(t2.Size >= 0);
     assert(t2.Size <= 2 * shift); /* no overlap with high digits */
-    copy_memory(get_digits(&result), get_digits(&t2), t2.Size * sizeof(digit));
+    memcpy(get_digits(&result), get_digits(&t2), t2.Size * sizeof(digit));
 
     // Zero out remaining digits
     i = 2 * shift - t2.Size;  // number of uninitialized digits
-    if (i) zero_memory(get_digits(&result) + t2.Size, i * sizeof(digit));
+    if (i) memset0(get_digits(&result) + t2.Size, i * sizeof(digit));
 
     // 4 & 5. Subtract ah*bh (t1) and al*bl (t2).
     // We do al*bl first because it's fresher in cache.
@@ -1003,7 +1003,7 @@ constexpr big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
             ++i;
         }
     } else if (i < sizez) {
-        copy_memory(get_digits(&result) + i, get_digits(a) + i, (sizez - i) * sizeof(digit));
+        memcpy(get_digits(&result) + i, get_digits(a) + i, (sizez - i) * sizeof(digit));
     }
 
     // Complement result if negative
@@ -1030,7 +1030,7 @@ constexpr big_integer add_one(big_integer b) {
     if (carry) ++size;
 
     big_integer result = create_big_integer_and_set_size(size);
-    copy_memory(get_digits(&result), get_digits(&b), abs(b.Size) * sizeof(digit));
+    memcpy(get_digits(&result), get_digits(&b), abs(b.Size) * sizeof(digit));
 
     if (carry) {
         set_digit(&result, size - 2, 0);

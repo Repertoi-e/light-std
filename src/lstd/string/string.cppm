@@ -307,13 +307,13 @@ constexpr string substring(string str, s64 begin, s64 end) {
 
 constexpr bool match_beginning(string s, string str) {
     if (str.Count > s.Count) return false;
-    return compare_memory(s.Data, str.Data, str.Count) == 0;
+    return memcmp(s.Data, str.Data, str.Count) == 0;
 }
 
 // Returns true if _s_ ends with _str_
 constexpr bool match_end(string s, string str) {
     if (str.Count > s.Count) return false;
-    return compare_memory(s.Data + s.Count - str.Count, str.Data, str.Count) == 0;
+    return memcmp(s.Data + s.Count - str.Count, str.Data, str.Count) == 0;
 }
 
 // This cannot be constexpr because predicate cannot be fully constexpr
@@ -472,7 +472,7 @@ void string_set(string *str, s64 index, code_point cp) {
 
 [[nodiscard("Leak")]] char *string_to_c_string(string s, allocator alloc) {
     char *result = malloc<char>({.Count = s.Count + 1, .Alloc = alloc});
-    copy_memory(result, s.Data, s.Count);
+    memcpy(result, s.Data, s.Count);
     result[s.Count] = '\0';
     return result;
 }

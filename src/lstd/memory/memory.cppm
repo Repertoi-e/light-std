@@ -257,10 +257,13 @@ export {
     }
 
     //
-    // In DEBUG we put extra stuff to make bugs more obvious. These constants are like the ones MSVC's debug CRT model uses.
-    // Like them, we use specific values for bytes outside the allocated range, for freed memory and for uninitialized memory.
+    // In DEBUG we put extra stuff to make bugs more obvious. These 
+    // constants are like the ones MSVC's debug CRT model uses.
+    // Like them, we use specific values for bytes outside the allocated 
+    // range, for freed memory and for uninitialized memory.
     //
-    // The values of the constants and the following comment is taken from the MSVC implementation:
+    // The values of the constants and the following comment is taken 
+    // from the MSVC implementation:
     //
     // The following values are non-zero, constant, odd, large, and atypical.
     // - Non-zero values help find bugs that assume zero-filled data
@@ -278,14 +281,14 @@ export {
 
     // _NO_MANS_LAND_SIZE_ (4) extra bytes with this value before and after the allocation block
     // which help detect reading out of range errors
-    constexpr u8 NO_MANS_LAND_FILL = 0xFD;
+    constexpr byte NO_MANS_LAND_FILL = 0xFD;
 
     // When freeing we fill the block with this value (detects bugs when accessing memory that's freed)
-    constexpr u8 DEAD_LAND_FILL = 0xDD;
+    constexpr byte DEAD_LAND_FILL = 0xDD;
 
     // When allocating a new block we fill it with this value
     // (detects bugs when accessing memory before initializing it)
-    constexpr u8 CLEAN_LAND_FILL = 0xCD;
+    constexpr byte CLEAN_LAND_FILL = 0xCD;
 
     //
     // Each allocation contains this header before the returned pointer.

@@ -43,7 +43,7 @@ debug_memory_node *new_node(allocation_header *header) {
     auto *node = (debug_memory_node *) pool_allocator(allocator_mode::ALLOCATE, &DebugMemoryNodesPool, sizeof(debug_memory_node), null, 0, 0);
     assert(node);
 
-    zero_memory(node, sizeof(debug_memory_node));
+    memset0((byte *) node, sizeof(debug_memory_node));
 
     node->Header = header;
 
@@ -190,16 +190,16 @@ file_scope void verify_node_integrity(debug_memory_node *node) {
     // The ID of the allocation to debug.
     auto id = node->ID;
 
-    char noMansLand[NO_MANS_LAND_SIZE];
-    fill_memory(noMansLand, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
+    byte noMansLand[NO_MANS_LAND_SIZE];
+    memset(noMansLand, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
 
     auto *user = (char *) header + sizeof(allocation_header);
-    assert(compare_memory((char *) user - NO_MANS_LAND_SIZE, noMansLand, NO_MANS_LAND_SIZE) == 0 &&
+    assert(memcmp((byte *) user - NO_MANS_LAND_SIZE, noMansLand, NO_MANS_LAND_SIZE) == 0 &&
            "No man's land was modified. This means that you wrote before the allocated block.");
 
     assert(header->DEBUG_Pointer == user && "Debug pointer doesn't match. They should always match.");
 
-    assert(compare_memory((char *) header->DEBUG_Pointer + header->Size, noMansLand, NO_MANS_LAND_SIZE) == 0 &&
+    assert(memcmp((byte *) header->DEBUG_Pointer + header->Size, noMansLand, NO_MANS_LAND_SIZE) == 0 &&
            "No man's land was modified. This means that you wrote after the allocated block.");
 
     assert(header->Alignment && "Stored alignment is zero. Definitely corrupted.");
@@ -292,10 +292,10 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc
     assert((((u64) p & ~((s64) align - 1)) == (u64) p) && "Pointer wasn't properly aligned.");
 
 #if defined DEBUG_MEMORY
-    fill_memory(p, CLEAN_LAND_FILL, userSize);
+    memset((byte *) p, CLEAN_LAND_FILL, userSize);
 
-    fill_memory((char *) p - NO_MANS_LAND_SIZE, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
-    fill_memory((char *) p + userSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
+    memset((byte *) p - NO_MANS_LAND_SIZE, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
+    memset((byte *) p + userSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
 
     result->DEBUG_Pointer = result + 1;
 #endif
@@ -497,7 +497,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
 #endif
 
         // Copy old stuff and free
-        copy_memory_fast(result, ptr, oldUserSize);
+        memcpy((char *) result, (char *) ptr, oldUserSize);
         alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, oldSize, options);
     } else {
         //
@@ -517,13 +517,13 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
 
     if (oldSize < newSize) {
         // If we are expanding the memory, fill the new stuff with CLEAN_LAND_FILL
-        fill_memory((char *) result + oldUserSize, CLEAN_LAND_FILL, newSize - oldSize);
+        memset((byte *) result + oldUserSize, CLEAN_LAND_FILL, newSize - oldSize);
     } else {
         // If we are shrinking the memory, fill the old stuff with DEAD_LAND_FILL
-        fill_memory((char *) header + oldSize, DEAD_LAND_FILL, oldSize - newSize);
+        memset((byte *) header + oldSize, DEAD_LAND_FILL, oldSize - newSize);
     }
 
-    fill_memory((char *) result + newUserSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
+    memset((byte *) result + newUserSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
 #endif
 
     return result;
@@ -573,7 +573,7 @@ void general_free(void *ptr, u64 options, source_location loc) {
     node->Freed   = true;
     node->FreedAt = loc;
 
-    fill_memory(block, DEAD_LAND_FILL, size);
+    memset((byte *) block, DEAD_LAND_FILL, size);
 
     auto id = node->ID;
 #endif
@@ -610,7 +610,7 @@ void *malloc(size_t size) { return (void *) malloc<byte>({.Count = (s64) size});
 
 void *calloc(size_t num, size_t size) {
     void *block = malloc(num * size);
-    zero_memory(block, num * size);
+    memset0((byte *) block, num * size);
     return block;
 }
 

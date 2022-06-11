@@ -57,14 +57,14 @@ export {
             Count += size;
 
             if (BufferPtr + size < BufferEnd) {
-                copy_memory(BufferPtr, data, size);
+                memcpy(BufferPtr, data, size);
                 BufferPtr += size;
                 return true;
             }
 
             if (BufferPtr != Buffer) {
                 s64 available = BufferEnd - BufferPtr;
-                copy_memory(BufferPtr, data, available);
+                memcpy(BufferPtr, data, available);
                 data += available;
 
                 process(Buffer);
@@ -76,7 +76,7 @@ export {
                 data += 32;
             }
 
-            copy_memory(Buffer, data, size);
+            memcpy(Buffer, data, size);
             BufferPtr = Buffer + size;
             return true;
         }

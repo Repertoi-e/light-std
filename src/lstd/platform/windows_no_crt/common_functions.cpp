@@ -38,9 +38,22 @@ extern "C" {
 #pragma function(strcat)
 #endif
 
-void *memset(void *ptr, int value, size_t n) { return fill_memory(ptr, value, n); }
-void *memcpy(void *dest, const void *src, size_t n) { return copy_memory((char *) dest, (const char *) src, n); }
-void *memmove(void *dest, const void *src, size_t n) { return copy_memory((char *) dest, (const char *) src, n); }
+int memcmp(const void* s1, const void* s2, size_t n) {
+	unsigned char* p1;
+	unsigned char* p2;
+	size_t i;
+
+	p1 = (unsigned char*)s1;
+	p2 = (unsigned char*)s2;
+	i = 0;
+	while (i < n) {
+		if (p1[i] != p2[i])
+			return (p1[i] - p2[i]);
+		++i;
+	}
+	return (0);
+}
+
 
 size_t strlen(const char *s) {
     int i;
@@ -58,22 +71,6 @@ int strcmp(const char *s1, const char *s2) {
     while (s1[i] != '\0' && s2[i] != '\0' && s1[i] == s2[i])
         i++;
     return ((unsigned char) s1[i] - (unsigned char) s2[i]);
-}
-
-int memcmp(const void *s1, const void *s2, size_t n) {
-    unsigned char *p1;
-    unsigned char *p2;
-    size_t i;
-
-    p1 = (unsigned char *) s1;
-    p2 = (unsigned char *) s2;
-    i  = 0;
-    while (i < n) {
-        if (p1[i] != p2[i])
-            return (p1[i] - p2[i]);
-        ++i;
-    }
-    return (0);
 }
 
 char *strcpy(char *dst, const char *src) {

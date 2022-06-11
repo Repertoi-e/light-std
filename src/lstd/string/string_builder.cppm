@@ -79,10 +79,10 @@ void append(string_builder *builder, const char *data, s64 size) {
 
     s64 availableSpace = builder->BUFFER_SIZE - currentBuffer->Occupied;
     if (availableSpace >= size) {
-        copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, size);
+        memcpy(currentBuffer->Data + currentBuffer->Occupied, data, size);
         currentBuffer->Occupied += size;
     } else {
-        copy_memory(currentBuffer->Data + currentBuffer->Occupied, data, availableSpace);
+        memcpy(currentBuffer->Data + currentBuffer->Occupied, data, availableSpace);
         currentBuffer->Occupied += availableSpace;
 
         // If the entire string doesn't fit inside the available space,

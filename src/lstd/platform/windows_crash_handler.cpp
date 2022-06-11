@@ -25,7 +25,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     auto c = e->ContextRecord;
 
     STACKFRAME64 sf;
-    fill_memory(&sf, 0, sizeof(STACKFRAME64));
+    memset0((byte *) &sf, sizeof(STACKFRAME64));
 
     sf.AddrPC.Offset    = c->Rip;
     sf.AddrStack.Offset = c->Rsp;

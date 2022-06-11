@@ -197,7 +197,7 @@ void make_dynamic(any_array auto *arr, s64 n, allocator alloc) {
 
     // If alloc is null we use the Context's allocator
     arr->Data = malloc<T>({.Count = n, .Alloc = alloc});
-    if (arr->Count) copy_memory(arr->Data, oldData, arr->Count * sizeof(T));
+    if (arr->Count) memcpy(arr->Data, oldData, arr->Count * sizeof(T));
 }
 
 // @Cleanup Decide if we want to store an _Allocated_ in the array object itself.
@@ -254,7 +254,7 @@ auto *insert_at_index(any_array auto *arr, s64 index, auto element) {
     s64 offset  = translate_index(index, arr->Count, true);
     auto *where = arr->Data + offset;
     if (offset < arr->Count) {
-        copy_memory(where + 1, where, (arr->Count - offset) * sizeof(*where));
+        memcpy(where + 1, where, (arr->Count - offset) * sizeof(*where));
     }
     *where = element;
     ++arr->Count;
@@ -267,9 +267,9 @@ auto *insert_pointer_and_size_at_index(any_array auto *arr, s64 index, auto *ptr
     s64 offset  = translate_index(index, arr->Count, true);
     auto *where = arr->Data + offset;
     if (offset < arr->Count) {
-        copy_memory(where + size, where, (arr->Count - offset) * sizeof(*where));
+        memcpy(where + size, where, (arr->Count - offset) * sizeof(*where));
     }
-    copy_memory(where, ptr, size * sizeof(*where));
+    memcpy(where, ptr, size * sizeof(*where));
     arr->Count += size;
     return where;
 }
@@ -298,7 +298,7 @@ void remove_ordered_at_index(any_array auto *arr, s64 index) {
     s64 offset = translate_index(index, arr->Count);
 
     auto *where = arr->Data + offset;
-    copy_memory(where, where + 1, (arr->Count - offset - 1) * sizeof(*where));
+    memcpy(where, where + 1, (arr->Count - offset - 1) * sizeof(*where));
     --arr->Count;
 }
 
@@ -326,7 +326,7 @@ void remove_range(any_array auto *arr, s64 begin, s64 end) {
     auto whereEnd = arr->Data + targetEnd;
 
     s64 elementCount = whereEnd - where;
-    copy_memory(where, whereEnd, (arr->Count - targetBegin - elementCount) * sizeof(*where));
+    memcpy(where, whereEnd, (arr->Count - targetBegin - elementCount) * sizeof(*where));
     arr->Count -= elementCount;
 }
 
@@ -347,10 +347,10 @@ void replace_range(any_array auto *arr, s64 begin, s64 end, any_array auto repla
     auto where = arr->Data + targetBegin;
 
     // Make space for the new elements
-    copy_memory(where + replace.Count, where + whereSize, (arr->Count - targetBegin - whereSize) * sizeof(*where));
+    memcpy(where + replace.Count, where + whereSize, (arr->Count - targetBegin - whereSize) * sizeof(*where));
 
     // Copy replace elements
-    copy_memory(where, replace.Data, replace.Count * sizeof(*where));
+    memcpy(where, replace.Data, replace.Count * sizeof(*where));
 
     arr->Count += diff;
 }
@@ -382,7 +382,7 @@ void replace_all(any_array auto *arr, any_array auto search, any_array auto repl
 
                 if (sp == se) {
                     // Match found
-                    copy_memory(p, replace.Data, replace.Count * sizeof(*p));
+                    memcpy(p, replace.Data, replace.Count * sizeof(*p));
                     p += replace.Count;
                 } else {
                     ++p;

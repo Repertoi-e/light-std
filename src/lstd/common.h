@@ -145,110 +145,75 @@ constexpr void swap(T(ref_volatile a)[N], T(ref_volatile b)[N]) {
 //
 
 //
-// Constexpr and optimized runtime implementations of copy_memory, fill_memory, compare_memory.
-// See common/fast_memory_copy_fill_compare.cpp
+// We used to provide separate constexpr and optimized runtime 
+// implementations of copy_memory, fill_memory, compare_memory
+// that use SIMD and AVX instructions. However, they caused
+// quite a bit of hard to track down bugs, because they weren't 
+// 100% reliable. Moreover, if memcpy is the bottle neck of your
+// program's performance, perhaps you should write your own
+// specialized implementation that has some extra assumptions baked
+// in (which only you can know!), instead of relying on our previous 
+// "general fast" implementation that also had a lot of branches.
+// 
+// @Speed Something can be said about having routines that work with 
+// multiple bytes at once (e.g. copying/filling/comparing words to words), 
+// but they don't work with constexpr, which doesn't support type pruning. 
 //
-// SSE implementations are available when on x86 architecture.
+// Constexpr doesn't work with void * as well, in general, void * 
+// specialization functions will be on par or faster than the templated 
+// ones for custom types, because C++ likes to be annoying as fuck 
+// and generates default copy constructors which do member-wise
+// copy (even for trivially-copyable types).
+// 
+// So I recommend always casting values to (char *) as normal.
 //
-
-extern void* (*copy_memory_fast)(void* dst, const void* src, u64 size);
 
 template <typename T>
-constexpr auto* copy_elements(T* dst, auto* src, s64 n) {
-	assert(sizeof(*dst) == sizeof(*src));
+constexpr auto* memmove(T* dst, auto* src, s64 n) {
+	For(range(n - 1, -1, -1)) dst[it] = src[it];
+	return dst;
+}
 
-	u64 to = (u64)dst / sizeof(*dst);
-	u64 from = (u64)src / sizeof(*src);
-
-	if (to > from && (s64)(to - from) < n) {
-		// If overlapping in this way:
-		//   [from......]
-		//         [to........]
-		// copy in reverse.
-		For(range(n - 1, -1, -1)) dst[it] = src[it];
+template <typename T>
+constexpr T* memcpy(T* dst, const T* src, s64 n) {
+	if (dst > src && (s64)(dst - src) < n) {
+		//
+		// Careful. Buffers overlap. You should use memmove in this case.
+		// 
+		// If this bug isn't caught until Release, then bad shit happens.
+		// So in order to make it work nevertheless we do memmove.
+		// I wish the C standard didn't make a distinction between the
+		// two functions, but we're stuck with that.
+		// 
+		// This makes calling memmove superfluous, and personally, 
+		// I'm ok with that.
+		return memmove(dst, src, n);
 	}
 	else {
-		// Otherwise copy forwards..
 		For(range(n)) dst[it] = src[it];
 	}
 	return dst;
 }
 
 template <typename T>
-constexpr T* copy_memory(T* dst, auto* src, s64 bytes) {
-	// This applies to runtime code.
-	// Because is_constant_evaluated() is not if constexpr, code in that branch
-	// still tries to compile (even though it may never run in constexpr), which
-	// causes errors when trying to do sizeof(void)... so we have to impose
-	// this limitation to all callers.
-	static_assert(!types::is_same<T, void>, "C++ doesn't allow type pruning in constexpr context. Call with char* instead of void* to fix this.");
-	// You can also call copy_memory_fast to bypass casting...
-
-	if (is_constant_evaluated()) {
-		return copy_elements(dst, src, bytes / sizeof(T));
-	}
-	else {
-		return (T*)copy_memory_fast(dst, src, bytes);
-	}
-}
-
-extern void* (*fill_memory_fast)(void* dst, char value, u64 size);
-
-template <typename T>
-constexpr T* fill_elements(T* dst, T value, u64 n) {
-	For(range(n)) {
-		dst[it] = value;
-	}
+constexpr T* memset(T* dst, T value, u64 n) {
+	For(range(n)) dst[it] = value;
 	return dst;
 }
 
-constexpr char* fill_memory(char* dst, char value, u64 bytes) {
-	if (is_constant_evaluated()) {
-		return fill_elements(dst, value, bytes);
-	}
-	else {
-		return (char*)fill_memory_fast(dst, value, bytes);
-	}
+// Non-standard, but useful.
+template <typename T>
+constexpr T* memset0(T* dst, u64 n) {
+	return memset(dst, T(0), n);
 }
 
-// Constexpr doesn't work with void* ...
-inline void* fill_memory(void* dst, char value, u64 bytes) { return fill_memory_fast(dst, value, bytes); }
-
-constexpr char* zero_memory(char* dst, u64 n) { return fill_memory(dst, 0, n); }
-
-// Constexpr doesn't work with void* ...
-inline void* zero_memory(void* dst, u64 n) { return fill_memory(dst, 0, n); }
-
-extern s32(*compare_memory_fast)(const void* s1, const void* s2, u64 size);
-
 template <typename T>
-constexpr s32 compare_elements(const T* s1, const T* s2, s64 n) {
+constexpr s32 memcmp(const T* s1, const T* s2, s64 n) {
 	For(range(n)) {
-		if (*s1 != *s2) return *s1 - *s2;
+		if (!(*s1 == *s2)) return *s1 - *s2;
 		++s1, ++s2;
 	}
 	return 0;
-}
-
-template <typename T>
-constexpr s32 compare_memory(const T* s1, const T* s2, s64 bytes) {
-	// This applies to runtime code.
-	// Because is_constant_evaluated() is not if constexpr, code in that branch
-	// still tries to compile (even though it may never run in constexpr), which
-	// causes errors when trying to do sizeof(void)... so we have to impose
-	// this limitation to all callers.
-	static_assert(!types::is_same<T, void>, "C++ doesn't allow type pruning in constexpr context. Call with char* instead of void* to fix this.");
-	// You can also call compare_memory_fast to bypass casting...
-
-	if (is_constant_evaluated() && !types::is_same<T, void>) {
-		return compare_elements(s1, s2, bytes / sizeof(T));
-	}
-	else {
-		// If constexpr fails here, don't use void* for s1 and s2.
-		// C++ doesn't allow type pruning in constexpr context...
-
-		return compare_memory_fast(s1, s2, bytes);
-	}
 }
 
 //

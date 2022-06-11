@@ -220,7 +220,7 @@ void WINAPI __dyn_tls_init(PVOID, DWORD dwReason, LPVOID) noexcept  // terminate
 
     extern void *MainContext;
     if ((void *) &Context != MainContext) {
-        LSTD_NAMESPACE::fill_memory((void *) &Context, DEAD_LAND_FILL, sizeof(Context));
+        LSTD_NAMESPACE::memset((byte *) &Context, DEAD_LAND_FILL, sizeof(Context));
     }
 }
 
