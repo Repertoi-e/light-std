@@ -8,7 +8,7 @@
 // ... and other utils.
 // 
 // And also memory stuff:
-//     copy_memory (memcpy), copy_memory_const, fill_memory (memset), zero_memory
+//     memcpy, memset, memset0, memcmp 
 //
 // Really any stuff that doesn't deserve to be it's own module.
 //
@@ -55,7 +55,6 @@ constexpr u64 operator"" _B(u64 i) { return i; }
 constexpr u64 operator"" _KiB(u64 i) { return i << 10; }
 constexpr u64 operator"" _MiB(u64 i) { return i << 20; }
 constexpr u64 operator"" _GiB(u64 i) { return i << 30; }
-
 
 constexpr u64 operator"" _thousand(u64 i) { return i * 1000; }
 constexpr u64 operator"" _million(u64 i) { return i * 1000000; }

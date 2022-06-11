@@ -600,4 +600,5 @@ struct numeric_info<s128> : public numeric_info_int_base {
 
 LSTD_END_NAMESPACE
 
-DECLARE_INTEGRAL_PAIR(s128, u128)
+DECLARE_INTEGRAL(s128)
+DECLARE_INTEGRAL(u128)

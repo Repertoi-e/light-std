@@ -4,52 +4,64 @@
 #include "ieee.h"
 
 //
-// @Cleanup: We can remove most of this. It's useless.
-//
 // This file defines the following types:
 // - integral_constant (a struct with a type and compile-time value, usually in the context of integrals)
 // - true_t, false_t (integral_constant<bool, true/false>, this is == to std::true_type, std::false_type)
 // - unused (a dummy type used in templates because C++ is dumb)
 //
-// Helper templates:
 // - select (select from two types based on a condition, this is == to std::conditional)
-// - enable_if (used for SNFIAE or whatever it is, not reccommended... use concepts or if constexpr)
 //
 // Concepts:
 // - is_same (checks if two types are the same)
 // - is_same_template (checks if two types are the same, regardless of their template parameters - doesn't work if you mix types and typenames...)
-// - is_const, is_volatile, is_reference, is_rvalue_reference, is_pointer, is_function (doesn't include member functions)
+// - is_const, is_pointer, is_member_pointer
 // - is_void, is_null (decltype(null))
-// - is_integral, is_signed_integral, is_unsigned_integral, is_floating_point, is_arithmetic
-// - is_fundamental, is_union, is_class, is_enum, is_object
-// - is_member_pointer, is_member_object_pointer, is_member_function_pointer
-// - is_scalar
+// - is_integral, is_signed_integral, is_unsigned_integral, 
+//   is_floating_point, is_arithmetic, is_enum, is_scalar
 // - is_constructible, is_convertible
 //
 // Info about arrays:
-// - rank (returns the number of dimensions of the array, e.g s32[][][] -> 3)
-// - extent_v (returns the size of the nth extent of an array, e.g. extent_v<s32[2][4][9], 1> -> 4)
+// - extent_v (returns the size of the nth extent of an array, 
+//             e.g. extent_v<s32[2][4][9], 1> -> 4)
 // - is_array
-// - is_array_of_known_bounds, is_array_of_unknown_bounds (not part of the C++ std)
+// - is_array_of_known_bounds (not part of the C++ std)
 //
 // Transformations:
-// - remove_const, remove_volatile, remove_cv, remove_reference, remove_cvref, add_const, add_volatile, add_reference, add_rvalue_reference
-// - make_signed/make_unsigned (doesn't handle enums!)
+// - remove_const, remove_volatile, remove_cv, remove_reference, remove_cvref
+// - add_rvalue_reference, declval
 // - underlying_type (returns the underlying integral type on the enum)
 //
 // - remove_pointer/add_pointer
 // - remove_extent (for arrays, e.g. s32[][] -> s32[])
-// - remove_all_extents (for arrays, e.g. s32[][] -> s32)
 //
-// - decay (applies lvalue-to-rvalue, array-to-pointer, function-to-pointer implicit conversions to the type T, removes cv-qualifiers)
-// - common_type (determines the common type among all types T..., that is the type all T... can be implicitly converted to, can be explictly specialized by the user)
+// - decay (applies lvalue-to-rvalue, array-to-pointer, function-to-pointer 
+//          implicit conversions to the type T, removes cv-qualifiers)
+// - common_type (determines the common type among all types T..., that is 
+//                the type all T... can be implicitly converted to, can be 
+//                explictly specialized by the user)
 //
-// - bit_cast (converts one type to another by reinterpreting the bits, uses an union if the two types have the same alingment, otherwise calls copy_memory)
+// - bit_cast
 //
 
 LSTD_BEGIN_NAMESPACE
 
 namespace types {
+
+//
+// Safely converts between unrelated types that have a binary equivalency.
+// This approach is required by strictly conforming C++ compilers because
+// directly using a C or C++ cast between unrelated types is fraught with
+// the possibility of undefined runtime behavior due to type aliasing.
+//
+// Example usage:
+//    f32 f = 1.234f;
+//    u32 br = bit_cast<u32>(f);
+//
+template <typename DestType, typename SourceType>
+constexpr DestType bit_cast(SourceType const & sourceValue) {
+	static_assert(sizeof(DestType) == sizeof(SourceType));
+    return __builtin_bit_cast(DestType, sourceValue);
+}
 
 // This is essentially a utility base struct for defining properties as both struct constants and as types.
 template <typename T, T Value>
@@ -97,19 +109,6 @@ struct first_select {
 
 template <typename T, typename = unused, typename = unused>
 using first_select_t = typename first_select<T>::type;
-
-// Used for SNFIAE or whatever it is. Not reccommended... use concepts or if constexpr.
-template <bool B, typename T = void>
-struct enable_if {
-};
-
-template <typename T>
-struct enable_if<true, T> {
-    using type = T;
-};
-
-template <bool B, typename T = void>
-using enable_if_t = typename enable_if<B, T>::type;
 
 //
 // Checks if two types are the same
@@ -171,70 +170,6 @@ struct is_const_helper_2<T &> : false_t {
 
 template <typename T>
 concept is_const = is_const_helper_2<T>::value;
-
-// Checks if T has volatile-qualification
-template <typename T>
-struct is_volatile_helper_1 : false_t {
-};
-
-template <typename T>
-struct is_volatile_helper_1<const T *> : true_t {
-};
-
-template <typename T>
-struct is_volatile_helper_1<const volatile T *> : true_t {
-};
-
-template <typename T>
-struct is_volatile_helper_2 : is_volatile_helper_1<T *> {
-};
-
-template <typename T>
-struct is_volatile_helper_2<T &> : false_t {
-};  // Note here that T is volatile, not the reference to T. So is_volatile is false.
-
-template <typename T>
-concept is_volatile = is_volatile_helper_2<T>::value;
-
-// Checks if T is a reference (includes reference to function types)
-template <typename T>
-struct is_reference_helper : false_t {
-};
-
-template <typename T>
-struct is_reference_helper<T &> : true_t {
-};
-
-template <typename T>
-concept is_reference = is_reference_helper<T>::value;
-
-// Checks if T is a r-value reference (includes reference to function types)
-template <typename T>
-struct is_rvalue_reference_helper : false_t {
-};
-
-template <typename T>
-struct is_rvalue_reference_helper<T &&> : true_t {
-};
-
-template <typename T>
-concept is_rvalue_reference = is_rvalue_reference_helper<T>::value;
-
-// Checks if T is a function type (doesn't include member functions)
-template <typename>
-struct is_function_helper : false_t {
-};
-
-template <typename R, typename... Args>
-struct is_function_helper<R(Args...)> : true_t {
-};
-
-template <typename R, typename... Args>
-struct is_function_helper<R(Args..., ...)> : true_t {
-};
-
-template <typename T>
-concept is_function = is_function_helper<T>::value;
 
 template <typename T>
 struct is_void_helper : false_t {
@@ -358,127 +293,6 @@ struct remove_cvref {
 template <typename T>
 using remove_cvref_t = typename remove_cvref<T>::type;
 
-// Add const to a type
-template <typename T, bool = is_const<T> || is_reference<T> || is_function<T>>
-struct add_const_helper {
-    using type = T;
-};
-
-template <typename T>
-struct add_const_helper<T, false> {
-    using type = const T;
-};
-
-template <typename T>
-struct add_const {
-    using type = typename add_const_helper<T>::type;
-};
-
-template <typename T>
-using add_const_t = typename add_const<T>::type;
-
-// Add volatile to a type
-template <typename T, bool = is_volatile<T> || is_reference<T> || is_function<T>>
-struct add_volatile_helper {
-    using type = T;
-};
-
-template <typename T>
-struct add_volatile_helper<T, false> {
-    using type = volatile T;
-};
-
-template <typename T>
-struct add_volatile {
-    using type = typename add_volatile_helper<T>::type;
-};
-
-template <typename T>
-using add_volatile_t = typename add_volatile<T>::type;
-
-// The add_reference transformation trait adds a level of indirection
-// by reference to the type to which it is applied.
-//
-// Rules (8.3.2 p6):
-//      void + &  -> void
-//      T    + &  -> T&
-//      T&   + &  -> T&
-//      T&&  + &  -> T&
-template <typename T>
-struct add_reference_impl {
-    using type = T &;
-};
-
-template <typename T>
-struct add_reference_impl<T &> {
-    using type = T &;
-};
-
-template <>
-struct add_reference_impl<void> {
-    using type = void;
-};
-#if COMPILER != MSVC
-template <typename T>
-struct add_reference_impl<T[0]> {
-    using type = T;
-};
-#endif
-
-template <typename T>
-struct add_reference {
-    using type = typename add_reference_impl<T>::type;
-};
-
-template <typename T>
-using add_reference_t = typename add_reference<T>::type;
-
-// Rules (8.3.2 p6):
-//      void + &&  -> void
-//      T    + &&  -> T&&
-//      T&   + &&  -> T&
-//      T&&  + &&  -> T&&
-template <typename T>
-struct add_rvalue_reference {
-    using type = T &&;
-};
-
-template <typename T>
-struct add_rvalue_reference<T &> {
-    using type = T &;
-};
-
-template <>
-struct add_rvalue_reference<void> {
-    using type = void;
-};
-
-template <>
-struct add_rvalue_reference<const void> {
-    using type = const void;
-};
-
-template <>
-struct add_rvalue_reference<volatile void> {
-    using type = volatile void;
-};
-
-template <>
-struct add_rvalue_reference<const volatile void> {
-    using type = const volatile void;
-};
-
-template <typename T>
-using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
-
-// Converts any type T to a reference type, making it possible to use member functions in
-// decltype expressions without specifying constructors. It has no use outside decltype expressions.
-// By design there is no implementation, as it's never executed but rather is used only in decltype expressions.
-// The C++11 Standard section 20.2.4 states that we must declare this.
-// http://en.cppreference.com/w/cpp/utility/declval
-template <typename T>
-typename add_rvalue_reference<T>::type declval() noexcept;
-
 //
 // Concept satisfied if T is one of the following types: bool, char, wchar_t, s16, s32, s64 (and unsigned variants)
 //
@@ -593,40 +407,37 @@ concept is_floating_point = is_floating_point_helper<remove_cv_t<T>>::value;
 template <typename T>
 concept is_arithmetic = is_integral<T> || is_floating_point<T>;
 
-//
-// A fundamental type is void, nullptr_t, or any of the arithmetic types
-//
-template <typename T>
-concept is_fundamental = is_void<T> || is_null<T> || is_arithmetic<T>;
-
-template <typename T>
-concept is_union = __is_union(remove_cv<T>);
-
-template <typename T>
-concept is_class = __is_class(remove_cv<T>);
-
 template <typename T>
 concept is_enum = __is_enum(remove_cv_t<T>);
 
-//
-// An object considered to be any type that is not a function a reference or void
-//
-template <typename T>
-concept is_object = !is_reference_v<T> && !is_void_v<T> && !is_function_v<T>;
-
-//
-// True if T is a pointer to a member function AND NOT a member object
-//
-template <typename T>
-struct is_member_function_pointer_helper : false_t {
+// Checks if T is a function type (doesn't include member functions)
+template <typename>
+struct is_function_helper : false_t {
 };
 
-template <typename T, typename U>
-struct is_member_function_pointer_helper<T U::*> : is_function_helper<T> {
+template <typename R, typename... Args>
+struct is_function_helper<R(Args...)> : true_t {
+};
+
+template <typename R, typename... Args>
+struct is_function_helper<R(Args..., ...)> : true_t {
 };
 
 template <typename T>
-concept is_member_function_pointer = is_member_function_pointer_helper<remove_cv_t<T>>::value;
+concept is_function = is_function_helper<T>::value;
+
+// Tests whether T is a pointer to an object, to a function, but not to member objects/functions (use the tests above for that)
+//
+template <typename T>
+struct is_pointer_helper : false_t {
+};
+
+template <typename T>
+struct is_pointer_helper<T *> : true_t {
+};
+
+template <typename T>
+concept is_pointer = is_pointer_helper<remove_cv_t<T>>::value;
 
 //
 // True if T is a pointer to a member object OR a member function
@@ -641,25 +452,6 @@ struct is_member_pointer_helper<T U::*> : true_t {
 
 template <typename T>
 concept is_member_pointer = is_member_pointer_helper<remove_cv_t<T>>::value;
-
-//
-// True if T is a pointer to a member object AND NOT a member function
-//
-template <typename T>
-concept is_member_object_pointer = is_member_pointer<T> && !is_member_function_pointer<T>;
-
-// Tests whether T is a pointer to an object, to a function, but not to member objects/functions (use the tests above for that)
-//
-template <typename T>
-struct is_pointer_helper : false_t {
-};
-
-template <typename T>
-struct is_pointer_helper<T *> : true_t {
-};
-
-template <typename T>
-concept is_pointer = is_pointer_helper<remove_cv_t<T>>::value;
 
 //
 // A scalar is an integer type, a floating point type, an enum type, a pointer or a member function pointer or a null pointer type.
@@ -687,22 +479,6 @@ using underlying_type_t = typename underlying_type_helper<T>::type;
 //
 // Stuff to do with arrays:
 //
-
-// Rank returns the number of dimensions on af array
-template <typename T>
-struct rank_helper : integral_constant<s64, 0> {
-};
-
-template <typename T>
-struct rank_helper<T[]> : integral_constant<s64, rank_helper<T>::value + 1> {
-};
-
-template <typename T, s64 N>
-struct rank_helper<T[N]> : integral_constant<s64, rank_helper<T>::value + 1> {
-};
-
-template <typename T>
-constexpr s64 rank = rank<T>::value;
 
 // An integral type representing the number of elements in the Ith dimension of array type T.
 //
@@ -754,96 +530,6 @@ struct is_array_of_known_bounds : integral_constant<bool, extent_v<T> != 0> {
 template <typename T>
 constexpr bool is_array_of_known_bounds_v = is_array_of_known_bounds<T>::value;
 
-// Not part of the C++ Standard.
-template <typename T>
-struct is_array_of_unknown_bounds : integral_constant<bool, is_array<T> && extent_v<T> == 0> {
-};
-
-template <typename T>
-constexpr bool is_array_of_unknown_bounds_v = is_array_of_unknown_bounds<T>::value;
-
-// Doesn't handle enums!
-template <typename T>
-struct make_signed {
-    using type = T;
-};
-
-#define MAKE_SIGNED_HELPER(uns, s)           \
-    template <>                              \
-    struct make_signed<uns> {                \
-        using type = s;                      \
-    };                                       \
-                                             \
-    template <>                              \
-    struct make_signed<const uns> {          \
-        using type = const s;                \
-    };                                       \
-                                             \
-    template <>                              \
-    struct make_signed<volatile uns> {       \
-        using type = volatile s;             \
-    };                                       \
-                                             \
-    template <>                              \
-    struct make_signed<const volatile uns> { \
-        using type = const volatile s;       \
-    };
-MAKE_SIGNED_HELPER(u8, s8)
-
-MAKE_SIGNED_HELPER(u16, s16)
-
-MAKE_SIGNED_HELPER(u32, s32)
-
-MAKE_SIGNED_HELPER(u64, s64)
-#if defined _NATIVE_WCHAR_T_DEFINED
-MAKE_SIGNED_HELPER(wchar_t, s16)
-#endif
-MAKE_SIGNED_HELPER(char8_t, s8)
-
-MAKE_SIGNED_HELPER(char16_t, s16)
-
-MAKE_SIGNED_HELPER(char32_t, s32)
-
-template <typename T>
-using make_signed_t = typename make_signed<T>::type;
-
-// Doesn't handle enums!
-template <typename T>
-struct make_unsigned {
-    using type = T;
-};
-
-#define MAKE_UNSIGNED_HELPER(uns, s)           \
-    template <>                                \
-    struct make_unsigned<uns> {                \
-        using type = s;                        \
-    };                                         \
-                                               \
-    template <>                                \
-    struct make_unsigned<const uns> {          \
-        using type = const s;                  \
-    };                                         \
-                                               \
-    template <>                                \
-    struct make_unsigned<volatile uns> {       \
-        using type = volatile s;               \
-    };                                         \
-                                               \
-    template <>                                \
-    struct make_unsigned<const volatile uns> { \
-        using type = const volatile s;         \
-    };
-MAKE_UNSIGNED_HELPER(s8, u8)
-
-MAKE_UNSIGNED_HELPER(s16, u16)
-
-MAKE_UNSIGNED_HELPER(s32, u32)
-
-MAKE_UNSIGNED_HELPER(s64, u64)
-
-template <typename T>
-using make_unsigned_t = typename make_unsigned<T>::type;
-
 template <typename T>
 struct remove_pointer {
     using type = T;
@@ -864,6 +550,52 @@ struct add_pointer {
 
 template <typename T>
 using add_pointer_t = typename add_pointer<T>::type;
+
+// Rules (8.3.2 p6):
+//      void + &&  -> void
+//      T    + &&  -> T&&
+//      T&   + &&  -> T&
+//      T&&  + &&  -> T&&
+template <typename T>
+struct add_rvalue_reference {
+	using type = T&&;
+};
+
+template <typename T>
+struct add_rvalue_reference<T&> {
+	using type = T&;
+};
+
+template <>
+struct add_rvalue_reference<void> {
+	using type = void;
+};
+
+template <>
+struct add_rvalue_reference<const void> {
+	using type = const void;
+};
+
+template <>
+struct add_rvalue_reference<volatile void> {
+	using type = volatile void;
+};
+
+template <>
+struct add_rvalue_reference<const volatile void> {
+	using type = const volatile void;
+};
+
+template <typename T>
+using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
+
+// Converts any type T to a reference type, making it possible to use member functions in
+// decltype expressions without specifying constructors. It has no use outside decltype expressions.
+// By design there is no implementation, as it's never executed but rather is used only in decltype expressions.
+// The C++11 Standard section 20.2.4 states that we must declare this.
+// http://en.cppreference.com/w/cpp/utility/declval
+template <typename T>
+typename add_rvalue_reference<T>::type declval() noexcept;
 
 // The remove_extent transformation trait removes a dimension from an array.
 // For a given non-array type T, remove_extent<T>::type is equivalent to T.
@@ -887,62 +619,6 @@ struct remove_extent<T[N]> {
 
 template <typename T>
 using remove_extent_t = typename remove_extent<T>::type;
-
-// The remove_all_extents transformation trait removes all dimensions from an array.
-// For a given non-array type T, remove_all_extents<T>::type is equivalent to T.
-// For a given array type T[N], remove_all_extents<T[N]>::type is equivalent to T.
-// For a given array type const T[N], remove_all_extents<const T[N]>::type is equivalent to const T.
-// For example, given a multi-dimensional array type T[M][N], remove_all_extents<T[M][N]>::type is equivalent to T.
-template <typename T>
-struct remove_all_extents {
-    using type = T;
-};
-
-template <typename T, s64 N>
-struct remove_all_extents<T[N]> {
-    using type = typename remove_all_extents<T>::type;
-};
-
-template <typename T>
-struct remove_all_extents<T[]> {
-    using type = typename remove_all_extents<T>::type;
-};
-
-template <typename T>
-using remove_all_extents_t = typename remove_all_extents<T>::type;
-
-extern void (*copy_memory)(void *dest, const void *src, s64 num);
-
-// Safely converts between unrelated types that have a binary equivalency.
-// This appoach is required by strictly conforming C++ compilers because
-// directly using a C or C++ cast between unrelated types is fraught with
-// the possibility of undefined runtime behavior due to type aliasing.
-//
-// Example usage:
-//    f32 f = 1.234f;
-//    u32 br = bit_cast<u32>(f);
-template <typename DestType, typename SourceType>
-constexpr DestType bit_cast(const SourceType &sourceValue) {
-    static_assert(sizeof(DestType) == sizeof(SourceType));
-
-    if constexpr (alignof(DestType) == alignof(SourceType)) {
-        union {
-            SourceType sourceValue;
-            DestType destValue;
-        } u;
-        u.sourceValue = sourceValue;
-        return u.destValue;
-    } else {
-        DestType destValue;
-        if (is_constant_evaluated()) {
-            // Too bad.. undefined behavior. I hate C++.
-            const_copy_memory(&destValue, &sourceValue, sizeof(DestType));
-        } else {
-            copy_memory(&destValue, &sourceValue, sizeof(DestType));
-        }
-        return destValue;
-    }
-}
 
 // Converts the type T to its decayed equivalent. That means doing
 // lvalue to rvalue, array to pointer, function to pointer conversions,
@@ -1004,6 +680,8 @@ using common_type_t = typename common_type<T...>::type;
 // };
 }  // namespace types
 
+LSTD_END_NAMESPACE
+
 // Use this macro to declare your custom type as an integral
 #define DECLARE_INTEGRAL(T)                   \
     LSTD_BEGIN_NAMESPACE                      \
@@ -1012,19 +690,3 @@ using common_type_t = typename common_type<T...>::type;
     struct is_integral_helper<T> : true_t {}; \
     }                                         \
     LSTD_END_NAMESPACE
-
-// Use this macro to declare your custom types as an integral, this version takes a pair of signed and unsigned,
-// so it provides definitions for make_signed, make_unsigned
-#define DECLARE_INTEGRAL_PAIR(Tsigned, Tunsigned)     \
-    LSTD_BEGIN_NAMESPACE                              \
-    namespace types {                                 \
-    template <>                                       \
-    struct is_integral_helper<Tsigned> : true_t {};   \
-    template <>                                       \
-    struct is_integral_helper<Tunsigned> : true_t {}; \
-    MAKE_SIGNED_HELPER(Tunsigned, Tsigned)            \
-    MAKE_UNSIGNED_HELPER(Tsigned, Tunsigned)          \
-    }                                                 \
-    LSTD_END_NAMESPACE
-
-LSTD_END_NAMESPACE
