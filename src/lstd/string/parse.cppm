@@ -8,6 +8,16 @@ export import lstd.string;
 export import lstd.big_integer;
 export import lstd.guid;
 
+//
+// This is a module which provides routines to parse integers, booleans and GUIDs.
+// As well as helper functions to treat parse status and expecting a sequence of
+// characters.
+// 
+// @TODO: Floating point numbers, however we have implementations for strtod, atof 
+//        and sscanf in platform/windows_no_crt/common_functions.h
+// 
+//
+
 LSTD_BEGIN_NAMESPACE
 
 export {
@@ -41,7 +51,8 @@ export {
     using cp_to_digit_t = s32 (*)(code_point, bool);
 
     // _first_ is true if _cp_ was the first parsed thing after +/- and base prefixes.
-    // This can be used to disallow numbers starting with certain symbols (e.g. ,)
+    // This can be used to disallow numbers starting with certain symbols (e.g. a comma ','
+    // which is normally used as a thousand separator)
     s32 cp_to_digit_default(code_point cp, bool first = false) {
         if (cp >= '0' && cp <= '9') return cp - '0';
         if (cp >= 'a' && cp <= 'z') return cp - 'a' + 10;
@@ -83,11 +94,14 @@ export {
 
     //
     // This struct is used to conditionally compile _parse_int_.
-    // Normally writing a function that has these as arguments means that it will become quite large and slow because it has to handle all cases.
-    // These options determine which code paths of _parse_int_ get compiled and thus don't have effect on runtime performance.
+    // Normally writing a function that has these as arguments means 
+    // that it will become quite large and slow because it has to 
+    // handle all cases. These options determine which code paths of 
+    // _parse_int_ get compiled and thus don't have effect on runtime performance.
     //
     // :CodeReusability:
-    // Hopefully this makes _parse_int_ a lot more usable since users don't have to write an optimized version for their own use cases.
+    // Hopefully this makes _parse_int_ a lot more usable since 
+    // users don't have to write an optimized version for their own use cases.
     //
     struct parse_int_options {
         bool ParseSign     = true;  // If true, looks for +/- before trying to parse any digits. If '-' the result is negated.
@@ -168,7 +182,8 @@ export {
 #define FAIL \
     { 0, PARSE_INVALID, p }
 
-    // Parses 8, 16, 32, 64 or 128 bit numbers after sign and base prefix has been handled. Called from parse_int.
+    // Parses 8, 16, 32, 64 or 128 bit numbers after sign and 
+    // base prefix has been handled. Called from parse_int.
     template <types::is_integral T, parse_int_options Options>
     parse_result<T> parse_int_small_integer(string p, u32 base, bool parsedNegative) {
         T maxValue, cutOff;
@@ -250,32 +265,42 @@ export {
         return {0, PARSE_SUCCESS, p};
     }
 
-    // Attemps to parse an integer of a type T (including big integers which have practically infinite range).
+    // Attemps to parse an integer of a type T 
+    // (including big integers which have practically infinite range).
     // This is a very general and light function.
     //
-    // Allows for compilation of different code paths using a template parameter which is a struct literal (parse_int_options).
-    // It define the function which maps code points to digits as well as options for how we should handle signs,
+    // Allows for compilation of different code paths using a template 
+    // parameter which is a struct literal (parse_int_options).
+    // It define the function which maps code points to digits as well 
+    // as options for how we should handle signs,
     // base prefixes and integer overflow/underflow.
     //
     // This function doesn't eat white space from the beginning.
     //
-    // By default we try to do the most sensible thing: valid integers start with either +/- and then a base prefix (0 or 0x for oct/hex)
-    // and then a range of 0-9a-zA-Z which describes digits. We stop parsing when we encounter a byte which is not a valid digit.
+    // By default we try to do the most sensible thing: valid integers
+    // start with either +/- and then a base prefix (0 or 0x for oct/hex)
+    // and then a range of 0-9a-zA-Z which describes digits. We stop
+    // parsing when we encounter a byte which is not a valid digit.
     //
     // See comments in _parse_int_options_.
     //
-    // By default we stop parsing when the resulting integer overflows/underflows instead of greedily consuming the rest of the digits.
-    // In that case the returned status is PARSE_TOO_MANY_DIGITS. To change this behaviour, change the _BailOnTooManyDigits_ option.
-    // If you set it to false then all digits are consumed while ignoring the overflow/underflow (and the parse status returned is SUCCESS).
+    // By default we stop parsing when the resulting integer 
+    // overflows/underflows instead of greedily consuming the rest of the digits.
+    // In that case the returned status is PARSE_TOO_MANY_DIGITS.
+    // To change this behaviour, change the _BailOnTooManyDigits_ option.
+    // If you set it to false then all digits are consumed while
+    // ignoring the overflow/underflow (and the parse status returned is SUCCESS).
     //
     // Returns:
     //   * PARSE_SUCCESS          if a valid integer was parsed. A valid integer is in the form (+|-)[digit]*
     //                            (where digit may be a letter depending on the base and Options.CodePointToDigit).
+    // 
     //   * PARSE_INVALID          if the function wasn't able to parse a valid integer.
     //                            Note: If the integer starts with +/-, that could be considered invalid (depending on Options.ParseSign).
+    // 
     //   * PARSE_TOO_MANY_DIGITS  if the parsing stopped because the integer became too large (only if Options.BailOnTooManyDigits and
     //                            we aren't parsing a big_integer which handles practically infinite digits). In that case the max value
-    //                            of the integer type is returned (min value if parsing a negative number).
+    //                            of the integer type is returned (or min value if parsing a negative number).
     //
     template <types::is_integral T, parse_int_options Options = parse_int_options{}>
     parse_result<T> parse_int(string buffer, u32 base = 10) {
@@ -338,7 +363,8 @@ export {
         return true;
     }
 
-    // Similar to parse_int, these options compile different versions of parse_bool and turn off certain code paths.
+    // Similar to parse_int, these options compile different
+    // versions of parse_bool and turn off certain code paths.
     struct parse_bool_options {
         bool ParseNumbers         = true;  // Attemps to parse 0/1.
         bool ParseWords           = true;  // Attemps to parse the words "true" and "false".

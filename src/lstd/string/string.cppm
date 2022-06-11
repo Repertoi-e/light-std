@@ -29,9 +29,9 @@ LSTD_BEGIN_NAMESPACE
 // @TODO: Provide a _string_utf8_validate()_.
 //
 // Functions on this object allow negative reversed indexing which begins at
-// the end of the string, so -1 is the last byte, -2 the one before that, etc. (Python-style)
+// the end of the string, so -1 is the last code point, -2 the one before that, etc. (Python-style)
 //
-// Getting substrings doesn't allocate memory but just returns a new data pointer and count
+// Substrings don't allocate memory, they are just a new data pointer and count,
 // since strings in this library are not null-terminated.
 //
 
@@ -40,9 +40,12 @@ export {
 
     constexpr s64 string_length(string s) { return utf8_length(s.Data, s.Count); }
 
-    // Changes the code point at _index_ to a new one. May allocate and change the byte count of the string.
+    // Changes the code point at _index_ to a new one. 
+    // May allocate and change the byte count of the string.
     void string_set(string * str, s64 index, code_point cp);
 
+    // This is a special structure which is returned from string_get(),
+    // which allows to see the code point at a specific index, but also update it.
     struct code_point_ref {
         string *String;
         s64 Index;
@@ -119,8 +122,8 @@ export {
     void string_remove_range(string * s, s64 begin, s64 end);
 
     //
-    // These get resolution in array.cppm.
-    // For working with raw bytes and not code points...
+    // These get resolved in array.cppm
+    // for working with raw bytes and not code points.
     //
     // auto *insert_at_index(string *str, s64 index, char element);
     // auto *insert_pointer_and_size_at_index(string *str, s64 index, char *ptr, s64 size);
@@ -132,12 +135,13 @@ export {
     // void remove_range(string * str, s64 begin, s64 end);
     // void replace_range(string * str, s64 begin, s64 end, string replace);
     //
-    //
-    // These actually work fine since we don't take indices, but we also provide
-    // replace_all and remove_all overloads that work with code points and not single bytes:
-    //
+    // 
+    // These last two functions:
+    // 
     // void replace_all(string * str, string search, string replace);
     // void remove_all(string *str, string search);
+    // 
+    // actually work fine with strings, since they don't rely on indices.
     //
 
     void replace_all(string * s, code_point search, code_point replace);
@@ -191,14 +195,19 @@ export {
     //
     // Here we provide string comparison functions which return indices to code points.
     //
-    // Note: To check equality (with operator == which is defined in array_like.cpp)
-    // we check the bytes. However that doesn't always work for Unicode.
-    // Some strings which have different representation might be considered equal.
-    //    e.g. the character é can be represented either as 'é' or as '´' combined with 'e' (two characters).
-    // Note that UTF-8 specifically requires the shortest-possible encoding for characters,
-    // but you still have to be careful (some convertors might not necessarily do that).
-    //
-    //
+
+	//
+	// BIG NOTE: To check equality (with operator == which is defined in array_like.cpp)
+	// we check the bytes. However that doesn't always work for Unicode.
+	// Some strings which have different representation might be considered equal.
+	//    e.g. the character é can be represented either as 'é' or as '´' 
+    //         combined with 'e' (two separate characters).
+	// Note that UTF-8 specifically requires the shortest-possible encoding for characters,
+	// but you still have to be careful (some outputs might not necessarily conform to that).
+    // 
+    // @TODO @Robustness We should provide string functions that deal with this
+	//
+
 
     // Compares two utf-8 encoded strings and returns the index
     // of the code point at which they are different or _-1_ if they are the same.
@@ -238,6 +247,7 @@ export {
     // Returns a substring with white space removed from both sides
     constexpr string trim(string s) { return trim_end(trim_start(s)); }
 
+    // This iterator is to make range based for loops work.
     template <bool Const>
     struct string_iterator {
         using string_t = types::select_t<Const, const string, string>;
@@ -263,7 +273,6 @@ export {
         operator const char *() const { return utf8_get_pointer_to_cp_at_translated_index(String->Data, String->Count, Index); }
     };
 
-    // To make range based for loops work.
     auto begin(string & str) { return string_iterator<false>(&str, 0); }
     auto end(string & str) { return string_iterator<false>(&str, string_length(str)); }
 

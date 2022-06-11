@@ -10,10 +10,14 @@ export import lstd.context;
 
 LSTD_BEGIN_NAMESPACE
 
-// Good for building large strings because it doesn't have to constantly reallocate.
+//
+// String builder is good for building large strings without having to constantly reallocate.
 // Starts with a 1_KiB buffer on the stack, if that fills up, allocates on the heap using _Alloc_.
+// It maintains a linked list of 1_KiB buckets, which get allocated on the go as needed.
+// 
 // We provide an explicit allocator so you can set it in the beginning, before it ever allocates.
 // If it's still null when we require a new buffer we use the Context's one.
+//
 export {
     struct string_builder {
         static constexpr s64 BUFFER_SIZE = 1_KiB;
