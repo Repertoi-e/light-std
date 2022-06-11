@@ -297,7 +297,7 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align, allocator alloc
     memset((byte *) p - NO_MANS_LAND_SIZE, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
     memset((byte *) p + userSize, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
 
-    result->DEBUG_Pointer = result + 1;
+    result->DEBUG_Pointer = p;
 #endif
 
     return p;
@@ -340,7 +340,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     debug_memory_maybe_verify_heap();
     s64 id = AllocationCount;
 
-    if (id == 650) {
+    if (id == 723) {
         s32 k = 42;
     }
 #endif

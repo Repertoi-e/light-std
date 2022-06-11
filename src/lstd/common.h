@@ -75,14 +75,14 @@ void static_for(Lambda ref f) {
 }
 
 template <typename T>
-constexpr void swap(T ref_volatile a, T ref_volatile b) {
+constexpr void swap(T &a, T &b) {
 	T c = a;
 	a = b;
 	b = c;
 }
 
 template <typename T, s64 N>
-constexpr void swap(T(ref_volatile a)[N], T(ref_volatile b)[N]) {
+constexpr void swap(T(&a)[N], T(&b)[N]) {
 	For(range(N)) swap(a[it], b[it]);
 }
 
@@ -168,14 +168,14 @@ constexpr void swap(T(ref_volatile a)[N], T(ref_volatile b)[N]) {
 //
 
 template <typename T>
-constexpr auto* memmove(T* dst, auto* src, s64 n) {
-	For(range(n - 1, -1, -1)) dst[it] = src[it];
+constexpr T *memmove(T *dst, const T *src, s64 numInBytes) {
+	For(range(numInBytes / sizeof(T) - 1, -1, -1)) dst[it] = src[it];
 	return dst;
 }
 
 template <typename T>
-constexpr T* memcpy(T* dst, const T* src, s64 n) {
-	if (dst > src && (s64)(dst - src) < n) {
+constexpr T *memcpy(T *dst, const T *src, s64 numInBytes) {
+	if (dst > src && (s64)(dst - src) < (numInBytes / (s64)sizeof(T))) {
 		//
 		// Careful. Buffers overlap. You should use memmove in this case.
 		// 
@@ -186,29 +186,29 @@ constexpr T* memcpy(T* dst, const T* src, s64 n) {
 		// 
 		// This makes calling memmove superfluous, and personally, 
 		// I'm ok with that.
-		return memmove(dst, src, n);
+		return memmove(dst, src, numInBytes);
 	}
 	else {
-		For(range(n)) dst[it] = src[it];
+		For(range(numInBytes / sizeof(T))) dst[it] = src[it];
 	}
 	return dst;
 }
 
 template <typename T>
-constexpr T* memset(T* dst, T value, u64 n) {
-	For(range(n)) dst[it] = value;
+constexpr T *memset(T *dst, T value, u64 numInBytes) {
+	For(range(numInBytes / sizeof(T))) dst[it] = value;
 	return dst;
 }
 
 // Non-standard, but useful.
 template <typename T>
-constexpr T* memset0(T* dst, u64 n) {
-	return memset(dst, T(0), n);
+constexpr T *memset0(T *dst, u64 numInBytes) {
+	return memset(dst, T(0), numInBytes);
 }
 
 template <typename T>
-constexpr s32 memcmp(const T* s1, const T* s2, s64 n) {
-	For(range(n)) {
+constexpr s32 memcmp(const T *s1, const T *s2, s64 numInBytes) {
+	For(range(numInBytes / sizeof(T))) {
 		if (!(*s1 == *s2)) return *s1 - *s2;
 		++s1, ++s2;
 	}
