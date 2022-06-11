@@ -605,7 +605,6 @@ LSTD_END_NAMESPACE
 LSTD_USING_NAMESPACE;
 
 extern "C" {
-
 void *malloc(size_t size) { return (void *) malloc<byte>({.Count = (s64) size}); }
 
 void *calloc(size_t num, size_t size) {
