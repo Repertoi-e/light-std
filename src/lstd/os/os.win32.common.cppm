@@ -289,6 +289,10 @@ export {
         newContext.PanicHandler         = default_panic_handler;
         newContext.Log                  = &cout;
         newContext.FmtDisableAnsiCodes  = false;
+#if defined DEBUG_MEMORY
+        newContext.DebugMemoryHeapVerifyFrequency = false;
+        newContext.DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination = false;
+#endif
         newContext.FmtParseErrorHandler = fmt_default_parse_error_handler;
         newContext._HandlingPanic       = false;
         newContext._LoggingAnAllocation = false;
