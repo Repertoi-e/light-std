@@ -38,7 +38,7 @@ bin/
 bin-int/
 .vscode/
 .sconsign.dblite
-/.vs
+.vs
 *.props
 *.sln
 *.vcxproj
@@ -47,7 +47,6 @@ bin-int/
 cpp-utils-tests_project_suppressions.cfg
 *.diagsession
 CMakeSettings.json
-build/
 
 Makefile
 *.suppress

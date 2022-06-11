@@ -290,7 +290,7 @@ export {
         newContext.Log                  = &cout;
         newContext.FmtDisableAnsiCodes  = false;
 #if defined DEBUG_MEMORY
-        newContext.DebugMemoryHeapVerifyFrequency = false;
+        newContext.DebugMemoryHeapVerifyFrequency = 255;
         newContext.DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination = false;
 #endif
         newContext.FmtParseErrorHandler = fmt_default_parse_error_handler;
