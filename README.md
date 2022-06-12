@@ -1,10 +1,8 @@
 
 # light-std
-A C++20 library created for personal use that aims to replace the standard C/C++ library. It's data-oriented and useful for game programming.
+A C++20 data-oriented library created for personal use that aims to replace the standard C/C++ library.
 
-This library is supposed to be a replacement of C/C++'s standard library in but designed entirely differently. 
-
-It is completely stand-alone - it doesn't include any headers from the default standard library. Some C++ language features (like the spaceship operator, initializer lists, etc.) require certain definitions in the std:: namespace, but we provide our own placeholders (tested on the MSVC compiler). 
+It is completely stand-alone - it doesn't include any headers from the default standard library. It doesn't link with the runtime library. It's built and tested on Windows with the MSVC compiler.
 
 ## Why
 
@@ -12,54 +10,50 @@ Memory layout is very important for modern CPUs. The programmer should be very a
 
 > Ulrich Drepper, What Every Programmer Should Know About Memory, 2007 - https://people.freebsd.org/~lstewart/articles/cpumemory.pdf
 
-C++ is a low-level language.
+C++ can be used as a low-level language.
 Usually modern high-level languages put much of the memory management behind walls of abstraction.
 Hardware has gotten blazingly fast, but software has deteriorated. Modern CPUs can make billions
 of calculations per second, but reading even ONE byte from RAM can take hundreds of clock cycles
 (if the memory is not in the cache). You MUST think about the cache if you want to write fast software.
 
-Once you start thinking about the cache you start programming in a data oriented way.
-You don't try to model the real world in the program, but instead structure the program in the way that
-the computer will work with the data. Data that is processes together should be close together in memory.
+Once one starts thinking about the cache he starts programming in a data oriented way.
+It's not the point to try to model the real world in the program (OOP), but instead structure the program in the way that
+the computer will work with the data. Data that is processed together should be close together in memory.
 
 And that's why we should remove some of the abstraction. We should think about the computer's memory.
 We should write fast software. We can slow down global warming by not wasting CPU clock cycles.
 
-Caveat: Of course, writing abstractions which allows more rapid programming is the rational thing to do.
-After all we can do so much more stuff instead of micro-optimizing everything. But being a bit toocareless
+Of course, writing abstractions is the rational thing to do (most of the time).
+After all we can do so much more stuff instead of micro-optimizing everything. But being a bit too careless
 results in the modern mess of software that wastes most of CPU time doing nothing, because people decided to
 abstract too much stuff.
 
-## This library provides:
+## This library currently provides:
 
 - A memory model inspired by Jonathan Blow's Jai - implicit context system, overridable allocators.
+- Robust debug memory switch that has checks for double frees, cross-thread frees, block overlaps from allocations and etc.
 - Data structures - utf-8 non-null-terminated string, dynamic array, hash table, etc.
 - `os` module - common operations that require querying the OS.
 - `path` module - procedures that work with file paths. 
 - `fmt` module - a formatting library inspired by Python's formatting syntax (that's even faster than printf).
-- Threads, mutexes, atomic operations, lock-free data structures.
+- `parse` module - for parsing strings, integers, booleans, GUIDs, etc.
+- Threads, mutexes, atomic operations.
+- Console input/output.
 
 ## Principles 
 
 - **Clean code**
-> Readibility is most important. Comments are a powerful tool. 
+> Readibility is most important. Comments are a powerful tool to explain WHY and the philosophy of something done (not is done).
 
 - **Less code is better**
-> Every line of code is a liability and a possible source of bugs and security holes. Avoid big dependencies, 
-> if you need just one function - write it. Don't import a giant library.
+> Every line of code is a liability and a possible source of bugs and security holes. We avoid big dependencies.
 
 - **Closer to C than to modern C++**
-> Ditch copy/move constructors, destructors, exceptions. This reduces the amount of bloat code and supposedly increases confidence that your code is doing what you expect.
+> Ditch copy/move constructors, destructors, exceptions. This reduces the amount of bloat code and supposedly increases our confidence that the code is doing what we expect.
 
 - **Code reusability**
-> A trick: conditional procedure compilation. You can enable or disable features for a function depending
-> on template parameters. e.g. our `parse_int` function - one piece of code but it suits many cases.
-> It performs as if it's a specialized function, even though it's very general.
-
-> Another trick: with C++20's concepts we can implement one set of functions that work with all arrays (`array_like.h`).
-> The following: search functions (`find`, `find_not`, `has`, etc.), `compare`, and operators `==`, `!=`, `<`, `<=`, `>`, `>=`
-> are written once and work with all array-like data structures (even comparing different types of arrays works, for 
-> which otherwise we need a combinatorial amount of code).
+> Using C++20 features: terse templates, concepts, and modules, we can do conditional procedure compilation and
+> combine functions in ways to reduce code, which otherwise would be a combinatorial amount. Examples: `parse.cppm` and `array_like.cppm`
 
 ## Documentation
 
@@ -75,6 +69,7 @@ abstract too much stuff.
 - No throwing of exceptions, .. ever, .. anywhere. No excuse.
   They make code complicated. When you can't handle an error and need to exit from a function, return multiple values. C++ doesn't really help with this, but you can use C++17 structured bindings, e.g.:
 >          auto [content, success] = path_read_entire_file("data/hello.txt");
+- In general, error conditions (which require returning a status) should be rarely justifiable. The code should just do the correct stuff. Otherwise it quickly becomes complicated and we lose confidence on what could happen and where.
 
 #### Example
 `array` is this library is a struct that contains 2 fields (`Data` and `Count`).
@@ -675,258 +670,18 @@ void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMem
 void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
 ```
 
-### License
-
-> MIT License
-> 
-> Copyright (c) 2021 Dimitar Sotirov
-> 
-> Permission is hereby granted, free of charge, to any person obtaining a copy
-> of this software and associated documentation files (the "Software"), to deal
-> in the Software without restriction, including without limitation the rights
-> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-> copies of the Software, and to permit persons to whom the Software is
-> furnished to do so, subject to the following conditions:
-> 
-> The above copyright notice and this permission notice shall be included in all
-> copies or substantial portions of the Software.
-> 
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-> SOFTWARE.
-
 ### Credits
 
+The appropriate licenses are listed alongside this list in `CREDITS`.
+
 - [LIBFT](https://github.com/beloff-ZA/LIBFT/blob/master/libft.h) beloff, 2018, some implementations of functions found in the CRT.
-- [minlibc]( https://github.com/GaloisInc/minlibc), Galois Inc., 2014, `strtod` and `atof` implementations.
-> Here is the appropriate license:
-```cpp
-/*
- * Copyright (c) 2014 
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions 
- * are met:
- * 
- *   * Redistributions of source code must retain the above copyright 
- *     notice, this list of conditions and the following disclaimer.
- * 
- *   * Redistributions in binary form must reproduce the above copyright 
- *     notice, this list of conditions and the following disclaimer in 
- *     the documentation and/or other materials provided with the 
- *     distribution.
- * 
- *   * Neither the name of Galois, Inc. nor the names of its contributors 
- *     may be used to endorse or promote products derived from this 
- *     software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
- * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-```
-
-- [Cephes](https://www.netlib.org/cephes/), Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
-
-- [tlsf](https://github.com/mattconte/tlsf), Matthew Conte (http://tlsf.baisoku.org), Two-Level Segregated Fit memory allocator, version 3.1.
-> Based on the original documentation by Miguel Masmano: http://www.gii.upv.es/tlsf/main/docs \
-> Here is the appropriate license:
-```cpp
-//
-// This implementation was written to the specification
-// of the document, therefore no GPL restrictions apply.
-//
-
-/* 
- * Copyright (c) 2006-2016, Matthew Conte
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the copyright holder nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL MATTHEW CONTE BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-```
-
-- Rolf Neugebauer, 2003, `sccanf` implementation.
-```cpp
-> Here is the appropriate license:
-/*
- ****************************************************************************
- * (C) 2003 - Rolf Neugebauer - Intel Research Cambridge
- ****************************************************************************
- *
- *        File: printf.c
- *      Author: Rolf Neugebauer (neugebar@dcs.gla.ac.uk)
- *     Changes: Grzegorz Milos (gm281@cam.ac.uk) 
- *
- *        Date: Aug 2003, Aug 2005
- *
- * Environment: Xen Minimal OS
- * Description: Library functions for printing
- *              (Linux port, mainly lib/vsprintf.c)
- *
- ****************************************************************************
- */
-
-/*
- * Copyright (C) 1991, 1992  Linus Torvalds
- */
-
-/* vsprintf.c -- Lars Wirzenius & Linus Torvalds. */
-
-/*
- * Fri Jul 13 2001 Crutcher Dunnavant <crutcher+kernel@datastacks.com>
- * - changed to provide snprintf and vsnprintf functions
- * So Feb  1 16:51:32 CET 2004 Juergen Quade <quade@hsnr.de>
- * - scnprintf and vscnprintf
- *
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- */
-```
-
 - [delegate](https://github.com/tarigo/delegate), Vadim Karkhin, 2015
-> Here is the appropriate license:
-```cpp
-/*  The MIT License (MIT)
- * 
- * Copyright (c) 2015 Vadim Karkhin
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-```
-
 - Ryan Juckett, 2014, implementation the Dragon4 algorithm (used in the `fmt` module for formatting floats).
-> Here is the appropriate note:
-```cpp
-//
-// See the following papers for more information on the algorithm:
-//  "How to Print Floating-Point Numbers Accurately"
-//    Steele and White
-//    http://kurtstephens.com/files/p372-steele.pdf
-//  "Printing Floating-Point Numbers Quickly and Accurately"
-//    Burger and Dybvig
-//    http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.72.4656
-// 
-// 
-// It is a modified version of numpy's dragon4 implementation,
-// ... which is a modification of Ryan Juckett's version.
-//
-
-/*
- * Copyright (c) 2014 Ryan Juckett
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to
- * deal in the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- */
-
-/*
- * Copyright (c) 2005-2021, NumPy Developers.
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- * 
- *     * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- * 
- *     * Redistributions in binary form must reproduce the above
- *        copyright notice, this list of conditions and the following
- *        disclaimer in the documentation and/or other materials provided
- *        with the distribution.
- * 
- *     * Neither the name of the NumPy Developers nor the names of any
- *        contributors may be used to endorse or promote products derived
- *        from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-```
+- [minlibc]( https://github.com/GaloisInc/minlibc), Galois Inc., 2014, `strtod` and `atof` implementations.
+- [Cephes](https://www.netlib.org/cephes/), Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
+- [tlsf](https://github.com/mattconte/tlsf), Matthew Conte (http://tlsf.baisoku.org), Two-Level Segregated Fit memory allocator, version 3.1.
+> Based on the original documentation by Miguel Masmano: http://www.gii.upv.es/tlsf/main/docs
+- Rolf Neugebauer, 2003, `sccanf` implementation.
 
 ### Projects using this library
 
