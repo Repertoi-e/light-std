@@ -11,30 +11,46 @@ LSTD_BEGIN_NAMESPACE
 
 // @TODO: Make fully constexpr
 
+// string is just array<char>, so 
+// comment about arrays is relevant:
 //
-// String doesn't guarantee a null termination at the end.
-// It's essentially a data pointer and a count.
-//
-// This means that you can load a binary file into a string.
-//
-// The routines defined in array.cppm work with _string_ because
-// _string_ is a typedef for array<char>. However they treat indices
-// as pointing to bytes and NOT to code points.
-//
-// This file provides functions prefixed with string_ which
-// treat indices properly (pointing to code points).
-// Whenever working with strings we assume valid UTF-8.
-// We don't do any checks, that is left up to the programmer to verify.
-//
-// @TODO: Provide a _string_utf8_validate()_.
+// This is a basic wrapper around contiguous memory, it contains a typed pointer and a size. 
 //
 // Functions on this object allow negative reversed indexing which begins at
-// the end of the string, so -1 is the last code point, -2 the one before that, etc. (Python-style)
+// the end of the array, so -1 is the last code point -2 the one before that, etc. (Python-style)
+// Note: if you call functions from array.cppm on string, then indices are treated as bytes and 
+// not code points! Functions in this file, prefixed with "string_" treat indices properly 
+// (as pointing to code points).
 //
-// Substrings don't allocate memory, they are just a new data pointer and count,
-// since strings in this library are not null-terminated.
+// You can call   make_dynamic(&arr)  which allocates a new buffer and copies the array's
+// contents there, after that you can modify it by adding/removing or whatever.
+// 
+// Note: We have a very fluid philosophy of containers and ownership. We don't implement
+// copy constructors or destructors, which means that the programmer is totally in control
+// of how the memory gets managed. In order to get a deep copy of an array use clone().
+// See :TypePolicy in "common.h"
+// 
+// If you have called   make_dynamic(&arr)   nothing really special happens except
+// that arr.Data is pointing to allocated memory. To free it call   free(arr.Data)   as normal.
+// You can also call   defer(free(arr.Data))   to free it on scope exit (like a destructor).
+// 
+// This object being just two 64 bit integers can be cheaply and safely passed 
+// to functions by value without performance concerns and indirection.
+// (Remember that the array doesn't "own" it's buffer, it's up to the programmer!)
 //
-
+// :CodeReusability: This is considered array_like (take a look at array_like.h).
+//
+// Now stuff that is relevant to strings:
+// 
+// 'string' doesn't guarantee a null termination at the end.
+// It's essentially a data pointer and a count, the data is 
+// treated as valid utf-8. (We don't do any checks, that is left 
+// up to the programmer to verify!)
+// @TODO: Provide a _string_utf8_validate()_.
+//
+// That also means that substrings don't allocate memory, 
+// they are just a new data pointer and count, 
+//
 export {
     using string = array<char>;
 

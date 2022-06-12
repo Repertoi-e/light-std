@@ -10,27 +10,27 @@ Memory layout is very important for modern CPUs. The programmer should be very a
 
 > Ulrich Drepper, What Every Programmer Should Know About Memory, 2007 - https://people.freebsd.org/~lstewart/articles/cpumemory.pdf
 
-C++ can be used as a low-level language.
 Usually modern high-level languages put much of the memory management behind walls of abstraction.
-Hardware has gotten blazingly fast, but software has deteriorated. Modern CPUs can make billions
+("Modern C++" as well!) Hardware has gotten blazingly fast, but software has deteriorated. CPUs can make billions
 of calculations per second, but reading even ONE byte from RAM can take hundreds of clock cycles
 (if the memory is not in the cache). You MUST think about the cache if you want to write fast software.
 
 Once one starts thinking about the cache he starts programming in a data oriented way.
-It's not the point to try to model the real world in the program (OOP), but instead structure the program in the way that
-the computer will work with the data. Data that is processed together should be close together in memory.
+To try to model the real world in the program (OOP) is not the point anymore, but instead 
+structure the program in the way that the computer will work with the data - data that is processed 
+together should be close together in memory.
 
-And that's why we should remove some of the abstraction. We should think about the computer's memory.
-We should write fast software. We can slow down global warming by not wasting CPU clock cycles.
+That's why we should remove some of the abstraction. We should think about the computer's memory.
+We should write fast software. 
 
 Of course, writing abstractions is the rational thing to do (most of the time).
 After all we can do so much more stuff instead of micro-optimizing everything. But being a bit too careless
 results in the modern mess of software that wastes most of CPU time doing nothing, because people decided to
-abstract too much stuff.
+abstract too much stuff. We can even slow down global warming by not wasting CPU clock cycles.
 
 ## This library currently provides:
 
-- A memory model inspired by Jonathan Blow's Jai - implicit context system, overridable allocators.
+- A memory model inspired by Jonathan Blow's Jai - simple overridable allocators with an implicit context system.
 - Robust debug memory switch that has checks for double frees, cross-thread frees, block overlaps from allocations and etc.
 - Data structures - utf-8 non-null-terminated string, dynamic array, hash table, etc.
 - `os` module - common operations that require querying the OS.
@@ -43,17 +43,16 @@ abstract too much stuff.
 ## Principles 
 
 - **Clean code**
-> Readibility is most important. Comments are a powerful tool to explain WHY and the philosophy of something done (not is done).
+> Readibility and reasonability are most important. Comments are a powerful tool to explain WHY (not WHAT is done) and the philosophy behind it.
 
 - **Less code is better**
-> Every line of code is a liability and a possible source of bugs and security holes. We avoid big dependencies.
+> Every line of code is a liability and a possible source of bugs and security holes. So we avoid big dependencies.
 
 - **Closer to C than to modern C++**
-> Ditch copy/move constructors, destructors, exceptions. This reduces the amount of bloat code and supposedly increases our confidence that the code is doing what we expect.
+> Ditch copy/move constructors, destructors, exceptions. This reduces the amount of abstractions and bloat code and increases our confidence that the code is doing what we expect.
 
 - **Code reusability**
-> Using C++20 features: terse templates, concepts, and modules, we can do conditional procedure compilation and
-> combine functions in ways to reduce code, which otherwise would be a combinatorial amount. Examples: `parse.cppm` and `array_like.cppm`
+> Using C++20 features: terse templates, concepts, and modules, we can do conditional procedure compilation and combine functions in ways to reduce code, which otherwise would be a combinatorial amount. Examples: `parse.cppm` and `array_like.cppm`. Conditional procedure compilation even leads to performance improvement (even in Debug), and in C++20 it doesn't require ugly macro magic which makes code difficult to reason about (most of the time it's as simple as `if constexpr`).
 
 ## Documentation
 
@@ -72,46 +71,49 @@ abstract too much stuff.
 - In general, error conditions (which require returning a status) should be rarely justifiable. The code should just do the correct stuff. Otherwise it quickly becomes complicated and we lose confidence on what could happen and where.
 
 #### Example
-`array` is this library is a struct that contains 2 fields (`Data` and `Count`).
+`array` is this library is a basic wrapper around contiguous memory. It contains 2 fields (`Data` and `Count`).
 It has no sense of ownership. That is determined explictly in code and by the programmer.
 
 By default arrays are views, to make them dynamic, call `make_dynamic(&arr)`.
-After that you can modify them (add/remove elements)
+After that you can modify them (insert or remove elements).
 
-You can safely pass around copies and return arrays from functions because
-there is no hidden destructor which will free the memory.
+You can safely pass around copies and return arrays from functions by value because
+there is no hidden destructor which will free the memory. Moreover they are just
+a pointer and a size, so it's cheap and avoids indirection from passing them by pointer/reference. 
 
-When a dynamic array is no longer needed call `free(arr.Data)`;
+If you call `make_dynamic(&arr)` nothing really special happens except
+that `arr.Data` is now pointing to allocated memory. To free it when no longer needed call `free(arr.Data)` as normal.
+You can also call `defer(free(arr.Data))` to free it on scope exit (like a destructor).
 
-We provide a defer macro which runs at the end of the scope (like a destructor),
-you can use this for functions which return from multiple places,
-so you are absolutely sure `free` gets called and there were no leaks.
-
-```cpp
-array<string> pathComponents;
-make_dynamic(&pathComponents, 8);
-defer(free(pathComponents.Data));
-```
+> ```cpp
+>      array<string> pathComponents;
+>      make_dynamic(&pathComponents, 8);
+>      defer(free(pathComponents.Data));
+> ```
 
 `string`s are just `array<char>`. All of this applies to them as well.
-They are not null-terminated, which means that taking substrings doesn't allocate memory.
+They are treated as utf-8 and not null-terminated, which means that taking substrings doesn't allocate memory.
 
+To make a deep copy of an array (or string) use clone(): `newPath = clone(&path)`.
 
-    // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
-    // Like arrays, strings are views by default.
-    string path = "./data/";
-    make_dynamic(&path);         // Allocates a buffer and copies the string it was pointing to
-    defer(free(path.Data));
+> ```cpp
+>      // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
+>      // Like arrays, strings are views by default.
+>      string path = "./data/";
+>      make_dynamic(&path);         // Allocates a buffer and copies the string it was pointing to
+>      defer(free(path.Data));
+>      
+>      string_append(&path, "output.txt");
+>      
+>      string pathWithoutDot = substring(path, 2, -1);
+> ```
 
-    string_append(&path, "output.txt");
-
-    string pathWithoutDot = substring(path, 2, -1);
-
-To make a deep copy of an array use clone(): `newPath = clone(&path)`.
+> Functions on objects which take indices allow negative reversed indexing which begins at
+> the end of the array/string, so -1 is the last element (or code point) -2 the one before that, etc. (Python-style)
 
 ### Arrays by example
 
-> ex.1 Constructing an array object doesn't allocate any memory. They are views by default.
+> ex.1 
 > ```cpp
 >      byte data[100];
 >      auto subArray = array<byte>(data + 20, 30); 
@@ -119,14 +121,14 @@ To make a deep copy of an array use clone(): `newPath = clone(&path)`.
 >      auto shallowCopy = subArray;
 > ```
 
-> ex.2 Arrays may allocate memory explicitly.
+> ex.2 Allocating memory explicitly.
 > ```cpp
 >      array<char> sequence;
 >      make_dynamic(&sequence 8);
 >      add(sequence, '0');
 >      add(sequence, 'b');
 >      add(sequence, '1');
->      // ... futher appends may require resizing which is handled automatically
+>      // ... futher appends may require reallocating which is handled automatically (oldAlloc * 2)
 >  
 >      array<char> otherSequence = clone(&sequence);  // Deep-copy
 >      defer(free(otherSequence.Data));               // Runs at the end of the scope
@@ -134,16 +136,16 @@ To make a deep copy of an array use clone(): `newPath = clone(&path)`.
 >      auto shallowCopyOfSequence = sequence;
 >      free(shallowCopyOfSequence); // 'sequence' is also freed (they point to the same memory)
 >  
->      // Here 'sequence' is no longer valid, but 'otherSequence' still is.
+>      // Here 'sequence' is no longer valid, but 'otherSequence' (which was deep copied) still is.
 >  
 >      // Attempting to free a subarray is undefined.
->      // It is guaranteed to crash the allocator
+>      // It is guaranteed to trip an assert in our memory layer, before the allocator.
 >      auto subData = array<byte>(otherSequence.Data + 1, 2);
 >      free(subData.Data); 
 > ```
 
-> ex.3 Arrays allocate functions by the implicit context allocator (more on that later). 
-> Here `PERSISTENT` is an allocator that the platform layer uses for internal allocations (example is taken from the `os` module).
+> ex.3 Example how array doesn't know what the current context allocator is (more on that later). 
+> Here `PERSISTENT` is an allocator that the platform layer uses for internal allocations. The example is taken directly from the `os` module.
 > ```cpp
 > [[nodiscard("Leak")]] array<string> os_get_command_line_arguments() {
 >     s32 argc;
@@ -160,7 +162,10 @@ To make a deep copy of an array use clone(): `newPath = clone(&path)`.
 >             add(&result, utf16_to_utf8(argv[it]));
 >         }
 >     }
->     return result;
+>     // This does a shallow copy, there is no copy constructor, but there is also no destructor 
+>     // to invalidate `result`. After programming for a while it feels great to do this sort of stuff
+>     // without expecting unnecessary allocations to happen.
+>     return result; 
 > }
 > ```
 
@@ -168,7 +173,7 @@ To make a deep copy of an array use clone(): `newPath = clone(&path)`.
 > ```cpp
 >      array<s32> integers;
 >
->      for (s32 it : range(50)) { // Every integer in [0, 50) 
+>      for (s32 it : range(50)) { // Means "for every integer in [0, 50)" 
 >          add(&integers, it);
 >      }
 >
@@ -176,19 +181,20 @@ To make a deep copy of an array use clone(): `newPath = clone(&path)`.
 >          add(&integers, it);
 >      }
 >
->      For(range(10, 20)) { // Every integer in [10, 20).. you get the idea
+>      For(range(10, 20, 3)) { // Every third integer in [10, 20).. you get the idea
 >          add(&integers, it);
 >      }
 >
 >
->      // Avoid variable name collisions
+>      // Specify custom variable names in the macro
 >      For_as(i, range(10)) { 
->          For_as(j, range(20)) { .. } 
+>          For_as(j, range(20)) { /* i,j in 10x20 grid */ } 
 >      }
 >      
 >
 >      array<string> args = os_get_command_line_arguments();
 >      defer(free(args.Data));
+>
 >      For(args) print("{}\n", it); 
 >     
 >
@@ -196,22 +202,23 @@ To make a deep copy of an array use clone(): `newPath = clone(&path)`.
 >          // Here we have 2 implicit variables - 'it' and 'it_index', which contain the current object and it's respective index.
 >
 >          if (it == "--option") {
->              assert(it_index + 1 < args.Count); // Probably tell the user...
+>              if (it_index + 1 >= args.Count) continue; // Probably tell the user...
 >              value = args[it_index + 1];
 >              continue;
 >          }
 >      }
 >
+>      // Here you can also specify custom variable names
 >      // For_enumerate_as(my_it_index_name, my_it_name, args) { .. }
 > ```
 
 > ex.5 Arrays support Python-like negative indexing.
 > ```cpp
->      auto list = make_stack_array(1, 2, 3, 4, 5);
+>      auto nums = make_stack_array(1, 2, 3, 4, 5);
 >
 >      // Negative index is the same as "Length - index", 
 >      // so -1 is translated to the index of the last element.
->      print("{}", list[-1]); // 5
+>      print("{}", nums[-1]); // 5
 > ```
 
 > ex.6 We also have a wrapper for a fixed-size array (equivalent to std::array).
@@ -241,7 +248,7 @@ because a certain code point can be encoded in up to 4 bytes.
 
 Array examples from the previous section are relevant here.
 
-Note: Functions like `insert_at_index` have a different suffix for strings `string_insert_at_index`, because we treat indices for strings as pointing to code points. If you want to work with the raw bytes of the string, you can use the array routines.
+Note: Functions like `insert_at_index` have a different suffix for strings `string_insert_at_index`, because we treat indices for strings as pointing to code points. If you want to work with the raw bytes of the string, you can use the normal non-prefixed array routines.
 
 > ex.1 This string is constructed from a zero-terminated string buffer (which the compiler stores in read-only memory when the program launches). 
 > This doesn't allocate memory, `free(path.Data)` will crash.
@@ -253,7 +260,7 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 > ```cpp
 >     string path = "./data/output.txt";
 >     
->     s64 dot = string_find(path, '.', string_length(path), true); // Reverse find (API subject to change...)
+>     s64 dot = string_find(path, '.', string_length(path), true);  // Reverse find 
 >     string pathExtension = substring(path, dot, -1); // ".txt"    
 > ```
 
@@ -264,13 +271,14 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 >         it = to_lower(it);
 >         // Here the string is non-const so 'it' is actually a reference 
 >         // to the code point in the string, so you can modify it directly.
->         // This also correctly handles replacing a code point with a larger one. 
+>         // This also correctly handles replacing a code point with a larger 
+>         // or smaller one. 
 >         // See the implementation of string_iterator.
 >     }
 >     greeting; // "здрасти"
 > ```
 
-> ex.4 Taken from the `path` module.
+> ex.4 This example is taken directly from the `path` module.
 > ```cpp
 > [[nodiscard("Leak")]] array<string> path_split_into_components(string path) {
 >     array<string> result;
@@ -295,7 +303,7 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 > }
 > ```
 
-> ex.5 Taken from the `path` module.
+> ex.5 Also taken from the `path` module.
 > ```cpp
 > [[nodiscard("Leak")]] string path_join(array<string> paths) {
 >     auto [result_drive, result_path] = path_split_drive(paths[0]);
@@ -327,7 +335,7 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 >             result_drive = p_drive;
 >         }
 > 
->         // Second path is relative to the first
+>         // Second path is relative to the first, append them 
 >         if (result && !path_is_sep(result[-1])) {
 >             string_append(&result, '\\');
 >         }
@@ -344,27 +352,26 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 > }
 > ```
 
-### Allocating memory
+### Allocating memory by example
 
-Don't use new and delete.
-1) You have to be careful not to mix `new` with `delete[]`/`new[]` with `delete`.
-2) It's an operator and can be overriden by structs/classes.
-3) Modern C++ people say not to use new/delete as well, so ..
+We don't use new and delete.
+1) The syntax is ugly in my opinion.
+2) You have to be careful not to mix `new` with `delete[]`/`new[]` with `delete`.
+3) It's an operator and can be overriden by structs/classes.
+4) Modern C++ people say not to use new/delete as well, so ..
 
 Now seriously, there are two ways to allocate memory in C++: `malloc` and `new`.
-For the sake of not introducing a THIRD way, we override malloc.
-We do that because :STANDARDLIBRARYISBANNED:.
-Since we don't link with the CRT, `malloc` is undefined, so we need to
-provide a replacement anyway (or modify code which is annoying and
-not always possible, e.g. a prebuilt library).
+For the sake of not introducing a THIRD way, we override `malloc`.
 
-> Caveat: A DLL may already have linked with the CRT, which means that in
-> that case problems occur. There are two options: rebuild your DLLs
-> to not use the standard library/or we could do some hacks
-> and redirect calls to malloc to our replacement (@TODO It may actually be possible).
+> Since we don't link the CRT `malloc` is undefined, so we need to
+> provide a replacement anyway (or modify code which is annoying and
+> not always possible, e.g. a prebuilt library, @TODO it may actually be possible with symbol patching.).
 
-`new` and `delete` actually have some useful semantics (`new` - initializing the values,
-`delete` - calling a destructor if defined). So we provide templated versions of malloc/free:
+`new` and `delete` actually have different semantics (`new` - initializing the values,
+`delete` - calling a destructor if defined). Our type policy is against destructors
+but we will call them anyway, just in case (some third party libraries might rely on that).
+
+So we provide templated versions of malloc/free:
 
 `malloc<T>`:
 - Calls constructors on non-scalar values.
@@ -372,85 +379,53 @@ not always possible, e.g. a prebuilt library).
 - Can't call with T == void (use non-templated malloc in that case!)
 
 `realloc<T>`
-- Assumes your type can be copied to another place in memory and just work.
+- Assumes your type can be copied to another place in memory byte by byte and just work.
 - Doesn't call copy/move constructors.
 
 `free<T>`
-- Also calls the destructor (we are against destructors usually but some syntax-sugar code might rely on that).
+- Also calls the destructor. Normally we are against destructors - explicit code is better.
+To implement "destructor functionality" (uninitializing the type, freeing members, etc.)
+you should provide a function, for example: 
 
-You might be annoyed already but for more philosophy (like why we don't like exceptions, copy or move constructors) you can look at the type policy.
+>```cpp
+>    free_string(my_string *s) {
+>        free(s.Data);   // Free buffer as normal
+>        atomic_add(&GlobalStringCount, -1);
+>    }
+>```
 
+You may say that this is just a renamed destructor. But this doesn't run hiddenly
+(when exiting a scope or a function). Sometimes you actually want to do that. Instead of littering every return path with `free(s)`, you can do `defer(free(s));` which is a useful macro that calls 
+any statements at the end of a scope (emulates a destructor).
 
-### Context and allocators by example
+#### Context and allocators 
 
 The `Context` is a global thread local variable that contains certain options that change the behaviour of the program.
 
 It stores the allocator that is used by default for allocating new blocks, the logger which is used to print messages (pointer to a writer, e.g. `cout`), and other stuff.
 
-Here is the full structure (defined in `context.cppm`): 
+Here is a part of the structure (full structure defined in `context.cppm`): 
 ```cpp
-// @Volatile
 struct context {
-    u32 ThreadID;  // The current thread's ID 
-
-    //
-    // This is a pair of a function and a data pointer.
-    // Change this (recommended way is to use the PUSH_ALLOC macro) in order to
-    // change the allocator which a piece of code uses transparently.
-    //
-    // This makes it so when you call a function, the caller doesn't have to pass a parameter,
-    // the function can just allocate normally, without knowing that the caller has changed the allocator.
-    //
-    // When allocating you should use the context's allocator (allocate<> and allocate_array<> does
-    // that by default - unless overriden explicitly, we also override operator new and delete @TODO malloc).
-    //
-    // The idea for this comes from the implicit context in Jai.
-
-    allocator Alloc;  // = null by default. The user should provide an allocator at the start of the program.
-                      // We encourage using several different allocators depending on the memory requirements and the specific use case.
-                      // See :BigPhilosophyTime: in "allocator.h" for the reasoning behind this.
-
+    u32 ThreadID; 
+    
+    allocator Alloc;  
     u16 AllocAlignment = POINTER_SIZE;
-
-    // Any options that get OR'd with the options in any allocation (options are implemented as flags).
-    // e.g. using the LEAK flag, you can mark the allocations done in a whole scope as leaks (don't get reported when calling DEBUG_memory->report_leaks()).
     u64 AllocOptions = 0;
 
-    bool LogAllAllocations = false;  // Used for debugging. Every time an allocation is made, logs info about it.
-
-    // Gets called when the program encounters an unhandled expection.
-    // This can be used to view the stack trace before the program terminates.
-    // The default handler prints the crash message and stack trace to _Log_.
+    bool LogAllAllocations = false; 
     panic_handler_t PanicHandler = default_panic_handler;
-
-    // When printing you should use this variable.
-    // This makes it so users can redirect logging output.
-    // By default it points to cout (the console).
     writer *Log;
-
-    // By default when we encounter an invalid format string we panic the program.
-    // One might want to silence such errors and just continue executing, or redirect the error - like we do in the tests.
-    fmt_parse_error_handler_t FmtParseErrorHandler = fmt_default_parse_error_handler;
-
-    // Disable stylized text output (colors, background colors, and bold/italic/strikethrough/underline text).
-    // This is useful when logging to files/strings and not the console. The ansi escape codes look like garbage in files/strings.
-    bool FmtDisableAnsiCodes = false;
-
-    bool _HandlingPanic = false;        // Don't set. Used to avoid infinite looping when handling panics. Don't touch!
-    bool _LoggingAnAllocation = false;  // Don't set. Used to avoid infinite looping when the above bool is true. Don't touch!
 };
 ```
+Feel free to add more variables to your local copy of the library.
 
-Feel free to add more variables to your copy of the library.
+The context gets initialized when the program runs and also when creating a thread with our API. 
+In the second case know the parent thread, so we copy the options from it. If the thread is created
+in another way we leave it zero initialized and up to the caller to decide what should go inside of it.
+(AFAIK there is now way to tell what the parent thread was in other APIs...)
 
-The context gets initialized when the program runs and also when creating a thread with our API. In the second case know the parent thread, so we copy the options from it (otherwise it's zero-initialized leaving the behaviour up to the caller).
-
-
-### Memory
-
-The library's allocating functions reserve a bit of space before a block to store a header with information (the size of the allocation, the alignment, the allocator with which it was allocated, and debugging info if DEBUG_MEMORY is defined).
-
-> ex.1 Allocating memory.
+> ex.1 
 > ```cpp
 > void *memory;
 > memory = malloc<char>({.Count = 150});   // Using Context.Alloc (make sure you have set it beforehand)
@@ -464,7 +439,7 @@ The library's allocating functions reserve a bit of space before a block to stor
 > memory = malloc<char>({.Count = 150, .Alloc = myAlloctor});;
 > ```
 
-> ex.2 Using C++20 syntax for allocator options.
+> ex.2 Using C++20 syntax.
 > ```cpp
 >     void *node = malloc<ast_binop>();
 >     void *node = malloc<ast_binop>({.Alloc = AstNodeAllocator});
@@ -476,27 +451,32 @@ The library's allocating functions reserve a bit of space before a block to stor
 >     void *memory = malloc<byte>({.Count = 200, .Alloc = TemporaryAllocator, .Alignment = 64, .Options = LEAK});
 > ```
 
-> ex.3 From the test suite. Demonstates temporary allocator initialization and how to change the allocator which is used in a scope.
+> ex.3 Example taken from the test suite. Demonstates temporary allocator initialization and how to change the allocator which is used in a scope.
 > ```cpp
 >     time_t start = os_get_time();
 > 
+>     // Initialize the temporary allocator by asking the OS for large pool.
+>     TemporaryAllocatorData.Block = os_allocate_block(1_MiB);
+>     TemporaryAllocatorData.Size  = 1_MiB;
+>     
 >     auto newContext = Context;
 >     newContext.AllocAlignment = 16;          // For SIMD math types
 >     newContext.Alloc = TemporaryAllocator;   // Set a new default allocator
-> 
->     allocator_add_pool(TemporaryAllocator, os_allocate_block(1_MiB), 1_MiB);
 > 
 >     PUSH_CONTEXT(newContext) {
 >         build_test_table();
 >         run_tests();
 >     }
->     print("\nFinished tests, time taken: {:f} seconds, bytes used: {}, pools used: {}\n\n", os_time_to_seconds(os_get_time() - start), __TempAllocData.TotalUsed, __TempAllocData.PoolsCount);
+>     print("\nFinished tests, time taken: {:f} seconds, bytes used: {}\n\n", os_time_to_seconds(os_get_time() - start), TemporaryAllocatorData.Used);
 > ```
 
-> ex.4 From the `light-std-graphics`. This demonstates how to allocate global state + a pool and initialize a common general purpose allocator at the beginning of your program.
+> ex.4 Example taken from a physics engine simulation with `light-std-graphics`. This demonstates how to allocate global state + a pool and initialize a common general purpose allocator at the beginning of your program.
 > ```cpp
 >     // We allocate all the state we need next to each other in order to reduce fragmentation.
 >     auto [data, m, g, pool] = os_allocate_packed<tlsf_allocator_data, memory, graphics>(MemoryInBytes);
+>
+>     // TLSF (Two-Level Segregate Fit) is a fast general purpose dynamic memory allocator for real-time systems.
+>     // We provide an implementation directly in the library.
 >     PersistentAlloc = {tlsf_allocator, data};
 >     allocator_add_pool(PersistentAlloc, pool, MemoryInBytes);
 > 
@@ -506,62 +486,36 @@ The library's allocating functions reserve a bit of space before a block to stor
 >     auto newContext = Context;
 >     newContext.Log = &cout;
 >     newContext.Alloc = PersistentAlloc;
->     // Doesn't change in a scope but instead overrides the parameter all-together. 
+>
+>     // This macro doesn't change the context in a scope but 
+>     // instead overrides the parameter all-together. 
 >     // Use this only at the beginning of your program!
+>     // Be very careful and never use this inside functions
+>     // (the caller might get confused)...
 >     OVERRIDE_CONTEXT(newContext); 
 > ```
 
-> ex.5 The implementation of an arena allocator.
+> ex.5 How to implement custom allocators. Here is the implementation of the arena allocator.
 > ```cpp
 > void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
 >     auto *data = (arena_allocator_data *) context;
-> 
+>     auto* data = (arena_allocator_data*)context;
+>
 >     switch (mode) {
->         case allocator_mode::ADD_POOL: {
->             auto *pool = (allocator_pool *) oldMemory;  // _oldMemory_ is the parameter which should contain the block to be added
->                                                         // the _size_ parameter contains the size of the block
-> 
->             if (!allocator_pool_initialize(pool, size)) return null;
->             allocator_pool_add_to_linked_list(&data->Base, pool); // @Cleanup
->             if (pool) {
->                 ++data->PoolsCount;
->                 return pool;
->             }
->             return null;
->         }
->         case allocator_mode::REMOVE_POOL: {
->             auto *pool = (allocator_pool *) oldMemory;
-> 
->             void *result = allocator_pool_remove_from_linked_list(&data->Base, pool); // @Cleanup
->             if (result) {
->                 --data->PoolsCount;
->                 assert(data->PoolsCount >= 0);
->                 return result;
->             }
->             return null;
->         }
 >         case allocator_mode::ALLOCATE: {
->             auto *p = data->Base;
->             while (p->Next) {
->                 if (p->Used + size < p->Size) break;
->                 p = p->Next;
->             }
-> 
->             if (p->Used + size >= p->Size) return null;  // Not enough space
-> 
->             void *usableBlock = p + 1;
->             void *result = (byte *) usableBlock + p->Used;
-> 
->             p->Used += size;
->             data->TotalUsed += size;
-> 
+>             if (data->Used + size >= data->Size) return null;  // Not enough space
+>         
+>             void* result = (byte*)data->Block + data->Used;
+>             data->Used += size;
 >             return result;
 >         }
 >         case allocator_mode::RESIZE: {
->             // Implementing a fast RESIZE requires finding in which block the memory is in.
->             // We might store a header which tells us that but right now I don't think it's worth it.
->             // We simply return null and let the realloc function allocate 
->             // a new block and copy the contents.
+>             void* p = (byte*)data->Block + data->Used - oldSize;
+>             if (oldMemory == p) {
+>                 // We can resize only if it's the last allocation
+>                 data->Used += size - oldSize;
+>                 return oldMemory;
+>             }
 >             return null;
 >         }
 >         case allocator_mode::FREE: {
@@ -569,43 +523,36 @@ The library's allocating functions reserve a bit of space before a block to stor
 >             return null;
 >         }
 >         case allocator_mode::FREE_ALL: {
->             auto *p = data->Base;
->             while (p) {
->                 p->Used = 0;
->                 p = p->Next;
->             }
-> 
->             data->TotalUsed = 0;
+>             data->Used = 0;
 >             return null;
 >         }
->         default:
->             assert(false);
 >     }
 >     return null;
 > }
 > ```
 
+### Available types of allocators in the library
 
-### Available types of allocators
+> See `"memory.cppm"`.
 
-See `"memory.cppm"`.
+#### TLSF
+
+Generally malloc implementations do the following:
+- Have seperate heaps for different sized allocations
+- Call OS functions for very large allocations
+- Different algorithms for allocation, e.g. stb_malloc implements the TLSF algorithm for O(1) allocation
+
+Here we provide a wrapper around the TLSF algorithm. Here is how you should use it:
+Allocate a large block with the OS allocator (that's usually how everything starts).
+Call `allocator_add_pool()` on the TLSF (`ex.4` from the previous section).
+
+You can write a general purpose allocator and do what `stb_malloc` does for different sized allocations
+or you can have several TLSF specialized allocators with different blocks. Both are equivalent. Again,
+we really try to push you to think about how memory in your program should be structured together,
+and having a really general allocator for EVERY type of allocation is not ideal, as it just sweeps 
+everything under the rug.
 
 ```cpp
-// ...
-// Generally malloc implementations do the following:
-// - Have seperate heaps for different sized allocations
-// - Call OS functions for very large allocations
-// - Different algorithms for allocation, e.g. stb_malloc implements the TLSF algorithm for O(1) allocation
-//
-// Here we provide a wrapper around the TLSF algorithm. Here is how you should use it:
-// Allocate a large block with the OS allocator (that's usually how everything starts).
-// Call allocator_add_pool on the TLSF
-//
-
-struct tlsf_allocator_data {
-    tlsf_t State = null;  // We use a vendor library that implements the algorithm.
-};
-
 // Two-Level Segregated Fit memory allocator implementation. Wrapper around tlsf.h/cpp (in vendor folder),
 // written by Matthew Conte (matt@baisoku.org). Released under the BSD license.
 //
@@ -615,76 +562,58 @@ struct tlsf_allocator_data {
 // * Low fragmentation
 //
 void *tlsf_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
+```
 
-//
-// General purpose allocator.
-//
-// void *default_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 *);
-// inline allocator Malloc;
-//
-// We don't provide this, as explained above.
-//
+#### Arena
 
-struct arena_allocator_data {
-    allocator_pool *Base = null;  // Linked list of pools, see arena_allocator.cpp for example usage of the helper routines we provide to manage this.
-                                  // Of course, you can implement an entirely different way to store pools in your custom allocator!
-    s64 PoolsCount = 0;
-    s64 TotalUsed = 0;
-};
+This type of allocator super fast because it basically bumps a pointer.
+With this allocator you don't free individual allocations, but instead free
+the entire thing (with `free_all()`) when you are sure nobody uses the memory anymore.
+Note that `free_all()` doesn't free the added block, but instead resets its
+pointer to the beginning of the buffer.
 
-//
-// Arena allocator.
-//
-// This type of allocator super fast because it basically bumps a pointer.
-// With this allocator you don't free individual allocations, but instead free
-// the entire thing (with FREE_ALL) when you are sure nobody uses the memory anymore.
-// Note that free_all doesn't free the pools, but instead sets their pointers to 0.
-//
-// The arena allocator doesn't handle overflows (when no pool has enough space for an allocation).
-// When out of memory, you should add another pool (with allocator_add_pool()) or provide a larger starting pool.
-// See :BigPhilosophyTime: a bit higher up in this file.
-//
-// You should avoid adding many pools with this allocator because when we searh for empty
-// space we walk the entire linked list (we stop at the first pool which has empty space).
-// This is the simplest but not the best behaviour in some cases.
-// Be wary that if you have many pools performance will not be optimal. In that case I suggest
-// writing a specialized allocator (by taking arena_allocator as an example - implemented in arena_allocator.cpp).
+The arena allocator doesn't handle overflows (when the block doesn't have enough space for an allocation).
+When out of memory, you should resize or provide another block.
+
+```cpp
 void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
+```
+The temporary allocator is just a variation of the arena allocator. 
+It's just placed in global scope and it's thread-local.
+The two variables which are of interest are `TemporaryAllocator` and `TemporaryAllocatorData`.
+See `ex.3` from previous section to see how to initialize it (or any other arena allocator).
 
-//
-// :TemporaryAllocator: See context.h
-//
-// This is an extension to the arena allocator, things that are different:
-// * This allocator is not initialized by default, but the first allocation you do with it adds a starting pool (of size 8_KiB).
-//   You can initialize it yourself in a given thread by calling allocator_add_pool() yourself.
-// * When you try to allocate a block but there is no available space, this automatically adds another pool (and prints a warning to the console).
-//
-// One good example use case for the temporary allocator: if you are programming a game and you need to calculate
-//   some mesh stuff for a given frame, using this allocator means having the freedom of dynamically allocating
-//   without compromising performance. At the end of the frame when the memory is no longer used you FREE_ALL and
-//   start the next frame.
-//
-// We print warnings when allocating new pools. Use that as a guide to see where you need to pay more attention 
-// - perhaps increase the pool size or call free_all() more often.
-//
-void *default_temp_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
+#### Pool allocator 
+
+This is a variation of the fast bump arena allocator.
+Allows O(1) allocation and freeing of individual elements.
+
+The limitation is that each allocation must have the same predefined size.
+This allocator is useful for managing a bunch of objects of the same type.
+
+Internally it keeps a linked list of added blocks. To provide a block call
+`pool_allocator_provide_block(.., block, size)`. Instead of allocating a
+linked list at another place in memory, the pool uses the first few bytes
+of the provided block as a header.
+
+```cpp
+void *pool_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
 ```
 
 ### Credits
 
-The appropriate licenses are listed alongside this list in `CREDITS`.
+The appropriate licenses are listed alongside this list in the file `CREDITS`.
 
-- [LIBFT](https://github.com/beloff-ZA/LIBFT/blob/master/libft.h) beloff, 2018, some implementations of functions found in the CRT.
+- [Cephes](https://www.netlib.org/cephes/), Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
+- [tlsf](https://github.com/mattconte/tlsf), Matthew Conte (http://tlsf.baisoku.org), Two-Level Segregated Fit memory allocator, version 3.1.
 - [delegate](https://github.com/tarigo/delegate), Vadim Karkhin, 2015
 - Ryan Juckett, 2014, implementation the Dragon4 algorithm (used in the `fmt` module for formatting floats).
 - [minlibc]( https://github.com/GaloisInc/minlibc), Galois Inc., 2014, `strtod` and `atof` implementations.
-- [Cephes](https://www.netlib.org/cephes/), Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
-- [tlsf](https://github.com/mattconte/tlsf), Matthew Conte (http://tlsf.baisoku.org), Two-Level Segregated Fit memory allocator, version 3.1.
-> Based on the original documentation by Miguel Masmano: http://www.gii.upv.es/tlsf/main/docs
+- [LIBFT](https://github.com/beloff-ZA/LIBFT/blob/master/libft.h) beloff, 2018, some implementations of functions found in the CRT.
 - Rolf Neugebauer, 2003, `sccanf` implementation.
 
 ### Projects using this library
 
 - [light-std-graphics](https://github.com/Repertoi-e/light-std-graphics) - high-level windowing API (like GLFW) and a high-level graphics API (currently has only DirectX bindings).
-- [Physics engine](https://repertoi-e.github.io/Portfolio/Simulating-Rigid-Body-Physics.html) - simulating rigid bodies.
+- [Physics engine](https://repertoi-e.github.io/Portfolio/Simulating-Rigid-Body-Physics.html) - tutorial about simulating rigid bodies (and using `light-std-graphics` for demos).
 

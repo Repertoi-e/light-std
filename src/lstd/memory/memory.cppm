@@ -70,13 +70,12 @@ LSTD_BEGIN_NAMESPACE
 //
 // We don't use new and delete.
 // 1) The syntax is ugly in my opinion.
-// 2) You have to be careful not to mix "new" with "delete[]"/"new[]" and "delete".
+// 2) You have to be careful not to mix "new" with "delete[]"/"new[]" with "delete".
 // 3) It's an operator and can be overriden by structs/classes.
 // 4) Modern C++ people say not to use new/delete as well, so ..
 //
 // Now seriously, there are two ways to allocate memory in C++: malloc and new.
 // For the sake of not introducing a THIRD way, we override malloc.
-// We do that because :STANDARDLIBRARYISBANNED: (see tagged comment).
 //
 // Since we don't link the CRT malloc is undefined, so we need to
 // provide a replacement anyway (or modify code which is annoying and
@@ -94,7 +93,7 @@ LSTD_BEGIN_NAMESPACE
 // malloc<T>:
 // - Calls constructors on non-scalar values.
 // - Returns T * so you don't have to cast from void *
-// - Can't call with T == void (use the snon-templated malloc in that case!)
+// - Can't call with T == void (use the non-templated malloc in that case!)
 //
 // free<T>:
 // - Calls destructors. Normally we are strongly against destructors. Explicit code is better
@@ -393,18 +392,12 @@ export {
 	// This type of allocator super fast because it basically bumps a pointer.
 	// With this allocator you don't free individual allocations, but instead free
 	// the entire thing (with FREE_ALL) when you are sure nobody uses the memory anymore.
-	// Note that free_all doesn't free the added pools, but instead resets their
-	// pointers to the beginning of the buffer.
+	// Note that free_all doesn't free the added block, but instead resets its
+	// pointer to the beginning of the buffer.
 	//
 	// The arena allocator doesn't handle overflows (when the block doesn't have enough space for an allocation).
-	// When out of memory, you should provide another block.
+	// When out of memory, you should resize or provide another block.
 	//
-	// You should avoid adding many pools with this allocator because when we searh for empty
-	// space we walk the entire linked list (we stop at the first pool which has empty space).
-	// This is the simplest but not the best behaviour in some cases.
-	//
-	// Be wary that if you have many pools performance will not be optimal.
-	// In that case I suggest writing a specialized allocator.
 	void* arena_allocator(allocator_mode mode, void* context, s64 size, void* oldMemory, s64 oldSize, u64 options) {
 		auto* data = (arena_allocator_data*)context;
 

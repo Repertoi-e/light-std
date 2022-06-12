@@ -13,41 +13,45 @@ LSTD_BEGIN_NAMESPACE
 // @TODO: Make fully constexpr
 
 //
-// This object contains a typed pointer and a size. Used as a basic wrapper around arrays.
-// :CodeReusability: This is considered array_like (take a look at array_like.h).
+// This is a basic wrapper around contiguous memory, it contains a typed pointer and a size. 
 //
 // Functions on this object allow negative reversed indexing which begins at
-// the end of the array, so -1 is the last character -2 the one before that, etc. (Python-style)
+// the end of the array, so -1 is the last element -2 the one before that, etc. (Python-style)
 //
+// You can call   make_dynamic(&arr)  which allocates a new buffer and copies the array's
+// contents there, after that you can modify it by adding/removing elements.
+// 
 // Note: We have a very fluid philosophy of containers and ownership. We don't implement
 // copy constructors or destructors, which means that the programmer is totally in control
-// of how the memory gets managed. In order to get a deep copy use clone().
+// of how the memory gets managed. In order to get a deep copy of an array use clone().
 // See :TypePolicy in "common.h"
-//
-// This means that this type can be just an array wrapper (a view) or it can also be used as a dynamic array type.
-// It's up to the programmer. It also may point to a buffer that came from a totally different place.
-// If this type has allocated (by explictly calling make_dynamic() or clone())
-// then the programmer must call free(arr.Data). You can also use defer(free(arr.Data)) 
-// to imitate a destructor.
-//
-// free(arr.Data) will crash if the pointer is not a heap allocated 
-// block (which should contain an allocation header).
-//
+// 
+// If you call   make_dynamic(&arr)   nothing really special happens except
+// that arr.Data is now pointing to allocated memory. To free it when no longer 
+// needed call   free(arr.Data)   as normal.
+// You can also call   defer(free(arr.Data))   to free it on scope exit (like a destructor).
+// 
 // This object being just two 64 bit integers can be cheaply and safely passed 
-// to functions without performance concerns. 
+// to functions by value without performance concerns and indirection.
+// (Remember that the array doesn't "own" it's buffer, it's up to the programmer!)
+//
+// :CodeReusability: This is considered array_like (take a look at array_like.h).
 //
 export {
     template <typename T>
     struct array;
 
+    //
     // The [] operator in array returns a reference to the object
     // in the buffer so it can be modified without being ugly and returning a pointer.
-    // :ExplainYourReferences:
     //
-    // String is just array<char> we expect to be in UTF-8.
-    // This function is overloaded in string.cppm to work with code points.
+    // String is just array<char> which we expect to be in UTF-8.
+    // So get(..) will return a pointer to the byte, and not the code point.
+    // 
+    // In string.cppm we provide functions for getting pointers to code points.
+    //
     template <typename T>
-    constexpr T &get_operator_square_brackets(array<T> * arr, s64 index);
+    constexpr T &get(array<T> * arr, s64 index);
 
     template <typename T>
     struct array {
@@ -61,27 +65,31 @@ export {
 
         // We allow converting from c-style strings (char* or char8_t*)
         constexpr array(any_c_string_one_byte auto data) : Data((char *) data), Count(c_string_length(data)) {
+			// This is a bit hacky, but here we check if the array has type `char` (and so is a string).
             static_assert(types::is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
         }
 
         // Take data + size
         constexpr array(any_c_string_one_byte auto data, s64 n) : Data((char *) data), Count(n) {
+            // This is a bit hacky, but here we check if the array has type `char` (and so is a string).
             static_assert(types::is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
         }
 
         constexpr array(const initializer_list<T> &items) {
             // A bug caused by this bit me hard...
-
             static_assert(false, "Don't create arrays which are views into initializer lists (they get optimized in Release).");
             static_assert(false, "Use dynamic arrays or store the values on the stack - e.g. make_stack_array(1, 4, 9...)");
+            // Usually the standard library std::vector copies the contents 
+            // of the initializer list, that's why it's ok there to do:
+            //    std::vector<int> nums = { 1, 4, 9 };
         }
 
-        constexpr auto operator[](s64 index) { return get_operator_square_brackets(this, index); }
+        constexpr auto operator[](s64 index) { return get(this, index); }
         constexpr explicit operator bool() { return Count; }  // To check if empty
     };
 
     template <typename T>
-    constexpr T &get_operator_square_brackets(array<T> * arr, s64 index) { return arr->Data[index]; }
+    constexpr T &get(array<T> * arr, s64 index) { return arr->Data[index]; }
 
     template <typename T>
     concept any_array = types::is_same_template_decayed<T, array<s32>>;
