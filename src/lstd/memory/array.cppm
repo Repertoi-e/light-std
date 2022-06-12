@@ -17,27 +17,25 @@ LSTD_BEGIN_NAMESPACE
 // :CodeReusability: This is considered array_like (take a look at array_like.h).
 //
 // Functions on this object allow negative reversed indexing which begins at
-// the end of the string, so -1 is the last character -2 the one before that, etc. (Python-style)
+// the end of the array, so -1 is the last character -2 the one before that, etc. (Python-style)
 //
 // Note: We have a very fluid philosophy of containers and ownership. We don't implement
 // copy constructors or destructors, which means that the programmer is totally in control
-// of how the memory gets managed.
+// of how the memory gets managed. In order to get a deep copy use clone().
 // See :TypePolicy in "common.h"
 //
 // This means that this type can be just an array wrapper (a view) or it can also be used as a dynamic array type.
 // It's up to the programmer. It also may point to a buffer that came from a totally different place.
-// If this type has allocated (by explictly calling reserve() or any modifying functions which call reserve())
-// then the programmer must call free(arr.Data).
+// If this type has allocated (by explictly calling make_dynamic() or clone())
+// then the programmer must call free(arr.Data). You can also use defer(free(arr.Data)) 
+// to imitate a destructor.
 //
-// free(arr.Data) will crash if the pointer is not a heap allocated block (which should contain an allocation header).
+// free(arr.Data) will crash if the pointer is not a heap allocated 
+// block (which should contain an allocation header).
 //
-// This object being just two 8 bit integers can be cheaply and safely passed to functions without performance
-// concerns. In order to get a deep copy use clone().
+// This object being just two 64 bit integers can be cheaply and safely passed 
+// to functions without performance concerns. 
 //
-// Note: The defer macro helps with calling free (i.e. defer(free(arr.Data))
-// releases an allocated array's data at scope exit.
-//
-
 export {
     template <typename T>
     struct array;

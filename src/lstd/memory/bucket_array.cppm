@@ -10,6 +10,12 @@ export import lstd.delegate;
 LSTD_BEGIN_NAMESPACE
 
 export {
+    // This structure works like an array but uses new buckets when out of space
+    // instead of reallocating. This has the benefit over normal arrays of not 
+    // moving the memory, so pointers to elements don't get invalidated.
+    //
+    // Buckets are allocated in a linked list, call free_bucket_array
+    // to release any memory held.
     template <typename T_, s64 ElementsPerBucket = 128>
     struct bucket_array {
         using T                                  = T_;

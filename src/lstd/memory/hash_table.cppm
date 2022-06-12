@@ -28,13 +28,6 @@ LSTD_BEGIN_NAMESPACE
 //
 // We can't use keys/values to indicate whether slots are empty or removed, because they can be of arbitrary type.
 //
-// You can iterate over the table like this:
-//
-//      for (auto [key, value] : table) {
-//          ...
-//      }
-//
-//
 // This is a simple implementation, but still fast because we try to keep only 70% of the table full at any time.
 // If you are not memory constrained, just make the table bigger and it will get faster.
 // Most of the queries are satisfied in the first found slot. The hashing function is also very important for this.
@@ -73,6 +66,13 @@ export {
 
         // Returns a pointer to the value associated with _key_.
         // If the key doesn't exist, this adds a new element and returns it.
+        //
+		// You can also iterate over the table like this:
+		//
+		//      for (auto [key, value] : table) {
+		//          ...
+		//      }
+		//
         V *operator[](K ref key) { return get(this, key); }
     };
 

@@ -7,8 +7,7 @@ export module lstd.array_like;
 
 //
 // :CodeReusability: This file implements:
-//  * get, subarray, find, find_not, find_any_of, find_not_any_of, has, compare, compare_lexicographically,
-//  and operators <, <=, ==, !=, >=, >
+//  * find, find_not, find_any_of, find_not_any_of, has, compare, compare_lexicographically, arrays_match
 //
 // for structures that have members Data and Count - we call these array-likes.
 //
@@ -23,8 +22,8 @@ export module lstd.array_like;
 // Your custom types (which aren't explicitly flagged) will also automatically get this treatment.
 // You can explicitly disable this with a member "static constexpr bool IS_ARRAY = false;"
 //
-// Note: We currently expect the members to be named exactly Data and Count which may conflict with other naming styles.
-// How should we handle this?
+// Note: We currently expect the members to be named exactly Data and Count which may 
+// conflict with other naming styles. How should we handle this?
 //
 
 LSTD_BEGIN_NAMESPACE
@@ -170,7 +169,6 @@ export {
 
     // Compares this array to _arr_ and returns the index of the first element that is different.
     // If the arrays are equal, the returned value is -1.
-    // @Speed @TODO A simple memcmp for scalars is sufficient and way faster
     constexpr s64 compare(any_array_like auto ref arr1, any_array_like auto ref arr2) {
         if (!arr1.Count && !arr2.Count) return -1;
         if (!arr1.Count || !arr2.Count) return 0;
@@ -190,7 +188,6 @@ export {
 
     // Compares this array to to _arr_ lexicographically.
     // The result is -1 if this array sorts before the other, 0 if they are equal, and +1 otherwise.
-    // @Speed @TODO A simple memcmp for scalars is sufficient and way faster
     constexpr s32 compare_lexicographically(any_array_like auto ref arr1, any_array_like auto ref arr2) {
         if (!arr1.Count && !arr2.Count) return 0;
         if (!arr1.Count) return -1;

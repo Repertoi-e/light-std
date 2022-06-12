@@ -20,16 +20,16 @@ Project structure
 	
 	Also profiler in the future?
 	
-- common.h: @TODO: Merge using is_constant_evaluated()
 	
   
+- Parse floats 
   
-- File reading API (currently we have two functions, is that enough?)
-  At least file_writer...
-- Also file mapping
+- File mapping API
+
+- API for watching directory changes
+  ... and an asset catalog system
 
 
-- Fix check stack 
 
 
 Hash table:
@@ -37,6 +37,7 @@ Hash table:
 
 
 fmt module:
+- Hex floats
 - Printable code point
 - Escaping (+ unicode) - this would cerror reporting in the default error function
 - Digit grouping
@@ -55,10 +56,6 @@ README.md:
 - Credit linalg.h (light-std-graphics)
 
 
-- API for watching directory changes
-  ... and an asset catalog system
-
-
 Tests with parse_guid_options
 
 
@@ -75,7 +72,7 @@ Tests with parse_guid_options
 
 Data structures and lock-free data structures
 
-Allow users to add more variables to Implicit_Context
+Allow users to add more variables to Implicit_Context (document the initialization process)
 
 Implement platform specific functionality and compile on linux.
 (This is probably never going to happen if I continue to work on this alone LMAO)

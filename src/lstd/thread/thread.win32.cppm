@@ -295,7 +295,7 @@ export u32 __stdcall thread_wrapper_function(void *data) {
 
     lstd_init_thread();
 
-    ti->Function(ti->UserData);  // Call the thread function with the user data
+    ti->Function(ti->UserData);  // <--- Call the user function with the user data
 
 #if defined DEBUG_MEMORY
     debug_memory_uninit();

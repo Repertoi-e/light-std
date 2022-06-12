@@ -28,7 +28,8 @@ LSTD_BEGIN_NAMESPACE
 // }
 //
 // Different from array<T>, because the latter supports dynamic allocation.
-// This object contains no other member than T Data[N], _Count_ is a static member for the given type and doesn't take space,
+// This object contains no other member than T Data[N], _Count_ is a static member for 
+// the given type and doesn't take space,
 // which means that sizeof(stack_array<T, N>) == sizeof(T) * N.
 //
 // :CodeReusability: This is considered array_like (take a look at array_like.h)

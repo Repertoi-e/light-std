@@ -199,8 +199,8 @@ export {
     void print(string fmtString, Args ref... arguments);
 
     // Same as print, but the format string is expected to contain standard printf syntax.
-    // Type-safety, custom-formatters, etc. work here. You don't get all features, b
-    // ut this is designed as a drop-in replacement for printf.
+    // Type-safety, custom-formatters, etc. work here. You don't get all features, but 
+    // this is designed as a drop-in replacement for printf.
     template <typename... Args>
     void printf(string fmtString, Args ref... arguments) {
         // @TODO
