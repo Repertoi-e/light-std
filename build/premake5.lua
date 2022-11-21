@@ -42,12 +42,12 @@ function common_settings()
     -- Define this if you include headers from the normal standard library (STL).
     -- If this macro is not defined we provide our own implementations of certain things 
     -- that are normally defined in the STL and on which certain C++ features rely on.
-    -- (e.g. the compare header - required by the spaceship operator, placement new 
-	-- and initializer_lists)
+    -- (e.g. placement new, initializer_lists, the compare header - required by the 
+    -- spaceship operator)
 	--
 	-- Note that stuff has changed and we no longer guarantee the define below works 
 	-- since it got too cumbersome (because of fucking windows header files) and we 
-	-- build everything normally without the CRT anyway. Still it might make shit easier
+	-- build everything normally without the CRT anyway. Still it might make easier
 	-- to deal with if ever, for some reason, CRT is unavoidable.
 	-- 
     -- defines { "LSTD_DONT_DEFINE_STD" }
@@ -66,7 +66,7 @@ function common_settings()
         
         excludes { BASE_DIR .. "src/**/posix_*.cpp" }
 
-        -- We need _CRT_SUPPRESS_RESTRICT for some dumb reason
+        -- We need _CRT_SUPPRESS_RESTRICT for some reason
         defines { "LSTD_NO_CRT", "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SUPPRESS_RESTRICT" } 
     
 		flags { "OmitDefaultLibrary", "NoRuntimeChecks", "NoBufferSecurityCheck", "NoIncrementalLink" }
@@ -136,7 +136,6 @@ project "lstd"
 	}
 	
     common_settings()
-
 
 project "test_suite"
     kind "ConsoleApp"
