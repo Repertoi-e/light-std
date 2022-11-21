@@ -623,5 +623,5 @@ The appropriate licenses are listed alongside this list in the file `CREDITS`.
 ### Projects using this library
 
 - [light-std-graphics](https://github.com/Repertoi-e/light-std-graphics) - high-level windowing API (like GLFW) and a high-level graphics API (currently has only DirectX bindings).
-- [Physics engine](https://repertoi-e.github.io/Portfolio/Simulating-Rigid-Body-Physics.html) - tutorial about simulating rigid bodies (and using `light-std-graphics` for demos).
+- [Physics engine](https://soti.camp/blog/simulating_rigid_body_physics/) - tutorial about simulating rigid bodies (and using `light-std-graphics` for demos).
 
