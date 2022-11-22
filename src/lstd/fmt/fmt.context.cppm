@@ -10,6 +10,8 @@ export import lstd.fmt.parse_context;
 export import lstd.fmt.format_float;
 export import lstd.string_writer;
 
+import lstd.bits;
+
 LSTD_BEGIN_NAMESPACE
 
 export {

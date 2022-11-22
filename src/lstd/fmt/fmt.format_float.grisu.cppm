@@ -6,6 +6,7 @@ export module lstd.fmt.format_float.grisu;
 
 import lstd.fmt.format_float.specs;
 import lstd.fmt.format_float.dragon4;
+import lstd.bits;
 
 //
 // Use Grisu + Dragon4 when formatting a float with a given precision:

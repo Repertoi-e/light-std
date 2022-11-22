@@ -57,9 +57,9 @@ void handle_to_remove_after_emit_end(signal<T> *s) {
 
 // Emits to all callbacks
 template <typename R, typename... Args>
-void emit(signal<R(Args...)> *s, Args ref... args) {
+void emit(signal<R(Args...)> *s, Args no_copy... args) {
     s->CurrentlyEmitting = true;
-    For(s->Callbacks) if (it) it((Args ref) args...);
+    For(s->Callbacks) if (it) it((Args no_copy) args...);
     s->CurrentlyEmitting = false;
     handle_to_remove_after_emit_end(s);
 }
@@ -71,7 +71,7 @@ void emit_while_false(signal<R(Args...)> *s, Args... args) {
     static_assert(types::is_convertible<R, bool>);
 
     s->CurrentlyEmitting = true;
-    For(s->Callbacks) if (it) if (it((Args ref) args...)) break;
+    For(s->Callbacks) if (it) if (it((Args no_copy) args...)) break;
     s->CurrentlyEmitting = false;
     handle_to_remove_after_emit_end(s);
 }
@@ -82,7 +82,7 @@ void emit_while_true(signal<R(Args...)> *s, Args... args) {
     static_assert(types::is_convertible<R, bool>);
 
     s->CurrentlyEmitting = true;
-    For(s->Callbacks) if (it) if (!it((Args ref) args...)) break;
+    For(s->Callbacks) if (it) if (!it((Args no_copy) args...)) break;
     s->CurrentlyEmitting = false;
     handle_to_remove_after_emit_end(s);
 }

@@ -2,6 +2,7 @@
 
 import lstd.os;
 import lstd.thread;
+import lstd.atomic;
 
 TEST(hardware_concurrency) {
     print("\n\t\tHardware concurrency: {}.\n", os_get_hardware_concurrency());

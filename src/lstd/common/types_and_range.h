@@ -13,15 +13,32 @@
 //	 the python-like range function
 //
 
-#include "cpp/arg.h"
-#include "cpp/initializer_list.h"
-#include "cpp/source_location.h"
+#include "../cpp_compatibility/arg.h"
+
+// :AvoidSTL:
+// Usually we build without dependencies on the STL,
+// but if LSTD_DONT_DEFINE_STD is defined, we include
+// the initializer list and space ships defined in the STL
+// to avoid conflicts with our implementations.
+#if defined LSTD_DONT_DEFINE_STD
+#include <stdarg.h>
+#include <initializer_list>
+#include <tuple>
+#include <compare>
+#else
+import lstd.initializer_list_replacement;
+import lstd.space_ship_replacement;
+#endif
+
+import lstd.source_location;
+import lstd.is_constant_evaluated;
+
 #include "scalar_types.h"
 
 // Personal preference
 // I prefer to type null over nullptr but they are exactly the same
-constexpr auto null = nullptr;
-using null_t        = decltype(nullptr);
+using null_t = decltype(nullptr);
+constexpr null_t null = nullptr;
 
 LSTD_BEGIN_NAMESPACE
 

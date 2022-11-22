@@ -8,6 +8,8 @@ export import lstd.delegate;
 export import lstd.context;
 export import lstd.memory;
 
+import lstd.atomic;
+
 LSTD_BEGIN_NAMESPACE
 
 struct condition_variable;

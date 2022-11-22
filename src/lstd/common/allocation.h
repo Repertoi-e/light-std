@@ -24,22 +24,10 @@
 using size_t = u64;  // We don't support 32 bits, do we?
 
 //
-// :STANDARDLIBRARYISBANNED:
-//
 // The date is 4th of September 2021 and for the first time we were able to launch an almost
 // non-trivial application that does rendering, UI, graphing math functions, hot-loading dlls...
 // without linking with the C/C++ runtime library. That means that it's entirely free of dependencies
 // that may change with the compiler version.
-//
-// Moving forward, the policy will be that any piece of code that does something other than interfacing
-// with the OS should be set in stone in a file in the project you are working on. That means that
-// including any C++ standard library header (also C standard library headers which provides functionality
-// is banned (stuff like stdint.h is fine though). In general, expect errors if you include such a header.
-//
-// We used to support using this library alongside the standard library, that's way there is the
-// LSTD_DONT_DEFINE_STD macro, which fixes the errors you might get from including both.
-// Now we don't try to guarantee stuff will work flawlessly, however I will leave it here
-// incase it helps and you can't avoid not including the standard library.
 //
 // In order to get FreeType and imgui to work, I needed to provide definitions for some standard library
 // functions (sscanf, strtod, strlen, ... memcmp, ... strncpy, ..., etc..
@@ -52,17 +40,6 @@ using size_t = u64;  // We don't support 32 bits, do we?
 // We do this in order to not add YET another way to allocate a block (currently you can
 // do that with malloc/free or new/delete, imagine if we added our own allocation function).
 // Keeping it malloc is less confusing and error-prone and ... also it's nostalgic.
-//
-// 
-// Old info (as explained above), but still valid:
-//
-// :AvoidSTDs:
-// Normally <new> defines the placement new operator but if we avoid using headers from the C++ STD
-// we define our own implementation here.
-//
-// By default we avoid STDs (like in real life) but if e.g. a library relies on it we would get definition errors.
-// In general this library can work WITH or WITHOUT the normal standard library.
-// Note: But you must tell us with a macro: LSTD_DONT_DEFINE_STD.
 //
 #if defined LSTD_DONT_DEFINE_STD
 #include <new>

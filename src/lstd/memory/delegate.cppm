@@ -47,7 +47,7 @@ export {
     //
     template <typename R, typename... A>
     struct delegate<R(A...)> {
-        using stub_t   = R (*)(void *, A ref...);
+        using stub_t   = R (*)(void *, A no_copy...);
         using return_t = R;
 
         template <typename Type, typename Signature>
@@ -67,19 +67,19 @@ export {
 
         // Invoke static method / free function
         template <null_t, typename Signature>
-        static R invoke(void *data, A ref... args) {
+        static R invoke(void *data, A no_copy... args) {
             return (*((target<null_t, Signature> *) data)->FunctionPtr)(args...);
         }
 
         // Invoke method
         template <typename Type, typename Signature>
-        static R invoke(void *data, A ref... args) {
+        static R invoke(void *data, A no_copy... args) {
             return (((target<Type, Signature> *) data)->InstancePtr->*((target<Type, Signature> *) data)->FunctionPtr)(args...);
         }
 
         // Invoke function object (functor)
         template <typename Type, null_t>
-        static R invoke(void *data, A ref... args) {
+        static R invoke(void *data, A no_copy... args) {
             return (*((target<Type, null_t> *) data)->InstancePtr)(args...);
         }
 

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "cpp/space_ship.h"
-#include "ieee.h"
+#include "types_and_range.h"
+
+import lstd.i128;
 
 //
 // This file defines the following types:
@@ -360,6 +361,14 @@ template <>
 struct is_integral_helper<char32_t> : true_t {
 };
 
+template <>
+struct is_integral_helper<s128> : true_t {
+};
+
+template <>
+struct is_integral_helper<u128> : true_t {
+};
+
 #if defined _NATIVE_WCHAR_T_DEFINED
 template <>
 struct is_integral_helper<wchar_t> : true_t {
@@ -666,27 +675,7 @@ struct common_type<T, U, V...> {
 template <typename... T>
 using common_type_t = typename common_type<T...>::type;
 
-// Are these useful?
-//
-// template <typename... Types>
-// using common_comparison_category_t = select_t<(comparison_category_of<Types...> & Comparison_Category_None) != 0, void,
-//                                               select_t<(comparison_category_of<Types...> & Comparison_Category_Partial) != 0, partial_ordering,
-//                                                        select_t<(comparison_category_of<Types...> & Comparison_Category_Weak) != 0, weak_ordering,
-//                                                                 strong_ordering>>>;
-//
-// template <typename... Types>
-// struct common_comparison_category {
-//     using type = common_comparison_category_t<Types...>;
-// };
 }  // namespace types
 
 LSTD_END_NAMESPACE
 
-// Use this macro to declare your custom type as an integral
-#define DECLARE_INTEGRAL(T)                   \
-    LSTD_BEGIN_NAMESPACE                      \
-    namespace types {                         \
-    template <>                               \
-    struct is_integral_helper<T> : true_t {}; \
-    }                                         \
-    LSTD_END_NAMESPACE

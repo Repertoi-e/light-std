@@ -71,7 +71,7 @@ export {
     //   * is the type a bool? maps to bool
     //   * otherwise maps to &v (value then setups a function call to a custom formatter)
     // Otherwise we static_assert that the argument can't be formatted.
-    auto fmt_map_arg(auto ref v) {
+    auto fmt_map_arg(auto no_copy v) {
         using T = typename types::remove_cvref_t<decltype(v)>;
 
         if constexpr (types::is_same<string, T> || types::is_constructible<string, T>) {
@@ -99,7 +99,7 @@ export {
     template <typename T>
     constexpr auto fmt_mapped_type_constant_v = type_constant_v<decltype(fmt_map_arg(types::declval<T>()))>;
 
-    fmt_arg fmt_make_arg(auto ref v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(v))}; }
+    fmt_arg fmt_make_arg(auto no_copy v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(v))}; }
 
     // Visits an argument dispatching with the right value based on the argument type
     template <typename Visitor>

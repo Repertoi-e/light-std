@@ -84,7 +84,7 @@ struct test {
     test_func Function = null;
 };
 
-inline bool strings_match_for_table(string ref a, string ref b) {
+inline bool strings_match_for_table(string no_copy a, string no_copy b) {
     return strings_match(a, b);
 }
 

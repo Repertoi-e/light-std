@@ -1,9 +1,8 @@
 #pragma once
 
 //
-// A header which defines common types, numeric info,
-//     bits operations, atomic operations, common math functions,
-//     definitions for the macros: assert, defer, For, For_enumerate ...
+// A header which imports common types, numeric info,
+//     common math functions, definitions for the macros: assert, defer, For, For_enumerate ...
 //     static_for, range 
 // ... and other utils.
 // 
@@ -13,20 +12,45 @@
 // Really any stuff that doesn't deserve to be it's own module.
 //
 
+import lstd.math;
+import lstd.i128;
+
 #include "common/types_and_range.h"
-#include "common/atomic.h"
-#include "common/bits.h"
 #include "common/context.h"
 #include "common/debug_break.h"
-#include "common/defer_assert_for_and_utils.h"
+#include "common/defer.h"
+#include "common/assert.h"
+#include "common/for.h"
+#include "common/enumerate.h"
 #include "common/fmt.h"
-#include "common/math.h"
-#include "common/memory.h"
+#include "common/allocation.h"
 #include "common/namespace.h"
 #include "common/numeric_info.h"
-#include "common/u128.h"
 
-// Tau supremacy
+// Semantics to avoid the use of & and && when they are not a unary or binary operator.
+//
+// e.g.
+//      void print_array_to_file(array<u8> no_copy bytes) { ... }
+//      void modify_array(array<u8> ref bytes) { ... }
+//
+#define no_copy const &
+#define ref &&
+
+// Helper macro for, e.g flag enums
+//
+// enum flags {
+//	Flag_1 = BIT(0),
+//  Flag_1 = BIT(1)
+//  Flag_1 = BIT(2)
+//  ...
+// };
+//
+#define BIT(x) (1 << (x))
+
+// Gives the offset of a member in a struct (in bytes)
+#define offset_of(s, field) ((u64) & ((s *) (0))->field)
+
+// Tau supremacy https://tauday.com/tau-manifesto
 #define TAU 6.283185307179586476925286766559
 #define PI (TAU / 2)
 
@@ -61,18 +85,6 @@ constexpr u64 operator"" _million(u64 i) { return i * 1000000; }
 constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
 
 LSTD_BEGIN_NAMESPACE
-
-//
-// Loop that gets unrolled at compile-time, this avoids copy-pasta
-// or using macros in order to be sure the code gets unrolled properly.
-//
-template <s64 First, s64 Last, typename Lambda>
-void static_for(Lambda ref f) {
-	if constexpr (First < Last) {
-		f(types::integral_constant<s64, First>{});
-		static_for<First + 1, Last>(f);
-	}
-}
 
 template <typename T>
 constexpr void swap(T &a, T &b) {

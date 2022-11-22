@@ -6,6 +6,7 @@ export module lstd.big_integer;
 
 import lstd.stack_array;
 import lstd.context;
+import lstd.bits;
 
 //
 // Provides arbitrary precision integer math.

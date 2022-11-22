@@ -9,6 +9,8 @@ export import lstd.string_builder;
 export import lstd.fmt.specs;
 export import lstd.fmt.parse_context;
 
+import lstd.bits;
+
 LSTD_BEGIN_NAMESPACE
 
 export {

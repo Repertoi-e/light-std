@@ -7,9 +7,7 @@
 // We do this in order to avoid including Windows.h at all.
 // This makes the program compile faster, but that's not the actual reason we do this...
 // In reality Windows.h complains about not having symbols normally found in the CRT!
-//
-// :AvoidSTDs: We avoid including any files from the C++ standard library.
-// This library should work with or without them.
+// :AvoidSTL: We avoid including any files from the C++ standard library.
 //
 
 using HRESULT = u32;

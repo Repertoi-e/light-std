@@ -2,6 +2,8 @@
 
 #include "types_and_range.h"
 
+import lstd.i128;
+
 //
 // numeric_info is useful when writing template functions and you don't know 
 // the specific integral type, so you cannot just use S32_MAX for example.
@@ -418,6 +420,41 @@ public:
     static constexpr s32 bits_mantissa = F64_MANT_BITS;
     static constexpr s32 bits_exponent = F64_EXP_BITS;
     static constexpr s32 exponent_bias = F64_EXP_BIAS;
+};
+
+template <>
+struct numeric_info<u128> : public numeric_info_int_base {
+public:
+	static constexpr u128 min() { return 0; }
+	static constexpr u128 max() { return U128_MAX; }
+	static constexpr u128 lowest() { return min(); }
+	static constexpr u128 epsilon() { return 0; }
+	static constexpr u128 round_error() { return 0; }
+	static constexpr u128 denorm_min() { return 0; }
+	static constexpr u128 infinity() { return 0; }
+	static constexpr u128 quiet_NaN() { return 0; }
+	static constexpr u128 signaling_NaN() { return 0; }
+
+	static constexpr bool is_modulo = true;
+	static constexpr s32 digits = 128;
+	static constexpr s32 digits10 = 38;
+};
+
+template <>
+struct numeric_info<s128> : public numeric_info_int_base {
+	static constexpr s128 min() { return S128_MIN; }
+	static constexpr s128 max() { return S128_MAX; }
+	static constexpr s128 lowest() { return min(); }
+	static constexpr s128 epsilon() { return 0; }
+	static constexpr s128 round_error() { return 0; }
+	static constexpr s128 denorm_min() { return 0; }
+	static constexpr s128 infinity() { return 0; }
+	static constexpr s128 quiet_NaN() { return 0; }
+	static constexpr s128 signaling_NaN() { return 0; }
+
+	static constexpr bool is_signed = true;
+	static constexpr s32 digits = 127;
+	static constexpr s32 digits10 = 38;
 };
 
 LSTD_END_NAMESPACE

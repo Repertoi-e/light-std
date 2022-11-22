@@ -73,7 +73,7 @@ export {
 		//          ...
 		//      }
 		//
-        V *operator[](K ref key) { return get(this, key); }
+        V *operator[](K no_copy key) { return get(this, key); }
     };
 
     // types::is_same_template wouldn't work because hash_table contains a bool (and not a type) as a third template parameter.
@@ -183,7 +183,7 @@ export {
 
     // Looks for key in the hash table using the given hash
     template <any_hash_table T>
-    key_value_pair<T> find_prehashed(T * table, u64 hash, key_t<T> ref key) {
+    key_value_pair<T> find_prehashed(T * table, u64 hash, key_t<T> no_copy key) {
         if (!table->Count) return {null, null};
 
         s64 index = hash & table->Allocated - 1;
@@ -198,13 +198,13 @@ export {
     }
 
     template <any_hash_table T>
-    auto find(T * table, key_t<T> ref key) {
+    auto find(T * table, key_t<T> no_copy key) {
         return find_prehashed(table, get_hash(key), key);
     }
 
     // Returns pointers to the added key and value.
     template <any_hash_table T>
-    key_value_pair<T> add_prehashed(T * table, u64 hash, key_t<T> ref key, value_t<T> ref value) {
+    key_value_pair<T> add_prehashed(T * table, u64 hash, key_t<T> no_copy key, value_t<T> no_copy value) {
         static_assert(table->LOAD_FACTOR_PERCENT < 100);  // 100 percent will cause infinite loop
 
         // The + 1 here handles the case when the hash table size is 1 and you add the first item.
@@ -229,12 +229,12 @@ export {
     }
 
     template <any_hash_table T>
-    key_value_pair<T> add(T * table, key_t<T> ref key, value_t<T> ref value) {
+    key_value_pair<T> add(T * table, key_t<T> no_copy key, value_t<T> no_copy value) {
         return add_prehashed(table, get_hash(key), key, value);
     }
 
     template <any_hash_table T>
-    key_value_pair<T> set_prehashed(T * table, u64 hash, key_t<T> ref key, value_t<T> ref value) {
+    key_value_pair<T> set_prehashed(T * table, u64 hash, key_t<T> no_copy key, value_t<T> no_copy value) {
         auto [kp, vp] = find_prehashed(table, hash, key);
         if (vp) {
             *vp = value;
@@ -244,13 +244,13 @@ export {
     }
 
     template <any_hash_table T>
-    key_value_pair<T> set(T * table, key_t<T> ref key, value_t<T> ref value) {
+    key_value_pair<T> set(T * table, key_t<T> no_copy key, value_t<T> no_copy value) {
         return set_prehashed(table, get_hash(key), key, value);
     }
 
     // Returns true if the key was found and removed.
     template <any_hash_table T>
-    bool remove_prehashed(T * table, u64 hash, key_t<T> ref key) {
+    bool remove_prehashed(T * table, u64 hash, key_t<T> no_copy key) {
         auto [kp, vp] = find_prehashed(table, hash, key);
         if (vp) {
             s64 index            = vp - table->Values;
@@ -262,22 +262,22 @@ export {
 
     // Returns true if the key was found and removed.
     template <any_hash_table T>
-    bool remove(T * table, key_t<T> ref key) {
+    bool remove(T * table, key_t<T> no_copy key) {
         return remove_prehashed(table, get_hash(key), key);
     }
 
     // Returns true if the hash table has the given key.
     template <any_hash_table T>
-    bool has(T * table, key_t<T> ref key) { return find(table, key).Key != null; }
+    bool has(T * table, key_t<T> no_copy key) { return find(table, key).Key != null; }
 
     // Returns true if the hash table has the given key.
     template <any_hash_table T>
-    bool has_prehashed(T * table, u64 hash, key_t<T> ref key) { return find_prehashed(table, hash, key) != null; }
+    bool has_prehashed(T * table, u64 hash, key_t<T> no_copy key) { return find_prehashed(table, hash, key) != null; }
 
     // Returns a pointer to the value.
     // Adds a new default initialized one if _key_ is not found.
     template <any_hash_table T>
-    auto *get(T * table, key_t<T> ref key) {
+    auto *get(T * table, key_t<T> no_copy key) {
         u64 hash = get_hash(key);
 
         auto *vp = find_prehashed(table, hash, key).Value;
@@ -287,7 +287,7 @@ export {
     }
 
     template <any_hash_table T>
-    bool operator==(T ref t, T ref u) {
+    bool operator==(T no_copy t, T no_copy u) {
         if (t.Entries.Count != u.Entries.Count) return false;
 
         for (auto [k, v] : t) {
@@ -298,7 +298,7 @@ export {
     }
 
     template <any_hash_table T>
-    bool operator!=(T ref t, T ref u) { return !(t == u); }
+    bool operator!=(T no_copy t, T no_copy u) { return !(t == u); }
 
     template <any_hash_table T>
     T clone(T * src) {

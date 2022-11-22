@@ -1,5 +1,7 @@
 #include "../test.h"
 
+import lstd.bits;
+
 // u32
 static_assert(msb(0b11101010100000000100000010001011ul) == 31);
 static_assert(msb(0b01101010100000000100000010001011ul) == 30);

@@ -8,6 +8,7 @@ import lstd.basic;
 import lstd.path;
 import lstd.fmt;
 import lstd.os;
+import lstd.atomic;
 
 LSTD_BEGIN_NAMESPACE
 

@@ -16,7 +16,7 @@ export {
         u32 LineNumber = -1;
     };
 
-    os_function_call clone(os_function_call ref src) {
+    os_function_call clone(os_function_call no_copy src) {
         os_function_call result;
         result.Name       = clone(src.Name);
         result.File       = clone(src.File);

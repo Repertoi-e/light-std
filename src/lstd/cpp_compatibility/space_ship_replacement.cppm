@@ -1,25 +1,17 @@
-#pragma once
+module;
 
 #include "../common/namespace.h"
+
+export module lstd.space_ship_replacement;
 
 //
 // This file defines the necessary types for the spaceship <=> operator in C++20 to work.
 // partial_ordering, weak_ordering, strong_ordering, comparison_category_of
 //
-
-// :AvoidSTDs:
-// Normally <compare> provides the needed definitions but if we avoid using headers from the C++ STD we define our own implementation here.
-// Note: You must tell us with a macro: LSTD_DONT_DEFINE_STD.
+// Don't import this if you are including <compare> from the STL.
 //
-// By default we avoid STDs (like in real life) but if e.g. a library relies on it we would get definition errors.
-// In general this library can work WITH or WITHOUT the normal standard library.
-#if defined LSTD_DONT_DEFINE_STD
-#include <compare>
-#else
-// Note: If you get many compile errors (but you have defined LSTD_DONT_DEFINE_STD).
-// You probably need to define it globally, because not all headers from this library see the macro.
 
-namespace std {
+export namespace std {
 using literal_zero = decltype(nullptr);
 
 // These "pretty" enumerator names are safe since they reuse names of user-facing entities.
@@ -149,31 +141,32 @@ constexpr strong_ordering operator<=>(literal_zero, const strong_ordering value)
 
 LSTD_BEGIN_NAMESPACE
 
-using partial_ordering = std::partial_ordering;
-using weak_ordering = std::weak_ordering;
-using strong_ordering = std::strong_ordering;
+export {
+    using partial_ordering = std::partial_ordering;
+    using weak_ordering = std::weak_ordering;
+    using strong_ordering = std::strong_ordering;
 
-enum comparison_category : char {
-    Comparison_Category_None = 1,
-    Comparison_Category_Partial = 2,
-    Comparison_Category_Weak = 4,
-    Comparison_Category_Strong = 0,
-};
+    enum comparison_category : char {
+        Comparison_Category_None = 1,
+        Comparison_Category_Partial = 2,
+        Comparison_Category_Weak = 4,
+        Comparison_Category_Strong = 0,
+    };
 
-// template <typename... Types>
-// inline constexpr unsigned char comparison_category_of = get_comparison_category{(get_comparison_category<Types> | ... | Comparison_Category_Strong)};
+    // template <typename... Types>
+    // inline constexpr unsigned char comparison_category_of = get_comparison_category{(get_comparison_category<Types> | ... | Comparison_Category_Strong)};
 
-template <typename T>
-inline constexpr unsigned char comparison_category_of = Comparison_Category_None;
+    template <typename T>
+    inline constexpr unsigned char comparison_category_of = Comparison_Category_None;
 
-template <>
-inline constexpr unsigned char comparison_category_of<partial_ordering> = Comparison_Category_Partial;
+    template <>
+    inline constexpr unsigned char comparison_category_of<partial_ordering> = Comparison_Category_Partial;
 
-template <>
-inline constexpr unsigned char comparison_category_of<weak_ordering> = Comparison_Category_Weak;
+    template <>
+    inline constexpr unsigned char comparison_category_of<weak_ordering> = Comparison_Category_Weak;
 
-template <>
-inline constexpr unsigned char comparison_category_of<strong_ordering> = Comparison_Category_Strong;
+    template <>
+    inline constexpr unsigned char comparison_category_of<strong_ordering> = Comparison_Category_Strong;
+}
 
 LSTD_END_NAMESPACE
-#endif

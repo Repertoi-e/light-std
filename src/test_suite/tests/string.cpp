@@ -57,7 +57,7 @@ TEST(index) {
     assert_eq(a[3], 'l');
     assert_eq(a[4], 'o');
 
-    a[0] = 'X';
+    string_get(&a, 0) = 'X';
     assert_eq(a[0], 'X');
 }
 
@@ -145,19 +145,19 @@ TEST(set) {
     a = "aDc";
     make_dynamic(&a, 8);
 
-    a[-2] = 'b';
+    string_get(&a, -2) = 'b';
     assert_eq(a, string("abc"));
-    a[1] = U'Д';
+    string_get(&a, 1) = U'Д';
     assert_eq(a, string(u8"aДc"));
-    a[1] = 'b';
+    string_get(&a, 1) = 'b';
     assert_eq(a, string("abc"));
     assert_eq(a[0], 'a');
     assert_eq(a[1], 'b');
     assert_eq(a[2], 'c');
 
-    a[-3] = U'\U0002070E';
-    a[-2] = U'\U00020731';
-    a[-1] = U'\U00020779';
+    string_get(&a, -3) = U'\U0002070E';
+    string_get(&a, -2) = U'\U00020731';
+    string_get(&a, -1) = U'\U00020779';
     assert_eq(a, string(u8"\U0002070E\U00020731\U00020779"));
     free(a.Data);
 }

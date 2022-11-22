@@ -7,6 +7,8 @@ export module lstd.hash;
 export import lstd.guid;
 export import lstd.string;
 
+import lstd.bits;
+
 //
 // !!! THESE ARE NOT SUPPOSED TO BE CRYPTOGRAPHICALLY SECURE !!!
 //

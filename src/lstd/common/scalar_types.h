@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../namespace.h"
-#include "../platform.h"
-#include "cpp/is_constant_evaluated.h"
+#include "namespace.h"
+#include "platform.h"
 
 //
 // The following integral types are defined here s8, s16, s32, s64 (and corresponding unsigned types: u8, u16, u32, u64)

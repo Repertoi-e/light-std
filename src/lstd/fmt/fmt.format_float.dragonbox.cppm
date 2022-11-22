@@ -5,6 +5,7 @@ module;
 export module lstd.fmt.format_float.dragonbox;
 
 import lstd.fmt.format_float.specs;
+import lstd.bits;
 
 //
 // In this file we implement the Dragonbox algorithm: https://github.com/jk-jeon/dragonbox.

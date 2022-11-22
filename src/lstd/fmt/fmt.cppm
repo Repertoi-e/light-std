@@ -176,33 +176,33 @@ export {
 
     // Formats to a writer.
     template <typename... Args>
-    void fmt_to_writer(writer * out, string fmtString, Args ref... arguments);
+    void fmt_to_writer(writer * out, string fmtString, Args no_copy... arguments);
 
     // Formats to a counting writer and returns the result - how many bytes would be written with the given format string and args.
     template <typename... Args>
-    s64 fmt_calculate_length(string fmtString, Args ref... arguments);
+    s64 fmt_calculate_length(string fmtString, Args no_copy... arguments);
 
     // Formats to a string. The caller is responsible for freeing.
     template <typename... Args>
-    [[nodiscard("Leak")]] string sprint(string fmtString, Args ref... arguments);
+    [[nodiscard("Leak")]] string sprint(string fmtString, Args no_copy... arguments);
 
     // Formats to a string. Uses the temporary allocator.
     template <typename... Args>
-    string tprint(string fmtString, Args ref... arguments);
+    string tprint(string fmtString, Args no_copy... arguments);
 
     // Formats to a string then converts to null-terminated string. Uses the temporary allocator.
     template <typename... Args>
-    char *mprint(string fmtString, Args ref... arguments);
+    char *mprint(string fmtString, Args no_copy... arguments);
 
     // Calls fmt_to_writer on Context.Log - which is pointing to the console by default, but that can be changed to redirect the output.
     template <typename... Args>
-    void print(string fmtString, Args ref... arguments);
+    void print(string fmtString, Args no_copy... arguments);
 
     // Same as print, but the format string is expected to contain standard printf syntax.
     // Type-safety, custom-formatters, etc. work here. You don't get all features, but 
     // this is designed as a drop-in replacement for printf.
     template <typename... Args>
-    void printf(string fmtString, Args ref... arguments) {
+    void printf(string fmtString, Args no_copy... arguments) {
         // @TODO
         assert(false);
     }
@@ -587,7 +587,7 @@ void fmt_parse_and_format(fmt_context *f) {
 }
 
 template <typename... Args>
-void fmt_to_writer(writer *out, string fmtString, Args ref... arguments) {
+void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments) {
     static constexpr s64 NUM_ARGS = sizeof...(Args);
     stack_array<fmt_arg, NUM_ARGS> args;
 
@@ -599,14 +599,14 @@ void fmt_to_writer(writer *out, string fmtString, Args ref... arguments) {
 }
 
 template <typename... Args>
-s64 fmt_calculate_length(string fmtString, Args ref... arguments) {
+s64 fmt_calculate_length(string fmtString, Args no_copy... arguments) {
     counting_writer writer;
     fmt_to_writer(&writer, fmtString, arguments...);
     return writer.Count;
 }
 
 template <typename... Args>
-[[nodiscard("Leak")]] string sprint(string fmtString, Args ref... arguments) {
+[[nodiscard("Leak")]] string sprint(string fmtString, Args no_copy... arguments) {
     string_builder b;
 
     string_builder_writer writer;
@@ -620,21 +620,21 @@ template <typename... Args>
 }
 
 template <typename... Args>
-string tprint(string fmtString, Args ref... arguments) {
+string tprint(string fmtString, Args no_copy... arguments) {
     PUSH_ALLOC(TemporaryAllocator) {
         return sprint(fmtString, arguments...);
     }
 }
 
 template <typename... Args>
-char *mprint(string fmtString, Args ref... arguments) {
+char *mprint(string fmtString, Args no_copy... arguments) {
     PUSH_ALLOC(TemporaryAllocator) {
         return string_to_c_string(sprint(fmtString, arguments...));
     }
 }
 
 template <typename... Args>
-void print(string fmtString, Args ref... arguments) {
+void print(string fmtString, Args no_copy... arguments) {
     assert(Context.Log && "Context log was null. By default it points to cout.");
     fmt_to_writer(Context.Log, fmtString, arguments...);
 }
