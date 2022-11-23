@@ -329,7 +329,7 @@ export {
                 for (s32 i = 0; i < src.Height; ++i) {
                     for (s32 j = 0; j < src.Width; ++j) {
                         s64 s;
-                        if constexpr (types::is_floating_point<T>) {
+                        if constexpr (is_floating_point<T>) {
                             s = fmt_calculate_length("{:f}", src(i, j));
                         } else {
                             s = fmt_calculate_length("{}", src(i, j));
@@ -344,13 +344,13 @@ export {
             for (s32 i = 0; i < src.Height; ++i) {
                 for (s32 j = 0; j < src.Width; ++j) {
                     if (alternate) {
-                        if constexpr (types::is_floating_point<T>) {
+                        if constexpr (is_floating_point<T>) {
                             fmt_to_writer(f, "{0:<{1}f}", src(i, j), max);
                         } else {
                             fmt_to_writer(f, "{0:<{1}}", src(i, j), max);
                         }
                     } else {
-                        if constexpr (types::is_floating_point<T>) {
+                        if constexpr (is_floating_point<T>) {
                             fmt_to_writer(f, "{0:f}", src(i, j));
                         } else {
                             fmt_to_writer(f, "{0:}", src(i, j));
@@ -404,7 +404,7 @@ struct width_checker {
 
     template <typename T>
     u32 operator()(T value) {
-        if constexpr (types::is_integral<T>) {
+        if constexpr (is_integral<T>) {
             if (sign_bit(value)) {
                 on_error(F, "Negative width");
                 return (u32) -1;
@@ -425,7 +425,7 @@ struct precision_checker {
 
     template <typename T>
     s32 operator()(T value) {
-        if constexpr (types::is_integral<T>) {
+        if constexpr (is_integral<T>) {
             if (sign_bit(value)) {
                 on_error(F, "Negative precision");
                 return -1;

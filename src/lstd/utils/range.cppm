@@ -1,6 +1,6 @@
 module;
 
-#include "namespace.h"
+#include "../common/namespace.h"
 
 export module lstd.range;
 

@@ -80,10 +80,10 @@ export {
     //   * returns '0 - value' when _value_ is an unsigned integral
     //   * returns '-value' when _value_ is a signed integral
     // otherwise returns 'value'.
-    auto handle_negative(types::is_integral auto value, bool negative) {
+    auto handle_negative(is_integral auto value, bool negative) {
         using T = decltype(value);
         if (negative) {
-            if constexpr (types::is_unsigned_integral<T>) {
+            if constexpr (is_unsigned_integral<T>) {
                 return T(0 - value);
             } else {
                 return T(-value);
@@ -184,13 +184,13 @@ export {
 
     // Parses 8, 16, 32, 64 or 128 bit numbers after sign and 
     // base prefix has been handled. Called from parse_int.
-    template <types::is_integral T, parse_int_options Options>
+    template <is_integral T, parse_int_options Options>
     parse_result<T> parse_int_small_integer(string p, u32 base, bool parsedNegative) {
         T maxValue, cutOff;
         s32 cutLim;
         if constexpr (Options.BailOnTooManyDigits) {
             // Determine at what point we stop parsing because the number becomes too big
-            if constexpr (types::is_unsigned_integral<T>) {
+            if constexpr (is_unsigned_integral<T>) {
                 maxValue = (numeric<T>::max) ();
                 cutOff   = maxValue / base;
             } else {
@@ -302,7 +302,7 @@ export {
     //                            we aren't parsing a big_integer which handles practically infinite digits). In that case the max value
     //                            of the integer type is returned (or min value if parsing a negative number).
     //
-    template <types::is_integral T, parse_int_options Options = parse_int_options{}>
+    template <is_integral T, parse_int_options Options = parse_int_options{}>
     parse_result<T> parse_int(string buffer, u32 base = 10) {
         string p = buffer;
         if (!p) return FAIL;
@@ -332,7 +332,7 @@ export {
             if (!p) return FAIL;
         }
 
-        if constexpr (types::is_same<T, big_integer>) {
+        if constexpr (is_same<T, big_integer>) {
             return parse_int_big_integer<T, Options>(p, base, negative);
         } else {
             return parse_int_small_integer<T, Options>(p, base, negative);

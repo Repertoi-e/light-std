@@ -1,6 +1,6 @@
 module;
 
-#include "namespace.h"
+#include "../common/namespace.h"
 
 #include <intrin.h>
 
@@ -28,7 +28,7 @@ export {
     constexpr s32 msb(T x) {
         // We can't use a concept here because we need the msb forward declaration in u128.h,
         // but that file can't include "type_info.h". C++ is bullshit.
-        static_assert(types::is_unsigned_integral<T>);
+        static_assert(is_unsigned_integral<T>);
 
         if constexpr (sizeof(T) == 16) {
             // 128 bit integers
@@ -62,7 +62,7 @@ export {
     // The index always starts at the LSB.
     //   e.g lsb(12) (binary - 1100) -> returns 2
     // If x is 0, returned value is -1 (no set bits).
-    constexpr s32 lsb(types::is_unsigned_integral auto x) {
+    constexpr s32 lsb(is_unsigned_integral auto x) {
         if constexpr (sizeof(x) == 16) {
             // 128 bit integers
             if (x.lo == 0) return 64 + lsb(x.hi);
@@ -181,7 +181,7 @@ export {
 
     // Returns the number of bits (base 2 digits) needed to represent n. Leading zeroes
     // are not counted, except for n == 0, in which case count_digits_base_2 returns 1.
-    u32 count_digits_base_2(types::is_unsigned_integral auto n) {
+    u32 count_digits_base_2(is_unsigned_integral auto n) {
         s32 integerLog2 = msb(n | 1);  // log_2(n) == msb(n) (@Speed Not the fastest way)
         // We also | 1 (if n is 0, we treat is as 1)
 
@@ -190,7 +190,7 @@ export {
 
     // Returns the number of decimal digits in n. Leading zeros are not counted
     // except for n == 0 in which case count_digits returns 1.
-    u32 count_digits(types::is_unsigned_integral auto n) {
+    u32 count_digits(is_unsigned_integral auto n) {
         s32 integerLog2 = msb(n | 1);  // log_2(n) == msb(n) (@Speed Not the fastest way)
         // We also | 1 (if n is 0, we treat is as 1)
 
@@ -203,7 +203,7 @@ export {
     }
 
     template <u32 Bits>
-    constexpr u32 count_digits(types::is_integral auto value) {
+    constexpr u32 count_digits(is_integral auto value) {
         decltype(value) n = value;
 
         u32 numDigits = 0;

@@ -52,11 +52,11 @@ concept is_array_like = array_has_members<T> &&(array_has_flag<T> && !array_flag
 export {
     // True if the type has _Data_ and _Count_ members (and the optional explicit flag is not false).
     template <typename T>
-    concept any_array_like = is_array_like<types::remove_cv_t<T>>;
+    concept any_array_like = is_array_like<remove_cv_t<T>>;
 
     // This returns the type of the _Data_ member of an array-like object
     template <any_array_like T>
-    using array_data_t = types::remove_pointer_t<decltype(T::Data)>;
+    using array_data_t = remove_pointer_t<decltype(T::Data)>;
 
     //
     // This function translates an index that may be negative to an actual index.

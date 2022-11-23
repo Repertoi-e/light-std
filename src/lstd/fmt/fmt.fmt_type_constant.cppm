@@ -11,11 +11,11 @@ LSTD_BEGIN_NAMESPACE
 
 export {
     template <typename T>
-    struct type_constant : types::integral_constant<fmt_type, fmt_type::CUSTOM> {};
+    struct type_constant : integral_constant<fmt_type, fmt_type::CUSTOM> {};
 
 #define TYPE_CONSTANT(Type, constant) \
     template <>                       \
-    struct type_constant<Type> : types::integral_constant<fmt_type, constant> {}
+    struct type_constant<Type> : integral_constant<fmt_type, constant> {}
 
     TYPE_CONSTANT(char, fmt_type::S64);
     TYPE_CONSTANT(s32, fmt_type::S64);
@@ -30,7 +30,7 @@ export {
 #undef TYPE_CONSTANT
 
     template <typename T>
-    constexpr auto type_constant_v = type_constant<types::remove_cvref_t<T>>::value;
+    constexpr auto type_constant_v = type_constant<remove_cvref_t<T>>::value;
 }
 
 LSTD_END_NAMESPACE

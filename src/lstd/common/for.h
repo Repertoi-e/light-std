@@ -19,7 +19,7 @@ LSTD_BEGIN_NAMESPACE
 template <s64 First, s64 Last, typename Lambda>
 void static_for(Lambda f) {
 	if constexpr (First < Last) {
-		f(types::integral_constant<s64, First>{});
+		f(integral_constant<s64, First>{});
 		static_for<First + 1, Last>(f);
 	}
 }

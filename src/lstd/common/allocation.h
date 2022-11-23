@@ -1,7 +1,5 @@
 #pragma once
 
-#include "scalar_types.h"
-
 // Maximum size of an allocation we will attemp to request
 #define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0  // Around 16384 PiB
 

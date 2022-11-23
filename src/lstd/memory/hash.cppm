@@ -185,7 +185,7 @@ export {
     }
 
 	// Partial specialization for pointers
-	constexpr u64 get_hash(types::is_pointer auto value) { return (u64)value; }
+	constexpr u64 get_hash(is_pointer auto value) { return (u64)value; }
 }
 
 LSTD_END_NAMESPACE

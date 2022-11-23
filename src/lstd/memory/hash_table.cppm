@@ -76,7 +76,7 @@ export {
         V *operator[](K no_copy key) { return get(this, key); }
     };
 
-    // types::is_same_template wouldn't work because hash_table contains a bool (and not a type) as a third template parameter.
+    // is_same_template wouldn't work because hash_table contains a bool (and not a type) as a third template parameter.
     // At this point I hate C++
     template <typename>
     constexpr bool is_hash_table = false;

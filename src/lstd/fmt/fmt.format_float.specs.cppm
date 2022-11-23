@@ -77,9 +77,9 @@ export {
 
     // Used to store a floating point number as F * pow(2, E), where F is the significand and E is the exponent.
     // Used by both Dragonbox and Grisu.
-    template <types::is_floating_point F>
+    template <is_floating_point F>
     struct decimal_fp {
-        using significand_t = types::select_t<sizeof(F) == sizeof(f32), u32, u64>;
+        using significand_t = select_t<sizeof(F) == sizeof(f32), u32, u64>;
 
         significand_t Significand;
         s32 Exponent;
@@ -89,14 +89,14 @@ export {
     using fp = decimal_fp<f64>;
 
     // Assigns _d_ to this and return true if predecessor is closer than successor (is the high margin twice as large as the low margin).
-    template <types::is_floating_point F>
+    template <is_floating_point F>
     bool fp_assign_new(fp & f, F newValue) {
         u64 implicitBit     = 1ull << numeric<F>::bits_mantissa;
         u64 significandMask = implicitBit - 1;
 
         u64 exponentMask = ((1ull << numeric<F>::bits_exponent) - 1) << numeric<F>::bits_mantissa;
 
-        auto br = types::bit_cast<types::select_t<sizeof(F) == sizeof(f32), u32, u64>>(newValue);
+        auto br = bit_cast<select_t<sizeof(F) == sizeof(f32), u32, u64>>(newValue);
 
         f.Significand = br & significandMask;
         s32 biasedExp = (s32) ((br & exponentMask) >> numeric<F>::bits_mantissa);

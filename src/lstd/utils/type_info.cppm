@@ -1,6 +1,6 @@
 module;
 
-#include "namespace.h"
+#include "../common/namespace.h"
 
 export module lstd.type_info;
 
@@ -43,7 +43,7 @@ export import lstd.numeric;
 // - bit_cast
 //
 
-export namespace types {
+export {
 
 // This is essentially a utility base struct for defining properties as both structconstants and as types.
 template <typename T, T Value>
@@ -59,9 +59,8 @@ struct integral_constant {
 
 using true_t = integral_constant<bool, true>;   // == to std::true_type
 using false_t = integral_constant<bool, false>;  // == to std::false_type
-}  // namespace types
+} 
 
-namespace types {
 template <typename T> struct is_const_helper_1 : false_t { };
 template <typename T> struct is_const_helper_1<volatile T*> : true_t { };
 template <typename T> struct is_const_helper_1<const volatile T*> : true_t { };
@@ -90,11 +89,10 @@ template <typename T> struct is_pointer_helper<T*> : true_t {};
 
 template <typename T> struct is_member_pointer_helper : false_t {};
 template <typename T, typename U> struct is_member_pointer_helper<T U::*> : true_t {};
-}  // namespace types
 
 LSTD_BEGIN_NAMESPACE
 
-export namespace types {
+export {
 
 //
 // Safely converts between unrelated types that have a binary equivalency.
@@ -325,8 +323,7 @@ struct common_type<T, U, V...> {
 
 template <typename... T>
 using common_type_t = typename common_type<T...>::type;
-
-}  // namespace types
+} 
 
 LSTD_END_NAMESPACE
 

@@ -37,7 +37,6 @@ Copyright 1984, 1995, 2000 by Stephen L. Moshier
 
 #include "common/namespace.h"
 #include "common/platform.h"
-#include "common/context.h"
 #include "common/debug_break.h"
 #include "common/defer.h"
 #include "common/assert.h"
@@ -47,6 +46,7 @@ Copyright 1984, 1995, 2000 by Stephen L. Moshier
 #include "common/allocation.h"
 #include "common/namespace.h"
 
+#include "context/context.h"
 
 // :AvoidSTL:
 // Usually we build without dependencies on the STL,

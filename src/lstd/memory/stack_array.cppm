@@ -44,7 +44,7 @@ export {
         constexpr operator array<T>() { return array<T>(Data, Count); }
     };
 
-    // types::is_same_template wouldn't work because stack_array contains a s64 (and not a type) as a second template parameter.
+    // is_same_template wouldn't work because stack_array contains a s64 (and not a type) as a second template parameter.
     // At this point I hate C++
     template <typename>
     constexpr bool is_stack_array = false;
@@ -53,7 +53,7 @@ export {
     constexpr bool is_stack_array<stack_array<T, N>> = true;
 
     template <typename T>
-    concept any_stack_array = is_stack_array<types::remove_cv_t<T>>;
+    concept any_stack_array = is_stack_array<remove_cv_t<T>>;
 
     // @Cleanup Actually remove == operator overload for strings and arrays.
     // May be error-prone due to pointers...
@@ -65,7 +65,7 @@ export {
     auto end(any_stack_array auto &arr) { return arr.Data + arr.Count; }
 
     template <typename D = void, typename... Types>
-    constexpr stack_array<types::common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types && ...t) { return { (Types &&) t...}; }
+    constexpr stack_array<common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types && ...t) { return { (Types &&) t...}; }
 }
 
 LSTD_END_NAMESPACE

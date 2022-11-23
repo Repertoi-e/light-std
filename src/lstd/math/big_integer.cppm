@@ -119,8 +119,8 @@ export {
 
     // Assign any integral value (s8, s16, s32, s64, u8, u16, u32, u64, s128, u128,
     // other big integers, etc.) to a big integer.
-    constexpr bool assign(big_integer * b, types::is_integral auto v);
-    constexpr big_integer cast_big(types::is_integral auto v);
+    constexpr bool assign(big_integer * b, is_integral auto v);
+    constexpr big_integer cast_big(is_integral auto v);
 
     // Save an unnecessary allocation
     constexpr big_integer cast_big(big_integer b) { return b; }
@@ -249,14 +249,14 @@ constexpr void normalize(big_integer *b) {
     maybe_small(b);
 }
 
-constexpr big_integer cast_big(types::is_integral auto v) {
+constexpr big_integer cast_big(is_integral auto v) {
     big_integer b;
     assign(&b, v);
     return b;
 }
 
-constexpr bool assign(big_integer *b, types::is_integral auto v) {
-    if constexpr (types::is_same<big_integer, decltype(v)>) {
+constexpr bool assign(big_integer *b, is_integral auto v) {
+    if constexpr (is_same<big_integer, decltype(v)>) {
         // Assign from another big integer
         ensure_digits(b, abs(v.Size));
         memcpy(get_digits(b), get_digits(&v), abs(v.Size) * sizeof(digit));
@@ -268,7 +268,7 @@ constexpr bool assign(big_integer *b, types::is_integral auto v) {
         ensure_digits(b, digits);
 
         s64 size = 0, sign = 1;
-        if constexpr (types::is_signed_integral<decltype(v)>) {
+        if constexpr (is_signed_integral<decltype(v)>) {
             if (v < 0) {
                 v    = -v;
                 sign = -1;

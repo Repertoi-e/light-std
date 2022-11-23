@@ -72,24 +72,24 @@ export {
     //   * otherwise maps to &v (value then setups a function call to a custom formatter)
     // Otherwise we static_assert that the argument can't be formatted.
     auto fmt_map_arg(auto no_copy v) {
-        using T = typename types::remove_cvref_t<decltype(v)>;
+        using T = remove_cvref_t<decltype(v)>;
 
-        if constexpr (types::is_same<string, T> || types::is_constructible<string, T>) {
+        if constexpr (is_same<string, T> || is_constructible<string, T>) {
             return string(v);
-        } else if constexpr (types::is_same<T, code_point_ref>) {
+        } else if constexpr (is_same<T, code_point_ref>) {
             return (u64) v;
-        } else if constexpr (types::is_same<bool, T>) {
+        } else if constexpr (is_same<bool, T>) {
             return v;
-        } else if constexpr (types::is_unsigned_integral<T>) {
+        } else if constexpr (is_unsigned_integral<T>) {
             return (u64) v;
-        } else if constexpr (types::is_signed_integral<T>) {
+        } else if constexpr (is_signed_integral<T>) {
             return (s64) v;
-        } else if constexpr (types::is_enum<T>) {
-            return fmt_map_arg((types::underlying_type_t<T>) v);
-        } else if constexpr (types::is_floating_point<T>) {
+        } else if constexpr (is_enum<T>) {
+            return fmt_map_arg((underlying_type_t<T>) v);
+        } else if constexpr (is_floating_point<T>) {
             return v;
-        } else if constexpr (types::is_pointer<T>) {
-            static_assert(types::is_same<T, void *>, "Formatting of non-void pointers is disallowed");
+        } else if constexpr (is_pointer<T>) {
+            static_assert(is_same<T, void *>, "Formatting of non-void pointers is disallowed");
             return v;
         } else {
             return &v;
@@ -97,7 +97,7 @@ export {
     }
 
     template <typename T>
-    constexpr auto fmt_mapped_type_constant_v = type_constant_v<decltype(fmt_map_arg(types::declval<T>()))>;
+    constexpr auto fmt_mapped_type_constant_v = type_constant_v<decltype(fmt_map_arg(declval<T>()))>;
 
     fmt_arg fmt_make_arg(auto no_copy v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(v))}; }
 
@@ -124,7 +124,7 @@ export {
             case fmt_type::CUSTOM:
                 return visitor(ar.Value.Custom);
         }
-        return visitor(types::unused{});
+        return visitor(unused{});
     }
 }
 

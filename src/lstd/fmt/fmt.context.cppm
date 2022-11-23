@@ -60,16 +60,16 @@ export {
     }
 
     // General formatting routimes which take specifiers into account:
-    void write(fmt_context * f, types::is_integral auto value);
-    void write(fmt_context * f, types::is_floating_point auto value);
+    void write(fmt_context * f, is_integral auto value);
+    void write(fmt_context * f, is_floating_point auto value);
     void write(fmt_context * f, bool value);
     void write(fmt_context * f, const void *value);
 
     // These routines write the value directly, without looking at formatting specs.
     // Useful when writing a custom formatter and there were specifiers but they
     // shouldn't propagate downwards when printing simpler types.
-    void write_no_specs(fmt_context * f, types::is_integral auto value);
-    void write_no_specs(fmt_context * f, types::is_floating_point auto value);
+    void write_no_specs(fmt_context * f, is_integral auto value);
+    void write_no_specs(fmt_context * f, is_floating_point auto value);
     void write_no_specs(fmt_context * f, bool value);
     void write_no_specs(fmt_context * f, const void *value);
 
@@ -96,7 +96,7 @@ export {
         void operator()(const void *value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
         void operator()(fmt_custom_value custom) { custom.FormatFunc(F, custom.Data); }
 
-        void operator()(types::unused) {
+        void operator()(unused) {
             on_error(F, "Internal error while formatting");
             assert(false);
         }
@@ -110,13 +110,13 @@ void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs);
 
 // Writes a float with given formatting specs.
 // Note: This is not exported, instead use one of the overloads of the general write() function.
-void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs specs);
+void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs);
 
 //
 // The implementations of the above functions follow:
 //
 
-void write(fmt_context *f, types::is_integral auto value) {
+void write(fmt_context *f, is_integral auto value) {
     u64 absValue  = (u64) value;
     bool negative = sign_bit(value);
     if (negative) absValue = 0 - absValue;
@@ -128,7 +128,7 @@ void write(fmt_context *f, types::is_integral auto value) {
     }
 }
 
-void write(fmt_context *f, types::is_floating_point auto value) {
+void write(fmt_context *f, is_floating_point auto value) {
     if (f->Specs) {
         write_float(f, value, *f->Specs);
     } else {
@@ -136,14 +136,14 @@ void write(fmt_context *f, types::is_floating_point auto value) {
     }
 }
 
-void write_no_specs(fmt_context *f, types::is_integral auto value) {
+void write_no_specs(fmt_context *f, is_integral auto value) {
     u64 absValue  = (u64) value;
     bool negative = sign_bit(value);
     if (negative) absValue = 0 - absValue;
     write_u64(f, absValue, negative, {});
 }
 
-void write_no_specs(fmt_context *f, types::is_floating_point auto value) {
+void write_no_specs(fmt_context *f, is_floating_point auto value) {
     write_float(f, (f64) value, {});
 }
 
@@ -277,7 +277,7 @@ void write(fmt_context *f, const void *value) {
         return;
     }
 
-    auto uptr     = types::bit_cast<u64>(value);
+    auto uptr     = bit_cast<u64>(value);
     u32 numDigits = count_digits<4>(uptr);
 
     auto func = [&, f]() {
@@ -588,7 +588,7 @@ void write_float_fixed(fmt_context *f, string significand, s32 exp, code_point s
 }
 
 // Writes a float with given formatting specs
-void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs specs) {
+void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs) {
     fmt_float_specs floatSpecs = fmt_parse_float_specs(&f->Parse, specs);
 
     //

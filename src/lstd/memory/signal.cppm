@@ -68,7 +68,7 @@ void emit(signal<R(Args...)> *s, Args no_copy... args) {
 // Used for e.g. window events - when the user clicks on the UI the event should not be propagated to the world.
 template <typename R, typename... Args>
 void emit_while_false(signal<R(Args...)> *s, Args... args) {
-    static_assert(types::is_convertible<R, bool>);
+    static_assert(is_convertible<R, bool>);
 
     s->CurrentlyEmitting = true;
     For(s->Callbacks) if (it) if (it((Args no_copy) args...)) break;
@@ -79,7 +79,7 @@ void emit_while_false(signal<R(Args...)> *s, Args... args) {
 // Calls registered callbacks until one returns false
 template <typename R, typename... Args>
 void emit_while_true(signal<R(Args...)> *s, Args... args) {
-    static_assert(types::is_convertible<R, bool>);
+    static_assert(is_convertible<R, bool>);
 
     s->CurrentlyEmitting = true;
     For(s->Callbacks) if (it) if (!it((Args no_copy) args...)) break;

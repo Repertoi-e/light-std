@@ -364,10 +364,10 @@ bool is_center_integer(auto two_f, s32 exponent, s32 minus_k) {
 // The main algorithm for shorter interval case
 template <bool IS_F32>
 always_inline auto shorter_interval_case(s32 exponent) {
-    using uint_t  = types::select_t<IS_F32, u32, u64>;
-    using cache_t = types::select_t<IS_F32, u64, u128>;
+    using uint_t  = select_t<IS_F32, u32, u64>;
+    using cache_t = select_t<IS_F32, u64, u128>;
 
-    decimal_fp<types::select_t<IS_F32, f32, f64>> result;
+    decimal_fp<select_t<IS_F32, f32, f64>> result;
 
     // Compute k and beta
     s32 minus_k      = floor_log10_pow2_minus_log10_4_over_3(exponent);
@@ -413,20 +413,20 @@ always_inline auto shorter_interval_case(s32 exponent) {
     return result;
 }
 
-export auto dragonbox_format_float(types::is_floating_point auto x) {
+export auto dragonbox_format_float(is_floating_point auto x) {
     //
     // Step 1: integer promotion & Schubfach multiplier calculation
     //
     using float_info = numeric<decltype(x)>;
 
     constexpr bool IS_F32 = sizeof(x) == sizeof(f32);
-    using uint_t          = types::select_t<IS_F32, u32, u64>;
-    using cache_t         = types::select_t<IS_F32, u64, u128>;
+    using uint_t          = select_t<IS_F32, u32, u64>;
+    using cache_t         = select_t<IS_F32, u64, u128>;
 
     constexpr s32 KAPPA = IS_F32 ? 1 : 2;
 
     // Interpret the float bits as an integer
-    auto br = types::bit_cast<uint_t>(x);
+    auto br = bit_cast<uint_t>(x);
 
     // Extract significand and exponent bits
     uint_t significandMask = (uint_t(1) << float_info::bits_mantissa) - 1;
@@ -446,7 +446,7 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
     } else {
         // Subnormal case; the interval is always regular
         if (significand == 0) {
-            decimal_fp<types::select_t<IS_F32, f32, f64>> result;
+            decimal_fp<select_t<IS_F32, f32, f64>> result;
             result.Significand = 0;
             result.Exponent    = 0;
             return result;
@@ -485,7 +485,7 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
 
     // Using an upper bound on zi, we might be able to optimize the division
     // better than the compiler; we are computing zi / big_divisor here
-    decimal_fp<types::select_t<IS_F32, f32, f64>> result;
+    decimal_fp<select_t<IS_F32, f32, f64>> result;
     result.Significand = divide_by_10_to_kappa_plus_1(zi);
 
     u32 r = (u32) (zi - BIG_DIVISOR * result.Significand);

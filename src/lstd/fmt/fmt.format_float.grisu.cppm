@@ -234,7 +234,7 @@ gen_digits_result gen_digits(gen_digits_state &state, fp value, u64 error, s32 *
 
 // The returned exponent is the exponent base 10 of the LAST written digit in _floatBuffer_.
 // In the end, _floatBuffer_ contains the digits of the final number to be written out, without the dot.
-export s32 grisu_format_float(string_builder *floatBuffer, types::is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
+export s32 grisu_format_float(string_builder *floatBuffer, is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
     constexpr s32 MIN_EXP = -60;  // alpha in Grisu.
 
     fp normalized;

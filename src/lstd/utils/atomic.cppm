@@ -1,6 +1,6 @@
 module;
 
-#include "namespace.h"
+#include "../common/namespace.h"
 
 #include <intrin.h>
 
@@ -18,7 +18,7 @@ template <typename T>
 constexpr bool is_appropriate_size_for_atomic_v = (sizeof(T) == 2) || (sizeof(T) == 4) || (sizeof(T) == 8);
 
 template <typename T>
-concept appropriate_for_atomic = (types::is_integral<T> || types::is_enum<T> || types::is_pointer<T>) &&is_appropriate_size_for_atomic_v<T>;
+concept appropriate_for_atomic = (is_integral<T> || is_enum<T> || is_pointer<T>) &&is_appropriate_size_for_atomic_v<T>;
 
 export {
 #if COMPILER == MSVC

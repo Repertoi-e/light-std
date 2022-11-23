@@ -33,7 +33,7 @@ void append_u64(string_builder *builder, u64 value) {
 export {
     // The returned exponent is the exponent base 10 of the LAST written digit in _floatBuffer_.
     // In the end, _floatBuffer_ contains the digits of the final number to be written out, without the dot.
-    s32 fmt_format_non_negative_float(string_builder * floatBuffer, types::is_floating_point auto value, s32 precision, fmt_float_specs no_copy specs) {
+    s32 fmt_format_non_negative_float(string_builder * floatBuffer, is_floating_point auto value, s32 precision, fmt_float_specs no_copy specs) {
         assert(value >= 0);
 
         bool fixed = specs.Format == fmt_float_specs::FIXED;

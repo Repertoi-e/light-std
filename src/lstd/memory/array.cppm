@@ -66,13 +66,13 @@ export {
         // We allow converting from c-style strings (char* or char8_t*)
         constexpr array(any_byte_pointer auto data) : Data((char *) data), Count(c_string_length(data)) {
 			// This is a bit hacky, but here we check if the array has type `char` (and so is a string).
-            static_assert(types::is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
+            static_assert(is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
         }
 
         // Take data + size
         constexpr array(any_byte_pointer auto data, s64 n) : Data((char *) data), Count(n) {
             // This is a bit hacky, but here we check if the array has type `char` (and so is a string).
-            static_assert(types::is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
+            static_assert(is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
         }
 
         constexpr array(const initializer_list<T> &items) {
@@ -95,7 +95,7 @@ export {
     constexpr T &get(array<T> * arr, s64 index) { return arr->Data[index]; }
 
     template <typename T>
-    concept any_array = types::is_same_template_decayed<T, array<s32>>;
+    concept any_array = is_same_template_decayed<T, array<s32>>;
 
     // To make range based for loops work.
     auto begin(any_array auto &arr) { return arr.Data; }
@@ -200,7 +200,7 @@ export {
 }
 
 void make_dynamic(any_array auto *arr, s64 n, allocator alloc) {
-    using T = types::remove_pointer_t<decltype(arr->Data)>;
+    using T = remove_pointer_t<decltype(arr->Data)>;
 
     auto *oldData = arr->Data;
 
@@ -214,7 +214,7 @@ void make_dynamic(any_array auto *arr, s64 n, allocator alloc) {
 // Right now can't disable encoding an allocation header when using the temporary allocator
 // because we can't guarantee temporary dynamic arrays would work.
 s64 get_allocated(any_array auto arr) {
-    using T = types::remove_pointer_t<decltype(arr.Data)>;
+    using T = remove_pointer_t<decltype(arr.Data)>;
     return ((allocation_header *) arr.Data - 1)->Size / sizeof(T);
 }
 

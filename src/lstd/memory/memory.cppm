@@ -231,15 +231,15 @@ export {
 
 
 	template <typename T>
-	concept non_void = !types::is_same<T, void>;
+	concept non_void = !is_same<T, void>;
 
 	template <non_void T>
 	T* lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, source_location loc);
 
-	template <non_void T> requires(!types::is_const<T>) 
+	template <non_void T> requires(!is_const<T>) 
     T* lstd_reallocate_impl(T* block, s64 newCount, u64 options, source_location loc);
 
-	template <non_void T> requires(!types::is_const<T>)
+	template <non_void T> requires(!is_const<T>)
     void lstd_free_impl(T* block, u64 options, source_location loc);
 
     //
@@ -305,7 +305,7 @@ export {
     //
     // @TODO In C++20 we can do constexpr allocations.
     template <non_void T>
-    requires(!types::is_const<T>) void free(T * block, u64 options = 0, source_location loc = source_location::current()) {
+    requires(!is_const<T>) void free(T * block, u64 options = 0, source_location loc = source_location::current()) {
         lstd_free_impl(block, options, loc);
     }
 
@@ -791,7 +791,7 @@ export {
 }
 
 template <non_void T>
-requires(!types::is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount, u64 options, source_location loc) {
+requires(!is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount, u64 options, source_location loc) {
     if (!block) return null;
 
     // I think the standard implementation frees in this case but we need to decide
@@ -802,7 +802,7 @@ requires(!types::is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount, u6
     auto *header = (allocation_header *) block - 1;
     s64 oldCount = header->Size / sizeof(T);
 
-    if constexpr (!types::is_scalar<T>) {
+    if constexpr (!is_scalar<T>) {
         if (newCount < oldCount) {
             auto *p   = block + newCount;
             auto *end = block + oldCount;
@@ -816,7 +816,7 @@ requires(!types::is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount, u6
     s64 newSize  = newCount * sizeof(T);
     auto *result = (T *) general_reallocate(block, newSize, options, loc);
 
-    if constexpr (!types::is_scalar<T>) {
+    if constexpr (!is_scalar<T>) {
         if (oldCount < newCount) {
             auto *p   = result + oldCount;
             auto *end = result + newCount;
@@ -835,7 +835,7 @@ T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, so
 
     auto *result = (T *) general_allocate(alloc, size, alignment, options, loc);
 
-    if constexpr (!types::is_scalar<T>) {
+    if constexpr (!is_scalar<T>) {
         auto *p   = result;
         auto *end = result + count;
         while (p != end) {
@@ -847,13 +847,13 @@ T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, so
 }
 
 template <non_void T>
-requires(!types::is_const<T>) void lstd_free_impl(T *block, u64 options, source_location loc) {
+requires(!is_const<T>) void lstd_free_impl(T *block, u64 options, source_location loc) {
     if (!block) return;
 
     auto *header = (allocation_header *) block - 1;
     s64 count    = header->Size / sizeof(T);
 
-    if constexpr (!types::is_scalar<T>) {
+    if constexpr (!is_scalar<T>) {
         auto *p = block;
         while (count--) {
             p->~T();

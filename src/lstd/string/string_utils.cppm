@@ -46,16 +46,16 @@ export module lstd.string_utils;
 LSTD_BEGIN_NAMESPACE
 
 template <typename C>
-using c_string_type = types::add_pointer_t<types::remove_cvref_t<types::remove_pointer_t<types::remove_cvref_t<C>>>>;
+using c_string_type = add_pointer_t<remove_cvref_t<remove_pointer_t<remove_cvref_t<C>>>>;
 
 export {
     // C++ mess
     template <typename C>
-    concept any_c_string = types::is_pointer<C> && types::is_same_to_one_of < c_string_type<C>,
+    concept any_c_string = is_pointer<C> && is_same_to_one_of < c_string_type<C>,
     char *, wchar *, char8_t *, char16_t *, char32_t *, code_point * > ;
 
     template <typename C>
-    concept any_byte_pointer = types::is_pointer<C> && types::is_same_to_one_of < c_string_type<C>,
+    concept any_byte_pointer = is_pointer<C> && is_same_to_one_of < c_string_type<C>,
     char *, char8_t *, unsigned char *, s8 *, u8 *, byte *> ;
 
     // The length of a null-terminated string. Doesn't care about encoding.
