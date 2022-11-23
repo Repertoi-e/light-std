@@ -2,20 +2,41 @@
 
 //
 // A header which imports common types, numeric info,
-//     common math functions, definitions for the macros: assert, defer, For, For_enumerate ...
-//     static_for, range 
-// ... and other utils.
+//     common math functions, definitions for the macros: 
+//	assert, defer, For, For_enumerate ...
+//		static_for, range 
+// ... and others.
 // 
 // And also memory stuff:
 //     memcpy, memset, memset0, memcmp 
 //
-// Really any stuff that doesn't deserve to be it's own module.
+// Really very common lightweight stuff that's used all the time.
 //
 
-import lstd.math;
-import lstd.i128;
+import lstd.math; // also imports lstd.type_info, lstd.numeric, and lstd.ieee
 
-#include "common/types_and_range.h"
+//
+// Cephes provides our replacement for the math functions found in virtually all standard libraries.
+// Also provides functions for extended precision arithmetic, statistical functions, physics, astronomy, etc.
+// https://www.netlib.org/cephes/
+// Note: We don't include everything from it, just cmath for now.
+//       Statistics is a thing we will most definitely include as well in the future.
+//       Everything else you can include on your own in your project (we don't want to be bloat-y).
+//
+// Note: Important difference,
+// atan2's return range is 0 to 2PI, and not -PI to PI (as per normal in the C standard library).
+//
+// Parts of the source code that we modified are marked with :WEMODIFIEDCEPHES:
+//
+
+/*
+Cephes Math Library Release 2.8:  June, 2000
+Copyright 1984, 1995, 2000 by Stephen L. Moshier
+*/
+#include "third_party/cephes/maths_cephes.h"
+
+#include "common/namespace.h"
+#include "common/platform.h"
 #include "common/context.h"
 #include "common/debug_break.h"
 #include "common/defer.h"
@@ -25,7 +46,34 @@ import lstd.i128;
 #include "common/fmt.h"
 #include "common/allocation.h"
 #include "common/namespace.h"
-#include "common/numeric_info.h"
+
+
+// :AvoidSTL:
+// Usually we build without dependencies on the STL,
+// but if LSTD_DONT_DEFINE_STD is defined, we include
+// the initializer list and space ships defined in the STL
+// to avoid conflicts with our implementations.
+#if defined LSTD_DONT_DEFINE_STD
+#include <stdarg.h>
+#include <initializer_list>
+#include <compare>
+#else
+#include "cpp_compatibility/arg.h"
+import lstd.initializer_list_replacement;
+import lstd.space_ship_replacement;
+#endif
+
+import lstd.source_location;
+import lstd.is_constant_evaluated;
+
+//
+// Some personal preferences:
+// 
+// I prefer to type null over nullptr but they are exactly the same
+using null_t = decltype(nullptr);
+inline constexpr null_t null = nullptr;
+
+import lstd.range;
 
 // Semantics to avoid the use of & and && when they are not a unary or binary operator.
 //
@@ -35,6 +83,11 @@ import lstd.i128;
 //
 #define no_copy const &
 #define ref &&
+
+//
+// Personal preference, use 
+//
+#define cast(x) (x)
 
 // Helper macro for, e.g flag enums
 //
@@ -226,25 +279,5 @@ constexpr s32 memcmp(const T *s1, const T *s2, s64 numInBytes) {
 	}
 	return 0;
 }
-
-//
-// Cephes provides our replacement for the math functions found in virtually all standard libraries.
-// Also provides functions for extended precision arithmetic, statistical functions, physics, astronomy, etc.
-// https://www.netlib.org/cephes/
-// Note: We don't include everything from it, just cmath for now.
-//       Statistics is a thing we will most definitely include as well in the future.
-//       Everything else you can include on your own in your project (we don't want to be bloat-y).
-//
-// Note: Important difference,
-// atan2's return range is 0 to 2PI, and not -PI to PI (as per normal in the C standard library).
-//
-// Parts of the source code that we modified are marked with :WEMODIFIEDCEPHES:
-//
-
-/*
-Cephes Math Library Release 2.8:  June, 2000
-Copyright 1984, 1995, 2000 by Stephen L. Moshier
-*/
-#include "third_party/cephes/maths_cephes.h"
 
 LSTD_END_NAMESPACE

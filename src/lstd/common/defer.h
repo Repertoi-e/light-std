@@ -1,5 +1,7 @@
 #pragma once
 
+#include "namespace.h"
+
 LSTD_BEGIN_NAMESPACE
 
 // LINE_NAME appends the line number to x, used in macros to get "unique" variable names.

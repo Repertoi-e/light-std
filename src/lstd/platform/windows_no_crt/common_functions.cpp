@@ -298,7 +298,7 @@ int strtol(const char *nptr, char **endptr, int base) {
         if ((result = (result * base) + digit) < 0) {
             if (endptr)
                 *endptr = (char *) nptr;
-            return (S32_MAX + neg);
+            return (numeric<s32>::max() + neg);
         }
     if (endptr)
         *endptr = (char *) nptr;
@@ -638,7 +638,7 @@ int vsscanf(const char *buf, const char *fmt, va_list args) {
             case 's': {
                 char *s = (char *) va_arg(args, char *);
                 if (field_width == -1)
-                    field_width = S32_MAX;
+                    field_width = numeric<s32>::max();
                 /* first, skip leading white space in buffer */
                 while (is_space(*str))
                     str++;

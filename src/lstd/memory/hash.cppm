@@ -26,7 +26,8 @@ LSTD_BEGIN_NAMESPACE
 export {
     //
     // Hasher based on Yann Collet's descriptions, see http://cyan4973.github.io/xxHash/
-    //
+	// The output depends on the endianness of the machine.
+	//
     // Example use:
     //    hasher h(..seed..);
     //    h.add(&value);
@@ -149,28 +150,7 @@ export {
         }
     };
 
-    // Hash for any type.
-    // Floats are handled here.
-    // The output depends on the endianness of the machine.
-    template <typename T>
-    constexpr u64 get_hash(const T &value) {
-        hasher h(0);
-        h.add((const char *) &value, sizeof(T));
-        return h.hash();
-    }
-
-    // Partial specialization for pointers
-    constexpr u64 get_hash(types::is_pointer auto value) { return (u64) value; }
-
     // @TODO: Hash for array_like
-
-    // Partial specialization for arrays of known size
-    template <types::is_array T>
-    requires(types::is_array_of_known_bounds_v<T>) constexpr u64 get_hash(const T value) {
-        hasher h(0);
-        h.add((const char *) value, sizeof(types::remove_extent_t<T>) * types::extent_v<T>);
-        return h.hash();
-    }
 
 // Hashes for integer types
 #define TRIVIAL_HASH(T) \
@@ -203,6 +183,9 @@ export {
         For(value.Data) hash = (hash << 5) + hash + it;
         return hash;
     }
+
+	// Partial specialization for pointers
+	constexpr u64 get_hash(types::is_pointer auto value) { return (u64)value; }
 }
 
 LSTD_END_NAMESPACE

@@ -64,21 +64,24 @@ export {
         constexpr array(T *data, s64 count) : Data(data), Count(count) {}
 
         // We allow converting from c-style strings (char* or char8_t*)
-        constexpr array(any_c_string_one_byte auto data) : Data((char *) data), Count(c_string_length(data)) {
+        constexpr array(any_byte_pointer auto data) : Data((char *) data), Count(c_string_length(data)) {
 			// This is a bit hacky, but here we check if the array has type `char` (and so is a string).
             static_assert(types::is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
         }
 
         // Take data + size
-        constexpr array(any_c_string_one_byte auto data, s64 n) : Data((char *) data), Count(n) {
+        constexpr array(any_byte_pointer auto data, s64 n) : Data((char *) data), Count(n) {
             // This is a bit hacky, but here we check if the array has type `char` (and so is a string).
             static_assert(types::is_same<T, char>, "Converting c-style string to an array of type that isn't a string");
         }
 
         constexpr array(const initializer_list<T> &items) {
             // A bug caused by this bit me hard...
-            static_assert(false, "Don't create arrays which are views into initializer lists (they get optimized in Release).");
-            static_assert(false, "Use dynamic arrays or store the values on the stack - e.g. make_stack_array(1, 4, 9...)");
+            
+            // XXX TEMP
+            // static_assert(false, "Don't create arrays which are views into initializer lists (they get optimized in Release).");
+            // static_assert(false, "Use dynamic arrays or store the values on the stack - e.g. make_stack_array(1, 4, 9...)");
+
             // Usually the standard library std::vector copies the contents 
             // of the initializer list, that's why it's ok there to do:
             //    std::vector<int> nums = { 1, 4, 9 };

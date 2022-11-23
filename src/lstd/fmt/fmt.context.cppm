@@ -284,7 +284,7 @@ void write(fmt_context *f, const void *value) {
         write_no_specs(f, U'0');
         write_no_specs(f, U'x');
 
-        char formatBuffer[numeric_info<u64>::digits / 4 + 2];
+        char formatBuffer[numeric<u64>::digits / 4 + 2];
         auto *p = format_uint_base<4>(formatBuffer, uptr, numDigits);
         write_no_specs(f, p, formatBuffer + numDigits - p);
     };
@@ -369,7 +369,7 @@ void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs) {
     }
     if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
 
-    char U64_FORMAT_BUFFER[numeric_info<u64>::digits + 1]{};
+    char U64_FORMAT_BUFFER[numeric<u64>::digits + 1]{};
 
     if (type == 'n') {
         formattedSize += ((numDigits - 1) / 3);
@@ -640,7 +640,7 @@ void write_float(fmt_context *f, types::is_floating_point auto value, fmt_specs 
     if (specs.Precision < 0 && specs.Type) specs.Precision = 6;
 
     if (floatSpecs.Format == fmt_float_specs::EXP && specs.Precision != 0) {
-        if (specs.Precision == S32_MAX) {
+        if (specs.Precision == numeric<s32>::max()) {
             on_error(f, "Number too big");
             return;
         }

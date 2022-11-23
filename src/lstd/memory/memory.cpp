@@ -66,7 +66,7 @@ void debug_memory_init() {
 
     // We allocate sentinels to simplify linked list management code
     auto sentinel1 = new_node((allocation_header *) 0);
-    auto sentinel2 = new_node((allocation_header *) U64_MAX);
+    auto sentinel2 = new_node((allocation_header *) numeric<u64>::max());
 
     sentinel1->Next = sentinel2;
     sentinel2->Prev = sentinel1;

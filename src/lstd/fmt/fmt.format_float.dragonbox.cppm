@@ -187,14 +187,14 @@ bool cache_compute_mul_parity(u32 two_f, u64 cache, s32 beta_minus_1) {
 }
 
 u32 cache_compute_left_endpoint_for_shorter_interval_case(u64 cache, s32 beta_minus_1) {
-    return (u32) ((cache - (cache >> (numeric_info<f32>::bits_mantissa + 2))) >> (64 - numeric_info<f32>::bits_mantissa - 1 - beta_minus_1));
+    return (u32) ((cache - (cache >> (numeric<f32>::bits_mantissa + 2))) >> (64 - numeric<f32>::bits_mantissa - 1 - beta_minus_1));
 }
 
 u32 cache_compute_right_endpoint_for_shorter_interval_case(u64 cache, s32 beta_minus_1) {
-    return (u32) ((cache + (cache >> (numeric_info<f32>::bits_mantissa + 1))) >> (64 - numeric_info<f32>::bits_mantissa - 1 - beta_minus_1));
+    return (u32) ((cache + (cache >> (numeric<f32>::bits_mantissa + 1))) >> (64 - numeric<f32>::bits_mantissa - 1 - beta_minus_1));
 }
 
-u32 cache_compute_round_up_for_shorter_interval_case(u64 cache, s32 beta_minus_1) { return ((u32) (cache >> (64 - numeric_info<f32>::bits_mantissa - 2 - beta_minus_1)) + 1) / 2; }
+u32 cache_compute_round_up_for_shorter_interval_case(u64 cache, s32 beta_minus_1) { return ((u32) (cache >> (64 - numeric<f32>::bits_mantissa - 2 - beta_minus_1)) + 1) / 2; }
 
 u64 cache_compute_mul(u64 u, u128 cache) { return umul192_upper64(u, cache); }
 
@@ -208,15 +208,15 @@ bool cache_compute_mul_parity(u64 two_f, u128 cache, s32 beta_minus_1) {
 }
 
 u64 cache_compute_left_endpoint_for_shorter_interval_case(u128 cache, s32 beta_minus_1) {
-    return (cache.hi - (cache.hi >> (numeric_info<f64>::bits_mantissa + 2))) >> (64 - numeric_info<f64>::bits_mantissa - 1 - beta_minus_1);
+    return (cache.hi - (cache.hi >> (numeric<f64>::bits_mantissa + 2))) >> (64 - numeric<f64>::bits_mantissa - 1 - beta_minus_1);
 }
 
 u64 cache_compute_right_endpoint_for_shorter_interval_case(u128 cache, s32 beta_minus_1) {
-    return (cache.hi + (cache.hi >> (numeric_info<f64>::bits_mantissa + 1))) >> (64 - numeric_info<f64>::bits_mantissa - 1 - beta_minus_1);
+    return (cache.hi + (cache.hi >> (numeric<f64>::bits_mantissa + 1))) >> (64 - numeric<f64>::bits_mantissa - 1 - beta_minus_1);
 }
 
 u64 cache_compute_round_up_for_shorter_interval_case(u128 cache, s32 beta_minus_1) {
-    return ((cache.hi >> (64 - numeric_info<f64>::bits_mantissa - 2 - beta_minus_1)) + 1) / 2;
+    return ((cache.hi >> (64 - numeric<f64>::bits_mantissa - 2 - beta_minus_1)) + 1) / 2;
 }
 
 // Remove trailing zeros from n and return the number of zeros removed
@@ -417,7 +417,7 @@ export auto dragonbox_format_float(types::is_floating_point auto x) {
     //
     // Step 1: integer promotion & Schubfach multiplier calculation
     //
-    using float_info = numeric_info<decltype(x)>;
+    using float_info = numeric<decltype(x)>;
 
     constexpr bool IS_F32 = sizeof(x) == sizeof(f32);
     using uint_t          = types::select_t<IS_F32, u32, u64>;

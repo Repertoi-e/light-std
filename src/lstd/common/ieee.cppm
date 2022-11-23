@@ -1,6 +1,7 @@
 module;
 
-#include "types_and_range.h"
+#include "namespace.h"
+#include "platform.h"
 
 //
 // This file defines unions to access different bits of a
@@ -8,6 +9,8 @@ module;
 //
 
 export module lstd.ieee;
+
+export import lstd.numeric;
 
 LSTD_BEGIN_NAMESPACE
 

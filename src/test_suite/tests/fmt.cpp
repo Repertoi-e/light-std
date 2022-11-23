@@ -1,5 +1,3 @@
-#include <lstd/common/numeric_info.h>
-
 #include "../test.h"
 
 #define CHECK_WRITE(expected, fmtString, ...)        \
@@ -77,27 +75,27 @@ TEST(write_integer_32) {
     CHECK_WRITE("34", "{}", 34u);
     CHECK_WRITE("56", "{}", 56l);
     CHECK_WRITE("78", "{}", 78ul);
-    CHECK_WRITE("-2147483648", "{}", numeric_info<s32>::min());
-    CHECK_WRITE("2147483647", "{}", numeric_info<s32>::max());
-    CHECK_WRITE("4294967295", "{}", numeric_info<u32>::max());
-    CHECK_WRITE("-2147483648", "{}", numeric_info<long>::min());
-    CHECK_WRITE("2147483647", "{}", numeric_info<long>::max());
-    CHECK_WRITE("4294967295", "{}", numeric_info<unsigned long>::max());
+    CHECK_WRITE("-2147483648", "{}", numeric<s32>::min());
+    CHECK_WRITE("2147483647", "{}", numeric<s32>::max());
+    CHECK_WRITE("4294967295", "{}", numeric<u32>::max());
+    CHECK_WRITE("-2147483648", "{}", numeric<long>::min());
+    CHECK_WRITE("2147483647", "{}", numeric<long>::max());
+    CHECK_WRITE("4294967295", "{}", numeric<unsigned long>::max());
 }
 
 TEST(write_integer_64) {
     CHECK_WRITE("56", "{}", 56ll);
     CHECK_WRITE("78", "{}", 78ull);
-    CHECK_WRITE("-9223372036854775808", "{}", numeric_info<s64>::min());
-    CHECK_WRITE("9223372036854775807", "{}", numeric_info<s64>::max());
-    CHECK_WRITE("18446744073709551615", "{}", numeric_info<u64>::max());
+    CHECK_WRITE("-9223372036854775808", "{}", numeric<s64>::min());
+    CHECK_WRITE("9223372036854775807", "{}", numeric<s64>::max());
+    CHECK_WRITE("18446744073709551615", "{}", numeric<u64>::max());
 }
 
 TEST(write_f64) {
     CHECK_WRITE("4.2", "{}", 4.2);
     CHECK_WRITE("-4.2", "{}", -4.2);
-    CHECK_WRITE("2.2250738585072014e-308", "{}", numeric_info<f64>::min());
-    CHECK_WRITE("1.7976931348623157e+308", "{}", numeric_info<f64>::max());
+    CHECK_WRITE("2.2250738585072014e-308", "{}", numeric<f64>::min());
+    CHECK_WRITE("1.7976931348623157e+308", "{}", numeric<f64>::max());
 }
 
 TEST(write_code_point) {
@@ -108,7 +106,7 @@ template <typename T>
 void check_unknown_types(T value, string types, string expectedMessage) {
     string special = ".0123456789}";
 
-    For(range(1, S8_MAX)) {
+    For(range(1, numeric<s8>::max())) {
         if (string_has(special, it) || string_has(types, it)) continue;
 
         string fmtString = sprint("{{0:10{:c}}}", it);
@@ -130,7 +128,7 @@ TEST(format_int_binary) {
     CHECK_WRITE("11000000111001", "{0:b}", 12345);
     CHECK_WRITE("10010001101000101011001111000", "{0:b}", 0x12345678);
     CHECK_WRITE("10010000101010111100110111101111", "{0:b}", 0x90ABCDEF);
-    CHECK_WRITE("11111111111111111111111111111111", "{0:b}", numeric_info<u32>::max());
+    CHECK_WRITE("11111111111111111111111111111111", "{0:b}", numeric<u32>::max());
 }
 
 TEST(format_int_octal) {
@@ -169,7 +167,7 @@ TEST(format_int_localeish) {
     CHECK_WRITE("123", "{:n}", 123);
     CHECK_WRITE("1,234", "{:n}", 1234);
     CHECK_WRITE("1,234,567", "{:n}", 1234567);
-    CHECK_WRITE("4,294,967,295", "{:n}", numeric_info<u32>::max());
+    CHECK_WRITE("4,294,967,295", "{:n}", numeric<u32>::max());
 }
 
 TEST(format_f32) {
@@ -206,7 +204,7 @@ TEST(format_f64) {
 }
 
 TEST(format_nan) {
-    auto nan = numeric_info<f64>::quiet_NaN();
+    auto nan = numeric<f64>::quiet_NaN();
     CHECK_WRITE("nan", "{}", nan);
     CHECK_WRITE("+nan", "{:+}", nan);
     CHECK_WRITE(" nan", "{: }", nan);
@@ -218,7 +216,7 @@ TEST(format_nan) {
 }
 
 TEST(format_inf) {
-    auto inf = numeric_info<f64>::infinity();
+    auto inf = numeric<f64>::infinity();
     CHECK_WRITE("inf", "{}", inf);
     CHECK_WRITE("+inf", "{:+}", inf);
     CHECK_WRITE("-inf", "{}", -inf);
@@ -568,9 +566,9 @@ TEST(dynamic_width) {
     EXPECT_ERROR("Expected a closing \"}\" after parsing an argument ID for a dynamic width", "{0:{0:}}", 0);
 
     EXPECT_ERROR("Negative width", "{0:{1}}", 0, -1);
-    EXPECT_ERROR("Width value is too big", "{0:{1}}", 0, (S32_MAX + 1u));
+    EXPECT_ERROR("Width value is too big", "{0:{1}}", 0, (numeric<s32>::max() + 1u));
     EXPECT_ERROR("Negative width", "{0:{1}}", 0, -1l);
-    EXPECT_ERROR("Width value is too big", "{0:{1}}", 0, (S32_MAX + 1ul));
+    EXPECT_ERROR("Width value is too big", "{0:{1}}", 0, (numeric<s32>::max() + 1ul));
 
     EXPECT_ERROR("Width was not an integer", "{0:{1}}", 0, "0");
     EXPECT_ERROR("Width was not an integer", "{0:{1}}", 0, 0.0);
@@ -662,9 +660,9 @@ TEST(dynamic_precision) {
     EXPECT_ERROR("Expected a closing \"}\" after parsing an argument ID for a dynamic precision", "{0:.{0:}}", 0);
 
     EXPECT_ERROR("Negative precision", "{0:.{1}}", 0, -1);
-    EXPECT_ERROR("Precision value is too big", "{0:.{1}}", 0, (S32_MAX + 1u));
+    EXPECT_ERROR("Precision value is too big", "{0:.{1}}", 0, (numeric<s32>::max() + 1u));
     EXPECT_ERROR("Negative precision", "{0:.{1}}", 0, -1l);
-    EXPECT_ERROR("Precision value is too big", "{0:.{1}}", 0, (S32_MAX + 1ul));
+    EXPECT_ERROR("Precision value is too big", "{0:.{1}}", 0, (numeric<s32>::max() + 1ul));
 
     EXPECT_ERROR("Precision is not allowed for integer types", "{0:.{1}c}", 0, '0');
     EXPECT_ERROR("Precision was not an integer", "{0:.{1}}", 0, 0.0);

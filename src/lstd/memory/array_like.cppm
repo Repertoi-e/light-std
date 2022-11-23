@@ -1,7 +1,6 @@
 module;
 
 #include "../common.h"
-#include "../common/type_info.h"
 
 export module lstd.array_like;
 

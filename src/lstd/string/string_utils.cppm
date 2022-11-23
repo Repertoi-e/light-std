@@ -55,8 +55,8 @@ export {
     char *, wchar *, char8_t *, char16_t *, char32_t *, code_point * > ;
 
     template <typename C>
-    concept any_c_string_one_byte = types::is_pointer<C> && types::is_same_to_one_of < c_string_type<C>,
-    char *, char8_t * > ;
+    concept any_byte_pointer = types::is_pointer<C> && types::is_same_to_one_of < c_string_type<C>,
+    char *, char8_t *, unsigned char *, s8 *, u8 *, byte *> ;
 
     // The length of a null-terminated string. Doesn't care about encoding.
     // Note that this calculation does not include the null byte.

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "type_info.h"
-
 LSTD_BEGIN_NAMESPACE
 
 //
@@ -30,7 +28,7 @@ LSTD_BEGIN_NAMESPACE
 #define For_enumerate_as(it_index, it, in) for (auto [it_index, it] : LSTD_NAMESPACE::enumerate_impl(in))
 #define For_enumerate(in) For_enumerate_as(it_index, it, in)
 
-template <typename T, typename TIter = decltype(types::declval<T>().begin()), typename = decltype(types::declval<T>().end())>
+template <typename T, typename TIter = decltype(T().begin()), typename = decltype(T().end()) >
 constexpr auto enumerate_impl(const T &in) {
     struct iterator {
         s64 I;
@@ -41,7 +39,7 @@ constexpr auto enumerate_impl(const T &in) {
 
         struct dereference_result {
             s64 Index;
-            decltype(*types::declval<TIter>()) Value;
+            decltype(*(TIter())) Value;
         };
 
         auto operator*() const {

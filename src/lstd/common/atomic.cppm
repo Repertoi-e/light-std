@@ -1,10 +1,12 @@
 module;
 
+#include "namespace.h"
+
 #include <intrin.h>
 
-#include "type_info.h"
-
 export module lstd.atomic;
+
+export import lstd.math;
 
 //
 // Atomic operations: atomic_inc, atomic_add, atomic_swap, atomic_compare_and_swap
@@ -23,7 +25,7 @@ export {
 
     // Returns the initial value in _ptr_
     template <appropriate_for_atomic T>
-    always_inline constexpr T atomic_inc(T* ptr) {
+    constexpr T atomic_inc(T* ptr) {
         if constexpr (sizeof(T) == 2) return (T)_InterlockedIncrement16((volatile short*)ptr);
         if constexpr (sizeof(T) == 4) return (T)_InterlockedIncrement((volatile long*)ptr);
         if constexpr (sizeof(T) == 8) return (T)_InterlockedIncrement64((volatile long long*)ptr);
@@ -31,7 +33,7 @@ export {
 
     // Returns the initial value in _ptr_
     template <appropriate_for_atomic T>
-    always_inline constexpr T atomic_add(T* ptr, T value) {
+    constexpr T atomic_add(T* ptr, T value) {
         if constexpr (sizeof(T) == 2) return (T)_InterlockedExchangeAdd16((volatile short*)ptr, (short)value);
         if constexpr (sizeof(T) == 4) return (T)_InterlockedExchangeAdd((volatile long*)ptr, (long)value);
         if constexpr (sizeof(T) == 8) return (T)_InterlockedExchangeAdd64((volatile long long*)ptr, (long long)value);
@@ -39,7 +41,7 @@ export {
 
     // Returns the old value in _ptr_
     template <appropriate_for_atomic T>
-    always_inline constexpr T atomic_swap(T* ptr, T value) {
+    constexpr T atomic_swap(T* ptr, T value) {
         if constexpr (sizeof(T) == 2) return (T)_InterlockedExchange16((volatile short*)ptr, (short)value);
         if constexpr (sizeof(T) == 4) return (T)_InterlockedExchange((volatile long*)ptr, (long)value);
         if constexpr (sizeof(T) == 8) return (T)_InterlockedExchange64((volatile long long*)ptr, (long long)value);
@@ -52,7 +54,7 @@ export {
     //
     // Note: ABA problem. Check it out.
     template <appropriate_for_atomic T>
-    always_inline constexpr T atomic_compare_and_swap(T* ptr, T oldValue, T newValue) {
+    constexpr T atomic_compare_and_swap(T* ptr, T oldValue, T newValue) {
         if constexpr (sizeof(T) == 2) return (T)_InterlockedCompareExchange16((volatile short*)ptr, (short)newValue, (short)oldValue);
         if constexpr (sizeof(T) == 4) return (T)_InterlockedCompareExchange((volatile long*)ptr, (long)newValue, (long)oldValue);
         if constexpr (sizeof(T) == 8) return (T)_InterlockedCompareExchange64((volatile long long*)ptr, (long long)newValue, (long long)oldValue);

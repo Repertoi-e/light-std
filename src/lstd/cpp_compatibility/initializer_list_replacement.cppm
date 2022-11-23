@@ -1,3 +1,7 @@
+module;
+
+#include "../common/namespace.h"
+
 export module lstd.initializer_list_replacement;
 
 // Don't import this if you are including the STL.
@@ -30,3 +34,8 @@ struct initializer_list {
     constexpr size_t size() const noexcept { return static_cast<size_t>(Last - First); }
 };
 }  // namespace std
+
+LSTD_BEGIN_NAMESPACE
+export template <typename T>
+using initializer_list = std::initializer_list<T>;
+LSTD_END_NAMESPACE

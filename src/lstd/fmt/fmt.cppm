@@ -408,7 +408,7 @@ struct width_checker {
             if (sign_bit(value)) {
                 on_error(F, "Negative width");
                 return (u32) -1;
-            } else if ((u64) value > numeric_info<s32>::max()) {
+            } else if ((u64) value > numeric<s32>::max()) {
                 on_error(F, "Width value is too big");
                 return (u32) -1;
             }
@@ -429,7 +429,7 @@ struct precision_checker {
             if (sign_bit(value)) {
                 on_error(F, "Negative precision");
                 return -1;
-            } else if ((u64) value > numeric_info<s32>::max()) {
+            } else if ((u64) value > numeric<s32>::max()) {
                 on_error(F, "Precision value is too big");
                 return -1;
             }
@@ -463,7 +463,7 @@ bool fmt_handle_dynamic_specs(fmt_context *f) {
         auto precision = fmt_get_arg_from_index(f, f->Specs->PrecisionIndex);
         if (precision.Type != fmt_type::NONE) {
             f->Specs->Precision = fmt_visit_arg(precision_checker{f}, precision);
-            if (f->Specs->Precision == numeric_info<s32>::min()) return false;
+            if (f->Specs->Precision == numeric<s32>::min()) return false;
         }
     }
 

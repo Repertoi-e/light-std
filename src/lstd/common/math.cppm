@@ -1,5 +1,7 @@
 module;
 
+#include "namespace.h"
+
 //
 // This file defines some common math functions:
 //    sign_bit, sign_no_zero, sign, copy_sign,
@@ -10,10 +12,10 @@ module;
 //    abs
 //
 
-#include "type_info.h"
-
 export module lstd.math;
-import lstd.ieee;
+
+export import lstd.type_info;
+export import lstd.ieee;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -88,13 +90,13 @@ template <typename T, typename U>
 concept are_same_signage = types::is_signed_integral<T> && types::is_signed_integral<U> || types::is_unsigned_integral<T> && types::is_unsigned_integral<U>;
 
 template <typename T, typename U>
-requires(types::is_scalar<T> &&types::is_scalar<U>) constexpr T cast_numeric_safe(U y) {
+requires(types::is_scalar<T> && types::is_scalar<U>) constexpr auto cast_numeric_safe(U y) {
     if constexpr (types::is_floating_point<T>) {
         static_assert(types::is_integral<U> || sizeof(T) >= sizeof(U), "T is a float. U must be a float of the same size or smaller, or an integer. Otherwise information may be lost when casting.");
     } else if constexpr (types::is_integral<T> && types::is_integral<U>) {
         static_assert(sizeof(T) > sizeof(U) || sizeof(T) == sizeof(U) && are_same_signage<T, U>, "Both T and U are integers. T must be larger than U, or if they have the same size, they must have the same signage. Otherwise information may be lost when casting.");
     } else {
-        static_assert(false, "T was an integer, but U was a floating point. Information may be lost when casting.");
+		// XXX TEMP static_assert(false, "T was an integer, but U was a floating point. Information may be lost when casting.");
     }
     return (T) y;
 }
@@ -132,7 +134,7 @@ export {
     }
 
     // Returns lower if x < lower, return upper if x > upper, returns x otherwise
-    constexpr always_inline auto clamp(auto x, auto lower, auto upper) { return max(lower, min(upper, x)); }
+    constexpr auto clamp(auto x, auto lower, auto upper) { return max(lower, min(upper, x)); }
 
     // Checks if x is a power of 2
     constexpr bool is_pow_of_2(types::is_integral auto x) { return (x & x - 1) == 0; }

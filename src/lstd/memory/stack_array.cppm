@@ -65,7 +65,7 @@ export {
     auto end(any_stack_array auto &arr) { return arr.Data + arr.Count; }
 
     template <typename D = void, typename... Types>
-    constexpr stack_array<types::common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types && ...t) { return {(Types &&) t...}; }
+    constexpr stack_array<types::common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types && ...t) { return { (Types &&) t...}; }
 }
 
 LSTD_END_NAMESPACE

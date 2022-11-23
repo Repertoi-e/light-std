@@ -191,10 +191,10 @@ export {
         if constexpr (Options.BailOnTooManyDigits) {
             // Determine at what point we stop parsing because the number becomes too big
             if constexpr (types::is_unsigned_integral<T>) {
-                maxValue = (numeric_info<T>::max) ();
+                maxValue = (numeric<T>::max) ();
                 cutOff   = maxValue / base;
             } else {
-                maxValue = parsedNegative ? -numeric_info<T>::min() : numeric_info<T>::max();
+                maxValue = parsedNegative ? -numeric<T>::min() : numeric<T>::max();
                 cutOff   = maxValue / base;
                 cutOff   = abs(cutOff);
             }

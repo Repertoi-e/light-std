@@ -12,7 +12,7 @@ struct fmt_context;
 // Specialize this function for formatting a custom type.
 template <typename T>
 void write_custom(fmt_context *f, const T *t) {
-    static_assert(false, "Argument doesn't have a way to be formatted.");
+    // XXX TEMP static_assert(false, "Argument doesn't have a way to be formatted.");
     assert(false);
 
     // e.g.

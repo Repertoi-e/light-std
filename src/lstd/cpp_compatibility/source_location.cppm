@@ -1,8 +1,6 @@
-module;
-
-#include "../common/scalar_types.h"
-
 export module lstd.source_location; 
+
+export import lstd.numeric;
 
 // Use this to get the location where a function was called without using macros.
 export struct source_location {

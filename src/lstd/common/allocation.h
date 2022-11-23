@@ -77,7 +77,7 @@ restrict void *realloc(void *ptr, size_t newSize);
 // Frees a block allocated by malloc.
 void free(void *ptr);
 #else
-#error
+#error Implement.
 #endif
 }
 

@@ -91,15 +91,15 @@ export {
     // Assigns _d_ to this and return true if predecessor is closer than successor (is the high margin twice as large as the low margin).
     template <types::is_floating_point F>
     bool fp_assign_new(fp & f, F newValue) {
-        u64 implicitBit     = 1ull << numeric_info<F>::bits_mantissa;
+        u64 implicitBit     = 1ull << numeric<F>::bits_mantissa;
         u64 significandMask = implicitBit - 1;
 
-        u64 exponentMask = ((1ull << numeric_info<F>::bits_exponent) - 1) << numeric_info<F>::bits_mantissa;
+        u64 exponentMask = ((1ull << numeric<F>::bits_exponent) - 1) << numeric<F>::bits_mantissa;
 
         auto br = types::bit_cast<types::select_t<sizeof(F) == sizeof(f32), u32, u64>>(newValue);
 
         f.Significand = br & significandMask;
-        s32 biasedExp = (s32) ((br & exponentMask) >> numeric_info<F>::bits_mantissa);
+        s32 biasedExp = (s32) ((br & exponentMask) >> numeric<F>::bits_mantissa);
 
         // Predecessor is closer if _f_ is a normalized power of 2 (f.Significand == 0)
         // other than the smallest normalized number (biasedExp > 1).
@@ -107,12 +107,12 @@ export {
 
         if (biasedExp) {
             f.Significand += implicitBit;
-            f.MantissaBit = numeric_info<F>::bits_mantissa;
+            f.MantissaBit = numeric<F>::bits_mantissa;
         } else {
             biasedExp     = 1;                       // Subnormals use biased exponent 1 (min exponent).
             f.MantissaBit = msb(f.Significand | 1);  // Integer log2
         }
-        f.Exponent = biasedExp - numeric_info<F>::exponent_bias - numeric_info<F>::bits_mantissa;
+        f.Exponent = biasedExp - numeric<F>::exponent_bias - numeric<F>::bits_mantissa;
 
         return isPredecessorCloser;
     }
@@ -120,7 +120,7 @@ export {
     // Normalizes the value converted from double and multiplied by (1 << SHIFT).
     template <s32 SHIFT>
     fp fp_normalize(fp value) {
-        constexpr u64 IMPLICIT_BIT = 1ull << numeric_info<f64>::bits_mantissa;
+        constexpr u64 IMPLICIT_BIT = 1ull << numeric<f64>::bits_mantissa;
 
         // Handle subnormals.
         u64 shifted_implicit_bit = IMPLICIT_BIT << SHIFT;
@@ -130,7 +130,7 @@ export {
         }
 
         // Subtract 1 to account for hidden bit.
-        s32 offset = (s32) ((sizeof(u64) * 8) - numeric_info<f64>::bits_mantissa - SHIFT - 1);
+        s32 offset = (s32) ((sizeof(u64) * 8) - numeric<f64>::bits_mantissa - SHIFT - 1);
         value.Significand <<= offset;
         value.Exponent -= offset;
         return value;

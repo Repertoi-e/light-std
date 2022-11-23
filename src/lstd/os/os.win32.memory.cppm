@@ -36,55 +36,6 @@ export {
     // Read data from a shared memory block (use this for communication between processes)
     // @Security?
     void os_read_shared_block(string name, void *out, s64 size);
-
-    // This is a utility which helps reduce fragmentation when you allocate multiple structs.
-    //
-    // Allocates one giant block with size determined from the size of types passed in (+ extraDynamicSize).
-    // After that this calls constructors on non-scalar values.
-    //
-    // Returns a tuple with the pointers to the structs. The first pointer is the pointer to the beginning of the big block
-    // which is the one which may eventually be passed to os_free_block().
-    // The block with size _extraDynamicSize_ is the last in the tuple (with type void*).
-    //
-    // @Robustness Caveat: This doesn't call constructors on arrays, e.g. my_data_t[n].
-    //       We can implement this but the code is going to get much more complicated.
-    template <typename... Types>
-    [[nodiscard("Leak")]] auto os_allocate_packed(s64 extraDynamicSize) {
-        constexpr s64 TYPE_SIZE[]     = {sizeof(Types)...};
-        constexpr s64 TOTAL_TYPE_SIZE = (sizeof(Types) + ...);
-
-        // We decay, remove pointers and add a pointer in order to handle arrays
-        // e.g.  byte[10] -> decays to -> byte *, but here if we add a pointer again, we would get byte **
-        // The reason we return pointers is because we return the address in the block each element begins.
-        using result_t = tuple<types::add_pointer_t<types::remove_pointer_t<types::decay_t<Types>>>..., void *>;
-        result_t result;
-
-        s64 size = TOTAL_TYPE_SIZE + extraDynamicSize;
-
-        void *block = os_allocate_block(size);
-
-        s64 offset = 0;
-        static_for<0, sizeof...(Types)>([&result, &offset, block, TYPE_SIZE](auto i) {
-            using element_t = tuple_get_t<i, result_t>;
-
-            auto *p              = (element_t) ((byte *) block + offset);
-            tuple_get<i>(result) = p;
-
-            using element_t_no_pointer = types::remove_pointer_t<element_t>;
-
-            // Call constructor on values that are not scalars
-            // @Robustness This doesn't call constructors on arrays, e.g. my_data_t[n]
-            if constexpr (!types::is_scalar<element_t_no_pointer>) {
-                new (p) element_t_no_pointer;
-            }
-
-            offset += TYPE_SIZE[i];
-        });
-
-        tuple_get<sizeof...(Types)>(result) = (byte *) block + offset;
-
-        return result;
-    }
 }
 
 struct win32_memory_state {
@@ -113,7 +64,7 @@ struct win32_memory_state {
 };
 
 // :GlobalStateNoConstructors:
-byte State[sizeof(win32_memory_state)];
+static byte State[sizeof(win32_memory_state)];
 
 // Short-hand macro for sanity
 #define S ((win32_memory_state *) &State[0])

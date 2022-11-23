@@ -174,7 +174,7 @@ struct win32_common_state {
 // that avoids the C++ default constructor erasing the state of the struct.
 // We initialize it before we call any C++ constructors in the linker table
 // (see some stuff we do in exe_main.cpp in lstd/platform/windows_no_crt).
-byte State[sizeof(win32_common_state)];
+static byte State[sizeof(win32_common_state)];
 
 // Short-hand macro for sanity
 #define S ((win32_common_state *) &State[0])

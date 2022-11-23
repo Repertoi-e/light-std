@@ -1,7 +1,5 @@
 #pragma once
 
-#include "lstd/common/types_and_range.h"
-
 //
 // In this file we define some types found in Windows.h.
 // We do this in order to avoid including Windows.h at all.
