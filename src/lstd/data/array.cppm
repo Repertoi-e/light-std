@@ -6,7 +6,7 @@ export module lstd.array;
 
 export import lstd.memory;
 export import lstd.array_like;
-export import lstd.string_utils;
+export import lstd.c_string_utf8;
 
 LSTD_BEGIN_NAMESPACE
 

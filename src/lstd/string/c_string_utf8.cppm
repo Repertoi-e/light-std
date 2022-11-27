@@ -41,7 +41,7 @@ module;
 
 #include "../common.h"
 
-export module lstd.string_utils;
+export module lstd.c_string_utf8;
 
 LSTD_BEGIN_NAMESPACE
 

@@ -64,13 +64,12 @@ export {
     // The order in which we look:
     //   * is string constructible from T? then we map to string(T)
     //   * is the type a code_point_ref? maps to u64 (we want the value in that case)
-    //   * is the type an (un)integral? maps to u64 or s64
+    //   * is the type an (unsigned) integral? maps to (u64) s64
     //   * is the type an enum? calls map_arg again with the underlying type
     //   * is the type a floating point? maps to f64
     //   * is the type a pointer? if it's non-void we throw an error, otherwise we map to (void *) v
     //   * is the type a bool? maps to bool
     //   * otherwise maps to &v (value then setups a function call to a custom formatter)
-    // Otherwise we static_assert that the argument can't be formatted.
     auto fmt_map_arg(auto no_copy v) {
         using T = remove_cvref_t<decltype(v)>;
 

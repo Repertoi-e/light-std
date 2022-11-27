@@ -43,10 +43,10 @@ Copyright 1984, 1995, 2000 by Stephen L. Moshier
 #include "common/for.h"
 #include "common/enumerate.h"
 #include "common/fmt.h"
-#include "common/allocation.h"
 #include "common/namespace.h"
 
 #include "context/context.h"
+#include "memory/allocation.h"
 
 // :AvoidSTL:
 // Usually we build without dependencies on the STL,

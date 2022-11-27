@@ -102,7 +102,7 @@ export {
 
     //
     // Utilities to convert to c-style strings.
-    // Functions for conversion between utf-8, utf-16 and utf-32 are provided in lstd.string_utils
+    // Functions for conversion between utf-8, utf-16 and utf-32 are provided in lstd.c_string_utf8
     //
 
     // Allocates a buffer, copies the string's contents and also appends a zero terminator.
