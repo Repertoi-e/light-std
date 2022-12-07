@@ -101,7 +101,7 @@ LSTD_BEGIN_NAMESPACE
 //   you should provide a function, for example: 
 // 
 //   e.g.   free_string(my_string *s) {
-//              free(s.Data);   // Free buffer as normal
+//              free(s);   // Free buffer as normal
 //              atomic_add(&GlobalStringCount, -1);
 //          }
 // 

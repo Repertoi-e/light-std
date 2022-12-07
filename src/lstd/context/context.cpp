@@ -52,7 +52,7 @@ void fmt_default_parse_error_handler(string message, string formatString, s64 po
     // You can replace this error handler in the Context with a less critical one.
 
     string str = clone(formatString);
-    defer(free(str.Data));
+    defer(free(str));
 
     // Make escape characters appear as they would in a string literal
     replace_all(&str, '\"', "\\\"");
@@ -77,7 +77,7 @@ void fmt_default_parse_error_handler(string message, string formatString, s64 po
     fmt_to_writer(&output, "        {: >{}} {!} \n\n", "^", position + 1);
 
     string info = builder_to_string(&b);
-    defer(free(info.Data));
+    defer(free(info));
 
     print("{}", info);
 

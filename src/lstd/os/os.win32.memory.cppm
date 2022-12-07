@@ -16,12 +16,12 @@ LSTD_BEGIN_NAMESPACE
 
 export {
     // Allocates memory by calling the OS directly
-    [[nodiscard("Leak")]] void *os_allocate_block(s64 size);
+    mark_as_leak void *os_allocate_block(s64 size);
 
     // Expands/shrinks a memory block allocated by os_allocate_block().
     // This is NOT realloc. When this fails it returns null instead of allocating a new block and copying the contents of the old one.
     // That's why it's not called realloc.
-    [[nodiscard("Leak")]] void *os_resize_block(void *ptr, s64 newSize);
+    mark_as_leak void *os_resize_block(void *ptr, s64 newSize);
 
     // Returns the size of a memory block allocated by os_allocate_block() in bytes
     s64 os_get_block_size(void *ptr);
@@ -249,7 +249,7 @@ export {
         PUSH_ALLOC(alloc) {
             // String length * 4 because one unicode character might take 4 bytes in utf8.
             // This is just an approximation, not all space will be used!
-            make_dynamic(&result, c_string_length(str) * 4);
+            array_reserve(result, c_string_length(str) * 4);
         }
 
         utf16_to_utf8(str, (char *) result.Data, &result.Count);
@@ -313,7 +313,7 @@ s64 os_get_block_size(void *ptr) {
         char *cStr              = string_to_c_string(extendedCallSite);                                        \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);                                \
         free(cStr);                                                                                            \
-        free(extendedCallSite.Data);                                                                           \
+        free(extendedCallSite);                                                                           \
         return;                                                                                                \
     }
 

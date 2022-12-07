@@ -436,10 +436,10 @@ void write_exponent(fmt_context *f, s64 exp) {
 void write_significand(fmt_context *f, string significand, s64 integralSize, code_point decimalPoint = 0) {
     if (!significand) return;  // The significand is actually empty if the value formatted is 0
 
-    write_no_specs(f, substring(significand, 0, integralSize));
+    write_no_specs(f, string_slice(significand, 0, integralSize));
     if (decimalPoint) {
         write_no_specs(f, decimalPoint);
-        write_no_specs(f, substring(significand, integralSize, significand.Count));
+        write_no_specs(f, string_slice(significand, integralSize, significand.Count));
     }
 }
 

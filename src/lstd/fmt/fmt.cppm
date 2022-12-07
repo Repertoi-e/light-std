@@ -184,7 +184,7 @@ export {
 
     // Formats to a string. The caller is responsible for freeing.
     template <typename... Args>
-    [[nodiscard("Leak")]] string sprint(string fmtString, Args no_copy... arguments);
+    mark_as_leak string sprint(string fmtString, Args no_copy... arguments);
 
     // Formats to a string. Uses the temporary allocator.
     template <typename... Args>
@@ -296,8 +296,7 @@ export {
 
     // Format arrays in the following way: [1, 2, ...]
 
-    void write_custom(fmt_context * f, const any_array auto *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
-    void write_custom(fmt_context * f, const any_stack_array auto *a) { format_list(f).entries(a->Data, a->Count)->finish(); }
+    void write_custom(fmt_context * f, any_array_like auto no_copy a) { format_list(f).entries(a.Data, a.Count)->finish(); }
 
     // @TODO: Formatter for hash table
 
@@ -478,7 +477,7 @@ void fmt_parse_and_format(fmt_context *f) {
         while (true) {
             auto searchString = string(p->It.Data, end - p->It.Data);
 
-            s64 bracket = string_find(searchString, '}');
+            s64 bracket = string_search(searchString, '}');
             if (bracket == -1) {
                 write_no_specs(f, p->It.Data, end - p->It.Data);
                 return;
@@ -501,7 +500,7 @@ void fmt_parse_and_format(fmt_context *f) {
     fmt_arg currentArg;
 
     while (p->It.Count) {
-        s64 bracket = string_find(p->It, '{');
+        s64 bracket = string_search(p->It, '{');
         if (bracket == -1) {
             write_until(p->It.Data + p->It.Count);
             return;
@@ -606,7 +605,7 @@ s64 fmt_calculate_length(string fmtString, Args no_copy... arguments) {
 }
 
 template <typename... Args>
-[[nodiscard("Leak")]] string sprint(string fmtString, Args no_copy... arguments) {
+mark_as_leak string sprint(string fmtString, Args no_copy... arguments) {
     string_builder b;
 
     string_builder_writer writer;

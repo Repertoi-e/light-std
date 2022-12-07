@@ -75,7 +75,7 @@ export {
 
         if constexpr (is_same<string, T> || is_constructible<string, T>) {
             return string(v);
-        } else if constexpr (is_same<T, code_point_ref>) {
+        } else if constexpr (is_same<T, string::code_point_ref>) {
             return (u64) v;
         } else if constexpr (is_same<bool, T>) {
             return v;

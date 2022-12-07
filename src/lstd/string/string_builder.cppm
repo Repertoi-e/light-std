@@ -64,7 +64,7 @@ export {
     // Merges all buffers in one string.
     // Maybe release the buffers as well?
     // The most common use case is builder_to_string() and then free_buffers() -- the builder is not needed anymore.
-    [[nodiscard("Leak")]] string builder_to_string(string_builder * builder);
+    mark_as_leak string builder_to_string(string_builder * builder);
 }
 
 void reset(string_builder *builder) {
@@ -103,13 +103,13 @@ void append(string_builder *builder, const char *data, s64 size) {
     }
 }
 
-[[nodiscard("Leak")]] string builder_to_string(string_builder *builder) {
+mark_as_leak string builder_to_string(string_builder *builder) {
     string result;
-    make_dynamic(&result, (builder->IndirectionCount + 1) * builder->BUFFER_SIZE);
+    array_reserve(result, (builder->IndirectionCount + 1) * builder->BUFFER_SIZE);
 
     auto *b = &builder->BaseBuffer;
     while (b) {
-        string_append(&result, b->Data, b->Occupied);
+        string_add(result, b->Data, b->Occupied);
         b = b->Next;
     }
     return result;

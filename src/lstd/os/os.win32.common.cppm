@@ -69,7 +69,7 @@ export {
     };
 
     // Reads entire file into memory (no async variant available at the moment).
-    [[nodiscard("Leak")]] os_read_file_result os_read_entire_file(string path);
+    mark_as_leak os_read_file_result os_read_entire_file(string path);
 
     // Write _contents_ to a file.
     // _mode_ determines if the content should be appended or overwritten. See _file_write_mode_ above.
@@ -130,7 +130,7 @@ export {
     // If not found and silent is false, logs warning.
     // The caller is responsible for freeing the returned string.
     // @TODO: Cache this, then we would return a string that needn't be freed and avoid allocations when calling this function multiple times.
-    [[nodiscard("Leak")]] os_get_env_result os_get_env(string name, bool silent = false);
+    mark_as_leak os_get_env_result os_get_env(string name, bool silent = false);
 
     // Sets a variable (creates if it doesn't exist yet) in the current process' environment
     void os_set_env(string name, string value);
@@ -140,7 +140,7 @@ export {
 
     // Returns the content stored in the clipboard as a utf8 string.
     // The caller is responsible for freeing.
-    [[nodiscard("Leak")]] string os_get_clipboard_content();
+    mark_as_leak string os_get_clipboard_content();
 
     // Sets the clipboard content (expects a utf8 string).
     void os_set_clipboard_content(string content);
@@ -432,7 +432,7 @@ constexpr u32 ERROR_ENVVAR_NOT_FOUND = 203;
 // @TODO: Cache environment variables when running the program in order to avoid allocating.
 // Store them null-terminated in the cache, to avoid callers which expect C style strings having to convert.
 //
-[[nodiscard("Leak")]] os_get_env_result os_get_env(string name, bool silent) {
+mark_as_leak os_get_env_result os_get_env(string name, bool silent) {
     auto *name16 = utf8_to_utf16(name, PERSISTENT);
     defer(free(name16));
 
@@ -473,7 +473,7 @@ void os_remove_env(string name) {
     WIN32_CHECK_BOOL(r, SetEnvironmentVariableW(utf8_to_utf16(name), null));
 }
 
-[[nodiscard("Leak")]] string os_get_clipboard_content() {
+mark_as_leak string os_get_clipboard_content() {
     if (!OpenClipboard(null)) {
         platform_report_error("Failed to open clipboard");
         return "";
@@ -553,7 +553,7 @@ string os_read_from_console() {
         return;                                                                                                \
     }
 
-[[nodiscard("Leak")]] os_read_file_result os_read_entire_file(string path) {
+mark_as_leak os_read_file_result os_read_entire_file(string path) {
     os_read_file_result fail = {string(), false};
     CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), fail);
     defer(CloseHandle(file));

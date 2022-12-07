@@ -13,61 +13,62 @@ export import lstd.string;
 LSTD_BEGIN_NAMESPACE
 
 export {
-    [[nodiscard("Leak")]] array<string> path_split_into_components(string path, string seps = "\\/") {
-        array<string> result;
-        make_dynamic(&result, 8);
+	mark_as_leak array<string> path_split_into_components(string path, string seps = "\\/") {
+		array<string> result;
 
-        s64 start = 0, prev = 0;
-        while ((start = string_find_any_of(path, seps, start + 1)) != -1) {
-            add(&result, substring(path, prev, start));
-            prev = start + 1;
-        }
+		auto matchSep = [=](code_point cp) { return string_has(seps, cp); };
 
-        // There is an edge case in which the path ends with a slash, in that case there is no "another" component.
-        // The if is here so we don't crash with index out of bounds.
-        //
-        // Note that both /home/user/dir and /home/user/dir/ mean the same thing.
-        // You can use other functions to check if the former is really a directory or a file (querying the OS).
-        if (prev < string_length(path)) {
-            // Add the last component - from prev to path.Length
-            add(&result, substring(path, prev, string_length(path)));
-        }
-        return result;
-    }
+		s64 start = 0, prev = 0;
+		while ((start = string_search(path, &matchSep, search_options{ .Start = start + 1 })) != -1) {
+			array_add(result, string_slice(path, prev, start));
+			prev = start + 1;
+		}
 
-    struct path_split_extension_result {
-        string Root, Extension;
-    };
+		// There is an edge case in which the path ends with a slash, in that case there is no "another" component.
+		// The if is here so we don't crash with index out of bounds.
+		//
+		// Note that both /home/user/dir and /home/user/dir/ mean the same thing.
+		// You can use other functions to check if the former is really a directory or a file (querying the OS).
+		if (prev < string_length(path)) {
+			// Add the last component - from prev to path.Length
+			array_add(result, string_slice(path, prev, string_length(path)));
+		}
+		return result;
+	}
 
-    constexpr path_split_extension_result path_split_extension_general(string path, code_point sep, code_point altSep, code_point extensionSep) {
-        s64 sepIndex = string_find(path, sep, -1, true);
-        if (altSep) {
-            s64 altSepIndex = string_find(path, altSep, -1, true);
-            if (altSepIndex > sepIndex) sepIndex = altSepIndex;
-        }
+	struct path_split_extension_result {
+		string Root, Extension;
+	};
 
-        // Most OSes use a dot to separate extensions but we support other characters as well
-        s64 dotIndex = string_find(path, extensionSep, -1, true);
+	constexpr path_split_extension_result path_split_extension_general(string path, code_point sep, code_point altSep, code_point extensionSep) {
+		s64 sepIndex = string_search(path, sep, search_options{ .Start = -1, .Reversed = true });
+		if (altSep) {
+			s64 altSepIndex = string_search(path, altSep, search_options{ .Start = -1, .Reversed = true });
+			if (altSepIndex > sepIndex) sepIndex = altSepIndex;
+		}
 
-        if (dotIndex > sepIndex) {
-            // Skip leading dots
-            s64 filenameIndex = sepIndex + 1;
-            while (filenameIndex < dotIndex) {
-                if (path[filenameIndex] != extensionSep) {
-                    return {substring(path, 0, dotIndex), substring(path, dotIndex, string_length(path))};
-                }
-                ++filenameIndex;
-            }
-        }
-        return {path, ""};
-    }
+		// Most OSes use a dot to separate extensions but we support other characters as well
+		s64 dotIndex = string_search(path, extensionSep, search_options{ .Start = -1, .Reversed = true });
 
-    // Used by _path_split_ implement in platform-specific modules.
-    // Exported here for sanity.
-    // @TODO: Forward declare API here as well!
-    struct path_split_result {
-        string Head, Tail;
-    };
+		if (dotIndex > sepIndex) {
+			// Skip leading dots
+			s64 filenameIndex = sepIndex + 1;
+			while (filenameIndex < dotIndex) {
+				if (path[filenameIndex] != extensionSep) {
+					return { string_slice(path, 0, dotIndex), string_slice(path, dotIndex, string_length(path)) };
+				}
+				++filenameIndex;
+			}
+		}
+		return { path, "" };
+	}
+
+	// Used by _path_split_ implement in platform-specific modules.
+	// Exported here for sanity.
+	// @TODO: Forward declare API here as well!
+	struct path_split_result {
+		string Head, Tail;
+	};
 }
 
 LSTD_END_NAMESPACE

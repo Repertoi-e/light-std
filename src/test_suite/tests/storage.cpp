@@ -23,10 +23,9 @@ TEST(stack_array) {
 
 TEST(array) {
     array<s64> a;
-    make_dynamic(&a, 30);
     defer(free(a.Data));
 
-    For(range(10)) { add(&a, it); }
+    For(range(10)) { a += {it}; }
     For(range(10)) { assert_eq(a[it], it); }
 
     insert_at_index(&a, 3, -3);
@@ -84,7 +83,7 @@ TEST(hash_table) {
     for (auto [key, value] : t) {
         string str = sprint("{}", *value);
         assert_eq(*key, str);
-        free(str.Data);
+        free(str);
 
         ++loopIterations;
     }

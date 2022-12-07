@@ -92,10 +92,10 @@ TEST(guid) {
     For_as(f, formats) {
         For_as(g, garbage) {
             string format = sprint("{{:{:c}}}{}", f, g);
-            defer(free(format.Data));
+            defer(free(format));
 
             string guidFormatted = sprint(format, guid);
-            defer(free(guidFormatted.Data));
+            defer(free(guidFormatted));
 
             auto [parsed, status, rest] = parse_guid(guidFormatted);
             assert_eq(guid, parsed);

@@ -3,11 +3,9 @@
 template <typename U, s64 N>
 void test_expected(stack_array<U, N> expected, s64 start, s64 stop, s64 step = 1) {
     array<U> result;
-    make_dynamic(&result, 8);
-
-    For(range(start, stop, step)) add(&result, (U) it);
+    For(range(start, stop, step)) result += {(U)it };
     assert_eq(result, expected);
-    free(result.Data);
+    free(result);
 }
 
 TEST(basic) {
@@ -17,11 +15,9 @@ TEST(basic) {
 
 TEST(variable_steps) {
     array<s64> result;
-    make_dynamic(&result, 8);
-
-    For(range(2, -3, 2)) add(&result, it);
+    For(range(2, -3, 2)) result += {it};
     assert_eq(result.Count, 0);
-    free(result.Data);
+    free(result);
 
     test_expected(make_stack_array<s32>(-3, -1, 1), -3, 2, 2);
     test_expected(make_stack_array<s32>(10, 13), 10, 15, 3);

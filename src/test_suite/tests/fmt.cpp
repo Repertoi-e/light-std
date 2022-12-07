@@ -4,7 +4,7 @@
     {                                                \
         string t = sprint(fmtString, ##__VA_ARGS__); \
         assert_eq(t, string(expected));              \
-        free(t.Data);                                \
+        free(t);                                \
     }
 
 file_scope string LAST_ERROR;
@@ -111,7 +111,7 @@ void check_unknown_types(T value, string types, string expectedMessage) {
 
         string fmtString = sprint("{{0:10{:c}}}", it);
         EXPECT_ERROR(expectedMessage, fmtString, value);
-        free(fmtString.Data);
+        free(fmtString);
     }
 }
 

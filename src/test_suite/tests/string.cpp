@@ -32,18 +32,18 @@ TEST(code_point_size) {
 
 TEST(substring) {
     string a = "Hello, world!";
-    assert_eq(substring(a, 2, 5), string("llo"));
-    assert_eq(substring(a, 7, string_length(a)), string("world!"));
-    assert_eq(substring(a, 0, -1), string("Hello, world"));
-    assert_eq(substring(a, -6, -1), string("world"));
+    assert_eq(string_slice(a, 2, 5), string("llo"));
+    assert_eq(string_slice(a, 7, string_length(a)), string("world!"));
+    assert_eq(string_slice(a, 0, -1), string("Hello, world"));
+    assert_eq(string_slice(a, -6, -1), string("world"));
 }
 
 TEST(substring_mixed_sizes) {
     string a = u8"Хеllo, уоrлd!";
-    assert_eq(substring(a, 2, 5), string("llo"));
-    assert_eq(substring(a, 7, string_length(a)), string(u8"уоrлd!"));
-    assert_eq(substring(a, 0, -1), string(u8"Хеllo, уоrлd"));
-    assert_eq(substring(a, -6, -1), string(u8"уоrлd"));
+    assert_eq(string_slice(a, 2, 5), string("llo"));
+    assert_eq(string_slice(a, 7, string_length(a)), string(u8"уоrлd!"));
+    assert_eq(string_slice(a, 0, -1), string(u8"Хеllo, уоrлd"));
+    assert_eq(string_slice(a, -6, -1), string(u8"уоrлd"));
 }
 
 TEST(index) {
@@ -359,54 +359,54 @@ TEST(replace_all) {
 
 TEST(find) {
     string a = "This is a string";
-    assert_eq(2, string_find(a, string("is")));
-    assert_eq(5, string_find(a, string("is"), 5));
+    assert_eq(2, string_search(a, string("is")));
+    assert_eq(5, string_search(a, string("is"), 5));
 
-    assert_eq(0, string_find(a, string("This")));
-    assert_eq(0, string_find(a, string("This"), -1, true));
-    assert_eq(10, string_find(a, string("string")));
-    assert_eq(10, string_find(a, string("string"), -1, true));
+    assert_eq(0, string_search(a, string("This")));
+    assert_eq(0, string_search(a, string("This"), -1, true));
+    assert_eq(10, string_search(a, string("string")));
+    assert_eq(10, string_search(a, string("string"), -1, true));
 
-    assert_eq(5, string_find(a, string("is"), 6, true));
-    assert_eq(5, string_find(a, string("is"), 5, true));
-    assert_eq(2, string_find(a, string("is"), 3, true));
-    assert_eq(2, string_find(a, string("is"), 2, true));
-    assert_eq(-1, string_find(a, string("is"), 1, true));
+    assert_eq(5, string_search(a, string("is"), 6, true));
+    assert_eq(5, string_search(a, string("is"), 5, true));
+    assert_eq(2, string_search(a, string("is"), 3, true));
+    assert_eq(2, string_search(a, string("is"), 2, true));
+    assert_eq(-1, string_search(a, string("is"), 1, true));
 
-    assert_eq(1, string_find(a, 'h'));
-    assert_eq(1, string_find(a, 'h', 1));
-    assert_eq(1, string_find(a, string("h"), 1));
+    assert_eq(1, string_search(a, 'h'));
+    assert_eq(1, string_search(a, 'h', 1));
+    assert_eq(1, string_search(a, string("h"), 1));
 
-    assert_eq(0, string_find(a, 'T'));
-    assert_eq(0, string_find(a, 'T', -1, true));
+    assert_eq(0, string_search(a, 'T'));
+    assert_eq(0, string_search(a, 'T', -1, true));
 
-    assert_eq(13, string_find(a, 'i', -1, true));
-    assert_eq(13, string_find(a, 'i', 13, true));
-    assert_eq(5, string_find(a, 'i', 12, true));
-    assert_eq(5, string_find(a, 'i', 5, true));
-    assert_eq(2, string_find(a, 'i', 4, true));
+    assert_eq(13, string_search(a, 'i', -1, true));
+    assert_eq(13, string_search(a, 'i', 13, true));
+    assert_eq(5, string_search(a, 'i', 12, true));
+    assert_eq(5, string_search(a, 'i', 5, true));
+    assert_eq(2, string_search(a, 'i', 4, true));
 
-    assert_eq(string_length(a) - 1, string_find(a, 'g'));
-    assert_eq(string_length(a) - 1, string_find(a, 'g', -1, true));
+    assert_eq(string_length(a) - 1, string_search(a, 'g'));
+    assert_eq(string_length(a) - 1, string_search(a, 'g', -1, true));
 
     assert_eq(1, string_find_not(a, 'T'));
     assert_eq(0, string_find_not(a, 'Q'));
     assert_eq(string_length(a) - 1, string_find_not(a, 'Q', -1, true));
     assert_eq(string_length(a) - 2, string_find_not(a, 'g', -1, true));
 
-    assert_eq(-1, string_find(a, 'Q'));
+    assert_eq(-1, string_search(a, 'Q'));
 
     a = u8"Това е низ от букви";
-    assert_eq(8, string_find(a, string(u8"и")));
-    assert_eq(8, string_find(a, string(u8"и"), 8));
+    assert_eq(8, string_search(a, string(u8"и")));
+    assert_eq(8, string_search(a, string(u8"и"), 8));
 
-    assert_eq(8, string_find(a, U'и'));
-    assert_eq(8, string_find(a, U'и', 8));
+    assert_eq(8, string_search(a, U'и'));
+    assert_eq(8, string_search(a, U'и', 8));
 
-    assert_eq(14, string_find(a, U'б'));
-    assert_eq(14, string_find(a, U'б', -1, true));
+    assert_eq(14, string_search(a, U'б'));
+    assert_eq(14, string_search(a, U'б', -1, true));
 
-    assert_eq(-1, string_find(a, U'я'));
+    assert_eq(-1, string_search(a, U'я'));
 
     a = "aaabbbcccddd";
     assert_eq(3, string_find_any_of(a, "DCb"));
@@ -418,9 +418,9 @@ TEST(find) {
     assert_eq(1, string_find_any_of(a, "PQa", 1, true));
     assert_eq(0, string_find_any_of(a, "PQa", 0, true));
 
-    assert_eq(string_find(a, 'd'), string_find_not_any_of(a, "abc"));
+    assert_eq(string_search(a, 'd'), string_find_not_any_of(a, "abc"));
     assert_eq(0, string_find_not_any_of(a, "bcd"));
-    assert_eq(string_find(a, 'b'), string_find_not_any_of(a, "ac"));
+    assert_eq(string_search(a, 'b'), string_find_not_any_of(a, "ac"));
 
     assert_eq(2, string_find_not_any_of(a, "bcd", -1, true));
     assert_eq(9, string_find_not_any_of(a, "bc", -3, true));

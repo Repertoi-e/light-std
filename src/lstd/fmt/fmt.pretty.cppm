@@ -32,16 +32,14 @@ export {
         array<field_entry> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_struct(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {
-            make_dynamic(&Fields, 8);  // @Cleanup
-        }
+        format_struct(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {}
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
-        ~format_struct() { free(Fields.Data); }
+        ~format_struct() { free(Fields); }
 
         template <typename T>
         format_struct *field(string name, const T &value) {
-            add(Fields, {name, fmt_make_arg(value)});
+            array_add(Fields, {name, fmt_make_arg(value)});
             return this;
         }
 
@@ -56,16 +54,14 @@ export {
         array<fmt_arg> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_tuple(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {
-            make_dynamic(&Fields, 8);  // @Cleanup
-        }
+        format_tuple(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {}
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
-        ~format_tuple() { free(Fields.Data); }
+        ~format_tuple() { free(Fields); }
 
         template <typename T>
         format_tuple *field(const T &value) {
-            add(Fields, fmt_make_arg(value));
+            array_add(Fields, fmt_make_arg(value));
             return this;
         }
 
@@ -79,16 +75,14 @@ export {
         array<fmt_arg> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_list(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {
-            make_dynamic(&Fields, 8); // @Cleanup
-        }
+        format_list(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
-        ~format_list() { free(Fields.Data); }
+        ~format_list() { free(Fields); }
 
         template <typename T>
         format_list *entries(array<T> values) {
-            For(values) add(&Fields, fmt_make_arg(it));
+            For(values) array_add(&Fields, fmt_make_arg(it));
             return this;
         }
 

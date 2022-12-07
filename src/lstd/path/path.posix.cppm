@@ -35,12 +35,12 @@ export {
     // Joins two or more paths.
     // Ignore the previous parts if a part is absolute.
     // This is the de facto way to build paths. Takes care of slashes automatically.
-    [[nodiscard("Leak")]] string path_join(array<string> paths) {
+    mark_as_leak string path_join(array<string> paths) {
         assert(false && "Not implemented");
         return "";
     }
 
-    [[nodiscard("Leak")]] always_inline string path_join(string one, string other) {
+    mark_as_leak always_inline string path_join(string one, string other) {
         auto arr = make_stack_array(one, other);
         return path_join(arr);
     }
@@ -57,14 +57,15 @@ export {
     //
     // Note: The returned strings are substrings so they shouldn't be freed.
     path_split_result path_split(string path) {
-        s64 i = string_find(path, '/', -1, true) + 1;
+        s64 i = string_search(path, '/', search_options {.Start = -1, .Reversed = true}) + 1;
 
-        string head = substring(path, 0, i);
-        string tail = substring(path, i, string_length(path));
+        string head = string_slice(path, 0, i);
+        string tail = string_slice(path, i, string_length(path));
 
         // If head exists and doesn not consist only of slashes
-        if (head && string_find_not(head, '/') != -1) {
-            head = substring(head, 0, string_find_not(head, '/', -1, true) + 1);
+        auto notSlash = [](code_point cp) { return cp != '/'; };
+        if (head && string_search(head, &notSlash) != -1) {
+            head = string_slice(head, 0, string_search(head, &notSlash, search_options{ .Start = -1, .Reversed = true }) + 1);
         }
 
         return {head, tail};

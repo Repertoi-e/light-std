@@ -90,8 +90,8 @@ void emit_while_true(signal<R(Args...)> *s, Args... args) {
 template <typename T>
 void free_signal(signal<T> *s) {
     // @Cleanup Make it a stack array
-    if (s->Callbacks) free(s->Callbacks.Data);
-    if (s->ToRemove) free(s->ToRemove.Data);
+    if (s->Callbacks) free(s->Callbacks);
+    if (s->ToRemove) free(s->ToRemove);
 }
 
 LSTD_END_NAMESPACE

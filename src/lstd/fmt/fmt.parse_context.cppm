@@ -156,7 +156,7 @@ s64 fmt_parse_arg_id(fmt_interp *p) {
 bool parse_fill_and_align(fmt_interp *p, fmt_type argType, fmt_specs *specs) {
     code_point fill = p->It[0];
 
-    string rest = substring(p->It, 1, string_length(p->It));
+    string rest = string_slice(p->It, 1, string_length(p->It));
 
     // First we check if the code point we parsed was an alingment specifier, if it was then there was no fill.
     // We leave it as ' ' by default and continue afterwards for error checking.

@@ -2,6 +2,17 @@ module;
 
 #include "../common.h"
 
+//
+// This is an object which can store a global function, 
+// a method (binded to some object instance), or a functor/lambda.
+// It doesn't allocate any dynamic memory (contrary to std::function). 
+// It does this by keeping a pointer to the functor/lambda,
+// which means that the variable needs to outlive the delegate,
+// which is not as big of a problem as it may sound.
+//
+// @TODO: Show example
+//
+
 export module lstd.delegate;
 
 //
@@ -39,12 +50,6 @@ export {
     template <typename T>
     struct delegate;
 
-    // This is an object which can store a global function, a method (binded to some object instance), or a functor/lambda.
-    // It doesn't allocate any dynamic memory (contrary to std::function). It does this by keeping a pointer to the functor/lambda,
-    // which means that the variable needs to outlive the delegate.
-    //
-    // @TODO: Show example
-    //
     template <typename R, typename... A>
     struct delegate<R(A...)> {
         using stub_t   = R (*)(void *, A no_copy...);

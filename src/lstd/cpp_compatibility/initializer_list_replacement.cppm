@@ -9,9 +9,6 @@ export module lstd.initializer_list_replacement;
 export namespace std {
 template <typename T>
 struct initializer_list {
-    const T *First = nullptr;
-    const T *Last  = nullptr;
-
     using value_type      = T;
     using reference       = const T &;
     using const_reference = const T &;
@@ -32,6 +29,11 @@ struct initializer_list {
     constexpr const T *end() const noexcept { return Last; }
 
     constexpr size_t size() const noexcept { return static_cast<size_t>(Last - First); }
+
+    // private in order to be compatible with std::
+private:
+	const T *First = nullptr;
+	const T *Last = nullptr;
 };
 }  // namespace std
 

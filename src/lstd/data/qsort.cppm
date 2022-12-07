@@ -51,20 +51,18 @@ export {
 
     template <typename T>
     s32 default_comparison(const T *lhs, const T *rhs) {
-        if (*lhs > *rhs) return 1;
-        if (*lhs < *rhs) return -1;
-        return 0;
+        return *lhs <=> *rhs;
     }
 
     template <typename T>
-    constexpr void quick_sort(T * first, s64 count, quick_sort_comparison_func<T> compare = default_comparison<T>) {
+    constexpr void quick_sort(T *first, s64 count, quick_sort_comparison_func<T> compare = default_comparison<T>) {
         auto compareVoid = [&](const void *lhs, const void *rhs) { return compare((const T *) lhs, (const T *) rhs); };
         auto wrapper     = quick_sort_comparison_func<void>(&compareVoid);
         quick_sort(first, count, sizeof(T), wrapper);
     }
 
     template <typename T>
-    constexpr void quick_sort(T * first, T * last, quick_sort_comparison_func<T> compare = default_comparison<T>) {
+    constexpr void quick_sort(T *first, T *last, quick_sort_comparison_func<T> compare = default_comparison<T>) {
         quick_sort(first, last - first + 1, compare);
     }
 }

@@ -75,14 +75,22 @@ inline constexpr null_t null = nullptr;
 
 import lstd.range;
 
-// Semantics to avoid the use of & and && when they are not a unary or binary operator.
+// Semantics to avoid the use of & when the symbol is not used as a unary or binary operator.
 //
 // e.g.
 //      void print_array_to_file(array<u8> no_copy bytes) { ... }
 //      void modify_array(array<u8> ref bytes) { ... }
 //
 #define no_copy const &
-#define ref &&
+#define ref &
+
+// Used to mark functions for which the caller is supposed to free the result.
+// This at leasts makes the compiler warn the caller if they've decided to discard the result.
+//
+// e.g.
+//		mark_as_leak string make_string(...) { ... }
+//
+#define mark_as_leak [[nodiscard("Leak")]]
 
 //
 // Personal preference, use 
@@ -174,13 +182,13 @@ constexpr void swap(T(&a)[N], T(&b)[N]) {
 //
 //     It has no sense of ownership. That is determined explictly in code and by the programmer.
 //
-//     By default arrays are views, to make them dynamic, call     make_dynamic(&arr).
+//     By default arrays are views, to make them dynamic, call     array_reserve(arr, ...).
 //     After that you can modify them (add/remove elements etc.)
 //
 //     You can safely pass around copies and return arrays from functions because
 //     there is no hidden destructor which will free the memory.
 //
-//     When a dynamic array is no longer needed call    free(arr.Data);
+//     When a dynamic array is no longer needed call    free(arr);
 //
 //
 //     We provide a defer macro which runs at the end of the scope (like a destructor),
@@ -197,12 +205,10 @@ constexpr void swap(T(&a)[N], T(&b)[N]) {
 //     // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
 //     // Like arrays, strings are views by default.
 //     string path = "./data/";
-//     make_dynamic(&path);         // Allocates a buffer and copies the string it was pointing to
-//     defer(free(path.Data));
+//     path += "output.txt";
+//     defer(free(path));
 //
-//     append(&path, "output.txt");
-//
-//     string pathWithoutDot = substring(path, 2, -1);
+//     string pathWithoutDot = string_slice(path, 2, -1);
 //
 // To make a deep copy of an array use clone().
 // e.g.         string newPath = clone(path); // Allocates a new buffer and copies contents in _path_

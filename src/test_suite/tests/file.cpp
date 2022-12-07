@@ -44,13 +44,13 @@ TEST(path_manipulation) {
 TEST(file_size) {
     auto thisFile     = string(__FILE__);
     string dataFolder = path_join(path_directory(thisFile), "data");
-    defer(free(dataFolder.Data));
+    defer(free(dataFolder));
 
     string fiveBytes = path_join(dataFolder, "five_bytes");
-    defer(free(fiveBytes.Data));
+    defer(free(fiveBytes));
 
     string text = path_join(dataFolder, "text");
-    defer(free(text.Data));
+    defer(free(text));
 
     assert_eq(path_file_size(fiveBytes), 5);
     assert_eq(path_file_size(text), 277);

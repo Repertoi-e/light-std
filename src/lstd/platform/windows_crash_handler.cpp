@@ -52,7 +52,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         if (SymFromAddr(hProcess, sf.AddrPC.Offset, &symDisplacement, symbol)) {
             call.Name = string(symbol->Name);
             if (!call.Name) {
-                free(call.Name.Data);
+                free(call);
                 call.Name = "UnknownFunction";
             }
         }
@@ -63,7 +63,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         if (SymGetLineFromAddrW64(hProcess, sf.AddrPC.Offset, &lineDisplacement, &lineInfo)) {
             call.File = platform_utf16_to_utf8(lineInfo.FileName, platform_get_persistent_allocator());
             if (!call.File) {
-                free(call.File.Data);
+                free(call);
                 call.File = "UnknownFile";
             }
             call.LineNumber = lineInfo.LineNumber;
@@ -103,15 +103,15 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     else CODE_DESCR(EXCEPTION_POSSIBLE_DEADLOCK);
 
     string message = sprint("{} ({:#x})", desc ? desc : "Unknown exception", exceptionCode);
-    defer(free(message.Data));
+    defer(free(message));
 
     Context.PanicHandler(message, callStack);
 
     For(callStack) {
-        free(it.Name.Data);
-        free(it.File.Data);
+        free(it.Name);
+        free(it.File);
     }
-    free(callStack.Data);
+    free(callStack);
 
     return EXCEPTION_EXECUTE_HANDLER;
 }

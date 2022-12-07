@@ -22,11 +22,11 @@ LSTD_BEGIN_NAMESPACE
 //
 constexpr string get_short_file_name(string str) {
     char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
-    string src     = srcData;
+	string src = srcData;
 
-    s64 findResult = string_find(str, src, -1, true);
+	s64 findResult = string_search(str, src, -1, true);
     if (findResult == -1) {
-        findResult = string_find(str, OS_PATH_SEPARATOR, -1, true);
+        findResult = string_search(str, OS_PATH_SEPARATOR, -1, true);
         assert(findResult != string_length(str) - 1);
         // Skip the slash
         findResult++;
@@ -36,7 +36,7 @@ constexpr string get_short_file_name(string str) {
     }
 
     string result = str;
-    return substring(result, findResult, string_length(result));
+    return string_slice(result, findResult, string_length(result));
 }
 
 #if defined DEBUG_MEMORY

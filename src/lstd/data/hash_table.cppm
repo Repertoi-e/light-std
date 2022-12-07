@@ -161,12 +161,12 @@ export {
 
         table->Allocated = target;
 
-        if (oldEntries) free(oldEntries.Data);
+        if (oldEntries) free(oldEntries);
     }
 
     // Free any memory allocated by this object and reset count
     void free_table(any_hash_table auto *table) {
-        if (table->Allocated) free(table->Entries.Data);
+        if (table->Allocated) free(table->Entries);
         table->Allocated   = 0;
         table->Count       = 0;
         table->SlotsFilled = 0;

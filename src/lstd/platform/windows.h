@@ -34,7 +34,7 @@ LSTD_END_NAMESPACE
         string extendedCallSite = sprint("{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
         char *cStr              = string_to_c_string(extendedCallSite);                                        \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);                                \
-        free(extendedCallSite.Data);                                                                           \
+        free(extendedCallSite);                                                                           \
         free(cStr);                                                                                            \
         return returnOnFail;                                                                                   \
     }
