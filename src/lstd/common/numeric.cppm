@@ -64,7 +64,7 @@ export {
     using u16v8 = base_vector_type<u16, 8>;
     using u32v4 = base_vector_type<u32, 4>;
     using u64v2 = base_vector_type<u64, 2>;
-    
+
     using s8v16 = base_vector_type<s8, 16>;
     using s16v8 = base_vector_type<s16, 8>;
     using s32v4 = base_vector_type<s32, 4>;
@@ -76,221 +76,218 @@ export {
 LSTD_BEGIN_NAMESPACE
 
 struct numeric_base {
-	static constexpr bool is_integral = false;
-	static constexpr s32 digits = 0;
-	static constexpr s32 digits10 = 0;
-	static constexpr s32 max_digits10 = 0;
+    static constexpr bool is_integral = false;
+    static constexpr s32 digits = 0;
+    static constexpr s32 digits10 = 0;
+    static constexpr s32 max_digits10 = 0;
 };
 
 struct numeric_integer_base : numeric_base {
-	static constexpr bool is_integral = true;
+    static constexpr bool is_integral = true;
 };
 
 export {
-	template <typename T>
-	struct numeric : public numeric_base {
-		using value_t = T;
+    template <typename T>
+    struct numeric : public numeric_base {
+        using value_t = T;
+    };
 
-		static value_t min() { return value_t(); }
-		static value_t max() { return value_t(); }
-	};
+    // Const/volatile variations of numeric.
+    template <typename T> struct numeric<const T> : public numeric<T> {};
+    template <typename T> struct numeric<volatile T> : public numeric<T> {};
+    template <typename T> struct numeric<const volatile T> : public numeric<T> {};
 
-	// Const/volatile variations of numeric.
-	template <typename T> struct numeric<const T> : public numeric<T> {};
-	template <typename T> struct numeric<volatile T> : public numeric<T> {};
-	template <typename T> struct numeric<const volatile T> : public numeric<T> {};
+    template <>
+    struct numeric<char> : public numeric_integer_base {
+        static constexpr char min() { return (-128); }
+        static constexpr char max() { return (127); }
 
-	template <>
-	struct numeric<char> : public numeric_integer_base {
-		static constexpr char min() { return (-128); }
-		static constexpr char max() { return (127); }
+        static constexpr s32 digits = 8;
+        static constexpr s32 digits10 = 2;
+    };
 
-		static constexpr s32 digits = 8;
-		static constexpr s32 digits10 = 2;
-	};
+    template <>
+    struct numeric<wchar_t> : public numeric_integer_base {
+        static constexpr wchar_t min() { return 0x0000; }
+        static constexpr wchar_t max() { return 0xffff; }
 
-	template <>
-	struct numeric<wchar_t> : public numeric_integer_base {
-		static constexpr wchar_t min() { return 0x0000; }
-		static constexpr wchar_t max() { return 0xffff; }
+        static constexpr s32 digits = 16;
+        static constexpr s32 digits10 = 4;
+    };
 
-		static constexpr s32 digits = 16;
-		static constexpr s32 digits10 = 4;
-	};
+    template <>
+    struct numeric<bool> : public numeric_integer_base {
+        // limits for type bool
+        static constexpr bool min() { return false; }
+        static constexpr bool max() { return true; }
 
-	template <>
-	struct numeric<bool> : public numeric_integer_base {
-		// limits for type bool
-		static constexpr bool min() { return false; }
-		static constexpr bool max() { return true; }
+        static constexpr s32 digits = 1;
+    };
 
-		static constexpr s32 digits = 1;
-	};
+    template <>
+    struct numeric<u8> : public numeric_integer_base {
+        static constexpr u8 min() { return 0; }
+        static constexpr u8 max() { return (255); }
 
-	template <>
-	struct numeric<u8> : public numeric_integer_base {
-		static constexpr u8 min() { return 0; }
-		static constexpr u8 max() { return (255); }
+        static constexpr s32 digits = 8;
+        static constexpr s32 digits10 = 2;
+    };
 
-		static constexpr s32 digits = 8;
-		static constexpr s32 digits10 = 2;
-	};
+    template <>
+    struct numeric<s16> : public numeric_integer_base {
+        static constexpr s16 min() { return (-32768); }
+        static constexpr s16 max() { return (32767); }
 
-	template <>
-	struct numeric<s16> : public numeric_integer_base {
-		static constexpr s16 min() { return (-32768); }
-		static constexpr s16 max() { return (32767); }
-
-		static constexpr s32 digits = 15;
-		static constexpr s32 digits10 = 4;
-	};
+        static constexpr s32 digits = 15;
+        static constexpr s32 digits10 = 4;
+    };
 
 #ifdef _NATIVE_WCHAR_T_DEFINED
-	template <>
-	struct numeric<u16> : public numeric_integer_base {
-		static constexpr u16 min() { return 0; }
-		static constexpr u16 max() { return (65535); }
+    template <>
+    struct numeric<u16> : public numeric_integer_base {
+        static constexpr u16 min() { return 0; }
+        static constexpr u16 max() { return (65535); }
 
-		static constexpr s32 digits = 16;
-		static constexpr s32 digits10 = 4;
-	};
+        static constexpr s32 digits = 16;
+        static constexpr s32 digits10 = 4;
+    };
 #endif
 
-	template <>
-	struct numeric<char8_t> : public numeric_integer_base {
-		static constexpr char8_t min() { return 0; }
-		static constexpr char8_t max() { return (255); }
+    template <>
+    struct numeric<char8_t> : public numeric_integer_base {
+        static constexpr char8_t min() { return 0; }
+        static constexpr char8_t max() { return (255); }
 
-		static constexpr s32 digits = 8;
-		static constexpr s32 digits10 = 2;
-	};
+        static constexpr s32 digits = 8;
+        static constexpr s32 digits10 = 2;
+    };
 
-	template <>
-	struct numeric<char16_t> : public numeric_integer_base {
-		static constexpr char16_t min() { return 0; }
-		static constexpr char16_t max() { return (65535); }
+    template <>
+    struct numeric<char16_t> : public numeric_integer_base {
+        static constexpr char16_t min() { return 0; }
+        static constexpr char16_t max() { return (65535); }
 
-		static constexpr s32 digits = 16;
-		static constexpr s32 digits10 = 4;
-	};
+        static constexpr s32 digits = 16;
+        static constexpr s32 digits10 = 4;
+    };
 
-	template <>
-	struct numeric<s32> : public numeric_integer_base {
-		static constexpr s32 min() { return (-2147483647 - 1); }
-		static constexpr s32 max() { return (2147483647); }
+    template <>
+    struct numeric<s32> : public numeric_integer_base {
+        static constexpr s32 min() { return (-2147483647 - 1); }
+        static constexpr s32 max() { return (2147483647); }
 
-		static constexpr s32 digits = 31;
-		static constexpr s32 digits10 = 9;
-	};
+        static constexpr s32 digits = 31;
+        static constexpr s32 digits10 = 9;
+    };
 
-	template <>
-	struct numeric<u32> : public numeric_integer_base {
-		static constexpr u32 min() { return 0; }
-		static constexpr u32 max() { return (4294967295U); }
+    template <>
+    struct numeric<u32> : public numeric_integer_base {
+        static constexpr u32 min() { return 0; }
+        static constexpr u32 max() { return (4294967295U); }
 
-		static constexpr s32 digits = 32;
-		static constexpr s32 digits10 = 9;
-	};
+        static constexpr s32 digits = 32;
+        static constexpr s32 digits10 = 9;
+    };
 
-	template <>
-	struct numeric<long> : public numeric_integer_base {
-		static_assert(sizeof s32 == sizeof(long));
-		static constexpr long min() { return (-2147483647 - 1); }
-		static constexpr long max() { return (2147483647); }
+    template <>
+    struct numeric<long> : public numeric_integer_base {
+        static_assert(sizeof s32 == sizeof(long));
+        static constexpr long min() { return (-2147483647 - 1); }
+        static constexpr long max() { return (2147483647); }
 
-		static constexpr s32 digits = 31;
-		static constexpr s32 digits10 = 9;
-	};
+        static constexpr s32 digits = 31;
+        static constexpr s32 digits10 = 9;
+    };
 
-	template <>
-	struct numeric<unsigned long> : public numeric_integer_base {
-		static_assert(sizeof u32 == sizeof(unsigned long));
-		static constexpr unsigned long min() { return 0; }
-		static constexpr unsigned long max() { return (4294967295U); }
+    template <>
+    struct numeric<unsigned long> : public numeric_integer_base {
+        static_assert(sizeof u32 == sizeof(unsigned long));
+        static constexpr unsigned long min() { return 0; }
+        static constexpr unsigned long max() { return (4294967295U); }
 
-		static constexpr s32 digits = 32;
-		static constexpr s32 digits10 = 9;
-	};
+        static constexpr s32 digits = 32;
+        static constexpr s32 digits10 = 9;
+    };
 
-	template <>
-	struct numeric<char32_t> : public numeric_integer_base {
-	public:
-		static constexpr char32_t min() { return 0; }
-		static constexpr char32_t max() { return (4294967295U); }
+    template <>
+    struct numeric<char32_t> : public numeric_integer_base {
+    public:
+        static constexpr char32_t min() { return 0; }
+        static constexpr char32_t max() { return (4294967295U); }
 
-		static constexpr s32 digits = 32;
-		static constexpr s32 digits10 = 9;
-	};
+        static constexpr s32 digits = 32;
+        static constexpr s32 digits10 = 9;
+    };
 
 #define S64_C(c) c##L
 #define U64_C(c) c##UL
 
-	template <>
-	struct numeric<s64> : public numeric_integer_base {
-		static constexpr s64 min() { return (-S64_C(9223372036854775807L) - 1); }
-		static constexpr s64 max() { return (S64_C(9223372036854775807)); }
+    template <>
+    struct numeric<s64> : public numeric_integer_base {
+        static constexpr s64 min() { return (-S64_C(9223372036854775807L) - 1); }
+        static constexpr s64 max() { return (S64_C(9223372036854775807)); }
 
-		static constexpr s32 digits = 63;
-		static constexpr s32 digits10 = 18;
-	};
+        static constexpr s32 digits = 63;
+        static constexpr s32 digits10 = 18;
+    };
 
-	template <>
-	struct numeric<u64> : public numeric_integer_base {
-	public:
-		static constexpr u64 min() { return 0; }
-		static constexpr u64 max() { return (U64_C(18446744073709551615)); }
+    template <>
+    struct numeric<u64> : public numeric_integer_base {
+    public:
+        static constexpr u64 min() { return 0; }
+        static constexpr u64 max() { return (U64_C(18446744073709551615)); }
 
-		static constexpr s32 digits = 64;
-		static constexpr s32 digits10 = 19;
-	};
+        static constexpr s32 digits = 64;
+        static constexpr s32 digits10 = 19;
+    };
 
-	template <>
-	struct numeric<f32> {
-	public:
-		static constexpr f32 min() { return 1.175494351e-38F; }
-		static constexpr f32 max() { return 3.402823466e+38F; }
-		static constexpr f32 epsilon() { return  1.192092896e-07F; } // smallest suchthat 1.0 + epsilon != 1.0
-		static constexpr f32 round_error() { return 0.5F; }
-		static constexpr f32 denorm_min() { return 1.401298464e-45F; }
-		static constexpr f32 infinity() { return __builtin_huge_valf(); }
-		static constexpr f32 quiet_NaN() { return __builtin_nanf("0"); }
-		static constexpr f32 signaling_NaN() { return __builtin_nansf("1"); }
+    template <>
+    struct numeric<f32> {
+    public:
+        static constexpr f32 min() { return 1.175494351e-38F; }
+        static constexpr f32 max() { return 3.402823466e+38F; }
+        static constexpr f32 epsilon() { return  1.192092896e-07F; } // smallest suchthat 1.0 + epsilon != 1.0
+        static constexpr f32 round_error() { return 0.5F; }
+        static constexpr f32 denorm_min() { return 1.401298464e-45F; }
+        static constexpr f32 infinity() { return __builtin_huge_valf(); }
+        static constexpr f32 quiet_NaN() { return __builtin_nanf("0"); }
+        static constexpr f32 signaling_NaN() { return __builtin_nansf("1"); }
 
-		static constexpr s32 digits = 23 + 1; // including the hidden bit
-		static constexpr s32 digits10 = 6; // # of decimal digits of precision
-		static constexpr s32 max_digits10 = 9; // # of decimal digits of precision
-		static constexpr s32 max_exponent = 127;
-		static constexpr s32 max_exponent10 = 38;
-		static constexpr s32 min_exponent = -126;
-		static constexpr s32 min_exponent10 = -37;
-		static constexpr s32 bits_mantissa = 23; // # of bits in mantissa, excluding the hidden bit (which is always interpreted as 1 for normal numbers)
-		static constexpr s32 bits_exponent = 8;
-		static constexpr s32 exponent_bias = 127;
-	};
+        static constexpr s32 digits = 23 + 1; // including the hidden bit
+        static constexpr s32 digits10 = 6; // # of decimal digits of precision
+        static constexpr s32 max_digits10 = 9; // # of decimal digits of precision
+        static constexpr s32 max_exponent = 127;
+        static constexpr s32 max_exponent10 = 38;
+        static constexpr s32 min_exponent = -126;
+        static constexpr s32 min_exponent10 = -37;
+        static constexpr s32 bits_mantissa = 23; // # of bits in mantissa, excluding the hidden bit (which is always interpreted as 1 for normal numbers)
+        static constexpr s32 bits_exponent = 8;
+        static constexpr s32 exponent_bias = 127;
+    };
 
-	template <>
-	struct numeric<f64> {
-	public:
-		static constexpr f64 min() { return 2.2250738585072014e-308; }
-		static constexpr f64 max() { return 1.7976931348623158e+308; }
-		static constexpr f64 epsilon() { return  2.2204460492503131e-016; } // smalles such that 1.0 + epsilon != 1.0
-		static constexpr f64 round_error() { return 0.5; }
-		static constexpr f64 denorm_min() { return 4.9406564584124654e-324; }
-		static constexpr f64 infinity() { return __builtin_huge_val(); }
-		static constexpr f64 quiet_NaN() { return __builtin_nan("0"); }
-		static constexpr f64 signaling_NaN() { return __builtin_nans("1"); }
+    template <>
+    struct numeric<f64> {
+    public:
+        static constexpr f64 min() { return 2.2250738585072014e-308; }
+        static constexpr f64 max() { return 1.7976931348623158e+308; }
+        static constexpr f64 epsilon() { return  2.2204460492503131e-016; } // smalles such that 1.0 + epsilon != 1.0
+        static constexpr f64 round_error() { return 0.5; }
+        static constexpr f64 denorm_min() { return 4.9406564584124654e-324; }
+        static constexpr f64 infinity() { return __builtin_huge_val(); }
+        static constexpr f64 quiet_NaN() { return __builtin_nan("0"); }
+        static constexpr f64 signaling_NaN() { return __builtin_nans("1"); }
 
-		static constexpr s32 digits = 52 + 1; // including the hidden bit
-		static constexpr s32 digits10 = 15; // # of decimal digits of precision
-		static constexpr s32 max_digits10 = 17; // # of decimal digits of precision
-		static constexpr s32 max_exponent = 1023;
-		static constexpr s32 max_exponent10 = 308;
-		static constexpr s32 min_exponent = -1022;
-		static constexpr s32 min_exponent10 = -307;
-		static constexpr s32 bits_mantissa = 52;  // number of bits in mantissa,excluding the hidden bit (which is always interpreted as 1 for normalnumbers)
-		static constexpr s32 bits_exponent = 11;
-		static constexpr s32 exponent_bias = 1023;
-	};
+        static constexpr s32 digits = 52 + 1; // including the hidden bit
+        static constexpr s32 digits10 = 15; // # of decimal digits of precision
+        static constexpr s32 max_digits10 = 17; // # of decimal digits of precision
+        static constexpr s32 max_exponent = 1023;
+        static constexpr s32 max_exponent10 = 308;
+        static constexpr s32 min_exponent = -1022;
+        static constexpr s32 min_exponent10 = -307;
+        static constexpr s32 bits_mantissa = 52;  // number of bits in mantissa,excluding the hidden bit (which is always interpreted as 1 for normalnumbers)
+        static constexpr s32 bits_exponent = 11;
+        static constexpr s32 exponent_bias = 1023;
+    };
 }
 
 LSTD_END_NAMESPACE
@@ -410,17 +407,17 @@ export {
         constexpr u128& operator^=(u128 other);
         constexpr u128& operator++();
         constexpr u128& operator--();
-    };
+};
 }
 
 // Casts from unsigned to signed while preserving the underlying binary representation.
 constexpr s64 s64_bit_cast_to_u64(u64 v) {
-	// Casting an unsigned integer to a signed integer of the same
-	// width is implementation defined behavior if the source value would not fit
-	// in the destination type. We step around it with a roundtrip bitwise not
-	// operation to make sure this function remains constexpr. Clang, GCC, and
-	// MSVC optimize this to a no-op on x86-64.
-	return v & (u64{ 1 } << 63) ? ~((s64)(~v)) : ((s64)(v));
+    // Casting an unsigned integer to a signed integer of the same
+    // width is implementation defined behavior if the source value would not fit
+    // in the destination type. We step around it with a roundtrip bitwise not
+    // operation to make sure this function remains constexpr. Clang, GCC, and
+    // MSVC optimize this to a no-op on x86-64.
+    return v & (u64{ 1 } << 63) ? ~((s64)(~v)) : ((s64)(v));
 }
 
 export {
@@ -532,14 +529,14 @@ export {
         constexpr s128& operator^=(s128 other);
         constexpr s128& operator<<=(s32 amount);
         constexpr s128& operator>>=(s32 amount);
-    };
+};
 
-    constexpr u128& u128::operator=(s128 v) { return *this = u128(v); }
+constexpr u128& u128::operator=(s128 v) { return *this = u128(v); }
 
 #if ENDIAN == LITTLE_ENDIAN
-    constexpr u128::u128(s128 v) : lo{ v.lo }, hi{ (u64)(v.hi) } {}
+constexpr u128::u128(s128 v) : lo{ v.lo }, hi{ (u64)(v.hi) } {}
 #elif ENDIAN == BIG_ENDIAN
-    constexpr u128::u128(s128 v) : hi{ (u64)(v.hi) }, lo{ v.lo } {}
+constexpr u128::u128(s128 v) : hi{ (u64)(v.hi) }, lo{ v.lo } {}
 #else
 #error "Unsupported byte order: must be little or big endian."
 #endif
@@ -684,7 +681,7 @@ export {
         return tmp;
     }
 
-    constexpr u128 & u128::operator++() {
+    constexpr u128& u128::operator++() {
         *this += 1;
         return *this;
     }
@@ -841,52 +838,52 @@ LSTD_END_NAMESPACE
 #endif
 
 s32 msb(u64 x) {
-	unsigned long r = 0;
-	return _BitScanReverse64(&r, x) ? ((s32)r) : -1; // @Platform
+    unsigned long r = 0;
+    return _BitScanReverse64(&r, x) ? ((s32)r) : -1; // @Platform
 }
 
 s32 msb(u128 x) {
-	if (x.hi != 0) return 64 + msb(x.hi);
-	return msb(x.lo);
+    if (x.hi != 0) return 64 + msb(x.hi);
+    return msb(x.lo);
 }
 
 // Long division/modulo for u128 implemented using the shiftsubtractdivisionalgorithmadaptedfrom:
 // https://stackoverflow.com/questions/5386377/division-without-using
 constexpr void div_mod(u128 dividend, u128 divisor, u128* quotient_ret, u128* remainder_ret) {
-	LSTD_USING_NAMESPACE;
+    LSTD_USING_NAMESPACE;
 
-	if (divisor == 0) return;
+    if (divisor == 0) return;
 
-	if (divisor > dividend) {
-		*quotient_ret = 0;
-		*remainder_ret = dividend;
-		return;
-	}
+    if (divisor > dividend) {
+        *quotient_ret = 0;
+        *remainder_ret = dividend;
+        return;
+    }
 
-	if (divisor == dividend) {
-		*quotient_ret = 1;
-		*remainder_ret = 0;
-		return;
-	}
+    if (divisor == dividend) {
+        *quotient_ret = 1;
+        *remainder_ret = 0;
+        return;
+    }
 
-	u128 denominator = divisor;
-	u128 quotient = 0;
+    u128 denominator = divisor;
+    u128 quotient = 0;
 
-	// Left aligns the MSB of the denominator and the dividend.
-	s32 shift = msb(dividend) - msb(denominator);
-	denominator <<= shift;
+    // Left aligns the MSB of the denominator and the dividend.
+    s32 shift = msb(dividend) - msb(denominator);
+    denominator <<= shift;
 
-	// Uses shift-subtract algorithm to divide dividend by denominator. The
-	// remainder will be left in dividend.
-	for (s32 i = 0; i <= shift; ++i) {
-		quotient <<= 1;
-		if (dividend >= denominator) {
-			dividend -= denominator;
-			quotient |= 1;
-		}
-		denominator >>= 1;
-	}
+    // Uses shift-subtract algorithm to divide dividend by denominator. The
+    // remainder will be left in dividend.
+    for (s32 i = 0; i <= shift; ++i) {
+        quotient <<= 1;
+        if (dividend >= denominator) {
+            dividend -= denominator;
+            quotient |= 1;
+        }
+        denominator >>= 1;
+    }
 
-	*quotient_ret = quotient;
-	*remainder_ret = dividend;
+    *quotient_ret = quotient;
+    *remainder_ret = dividend;
 }

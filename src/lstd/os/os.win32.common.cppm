@@ -147,7 +147,7 @@ export {
 }
 
 struct win32_common_state {
-    static constexpr s64 CONSOLE_BUFFER_SIZE = 1_KiB;
+    static const s64 CONSOLE_BUFFER_SIZE = 1_KiB;
 
     char CinBuffer[CONSOLE_BUFFER_SIZE];
     char CoutBuffer[CONSOLE_BUFFER_SIZE];
@@ -224,7 +224,7 @@ void setup_console() {
     SetConsoleMode(S->CerrHandle, dw | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 }
 
-constexpr u32 ERROR_INSUFFICIENT_BUFFER = 122;
+const u32 ERROR_INSUFFICIENT_BUFFER = 122;
 
 void get_module_name() {
     // Get the module name
@@ -268,11 +268,11 @@ void parse_arguments() {
     defer(LocalFree(argv));
 
     PUSH_ALLOC(PERSISTENT) {
-        resize(&S->Argv, argc - 1);
+        reserve(S->Argv, argc - 1);
     }
 
     // Loop over all arguments and add them, skip the .exe name
-    For(range(1, argc)) add(&S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
+    For(range(1, argc)) add(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
 }
 
 export {
@@ -362,7 +362,7 @@ void exit_schedule(const delegate<void()> &function) {
 
     // @Cleanup Lock-free list
     PUSH_ALLOC(PERSISTENT) {
-        add(&S->ExitFunctions, function);
+        add(S->ExitFunctions, function);
     }
 
     unlock(&S->ExitScheduleMutex);
@@ -426,7 +426,7 @@ void os_set_working_dir(string dir) {
     }
 }
 
-constexpr u32 ERROR_ENVVAR_NOT_FOUND = 203;
+const u32 ERROR_ENVVAR_NOT_FOUND = 203;
 
 //
 // @TODO: Cache environment variables when running the program in order to avoid allocating.
@@ -461,7 +461,7 @@ mark_as_leak os_get_env_result os_get_env(string name, bool silent) {
 }
 
 void os_set_env(string name, string value) {
-    if (string_length(value) > 32767) {
+    if (length(value) > 32767) {
         // @Cleanup: The docs say windows doesn't allow that but we should test it.
         assert(false);
     }
@@ -497,7 +497,7 @@ mark_as_leak string os_get_clipboard_content() {
 }
 
 void os_set_clipboard_content(string content) {
-    HANDLE object = GlobalAlloc(GMEM_MOVEABLE, string_length(content) * 2 * sizeof(wchar));
+    HANDLE object = GlobalAlloc(GMEM_MOVEABLE, length(content) * 2 * sizeof(wchar));
     if (!object) {
         platform_report_error("Failed to open clipboard");
         return;
@@ -510,7 +510,7 @@ void os_set_clipboard_content(string content) {
         return;
     }
 
-    utf8_to_utf16(content.Data, string_length(content), clipboard16);
+    utf8_to_utf16(content.Data, length(content), clipboard16);
     GlobalUnlock(object);
 
     if (!OpenClipboard(null)) {
@@ -546,7 +546,7 @@ string os_read_from_console() {
     HANDLE handleName = call;                                                                                  \
     if (!handleName) {                                                                                         \
         string extendedCallSite = sprint("{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name); \
-        char *cStr              = string_to_c_string(extendedCallSite);                                        \
+        char *cStr              = to_c_string(extendedCallSite);                                        \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);                                \
         free(cStr);                                                                                            \
         free(extendedCallSite);                                                                                \
@@ -562,7 +562,7 @@ mark_as_leak os_read_file_result os_read_entire_file(string path) {
     GetFileSizeEx(file, &size);
 
     string result;
-    resize(&result, size.QuadPart);
+    reserve(result, size.QuadPart);
     DWORD bytesRead;
     if (!ReadFile(file, result.Data, (u32) size.QuadPart, &bytesRead, null)) return {{}, false};
     assert(size.QuadPart == bytesRead);

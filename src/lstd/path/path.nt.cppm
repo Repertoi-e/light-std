@@ -21,9 +21,9 @@ import lstd.os.win32.memory;
 LSTD_BEGIN_NAMESPACE
 
 export {
-	constexpr char OS_PATH_SEPARATOR = '\\';
+	const char OS_PATH_SEPARATOR = '\\';
 
-	always_inline constexpr bool path_is_sep(code_point ch) { return ch == '\\' || ch == '/'; }
+	always_inline bool path_is_sep(code_point ch) { return ch == '\\' || ch == '/'; }
 
 	struct path_split_drive_result {
 		string DriveOrUNC, Path;
@@ -45,7 +45,7 @@ export {
 	//    \\host\computer/dir  -> { "\\host\computer", "/dir" }
 	//
 	// Paths cannot contain both a drive letter and a UNC path.
-	constexpr path_split_drive_result path_split_drive(string path);
+	path_split_drive_result path_split_drive(string path);
 
 	// Returns whether a path is absolute.
 	// Trivial in POSIX (starts with '/'), harder on Windows.
@@ -59,7 +59,7 @@ export {
 	//    ./data/myData       -> false
 	//    ../data/myData      -> false
 	//    data/myData         -> false
-	constexpr bool path_is_absolute(string path);
+	bool path_is_absolute(string path);
 
 	// Joins two or more paths.
 	// Ignore the previous parts if a part is absolute.
@@ -88,7 +88,7 @@ export {
 	// The Windows version handles \ and drive letters/UNC sharepoints of course.
 	//
 	// Note: The returned strings are substrings so they shouldn't be freed.
-	constexpr path_split_result path_split(string path);
+	path_split_result path_split(string path);
 
 	// Returns the final component of the path
 	// e.g.
@@ -98,7 +98,7 @@ export {
 	//
 	// Note: The result is a substring and shouldn't be freed.
 
-	constexpr string path_base_name(string path);
+	string path_base_name(string path);
 
 	// Returns everything before the final component of the path
 	// e.g.
@@ -107,7 +107,7 @@ export {
 	//    /home/user/dir     -> /home/user
 	//
 	// Note: The result is a substring and shouldn't be freed.
-	constexpr string path_directory(string path);
+	string path_directory(string path);
 
 	// Split a path in root and extension.
 	// The extension is everything starting at the last dot in the 
@@ -118,7 +118,7 @@ export {
 	//    /home/user/me           -> { "/home/user/me",      "" }
 	//
 	// Note: The returned strings are substrings so they shouldn't be freed.
-	constexpr path_split_extension_result path_split_extension(string path);
+	path_split_extension_result path_split_extension(string path);
 
 	//
 	// The following routines query the OS:
@@ -198,15 +198,15 @@ export {
 		char PlatformFileInfo[sizeof(WIN32_FIND_DATAW)]{};
 
 		// I don't usually use "private" but we seriously don't need to expose this garbage to users...
-		friend void path_read_next_entry(path_walker &walker);
+		friend void path_read_next_entry(path_walker ref walker);
 	};
 
 	// @Cleanup
-	void free_path_walker(path_walker &walker) {
+	void free_path_walker(path_walker ref walker) {
 		free(walker.CurrentFileName);
 	}
 
-	void path_read_next_entry(path_walker &walker);
+	void path_read_next_entry(path_walker ref walker);
 
 	// Return an array of all files in a directory.
 	// _recursively_ determines if files in subdirectories are included.
@@ -221,13 +221,13 @@ export {
     defer(CloseHandle(x));
 
 string get_path_from_here_to(string here, string there) {
-	if (string_search(here, there) == -1) {
+	if (search(here, there) == -1) {
 		return there;
 	} else {
 		if (here.Count == there.Count) {
 			return here;
 		} else {
-			string difference = string_slice(there, string_length(here), string_length(there));
+			string difference = slice(there, length(here), length(there));
 			return difference;
 		}
 	}
@@ -235,40 +235,40 @@ string get_path_from_here_to(string here, string there) {
 
 wchar *utf8_to_utf16(string str) { return platform_utf8_to_utf16(str); }
 
-constexpr path_split_drive_result path_split_drive(string path) {
-	if (string_length(path) >= 2) {
-		if (strings_match(string_slice(path, 0, 2), "\\\\") && path[2] != '\\') {
+path_split_drive_result path_split_drive(string path) {
+	if (length(path) >= 2) {
+		if (strings_match(slice(path, 0, 2), "\\\\") && path[2] != '\\') {
 			// It is an UNC path
 
 			//  vvvvvvvvvvvvvvvvvvvv drive letter or UNC path
 			//  \\machine\mountpoint\directory\etc\...
 			//             directory ^^^^^^^^^^^^^^^
 
-			auto matchSeps = [](code_point cp) { return string_has("\\/", cp); };
+			auto matchSeps = [](code_point cp) { return has("\\/", cp); };
 
-			s64 index = string_search(path, &matchSeps, search_options{ .Start = 2 });
+			s64 index = search(path, &matchSeps, search_options{ .Start = 2 });
 			if (index == -1) return { "", path };
 
-			s64 index2 = string_search(path, &matchSeps, search_options{ .Start = index + 1 });
+			s64 index2 = search(path, &matchSeps, search_options{ .Start = index + 1 });
 
 			// A UNC path can't have two slashes in a row
 			// (after the initial two)
 			if (index2 == index + 1) return { "", path };
 			if (index2 == -1) {
-				index2 = string_length(path);
+				index2 = length(path);
 			}
-			return { string_slice(path, 0, index2), string_slice(path, index2, string_length(path)) };
+			return { slice(path, 0, index2), slice(path, index2, length(path)) };
 		}
 
 		if (path[1] == ':') {
-			return { string_slice(path, 0, 2), string_slice(path, 2, string_length(path)) };
+			return { slice(path, 0, 2), slice(path, 2, length(path)) };
 		}
 	}
 
 	return { "", path };
 }
 
-constexpr bool path_is_absolute(string path) {
+bool path_is_absolute(string path) {
 	auto [_, rest] = path_split_drive(path);
 	return rest && path_is_sep(rest[0]);
 }
@@ -316,9 +316,9 @@ mark_as_leak string path_join(array<string> paths) {
 
 	// Add separator between UNC and non-absolute path if needed
 	if (result && !path_is_sep(result[0]) && result_drive && result_drive[-1] != ':') {
-		string_insert_at_index(result, 0, '\\');
+		insert_at_index(result, 0, '\\');
 	} else {
-		string_insert_at_index(result, 0, result_drive);
+		insert_at_index(result, 0, result_drive);
 	}
 	return result;
 }
@@ -331,7 +331,7 @@ mark_as_leak string path_join(string one, string other) {
 mark_as_leak string path_normalize(string path) {
 	string result;
 
-	if (string_match_beginning(path, "\\\\.\\") || string_match_beginning(path, "\\\\?\\")) {
+	if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\")) {
 		// In the case of paths with these prefixes:
 		// \\.\ -> device names
 		// \\?\ -> literal paths
@@ -359,13 +359,13 @@ mark_as_leak string path_normalize(string path) {
 	while (i < components.Count) {
 		auto it = components[i];
 		if (!it || strings_match(it, ".")) {
-			array_remove_ordered_at_index(components, i);
+			remove_ordered_at_index(components, i);
 		} else if (strings_match(it, "..")) {
 			if (i > 0 && !strings_match(components[i - 1], "..")) {
-				array_remove_range(components, i - 1, i + 1);
+				remove_range(components, i - 1, i + 1);
 				--i;
 			} else if (i == 0 && result && path_is_sep(result[-1])) {
-				array_remove_ordered_at_index(components, i);
+				remove_ordered_at_index(components, i);
 			} else {
 				++i;
 			}
@@ -384,43 +384,43 @@ mark_as_leak string path_normalize(string path) {
 		result += '\\';
 	}
 	// Remove the trailing slash we added in the final iteration of the loop
-	string_remove_at_index(result, -1);
+	remove_at_index(result, -1);
 
 	return result;
 }
 
-constexpr path_split_result path_split(string path) {
+path_split_result path_split(string path) {
 	auto [DriveOrUNC, rest] = path_split_drive(path);
 
 	// Set i to index beyond path's last slash
 
-	auto matchSeps = delegate<bool(code_point)>([](code_point cp) { return string_has("\\/", cp); });
-	auto matchNotSeps = delegate<bool(code_point)>([](code_point cp) { return !string_has("\\/", cp); });
+	auto matchSeps = delegate<bool(code_point)>([](code_point cp) { return has("\\/", cp); });
+	auto matchNotSeps = delegate<bool(code_point)>([](code_point cp) { return !has("\\/", cp); });
 
-	s64 i = string_search(rest, matchSeps, search_options{ .Start = -1, .Reversed = true }) + 1;
+	s64 i = search(rest, matchSeps, search_options{ .Start = -1, .Reversed = true }) + 1;
 
-	string head = string_slice(rest, 0, i);
-	string tail = string_slice(rest, i, string_length(rest));
+	string head = slice(rest, 0, i);
+	string tail = slice(rest, i, length(rest));
 
-	string trimmed = string_slice(head, 0, string_search(head, matchNotSeps, search_options{ .Start = -1, .Reversed = true }) + 1);
+	string trimmed = slice(head, 0, search(head, matchNotSeps, search_options{ .Start = -1, .Reversed = true }) + 1);
 	if (trimmed) head = trimmed;
 
-	head = string_slice(path, 0, string_length(head) + string_length(DriveOrUNC));
+	head = slice(path, 0, length(head) + length(DriveOrUNC));
 
 	return { head, tail };
 }
 
-constexpr string path_base_name(string path) {
+string path_base_name(string path) {
 	auto [_, tail] = path_split(path);
 	return tail;
 }
 
-constexpr string path_directory(string path) {
+string path_directory(string path) {
 	auto [head, _] = path_split(path);
 	return head;
 }
 
-constexpr path_split_extension_result path_split_extension(string path) {
+path_split_extension_result path_split_extension(string path) {
 	return path_split_extension_general(path, '/', '\\', '.');
 }
 
@@ -558,7 +558,7 @@ bool path_create_symbolic_link(string path, string dest) {
 	return CreateSymbolicLinkW(utf8_to_utf16(dest), utf8_to_utf16(path), flag);
 }
 
-void path_read_next_entry(path_walker &walker) {
+void path_read_next_entry(path_walker ref walker) {
 	do {
 		if (!walker.Handle) {
 			if (!walker.Path16) {
@@ -593,7 +593,7 @@ void path_read_next_entry(path_walker &walker) {
 		free(walker.CurrentFileName);
 
 		auto *fileName = ((WIN32_FIND_DATAW *)walker.PlatformFileInfo)->cFileName;
-		resize(&walker.CurrentFileName, c_string_length(fileName) * 4);                                // @Cleanup
+		reserve(walker.CurrentFileName, c_string_length(fileName) * 4);                                // @Cleanup
 		utf16_to_utf8(fileName, (char *)walker.CurrentFileName.Data, &walker.CurrentFileName.Count);  // @Constcast
 
 	} while (strings_match(walker.CurrentFileName, "..") || strings_match(walker.CurrentFileName, "."));
@@ -601,7 +601,7 @@ void path_read_next_entry(path_walker &walker) {
 }
 
 // This version appends paths to the array _result_. Copy this and modify it to suit your use case.
-void path_walk_recursively_impl(string path, string first, array<string> *result) {
+void path_walk_recursively_impl(string path, string first, array<string> ref result) {
 	assert(path_is_directory(path));
 
 	auto walker = path_walker(path);
@@ -612,7 +612,7 @@ void path_walk_recursively_impl(string path, string first, array<string> *result
 		if (!walker.Handle) break;
 
 		string p = path_join(get_path_from_here_to(first, path), walker.CurrentFileName);
-		add(result, p);
+		result += {p};
 
 		if (path_is_directory(p)) {
 			path_walk_recursively_impl(p, first, result);
@@ -634,10 +634,10 @@ mark_as_leak array<string> path_walk(string path, bool recursively) {
 			if (!walker.Handle) break;
 
 			string file = path_join(path, walker.CurrentFileName);
-			add(&result, file);
+			result += {file};
 		}
 	} else {
-		path_walk_recursively_impl(path, path, &result);
+		path_walk_recursively_impl(path, path, result);
 	}
 	return result;
 }

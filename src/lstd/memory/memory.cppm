@@ -170,7 +170,7 @@ export {
     // :AllocationFlags:
     // Allocations marked explicitly as leaks don't get reported when calling debug_memory_report_leaks().
     // This is handled internally when passed, so allocator implementations needn't pay attention to it.
-    constexpr u64 LEAK = 1ull << 63;
+    const u64 LEAK = 1ull << 63;
 
     //
     // This specifies what the signature of each allocation function should look like.
@@ -256,7 +256,6 @@ export {
     };
 
     // T is used to initialize the resulting memory (uses placement new to call the constructor).
-    // @TODO In C++20 we can do constexpr allocations.
     template <non_void T>
     T *malloc(allocate_options options = {}, source_location loc = source_location::current()) {
         return lstd_allocate_impl<T>(options.Count, options.Alloc, options.Alignment, options.Options, loc);
@@ -281,8 +280,6 @@ export {
     // We assume your type can be copied to another place in memory and just work.
     // We assume that the destructor of the old copy doesn't invalidate the new copy.
     // We don't do destructors in this library but we still call them here, just in case.
-    //
-    // @TODO In C++20 we can do constexpr allocations.
     template <non_void T>
     T *realloc(T * block, reallocate_options options, source_location loc = source_location::current()) {
         return lstd_reallocate_impl<T>(block, options.NewCount, options.Options, loc);
@@ -302,8 +299,6 @@ export {
     // That's why it's dangerous to mix new and delete[] and new[] and delete.
     // 
     // However we only have one type of free here.
-    //
-    // @TODO In C++20 we can do constexpr allocations.
     template <non_void T>
     requires(!is_const<T>) void free(T * block, u64 options = 0, source_location loc = source_location::current()) {
         lstd_free_impl(block, options, loc);
@@ -588,18 +583,18 @@ export {
     // - For the case of the no-man's land and free blocks, if you store to any of
     //   these locations, the memory integrity checker will detect it.
     //
-    constexpr s64 NO_MANS_LAND_SIZE = 4;
+    const s64 NO_MANS_LAND_SIZE = 4;
 
     // _NO_MANS_LAND_SIZE_ (4) extra bytes with this value before and after the allocation block
     // which help detect reading out of range errors
-    constexpr byte NO_MANS_LAND_FILL = 0xFD;
+    const byte NO_MANS_LAND_FILL = 0xFD;
 
     // When freeing we fill the block with this value (detects bugs when accessing memory that's freed)
-    constexpr byte DEAD_LAND_FILL = 0xDD;
+    const byte DEAD_LAND_FILL = 0xDD;
 
     // When allocating a new block we fill it with this value
     // (detects bugs when accessing memory before initializing it)
-    constexpr byte CLEAN_LAND_FILL = 0xCD;
+    const byte CLEAN_LAND_FILL = 0xCD;
 
     //
     // Each allocation contains this header before the returned pointer.
@@ -861,14 +856,7 @@ requires(!is_const<T>) void lstd_free_impl(T *block, u64 options, source_locatio
         }
     }
 
-    // @TODO
-    //if constexpr (is_constant_evaluated()) {
-    //    // Constexpr allocations in C++20 seem to just look for the magic symbol "delete".
-    //    // Doesn't care if it's defined or not.
-    //    delete block;
-    //} else {
     general_free(block, options, loc);
-    // }
 }
 
 LSTD_END_NAMESPACE

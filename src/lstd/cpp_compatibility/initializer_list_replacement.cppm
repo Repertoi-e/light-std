@@ -14,10 +14,10 @@ struct initializer_list {
     using const_reference = const T &;
     using size_type       = size_t;
 
-    constexpr initializer_list() noexcept {
+    initializer_list() noexcept {
     }
 
-    constexpr initializer_list(const T *first, const T *last) noexcept
+    initializer_list(const T *first, const T *last) noexcept
         : First(first),
           Last(last) {
     }
@@ -25,10 +25,10 @@ struct initializer_list {
     using iterator       = const T *;
     using const_iterator = const T *;
 
-    constexpr const T *begin() const noexcept { return First; }
-    constexpr const T *end() const noexcept { return Last; }
+    const T *begin() const noexcept { return First; }
+    const T *end() const noexcept { return Last; }
 
-    constexpr size_t size() const noexcept { return static_cast<size_t>(Last - First); }
+    size_t size() const noexcept { return static_cast<size_t>(Last - First); }
 
     // private in order to be compatible with std::
 private:

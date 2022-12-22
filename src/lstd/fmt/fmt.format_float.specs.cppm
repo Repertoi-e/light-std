@@ -120,7 +120,7 @@ export {
     // Normalizes the value converted from double and multiplied by (1 << SHIFT).
     template <s32 SHIFT>
     fp fp_normalize(fp value) {
-        constexpr u64 IMPLICIT_BIT = 1ull << numeric<f64>::bits_mantissa;
+        const u64 IMPLICIT_BIT = 1ull << numeric<f64>::bits_mantissa;
 
         // Handle subnormals.
         u64 shifted_implicit_bit = IMPLICIT_BIT << SHIFT;

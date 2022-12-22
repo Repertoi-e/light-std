@@ -29,7 +29,7 @@ LSTD_BEGIN_NAMESPACE
 #define For_enumerate(in) For_enumerate_as(it_index, it, in)
 
 template <typename T, typename TIter = decltype(T().begin()), typename = decltype(T().end()) >
-constexpr auto enumerate_impl(const T &in) {
+auto enumerate_impl(const T &in) {
     struct iterator {
         s64 I;
         TIter Iter;

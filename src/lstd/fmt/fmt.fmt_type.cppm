@@ -25,11 +25,11 @@ export {
         CUSTOM
     };
 
-    constexpr bool fmt_is_type_integral(fmt_type type) {
+    bool fmt_is_type_integral(fmt_type type) {
         return type > fmt_type::NONE && type <= fmt_type::LAST_INTEGRAL;
     }
 
-    constexpr bool fmt_is_type_arithmetic(fmt_type type) {
+    bool fmt_is_type_arithmetic(fmt_type type) {
         return type > fmt_type::NONE && type <= fmt_type::LAST_ARITHMETIC;
     }
 }

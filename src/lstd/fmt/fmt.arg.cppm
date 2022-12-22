@@ -96,7 +96,7 @@ export {
     }
 
     template <typename T>
-    constexpr auto fmt_mapped_type_constant_v = type_constant_v<decltype(fmt_map_arg(declval<T>()))>;
+    auto fmt_mapped_type_constant_v = type_constant_v<decltype(fmt_map_arg(declval<T>()))>;
 
     fmt_arg fmt_make_arg(auto no_copy v) { return {fmt_mapped_type_constant_v<decltype(v)>, fmt_value(fmt_map_arg(v))}; }
 

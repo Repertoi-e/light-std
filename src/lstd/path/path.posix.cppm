@@ -18,9 +18,9 @@ import lstd.path.general;
 LSTD_BEGIN_NAMESPACE
 
 export {
-    constexpr char OS_PATH_SEPARATOR = '/';
+    const char OS_PATH_SEPARATOR = '/';
 
-    always_inline constexpr bool path_is_sep(code_point ch) { return ch == '/'; }
+    always_inline bool path_is_sep(code_point ch) { return ch == '/'; }
 
     // Returns whether a path is absolute.
     // Trivial in POSIX (starts with '/'), harder on Windows.
@@ -30,7 +30,7 @@ export {
     //    ./data/myData       -> false
     //    ../data/myData      -> false
     //    data/myData         -> false
-    constexpr bool path_is_absolute(string path) { return path_is_sep(path[0]); }
+    bool path_is_absolute(string path) { return path_is_sep(path[0]); }
 
     // Joins two or more paths.
     // Ignore the previous parts if a part is absolute.
@@ -57,15 +57,15 @@ export {
     //
     // Note: The returned strings are substrings so they shouldn't be freed.
     path_split_result path_split(string path) {
-        s64 i = string_search(path, '/', search_options {.Start = -1, .Reversed = true}) + 1;
+        s64 i = search(path, '/', search_options {.Start = -1, .Reversed = true}) + 1;
 
-        string head = string_slice(path, 0, i);
-        string tail = string_slice(path, i, string_length(path));
+        string head = slice(path, 0, i);
+        string tail = slice(path, i, length(path));
 
         // If head exists and doesn not consist only of slashes
         auto notSlash = [](code_point cp) { return cp != '/'; };
-        if (head && string_search(head, &notSlash) != -1) {
-            head = string_slice(head, 0, string_search(head, &notSlash, search_options{ .Start = -1, .Reversed = true }) + 1);
+        if (head && search(head, &notSlash) != -1) {
+            head = slice(head, 0, search(head, &notSlash, search_options{ .Start = -1, .Reversed = true }) + 1);
         }
 
         return {head, tail};
@@ -103,7 +103,7 @@ export {
     //    /home/user/me           -> { "/home/user/me",      "" }
     //
     // Note: The returned strings are substrings so they shouldn't be freed.
-    always_inline constexpr path_split_extension_result path_split_extension(string path) {
+    always_inline path_split_extension_result path_split_extension(string path) {
         return path_split_extension_general(path, '/', 0, '.');
     }
 }

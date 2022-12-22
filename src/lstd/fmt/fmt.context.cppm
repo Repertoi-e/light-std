@@ -353,7 +353,7 @@ void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs) {
     }
 
     auto prefix       = string(prefixBuffer, prefixPointer - prefixBuffer);
-    auto prefixLength = string_length(prefix);
+    auto prefixLength = length(prefix);
 
     s64 formattedSize = prefixLength + numDigits;
     s64 padding       = 0;
@@ -429,17 +429,17 @@ void write_exponent(fmt_context *f, s64 exp) {
 //
 // @Robustness
 // We assume significand contains only ASCII 0-9 digits
-// and significand.Count == string_length(significand).
+// and significand.Count == length(significand).
 // I'm not sure if we will ever format anything besides
 // arabic numerals so ...
 //
 void write_significand(fmt_context *f, string significand, s64 integralSize, code_point decimalPoint = 0) {
     if (!significand) return;  // The significand is actually empty if the value formatted is 0
 
-    write_no_specs(f, string_slice(significand, 0, integralSize));
+    write_no_specs(f, slice(significand, 0, integralSize));
     if (decimalPoint) {
         write_no_specs(f, decimalPoint);
-        write_no_specs(f, string_slice(significand, integralSize, significand.Count));
+        write_no_specs(f, slice(significand, integralSize, significand.Count));
     }
 }
 
@@ -689,8 +689,8 @@ void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs) 
     } else if (floatSpecs.Format == fmt_float_specs::GENERAL) {
         // If we are using the general format, we use the fixed notation (0.0001) if the exponent is
         // in [EXP_LOWER, EXP_UPPER/precision), instead of the exponent notation (1e-04) in the other case.
-        constexpr s64 EXP_LOWER = -4;
-        constexpr s64 EXP_UPPER = 16;
+        const s64 EXP_LOWER = -4;
+        const s64 EXP_UPPER = 16;
 
         // We also pay attention if the precision has been set.
         // By the time we get here it can be -1 for the general format (if the user hasn't specified a precision).

@@ -15,7 +15,6 @@ module;
 export module lstd.bits;
 
 export import lstd.math;
-import lstd.is_constant_evaluated;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -25,7 +24,7 @@ export {
     //   e.g msb(12) (binary - 1100) -> returns 3
     // If x is 0, returned value is -1 (no set bits).
     template <typename T>
-    constexpr s32 msb(T x) {
+    s32 msb(T x) {
         // We can't use a concept here because we need the msb forward declaration in u128.h,
         // but that file can't include "type_info.h". C++ is bullshit.
         static_assert(is_unsigned_integral<T>);
@@ -36,25 +35,18 @@ export {
             return msb(x.lo);
         }
         else {
-            if (is_constant_evaluated()) {
-                s32 r = 0;
-                while (x >>= 1) ++r;
-                return r;
+#if COMPILER == MSVC
+            if constexpr (sizeof(T) == 8) {
+                unsigned long r = 0;
+                return _BitScanReverse64(&r, x) ? ((s32)r) : -1;
             }
             else {
-#if COMPILER == MSVC
-                if constexpr (sizeof(T) == 8) {
-                    unsigned long r = 0;
-                    return _BitScanReverse64(&r, x) ? ((s32)r) : -1;
-                }
-                else {
-                    unsigned long r = 0;
-                    return _BitScanReverse(&r, x) ? ((s32)r) : -1;
-                }
+                unsigned long r = 0;
+                return _BitScanReverse(&r, x) ? ((s32)r) : -1;
+            }
 #else
 #error Implement.
 #endif
-            }
         }
     }
 
@@ -62,53 +54,46 @@ export {
     // The index always starts at the LSB.
     //   e.g lsb(12) (binary - 1100) -> returns 2
     // If x is 0, returned value is -1 (no set bits).
-    constexpr s32 lsb(is_unsigned_integral auto x) {
+    s32 lsb(is_unsigned_integral auto x) {
         if constexpr (sizeof(x) == 16) {
             // 128 bit integers
             if (x.lo == 0) return 64 + lsb(x.hi);
             return lsb(x.lo);
         }
         else {
-            if (is_constant_evaluated()) {
-                s32 r = 0;
-                while (!(x & 1)) ++r, x >>= 1;
-                return r;
+#if COMPILER == MSVC
+            if constexpr (sizeof(x) == 8) {
+                unsigned long r = 0;
+                return _BitScanForward64(&r, x) ? ((s32)r) : -1;
             }
             else {
-#if COMPILER == MSVC
-                if constexpr (sizeof(x) == 8) {
-                    unsigned long r = 0;
-                    return _BitScanForward64(&r, x) ? ((s32)r) : -1;
-                }
-                else {
-                    unsigned long r = 0;
-                    return _BitScanForward(&r, x) ? ((s32)r) : -1;
-                }
+                unsigned long r = 0;
+                return _BitScanForward(&r, x) ? ((s32)r) : -1;
+            }
 #else
 #error Implement.
 #endif
-            }
         }
     }
 
-    constexpr u32 rotate_left_32(u32 x, u32 bits) { return (x << bits) | (x >> (32 - bits)); }
-    constexpr u64 rotate_left_64(u64 x, u32 bits) { return (x << bits) | (x >> (64 - bits)); }
+    u32 rotate_left_32(u32 x, u32 bits) { return (x << bits) | (x >> (32 - bits)); }
+    u64 rotate_left_64(u64 x, u32 bits) { return (x << bits) | (x >> (64 - bits)); }
 
-    constexpr u32 rotate_right_32(u32 x, u32 bits) { return (x >> bits) | (x << (32 - bits)); }
-    constexpr u64 rotate_right_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 - bits)); }
+    u32 rotate_right_32(u32 x, u32 bits) { return (x >> bits) | (x << (32 - bits)); }
+    u64 rotate_right_64(u64 x, u32 bits) { return (x >> bits) | (x << (64 - bits)); }
 
     // Functions for swapping endianness. You can check for the endianness by using #if ENDIAN = LITTLE_ENDIAN, etc.
-    constexpr void byte_swap_2(void* ptr) {
+    void byte_swap_2(void* ptr) {
         u16 x = *(u16*)ptr;
         *(u16*)ptr = x << 8 & 0xFF00 | x >> 8 & 0x00FF;
     }
 
-    constexpr void byte_swap_4(void* ptr) {
+    void byte_swap_4(void* ptr) {
         u32 x = *(u32*)ptr;
         *(u32*)ptr = x << 24 & 0xFF000000 | x << 8 & 0x00FF0000 | x >> 8 & 0x0000FF00 | x >> 24 & 0x000000FF;
     }
 
-    constexpr void byte_swap_8(void* ptr) {
+    void byte_swap_8(void* ptr) {
         u64 x = *(u64*)ptr;
         x = ((x << 8) & 0xFF00FF00FF00FF00ULL) | ((x >> 8) & 0x00FF00FF00FF00FFULL);
         x = ((x << 16) & 0xFFFF0000FFFF0000ULL) | ((x >> 16) & 0x0000FFFF0000FFFFULL);
@@ -119,32 +104,32 @@ export {
     // Useful: http://graphics.stanford.edu/~seander/bithacks.html#CopyIntegerSign
     //
 
-    constexpr bool has_zero_byte(u32 v) {
+    bool has_zero_byte(u32 v) {
         // Uses 4 operations
         return (((v)-0x01010101UL) & ~(v) & 0x80808080UL);
     }
 
-    constexpr bool has_byte(u32 x, u8 value) {
+    bool has_byte(u32 x, u8 value) {
         // Uses 5 operations when value is constant
         return (has_zero_byte((x) ^ (~0UL / 255 * value)));
     }
 
-    constexpr bool has_byte_less_than(u32 x, u8 value) {
+    bool has_byte_less_than(u32 x, u8 value) {
         // Uses 4 operations when value is constant
         return (((x)-~0UL / 255 * value) & ~(x) & ~0UL / 255 * 128);
     }
 
-    constexpr bool has_byte_greater_than(u32 x, u8 value) {
+    bool has_byte_greater_than(u32 x, u8 value) {
         // Uses 3 operations when value is constant
         return (((x)+~0UL / 255 * (127 - value) | (x)) & ~0UL / 255 * 128);
     }
 
-    constexpr s32 count_bytes_less_than(u32 x, u8 value) {
+    s32 count_bytes_less_than(u32 x, u8 value) {
         // Uses 7 operations when value is constant
         return (((~0UL / 255 * (127 + (value)) - ((x) & ~0UL / 255 * 127)) & ~(x) & ~0UL / 255 * 128) / 128 % 255);
     }
 
-    constexpr s32 count_bytes_greater_than(u32 x, u8 value) {
+    s32 count_bytes_greater_than(u32 x, u8 value) {
         // Uses 6 operations when value is constant
         return (((((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(value)) | (x)) & ~0UL / 255 * 128) / 128 % 255);
     }
@@ -152,17 +137,17 @@ export {
     // Sometimes it reports false positives.
     // Use has_byte_between for an exact answer.
     // Use this as a fast pretest:
-    constexpr bool has_likely_byte_between(u32 x, u8 low, u8 high) {
+    bool has_likely_byte_between(u32 x, u8 low, u8 high) {
         // Uses 7 operations when values are constant
         return ((((x)-~0UL / 255 * high) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - low)) & ~0UL / 255 * 128);
     }
 
-    constexpr bool has_byte_between(u32 x, u8 low, u8 high) {
+    bool has_byte_between(u32 x, u8 low, u8 high) {
         // Uses 7 operations when values are constant
         return ((~0UL / 255 * (127 + (u8)(high)) - ((x) & ~0UL / 255 * 127) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(low))) & ~0UL / 255 * 128);
     }
 
-    constexpr s32 count_bytes_between(u32 x, u8 low, u8 high) {
+    s32 count_bytes_between(u32 x, u8 low, u8 high) {
         // Uses 10 operations when values are constant
         return ((~0UL / 255 * (127 + (u8)(high)) - ((x) & ~0UL / 255 * 127) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(low))) & ~0UL / 255 * 128) / 128 % 255;
     }
@@ -173,11 +158,11 @@ export {
 	// These are just look up tables for powers of ten. 
 	// Used in the fmt module when printing arithmetic types, for example.
 
-	constexpr u32 POWERS_OF_10_32[] = { 1, POWERS_OF_10(1) };
-	constexpr u64 POWERS_OF_10_64[] = { 1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull };
+    const u32 POWERS_OF_10_32[] = { 1, POWERS_OF_10(1) };
+    const u64 POWERS_OF_10_64[] = { 1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull };
 
-	constexpr u32 ZERO_OR_POWERS_OF_10_32[] = { 0, POWERS_OF_10(1) };
-	constexpr u64 ZERO_OR_POWERS_OF_10_64[] = { 0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull };
+    const u32 ZERO_OR_POWERS_OF_10_32[] = { 0, POWERS_OF_10(1) };
+	const u64 ZERO_OR_POWERS_OF_10_64[] = { 0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull };
 
     // Returns the number of bits (base 2 digits) needed to represent n. Leading zeroes
     // are not counted, except for n == 0, in which case count_digits_base_2 returns 1.
@@ -203,7 +188,7 @@ export {
     }
 
     template <u32 Bits>
-    constexpr u32 count_digits(is_integral auto value) {
+    u32 count_digits(is_integral auto value) {
         decltype(value) n = value;
 
         u32 numDigits = 0;

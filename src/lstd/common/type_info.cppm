@@ -48,13 +48,13 @@ export {
 // This is essentially a utility base struct for defining properties as both structconstants and as types.
 template <typename T, T Value>
 struct integral_constant {
-	static constexpr T value = Value;
+	static const T value = Value;
 
 	using value_t = T;
 	using type = integral_constant<T, Value>;
 
-	constexpr operator value_t() const { return value; }
-	constexpr value_t operator()() const { return value; }
+	operator value_t() const { return value; }
+	value_t operator()() const { return value; }
 };
 
 using true_t = integral_constant<bool, true>;   // == to std::true_type
@@ -67,8 +67,8 @@ template <typename T> struct is_const_helper_1<const volatile T*> : true_t { };
 template <typename T> struct is_const_helper_2 : is_const_helper_1<T*> { };
 template <typename T> struct is_const_helper_2<T&> : false_t { };  // Note here that Tis const, not the reference to T. So is_const is false.
 
-template <typename, typename> constexpr bool is_same_template_helper = false;
-template <template <typename...> typename T, typename... A, typename... B> constexpr bool is_same_template_helper<T<A...>, T<B...>> = true;
+template <typename, typename> bool is_same_template_helper = false;
+template <template <typename...> typename T, typename... A, typename... B> bool is_same_template_helper<T<A...>, T<B...>> = true;
 
 template <typename T, typename U> struct same_helper : false_t {};
 template <typename T> struct same_helper<T, T> : true_t {};
@@ -105,7 +105,7 @@ export {
 //    u32 br = bit_cast<u32>(f);
 //
 template <typename DestType, typename SourceType>
-constexpr DestType bit_cast(SourceType const & sourceValue) {
+DestType bit_cast(SourceType const & sourceValue) {
 	static_assert(sizeof(DestType) == sizeof(SourceType));
     return __builtin_bit_cast(DestType, sourceValue);
 }
@@ -262,7 +262,7 @@ template <typename T> using underlying_type_t = typename underlying_type_helper<
 // For a given array type T and a given dimension I where I >= rank<T>::value, extent<T, I>::value == 0.
 // For a given array type of unknown extent T[], extent<T[], 0>::value == 0.
 // For a given non-array type T and an arbitrary dimension I, extent<T, I>::value == 0.
-template <typename T, s64 N = 0> constexpr s64 extent_v = extent_helper<T, N>::value;
+template <typename T, s64 N = 0> s64 extent_v = extent_helper<T, N>::value;
 
 template <typename T> concept is_array = is_array_helper<T>::value;
 template <typename T> concept is_array_of_known_bounds = extent_v<T> != 0;

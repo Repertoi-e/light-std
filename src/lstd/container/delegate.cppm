@@ -52,39 +52,39 @@ export {
 
     template <typename R, typename... A>
     struct delegate<R(A...)> {
-        using stub_t   = R (*)(void *, A no_copy...);
+        using stub_t = R(*)(void*, A no_copy...);
         using return_t = R;
 
         template <typename Type, typename Signature>
         struct target {
-            Type *InstancePtr;
+            Type* InstancePtr;
             Signature FunctionPtr;
         };
 
         struct default_type_;                                              // Unknown default type (undefined)
         using default_function = void (default_type_::*)(void);            // Unknown default function (undefined)
-        using default_type     = target<default_type_, default_function>;  // Default target type
+        using default_type = target<default_type_, default_function>;  // Default target type
 
-        static constexpr s64 Count = sizeof(default_type);
+        static const s64 Count = sizeof(default_type);
 
         alignas(default_type) byte Data[Count]{};
         alignas(stub_t) stub_t Invoker = null;
 
         // Invoke static method / free function
         template <null_t, typename Signature>
-        static R invoke(void *data, A no_copy... args) {
+        static R invoke(void* data, A no_copy... args) {
             return (*((target<null_t, Signature> *) data)->FunctionPtr)(args...);
         }
 
         // Invoke method
         template <typename Type, typename Signature>
-        static R invoke(void *data, A no_copy... args) {
+        static R invoke(void* data, A no_copy... args) {
             return (((target<Type, Signature> *) data)->InstancePtr->*((target<Type, Signature> *) data)->FunctionPtr)(args...);
         }
 
         // Invoke function object (functor)
         template <typename Type, null_t>
-        static R invoke(void *data, A no_copy... args) {
+        static R invoke(void* data, A no_copy... args) {
             return (*((target<Type, null_t> *) data)->InstancePtr)(args...);
         }
 
@@ -94,35 +94,35 @@ export {
         delegate(null_t) {}
 
         // Construct delegate with static method / free function
-        delegate(R (*function)(A...)) {
+        delegate(R(*function)(A...)) {
             using Signature = decltype(function);
 
-            auto storage         = (target<null_t, Signature> *) &Data[0];
+            auto storage = (target<null_t, Signature> *) & Data[0];
             storage->InstancePtr = null;
             storage->FunctionPtr = function;
-            Invoker              = &delegate::template invoke<null, Signature>;
+            Invoker = &delegate::template invoke<null, Signature>;
         }
 
         // Construct delegate with method
         template <typename Type, typename Signature>
-        delegate(Type *object, Signature method) {
-            auto storage         = (target<Type, Signature> *) &Data[0];
+        delegate(Type* object, Signature method) {
+            auto storage = (target<Type, Signature> *) & Data[0];
             storage->InstancePtr = object;
             storage->FunctionPtr = method;
-            Invoker              = &delegate::template invoke<Type, Signature>;
+            Invoker = &delegate::template invoke<Type, Signature>;
         }
 
         // Construct delegate with function object (functor) / lambda
         template <typename Type>
-        delegate(Type *functor) {
-            auto storage         = (target<Type, null_t> *) &Data[0];
+        delegate(Type* functor) {
+            auto storage = (target<Type, null_t> *) & Data[0];
             storage->InstancePtr = functor;
             storage->FunctionPtr = null;
-            Invoker              = &delegate::template invoke<Type, null>;
+            Invoker = &delegate::template invoke<Type, null>;
         }
 
         // Assign null pointer
-        delegate &operator=(null_t) {
+        delegate& operator=(null_t) {
             zero_memory(Data, Count);
             Invoker = null;
             return *this;
@@ -135,7 +135,7 @@ export {
 
         // Call operator
         R operator()(A... args) const {
-            return (*Invoker)((void *) &Data[0], args...);
+            return (*Invoker)((void*)&Data[0], args...);
         }
     };
 }

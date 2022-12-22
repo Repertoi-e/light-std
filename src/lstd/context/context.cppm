@@ -16,6 +16,11 @@ export {
         u32 LineNumber = -1;
     };
 
+    void free(os_function_call ref src) {
+        free(src.Name);
+        free(src.File);
+    }
+
     os_function_call clone(os_function_call no_copy src) {
         os_function_call result;
         result.Name       = clone(src.Name);
@@ -228,7 +233,7 @@ export {
 
     // Allocates a buffer, copies the string's contents and also appends a zero terminator.
     // Uses the temporary allocator.
-    char *string_to_c_string_temp(string s) { return string_to_c_string(s, TemporaryAllocator); }
+    char *string_to_c_string_temp(string s) { return to_c_string(s, TemporaryAllocator); }
 }
 
 LSTD_END_NAMESPACE

@@ -29,13 +29,13 @@ def get_short_file_path(path):
     
 build_test_table_contents = ""
 
-def output_test(file, test_name):
+def output_test(test_name):
     global build_test_table_contents
 
     func_name = "test_" + test_name
 
-    build_test_table_contents += f"    extern void {func_name}();\n"
-    build_test_table_contents += f'    add(g_TestTable[string("{file}")], test{{"{test_name}", {func_name}}});\n'
+    build_test_table_contents += f"        extern void {func_name}();\n"
+    build_test_table_contents += f'        add(*array, test{{"{test_name}", {func_name}}});\n'
     
 def handle_file(path, file_name):
     global build_test_table_contents
@@ -77,7 +77,9 @@ def handle_file(path, file_name):
     
     num_tests = len(re.findall(r"(?<!x)TEST(\(.*?\))", contents))
     short_file_path = get_short_file_path(path)  
-    build_test_table_contents += f'    make_dynamic(g_TestTable[string("{file}")], {num_tests});\n'
+
+    build_test_table_contents += '    {\n'
+    build_test_table_contents += f'        auto [_, array] = add(g_TestTable, string("{file}"), {{}});\n'
     
     #
     # We ignore a test if preceeded by "x". 
@@ -90,11 +92,13 @@ def handle_file(path, file_name):
         
         if test_name in name_map:
             for alternative_name in name_map[test_name]:
-                output_test(short_file_path, alternative_name)
+                output_test(alternative_name)
         else:
-            output_test(short_file_path, test_name)
+            output_test(test_name)
         
         print(file_name, test_name)
+
+    build_test_table_contents += '    }\n'
   
 
 for root, dirs, files in os.walk("./tests"):

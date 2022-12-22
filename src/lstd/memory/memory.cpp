@@ -20,23 +20,23 @@ LSTD_BEGIN_NAMESPACE
 //      /home/.../game/src/some_dir/a/string.cpp ---> some_dir/a/localization.cpp
 //      /home/.../game/some_dir/string.cpp       ---> localization.cpp
 //
-constexpr string get_short_file_name(string str) {
+string get_short_file_name(string str) {
     char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
 	string src = srcData;
 
-	s64 findResult = string_search(str, src, -1, true);
+    s64 findResult = search(str, src, search_options{ .Start = -1, .Reversed = true });
     if (findResult == -1) {
-        findResult = string_search(str, OS_PATH_SEPARATOR, -1, true);
-        assert(findResult != string_length(str) - 1);
+        findResult = search(str, OS_PATH_SEPARATOR, search_options{ .Start = -1, .Reversed = true });
+        assert(findResult != length(str) - 1);
         // Skip the slash
         findResult++;
     } else {
         // Skip the src directory
-        findResult += string_length(src);
+        findResult += length(src);
     }
 
     string result = str;
-    return string_slice(result, findResult, string_length(result));
+    return slice(result, findResult, length(result));
 }
 
 #if defined DEBUG_MEMORY

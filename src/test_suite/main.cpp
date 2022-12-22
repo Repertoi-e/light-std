@@ -3,16 +3,14 @@
 import lstd.os;
 
 void run_tests() {
-    make_dynamic(&asserts::GlobalFailed, 8);
-
     print("\n");
     for (auto [fileName, tests] : g_TestTable) {
         print("{}:\n", *fileName);
 
         u32 sucessfulProcs = 0;
         For(*tests) {
-            auto length = min(string_length(it.Name), 30);
-            print("        {:.{}} {:.^{}} ", it.Name, length, "", 35 - length);
+            auto len = min(length(it.Name), 30);
+            print("        {:.{}} {:.^{}} ", it.Name, len, "", 35 - len);
 
             auto failedAssertsStart = asserts::GlobalFailed.Count;
 
@@ -61,7 +59,7 @@ void run_tests() {
     if (asserts::GlobalFailed) free(asserts::GlobalFailed.Data);
 }
 
-constexpr bool LOG_TO_FILE = false;
+const bool LOG_TO_FILE = false;
 
 string_builder_writer g_Logger;
 

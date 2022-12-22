@@ -9,7 +9,7 @@ LSTD_BEGIN_NAMESPACE
 //
 //  For(array) print(it);
 //
-#define For_as(x, in) for (auto no_copy x : in)
+#define For_as(x, in) for (auto && x : in)
 #define For(in) For_as(it, in)
 
 //

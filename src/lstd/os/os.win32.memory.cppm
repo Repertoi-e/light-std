@@ -233,10 +233,10 @@ export {
         PUSH_ALLOC(alloc) {
             // src.Length * 2 because one unicode character might take 2 wide chars.
             // This is just an approximation, not all space will be used!
-            result = malloc<wchar>({.Count = string_length(str) * 2 + 1});
+            result = malloc<wchar>({.Count = length(str) * 2 + 1});
         }
 
-        utf8_to_utf16(str.Data, string_length(str), result);
+        utf8_to_utf16(str.Data, length(str), result);
         return result;
     }
 
@@ -249,7 +249,7 @@ export {
         PUSH_ALLOC(alloc) {
             // String length * 4 because one unicode character might take 4 bytes in utf8.
             // This is just an approximation, not all space will be used!
-            array_reserve(result, c_string_length(str) * 4);
+            reserve(result, c_string_length(str) * 4);
         }
 
         utf16_to_utf8(str, (char *) result.Data, &result.Count);
@@ -310,7 +310,7 @@ s64 os_get_block_size(void *ptr) {
     HANDLE handleName = call;                                                                                  \
     if (!handleName) {                                                                                         \
         string extendedCallSite = sprint("{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name); \
-        char *cStr              = string_to_c_string(extendedCallSite);                                        \
+        char *cStr              = to_c_string(extendedCallSite);                                        \
         windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);                                \
         free(cStr);                                                                                            \
         free(extendedCallSite);                                                                           \

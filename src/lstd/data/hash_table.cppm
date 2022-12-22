@@ -6,8 +6,16 @@ export module lstd.hash_table;
 
 export import lstd.memory;
 export import lstd.hash;
+export import lstd.optional;
 
 LSTD_BEGIN_NAMESPACE
+
+// I hate C++. We can't just define this inside hash_table and use them in function signatures...
+template <typename HashTableT>
+using key_t = HashTableT::K;
+
+template <typename HashTableT>
+using value_t = HashTableT::V;
 
 //
 // This hash table stores all entries in a contiguous array, for good performance when looking up things. Some tables
@@ -36,276 +44,279 @@ LSTD_BEGIN_NAMESPACE
 // Using multiple arrays that store data in the form hash-hash-hash, key-key-key leads to way more constant number of cache misses.
 //
 export {
-    // I hate C++. We can't just define this inside hash_table and use them in function signatures...
-    template <typename HashTableT>
-    using key_t = HashTableT::K;
+	template <typename K_, typename V_>
+	struct hash_table {
+		static const s64 FIRST_VALID_HASH = 2;
 
-    template <typename HashTableT>
-    using value_t = HashTableT::V;
+		static const s64 MINIMUM_SIZE = 32;
+		static const s64 LOAD_FACTOR_PERCENT = 70;
 
-    template <typename K_, typename V_>
-    struct hash_table {
-        static constexpr s64 FIRST_VALID_HASH = 2;
+		using K = K_;
+		using V = V_;
 
-        static constexpr s64 MINIMUM_SIZE        = 32;
-        static constexpr s64 LOAD_FACTOR_PERCENT = 70;
+		struct entry {
+			u64 Hash;
+			K Key;
+			V Value;
+		};
+		array<entry> Entries;
 
-        using K = K_;
-        using V = V_;
+		s64 Count = 0;  // Number of slots in use
+		s64 SlotsFilled = 0;  // Number of slots that can't be used (valid + removed items)
+		s64 Allocated = 0;  // Number of slots allocated in total, @Cleanup
 
-        struct entry {
-            u64 Hash;
-            K Key;
-            V Value;
-        };
-        array<entry> Entries;
-
-        s64 Count       = 0;  // Number of slots in use
-        s64 SlotsFilled = 0;  // Number of slots that can't be used (valid + removed items)
-        s64 Allocated   = 0;  // Number of slots allocated in total, @Cleanup
-
-        // Returns a pointer to the value associated with _key_.
-        // If the key doesn't exist, this adds a new element and returns it.
-        //
+		// Returns a pointer to the value associated with _key_.
+		// If the key doesn't exist, this adds a new element and returns it.
+		//
 		// You can also iterate over the table like this:
 		//
 		//      for (auto [key, value] : table) {
 		//          ...
 		//      }
 		//
-        V *operator[](K no_copy key) { return get(this, key); }
-    };
+		optional<V> operator[](K no_copy key);
+	};
+}
 
-    // is_same_template wouldn't work because hash_table contains a bool (and not a type) as a third template parameter.
-    // At this point I hate C++
-    template <typename>
-    constexpr bool is_hash_table = false;
+// is_same_template wouldn't work because hash_table contains a bool (and no type) as a third template parameter.
+// At this point I hate C++
+template <typename>
+const bool is_hash_table = false;
 
-    template <typename K, typename V>
-    constexpr bool is_hash_table<hash_table<K, V>> = true;
+template <typename K, typename V>
+const bool is_hash_table<hash_table<K, V>> = true;
 
-    template <typename T>
-    concept any_hash_table = is_hash_table<T>;
+template <typename T>
+concept any_hash_table = is_hash_table<T>;
 
-    template <any_hash_table T>
-    struct key_value_pair {
-        key_t<T> *Key;
-        value_t<T> *Value;
-    };
+export {
+	template <any_hash_table T>
+	struct key_value_pair {
+		key_t<T> *Key;
+		value_t<T> *Value;
+	};
 
-    template <any_hash_table T>
-    struct hash_table_iterator {
-        using hash_table_t = T;
+	// Reserves space equal to the next power of two bigger than _size_, starting at _MINIMUM_SIZE_.
+	//
+	// Allocates a buffer if the hash table doesn't already point to allocated memory (using the Context's allocator).
+	//
+	// You don't need to call this before using the hash table.
+	// The first time an element is added to the hash table, it reserves with _MINIMUM_SIZE_ and no specified alignment.
+	// You can call this before using the hash table to initialize the arrays with a custom alignment (if that's required).
+	void resize(any_hash_table auto ref table, s64 slotsToAllocate, u32 alignment = 0) {
+		if (slotsToAllocate < table.Allocated) return;
 
-        hash_table_t *Table;
-        s64 Index;
+		s64 target = max<s64>(ceil_pow_of_2(slotsToAllocate), table.MINIMUM_SIZE);
 
-        hash_table_iterator(T *table, s64 index = 0) : Table(table), Index(index) { skip_empty_slots(); }
+		auto oldEntries = table.Entries;
 
-        hash_table_iterator &operator++() { return ++Index, skip_empty_slots(), *this; }
+		if (!table.Allocated) {
+			// @Cleanup
+			reserve(table.Entries, target);
+		}
+		else {
+			reserve(table.Entries, target);
+			table.Entries.Count = 0;
+		}
 
-        hash_table_iterator operator++(s32) {
-            hash_table_iterator pre = *this;
-            return ++*this, pre;
-        }
+		For(range(target)) {
+			(table.Entries.Data + it)->Hash = 0;
+		}
 
-        bool operator==(hash_table_iterator other) const { return Table == other.Table && Index == other.Index; }
-        bool operator!=(hash_table_iterator other) const { return !(*this == other); }
+		// Add the old items
+		For_as(it_index, range(table.Allocated)) {
+			auto it = oldEntries.Data + it_index;
+			if (it->Hash >= table.FIRST_VALID_HASH) add_prehashed(table, it->Hash, it->Key, it->Value);
+		}
 
-        key_value_pair<hash_table_t> operator*() {
-            auto *entry = Table->Entries.Data + Index;
-            return {&entry->Key, &entry->Value};
-        }
+		table.Allocated = target;
 
-        void skip_empty_slots() {
-            for (; Index < Table->Allocated; ++Index) {
-                if ((Table->Entries.Data + Index)->Hash >= Table->FIRST_VALID_HASH) break;
-            }
-        }
-    };
+		if (oldEntries) free(oldEntries);
+	}
 
-    auto begin(any_hash_table auto &table) { return hash_table_iterator(&table); }
-    auto end(any_hash_table auto &table) { return hash_table_iterator(&table, table.Allocated); }
+	// Free any memory allocated by this object and reset count
+	void free(any_hash_table auto ref table) {
+		if (table.Allocated) free(table.Entries);
+		table.Allocated = 0;
+		table.Count = 0;
+		table.SlotsFilled = 0;
+	}
 
-    // Reserves space equal to the next power of two bigger than _size_, starting at _MINIMUM_SIZE_.
-    //
-    // Allocates a buffer if the hash table doesn't already point to allocated memory (using the Context's allocator).
-    //
-    // You don't need to call this before using the hash table.
-    // The first time an element is added to the hash table, it reserves with _MINIMUM_SIZE_ and no specified alignment.
-    // You can call this before using the hash table to initialize the arrays with a custom alignment (if that's required).
-    void resize(any_hash_table auto *table, s64 slotsToAllocate, u32 alignment = 0) {
-        if (slotsToAllocate < table->Allocated) return;
+	// Don't free the hash table, just destroy contents and reset count
+	void table_reset(any_hash_table auto ref table) {
+		For(range(table.Allocated)) {
+			(table.Entries.Data + it)->Hash = 0;
+		}
+		table.Count = 0;
+		table.SlotsFilled = 0;
+	}
 
-        s64 target = max<s64>(ceil_pow_of_2(slotsToAllocate), table->MINIMUM_SIZE);
+	// Looks for key in the hash table using the given hash
+	template <any_hash_table T>
+	key_value_pair<T> table_find_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
+		if (!table.Count) return { null, null };
 
-        auto oldEntries = table->Entries;
+		s64 index = hash & table.Allocated - 1;
+		For(range(table.Allocated)) {
+			auto it = table.Entries.Data + index;
+			if (it->Hash == hash && it->Key == key) return { &it->Key, &it->Value };
 
-        if (!table->Allocated) {
-            // @Cleanup
-            make_dynamic(&table->Entries, target);
-        } else {
-            resize(&table->Entries, target);
-            reset(&table->Entries);
-        }
+			++index;
+			if (index >= table.Allocated) index = 0;
+		}
+		return { null, null };
+	}
 
-        For(range(target)) {
-            (table->Entries.Data + it)->Hash = 0;
-        }
+	template <any_hash_table T>
+	auto find(T* table, key_t<T> no_copy key) {
+		return find_prehashed(table, get_hash(key), key);
+	}
 
-        // Add the old items
-        For_as(it_index, range(table->Allocated)) {
-            auto it = oldEntries.Data + it_index;
-            if (it->Hash >= table->FIRST_VALID_HASH) add_prehashed(table, it->Hash, it->Key, it->Value);
-        }
+	// Returns pointers to the added key and value.
+	template <any_hash_table T>
+	key_value_pair<T> add_prehashed(T ref table, u64 hash, key_t<T> no_copy key, value_t<T> no_copy value) {
+		static_assert(table.LOAD_FACTOR_PERCENT < 100);  // 100 percent will cause infinite loop
 
-        table->Allocated = target;
+		// The + 1 here handles the case when the hash table size is 1 and you add the first item.
+		if ((table.SlotsFilled + 1) * 100 >= table.Allocated * table.LOAD_FACTOR_PERCENT) resize(table, table.SlotsFilled * 2);  // Double size
 
-        if (oldEntries) free(oldEntries);
-    }
+		assert(table.SlotsFilled < table.Allocated);
 
-    // Free any memory allocated by this object and reset count
-    void free_table(any_hash_table auto *table) {
-        if (table->Allocated) free(table->Entries);
-        table->Allocated   = 0;
-        table->Count       = 0;
-        table->SlotsFilled = 0;
-    }
+		if (hash < table.FIRST_VALID_HASH) hash += table.FIRST_VALID_HASH;
 
-    // Don't free the hash table, just destroy contents and reset count
-    void reset(any_hash_table auto *table) {
-        For(range(table->Allocated)) {
-            (table->Entries.Data + it)->Hash = 0;
-        }
-        table->Count       = 0;
-        table->SlotsFilled = 0;
-    }
+		s64 index = hash & table.Allocated - 1;
+		while ((table.Entries.Data + index)->Hash) {
+			++index;
+			if (index >= table.Allocated) index = 0;
+		}
 
-    // Looks for key in the hash table using the given hash
-    template <any_hash_table T>
-    key_value_pair<T> find_prehashed(T * table, u64 hash, key_t<T> no_copy key) {
-        if (!table->Count) return {null, null};
+		++table.Count;
+		++table.SlotsFilled;
 
-        s64 index = hash & table->Allocated - 1;
-        For(range(table->Allocated)) {
-            auto it = table->Entries.Data + index;
-            if (it->Hash == hash && it->Key == key) return {&it->Key, &it->Value};
+		auto* entry = table.Entries.Data + index;
+		*entry = { hash, key, value };
+		return { &entry->Key, &entry->Value };
+	}
 
-            ++index;
-            if (index >= table->Allocated) index = 0;
-        }
-        return {null, null};
-    }
+	template <any_hash_table T>
+	key_value_pair<T> add(T ref table, key_t<T> no_copy key, value_t<T> no_copy value) {
+		return add_prehashed(table, get_hash(key), key, value);
+	}
 
-    template <any_hash_table T>
-    auto find(T * table, key_t<T> no_copy key) {
-        return find_prehashed(table, get_hash(key), key);
-    }
+	template <any_hash_table T>
+	key_value_pair<T> set_prehashed(T ref table, u64 hash, key_t<T> no_copy key, value_t<T> no_copy value) {
+		auto [kp, vp] = find_prehashed(table, hash, key);
+		if (vp) {
+			*vp = value;
+			return { kp, vp };
+		}
+		return add_prehashed(table, hash, key, value);
+	}
 
-    // Returns pointers to the added key and value.
-    template <any_hash_table T>
-    key_value_pair<T> add_prehashed(T * table, u64 hash, key_t<T> no_copy key, value_t<T> no_copy value) {
-        static_assert(table->LOAD_FACTOR_PERCENT < 100);  // 100 percent will cause infinite loop
+	template <any_hash_table T>
+	key_value_pair<T> set(T ref table, key_t<T> no_copy key, value_t<T> no_copy value) {
+		return set_prehashed(table, get_hash(key), key, value);
+	}
 
-        // The + 1 here handles the case when the hash table size is 1 and you add the first item.
-        if ((table->SlotsFilled + 1) * 100 >= table->Allocated * table->LOAD_FACTOR_PERCENT) resize(table, table->SlotsFilled * 2);  // Double size
+	// Returns true if the key was found and removed.
+	template <any_hash_table T>
+	bool remove_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
+		auto [kp, vp] = find_prehashed(table, hash, key);
+		if (vp) {
+			s64 index = vp - table.Values;
+			table.Hashes[index] = 1;
+			return true;
+		}
+		return false;
+	}
 
-        assert(table->SlotsFilled < table->Allocated);
+	// Returns true if the key was found and removed.
+	template <any_hash_table T>
+	bool remove(T ref table, key_t<T> no_copy key) {
+		return remove_prehashed(table, get_hash(key), key);
+	}
 
-        if (hash < table->FIRST_VALID_HASH) hash += table->FIRST_VALID_HASH;
+	// Returns true if the hash table has the given key.
+	template <any_hash_table T>
+	bool has(T ref table, key_t<T> no_copy key) { return find(table, key).Key != null; }
 
-        s64 index = hash & table->Allocated - 1;
-        while ((table->Entries.Data + index)->Hash) {
-            ++index;
-            if (index >= table->Allocated) index = 0;
-        }
+	// Returns true if the hash table has the given key.
+	template <any_hash_table T>
+	bool has_prehashed(T ref table, u64 hash, key_t<T> no_copy key) { return find_prehashed(table, hash, key) != null; }
 
-        ++table->Count;
-        ++table->SlotsFilled;
+	// Returns the value (if found)
+	template <any_hash_table T>
+	auto ref get(T ref table, key_t<T> no_copy key) {
+		optional<value_t<T>> result;
 
-        auto *entry = table->Entries.Data + index;
-        *entry      = {hash, key, value};
-        return {&entry->Key, &entry->Value};
-    }
+		u64 hash = get_hash(key);
 
-    template <any_hash_table T>
-    key_value_pair<T> add(T * table, key_t<T> no_copy key, value_t<T> no_copy value) {
-        return add_prehashed(table, get_hash(key), key, value);
-    }
+		auto* vp = find_prehashed(table, hash, key).Value;
+		if (vp) result = *vp;
 
-    template <any_hash_table T>
-    key_value_pair<T> set_prehashed(T * table, u64 hash, key_t<T> no_copy key, value_t<T> no_copy value) {
-        auto [kp, vp] = find_prehashed(table, hash, key);
-        if (vp) {
-            *vp = value;
-            return {kp, vp};
-        }
-        return add_prehashed(table, hash, key, value);
-    }
+		return result;
+	}
 
-    template <any_hash_table T>
-    key_value_pair<T> set(T * table, key_t<T> no_copy key, value_t<T> no_copy value) {
-        return set_prehashed(table, get_hash(key), key, value);
-    }
+	template <any_hash_table T>
+	bool operator==(T no_copy t, T no_copy u) {
+		if (t.Entries.Count != u.Entries.Count) return false;
 
-    // Returns true if the key was found and removed.
-    template <any_hash_table T>
-    bool remove_prehashed(T * table, u64 hash, key_t<T> no_copy key) {
-        auto [kp, vp] = find_prehashed(table, hash, key);
-        if (vp) {
-            s64 index            = vp - table->Values;
-            table->Hashes[index] = 1;
-            return true;
-        }
-        return false;
-    }
+		for (auto [k, v] : t) {
+			if (!has(u, *k)) return false;
+			if (*v != *find(u, *k).Value) return false;
+		}
+		return true;
+	}
 
-    // Returns true if the key was found and removed.
-    template <any_hash_table T>
-    bool remove(T * table, key_t<T> no_copy key) {
-        return remove_prehashed(table, get_hash(key), key);
-    }
+	template <any_hash_table T>
+	bool operator!=(T no_copy t, T no_copy u) { return !(t == u); }
 
-    // Returns true if the hash table has the given key.
-    template <any_hash_table T>
-    bool has(T * table, key_t<T> no_copy key) { return find(table, key).Key != null; }
+	template <any_hash_table T>
+	T clone(T no_copy src) {
+		T table;
+		for (auto [k, v] : *src) table_add(table, *k, *v);
+		return table;
+	}
 
-    // Returns true if the hash table has the given key.
-    template <any_hash_table T>
-    bool has_prehashed(T * table, u64 hash, key_t<T> no_copy key) { return find_prehashed(table, hash, key) != null; }
+	template <any_hash_table T>
+	struct hash_table_iterator {
+		using hash_table_t = T;
 
-    // Returns a pointer to the value.
-    // Adds a new default initialized one if _key_ is not found.
-    template <any_hash_table T>
-    auto *get(T * table, key_t<T> no_copy key) {
-        u64 hash = get_hash(key);
+		hash_table_t ref Table;
+		s64 Index;
 
-        auto *vp = find_prehashed(table, hash, key).Value;
-        if (vp) return vp;
+		hash_table_iterator(T ref table, s64 index = 0) : Table(table), Index(index) { skip_empty_slots(); }
+		hash_table_iterator& operator++() { return ++Index, skip_empty_slots(), * this; }
 
-        return add_prehashed(table, hash, key, value_t<T>{}).Value;
-    }
+		hash_table_iterator operator++(s32) {
+			hash_table_iterator pre = *this;
+			return ++*this, pre;
+		}
 
-    template <any_hash_table T>
-    bool operator==(T no_copy t, T no_copy u) {
-        if (t.Entries.Count != u.Entries.Count) return false;
+		bool operator==(hash_table_iterator other) const { return &Table == &other.Table && Index == other.Index; }
+		bool operator!=(hash_table_iterator other) const { return !(*this == other); }
 
-        for (auto [k, v] : t) {
-            if (!has(u, *k)) return false;
-            if (*v != *find(u, *k).Value) return false;
-        }
-        return true;
-    }
+		key_value_pair<hash_table_t> operator*() {
+			auto* entry = Table.Entries.Data + Index;
+			return { &entry->Key, &entry->Value };
+		}
 
-    template <any_hash_table T>
-    bool operator!=(T no_copy t, T no_copy u) { return !(t == u); }
+		void skip_empty_slots() {
+			for (; Index < Table.Allocated; ++Index) {
+				if ((Table.Entries.Data + Index)->Hash >= Table.FIRST_VALID_HASH) break;
+			}
+		}
+	};
 
-    template <any_hash_table T>
-    T clone(T * src) {
-        T table;
-        for (auto [k, v] : *src) add(&table, *k, *v);
-        return table;
-    }
+	auto begin(any_hash_table auto ref table) { return hash_table_iterator(table); }
+	auto end(any_hash_table auto ref table) { return hash_table_iterator(table, table.Allocated); }
+}
+
+template<typename K, typename V>
+optional<V> hash_table<K, V>::operator[](K no_copy key)
+{
+	return get(this, key);
 }
 
 LSTD_END_NAMESPACE
+

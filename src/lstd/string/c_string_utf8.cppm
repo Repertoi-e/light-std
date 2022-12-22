@@ -61,7 +61,7 @@ export {
     // The length of a null-terminated string. Doesn't care about encoding.
     // Note that this calculation does not include the null byte.
     // @Speed @TODO Vectorize
-    constexpr s64 c_string_length(any_c_string auto str) {
+    s64 c_string_length(any_c_string auto str) {
         if (!str) return 0;
 
         s64 length = 0;
@@ -71,7 +71,7 @@ export {
 
     // The length (in code points) of a utf-8 string
     // @Speed @TODO Vectorize
-    constexpr s64 utf8_length(const char *str, s64 size) {
+    s64 utf8_length(const char *str, s64 size) {
         if (!str || size == 0) return 0;
 
         // Count all first-bytes (the ones that don't match 10xxxxxx).
@@ -85,7 +85,7 @@ export {
     // Returns -1 if strings match, else returns the index of the first different byte
     // @Speed @TODO Vectorize
     template <any_c_string C>
-    constexpr s64 compare_string(C one, C other) {
+    s64 compare_string(C one, C other) {
         assert(one);
         assert(other);
 
@@ -104,7 +104,7 @@ export {
     // Return -1 if one < other, 0 if one == other and 1 if one > other (not the pointers)
     // @Speed @TODO Vectorize
     template <any_c_string C>
-    constexpr s32 compare_string_lexicographically(C one, C other) {
+    s32 compare_string_lexicographically(C one, C other) {
         assert(one);
         assert(other);
 
@@ -114,31 +114,31 @@ export {
 
     // @TODO
     // This function only works for ascii
-    constexpr bool is_digit(code_point x) { return x >= '0' && x <= '9'; }
+    bool is_digit(code_point x) { return x >= '0' && x <= '9'; }
 
     // This function only works for ascii
-    constexpr bool is_hex_digit(code_point x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f') || (x >= 'A' && x <= 'F'); }
+    bool is_hex_digit(code_point x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f') || (x >= 'A' && x <= 'F'); }
 
     // This function only works for ascii
-    constexpr bool is_space(code_point x) { return (x >= 9 && x <= 13) || x == 32; }
+    bool is_space(code_point x) { return (x >= 9 && x <= 13) || x == 32; }
 
     // This function only works for ascii
-    constexpr bool is_blank(code_point x) { return x == 9 || x == 32; }
+    bool is_blank(code_point x) { return x == 9 || x == 32; }
 
     // This function only works for ascii
-    constexpr bool is_alpha(code_point x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
+    bool is_alpha(code_point x) { return (x >= 65 && x <= 90) || (x >= 97 && x <= 122); }
 
     // This function only works for ascii
-    constexpr bool is_alphanumeric(code_point x) { return is_alpha(x) || is_digit(x); }
+    bool is_alphanumeric(code_point x) { return is_alpha(x) || is_digit(x); }
 
     // This function only works for ascii
-    constexpr bool is_identifier_start(code_point x) { return is_alpha(x) || x == '_'; }
+    bool is_identifier_start(code_point x) { return is_alpha(x) || x == '_'; }
 
     // This function only works for ascii
-    constexpr bool is_print(code_point x) { return x > 31 && x != 127; }
+    bool is_print(code_point x) { return x > 31 && x != 127; }
 
     // Convert code point to uppercase
-    constexpr code_point to_upper(code_point cp) {
+    code_point to_upper(code_point cp) {
         if (((0x0061 <= cp) && (0x007a >= cp)) || ((0x00e0 <= cp) && (0x00f6 >= cp)) ||
             ((0x00f8 <= cp) && (0x00fe >= cp)) || ((0x03b1 <= cp) && (0x03c1 >= cp)) ||
             ((0x03c3 <= cp) && (0x03cb >= cp))) {
@@ -207,7 +207,7 @@ export {
     }
 
     // Convert code point to lowercase
-    constexpr code_point to_lower(code_point cp) {
+    code_point to_lower(code_point cp) {
         if (((0x0041 <= cp) && (0x005a >= cp)) || ((0x00c0 <= cp) && (0x00d6 >= cp)) ||
             ((0x00d8 <= cp) && (0x00de >= cp)) || ((0x0391 <= cp) && (0x03a1 >= cp)) ||
             ((0x03a3 <= cp) && (0x03ab >= cp))) {
@@ -275,14 +275,14 @@ export {
         return cp;
     }
 
-    constexpr bool is_upper(code_point ch) { return ch != to_lower(ch); }
-    constexpr bool is_lower(code_point ch) { return ch != to_upper(ch); }
+    bool is_upper(code_point ch) { return ch != to_lower(ch); }
+    bool is_lower(code_point ch) { return ch != to_upper(ch); }
 
     // Returns -1 if strings match, else returns the index of the first different byte.
     // Ignores the case of the characters.
     // @Speed @TODO Vectorize
     template <any_c_string C>
-    constexpr s64 compare_string_ignore_case(C one, C other) {
+    s64 compare_string_ignore_case(C one, C other) {
         assert(one);
         assert(other);
 
@@ -302,7 +302,7 @@ export {
     // Ignores the case of the characters.
     // @Speed @TODO Vectorize
     template <any_c_string C>
-    constexpr s32 compare_string_lexicographically_ignore_case(C one, C other) {
+    s32 compare_string_lexicographically_ignore_case(C one, C other) {
         assert(one);
         assert(other);
 
@@ -312,15 +312,15 @@ export {
 
     // true if strings are equal (not the pointers)
     template <any_c_string C>
-    constexpr bool strings_match(C one, C other) { return compare_string(one, other) == -1; }
+    bool strings_match(C one, C other) { return compare_string(one, other) == -1; }
 
     // true if strings are equal (not the pointers)
     template <any_c_string C>
-    constexpr bool strings_match_ignore_case(C one, C other) { return compare_string_ignore_case(one, other) == -1; }
+    bool strings_match_ignore_case(C one, C other) { return compare_string_ignore_case(one, other) == -1; }
 
     // Returns the size in bytes of the code point that _str_ points to.
     // If the byte pointed by _str_ is a countinuation utf-8 byte, this function returns 0.
-    constexpr s8 utf8_get_size_of_cp(const char *str) {
+    s8 utf8_get_size_of_cp(const char *str) {
         if (!str) return 0;
         if ((*str & 0xc0) == 0x80) return 0;
 
@@ -336,7 +336,7 @@ export {
     }
 
     // Returns the size that the code point would be if it were encoded
-    constexpr s8 utf8_get_size_of_cp(code_point codePoint) {
+    s8 utf8_get_size_of_cp(code_point codePoint) {
         if (((s32) 0xffffff80 & codePoint) == 0) {
             return 1;
         } else if (((s32) 0xfffff800 & codePoint) == 0) {
@@ -349,7 +349,7 @@ export {
     }
 
     // Encodes code point at _str_, assumes there is enough space
-    constexpr void utf8_encode_cp(char *str, code_point codePoint) {
+    void utf8_encode_cp(char *str, code_point codePoint) {
         s64 size = utf8_get_size_of_cp(codePoint);
         if (size == 1) {
             // 1-byte/7-bit ascii
@@ -377,7 +377,7 @@ export {
     }
 
     // Decodes a code point from a data pointer
-    constexpr code_point utf8_decode_cp(const char *str) {
+    code_point utf8_decode_cp(const char *str) {
         if (0xf0 == (0xf8 & str[0])) {
             // 4 byte utf-8 code point
             return ((0x07 & str[0]) << 18) | ((0x3f & str[1]) << 12) | ((0x3f & str[2]) << 6) | (0x3f & str[3]);
@@ -394,7 +394,7 @@ export {
     }
 
     // Checks whether the encoded code point in data is valid utf-8
-    constexpr bool utf8_is_valid_cp(const char *data) {
+    bool utf8_is_valid_cp(const char *data) {
         u8 *p = (u8 *) data;
 
         s64 sizeOfCp = utf8_get_size_of_cp(data);
@@ -447,12 +447,12 @@ export {
 
     // This returns a pointer to the code point at a specified index in an utf-8 string.
     // This is unsafe, doesn't check if we go over bounds. In the general case you should
-    // call this with a result from translate_index(...), which handles out of bounds indexing.
+    // call this with a result from translate_negative_index(...), which handles out of bounds indexing.
     //
     // If LSTD_ARRAY_BOUNDS_CHECK is defined this fails if we go out of bounds.
     //
     // @Speed @TODO Vectorize for large strings
-    constexpr const char *utf8_get_pointer_to_cp_at_translated_index(const char *str, s64 byteLength, s64 index) {
+    const char *utf8_get_pointer_to_cp_at_translated_index(const char *str, s64 byteLength, s64 index) {
         auto *end = str + byteLength;
 
         For(range(index)) {
@@ -470,7 +470,7 @@ export {
 
     // Converts utf-8 to utf-16 and stores in _out_ (assumes there is enough space).
     // Also adds a null-terminator at the end.
-    constexpr void utf8_to_utf16(const char *str, s64 length, wchar *out) {
+    void utf8_to_utf16(const char *str, s64 length, wchar *out) {
         For(range(length)) {
             code_point cp = utf8_decode_cp(str);
             if (cp > 0xffff) {
@@ -487,7 +487,7 @@ export {
     // Converts utf-8 to utf-32 and stores in _out_ (assumes there is enough space).
     //
     // Also adds a null-terminator at the end.
-    constexpr void utf8_to_utf32(const char *str, s64 byteLength, code_point *out) {
+    void utf8_to_utf32(const char *str, s64 byteLength, code_point *out) {
         auto *end = str + byteLength;
 
         // Danger danger. If the string contains invalid utf8, then we might bypass str != end and infinite loop.
@@ -502,7 +502,7 @@ export {
     }
 
     // Converts a null-terminated utf-16 to utf-8 and stores in _out_ and _outByteLength_ (assumes there is enough space).
-    constexpr void utf16_to_utf8(const wchar *str, char *out, s64 *outByteLength) {
+    void utf16_to_utf8(const wchar *str, char *out, s64 *outByteLength) {
         s64 byteLength = 0;
         while (*str) {
             code_point cp = *str;
@@ -527,7 +527,7 @@ export {
     }
 
     // Converts a null-terminated utf-32 to utf-8 and stores in _out_ and _outByteLength_ (assumes there is enough space).
-    constexpr void utf32_to_utf8(const code_point *str, char *out, s64 *outByteLength) {
+    void utf32_to_utf8(const code_point *str, char *out, s64 *outByteLength) {
         s64 byteLength = 0;
         while (*str) {
             utf8_encode_cp(out, *str);

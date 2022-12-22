@@ -19,7 +19,7 @@ export {
     template <typename T_, s64 ElementsPerBucket = 128>
     struct bucket_array {
         using T                                  = T_;
-        constexpr static s64 ELEMENTS_PER_BUCKET = ElementsPerBucket;
+        static const s64 ELEMENTS_PER_BUCKET = ElementsPerBucket;
 
         struct bucket {
             T *Data      = null;
@@ -34,10 +34,10 @@ export {
     };
 
     template <typename>
-    constexpr bool is_bucket_array = false;
+    bool is_bucket_array = false;
 
     template <typename T, s64 N>
-    constexpr bool is_bucket_array<bucket_array<T, N>> = true;
+    bool is_bucket_array<bucket_array<T, N>> = true;
 
     template <typename T>
     concept any_bucket_array = is_bucket_array<T>;

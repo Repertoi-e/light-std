@@ -26,14 +26,13 @@ LSTD_BEGIN_NAMESPACE
 // Functionality for dynamic arrays and array views is implemented in lstd.array_like.
 //
 export {
-	// @TODO: Make fully constexpr
     template <typename T>
     struct array {
         T *Data       = null;
         s64 Count     = 0;
         s64 Allocated = 0;
 
-        constexpr array() {}
+        array() {}
 		
 		// This constructs a view (use make_array to copy)
 		array(T *data, s64 count) : Data(data), Count(count) {}
@@ -44,24 +43,24 @@ export {
 		//	array<int> a = { 1, 2, 3 };
 		//
 		array(initializer_list<T> items) {
-			array_add(*this, items);
+			add(*this, items);
 		}
 
-        constexpr auto operator[](s64 index) { return Data[translate_index(index, Count)]; }
-		constexpr auto operator[](s64 index) const { return Data[translate_index(index, Count)]; }
+        auto operator[](s64 index) { return Data[translate_negative_index(index, Count)]; }
+		auto operator[](s64 index) const { return Data[translate_negative_index(index, Count)]; }
 
-		constexpr operator bool() const { return Count; }
+		operator bool() const { return Count; }
     };
 
 	template <typename T>
-	mark_as_leak constexpr array<T> make_array(T *data, s64 count) {
+	mark_as_leak array<T> make_array(T *data, s64 count) {
 		array<T> result;
-		array_add(result, data, count);
+		add(result, data, count);
 		return result;
 	}
 
 	template <typename T>
-	mark_as_leak constexpr array<T> make_array(initializer_list<T> items) {
+	mark_as_leak array<T> make_array(initializer_list<T> items) {
 		return make_array(items.First, items.Last - items.First);
 	}
 

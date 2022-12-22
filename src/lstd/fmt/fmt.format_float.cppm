@@ -11,7 +11,7 @@ import lstd.fmt.format_float.grisu;
 LSTD_BEGIN_NAMESPACE
 
 void append_u64(string_builder *builder, u64 value) {
-    constexpr s32 BUFFER_SIZE = numeric<u64>::digits10;
+    const s32 BUFFER_SIZE = numeric<u64>::digits10;
     char buffer[BUFFER_SIZE];
 
     auto *p = buffer + BUFFER_SIZE - 1;

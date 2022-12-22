@@ -29,9 +29,9 @@ using sdigit = s32;
 using double_digit  = u64;
 using sdouble_digit = s64;
 
-constexpr u32 SHIFT  = 30;
-constexpr digit BASE = (digit) 1 << SHIFT;
-constexpr digit MASK = BASE - 1;
+const u32 SHIFT  = 30;
+const digit BASE = (digit) 1 << SHIFT;
+const digit MASK = BASE - 1;
 
 export {
     //
@@ -71,10 +71,10 @@ export {
 
     // For small values (2 digits) we use a small buffer contained in the structure.
     // In that case Digits == null (because members pointing to other members is dangerous).
-    constexpr bool is_small(big_integer * b) { return !b->Digits; }
+    bool is_small(big_integer * b) { return !b->Digits; }
 
     // Attempts to convert an integer into a small integer and frees any allocated memory.
-    constexpr void maybe_small(big_integer * b) {
+    void maybe_small(big_integer * b) {
         if (is_small(b)) return;
 
         if (abs(b->Size) <= 2) {
@@ -89,49 +89,49 @@ export {
 
     // For small integers, b->Digits is null and the digits
     // are stored in a small buffer inside the struct.
-    constexpr digit *get_digits(big_integer * b) {
+    digit *get_digits(big_integer * b) {
         if (is_small(b)) return b->SmallDigits;
         return b->Digits;
     }
 
-    constexpr digit get_digit(big_integer * b, s64 index) {
+    digit get_digit(big_integer * b, s64 index) {
         s64 space = is_small(b) ? 2 : b->Allocated;
-        index     = translate_index(index, space);
+        index     = translate_negative_index(index, space);
         return get_digits(b)[index];
     }
 
-    constexpr void set_digit(big_integer * b, s64 index, digit value) {
+    void set_digit(big_integer * b, s64 index, digit value) {
         s64 space            = is_small(b) ? 2 : b->Allocated;
-        index                = translate_index(index, space);
+        index                = translate_negative_index(index, space);
         get_digits(b)[index] = value;
     }
 
     // Ensure there is space for at least _n_ digits in the big integer.
-    constexpr void ensure_digits(big_integer * b, s64 n);
+    void ensure_digits(big_integer * b, s64 n);
 
     // Ensure there is space for at least _n_ digits in the big integer
     // but reserve more than needed (next power of two).
-    constexpr void grow(big_integer * b, s64 n);
+    void grow(big_integer * b, s64 n);
 
     // Note: Big integers have minimum storage of 5 digits (and are bigger than u128).
     // For smaller values you'd better be using the smaller integer types (8 to 128 bit).
-    constexpr big_integer create_big_integer(s64 initialDigits);
+    big_integer create_big_integer(s64 initialDigits);
 
     // Assign any integral value (s8, s16, s32, s64, u8, u16, u32, u64, s128, u128,
     // other big integers, etc.) to a big integer.
-    constexpr bool assign(big_integer * b, is_integral auto v);
-    constexpr big_integer cast_big(is_integral auto v);
+    bool assign(big_integer * b, is_integral auto v);
+    big_integer cast_big(is_integral auto v);
 
     // Save an unnecessary allocation
-    constexpr big_integer cast_big(big_integer b) { return b; }
+    big_integer cast_big(big_integer b) { return b; }
 
     // Remove "leading zeros" from a big integer (e.g. 000000000000000000001).
     // Those are actually the trailing zeros in the Digits array since we store chunks in reverse.
-    constexpr void normalize(big_integer * b);
+    void normalize(big_integer * b);
 
-    constexpr big_integer invert(big_integer b);
-    constexpr big_integer lshift(big_integer lhs, s64 n);
-    constexpr big_integer rshift(big_integer lhs, s64 n);
+    big_integer invert(big_integer b);
+    big_integer lshift(big_integer lhs, s64 n);
+    big_integer rshift(big_integer lhs, s64 n);
 
     struct div_result {
         big_integer Q;  // Quotient
@@ -153,7 +153,7 @@ export {
     //
     // divmod is defined in terms of divrem, but we adjust the remainder.
     // Operator % is defined in terms of divmod.
-    constexpr div_result divrem(big_integer lhs, big_integer rhs);
+    div_result divrem(big_integer lhs, big_integer rhs);
 
     // divmod is NOT the same as divrem.
     // divrem gives the remainder after division of |a| by |b|, with the sign of a.
@@ -170,37 +170,37 @@ export {
     //
     // divmod is defined in terms of divrem, but we adjust the remainder.
     // Operator % is defined in terms of divmod.
-    constexpr div_result divmod(big_integer lhs, big_integer rhs);
+    div_result divmod(big_integer lhs, big_integer rhs);
 
     // if a < b, returns -1
     // if a == b, returns 0
     // if a > b, returns 1
-    constexpr s32 compare(big_integer a, big_integer b);
+    s32 compare(big_integer a, big_integer b);
 
     // We don't support ++/-- and assignment operators.
 
-    constexpr bool operator==(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) == 0; }
-    constexpr bool operator!=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) != 0; }
-    constexpr bool operator<(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) < 0; }
-    constexpr bool operator<=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) <= 0; }
-    constexpr bool operator>(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) > 0; }
-    constexpr bool operator>=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) >= 0; }
+    bool operator==(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) == 0; }
+    bool operator!=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) != 0; }
+    bool operator<(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) < 0; }
+    bool operator<=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) <= 0; }
+    bool operator>(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) > 0; }
+    bool operator>=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) >= 0; }
 
-    constexpr big_integer operator+(big_integer lhs, big_integer rhs);
-    constexpr big_integer operator-(big_integer lhs, big_integer rhs);
-    constexpr big_integer operator*(big_integer lhs, big_integer rhs);
-    constexpr big_integer operator/(big_integer lhs, big_integer rhs);
-    constexpr big_integer operator%(big_integer lhs, big_integer rhs);
+    big_integer operator+(big_integer lhs, big_integer rhs);
+    big_integer operator-(big_integer lhs, big_integer rhs);
+    big_integer operator*(big_integer lhs, big_integer rhs);
+    big_integer operator/(big_integer lhs, big_integer rhs);
+    big_integer operator%(big_integer lhs, big_integer rhs);
 
-    constexpr big_integer operator>>(big_integer lhs, s64 n) { return rshift(lhs, n); }
-    constexpr big_integer operator<<(big_integer lhs, s64 n) { return lshift(lhs, n); }
+    big_integer operator>>(big_integer lhs, s64 n) { return rshift(lhs, n); }
+    big_integer operator<<(big_integer lhs, s64 n) { return lshift(lhs, n); }
 
-    constexpr big_integer operator&(big_integer lhs, big_integer rhs);
-    constexpr big_integer operator|(big_integer lhs, big_integer rhs);
-    constexpr big_integer operator^(big_integer lhs, big_integer rhs);
+    big_integer operator&(big_integer lhs, big_integer rhs);
+    big_integer operator|(big_integer lhs, big_integer rhs);
+    big_integer operator^(big_integer lhs, big_integer rhs);
 }
 
-constexpr void ensure_digits(big_integer *b, s64 n) {
+void ensure_digits(big_integer *b, s64 n) {
     assert(n > 0);
 
     if (is_small(b)) {
@@ -222,24 +222,24 @@ constexpr void ensure_digits(big_integer *b, s64 n) {
     }
 }
 
-constexpr void grow(big_integer *b, s64 n) {
+void grow(big_integer *b, s64 n) {
     s64 target = max(ceil_pow_of_2(n + 1), 8);
     ensure_digits(b, target);
 }
 
-constexpr big_integer create_big_integer(s64 initialDigits) {
+big_integer create_big_integer(s64 initialDigits) {
     big_integer b;
     ensure_digits(&b, initialDigits);
     return b;
 }
 
-constexpr big_integer create_big_integer_and_set_size(s64 initialDigits) {
+big_integer create_big_integer_and_set_size(s64 initialDigits) {
     big_integer b = create_big_integer(initialDigits);
     b.Size        = initialDigits;
     return b;
 }
 
-constexpr void normalize(big_integer *b) {
+void normalize(big_integer *b) {
     s64 j = abs(b->Size);
     s64 i = j;
 
@@ -249,13 +249,13 @@ constexpr void normalize(big_integer *b) {
     maybe_small(b);
 }
 
-constexpr big_integer cast_big(is_integral auto v) {
+big_integer cast_big(is_integral auto v) {
     big_integer b;
     assign(&b, v);
     return b;
 }
 
-constexpr bool assign(big_integer *b, is_integral auto v) {
+bool assign(big_integer *b, is_integral auto v) {
     if constexpr (is_same<big_integer, decltype(v)>) {
         // Assign from another big integer
         ensure_digits(b, abs(v.Size));
@@ -300,7 +300,7 @@ constexpr bool assign(big_integer *b, is_integral auto v) {
 // x[0:m] and y[0:n] are digit vectors, LSD first, m >= n required.  x[0:n]
 // is modified in place, by adding y to it. Carries are propagated as far as
 // x[m-1], and the remaining carry (0 or 1) is returned.
-constexpr digit v_iadd(digit *x, s64 m, digit *y, s64 n) {
+digit v_iadd(digit *x, s64 m, digit *y, s64 n) {
     assert(m >= n);
 
     digit carry = 0;
@@ -329,7 +329,7 @@ constexpr digit v_iadd(digit *x, s64 m, digit *y, s64 n) {
 // x[0:m] and y[0:n] are digit vectors, LSD first, m >= n required.  x[0:n]
 // is modified in place, by subtracting y from it. Borrows are propagated as
 // far as x[m-1], and the remaining borrow (0 or 1) is returned.
-constexpr digit v_isub(digit *x, s64 m, digit *y, s64 n) {
+digit v_isub(digit *x, s64 m, digit *y, s64 n) {
     assert(m >= n);
 
     digit borrow = 0;
@@ -355,7 +355,7 @@ constexpr digit v_isub(digit *x, s64 m, digit *y, s64 n) {
     return borrow;
 }
 
-constexpr big_integer x_add(big_integer *a, big_integer *b) {
+big_integer x_add(big_integer *a, big_integer *b) {
     s64 sizea = abs(a->Size), sizeb = abs(b->Size);
 
     if (sizea < sizeb) {
@@ -390,7 +390,7 @@ constexpr big_integer x_add(big_integer *a, big_integer *b) {
     return result;
 }
 
-constexpr big_integer x_sub(big_integer *a, big_integer *b) {
+big_integer x_sub(big_integer *a, big_integer *b) {
     s64 sizea = abs(a->Size), sizeb = abs(b->Size);
     s32 sign = 1;
 
@@ -446,7 +446,7 @@ constexpr big_integer x_sub(big_integer *a, big_integer *b) {
 }
 
 // Grade-school algorithm.
-constexpr big_integer x_mul(big_integer lhs, big_integer rhs) {
+big_integer x_mul(big_integer lhs, big_integer rhs) {
     s64 sizea = abs(lhs.Size), sizeb = abs(rhs.Size);
 
     auto result = create_big_integer_and_set_size(sizea + sizeb);
@@ -522,8 +522,8 @@ constexpr big_integer x_mul(big_integer lhs, big_integer rhs) {
 
 // For int multiplication, use the O(N**2) school algorithm unless
 // both operands contain more than KARATSUBA_CUTOFF digits.
-constexpr s64 KARATSUBA_CUTOFF        = 70;
-constexpr s64 KARATSUBA_SQUARE_CUTOFF = 2 * KARATSUBA_CUTOFF;
+s64 KARATSUBA_CUTOFF        = 70;
+s64 KARATSUBA_SQUARE_CUTOFF = 2 * KARATSUBA_CUTOFF;
 
 // A helper for Karatsuba multiplication (k_mul).
 // Takes an int "n" and an integer "size" representing the place to
@@ -531,7 +531,7 @@ constexpr s64 KARATSUBA_SQUARE_CUTOFF = 2 * KARATSUBA_CUTOFF;
 // viewing the shift as being by digits.  The sign bit is ignored, and
 // the return values are >= 0.
 // Returns 0 on success, -1 on failure.
-constexpr void kmul_split(big_integer n, s64 size, big_integer *high, big_integer *low) {
+void kmul_split(big_integer n, s64 size, big_integer *high, big_integer *low) {
     s64 sizen = abs(n.Size);
 
     s64 sizelo = min(sizen, size);
@@ -549,7 +549,7 @@ constexpr void kmul_split(big_integer n, s64 size, big_integer *high, big_intege
     normalize(low);
 }
 
-constexpr big_integer k_mul(big_integer *lhs, big_integer *rhs);
+big_integer k_mul(big_integer *lhs, big_integer *rhs);
 
 // b has at least twice the digits of a, and a is big enough that Karatsuba
 // would pay off *if* the inputs had balanced sizes.  View b as a sequence
@@ -558,7 +558,7 @@ constexpr big_integer k_mul(big_integer *lhs, big_integer *rhs);
 // also cache-friendly (we compute one double-width slice of the result
 // at a time, then move on, never backtracking except for the helpful
 // single-width slice overlap between successive partial sums).
-constexpr big_integer k_lopsided_mul(big_integer *a, big_integer *b) {
+big_integer k_lopsided_mul(big_integer *a, big_integer *b) {
     s64 sizea = abs(a->Size), sizeb = abs(b->Size);
 
     assert(sizea > KARATSUBA_CUTOFF);
@@ -593,7 +593,7 @@ constexpr big_integer k_lopsided_mul(big_integer *a, big_integer *b) {
 
 // Multiply the absolute values of two integers.
 // Karatsuba multiplication. See Knuth Vol. 2 Chapter 4.3.3 (Pp. 294-295).
-constexpr big_integer k_mul(big_integer *a, big_integer *b) {
+big_integer k_mul(big_integer *a, big_integer *b) {
     s64 sizea = abs(a->Size), sizeb = abs(b->Size);
 
     // (ah*X+al)(bh*X+bl) = ah*bh*X*X + (ah*bl + al*bh)*X + al*bl
@@ -761,7 +761,7 @@ constexpr big_integer k_mul(big_integer *a, big_integer *b) {
 // Divide long pin, w/ size digits, by non-zero digit n, storing quotient
 // in pout, and returning the remainder.  pin and pout point at the LSD.
 // It's OK for pin == pout on entry.
-constexpr digit inplace_divrem1(digit *pout, const digit *pin, s64 size, digit n) {
+digit inplace_divrem1(digit *pout, const digit *pin, s64 size, digit n) {
     double_digit rem = 0;
 
     assert(n > 0 && n <= MASK);
@@ -784,7 +784,7 @@ struct div1_result {
 
 // Divide an integer by a digit, returning both the quotient
 // and the remainder. The sign of _a_ is ignored.
-constexpr div1_result divrem1(big_integer a, digit n) {
+div1_result divrem1(big_integer a, digit n) {
     if (n == 0) panic("Division by zero");
 
     assert(n > 0 && n <= MASK);
@@ -799,7 +799,7 @@ constexpr div1_result divrem1(big_integer a, digit n) {
     return {result, rem};
 }
 
-constexpr div_result x_divrem(big_integer a, big_integer b) {
+div_result x_divrem(big_integer a, big_integer b) {
     // We follow Knuth [The Art of Computer Programming, Vol. 2 (3rd edn.), section 4.3.1, Algorithm D].
     // This divides an n-word dividend by an m-word divisor
     // and gives an n-m+1-word quotient and m-word remainder.
@@ -902,7 +902,7 @@ constexpr div_result x_divrem(big_integer a, big_integer b) {
 // Compute two's complement of digit vector a[0:m], writing result to
 // z[0:m]. The digit vector a need not be normalized, but should not
 // be entirely zero. a and z may point to the same digit vector. */
-constexpr void v_complement(digit *z, digit *a, s64 m) {
+void v_complement(digit *z, digit *a, s64 m) {
     digit carry = 1;
     For(range(m)) {
         carry += a[it] ^ MASK;
@@ -913,7 +913,7 @@ constexpr void v_complement(digit *z, digit *a, s64 m) {
 }
 
 // _op_ is one of the following: '&', '|', '^'
-constexpr big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
+big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
     // Bitwise operations for negative numbers operate as though
     // on a two's complement representation. So convert arguments
     // from sign-magnitude to two's complement, and convert the
@@ -1018,11 +1018,11 @@ constexpr big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
     return result;
 }
 
-constexpr big_integer operator&(big_integer lhs, big_integer rhs) { return bitwise(lhs, '&', rhs); }
-constexpr big_integer operator|(big_integer lhs, big_integer rhs) { return bitwise(lhs, '|', rhs); }
-constexpr big_integer operator^(big_integer lhs, big_integer rhs) { return bitwise(lhs, '^', rhs); }
+big_integer operator&(big_integer lhs, big_integer rhs) { return bitwise(lhs, '&', rhs); }
+big_integer operator|(big_integer lhs, big_integer rhs) { return bitwise(lhs, '|', rhs); }
+big_integer operator^(big_integer lhs, big_integer rhs) { return bitwise(lhs, '^', rhs); }
 
-constexpr big_integer add_one(big_integer b) {
+big_integer add_one(big_integer b) {
     if (!b.Size) return cast_big(1);
 
     s64 size = abs(b.Size);
@@ -1043,13 +1043,13 @@ constexpr big_integer add_one(big_integer b) {
     return result;
 }
 
-constexpr big_integer invert(big_integer b) {
+big_integer invert(big_integer b) {
     big_integer result = add_one(b);
     result.Size        = -result.Size;
     return result;
 }
 
-constexpr big_integer lshift(big_integer lhs, s64 n) {
+big_integer lshift(big_integer lhs, s64 n) {
     if (n == 0) return lhs;
     if (!lhs.Size) return cast_big(0);
 
@@ -1093,7 +1093,7 @@ constexpr big_integer lshift(big_integer lhs, s64 n) {
     return result;
 }
 
-constexpr big_integer rshift(big_integer lhs, s64 n) {
+big_integer rshift(big_integer lhs, s64 n) {
     if (n == 0) return lhs;
     if (!lhs.Size) return cast_big(0);
 
@@ -1127,7 +1127,7 @@ constexpr big_integer rshift(big_integer lhs, s64 n) {
     }
 }
 
-constexpr div_result divrem(big_integer lhs, big_integer rhs) {
+div_result divrem(big_integer lhs, big_integer rhs) {
     if (!rhs.Size) panic("Division by zero");
 
     s64 sizea = abs(lhs.Size), sizeb = abs(rhs.Size);
@@ -1165,7 +1165,7 @@ constexpr div_result divrem(big_integer lhs, big_integer rhs) {
     return result;
 }
 
-constexpr div_result divmod(big_integer lhs, big_integer rhs) {
+div_result divmod(big_integer lhs, big_integer rhs) {
     auto [div, mod] = divrem(lhs, rhs);
 
     // To get from rem to mod, we have to add rhs if lhs and rhs
@@ -1178,7 +1178,7 @@ constexpr div_result divmod(big_integer lhs, big_integer rhs) {
     }
 }
 
-constexpr s32 compare(big_integer a, big_integer b_) {
+s32 compare(big_integer a, big_integer b_) {
     big_integer b = cast_big(b_);
 
     s32 sign = (s32) (a.Size - b.Size);
@@ -1196,7 +1196,7 @@ constexpr s32 compare(big_integer a, big_integer b_) {
     return sign;
 }
 
-constexpr big_integer operator+(big_integer lhs, big_integer rhs) {
+big_integer operator+(big_integer lhs, big_integer rhs) {
     if (lhs.Size < 0) {
         if (rhs.Size < 0) {
             auto z = x_add(&lhs, &rhs);
@@ -1214,7 +1214,7 @@ constexpr big_integer operator+(big_integer lhs, big_integer rhs) {
     }
 }
 
-constexpr big_integer operator-(big_integer lhs, big_integer rhs) {
+big_integer operator-(big_integer lhs, big_integer rhs) {
     if (lhs.Size < 0) {
         if (rhs.Size < 0) {
             return x_sub(&rhs, &lhs);
@@ -1232,7 +1232,7 @@ constexpr big_integer operator-(big_integer lhs, big_integer rhs) {
     }
 }
 
-constexpr big_integer operator*(big_integer lhs, big_integer rhs) {
+big_integer operator*(big_integer lhs, big_integer rhs) {
     big_integer result = k_mul(&lhs, &rhs);
     // Negate if exactly one of the inputs is negative
     if ((lhs.Size ^ rhs.Size) < 0 && result.Size) {
@@ -1242,12 +1242,12 @@ constexpr big_integer operator*(big_integer lhs, big_integer rhs) {
     return result;
 }
 
-constexpr big_integer operator/(big_integer lhs, big_integer rhs) {
+big_integer operator/(big_integer lhs, big_integer rhs) {
     auto [div, rem] = divrem(lhs, rhs);
     return div;
 }
 
-constexpr big_integer operator%(big_integer lhs, big_integer rhs) {
+big_integer operator%(big_integer lhs, big_integer rhs) {
     auto [div, mod] = divmod(lhs, rhs);
     return mod;
 }

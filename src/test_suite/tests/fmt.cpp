@@ -37,7 +37,7 @@ void format_test_error(string fmtString, Args &&...arguments) {
     auto newContext                 = Context;
     newContext.FmtParseErrorHandler = test_parse_error_handler;
     PUSH_CONTEXT(newContext) {
-        static constexpr s64 NUM_ARGS = sizeof...(Args);
+        static const s64 NUM_ARGS = sizeof...(Args);
         stack_array<fmt_arg, NUM_ARGS> args;
 
         args = {fmt_make_arg(arguments)...};

@@ -36,7 +36,7 @@ export {
     //
     struct hasher {
         // Temporarily store up to 31 bytes between multiple add() calls
-        static constexpr s64 MAX_BUFFER_SIZE = 31 + 1;
+        static const s64 MAX_BUFFER_SIZE = 31 + 1;
 
         char Buffer[MAX_BUFFER_SIZE]{};
         char *BufferPtr = Buffer;
@@ -154,7 +154,7 @@ export {
 
 // Hashes for integer types
 #define TRIVIAL_HASH(T) \
-    constexpr u64 get_hash(T value) { return (u64) value; }
+    u64 get_hash(T value) { return (u64) value; }
 
     TRIVIAL_HASH(s8);
     TRIVIAL_HASH(u8);
@@ -185,7 +185,7 @@ export {
     }
 
 	// Partial specialization for pointers
-	constexpr u64 get_hash(is_pointer auto value) { return (u64)value; }
+	u64 get_hash(is_pointer auto value) { return (u64)value; }
 }
 
 LSTD_END_NAMESPACE

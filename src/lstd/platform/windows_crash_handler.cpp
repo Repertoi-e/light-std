@@ -39,7 +39,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     while (StackWalk64(IMAGE_FILE_MACHINE_AMD64, GetCurrentProcess(), GetCurrentThread(), &sf, c, 0, SymFunctionTableAccess64, SymGetModuleBase64, null)) {
         if (sf.AddrFrame.Offset == 0 || callStack.Count >= CALLSTACK_DEPTH) break;
 
-        constexpr auto s = (sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR) + sizeof(ULONG64) - 1) / sizeof(ULONG64);
+        const auto s = (sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR) + sizeof(ULONG64) - 1) / sizeof(ULONG64);
         ULONG64 symbolBuffer[s];
 
         PSYMBOL_INFO symbol  = (PSYMBOL_INFO) symbolBuffer;
@@ -69,7 +69,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
             call.LineNumber = lineInfo.LineNumber;
         }
 
-        add(&callStack, call);
+        add(callStack, call);
     }
 
 #define CODE_DESCR(code) \
@@ -108,8 +108,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
     Context.PanicHandler(message, callStack);
 
     For(callStack) {
-        free(it.Name);
-        free(it.File);
+        free(it);
     }
     free(callStack);
 

@@ -41,20 +41,20 @@ export {
     template <typename T, s64 N>
     struct stack_array {
         T Data[N ? N : 1]{};
-        static constexpr s64 Count = N;
+        static const s64 Count = N;
 
-        constexpr stack_array() {}
-        constexpr stack_array(initializer_list<T> list) {
+        stack_array() {}
+        stack_array(initializer_list<T> list) {
             memcpy(Data, list.begin(), (list.end() - list.begin()) + 1 * sizeof(T));
         }
 
-        constexpr T &operator[](s64 index) { return Data[translate_index(index, Count)]; }
+        T &operator[](s64 index) { return Data[translate_negative_index(index, Count)]; }
 
-        constexpr operator array<T>() { return array<T>(Data, Count); }
+        operator array<T>() { return array<T>(Data, Count); }
     };
 
     template <typename D = void, typename... Types>
-    constexpr stack_array<common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types && ...t) { return { (Types &&) t...}; }
+    stack_array<common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types && ...t) { return { (Types &&) t...}; }
 }
 
 LSTD_END_NAMESPACE

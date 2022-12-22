@@ -55,15 +55,15 @@ void fmt_default_parse_error_handler(string message, string formatString, s64 po
     defer(free(str));
 
     // Make escape characters appear as they would in a string literal
-    replace_all(&str, '\"', "\\\"");
-    replace_all(&str, '\\', "\\\\");
-    replace_all(&str, '\a', "\\a");
-    replace_all(&str, '\b', "\\b");
-    replace_all(&str, '\f', "\\f");
-    replace_all(&str, '\n', "\\n");
-    replace_all(&str, '\r', "\\r");
-    replace_all(&str, '\t', "\\t");
-    replace_all(&str, '\v', "\\v");
+    replace_all(str, '\"', "\\\"");
+    replace_all(str, '\\', "\\\\");
+    replace_all(str, '\a', "\\a");
+    replace_all(str, '\b', "\\b");
+    replace_all(str, '\f', "\\f");
+    replace_all(str, '\n', "\\n");
+    replace_all(str, '\r', "\\r");
+    replace_all(str, '\t', "\\t");
+    replace_all(str, '\v', "\\v");
 
     string_builder b;
     defer(free_buffers(&b));

@@ -11,28 +11,29 @@ import lstd.path;
 //      /home/.../lstd-tests/src/tests/string.cpp ---> tests/string.cpp
 //      /home/.../lstd-tests/string.cpp           ---> string.cpp
 //
-constexpr string get_short_file_path(string str) {
-    char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
-    string src     = srcData;
+string get_short_file_path(string str) {
+	char srcData[] = { 's', 'r', 'c', OS_PATH_SEPARATOR, '\0' };
+	string src = srcData;
 
-    s64 findResult = string_search(str, src, -1, true);
-    if (findResult == -1) {
-        findResult = string_search(str, OS_PATH_SEPARATOR, -1, true);
-        assert(findResult != string_length(str) - 1);
-        // Skip the slash
-        findResult++;
-    } else {
-        // Skip the src directory
-        findResult += string_length(src);
-    }
+	s64 findResult = search(str, src, search_options{ .Start = -1, .Reversed = true });
+	if (findResult == -1) {
+		findResult = search(str, OS_PATH_SEPARATOR, search_options{ .Start = -1, .Reversed = true });
+		assert(findResult != length(str) - 1);
+		// Skip the slash
+		findResult++;
+	}
+	else {
+		// Skip the src directory
+		findResult += length(src);
+	}
 
-    string result = str;
-    return string_slice(result, findResult, string_length(result));
+	string result = str;
+	return slice(result, findResult, length(result));
 }
 
 struct asserts {
-    inline static s64 GlobalCalledCount;
-    inline static array<string> GlobalFailed;
+	inline static s64 GlobalCalledCount;
+	inline static array<string> GlobalFailed;
 };
 
 //
@@ -69,7 +70,7 @@ struct asserts {
                 u8## #y,                                          \
                 LINE_NAME(a),                                     \
                 LINE_NAME(b));                                    \
-            add(&asserts::GlobalFailed, message);                 \
+            add(asserts::GlobalFailed, message);                  \
         }                                                         \
     }
 
@@ -80,12 +81,12 @@ struct asserts {
 using test_func = void (*)();
 
 struct test {
-    string Name;
-    test_func Function = null;
+	string Name;
+	test_func Function = null;
 };
 
 inline bool strings_match_for_table(string no_copy a, string no_copy b) {
-    return strings_match(a, b);
+	return strings_match(a, b);
 }
 
 // Gets filled out by a function "build_test_table"

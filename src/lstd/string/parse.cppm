@@ -39,13 +39,13 @@ export {
     };
 
     // Used in parse functions for some special behaviour/special return values
-    constexpr code_point CP_INVALID = 0xfffd;
-    constexpr code_point CP_MAX     = 0x7fffffff;
+    const code_point CP_INVALID = 0xfffd;
+    const code_point CP_MAX     = 0x7fffffff;
 
     // End of file and ignore this byte don't exist as real unicode code points.
     // They are just symbolic, so we them a value outside the range of possible code points.
-    constexpr code_point CP_EOF         = CP_MAX + 1;
-    constexpr code_point CP_IGNORE_THIS = CP_MAX + 2;
+    const code_point CP_EOF         = CP_MAX + 1;
+    const code_point CP_IGNORE_THIS = CP_MAX + 2;
 
     // This maps a code point to a numerical value for parsing numbers
     using cp_to_digit_t = s32 (*)(code_point, bool);

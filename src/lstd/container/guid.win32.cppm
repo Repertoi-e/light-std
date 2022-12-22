@@ -12,14 +12,14 @@ export {
     // Used for generating unique ids
     struct guid {
         u8 Data[16];
-        constexpr static s64 Count = 16;
+        static const s64 Count = 16;
 
         // By default the guid is zero
-        constexpr guid() {
+        guid() {
             For(range(16)) Data[it] = 0;
         }
 
-        constexpr operator bool() {
+        operator bool() {
             For(range(16)) if (Data[it]) return true;
             return false;
         }

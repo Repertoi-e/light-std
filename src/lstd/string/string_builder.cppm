@@ -20,7 +20,7 @@ LSTD_BEGIN_NAMESPACE
 //
 export {
     struct string_builder {
-        static constexpr s64 BUFFER_SIZE = 1_KiB;
+        static const s64 BUFFER_SIZE = 1_KiB;
 
         struct buffer {
             char Data[BUFFER_SIZE]{};
@@ -105,11 +105,11 @@ void append(string_builder *builder, const char *data, s64 size) {
 
 mark_as_leak string builder_to_string(string_builder *builder) {
     string result;
-    array_reserve(result, (builder->IndirectionCount + 1) * builder->BUFFER_SIZE);
+    reserve(result, (builder->IndirectionCount + 1) * builder->BUFFER_SIZE);
 
     auto *b = &builder->BaseBuffer;
     while (b) {
-        string_add(result, b->Data, b->Occupied);
+        add(result, b->Data, b->Occupied);
         b = b->Next;
     }
     return result;

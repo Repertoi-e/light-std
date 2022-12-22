@@ -477,7 +477,7 @@ void fmt_parse_and_format(fmt_context *f) {
         while (true) {
             auto searchString = string(p->It.Data, end - p->It.Data);
 
-            s64 bracket = string_search(searchString, '}');
+            s64 bracket = search(searchString, '}');
             if (bracket == -1) {
                 write_no_specs(f, p->It.Data, end - p->It.Data);
                 return;
@@ -500,7 +500,7 @@ void fmt_parse_and_format(fmt_context *f) {
     fmt_arg currentArg;
 
     while (p->It.Count) {
-        s64 bracket = string_search(p->It, '{');
+        s64 bracket = search(p->It, '{');
         if (bracket == -1) {
             write_until(p->It.Data + p->It.Count);
             return;
@@ -587,7 +587,7 @@ void fmt_parse_and_format(fmt_context *f) {
 
 template <typename... Args>
 void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments) {
-    static constexpr s64 NUM_ARGS = sizeof...(Args);
+    static const s64 NUM_ARGS = sizeof...(Args);
     stack_array<fmt_arg, NUM_ARGS> args;
 
     args   = {fmt_make_arg(arguments)...};

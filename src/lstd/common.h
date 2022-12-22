@@ -64,14 +64,13 @@ import lstd.space_ship_replacement;
 #endif
 
 import lstd.source_location;
-import lstd.is_constant_evaluated;
 
 //
 // Some personal preferences:
 // 
 // I prefer to type null over nullptr but they are exactly the same
 using null_t = decltype(nullptr);
-inline constexpr null_t null = nullptr;
+inline const null_t null = nullptr;
 
 import lstd.range;
 
@@ -148,14 +147,14 @@ constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
-constexpr void swap(T &a, T &b) {
+inline void swap(T &a, T &b) {
 	T c = a;
 	a = b;
 	b = c;
 }
 
 template <typename T, s64 N>
-constexpr void swap(T(&a)[N], T(&b)[N]) {
+inline void swap(T(&a)[N], T(&b)[N]) {
 	For(range(N)) swap(a[it], b[it]);
 }
 
@@ -214,38 +213,14 @@ constexpr void swap(T(&a)[N], T(&b)[N]) {
 // e.g.         string newPath = clone(path); // Allocates a new buffer and copies contents in _path_
 //
 
-//
-// We used to provide separate constexpr and optimized runtime 
-// implementations of copy_memory, fill_memory, compare_memory
-// that use SIMD and AVX instructions. However, they caused
-// quite a bit of hard to track down bugs, because they weren't 
-// 100% reliable. Moreover, if memcpy is the bottle neck of your
-// program's performance, perhaps you should write your own
-// specialized implementation that has some extra assumptions baked
-// in (which only you can know!), instead of relying on our previous 
-// "general fast" implementation that also had a lot of branches.
-// 
-// @Speed Something can be said about having routines that work with 
-// multiple bytes at once (e.g. copying/filling/comparing words to words), 
-// but they don't work with constexpr, which doesn't support type pruning. 
-//
-// Constexpr doesn't work with void * as well, in general, void * 
-// specialization functions will be on par or faster than the templated 
-// ones for custom types, because C++ likes to be annoying as fuck 
-// and generates default copy constructors which do member-wise
-// copy (even for trivially-copyable types).
-// 
-// So I recommend always casting values to (char *) as normal.
-//
-
 template <typename T>
-constexpr T *memmove(T *dst, const T *src, s64 numInBytes) {
+inline T *memmove(T *dst, const T *src, s64 numInBytes) {
 	For(range(numInBytes / sizeof(T) - 1, -1, -1)) dst[it] = src[it];
 	return dst;
 }
 
 template <typename T>
-constexpr T *memcpy(T *dst, const T *src, s64 numInBytes) {
+inline T *memcpy(T *dst, const T *src, s64 numInBytes) {
 	if (dst > src && (s64)(dst - src) < (numInBytes / (s64)sizeof(T))) {
 		//
 		// Careful. Buffers overlap. You should use memmove in this case.
@@ -266,19 +241,19 @@ constexpr T *memcpy(T *dst, const T *src, s64 numInBytes) {
 }
 
 template <typename T>
-constexpr T *memset(T *dst, T value, u64 numInBytes) {
+inline T *memset(T *dst, T value, u64 numInBytes) {
 	For(range(numInBytes / sizeof(T))) dst[it] = value;
 	return dst;
 }
 
 // Non-standard, but useful.
 template <typename T>
-constexpr T *memset0(T *dst, u64 numInBytes) {
+inline T *memset0(T *dst, u64 numInBytes) {
 	return memset(dst, T(0), numInBytes);
 }
 
 template <typename T>
-constexpr s32 memcmp(const T *s1, const T *s2, s64 numInBytes) {
+inline s32 memcmp(const T *s1, const T *s2, s64 numInBytes) {
 	For(range(numInBytes / sizeof(T))) {
 		if (!(*s1 == *s2)) return *s1 - *s2;
 		++s1, ++s2;

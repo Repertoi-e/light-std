@@ -30,7 +30,7 @@ export {
 #undef TYPE_CONSTANT
 
     template <typename T>
-    constexpr auto type_constant_v = type_constant<remove_cvref_t<T>>::value;
+    auto type_constant_v = type_constant<remove_cvref_t<T>>::value;
 }
 
 LSTD_END_NAMESPACE

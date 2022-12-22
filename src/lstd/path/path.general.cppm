@@ -16,11 +16,11 @@ export {
 	mark_as_leak array<string> path_split_into_components(string path, string seps = "\\/") {
 		array<string> result;
 
-		auto matchSep = [=](code_point cp) { return string_has(seps, cp); };
+		auto matchSep = [=](code_point cp) { return has(seps, cp); };
 
 		s64 start = 0, prev = 0;
-		while ((start = string_search(path, &matchSep, search_options{ .Start = start + 1 })) != -1) {
-			array_add(result, string_slice(path, prev, start));
+		while ((start = search(path, &matchSep, search_options{ .Start = start + 1 })) != -1) {
+			add(result, slice(path, prev, start));
 			prev = start + 1;
 		}
 
@@ -29,9 +29,9 @@ export {
 		//
 		// Note that both /home/user/dir and /home/user/dir/ mean the same thing.
 		// You can use other functions to check if the former is really a directory or a file (querying the OS).
-		if (prev < string_length(path)) {
+		if (prev < length(path)) {
 			// Add the last component - from prev to path.Length
-			array_add(result, string_slice(path, prev, string_length(path)));
+			add(result, slice(path, prev, length(path)));
 		}
 		return result;
 	}
@@ -40,22 +40,22 @@ export {
 		string Root, Extension;
 	};
 
-	constexpr path_split_extension_result path_split_extension_general(string path, code_point sep, code_point altSep, code_point extensionSep) {
-		s64 sepIndex = string_search(path, sep, search_options{ .Start = -1, .Reversed = true });
+	path_split_extension_result path_split_extension_general(string path, code_point sep, code_point altSep, code_point extensionSep) {
+		s64 sepIndex = search(path, sep, search_options{ .Start = -1, .Reversed = true });
 		if (altSep) {
-			s64 altSepIndex = string_search(path, altSep, search_options{ .Start = -1, .Reversed = true });
+			s64 altSepIndex = search(path, altSep, search_options{ .Start = -1, .Reversed = true });
 			if (altSepIndex > sepIndex) sepIndex = altSepIndex;
 		}
 
 		// Most OSes use a dot to separate extensions but we support other characters as well
-		s64 dotIndex = string_search(path, extensionSep, search_options{ .Start = -1, .Reversed = true });
+		s64 dotIndex = search(path, extensionSep, search_options{ .Start = -1, .Reversed = true });
 
 		if (dotIndex > sepIndex) {
 			// Skip leading dots
 			s64 filenameIndex = sepIndex + 1;
 			while (filenameIndex < dotIndex) {
 				if (path[filenameIndex] != extensionSep) {
-					return { string_slice(path, 0, dotIndex), string_slice(path, dotIndex, string_length(path)) };
+					return { slice(path, 0, dotIndex), slice(path, dotIndex, length(path)) };
 				}
 				++filenameIndex;
 			}
