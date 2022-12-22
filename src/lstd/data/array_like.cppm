@@ -119,7 +119,12 @@ export {
 	// The result is -1 if this array sorts before the other, 0 if they are equal, and +1 otherwise.
 	s32 compare_lexicographically(any_array_like auto no_copy a, any_array_like auto no_copy b);
 
-	auto operator<=>(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b); }
+	bool operator==(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare(a, b) == -1; }
+	bool operator!=(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare(a, b) != -1; }
+	bool operator<(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b) < 0; }
+	bool operator>(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b) > 0; }
+	bool operator<=(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b) <= 0; }
+	bool operator>=(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b) >= 0; }
 
 	// Doesn't allocate, returns a sub-array of _arr_.
 	auto slice(any_array_like auto ref arr, s64 begin, s64 end) {
@@ -362,7 +367,9 @@ void reserve(any_dynamic_array_like auto ref arr, s64 n, allocator alloc) {
 }
 
 void maybe_grow(any_dynamic_array_like auto ref arr, s64 fit) {
-	check_debug_memory(arr);
+	if (arr.Allocated) {
+		check_debug_memory(arr);
+	}
 
 	s64 space = arr.Allocated;
 

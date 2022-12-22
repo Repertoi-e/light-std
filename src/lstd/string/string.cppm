@@ -71,8 +71,6 @@ export {
 			s64 Index;
 
 			code_point_ref(string ref s, s64 index) : String(s) {
-				check_debug_memory(s);
-				assert(s.Allocated);
 				Index = translate_negative_index(index, length(s));
 			}
 
@@ -157,7 +155,7 @@ export {
 	}
 
 	// This is <= Count
-	s64 length(string ref s) { return utf8_length(s.Data, s.Count); }
+	s64 length(string no_copy s) { return utf8_length(s.Data, s.Count); }
 
 	// Doesn't allocate memory, strings in this library are not null-terminated.
 	// We allow negative reversed indexing which begins at the end of the string,
@@ -263,11 +261,13 @@ export {
 	void set(string ref s, s64 index, code_point cp);
 
 	void maybe_grow(string ref s, s64 fit) {
-		check_debug_memory(s);
+		if (s.Allocated) {
+			check_debug_memory(s);
+		}
 
 		s64 space = s.Allocated;
 
-		if (s.Count + s <= space) return;
+		if (s.Count + fit <= space) return;
 
 		s64 target = max(ceil_pow_of_2(s.Count + fit + 1), 1);
 		reserve(s, target);

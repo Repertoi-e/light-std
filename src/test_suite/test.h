@@ -11,7 +11,7 @@ import lstd.path;
 //      /home/.../lstd-tests/src/tests/string.cpp ---> tests/string.cpp
 //      /home/.../lstd-tests/string.cpp           ---> string.cpp
 //
-string get_short_file_path(string str) {
+inline string get_short_file_path(string str) {
 	char srcData[] = { 's', 'r', 'c', OS_PATH_SEPARATOR, '\0' };
 	string src = srcData;
 

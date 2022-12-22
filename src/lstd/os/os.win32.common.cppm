@@ -268,7 +268,10 @@ void parse_arguments() {
     defer(LocalFree(argv));
 
     PUSH_ALLOC(PERSISTENT) {
-        reserve(S->Argv, argc - 1);
+        s32 n = argc - 1;
+        if (n > 0) {
+            reserve(S->Argv, n);
+        }
     }
 
     // Loop over all arguments and add them, skip the .exe name

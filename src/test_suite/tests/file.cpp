@@ -98,7 +98,7 @@ TE - ST(read_every_file_in_project) {
 
         assert(path_exists(p));
 
-        auto *counter = find(fileMap, p).Value;
+        auto *counter = search(fileMap, p).Value;
         if (!counter) counter = add(fileMap, p, 0).Value;
         *counter += 1;
     }

@@ -51,12 +51,10 @@ TEST(lock_free) {
     Count = 0;
 
     array<thread> threads;
-    make_dynamic(&threads, 100);
-
     defer(free(threads.Data));
 
     For(range(100)) {
-        add(&threads, create_and_launch_thread(thread_lock_free));
+        add(threads, create_and_launch_thread(thread_lock_free));
     }
 
     For(threads) {
@@ -80,12 +78,10 @@ TEST(mutex_lock) {
     Mutex = create_mutex();
 
     array<thread> threads;
-    make_dynamic(&threads, 100);
-
     defer(free(threads.Data));
 
     For(range(100)) {
-        add(&threads, create_and_launch_thread(thread_lock));
+        add(threads, create_and_launch_thread(thread_lock));
     }
 
     For(threads) {
@@ -109,12 +105,10 @@ TEST(fast_mutex_lock) {
     Count = 0;
 
     array<thread> threads;
-    make_dynamic(&threads, 100);
-
     defer(free(threads.Data));
     
     For(range(100)) {
-        add(&threads, create_and_launch_thread(thread_lock2));
+        add(threads, create_and_launch_thread(thread_lock2));
     }
 
     For(threads) {
@@ -152,12 +146,10 @@ TEST(condition_variable) {
 
     // These will decrease Count by 1 when they finish)
     array<thread> threads;
-    make_dynamic(&threads, Count);
-
     defer(free(threads.Data));
 
     For(range(Count)) {
-        add(&threads, create_and_launch_thread(thread_condition_notifier));
+        add(threads, create_and_launch_thread(thread_condition_notifier));
     }
 
     wait(t1);

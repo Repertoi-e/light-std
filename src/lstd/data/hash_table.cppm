@@ -143,7 +143,7 @@ export {
 	}
 
 	// Don't free the hash table, just destroy contents and reset count
-	void table_reset(any_hash_table auto ref table) {
+	void reset(any_hash_table auto ref table) {
 		For(range(table.Allocated)) {
 			(table.Entries.Data + it)->Hash = 0;
 		}
@@ -153,7 +153,7 @@ export {
 
 	// Looks for key in the hash table using the given hash
 	template <any_hash_table T>
-	key_value_pair<T> table_find_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
+	key_value_pair<T> search_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
 		if (!table.Count) return { null, null };
 
 		s64 index = hash & table.Allocated - 1;
@@ -168,8 +168,8 @@ export {
 	}
 
 	template <any_hash_table T>
-	auto find(T* table, key_t<T> no_copy key) {
-		return find_prehashed(table, get_hash(key), key);
+	auto search(T ref table, key_t<T> no_copy key) {
+		return search_prehashed(table, get_hash(key), key);
 	}
 
 	// Returns pointers to the added key and value.
@@ -205,7 +205,7 @@ export {
 
 	template <any_hash_table T>
 	key_value_pair<T> set_prehashed(T ref table, u64 hash, key_t<T> no_copy key, value_t<T> no_copy value) {
-		auto [kp, vp] = find_prehashed(table, hash, key);
+		auto [kp, vp] = search_prehashed(table, hash, key);
 		if (vp) {
 			*vp = value;
 			return { kp, vp };
@@ -221,7 +221,7 @@ export {
 	// Returns true if the key was found and removed.
 	template <any_hash_table T>
 	bool remove_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
-		auto [kp, vp] = find_prehashed(table, hash, key);
+		auto [kp, vp] = search_prehashed(table, hash, key);
 		if (vp) {
 			s64 index = vp - table.Values;
 			table.Hashes[index] = 1;
@@ -238,7 +238,7 @@ export {
 
 	// Returns true if the hash table has the given key.
 	template <any_hash_table T>
-	bool has(T ref table, key_t<T> no_copy key) { return find(table, key).Key != null; }
+	bool has(T ref table, key_t<T> no_copy key) { return search(table, key).Key != null; }
 
 	// Returns true if the hash table has the given key.
 	template <any_hash_table T>
@@ -263,7 +263,7 @@ export {
 
 		for (auto [k, v] : t) {
 			if (!has(u, *k)) return false;
-			if (*v != *find(u, *k).Value) return false;
+			if (*v != *search(u, *k).Value) return false;
 		}
 		return true;
 	}
@@ -272,9 +272,9 @@ export {
 	bool operator!=(T no_copy t, T no_copy u) { return !(t == u); }
 
 	template <any_hash_table T>
-	T clone(T no_copy src) {
+	T clone(T ref src) {
 		T table;
-		for (auto [k, v] : *src) table_add(table, *k, *v);
+		for (auto [k, v] : src) add(table, *k, *v);
 		return table;
 	}
 

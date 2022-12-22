@@ -13,12 +13,12 @@ TEST(stack_array) {
     assert_false(has(a, 10));
     assert_false(has(a, 20));
 
-    assert_eq(find(a, 3, -1, true), 3);
-    assert_eq(find(a, 4, -1, true), 4);
-    assert_eq(find(a, 0, -1, true), 0);
-    assert_eq(find(a, 3), 3);
-    assert_eq(find(a, 4), 4);
-    assert_eq(find(a, 0), 0);
+    assert_eq(search(a, 3, search_options {.Start = -1, .Reversed = true}), 3);
+    assert_eq(search(a, 4, search_options{ .Start = -1, .Reversed = true }), 4);
+    assert_eq(search(a, 0, search_options{ .Start = -1, .Reversed = true }), 0);
+    assert_eq(search(a, 3), 3);
+    assert_eq(search(a, 4), 4);
+    assert_eq(search(a, 0), 0);
 }
 
 TEST(array) {
@@ -28,56 +28,56 @@ TEST(array) {
     For(range(10)) { a += {it}; }
     For(range(10)) { assert_eq(a[it], it); }
 
-    insert_at_index(&a, 3, -3);
+    insert_at_index(a, 3, -3);
     assert_eq(a, make_stack_array<s64>(0, 1, 2, -3, 3, 4, 5, 6, 7, 8, 9));
 
-    remove_ordered_at_index(&a, 4);
+    remove_ordered_at_index(a, 4);
     assert_eq(a, make_stack_array<s64>(0, 1, 2, -3, 4, 5, 6, 7, 8, 9));
 
     s64 count = a.Count;
-    For(range(count)) { remove_ordered_at_index(&a, -1); }
+    For(range(count)) { remove_ordered_at_index(a, -1); }
     assert_eq(a.Count, 0);
 
-    For(range(10)) { insert_at_index(&a, 0, it); }
+    For(range(10)) { insert_at_index(a, 0, it); }
     assert_eq(a, make_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1, 0));
 
-    remove_ordered_at_index(&a, -1);
+    remove_ordered_at_index(a, -1);
     assert_eq(a, make_stack_array<s64>(9, 8, 7, 6, 5, 4, 3, 2, 1));
 
-    remove_ordered_at_index(&a, 0);
+    remove_ordered_at_index(a, 0);
     assert_eq(a, make_stack_array<s64>(8, 7, 6, 5, 4, 3, 2, 1));
 
-    s64 f = find(a, 9);
+    s64 f = search(a, 9);
     assert_eq(f, -1);
-    f = find(a, 8);
+    f = search(a, 8);
     assert_eq(f, 0);
-    f = find(a, 1);
+    f = search(a, 1);
     assert_eq(f, 7);
-    f = find(a, 3);
+    f = search(a, 3);
     assert_eq(f, 5);
-    f = find(a, 5);
+    f = search(a, 5);
     assert_eq(f, 3);
 }
 
 TEST(hash_table) {
     hash_table<string, s32> t;
-    defer(free_table(&t));
+    defer(free(t));
 
-    set(&t, "1", 1);
-    set(&t, "4", 4);
-    set(&t, "9", 10101);
+    set(t, "1", 1);
+    set(t, "4", 4);
+    set(t, "9", 10101);
 
-    assert((void *) find(&t, "1").Value);
-    assert_eq(*find(&t, "1").Value, 1);
-    assert((void *) find(&t, "4").Value);
-    assert_eq(*find(&t, "4").Value, 4);
-    assert((void *) find(&t, "9").Value);
-    assert_eq(*find(&t, "9").Value, 10101);
+    assert((void *) search(t, "1").Value);
+    assert_eq(*search(t, "1").Value, 1);
+    assert((void *) search(t, "4").Value);
+    assert_eq(*search(t, "4").Value, 4);
+    assert((void *) search(t, "9").Value);
+    assert_eq(*search(t, "9").Value, 10101);
 
-    set(&t, "9", 20202);
-    assert((void *) find(&t, "9").Value);
-    assert_eq(*find(&t, "9").Value, 20202);
-    set(&t, "9", 9);
+    set(t, "9", 20202);
+    assert((void *) search(t, "9").Value);
+    assert_eq(*search(t, "9").Value, 20202);
+    set(t, "9", 9);
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
@@ -98,16 +98,16 @@ TEST(hash_table) {
 
 TEST(hash_table_clone) {
     hash_table<string, s32> t;
-    defer(free_table(&t));
+    defer(free(t));
 
-    set(&t, "1", 1);
-    set(&t, "4", 4);
-    set(&t, "9", 9);
+    set(t, "1", 1);
+    set(t, "4", 4);
+    set(t, "9", 9);
 
-    hash_table<string, s32> copy = clone(&t);
-    defer(free_table(&copy));
+    hash_table<string, s32> copy = clone(t);
+    defer(free(copy));
 
-    set(&copy, "11", 20);
+    set(copy, "11", 20);
 
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
@@ -140,8 +140,8 @@ TEST(hash_table_alignment) {
     // It tests if the block allocation in the table handles alignment of key and value arrays.
 
     hash_table<v2, v3> simdTable;
-    resize(&simdTable, 0, 16);
+    resize(simdTable, 0, 16);
 
-    add(&simdTable, {1, 2}, {1, 2, 3});
-    add(&simdTable, {1, 3}, {4, 7, 9});
+    add(simdTable, {1, 2}, {1, 2, 3});
+    add(simdTable, {1, 3}, {4, 7, 9});
 }

@@ -59,7 +59,7 @@ export {
 
     // Search based on predicate
     template <any_bucket_array Arr>
-    auto *find(Arr * arr, delegate<bool(typename Arr::T *)> predicate) {
+    auto *search(Arr * arr, delegate<bool(typename Arr::T *)> predicate) {
         auto *b = get_bucket_head(arr);
         while (b) {
             auto *p = b->Data;
@@ -97,7 +97,7 @@ export {
 
     template <any_bucket_array Arr, typename U>
     auto *find_or_create(Arr * arr, const U &toMatch) {
-        auto *result = find(arr, [&](Arr::T *element) { return *element == toMatch; });
+        auto *result = search(arr, [&](Arr::T *element) { return *element == toMatch; });
         if (result) return result;
 
         result = malloc<Arr::T>({.Alloc = arr->Alloc});
