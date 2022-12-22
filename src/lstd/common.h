@@ -181,7 +181,7 @@ inline void swap(T(&a)[N], T(&b)[N]) {
 //
 //     It has no sense of ownership. That is determined explictly in code and by the programmer.
 //
-//     By default arrays are views, to make them dynamic, call     array_reserve(arr, ...).
+//     By default arrays are views, to make them dynamic, call     reserve(arr, ...).
 //     After that you can modify them (add/remove elements etc.)
 //
 //     You can safely pass around copies and return arrays from functions because
@@ -197,15 +197,24 @@ inline void swap(T(&a)[N], T(&b)[N]) {
 //
 //     All of this allows to skip writing copy/move constructors/assignment operators.
 //
-// _string_s are just array<char>. All of this applies to them as well.
+// _string_s are like arrays, but different types to avoid conflicts with indices. 
+// Indices are to utf-8 code points instead of to bytes.
 // They are not null-terminated, which means that taking substrings doesn't allocate memory.
+// But all of the above (for arrays) applies to them as well.
 //
 //
 //     // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
 //     // Like arrays, strings are views by default.
 //     string path = "./data/";
-//     path += "output.txt";
+//	   reserve(path);
 //     defer(free(path));
+//     path += "output.txt";
+// 
+// or:
+// 
+//	   string path = make_string("./data/");
+//     defer(free(path));
+//     path += "output.txt";
 //
 //     string pathWithoutDot = string_slice(path, 2, -1);
 //

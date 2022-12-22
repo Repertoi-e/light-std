@@ -79,41 +79,42 @@ The solution file is at placed at `build/vs2019/light-std.sln` and is generated 
 - In general, error conditions (which require returning a status) should be rarely justifiable. The code should just do the correct stuff. Otherwise it quickly becomes complicated and we lose confidence on what could happen and where.
 
 #### Example
-`array` is this library is a basic wrapper around contiguous memory. It contains 2 fields (`Data` and `Count`).
+`array` is this library is a basic wrapper around contiguous memory. It contains 3 fields (`Data`, `Count` and `Allocated`).
 It has no sense of ownership. That is determined explictly in code and by the programmer.
 
-By default arrays are views, to make them dynamic, call `make_dynamic(&arr)`.
+By default arrays are views, to make them dynamic, call `reserve(arr)` or `make_array(...)` with pointer and size to data, or short-hand: `array<int> ints = {1, 2, 3};`.
 After that you can modify them (insert or remove elements).
 
 You can safely pass around copies and return arrays from functions by value because
 there is no hidden destructor which will free the memory. Moreover they are just
-a pointer and a size, so it's cheap and avoids indirection from passing them by pointer/reference. 
+a pointer and two sizes, so it's cheap and avoids indirection from passing them by pointer/reference. 
 
-If you call `make_dynamic(&arr)` nothing really special happens except
-that `arr.Data` is now pointing to allocated memory. To free it when no longer needed call `free(arr.Data)` as normal.
-You can also call `defer(free(arr.Data))` to free it on scope exit (like a destructor).
+When you call `reserve(arr)`, `arr.Data` is now pointing to allocated memory. To free it when no longer needed call `free(arr)` as normal.
+You can also call `defer(free(arr))` to free it on scope exit (like a destructor).
 
 > ```cpp
 >      array<string> pathComponents;
->      make_dynamic(&pathComponents, 8);
->      defer(free(pathComponents.Data));
+>      reserve(pathComponents);
+>      defer(free(pathComponents));
 > ```
 
-`string`s are just `array<char>`. All of this applies to them as well.
-They are treated as utf-8 and not null-terminated, which means that taking substrings doesn't allocate memory.
+`string`s are just like arrays, all of this applies to them as well. However, they are different types to avoid conflicts with different types of indices. Strings take indices to code points, and not to points, because they are utf-8 by default. They are also not null-terminated, which means that taking substrings doesn't allocate memory.
 
-To make a deep copy of an array (or string) use clone(): `newPath = clone(&path)`.
+To make a deep copy of an array (or string) use clone(): `newPath = clone(path)`.
 
 > ```cpp
 >      // Constructed from a zero-terminated string buffer. Doesn't allocate memory.
 >      // Like arrays, strings are views by default.
 >      string path = "./data/";
->      make_dynamic(&path);         // Allocates a buffer and copies the string it was pointing to
->      defer(free(path.Data));
+>      reserve(path);         // Allocates a buffer and copies the string it was pointing to
+>      // Instead of the above, you can also do: string path = make_string("./data/");
+> 
+>      defer(free(path));
+> 
 >      
->      string_append(&path, "output.txt");
+>      string_append(path, "output.txt");
 >      
->      string pathWithoutDot = substring(path, 2, -1);
+>      string pathWithoutDot = slice(path, 2, -1);
 > ```
 
 > Functions on objects which take indices allow negative reversed indexing which begins at
@@ -132,14 +133,16 @@ To make a deep copy of an array (or string) use clone(): `newPath = clone(&path)
 > ex.2 Allocating memory explicitly.
 > ```cpp
 >      array<char> sequence;
->      make_dynamic(&sequence 8);
->      add(sequence, '0');
->      add(sequence, 'b');
->      add(sequence, '1');
->      // ... futher appends may require reallocating which is handled automatically (oldAlloc * 2)
+>      reserve(sequence);
+>      sequence += {'0', 'b', '1'};
+>      // Or equivalently:
+>      // add(sequence, '0');
+>      // add(sequence, 'b');
+>      // add(sequence, '1');
+>      // ... futher appends may require reallocating which is handled automatically (next power of 2 of the current allocated size)
 >  
->      array<char> otherSequence = clone(&sequence);  // Deep-copy
->      defer(free(otherSequence.Data));               // Runs at the end of the scope
+>      array<char> otherSequence = clone(sequence);  // Deep-copy
+>      defer(free(otherSequence));                   // Runs at the end of the scope
 >  
 >      auto shallowCopyOfSequence = sequence;
 >      free(shallowCopyOfSequence); // 'sequence' is also freed (they point to the same memory)
@@ -155,25 +158,31 @@ To make a deep copy of an array (or string) use clone(): `newPath = clone(&path)
 > ex.3 Example how array doesn't know what the current context allocator is (more on that later). 
 > Here `PERSISTENT` is an allocator that the platform layer uses for internal allocations. The example is taken directly from the `os` module.
 > ```cpp
-> [[nodiscard("Leak")]] array<string> os_get_command_line_arguments() {
+> void parse_arguments() {
+>     wchar **argv;
 >     s32 argc;
->     utf16 **argv = CommandLineToArgvW(GetCommandLineW(), &argc);
->   
->     if (argv == null) return {}; // We may return an empty array safely, because `free` on a null does nothing.
->  
->     array<string> result;
+> 
+>     // @Cleanup @DependencyCleanup: Parse arguments ourselves? We depend on this function which
+>     // is in a library we reference ONLY because of this one function.
+>     argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+>     if (argv == null) {
+>         report_warning_no_allocations("Couldn't parse command line arguments, os_get_command_line_arguments() will return an empty array in all cases");
+>         return;
+>     }
+> 
+>     defer(LocalFree(argv));
+> 
+>     // Although reserve is getting called without an explicit
+>     // allocator, it get's the one from the context (pushed PERSISENT)
 >     PUSH_ALLOC(PERSISTENT) {
->         make_dynamic(&result, argc - 1);
->
->         // Loop over all arguments but skip the .exe name
->         For(range(1, argc)) {
->             add(&result, utf16_to_utf8(argv[it]));
+>         s32 n = argc - 1;
+>         if (n > 0) {
+>             reserve(S->Argv, n);
 >         }
 >     }
->     // This does a shallow copy, there is no copy constructor, but there is also no destructor 
->     // to invalidate `result`. After programming for a while it feels great to do this sort of stuff
->     // without expecting unnecessary allocations to happen.
->     return result; 
+> 
+>     // Loop over all arguments and add them, skip the .exe name
+>     For(range(1, argc)) add(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
 > }
 > ```
 
@@ -201,8 +210,6 @@ To make a deep copy of an array (or string) use clone(): `newPath = clone(&path)
 >      
 >
 >      array<string> args = os_get_command_line_arguments();
->      defer(free(args.Data));
->
 >      For(args) print("{}\n", it); 
 >     
 >
@@ -220,16 +227,7 @@ To make a deep copy of an array (or string) use clone(): `newPath = clone(&path)
 >      // For_enumerate_as(my_it_index_name, my_it_name, args) { .. }
 > ```
 
-> ex.5 Arrays support Python-like negative indexing.
-> ```cpp
->      auto nums = make_stack_array(1, 2, 3, 4, 5);
->
->      // Negative index is the same as "Length - index", 
->      // so -1 is translated to the index of the last element.
->      print("{}", nums[-1]); // 5
-> ```
-
-> ex.6 We also have a wrapper for a fixed-size array (equivalent to std::array).
+> ex.5 We also have a wrapper for a fixed-size array (equivalent to std::array).
 > ```cpp
 >      s32 data[5];               // These two variables have the same size, but the second one
 >      stack_array<s32, 5> data;  // can be passed as a parameter to functions without decaying to a pointer.
@@ -238,28 +236,28 @@ To make a deep copy of an array (or string) use clone(): `newPath = clone(&path)
 >      auto data = make_stack_array<s64>(1, 2, 3, 4, 5);
 > ```
 
-> ex.7 Arrays constexpr (C++20 also supports dynamic allocation at compile-time)
+> ex.6 Arrays support Python-like negative indexing.
 > ```cpp
->      constexpr auto data = make_stack_array<s64>(1, 2, 3, 4, 5);
->      constexpr array<s64> view = data;
+>      auto nums = make_stack_array(1, 2, 3, 4, 5); 
+>
+>      // Negative index is the same as "Length - index", 
+>      // so -1 is translated to the index of the last element.
+>      print("{}", nums[-1]); // 5
 > ```
-
 
 ### Strings by example
 
 Strings in this library support unicode (UTF-8) and aren't null-terminated.
 
 `str.Count` tells you the number of bytes stored in the string. To get
-the number of code points call `string_length(str)`.
+the number of code points call `length(str)`.
 The number of code points is smaller or equal to the number of bytes,
 because a certain code point can be encoded in up to 4 bytes.
 
 Array examples from the previous section are relevant here.
 
-Note: Functions like `insert_at_index` have a different suffix for strings `string_insert_at_index`, because we treat indices for strings as pointing to code points. If you want to work with the raw bytes of the string, you can use the normal non-prefixed array routines.
-
 > ex.1 This string is constructed from a zero-terminated string buffer (which the compiler stores in read-only memory when the program launches). 
-> This doesn't allocate memory, `free(path.Data)` will crash.
+> This doesn't allocate memory, `free(path)` or `free(path.Data` will crash.
 > ```cpp
 >     string path = "./data/"; 
 > ```
@@ -268,13 +266,15 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 > ```cpp
 >     string path = "./data/output.txt";
 >     
->     s64 dot = string_find(path, '.', string_length(path), true);  // Reverse find 
->     string pathExtension = substring(path, dot, -1); // ".txt"    
+>     s64 dot = search(path, '.', search_options {.Start = length(path), .Reversed = true});
+>     string pathExtension = slice(path, dot, -1); // ".txt"    
 > ```
 
 > ex.3 Modifying individual code points.
 > ```cpp
->     string greeting = "ЗДРАСТИ";
+>     string greeting = make_array("ЗДРАСТИ"); // This allocates and copies the read-only string
+>     defer(free(greeting));
+> 
 >     For(greeting) {
 >         it = to_lower(it);
 >         // Here the string is non-const so 'it' is actually a reference 
@@ -282,30 +282,38 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 >         // This also correctly handles replacing a code point with a larger 
 >         // or smaller one. 
 >         // See the implementation of string_iterator.
+>         // 
+>         // Note from the future (2022, almost 2023), this ought to be
+>         // replaced with a map function or equivalent, since having
+>         // code point references, which are able to silently modify the
+>         // string are dangerous and limited (e.g. other types or arrays
+>         // with more complicated substitutions don't get the same treatment);  
 >     }
 >     greeting; // "здрасти"
 > ```
 
 > ex.4 This example is taken directly from the `path` module.
 > ```cpp
-> [[nodiscard("Leak")]] array<string> path_split_into_components(string path) {
+> mark_as_leak array<string> path_split_into_components(string path, string seps = "\\/") {
 >     array<string> result;
->     make_dynamic(&result, 8);
->
+>     reserve(result);
+> 
+>     auto matchSep = [=](code_point cp) { return has(seps, cp); };
+> 
 >     s64 start = 0, prev = 0;
->     while ((start = string_find_any_of(path, "\\/", start + 1)) != -1) {
->         add(&result, substring(path, prev, start);
->         prev = start + 1;
+>     while ((start = search(path, &matchSep, search_options{ .Start = start + 1 })) != -1) {
+>       result += { slice(path, prev, start) };
+>       prev = start + 1;
 >     }
->     
+> 
 >     // There is an edge case in which the path ends with a slash, in that case there is no "another" component.
 >     // The if is here so we don't crash with index out of bounds.
 >     //
 >     // Note that both /home/user/dir and /home/user/dir/ mean the same thing.
 >     // You can use other functions to check if the former is really a directory or a file (querying the OS).
->     if (prev < path.Length) {
->         // Add the last component - from prev to path.Length
->         add(&result, substring(path, prev, string_length(path)));
+>     if (prev < length(path)) {
+>       // Add the last component - from prev to path.Length
+>       result += { slice(path, prev, length(path)) };
 >     }
 >     return result;
 > }
@@ -313,48 +321,52 @@ Note: Functions like `insert_at_index` have a different suffix for strings `stri
 
 > ex.5 Also taken from the `path` module.
 > ```cpp
-> [[nodiscard("Leak")]] string path_join(array<string> paths) {
+> mark_as_leak string path_join(array<string> paths) {
+>     assert(paths.Count >= 2);
+> 
 >     auto [result_drive, result_path] = path_split_drive(paths[0]);
 > 
->     string result = clone(&result_path);
+>     string result = clone(result_path);
 > 
 >     For(range(1, paths.Count)) {
 >         auto p = paths[it];
 >         auto [p_drive, p_path] = path_split_drive(p);
->         if (p_path && path_is_sep(p_path[0])) {
+>         if (p_path.Count && path_is_sep(p_path[0])) {
 >             // Second path is absolute
->             if (p_drive || !result_drive) {
+>             if (p_drive.Count || !result_drive.Count) {
 >                 result_drive = p_drive;  // These are just substrings so it's fine
 >             }
->             free(result.Data);
->             result = clone(&p_path);
+> 
+>             free(result);
+>             result = clone(p_path);
+> 
 >             continue;
->         } else if (p_drive && p_drive != result_drive) {
->             // _string_compare_ignore_case_ returns the index at which the strings differ.
->             // it returns -1 if the strings match.
->             if (string_compare_ignore_case(p_drive, result_drive) != -1) {
+>         } else if (p_drive.Count && !strings_match(p_drive, result_drive)) {
+>             if (!strings_match_ignore_case(p_drive, result_drive)) {
 >                 // Different drives => ignore the first path entirely
 >                 result_drive = p_drive;
->                 free(result.Data);
->                 result = clone(&p_path);
+> 
+>                 free(result);
+>                 result = clone(p_path);
+> 
 >                 continue;
 >             }
 >             // Same drives, different case
 >             result_drive = p_drive;
 >         }
 > 
->         // Second path is relative to the first, append them 
->         if (result && !path_is_sep(result[-1])) {
->             string_append(&result, '\\');
+>         // Second path is relative to the first
+>         if (result.Count && !path_is_sep(result[-1])) {
+>             result += '\\';
 >         }
->         string_append(&result, p_path);
+>         result += p_path;
 >     }
 > 
 >     // Add separator between UNC and non-absolute path if needed
->     if (result && !path_is_sep(result[0]) && result_drive && result_drive[-1] != ':') {
->         string_insert_at_index(&result, 0, '\\');
+>     if (result.Count && !path_is_sep(result[0]) && result_drive.Count && result_drive[-1] != ':') {
+>         insert_at_index(result, 0, '\\');
 >     } else {
->         string_insert_at_index(&result, 0, result_drive);
+>         insert_at_index(result, 0, result_drive);
 >     }
 >     return result;
 > }
@@ -373,7 +385,7 @@ For the sake of not introducing a THIRD way, we override `malloc`.
 
 > Since we don't link the CRT `malloc` is undefined, so we need to
 > provide a replacement anyway (or modify code which is annoying and
-> not always possible, e.g. a prebuilt library, @TODO it may actually be possible with symbol patching.).
+> not always possible, e.g. a prebuilt library (it may actually be possible with symbol patching).
 
 `new` and `delete` actually have different semantics (`new` - initializing the values,
 `delete` - calling a destructor if defined). Our type policy is against destructors
@@ -396,7 +408,7 @@ To implement "destructor functionality" (uninitializing the type, freeing member
 you should provide a function, for example: 
 
 >```cpp
->    free_string(my_string *s) {
+>    free_string(my_string ref s) {
 >        free(s.Data);   // Free buffer as normal
 >        atomic_add(&GlobalStringCount, -1);
 >    }

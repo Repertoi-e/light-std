@@ -253,7 +253,6 @@ void get_module_name() {
 }
 
 void parse_arguments() {
-    // Get the arguments
     wchar **argv;
     s32 argc;
 

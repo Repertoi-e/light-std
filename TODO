@@ -1,16 +1,8 @@
 - remove code point ref being able to change string, instead provide map function
 
 Project structure
-- vendor
 - common functions with no crt
-- decouple lstd and lstd-graphics
-  This would probably involve somehow managing a linker table
-  with functions that should run with the initialization of the lstd.
-  This would be flexible enough to allow easily adding new modules
-  just by linking with them and even allow the user to add their own routines.
 	   
-- Constexpr allocations, fully constexpr string, array, etc.
-	 
 - Make monitors and cursors handles (like window).
   Typedef them to void * and move all functions outside? There is really no need for a class. 
 	  
@@ -31,11 +23,6 @@ Project structure
 - API for watching directory changes
   ... and an asset catalog system
 
-
-
-
-Hash table:
-- Default hasher for any type by looking at the bytes 
 
 
 fmt module:
@@ -71,10 +58,6 @@ Tests with parse_guid_options
 - Time module?    
 - Random module?
 - Regex module?
-
-Data structures and lock-free data structures
-
-Allow users to add more variables to Implicit_Context (document the initialization process)
 
 Implement platform specific functionality and compile on linux.
 (This is probably never going to happen if I continue to work on this alone LMAO)
@@ -123,3 +106,4 @@ Implement platform specific functionality and compile on linux.
 				22085
 				21851
 				21325
+				21704
