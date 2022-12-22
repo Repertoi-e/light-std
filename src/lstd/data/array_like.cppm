@@ -168,7 +168,7 @@ export {
 	auto *insert_at_index(Arr ref arr, s64 index, Arr2 no_copy arr2) { return insert_at_index(arr, index, arr2.Data, arr2.Count); } // Returns pointer in the array to the beginning of added elements 
 
 	template <any_dynamic_array_like Arr>
-	auto *insert_at_index(any_dynamic_array_like auto ref arr, s64 index, initializer_list<array_data_t<Arr>> list) { return insert_at_index(arr, index, list.begin(), list.end() - list.begin() + 1); } // Returns pointer in the array to the beginning of added elements 
+	auto *insert_at_index(any_dynamic_array_like auto ref arr, s64 index, initializer_list<array_data_t<Arr>> list) { return insert_at_index(arr, index, list.begin(), list.end() - list.begin()); } // Returns pointer in the array to the beginning of added elements 
 
 	template <any_dynamic_array_like Arr>
 	auto *add(Arr ref arr, array_data_t<Arr> no_copy element) { return insert_at_index(arr, arr.Count, element); }
@@ -178,7 +178,7 @@ export {
 	auto *add(Arr ref arr, Arr2 no_copy arr2) { return insert_at_index(arr, arr.Count, arr2); }
 
 	template <any_dynamic_array_like Arr>
-	auto *add(Arr ref arr, initializer_list<array_data_t<Arr>> list) { return insert_at_index(arr, arr.Count, list.begin(), list.end() - list.begin() + 1); }
+	auto *add(Arr ref arr, initializer_list<array_data_t<Arr>> list) { return insert_at_index(arr, arr.Count, list.begin(), list.end() - list.begin()); }
 
 	template <any_dynamic_array_like Arr>
 	auto *add(Arr ref arr, const array_data_t<Arr> *ptr, s64 size) { return insert_at_index(arr, arr.Count, ptr, size); }
@@ -242,7 +242,7 @@ export {
 	auto end(any_array_like auto ref arr) { return arr.Data + arr.Count; }
 	auto end(any_array_like auto no_copy arr) { return arr.Data + arr.Count; }
 
-	bool check_debug_memory(any_dynamic_array_like auto no_copy arr);
+	void check_debug_memory(any_dynamic_array_like auto no_copy arr);
 }
 
 always_inline s64 translate_negative_index(s64 index, s64 length, bool toleratePastLast) {
@@ -327,8 +327,7 @@ s32 compare_lexicographically(any_array_like auto no_copy a, any_array_like auto
 	return *p1 < *p2 ? -1 : 1;
 }
 
-bool check_debug_memory(any_dynamic_array_like auto no_copy arr) {
-#if defined DEBUG_MEMORY
+void check_debug_memory(any_dynamic_array_like auto no_copy arr) {
 	//
 	// If you assert here, there are two possible reasons:
 	// 
@@ -342,14 +341,15 @@ bool check_debug_memory(any_dynamic_array_like auto no_copy arr) {
 	// 2. Attempting to modify an array from another thread...
 	// Caution! This container is not thread-safe!
 	//
+	assert(arr.Allocated);
+#if defined DEBUG_MEMORY
 	assert(debug_memory_list_contains((allocation_header *)arr.Data - 1));
 #endif
-	return true;
 }
 
 void reserve(any_dynamic_array_like auto ref arr, s64 n, allocator alloc) {
-	if (n == -1) {
-		n = max(arr.Count, 1);
+	if (n <= 0) {
+		n = max(arr.Count, 8);
 	}
 	assert(n >= 1);
 
@@ -359,23 +359,25 @@ void reserve(any_dynamic_array_like auto ref arr, s64 n, allocator alloc) {
 	if (arr.Allocated) {
 		arr.Data = realloc(arr.Data, { .NewCount = n });
 	} else {
-		arr.Data = malloc<T>({ .Count = n, .Alloc = alloc }); // If alloc is null we use theContext's allocator
+		// Not our job to free oldData since we don't own it.
+		// For subsequent reserves we go through the   realloc   branch above,
+		// which properly manages to free the old data (if it couldn't reallocate 
+		// in place, that is).
+		arr.Data = malloc<T>({ .Count = n, .Alloc = alloc }); // If alloc is null we use the Context's allocator
+		if (oldData) memcpy(arr.Data, oldData, arr.Count * sizeof(T));
 	}
-	if (arr) memcpy(arr.Data, oldData, arr.Count * sizeof(T));
-
+	
 	arr.Allocated = n;
 }
 
 void maybe_grow(any_dynamic_array_like auto ref arr, s64 fit) {
-	if (arr.Allocated) {
-		check_debug_memory(arr);
-	}
+	check_debug_memory(arr);
 
 	s64 space = arr.Allocated;
 
 	if (arr.Count + fit <= space) return;
 
-	s64 target = max(ceil_pow_of_2(arr.Count + fit + 1), 1);
+	s64 target = max(ceil_pow_of_2(arr.Count + fit + 1), 8);
 	reserve(arr, target);
 }
 
@@ -392,7 +394,6 @@ auto *insert_at_index(Arr ref arr, s64 index, array_data_t<Arr> no_copy element)
 	++arr.Count;
 	return where;
 }
-
 
 template <any_dynamic_array_like Arr>
 auto *insert_at_index(Arr ref arr, s64 index, const array_data_t<Arr> *ptr, s64 size) {

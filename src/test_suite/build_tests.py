@@ -80,6 +80,7 @@ def handle_file(path, file_name):
 
     build_test_table_contents += '    {\n'
     build_test_table_contents += f'        auto [_, array] = add(g_TestTable, string("{file}"), {{}});\n'
+    build_test_table_contents += f'        reserve(*array, 10);\n'
     
     #
     # We ignore a test if preceeded by "x". 

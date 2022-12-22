@@ -51,7 +51,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         DWORD64 symDisplacement = 0;
         if (SymFromAddr(hProcess, sf.AddrPC.Offset, &symDisplacement, symbol)) {
             call.Name = string(symbol->Name);
-            if (!call.Name) {
+            if (!call.Name.Count) {
                 free(call);
                 call.Name = "UnknownFunction";
             }
@@ -62,7 +62,7 @@ file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
         DWORD lineDisplacement = 0;
         if (SymGetLineFromAddrW64(hProcess, sf.AddrPC.Offset, &lineDisplacement, &lineInfo)) {
             call.File = platform_utf16_to_utf8(lineInfo.FileName, platform_get_persistent_allocator());
-            if (!call.File) {
+            if (!call.File.Count) {
                 free(call);
                 call.File = "UnknownFile";
             }

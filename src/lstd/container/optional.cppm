@@ -21,7 +21,7 @@ export {
 
 		bool has_value() const { return this->which() != 0; }
 
-		operator bool() const { return has_value(); }
+		explicit operator bool() const { return has_value(); }
 
 		const T* operator->() const { assert(has_value()); return &((T)this); }
 		T* operator->() { assert(has_value()); return &((T)this); }

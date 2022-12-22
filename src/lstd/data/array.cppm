@@ -37,24 +37,25 @@ export {
 		// This constructs a view (use make_array to copy)
 		array(T *data, s64 count) : Data(data), Count(count) {}
 
-		// .. while here we copy because of different behaviour in Debug, Release.
-		// Essentially this provides support for short-hand for doing this:
+		// .. while here we dynamically allocated because of different behavior in Debug, Release.
+		// (initializer lists get optimized). Essentially this provides support for short-hand 
+		// for doing this:
 		//
 		//	array<int> a = { 1, 2, 3 };
 		//
+		// Instead of calling   make_array(...)   with pointer and size to stack elements.
 		array(initializer_list<T> items) {
 			add(*this, items);
 		}
 
         auto operator[](s64 index) { return Data[translate_negative_index(index, Count)]; }
 		auto operator[](s64 index) const { return Data[translate_negative_index(index, Count)]; }
-
-		operator bool() const { return Count; }
     };
 
 	template <typename T>
 	mark_as_leak array<T> make_array(T *data, s64 count) {
 		array<T> result;
+		reserve(result, count);
 		add(result, data, count);
 		return result;
 	}

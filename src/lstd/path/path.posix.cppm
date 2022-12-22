@@ -64,7 +64,7 @@ export {
 
         // If head exists and doesn not consist only of slashes
         auto notSlash = [](code_point cp) { return cp != '/'; };
-        if (head && search(head, &notSlash) != -1) {
+        if (head.Data && search(head, &notSlash) != -1) {
             head = slice(head, 0, search(head, &notSlash, search_options{ .Start = -1, .Reversed = true }) + 1);
         }
 

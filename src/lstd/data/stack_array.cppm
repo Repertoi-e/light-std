@@ -45,7 +45,7 @@ export {
 
         stack_array() {}
         stack_array(initializer_list<T> list) {
-            memcpy(Data, list.begin(), (list.end() - list.begin()) + 1 * sizeof(T));
+            memcpy(Data, list.begin(), (list.end() - list.begin()) * sizeof(T));
         }
 
         T &operator[](s64 index) { return Data[translate_negative_index(index, Count)]; }

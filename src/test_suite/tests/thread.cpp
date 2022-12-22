@@ -51,6 +51,7 @@ TEST(lock_free) {
     Count = 0;
 
     array<thread> threads;
+    reserve(threads);
     defer(free(threads.Data));
 
     For(range(100)) {
@@ -78,6 +79,7 @@ TEST(mutex_lock) {
     Mutex = create_mutex();
 
     array<thread> threads;
+	reserve(threads);
     defer(free(threads.Data));
 
     For(range(100)) {
@@ -105,7 +107,8 @@ TEST(fast_mutex_lock) {
     Count = 0;
 
     array<thread> threads;
-    defer(free(threads.Data));
+    reserve(threads);
+	defer(free(threads.Data));
     
     For(range(100)) {
         add(threads, create_and_launch_thread(thread_lock2));
@@ -146,6 +149,7 @@ TEST(condition_variable) {
 
     // These will decrease Count by 1 when they finish)
     array<thread> threads;
+    reserve(threads);
     defer(free(threads.Data));
 
     For(range(Count)) {

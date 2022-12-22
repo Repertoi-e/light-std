@@ -216,7 +216,7 @@ export {
                 --maxDigits;
             }
 
-            s32 digit = p ? Options.CodePointToDigit(p[0], firstDigit) : CP_INVALID;
+            s32 digit = p.Count ? Options.CodePointToDigit(p[0], firstDigit) : CP_INVALID;
             advance_cp(&p, 1);
 
             if (digit == CP_IGNORE_THIS) continue;
@@ -305,7 +305,7 @@ export {
     template <is_integral T, parse_int_options Options = parse_int_options{}>
     parse_result<T> parse_int(string buffer, u32 base = 10) {
         string p = buffer;
-        if (!p) return FAIL;
+        if (!p.Count) return FAIL;
 
         bool negative = false;
         if constexpr (Options.ParseSign) {
@@ -316,7 +316,7 @@ export {
                 negative = true;
                 advance_bytes(&p, 1);
             }
-            if (!p) return FAIL;
+            if (!p.Count) return FAIL;
         }
 
         if constexpr (Options.LookForBasePrefix) {
@@ -329,7 +329,7 @@ export {
                     advance_bytes(&p, 1);
                 }
             }
-            if (!p) return FAIL;
+            if (!p.Count) return FAIL;
         }
 
         if constexpr (is_same<T, big_integer>) {
@@ -341,7 +341,7 @@ export {
 
     template <bool IgnoreCase = false>
     bool expect_cp(string * p, code_point value) {
-        if (!*p) return false;
+        if (!p->Count) return false;
 
         code_point ch = (*p)[0];
         if constexpr (IgnoreCase) ch = to_lower(ch);
@@ -394,7 +394,7 @@ export {
 #define SUCCESS(x) {x, PARSE_SUCCESS, p};
 
         string p = buffer;
-        if (!p) return FAIL;
+        if (!p.Count) return FAIL;
 
         if constexpr (Options.ParseNumbers) {
             if (p[0] == '0') {
@@ -465,7 +465,7 @@ export {
 #define FAIL {empty, PARSE_INVALID, p}
 
         string p = buffer;
-        if (!p) return FAIL;
+        if (!p.Count) return FAIL;
 
         bool parentheses = false, curly = false;
         if constexpr (Options.Parentheses) {
@@ -473,7 +473,7 @@ export {
                 parentheses = true;
                 curly       = p[0] == '{';
                 advance_cp(&p, 1);
-                if (!p) return FAIL;
+                if (!p.Count) return FAIL;
             }
         }
 
@@ -550,7 +550,7 @@ export {
                         if (p[0] == '-') {
                             hyphens = true;
                             advance_cp(&p, 1);
-                            if (!p) return FAIL;
+                            if (!p.Count) return FAIL;
                         }
                     }
                 }
@@ -558,7 +558,7 @@ export {
                 if (hyphens && (counter == 6 || counter == 8 || counter == 10)) {
                     if (p[0] == '-') {
                         advance_cp(&p, 1);
-                        if (!p) return FAIL;
+                        if (!p.Count) return FAIL;
                     } else {
                         return FAIL;
                     }
@@ -566,7 +566,7 @@ export {
             } else {
                 if (p[0] == '-') {
                     advance_cp(&p, 1);
-                    if (!p) return FAIL;
+                    if (!p.Count) return FAIL;
                 }
             }
 

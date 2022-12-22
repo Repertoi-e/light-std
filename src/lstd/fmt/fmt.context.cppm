@@ -378,7 +378,7 @@ void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs) {
     type = (char) to_lower(type);
     write_padded_helper(
         f, specs, [&]() {
-            if (prefix) write_no_specs(f, prefix);
+            if (prefix.Count) write_no_specs(f, prefix);
             For(range(padding)) write_no_specs(f, specs.Fill);
 
             char *p = null;
@@ -434,7 +434,7 @@ void write_exponent(fmt_context *f, s64 exp) {
 // arabic numerals so ...
 //
 void write_significand(fmt_context *f, string significand, s64 integralSize, code_point decimalPoint = 0) {
-    if (!significand) return;  // The significand is actually empty if the value formatted is 0
+    if (!significand.Count) return;  // The significand is actually empty if the value formatted is 0
 
     write_no_specs(f, slice(significand, 0, integralSize));
     if (decimalPoint) {
@@ -560,11 +560,11 @@ void write_float_fixed(fmt_context *f, string significand, s32 exp, code_point s
             s64 numZeros = absExp - significand.Count;
 
             // Edge case when we are formatting a 0 with given precision
-            if (!significand && specs.Precision >= 0 && specs.Precision < numZeros) {
+            if (!significand.Count && specs.Precision >= 0 && specs.Precision < numZeros) {
                 numZeros = specs.Precision;
             }
 
-            bool pointy = numZeros || significand || floatSpecs.ShowPoint;
+            bool pointy = numZeros || significand.Count || floatSpecs.ShowPoint;
             outputSize += 1 + (pointy ? 1 : 0) + numZeros;
 
             write_padded_helper(

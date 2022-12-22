@@ -162,7 +162,7 @@ bool parse_fill_and_align(fmt_interp *p, fmt_type argType, fmt_specs *specs) {
     // We leave it as ' ' by default and continue afterwards for error checking.
     auto align = get_alignment_from_char(fill);
     if (align == fmt_alignment::NONE) {
-        if (!rest) {
+        if (!rest.Count) {
             // It wasn't a fill code point because there is no alignment...
             // We don't parse anything and roll back.
             return true;
@@ -378,7 +378,7 @@ u32 parse_rgb_channel(fmt_interp *p, bool last) {
     }
 
     p->It = string(rest);
-    if (!p->It) return (u32) -1;
+    if (!p->It.Count) return (u32) -1;
 
     if (!last) {
         if (p->It[0] != ';') {

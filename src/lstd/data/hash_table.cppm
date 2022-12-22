@@ -111,7 +111,6 @@ export {
 		auto oldEntries = table.Entries;
 
 		if (!table.Allocated) {
-			// @Cleanup
 			reserve(table.Entries, target);
 		}
 		else {
@@ -131,7 +130,7 @@ export {
 
 		table.Allocated = target;
 
-		if (oldEntries) free(oldEntries);
+		if (oldEntries.Count) free(oldEntries);
 	}
 
 	// Free any memory allocated by this object and reset count
@@ -151,6 +150,15 @@ export {
 		table.SlotsFilled = 0;
 	}
 
+	template <typename T>
+	bool compare_equals(T no_copy a, T no_copy b) {
+		if constexpr (is_same<T, string>) {
+			return strings_match(a, b);
+		} else {
+			return a == b;
+		}
+	}
+
 	// Looks for key in the hash table using the given hash
 	template <any_hash_table T>
 	key_value_pair<T> search_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
@@ -159,7 +167,7 @@ export {
 		s64 index = hash & table.Allocated - 1;
 		For(range(table.Allocated)) {
 			auto it = table.Entries.Data + index;
-			if (it->Hash == hash && it->Key == key) return { &it->Key, &it->Value };
+			if (it->Hash == hash && compare_equals(it->Key, key)) return { &it->Key, &it->Value };
 
 			++index;
 			if (index >= table.Allocated) index = 0;

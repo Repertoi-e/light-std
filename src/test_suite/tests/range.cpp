@@ -3,6 +3,8 @@
 template <typename U, s64 N>
 void test_expected(stack_array<U, N> expected, s64 start, s64 stop, s64 step = 1) {
     array<U> result;
+    reserve(result);
+
     For(range(start, stop, step)) result += {(U)it };
     assert_eq(result, expected);
     free(result);
@@ -15,7 +17,8 @@ TEST(basic) {
 
 TEST(variable_steps) {
     array<s64> result;
-    For(range(2, -3, 2)) result += {it};
+	reserve(result);
+	For(range(2, -3, 2)) result += {it};
     assert_eq(result.Count, 0);
     free(result);
 

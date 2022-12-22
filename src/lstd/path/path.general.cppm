@@ -15,12 +15,13 @@ LSTD_BEGIN_NAMESPACE
 export {
 	mark_as_leak array<string> path_split_into_components(string path, string seps = "\\/") {
 		array<string> result;
+		reserve(result);
 
 		auto matchSep = [=](code_point cp) { return has(seps, cp); };
 
 		s64 start = 0, prev = 0;
 		while ((start = search(path, &matchSep, search_options{ .Start = start + 1 })) != -1) {
-			add(result, slice(path, prev, start));
+			result += { slice(path, prev, start) };
 			prev = start + 1;
 		}
 
@@ -31,7 +32,7 @@ export {
 		// You can use other functions to check if the former is really a directory or a file (querying the OS).
 		if (prev < length(path)) {
 			// Add the last component - from prev to path.Length
-			add(result, slice(path, prev, length(path)));
+			result += { slice(path, prev, length(path)) };
 		}
 		return result;
 	}

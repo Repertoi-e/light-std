@@ -88,37 +88,37 @@
     {
       "name": "Ansible Execution Environment",
       "description": "Ansible execution-environment.yml file",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible-ee.json",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/execution-environment.json",
       "fileMatch": ["**/execution-environment.yml"]
     },
     {
       "name": "Ansible Meta",
       "description": "Ansible meta/main.yml file",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible-meta.json",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/meta.json",
       "fileMatch": ["**/meta/main.yml"]
     },
     {
       "name": "Ansible Meta Runtime",
       "description": "Ansible meta/runtime.yml file",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible-meta-runtime.json",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/meta-runtime.json",
       "fileMatch": ["**/meta/runtime.yml"]
     },
     {
       "name": "Ansible Argument Specs",
       "description": "Ansible meta/argument_specs.yml file",
-      "url": "https://github.com/ansible/schemas/raw/main/f/ansible-argument-specs.json",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/arg_specs.json",
       "fileMatch": ["**/meta/argument_specs.yml"]
     },
     {
       "name": "Ansible Requirements",
       "description": "Ansible requirements file",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible-requirements.json",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/requirements.json",
       "fileMatch": ["requirements.yml"]
     },
     {
       "name": "Ansible Vars File",
       "description": "Ansible variables File",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible-vars.json",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/vars.json",
       "fileMatch": [
         "**/vars/*.yml",
         "**/vars/*.yaml",
@@ -133,7 +133,7 @@
     {
       "name": "Ansible Tasks File",
       "description": "Ansible tasks file",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible.json#/$defs/tasks",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/tasks",
       "fileMatch": [
         "**/tasks/*.yml",
         "**/tasks/*.yaml",
@@ -144,7 +144,7 @@
     {
       "name": "Ansible Playbook",
       "description": "Ansible playbook files",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible.json#/$defs/playbook",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook",
       "fileMatch": [
         "playbook.yml",
         "playbook.yaml",
@@ -157,13 +157,13 @@
     {
       "name": "Ansible Inventory",
       "description": "Ansible inventory files",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible-inventory.json",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/inventory.json",
       "fileMatch": ["inventory.yml", "inventory.yaml"]
     },
     {
       "name": "Ansible Collection Galaxy",
       "description": "Ansible Collection Galaxy metadata",
-      "url": "https://raw.githubusercontent.com/ansible/schemas/main/f/ansible-galaxy.json",
+      "url": "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/galaxy.json",
       "fileMatch": ["galaxy.yml"]
     },
     {
@@ -272,6 +272,12 @@
         "*asyncapi.yaml"
       ],
       "url": "https://www.asyncapi.com/schema-store/all.schema-store.json"
+    },
+    {
+      "name": "AsyncAPI Tool File",
+      "description": "A JSON Schema for validating AsyncAPI tool files",
+      "fileMatch": [".asyncapi-tool"],
+      "url": "https://raw.githubusercontent.com/asyncapi/website/master/scripts/tools/tools-schema.json"
     },
     {
       "name": "Avro Avsc",
@@ -819,6 +825,12 @@
       "url": "https://json.schemastore.org/clasp.json"
     },
     {
+      "name": "clangd",
+      "description": "Clang language server daemon",
+      "fileMatch": [".clangd", ".clangd.yml", ".clangd.yaml"],
+      "url": "https://json.schemastore.org/clangd.json"
+    },
+    {
       "name": "cloudify",
       "description": "Cloudify Blueprint",
       "fileMatch": ["*.cfy.yaml"],
@@ -839,7 +851,7 @@
       "name": "codemagic",
       "description": "JSON schema for Codemagic CI/CD file configuration",
       "fileMatch": ["codemagic.yaml", "codemagic.yml"],
-      "url": "https://static.codemagic.io/codemagic-schema.json"
+      "url": "https://codemagic.io/codemagic-schema.json"
     },
     {
       "name": "Codux",
@@ -1257,6 +1269,15 @@
       "name": "dss-2.0.0.json",
       "description": "Digital Signature Service Core Protocols, Elements, and Bindings Version 2.0",
       "url": "https://json.schemastore.org/dss-2.0.0.json"
+    },
+    {
+      "name": "dstack Workflows",
+      "description": "YAML schema for dstack Workflows",
+      "fileMatch": [
+        "**/.dstack/workflows/*.yml",
+        "**/.dstack/workflows/*.yaml"
+      ],
+      "url": "https://raw.githubusercontent.com/dstackai/dstack/master/cli/dstack/schemas/workflows.json"
     },
     {
       "name": "dvc.yaml",
@@ -2615,6 +2636,12 @@
       "url": "https://raw.githubusercontent.com/readthedocs/readthedocs.org/master/readthedocs/rtd_tests/fixtures/spec/v2/schema.json"
     },
     {
+      "name": "Pulumi",
+      "description": "JSON schema for Pulumi project metadata and configuration",
+      "fileMatch": ["Pulumi.yaml", "pulumi.yaml"],
+      "url": "https://json.schemastore.org/pulumi.json"
+    },
+    {
       "name": "PyProject",
       "description": "JSON schema for Python project metadata and configuration",
       "fileMatch": ["pyproject.toml"],
@@ -2665,6 +2692,12 @@
       "description": "Windows App localization file",
       "fileMatch": ["*.resjson"],
       "url": "https://json.schemastore.org/resjson.json"
+    },
+    {
+      "name": "Rust Project",
+      "description": "JSON schema for non-Cargo based Rust projects",
+      "fileMatch": ["rust-project.json"],
+      "url": "https://json.schemastore.org/rust-project.json"
     },
     {
       "name": "JSON Resume",
@@ -3989,6 +4022,12 @@
       "url": "https://raw.githubusercontent.com/lalcebo/json-schema/master/serverless/reference.json"
     },
     {
+      "name": "Alacritty Configuration Schema",
+      "description": "Schema for Alacritty configuration yaml file",
+      "fileMatch": [".alacritty.yml", "alacritty.yml"],
+      "url": "https://raw.githubusercontent.com/distinction-dev/alacritty-schema/main/alacritty/reference.json"
+    },
+    {
       "name": "Serverless Workflow Schema",
       "description": "Schema for serverless workflows",
       "fileMatch": ["*.sw.json", "*.sw.yml"],
@@ -4131,7 +4170,7 @@
       "name": "CICS TS resource import",
       "description": "JSON schema for resource import in IBM CICS Transaction Server for z/OS",
       "fileMatch": ["*.cicsresourceimport.yaml", "*.cicsresourceimport.yml"],
-      "url": "https://public.dhe.ibm.com/ibmdl/export/pub/software/htp/cics/schemas/json/resourceimport.json"
+      "url": "https://public.dhe.ibm.com/ibmdl/export/pub/software/htp/cics/schemas/json/cicsts-resourceimport.json"
     },
     {
       "name": "CICS TS resource model",
@@ -4142,7 +4181,7 @@
         "*.cicsappconstraints.yaml",
         "*.cicsappconstraints.yml"
       ],
-      "url": "https://public.dhe.ibm.com/ibmdl/export/pub/software/htp/cics/schemas/json/resourcemodel.json"
+      "url": "https://public.dhe.ibm.com/ibmdl/export/pub/software/htp/cics/schemas/json/cicsts-resourcemodel.json"
     },
     {
       "name": "CICS TS resource overrides",
@@ -4349,6 +4388,12 @@
       "description": "Unreal Engine plugin configuration file",
       "fileMatch": [".uplugin"],
       "url": "https://json.schemastore.org/uplugin.json"
+    },
+    {
+      "name": "Unreal Engine Uproject",
+      "description": "Unreal Engine project configuration file",
+      "fileMatch": [".uproject"],
+      "url": "https://json.schemastore.org/uproject.json"
     }
   ],
   "version": 1

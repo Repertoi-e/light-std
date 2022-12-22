@@ -131,7 +131,7 @@ export {
         bool operator==(null_t) const { return !Invoker; }
         bool operator!=(null_t) const { return Invoker; }
 
-        operator bool() const { return Invoker; }
+        explicit operator bool() const { return Invoker; }
 
         // Call operator
         R operator()(A... args) const {

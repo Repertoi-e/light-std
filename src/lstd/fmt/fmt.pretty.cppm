@@ -32,7 +32,7 @@ export {
         array<field_entry> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_struct(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {}
+        format_struct(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) { reserve(Fields); }
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
         ~format_struct() { free(Fields); }
@@ -54,7 +54,7 @@ export {
         array<fmt_arg> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_tuple(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) {}
+        format_tuple(fmt_context *f, string name, bool noSpecs = false) : F(f), Name(name), NoSpecs(noSpecs) { reserve(Fields); }
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
         ~format_tuple() { free(Fields); }
@@ -75,7 +75,7 @@ export {
         array<fmt_arg> Fields;
         bool NoSpecs;  // Write the result without taking into account specs for individual arguments
 
-        format_list(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
+        format_list(fmt_context* f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) { reserve(Fields); }
 
         // I know we are against hidden freeing but having this destructor is fine because it helps with code conciseness.
         ~format_list() { free(Fields); }

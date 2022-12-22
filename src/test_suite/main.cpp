@@ -3,6 +3,8 @@
 import lstd.os;
 
 void run_tests() {
+	reserve(asserts::GlobalFailed);
+
     print("\n");
     for (auto [fileName, tests] : g_TestTable) {
         print("{}:\n", *fileName);
@@ -56,7 +58,7 @@ void run_tests() {
 
     // These need to be reset in case we rerun the tests (we may spin this function up in a while loop a bunch of times when looking for rare bugs).
     asserts::GlobalCalledCount = 0;
-    if (asserts::GlobalFailed) free(asserts::GlobalFailed.Data);
+    free(asserts::GlobalFailed);
 }
 
 const bool LOG_TO_FILE = false;

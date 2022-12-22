@@ -7,37 +7,37 @@ TEST(path_manipulation) {
         string a = path_normalize("/home/data.txt");
         assert(path_is_absolute(a));
 
-        assert_eq(path_base_name(a), string("data.txt"));
-        assert_eq(path_split_extension(a).Root, path_normalize("/home/data"));
-        assert_eq(path_split_extension(a).Extension, string(".txt"));
-        assert_eq(path_directory(a), path_normalize("/home/"));
+        assert(strings_match(path_base_name(a), string("data.txt")));
+        assert(strings_match(path_split_extension(a).Root, path_normalize("/home/data")));
+        assert(strings_match(path_split_extension(a).Extension, string(".txt")));
+        assert(strings_match(path_directory(a), path_normalize("/home/")));
     }
     {
         string a = path_normalize("/home/data/bin");
         assert(path_is_absolute(a));
 
-        assert_eq(path_base_name(a), string("bin"));
-        assert_eq(path_split_extension(a).Root, path_normalize("/home/data/bin"));
-        assert_eq(path_split_extension(a).Extension, string(""));
-        assert_eq(path_directory(a), path_normalize("/home/data"));
+        assert(strings_match(path_base_name(a), string("bin")));
+        assert(strings_match(path_split_extension(a).Root, path_normalize("/home/data/bin")));
+        assert(strings_match(path_split_extension(a).Extension, string("")));
+        assert(strings_match(path_directory(a), path_normalize("/home/data")));
 
         auto b = path_join(a, "lstd");
-        assert_eq(b, path_normalize("/home/data/bin/lstd"));
+        assert(strings_match(b, path_normalize("/home/data/bin/lstd")));
 
         b = path_join(a, path_normalize("C:/User"));
-        assert_eq(b, path_normalize("C:/User"));
+        assert(strings_match(b, path_normalize("C:/User")));
     }
 
     {
         string a = path_normalize("../../data/bin/release-x64/../debug-x64/../debug/lstd.exe");
         assert(!path_is_absolute(a));
 
-        assert_eq(a, path_normalize("../../data/bin/debug/lstd.exe"));
+        assert(strings_match(a, path_normalize("../../data/bin/debug/lstd.exe")));
 
-        assert_eq(path_base_name(a), string("lstd.exe"));
-        assert_eq(path_split_extension(a).Root, path_normalize("../../data/bin/debug/lstd"));
-        assert_eq(path_split_extension(a).Extension, string(".exe"));
-        assert_eq(path_directory(a), path_normalize("../../data/bin/debug"));
+        assert(strings_match(path_base_name(a), string("lstd.exe")));
+        assert(strings_match(path_split_extension(a).Root, path_normalize("../../data/bin/debug/lstd")));
+        assert(strings_match(path_split_extension(a).Extension, string(".exe")));
+        assert(strings_match(path_directory(a), path_normalize("../../data/bin/debug")));
     }
 }
 

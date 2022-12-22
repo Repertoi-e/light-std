@@ -7,6 +7,7 @@
 void build_test_table() {
     {
         auto [_, array] = add(g_TestTable, string("bits.cpp"), {});
+        reserve(*array, 10);
         extern void test_msb();
         add(*array, test{"msb", test_msb});
         extern void test_lsb();
@@ -14,6 +15,7 @@ void build_test_table() {
     }
     {
         auto [_, array] = add(g_TestTable, string("file.cpp"), {});
+        reserve(*array, 10);
         extern void test_path_manipulation();
         add(*array, test{"path_manipulation", test_path_manipulation});
         extern void test_file_size();
@@ -21,6 +23,7 @@ void build_test_table() {
     }
     {
         auto [_, array] = add(g_TestTable, string("fmt.cpp"), {});
+        reserve(*array, 10);
         extern void test_write_bool();
         add(*array, test{"write_bool", test_write_bool});
         extern void test_write_integer_16();
@@ -106,6 +109,7 @@ void build_test_table() {
     }
     {
         auto [_, array] = add(g_TestTable, string("parse.cpp"), {});
+        reserve(*array, 10);
         extern void test_int();
         add(*array, test{"int", test_int});
         extern void test_bool();
@@ -115,6 +119,7 @@ void build_test_table() {
     }
     {
         auto [_, array] = add(g_TestTable, string("range.cpp"), {});
+        reserve(*array, 10);
         extern void test_basic();
         add(*array, test{"basic", test_basic});
         extern void test_variable_steps();
@@ -124,6 +129,7 @@ void build_test_table() {
     }
     {
         auto [_, array] = add(g_TestTable, string("signal.cpp"), {});
+        reserve(*array, 10);
         extern void test_global_function_delegate();
         add(*array, test{"global_function_delegate", test_global_function_delegate});
         extern void test_member_function_delegate();
@@ -133,6 +139,7 @@ void build_test_table() {
     }
     {
         auto [_, array] = add(g_TestTable, string("storage.cpp"), {});
+        reserve(*array, 10);
         extern void test_stack_array();
         add(*array, test{"stack_array", test_stack_array});
         extern void test_array();
@@ -146,6 +153,7 @@ void build_test_table() {
     }
     {
         auto [_, array] = add(g_TestTable, string("string.cpp"), {});
+        reserve(*array, 10);
         extern void test_code_point_size();
         add(*array, test{"code_point_size", test_code_point_size});
         extern void test_substring();
@@ -181,6 +189,7 @@ void build_test_table() {
     }
     {
         auto [_, array] = add(g_TestTable, string("thread.cpp"), {});
+        reserve(*array, 10);
         extern void test_hardware_concurrency();
         add(*array, test{"hardware_concurrency", test_hardware_concurrency});
         extern void test_ids();

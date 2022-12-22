@@ -42,7 +42,7 @@ export {
 	s64 length(string no_copy s);
 	void set(string ref s, s64 index, code_point cp);
 	code_point get(string str, s64 index);
-	bool check_debug_memory(string no_copy s);
+	void check_debug_memory(string no_copy s);
 
 	struct string {
 		char *Data = null;
@@ -103,13 +103,11 @@ export {
 		code_point operator[](s64 index) const {
 			return utf8_decode_cp(utf8_get_pointer_to_cp_at_translated_index(Data, length(*this), index));
 		}
-
-		operator bool() const { return Count; }
 	};
 
-	void reserve(string ref s, s64 n, allocator alloc = {}) {
-		if (n == -1) {
-			n = max(s.Count, 1);
+	void reserve(string ref s, s64 n = -1, allocator alloc = {}) {
+		if (n <= 0) {
+			n = max(s.Count, 8);
 		}
 		assert(n >= 1);
 
@@ -120,14 +118,19 @@ export {
 			s.Data = realloc(s.Data, { .NewCount = n });
 		}
 		else {
+			// Not our job to free oldData since we don't own it.
+			// For subsequent reserves we go through the   realloc   branch above,
+			// which properly manages to free the old data (if it couldn't reallocate 
+			// in place, that is).
 			s.Data = malloc<T>({ .Count = n, .Alloc = alloc }); // If alloc is null we use theContext's allocator
+			if (oldData) memcpy(s.Data, oldData, s.Count * sizeof(T));
 		}
-		if (s) memcpy(s.Data, oldData, s.Count * sizeof(T));
 
 		s.Allocated = n;
 	}
 
-	bool check_debug_memory(string no_copy s) {
+	void check_debug_memory(string no_copy s) {
+		assert(s.Allocated);
 #if defined DEBUG_MEMORY
 		//
 		// If you assert here, there are two possible reasons:
@@ -146,7 +149,6 @@ export {
 		//
 		assert(debug_memory_list_contains((allocation_header*)s.Data - 1));
 #endif
-		return true;
 	}
 
 	void free(string ref s) { 
@@ -261,15 +263,13 @@ export {
 	void set(string ref s, s64 index, code_point cp);
 
 	void maybe_grow(string ref s, s64 fit) {
-		if (s.Allocated) {
-			check_debug_memory(s);
-		}
+		check_debug_memory(s);
 
 		s64 space = s.Allocated;
 
 		if (s.Count + fit <= space) return;
 
-		s64 target = max(ceil_pow_of_2(s.Count + fit + 1), 1);
+		s64 target = max(ceil_pow_of_2(s.Count + fit + 1), 8);
 		reserve(s, target);
 	}
 
@@ -296,12 +296,17 @@ export {
 		insert_at_index(s, index, encodedCp, utf8_get_size_of_cp(cp));
 	}
 
-	void add(string ref s, const char *ptr, s64 size) { insert_at_index(s, s.Count, ptr, size); }
-	void add(string ref s, string b) { insert_at_index(s, s.Count, b.Data, b.Count); }
+	void add(string ref s, const char *ptr, s64 size) { insert_at_index(s, length(s), ptr, size); }
+	void add(string ref s, string b) { insert_at_index(s, length(s), b.Data, b.Count); }
 	void add(string ref s, code_point cp) { insert_at_index(s, length(s), cp); }
 
 	auto &operator+=(string ref s, code_point cp) {
 		add(s, cp);
+		return s;
+	}
+
+	auto& operator+=(string ref s, string str) {
+		add(s, str);
 		return s;
 	}
 
@@ -330,6 +335,7 @@ export {
 	// Returns a deep copy of _str_ and _count_
 	mark_as_leak string make_string(const char *str, s64 count) {
 		string result;
+		reserve(result, count);
 		add(result, str, count);
 		return result;
 	}
@@ -341,9 +347,7 @@ export {
 
 	// Returns a deep copy of _src_
 	mark_as_leak string clone(string no_copy src) {
-		string result;
-		add(result, src);
-		return result;
+		return make_string(src.Data, src.Count);
 	}
 
 	// This iterator is to make range based for loops work.
@@ -367,9 +371,10 @@ export {
 			return temp;
 		}
 
-		auto operator<=>(string_iterator other) const { return Index <=> other.Index; };
-		auto operator*() { return get(String, Index); }
-		operator const char *() const { return utf8_get_pointer_to_cp_at_translated_index(String.Data, String.Count, Index); }
+		auto operator==(string_iterator other) const { return &String == &other.String && Index == other.Index; }
+		auto operator!=(string_iterator other) const { return !(*this == other); }
+
+		auto operator*() { return String[Index]; }
 	};
 
 	auto begin(string ref str) { return string_iterator<false>(str, 0); }

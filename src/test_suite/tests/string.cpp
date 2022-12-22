@@ -18,6 +18,7 @@ TEST(code_point_size) {
     assert_eq(length(supplementary), 3);
 
     string mixed;
+    reserve(mixed, 12 + 9 + 6 + 3);
     defer(free(mixed));
 
     mixed += ascii;
@@ -31,18 +32,18 @@ TEST(code_point_size) {
 
 TEST(substring) {
     string a = "Hello, world!";
-    assert_eq(slice(a, 2, 5), string("llo"));
-    assert_eq(slice(a, 7, length(a)), string("world!"));
-    assert_eq(slice(a, 0, -1), string("Hello, world"));
-    assert_eq(slice(a, -6, -1), string("world"));
+    assert(strings_match(slice(a, 2, 5), string("llo")));
+    assert(strings_match(slice(a, 7, length(a)), string("world!")));
+    assert(strings_match(slice(a, 0, -1), string("Hello, world")));
+    assert(strings_match(slice(a, -6, -1), string("world")));
 }
 
 TEST(substring_mixed_sizes) {
     string a = u8"Хеllo, уоrлd!";
-    assert_eq(slice(a, 2, 5), string("llo"));
-    assert_eq(slice(a, 7, length(a)), string(u8"уоrлd!"));
-    assert_eq(slice(a, 0, -1), string(u8"Хеllo, уоrлd"));
-    assert_eq(slice(a, -6, -1), string(u8"уоrлd"));
+	assert(strings_match(slice(a, 2, 5), string("llo")));
+	assert(strings_match(slice(a, 7, length(a)), string(u8"уоrлd!")));
+	assert(strings_match(slice(a, 0, -1), string(u8"Хеllo, уоrлd")));
+	assert(strings_match(slice(a, -6, -1), string(u8"уоrлd")));
 }
 
 TEST(index) {
@@ -65,47 +66,47 @@ TEST(insert) {
 
     insert_at_index(a, 1, 'l');
     insert_at_index(a, 0, 'H');
-    assert_eq(a, string("Hel"));
+    assert(strings_match(a, string("Hel")));
 
     insert_at_index(a, 3, "lo");
-    assert_eq(a, string("Hello"));
+    assert(strings_match(a, string("Hello")));
 
     insert_at_index(a, 0, "Hello ");
-    assert_eq(a, string("Hello Hello"));
+    assert(strings_match(a, string("Hello Hello")));
 
     insert_at_index(a, 5, " world");
-    assert_eq(a, string("Hello world Hello"));
+    assert(strings_match(a, string("Hello world Hello")));
 }
 
 TEST(remove) {
     string a = make_string("Hello world Hello");
     
     remove_range(a, -6, length(a));
-    assert_eq(a, string("Hello world"));
+    assert(strings_match(a, string("Hello world")));
     remove_at_index(a, 1);
-    assert_eq(a, string("Hllo world"));
+    assert(strings_match(a, string("Hllo world")));
     remove_at_index(a, 1);
-    assert_eq(a, string("Hlo world"));
+    assert(strings_match(a, string("Hlo world")));
     remove_at_index(a, 0);
-    assert_eq(a, string("lo world"));
+    assert(strings_match(a, string("lo world")));
     remove_at_index(a, -1);
-    assert_eq(a, string("lo worl"));
+    assert(strings_match(a, string("lo worl")));
     remove_at_index(a, -2);
-    assert_eq(a, string("lo wol"));
+    assert(strings_match(a, string("lo wol")));
     free(a);
 
     a = make_string("Hello world");
 
     remove_range(a, 0, 5);
-    assert_eq(a, string(" world"));
+    assert(strings_match(a, string(" world")));
     free(a);
 }
 
 TEST(trim) {
     string a = "\t\t    Hello, everyone!   \t\t   \n";
-    assert_eq(trim_start(a), string("Hello, everyone!   \t\t   \n"));
-    assert_eq(trim_end(a), string("\t\t    Hello, everyone!"));
-    assert_eq(trim(a), string("Hello, everyone!"));
+    assert(strings_match(trim_start(a), string("Hello, everyone!   \t\t   \n")));
+    assert(strings_match(trim_end(a), string("\t\t    Hello, everyone!")));
+	assert(strings_match(trim(a), string("Hello, everyone!")));
 }
 
 TEST(match_beginning) {
@@ -126,11 +127,11 @@ TEST(set) {
     string a = make_string("aDc");
 
     set(a, 1, 'b');
-    assert_eq(a, string("abc"));
+    assert(strings_match(a, string("abc")));
     set(a, 1, U'Д');
-    assert_eq(a, string(u8"aДc"));
+    assert(strings_match(a, string(u8"aДc")));
     set(a, 1, 'b');
-    assert_eq(a, string("abc"));
+    assert(strings_match(a, string("abc")));
     assert_eq(a[0], 'a');
     assert_eq(a[1], 'b');
     assert_eq(a[2], 'c');
@@ -139,11 +140,11 @@ TEST(set) {
     a = make_string("aDc");
 
     a[-2] = 'b';
-    assert_eq(a, string("abc"));
+    assert(strings_match(a, string("abc")));
     a[1] = U'Д';
-    assert_eq(a, string(u8"aДc"));
+    assert(strings_match(a, string(u8"aДc")));
     a[1] = 'b';
-    assert_eq(a, string("abc"));
+    assert(strings_match(a, string("abc")));
     assert_eq(a[0], 'a');
     assert_eq(a[1], 'b');
     assert_eq(a[2], 'c');
@@ -151,7 +152,7 @@ TEST(set) {
     a[-3] = U'\U0002070E';
     a[-2] = U'\U00020731';
     a[-1] = U'\U00020779';
-    assert_eq(a, string(u8"\U0002070E\U00020731\U00020779"));
+    assert(strings_match(a, string(u8"\U0002070E\U00020731\U00020779")));
     free(a);
 }
 
@@ -162,21 +163,21 @@ TEST(iterator) {
     for (auto ch : a) {
         add(result, ch);
     }
-    assert_eq(result, a);
+    assert(strings_match(result, a));
 
     string b = make_string("HeLLo");
 
-    // In order to modify a character, use a string::code_point
-    // This will be same as writing "for (string::code_point ch : b)", since b is non-const.
+    // In order to modify a character, use a string::code_point_ref
+    // This will be same as writing "for (string::code_point_ref ch : b)", since b is non-const.
     // Note that when b is const, the type of ch is just utf32 (you can't take a code point reference)
     for (auto ch : b) {
         ch = to_lower(ch);
     }
-    assert_eq(b, string("hello"));
+    assert(strings_match(b, string("hello")));
     for (auto ch : b) {
         ch = U'Д';
     }
-    assert_eq(b, string(u8"ДДДДД"));
+    assert(strings_match(b, string(u8"ДДДДД")));
 
     // for (utf32 &ch : b) { .. }
     // doesn't work since string isn't
@@ -190,7 +191,7 @@ TEST(append) {
         add(result, ",THIS IS GARBAGE", 1);
         result += " world!";
 
-        assert_eq(result, string("Hello, world!"));
+        assert(strings_match(result, string("Hello, world!")));
         free(result);
     }
     {
@@ -199,16 +200,18 @@ TEST(append) {
         string c = " world!";
 
         string result;
+        reserve(result);
         result += a;
         result += b;
         result += c;
 
-        assert_eq(result, string("Hello, world!"));
+        assert(strings_match(result, string("Hello, world!")));
         free(result);
     }
 
     {
         string result;
+		reserve(result);
 
         For(range(10)) {
             add(result, 'i');
@@ -220,6 +223,8 @@ TEST(append) {
 
     {
         string result;
+		reserve(result);
+
         For(range(10)) {
             add(result, u8"Д");
             assert_eq(result.Count, 2 * (it + 1));
@@ -239,7 +244,7 @@ TEST(builder) {
 
     string result = builder_to_string(&builder);
     defer(free(result));
-    assert_eq(result, string("Hello, world!"));
+    assert(strings_match(result, string("Hello, world!")));
 }
 
 TEST(remove_all) {
@@ -248,32 +253,33 @@ TEST(remove_all) {
     string b = clone(a);
 
     remove_all(b, 'l');
-    assert_eq(b, string("Heo word!"));
+    assert(strings_match(b, string("Heo word!")));
     free(b);
 
     b = clone(a);
 
     remove_all(b, "ll");
-    assert_eq(b, string("Heo world!"));
+    assert(strings_match(b, string("Heo world!")));
     free(b);
 
     b = clone(a);
-
+    
+    reserve(a);
     remove_all(a, "x");
-    assert_eq(b, a);
+    assert(strings_match(b, a));
     free(b);
     free(a);
 
     b = make_string("llHello world!ll");
 
     remove_all(b, 'l');
-    assert_eq(b, string("Heo word!"));
+    assert(strings_match(b, string("Heo word!")));
     free(b);
 
     b = make_string("llHello world!ll");
 
     remove_all(b, "ll");
-    assert_eq(b, string("Heo world!"));
+    assert(strings_match(b, string("Heo world!")));
     free(b);
 }
 
@@ -283,7 +289,7 @@ TEST(replace_all) {
     string b = clone(a);
 
     replace_all(b, string("l"), string("ll"));
-    assert_eq(b, string("Hellllo worlld!"));
+    assert(strings_match(b, string("Hellllo worlld!")));
     free(b);
 
     b = clone(a);
@@ -293,39 +299,39 @@ TEST(replace_all) {
     string c = clone(a);
 
     remove_all(c, 'l');
-    assert_eq(b, c);
+    assert(strings_match(b, c));
     free(b);
     free(c);
 
     b = clone(a);
 
     replace_all(b, string("x"), string(""));
-    assert_eq(b, a);
+    assert(strings_match(b, a));
     free(b);
 
     b = clone(a);
 
     replace_all(b, string("Hello"), string("olleH"));
-    assert_eq(b, string("olleH world!"));
+    assert(strings_match(b, string("olleH world!")));
     free(b);
 
     a = "llHello world!ll";
     b = clone(a);
 
     replace_all(b, string("ll"), string("l"));
-    assert_eq(b, string("lHelo world!l"));
+    assert(strings_match(b, string("lHelo world!l")));
     free(b);
 
     b = clone(a);
 
     replace_all(b, string("l"), string("ll"));
-    assert_eq(b, string("llllHellllo worlld!llll"));
+    assert(strings_match(b, string("llllHellllo worlld!llll")));
     free(b);
 
     b = clone(a);
 
     replace_all(b, string("l"), string("K"));
-    assert_eq(b, string("KKHeKKo worKd!KK"));
+    assert(strings_match(b, string("KKHeKKo worKd!KK")));
     free(b);
 }
 
@@ -407,7 +413,7 @@ TEST(find) {
     assert_eq(search(a, 'b'), search(a, &matchNoneOf3));
 
     assert_eq(2, search(a, &matchNoneOf2, search_options {.Start = -1, .Reversed = true}));
-    assert_eq(9, search(a, &matchNoneOf4, search_options {.Start = 3, .Reversed = true}));
+    assert_eq(9, search(a, &matchNoneOf4, search_options {.Start = 3}));
     assert_eq(2, search(a, &matchNoneOf4, search_options {.Start = 4, .Reversed = true}));
     assert_eq(1, search(a, &matchNoneOf2, search_options {.Start = 1, .Reversed = true}));
     assert_eq(0, search(a, &matchNoneOf2, search_options {.Start = 0, .Reversed = true}));

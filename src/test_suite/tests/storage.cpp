@@ -23,6 +23,7 @@ TEST(stack_array) {
 
 TEST(array) {
     array<s64> a;
+    reserve(a);
     defer(free(a.Data));
 
     For(range(10)) { a += {it}; }
@@ -82,7 +83,7 @@ TEST(hash_table) {
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
         string str = sprint("{}", *value);
-        assert_eq(*key, str);
+        assert(strings_match(*key, str));
         free(str);
 
         ++loopIterations;
@@ -112,7 +113,7 @@ TEST(hash_table_clone) {
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
         string str = sprint("{}", *value);
-        assert_eq(*key, str);
+        assert(strings_match(*key, str));
         free(str.Data);
 
         ++loopIterations;

@@ -270,7 +270,7 @@ path_split_drive_result path_split_drive(string path) {
 
 bool path_is_absolute(string path) {
 	auto [_, rest] = path_split_drive(path);
-	return rest && path_is_sep(rest[0]);
+	return rest.Count && path_is_sep(rest[0]);
 }
 
 mark_as_leak string path_join(array<string> paths) {
@@ -283,9 +283,9 @@ mark_as_leak string path_join(array<string> paths) {
 	For(range(1, paths.Count)) {
 		auto p = paths[it];
 		auto [p_drive, p_path] = path_split_drive(p);
-		if (p_path && path_is_sep(p_path[0])) {
+		if (p_path.Count && path_is_sep(p_path[0])) {
 			// Second path is absolute
-			if (p_drive || !result_drive) {
+			if (p_drive.Count || !result_drive.Count) {
 				result_drive = p_drive;  // These are just substrings so it's fine
 			}
 
@@ -293,7 +293,7 @@ mark_as_leak string path_join(array<string> paths) {
 			result = clone(p_path);
 
 			continue;
-		} else if (p_drive && !strings_match(p_drive, result_drive)) {
+		} else if (p_drive.Count && !strings_match(p_drive, result_drive)) {
 			if (!strings_match_ignore_case(p_drive, result_drive)) {
 				// Different drives => ignore the first path entirely
 				result_drive = p_drive;
@@ -308,14 +308,14 @@ mark_as_leak string path_join(array<string> paths) {
 		}
 
 		// Second path is relative to the first
-		if (result && !path_is_sep(result[-1])) {
+		if (result.Count && !path_is_sep(result[-1])) {
 			result += '\\';
 		}
 		result += p_path;
 	}
 
 	// Add separator between UNC and non-absolute path if needed
-	if (result && !path_is_sep(result[0]) && result_drive && result_drive[-1] != ':') {
+	if (result.Count && !path_is_sep(result[0]) && result_drive.Count && result_drive[-1] != ':') {
 		insert_at_index(result, 0, '\\');
 	} else {
 		insert_at_index(result, 0, result_drive);
@@ -330,6 +330,7 @@ mark_as_leak string path_join(string one, string other) {
 
 mark_as_leak string path_normalize(string path) {
 	string result;
+	reserve(result, path.Count);
 
 	if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\")) {
 		// In the case of paths with these prefixes:
@@ -342,7 +343,7 @@ mark_as_leak string path_normalize(string path) {
 	}
 
 	auto [DriveOrUNC, rest] = path_split_drive(path);
-	if (DriveOrUNC) {
+	if (DriveOrUNC.Count) {
 		result += DriveOrUNC;
 	}
 
@@ -358,13 +359,13 @@ mark_as_leak string path_normalize(string path) {
 	s64 i = 0;
 	while (i < components.Count) {
 		auto it = components[i];
-		if (!it || strings_match(it, ".")) {
+		if (!it.Count || strings_match(it, ".")) {
 			remove_ordered_at_index(components, i);
 		} else if (strings_match(it, "..")) {
 			if (i > 0 && !strings_match(components[i - 1], "..")) {
 				remove_range(components, i - 1, i + 1);
 				--i;
-			} else if (i == 0 && result && path_is_sep(result[-1])) {
+			} else if (i == 0 && result.Count && path_is_sep(result[-1])) {
 				remove_ordered_at_index(components, i);
 			} else {
 				++i;
@@ -375,7 +376,7 @@ mark_as_leak string path_normalize(string path) {
 	}
 
 	// If the path is now empty, substitute "."
-	if (!result && !components) {
+	if (!result.Count && !components.Count) {
 		return ".";
 	}
 
@@ -403,7 +404,7 @@ path_split_result path_split(string path) {
 	string tail = slice(rest, i, length(rest));
 
 	string trimmed = slice(head, 0, search(head, matchNotSeps, search_options{ .Start = -1, .Reversed = true }) + 1);
-	if (trimmed) head = trimmed;
+	if (trimmed.Count) head = trimmed;
 
 	head = slice(path, 0, length(head) + length(DriveOrUNC));
 

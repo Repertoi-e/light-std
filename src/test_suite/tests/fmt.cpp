@@ -1,10 +1,10 @@
 #include "../test.h"
 
-#define CHECK_WRITE(expected, fmtString, ...)        \
-    {                                                \
-        string t = sprint(fmtString, ##__VA_ARGS__); \
-        assert_eq(t, string(expected));              \
-        free(t);                                \
+#define CHECK_WRITE(expected, fmtString, ...)           \
+    {                                                   \
+        string t = sprint(fmtString, ##__VA_ARGS__);    \
+        assert(strings_match(t, string(expected)));     \
+        free(t);                                        \
     }
 
 file_scope string LAST_ERROR;
@@ -49,9 +49,9 @@ void format_test_error(string fmtString, Args &&...arguments) {
     }
 }
 
-#define EXPECT_ERROR(expected, fmtString, ...)   \
-    format_test_error(fmtString, ##__VA_ARGS__); \
-    assert_eq(LAST_ERROR, string(expected));     \
+#define EXPECT_ERROR(expected, fmtString, ...)              \
+    format_test_error(fmtString, ##__VA_ARGS__);            \
+    assert(strings_match(LAST_ERROR, string(expected)));    \
     LAST_ERROR = "";
 
 TEST(write_bool) {

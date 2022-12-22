@@ -1,3 +1,5 @@
+- remove code point ref being able to change string, instead provide map function
+
 Project structure
 - vendor
 - common functions with no crt

@@ -223,7 +223,7 @@ export {
         bool operator==(allocator other) const { return Function == other.Function && Context == other.Context; }
         bool operator!=(allocator other) const { return Function != other.Function || Context != other.Context; }
 
-        operator bool() const { return Function; }
+        explicit operator bool() const { return Function; }
     };
 
     // Note: Not all allocators must support this.

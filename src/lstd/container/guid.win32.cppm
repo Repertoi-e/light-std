@@ -19,7 +19,7 @@ export {
             For(range(16)) Data[it] = 0;
         }
 
-        operator bool() {
+        explicit operator bool() {
             For(range(16)) if (Data[it]) return true;
             return false;
         }
