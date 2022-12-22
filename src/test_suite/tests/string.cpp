@@ -32,18 +32,18 @@ TEST(code_point_size) {
 
 TEST(substring) {
     string a = "Hello, world!";
-    assert(strings_match(slice(a, 2, 5), string("llo")));
-    assert(strings_match(slice(a, 7, length(a)), string("world!")));
-    assert(strings_match(slice(a, 0, -1), string("Hello, world")));
-    assert(strings_match(slice(a, -6, -1), string("world")));
+    assert_eq_str(slice(a, 2, 5), "llo");
+    assert_eq_str(slice(a, 7, length(a)), "world!");
+    assert_eq_str(slice(a, 0, -1), "Hello, world");
+    assert_eq_str(slice(a, -6, -1), "world");
 }
 
 TEST(substring_mixed_sizes) {
     string a = u8"Хеllo, уоrлd!";
-	assert(strings_match(slice(a, 2, 5), string("llo")));
-	assert(strings_match(slice(a, 7, length(a)), string(u8"уоrлd!")));
-	assert(strings_match(slice(a, 0, -1), string(u8"Хеllo, уоrлd")));
-	assert(strings_match(slice(a, -6, -1), string(u8"уоrлd")));
+	assert_eq_str(slice(a, 2, 5), "llo");
+	assert_eq_str(slice(a, 7, length(a)), u8"уоrлd!");
+	assert_eq_str(slice(a, 0, -1), u8"Хеllo, уоrлd");
+	assert_eq_str(slice(a, -6, -1), u8"уоrлd");
 }
 
 TEST(index) {
@@ -66,47 +66,47 @@ TEST(insert) {
 
     insert_at_index(a, 1, 'l');
     insert_at_index(a, 0, 'H');
-    assert(strings_match(a, string("Hel")));
+    assert_eq_str(a, "Hel");
 
     insert_at_index(a, 3, "lo");
-    assert(strings_match(a, string("Hello")));
+    assert_eq_str(a, "Hello");
 
     insert_at_index(a, 0, "Hello ");
-    assert(strings_match(a, string("Hello Hello")));
+    assert_eq_str(a, "Hello Hello");
 
     insert_at_index(a, 5, " world");
-    assert(strings_match(a, string("Hello world Hello")));
+    assert_eq_str(a, "Hello world Hello");
 }
 
 TEST(remove) {
     string a = make_string("Hello world Hello");
     
     remove_range(a, -6, length(a));
-    assert(strings_match(a, string("Hello world")));
+    assert_eq_str(a, "Hello world");
     remove_at_index(a, 1);
-    assert(strings_match(a, string("Hllo world")));
+    assert_eq_str(a, "Hllo world");
     remove_at_index(a, 1);
-    assert(strings_match(a, string("Hlo world")));
+    assert_eq_str(a, "Hlo world");
     remove_at_index(a, 0);
-    assert(strings_match(a, string("lo world")));
+    assert_eq_str(a, "lo world");
     remove_at_index(a, -1);
-    assert(strings_match(a, string("lo worl")));
+    assert_eq_str(a, "lo worl");
     remove_at_index(a, -2);
-    assert(strings_match(a, string("lo wol")));
+    assert_eq_str(a, "lo wol");
     free(a);
 
     a = make_string("Hello world");
 
     remove_range(a, 0, 5);
-    assert(strings_match(a, string(" world")));
+    assert_eq_str(a, " world");
     free(a);
 }
 
 TEST(trim) {
     string a = "\t\t    Hello, everyone!   \t\t   \n";
-    assert(strings_match(trim_start(a), string("Hello, everyone!   \t\t   \n")));
-    assert(strings_match(trim_end(a), string("\t\t    Hello, everyone!")));
-	assert(strings_match(trim(a), string("Hello, everyone!")));
+    assert_eq_str(trim_start(a), "Hello, everyone!   \t\t   \n");
+    assert_eq_str(trim_end(a), "\t\t    Hello, everyone!");
+	assert_eq_str(trim(a), "Hello, everyone!");
 }
 
 TEST(match_beginning) {
@@ -127,11 +127,11 @@ TEST(set) {
     string a = make_string("aDc");
 
     set(a, 1, 'b');
-    assert(strings_match(a, string("abc")));
+    assert_eq_str(a, "abc");
     set(a, 1, U'Д');
-    assert(strings_match(a, string(u8"aДc")));
+    assert_eq_str(a, u8"aДc");
     set(a, 1, 'b');
-    assert(strings_match(a, string("abc")));
+    assert_eq_str(a, "abc");
     assert_eq(a[0], 'a');
     assert_eq(a[1], 'b');
     assert_eq(a[2], 'c');
@@ -140,11 +140,11 @@ TEST(set) {
     a = make_string("aDc");
 
     a[-2] = 'b';
-    assert(strings_match(a, string("abc")));
+    assert_eq_str(a, "abc");
     a[1] = U'Д';
-    assert(strings_match(a, string(u8"aДc")));
+    assert_eq_str(a, u8"aДc");
     a[1] = 'b';
-    assert(strings_match(a, string("abc")));
+    assert_eq_str(a, "abc");
     assert_eq(a[0], 'a');
     assert_eq(a[1], 'b');
     assert_eq(a[2], 'c');
@@ -152,7 +152,7 @@ TEST(set) {
     a[-3] = U'\U0002070E';
     a[-2] = U'\U00020731';
     a[-1] = U'\U00020779';
-    assert(strings_match(a, string(u8"\U0002070E\U00020731\U00020779")));
+    assert_eq_str(a, u8"\U0002070E\U00020731\U00020779");
     free(a);
 }
 
@@ -163,7 +163,7 @@ TEST(iterator) {
     for (auto ch : a) {
         add(result, ch);
     }
-    assert(strings_match(result, a));
+    assert_eq_str(result, a);
 
     string b = make_string("HeLLo");
 
@@ -173,11 +173,11 @@ TEST(iterator) {
     for (auto ch : b) {
         ch = to_lower(ch);
     }
-    assert(strings_match(b, string("hello")));
+    assert_eq_str(b, "hello");
     for (auto ch : b) {
         ch = U'Д';
     }
-    assert(strings_match(b, string(u8"ДДДДД")));
+    assert_eq_str(b, u8"ДДДДД");
 
     // for (utf32 &ch : b) { .. }
     // doesn't work since string isn't
@@ -191,7 +191,7 @@ TEST(append) {
         add(result, ",THIS IS GARBAGE", 1);
         result += " world!";
 
-        assert(strings_match(result, string("Hello, world!")));
+        assert_eq_str(result, "Hello, world!");
         free(result);
     }
     {
@@ -205,7 +205,7 @@ TEST(append) {
         result += b;
         result += c;
 
-        assert(strings_match(result, string("Hello, world!")));
+        assert_eq_str(result, "Hello, world!");
         free(result);
     }
 
@@ -244,7 +244,7 @@ TEST(builder) {
 
     string result = builder_to_string(&builder);
     defer(free(result));
-    assert(strings_match(result, string("Hello, world!")));
+    assert_eq_str(result, "Hello, world!");
 }
 
 TEST(remove_all) {
@@ -253,33 +253,33 @@ TEST(remove_all) {
     string b = clone(a);
 
     remove_all(b, 'l');
-    assert(strings_match(b, string("Heo word!")));
+    assert_eq_str(b, "Heo word!");
     free(b);
 
     b = clone(a);
 
     remove_all(b, "ll");
-    assert(strings_match(b, string("Heo world!")));
+    assert_eq_str(b, "Heo world!");
     free(b);
 
     b = clone(a);
     
     reserve(a);
     remove_all(a, "x");
-    assert(strings_match(b, a));
+    assert_eq_str(b, a);
     free(b);
     free(a);
 
     b = make_string("llHello world!ll");
 
     remove_all(b, 'l');
-    assert(strings_match(b, string("Heo word!")));
+    assert_eq_str(b, "Heo word!");
     free(b);
 
     b = make_string("llHello world!ll");
 
     remove_all(b, "ll");
-    assert(strings_match(b, string("Heo world!")));
+    assert_eq_str(b, "Heo world!");
     free(b);
 }
 
@@ -289,7 +289,7 @@ TEST(replace_all) {
     string b = clone(a);
 
     replace_all(b, string("l"), string("ll"));
-    assert(strings_match(b, string("Hellllo worlld!")));
+    assert_eq_str(b, "Hellllo worlld!");
     free(b);
 
     b = clone(a);
@@ -299,39 +299,39 @@ TEST(replace_all) {
     string c = clone(a);
 
     remove_all(c, 'l');
-    assert(strings_match(b, c));
+    assert_eq_str(b, c);
     free(b);
     free(c);
 
     b = clone(a);
 
     replace_all(b, string("x"), string(""));
-    assert(strings_match(b, a));
+    assert_eq_str(b, a);
     free(b);
 
     b = clone(a);
 
     replace_all(b, string("Hello"), string("olleH"));
-    assert(strings_match(b, string("olleH world!")));
+    assert_eq_str(b, "olleH world!");
     free(b);
 
     a = "llHello world!ll";
     b = clone(a);
 
     replace_all(b, string("ll"), string("l"));
-    assert(strings_match(b, string("lHelo world!l")));
+    assert_eq_str(b, "lHelo world!l");
     free(b);
 
     b = clone(a);
 
     replace_all(b, string("l"), string("ll"));
-    assert(strings_match(b, string("llllHellllo worlld!llll")));
+    assert_eq_str(b, "llllHellllo worlld!llll");
     free(b);
 
     b = clone(a);
 
     replace_all(b, string("l"), string("K"));
-    assert(strings_match(b, string("KKHeKKo worKd!KK")));
+    assert_eq_str(b, "KKHeKKo worKd!KK");
     free(b);
 }
 

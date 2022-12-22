@@ -83,7 +83,7 @@ TEST(hash_table) {
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
         string str = sprint("{}", *value);
-        assert(strings_match(*key, str));
+        assert_eq_str(*key, str);
         free(str);
 
         ++loopIterations;
@@ -113,7 +113,7 @@ TEST(hash_table_clone) {
     s64 loopIterations = 0;
     for (auto [key, value] : t) {
         string str = sprint("{}", *value);
-        assert(strings_match(*key, str));
+        assert_eq_str(*key, str);
         free(str.Data);
 
         ++loopIterations;

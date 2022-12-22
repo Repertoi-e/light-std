@@ -53,6 +53,8 @@ struct asserts {
 #define assert_gt(x, y) assert_helper(x, y, LINE_NAME(a) > LINE_NAME(b), ">")
 #define assert_ge(x, y) assert_helper(x, y, LINE_NAME(a) >= LINE_NAME(b), ">=")
 
+#define assert_eq_str(x, y) assert_helper(x, y, strings_match(LINE_NAME(a), LINE_NAME(b)), "==")
+
 #define assert_helper(x, y, condition, op)                        \
     {                                                             \
         ++asserts::GlobalCalledCount;                             \

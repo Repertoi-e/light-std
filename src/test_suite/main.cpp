@@ -105,7 +105,7 @@ s32 main() {
     }
 
 #if defined DEBUG_MEMORY
-    debug_memory_report_leaks();
+    // debug_memory_report_leaks();
 #endif
 
     return 0;

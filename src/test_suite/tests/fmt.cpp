@@ -3,7 +3,7 @@
 #define CHECK_WRITE(expected, fmtString, ...)           \
     {                                                   \
         string t = sprint(fmtString, ##__VA_ARGS__);    \
-        assert(strings_match(t, string(expected)));     \
+        assert_eq_str(t, expected);     \
         free(t);                                        \
     }
 
@@ -51,7 +51,7 @@ void format_test_error(string fmtString, Args &&...arguments) {
 
 #define EXPECT_ERROR(expected, fmtString, ...)              \
     format_test_error(fmtString, ##__VA_ARGS__);            \
-    assert(strings_match(LAST_ERROR, string(expected)));    \
+    assert_eq_str(LAST_ERROR, expected);    \
     LAST_ERROR = "";
 
 TEST(write_bool) {

@@ -5,7 +5,7 @@
         auto [value, status, rest] = parse_int<IntT, options>(buffer, base);                     \
         assert_eq(value, expectedValue);                                                         \
         assert_eq(status, expectedStatus);                                                       \
-        assert(strings_match(rest, string(expectedRest)));                                       \
+        assert_eq_str(rest, expectedRest);                                       \
     }
 
 TEST(int) {
@@ -44,7 +44,7 @@ TEST(int) {
         auto [value, status, rest] = parse_bool<options>((string) buffer);            \
         assert_eq(value, expectedValue);                                              \
         assert_eq(status, expectedStatus);                                            \
-        assert(strings_match(rest, string(expectedRest)));                            \
+        assert_eq_str(rest, expectedRest);                            \
     }
 
 TEST(bool) {
@@ -100,7 +100,7 @@ TEST(guid) {
             auto [parsed, status, rest] = parse_guid(guidFormatted);
             assert_eq(guid, parsed);
             assert_eq(status, PARSE_SUCCESS);
-            assert(strings_match(rest, string(g)));
+            assert_eq_str(rest, g);
         }
     }
 }
