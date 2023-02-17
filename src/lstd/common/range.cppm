@@ -12,21 +12,21 @@ LSTD_BEGIN_NAMESPACE
 // Python-like range functionality
 // e.g.
 //
-//  for (auto it : range(20))        // [0, 20)
-//  for (auto it : range(3, 10, 2))  // every second integer (step 2) in [3, 10)
-//  for (auto it : range(10, 0, -1)) // reverse [10, 0)
-//
-// .. or with our For macro:
-//
-//  For(range(12)) {}
-//
+//  For(range(12)) { /*use the variable _it_ here*/ }   // [0, 12)
+//  For(range(3, 10, 2)) {}								// every second integer (step 2) in [3, 10)
+//  For(range(10, 0, -1)) {}							// reverse [10, 0)
+// 
 //    which is equivalent to:
 //
 //  For_as(it, range(12)) {}
+//  For_as(it, range(3, 10, 2)) {}
+//  For_as(it, range(10, 0, -1)) {}
 //
 //    which is equivalent to:
 // 
-//  for (int i = 0; i < 12; ++i) {}
+//  for (int i = 0; i < 12; i++) {}
+//  for (int i = 3; i < 10; i += 2) {}
+//  for (int i = 10; i > 0; i += -1) {}
 //
 // 
 // In release it gets optimized to no overhead.

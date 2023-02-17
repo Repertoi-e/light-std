@@ -8,9 +8,17 @@ module;
 // It doesn't allocate any dynamic memory (contrary to std::function). 
 // It does this by keeping a pointer to the functor/lambda,
 // which means that the variable needs to outlive the delegate,
-// which is not as big of a problem as it may sound.
-//
-// @TODO: Show example
+// which is really not as big of a problem as it may sound.
+// 
+// Example of using delegate<>:
+// 
+// s64 search(string str, delegate<bool(code_point)> predicate) { ... }
+// 
+// string trim_start(string s) {
+//     auto p = [](code_point cp) { return !has(" \n\r\t\v\f", cp); };;
+//     s64 start = search(s, &p);
+//     return slice(s, start, length(s));
+// }
 //
 
 export module lstd.delegate;

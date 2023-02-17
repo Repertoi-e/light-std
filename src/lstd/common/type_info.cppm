@@ -200,6 +200,24 @@ template <typename T> using remove_ref_t = typename remove_ref<T>::type;
 // For example, remove_cv<s32& volatile>::type is equivalent to s32.
 template <typename T> struct remove_cvref { using type = remove_cv_t<remove_ref_t<T>>; };
 template <typename T> using remove_cvref_t = typename remove_cvref<T>::type;
+}
+
+template <typename T>
+struct type_identity { using type = T; };
+
+// Rules (8.3.2 p6):
+//      void + &  -> void
+//      T    + &  -> T&
+//      T&   + &  -> T&
+//      T&&  + &  -> T&
+template <typename T>
+auto try_add_lvalue_reference(int) -> type_identity<T&>;
+template <typename T>
+auto try_add_lvalue_reference(...) -> type_identity<T>;
+
+export {
+template <typename T> struct add_lvalue_reference : decltype(try_add_lvalue_reference<T>(0)) {};
+template <typename T> using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
 
 // Rules (8.3.2 p6):
 //      void + &&  -> void

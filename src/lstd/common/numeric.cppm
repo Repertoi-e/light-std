@@ -7,26 +7,27 @@ module;
 
 export module lstd.numeric;
 
-export {
-    //
-    // The following integral types are defined here s8, s16, s32, s64, s128,
-    //      and corresponding unsigned types: u8, u16, u32, u64, u128),
-    //      vector types (aligned on 16 byte boundaries for SIMDs),
-    //		f32 (float), f64 (double), wchar (for Windows), 
-    //      code_point (for the integer value of a Unicode code point), 
-    //      and byte (unsigned char)
-    //
-    // Note: We don't support long doubles (lf64) or operations with them throughout the library.
-    //
-    //
-    // We also define numeric<T>, a way to get info about numbers, e.g. min/max, 
-    // max digits, for floats: exponent, mantissa bits, etc.
-    //
-    // numeric<T> is useful when writing template functions and you don't know 
-    // the specific integral type, so you cannot just assume the max size for 
-    // 32 bit integer for example. In that case you can use numeric<T>::max()
-    //
+//
+// The following integral types are defined here:
+//      s8, s16, s32, s64, s128,
+//      ... and corresponding unsigned types: u8, u16, u32, u64, u128,
+//      vector types (aligned on 16 byte boundaries for SIMDs):
+//          u8v16, u16v8, u32v4, u64v2, s8v16, s16v8, s32v4, s64v2, f32v4, f64v2
+//		f32 (float), f64 (double), wchar (for Windows), 
+//      code_point (for the integer value of a Unicode code point), 
+//      and byte (unsigned char)
+//
+// Note: We don't support long doubles (lf64) or operations with them throughout the library.
+//
+// We also define numeric<T>, a way to get info about numbers, e.g. min/max, 
+// max digits, for floats: exponent, mantissa bits, etc.
+//
+// numeric<T> is useful when writing template functions and you don't know 
+// the specific integral type, so you cannot just assume the max size for 
+// 32 bit integer for example. In that case you can use numeric<T>::max()
+//
 
+export {
     //
     // Fundamental types:
     //

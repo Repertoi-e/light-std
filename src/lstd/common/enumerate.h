@@ -3,24 +3,20 @@
 LSTD_BEGIN_NAMESPACE
 
 //
-// And this one is inspired from Python's enumerate().
+// This one is inspired from Python's enumerate().
 // For each loop which also gives the index of the element.
 // 
 // Example usage:
 //
-//    For_enumerate(data) {
-//        other_data[it_index] = it + 1;
+//    For_enumerate(a) {
+//        b[it_index] = it + 1;  // Here _it_ is the object in the iterable and _it_index_ is the index.
 //    }
 //
 // .. which is the same as:
 //
-//    For(range(data.Count)) {
-//        other_data[it] = data[it] + 1;
+//    For(range(a.Count)) {
+//        b[it] = a[it] + 1;    // Here _it_ is the iterator value of the range between 0 and count.
 //    }
-//
-// Might not look much shorter but you don't a separate
-// variable if you use data[it] more than once.
-// It's just a convenience.
 //
 // You can change the names of the internal
 // variables by using _For_enumerate_as_.

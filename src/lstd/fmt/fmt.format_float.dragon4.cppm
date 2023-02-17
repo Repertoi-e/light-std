@@ -87,7 +87,7 @@ LSTD_BEGIN_NAMESPACE
 // Assigns pow(10, exp) to a big int
 big_integer bigint_pow10(s32 exp) {
     assert(exp >= 0);
-    if (exp == 0) return cast_big(1);
+    if (exp == 0) return make_big(1);
 
     // Find the top bit
     s32 bitmask = 1;
@@ -96,11 +96,11 @@ big_integer bigint_pow10(s32 exp) {
 
     // pow(10, exp) = pow(5, exp) * pow(2, exp).
     // First compute pow(5, exp) by repeated squaring and multiplication.
-    big_integer b = cast_big(5);
+    big_integer b = make_big(5);
     bitmask >>= 1;
     while (bitmask != 0) {
         b = b * b;
-        if ((exp & bitmask) != 0) b = b * cast_big(5);
+        if ((exp & bitmask) != 0) b = b * make_big(5);
         bitmask >>= 1;
     }
     b = b << exp;  // Multiply by pow(2, exp) by shifting.
@@ -108,13 +108,13 @@ big_integer bigint_pow10(s32 exp) {
     return b;
 }
 
-bool is_digit_in_valid_range(big_integer* b) {
-    if (!b->Size) return true;
-    return b->Size == 1 && get_digit(b, 0) < 10;
+bool is_digit_in_valid_range(big_integer b) {
+    if (!b.Size) return true;
+    return b.Size == 1 && get_digit(b, 0) < 10;
 }
 
-u32 get_digit_or_zero(big_integer* b) {
-    if (b->Size) return get_digit(b, 0);
+u32 get_digit_or_zero(big_integer b) {
+    if (b.Size) return get_digit(b, 0);
     return 0;
 }
 
@@ -194,12 +194,12 @@ export void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outEx
         //    against the margin values are simplified.
         // 3) Set the margin value to the lowest significand bit's scale.
 
-        numerator = cast_big(significand);
+        numerator = make_big(significand);
         numerator = numerator << exponent;
-        lower     = cast_big(1);
+        lower     = make_big(1);
         lower     = lower << exponent;
         if (shift != 1) {
-            upperStore = cast_big(1);
+            upperStore = make_big(1);
             upperStore = upperStore << (exponent + 1);
             upper      = &upperStore;
         }
@@ -213,16 +213,16 @@ export void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outEx
             upperStore = upperStore << 1;
             upper      = &upperStore;
         }
-        numerator   = numerator * cast_big(significand);
-        denominator = cast_big(1);
+        numerator   = numerator * make_big(significand);
+        denominator = make_big(1);
         denominator = denominator << (shift - exponent);
     } else {
-        numerator   = cast_big(significand);
+        numerator   = make_big(significand);
         denominator = bigint_pow10(*outExp);
         denominator = denominator << (shift - exponent);
-        lower       = cast_big(1);
+        lower       = make_big(1);
         if (shift != 1) {
-            upperStore = cast_big(2);
+            upperStore = make_big(2);
             upper      = &upperStore;
         }
     }
@@ -239,8 +239,8 @@ export void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outEx
             auto [digit, mod] = divmod(numerator, denominator);
             numerator         = mod;
 
-            assert(is_digit_in_valid_range(&digit));
-            u32 outputDigit = get_digit_or_zero(&digit);
+            assert(is_digit_in_valid_range(digit));
+            u32 outputDigit = get_digit_or_zero(digit);
 
             bool low  = compare(numerator, lower) - even < 0;
             bool high = compare(numerator + *upper, denominator) + even > 0;
@@ -252,7 +252,7 @@ export void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outEx
                 if (low) {
                     ++b[precision - 1];
                 } else if (high) {
-                    s64 cmp = compare(numerator * cast_big(2), denominator);
+                    s64 cmp = compare(numerator * make_big(2), denominator);
 
                     // Round half to even.
                     if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {
@@ -266,9 +266,9 @@ export void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outEx
                 return;
             }
 
-            numerator = numerator * cast_big(10);
-            lower     = lower * cast_big(10);
-            if (upper != &lower) *upper = *upper * cast_big(10);
+            numerator = numerator * make_big(10);
+            lower     = lower * make_big(10);
+            if (upper != &lower) *upper = *upper * make_big(10);
         }
     }
 
@@ -295,8 +295,8 @@ export void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outEx
     *outExp -= precision - 1;
     if (precision == 0) {
         *outWritten = 1;
-        denominator = denominator * cast_big(10);
-        b[0]        = compare(numerator * cast_big(2), denominator) > 0 ? '1' : '0';
+        denominator = denominator * make_big(10);
+        b[0]        = compare(numerator * make_big(2), denominator) > 0 ? '1' : '0';
         return;
     }
 
@@ -306,22 +306,22 @@ export void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outEx
         auto [digit, mod] = divmod(numerator, denominator);
         numerator         = mod;
 
-        assert(is_digit_in_valid_range(&digit));
-        u32 outputDigit = get_digit_or_zero(&digit);
+        assert(is_digit_in_valid_range(digit));
+        u32 outputDigit = get_digit_or_zero(digit);
 
         b[it] = '0' + outputDigit;
 
-        numerator = numerator * cast_big(10);
+        numerator = numerator * make_big(10);
     }
 
     // The final one, also handle rounding..
     auto [digit, mod] = divmod(numerator, denominator);
     numerator         = mod;
 
-    assert(is_digit_in_valid_range(&digit));
-    u32 outputDigit = get_digit_or_zero(&digit);
+    assert(is_digit_in_valid_range(digit));
+    u32 outputDigit = get_digit_or_zero(digit);
 
-    s64 cmp = compare(numerator * cast_big(2), denominator);
+    s64 cmp = compare(numerator * make_big(2), denominator);
     if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {
         if (outputDigit == 9) {
             char overflow    = '0' + 10;

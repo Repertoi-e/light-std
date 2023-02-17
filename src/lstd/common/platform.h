@@ -25,13 +25,7 @@
 //     #define local_persist static
 // Used instead of the keyword static (because that keyword has too many meanings...).
 // This is just a personal preference.
-//     
-// ... and other defines (for now only for MSVC):
-//     #define always_inline __forceinline
-//     #define never_inline __declspec(noinline)
-//     #define no_vtable __declspec(novtable)
-//     #define no_alias __declspec(noalias)
-//     #define restrict __declspec(restrict)
+//
 
 // OS constants
 #define WINDOWS 1

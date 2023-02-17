@@ -10,8 +10,8 @@ import lstd.bits;
 
 //
 // Provides arbitrary precision integer math.
-// Supports integers on the stack (with compile-time capacity)
-// and a dynamic integer which grows as it needs more range.
+// Supports integers on the stack (with compile-time determined max capacity)
+// and a dynamic integer which grows dynamically on the heap as it needs more range.
 //
 
 LSTD_BEGIN_NAMESPACE
@@ -21,7 +21,10 @@ LSTD_BEGIN_NAMESPACE
 // When implementing operations we use grade school math,
 // but treat each digit of the integer as in base 2^30 instead of base 10.
 //
-// Using base 2^30 instead of 2^32 simplifies some code since we have room for some overflow which is then carried.
+// Using base 2^30 instead of 2^32 simplifies some code since we have room for 
+// some overflow which is then carried.
+//
+// The implementation here is inspired by Python's implementation of integers.
 //
 using digit  = u32;
 using sdigit = s32;
@@ -43,18 +46,18 @@ export {
     // sign in a bit that can be used to encode more numbers.
     // (and as we said big integers have practically unlimited range).
     //
-    // When doing arithmetic operations we allocate a new integer (we don't do the work in place).
+    // When doing arithmetic operations we allocate a new big_integer (we don't do the work in place).
     // This is because: 1. for most operations we need to allocate a seperate buffer to store the result
     // anyway; 2. sometimes you don't want to discard the old result.
     //
-    // To free the big_integer use: if (b.Digits) free(b.Digits);
-    // Note: We don't expect you to be freeing big integers very often:
+    // To free the big_integer (if it has allocated any memory) use: free(b);
+    // Note: We don't expect you to be freeing big integers very often, because:
     //
-    //    Don't do big integer operations with a regular allocator
-    //    because that would cause lots of fragmentation. Instead,
-    //    create a small isolated arena allocator and do a free_all when you're done.
-    //    This makes stuff very light to allocate and can't create
-    //    leaks if you forget to free an integer.
+    //    You should probably be not doingbig integer operations with 
+    //    a regular allocator because that would cause lots of fragmentation. 
+    //    Instead, create a small isolated arena allocator and do a free_all 
+    //    when you're done. This makes stuff very light to allocate and can't 
+    //    create leaks if you forget to free an integer.
     //
     struct big_integer {
         // Negative if the big integer is negative.
@@ -69,198 +72,204 @@ export {
         };
     };
 
+	// Note: Big integers have minimum storage of 5 digits (and are bigger than u128).
+	// For smaller values you'd better be using the smaller integer types (8 to 128 bit).
+	big_integer make_big_integer(s64 initialDigits);
+
+	// Assign any integral value (s8, s16, s32, s64, u8, u16, u32, u64, s128, u128,
+	// other big integers, etc.) to a big integer.
+	bool assign(big_integer ref b, is_integral auto v);
+
+	big_integer make_big(is_integral auto v);
+	big_integer make_big(big_integer b) { return b; }
+
+	big_integer invert(big_integer b); // -(b + 1)
+	big_integer lshift(big_integer lhs, s64 n); // << operator is overloaded too
+	big_integer rshift(big_integer lhs, s64 n); // >> operator is overloaded too
+
+	// if a < b, returns -1
+	// if a == b, returns 0
+	// if a > b, returns 1
+	s32 compare(big_integer a, big_integer b);
+
+	// We don't support ++/-- and assignment operators.
+
+	bool operator==(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) == 0; }
+	bool operator!=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) != 0; }
+	auto operator<=>(big_integer lhs, big_integer rhs) { return compare(lhs, rhs); }
+
+	big_integer operator+(big_integer lhs, big_integer rhs);
+	big_integer operator-(big_integer lhs, big_integer rhs);
+	big_integer operator*(big_integer lhs, big_integer rhs);
+	big_integer operator/(big_integer lhs, big_integer rhs);
+	big_integer operator%(big_integer lhs, big_integer rhs);
+
+	big_integer operator>>(big_integer lhs, s64 n) { return rshift(lhs, n); }
+	big_integer operator<<(big_integer lhs, s64 n) { return lshift(lhs, n); }
+
+	big_integer operator&(big_integer lhs, big_integer rhs);
+	big_integer operator|(big_integer lhs, big_integer rhs);
+	big_integer operator^(big_integer lhs, big_integer rhs);
+
+	struct div_result {
+		big_integer Q;  // Quotient
+		big_integer R;  // Remainder/modulus, note: see divrem vs divmod comparison
+	};
+
+	// divmod is NOT the same as divrem.
+	// divrem gives the remainder after division of |a| by |b|, with the sign of a.
+	//
+	// a mod b == a - b * floor(a/b)
+	// a rem b == a - b * trunc(a/b) (if trunc truncates toward zero).
+	//
+	// Some examples:
+	//   a           b      a mod b    a rem b
+	//   13          10      3          3
+	//  -13          10      7         -3
+	//   13         -10     -7          3
+	//  -13         -10     -3         -3
+	//
+	// divmod is defined in terms of divrem, but we adjust the remainder.
+	// Operator % is defined in terms of divmod.
+	div_result divrem(big_integer lhs, big_integer rhs);
+
+	// divmod is NOT the same as divrem.
+	// divrem gives the remainder after division of |a| by |b|, with the sign of a.
+	//
+	// a mod b == a - b * floor(a/b)
+	// a rem b == a - b * trunc(a/b) (if trunc truncates toward zero).
+	//
+	// Some examples:
+	//   a           b      a mod b    a rem b
+	//   13          10      3          3
+	//  -13          10      7         -3
+	//   13         -10     -7          3
+	//  -13         -10     -3         -3
+	//
+	// divmod is defined in terms of divrem, but we adjust the remainder.
+	// Operator % is defined in terms of divmod.
+	div_result divmod(big_integer lhs, big_integer rhs);
+
+    void free(big_integer ref b) { if (b.Digits) free(b.Digits); b.Size = 0; }
+
+    //
+    // Now some low-level operations which are also useful for tweaking:
+    //
+
+	// Ensure there is space for at least _n_ digits in the big integer.
+	void ensure_digits(big_integer ref b, s64 n);
+
+	// Ensure there is space for at least _n_ digits in the big integer
+	// but reserve more than needed (next power of two).
+	void grow(big_integer ref b, s64 n);
+
+	// Remove "leading zeros" from a big integer (e.g. 000000000000000000001).
+	// Those are actually the trailing zeros in the Digits array since we store chunks in reverse.
+	void normalize(big_integer ref b);
+
     // For small values (2 digits) we use a small buffer contained in the structure.
     // In that case Digits == null (because members pointing to other members is dangerous).
-    bool is_small(big_integer * b) { return !b->Digits; }
+    bool is_small(big_integer ref b) { return !b.Digits; }
 
     // Attempts to convert an integer into a small integer and frees any allocated memory.
-    void maybe_small(big_integer * b) {
+    void maybe_small(big_integer ref b) {
         if (is_small(b)) return;
 
-        if (abs(b->Size) <= 2) {
-            digit d1 = b->Digits[0];
-            digit d2 = b->Digits[1];
-            free(b->Digits);
-            b->Digits         = null;
-            b->SmallDigits[0] = d1;
-            b->SmallDigits[1] = d2;
+        if (abs(b.Size) <= 2) {
+            digit d1 = b.Digits[0];
+            digit d2 = b.Digits[1];
+            free(b.Digits);
+            b.Digits         = null;
+            b.SmallDigits[0] = d1;
+            b.SmallDigits[1] = d2;
         }
     }
 
-    // For small integers, b->Digits is null and the digits
+    // For small integers, b.Digits is null and the digits
     // are stored in a small buffer inside the struct.
-    digit *get_digits(big_integer * b) {
-        if (is_small(b)) return b->SmallDigits;
-        return b->Digits;
+    digit *get_digits(big_integer ref b) {
+        if (is_small(b)) return b.SmallDigits;
+        return b.Digits;
     }
 
-    digit get_digit(big_integer * b, s64 index) {
-        s64 space = is_small(b) ? 2 : b->Allocated;
+    // Supports negative indexing. This is a low level 
+    // operation and usually used by arithmetic operations.
+    digit get_digit(big_integer ref b, s64 index) {
+        s64 space = is_small(b) ? 2 : b.Allocated;
         index     = translate_negative_index(index, space);
         return get_digits(b)[index];
     }
 
-    void set_digit(big_integer * b, s64 index, digit value) {
-        s64 space            = is_small(b) ? 2 : b->Allocated;
+	// Supports negative indexing. This is a low level 
+	// operation and usually used by arithmetic operations.
+    void set_digit(big_integer ref b, s64 index, digit value) {
+        s64 space            = is_small(b) ? 2 : b.Allocated;
         index                = translate_negative_index(index, space);
         get_digits(b)[index] = value;
     }
-
-    // Ensure there is space for at least _n_ digits in the big integer.
-    void ensure_digits(big_integer * b, s64 n);
-
-    // Ensure there is space for at least _n_ digits in the big integer
-    // but reserve more than needed (next power of two).
-    void grow(big_integer * b, s64 n);
-
-    // Note: Big integers have minimum storage of 5 digits (and are bigger than u128).
-    // For smaller values you'd better be using the smaller integer types (8 to 128 bit).
-    big_integer create_big_integer(s64 initialDigits);
-
-    // Assign any integral value (s8, s16, s32, s64, u8, u16, u32, u64, s128, u128,
-    // other big integers, etc.) to a big integer.
-    bool assign(big_integer * b, is_integral auto v);
-    big_integer cast_big(is_integral auto v);
-
-    // Save an unnecessary allocation
-    big_integer cast_big(big_integer b) { return b; }
-
-    // Remove "leading zeros" from a big integer (e.g. 000000000000000000001).
-    // Those are actually the trailing zeros in the Digits array since we store chunks in reverse.
-    void normalize(big_integer * b);
-
-    big_integer invert(big_integer b);
-    big_integer lshift(big_integer lhs, s64 n);
-    big_integer rshift(big_integer lhs, s64 n);
-
-    struct div_result {
-        big_integer Q;  // Quotient
-        big_integer R;  // Remainder/modulus, note: see divrem vs divmod comparison
-    };
-
-    // divmod is NOT the same as divrem.
-    // divrem gives the remainder after division of |a| by |b|, with the sign of a.
-    //
-    // a mod b == a - b * floor(a/b)
-    // a rem b == a - b * trunc(a/b) (if trunc truncates toward zero).
-    //
-    // Some examples:
-    //   a           b      a mod b    a rem b
-    //   13          10      3          3
-    //  -13          10      7         -3
-    //   13         -10     -7          3
-    //  -13         -10     -3         -3
-    //
-    // divmod is defined in terms of divrem, but we adjust the remainder.
-    // Operator % is defined in terms of divmod.
-    div_result divrem(big_integer lhs, big_integer rhs);
-
-    // divmod is NOT the same as divrem.
-    // divrem gives the remainder after division of |a| by |b|, with the sign of a.
-    //
-    // a mod b == a - b * floor(a/b)
-    // a rem b == a - b * trunc(a/b) (if trunc truncates toward zero).
-    //
-    // Some examples:
-    //   a           b      a mod b    a rem b
-    //   13          10      3          3
-    //  -13          10      7         -3
-    //   13         -10     -7          3
-    //  -13         -10     -3         -3
-    //
-    // divmod is defined in terms of divrem, but we adjust the remainder.
-    // Operator % is defined in terms of divmod.
-    div_result divmod(big_integer lhs, big_integer rhs);
-
-    // if a < b, returns -1
-    // if a == b, returns 0
-    // if a > b, returns 1
-    s32 compare(big_integer a, big_integer b);
-
-    // We don't support ++/-- and assignment operators.
-
-    bool operator==(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) == 0; }
-    bool operator!=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) != 0; }
-    bool operator<(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) < 0; }
-    bool operator<=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) <= 0; }
-    bool operator>(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) > 0; }
-    bool operator>=(big_integer lhs, big_integer rhs) { return compare(lhs, rhs) >= 0; }
-
-    big_integer operator+(big_integer lhs, big_integer rhs);
-    big_integer operator-(big_integer lhs, big_integer rhs);
-    big_integer operator*(big_integer lhs, big_integer rhs);
-    big_integer operator/(big_integer lhs, big_integer rhs);
-    big_integer operator%(big_integer lhs, big_integer rhs);
-
-    big_integer operator>>(big_integer lhs, s64 n) { return rshift(lhs, n); }
-    big_integer operator<<(big_integer lhs, s64 n) { return lshift(lhs, n); }
-
-    big_integer operator&(big_integer lhs, big_integer rhs);
-    big_integer operator|(big_integer lhs, big_integer rhs);
-    big_integer operator^(big_integer lhs, big_integer rhs);
 }
 
-void ensure_digits(big_integer *b, s64 n) {
+void ensure_digits(big_integer ref b, s64 n) {
     assert(n > 0);
 
     if (is_small(b)) {
         if (n <= 2) return;
 
-        digit d1 = b->SmallDigits[0];
-        digit d2 = b->SmallDigits[1];
+        digit d1 = b.SmallDigits[0];
+        digit d2 = b.SmallDigits[1];
 
-        b->Digits = malloc<digit>({.Count = n});
-        memset0(b->Digits, n * sizeof(digit));
-        b->Allocated = n;
+        b.Digits = malloc<digit>({.Count = n});
+        memset0(b.Digits, n * sizeof(digit));
+        b.Allocated = n;
 
-        b->Digits[0] = d1;
-        b->Digits[1] = d2;
-    } else if (b->Allocated < n) {
-        b->Digits = realloc(b->Digits, {.NewCount = n});
-        memset0(b->Digits + b->Allocated, (n - b->Allocated) * sizeof(digit));
-        b->Allocated = n;
+        b.Digits[0] = d1;
+        b.Digits[1] = d2;
+    } else if (b.Allocated < n) {
+        b.Digits = realloc(b.Digits, {.NewCount = n});
+        memset0(b.Digits + b.Allocated, (n - b.Allocated) * sizeof(digit));
+        b.Allocated = n;
     }
 }
 
-void grow(big_integer *b, s64 n) {
+void grow(big_integer ref b, s64 n) {
     s64 target = max(ceil_pow_of_2(n + 1), 8);
     ensure_digits(b, target);
 }
 
-big_integer create_big_integer(s64 initialDigits) {
+big_integer make_big_integer(s64 initialDigits) {
     big_integer b;
-    ensure_digits(&b, initialDigits);
+    ensure_digits(b, initialDigits);
     return b;
 }
 
-big_integer create_big_integer_and_set_size(s64 initialDigits) {
-    big_integer b = create_big_integer(initialDigits);
+big_integer make_big_integer_and_set_size(s64 initialDigits) {
+    big_integer b = make_big_integer(initialDigits);
     b.Size        = initialDigits;
     return b;
 }
 
-void normalize(big_integer *b) {
-    s64 j = abs(b->Size);
+void normalize(big_integer ref b) {
+    s64 j = abs(b.Size);
     s64 i = j;
 
     while (i > 0 && get_digit(b, i - 1) == 0) --i;
 
-    if (i != j) b->Size = b->Size < 0 ? -i : i;
+    if (i != j) b.Size = b.Size < 0 ? -i : i;
     maybe_small(b);
 }
 
-big_integer cast_big(is_integral auto v) {
+big_integer make_big(is_integral auto v) {
     big_integer b;
-    assign(&b, v);
+    assign(b, v);
     return b;
 }
 
-bool assign(big_integer *b, is_integral auto v) {
+bool assign(big_integer ref b, is_integral auto v) {
     if constexpr (is_same<big_integer, decltype(v)>) {
         // Assign from another big integer
         ensure_digits(b, abs(v.Size));
-        memcpy(get_digits(b), get_digits(&v), abs(v.Size) * sizeof(digit));
-        b->Size = v.Size;
+        memcpy(get_digits(b), get_digits(v), abs(v.Size) * sizeof(digit));
+        b.Size = v.Size;
     } else {
         auto binaryDigits = count_digits<1>(abs(v));  // How many bits do we need to store the value in _v_
 
@@ -290,7 +299,7 @@ bool assign(big_integer *b, is_integral auto v) {
             v >>= SHIFT;
         } while (v);
 
-        b->Size = size * sign;
+        b.Size = size * sign;
     }
     normalize(b);
 
@@ -363,30 +372,30 @@ big_integer x_add(big_integer *a, big_integer *b) {
         swap(sizea, sizeb);
     }
 
-    big_integer result = create_big_integer(sizea + 1);
+    big_integer result = make_big_integer(sizea + 1);
 
     digit carry = 0;
 
     s64 i = 0;
     while (i < sizeb) {
-        carry += get_digit(a, i) + get_digit(b, i);
-        set_digit(&result, i, carry & MASK);
+        carry += get_digit(*a, i) + get_digit(*b, i);
+        set_digit(result, i, carry & MASK);
         carry >>= SHIFT;
 
         ++i;
     }
 
     while (i < sizea) {
-        carry += get_digit(a, i);
-        set_digit(&result, i, carry & MASK);
+        carry += get_digit(*a, i);
+        set_digit(result, i, carry & MASK);
         carry >>= SHIFT;
 
         ++i;
     }
-    set_digit(&result, i, carry & MASK);
+    set_digit(result, i, carry & MASK);
 
     result.Size = sizea + 1;
-    normalize(&result);
+    normalize(result);
     return result;
 }
 
@@ -403,25 +412,25 @@ big_integer x_sub(big_integer *a, big_integer *b) {
         // Find highest digit where a and b differ
         s64 i = sizea;
 
-        while (--i >= 0 && get_digit(a, i) == get_digit(b, i)) {}
+        while (--i >= 0 && get_digit(*a, i) == get_digit(*b, i)) {}
 
-        if (i < 0) return cast_big(0);
+        if (i < 0) return make_big(0);
 
-        if (get_digit(a, i) < get_digit(b, i)) {
+        if (get_digit(*a, i) < get_digit(*b, i)) {
             sign = -1;
             swap(a, b);
         }
         sizea = sizeb = i + 1;
     }
 
-    auto result = create_big_integer(sizea);
+    auto result = make_big_integer(sizea);
 
     digit borrow = 0;
     s64 i        = 0;
     while (i < sizeb) {
-        borrow = get_digit(a, i) - get_digit(b, i) - borrow;
+        borrow = get_digit(*a, i) - get_digit(*b, i) - borrow;
 
-        set_digit(&result, i, borrow & MASK);
+        set_digit(result, i, borrow & MASK);
         borrow >>= SHIFT;
         borrow &= 1;  // Keep only one sign bit
 
@@ -429,9 +438,9 @@ big_integer x_sub(big_integer *a, big_integer *b) {
     }
 
     while (i < sizea) {
-        borrow = get_digit(a, i) - borrow;
+        borrow = get_digit(*a, i) - borrow;
 
-        set_digit(&result, i, borrow & MASK);
+        set_digit(result, i, borrow & MASK);
         borrow >>= SHIFT;
         borrow &= 1;  // Keep only one sign bit
 
@@ -441,7 +450,7 @@ big_integer x_sub(big_integer *a, big_integer *b) {
     assert(borrow == 0);
 
     result.Size = sign * sizea;
-    normalize(&result);
+    normalize(result);
     return result;
 }
 
@@ -449,7 +458,7 @@ big_integer x_sub(big_integer *a, big_integer *b) {
 big_integer x_mul(big_integer lhs, big_integer rhs) {
     s64 sizea = abs(lhs.Size), sizeb = abs(rhs.Size);
 
-    auto result = create_big_integer_and_set_size(sizea + sizeb);
+    auto result = make_big_integer_and_set_size(sizea + sizeb);
     if (lhs == rhs) {
         // Efficient squaring per HAC, Algorithm 14.16:
         // http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf
@@ -458,11 +467,11 @@ big_integer x_mul(big_integer lhs, big_integer rhs) {
         // pyramid appears twice (except for the sizea squares).
 
         For(range(sizea)) {
-            double_digit f = get_digit(&lhs, it);
+            double_digit f = get_digit(lhs, it);
 
-            auto *pz    = get_digits(&result) + (it << 1);
-            auto *pa    = get_digits(&lhs) + it + 1;
-            auto *paend = get_digits(&lhs) + sizea;
+            auto *pz    = get_digits(result) + (it << 1);
+            auto *pa    = get_digits(lhs) + it + 1;
+            auto *paend = get_digits(lhs) + sizea;
 
             double_digit carry = *pz + f * f;
 
@@ -495,11 +504,11 @@ big_integer x_mul(big_integer lhs, big_integer rhs) {
         // lhs != rhs
 
         For(range(sizea)) {
-            double_digit f = get_digit(&lhs, it);
+            double_digit f = get_digit(lhs, it);
 
-            auto *pz    = get_digits(&result) + it;
-            auto *pb    = get_digits(&rhs);
-            auto *pbend = get_digits(&rhs) + sizeb;
+            auto *pz    = get_digits(result) + it;
+            auto *pb    = get_digits(rhs);
+            auto *pbend = get_digits(rhs) + sizeb;
 
             double_digit carry = 0;
 
@@ -516,7 +525,7 @@ big_integer x_mul(big_integer lhs, big_integer rhs) {
         }
     }
 
-    normalize(&result);
+    normalize(result);
     return result;
 }
 
@@ -537,16 +546,16 @@ void kmul_split(big_integer n, s64 size, big_integer *high, big_integer *low) {
     s64 sizelo = min(sizen, size);
     s64 sizehi = sizen - sizelo;
 
-    ensure_digits(high, sizehi);
-    ensure_digits(low, sizelo);
+    ensure_digits(*high, sizehi);
+    ensure_digits(*low, sizelo);
 
-    memcpy(get_digits(low), get_digits(&n), sizelo * sizeof(digit));
-    memcpy(get_digits(high), get_digits(&n) + sizelo, sizehi * sizeof(digit));
+    memcpy(get_digits(*low), get_digits(n), sizelo * sizeof(digit));
+    memcpy(get_digits(*high), get_digits(n) + sizelo, sizehi * sizeof(digit));
     high->Size = sizehi;
     low->Size  = sizelo;
 
-    normalize(high);
-    normalize(low);
+    normalize(*high);
+    normalize(*low);
 }
 
 big_integer k_mul(big_integer *lhs, big_integer *rhs);
@@ -564,10 +573,10 @@ big_integer k_lopsided_mul(big_integer *a, big_integer *b) {
     assert(sizea > KARATSUBA_CUTOFF);
     assert(2 * sizea <= sizeb);
 
-    big_integer result = create_big_integer_and_set_size(sizea + sizeb);
+    big_integer result = make_big_integer_and_set_size(sizea + sizeb);
 
     // Successive slices of b are copied into bslice
-    big_integer bslice = create_big_integer_and_set_size(sizea);
+    big_integer bslice = make_big_integer_and_set_size(sizea);
 
     s64 nbdone = 0;  // # of b digits already multiplied
     while (sizeb > 0) {
@@ -575,19 +584,19 @@ big_integer k_lopsided_mul(big_integer *a, big_integer *b) {
 
         // Multiply the next slice of b by a
 
-        memcpy(get_digits(&bslice), get_digits(b) + nbdone, nbtouse * sizeof(digit));
+        memcpy(get_digits(bslice), get_digits(*b) + nbdone, nbtouse * sizeof(digit));
         bslice.Size = nbtouse;
 
         big_integer product = k_mul(a, &bslice);
 
         // Add into result
-        v_iadd(get_digits(&result) + nbdone, result.Size - nbdone, get_digits(&product), product.Size);
+        v_iadd(get_digits(result) + nbdone, result.Size - nbdone, get_digits(product), product.Size);
 
         sizeb -= nbtouse;
         nbdone += nbtouse;
     }
 
-    normalize(&result);
+    normalize(result);
     return result;
 }
 
@@ -615,7 +624,7 @@ big_integer k_mul(big_integer *a, big_integer *b) {
     s64 i = (*a == *b) ? KARATSUBA_SQUARE_CUTOFF : KARATSUBA_CUTOFF;
     if (sizea <= i) {
         if (sizea == 0) {
-            return cast_big(0);
+            return make_big(0);
         } else {
             return x_mul(*a, *b);
         }
@@ -666,36 +675,36 @@ big_integer k_mul(big_integer *a, big_integer *b) {
 
     // 1.
 
-    big_integer result = create_big_integer_and_set_size(sizea + sizeb);
+    big_integer result = make_big_integer_and_set_size(sizea + sizeb);
 
     // 2. t1 <- ah*bh, and copy into high digits of result
     big_integer t1 = k_mul(ah, bh);
 
     assert(t1.Size >= 0);
     assert(2 * shift + t1.Size <= result.Size);
-    memcpy(get_digits(&result) + 2 * shift, get_digits(&t1), t1.Size * sizeof(digit));
+    memcpy(get_digits(result) + 2 * shift, get_digits(t1), t1.Size * sizeof(digit));
 
     // Zero-out the digits higher than the ah*bh copy
     i = result.Size - 2 * shift - t1.Size;
-    if (i) memset0((char *) (get_digits(&result) + 2 * shift + t1.Size), i * sizeof(digit));
+    if (i) memset0((char *) (get_digits(result) + 2 * shift + t1.Size), i * sizeof(digit));
 
     // 3. t2 <- al*bl, and copy into the low digits
     big_integer t2 = k_mul(al, bl);
 
     assert(t2.Size >= 0);
     assert(t2.Size <= 2 * shift); /* no overlap with high digits */
-    memcpy(get_digits(&result), get_digits(&t2), t2.Size * sizeof(digit));
+    memcpy(get_digits(result), get_digits(t2), t2.Size * sizeof(digit));
 
     // Zero out remaining digits
     i = 2 * shift - t2.Size;  // number of uninitialized digits
-    if (i) memset0(get_digits(&result) + t2.Size, i * sizeof(digit));
+    if (i) memset0(get_digits(result) + t2.Size, i * sizeof(digit));
 
     // 4 & 5. Subtract ah*bh (t1) and al*bl (t2).
     // We do al*bl first because it's fresher in cache.
     i = result.Size - shift;  // # digits after shift
-    v_isub(get_digits(&result) + shift, i, get_digits(&t2), t2.Size);
+    v_isub(get_digits(result) + shift, i, get_digits(t2), t2.Size);
 
-    v_isub(get_digits(&result) + shift, i, get_digits(&t1), t1.Size);
+    v_isub(get_digits(result) + shift, i, get_digits(t1), t1.Size);
 
     // 6. t3 <- (ah+al)(bh+bl), and add into result
     t1 = x_add(ah, al);
@@ -752,9 +761,9 @@ big_integer k_mul(big_integer *a, big_integer *b) {
     // Note that since there's always enough room for (ah+al)*(bh+bl), and that's
     // clearly >= each of ah*bh and al*bl, there's always enough room to subtract
     // ah*bh and al*bl too.
-    v_iadd(get_digits(&result) + shift, i, get_digits(&t3), t3.Size);
+    v_iadd(get_digits(result) + shift, i, get_digits(t3), t3.Size);
 
-    normalize(&result);
+    normalize(result);
     return result;
 }
 
@@ -791,10 +800,10 @@ div1_result divrem1(big_integer a, digit n) {
 
     s64 size = abs(a.Size);
 
-    big_integer result = create_big_integer_and_set_size(size);
+    big_integer result = make_big_integer_and_set_size(size);
 
-    digit rem = inplace_divrem1(get_digits(&result), get_digits(&a), size, n);
-    normalize(&result);
+    digit rem = inplace_divrem1(get_digits(result), get_digits(a), size, n);
+    normalize(result);
 
     return {result, rem};
 }
@@ -819,7 +828,7 @@ div_result x_divrem(big_integer a, big_integer b) {
     // high-order digit on the dividend; we do that unconditionally.
 
     // This counts the number of leading zeros
-    auto s = SHIFT - (msb(get_digit(&b, sizeb - 1)) + 1);
+    auto s = SHIFT - (msb(get_digit(b, sizeb - 1)) + 1);
 
     assert(s >= 0 && s <= 31);
 
@@ -829,29 +838,29 @@ div_result x_divrem(big_integer a, big_integer b) {
     // If _a_ overflows..
     sizea = abs(na.Size);
 
-    if (get_digit(&na, sizea - 1) >= get_digit(&nb, sizeb - 1)) {
-        ensure_digits(&na, sizea + 1);
-        set_digit(&na, sizea, 0);
+    if (get_digit(na, sizea - 1) >= get_digit(nb, sizeb - 1)) {
+        ensure_digits(na, sizea + 1);
+        set_digit(na, sizea, 0);
         sizea += 1;
     }
 
     s64 j = sizea - sizeb;
 
-    big_integer q = create_big_integer_and_set_size(j);  // _q_ holds the quotient
+    big_integer q = make_big_integer_and_set_size(j);  // _q_ holds the quotient
 
     while (j--) {
-        digit atop = get_digit(&na, j + sizeb);
-        assert(atop <= get_digit(&nb, sizeb - 1));
+        digit atop = get_digit(na, j + sizeb);
+        assert(atop <= get_digit(nb, sizeb - 1));
 
         // Compute estimate qhat; may overestimate by 1 (rare).
-        double_digit vv = ((double_digit) atop << SHIFT) | get_digit(&na, j + sizeb - 1);
+        double_digit vv = ((double_digit) atop << SHIFT) | get_digit(na, j + sizeb - 1);
 
-        digit qhat = (digit) (vv / get_digit(&nb, sizeb - 1));
-        digit rhat = (digit) (vv - qhat * (double_digit) get_digit(&nb, sizeb - 1));
+        digit qhat = (digit) (vv / get_digit(nb, sizeb - 1));
+        digit rhat = (digit) (vv - qhat * (double_digit) get_digit(nb, sizeb - 1));
 
-        while ((double_digit) get_digit(&nb, sizeb - 2) * qhat > (((double_digit) rhat << SHIFT) | get_digit(&na, j + sizeb - 2))) {
+        while ((double_digit) get_digit(nb, sizeb - 2) * qhat > (((double_digit) rhat << SHIFT) | get_digit(na, j + sizeb - 2))) {
             --qhat;
-            rhat += get_digit(&nb, sizeb - 1);
+            rhat += get_digit(nb, sizeb - 1);
             if (rhat >= BASE) break;
         }
         assert(qhat <= BASE);
@@ -864,10 +873,10 @@ div_result x_divrem(big_integer a, big_integer b) {
             // Invariants: -BASE <= -qhat <= zhi <= 0;
             //             -BASE * qhat <= z < BASE
 
-            z = (sdigit) get_digit(&na, it + j) + zhi -
-                (sdouble_digit) qhat * (sdouble_digit) get_digit(&nb, it);
+            z = (sdigit) get_digit(na, it + j) + zhi -
+                (sdouble_digit) qhat * (sdouble_digit) get_digit(nb, it);
 
-            set_digit(&na, it + j, z & MASK);
+            set_digit(na, it + j, z & MASK);
             zhi = (sdigit) (z >> SHIFT);
         }
 
@@ -877,8 +886,8 @@ div_result x_divrem(big_integer a, big_integer b) {
         if ((sdigit) atop + zhi < 0) [[unlikely]] {
             digit carry = 0;
             For(range(sizeb)) {
-                carry += get_digit(&na, it + j) + get_digit(&nb, it);
-                set_digit(&na, it + j, carry & MASK);
+                carry += get_digit(na, it + j) + get_digit(nb, it);
+                set_digit(na, it + j, carry & MASK);
                 carry >>= SHIFT;
             }
             --qhat;
@@ -886,15 +895,15 @@ div_result x_divrem(big_integer a, big_integer b) {
 
         // Store quotient digit
         assert(qhat < BASE);
-        set_digit(&q, j, qhat);
+        set_digit(q, j, qhat);
     }
 
     // Unnormalize the remainder, which was stored in _na_ during the computation.
     na.Size       = sizeb;
     big_integer r = rshift(na, s);
 
-    normalize(&q);
-    normalize(&r);
+    normalize(q);
+    normalize(r);
 
     return {q, r};
 }
@@ -927,18 +936,18 @@ big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
     big_integer *a = &lhs, *b = &rhs;
 
     if (negLhs) {
-        ensure_digits(&aComp, sizea);
+        ensure_digits(aComp, sizea);
         aComp.Size = sizea;
 
-        v_complement(get_digits(&aComp), get_digits(&lhs), sizea);
+        v_complement(get_digits(aComp), get_digits(lhs), sizea);
         a = &aComp;
     }
 
     if (negRhs) {
-        ensure_digits(&bComp, sizeb);
+        ensure_digits(bComp, sizeb);
         bComp.Size = sizeb;
 
-        v_complement(get_digits(&bComp), get_digits(&rhs), sizeb);
+        v_complement(get_digits(bComp), get_digits(rhs), sizeb);
         b = &bComp;
     }
 
@@ -973,24 +982,24 @@ big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
 
     // We allow an extra digit if z is negative, to make sure that
     // the final two's complement of z doesn't overflow.
-    big_integer result = create_big_integer_and_set_size(sizea + (negZ ? 1 : 0));
+    big_integer result = make_big_integer_and_set_size(sizea + (negZ ? 1 : 0));
 
     s64 i = 0;
 
     // Compute digits for overlap of a and b
     if (op == '&') {
         while (i < sizeb) {
-            set_digit(&result, i, get_digit(a, i) & get_digit(b, i));
+            set_digit(result, i, get_digit(*a, i) & get_digit(*b, i));
             ++i;
         }
     } else if (op == '|') {
         while (i < sizeb) {
-            set_digit(&result, i, get_digit(a, i) | get_digit(b, i));
+            set_digit(result, i, get_digit(*a, i) | get_digit(*b, i));
             ++i;
         }
     } else if (op == '^') {
         while (i < sizeb) {
-            set_digit(&result, i, get_digit(a, i) ^ get_digit(b, i));
+            set_digit(result, i, get_digit(*a, i) ^ get_digit(*b, i));
             ++i;
         }
     } else {
@@ -1000,21 +1009,21 @@ big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
     // Copy any remaining digits of a, inverting if necessary
     if (op == '^' && negRhs) {
         while (i < sizez) {
-            set_digit(&result, i, get_digit(a, i) ^ MASK);
+            set_digit(result, i, get_digit(*a, i) ^ MASK);
             ++i;
         }
     } else if (i < sizez) {
-        memcpy(get_digits(&result) + i, get_digits(a) + i, (sizez - i) * sizeof(digit));
+        memcpy(get_digits(result) + i, get_digits(*a) + i, (sizez - i) * sizeof(digit));
     }
 
     // Complement result if negative
     if (negZ) {
         result.Size = -result.Size;
-        set_digit(&result, sizez, MASK);
-        v_complement(get_digits(&result), get_digits(&result), sizez + 1);
+        set_digit(result, sizez, MASK);
+        v_complement(get_digits(result), get_digits(result), sizez + 1);
     }
 
-    normalize(&result);
+    normalize(result);
     return result;
 }
 
@@ -1023,22 +1032,22 @@ big_integer operator|(big_integer lhs, big_integer rhs) { return bitwise(lhs, '|
 big_integer operator^(big_integer lhs, big_integer rhs) { return bitwise(lhs, '^', rhs); }
 
 big_integer add_one(big_integer b) {
-    if (!b.Size) return cast_big(1);
+    if (!b.Size) return make_big(1);
 
     s64 size = abs(b.Size);
 
-    digit carry = (get_digit(&b, size) + 1) >> SHIFT;
+    digit carry = (get_digit(b, size) + 1) >> SHIFT;
     if (carry) ++size;
 
-    big_integer result = create_big_integer_and_set_size(size);
-    memcpy(get_digits(&result), get_digits(&b), abs(b.Size) * sizeof(digit));
+    big_integer result = make_big_integer_and_set_size(size);
+    memcpy(get_digits(result), get_digits(b), abs(b.Size) * sizeof(digit));
 
     if (carry) {
-        set_digit(&result, size - 2, 0);
-        set_digit(&result, size - 1, 1);
+        set_digit(result, size - 2, 0);
+        set_digit(result, size - 1, 1);
     } else {
-        // set_digit(&result, size - 1, get_digit(&result, size - 1) + 1);
-        ++*(get_digits(&result) + size - 1);
+        // set_digit(result, size - 1, get_digit(result, size - 1) + 1);
+        ++*(get_digits(result) + size - 1);
     }
     return result;
 }
@@ -1051,7 +1060,7 @@ big_integer invert(big_integer b) {
 
 big_integer lshift(big_integer lhs, s64 n) {
     if (n == 0) return lhs;
-    if (!lhs.Size) return cast_big(0);
+    if (!lhs.Size) return make_big(0);
 
     s64 wordshift = n / SHIFT;
     u32 remshift  = n % SHIFT;
@@ -1063,7 +1072,7 @@ big_integer lshift(big_integer lhs, s64 n) {
 
     if (remshift) ++newSize;
 
-    big_integer result = create_big_integer(newSize);
+    big_integer result = make_big_integer(newSize);
     if (lhs.Size < 0) {
         result.Size = -newSize;
     } else {
@@ -1071,31 +1080,31 @@ big_integer lshift(big_integer lhs, s64 n) {
     }
 
     For(range(wordshift)) {
-        set_digit(&result, it, 0);
+        set_digit(result, it, 0);
     }
 
     s64 accum = 0;
 
     s64 i, j;
     for (i = wordshift, j = 0; j < oldSize; ++i, ++j) {
-        accum |= (double_digit) get_digit(&lhs, j) << remshift;
-        set_digit(&result, i, (digit) (accum & MASK));
+        accum |= (double_digit) get_digit(lhs, j) << remshift;
+        set_digit(result, i, (digit) (accum & MASK));
         accum >>= SHIFT;
     }
 
     if (remshift) {
-        set_digit(&result, newSize - 1, (digit) accum);
+        set_digit(result, newSize - 1, (digit) accum);
     } else {
         assert(!accum);
     }
 
-    normalize(&result);
+    normalize(result);
     return result;
 }
 
 big_integer rshift(big_integer lhs, s64 n) {
     if (n == 0) return lhs;
-    if (!lhs.Size) return cast_big(0);
+    if (!lhs.Size) return make_big(0);
 
     s64 wordshift = n / SHIFT;
     u32 remshift  = n % SHIFT;
@@ -1105,24 +1114,24 @@ big_integer rshift(big_integer lhs, s64 n) {
         return invert(rshift(invert(lhs), n));
     } else {
         s64 newSize = lhs.Size - wordshift;
-        if (newSize <= 0) return cast_big(0);
+        if (newSize <= 0) return make_big(0);
 
         s64 hishift  = SHIFT - remshift;
         digit lomask = (1ul << hishift) - 1;
         digit himask = MASK ^ lomask;
 
-        big_integer result = create_big_integer_and_set_size(newSize);
+        big_integer result = make_big_integer_and_set_size(newSize);
 
         s64 i = 0, j = wordshift;
         while (i < newSize) {
-            set_digit(&result, i, (get_digit(&lhs, j) >> remshift) & lomask);
+            set_digit(result, i, (get_digit(lhs, j) >> remshift) & lomask);
             if (i + 1 < newSize) {
-                auto *d = get_digits(&result) + i;
-                *d |= (get_digit(&lhs, j + 1) << hishift) & himask;
+                auto *d = get_digits(result) + i;
+                *d |= (get_digit(lhs, j + 1) << hishift) & himask;
             }
             ++i, ++j;
         }
-        normalize(&result);
+        normalize(result);
         return result;
     }
 }
@@ -1134,9 +1143,9 @@ div_result divrem(big_integer lhs, big_integer rhs) {
 
     div_result result;
 
-    if (sizea < sizeb || (sizea == sizeb && (get_digit(&lhs, sizea - 1) < get_digit(&rhs, sizeb - 1)))) {
+    if (sizea < sizeb || (sizea == sizeb && (get_digit(lhs, sizea - 1) < get_digit(rhs, sizeb - 1)))) {
         // |lhs| < |rhs|
-        result.Q = cast_big(0);
+        result.Q = make_big(0);
         result.R = lhs;
         return result;
     }
@@ -1146,9 +1155,9 @@ div_result divrem(big_integer lhs, big_integer rhs) {
     //
 
     if (sizeb == 1) {
-        auto [div, rem] = divrem1(lhs, get_digit(&rhs, 0));
+        auto [div, rem] = divrem1(lhs, get_digit(rhs, 0));
         result.Q        = div;
-        result.R        = cast_big(rem);
+        result.R        = make_big(rem);
     } else {
         result = x_divrem(lhs, rhs);
     }
@@ -1172,14 +1181,14 @@ div_result divmod(big_integer lhs, big_integer rhs) {
     // have different signs. We then subtract one from the 'div'
     // part of the outcome to keep the invariant intact.
     if ((mod.Size < 0 && rhs.Size > 0) || (mod.Size > 0 && rhs.Size < 0)) {
-        return {div - cast_big(1), rhs + mod};
+        return {div - make_big(1), rhs + mod};
     } else {
         return {div, mod};
     }
 }
 
 s32 compare(big_integer a, big_integer b_) {
-    big_integer b = cast_big(b_);
+    big_integer b = make_big(b_);
 
     s32 sign = (s32) (a.Size - b.Size);
     if (sign == 0) {
@@ -1188,7 +1197,7 @@ s32 compare(big_integer a, big_integer b_) {
         s64 i       = abs(a.Size);
         sdigit diff = 0;
         while (--i >= 0) {
-            diff = (sdigit) get_digit(&a, i) - (sdigit) get_digit(&b, i);
+            diff = (sdigit) get_digit(a, i) - (sdigit) get_digit(b, i);
             if (diff) break;
         }
         sign = a.Size < 0 ? -1 : 1;

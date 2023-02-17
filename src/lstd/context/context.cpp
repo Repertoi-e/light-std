@@ -54,6 +54,14 @@ void fmt_default_parse_error_handler(string message, string formatString, s64 po
     string str = clone(formatString);
     defer(free(str));
 
+    auto p = [](auto cp) { return has(string("\"\\\a\b\f\n\r\t\v"), cp); };
+
+    s64 start = 0;
+    s64 countExtraSlashesToBeAddedBeforePositionToAccountWhenPrinting = 0;
+    while (start <= position && (start = search(str, &p, search_options{ .Start = start + 1 })) != -1) {
+        countExtraSlashesToBeAddedBeforePositionToAccountWhenPrinting += 1;
+    }
+
     // Make escape characters appear as they would in a string literal
     replace_all(str, '\"', "\\\"");
     replace_all(str, '\\', "\\\\");
@@ -74,7 +82,9 @@ void fmt_default_parse_error_handler(string message, string formatString, s64 po
     fmt_to_writer(&output, "\n\n>>> {!GRAY}An error during formatting occured: {!YELLOW}{}{!GRAY}\n", message);
     fmt_to_writer(&output, "    ... the error happened here:\n");
     fmt_to_writer(&output, "        {!}{}{!GRAY}\n", str);
-    fmt_to_writer(&output, "        {: >{}} {!} \n\n", "^", position + 1);
+    
+    s64 spaces = position + countExtraSlashesToBeAddedBeforePositionToAccountWhenPrinting + 1;
+    fmt_to_writer(&output, "        {: >{}} {!} \n\n", "^", spaces);
 
     string info = builder_to_string(&b);
     defer(free(info));

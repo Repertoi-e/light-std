@@ -4,12 +4,12 @@ module;
 
 //
 // This file defines some common math functions:
-//    sign_bit, sign_no_zero, sign, copy_sign,
-//    is_nan, is_signaling_nan, is_infinite, is_finite,
-//    cast_numeric_safe,
 //    min, max, clamp,
-//    is_pow_of_2, ceil_pow_of_2, const_exp10
-//    abs
+//    abs,
+//    cast_numeric_safe,
+//    is_pow_of_2, ceil_pow_of_2, const_exp10,
+//    is_nan, is_signaling_nan, is_infinite, is_finite,
+//    sign_bit, sign_no_zero, sign, copy_sign
 //
 
 export module lstd.math;
@@ -90,7 +90,7 @@ template <typename T, typename U>
 concept are_same_signage = is_signed_integral<T> && is_signed_integral<U> || is_unsigned_integral<T> && is_unsigned_integral<U>;
 
 template <typename T, typename U>
-requires(is_scalar<T> && is_scalar<U>) auto cast_numeric_safe(U y) {
+requires(is_scalar<T> && is_scalar<U>) constexpr auto cast_numeric_safe(U y) {
     if constexpr (is_floating_point<T>) {
         static_assert(is_integral<U> || sizeof(T) >= sizeof(U), "T is a float. U must be a float of the same size or smaller, or an integer. Otherwise information may be lost when casting.");
     } else if constexpr (is_integral<T> && is_integral<U>) {
@@ -101,7 +101,7 @@ requires(is_scalar<T> && is_scalar<U>) auto cast_numeric_safe(U y) {
     return (T) y;
 }
 
-auto min_(auto x, auto y) {
+constexpr auto min_(auto x, auto y) {
     auto y_casted = cast_numeric_safe<decltype(x)>(y);
     if constexpr (is_floating_point<decltype(x)>) {
         if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
@@ -109,7 +109,7 @@ auto min_(auto x, auto y) {
     return x < y_casted ? x : y_casted;
 }
 
-auto max_(auto x, auto y) {
+constexpr auto max_(auto x, auto y) {
     auto y_casted = cast_numeric_safe<decltype(x)>(y);
     if constexpr (is_floating_point<decltype(x)>) {
         if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
@@ -118,16 +118,15 @@ auto max_(auto x, auto y) {
 }
 
 export {
-
     template <is_scalar... Args>
-    auto min(is_scalar auto x, Args... rest) {
+    constexpr auto min(is_scalar auto x, Args... rest) {
         auto result = x;
         ((void)(result = min_(result, rest)), ...);
         return result;
     }
 
     template <is_scalar... Args>
-    auto max(is_scalar auto x, Args... rest) {
+    constexpr auto max(is_scalar auto x, Args... rest) {
         auto result = x;
         ((void)(result = max_(result, rest)), ...);
         return result;
