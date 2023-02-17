@@ -15,4 +15,4 @@ objFile.Close
 
 End Function
 	
-Call ReplaceInFile("vs2019/lstd.vcxproj", "<ClInclude Include=""..\..\src\lstd\lstd.h"" />", "<ClCompile Include=""..\..\src\lstd\lstd.h"">" & vbCrLf & "      <CompileAs Condition=""'$(Configuration)|$(Platform)'=='Debug|x64'"">CompileAsHeaderUnit</CompileAs>" & vbCrLf & "      <CompileAs Condition=""'$(Configuration)|$(Platform)'=='Release|x64'"">CompileAsHeaderUnit</CompileAs>" & vbCrLf & "      <CompileAs Condition=""'$(Configuration)|$(Platform)'=='DebugOptimized|x64'"">CompileAsHeaderUnit</CompileAs>" & vbCrLf & "    </ClCompile>")
+Call ReplaceInFile("vs2022/lstd.vcxproj", "<ClInclude Include=""..\..\src\lstd\lstd.h"" />", "<ClCompile Include=""..\..\src\lstd\lstd.h"">" & vbCrLf & "      <CompileAs Condition=""'$(Configuration)|$(Platform)'=='Debug|x64'"">CompileAsHeaderUnit</CompileAs>" & vbCrLf & "      <CompileAs Condition=""'$(Configuration)|$(Platform)'=='Release|x64'"">CompileAsHeaderUnit</CompileAs>" & vbCrLf & "      <CompileAs Condition=""'$(Configuration)|$(Platform)'=='DebugOptimized|x64'"">CompileAsHeaderUnit</CompileAs>" & vbCrLf & "    </ClCompile>")

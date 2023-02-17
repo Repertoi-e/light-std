@@ -121,10 +121,7 @@ export {
 
 	bool operator==(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare(a, b) == -1; }
 	bool operator!=(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare(a, b) != -1; }
-	bool operator<(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b) < 0; }
-	bool operator>(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b) > 0; }
-	bool operator<=(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b) <= 0; }
-	bool operator>=(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b) >= 0; }
+	auto operator<=>(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b); }
 
 	// Doesn't allocate, returns a sub-array of _arr_.
 	auto slice(any_array_like auto ref arr, s64 begin, s64 end) {

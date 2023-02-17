@@ -102,18 +102,6 @@ export module lstd.fmt;
 //       's' - Outputs it as an utf-8 encoded string.
 //       '' (NONE) - the same as 's'
 //
-//      Guid:
-//       'n' - 00000000000000000000000000000000
-//       'N' - Uppercase version of 'n'
-//       'd' - 00000000-0000-0000-0000-000000000000
-//       'D' - Uppercase version of 'd'
-//       'b' - {00000000-0000-0000-0000-000000000000}
-//       'B' - Uppercase version of 'b'
-//       'p' - (00000000-0000-0000-0000-000000000000)
-//       'P' - Uppercase version of 'p'
-//       'x' - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
-//       'X' - Uppercase version of 'x'
-//       '' (NONE) - the same as 'd'
 //
 //
 // There is also a way to specify text styles directly in the format string. Without requiring an argument.
@@ -217,81 +205,6 @@ export {
             write_no_specs(f, buffer->Data, buffer->Occupied);
             buffer = buffer->Next;
         }
-    }
-
-    // Formats GUID in the following way: 00000000-0000-0000-0000-000000000000
-    // Allows specifiers:
-    //   'n' - 00000000000000000000000000000000
-    //   'N' - Uppercase version of 'n'
-    //   'd' - 00000000-0000-0000-0000-000000000000
-    //   'D' - Uppercase version of 'd'
-    //   'b' - {00000000-0000-0000-0000-000000000000}
-    //   'B' - Uppercase version of 'b'
-    //   'p' - (00000000-0000-0000-0000-000000000000)
-    //   'P' - Uppercase version of 'p'
-    //   'x' - {0x00000000,0x0000,0x0000,{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}}
-    //   'X' - Uppercase version of 'x'
-    // The default format is the same as 'd'.
-    void write_custom(fmt_context * f, const guid * g) {
-        char type = 'd';
-        if (f->Specs) {
-            type = f->Specs->Type;
-        }
-
-        bool upper = is_upper(type);
-        type       = (char) to_lower(type);
-
-        if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
-            on_error(f, "Invalid type specifier for a guid", f->Parse.It.Data - f->Parse.FormatString.Data - 1);
-            return;
-        }
-
-        code_point openParenthesis = 0, closedParenthesis = 0;
-        bool hyphen = true;
-
-        if (type == 'n') {
-            hyphen = false;
-        } else if (type == 'b') {
-            openParenthesis   = '{';
-            closedParenthesis = '}';
-        } else if (type == 'p') {
-            openParenthesis   = '(';
-            closedParenthesis = ')';
-        } else if (type == 'x') {
-            auto *old = f->Specs;
-            f->Specs  = null;
-
-            u8 *p = (u8 *) g->Data;
-            if (upper) {
-                fmt_to_writer(f, "{{{:#04X}{:02X}{:02X}{:02X},{:#04X}{:02X},{:#04X}{:02X},{{{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X},{:#04X}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
-            } else {
-                fmt_to_writer(f, "{{{:#04x}{:02x}{:02x}{:02x},{:#04x}{:02x},{:#04x}{:02x},{{{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x},{:#04x}}}}}", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
-            }
-
-            f->Specs = old;
-            return;
-        }
-
-        if (openParenthesis) write_no_specs(f, openParenthesis);
-
-        auto *old = f->Specs;
-        f->Specs  = null;
-
-        const byte *p = g->Data;
-        For(range(16)) {
-            if (hyphen && (it == 4 || it == 6 || it == 8 || it == 10)) {
-                write_no_specs(f, (code_point) '-');
-            }
-            if (upper) {
-                fmt_to_writer(f, "{:02X}", (u8) *p);
-            } else {
-                fmt_to_writer(f, "{:02x}", (u8) *p);
-            }
-            ++p;
-        }
-        f->Specs = old;
-
-        if (closedParenthesis) write_no_specs(f, closedParenthesis);
     }
 
     // Format arrays in the following way: [1, 2, ...]

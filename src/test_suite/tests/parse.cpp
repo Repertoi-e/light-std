@@ -1,5 +1,8 @@
 #include "../test.h"
 
+import lstd.guid;
+static_assert(any_array_like<guid>);
+
 #define test_parse_int(IntT, options, base, buffer, expectedValue, expectedStatus, expectedRest) \
     {                                                                                            \
         auto [value, status, rest] = parse_int<IntT, options>(buffer, base);                     \

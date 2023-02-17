@@ -4,27 +4,13 @@ module;
 
 export module lstd.guid.win32;
 
-import lstd.string;
+import lstd.guid.general;
+
+import lstd.stack_array;
 
 LSTD_BEGIN_NAMESPACE
 
 export {
-    // Used for generating unique ids
-    struct guid {
-        u8 Data[16];
-        static const s64 Count = 16;
-
-        // By default the guid is zero
-        guid() {
-            For(range(16)) Data[it] = 0;
-        }
-
-        explicit operator bool() {
-            For(range(16)) if (Data[it]) return true;
-            return false;
-        }
-    };
-
     // Guaranteed to generate a unique id each time (time-based)
     guid create_guid() {
         GUID g;

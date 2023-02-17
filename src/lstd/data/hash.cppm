@@ -4,7 +4,6 @@ module;
 
 export module lstd.hash;
 
-export import lstd.guid;
 export import lstd.string;
 
 import lstd.bits;
@@ -174,13 +173,6 @@ export {
     u64 get_hash(string value) {
         u64 hash        = 5381;
         For(value) hash = ((hash << 5) + hash) + it;
-        return hash;
-    }
-
-    // Hashing guids...
-    u64 get_hash(guid value) {
-        u64 hash             = 5381;
-        For(value.Data) hash = (hash << 5) + hash + it;
         return hash;
     }
 

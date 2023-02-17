@@ -111,7 +111,19 @@ function common_settings()
 		floatingpoint "Strict"
 
 		symbols "Off"
-    
+		
+	filter {}
+end
+
+function include_extra(str)
+	files {
+        BASE_DIR .. "src/%{prj.name}_extra/" .. str .. "/**.h",
+        BASE_DIR .. "src/%{prj.name}_extra/" .. str .. "/**.inc",
+        BASE_DIR .. "src/%{prj.name}_extra/" .. str .. "/**.c",
+        BASE_DIR .. "src/%{prj.name}_extra/" .. str .. "/**.cpp",
+        BASE_DIR .. "src/%{prj.name}_extra/" .. str .. "/**.def",
+        BASE_DIR .. "src/%{prj.name}_extra/" .. str .. "/**.cppm"
+    }
 end
 
 project "lstd"
@@ -144,6 +156,9 @@ project "lstd"
 	}
 	
     common_settings()
+	
+	-- Include extras to be tested in test_suite
+	include_extra("guid")
 
 project "test_suite"
     kind "ConsoleApp"
