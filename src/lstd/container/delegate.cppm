@@ -123,7 +123,7 @@ export {
 
         // Assign null pointer
         delegate& operator=(null_t) {
-            zero_memory(Data, Count);
+            memset0(Data, Count);
             Invoker = null;
             return *this;
         }

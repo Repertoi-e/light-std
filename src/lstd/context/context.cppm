@@ -233,7 +233,7 @@ export {
 
     // Allocates a buffer, copies the string's contents and also appends a zero terminator.
     // Uses the temporary allocator.
-    char *string_to_c_string_temp(string s) { return to_c_string(s, TemporaryAllocator); }
+    char *to_c_string_temp(string s) { return to_c_string(s, TemporaryAllocator); }
 }
 
 LSTD_END_NAMESPACE

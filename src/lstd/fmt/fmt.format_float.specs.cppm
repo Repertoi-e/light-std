@@ -79,7 +79,7 @@ export {
     // Used by both Dragonbox and Grisu.
     template <is_floating_point F>
     struct decimal_fp {
-        using significand_t = select_t<sizeof(F) == sizeof(f32), u32, u64>;
+        using significand_t = type_select_t<sizeof(F) == sizeof(f32), u32, u64>;
 
         significand_t Significand;
         s32 Exponent;
@@ -96,7 +96,7 @@ export {
 
         u64 exponentMask = ((1ull << numeric<F>::bits_exponent) - 1) << numeric<F>::bits_mantissa;
 
-        auto br = bit_cast<select_t<sizeof(F) == sizeof(f32), u32, u64>>(newValue);
+        auto br = bit_cast<type_select_t<sizeof(F) == sizeof(f32), u32, u64>>(newValue);
 
         f.Significand = br & significandMask;
         s32 biasedExp = (s32) ((br & exponentMask) >> numeric<F>::bits_mantissa);

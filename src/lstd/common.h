@@ -72,6 +72,8 @@ import lstd.source_location;
 using null_t = decltype(nullptr);
 inline const null_t null = nullptr;
 
+#define NULL 0
+
 import lstd.range;
 
 // Semantics to avoid the use of & when the symbol is not used as a unary or binary operator.
@@ -114,6 +116,8 @@ import lstd.range;
 #define TAU 6.283185307179586476925286766559
 #define PI (TAU / 2)
 
+#define NULL 0
+
 //
 // Convenience storage literal operators, allows for specifying sizes like this:
 //  s64 a = 10_MiB;
@@ -147,14 +151,14 @@ constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
-inline void swap(T &a, T &b) {
+void swap(T &a, T &b) {
 	T c = a;
 	a = b;
 	b = c;
 }
 
 template <typename T, s64 N>
-inline void swap(T(&a)[N], T(&b)[N]) {
+void swap(T(&a)[N], T(&b)[N]) {
 	For(range(N)) swap(a[it], b[it]);
 }
 
@@ -222,52 +226,110 @@ inline void swap(T(&a)[N], T(&b)[N]) {
 // e.g.         string newPath = clone(path); // Allocates a new buffer and copies contents in _path_
 //
 
-template <typename T>
-inline T *memmove(T *dst, const T *src, s64 numInBytes) {
-	For(range(numInBytes / sizeof(T) - 1, -1, -1)) dst[it] = src[it];
-	return dst;
-}
-
-template <typename T>
-inline T *memcpy(T *dst, const T *src, s64 numInBytes) {
-	if (dst > src && (s64)(dst - src) < (numInBytes / (s64)sizeof(T))) {
-		//
-		// Careful. Buffers overlap. You should use memmove in this case.
-		// 
-		// If this bug isn't caught until Release, then bad shit happens.
-		// So in order to make it work nevertheless we do memmove.
-		// I wish the C standard didn't make a distinction between the
-		// two functions, but we're stuck with that.
-		// 
-		// This makes calling memmove superfluous, and personally, 
-		// I'm ok with that.
-		return memmove(dst, src, numInBytes);
-	}
-	else {
-		For(range(numInBytes / sizeof(T))) dst[it] = src[it];
-	}
-	return dst;
-}
-
-template <typename T>
-inline T *memset(T *dst, T value, u64 numInBytes) {
-	For(range(numInBytes / sizeof(T))) dst[it] = value;
-	return dst;
-}
-
-// Non-standard, but useful.
-template <typename T>
-inline T *memset0(T *dst, u64 numInBytes) {
-	return memset(dst, T(0), numInBytes);
-}
-
-template <typename T>
-inline s32 memcmp(const T *s1, const T *s2, s64 numInBytes) {
-	For(range(numInBytes / sizeof(T))) {
-		if (!(*s1 == *s2)) return *s1 - *s2;
-		++s1, ++s2;
-	}
-	return 0;
-}
-
 LSTD_END_NAMESPACE
+
+
+// @Cleanup These implementations are not ideal
+extern "C" {
+	inline void* memmove(void* dstpp, const void* srcpp, u64 len) {
+		auto* dst = (byte*)dstpp;
+		auto* src = (byte*)srcpp;
+		if (len == 0) return dstpp;
+		For(range(len - 1, -1, -1)) dst[it] = src[it];
+		return dst;
+	}
+
+	inline void* memcpy(void* dstpp, const void* srcpp, u64 len) {
+		if ((u64)dstpp > (u64)srcpp && (s64)((byte*)dstpp - (byte*)srcpp) < (s64) len) {
+			//
+			// Careful. Buffers overlap. You should use memmove in this case.
+			// 
+			// If this bug isn't caught until Release, then bad shit happens.
+			// So in order to make it work nevertheless we do memmove.
+			// I wish the C standard didn't make a distinction between the
+			// two functions, but we're stuck with that.
+			// 
+			// This makes calling memmove superfluous, and personally, 
+			// I'm ok with that.
+			return memmove(dstpp, srcpp, len);
+		}
+		else {
+			auto* dst = (byte*)dstpp;
+			auto* src = (byte*)srcpp;
+			while (len--) *dst++ = *src++;
+		}
+		return dstpp;
+	}
+
+	inline void* memset(void* dstpp, int c, u64 len) {
+		u64 dstp = (u64)dstpp;
+
+		if (len >= 8)
+		{
+			size_t xlen;
+			u64 cccc;
+
+			cccc = (byte)c;
+			cccc |= cccc << 8;
+			cccc |= cccc << 16;
+			cccc |= (cccc << 16) << 16;
+
+			/* There are at least some bytes to set.
+		   No need to test for LEN == 0 in this alignment loop.  */
+			while (dstp % 8 != 0)
+			{
+				((byte*)dstp)[0] = c;
+				dstp += 1;
+				len -= 1;
+			}
+
+			/* Write 8 `op_t' per iteration until less than 8 `op_t' remain.  */
+			xlen = len / (8 * 8);
+			while (xlen > 0)
+			{
+				((u64*)dstp)[0] = cccc;
+				((u64*)dstp)[1] = cccc;
+				((u64*)dstp)[2] = cccc;
+				((u64*)dstp)[3] = cccc;
+				((u64*)dstp)[4] = cccc;
+				((u64*)dstp)[5] = cccc;
+				((u64*)dstp)[6] = cccc;
+				((u64*)dstp)[7] = cccc;
+				dstp += 8 * 8;
+				xlen -= 1;
+			}
+			len %= 8 * 8;
+
+			xlen = len / 8;
+			while (xlen > 0)
+			{
+				((u64*)dstp)[0] = cccc;
+				dstp += 8;
+				xlen -= 1;
+			}
+			len %= 8;
+		}
+
+		while (len > 0)
+		{
+			((byte*)dstp)[0] = c;
+			dstp += 1;
+			len -= 1;
+		}
+
+		return dstpp;
+	}
+
+	inline void* memset0(void* dst, u64 numInBytes) {
+		return memset((char*)dst, (char)0, numInBytes);
+	}
+
+	inline int memcmp(const void* s1, const void* s2, u64 n) {
+		auto* p1 = (byte*)s1;
+		auto* p2 = (byte*)s2;
+		For(range(n)) {
+			if (p1[it] != p2[it]) return p1[it] - p2[it];
+		}
+		return 0;
+	}
+}

@@ -6,7 +6,6 @@ export module lstd.hash_table;
 
 export import lstd.memory;
 export import lstd.hash;
-export import lstd.optional;
 
 LSTD_BEGIN_NAMESPACE
 
@@ -65,16 +64,12 @@ export {
 		s64 SlotsFilled = 0;  // Number of slots that can't be used (valid + removed items)
 		s64 Allocated = 0;  // Number of slots allocated in total, @Cleanup
 
-		// Returns a pointer to the value associated with _key_.
-		// If the key doesn't exist, this adds a new element and returns it.
-		//
-		// You can also iterate over the table like this:
+		// You can iterate over the table like this:
 		//
 		//      for (auto [key, value] : table) {
 		//          ...
 		//      }
 		//
-		optional<V> operator[](K no_copy key);
 	};
 }
 
@@ -250,23 +245,10 @@ export {
 
 	// Returns true if the hash table has the given key.
 	template <any_hash_table T>
-	bool has_prehashed(T ref table, u64 hash, key_t<T> no_copy key) { return find_prehashed(table, hash, key) != null; }
-
-	// Returns the value (if found)
-	template <any_hash_table T>
-	auto ref get(T ref table, key_t<T> no_copy key) {
-		optional<value_t<T>> result;
-
-		u64 hash = get_hash(key);
-
-		auto* vp = find_prehashed(table, hash, key).Value;
-		if (vp) result = *vp;
-
-		return result;
-	}
+	bool has_prehashed(T ref table, u64 hash, key_t<T> no_copy key) { return search_prehashed(table, hash, key) != null; }
 
 	template <any_hash_table T>
-	bool operator==(T no_copy t, T no_copy u) {
+	bool operator==(T ref t, T ref u) {
 		if (t.Entries.Count != u.Entries.Count) return false;
 
 		for (auto [k, v] : t) {
@@ -277,7 +259,7 @@ export {
 	}
 
 	template <any_hash_table T>
-	bool operator!=(T no_copy t, T no_copy u) { return !(t == u); }
+	bool operator!=(T ref t, T ref u) { return !(t == u); }
 
 	template <any_hash_table T>
 	T clone(T ref src) {
@@ -318,12 +300,6 @@ export {
 
 	auto begin(any_hash_table auto ref table) { return hash_table_iterator(table); }
 	auto end(any_hash_table auto ref table) { return hash_table_iterator(table, table.Allocated); }
-}
-
-template<typename K, typename V>
-optional<V> hash_table<K, V>::operator[](K no_copy key)
-{
-	return get(this, key);
 }
 
 LSTD_END_NAMESPACE

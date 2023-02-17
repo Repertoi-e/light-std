@@ -42,7 +42,7 @@ LSTD_END_NAMESPACE
 // DX_CHECK is used for checking directx calls. The difference from WIN32_CHECK_HR is that
 // in Release configuration, the macro expands to just the call (no error checking).
 #if !defined NDEBUG
-#define DX_CHECK(call) WIN32_CHECK_HR(call)
+#define DX_CHECK(call) WIN32_CHECK_HR(LINE_NAME(result), call)
 #else
 #define DX_CHECK(call) call
 #endif

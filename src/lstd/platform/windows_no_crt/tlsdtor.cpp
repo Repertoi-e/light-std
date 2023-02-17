@@ -54,7 +54,7 @@ int __cdecl __tlregdtor(
         dtor_list            = &dtor_list_head;
         dtor_list_head.count = 0;
     } else if (dtor_list->count == FUNCS_PER_NODE) {
-        auto *pnode = (TlsDtorNode *) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(TlsDtorNode) * 1);
+        auto *pnode = (TlsDtorNode *) HeapAlloc(GetProcessHeap(), HEAP_memset0, sizeof(TlsDtorNode) * 1);
         if (pnode == nullptr) {
             return -1;
         }

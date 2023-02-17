@@ -147,26 +147,26 @@ export {
     using strong_ordering = std::strong_ordering;
 
     enum comparison_category : char {
-        Comparison_Category_None = 1,
-        Comparison_Category_Partial = 2,
-        Comparison_Category_Weak = 4,
-        Comparison_Category_Strong = 0,
+        COMPARISON_CATEGORY_NONE = 1,
+        COMPARISON_CATEGORY_PARTIAL = 2,
+        COMPARISON_CATEGORY_WEAK = 4,
+        COMPARISON_CATEGORY_STRONG = 0,
     };
 
     // template <typename... Types>
-    // inline unsigned char comparison_category_of = get_comparison_category{(get_comparison_category<Types> | ... | Comparison_Category_Strong)};
+    // inline unsigned char comparison_category_of = get_comparison_category{(get_comparison_category<Types> | ... | COMPARISON_CATEGORY_STRONG)};
 
     template <typename T>
-    inline unsigned char comparison_category_of = Comparison_Category_None;
+    inline unsigned char comparison_category_of = COMPARISON_CATEGORY_NONE;
 
     template <>
-    inline unsigned char comparison_category_of<partial_ordering> = Comparison_Category_Partial;
+    inline unsigned char comparison_category_of<partial_ordering> = COMPARISON_CATEGORY_PARTIAL;
 
     template <>
-    inline unsigned char comparison_category_of<weak_ordering> = Comparison_Category_Weak;
+    inline unsigned char comparison_category_of<weak_ordering> = COMPARISON_CATEGORY_WEAK;
 
     template <>
-    inline unsigned char comparison_category_of<strong_ordering> = Comparison_Category_Strong;
+    inline unsigned char comparison_category_of<strong_ordering> = COMPARISON_CATEGORY_STRONG;
 }
 
 LSTD_END_NAMESPACE

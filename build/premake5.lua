@@ -71,7 +71,7 @@ function common_settings()
     
 		flags { "OmitDefaultLibrary", "NoRuntimeChecks", "NoBufferSecurityCheck", "NoIncrementalLink" }
 		buildoptions { "/Gs9999999" }        
-    filter { "system:windows", "not kind:StaticLib" }
+    filter { "system:windows", "kind:ConsoleApp or SharedLib" }
 		linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
         links { "kernel32", "shell32", "winmm", "ole32", "dwmapi", "dbghelp" }
         
@@ -135,15 +135,21 @@ project "lstd"
 		BASE_DIR .. "src/lstd/lstd.natvis"
 	}
 	
+	-- @Platform
+    -- These are x86-64 assembly and obj files since we don't support 
+    -- other architectures at the moment
+    files {
+	    BASE_DIR .. "src/lstd/platform/windows_no_crt/longjmp_setjmp.asm",
+	    BASE_DIR .. "src/lstd/platform/windows_no_crt/chkstk.asm"
+	}
+	
     common_settings()
 
 project "test_suite"
     kind "ConsoleApp"
-	
-    -- excludes "%{prj.name}/src/build_test_table.cpp"
-
-    links { "lstd" }
     
+	links { "lstd" }
+	
     common_settings()
 
      

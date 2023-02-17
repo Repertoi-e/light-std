@@ -51,7 +51,7 @@ export {
 
     template <typename T>
     s32 default_comparison(const T *lhs, const T *rhs) {
-        return *lhs <=> *rhs;
+        return (*lhs == *rhs) ? 0 : ((*lhs < *rhs) ? -1 : 1);
     }
 
     template <typename T>

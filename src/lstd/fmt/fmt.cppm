@@ -628,7 +628,7 @@ string tprint(string fmtString, Args no_copy... arguments) {
 template <typename... Args>
 char *mprint(string fmtString, Args no_copy... arguments) {
     PUSH_ALLOC(TemporaryAllocator) {
-        return string_to_c_string(sprint(fmtString, arguments...));
+        return to_c_string(sprint(fmtString, arguments...));
     }
 }
 

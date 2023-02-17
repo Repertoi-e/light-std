@@ -248,7 +248,7 @@ export {
 		template <typename T>
 		using i_at_t = i_at_t <T, Types..., void>;
 
-		s64 which() { return Storage.which(); }
+		s64 which() const { return Storage.which(); }
 
 		variant() = default;
 

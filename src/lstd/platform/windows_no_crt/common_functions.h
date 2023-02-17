@@ -15,7 +15,7 @@ int strncmp(const char *s1, const char *s2, size_t n);
 char *strncpy(char *dst, const char *src, size_t n);
 const char *strrchr(const char *s, int n);
 
-int strtol(const char *nptr, char **endptr, int base);
+long strtol(const char *nptr, char **endptr, int base);
 double atof(const char *str);
 double strtod(const char *str, char **endptr);
 

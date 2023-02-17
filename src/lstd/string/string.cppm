@@ -353,7 +353,7 @@ export {
 	// This iterator is to make range based for loops work.
 	template <bool Const>
 	struct string_iterator {
-		using string_t = select_t<Const, const string, string>;
+		using string_t = type_select_t<Const, const string, string>;
 
 		string_t ref String;
 		s64 Index;

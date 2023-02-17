@@ -12,7 +12,7 @@ export import lstd.numeric;
 // - true_t, false_t (integral_constant<bool, true/false>, this is == to std::true_type, std::false_type)
 // - unused (a dummy type used in templates because C++ is dumb)
 //
-// - select (select from two types based on a condition, this is == to std::conditional)
+// - type_select and first_type_select (select from two types based on a condition, this is == to std::conditional)
 //
 // Concepts:
 // - is_same (checks if two types are the same)
@@ -117,29 +117,29 @@ struct unused {};
 // The result is based on the condition type.
 //
 // e.g:
-//    using chosen_t = select_t<Condition, ChoiceAType, ChoiceBType>;
+//    using chosen_t = type_select_t<Condition, ChoiceAType, ChoiceBType>;
 //
 template <bool Condition, typename ConditionIsTrueType, typename ConditionIsFalseType>
-struct select {
+struct type_select {
     using type = ConditionIsTrueType;
 };
 
 template <typename ConditionIsTrueType, typename ConditionIsFalseType>
-struct select<false, ConditionIsTrueType, ConditionIsFalseType> {
+struct type_select<false, ConditionIsTrueType, ConditionIsFalseType> {
     using type = ConditionIsFalseType;
 };
 
 template <bool Condition, typename ConditionIsTrueType, typename ConditionIsFalseType>
-using select_t = typename select<Condition, ConditionIsTrueType, ConditionIsFalseType>::type;
+using type_select_t = typename type_select<Condition, ConditionIsTrueType, ConditionIsFalseType>::type;
 
-// Similar to select but unilaterally selects the first type.
+// Similar to type_select but unilaterally selects the first type.
 template <typename T, typename = unused, typename = unused>
-struct first_select {
+struct first_type_select {
     using type = T;
 };
 
 template <typename T, typename = unused, typename = unused>
-using first_select_t = typename first_select<T>::type;
+using first_type_select_t = typename first_type_select<T>::type;
 
 //
 // Checks if two types are the same
@@ -292,9 +292,9 @@ template <typename T>
 struct decay {
 	using U = remove_ref_t<T>;
 
-	using type = select_t<is_array<U>,
+	using type = type_select_t<is_array<U>,
 		remove_extent_t<U> *,
-		select_t<is_function<U>,
+		type_select_t<is_function<U>,
 		add_pointer_t<U>,
 		remove_cv_t<U>>>;
 };

@@ -364,7 +364,8 @@ void exit_schedule(const delegate<void()> &function) {
 
     // @Cleanup Lock-free list
     PUSH_ALLOC(PERSISTENT) {
-        add(S->ExitFunctions, function);
+		reserve(S->ExitFunctions);
+		add(S->ExitFunctions, function);
     }
 
     unlock(&S->ExitScheduleMutex);

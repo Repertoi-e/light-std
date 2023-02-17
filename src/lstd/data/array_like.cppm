@@ -428,7 +428,7 @@ void remove_unordered_at_index(any_dynamic_array_like auto ref arr, s64 index) {
 
 	// No need when removing the last element
 	if (offset != arr.Count - 1) {
-		*where = arr.Data + arr.Count - 1;
+		*where = *(arr.Data + arr.Count - 1);
 	}
 	--arr.Count;
 }
