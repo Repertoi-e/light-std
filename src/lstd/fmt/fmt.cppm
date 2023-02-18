@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt;
+
+import "lstd/lstd.h";
 
 //
 // Format specification:

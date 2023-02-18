@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt.pretty;
+
+import "lstd/lstd.h";
 
 import lstd.fmt.context;
 

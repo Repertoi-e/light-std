@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt.specs;
+
+import "lstd/lstd.h";
 
 LSTD_BEGIN_NAMESPACE
 

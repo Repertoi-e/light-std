@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt.text_style;
+
+import "lstd/lstd.h";
 
 export import lstd.string;
 

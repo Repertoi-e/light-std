@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt.arg;
+
+import "lstd/lstd.h";
 
 export import lstd.fmt.fmt_type;
 import lstd.fmt.fmt_type_constant;

@@ -1,11 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.signal;
 
-import lstd.array;
-import lstd.delegate;
+import "lstd/lstd.h";
 
 LSTD_BEGIN_NAMESPACE
 

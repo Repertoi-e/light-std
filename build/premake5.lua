@@ -158,7 +158,9 @@ project "lstd"
     common_settings()
 	
 	-- Include extras to be tested in test_suite
+	include_extra("fmt")
 	include_extra("guid")
+	include_extra("signal")
 
 project "test_suite"
     kind "ConsoleApp"

@@ -16,6 +16,16 @@ export module lstd.bits;
 
 export import lstd.math;
 
+//
+// Defines:
+//      msb, lsb, rotate_left/right_32/64, 
+//      byte_swap_2/4/8, count_digits
+// 
+// These bit hacks may be useful:
+// http://graphics.stanford.edu/~seander/bithacks.html#CopyIntegerSign
+// We used to include them here, but never used them.
+//
+
 LSTD_BEGIN_NAMESPACE
 
 export {
@@ -100,78 +110,14 @@ export {
         *(u64*)ptr = (x << 32) | (x >> 32);
     }
 
-    //
-    // Useful: http://graphics.stanford.edu/~seander/bithacks.html#CopyIntegerSign
-    //
-
-    bool has_zero_byte(u32 v) {
-        // Uses 4 operations
-        return (((v)-0x01010101UL) & ~(v) & 0x80808080UL);
-    }
-
-    bool has_byte(u32 x, u8 value) {
-        // Uses 5 operations when value is constant
-        return (has_zero_byte((x) ^ (~0UL / 255 * value)));
-    }
-
-    bool has_byte_less_than(u32 x, u8 value) {
-        // Uses 4 operations when value is constant
-        return (((x)-~0UL / 255 * value) & ~(x) & ~0UL / 255 * 128);
-    }
-
-    bool has_byte_greater_than(u32 x, u8 value) {
-        // Uses 3 operations when value is constant
-        return (((x)+~0UL / 255 * (127 - value) | (x)) & ~0UL / 255 * 128);
-    }
-
-    s32 count_bytes_less_than(u32 x, u8 value) {
-        // Uses 7 operations when value is constant
-        return (((~0UL / 255 * (127 + (value)) - ((x) & ~0UL / 255 * 127)) & ~(x) & ~0UL / 255 * 128) / 128 % 255);
-    }
-
-    s32 count_bytes_greater_than(u32 x, u8 value) {
-        // Uses 6 operations when value is constant
-        return (((((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(value)) | (x)) & ~0UL / 255 * 128) / 128 % 255);
-    }
-
-    // Sometimes it reports false positives.
-    // Use has_byte_between for an exact answer.
-    // Use this as a fast pretest:
-    bool has_likely_byte_between(u32 x, u8 low, u8 high) {
-        // Uses 7 operations when values are constant
-        return ((((x)-~0UL / 255 * high) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - low)) & ~0UL / 255 * 128);
-    }
-
-    bool has_byte_between(u32 x, u8 low, u8 high) {
-        // Uses 7 operations when values are constant
-        return ((~0UL / 255 * (127 + (u8)(high)) - ((x) & ~0UL / 255 * 127) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(low))) & ~0UL / 255 * 128);
-    }
-
-    s32 count_bytes_between(u32 x, u8 low, u8 high) {
-        // Uses 10 operations when values are constant
-        return ((~0UL / 255 * (127 + (u8)(high)) - ((x) & ~0UL / 255 * 127) & ~(x) & ((x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (u8)(low))) & ~0UL / 255 * 128) / 128 % 255;
-    }
-
 #define POWERS_OF_10(factor) \
     factor * 10, factor * 100, factor * 1000, factor * 10000, factor * 100000, factor * 1000000, factor * 10000000, factor * 100000000, factor * 1000000000
 
 	// These are just look up tables for powers of ten. 
-	// Used in the fmt module when printing arithmetic types, for example.
+	// Used in the fmt module when printing arithmetic types, for example
+    // and here in count_digits.
 
-    const u32 POWERS_OF_10_32[] = { 1, POWERS_OF_10(1) };
     const u64 POWERS_OF_10_64[] = { 1, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull };
-
-    const u32 ZERO_OR_POWERS_OF_10_32[] = { 0, POWERS_OF_10(1) };
-	const u64 ZERO_OR_POWERS_OF_10_64[] = { 0, POWERS_OF_10(1), POWERS_OF_10(1000000000ull), 10000000000000000000ull };
-
-    // Returns the number of bits (base 2 digits) needed to represent n. Leading zeroes
-    // are not counted, except for n == 0, in which case count_digits_base_2 returns 1.
-    u32 count_digits_base_2(is_unsigned_integral auto n) {
-        s32 integerLog2 = msb(n | 1);  // log_2(n) == msb(n) (@Speed Not the fastest way)
-        // We also | 1 (if n is 0, we treat is as 1)
-
-        return (u32)(integerLog2 + 1);  // Number of bits in 'n' is [log_2(n)] + 1
-    }
 
     // Returns the number of decimal digits in n. Leading zeros are not counted
     // except for n == 0 in which case count_digits returns 1.

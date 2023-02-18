@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt.parse_context;
+
+import "lstd/lstd.h";
 
 export import lstd.context;
 export import lstd.parse;

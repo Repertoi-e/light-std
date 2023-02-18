@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt.format_float;
+
+import "lstd/lstd.h";
 
 export import lstd.fmt.format_float.specs;
 import lstd.fmt.format_float.dragonbox;

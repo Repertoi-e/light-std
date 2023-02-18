@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt.context;
+
+import "lstd/lstd.h";
 
 export import lstd.fmt.arg;
 export import lstd.fmt.specs;

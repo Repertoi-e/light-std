@@ -35,13 +35,8 @@ export {
     using fmt_parse_error_handler_t = void (*)(string message, string formatString, s64 position);
     void fmt_default_parse_error_handler(string message, string formatString, s64 position);
 
-    // Hack, the default constructor would otherwise zero init the context's members, which might have been set by other global constructors.
-    struct context_dont_init_t {};
-
     // See note below at the variable declaration... :Context:
     struct context {
-        context(context_dont_init_t) {}
-
         u32 ThreadID;  // The current thread's ID
 
         ///////////////////////////////////////////////////////////////////////////////////////
@@ -171,9 +166,16 @@ export {
         //
         fmt_parse_error_handler_t FmtParseErrorHandler;  // = fmt_default_parse_error_handler;     by default
 
+        //
         // Internal.
+        //
         bool _HandlingPanic;        // = false;   // Don't set. Used to avoid infinite looping when handling panics. Don't touch!
         bool _LoggingAnAllocation;  // = false;   // Don't set. Used to avoid infinite looping when logging allocations. Don't touch!
+
+		// Hack, the default constructor would otherwise zero init the context's members, which might have been set by other global constructors.
+		struct dont_init_t {};
+
+		context(dont_init_t) {}
     };
 
     // :Context:
@@ -184,25 +186,27 @@ export {
     // The idea for this comes from the implicit context in Jai.
     //
     // Gets initialized when the program runs for the main thread and for each new
-    // thread created (the new thread copies the context from the parent thread at the time of creation).
+    // thread created (the new thread copies the context from the parent thread at 
+    // the time of creation).
     //
     // Probably the most useful thing about this is the allocator.
     //
+	// Modify this variable with the macros PUSH_CONTEXT or OVERRIDE_CONTEXT, 
+	// the first one restores the old value at end of the following scope 
+	// (or when breaking out the scope, e.g. returning from a function), while 
+	// the latter changes the context globally for the entire run of the program.
+	// These are defined in common/context.h
+	//
+	// The reason this is a const variable is that it may prevent unintended bugs.
+	// A malicious author of a library can use a const_cast to change a variable 
+	// and not restore it in the end, but he can also do 1000 other things that 
+	// completely break your program, so...
+    // 
 	// Gets initialized in _platform_init_context()_ (the first thing that runs 
 	// in the program) because otherwise the default constructor would override 
 	// the values (which may have changed from other global constructors).
     // 
-    // Modify this variable with the macros PUSH_CONTEXT or OVERRIDE_CONTEXT, 
-    // the first one restores the old value at end of the following scope 
-    // (or when breaking out the scope, e.g. returning from a function), while 
-    // the latter changes the context globally for the entire run of the program.
-    // These are defined in common/context.h
-    //
-    // The reason this is a const variable is that it may prevent unintended bugs.
-    // A malicious author of a library can use a const_cast to change a variable 
-    // and not restore it in the end, but he can also do 1000 other things that 
-    // completely break your program, so...
-    inline const thread_local context Context = context(context_dont_init_t{});
+    inline const thread_local context Context = context(context::dont_init_t{});
 
     void panic(string message) {
         // @TODO Get callstack!

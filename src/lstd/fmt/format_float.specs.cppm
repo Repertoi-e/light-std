@@ -1,8 +1,6 @@
-module;
-
-#include "../common.h"
-
 export module lstd.fmt.format_float.specs;
+
+import "lstd/lstd.h";
 
 export import lstd.string_builder;
 

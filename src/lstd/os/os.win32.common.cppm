@@ -282,7 +282,7 @@ export {
     // See windows_common.cpp for implementation details.
     // Note: You shouldn't ever call this.
     void platform_init_context() {
-        auto newContext                 = context(context_dont_init_t{});
+        auto newContext                 = context(context::dont_init_t{});
         newContext.ThreadID             = GetCurrentThreadId();
         newContext.Alloc                = {};
         newContext.AllocAlignment       = POINTER_SIZE;
