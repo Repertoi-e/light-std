@@ -1,6 +1,6 @@
 module;
 
-#include "lstd/platform/windows.h"  // Declarations of Win32 functions
+#include "lstd/platform/windows/windows.h"  // Declarations of Win32 functions
 
 export module lstd.thread.win32;
 

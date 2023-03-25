@@ -1,6 +1,6 @@
 export module lstd.fmt.context;
 
-import "lstd/lstd.h";
+import lstd;
 
 export import lstd.fmt.arg;
 export import lstd.fmt.specs;

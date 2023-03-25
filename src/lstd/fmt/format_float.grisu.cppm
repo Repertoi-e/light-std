@@ -1,6 +1,6 @@
 export module lstd.fmt.format_float.grisu;
 
-import "lstd/lstd.h";
+import lstd;
 
 import lstd.fmt.format_float.specs;
 import lstd.fmt.format_float.dragon4;

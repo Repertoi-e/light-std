@@ -1,6 +1,6 @@
 export module lstd.fmt;
 
-import "lstd/lstd.h";
+import lstd;
 
 //
 // Format specification:

@@ -1,6 +1,6 @@
 export module lstd.fmt.pretty;
 
-import "lstd/lstd.h";
+import lstd;
 
 import lstd.fmt.context;
 

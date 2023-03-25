@@ -1,5 +1,5 @@
 #include "common.h"
-#include "lstd/platform/windows.h"
+#include "lstd/platform/windows/windows.h"
 
 import lstd.os;
 import lstd.context;

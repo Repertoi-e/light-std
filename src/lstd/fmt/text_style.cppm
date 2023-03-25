@@ -1,6 +1,6 @@
 export module lstd.fmt.text_style;
 
-import "lstd/lstd.h";
+import lstd;
 
 export import lstd.string;
 

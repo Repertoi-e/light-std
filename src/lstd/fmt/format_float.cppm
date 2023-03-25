@@ -1,6 +1,6 @@
 export module lstd.fmt.format_float;
 
-import "lstd/lstd.h";
+import lstd;
 
 export import lstd.fmt.format_float.specs;
 import lstd.fmt.format_float.dragonbox;

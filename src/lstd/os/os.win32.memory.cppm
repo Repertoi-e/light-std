@@ -1,7 +1,7 @@
 module;
 
 #include "../common.h"
-#include "lstd/platform/windows.h"  // Declarations of Win32 functions
+#include "lstd/platform/windows/windows.h"  // Declarations of Win32 functions
 
 //
 // Platform specific memory functions.

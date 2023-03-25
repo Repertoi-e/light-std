@@ -4,7 +4,7 @@
 // This file includes declarations for the Win32/64 API we use, as well as helper macros for error reporting.
 //
 
-#include "../common.h"
+#include "lstd/common.h"
 
 // @Hack... dumb windows headers
 #if !defined LSTD_JUST_DX

@@ -1,6 +1,6 @@
 module;
 
-#include "lstd/platform/windows.h"
+#include "lstd/platform/windows/windows.h"
 
 export module lstd.guid.win32;
 

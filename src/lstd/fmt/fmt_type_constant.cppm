@@ -1,6 +1,6 @@
 export module lstd.fmt.fmt_type_constant;
 
-import "lstd/lstd.h";
+import lstd;
 
 export import lstd.fmt.fmt_type;
 export import lstd.string;

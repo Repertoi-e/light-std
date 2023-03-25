@@ -134,12 +134,17 @@ project "lstd"
     includedirs { "../" }
 
 	files { "**.h", "**.inc", "**.c", "**.cpp", "**.def", "**.cppm", "lstd.natvis" }
-	
-    filter { "files:lstd.h" }
-        compileas "HeaderUnit"
-    
+
     filter { "files:**.cppm" }
         compileas "C++"
+
+    --
+    filter { "files:lstd.h" }
+        compileas "HeaderUnit"
+    filter { "system:linux" }
+        buildoptions { "-fmodule-map-file=" .. "/home/soti/Dev/light-std/src/lstd/module.modulemap" }
+    filter {} 
+    --
 
     filter { "system:linux" }
         removefiles { "third_party/cephes/**" }

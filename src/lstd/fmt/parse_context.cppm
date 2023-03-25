@@ -1,6 +1,6 @@
 export module lstd.fmt.parse_context;
 
-import "lstd/lstd.h";
+import lstd;
 
 export import lstd.context;
 export import lstd.parse;

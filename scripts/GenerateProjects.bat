@@ -6,6 +6,6 @@ if "%1"=="" (
     set target=%1
 )
 
-call %~dp0..\ThirdParty\bin-x86\premake\premake5.exe target
+call %~dp0..\ThirdParty\bin\premake\premake5.exe target
 
 cscript %~dp0PatchProjectFiles.vbs target

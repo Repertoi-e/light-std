@@ -1,6 +1,6 @@
 export module lstd.fmt.arg;
 
-import "lstd/lstd.h";
+import lstd;
 
 export import lstd.fmt.fmt_type;
 import lstd.fmt.fmt_type_constant;

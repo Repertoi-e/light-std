@@ -1,6 +1,6 @@
 #pragma once
 
-import "lstd/lstd.h";
+import lstd;
 import lstd.fmt;
 import lstd.path;
 

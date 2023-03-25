@@ -1,6 +1,6 @@
 export module lstd.fmt.fmt_type;
 
-import "lstd/lstd.h";
+import lstd;
 
 LSTD_BEGIN_NAMESPACE
 

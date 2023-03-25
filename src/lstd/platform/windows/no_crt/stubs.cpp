@@ -1,4 +1,4 @@
-#include "lstd/platform/windows.h"  // For definitions
+#include "lstd/platform/windows/windows.h"  // For definitions
 
 import lstd.os;
 

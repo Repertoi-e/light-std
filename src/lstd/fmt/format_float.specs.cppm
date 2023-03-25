@@ -1,6 +1,6 @@
 export module lstd.fmt.format_float.specs;
 
-import "lstd/lstd.h";
+import lstd;
 
 export import lstd.string_builder;
 

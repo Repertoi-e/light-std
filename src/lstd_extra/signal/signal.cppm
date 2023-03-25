@@ -1,6 +1,6 @@
 export module lstd.signal;
 
-import "lstd/lstd.h";
+import lstd;
 
 LSTD_BEGIN_NAMESPACE
 

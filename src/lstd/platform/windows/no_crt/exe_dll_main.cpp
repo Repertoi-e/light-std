@@ -4,7 +4,7 @@
 
 #include "common.h"
 #include "lstd/common.h"
-#include "lstd/platform/windows.h"  // For definitions
+#include "lstd/platform/windows/windows.h"  // For definitions
 
 import lstd.os;
 import lstd.context;
