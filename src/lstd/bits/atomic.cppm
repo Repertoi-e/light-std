@@ -2,7 +2,9 @@ module;
 
 #include "../common/namespace.h"
 
-#include <intrin.h>
+#if COMPILER == MSVC
+// #include <intrin.h>
+#endif
 
 export module lstd.atomic;
 

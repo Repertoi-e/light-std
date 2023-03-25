@@ -7,7 +7,7 @@ extern "C" {
 
 #include "mconf.h"
 
-#if not defined LSTD_DONT_DEFINE_STD
+#if defined LSTD_NO_CRT
 
 double acosh(double x);
 int airy(double, double *, double *, double *, double *);

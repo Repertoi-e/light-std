@@ -1,6 +1,6 @@
 module;
 
-#include "lstd/platform/windows.h"  // Declarations of Win32 functions
+#include "lstd/platform/windows/windows.h"  // Declarations of Win32 functions
 
 //
 // Simple wrapper around dynamic libraries and getting addresses of procedures.

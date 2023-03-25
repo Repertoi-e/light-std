@@ -2,9 +2,9 @@ module;
 
 #include "../common/namespace.h"
 
-#include <intrin.h>
-
 #if COMPILER == MSVC
+// #include <intrin.h>
+
 #pragma intrinsic(_BitScanReverse)
 #pragma intrinsic(_BitScanReverse64)
 

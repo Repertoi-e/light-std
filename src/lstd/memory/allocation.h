@@ -39,11 +39,11 @@ using size_t = u64;  // We don't support 32 bits, do we?
 // do that with malloc/free or new/delete, imagine if we added our own allocation function).
 // Keeping it malloc is less confusing and error-prone and ... also it's nostalgic.
 //
-#if defined LSTD_DONT_DEFINE_STD
+#if not defined LSTD_NO_CRT
 #include <new>
 #else
 #if COMPILER == MSVC
-// Note: If you get many compile errors (but you have defined LSTD_DONT_DEFINE_STD).
+// Note: If you get many compile errors (but you have defined LSTD_NO_CRT).
 // You probably need to define it globally, because not all headers from this library might see the macro.
 inline void *__cdecl operator new(size_t, void *p) noexcept { return p; }
 inline void *__cdecl operator new[](size_t, void *p) noexcept { return p; }
@@ -61,6 +61,7 @@ inline void *operator new[](size_t, void *p) noexcept { return p; }
 //
 
 extern "C" {
+// @TODO: LSTD_NO_CRT
 #if COMPILER == MSVC
 // Allocates a block of a given size
 restrict void *malloc(size_t size);
@@ -74,8 +75,6 @@ restrict void *realloc(void *ptr, size_t newSize);
 
 // Frees a block allocated by malloc.
 void free(void *ptr);
-#else
-#error Implement.
 #endif
 }
 
@@ -85,7 +84,7 @@ void free(void *ptr);
 
 using align_val_t = size_t;
 
-#if !defined LSTD_DONT_DEFINE_STD
+#if defined LSTD_NO_CRT
 [[nodiscard]] void *operator new(size_t size);
 [[nodiscard]] void *operator new[](size_t size);
 

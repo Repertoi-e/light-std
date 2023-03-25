@@ -3,7 +3,9 @@ module;
 #include "namespace.h"
 #include "platform.h"
 
-#include <intrin.h> // for _BitScanReverse64 on MSVC @Platform
+#if COMPILER == MSVC
+// #include <intrin.h> // for _BitScanReverse64 on MSVC @Platform
+#endif
 
 export module lstd.numeric;
 
@@ -41,12 +43,8 @@ export {
     using u32 = unsigned;
     using u64 = unsigned long long;
 
-#if COMPILER == MSVC
     using wchar = wchar_t;   // Only useful for Windows calls. Please don't use utf-16 in your programs...
     using code_point = char32_t;  // Holds the integer value of a Unicode cp.
-#else
-#error Implement.
-#endif
 
     using byte = unsigned char;
 
@@ -544,7 +542,7 @@ constexpr u128::u128(s128 v) : hi{ (u64)(v.hi) }, lo{ v.lo } {}
 }
 
 extern "C" {
-#if defined LSTD_DONT_DEFINE_STD && COMPILER == MSVC
+#if not defined LSTD_NO_CRT && COMPILER == MSVC
     __declspec(dllimport) double ldexp(double, s32);  // Sigh...
 #else
     double ldexp(double, s32);

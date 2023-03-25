@@ -33,7 +33,7 @@
 #include "platform.h"
 
 #if COMPILER == MSVC
-#include <intrin.h>
+// #include <intrin.h>
 #define debug_break __debugbreak
 #else
 extern "C" {

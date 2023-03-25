@@ -80,7 +80,7 @@ tlsf_decl int tlsf_fls(unsigned int word)
 #elif defined (_MSC_VER) && (_MSC_VER >= 1400) && (defined (_M_IX86) || defined (_M_X64))
 /* Microsoft Visual C++ support on x86/X64 architectures. */
 
-#include <intrin.h>
+// #include <intrin.h>
 
 #pragma intrinsic(_BitScanReverse)
 #pragma intrinsic(_BitScanForward)

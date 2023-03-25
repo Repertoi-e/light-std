@@ -50,10 +50,10 @@ Copyright 1984, 1995, 2000 by Stephen L. Moshier
 
 // :AvoidSTL:
 // Usually we build without dependencies on the STL,
-// but if LSTD_DONT_DEFINE_STD is defined, we include
+// but if LSTD_NO_CRT is defined, we include
 // the initializer list and space ships defined in the STL
 // to avoid conflicts with our implementations.
-#if defined LSTD_DONT_DEFINE_STD
+#if not defined LSTD_NO_CRT
 #include <stdarg.h>
 #include <initializer_list>
 #include <compare>

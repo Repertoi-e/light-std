@@ -95,7 +95,7 @@
 #endif
 
 #if BITS == 32
-#error We don't target 32 bit platforms.
+#error We dont target 32 bit platforms.
 #endif
 
 #define POINTER_SIZE (BITS / 8)
@@ -104,7 +104,7 @@
 #define LITTLE_ENDIAN 1234
 #define BIG_ENDIAN 4321
 
-#if defined __GLIBC__ || defined __GNU_LIBRARY__
+#if OS == LINUX
 #include <endian.h>
 #else
 #if OS == MACOS
@@ -173,7 +173,12 @@
 #define no_vtable __declspec(novtable)
 #define no_alias __declspec(noalias)
 #define restrict __declspec(restrict)
+#elif COMPILER == GCC || COMPILER == CLANG
+#define always_inline __attribute__((always_inline))
+#define never_inline __attribute__((noinline))
+#define no_vtable __attribute__((__type__(no_table)))
+#define no_alias __restrict
+#define restrict __restrict
 #else
-#define always_inline inline
-#error Defines
+#error Compiler not detected.
 #endif
