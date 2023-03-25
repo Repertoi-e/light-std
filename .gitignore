@@ -62,3 +62,5 @@ os/bootloader/obj/*
 
 build/vs2019/JSON/*
 build/vs2022/JSON/*
+
+build/
