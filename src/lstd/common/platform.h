@@ -1,31 +1,24 @@
 #pragma once
 
-//
-// A header which detects the OS, the cpu architecture, endianness and the compiler
-//
-// e.g. usage:
-//
-// #if OS == WINDOWS
-// ..
-// #endif
-//
-//
-// #if BITS == 64 && ENDIAN == LITTLE_ENDIAN
-// ...
-// #endif
-//
-//
-// #if COMPILER == MSVC
-// ...
-// #endif
-//
-//
-// Also provides the following defines:
-//     #define file_scope static
-//     #define local_persist static
-// Used instead of the keyword static (because that keyword has too many meanings...).
-// This is just a personal preference.
-//
+/**
+ * @file platform.h
+ * @brief Detects the OS, CPU architecture, endianness, and the compiler.
+ *
+ * Example usage:
+ * @code
+ * #if OS == WINDOWS
+ * ...
+ * #endif
+ *
+ * #if BITS == 64 && ENDIAN == LITTLE_ENDIAN
+ * ...
+ * #endif
+ *
+ * #if COMPILER == MSVC
+ * ...
+ * #endif
+ * @endcode
+ */
 
 // OS constants
 #define WINDOWS 1
@@ -33,7 +26,8 @@
 #define LINUX 3
 #define ANDROID 4
 
-#if defined linux || defined __linux || defined __linux__ || defined __GNU__ || defined __GLIBC__
+#if defined linux || defined __linux || defined __linux__ ||                   \
+    defined __GNU__ || defined __GLIBC__
 #define OS LINUX
 #define OS_STRING "Linux"
 #elif defined _WIN32 || defined __WIN32__ || defined WIN32
@@ -58,7 +52,8 @@
 
 #if defined __pnacl__ || defined __CLR_VER
 #define ARCH VM
-#elif defined _M_X64 || defined __x86_64__ || defined _M_IX86 || defined __i386__
+#elif defined _M_X64 || defined __x86_64__ || defined _M_IX86 ||               \
+    defined __i386__
 #define ARCH X86
 #elif defined __arm__ || defined _M_ARM || __aarch64__
 #define ARCH ARM
@@ -87,15 +82,11 @@
 #define MIPS_MSA defined __mips_msa)
 #endif
 
-#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ || defined __mips64 || defined __powerpc64__ || \
-    defined __ppc64__
+#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ ||             \
+    defined __mips64 || defined __powerpc64__ || defined __ppc64__
 #define BITS 64
 #else
 #define BITS 32
-#endif
-
-#if BITS == 32
-#error We dont target 32 bit platforms.
 #endif
 
 #define POINTER_SIZE (BITS / 8)
@@ -159,13 +150,6 @@
 #warning Compiler not detected
 #endif
 
-//
-// Define clearer keyboards for the different meanings of _static_.
-// I recommend getting used to them because static is a really really confusing keyword.
-//
-#define file_scope static
-#define local_persist static
-
 #if COMPILER == MSVC
 // These macros are used to aid the compiler at certain optimizations.
 #define always_inline __forceinline
@@ -173,12 +157,10 @@
 #define no_vtable __declspec(novtable)
 #define no_alias __declspec(noalias)
 #define restrict __declspec(restrict)
-#elif COMPILER == GCC || COMPILER == CLANG
+#else
 #define always_inline __attribute__((always_inline))
 #define never_inline __attribute__((noinline))
 #define no_vtable __attribute__((__type__(no_table)))
 #define no_alias __restrict
 #define restrict __restrict
-#else
-#error Compiler not detected.
 #endif

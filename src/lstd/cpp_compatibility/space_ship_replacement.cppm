@@ -1,4 +1,4 @@
-module;
+#pragma once
 
 #include "../common/namespace.h"
 

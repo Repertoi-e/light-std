@@ -1,4 +1,0 @@
-module lstd {
-  header "lstd.h"
-  export *
-}

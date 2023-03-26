@@ -4,7 +4,6 @@ workspace "light-std"
     location(_OPTIONS["to"] or "build/" .. _ACTION)
 
     filter { "action:gmake2" }
-        require "cmake"
         toolset "clang"
     filter {}
 

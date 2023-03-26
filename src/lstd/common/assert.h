@@ -8,9 +8,9 @@ LSTD_BEGIN_NAMESPACE
 #undef assert
 
 #if !defined NDEBUG
-#define assert(condition) (!!(condition)) ? (void) 0 : debug_break()
+#define assert(condition) (!!(condition)) ? (void)0 : debug_break()
 #else
-#define assert(condition) ((void) 0)
+#define assert(condition) ((void)0)
 #endif
 
 LSTD_END_NAMESPACE

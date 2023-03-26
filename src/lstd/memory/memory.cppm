@@ -1,4 +1,4 @@
-module;
+#pragma once
 
 #include "../common.h"
 #include "../third_party/tlsf/tlsf.h"

@@ -1,4 +1,4 @@
-module;
+#pragma once
 
 #include "lstd/platform/windows/windows.h"
 

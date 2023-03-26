@@ -37,7 +37,7 @@
 // * utf32_to_utf8
 //
 
-module;
+#pragma once
 
 #include "../common.h"
 

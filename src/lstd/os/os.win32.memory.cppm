@@ -1,4 +1,4 @@
-module;
+#pragma once
 
 #include "../common.h"
 #include "lstd/platform/windows/windows.h"  // Declarations of Win32 functions

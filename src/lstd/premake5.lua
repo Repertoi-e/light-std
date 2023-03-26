@@ -18,14 +18,14 @@ function setup_configurations()
 		
 		-- Trips an assert if you try to access an element out of bounds.
 		-- Works for arrays and strings in the library. I don't think we can check raw C arrays...
-		defines "LSTD_ARRAY_BOUNDS_CHECK"
+		defines { "LSTD_ARRAY_BOUNDS_CHECK", "LSTD_NUMERIC_CAST_CHECK" }
 		
         symbols "On"
 
     filter "configurations:DebugOptimized"
         defines { "DEBUG", "DEBUG_OPTIMIZED" }
         
-		defines "LSTD_ARRAY_BOUNDS_CHECK"
+		defines { "LSTD_ARRAY_BOUNDS_CHECK", "LSTD_NUMERIC_CAST_CHECK" }
 		
 		optimize "On"
         symbols "On"
@@ -55,9 +55,6 @@ function link_lstd()
         defines { "LSTD_NO_NAMESPACE" }
     end
 
-    filter { "system:linux", "files:**.cpp or files:**.cppm"}
-        buildoptions { "-fmodules-ts", "-MMD" }
-	
 	filter "system:windows"
         systemversion "latest"
         buildoptions { "/utf-8" }
@@ -102,8 +99,7 @@ function include_extra(str)
         "../lstd_extra/" .. str .. "/**.inc",
         "../lstd_extra/" .. str .. "/**.c",
         "../lstd_extra/" .. str .. "/**.cpp",
-        "../lstd_extra/" .. str .. "/**.def",
-        "../lstd_extra/" .. str .. "/**.cppm"
+        "../lstd_extra/" .. str .. "/**.def"
     }
 end
 
@@ -133,23 +129,7 @@ project "lstd"
 
     includedirs { "../" }
 
-	files { "**.h", "**.inc", "**.c", "**.cpp", "**.def", "**.cppm", "lstd.natvis" }
-
-    filter { "files:**.cppm" }
-        compileas "C++"
-
-    --
-    filter { "files:lstd.h" }
-        compileas "HeaderUnit"
-    filter { "system:linux" }
-        buildoptions { "-fmodule-map-file=" .. "/home/soti/Dev/light-std/src/lstd/module.modulemap" }
-    filter {} 
-    --
-
-    filter { "system:linux" }
-        removefiles { "third_party/cephes/**" }
-    filter { "lstd-windows-link-runtime-library" }
-        removefiles { "third_party/cephes/**" }
+	files { "**.h", "**.inc", "**.c", "**.cpp", "**.def", "lstd.natvis" }
 
     filter { "system:windows", "not lstd-windows-link-runtime-library"}
         removefiles { "platform/posix/**" }
@@ -160,10 +140,14 @@ project "lstd"
             "platform/windows/no_crt/longjmp_setjmp.asm",
             "platform/windows/no_crt/chkstk.asm"
         }
-
     filter { "system:linux" }
         removefiles { "platform/windows/**" }
     filter {}
+
+    filter { "system:linux" }
+        removefiles { "third_party/cephes/**" }
+    filter { "lstd-windows-link-runtime-library" }
+        removefiles { "third_party/cephes/**" }
 
     if LSTD_INCLUDE_EXTRAS then
         for _, extra in ipairs(LSTD_INCLUDE_EXTRAS) do
