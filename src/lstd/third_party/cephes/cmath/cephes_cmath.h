@@ -155,7 +155,8 @@ double smirnov(int, double);
 double smirnovi(int, double);
 double kolmogorov(double);
 double kolmogi(double);
-
+#else
+#include <math.h>
 #endif
 
 #ifdef __cplusplus
