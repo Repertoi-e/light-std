@@ -2,25 +2,27 @@
 # light-std
 A C++20 data-oriented library created for personal use that aims to replace the standard C/C++ library.
 
-It is completely stand-alone - it doesn't include any headers from the default standard library. It doesn't link with the runtime library. It's built and tested on Windows with the MSVC compiler.
+This is a personal data-oriented library written in C++20, with the goal of providing a comprehensive alternative to the standard C/C++ library. The library is designed to be self-contained, meaning it does not rely on any headers from the default standard library, and does not link with the runtime library. It has been built and tested on Windows using the MSVC compiler. However, on Linux, we have no choice but to utilize glibc, as it includes the necessary system calls, so we bite the bullet.
+
+> Please note that I often use the term 'we' when referring to this library, although I am currently its sole developer. While it may appear as if I am talking to myself, I assure you that this is intentional and I don't mind it.
 
 ## Why
 
-TLDR; the philosophy of this library follows a data-oriented approach. 
+TLDR; the philosophy of this library follows a data-oriented approach.
 
 > Ulrich Drepper, What Every Programmer Should Know About Memory, 2007 - https://people.freebsd.org/~lstewart/articles/cpumemory.pdf
 
-Modern CPUs rely heavily on efficient memory layout, making it crucial for programmers to consider this aspect when writing code. High-level languages, including "Modern C++," often abstract memory management, which results in slower software. Hardware has gotten blazingly fast, but software has deteriorated drastically. Just following principles of "clean code" can [erase 10 years of hardware evolution](https://www.computerenhance.com/p/clean-code-horrible-performance?utm_source=post-email-title&publication_id=865289&post_id=102168145)!
+Modern CPUs rely heavily on efficient memory layout, making it crucial for programmers to consider this aspect when writing code. High-level languages, including "Modern C++," often abstract memory management, which results in slower software. Hardware has gotten blazingly fast, but software has deteriorated drastically. Just following principles of "clean code" can [erase 4-14 years of hardware evolution](https://www.computerenhance.com/p/clean-code-horrible-performance?utm_source=post-email-title&publication_id=865289&post_id=102168145)!
 
-It's crucial to understand that writing readable, well-documented, and performant code is possible without resorting to low-level instructions or assembly. The modern emphasis on clean code can sometimes miss the mark, as it often focuses on aesthetics and abstractions rather than addressing the core issues at hand. Object-oriented programming and extensive abstraction layers might appear elegant, but as I see nobody measures the extent of coupling and productivity improvements they provide (I'd argue not much). In contrast, the performance cost of such an approach is quantifiable and can be significant. Thus, it's essential to get strike a balance between code elegance and performance. The latter almost always being ignored.
+It's crucial to understand that writing readable, well-documented, and performant code is possible without resorting to low-level instructions or assembly. The modern emphasis on clean code can sometimes miss the mark, as it often focuses on aesthetics and abstractions rather than addressing the core issues at hand. Object-oriented programming and extensive abstraction layers might appear elegant, but as I see nobody measures the extent of coupling and productivity improvements they provide (I'd argue not much). In contrast, the performance cost of such an approach is quantifiable and can be significant. Thus, it's essential to get strike a balance between code elegance and performance. The latter almost always seems to be ignored.
 
-Despite CPUs being capable of performing billions of calculations per second, reading a single byte from RAM can take hundreds of clock cycles if the memory isn't in the cache. This highlights the importance of thinking about cache usage. When programmers adopt a data-oriented mindset, they prioritize structuring programs based on how computers process data. This means keeping data that is processed together in close proximity within memory. While creating abstractions can be beneficial and time-saving, excessive abstraction can lead to inefficient software that wastes CPU time (and even increases global warming).
+Despite CPUs being capable of performing billions of calculations per second, reading a single byte from RAM can take hundreds of clock cycles if the memory isn't in the cache. This highlights the importance of thinking about cache usage. When programmers adopt a data-oriented mindset, they prioritize structuring programs based on how computers process data. This means keeping data that is processed together in close proximity within memory. While creating abstractions can be beneficial and time-saving, excessive abstraction can lead to inefficient software that wastes CPU time (and speeds up global warming).
 
 ## This library currently provides:
 
-- A memory model inspired by Jonathan Blow's Jai - simple overridable allocators with an implicit context system.
-- Robust debug memory switch that has checks for double frees, cross-thread frees, block overlaps from allocations and etc.
-- Data structures - utf-8 non-null-terminated string, dynamic array, hash table, etc.
+- A memory model inspired by Jonathan Blow's Jai - simple overridable allocators with an implicit context system, including a robust debug memory switch that has checks for double frees, cross-thread frees, block overlaps from allocations and etc.
+- Arrays centered around memory arenas, inspired by Ryan Fleury, which hope to eliminate the majority of memory bugs, by keeping everything self-contained.
+- Data structures - utf-8 non-null-terminated string, lists, hash table, etc.
 - `os` module - common operations that require querying the OS.
 - `path` module - procedures that work with file paths. 
 - `fmt` module - a formatting library inspired by Python's formatting syntax (that's even faster than printf).
@@ -32,21 +34,20 @@ Despite CPUs being capable of performing billions of calculations per second, re
 
 You need a compiler which fully supports C++20 concepts. Visual Studio 2019 16.11 works fine. I've also tested Clang 14.
 
+Build files are generated by our bundled binary of premake5 in `third-party/bin/premake/` (Executable for Windows and Linux).
+
 ### Windows
-Run `scripts/GenerateProjects.bat vs2019` (or vs2022). The solution file is at placed at `Build/vs2019/light-std.sln` (or `Build/vs2022/...`) and is generated by our bundled version of premake5 (`third-party/bin/premake/`).
+Run `scripts/GenerateProjects.bat vs2019` (or vs2022). The solution file is at placed at `Build/vs2019/light-std.sln` (or `Build/vs2022/...`). Then you can run `scripts/Build.bat`.
 
 ### Linux
 
-Run `bash scripts/generate-projects.sh` which uses our bundled version of premake5 (`third-party/bin/premake/`) to output a `make` file in `Build/gmake2`.
+Run `bash scripts/generate-projects.sh` to output a `make` file in `Build/gmake2`. Then you can run `bash scripts/build.sh`.
 
 > MacOS is currently untested/unsupported.
 
 ## Principles 
 
-- **Clean code**
-> Readibility and reasonability are most important. Comments are a powerful tool to explain WHY (not WHAT is done) and the philosophy behind it.
-
-- **Less code is better**
+- **Simplicity: Less code is better**
 > Every line of code is a liability and a possible source of bugs and security holes. So we avoid big dependencies.
 
 - **Closer to C than to modern C++**
@@ -54,6 +55,9 @@ Run `bash scripts/generate-projects.sh` which uses our bundled version of premak
 
 - **Code reusability**
 > Using C++20 features: terse templates, concepts, we can do conditional procedure compilation and combine functions in ways to reduce code. Examples: `parse.h` and `array_like.h`. Conditional procedure compilation also leads to performance improvement (even in Debug), and in C++20 it doesn't require ugly macro magic which makes code difficult to reason about (most of the time it's as simple as `if constexpr`).
+
+- **Clean code**
+> Readibility and reasonability are most important. Comments are a powerful tool to explain WHY (not WHAT is done) and the philosophy behind it.
 
 ## Documentation
 
