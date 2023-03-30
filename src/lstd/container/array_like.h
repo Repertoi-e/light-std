@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../common.h"
-
-export module lstd.array_like;
+#include "../memory.h"
+#include "qsort.h"
 
 export import lstd.qsort;
 export import lstd.memory;

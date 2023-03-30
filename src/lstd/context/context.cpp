@@ -1,12 +1,9 @@
 #pragma once
 
-#include "../common.h"
+#include "context.h"
 
-module lstd.context;
-
-import lstd.string;
-import lstd.fmt;
-import lstd.os;
+#include "../fmt.h"
+#include "../os.h"
 
 LSTD_BEGIN_NAMESPACE
 
