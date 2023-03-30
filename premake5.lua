@@ -8,7 +8,7 @@ workspace "light-std"
     filter {}
 
 -- These are to be tested
-LSTD_INCLUDE_EXTRAS = { "fmt", "guid", "signal" }
+LSTD_INCLUDE_EXTRAS = { "guid", "signal" }
 
 OUT_DIR = "build/bin/%{cfg.buildcfg}/%{prj.name}"
 INT_DIR = "build/bin-Int/%{cfg.buildcfg}/%{prj.name}"
