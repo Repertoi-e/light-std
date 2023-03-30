@@ -34,9 +34,9 @@ LSTD_NAMESPACE = ""
 -- LSTD_PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE = "1_MiB"
 
 group "lstd"
-    include "src/lstd"
+    include "premake5_lstd"
 group ""
 
 group "test_suite"
-    include "src/test_suite"
+    include "test_suite"
 group ""

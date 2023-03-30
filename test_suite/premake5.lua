@@ -16,6 +16,6 @@ project "test_suite"
         buildoptions { "-fmodule-map-file=" .. "/home/soti/Dev/light-std/src/lstd/module.modulemap" }
     filter {} 
 
-	files { "**.h", "**.inc", "**.c", "**.cpp", "**.def", "**.cppm" }
+	files { "**.h", "**.inc", "**.c", "**.cpp", "**.def" }
     
     link_lstd() -- This is defined in src/lstd/premake5.lua

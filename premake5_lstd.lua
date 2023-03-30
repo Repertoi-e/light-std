@@ -129,7 +129,7 @@ project "lstd"
 
     includedirs { "../" }
 
-	files { "**.h", "**.inc", "**.c", "**.cpp", "**.def", "lstd.natvis" }
+	files { "include/**.h", "include/**.inc", "include/**.def", "src/**.c", "src/**.cpp", "src/lstd/lstd.natvis" }
 
     filter { "system:windows", "not lstd-windows-link-runtime-library"}
         removefiles { "platform/posix/**" }
@@ -141,13 +141,13 @@ project "lstd"
             "platform/windows/no_crt/chkstk.asm"
         }
     filter { "system:linux" }
-        removefiles { "platform/windows/**" }
+        removefiles { "src/lstd/platform/windows/**" }
     filter {}
 
     filter { "system:linux" }
-        removefiles { "third_party/cephes/**" }
+        removefiles { "src/lstd/vendor/cephes/**" }
     filter { "lstd-windows-link-runtime-library" }
-        removefiles { "third_party/cephes/**" }
+        removefiles { "src/lstd/vendor/cephes/**" }
 
     if LSTD_INCLUDE_EXTRAS then
         for _, extra in ipairs(LSTD_INCLUDE_EXTRAS) do
