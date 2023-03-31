@@ -8,6 +8,10 @@
 #include "memory.h"
 #include "range.h"
 #include "type_info.h"
+#include "array.h"
+#include "writer.h"
+#include "fmt.h"
+#include "string.h"
 
 /*
  * @Volatile with README.md

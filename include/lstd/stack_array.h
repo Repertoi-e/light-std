@@ -34,7 +34,7 @@ LSTD_BEGIN_NAMESPACE
 // which means that sizeof(stack_array<T, N>) == sizeof(T) * N.
 //
 // :CodeReusability: This is considered array_like (take a look at
-// lstd.array_like)
+// "array_like.h")
 template <typename T, s64 N> struct stack_array {
   T Data[N ? N : 1]{};
   static const s64 Count = N;

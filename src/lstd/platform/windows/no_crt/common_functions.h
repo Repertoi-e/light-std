@@ -24,7 +24,8 @@ double fmod(double x, double y);
 int sscanf(const char *str, const char *fmt, ...);
 int sprintf(char *str, const char *format, ...);
 
-void qsort(void *data, size_t items, size_t size, int (*compare)(const void *, const void *));
+void qsort(void *data, size_t items, size_t size,
+           int (*compare)(const void *, const void *));
 
 int toupper(int c);
 

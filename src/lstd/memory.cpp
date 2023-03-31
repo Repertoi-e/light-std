@@ -90,14 +90,14 @@ void debug_memory_uninit() {
   }
 }
 
-file_scope auto *list_search(allocation_header *header) {
+static auto *list_search(allocation_header *header) {
   debug_memory_node *t = DebugMemoryHead;
   while (t != DebugMemoryTail && t->Header < header)
     t = t->Next;
   return t;
 }
 
-file_scope debug_memory_node *list_add(allocation_header *header) {
+static debug_memory_node *list_add(allocation_header *header) {
   auto *n = list_search(header);
   assert(n->Header != header);
 
@@ -111,7 +111,7 @@ file_scope debug_memory_node *list_add(allocation_header *header) {
   return node;
 }
 
-file_scope debug_memory_node *list_remove(allocation_header *header) {
+static debug_memory_node *list_remove(allocation_header *header) {
   auto *n = list_search(header);
   if (n->Header != header)
     return null;
@@ -179,7 +179,7 @@ void debug_memory_report_leaks() {
   }
 }
 
-file_scope void verify_node_integrity(debug_memory_node *node) {
+static void verify_node_integrity(debug_memory_node *node) {
   auto *header = node->Header;
 
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -297,7 +297,7 @@ void check_for_overlapping_blocks(debug_memory_node *node) {
 }
 #endif
 
-file_scope void *encode_header(void *p, s64 userSize, u32 align,
+static void *encode_header(void *p, s64 userSize, u32 align,
                                allocator alloc, u64 flags) {
   u32 padding = calculate_padding_for_pointer_with_header(
       p, align, sizeof(allocation_header));
@@ -350,7 +350,7 @@ file_scope void *encode_header(void *p, s64 userSize, u32 align,
 }
 
 // Without using the lstd.fmt module, i.e. without allocations.
-file_scope void log_file_and_line(source_location loc) {
+static void log_file_and_line(source_location loc) {
   write(Context.Log, loc.File);
   write(Context.Log, ":");
 

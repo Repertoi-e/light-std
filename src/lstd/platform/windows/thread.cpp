@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lstd/platform/windows/windows.h"  // Declarations of Win32 functions
+#include "lstd/os/windows/api.h"  // Declarations of Win32 functions
 
 module lstd.thread.win32;
 

@@ -7,9 +7,9 @@
         free(t);                                        \
     }
 
-file_scope string LAST_ERROR;
+static string LAST_ERROR;
 
-file_scope void test_parse_error_handler(string message, string formatString, s64 position) {
+static void test_parse_error_handler(string message, string formatString, s64 position) {
     LAST_ERROR = message;
 
     // We test visually for the correctness of the ^.

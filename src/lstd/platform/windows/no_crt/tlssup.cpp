@@ -1,23 +1,10 @@
-/***
-*tlssup.cpp - Thread Local Storage run-time support module
-*
-*       Copyright (c) Microsoft Corporation. All rights reserved.
-*
-*Purpose:
-*
-****/
-
 #include "common.h"
-#include "lstd/platform/windows/windows.h"  // For definitions
+#include "lstd/os/windows/api.h" // For definitions
 
 extern "C" {
-
-/* Thread Local Storage index for this .EXE or .DLL */
-
-ULONG _tls_index = 0;
+ULONG _tls_index = 0; /* Thread Local Storage index for this .EXE or .DLL */
 
 /* Special symbols to mark start and end of Thread Local Storage area. */
-
 #pragma data_seg(".tls")
 
 #if defined(_M_X64)
@@ -40,7 +27,6 @@ char _tls_end = 0;
  * the .CRT$XD? array of individual TLS variable initialization callbacks
  * to be walked.
  */
-
 _CRTALLOC(".CRT$XLA")
 PIMAGE_TLS_CALLBACK __xl_a = 0;
 
@@ -49,28 +35,26 @@ PIMAGE_TLS_CALLBACK __xl_a = 0;
  * walks the TLS callback array until it finds a NULL pointer, so this makes
  * sure the array is properly terminated.
  */
-
 _CRTALLOC(".CRT$XLZ")
 PIMAGE_TLS_CALLBACK __xl_z = 0;
 
 typedef struct _IMAGE_TLS_DIRECTORY64 {
-    ULONGLONG StartAddressOfRawData;
-    ULONGLONG EndAddressOfRawData;
-    ULONGLONG AddressOfIndex;
-    ULONGLONG AddressOfCallBacks;
-    DWORD SizeOfZeroFill;
-    DWORD Characteristics;
+  ULONGLONG StartAddressOfRawData;
+  ULONGLONG EndAddressOfRawData;
+  ULONGLONG AddressOfIndex;
+  ULONGLONG AddressOfCallBacks;
+  DWORD SizeOfZeroFill;
+  DWORD Characteristics;
 } IMAGE_TLS_DIRECTORY64, *PIMAGE_TLS_DIRECTORY64;
 
 _CRTALLOC(".rdata$T")
-extern const IMAGE_TLS_DIRECTORY64 _tls_used =
-{
-    (ULONGLONG) &_tls_start,   // start of tls data
-    (ULONGLONG) &_tls_end,     // end of tls data
-    (ULONGLONG) &_tls_index,   // address of tls_index
-    (ULONGLONG) (&__xl_a + 1), // pointer to call back array
-    (ULONG) 0,                 // size of tls zero fill
-    (ULONG) 0                  // characteristics
+extern const IMAGE_TLS_DIRECTORY64 _tls_used = {
+    (ULONGLONG)&_tls_start,   // start of tls data
+    (ULONGLONG)&_tls_end,     // end of tls data
+    (ULONGLONG)&_tls_index,   // address of tls_index
+    (ULONGLONG)(&__xl_a + 1), // pointer to call back array
+    (ULONG)0,                 // size of tls zero fill
+    (ULONG)0                  // characteristics
 };
 
 } // extern "C"

@@ -461,23 +461,19 @@ template <typename T> struct decay {
  */
 template <typename T> using decay_t = typename decay<T>::type;
 
-namespace internal {
-template <typename... Ts> struct common_type_helper;
-
-template <typename T> struct common_type_helper<T> {
+template <typename... T> struct common_type;
+template <typename T> struct common_type<T> {
   using type = decay_t<T>;
 };
 
-template <typename T, typename U, typename... Ts>
-struct common_type_helper<T, U, Ts...> {
-  using type =
-      typename common_type_helper<typename common_type_helper<T, U>::type,
-                                  Ts...>::type;
+template <typename T, typename U> struct common_type<T, U> {
+  using type = decay_t<decltype(true ? declval<T>() : declval<U>())>;
 };
-} // namespace internal
 
-template <typename... Ts> struct common_type {
-  using type = typename internal::common_type_helper<Ts...>::type;
+template <typename T, typename U, typename... V>
+struct common_type<T, U, V...> {
+  using type =
+      typename common_type<typename common_type<T, U>::type, V...>::type;
 };
 
 /**

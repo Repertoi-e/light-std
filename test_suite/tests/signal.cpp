@@ -1,9 +1,9 @@
 #include "../test.h"
 
-file_scope s32 my_callback(s32 a) { return a; }
-file_scope s32 my_callback1(s32 a) { return a + 1; }
-file_scope s32 my_callback2(s32 a) { return a + 2; }
-file_scope s32 my_callback3(s32 a) { return a + 3; }
+static s32 my_callback(s32 a) { return a; }
+static s32 my_callback1(s32 a) { return a + 1; }
+static s32 my_callback2(s32 a) { return a + 2; }
+static s32 my_callback3(s32 a) { return a + 3; }
 
 struct Member_Test {
     s32 value = 10;

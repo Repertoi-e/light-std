@@ -7,6 +7,14 @@ workspace "light-std"
         toolset "clang"
     filter {}
 
+    -- Set this explicitly so LSTD knows which 
+    -- OS to do. Otherwise we try to guess the platform
+    -- based on compiler macros, which might not be 
+    -- the best. For example, set this to NO_OS if you are
+    -- programming for baremetal or something.
+    --
+    -- defines { "LSTD_NO_OS" }
+
 -- These are to be tested
 LSTD_INCLUDE_EXTRAS = { "guid", "signal" }
 

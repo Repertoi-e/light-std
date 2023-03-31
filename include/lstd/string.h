@@ -864,7 +864,7 @@ mark_as_leak char *to_c_string(string s, allocator alloc = {});
 // Allocates a buffer, copies the string's contents and also appends a zero
 // terminator. Uses the temporary allocator.
 //
-// Implemented in lstd.context because otherwise we import in circle.
+// Implemented in "context.h" because otherwise we import in circle.
 char *to_c_string_temp(string s);
 
 // Returns the code point index (or -1) if not found.

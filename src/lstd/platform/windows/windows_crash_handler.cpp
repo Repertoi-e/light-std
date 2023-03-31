@@ -14,7 +14,7 @@ LSTD_BEGIN_NAMESPACE
 
 // @TODO: Factor the stack walking part of this function into a os_get_call_stack() which can be used anywhere in the program.
 
-file_scope LONG exception_filter(LPEXCEPTION_POINTERS e) {
+static LONG exception_filter(LPEXCEPTION_POINTERS e) {
     u32 exceptionCode = e->ExceptionRecord->ExceptionCode;
 
     HANDLE hProcess = INVALID_HANDLE_VALUE;

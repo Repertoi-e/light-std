@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common/math.h"
+#include "math.h"
 
 #if COMPILER == MSVC
 #include <intrin.h>

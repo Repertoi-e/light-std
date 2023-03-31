@@ -23,7 +23,7 @@ LSTD_BEGIN_NAMESPACE
 // programmer!)
 //
 // Functionality for dynamic arrays and array views is implemented in
-// lstd.array_like.
+// array_like.h
 //
 template <typename T> struct array {
   T *Data = null;

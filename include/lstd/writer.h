@@ -41,6 +41,9 @@ struct counting_writer : writer {
 //
 // Output to the console (this might be OS-specific)
 //
+
+// @TODO Linux atleast
+#if OS == WINDOWS 
 struct console : writer {
   // By default, we are thread-safe.
   // If you don't use seperate threads and aim for maximum console output
@@ -64,5 +67,6 @@ struct console : writer {
 
 inline auto cout = console(console::COUT);
 inline auto cerr = console(console::CERR);
+#endif
 
 LSTD_END_NAMESPACE

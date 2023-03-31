@@ -25,7 +25,13 @@
 #define MACOS 2
 #define LINUX 3
 #define ANDROID 4
+#define NO_OS 5 
 
+#if defined LSTD_NO_OS
+#define OS NO_OS
+#endif
+
+#if not defined OS
 #if defined linux || defined __linux || defined __linux__ ||                   \
     defined __GNU__ || defined __GLIBC__
 #define OS LINUX
@@ -40,7 +46,14 @@
 #define OS ANDROID
 #define OS_STRING "Android"
 #else
-#error Unrecognized platform
+#define OS NO_OS
+#endif
+#endif
+
+#if OS == NO_OS
+#if not defined OS_STRING
+#define OS_STRING "NoOS"
+#endif
 #endif
 
 // Architecture defines

@@ -114,7 +114,7 @@ LSTD_END_NAMESPACE
 #define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0 // Around 16384 PiB
 
 // In debug by default we do some extra checks to catch memory-related bugs.
-// See the lstd.memory module for details (or search for DEBUG_MEMORY) and see
+// See "memory.h" for details (or search for DEBUG_MEMORY) and see
 // what extra stuff we do.
 
 #if defined DEBUG || defined DEBUG_OPTIMIZED

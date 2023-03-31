@@ -93,14 +93,18 @@ function link_lstd()
     setup_configurations()
 end
 
-function include_extra(str)
+function add_files(str)
 	files {
-        "include/lstd_extra/" .. str .. "/**.h",
-        "include/lstd_extra/" .. str .. "/**.inc",
-        "include/lstd_extra/" .. str .. "/**.def",
-        "src/lstd_extra/" .. str .. "/**.c",
-        "src/lstd_extra/" .. str .. "/**.cpp"
+        "include/" .. str .. "/**.h",
+        "include/" .. str .. "/**.inc",
+        "include/" .. str .. "/**.def",
+        "src/" .. str .. "/**.c",
+        "src/" .. str .. "/**.cpp"
     }
+end
+
+function add_files_for_extra(extra)
+    add_files("lstd_extra/" .. extra)
 end
 
 project "lstd"
@@ -128,15 +132,7 @@ project "lstd"
     end
 
     includedirs { "include/" }
-
-	files { 
-        "include/lstd/**.h", 
-        "include/lstd/**.inc",
-        "include/lstd/**.def",
-        "src/lstd/**.c",
-        "src/lstd/**.cpp",
-        "src/lstd/lstd.natvis" 
-    }
+    add_files("lstd")
 
     filter { "system:windows", "not lstd-windows-link-runtime-library"}
         removefiles { "src/lstd/platform/posix/**" }
@@ -158,7 +154,7 @@ project "lstd"
 
     if LSTD_INCLUDE_EXTRAS then
         for _, extra in ipairs(LSTD_INCLUDE_EXTRAS) do
-            include_extra(extra)
+            add_files_for_extra(extra)
         end
     end
 
