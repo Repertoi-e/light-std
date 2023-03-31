@@ -38,5 +38,6 @@ group "lstd"
 group ""
 
 group "test_suite"
-    include "test_suite"
+    -- include "test_suite"
+    include "example"
 group ""

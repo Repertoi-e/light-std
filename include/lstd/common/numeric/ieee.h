@@ -1,7 +1,7 @@
 #pragma once
 
-#include "namespace.h"
-#include "platform.h"
+#include "../namespace.h"
+#include "../platform.h"
 
 //
 // This file defines unions to access different bits of a

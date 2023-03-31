@@ -1,6 +1,6 @@
 #pragma once
 
-#include "numeric.h"
+#include "numeric/numeric.h"
 
 LSTD_BEGIN_NAMESPACE
 

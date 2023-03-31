@@ -95,11 +95,11 @@ end
 
 function include_extra(str)
 	files {
-        "../lstd_extra/" .. str .. "/**.h",
-        "../lstd_extra/" .. str .. "/**.inc",
-        "../lstd_extra/" .. str .. "/**.c",
-        "../lstd_extra/" .. str .. "/**.cpp",
-        "../lstd_extra/" .. str .. "/**.def"
+        "include/lstd_extra/" .. str .. "/**.h",
+        "include/lstd_extra/" .. str .. "/**.inc",
+        "include/lstd_extra/" .. str .. "/**.def",
+        "src/lstd_extra/" .. str .. "/**.c",
+        "src/lstd_extra/" .. str .. "/**.cpp"
     }
 end
 
@@ -112,8 +112,8 @@ project "lstd"
 	
 	characterset "Unicode"
     
-    targetdir("../../" .. OUT_DIR)
-    objdir("../../" .. INT_DIR)
+    targetdir(OUT_DIR)
+    objdir(INT_DIR)
 
     if LSTD_PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE then
         defines { "PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=" .. LSTD_PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE }
@@ -127,18 +127,25 @@ project "lstd"
         defines { "PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB" }
     end
 
-    includedirs { "../" }
+    includedirs { "include/" }
 
-	files { "include/**.h", "include/**.inc", "include/**.def", "src/**.c", "src/**.cpp", "src/lstd/lstd.natvis" }
+	files { 
+        "include/lstd/**.h", 
+        "include/lstd/**.inc",
+        "include/lstd/**.def",
+        "src/lstd/**.c",
+        "src/lstd/**.cpp",
+        "src/lstd/lstd.natvis" 
+    }
 
     filter { "system:windows", "not lstd-windows-link-runtime-library"}
-        removefiles { "platform/posix/**" }
+        removefiles { "src/lstd/platform/posix/**" }
 
         -- These are x86-64 assembly and obj files since we don't support 
         -- other architectures at the moment.
         files {
-            "platform/windows/no_crt/longjmp_setjmp.asm",
-            "platform/windows/no_crt/chkstk.asm"
+            "src/lstd/platform/windows/no_crt/longjmp_setjmp.asm",
+            "src/lstd/platform/windows/no_crt/chkstk.asm"
         }
     filter { "system:linux" }
         removefiles { "src/lstd/platform/windows/**" }

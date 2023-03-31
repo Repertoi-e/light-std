@@ -1,8 +1,30 @@
 #pragma once
 
-#include "numeric.h"
+#include "common.h"
 
 LSTD_BEGIN_NAMESPACE
+
+/**
+ * @brief A utility base struct for defining properties as both
+ * structconstants and as types.
+ *
+ * @tparam T The type of the integral constant.
+ * @tparam Value The value of the integral constant.
+ */
+template <typename T, T Value> struct integral_constant {
+  static const T value = Value;
+
+  using value_t = T;
+  using type = integral_constant<T, Value>;
+
+  operator value_t() const { return value; }
+  value_t operator()() const { return value; }
+};
+
+/// @brief A type alias equivalent to integral_constant<bool, true>
+using true_t = integral_constant<bool, true>;
+/// @brief A type alias equivalent to integral_constant<bool, false>
+using false_t = integral_constant<bool, false>;
 
 namespace internal {
 template <typename T> struct is_const_helper_1 : false_t {};
@@ -38,24 +60,11 @@ template <typename T> struct is_pointer_helper<T *> : true_t {};
 template <typename T> struct is_member_pointer_helper : false_t {};
 template <typename T, typename U>
 struct is_member_pointer_helper<T U::*> : true_t {};
+
+template <typename T> struct is_array_helper : false_t {};
+template <typename T> struct is_array_helper<T[]> : true_t {};
+template <typename T, int N> struct is_array_helper<T[N]> : true_t {};
 } // namespace internal
-
-/**
- * @brief A utility base struct for defining properties as both
- * structconstants and as types.
- *
- * @tparam T The type of the integral constant.
- * @tparam Value The value of the integral constant.
- */
-template <typename T, T Value> struct integral_constant {
-  static const T value = Value;
-
-  using value_t = T;
-  using type = integral_constant<T, Value>;
-
-  operator value_t() const { return value; }
-  value_t operator()() const { return value; }
-};
 
 /**
  * @brief A struct used to denote a special template argument that means it's an
@@ -110,11 +119,6 @@ struct first_type_select {
 template <typename T, typename = unused, typename = unused>
 using first_type_select_t = typename first_type_select<T>::type;
 
-/// @brief A type alias equivalent to integral_constant<bool, true>
-using true_t = integral_constant<bool, true>;
-/// @brief A type alias equivalent to integral_constant<bool, false>
-using false_t = integral_constant<bool, false>;
-
 /**
  * @brief Concept to check if two types are the same.
  *
@@ -156,19 +160,6 @@ concept is_same_to_one_of = (is_same<T, Types> || ...);
  */
 template <typename T, typename U>
 concept is_same_template = internal::is_same_template_helper<T, U>;
-
-/**
- * @brief Concept to check if the decayed versions of "T" and "U" are the same
- * basic type.
- *
- * This concept gets around the fact that `is_same` will treat `bool` and
- * `bool&` as different types.
- *
- * @tparam T The first type to compare.
- * @tparam U The second type to compare.
- */
-template <typename T, typename U>
-concept is_same_decayed = internal::same_helper<decay_t<T>, decay_t<U>>::value;
 
 /// @brief Concept to check if T has const-qualification.
 template <typename T>
@@ -376,7 +367,7 @@ template <typename T> struct underlying_type {
 
 /// @brief Alias template for the underlying type of an enum.
 template <typename T>
-using underlying_type_t = typename internal::underlying_type<T>::type;
+using underlying_type_t = typename underlying_type<T>::type;
 
 template <typename T> struct remove_cvref {
   using type = remove_cv_t<remove_ref_t<T>>;
@@ -420,12 +411,100 @@ template <typename T> struct add_pointer {
 // Adds a level of pointers to T
 template <typename T> using add_pointer_t = typename add_pointer<T>::type;
 
-template <typename... Ts> struct common_type {
-  using type = decltype(true ? declval<Ts>()... : declval<Ts>()...);
+template <typename T>
+concept is_array = internal::is_array_helper<T>::value;
+
+template <typename T> struct remove_extent {
+  using type = T;
+};
+template <typename T> struct remove_extent<T[]> {
+  using type = T;
+};
+template <typename T, s64 N> struct remove_extent<T[N]> {
+  using type = T;
 };
 
+/**
+ * @brief The remove_extent transformation trait removes a dimension from an
+ * array.
+ *
+ * This type trait is used to remove one level of array nesting from the input
+ * type T. If the input type T is not an array, then remove_extent<T>::type is
+ * equivalent to T. If the input type T is an array type T[N], then
+ * remove_extent<T[N]>::type is equivalent to T. If the input type T is a
+ * const-qualified array type const T[N], then remove_extent<const T[N]>::type
+ * is equivalent to const T.
+ *
+ * For example, given a multi-dimensional array type T[M][N],
+ * remove_extent<T[M][N]>::type is equivalent to T[N].
+ */
+template <typename T> using remove_extent_t = typename remove_extent<T>::type;
+
+template <typename T> struct decay {
+  using U = remove_ref_t<T>;
+
+  using type = type_select_t<
+      is_array<U>, remove_extent_t<U> *,
+      type_select_t<is_function<U>, add_pointer_t<U>, remove_cv_t<U>>>;
+};
+
+/**
+ * @brief Converts the type T to its decayed equivalent.
+ *
+ * This function template performs several type conversions to arrive at the
+ * decayed equivalent of the input type T. These conversions include lvalue to
+ * rvalue, array to pointer, function to pointer conversions, and removal of
+ * const and volatile.
+ *
+ * The resulting type is the type conversion that's actually silently applied
+ * by the compiler to all function arguments when passed by value.
+ */
+template <typename T> using decay_t = typename decay<T>::type;
+
+namespace internal {
+template <typename... Ts> struct common_type_helper;
+
+template <typename T> struct common_type_helper<T> {
+  using type = decay_t<T>;
+};
+
+template <typename T, typename U, typename... Ts>
+struct common_type_helper<T, U, Ts...> {
+  using type =
+      typename common_type_helper<typename common_type_helper<T, U>::type,
+                                  Ts...>::type;
+};
+} // namespace internal
+
+template <typename... Ts> struct common_type {
+  using type = typename internal::common_type_helper<Ts...>::type;
+};
+
+/**
+ * @brief Computes the common type of a set of input types.
+ * The common_type type trait computes the common type of a set of input types,
+ * that is, the type to which every type in the parameter pack can be implicitly
+ * converted to.
+ *
+ * It does so by using recursion and the common_type_helper struct to repeatedly
+ * compute the common type of pairs of input types, until the common type of all
+ * input types has been determined.
+ */
 template <typename... Ts>
 using common_type_t = typename common_type<Ts...>::type;
+
+/**
+ * @brief Concept to check if the decayed versions of "T" and "U" are the same
+ * basic type.
+ *
+ * This concept gets around the fact that `is_same` will treat `bool` and
+ * `bool&` as different types.
+ *
+ * @tparam T The first type to compare.
+ * @tparam U The second type to compare.
+ */
+template <typename T, typename U>
+concept is_same_decayed = internal::same_helper<decay_t<T>, decay_t<U>>::value;
 
 /**
  * @brief Safely converts between unrelated types that have a binary

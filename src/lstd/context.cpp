@@ -9,7 +9,7 @@ LSTD_BEGIN_NAMESPACE
 
 //
 // This file includes the base implementations of panic handlers,
-// see :Context: in context.cppm to see how to override them.
+// see :Context: in context.h to see how to override them.
 //
 
 void default_panic_handler(string message, array<os_function_call> callStack) {

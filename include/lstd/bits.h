@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common/math.h"
+#include "common.h"
 
 #if COMPILER == MSVC
 #include <intrin.h>
@@ -119,6 +119,16 @@ inline void byte_swap_8(void *ptr) {
   x = ((x << 8) & 0xFF00FF00FF00FF00ULL) | ((x >> 8) & 0x00FF00FF00FF00FFULL);
   x = ((x << 16) & 0xFFFF0000FFFF0000ULL) | ((x >> 16) & 0x0000FFFF0000FFFFULL);
   *(u64 *)ptr = (x << 32) | (x >> 32);
+}
+
+template <typename T> void swap(T &a, T &b) {
+  T c = a;
+  a = b;
+  b = c;
+}
+
+template <typename T, s64 N> void swap(T (&a)[N], T (&b)[N]) {
+  For(range(N)) swap(a[it], b[it]);
 }
 
 #define POWERS_OF_10(factor)                                                   \

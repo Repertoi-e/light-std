@@ -12,7 +12,7 @@
 //    sign_bit, sign_no_zero, sign, copy_sign
 //
 
-#include "ieee.h"
+#include "common.h"
 #include "type_info.h"
 
 // Tau supremacy https://tauday.com/tau-manifesto
@@ -45,7 +45,7 @@
 Cephes Math Library Release 2.8:  June, 2000
 Copyright 1984, 1995, 2000 by Stephen L. Moshier
 */
-#include "third_party/cephes/maths_cephes.h"
+#include "vendor/cephes/maths_cephes.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -65,7 +65,7 @@ inline s32 sign(is_scalar auto x) {
   return sign_no_zero(x);
 }
 
-inline template <is_floating_point T> T copy_sign(T x, T y) {
+template <is_floating_point T> inline T copy_sign(T x, T y) {
   if constexpr (sizeof x == sizeof f32) {
     ieee754_f32 formatx = {x}, formaty = {y};
     formatx.ieee.S = formaty.ieee.S;
@@ -128,30 +128,29 @@ inline bool is_finite(is_floating_point auto x) {
  * or floating-point types).
  */
 template <typename T, typename U>
+inline constexpr auto cast_numeric(U y)
   requires(is_scalar<T> && is_scalar<U>)
-inline constexpr auto cast_numeric(U y) {
-
+{
 #if defined(LSTD_NUMERIC_CAST_CHECK)
   if constexpr (is_integral<T> && is_integral<U>) {
     if constexpr (is_signed_integral<T> && is_unsigned_integral<U>) {
-      if (y > std::numeric_limits<T>::max()) {
-        // Report error and assert
-        assert(false && "Overflow: signed to unsigned integer cast.");
-      }
-    } else if constexpr (is_unsigned_integral<T> && is_signed_integral<U>) {
-      if (y < 0 || static_cast<std::make_unsigned_t<U>>(y) >
-                       std::numeric_limits<T>::max()) {
+      if (y > static_cast<U>(numeric<T>::max())) {
         // Report error and assert
         assert(false && "Overflow: unsigned to signed integer cast.");
       }
+    } else if constexpr (is_unsigned_integral<T> && is_signed_integral<U>) {
+       if (y < 0 || static_cast<u128>(y) > numeric<T>::max()) {
+        // Report error and assert
+        assert(false && "Overflow: signed to unsigned integer cast.");
+      }
     } else if constexpr (is_signed_integral<T> && is_signed_integral<U>) {
-      if (y > std::numeric_limits<T>::max() ||
-          y < std::numeric_limits<T>::min()) {
+      if (y > numeric<T>::max() ||
+          y < numeric<T>::min()) {
         // Report error and assert
         assert(false && "Overflow: signed integer to signed integer cast.");
       }
     } else if constexpr (is_unsigned_integral<T> && is_unsigned_integral<U>) {
-      if (y > std::numeric_limits<T>::max()) {
+      if (y > numeric<T>::max()) {
         // Report error and assert
         assert(false && "Overflow: unsigned integer to unsigned integer cast.");
       }
@@ -205,10 +204,12 @@ inline bool is_pow_of_2(is_integral auto x) { return (x & x - 1) == 0; }
 
 // Returns the smallest power of 2 bigger or equal to x.
 inline auto ceil_pow_of_2(is_integral auto x) {
-  if (x <= 1)
-    return T(1);
+  using T = decltype(x);
 
-  decltype(x) power = 2;
+  if (x <= 1)
+    return (T) 1;
+
+  T power = 2;
   --x;
   while (x >>= 1)
     power <<= 1;
