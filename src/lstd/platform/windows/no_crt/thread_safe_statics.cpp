@@ -13,7 +13,7 @@
 static DWORD const xp_timeout = 100; // ms
 static int const uninitialized = 0;
 static int const being_initialized = -1;
-static int const epoch_start = numeric<s32>::min();
+static int const epoch_start = LSTD_NAMESPACE::numeric<s32>::min();
 
 // Access to these variables is guarded in the below functions.  They may only
 // be modified while the lock is held.  _Tss_epoch is readable from user

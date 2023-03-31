@@ -6,10 +6,10 @@
 // #include <stdlib.h>
 // #include <string.h>
 
-#include "tlsf.h"
+#include "lstd/vendor/tlsf/tlsf.h"
+#include "lstd/fmt.h"
 
 // :WEMODIFIED: We replaced printf with our print.
-import lstd.fmt;
 using LSTD_NAMESPACE::print;
 
 #if defined(__cplusplus)

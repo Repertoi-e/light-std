@@ -235,8 +235,8 @@ __dyn_tls_init(PVOID, DWORD dwReason,
   //
 
   extern void *MainContext;
-  if ((void *)&Context != MainContext) {
-    LSTD_NAMESPACE::memset((byte *)&Context, DEAD_LAND_FILL, sizeof(Context));
+  if ((void *)&LSTD_NAMESPACE::Context != MainContext) {
+    memset((byte *)&LSTD_NAMESPACE::Context, LSTD_NAMESPACE::DEAD_LAND_FILL, sizeof(LSTD_NAMESPACE::Context));
   }
 }
 

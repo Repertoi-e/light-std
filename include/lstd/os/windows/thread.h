@@ -72,14 +72,14 @@ struct fast_mutex {
 // return immediately (non-blocking).
 //
 // Returns true if the lock was acquired
-bool try_lock(fast_mutex *m) {
+inline bool try_lock(fast_mutex *m) {
   s32 oldLock = atomic_swap(&m->Lock, 1);
   return oldLock == 0;
 }
 
 // Block the calling thread until a lock on the mutex can
 // be obtained. The mutex remains locked until unlock() is called.
-void lock(fast_mutex *m) {
+inline void lock(fast_mutex *m) {
   while (!try_lock(m))
     sleep(0);
 }
@@ -87,7 +87,7 @@ void lock(fast_mutex *m) {
 // Unlock the mutex.
 // If any threads are waiting for the lock on this mutex, one of them will be
 // unblocked.
-void unlock(fast_mutex *m) { atomic_swap(&m->Lock, 0); }
+inline void unlock(fast_mutex *m) { atomic_swap(&m->Lock, 0); }
 
 //
 // Condition variable.

@@ -51,42 +51,42 @@ inline const partial_ordering
 inline const partial_ordering
     partial_ordering::unordered(compare_result_unord::UNORDERED);
 
-bool operator==(const partial_ordering value, literal_zero) {
+inline bool operator==(const partial_ordering value, literal_zero) {
   return value.Value == 0;
 }
 
-bool operator<(const partial_ordering value, literal_zero) {
+inline bool operator<(const partial_ordering value, literal_zero) {
   return value.Value == (char)compare_result_ord::LESS;
 }
-bool operator<(literal_zero, const partial_ordering value) {
+inline bool operator<(literal_zero, const partial_ordering value) {
   return 0 < value.Value;
 }
 
-bool operator>(const partial_ordering value, literal_zero) {
+inline bool operator>(const partial_ordering value, literal_zero) {
   return value.Value > 0;
 }
-bool operator>(literal_zero, const partial_ordering value) {
+inline bool operator>(literal_zero, const partial_ordering value) {
   return 0 > value.Value && value.is_ordered();
 }
 
-bool operator<=(const partial_ordering value, literal_zero) {
+inline bool operator<=(const partial_ordering value, literal_zero) {
   return value.Value <= 0 && value.is_ordered();
 }
-bool operator<=(literal_zero, const partial_ordering value) {
+inline bool operator<=(literal_zero, const partial_ordering value) {
   return 0 <= value.Value;
 }
 
-bool operator>=(const partial_ordering value, literal_zero) {
+inline bool operator>=(const partial_ordering value, literal_zero) {
   return value.Value >= 0;
 }
-bool operator>=(literal_zero, const partial_ordering value) {
+inline bool operator>=(literal_zero, const partial_ordering value) {
   return 0 >= value.Value && value.is_ordered();
 }
 
-partial_ordering operator<=>(const partial_ordering value, literal_zero) {
+inline partial_ordering operator<=>(const partial_ordering value, literal_zero) {
   return value;
 }
-partial_ordering operator<=>(literal_zero, const partial_ordering value) {
+inline partial_ordering operator<=>(literal_zero, const partial_ordering value) {
   return partial_ordering{(compare_result_ord)-value.Value};
 }
 
@@ -112,42 +112,42 @@ inline const weak_ordering weak_ordering::less(compare_result_ord::LESS);
 inline const weak_ordering weak_ordering::equivalent(compare_result_eq::EQUAL);
 inline const weak_ordering weak_ordering::greater(compare_result_ord::GREATER);
 
-bool operator==(const weak_ordering value, literal_zero) {
+inline bool operator==(const weak_ordering value, literal_zero) {
   return value.Value == 0;
 }
 
-bool operator<(const weak_ordering value, literal_zero) {
+inline bool operator<(const weak_ordering value, literal_zero) {
   return value.Value < 0;
 }
-bool operator<(literal_zero, const weak_ordering value) {
+inline bool operator<(literal_zero, const weak_ordering value) {
   return 0 < value.Value;
 }
 
-bool operator>(const weak_ordering value, literal_zero) {
+inline bool operator>(const weak_ordering value, literal_zero) {
   return value.Value > 0;
 }
-bool operator>(literal_zero, const weak_ordering value) {
+inline bool operator>(literal_zero, const weak_ordering value) {
   return 0 > value.Value;
 }
 
-bool operator<=(const weak_ordering value, literal_zero) {
+inline bool operator<=(const weak_ordering value, literal_zero) {
   return value.Value <= 0;
 }
-bool operator<=(literal_zero, const weak_ordering value) {
+inline bool operator<=(literal_zero, const weak_ordering value) {
   return 0 <= value.Value;
 }
 
-bool operator>=(const weak_ordering value, literal_zero) {
+inline bool operator>=(const weak_ordering value, literal_zero) {
   return value.Value >= 0;
 }
-bool operator>=(literal_zero, const weak_ordering value) {
+inline bool operator>=(literal_zero, const weak_ordering value) {
   return 0 >= value.Value;
 }
 
-weak_ordering operator<=>(const weak_ordering value, literal_zero) {
+inline weak_ordering operator<=>(const weak_ordering value, literal_zero) {
   return value;
 }
-weak_ordering operator<=>(literal_zero, const weak_ordering value) {
+inline weak_ordering operator<=>(literal_zero, const weak_ordering value) {
   return weak_ordering{(compare_result_ord)-value.Value};
 }
 
@@ -182,42 +182,42 @@ inline const strong_ordering
 inline const strong_ordering
     strong_ordering::greater(compare_result_ord::GREATER);
 
-bool operator==(const strong_ordering value, literal_zero) {
+inline bool operator==(const strong_ordering value, literal_zero) {
   return value.Value == 0;
 }
 
-bool operator<(const strong_ordering value, literal_zero) {
+inline bool operator<(const strong_ordering value, literal_zero) {
   return value.Value < 0;
 }
-bool operator<(literal_zero, const strong_ordering value) {
+inline bool operator<(literal_zero, const strong_ordering value) {
   return 0 < value.Value;
 }
 
-bool operator>(const strong_ordering value, literal_zero) {
+inline bool operator>(const strong_ordering value, literal_zero) {
   return value.Value > 0;
 }
-bool operator>(literal_zero, const strong_ordering value) {
+inline bool operator>(literal_zero, const strong_ordering value) {
   return 0 > value.Value;
 }
 
-bool operator<=(const strong_ordering value, literal_zero) {
+inline bool operator<=(const strong_ordering value, literal_zero) {
   return value.Value <= 0;
 }
-bool operator<=(literal_zero, const strong_ordering value) {
+inline bool operator<=(literal_zero, const strong_ordering value) {
   return 0 <= value.Value;
 }
 
-bool operator>=(const strong_ordering value, literal_zero) {
+inline bool operator>=(const strong_ordering value, literal_zero) {
   return value.Value >= 0;
 }
-bool operator>=(literal_zero, const strong_ordering value) {
+inline bool operator>=(literal_zero, const strong_ordering value) {
   return 0 >= value.Value;
 }
 
-strong_ordering operator<=>(const strong_ordering value, literal_zero) {
+inline strong_ordering operator<=>(const strong_ordering value, literal_zero) {
   return value;
 }
-strong_ordering operator<=>(literal_zero, const strong_ordering value) {
+inline strong_ordering operator<=>(literal_zero, const strong_ordering value) {
   return strong_ordering{(compare_result_ord)(-value.Value)};
 }
 } // namespace std

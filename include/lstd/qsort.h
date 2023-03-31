@@ -99,8 +99,8 @@ void quick_sort(T *first, T *last,
     *a_byte++ = swap_byte;                                                     \
   }
 
-void quick_sort(void *array, s64 length, s64 size,
-                quick_sort_comparison_func<void> compare) {
+inline void quick_sort(void *array, s64 length, s64 size,
+                       quick_sort_comparison_func<void> compare) {
   // Recursive stacks for array boundaries (both inclusive)
   struct stackframe {
     void *Left;

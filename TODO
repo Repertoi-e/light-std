@@ -2,15 +2,9 @@
 
 - Implement platform specific functionality and compile on Linux.
 
-- Make library header-only without source files.
 - Inline cephes and tlsf.
 - Strip down math functions to bare minimum.
 
-- Remove modules since they don't really fix anything with C++, compilers don't support them even after 3 years. Sigh, it was a nice experiment at least.
-
-- Simplify no-crt stuff on Windows, currently that's too much code,
-  also document the compiler versions it works on.
-  
 - Always use cephes math functions.
 - Provide common stdlib functions when building with no-crt.
 - To robustly implement the two above it'd be worth to look into symbol patching. That way it's sure the code is the same on all platforms, regardless of compiler (this, along with allowing glibc to merge Linux sys calls with stdlib functionality is one of the biggest mistakes in C++).

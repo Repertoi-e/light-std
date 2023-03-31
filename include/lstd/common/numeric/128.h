@@ -261,7 +261,7 @@ constexpr u128::u128(s128 v) : hi{(u64)(v.hi)}, lo{v.lo} {}
 #endif
 
 extern "C" {
-#if not defined LSTD_NO_CRT && COMPILER == MSVC
+#if !defined LSTD_NO_CRT && COMPILER == MSVC
 __declspec(dllimport) double ldexp(double, s32); // Sigh...
 #else
 double ldexp(double, s32);
@@ -614,12 +614,12 @@ namespace internal {
 #pragma intrinsic(_BitScanReverse64)
 #endif
 
-s32 msb(u64 x) {
+inline s32 msb(u64 x) {
   unsigned long r = 0;
   return _BitScanReverse64(&r, x) ? ((s32)r) : -1; // @Platform
 }
 
-s32 msb(u128 x) {
+inline s32 msb(u128 x) {
   if (x.hi != 0)
     return 64 + msb(x.hi);
   return msb(x.lo);
@@ -631,8 +631,6 @@ s32 msb(u128 x) {
 // https://stackoverflow.com/questions/5386377/division-without-using
 constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret,
                        u128 *remainder_ret) {
-  LSTD_USING_NAMESPACE;
-
   if (divisor == 0)
     return;
 

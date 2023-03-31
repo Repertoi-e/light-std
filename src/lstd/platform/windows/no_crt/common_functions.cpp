@@ -27,10 +27,6 @@ extern "C" {
 // If we are building with MSVC in Release, the compiler optimizes the following
 // functions as instrinsics.
 #if COMPILER == MSVC and (defined DEBUG_OPTIMIZED or defined RELEASE)
-#pragma function(memset)
-#pragma function(memcpy)
-#pragma function(memmove)
-
 #pragma function(strlen)
 #pragma function(strcmp)
 #pragma function(memcmp)

@@ -53,14 +53,14 @@ string_builder::buffer *get_current_buffer(string_builder *builder);
 void append(string_builder *builder, const char *data, s64 size);
 
 // Append a code point to the builder
-void append(string_builder *builder, code_point cp) {
+inline void append(string_builder *builder, code_point cp) {
   char encodedCp[4];
   utf8_encode_cp(encodedCp, cp);
   append(builder, encodedCp, utf8_get_size_of_cp(encodedCp));
 }
 
 // Append a string to the builder
-void append(string_builder *builder, string str) {
+inline void append(string_builder *builder, string str) {
   append(builder, str.Data, str.Count);
 }
 

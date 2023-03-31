@@ -166,62 +166,15 @@ inline void *create_persistent_alloc_page(s64 size) {
 
 inline void *win32_persistent_alloc(allocator_mode mode, void *context,
                                     s64 size, void *oldMemory, s64 oldSize,
-                                    u64 options) {
-  auto *data = (tlsf_allocator_data *)context;
-
-  lock(&S->PersistentAllocMutex);
-  defer(unlock(&S->PersistentAllocMutex));
-
-  if (mode == allocator_mode::ALLOCATE &&
-      ((u64)(size * 2) > PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE)) {
-    platform_report_warning(
-        "Large allocation requested for the platform persistent allocator; "
-        "querying the OS for memory directly");
-    return create_persistent_alloc_page(size);
-  }
-
-  auto *result =
-      tlsf_allocator(mode, context, size, oldMemory, oldSize, options);
-  if (mode == allocator_mode::ALLOCATE && !result) {
-    platform_report_warning(
-        "Not enough memory in the persistent allocator; adding another pool");
-
-    void *block =
-        create_persistent_alloc_page(PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
-    tlsf_allocator_add_pool(&S->PersistentAllocData, block,
-                            PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
-
-    result = tlsf_allocator(allocator_mode::ALLOCATE, context, size, null, 0,
-                            options);
-    assert(result);
-  }
-  return result;
-}
-
+                                    u64 options);
+                                    
 // These functions are used by other windows platform files.
 inline allocator platform_get_persistent_allocator() {
   return S->PersistentAlloc;
 }
 inline allocator platform_get_temporary_allocator() { return S->TempAlloc; }
 
-inline void platform_init_allocators() {
-  S->TempAllocMutex = create_mutex();
-  S->PersistentAllocMutex = create_mutex();
-
-  S->TempAlloc = {win32_temp_alloc, &S->TempAllocData};
-
-  S->TempAllocData.Block = null;
-
-  create_new_temp_storage_block(PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE);
-
-  S->PersistentAllocBasePage = null;
-  S->PersistentAlloc = {win32_persistent_alloc, &S->PersistentAllocData};
-
-  void *block =
-      create_persistent_alloc_page(PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
-  tlsf_allocator_add_pool(&S->PersistentAllocData, block,
-                          PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE);
-}
+void platform_init_allocators();
 
 inline void platform_uninit_allocators() {
   lock(&S->TempAllocMutex);

@@ -2,11 +2,9 @@
 
 #if OS == WINDOWS
 
-#include "windows.h"  // Declarations of Win32 functions
-
-import lstd.basic;
-import lstd.os;
-import lstd.fmt;
+#include "lstd/lstd.h"
+#include "lstd/os/windows/common.h"  // Declarations of Win32 functions
+#include "lstd/os/windows/api.h"  // Declarations of Win32 functions
 
 LSTD_BEGIN_NAMESPACE
 

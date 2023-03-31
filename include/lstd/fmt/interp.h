@@ -96,7 +96,7 @@ struct fmt_interp {
 // parsing and the It is not pointing at the right place).
 //
 // This is only used to provide useful error messages.
-void on_error(fmt_interp *p, string message, s64 position) {
+inline void on_error(fmt_interp *p, string message, s64 position) {
   if (position == -1)
     position = p->It.Data - p->FormatString.Data;
   Context.FmtParseErrorHandler(message, p->FormatString, position);

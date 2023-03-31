@@ -23,11 +23,11 @@ enum class fmt_type {
   CUSTOM
 };
 
-bool fmt_is_type_integral(fmt_type type) {
+inline bool fmt_is_type_integral(fmt_type type) {
   return type > fmt_type::NONE && type <= fmt_type::LAST_INTEGRAL;
 }
 
-bool fmt_is_type_arithmetic(fmt_type type) {
+inline bool fmt_is_type_arithmetic(fmt_type type) {
   return type > fmt_type::NONE && type <= fmt_type::LAST_ARITHMETIC;
 }
 

@@ -46,8 +46,7 @@ function setup_configurations()
 end
 
 function link_lstd()
-    filter { "kind:not StaticLib" }
-        links { "lstd" }
+    links { "lstd" }
 
     if LSTD_NAMESPACE then
         defines { "LSTD_NAMESPACE=" .. LSTD_NAMESPACE }
@@ -66,6 +65,7 @@ function link_lstd()
         rtti "Off"
         justmycode "Off"
         editandcontinue "Off"
+        exceptionhandling "Off" -- SEH still work, which are required for some CRT stuff 
 
         -- Even if we don't link with the runtime library, the following 
         -- line makes certain warnings having to do with us replacing malloc/free disappear. 
@@ -131,7 +131,7 @@ project "lstd"
         defines { "PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB" }
     end
 
-    includedirs { "include/" }
+    includedirs { "include/", "include/lstd/vendor/cephes/cmath/" }
     add_files("lstd")
 
     filter { "system:windows", "not lstd-windows-link-runtime-library"}

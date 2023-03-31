@@ -17,15 +17,19 @@ struct writer {
 };
 
 // For printing and formatting more types use fmt.h.
-void write(writer *w, string str) { w->write(str.Data, str.Count); }
-void write(writer *w, const char *data, s64 size) { w->write(data, size); }
-void write(writer *w, code_point cp) {
+inline void write(writer *w, string str) { w->write(str.Data, str.Count); }
+
+inline void write(writer *w, const char *data, s64 size) {
+  w->write(data, size);
+}
+
+inline void write(writer *w, code_point cp) {
   char data[4];
   utf8_encode_cp(data, cp);
   w->write(data, utf8_get_size_of_cp(data));
 }
 
-void flush(writer *w) { w->flush(); }
+inline void flush(writer *w) { w->flush(); }
 
 //
 // Doesn't do anything but count how much bytes would have been written to it.
@@ -43,7 +47,7 @@ struct counting_writer : writer {
 //
 
 // @TODO Linux atleast
-#if OS == WINDOWS 
+#if OS == WINDOWS
 struct console : writer {
   // By default, we are thread-safe.
   // If you don't use seperate threads and aim for maximum console output

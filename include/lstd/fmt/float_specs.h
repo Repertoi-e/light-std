@@ -21,7 +21,8 @@ struct fmt_float_specs {
   bool Upper;
 };
 
-fmt_float_specs fmt_parse_float_specs(fmt_interp *p, const fmt_specs &specs) {
+inline fmt_float_specs fmt_parse_float_specs(fmt_interp *p,
+                                             fmt_specs no_copy specs) {
   fmt_float_specs result;
 
   result.ShowPoint = specs.Hash;

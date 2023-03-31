@@ -6,7 +6,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-void append_u64(string_builder *builder, u64 value) {
+inline void append_u64(string_builder *builder, u64 value) {
   const s32 BUFFER_SIZE = numeric<u64>::digits10;
   char buffer[BUFFER_SIZE];
 

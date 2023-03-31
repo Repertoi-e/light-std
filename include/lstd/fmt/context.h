@@ -55,11 +55,11 @@ struct fmt_context : writer {
 // middle of parsing and parse.It is not pointing at the right place.
 //
 // This routine is used to provide useful error messages.
-void on_error(fmt_context *f, string message, s64 position = -1) {
+inline void on_error(fmt_context *f, string message, s64 position = -1) {
   on_error(&f->Parse, message, position);
 }
 
-void write(fmt_context *f, string s) { f->write(s.Data, s.Count); }
+inline void write(fmt_context *f, string s) { f->write(s.Data, s.Count); }
 
 // General formatting routimes which take specifiers into account:
 void write(fmt_context *f, is_integral auto value);
@@ -75,14 +75,14 @@ void write_no_specs(fmt_context *f, is_floating_point auto value);
 void write_no_specs(fmt_context *f, bool value);
 void write_no_specs(fmt_context *f, const void *value);
 
-void write_no_specs(fmt_context *f, string str) { write(f->Out, str); }
-void write_no_specs(fmt_context *f, const char *str) {
+inline void write_no_specs(fmt_context *f, string str) { write(f->Out, str); }
+inline void write_no_specs(fmt_context *f, const char *str) {
   write(f->Out, str, c_string_length(str));
 }
-void write_no_specs(fmt_context *f, const char *str, s64 size) {
+inline void write_no_specs(fmt_context *f, const char *str, s64 size) {
   write(f->Out, str, size);
 }
-void write_no_specs(fmt_context *f, code_point cp) { write(f->Out, cp); }
+inline void write_no_specs(fmt_context *f, code_point cp) { write(f->Out, cp); }
 
 // Used to dispatch values to write/write_no_specs functions. Used in
 // conjunction with fmt_visit_arg.

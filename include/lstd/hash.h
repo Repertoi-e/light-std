@@ -164,7 +164,7 @@ struct hasher {
 
 // Hashes for integer types
 #define TRIVIAL_HASH(T)                                                        \
-  u64 get_hash(T value) { return (u64)value; }
+  inline u64 get_hash(T value) { return (u64)value; }
 
 TRIVIAL_HASH(s8);
 TRIVIAL_HASH(u8);
@@ -181,13 +181,13 @@ TRIVIAL_HASH(u64);
 TRIVIAL_HASH(bool);
 
 // Hashing strings...
-u64 get_hash(string value) {
+inline u64 get_hash(string value) {
   u64 hash = 5381;
   For(value) hash = ((hash << 5) + hash) + it;
   return hash;
 }
 
 // Partial specialization for pointers
-u64 get_hash(is_pointer auto value) { return (u64)value; }
+inline u64 get_hash(is_pointer auto value) { return (u64)value; }
 
 LSTD_END_NAMESPACE

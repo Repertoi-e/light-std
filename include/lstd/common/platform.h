@@ -31,7 +31,7 @@
 #define OS NO_OS
 #endif
 
-#if not defined OS
+#ifndef OS
 #if defined linux || defined __linux || defined __linux__ ||                   \
     defined __GNU__ || defined __GLIBC__
 #define OS LINUX
@@ -51,7 +51,7 @@
 #endif
 
 #if OS == NO_OS
-#if not defined OS_STRING
+#ifndef OS_STRING
 #define OS_STRING "NoOS"
 #endif
 #endif

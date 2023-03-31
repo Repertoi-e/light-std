@@ -132,12 +132,12 @@ template <typename... MEMBERS> struct aligned_union {
   template <class T> void destruct() { Data.~T(); }
 
   template <class T> auto ref as() {
-    using type = const_if_t<decltype(this), decay_t<T>>;
+    using type = internal::const_if_t<decltype(this), decay_t<T>>;
     return *reinterpret_cast<type *>(Data);
   }
 
   template <class T> auto no_copy as() const {
-    using type = const_if_t<decltype(this), decay_t<T>>;
+    using type = internal::const_if_t<decltype(this), decay_t<T>>;
     return *reinterpret_cast<type *>(Data);
   }
 };
@@ -149,7 +149,7 @@ template <class... MEMBERS> struct variant {
   aligned_union<nil, MEMBERS...> au;
 
   template <class T>
-  static constexpr auto get_index_of_t = index_of<T, nil, MEMBERS...>;
+  static constexpr auto get_index_of_t = internal::index_of<T, nil, MEMBERS...>;
 
   template <class T>
     requires(!__is_base_of(decay_t<T>, decay_t<variant>))

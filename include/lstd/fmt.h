@@ -2,10 +2,11 @@
 
 #include "common.h"
 #include "fmt/arg.h"
-#include "fmt/interp.h"
 #include "fmt/context.h"
-#include "fmt/text_style.h"
+#include "fmt/interp.h"
 #include "fmt/pretty.h"
+#include "fmt/text_style.h"
+
 
 LSTD_BEGIN_NAMESPACE
 
@@ -226,7 +227,7 @@ void printf(string fmtString, Args no_copy... arguments) {
 // formatting the arguments.
 void fmt_parse_and_format(fmt_context *f);
 
-void write_custom(fmt_context *f, const string_builder *b) {
+inline void write_custom(fmt_context *f, const string_builder *b) {
   auto *buffer = &b->BaseBuffer;
   while (buffer) {
     write_no_specs(f, buffer->Data, buffer->Occupied);
@@ -236,7 +237,7 @@ void write_custom(fmt_context *f, const string_builder *b) {
 
 // Format arrays in the following way: [1, 2, ...]
 
-void write_custom(fmt_context *f, any_array_like auto no_copy a) {
+inline void write_custom(fmt_context *f, any_array_like auto no_copy a) {
   format_list(f).entries(a.Data, a.Count)->finish();
 }
 
@@ -377,7 +378,7 @@ struct fmt_precision_checker {
   }
 };
 
-fmt_arg fmt_get_arg_from_index(fmt_context *f, s64 index) {
+inline fmt_arg fmt_get_arg_from_index(fmt_context *f, s64 index) {
   if (index >= f->Args.Count) {
     on_error(f, "Argument index out of range");
     return {};
@@ -385,7 +386,7 @@ fmt_arg fmt_get_arg_from_index(fmt_context *f, s64 index) {
   return f->Args[index];
 }
 
-bool fmt_handle_dynamic_specs(fmt_context *f) {
+inline bool fmt_handle_dynamic_specs(fmt_context *f) {
   assert(f->Specs);
 
   if (f->Specs->WidthIndex != -1) {
@@ -408,7 +409,7 @@ bool fmt_handle_dynamic_specs(fmt_context *f) {
   return true;
 }
 
-void fmt_parse_and_format(fmt_context *f) {
+inline void fmt_parse_and_format(fmt_context *f) {
   fmt_interp *p = &f->Parse;
 
   auto write_until = [&](const char *end) {

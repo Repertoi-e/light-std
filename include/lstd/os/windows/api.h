@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../common.h"
+
 //
 // In this file we define some types found in Windows.h.
 // We do this in order to avoid including Windows.h at all.
@@ -59,6 +61,8 @@ always_inline HRESULT HRESULT_FROM_WIN32(unsigned long x) {
 #define CP_UTF8 65001
 
 #define INVALID_HANDLE_VALUE ((void *)(-1))
+
+// TODO: 32 bits 
 
 using BYTE = u8;
 using PBYTE = u8 *;

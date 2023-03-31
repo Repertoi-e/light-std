@@ -3,20 +3,25 @@
 #include "common.h"
 #include "vendor/tlsf/tlsf.h"
 
-LSTD_BEGIN_NAMESPACE
-
 // @Cleanup These implementations are not ideal
 extern "C" {
-inline void *memmove(void *dstpp, const void *srcpp, u64 len) {
+
+#if COMPILER == MSVC and (defined DEBUG_OPTIMIZED or defined RELEASE)
+#pragma function(memset)
+#pragma function(memcpy)
+#pragma function(memmove)
+#endif
+
+inline void *memmove(void *dstpp, const void *srcpp, size_t len) {
   auto *dst = (byte *)dstpp;
   auto *src = (byte *)srcpp;
   if (len == 0)
     return dstpp;
-  For(range(len - 1, -1, -1)) dst[it] = src[it];
+  For(LSTD_NAMESPACE::range(len - 1, -1, -1)) dst[it] = src[it];
   return dst;
 }
 
-inline void *memcpy(void *dstpp, const void *srcpp, u64 len) {
+inline void *memcpy(void *dstpp, const void *srcpp, size_t len) {
   if ((u64)dstpp > (u64)srcpp &&
       (s64)((byte *)dstpp - (byte *)srcpp) < (s64)len) {
     //
@@ -39,7 +44,7 @@ inline void *memcpy(void *dstpp, const void *srcpp, u64 len) {
   return dstpp;
 }
 
-inline void *memset(void *dstpp, int c, u64 len) {
+inline void *memset(void *dstpp, int c, size_t len) {
   u64 dstp = (u64)dstpp;
 
   if (len >= 8) {
@@ -93,22 +98,20 @@ No need to test for LEN == 0 in this alignment loop.  */
   return dstpp;
 }
 
-inline void *memset0(void *dst, u64 numInBytes) {
+inline void *memset0(void *dst, size_t numInBytes) {
   return memset((char *)dst, (char)0, numInBytes);
 }
 
-inline int memcmp(const void *s1, const void *s2, u64 n) {
+inline int memcmp(const void *s1, const void *s2, size_t n) {
   auto *p1 = (byte *)s1;
   auto *p2 = (byte *)s2;
-  For(range(n)) {
+  For(LSTD_NAMESPACE::range(n)) {
     if (p1[it] != p2[it])
       return p1[it] - p2[it];
   }
   return 0;
 }
 }
-
-LSTD_END_NAMESPACE
 
 // Maximum size of an allocation we will attemp to request
 #define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0 // Around 16384 PiB
@@ -151,7 +154,7 @@ LSTD_END_NAMESPACE
 // allocation function). Keeping it malloc is less confusing and error-prone and
 // ... also it's nostalgic.
 //
-#if not defined LSTD_NO_CRT
+#ifndef LSTD_NO_CRT
 #include <new>
 #else
 #if COMPILER == MSVC
@@ -391,7 +394,7 @@ enum class allocator_mode { ALLOCATE, RESIZE, FREE, FREE_ALL };
 // Allocations marked explicitly as leaks don't get reported when calling
 // debug_memory_report_leaks(). This is handled internally when passed, so
 // allocator implementations needn't pay attention to it.
-const u64 LEAK = 1ull << 63;
+inline const u64 LEAK = 1ull << 63;
 
 //
 // This specifies what the signature of each allocation function should look
@@ -586,8 +589,8 @@ struct tlsf_allocator_data {
 // * Low overhead per TLSF management of pools (~3kB)
 // * Low fragmentation
 //
-void *tlsf_allocator(allocator_mode mode, void *context, s64 size,
-                     void *oldMemory, s64 oldSize, u64 options) {
+inline void *tlsf_allocator(allocator_mode mode, void *context, s64 size,
+                            void *oldMemory, s64 oldSize, u64 options) {
   assert(context);
 
   auto *data = (tlsf_allocator_data *)context;
@@ -615,7 +618,8 @@ void *tlsf_allocator(allocator_mode mode, void *context, s64 size,
   return null;
 }
 
-void tlsf_allocator_add_pool(tlsf_allocator_data *data, void *block, s64 size) {
+inline void tlsf_allocator_add_pool(tlsf_allocator_data *data, void *block,
+                                    s64 size) {
   if (!data->State) {
     data->State = tlsf_create_with_pool(block, (u64)size);
   } else {
@@ -624,7 +628,7 @@ void tlsf_allocator_add_pool(tlsf_allocator_data *data, void *block, s64 size) {
 }
 
 // Assumes the block exists
-void tlsf_allocator_remove_pool(tlsf_allocator_data *data, void *block) {
+inline void tlsf_allocator_remove_pool(tlsf_allocator_data *data, void *block) {
   tlsf_remove_pool(data->State, block);
 }
 
@@ -648,8 +652,8 @@ struct arena_allocator_data {
 // enough space for an allocation). When out of memory, you should resize or
 // provide another block.
 //
-void *arena_allocator(allocator_mode mode, void *context, s64 size,
-                      void *oldMemory, s64 oldSize, u64 options) {
+inline void *arena_allocator(allocator_mode mode, void *context, s64 size,
+                             void *oldMemory, s64 oldSize, u64 options) {
   auto *data = (arena_allocator_data *)context;
 
   switch (mode) {
@@ -717,12 +721,12 @@ struct pool_allocator_data {
 };
 
 #if defined DEBUG_MEMORY
-thread_local pool_allocator_data DebugMemoryNodesPool =
+inline thread_local pool_allocator_data DebugMemoryNodesPool =
     pool_allocator_data(pool_allocator_dont_init_t{});
 #endif
 
-void pool_allocator_add_free_chunks(pool_allocator_data *data, void *block,
-                                    s64 size) {
+inline void pool_allocator_add_free_chunks(pool_allocator_data *data,
+                                           void *block, s64 size) {
   auto *c = (pool_allocator_data::chunk *)block;
 
   auto *oldFreeList = data->FreeList;
@@ -740,8 +744,8 @@ void pool_allocator_add_free_chunks(pool_allocator_data *data, void *block,
 // block. Size needs to be multiple of _ElementSize_ +
 // sizeof(allocator_pool_data::block). We avoid allocating a seperate linked
 // list but use the first few bytes of _block_ as a header.
-void pool_allocator_provide_block(pool_allocator_data *data, void *block,
-                                  s64 size) {
+inline void pool_allocator_provide_block(pool_allocator_data *data, void *block,
+                                         s64 size) {
   assert(size >= (s64)sizeof(pool_allocator_data::block) + data->ElementSize);
   assert(data->ElementSize > 0);
 
@@ -755,8 +759,8 @@ void pool_allocator_provide_block(pool_allocator_data *data, void *block,
   pool_allocator_add_free_chunks(data, b + 1, b->Size);
 }
 
-void *pool_allocator(allocator_mode mode, void *context, s64 size,
-                     void *oldMemory, s64 oldSize, u64 options) {
+inline void *pool_allocator(allocator_mode mode, void *context, s64 size,
+                            void *oldMemory, s64 oldSize, u64 options) {
   auto *data = (pool_allocator_data *)context;
 
   switch (mode) {
@@ -811,15 +815,15 @@ void general_free(void *ptr, u64 options, source_location loc);
 
 // Calculates the required padding in bytes which needs to be added to _ptr_
 // in order to be aligned
-u16 calculate_padding_for_pointer(void *ptr, s32 alignment) {
+inline u16 calculate_padding_for_pointer(void *ptr, s32 alignment) {
   assert(alignment > 0 && is_pow_of_2(alignment));
   return (u16)(((u64)ptr + (alignment - 1) & -alignment) - (u64)ptr);
 }
 
 // Like calculate_padding_for_pointer but padding must be at least the header
 // size
-u16 calculate_padding_for_pointer_with_header(void *ptr, s32 alignment,
-                                              u32 headerSize) {
+inline u16 calculate_padding_for_pointer_with_header(void *ptr, s32 alignment,
+                                                     u32 headerSize) {
   u16 padding = calculate_padding_for_pointer(ptr, alignment);
   if (padding < headerSize) {
     headerSize -= padding;
@@ -856,19 +860,19 @@ u16 calculate_padding_for_pointer_with_header(void *ptr, s32 alignment,
 // - For the case of the no-man's land and free blocks, if you store to any of
 //   these locations, the memory integrity checker will detect it.
 //
-const s64 NO_MANS_LAND_SIZE = 4;
+inline const s64 NO_MANS_LAND_SIZE = 4;
 
 // _NO_MANS_LAND_SIZE_ (4) extra bytes with this value before and after the
 // allocation block which help detect reading out of range errors
-const byte NO_MANS_LAND_FILL = 0xFD;
+inline const byte NO_MANS_LAND_FILL = 0xFD;
 
 // When freeing we fill the block with this value (detects bugs when accessing
 // memory that's freed)
-const byte DEAD_LAND_FILL = 0xDD;
+inline const byte DEAD_LAND_FILL = 0xDD;
 
 // When allocating a new block we fill it with this value
 // (detects bugs when accessing memory before initializing it)
-const byte CLEAN_LAND_FILL = 0xCD;
+inline const byte CLEAN_LAND_FILL = 0xCD;
 
 //
 // Each allocation contains this header before the returned pointer.
@@ -932,7 +936,7 @@ struct allocation_header {
 
 // #if'd so programs don't compile when debug memory info shouldn't be used.
 #if defined DEBUG_MEMORY
-thread_local s64 AllocationCount;
+inline thread_local s64 AllocationCount;
 
 // The node of a linked list, see comment below this struct.
 struct debug_memory_node {
@@ -1054,7 +1058,7 @@ struct debug_memory_node {
 // Overall we have a pretty robust and helpful debug memory model which not a
 // lot of runtimes care to provide, although its almost trivial to do these
 // checks.
-thread_local debug_memory_node *DebugMemoryHead, *DebugMemoryTail;
+inline thread_local debug_memory_node *DebugMemoryHead, *DebugMemoryTail;
 
 // Called when creating a new thread (e.g. in os.win32.common.cppm).
 // Allocates starting sentinel values for the list and the pool for further

@@ -35,14 +35,14 @@ enum parse_status : u32 {
 };
 
 // Used in parse functions for some special behaviour/special return values
-const code_point CP_INVALID = 0xfffd;
-const code_point CP_MAX = 0x7fffffff;
+inline const code_point CP_INVALID = 0xfffd;
+inline const code_point CP_MAX = 0x7fffffff;
 
 // End of file and ignore this byte don't exist as real unicode code points.
 // They are just symbolic, so we them a value outside the range of possible code
 // points.
-const code_point CP_EOF = CP_MAX + 1;
-const code_point CP_IGNORE_THIS = CP_MAX + 2;
+inline const code_point CP_EOF = CP_MAX + 1;
+inline const code_point CP_IGNORE_THIS = CP_MAX + 2;
 
 // This maps a code point to a numerical value for parsing numbers
 using cp_to_digit_t = s32 (*)(code_point, bool);
@@ -50,7 +50,7 @@ using cp_to_digit_t = s32 (*)(code_point, bool);
 // _first_ is true if _cp_ was the first parsed thing after +/- and base
 // prefixes. This can be used to disallow numbers starting with certain symbols
 // (e.g. a comma ',' which is normally used as a thousand separator)
-s32 cp_to_digit_default(code_point cp, bool first = false) {
+inline s32 cp_to_digit_default(code_point cp, bool first = false) {
   if (cp >= '0' && cp <= '9')
     return cp - '0';
   if (cp >= 'a' && cp <= 'z')
@@ -61,13 +61,13 @@ s32 cp_to_digit_default(code_point cp, bool first = false) {
 }
 
 // Unsafe, doesn't check bounds
-void advance_bytes(string *p, s64 count) {
+inline void advance_bytes(string *p, s64 count) {
   p->Data += count;
   p->Count -= count;
 }
 
 // Unsafe, doesn't check bounds
-void advance_cp(string *p, s64 count) {
+inline void advance_cp(string *p, s64 count) {
   assert(count > 0);
   while (count--) {
     s64 c = utf8_get_size_of_cp(p->Data);
@@ -483,7 +483,7 @@ struct eat_hex_byte_result {
 
 // Tries to parse exactly two hex digits as a byte.
 // We don't eat if parsing fails.
-eat_hex_byte_result eat_hex_byte(string *p) {
+inline eat_hex_byte_result eat_hex_byte(string *p) {
   auto [value, status, rest] =
       parse_int<u8, parse_int_options{.ParseSign = false,
                                       .MaxDigits = 2,

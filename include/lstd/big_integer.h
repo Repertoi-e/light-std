@@ -5,7 +5,6 @@
 #include "context.h"
 #include "stack_array.h"
 
-
 //
 // Provides arbitrary precision integer math.
 // Supports integers on the stack (with compile-time determined max capacity)
@@ -83,7 +82,7 @@ big_integer make_big_integer(s64 initialDigits);
 bool assign(big_integer ref b, is_integral auto v);
 
 big_integer make_big(is_integral auto v);
-big_integer make_big(big_integer b) { return b; }
+inline big_integer make_big(big_integer b) { return b; }
 
 big_integer invert(big_integer b);          // -(b + 1)
 big_integer lshift(big_integer lhs, s64 n); // << operator is overloaded too
@@ -96,13 +95,15 @@ s32 compare(big_integer a, big_integer b);
 
 // We don't support ++/-- and assignment operators.
 
-bool operator==(big_integer lhs, big_integer rhs) {
+inline bool operator==(big_integer lhs, big_integer rhs) {
   return compare(lhs, rhs) == 0;
 }
-bool operator!=(big_integer lhs, big_integer rhs) {
+inline bool operator!=(big_integer lhs, big_integer rhs) {
   return compare(lhs, rhs) != 0;
 }
-auto operator<=>(big_integer lhs, big_integer rhs) { return compare(lhs, rhs); }
+inline auto operator<=>(big_integer lhs, big_integer rhs) {
+  return compare(lhs, rhs);
+}
 
 big_integer operator+(big_integer lhs, big_integer rhs);
 big_integer operator-(big_integer lhs, big_integer rhs);
@@ -110,8 +111,8 @@ big_integer operator*(big_integer lhs, big_integer rhs);
 big_integer operator/(big_integer lhs, big_integer rhs);
 big_integer operator%(big_integer lhs, big_integer rhs);
 
-big_integer operator>>(big_integer lhs, s64 n) { return rshift(lhs, n); }
-big_integer operator<<(big_integer lhs, s64 n) { return lshift(lhs, n); }
+inline big_integer operator>>(big_integer lhs, s64 n) { return rshift(lhs, n); }
+inline big_integer operator<<(big_integer lhs, s64 n) { return lshift(lhs, n); }
 
 big_integer operator&(big_integer lhs, big_integer rhs);
 big_integer operator|(big_integer lhs, big_integer rhs);
@@ -156,7 +157,7 @@ div_result divrem(big_integer lhs, big_integer rhs);
 // Operator % is defined in terms of divmod.
 div_result divmod(big_integer lhs, big_integer rhs);
 
-void free(big_integer ref b) {
+inline void free(big_integer ref b) {
   if (b.Digits)
     free(b.Digits);
   b.Size = 0;
@@ -181,11 +182,11 @@ void normalize(big_integer ref b);
 // For small values (2 digits) we use a small buffer contained in the structure.
 // In that case Digits == null (because members pointing to other members is
 // dangerous).
-bool is_small(big_integer ref b) { return !b.Digits; }
+inline bool is_small(big_integer ref b) { return !b.Digits; }
 
 // Attempts to convert an integer into a small integer and frees any allocated
 // memory.
-void maybe_small(big_integer ref b) {
+inline void maybe_small(big_integer ref b) {
   if (is_small(b))
     return;
 
@@ -201,7 +202,7 @@ void maybe_small(big_integer ref b) {
 
 // For small integers, b.Digits is null and the digits
 // are stored in a small buffer inside the struct.
-digit *get_digits(big_integer ref b) {
+inline digit *get_digits(big_integer ref b) {
   if (is_small(b))
     return b.SmallDigits;
   return b.Digits;
@@ -209,7 +210,7 @@ digit *get_digits(big_integer ref b) {
 
 // Supports negative indexing. This is a low level
 // operation and usually used by arithmetic operations.
-digit get_digit(big_integer ref b, s64 index) {
+inline digit get_digit(big_integer ref b, s64 index) {
   s64 space = is_small(b) ? 2 : b.Allocated;
   index = translate_negative_index(index, space);
   return get_digits(b)[index];
@@ -217,7 +218,7 @@ digit get_digit(big_integer ref b, s64 index) {
 
 // Supports negative indexing. This is a low level
 // operation and usually used by arithmetic operations.
-void set_digit(big_integer ref b, s64 index, digit value) {
+inline void set_digit(big_integer ref b, s64 index, digit value) {
   s64 space = is_small(b) ? 2 : b.Allocated;
   index = translate_negative_index(index, space);
   get_digits(b)[index] = value;
