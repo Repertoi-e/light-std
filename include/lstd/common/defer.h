@@ -23,7 +23,8 @@ LSTD_BEGIN_NAMESPACE
 #undef defer
 
 struct Defer_Dummy {};
-template <typename F> struct Deferrer {
+template <typename F>
+struct Deferrer {
   F Func;
 
   // We don't call destructors in free() (take a look at context.h), but they
@@ -31,11 +32,12 @@ template <typename F> struct Deferrer {
   // called on a stack variable anyway.
   ~Deferrer() { Func(); }
 };
-template <typename F> Deferrer<F> operator*(Defer_Dummy, F func) {
+template <typename F>
+Deferrer<F> operator*(Defer_Dummy, F func) {
   return {func};
 }
 
-#define defer(x)                                                               \
+#define defer(x) \
   auto LINE_NAME(LSTD_defer) = LSTD_NAMESPACE::Defer_Dummy{} * [&]() { x; }
 
 LSTD_END_NAMESPACE

@@ -60,12 +60,12 @@ inline s32 sign_no_zero(is_scalar auto x) { return sign_bit(x) ? -1 : 1; }
 
 // Returns -1 if x is negative, 1 if positive, 0 otherwise
 inline s32 sign(is_scalar auto x) {
-  if (x == decltype(x)(0))
-    return 0;
+  if (x == decltype(x)(0)) return 0;
   return sign_no_zero(x);
 }
 
-template <is_floating_point T> inline T copy_sign(T x, T y) {
+template <is_floating_point T>
+inline T copy_sign(T x, T y) {
   if constexpr (sizeof x == sizeof f32) {
     ieee754_f32 formatx = {x}, formaty = {y};
     formatx.ieee.S = formaty.ieee.S;
@@ -128,9 +128,7 @@ inline bool is_finite(is_floating_point auto x) {
  * or floating-point types).
  */
 template <typename T, typename U>
-inline constexpr auto cast_numeric(U y)
-  requires(is_scalar<T> && is_scalar<U>)
-{
+inline constexpr auto cast_numeric(U y) requires(is_scalar<T>&& is_scalar<U>) {
 #if defined(LSTD_NUMERIC_CAST_CHECK)
   if constexpr (is_integral<T> && is_integral<U>) {
     if constexpr (is_signed_integral<T> && is_unsigned_integral<U>) {
@@ -139,13 +137,12 @@ inline constexpr auto cast_numeric(U y)
         assert(false && "Overflow: unsigned to signed integer cast.");
       }
     } else if constexpr (is_unsigned_integral<T> && is_signed_integral<U>) {
-       if (y < 0 || static_cast<u128>(y) > numeric<T>::max()) {
+      if (y < 0 || static_cast<u128>(y) > numeric<T>::max()) {
         // Report error and assert
         assert(false && "Overflow: signed to unsigned integer cast.");
       }
     } else if constexpr (is_signed_integral<T> && is_signed_integral<U>) {
-      if (y > numeric<T>::max() ||
-          y < numeric<T>::min()) {
+      if (y > numeric<T>::max() || y < numeric<T>::min()) {
         // Report error and assert
         assert(false && "Overflow: signed integer to signed integer cast.");
       }
@@ -161,24 +158,22 @@ inline constexpr auto cast_numeric(U y)
 }
 
 namespace internal {
-constexpr auto min_(auto x, auto y) {
-  auto y_casted = cast_numeric<decltype(x)>(y);
-  if constexpr (is_floating_point<decltype(x)>) {
-    if (is_nan(x) || is_nan(y_casted))
-      return x + y_casted;
+  constexpr auto min_(auto x, auto y) {
+    auto y_casted = cast_numeric<decltype(x)>(y);
+    if constexpr (is_floating_point<decltype(x)>) {
+      if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
+    }
+    return x < y_casted ? x : y_casted;
   }
-  return x < y_casted ? x : y_casted;
-}
 
-constexpr auto max_(auto x, auto y) {
-  auto y_casted = cast_numeric<decltype(x)>(y);
-  if constexpr (is_floating_point<decltype(x)>) {
-    if (is_nan(x) || is_nan(y_casted))
-      return x + y_casted;
+  constexpr auto max_(auto x, auto y) {
+    auto y_casted = cast_numeric<decltype(x)>(y);
+    if constexpr (is_floating_point<decltype(x)>) {
+      if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
+    }
+    return x > y_casted ? x : y_casted;
   }
-  return x > y_casted ? x : y_casted;
-}
-} // namespace internal
+}  // namespace internal
 
 template <is_scalar... Args>
 inline constexpr auto min(is_scalar auto x, Args... rest) {
@@ -206,18 +201,17 @@ inline bool is_pow_of_2(is_integral auto x) { return (x & x - 1) == 0; }
 inline auto ceil_pow_of_2(is_integral auto x) {
   using T = decltype(x);
 
-  if (x <= 1)
-    return (T) 1;
+  if (x <= 1) return (T)1;
 
   T power = 2;
   --x;
-  while (x >>= 1)
-    power <<= 1;
+  while (x >>= 1) power <<= 1;
   return power;
 }
 
 // Returns 10 ** exp at compile-time. Uses recursion.
-template <typename T> inline T const_exp10(s32 exp) {
+template <typename T>
+inline T const_exp10(s32 exp) {
   return exp == 0 ? T(1) : T(10) * const_exp10<T>(exp - 1);
 }
 
@@ -234,7 +228,7 @@ inline auto abs(is_scalar auto x) {
     }
   } else {
     if constexpr (is_unsigned_integral<decltype(x)>) {
-      return x; // Unsigned integrals are always positive
+      return x;  // Unsigned integrals are always positive
     } else {
       return x < 0 ? -x : x;
     }

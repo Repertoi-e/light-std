@@ -22,7 +22,7 @@ inline void append_u64(string_builder *builder, u64 value) {
     value /= 10;
   }
 
-  ++p; // Roll back
+  ++p;  // Roll back
   append(builder, p, buffer + BUFFER_SIZE - p);
 }
 

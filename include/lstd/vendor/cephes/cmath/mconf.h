@@ -19,7 +19,7 @@
  * The file also includes a conditional assembly definition
  * for the type of computer arithmetic (IEEE, DEC, Motorola
  * IEEE, or UNKnown).
- * 
+ *
  * For Digital Equipment PDP-11 and VAX computers, certain
  * IBM systems, and others that use numbers with a 56-bit
  * significand, the symbol DEC should be defined.  In this
@@ -92,31 +92,29 @@ Copyright 1984, 1987, 1989, 1995 by Stephen L. Moshier
 /* Constant definitions for math error conditions
  */
 
-#define DOMAIN		1	/* argument domain error */
-#define SING		2	/* argument singularity */
-#define OVERFLOW	3	/* overflow range error */
-#define UNDERFLOW	4	/* underflow range error */
-#define TLOSS		5	/* total loss of precision */
-#define PLOSS		6	/* partial loss of precision */
+#define DOMAIN 1    /* argument domain error */
+#define SING 2      /* argument singularity */
+#define OVERFLOW 3  /* overflow range error */
+#define UNDERFLOW 4 /* underflow range error */
+#define TLOSS 5     /* total loss of precision */
+#define PLOSS 6     /* partial loss of precision */
 
-#define EDOM		33
-#define ERANGE		34
-
+#define EDOM 33
+#define ERANGE 34
 
 /* Complex numeral.  */
 typedef struct {
-    double r;
-    double i;
+  double r;
+  double i;
 } cmplx;
 
 #ifdef HAVE_LONG_DOUBLE
 /* Long double complex numeral.  */
 typedef struct {
-    long double r;
-    long double i;
+  long double r;
+  long double i;
 } cmplxl;
 #endif
-
 
 /* Type of computer arithmetic */
 

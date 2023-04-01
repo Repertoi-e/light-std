@@ -2,7 +2,6 @@
 
 #include "../common.h"
 #include "../string.h"
-
 #include "type.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -29,7 +28,7 @@ struct fmt_value {
   };
 
   fmt_value(s64 v = 0) : S64(v) {}
-  fmt_value(bool v) : S64(v) {} // We store bools in S64
+  fmt_value(bool v) : S64(v) {}  // We store bools in S64
   fmt_value(u64 v) : U64(v) {}
   fmt_value(f32 v) : F32(v) {}
   fmt_value(f64 v) : F64(v) {}
@@ -38,7 +37,8 @@ struct fmt_value {
 
   // Attempt to call a custom formatter.
   // Compile-time asserts if there was no overload.
-  template <typename T> fmt_value(T *v) {
+  template <typename T>
+  fmt_value(T *v) {
     Custom.Data = (void *)v;
     Custom.FormatFunc = call_write_on_custom_arg<T>;
   }
@@ -111,24 +111,24 @@ fmt_arg fmt_make_arg(auto no_copy v) {
 template <typename Visitor>
 auto fmt_visit_arg(Visitor visitor, fmt_arg ar) -> decltype(visitor(0)) {
   switch (ar.Type) {
-  case fmt_type::NONE:
-    break;
-  case fmt_type::S64:
-    return visitor(ar.Value.S64);
-  case fmt_type::U64:
-    return visitor(ar.Value.U64);
-  case fmt_type::BOOL:
-    return visitor(ar.Value.S64 != 0); // We store bools in S64
-  case fmt_type::F32:
-    return visitor(ar.Value.F32);
-  case fmt_type::F64:
-    return visitor(ar.Value.F64);
-  case fmt_type::STRING:
-    return visitor(ar.Value.String);
-  case fmt_type::POINTER:
-    return visitor(ar.Value.Pointer);
-  case fmt_type::CUSTOM:
-    return visitor(ar.Value.Custom);
+    case fmt_type::NONE:
+      break;
+    case fmt_type::S64:
+      return visitor(ar.Value.S64);
+    case fmt_type::U64:
+      return visitor(ar.Value.U64);
+    case fmt_type::BOOL:
+      return visitor(ar.Value.S64 != 0);  // We store bools in S64
+    case fmt_type::F32:
+      return visitor(ar.Value.F32);
+    case fmt_type::F64:
+      return visitor(ar.Value.F64);
+    case fmt_type::STRING:
+      return visitor(ar.Value.String);
+    case fmt_type::POINTER:
+      return visitor(ar.Value.Pointer);
+    case fmt_type::CUSTOM:
+      return visitor(ar.Value.Custom);
   }
   return visitor(unused{});
 }

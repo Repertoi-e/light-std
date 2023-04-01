@@ -27,8 +27,8 @@ struct format_struct {
   fmt_context *F;
   string Name;
   array<field_entry> Fields;
-  bool NoSpecs; // Write the result without taking into account specs for
-                // individual arguments
+  bool NoSpecs;  // Write the result without taking into account specs for
+                 // individual arguments
 
   format_struct(fmt_context *f, string name, bool noSpecs = false)
       : F(f), Name(name), NoSpecs(noSpecs) {
@@ -39,7 +39,8 @@ struct format_struct {
   // because it helps with code conciseness.
   ~format_struct() { free(Fields); }
 
-  template <typename T> format_struct *field(string name, const T &value) {
+  template <typename T>
+  format_struct *field(string name, const T &value) {
     array_add(Fields, {name, fmt_make_arg(value)});
     return this;
   }
@@ -53,8 +54,8 @@ struct format_tuple {
   fmt_context *F;
   string Name;
   array<fmt_arg> Fields;
-  bool NoSpecs; // Write the result without taking into account specs for
-                // individual arguments
+  bool NoSpecs;  // Write the result without taking into account specs for
+                 // individual arguments
 
   format_tuple(fmt_context *f, string name, bool noSpecs = false)
       : F(f), Name(name), NoSpecs(noSpecs) {
@@ -65,7 +66,8 @@ struct format_tuple {
   // because it helps with code conciseness.
   ~format_tuple() { free(Fields); }
 
-  template <typename T> format_tuple *field(const T &value) {
+  template <typename T>
+  format_tuple *field(const T &value) {
     array_add(Fields, fmt_make_arg(value));
     return this;
   }
@@ -78,8 +80,8 @@ struct format_tuple {
 struct format_list {
   fmt_context *F;
   array<fmt_arg> Fields;
-  bool NoSpecs; // Write the result without taking into account specs for
-                // individual arguments
+  bool NoSpecs;  // Write the result without taking into account specs for
+                 // individual arguments
 
   format_list(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {
     reserve(Fields);
@@ -89,16 +91,19 @@ struct format_list {
   // because it helps with code conciseness.
   ~format_list() { free(Fields); }
 
-  template <typename T> format_list *entries(array<T> values) {
+  template <typename T>
+  format_list *entries(array<T> values) {
     For(values) array_add(&Fields, fmt_make_arg(it));
     return this;
   }
 
-  template <typename T> format_list *entries(T *begin, T *end) {
+  template <typename T>
+  format_list *entries(T *begin, T *end) {
     return entries(array<T>(begin, end - begin));
   }
 
-  template <typename T> format_list *entries(T *begin, s64 count) {
+  template <typename T>
+  format_list *entries(T *begin, s64 count) {
     return entries(array<T>(begin, count));
   }
 

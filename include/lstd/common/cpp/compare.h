@@ -14,7 +14,7 @@ using literal_zero = decltype(nullptr);
 
 // These "pretty" enumerator names are safe since they reuse names of
 // user-facing entities.
-enum class compare_result_eq : char { EQUAL = 0 }; // -0.0 is equal to +0.0
+enum class compare_result_eq : char { EQUAL = 0 };  // -0.0 is equal to +0.0
 
 enum class compare_result_ord : char { LESS = -1, GREATER = 1 };
 
@@ -44,12 +44,12 @@ struct partial_ordering {
 };
 
 inline const partial_ordering partial_ordering::less(compare_result_ord::LESS);
-inline const partial_ordering
-    partial_ordering::equivalent(compare_result_eq::EQUAL);
-inline const partial_ordering
-    partial_ordering::greater(compare_result_ord::GREATER);
-inline const partial_ordering
-    partial_ordering::unordered(compare_result_unord::UNORDERED);
+inline const partial_ordering partial_ordering::equivalent(
+    compare_result_eq::EQUAL);
+inline const partial_ordering partial_ordering::greater(
+    compare_result_ord::GREATER);
+inline const partial_ordering partial_ordering::unordered(
+    compare_result_unord::UNORDERED);
 
 inline bool operator==(const partial_ordering value, literal_zero) {
   return value.Value == 0;
@@ -83,10 +83,12 @@ inline bool operator>=(literal_zero, const partial_ordering value) {
   return 0 >= value.Value && value.is_ordered();
 }
 
-inline partial_ordering operator<=>(const partial_ordering value, literal_zero) {
+inline partial_ordering operator<=>(const partial_ordering value,
+                                    literal_zero) {
   return value;
 }
-inline partial_ordering operator<=>(literal_zero, const partial_ordering value) {
+inline partial_ordering operator<=>(literal_zero,
+                                    const partial_ordering value) {
   return partial_ordering{(compare_result_ord)-value.Value};
 }
 
@@ -177,10 +179,10 @@ struct strong_ordering {
 
 inline const strong_ordering strong_ordering::less(compare_result_ord::LESS);
 inline const strong_ordering strong_ordering::equal(compare_result_eq::EQUAL);
-inline const strong_ordering
-    strong_ordering::equivalent(compare_result_eq::EQUAL);
-inline const strong_ordering
-    strong_ordering::greater(compare_result_ord::GREATER);
+inline const strong_ordering strong_ordering::equivalent(
+    compare_result_eq::EQUAL);
+inline const strong_ordering strong_ordering::greater(
+    compare_result_ord::GREATER);
 
 inline bool operator==(const strong_ordering value, literal_zero) {
   return value.Value == 0;
@@ -220,7 +222,7 @@ inline strong_ordering operator<=>(const strong_ordering value, literal_zero) {
 inline strong_ordering operator<=>(literal_zero, const strong_ordering value) {
   return strong_ordering{(compare_result_ord)(-value.Value)};
 }
-} // namespace std
+}  // namespace std
 #else
 #include <compare>
 #endif

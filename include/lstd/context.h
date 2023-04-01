@@ -36,7 +36,7 @@ void fmt_default_parse_error_handler(string message, string formatString,
 
 // See note below at the variable declaration... :Context:
 struct context {
-  u32 ThreadID; // The current thread's ID
+  u32 ThreadID;  // The current thread's ID
 
   ///////////////////////////////////////////////////////////////////////////////////////
   //
@@ -96,7 +96,7 @@ struct context {
   // malloc<>(). This is here so you can change alignment for every allocation
   // in an entire scope (or an entire run of a program).
   //
-  u16 AllocAlignment; // = POINTER_SIZE (8);     by default
+  u16 AllocAlignment;  // = POINTER_SIZE (8);     by default
 
   //
   // When doing allocations we provide an optional parameter that is meant
@@ -111,19 +111,19 @@ struct context {
   // so you can e.g. mark an entire scope of allocations with LEAK
   // (or your own specific use case with custom allocator).
   //
-  u64 AllocOptions; // = 0;     by default
+  u64 AllocOptions;  // = 0;     by default
 
   // Used for debugging. Every time an allocation/reallocation
   // is made, logs info about it.
-  bool LogAllAllocations; // = false;     by default
+  bool LogAllAllocations;  // = false;     by default
 
   //
   // Gets called when the program encounters an unhandled exception.
   // This can be used to view the stack trace before the program terminates.
   // The default handler prints the crash message and stack trace to _Log_.
   //
-  panic_handler_t PanicHandler; // = default_panic_handler;     by default (see
-                                // context.cpp for source)
+  panic_handler_t PanicHandler;  // = default_panic_handler;     by default (see
+                                 // context.cpp for source)
 
   //
   // Similar to _Alloc_, you can transparently redirect output
@@ -135,7 +135,7 @@ struct context {
   // However you should use this variable
   // if you have your own logging functions
   //
-  writer *Log; // = &cout;     by default
+  writer *Log;  // = &cout;     by default
 
   //
   // fmt module:
@@ -144,7 +144,7 @@ struct context {
   // if logging has been redicted to files/strings and not the console.
   // The ansi escape codes look like garbage in files/strings.
   //
-  bool FmtDisableAnsiCodes; // = false;     by default
+  bool FmtDisableAnsiCodes;  // = false;     by default
 
 #if defined DEBUG_MEMORY
   // After every allocation we check the heap for corruption.
@@ -154,11 +154,11 @@ struct context {
   // operation. By default we check the heap every 255 allocations,
   // but if a problem is found you may want to decrease
   // this to 1 so you catch the corruption at just the right time.
-  u8 DebugMemoryHeapVerifyFrequency; // = 255;     by default
+  u8 DebugMemoryHeapVerifyFrequency;  // = 255;     by default
 
   // Self-explanatory
   bool
-      DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination; // = false;     by default
+      DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination;  // = false;     by default
 #endif
 
   //
@@ -168,15 +168,16 @@ struct context {
   // redirect the error - like we do in the tests.
   //
   fmt_parse_error_handler_t
-      FmtParseErrorHandler; // = fmt_default_parse_error_handler;     by default
+      FmtParseErrorHandler;  // = fmt_default_parse_error_handler;     by
+                             // default
 
   //
   // Internal.
   //
-  bool _HandlingPanic;       // = false;   // Don't set. Used to avoid infinite
-                             // looping when handling panics. Don't touch!
-  bool _LoggingAnAllocation; // = false;   // Don't set. Used to avoid infinite
-                             // looping when logging allocations. Don't touch!
+  bool _HandlingPanic;        // = false;   // Don't set. Used to avoid infinite
+                              // looping when handling panics. Don't touch!
+  bool _LoggingAnAllocation;  // = false;   // Don't set. Used to avoid infinite
+                              // looping when logging allocations. Don't touch!
 
   // Hack, the default constructor would otherwise zero init the context's
   // members, which might have been set by other global constructors.
@@ -241,9 +242,9 @@ inline void panic(string message) {
 //
 inline thread_local arena_allocator_data TemporaryAllocatorData;
 inline const thread_local allocator TemporaryAllocator =
-    allocator(allocator_dont_init_t{}); // Disable the default constructor, this
-                                        // gets initialized with the Context.
-                                        // See hack note above.
+    allocator(allocator_dont_init_t{});  // Disable the default constructor,
+                                         // this gets initialized with the
+                                         // Context. See hack note above.
 
 // Allocates a buffer, copies the string's contents and also appends a zero
 // terminator. Uses the temporary allocator.
@@ -270,35 +271,35 @@ LSTD_END_NAMESPACE
 //    OVERRIDE_CONTEXT(newContext);
 //
 
-#define PUSH_CONTEXT(newContext)                                               \
-  auto LINE_NAME(oldContext) = LSTD_NAMESPACE::Context;                        \
-  auto LINE_NAME(restored) = false;                                            \
-  defer({                                                                      \
-    if (!LINE_NAME(restored)) {                                                \
-      OVERRIDE_CONTEXT(LINE_NAME(oldContext));                                 \
-    }                                                                          \
-  });                                                                          \
-  if (true) {                                                                  \
-    OVERRIDE_CONTEXT(newContext);                                              \
-    goto LINE_NAME(body);                                                      \
-  } else                                                                       \
-    while (true)                                                               \
-      if (true) {                                                              \
-        OVERRIDE_CONTEXT(LINE_NAME(oldContext));                               \
-        LINE_NAME(restored) = true;                                            \
-        break;                                                                 \
-      } else                                                                   \
+#define PUSH_CONTEXT(newContext)                        \
+  auto LINE_NAME(oldContext) = LSTD_NAMESPACE::Context; \
+  auto LINE_NAME(restored) = false;                     \
+  defer({                                               \
+    if (!LINE_NAME(restored)) {                         \
+      OVERRIDE_CONTEXT(LINE_NAME(oldContext));          \
+    }                                                   \
+  });                                                   \
+  if (true) {                                           \
+    OVERRIDE_CONTEXT(newContext);                       \
+    goto LINE_NAME(body);                               \
+  } else                                                \
+    while (true)                                        \
+      if (true) {                                       \
+        OVERRIDE_CONTEXT(LINE_NAME(oldContext));        \
+        LINE_NAME(restored) = true;                     \
+        break;                                          \
+      } else                                            \
         LINE_NAME(body) :
 
 // Shortcut for just modifying the allocator
-#define PUSH_ALLOC(newAlloc)                                                   \
-  auto LINE_NAME(newContext) = LSTD_NAMESPACE::Context;                        \
-  LINE_NAME(newContext).Alloc = newAlloc;                                      \
+#define PUSH_ALLOC(newAlloc)                            \
+  auto LINE_NAME(newContext) = LSTD_NAMESPACE::Context; \
+  LINE_NAME(newContext).Alloc = newAlloc;               \
   PUSH_CONTEXT(LINE_NAME(newContext))
 
 // This is useful for e.g. the beginning of the program to completely override
 // the Context. Please don't use EVER this inside functions because the caller
 // might not expect it. This overrides the context variables for the whole
 // module.
-#define OVERRIDE_CONTEXT(newContext)                                           \
+#define OVERRIDE_CONTEXT(newContext) \
   *((LSTD_NAMESPACE::context *)&LSTD_NAMESPACE::Context) = (newContext)

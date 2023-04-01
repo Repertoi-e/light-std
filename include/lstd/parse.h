@@ -51,12 +51,9 @@ using cp_to_digit_t = s32 (*)(code_point, bool);
 // prefixes. This can be used to disallow numbers starting with certain symbols
 // (e.g. a comma ',' which is normally used as a thousand separator)
 inline s32 cp_to_digit_default(code_point cp, bool first = false) {
-  if (cp >= '0' && cp <= '9')
-    return cp - '0';
-  if (cp >= 'a' && cp <= 'z')
-    return cp - 'a' + 10;
-  if (cp >= 'A' && cp <= 'Z')
-    return cp - 'A' + 10;
+  if (cp >= '0' && cp <= '9') return cp - '0';
+  if (cp >= 'a' && cp <= 'z') return cp - 'a' + 10;
+  if (cp >= 'A' && cp <= 'Z') return cp - 'A' + 10;
   return CP_INVALID;
 }
 
@@ -104,10 +101,10 @@ auto handle_negative(is_integral auto value, bool negative) {
 // users don't have to write an optimized version for their own use cases.
 //
 struct parse_int_options {
-  bool ParseSign = true; // If true, looks for +/- before trying to parse any
-                         // digits. If '-' the result is negated.
-  bool AllowPlusSign = true; // If true, allows explicit + as a sign, if false,
-                             // results in parse failure.
+  bool ParseSign = true;  // If true, looks for +/- before trying to parse any
+                          // digits. If '-' the result is negated.
+  bool AllowPlusSign = true;  // If true, allows explicit + as a sign, if false,
+                              // results in parse failure.
 
   //
   // We use _CodePointToDigit_ to determine the numerical value symbols (as well
@@ -184,7 +181,8 @@ struct parse_int_options {
   bool ReturnLimitOnTooManyDigits = true;
 };
 
-template <typename IntT> struct parse_result {
+template <typename IntT>
+struct parse_result {
   IntT Value;
 
   parse_status Status;
@@ -196,7 +194,7 @@ template <typename IntT> struct parse_result {
   string Rest;
 };
 
-#define FAIL                                                                   \
+#define FAIL \
   { 0, PARSE_INVALID, p }
 
 // Parses 8, 16, 32, 64 or 128 bit numbers after sign and
@@ -231,8 +229,7 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
   T value = 0;
   while (true) {
     if constexpr (Options.MaxDigits != -1) {
-      if (!maxDigits)
-        break;
+      if (!maxDigits) break;
       --maxDigits;
     }
 
@@ -240,8 +237,7 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
         p.Count ? Options.CodePointToDigit(p[0], firstDigit) : CP_INVALID;
     advance_cp(&p, 1);
 
-    if (digit == CP_IGNORE_THIS)
-      continue;
+    if (digit == CP_IGNORE_THIS) continue;
 
     if (digit < 0 || digit >= (s32)base) {
       // We have CP_INVALID or a digit that's outside our base, break.
@@ -253,8 +249,7 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
         // digits).
         if (Options.LookForBasePrefix) {
           advance_bytes(&p, -1);
-          if (base == 8)
-            return {0, PARSE_SUCCESS, p};
+          if (base == 8) return {0, PARSE_SUCCESS, p};
         }
         return FAIL;
       }
@@ -266,14 +261,13 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
       break;
     }
 
-    firstDigit = false; // @Cleanup
+    firstDigit = false;  // @Cleanup
 
     if constexpr (Options.BailOnTooManyDigits) {
       // If we have parsed a number that is too big to store in our integer type
       // we bail
       if (value > cutOff || value == cutOff && digit > cutLim) {
-        if constexpr (Options.ReturnLimitOnTooManyDigits)
-          value = maxValue;
+        if constexpr (Options.ReturnLimitOnTooManyDigits) value = maxValue;
         return {handle_negative(value, parsedNegative), PARSE_TOO_MANY_DIGITS,
                 p};
       }
@@ -290,7 +284,7 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
 
 template <parse_int_options Options>
 parse_result<big_integer> parse_int_big_integer(string p, u32 base) {
-  assert(false); // @TODO
+  assert(false);  // @TODO
   return {0, PARSE_SUCCESS, p};
 }
 
@@ -342,21 +336,18 @@ parse_result<big_integer> parse_int_big_integer(string p, u32 base) {
 template <is_integral T, parse_int_options Options = parse_int_options{}>
 parse_result<T> parse_int(string buffer, u32 base = 10) {
   string p = buffer;
-  if (!p.Count)
-    return FAIL;
+  if (!p.Count) return FAIL;
 
   bool negative = false;
   if constexpr (Options.ParseSign) {
     if (p[0] == '+') {
       advance_bytes(&p, 1);
-      if constexpr (!Options.AllowPlusSign)
-        return FAIL;
+      if constexpr (!Options.AllowPlusSign) return FAIL;
     } else if (p[0] == '-') {
       negative = true;
       advance_bytes(&p, 1);
     }
-    if (!p.Count)
-      return FAIL;
+    if (!p.Count) return FAIL;
   }
 
   if constexpr (Options.LookForBasePrefix) {
@@ -369,8 +360,7 @@ parse_result<T> parse_int(string buffer, u32 base = 10) {
         advance_bytes(&p, 1);
       }
     }
-    if (!p.Count)
-      return FAIL;
+    if (!p.Count) return FAIL;
   }
 
   if constexpr (is_same<T, big_integer>) {
@@ -380,13 +370,12 @@ parse_result<T> parse_int(string buffer, u32 base = 10) {
   }
 }
 
-template <bool IgnoreCase = false> bool expect_cp(string *p, code_point value) {
-  if (!p->Count)
-    return false;
+template <bool IgnoreCase = false>
+bool expect_cp(string *p, code_point value) {
+  if (!p->Count) return false;
 
   code_point ch = (*p)[0];
-  if constexpr (IgnoreCase)
-    ch = to_lower(ch);
+  if constexpr (IgnoreCase) ch = to_lower(ch);
 
   if (ch == value) {
     advance_cp(p, 1);
@@ -400,8 +389,7 @@ template <bool IgnoreCase = false>
 bool expect_sequence(string *p, string sequence) {
   For(sequence) {
     bool status = expect_cp<IgnoreCase>(p, it);
-    if (!status)
-      return false;
+    if (!status) return false;
   }
   return true;
 }
@@ -409,9 +397,9 @@ bool expect_sequence(string *p, string sequence) {
 // Similar to parse_int, these options compile different
 // versions of parse_bool and turn off certain code paths.
 struct parse_bool_options {
-  bool ParseNumbers = true; // Attemps to parse 0/1.
-  bool ParseWords = true;   // Attemps to parse the words "true" and "false".
-  bool ParseWordsIgnoreCase = true; // Ignores case when parsing the words.
+  bool ParseNumbers = true;  // Attemps to parse 0/1.
+  bool ParseWords = true;    // Attemps to parse the words "true" and "false".
+  bool ParseWordsIgnoreCase = true;  // Ignores case when parsing the words.
 };
 
 //
@@ -437,13 +425,12 @@ struct parse_bool_options {
 template <parse_bool_options Options = parse_bool_options{}>
 parse_result<bool> parse_bool(string buffer) {
   static_assert(Options.ParseNumbers ||
-                Options.ParseWords); // Sanity, one of them must be set
+                Options.ParseWords);  // Sanity, one of them must be set
 
 #define SUCCESS(x) {x, PARSE_SUCCESS, p};
 
   string p = buffer;
-  if (!p.Count)
-    return FAIL;
+  if (!p.Count) return FAIL;
 
   if constexpr (Options.ParseNumbers) {
     if (p[0] == '0') {
@@ -460,16 +447,14 @@ parse_result<bool> parse_bool(string buffer) {
     if (p[0] == 't') {
       bool status =
           expect_sequence<Options.ParseWordsIgnoreCase>(&p, (string) "true");
-      if (!status)
-        return FAIL;
+      if (!status) return FAIL;
       return SUCCESS(true);
     }
 
     if (p[0] == 'f') {
       bool status =
           expect_sequence<Options.ParseWordsIgnoreCase>(&p, (string) "false");
-      if (!status)
-        return FAIL;
+      if (!status) return FAIL;
       return SUCCESS(false);
     }
   }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "api.h" // Declarations of Win32 functions
+#include "api.h"  // Declarations of Win32 functions
 
 //
 // Simple wrapper around dynamic libraries and getting addresses of procedures.
@@ -160,17 +160,17 @@ struct win32_common_state {
   mutex CoutMutex, CinMutex;
 
   array<delegate<void()>>
-      ExitFunctions; // Stores any functions to be called before the program
-                     // terminates (naturally or by exit(exitCode))
-  mutex ExitScheduleMutex; // Used when modifying the ExitFunctions array
+      ExitFunctions;  // Stores any functions to be called before the program
+                      // terminates (naturally or by exit(exitCode))
+  mutex ExitScheduleMutex;  // Used when modifying the ExitFunctions array
 
-  LARGE_INTEGER PerformanceFrequency; // Used to time stuff
+  LARGE_INTEGER PerformanceFrequency;  // Used to time stuff
 
-  string ModuleName; // Caches the module name (retrieve this with
-                     // os_get_current_module())
+  string ModuleName;  // Caches the module name (retrieve this with
+                      // os_get_current_module())
 
-  string WorkingDir; // Caches the working dir (query/modify this with
-                     // os_get_working_dir(), os_set_working_dir())
+  string WorkingDir;  // Caches the working dir (query/modify this with
+                      // os_get_working_dir(), os_set_working_dir())
   mutex WorkingDirMutex;
 
   array<string> Argv;
@@ -227,8 +227,9 @@ inline void setup_console() {
   S->CerrHandle = GetStdHandle(STD_ERROR_HANDLE);
 
   if (!SetConsoleOutputCP(CP_UTF8)) {
-    report_warning_no_allocations("Couldn't set console code page to UTF8 - "
-                                  "some characters might be messed up");
+    report_warning_no_allocations(
+        "Couldn't set console code page to UTF8 - "
+        "some characters might be messed up");
   }
 
   // Enable ANSI escape sequences for the console
@@ -275,9 +276,10 @@ inline void parse_arguments() {
   // function.
   argv = CommandLineToArgvW(GetCommandLineW(), &argc);
   if (argv == null) {
-    report_warning_no_allocations("Couldn't parse command line arguments, "
-                                  "os_get_command_line_arguments() will return "
-                                  "an empty array in all cases");
+    report_warning_no_allocations(
+        "Couldn't parse command line arguments, "
+        "os_get_command_line_arguments() will return "
+        "an empty array in all cases");
     return;
   }
 
@@ -455,8 +457,8 @@ inline mark_as_leak os_get_env_result os_get_env(string name, bool silent) {
   defer(free(name16));
 
   DWORD bufferSize =
-      65535; // Limit according to
-             // http://msdn.microsoft.com/en-us/library/ms683188.aspx
+      65535;  // Limit according to
+              // http://msdn.microsoft.com/en-us/library/ms683188.aspx
 
   auto *buffer = malloc<wchar>({.Count = bufferSize, .Alloc = TEMP});
   auto r = GetEnvironmentVariableW(name16, buffer, bufferSize);
@@ -566,25 +568,25 @@ inline string os_read_from_console() {
 
 // @TODO @Clarity: Print more useful message about the path
 // :CopyAndPaste from path.nt
-#define CREATE_MAPPING_CHECKED(handleName, call)                               \
-  HANDLE handleName = call;                                                    \
-  if (!handleName) {                                                           \
-    string extendedCallSite = sprint(                                          \
-        "{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name);  \
-    char *cStr = to_c_string(extendedCallSite);                                \
-    windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);    \
-    free(cStr);                                                                \
-    free(extendedCallSite);                                                    \
-    return;                                                                    \
+#define CREATE_MAPPING_CHECKED(handleName, call)                              \
+  HANDLE handleName = call;                                                   \
+  if (!handleName) {                                                          \
+    string extendedCallSite = sprint(                                         \
+        "{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name); \
+    char *cStr = to_c_string(extendedCallSite);                               \
+    windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);   \
+    free(cStr);                                                               \
+    free(extendedCallSite);                                                   \
+    return;                                                                   \
   }
 
 inline mark_as_leak os_read_file_result os_read_entire_file(string path) {
   os_read_file_result fail = {string(), false};
-  CREATE_FILE_HANDLE_CHECKED(file,
-                             CreateFileW(utf8_to_utf16(path), GENERIC_READ,
-                                         FILE_SHARE_READ, null, OPEN_EXISTING,
-                                         FILE_ATTRIBUTE_NORMAL, null),
-                             fail);
+  CREATE_FILE_HANDLE_CHECKED(
+      file,
+      CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null,
+                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null),
+      fail);
   defer(CloseHandle(file));
 
   LARGE_INTEGER size = {0};
@@ -603,31 +605,28 @@ inline mark_as_leak os_read_file_result os_read_entire_file(string path) {
 
 inline bool os_write_to_file(string path, string contents,
                              file_write_mode mode) {
-  CREATE_FILE_HANDLE_CHECKED(file,
-                             CreateFileW(utf8_to_utf16(path), GENERIC_WRITE, 0,
-                                         null, OPEN_ALWAYS,
-                                         FILE_ATTRIBUTE_NORMAL, null),
-                             false);
+  CREATE_FILE_HANDLE_CHECKED(
+      file,
+      CreateFileW(utf8_to_utf16(path), GENERIC_WRITE, 0, null, OPEN_ALWAYS,
+                  FILE_ATTRIBUTE_NORMAL, null),
+      false);
   defer(CloseHandle(file));
 
   LARGE_INTEGER pointer = {};
   pointer.QuadPart = 0;
   if (mode == file_write_mode::Append)
     SetFilePointerEx(file, pointer, null, FILE_END);
-  if (mode == file_write_mode::Overwrite_Entire)
-    SetEndOfFile(file);
+  if (mode == file_write_mode::Overwrite_Entire) SetEndOfFile(file);
 
   DWORD bytesWritten;
   if (!WriteFile(file, contents.Data, (u32)contents.Count, &bytesWritten, null))
     return false;
-  if (bytesWritten != contents.Count)
-    return false;
+  if (bytesWritten != contents.Count) return false;
   return true;
 }
 
 inline void console::write(const char *data, s64 size) {
-  if (LockMutex)
-    lock(&S->CoutMutex);
+  if (LockMutex) lock(&S->CoutMutex);
 
   if (size > Available) {
     flush();
@@ -638,13 +637,11 @@ inline void console::write(const char *data, s64 size) {
   Current += size;
   Available -= size;
 
-  if (LockMutex)
-    unlock(&S->CoutMutex);
+  if (LockMutex) unlock(&S->CoutMutex);
 }
 
 inline void console::flush() {
-  if (LockMutex)
-    lock(&S->CoutMutex);
+  if (LockMutex) lock(&S->CoutMutex);
 
   if (!Buffer) {
     if (OutputType == console::COUT) {
@@ -664,8 +661,7 @@ inline void console::flush() {
   Current = Buffer;
   Available = S->CONSOLE_BUFFER_SIZE;
 
-  if (LockMutex)
-    unlock(&S->CoutMutex);
+  if (LockMutex) unlock(&S->CoutMutex);
 }
 
 #undef MODULE_HANDLE

@@ -1,8 +1,7 @@
 #include "common_functions.h"
 
-#include "setjmp.h"
-
 #include "lstd/string.h"
+#include "setjmp.h"
 
 LSTD_USING_NAMESPACE;
 
@@ -39,8 +38,7 @@ size_t strlen(const char *s) {
   int i;
 
   i = 0;
-  while (s[i] != '\0')
-    i++;
+  while (s[i] != '\0') i++;
   return (i);
 }
 
@@ -48,8 +46,7 @@ int strcmp(const char *s1, const char *s2) {
   int i;
 
   i = 0;
-  while (s1[i] != '\0' && s2[i] != '\0' && s1[i] == s2[i])
-    i++;
+  while (s1[i] != '\0' && s2[i] != '\0' && s1[i] == s2[i]) i++;
   return ((unsigned char)s1[i] - (unsigned char)s2[i]);
 }
 
@@ -108,11 +105,9 @@ double fmod(double x, double y) {
   /* float load/store to inner loops ruining performance and code size */
   u64 uxi = ux.i;
 
-  if (uy.i << 1 == 0 || is_nan(y) || ex == 0x7ff)
-    return (x * y) / (x * y);
+  if (uy.i << 1 == 0 || is_nan(y) || ex == 0x7ff) return (x * y) / (x * y);
   if (uxi << 1 <= uy.i << 1) {
-    if (uxi << 1 == uy.i << 1)
-      return 0 * x;
+    if (uxi << 1 == uy.i << 1) return 0 * x;
     return x;
   }
 
@@ -138,16 +133,14 @@ double fmod(double x, double y) {
   for (; ex > ey; ex--) {
     i = uxi - uy.i;
     if (i >> 63 == 0) {
-      if (i == 0)
-        return 0 * x;
+      if (i == 0) return 0 * x;
       uxi = i;
     }
     uxi <<= 1;
   }
   i = uxi - uy.i;
   if (i >> 63 == 0) {
-    if (i == 0)
-      return 0 * x;
+    if (i == 0) return 0 * x;
     uxi = i;
   }
   for (; uxi >> 52 == 0; uxi <<= 1, ex--)
@@ -169,40 +162,33 @@ const char *strstr(const char *haystack, const char *needle) {
   int i;
   int j;
 
-  if (needle[0] == '\0')
-    return ((char *)haystack);
+  if (needle[0] == '\0') return ((char *)haystack);
   i = 0;
   while (haystack[i] != '\0') {
     j = 0;
     while (needle[j] != '\0') {
-      if (haystack[i + j] != needle[j])
-        break;
+      if (haystack[i + j] != needle[j]) break;
       j++;
     }
-    if (needle[j] == '\0')
-      return ((char *)haystack + i);
+    if (needle[j] == '\0') return ((char *)haystack + i);
     i++;
   }
   return (0);
 }
 
 const char *strchr(const char *s, int c) {
-  while (*s != (char)c && *s != '\0')
-    s++;
-  if (*s == (char)c)
-    return ((char *)s);
+  while (*s != (char)c && *s != '\0') s++;
+  if (*s == (char)c) return ((char *)s);
   return (NULL);
 }
 
 int strncmp(const char *s1, const char *s2, size_t n) {
   size_t i;
 
-  if (!n)
-    return (0);
+  if (!n) return (0);
   i = 1;
   while (*s1 == *s2) {
-    if (!*s1++ || i++ == n)
-      return (0);
+    if (!*s1++ || i++ == n) return (0);
     s2++;
   }
   return ((unsigned char)(*s1) - (unsigned char)(*s2));
@@ -216,8 +202,7 @@ char *strncpy(char *dst, const char *src, size_t len) {
     dst[i] = src[i];
     i++;
   }
-  while (i < len)
-    dst[i++] = '\0';
+  while (i < len) dst[i++] = '\0';
   return (dst);
 }
 
@@ -225,10 +210,8 @@ const char *strrchr(const char *s, int c) {
   size_t len;
 
   len = strlen((char *)s);
-  while (0 != len && s[len] != (char)c)
-    len--;
-  if (s[len] == (char)c)
-    return ((char *)&s[len]);
+  while (0 != len && s[len] != (char)c) len--;
+  if (s[len] == (char)c) return ((char *)&s[len]);
   return (NULL);
 }
 
@@ -236,10 +219,8 @@ static unsigned char charmap(char c) {
   char chr;
 
   chr = (char)to_upper(c);
-  if (chr >= '0' && chr <= '9')
-    return (chr - '0');
-  if (chr >= 'A' && chr <= 'Z')
-    return (chr - 'A' + 10);
+  if (chr >= '0' && chr <= '9') return (chr - '0');
+  if (chr >= 'A' && chr <= 'Z') return (chr - 'A' + 10);
   return (127);
 }
 
@@ -264,24 +245,19 @@ long strtol(const char *nptr, char **endptr, int base) {
   long result;
   char digit;
 
-  if (base < 0 || base > 36)
-    return (0);
+  if (base < 0 || base > 36) return (0);
   neg = 0;
   result = 0;
-  while (is_space(*nptr))
-    nptr++;
+  while (is_space(*nptr)) nptr++;
   if (*nptr == '-' || *nptr == '+')
-    if (*nptr++ == '-')
-      neg = 1;
+    if (*nptr++ == '-') neg = 1;
   base = getbase(&nptr, base);
   while ((digit = charmap(*nptr++)) < base)
     if ((result = (result * base) + digit) < 0) {
-      if (endptr)
-        *endptr = (char *)nptr;
+      if (endptr) *endptr = (char *)nptr;
       return (numeric<s32>::max() + neg);
     }
-  if (endptr)
-    *endptr = (char *)nptr;
+  if (endptr) *endptr = (char *)nptr;
   return (result + (result * -2 * neg));
 }
 
@@ -453,8 +429,7 @@ unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base) {
     result = result * base + value;
     cp++;
   }
-  if (endp)
-    *endp = (char *)cp;
+  if (endp) *endp = (char *)cp;
   return result;
 }
 
@@ -465,8 +440,7 @@ unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base) {
  * @base: The number base to use
  */
 long simple_strtol(const char *cp, char **endp, unsigned int base) {
-  if (*cp == '-')
-    return -((long)simple_strtoul(cp + 1, endp, base));
+  if (*cp == '-') return -((long)simple_strtoul(cp + 1, endp, base));
   return (long)simple_strtoul(cp, endp, base);
 }
 
@@ -498,8 +472,7 @@ unsigned long long simple_strtoull(const char *cp, char **endp,
     result = result * base + value;
     cp++;
   }
-  if (endp)
-    *endp = (char *)cp;
+  if (endp) *endp = (char *)cp;
   return result;
 }
 
@@ -510,16 +483,14 @@ unsigned long long simple_strtoull(const char *cp, char **endp,
  * @base: The number base to use
  */
 long long simple_strtoll(const char *cp, char **endp, unsigned int base) {
-  if (*cp == '-')
-    return -((long long)simple_strtoull(cp + 1, endp, base));
+  if (*cp == '-') return -((long long)simple_strtoull(cp + 1, endp, base));
   return (long long)simple_strtoull(cp, endp, base);
 }
 
 static int skip_atoi(const char **s) {
   int i = 0;
 
-  while (is_digit(**s))
-    i = i * 10 + *((*s)++) - '0';
+  while (is_digit(**s)) i = i * 10 + *((*s)++) - '0';
   return i;
 }
 
@@ -553,38 +524,31 @@ int vsscanf(const char *buf, const char *fmt, va_list args) {
      * white space, including none, in the input.
      */
     if (is_space(*fmt)) {
-      while (is_space(*fmt))
-        ++fmt;
-      while (is_space(*str))
-        ++str;
+      while (is_space(*fmt)) ++fmt;
+      while (is_space(*str)) ++str;
     }
 
     /* anything that is not a conversion must match exactly */
     if (*fmt != '%' && *fmt) {
-      if (*fmt++ != *str++)
-        break;
+      if (*fmt++ != *str++) break;
       continue;
     }
 
-    if (!*fmt)
-      break;
+    if (!*fmt) break;
     ++fmt;
 
     /* skip this conversion.
      * advance both strings to next white space
      */
     if (*fmt == '*') {
-      while (!is_space(*fmt) && *fmt)
-        fmt++;
-      while (!is_space(*str) && *str)
-        str++;
+      while (!is_space(*fmt) && *fmt) fmt++;
+      while (!is_space(*str) && *str) str++;
       continue;
     }
 
     /* get field width */
     field_width = -1;
-    if (is_digit(*fmt))
-      field_width = skip_atoi(&fmt);
+    if (is_digit(*fmt)) field_width = skip_atoi(&fmt);
 
     /* get conversion qualifier */
     qualifier = -1;
@@ -604,75 +568,68 @@ int vsscanf(const char *buf, const char *fmt, va_list args) {
     base = 10;
     is_sign = 0;
 
-    if (!*fmt || !*str)
-      break;
+    if (!*fmt || !*str) break;
 
     switch (*fmt++) {
-    case 'c': {
-      char *s = (char *)va_arg(args, char *);
-      if (field_width == -1)
-        field_width = 1;
-      do {
-        *s++ = *str++;
-      } while (--field_width > 0 && *str);
-      num++;
-    }
-      continue;
-    case 's': {
-      char *s = (char *)va_arg(args, char *);
-      if (field_width == -1)
-        field_width = numeric<s32>::max();
-      /* first, skip leading white space in buffer */
-      while (is_space(*str))
-        str++;
+      case 'c': {
+        char *s = (char *)va_arg(args, char *);
+        if (field_width == -1) field_width = 1;
+        do {
+          *s++ = *str++;
+        } while (--field_width > 0 && *str);
+        num++;
+      }
+        continue;
+      case 's': {
+        char *s = (char *)va_arg(args, char *);
+        if (field_width == -1) field_width = numeric<s32>::max();
+        /* first, skip leading white space in buffer */
+        while (is_space(*str)) str++;
 
-      /* now copy until next white space */
-      while (*str && !is_space(*str) && field_width--) {
-        *s++ = *str++;
+        /* now copy until next white space */
+        while (*str && !is_space(*str) && field_width--) {
+          *s++ = *str++;
+        }
+        *s = '\0';
+        num++;
       }
-      *s = '\0';
-      num++;
-    }
-      continue;
-    case 'n':
-      /* return number of characters read so far */
-      {
-        int *i = (int *)va_arg(args, int *);
-        *i = (int)(str - buf);
-      }
-      continue;
-    case 'o':
-      base = 8;
-      break;
-    case 'x':
-    case 'X':
-      base = 16;
-      break;
-    case 'i':
-      base = 0;
-    case 'd':
-      is_sign = 1;
-    case 'u':
-      break;
-    case '%':
-      /* looking for '%' in str */
-      if (*str++ != '%')
+        continue;
+      case 'n':
+        /* return number of characters read so far */
+        {
+          int *i = (int *)va_arg(args, int *);
+          *i = (int)(str - buf);
+        }
+        continue;
+      case 'o':
+        base = 8;
+        break;
+      case 'x':
+      case 'X':
+        base = 16;
+        break;
+      case 'i':
+        base = 0;
+      case 'd':
+        is_sign = 1;
+      case 'u':
+        break;
+      case '%':
+        /* looking for '%' in str */
+        if (*str++ != '%') return num;
+        continue;
+      default:
+        /* invalid format; stop here */
         return num;
-      continue;
-    default:
-      /* invalid format; stop here */
-      return num;
     }
 
     /* have some sort of integer conversion.
      * first, skip white space in buffer.
      */
-    while (is_space(*str))
-      str++;
+    while (is_space(*str)) str++;
 
     digit = *str;
-    if (is_sign && digit == '-')
-      digit = *(str + 1);
+    if (is_sign && digit == '-') digit = *(str + 1);
 
     if (!digit || (base == 16 && !is_hex_digit(digit)) ||
         (base == 10 && !is_digit(digit)) ||
@@ -681,62 +638,61 @@ int vsscanf(const char *buf, const char *fmt, va_list args) {
       break;
 
     switch (qualifier) {
-    case 'H': /* that's 'hh' in format */
-      if (is_sign) {
-        signed char *s = (signed char *)va_arg(args, signed char *);
-        *s = (signed char)simple_strtol(str, &next, base);
-      } else {
-        unsigned char *s = (unsigned char *)va_arg(args, unsigned char *);
-        *s = (unsigned char)simple_strtoul(str, &next, base);
-      }
-      break;
-    case 'h':
-      if (is_sign) {
-        short *s = (short *)va_arg(args, short *);
-        *s = (short)simple_strtol(str, &next, base);
-      } else {
-        unsigned short *s = (unsigned short *)va_arg(args, unsigned short *);
-        *s = (unsigned short)simple_strtoul(str, &next, base);
-      }
-      break;
-    case 'l':
-      if (is_sign) {
-        long *l = (long *)va_arg(args, long *);
-        *l = simple_strtol(str, &next, base);
-      } else {
-        unsigned long *l = (unsigned long *)va_arg(args, unsigned long *);
-        *l = simple_strtoul(str, &next, base);
-      }
-      break;
-    case 'L':
-      if (is_sign) {
-        long long *l = (long long *)va_arg(args, long long *);
-        *l = simple_strtoll(str, &next, base);
-      } else {
-        unsigned long long *l =
-            (unsigned long long *)va_arg(args, unsigned long long *);
-        *l = simple_strtoull(str, &next, base);
-      }
-      break;
-    case 'Z':
-    case 'z': {
-      size_t *s = (size_t *)va_arg(args, size_t *);
-      *s = (size_t)simple_strtoul(str, &next, base);
-    } break;
-    default:
-      if (is_sign) {
-        int *i = (int *)va_arg(args, int *);
-        *i = (int)simple_strtol(str, &next, base);
-      } else {
-        unsigned int *i = (unsigned int *)va_arg(args, unsigned int *);
-        *i = (unsigned int)simple_strtoul(str, &next, base);
-      }
-      break;
+      case 'H': /* that's 'hh' in format */
+        if (is_sign) {
+          signed char *s = (signed char *)va_arg(args, signed char *);
+          *s = (signed char)simple_strtol(str, &next, base);
+        } else {
+          unsigned char *s = (unsigned char *)va_arg(args, unsigned char *);
+          *s = (unsigned char)simple_strtoul(str, &next, base);
+        }
+        break;
+      case 'h':
+        if (is_sign) {
+          short *s = (short *)va_arg(args, short *);
+          *s = (short)simple_strtol(str, &next, base);
+        } else {
+          unsigned short *s = (unsigned short *)va_arg(args, unsigned short *);
+          *s = (unsigned short)simple_strtoul(str, &next, base);
+        }
+        break;
+      case 'l':
+        if (is_sign) {
+          long *l = (long *)va_arg(args, long *);
+          *l = simple_strtol(str, &next, base);
+        } else {
+          unsigned long *l = (unsigned long *)va_arg(args, unsigned long *);
+          *l = simple_strtoul(str, &next, base);
+        }
+        break;
+      case 'L':
+        if (is_sign) {
+          long long *l = (long long *)va_arg(args, long long *);
+          *l = simple_strtoll(str, &next, base);
+        } else {
+          unsigned long long *l =
+              (unsigned long long *)va_arg(args, unsigned long long *);
+          *l = simple_strtoull(str, &next, base);
+        }
+        break;
+      case 'Z':
+      case 'z': {
+        size_t *s = (size_t *)va_arg(args, size_t *);
+        *s = (size_t)simple_strtoul(str, &next, base);
+      } break;
+      default:
+        if (is_sign) {
+          int *i = (int *)va_arg(args, int *);
+          *i = (int)simple_strtol(str, &next, base);
+        } else {
+          unsigned int *i = (unsigned int *)va_arg(args, unsigned int *);
+          *i = (unsigned int)simple_strtoul(str, &next, base);
+        }
+        break;
     }
     num++;
 
-    if (!next)
-      break;
+    if (!next) break;
     str = next;
   }
   return num;

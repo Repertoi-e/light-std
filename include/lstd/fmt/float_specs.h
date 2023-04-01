@@ -7,15 +7,15 @@ LSTD_BEGIN_NAMESPACE
 // @Locale
 struct fmt_float_specs {
   enum format {
-    GENERAL, // General: chooses exponent notation or fixed point based on
-             // magnitude.
-    EXP,     // Exponent notation with the default precision of 6, e.g. 1.2e-3.
-    FIXED,   // Fixed point with the default precision of 6, e.g. 0.0012.
+    GENERAL,  // General: chooses exponent notation or fixed point based on
+              // magnitude.
+    EXP,      // Exponent notation with the default precision of 6, e.g. 1.2e-3.
+    FIXED,    // Fixed point with the default precision of 6, e.g. 0.0012.
     HEX
   };
 
-  bool
-      ShowPoint; // Whether to add a decimal point (even if no digits follow it)
+  bool ShowPoint;  // Whether to add a decimal point (even if no digits follow
+                   // it)
 
   format Format;
   bool Upper;
@@ -29,63 +29,65 @@ inline fmt_float_specs fmt_parse_float_specs(fmt_interp *p,
   result.Upper = false;
 
   switch (specs.Type) {
-  case 0:
-    result.Format = fmt_float_specs::GENERAL;
-    // result.ShowPoint = true;  // :PythonLikeConsistency: See other note with
-    // this tag in fmt.context.ixx
-    break;
-  case 'G':
-    result.Upper = true;
-    [[fallthrough]];
-  case 'g':
-    result.Format = fmt_float_specs::GENERAL;
-    break;
-  case 'E':
-    result.Upper = true;
-    [[fallthrough]];
-  case 'e':
-    result.Format = fmt_float_specs::EXP;
-    result.ShowPoint |= specs.Precision != 0;
-    break;
-  case 'F':
-    result.Upper = true;
-    [[fallthrough]];
-  case '%': // When the spec is '%' we display the number with fixed format and
-            // multiply it by 100
-    [[fallthrough]];
-  case 'f':
-    result.Format = fmt_float_specs::FIXED;
-    result.ShowPoint |= specs.Precision != 0;
-    break;
-  case 'A':
-    result.Upper = true;
-    [[fallthrough]];
-  case 'a':
-    result.Format = fmt_float_specs::HEX;
-    break;
-  default:
-    on_error(p, "Invalid type specifier for a f32",
-             p->It.Data - p->FormatString.Data - 1);
-    break;
+    case 0:
+      result.Format = fmt_float_specs::GENERAL;
+      // result.ShowPoint = true;  // :PythonLikeConsistency: See other note
+      // with this tag in fmt.context.ixx
+      break;
+    case 'G':
+      result.Upper = true;
+      [[fallthrough]];
+    case 'g':
+      result.Format = fmt_float_specs::GENERAL;
+      break;
+    case 'E':
+      result.Upper = true;
+      [[fallthrough]];
+    case 'e':
+      result.Format = fmt_float_specs::EXP;
+      result.ShowPoint |= specs.Precision != 0;
+      break;
+    case 'F':
+      result.Upper = true;
+      [[fallthrough]];
+    case '%':  // When the spec is '%' we display the number with fixed format
+               // and multiply it by 100
+      [[fallthrough]];
+    case 'f':
+      result.Format = fmt_float_specs::FIXED;
+      result.ShowPoint |= specs.Precision != 0;
+      break;
+    case 'A':
+      result.Upper = true;
+      [[fallthrough]];
+    case 'a':
+      result.Format = fmt_float_specs::HEX;
+      break;
+    default:
+      on_error(p, "Invalid type specifier for a f32",
+               p->It.Data - p->FormatString.Data - 1);
+      break;
   }
   return result;
 }
 
 // Used to store a floating point number as F * pow(2, E), where F is the
 // significand and E is the exponent. Used by both Dragonbox and Grisu.
-template <is_floating_point F> struct decimal_fp {
+template <is_floating_point F>
+struct decimal_fp {
   using significand_t = type_select_t<sizeof(F) == sizeof(f32), u32, u64>;
 
   significand_t Significand;
   s32 Exponent;
-  s32 MantissaBit; // Required by dragon4
+  s32 MantissaBit;  // Required by dragon4
 };
 
 using fp = decimal_fp<f64>;
 
 // Assigns _d_ to this and return true if predecessor is closer than successor
 // (is the high margin twice as large as the low margin).
-template <is_floating_point F> bool fp_assign_new(fp &f, F newValue) {
+template <is_floating_point F>
+bool fp_assign_new(fp &f, F newValue) {
   u64 implicitBit = 1ull << numeric<F>::bits_mantissa;
   u64 significandMask = implicitBit - 1;
 
@@ -106,8 +108,8 @@ template <is_floating_point F> bool fp_assign_new(fp &f, F newValue) {
     f.Significand += implicitBit;
     f.MantissaBit = numeric<F>::bits_mantissa;
   } else {
-    biasedExp = 1; // Subnormals use biased exponent 1 (min exponent).
-    f.MantissaBit = msb(f.Significand | 1); // Integer log2
+    biasedExp = 1;  // Subnormals use biased exponent 1 (min exponent).
+    f.MantissaBit = msb(f.Significand | 1);  // Integer log2
   }
   f.Exponent =
       biasedExp - numeric<F>::exponent_bias - numeric<F>::bits_mantissa;
@@ -116,7 +118,8 @@ template <is_floating_point F> bool fp_assign_new(fp &f, F newValue) {
 }
 
 // Normalizes the value converted from double and multiplied by (1 << SHIFT).
-template <s32 SHIFT> fp fp_normalize(fp value) {
+template <s32 SHIFT>
+fp fp_normalize(fp value) {
   const u64 IMPLICIT_BIT = 1ull << numeric<f64>::bits_mantissa;
 
   // Handle subnormals.

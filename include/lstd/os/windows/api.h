@@ -46,9 +46,9 @@ using HRESULT = u32;
 // function to prevent double evaluation of 'x'. If you still need the macro,
 // you can use __HRESULT_FROM_WIN32(x)
 //
-#define __HRESULT_FROM_WIN32(x)                                                \
-  ((HRESULT)(x) <= 0                                                           \
-       ? ((HRESULT)(x))                                                        \
+#define __HRESULT_FROM_WIN32(x) \
+  ((HRESULT)(x) <= 0            \
+       ? ((HRESULT)(x))         \
        : ((HRESULT)(((x)&0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000)))
 always_inline HRESULT HRESULT_FROM_WIN32(unsigned long x) {
   return (HRESULT)x <= 0
@@ -62,7 +62,7 @@ always_inline HRESULT HRESULT_FROM_WIN32(unsigned long x) {
 
 #define INVALID_HANDLE_VALUE ((void *)(-1))
 
-// TODO: 32 bits 
+// TODO: 32 bits
 
 using BYTE = u8;
 using PBYTE = u8 *;
@@ -193,19 +193,19 @@ typedef struct _OSVERSIONINFOEXW {
 #define VER_LESS 4
 #define VER_LESS_EQUAL 5
 
-#define _WIN32_WINNT_NT4 0x0400          // Windows NT 4.0
-#define _WIN32_WINNT_WIN2K 0x0500        // Windows 2000
-#define _WIN32_WINNT_WINXP 0x0501        // Windows XP
-#define _WIN32_WINNT_WS03 0x0502         // Windows Server 2003
-#define _WIN32_WINNT_WIN6 0x0600         // Windows Vista
-#define _WIN32_WINNT_VISTA 0x0600        // Windows Vista
-#define _WIN32_WINNT_WS08 0x0600         // Windows Server 2008
-#define _WIN32_WINNT_LONGHORN 0x0600     // Windows Vista
-#define _WIN32_WINNT_WIN7 0x0601         // Windows 7
-#define _WIN32_WINNT_WIN8 0x0602         // Windows 8
-#define _WIN32_WINNT_WINBLUE 0x0603      // Windows 8.1
-#define _WIN32_WINNT_WINTHRESHOLD 0x0A00 // Windows 10
-#define _WIN32_WINNT_WIN10 0x0A00        // Windows 10
+#define _WIN32_WINNT_NT4 0x0400           // Windows NT 4.0
+#define _WIN32_WINNT_WIN2K 0x0500         // Windows 2000
+#define _WIN32_WINNT_WINXP 0x0501         // Windows XP
+#define _WIN32_WINNT_WS03 0x0502          // Windows Server 2003
+#define _WIN32_WINNT_WIN6 0x0600          // Windows Vista
+#define _WIN32_WINNT_VISTA 0x0600         // Windows Vista
+#define _WIN32_WINNT_WS08 0x0600          // Windows Server 2008
+#define _WIN32_WINNT_LONGHORN 0x0600      // Windows Vista
+#define _WIN32_WINNT_WIN7 0x0601          // Windows 7
+#define _WIN32_WINNT_WIN8 0x0602          // Windows 8
+#define _WIN32_WINNT_WINBLUE 0x0603       // Windows 8.1
+#define _WIN32_WINNT_WINTHRESHOLD 0x0A00  // Windows 10
+#define _WIN32_WINNT_WIN10 0x0A00         // Windows 10
 
 #define NTSYSAPI __declspec(dllimport)
 
@@ -813,10 +813,10 @@ typedef struct _DEV_BROADCAST_HDR {
 #define HIDWORD(dw, hw) LOWORD(dw) | (hw << 16)
 #define LODWORD(dw, lw) (HIWORD(dw) << 16) | lw
 
-#define POINTSTOPOINT(pt, pts)                                                 \
-  {                                                                            \
-    (pt).x = (LONG)(SHORT)LOWORD(*(LONG *)&pts);                               \
-    (pt).y = (LONG)(SHORT)HIWORD(*(LONG *)&pts);                               \
+#define POINTSTOPOINT(pt, pts)                   \
+  {                                              \
+    (pt).x = (LONG)(SHORT)LOWORD(*(LONG *)&pts); \
+    (pt).y = (LONG)(SHORT)HIWORD(*(LONG *)&pts); \
   }
 
 #define POINTTOPOINTS(pt) (MAKELONG((short)((pt).x), (short)((pt).y)))
@@ -959,8 +959,8 @@ typedef struct _DEV_BROADCAST_HDR {
 /*
  * Common Window Styles
  */
-#define WS_OVERLAPPEDWINDOW                                                    \
-  (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX |  \
+#define WS_OVERLAPPEDWINDOW                                                   \
+  (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | \
    WS_MAXIMIZEBOX)
 
 #define WS_POPUPWINDOW (WS_POPUP | WS_BORDER | WS_SYSMENU)
@@ -994,7 +994,7 @@ typedef struct _DEV_BROADCAST_HDR {
 #define WS_EX_LAYERED 0x00080000L
 
 #define WS_EX_OVERLAPPEDWINDOW (WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE)
-#define WS_EX_PALETTEWINDOW                                                    \
+#define WS_EX_PALETTEWINDOW \
   (WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST)
 
 #define CW_USEDEFAULT ((int)0x80000000)
@@ -1602,18 +1602,18 @@ DWORD FormatMessageW(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId,
  * Special identifiers
  */
 
-#define LANG_NEUTRAL 0x00        // Default custom (MUI) locale language
-#define LANG_USER_DEFAULT 0x01   // User default locale language
-#define LANG_SYSTEM_DEFAULT 0x02 // System default locale language
-#define LANG_INVARIANT 0x7F      // Invariant locale language
+#define LANG_NEUTRAL 0x00         // Default custom (MUI) locale language
+#define LANG_USER_DEFAULT 0x01    // User default locale language
+#define LANG_SYSTEM_DEFAULT 0x02  // System default locale language
+#define LANG_INVARIANT 0x7F       // Invariant locale language
 
-#define SUBLANG_NEUTRAL 0x00            // Neutral sublanguage
-#define SUBLANG_INVARIANT 0x00          // Invariant sublanguage
-#define SUBLANG_DEFAULT 0x01            // User default sublanguage
-#define SUBLANG_SYS_DEFAULT 0x02        // System default sublanguage
-#define SUBLANG_CUSTOM_DEFAULT 0x03     // Default custom sublanguage
-#define SUBLANG_CUSTOM_UNSPECIFIED 0x04 // Unspecified custom sublanguage
-#define SUBLANG_UI_CUSTOM_DEFAULT 0x05  // Default custom MUI sublanguage
+#define SUBLANG_NEUTRAL 0x00             // Neutral sublanguage
+#define SUBLANG_INVARIANT 0x00           // Invariant sublanguage
+#define SUBLANG_DEFAULT 0x01             // User default sublanguage
+#define SUBLANG_SYS_DEFAULT 0x02         // System default sublanguage
+#define SUBLANG_CUSTOM_DEFAULT 0x03      // Default custom sublanguage
+#define SUBLANG_CUSTOM_UNSPECIFIED 0x04  // Unspecified custom sublanguage
+#define SUBLANG_UI_CUSTOM_DEFAULT 0x05   // Default custom MUI sublanguage
 
 typedef VOID(NTAPI *PIMAGE_TLS_CALLBACK)(PVOID DllHandle, DWORD Reason,
                                          PVOID Reserved);
@@ -1630,10 +1630,10 @@ typedef enum _EXCEPTION_DISPOSITION {
   ExceptionCollidedUnwind = 3
 } EXCEPTION_DISPOSITION;
 
-#define IMAGE_DOS_SIGNATURE 0x5A4D    // MZ
-#define IMAGE_OS2_SIGNATURE 0x454E    // NE
-#define IMAGE_OS2_SIGNATURE_LE 0x454C // LE
-#define IMAGE_NT_SIGNATURE 0x00004550 // PE00
+#define IMAGE_DOS_SIGNATURE 0x5A4D     // MZ
+#define IMAGE_OS2_SIGNATURE 0x454E     // NE
+#define IMAGE_OS2_SIGNATURE_LE 0x454C  // LE
+#define IMAGE_NT_SIGNATURE 0x00004550  // PE00
 
 typedef struct _IMAGE_FILE_HEADER {
   WORD Machine;
@@ -1712,10 +1712,10 @@ typedef struct _IMAGE_SECTION_HEADER {
   DWORD Characteristics;
 } IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
 
-#define IMAGE_FIRST_SECTION(ntheader)                                          \
-  ((PIMAGE_SECTION_HEADER)((ULONG_PTR)ntheader +                               \
-                           offset_of(IMAGE_NT_HEADERS64, OptionalHeader) +     \
-                           ((PIMAGE_NT_HEADERS64)(ntheader))                   \
+#define IMAGE_FIRST_SECTION(ntheader)                                      \
+  ((PIMAGE_SECTION_HEADER)((ULONG_PTR)ntheader +                           \
+                           offset_of(IMAGE_NT_HEADERS64, OptionalHeader) + \
+                           ((PIMAGE_NT_HEADERS64)(ntheader))               \
                                ->FileHeader.SizeOfOptionalHeader))
 #define IMAGE_SCN_MEM_WRITE 0x80000000
 
@@ -1748,9 +1748,9 @@ typedef struct _RTL_CRITICAL_SECTION {
 
   LONG LockCount;
   LONG RecursionCount;
-  HANDLE OwningThread; // from the thread's ClientId->UniqueThread
+  HANDLE OwningThread;  // from the thread's ClientId->UniqueThread
   HANDLE LockSemaphore;
-  ULONG_PTR SpinCount; // force size on 64-bit systems when packed
+  ULONG_PTR SpinCount;  // force size on 64-bit systems when packed
 } RTL_CRITICAL_SECTION, *PRTL_CRITICAL_SECTION;
 
 typedef RTL_CRITICAL_SECTION CRITICAL_SECTION;
@@ -1827,7 +1827,7 @@ void Sleep(DWORD dwMilliseconds);
 // SEH intrinsics
 #define GetExceptionCode _exception_code
 #define exception_code _exception_code
-#define GetExceptionInformation()                                              \
+#define GetExceptionInformation() \
   ((struct _EXCEPTION_POINTERS *)_exception_info())
 #define exception_info() ((struct _EXCEPTION_POINTERS *)_exception_info())
 #define AbnormalTermination _abnormal_termination
@@ -1950,8 +1950,8 @@ BOOL ChangeWindowMessageFilterEx(HWND hwnd, UINT message, DWORD action,
 #define LWA_COLORKEY 0x00000001
 #define LWA_ALPHA 0x00000002
 
-#define RGB(r, g, b)                                                           \
-  ((COLORREF)(((BYTE)(r) | ((WORD)((BYTE)(g)) << 8)) |                         \
+#define RGB(r, g, b)                                   \
+  ((COLORREF)(((BYTE)(r) | ((WORD)((BYTE)(g)) << 8)) | \
               (((DWORD)(BYTE)(b)) << 16)))
 
 #define RDW_INVALIDATE 0x0001
@@ -2587,28 +2587,27 @@ void windows_report_hresult_error(
 LSTD_END_NAMESPACE
 
 // If the returned HRESULT is less than zero, reports an error.
-#define WIN32_CHECK_HR(result, call)                                           \
-  u32 result = call;                                                           \
-  if (result < 0)                                                              \
-    LSTD_NAMESPACE::windows_report_hresult_error(result, #call);
+#define WIN32_CHECK_HR(result, call) \
+  u32 result = call;                 \
+  if (result < 0) LSTD_NAMESPACE::windows_report_hresult_error(result, #call);
 
 // If the returned is false, reports an error.
-#define WIN32_CHECK_BOOL(result, call)                                         \
-  auto result = call;                                                          \
-  if (!result)                                                                 \
-    LSTD_NAMESPACE::windows_report_hresult_error(                              \
+#define WIN32_CHECK_BOOL(result, call)            \
+  auto result = call;                             \
+  if (!result)                                    \
+    LSTD_NAMESPACE::windows_report_hresult_error( \
         HRESULT_FROM_WIN32(GetLastError()), #call);
 
-#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)             \
-  HANDLE handleName = call;                                                    \
-  if (handleName == INVALID_HANDLE_VALUE) {                                    \
-    string extendedCallSite = sprint(                                          \
-        "{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path);  \
-    char *cStr = to_c_string(extendedCallSite);                                \
-    windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);    \
-    free(extendedCallSite);                                                    \
-    free(cStr);                                                                \
-    return returnOnFail;                                                       \
+#define CREATE_FILE_HANDLE_CHECKED(handleName, call, returnOnFail)            \
+  HANDLE handleName = call;                                                   \
+  if (handleName == INVALID_HANDLE_VALUE) {                                   \
+    string extendedCallSite = sprint(                                         \
+        "{}\n        (the path was: {!YELLOW}\"{}\"{!GRAY})\n", #call, path); \
+    char *cStr = to_c_string(extendedCallSite);                               \
+    windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);   \
+    free(extendedCallSite);                                                   \
+    free(cStr);                                                               \
+    return returnOnFail;                                                      \
   }
 
 // DX_CHECK is used for checking directx calls. The difference from
@@ -2620,8 +2619,8 @@ LSTD_END_NAMESPACE
 #define DX_CHECK(call) call
 #endif
 
-#define COM_SAFE_RELEASE(x)                                                    \
-  if (x) {                                                                     \
-    x->Release();                                                              \
-    x = null;                                                                  \
+#define COM_SAFE_RELEASE(x) \
+  if (x) {                  \
+    x->Release();           \
+    x = null;               \
   }

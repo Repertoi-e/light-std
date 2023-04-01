@@ -11,10 +11,10 @@
 **
 ** This implementation was written to the specification
 ** of the document, therefore no GPL restrictions apply.
-** 
+**
 ** Copyright (c) 2006-2016, Matthew Conte
 ** All rights reserved.
-** 
+**
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
 **     * Redistributions of source code must retain the above copyright
@@ -25,8 +25,9 @@
 **     * Neither the name of the copyright holder nor the
 **       names of its contributors may be used to endorse or promote products
 **       derived from this software without specific prior written permission.
-** 
-** THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+**
+** THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+*AND
 ** ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 ** WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 ** DISCLAIMED. IN NO EVENT SHALL MATTHEW CONTE BE LIABLE FOR ANY
@@ -41,8 +42,9 @@
 //
 // This source was downloaded from https://github.com/mattconte/tlsf.
 // We provide a thin wrapper for this in memory/tlsf_allocator.h
-// You can still use this (as all "vendor" libraries we use within this library) raw.
-// Note: The realloc function has been changed (renamed to resize, different behaviour)! 
+// You can still use this (as all "vendor" libraries we use within this library)
+// raw. Note: The realloc function has been changed (renamed to resize,
+// different behaviour)!
 //       See comments in tlsf.cpp
 //
 
@@ -69,10 +71,14 @@ void tlsf_remove_pool(tlsf_t tlsf, pool_t pool);
 
 /* malloc/memalign/realloc/free replacements. */
 void *tlsf_malloc(tlsf_t tlsf, u64 bytes);
-// void* tlsf_memalign(tlsf_t tlsf, u64 align, u64 bytes); // :WEMODIFIED: We handle alignment in our allocate/reallocate. 
-// Just a note to not use this if you didn't know that we handled alignment automatically. 
-// If you meant to use this function, use this declaration - the implementation is still there in tlsf.cpp
-void *tlsf_resize(tlsf_t tlsf, void *ptr, u64 size); // :WEMODIFIED: Renamed this from realloc to resize. See comments in tlsf.cpp
+// void* tlsf_memalign(tlsf_t tlsf, u64 align, u64 bytes); // :WEMODIFIED: We
+// handle alignment in our allocate/reallocate. Just a note to not use this if
+// you didn't know that we handled alignment automatically. If you meant to use
+// this function, use this declaration - the implementation is still there in
+// tlsf.cpp
+void *tlsf_resize(tlsf_t tlsf, void *ptr,
+                  u64 size);  // :WEMODIFIED: Renamed this from realloc to
+                              // resize. See comments in tlsf.cpp
 void tlsf_free(tlsf_t tlsf, void *ptr);
 
 /* Returns internal block size, not original request size */

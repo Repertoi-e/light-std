@@ -10,8 +10,8 @@
 
 LSTD_BEGIN_NAMESPACE
 
-inline mark_as_leak array<string>
-path_split_into_components(string path, string seps = "\\/") {
+inline mark_as_leak array<string> path_split_into_components(
+    string path, string seps = "\\/") {
   array<string> result;
   reserve(result);
 
@@ -42,16 +42,14 @@ struct path_split_extension_result {
   string Root, Extension;
 };
 
-inline path_split_extension_result
-path_split_extension_general(string path, code_point sep, code_point altSep,
-                             code_point extensionSep) {
+inline path_split_extension_result path_split_extension_general(
+    string path, code_point sep, code_point altSep, code_point extensionSep) {
   s64 sepIndex =
       search(path, sep, search_options{.Start = -1, .Reversed = true});
   if (altSep) {
     s64 altSepIndex =
         search(path, altSep, search_options{.Start = -1, .Reversed = true});
-    if (altSepIndex > sepIndex)
-      sepIndex = altSepIndex;
+    if (altSepIndex > sepIndex) sepIndex = altSepIndex;
   }
 
   // Most OSes use a dot to separate extensions but we support other characters

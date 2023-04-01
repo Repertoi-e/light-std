@@ -25,14 +25,14 @@
 #define MACOS 2
 #define LINUX 3
 #define ANDROID 4
-#define NO_OS 5 
+#define NO_OS 5
 
 #if defined LSTD_NO_OS
 #define OS NO_OS
 #endif
 
 #ifndef OS
-#if defined linux || defined __linux || defined __linux__ ||                   \
+#if defined linux || defined __linux || defined __linux__ || \
     defined __GNU__ || defined __GLIBC__
 #define OS LINUX
 #define OS_STRING "Linux"
@@ -65,7 +65,7 @@
 
 #if defined __pnacl__ || defined __CLR_VER
 #define ARCH VM
-#elif defined _M_X64 || defined __x86_64__ || defined _M_IX86 ||               \
+#elif defined _M_X64 || defined __x86_64__ || defined _M_IX86 || \
     defined __i386__
 #define ARCH X86
 #elif defined __arm__ || defined _M_ARM || __aarch64__
@@ -95,7 +95,7 @@
 #define MIPS_MSA defined __mips_msa)
 #endif
 
-#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ ||             \
+#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ || \
     defined __mips64 || defined __powerpc64__ || defined __ppc64__
 #define BITS 64
 #else

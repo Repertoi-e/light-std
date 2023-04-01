@@ -25,7 +25,8 @@ LSTD_BEGIN_NAMESPACE
 // Functionality for dynamic arrays and array views is implemented in
 // array_like.h
 //
-template <typename T> struct array {
+template <typename T>
+struct array {
   T *Data = null;
   s64 Count = 0;
   s64 Allocated = 0;
@@ -53,7 +54,8 @@ template <typename T> struct array {
   }
 };
 
-template <typename T> mark_as_leak array<T> make_array(T *data, s64 count) {
+template <typename T>
+mark_as_leak array<T> make_array(T *data, s64 count) {
   array<T> result;
   reserve(result, count);
   add(result, data, count);
@@ -66,11 +68,13 @@ mark_as_leak array<T> make_array(initializer_list<T> items) {
 }
 
 // Returns a deep copy of _src_
-template <typename T> mark_as_leak array<T> clone(array<T> no_copy src) {
+template <typename T>
+mark_as_leak array<T> clone(array<T> no_copy src) {
   return make_array(src.Data, src.Count);
 }
 
-template <typename T> void free(array<T> ref arr) {
+template <typename T>
+void free(array<T> ref arr) {
   free(arr.Data);
   arr.Count = arr.Allocated = 0;
 }

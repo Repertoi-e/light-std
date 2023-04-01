@@ -16,10 +16,10 @@ LSTD_BEGIN_NAMESPACE
 //   '^' - Forces the field to be centered within the available space
 enum class fmt_alignment {
   NONE = 0,
-  LEFT,    // <
-  RIGHT,   // >
-  NUMERIC, // =
-  CENTER   // ^
+  LEFT,     // <
+  RIGHT,    // >
+  NUMERIC,  // =
+  CENTER    // ^
 };
 
 // The 'sign' option is only valid for numeric types, and can be one of the

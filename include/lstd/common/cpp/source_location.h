@@ -15,10 +15,9 @@ struct source_location {
   constexpr source_location() {}
 
   // Uses built-in compiler functions.
-  static consteval source_location
-  current(const char *file = __builtin_FILE(),
-          const char *func = __builtin_FUNCTION(),
-          int line = __builtin_LINE()) {
+  static consteval source_location current(
+      const char *file = __builtin_FILE(),
+      const char *func = __builtin_FUNCTION(), int line = __builtin_LINE()) {
     source_location loc;
     loc.File = file;
     loc.Function = func;

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../common.h"
-#include "../../string.h"
 #include "../../fmt.h"
+#include "../../string.h"
 #include "api.h"
 #include "thread.h"
 
@@ -63,7 +63,7 @@ struct win32_memory_state {
   allocator TempAlloc;
   arena_allocator_data TempAllocData;
 
-  mutex TempAllocMutex; // @TODO: Remove
+  mutex TempAllocMutex;  // @TODO: Remove
 };
 
 // :GlobalStateNoConstructors:
@@ -73,16 +73,14 @@ static byte Win32MemoryState[sizeof(win32_memory_state)];
 #define S ((win32_memory_state *)&Win32MemoryState[0])
 
 // @TODO: Print call stack
-inline void
-platform_report_warning(string message,
-                        source_location loc = source_location::current()) {
+inline void platform_report_warning(
+    string message, source_location loc = source_location::current()) {
   print(">>> {!YELLOW}Platform warning{!} {}:{} (in function: {}): {}.\n",
         loc.File, loc.Line, loc.Function, message);
 }
 
-inline void
-platform_report_error(string message,
-                      source_location loc = source_location::current()) {
+inline void platform_report_error(
+    string message, source_location loc = source_location::current()) {
   print(">>> {!RED}Platform error{!} {}:{} (in function: {}): {}.\n", loc.File,
         loc.Line, loc.Function, message);
 }
@@ -135,8 +133,9 @@ inline void *win32_temp_alloc(allocator_mode mode, void *context, s64 size,
       // If we try to allocate a block with size bigger than the temporary
       // storage block, we make a new, larger temporary storage block.
 
-      platform_report_warning("Not enough memory in the temporary allocator "
-                              "block; reallocating the pool");
+      platform_report_warning(
+          "Not enough memory in the temporary allocator "
+          "block; reallocating the pool");
 
       os_free_block(S->TempAllocData.Block);
       create_new_temp_storage_block(size * 2);
@@ -167,7 +166,7 @@ inline void *create_persistent_alloc_page(s64 size) {
 inline void *win32_persistent_alloc(allocator_mode mode, void *context,
                                     s64 size, void *oldMemory, s64 oldSize,
                                     u64 options);
-                                    
+
 // These functions are used by other windows platform files.
 inline allocator platform_get_persistent_allocator() {
   return S->PersistentAlloc;
@@ -208,11 +207,9 @@ inline void platform_uninit_allocators() {
 // This function uses the platform temporary allocator if no explicit allocator
 // was specified.
 inline wchar *platform_utf8_to_utf16(string str, allocator alloc = {}) {
-  if (!str.Count)
-    return null;
+  if (!str.Count) return null;
 
-  if (!alloc)
-    alloc = S->TempAlloc;
+  if (!alloc) alloc = S->TempAlloc;
 
   wchar *result;
   PUSH_ALLOC(alloc) {
@@ -230,8 +227,7 @@ inline wchar *platform_utf8_to_utf16(string str, allocator alloc = {}) {
 inline string platform_utf16_to_utf8(const wchar *str, allocator alloc = {}) {
   string result;
 
-  if (!alloc)
-    alloc = S->TempAlloc;
+  if (!alloc) alloc = S->TempAlloc;
 
   PUSH_ALLOC(alloc) {
     // String length * 4 because one unicode character might take 4 bytes in
@@ -271,18 +267,15 @@ inline void *os_resize_block(void *ptr, s64 newSize) {
   assert(newSize < MAX_ALLOCATION_REQUEST);
 
   s64 oldSize = os_get_block_size(ptr);
-  if (newSize == 0)
-    newSize = 1;
+  if (newSize == 0) newSize = 1;
 
   void *result =
       HeapReAlloc(GetProcessHeap(), HEAP_REALLOC_IN_PLACE_ONLY, ptr, newSize);
-  if (result)
-    return result;
+  if (result) return result;
 
   // If a failure to contract was caused by platform limitations, just return
   // the original block
-  if (newSize < oldSize && !is_contraction_possible(oldSize))
-    return ptr;
+  if (newSize < oldSize && !is_contraction_possible(oldSize)) return ptr;
 
   // HeapReAlloc doesn't set an error
 
@@ -298,30 +291,29 @@ inline s64 os_get_block_size(void *ptr) {
   return result;
 }
 
-#define CREATE_MAPPING_CHECKED(handleName, call)                               \
-  HANDLE handleName = call;                                                    \
-  if (!handleName) {                                                           \
-    string extendedCallSite = sprint(                                          \
-        "{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name);  \
-    char *cStr = to_c_string(extendedCallSite);                                \
-    windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);    \
-    free(cStr);                                                                \
-    free(extendedCallSite);                                                    \
-    return;                                                                    \
+#define CREATE_MAPPING_CHECKED(handleName, call)                              \
+  HANDLE handleName = call;                                                   \
+  if (!handleName) {                                                          \
+    string extendedCallSite = sprint(                                         \
+        "{}\n        (the name was: {!YELLOW}\"{}\"{!GRAY})\n", #call, name); \
+    char *cStr = to_c_string(extendedCallSite);                               \
+    windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()), cStr);   \
+    free(cStr);                                                               \
+    free(extendedCallSite);                                                   \
+    return;                                                                   \
   }
 
 inline void os_write_shared_block(string name, void *data, s64 size) {
   wchar *name16 = platform_utf8_to_utf16(name, S->PersistentAlloc);
   defer(free(name16));
 
-  CREATE_MAPPING_CHECKED(h, CreateFileMappingW(INVALID_HANDLE_VALUE, null,
-                                               PAGE_READWRITE, 0, (DWORD)size,
-                                               name16));
+  CREATE_MAPPING_CHECKED(
+      h, CreateFileMappingW(INVALID_HANDLE_VALUE, null, PAGE_READWRITE, 0,
+                            (DWORD)size, name16));
   defer(CloseHandle(h));
 
   WIN32_CHECK_BOOL(result, MapViewOfFile(h, FILE_MAP_WRITE, 0, 0, size));
-  if (!result)
-    return;
+  if (!result) return;
 
   memcpy((char *)result, (char *)data, size);
   UnmapViewOfFile(result);
@@ -335,8 +327,7 @@ inline void os_read_shared_block(string name, void *out, s64 size) {
   defer(CloseHandle(h));
 
   WIN32_CHECK_BOOL(result, MapViewOfFile(h, FILE_MAP_READ, 0, 0, size));
-  if (!result)
-    return;
+  if (!result) return;
 
   memcpy((char *)out, (char *)result, size);
   UnmapViewOfFile(result);

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "delegate.h"
-#include "stack_array.h"
 #include "memory.h"
+#include "stack_array.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -52,40 +52,34 @@ using c_string_type =
 
 // C++ mess
 template <typename C>
-concept any_c_string =
-    is_pointer<C> &&
-    is_same_to_one_of<c_string_type<C>, char *, wchar *, char8_t *, char16_t *,
-                      char32_t *, code_point *>;
+concept any_c_string = is_pointer<C> && is_same_to_one_of < c_string_type<C>,
+char *, wchar *, char8_t *, char16_t *, char32_t *, code_point * > ;
 
 template <typename C>
 concept any_byte_pointer =
-    is_pointer<C> && is_same_to_one_of<c_string_type<C>, char *, char8_t *,
-                                       unsigned char *, s8 *, u8 *, byte *>;
+    is_pointer<C> && is_same_to_one_of < c_string_type<C>,
+char *, char8_t *, unsigned char *, s8 *, u8 *, byte * > ;
 
 // The length of a null-terminated string. Doesn't care about encoding.
 // Note that this calculation does not include the null byte.
 // @Speed @TODO Vectorize
 s64 c_string_length(any_c_string auto str) {
-  if (!str)
-    return 0;
+  if (!str) return 0;
 
   s64 length = 0;
-  while (*str++)
-    ++length;
+  while (*str++) ++length;
   return length;
 }
 
 // The length (in code points) of a utf-8 string
 // @Speed @TODO Vectorize
 inline s64 utf8_length(const char *str, s64 size) {
-  if (!str || size == 0)
-    return 0;
+  if (!str || size == 0) return 0;
 
   // Count all first-bytes (the ones that don't match 10xxxxxx).
   s64 length = 0;
   while (size--) {
-    if (!((*str++ & 0xc0) == 0x80))
-      ++length;
+    if (!((*str++ & 0xc0) == 0x80)) ++length;
   }
   return length;
 }
@@ -93,20 +87,18 @@ inline s64 utf8_length(const char *str, s64 size) {
 // Returns -1 if strings match, else returns the index of the first different
 // byte
 // @Speed @TODO Vectorize
-template <any_c_string C> s64 compare_string(C one, C other) {
+template <any_c_string C>
+s64 compare_string(C one, C other) {
   assert(one);
   assert(other);
 
-  if (!*one && !*other)
-    return -1;
+  if (!*one && !*other) return -1;
 
   s64 index = 0;
   while (*one == *other) {
     ++one, ++other;
-    if (!*one && !*other)
-      return -1;
-    if (!*one || !*other)
-      return index;
+    if (!*one && !*other) return -1;
+    if (!*one || !*other) return index;
     ++index;
   }
   return index;
@@ -115,12 +107,12 @@ template <any_c_string C> s64 compare_string(C one, C other) {
 // Return -1 if one < other, 0 if one == other and 1 if one > other (not the
 // pointers)
 // @Speed @TODO Vectorize
-template <any_c_string C> s32 compare_string_lexicographically(C one, C other) {
+template <any_c_string C>
+s32 compare_string_lexicographically(C one, C other) {
   assert(one);
   assert(other);
 
-  while (*one && (*one == *other))
-    ++one, ++other;
+  while (*one && (*one == *other)) ++one, ++other;
   return (*one > *other) - (*other > *one);
 }
 
@@ -187,90 +179,48 @@ inline code_point to_upper(code_point cp) {
     return (cp - 1) | 0x1;
   }
 
-  if (cp == 0x00ff)
-    return 0x0178;
-  if (cp == 0x0180)
-    return 0x0243;
-  if (cp == 0x01dd)
-    return 0x018e;
-  if (cp == 0x019a)
-    return 0x023d;
-  if (cp == 0x019e)
-    return 0x0220;
-  if (cp == 0x0292)
-    return 0x01b7;
-  if (cp == 0x01c6)
-    return 0x01c4;
-  if (cp == 0x01c9)
-    return 0x01c7;
-  if (cp == 0x01cc)
-    return 0x01ca;
-  if (cp == 0x01f3)
-    return 0x01f1;
-  if (cp == 0x01bf)
-    return 0x01f7;
-  if (cp == 0x0188)
-    return 0x0187;
-  if (cp == 0x018c)
-    return 0x018b;
-  if (cp == 0x0192)
-    return 0x0191;
-  if (cp == 0x0199)
-    return 0x0198;
-  if (cp == 0x01a8)
-    return 0x01a7;
-  if (cp == 0x01ad)
-    return 0x01ac;
-  if (cp == 0x01b0)
-    return 0x01af;
-  if (cp == 0x01b9)
-    return 0x01b8;
-  if (cp == 0x01bd)
-    return 0x01bc;
-  if (cp == 0x01f5)
-    return 0x01f4;
-  if (cp == 0x023c)
-    return 0x023b;
-  if (cp == 0x0242)
-    return 0x0241;
-  if (cp == 0x037b)
-    return 0x03fd;
-  if (cp == 0x037c)
-    return 0x03fe;
-  if (cp == 0x037d)
-    return 0x03ff;
-  if (cp == 0x03f3)
-    return 0x037f;
-  if (cp == 0x03ac)
-    return 0x0386;
-  if (cp == 0x03ad)
-    return 0x0388;
-  if (cp == 0x03ae)
-    return 0x0389;
-  if (cp == 0x03af)
-    return 0x038a;
-  if (cp == 0x03cc)
-    return 0x038c;
-  if (cp == 0x03cd)
-    return 0x038e;
-  if (cp == 0x03ce)
-    return 0x038f;
-  if (cp == 0x0371)
-    return 0x0370;
-  if (cp == 0x0373)
-    return 0x0372;
-  if (cp == 0x0377)
-    return 0x0376;
-  if (cp == 0x03d1)
-    return 0x03f4;
-  if (cp == 0x03d7)
-    return 0x03cf;
-  if (cp == 0x03f2)
-    return 0x03f9;
-  if (cp == 0x03f8)
-    return 0x03f7;
-  if (cp == 0x03fb)
-    return 0x03fa;
+  if (cp == 0x00ff) return 0x0178;
+  if (cp == 0x0180) return 0x0243;
+  if (cp == 0x01dd) return 0x018e;
+  if (cp == 0x019a) return 0x023d;
+  if (cp == 0x019e) return 0x0220;
+  if (cp == 0x0292) return 0x01b7;
+  if (cp == 0x01c6) return 0x01c4;
+  if (cp == 0x01c9) return 0x01c7;
+  if (cp == 0x01cc) return 0x01ca;
+  if (cp == 0x01f3) return 0x01f1;
+  if (cp == 0x01bf) return 0x01f7;
+  if (cp == 0x0188) return 0x0187;
+  if (cp == 0x018c) return 0x018b;
+  if (cp == 0x0192) return 0x0191;
+  if (cp == 0x0199) return 0x0198;
+  if (cp == 0x01a8) return 0x01a7;
+  if (cp == 0x01ad) return 0x01ac;
+  if (cp == 0x01b0) return 0x01af;
+  if (cp == 0x01b9) return 0x01b8;
+  if (cp == 0x01bd) return 0x01bc;
+  if (cp == 0x01f5) return 0x01f4;
+  if (cp == 0x023c) return 0x023b;
+  if (cp == 0x0242) return 0x0241;
+  if (cp == 0x037b) return 0x03fd;
+  if (cp == 0x037c) return 0x03fe;
+  if (cp == 0x037d) return 0x03ff;
+  if (cp == 0x03f3) return 0x037f;
+  if (cp == 0x03ac) return 0x0386;
+  if (cp == 0x03ad) return 0x0388;
+  if (cp == 0x03ae) return 0x0389;
+  if (cp == 0x03af) return 0x038a;
+  if (cp == 0x03cc) return 0x038c;
+  if (cp == 0x03cd) return 0x038e;
+  if (cp == 0x03ce) return 0x038f;
+  if (cp == 0x0371) return 0x0370;
+  if (cp == 0x0373) return 0x0372;
+  if (cp == 0x0377) return 0x0376;
+  if (cp == 0x03d1) return 0x03f4;
+  if (cp == 0x03d7) return 0x03cf;
+  if (cp == 0x03f2) return 0x03f9;
+  if (cp == 0x03f8) return 0x03f7;
+  if (cp == 0x03fb) return 0x03fa;
 
   // No uppercase!
   return cp;
@@ -307,90 +257,48 @@ inline code_point to_lower(code_point cp) {
     return (cp + 1) & ~0x1;
   }
 
-  if (cp == 0x0178)
-    return 0x00ff;
-  if (cp == 0x0243)
-    return 0x0180;
-  if (cp == 0x018e)
-    return 0x01dd;
-  if (cp == 0x023d)
-    return 0x019a;
-  if (cp == 0x0220)
-    return 0x019e;
-  if (cp == 0x01b7)
-    return 0x0292;
-  if (cp == 0x01c4)
-    return 0x01c6;
-  if (cp == 0x01c7)
-    return 0x01c9;
-  if (cp == 0x01ca)
-    return 0x01cc;
-  if (cp == 0x01f1)
-    return 0x01f3;
-  if (cp == 0x01f7)
-    return 0x01bf;
-  if (cp == 0x0187)
-    return 0x0188;
-  if (cp == 0x018b)
-    return 0x018c;
-  if (cp == 0x0191)
-    return 0x0192;
-  if (cp == 0x0198)
-    return 0x0199;
-  if (cp == 0x01a7)
-    return 0x01a8;
-  if (cp == 0x01ac)
-    return 0x01ad;
-  if (cp == 0x01af)
-    return 0x01b0;
-  if (cp == 0x01b8)
-    return 0x01b9;
-  if (cp == 0x01bc)
-    return 0x01bd;
-  if (cp == 0x01f4)
-    return 0x01f5;
-  if (cp == 0x023b)
-    return 0x023c;
-  if (cp == 0x0241)
-    return 0x0242;
-  if (cp == 0x03fd)
-    return 0x037b;
-  if (cp == 0x03fe)
-    return 0x037c;
-  if (cp == 0x03ff)
-    return 0x037d;
-  if (cp == 0x037f)
-    return 0x03f3;
-  if (cp == 0x0386)
-    return 0x03ac;
-  if (cp == 0x0388)
-    return 0x03ad;
-  if (cp == 0x0389)
-    return 0x03ae;
-  if (cp == 0x038a)
-    return 0x03af;
-  if (cp == 0x038c)
-    return 0x03cc;
-  if (cp == 0x038e)
-    return 0x03cd;
-  if (cp == 0x038f)
-    return 0x03ce;
-  if (cp == 0x0370)
-    return 0x0371;
-  if (cp == 0x0372)
-    return 0x0373;
-  if (cp == 0x0376)
-    return 0x0377;
-  if (cp == 0x03f4)
-    return 0x03d1;
-  if (cp == 0x03cf)
-    return 0x03d7;
-  if (cp == 0x03f9)
-    return 0x03f2;
-  if (cp == 0x03f7)
-    return 0x03f8;
-  if (cp == 0x03fa)
-    return 0x03fb;
+  if (cp == 0x0178) return 0x00ff;
+  if (cp == 0x0243) return 0x0180;
+  if (cp == 0x018e) return 0x01dd;
+  if (cp == 0x023d) return 0x019a;
+  if (cp == 0x0220) return 0x019e;
+  if (cp == 0x01b7) return 0x0292;
+  if (cp == 0x01c4) return 0x01c6;
+  if (cp == 0x01c7) return 0x01c9;
+  if (cp == 0x01ca) return 0x01cc;
+  if (cp == 0x01f1) return 0x01f3;
+  if (cp == 0x01f7) return 0x01bf;
+  if (cp == 0x0187) return 0x0188;
+  if (cp == 0x018b) return 0x018c;
+  if (cp == 0x0191) return 0x0192;
+  if (cp == 0x0198) return 0x0199;
+  if (cp == 0x01a7) return 0x01a8;
+  if (cp == 0x01ac) return 0x01ad;
+  if (cp == 0x01af) return 0x01b0;
+  if (cp == 0x01b8) return 0x01b9;
+  if (cp == 0x01bc) return 0x01bd;
+  if (cp == 0x01f4) return 0x01f5;
+  if (cp == 0x023b) return 0x023c;
+  if (cp == 0x0241) return 0x0242;
+  if (cp == 0x03fd) return 0x037b;
+  if (cp == 0x03fe) return 0x037c;
+  if (cp == 0x03ff) return 0x037d;
+  if (cp == 0x037f) return 0x03f3;
+  if (cp == 0x0386) return 0x03ac;
+  if (cp == 0x0388) return 0x03ad;
+  if (cp == 0x0389) return 0x03ae;
+  if (cp == 0x038a) return 0x03af;
+  if (cp == 0x038c) return 0x03cc;
+  if (cp == 0x038e) return 0x03cd;
+  if (cp == 0x038f) return 0x03ce;
+  if (cp == 0x0370) return 0x0371;
+  if (cp == 0x0372) return 0x0373;
+  if (cp == 0x0376) return 0x0377;
+  if (cp == 0x03f4) return 0x03d1;
+  if (cp == 0x03cf) return 0x03d7;
+  if (cp == 0x03f9) return 0x03f2;
+  if (cp == 0x03f7) return 0x03f8;
+  if (cp == 0x03fa) return 0x03fb;
 
   // No lower case!
   return cp;
@@ -402,20 +310,18 @@ inline bool is_lower(code_point ch) { return ch != to_upper(ch); }
 // Returns -1 if strings match, else returns the index of the first different
 // byte. Ignores the case of the characters.
 // @Speed @TODO Vectorize
-template <any_c_string C> s64 compare_string_ignore_case(C one, C other) {
+template <any_c_string C>
+s64 compare_string_ignore_case(C one, C other) {
   assert(one);
   assert(other);
 
-  if (!*one && !*other)
-    return -1;
+  if (!*one && !*other) return -1;
 
   s64 index = 0;
   while (to_lower(*one) == to_lower(*other)) {
     ++one, ++other;
-    if (!*one && !*other)
-      return -1;
-    if (!*one || !*other)
-      return index;
+    if (!*one && !*other) return -1;
+    if (!*one || !*other) return index;
     ++index;
   }
   return index;
@@ -429,18 +335,19 @@ s32 compare_string_lexicographically_ignore_case(C one, C other) {
   assert(one);
   assert(other);
 
-  while (*one && (to_lower(*one) == to_lower(*other)))
-    ++one, ++other;
+  while (*one && (to_lower(*one) == to_lower(*other))) ++one, ++other;
   return (*one > *other) - (*other > *one);
 }
 
 // true if strings are equal (not the pointers)
-template <any_c_string C> bool strings_match(C one, C other) {
+template <any_c_string C>
+bool strings_match(C one, C other) {
   return compare_string(one, other) == -1;
 }
 
 // true if strings are equal (not the pointers)
-template <any_c_string C> bool strings_match_ignore_case(C one, C other) {
+template <any_c_string C>
+bool strings_match_ignore_case(C one, C other) {
   return compare_string_ignore_case(one, other) == -1;
 }
 
@@ -448,10 +355,8 @@ template <any_c_string C> bool strings_match_ignore_case(C one, C other) {
 // If the byte pointed by _str_ is a countinuation utf-8 byte, this function
 // returns 0.
 inline s8 utf8_get_size_of_cp(const char *str) {
-  if (!str)
-    return 0;
-  if ((*str & 0xc0) == 0x80)
-    return 0;
+  if (!str) return 0;
+  if ((*str & 0xc0) == 0x80) return 0;
 
   if (0xf0 == (0xf8 & str[0])) {
     return 4;
@@ -529,58 +434,46 @@ inline bool utf8_is_valid_cp(const char *data) {
 
   s64 sizeOfCp = utf8_get_size_of_cp(data);
   if (sizeOfCp == 1) {
-    if ((s8)*data < 0)
-      return false;
+    if ((s8)*data < 0) return false;
   } else if (sizeOfCp == 2) {
-    if (*p < 0xC2 || *p > 0xDF)
-      return false;
+    if (*p < 0xC2 || *p > 0xDF) return false;
     ++p;
-    if (*p < 0x80 || *p > 0xBF)
-      return false;
+    if (*p < 0x80 || *p > 0xBF) return false;
   } else if (sizeOfCp == 3) {
     if (*p == 0xE0) {
       ++p;
-      if (*p < 0xA0 || *p > 0xBF)
-        return false;
+      if (*p < 0xA0 || *p > 0xBF) return false;
     } else if (*p >= 0xE1 && *p <= 0xEC) {
       ++p;
-      if (*p < 0x80 || *p > 0xBF)
-        return false;
+      if (*p < 0x80 || *p > 0xBF) return false;
     } else if (*p == 0xED) {
       ++p;
-      if (*p < 0x80 || *p > 0x9F)
-        return false;
+      if (*p < 0x80 || *p > 0x9F) return false;
     } else if (*p >= 0xEE && *p <= 0xEF) {
       ++p;
-      if (*p < 0x80 || *p > 0xBF)
-        return false;
+      if (*p < 0x80 || *p > 0xBF) return false;
     } else {
       return false;
     }
     // The third byte restriction is the same on all of these
     ++p;
-    if (*p < 0x80 || *p > 0xBF)
-      return false;
+    if (*p < 0x80 || *p > 0xBF) return false;
   } else if (sizeOfCp == 4) {
     if (*p == 0xF0) {
       ++p;
-      if (*p < 0x90 || *p > 0xBF)
-        return false;
+      if (*p < 0x90 || *p > 0xBF) return false;
     } else if (*p >= 0xF1 && *p <= 0xF3) {
       ++p;
-      if (*p < 0x80 || *p > 0xBF)
-        return false;
+      if (*p < 0x80 || *p > 0xBF) return false;
     } else if (*p == 0xF4) {
       ++p;
-      if (*p < 0x80 || *p > 0x8F)
-        return false;
+      if (*p < 0x80 || *p > 0x8F) return false;
     } else {
       return false;
     }
     // The third and fourth byte restriction is the same on all of these
     ++p;
-    if (*p < 0x80 || *p > 0xBF)
-      return false;
+    if (*p < 0x80 || *p > 0xBF) return false;
   } else {
     return false;
   }
@@ -656,13 +549,13 @@ inline void utf16_to_utf8(const wchar *str, char *out, s64 *outByteLength) {
       code_point trail = cp = *++str;
       if (!*str)
         assert(false &&
-               "Invalid wchar string"); // @TODO @Robustness Bail on errors
+               "Invalid wchar string");  // @TODO @Robustness Bail on errors
 
       if ((trail >= 0xDC00) && (trail <= 0xDFFF)) {
         cp = ((cp - 0xD800) << 10) + (trail - 0xDC00) + 0x0010000;
       } else {
         assert(false &&
-               "Invalid wchar string"); // @TODO @Robustness Bail on errors
+               "Invalid wchar string");  // @TODO @Robustness Bail on errors
       }
     }
 
@@ -810,9 +703,8 @@ inline void reserve(string ref s, s64 n = -1, allocator alloc = {}) {
     // in place, that is).
     s.Data = malloc<T>(
         {.Count = n,
-         .Alloc = alloc}); // If alloc is null we use theContext's allocator
-    if (oldData)
-      memcpy(s.Data, oldData, s.Count * sizeof(T));
+         .Alloc = alloc});  // If alloc is null we use theContext's allocator
+    if (oldData) memcpy(s.Data, oldData, s.Count * sizeof(T));
   }
 
   s.Allocated = n;
@@ -928,15 +820,13 @@ inline s32 strings_match_ignore_case(string a, string b) {
 
 // Returns true if _s_ begins with _str_
 inline bool match_beginning(string s, string str) {
-  if (str.Count > s.Count)
-    return false;
+  if (str.Count > s.Count) return false;
   return memcmp(s.Data, str.Data, str.Count) == 0;
 }
 
 // Returns true if _s_ ends with _str_
 inline bool match_end(string s, string str) {
-  if (str.Count > s.Count)
-    return false;
+  if (str.Count > s.Count) return false;
   return memcmp(s.Data + s.Count - str.Count, str.Data, str.Count) == 0;
 }
 
@@ -971,8 +861,7 @@ inline void maybe_grow(string ref s, s64 fit) {
 
   s64 space = s.Allocated;
 
-  if (s.Count + fit <= space)
-    return;
+  if (s.Count + fit <= space) return;
 
   s64 target = max(ceil_pow_of_2(s.Count + fit + 1), 8);
   reserve(s, target);
@@ -1065,7 +954,8 @@ inline mark_as_leak string clone(string no_copy src) {
 }
 
 // This iterator is to make range based for loops work.
-template <bool Const> struct string_iterator {
+template <bool Const>
+struct string_iterator {
   using string_t = type_select_t<Const, const string, string>;
 
   string_t ref String;
@@ -1141,8 +1031,7 @@ inline string slice(string str, s64 begin, s64 end) {
 
 inline s64 search(string str, delegate<bool(code_point)> predicate,
                   search_options options) {
-  if (!str.Data || str.Count == 0)
-    return -1;
+  if (!str.Data || str.Count == 0) return -1;
   s64 len = length(str);
   options.Start = translate_negative_index(options.Start, len, true);
   For(range(options.Start, options.Reversed ? -1 : len,
@@ -1151,8 +1040,7 @@ inline s64 search(string str, delegate<bool(code_point)> predicate,
 }
 
 inline s64 search(string str, code_point search, search_options options) {
-  if (!str.Data || str.Count == 0)
-    return -1;
+  if (!str.Data || str.Count == 0) return -1;
   s64 len = length(str);
   options.Start = translate_negative_index(options.Start, len, true);
   For(range(options.Start, options.Reversed ? -1 : len,
@@ -1161,10 +1049,8 @@ inline s64 search(string str, code_point search, search_options options) {
 }
 
 inline s64 search(string str, string search, search_options options) {
-  if (!str.Data || str.Count == 0)
-    return -1;
-  if (!search.Data || search.Count == 0)
-    return -1;
+  if (!str.Data || str.Count == 0) return -1;
+  if (!search.Data || search.Count == 0) return -1;
 
   s64 len = length(str);
   options.Start = translate_negative_index(options.Start, len, true);
@@ -1175,11 +1061,9 @@ inline s64 search(string str, string search, search_options options) {
             options.Reversed ? -1 : 1)) {
     s64 progress = 0;
     for (s64 s = it; progress != searchLength; ++s, ++progress) {
-      if (!(get(str, s) == get(search, progress)))
-        break;
+      if (!(get(str, s) == get(search, progress))) break;
     }
-    if (progress == searchLength)
-      return it;
+    if (progress == searchLength) return it;
   }
   return -1;
 }
@@ -1193,10 +1077,8 @@ inline bool has(string str, code_point cp) {
 }
 
 inline s64 compare(string s, string other) {
-  if (!s.Count && !other.Count)
-    return -1;
-  if (!s.Count || !other.Count)
-    return 0;
+  if (!s.Count && !other.Count) return -1;
+  if (!s.Count || !other.Count) return 0;
 
   auto *p1 = s.Data, *p2 = other.Data;
   auto *e1 = p1 + s.Count, *e2 = p2 + other.Count;
@@ -1205,20 +1087,16 @@ inline s64 compare(string s, string other) {
   while (utf8_decode_cp(p1) == utf8_decode_cp(p2)) {
     p1 += utf8_get_size_of_cp(p1);
     p2 += utf8_get_size_of_cp(p2);
-    if (p1 == e1 && p2 == e2)
-      return -1;
-    if (p1 == e1 || p2 == e2)
-      return index;
+    if (p1 == e1 && p2 == e2) return -1;
+    if (p1 == e1 || p2 == e2) return index;
     ++index;
   }
   return index;
 }
 
 inline s64 compare_ignore_case(string s, string other) {
-  if (!s.Count && !other.Count)
-    return -1;
-  if (!s.Count || !other.Count)
-    return 0;
+  if (!s.Count && !other.Count) return -1;
+  if (!s.Count || !other.Count) return 0;
 
   auto *p1 = s.Data, *p2 = other.Data;
   auto *e1 = p1 + s.Count, *e2 = p2 + other.Count;
@@ -1227,22 +1105,17 @@ inline s64 compare_ignore_case(string s, string other) {
   while (to_lower(utf8_decode_cp(p1)) == to_lower(utf8_decode_cp(p2))) {
     p1 += utf8_get_size_of_cp(p1);
     p2 += utf8_get_size_of_cp(p2);
-    if (p1 == e1 && p2 == e2)
-      return -1;
-    if (p1 == e1 || p2 == e2)
-      return index;
+    if (p1 == e1 && p2 == e2) return -1;
+    if (p1 == e1 || p2 == e2) return index;
     ++index;
   }
   return index;
 }
 
 inline s32 compare_lexicographically(string a, string b) {
-  if (!a.Count && !b.Count)
-    return 0;
-  if (!a.Count)
-    return -1;
-  if (!b.Count)
-    return 1;
+  if (!a.Count && !b.Count) return 0;
+  if (!a.Count) return -1;
+  if (!b.Count) return 1;
 
   auto *p1 = a.Data, *p2 = b.Data;
   auto *e1 = p1 + a.Count, *e2 = p2 + b.Count;
@@ -1251,24 +1124,18 @@ inline s32 compare_lexicographically(string a, string b) {
   while (utf8_decode_cp(p1) == utf8_decode_cp(p2)) {
     p1 += utf8_get_size_of_cp(p1);
     p2 += utf8_get_size_of_cp(p2);
-    if (p1 == e1 && p2 == e2)
-      return 0;
-    if (p1 == e1)
-      return -1;
-    if (p2 == e2)
-      return 1;
+    if (p1 == e1 && p2 == e2) return 0;
+    if (p1 == e1) return -1;
+    if (p2 == e2) return 1;
     ++index;
   }
   return ((s64)utf8_decode_cp(p1) - (s64)utf8_decode_cp(p2)) < 0 ? -1 : 1;
 }
 
 inline s32 compare_lexicographically_ignore_case(string a, string b) {
-  if (!a.Count && !b.Count)
-    return 0;
-  if (!a.Count)
-    return -1;
-  if (!b.Count)
-    return 1;
+  if (!a.Count && !b.Count) return 0;
+  if (!a.Count) return -1;
+  if (!b.Count) return 1;
 
   auto *p1 = a.Data, *p2 = b.Data;
   auto *e1 = p1 + a.Count, *e2 = p2 + b.Count;
@@ -1277,12 +1144,9 @@ inline s32 compare_lexicographically_ignore_case(string a, string b) {
   while (to_lower(utf8_decode_cp(p1)) == to_lower(utf8_decode_cp(p2))) {
     p1 += utf8_get_size_of_cp(p1);
     p2 += utf8_get_size_of_cp(p2);
-    if (p1 == e1 && p2 == e2)
-      return 0;
-    if (p1 == e1)
-      return -1;
-    if (p2 == e2)
-      return 1;
+    if (p1 == e1 && p2 == e2) return 0;
+    if (p1 == e1) return -1;
+    if (p2 == e2) return 1;
     ++index;
   }
   return ((s64)to_lower(utf8_decode_cp(p1)) -
@@ -1292,7 +1156,6 @@ inline s32 compare_lexicographically_ignore_case(string a, string b) {
 }
 
 inline void replace_range(string ref str, s64 begin, s64 end, string replace) {
-
   s64 targetBegin = translate_negative_index(begin, str.Count);
   s64 targetEnd = translate_negative_index(end, str.Count, true);
 
@@ -1345,8 +1208,7 @@ inline bool remove(string ref s, code_point cp) {
   utf8_encode_cp(encodedCp, cp);
 
   s64 index = search(s, string(encodedCp, utf8_get_size_of_cp(cp)));
-  if (index == -1)
-    return false;
+  if (index == -1) return false;
 
   remove_range(s, index, index + utf8_get_size_of_cp(cp));
 
@@ -1393,12 +1255,10 @@ inline void replace_all(string ref s, string what, string replace) {
   // @Volatile
   check_debug_memory(s);
 
-  if (!s.Data || !s.Count)
-    return;
+  if (!s.Data || !s.Count) return;
 
   assert(what.Data && what.Count);
-  if (replace.Count)
-    assert(replace.Data);
+  if (replace.Count) assert(replace.Data);
 
   if (what.Count == replace.Count) {
     // This case we can handle relatively fast.
@@ -1415,8 +1275,7 @@ inline void replace_all(string ref s, string what, string replace) {
         auto *se = what.Data + what.Count;
         while (n != e && sp != se) {
           // Require only operator == to be defined (and not !=).
-          if (!(*n == *sp))
-            break;
+          if (!(*n == *sp)) break;
           ++n, ++sp;
         }
 
@@ -1451,7 +1310,7 @@ inline void replace_all(string ref s, string what, string replace) {
     while (i < s.Count &&
            (i = search(s, what, search_options{.Start = i})) != -1) {
       replace_range(s, i, i + what.Count,
-                    replace); // @Speed Slow and dumb version for now
+                    replace);  // @Speed Slow and dumb version for now
       i += replace.Count;
     }
   }

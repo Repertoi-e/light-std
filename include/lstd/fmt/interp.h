@@ -3,7 +3,6 @@
 #include "../common.h"
 #include "../context.h"
 #include "../parse.h"
-
 #include "arg.h"
 #include "specs.h"
 #include "text_style.h"
@@ -20,7 +19,7 @@ void on_error(fmt_interp *p, string message, s64 position = -1);
 
 struct fmt_interp {
   string FormatString;
-  string It; // How much left we have to parse from the format string
+  string It;  // How much left we have to parse from the format string
 
   s32 NextArgID = 0;
 
@@ -38,8 +37,7 @@ struct fmt_interp {
   }
 
   u32 next_arg_id() {
-    if (NextArgID >= 0)
-      return (u32)NextArgID++;
+    if (NextArgID >= 0) return (u32)NextArgID++;
     on_error(this, "Cannot switch from manual to automatic argument indexing");
     return 0;
   }
@@ -48,8 +46,7 @@ struct fmt_interp {
   // CUSTOM arguments don't get checked
   void require_arithmetic_arg(fmt_type argType, s64 errorPosition = -1) {
     assert(argType != fmt_type::NONE);
-    if (argType == fmt_type::CUSTOM)
-      return;
+    if (argType == fmt_type::CUSTOM) return;
     if (!fmt_is_type_arithmetic(argType))
       on_error(this, "Format specifier requires an arithmetic argument",
                errorPosition);
@@ -59,8 +56,7 @@ struct fmt_interp {
   // checking, CUSTOM arguments don't get checked
   void require_signed_arithmetic_arg(fmt_type argType, s64 errorPosition = -1) {
     assert(argType != fmt_type::NONE);
-    if (argType == fmt_type::CUSTOM)
-      return;
+    if (argType == fmt_type::CUSTOM) return;
 
     require_arithmetic_arg(argType, errorPosition);
     if (fmt_is_type_integral(argType) && argType != fmt_type::S64) {
@@ -75,8 +71,7 @@ struct fmt_interp {
   // argument is again, not checked.
   void check_precision_for_arg(fmt_type argType, s64 errorPosition = -1) {
     assert(argType != fmt_type::NONE);
-    if (argType == fmt_type::CUSTOM)
-      return;
+    if (argType == fmt_type::CUSTOM) return;
     if (fmt_is_type_integral(argType)) {
       on_error(this, "Precision is not allowed for integer types",
                errorPosition);
@@ -97,8 +92,7 @@ struct fmt_interp {
 //
 // This is only used to provide useful error messages.
 inline void on_error(fmt_interp *p, string message, s64 position) {
-  if (position == -1)
-    position = p->It.Data - p->FormatString.Data;
+  if (position == -1) position = p->It.Data - p->FormatString.Data;
   Context.FmtParseErrorHandler(message, p->FormatString, position);
 }
 
@@ -192,10 +186,10 @@ inline bool parse_fill_and_align(fmt_interp *p, fmt_type argType,
 
     // We now check if the next char in rest is an alignment specifier.
     align = get_alignment_from_char(rest[0]);
-    advance_bytes(&rest, 1); // Skip the align, later we advance _It_ to _rest_
+    advance_bytes(&rest, 1);  // Skip the align, later we advance _It_ to _rest_
   } else {
-    fill = ' '; // If we parsed an alignment but no fill then the fill must be '
-                // ' by default
+    fill = ' ';  // If we parsed an alignment but no fill then the fill must be
+                 // ' ' by default
   }
 
   // If we got here and didn't get an alignment specifier we roll back and don't
@@ -211,13 +205,12 @@ inline bool parse_fill_and_align(fmt_interp *p, fmt_type argType,
       return false;
     }
 
-    p->It = rest; // Go forward
+    p->It = rest;  // Go forward
 
     specs->Fill = fill;
     specs->Align = align;
 
-    if (align == fmt_alignment::NUMERIC)
-      p->require_arithmetic_arg(argType);
+    if (align == fmt_alignment::NUMERIC) p->require_arithmetic_arg(argType);
   }
 
   return true;
@@ -235,35 +228,36 @@ inline bool parse_width(fmt_interp *p, fmt_dynamic_specs *specs) {
       on_error(p, "We parsed an integer width which was too large");
       return {};
     }
-    if (specs->Width == (u32)-1)
-      return false;
+    if (specs->Width == (u32)-1) return false;
   } else if (p->It[0] == '{') {
-    ++p->It.Data, --p->It.Count; // Skip the }
+    ++p->It.Data, --p->It.Count;  // Skip the }
 
     if (p->It.Count) {
       specs->WidthIndex = fmt_parse_arg_id(p);
       if (specs->WidthIndex == -1)
-        return false; // The error was reported in _fmt_parse_arg_id_
+        return false;  // The error was reported in _fmt_parse_arg_id_
     }
     if (!p->It.Count || p->It[0] != '}') {
-      on_error(p, "Expected a closing \"}\" after parsing an argument ID for a "
-                  "dynamic width");
+      on_error(p,
+               "Expected a closing \"}\" after parsing an argument ID for a "
+               "dynamic width");
       return false;
     }
 
-    ++p->It.Data, --p->It.Count; // Skip the {
+    ++p->It.Data, --p->It.Count;  // Skip the {
   }
   return true;
 }
 
 inline bool parse_precision(fmt_interp *p, fmt_type argType,
                             fmt_dynamic_specs *specs) {
-  ++p->It.Data, --p->It.Count; // Skip the .
+  ++p->It.Data, --p->It.Count;  // Skip the .
 
   if (!p->It.Count) {
   missing:
-    on_error(p, "Missing precision specifier (we parsed a dot but nothing "
-                "valid after that)");
+    on_error(p,
+             "Missing precision specifier (we parsed a dot but nothing "
+             "valid after that)");
     return false;
   }
 
@@ -278,23 +272,23 @@ inline bool parse_precision(fmt_interp *p, fmt_type argType,
       on_error(p, "We parsed an integer precision which was too large");
       return {};
     }
-    if (specs->Precision == (u32)-1)
-      return false;
+    if (specs->Precision == (u32)-1) return false;
   } else if (p->It[0] == '{') {
-    ++p->It.Data, --p->It.Count; // Skip the }
+    ++p->It.Data, --p->It.Count;  // Skip the }
 
     if (p->It.Count) {
       specs->PrecisionIndex = fmt_parse_arg_id(p);
       if (specs->PrecisionIndex == -1)
-        return false; // The error was reported in _fmt_parse_arg_id_
+        return false;  // The error was reported in _fmt_parse_arg_id_
     }
     if (!p->It.Count || p->It[0] != '}') {
-      on_error(p, "Expected a closing \"}\" after parsing an argument ID for a "
-                  "dynamic precision");
+      on_error(p,
+               "Expected a closing \"}\" after parsing an argument ID for a "
+               "dynamic precision");
       return false;
     }
 
-    ++p->It.Data, --p->It.Count; // Skip the {
+    ++p->It.Data, --p->It.Count;  // Skip the {
   } else {
     goto missing;
   }
@@ -307,44 +301,42 @@ inline bool parse_precision(fmt_interp *p, fmt_type argType,
 // error. The caller of this should handle that.
 inline bool fmt_parse_specs(fmt_interp *p, fmt_type argType,
                             fmt_dynamic_specs *specs) {
-  if (p->It[0] == '}')
-    return true; // No specs to parse
+  if (p->It[0] == '}') return true;  // No specs to parse
 
-  if (!parse_fill_and_align(p, argType, specs))
-    return false;
+  if (!parse_fill_and_align(p, argType, specs)) return false;
 
   if (!p->It.Count)
-    return true; // No more specs to parse. Tried to parse so far: align
+    return true;  // No more specs to parse. Tried to parse so far: align
 
   // Try to parse sign
   switch (p->It[0]) {
-  case '+':
-    p->require_signed_arithmetic_arg(argType);
+    case '+':
+      p->require_signed_arithmetic_arg(argType);
 
-    specs->Sign = fmt_sign::PLUS;
+      specs->Sign = fmt_sign::PLUS;
 
-    ++p->It.Data, --p->It.Count;
-    break;
-  case '-':
-    p->require_signed_arithmetic_arg(argType);
+      ++p->It.Data, --p->It.Count;
+      break;
+    case '-':
+      p->require_signed_arithmetic_arg(argType);
 
-    // MINUS has the same behaviour as NONE on the basic types but the user
-    // might want to have different formating on their custom types when minus
-    // is specified, so we record it anyway.
-    specs->Sign = fmt_sign::MINUS;
+      // MINUS has the same behaviour as NONE on the basic types but the user
+      // might want to have different formating on their custom types when minus
+      // is specified, so we record it anyway.
+      specs->Sign = fmt_sign::MINUS;
 
-    ++p->It.Data, --p->It.Count;
-    break;
-  case ' ':
-    p->require_signed_arithmetic_arg(argType);
+      ++p->It.Data, --p->It.Count;
+      break;
+    case ' ':
+      p->require_signed_arithmetic_arg(argType);
 
-    specs->Sign = fmt_sign::SPACE;
+      specs->Sign = fmt_sign::SPACE;
 
-    ++p->It.Data, --p->It.Count;
-    break;
+      ++p->It.Data, --p->It.Count;
+      break;
   }
   if (!p->It.Count)
-    return true; // No more specs to parse. Tried to parse so far: align, sign
+    return true;  // No more specs to parse. Tried to parse so far: align, sign
 
   if (p->It[0] == '#') {
     p->require_arithmetic_arg(argType);
@@ -352,8 +344,8 @@ inline bool fmt_parse_specs(fmt_interp *p, fmt_type argType,
 
     ++p->It.Data, --p->It.Count;
     if (!p->It.Count)
-      return true; // No more specs to parse. Tried to parse so far: align,
-                   // sign, #
+      return true;  // No more specs to parse. Tried to parse so far: align,
+                    // sign, #
   }
 
   // 0 means = alignment with the character 0 as fill
@@ -364,19 +356,17 @@ inline bool fmt_parse_specs(fmt_interp *p, fmt_type argType,
 
     ++p->It.Data, --p->It.Count;
     if (!p->It.Count)
-      return true; // No more specs to parse. Tried to parse so far: align,
-                   // sign, #, 0
+      return true;  // No more specs to parse. Tried to parse so far: align,
+                    // sign, #, 0
   }
 
-  if (!parse_width(p, specs))
-    return false;
+  if (!parse_width(p, specs)) return false;
   if (!p->It.Count)
-    return true; // No more specs to parse. Tried to parse so far: align, sign,
-                 // #, 0, width
+    return true;  // No more specs to parse. Tried to parse so far: align, sign,
+                  // #, 0, width
 
   if (p->It[0] == '.') {
-    if (!parse_precision(p, argType, specs))
-      return false;
+    if (!parse_precision(p, argType, specs)) return false;
   }
 
   // If we still haven't reached the end or a '}' we treat the byte as the type
@@ -394,25 +384,26 @@ inline bool handle_emphasis(fmt_interp *p, fmt_text_style *textStyle) {
   // first and then reaching another ';'
   while (p->It.Count && is_alpha(p->It[0])) {
     switch (p->It[0]) {
-    case 'B':
-      textStyle->Emphasis |= BOLD;
-      break;
-    case 'I':
-      textStyle->Emphasis |= ITALIC;
-      break;
-    case 'U':
-      textStyle->Emphasis |= UNDERLINE;
-      break;
-    case 'S':
-      textStyle->Emphasis |= STRIKETHROUGH;
-      break;
-    default:
-      // Note: we might have gotten here if we failed to match a color name
-      on_error(p, "Invalid emphasis character - valid ones are: B (bold), I "
-                  "(italic), U (underline) and S (strikethrough)");
-      return false;
+      case 'B':
+        textStyle->Emphasis |= BOLD;
+        break;
+      case 'I':
+        textStyle->Emphasis |= ITALIC;
+        break;
+      case 'U':
+        textStyle->Emphasis |= UNDERLINE;
+        break;
+      case 'S':
+        textStyle->Emphasis |= STRIKETHROUGH;
+        break;
+      default:
+        // Note: we might have gotten here if we failed to match a color name
+        on_error(p,
+                 "Invalid emphasis character - valid ones are: B (bold), I "
+                 "(italic), U (underline) and S (strikethrough)");
+        return false;
     }
-    ++p->It.Data, --p->It.Count; // Go to the next byte
+    ++p->It.Data, --p->It.Count;  // Go to the next byte
   }
   return true;
 }
@@ -435,8 +426,7 @@ inline u32 parse_rgb_channel(fmt_interp *p, bool last) {
   }
 
   p->It = string(rest);
-  if (!p->It.Count)
-    return (u32)-1;
+  if (!p->It.Count) return (u32)-1;
 
   if (!last) {
     if (p->It[0] != ';') {
@@ -466,7 +456,7 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
     bool terminal = false;
     if (p->It[0] == 't') {
       terminal = true;
-      ++p->It.Data, --p->It.Count; // Skip the t
+      ++p->It.Data, --p->It.Count;  // Skip the t
     }
 
     const char *it = p->It.Data;
@@ -475,16 +465,16 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
       ++it, --n;
     } while (n && is_identifier_start(*it));
 
-    if (!n)
-      return {true, textStyle}; // The caller should check for closing }
+    if (!n) return {true, textStyle};  // The caller should check for closing }
 
     auto name = string(p->It.Data, it - p->It.Data);
 
     p->It = string(it, n);
 
     if (p->It[0] != ';' && p->It[0] != '}') {
-      on_error(p, "Invalid color name - it must be a valid identifier (without "
-                  "digits)");
+      on_error(p,
+               "Invalid color name - it must be a valid identifier (without "
+               "digits)");
       return {false, {}};
     }
 
@@ -494,8 +484,7 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
         // Color with that name not found, roll back and treat it as emphasis
         p->It.Data -= name.Count, p->It.Count += name.Count;
 
-        if (!handle_emphasis(p, &textStyle))
-          return {false, {}};
+        if (!handle_emphasis(p, &textStyle)) return {false, {}};
         return {true, textStyle};
       }
       textStyle.ColorKind = fmt_text_style::color_kind::TERMINAL;
@@ -506,8 +495,7 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
         // Color with that name not found, roll back and treat it as emphasis
         p->It.Data -= name.Count, p->It.Count += name.Count;
 
-        if (!handle_emphasis(p, &textStyle))
-          return {false, {}};
+        if (!handle_emphasis(p, &textStyle)) return {false, {}};
         return {true, textStyle};
       }
       textStyle.ColorKind = fmt_text_style::color_kind::RGB;
@@ -516,18 +504,15 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
   } else if (is_digit(p->It[0])) {
     // Parse an RGB true color
     u32 r = parse_rgb_channel(p, false);
-    if (r == (u32)-1)
-      return {false, {}};
-    ++p->It.Data, --p->It.Count; // Skip the ;
+    if (r == (u32)-1) return {false, {}};
+    ++p->It.Data, --p->It.Count;  // Skip the ;
 
     u32 g = parse_rgb_channel(p, false);
-    if (g == (u32)-1)
-      return {false, {}};
-    ++p->It.Data, --p->It.Count; // Skip the ;
+    if (g == (u32)-1) return {false, {}};
+    ++p->It.Data, --p->It.Count;  // Skip the ;
 
     u32 b = parse_rgb_channel(p, true);
-    if (b == (u32)-1)
-      return {false, {}};
+    if (b == (u32)-1) return {false, {}};
     textStyle.ColorKind = fmt_text_style::color_kind::RGB;
     textStyle.Color.RGB = (r << 16) | (g << 8) | b;
   } else if (p->It[0] == '#') {
@@ -539,7 +524,7 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
 
   // Handle emphasis or BG, if specified
   if (p->It[0] == ';') {
-    ++p->It.Data, --p->It.Count; // Skip the ;
+    ++p->It.Data, --p->It.Count;  // Skip the ;
     if (p->It.Count > 2) {
       if (strings_match(string(p->It.Data, 2), "BG")) {
         if (textStyle.ColorKind == fmt_text_style::color_kind::NONE) {
@@ -553,8 +538,7 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
         return {true, textStyle};
       }
     }
-    if (!handle_emphasis(p, &textStyle))
-      return {false, {}};
+    if (!handle_emphasis(p, &textStyle)) return {false, {}};
   }
   return {true, textStyle};
 }

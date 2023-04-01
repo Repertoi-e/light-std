@@ -84,9 +84,9 @@ bool assign(big_integer ref b, is_integral auto v);
 big_integer make_big(is_integral auto v);
 inline big_integer make_big(big_integer b) { return b; }
 
-big_integer invert(big_integer b);          // -(b + 1)
-big_integer lshift(big_integer lhs, s64 n); // << operator is overloaded too
-big_integer rshift(big_integer lhs, s64 n); // >> operator is overloaded too
+big_integer invert(big_integer b);           // -(b + 1)
+big_integer lshift(big_integer lhs, s64 n);  // << operator is overloaded too
+big_integer rshift(big_integer lhs, s64 n);  // >> operator is overloaded too
 
 // if a < b, returns -1
 // if a == b, returns 0
@@ -119,8 +119,8 @@ big_integer operator|(big_integer lhs, big_integer rhs);
 big_integer operator^(big_integer lhs, big_integer rhs);
 
 struct div_result {
-  big_integer Q; // Quotient
-  big_integer R; // Remainder/modulus, note: see divrem vs divmod comparison
+  big_integer Q;  // Quotient
+  big_integer R;  // Remainder/modulus, note: see divrem vs divmod comparison
 };
 
 // divmod is NOT the same as divrem.
@@ -158,8 +158,7 @@ div_result divrem(big_integer lhs, big_integer rhs);
 div_result divmod(big_integer lhs, big_integer rhs);
 
 inline void free(big_integer ref b) {
-  if (b.Digits)
-    free(b.Digits);
+  if (b.Digits) free(b.Digits);
   b.Size = 0;
 }
 
@@ -187,8 +186,7 @@ inline bool is_small(big_integer ref b) { return !b.Digits; }
 // Attempts to convert an integer into a small integer and frees any allocated
 // memory.
 inline void maybe_small(big_integer ref b) {
-  if (is_small(b))
-    return;
+  if (is_small(b)) return;
 
   if (abs(b.Size) <= 2) {
     digit d1 = b.Digits[0];
@@ -203,8 +201,7 @@ inline void maybe_small(big_integer ref b) {
 // For small integers, b.Digits is null and the digits
 // are stored in a small buffer inside the struct.
 inline digit *get_digits(big_integer ref b) {
-  if (is_small(b))
-    return b.SmallDigits;
+  if (is_small(b)) return b.SmallDigits;
   return b.Digits;
 }
 
@@ -232,8 +229,7 @@ inline void ensure_digits(big_integer ref b, s64 n) {
   assert(n > 0);
 
   if (is_small(b)) {
-    if (n <= 2)
-      return;
+    if (n <= 2) return;
 
     digit d1 = b.SmallDigits[0];
     digit d2 = b.SmallDigits[1];
@@ -272,11 +268,9 @@ inline void normalize(big_integer ref b) {
   s64 j = abs(b.Size);
   s64 i = j;
 
-  while (i > 0 && get_digit(b, i - 1) == 0)
-    --i;
+  while (i > 0 && get_digit(b, i - 1) == 0) --i;
 
-  if (i != j)
-    b.Size = b.Size < 0 ? -i : i;
+  if (i != j) b.Size = b.Size < 0 ? -i : i;
   maybe_small(b);
 }
 
@@ -294,7 +288,7 @@ inline bool assign(big_integer ref b, is_integral auto v) {
     b.Size = v.Size;
   } else {
     auto binaryDigits = count_digits<1>(
-        abs(v)); // How many bits do we need to store the value in _v_
+        abs(v));  // How many bits do we need to store the value in _v_
 
     auto digits = binaryDigits / BASE + (binaryDigits % BASE != 0);
     ensure_digits(b, digits);
@@ -371,7 +365,7 @@ inline digit v_isub(digit *x, s64 m, digit *y, s64 n) {
     borrow = x[i] - y[i] - borrow;
     x[i] = borrow & MASK;
     borrow >>= SHIFT;
-    borrow &= 1; // Keep only 1 sign bit
+    borrow &= 1;  // Keep only 1 sign bit
 
     ++i;
   }
@@ -438,8 +432,7 @@ inline big_integer x_sub(big_integer *a, big_integer *b) {
     while (--i >= 0 && get_digit(*a, i) == get_digit(*b, i)) {
     }
 
-    if (i < 0)
-      return make_big(0);
+    if (i < 0) return make_big(0);
 
     if (get_digit(*a, i) < get_digit(*b, i)) {
       sign = -1;
@@ -457,7 +450,7 @@ inline big_integer x_sub(big_integer *a, big_integer *b) {
 
     set_digit(result, i, borrow & MASK);
     borrow >>= SHIFT;
-    borrow &= 1; // Keep only one sign bit
+    borrow &= 1;  // Keep only one sign bit
 
     ++i;
   }
@@ -467,7 +460,7 @@ inline big_integer x_sub(big_integer *a, big_integer *b) {
 
     set_digit(result, i, borrow & MASK);
     borrow >>= SHIFT;
-    borrow &= 1; // Keep only one sign bit
+    borrow &= 1;  // Keep only one sign bit
 
     ++i;
   }
@@ -521,8 +514,7 @@ inline big_integer x_mul(big_integer lhs, big_integer rhs) {
         carry >>= SHIFT;
       }
 
-      if (carry)
-        *pz += (digit)(carry & MASK);
+      if (carry) *pz += (digit)(carry & MASK);
 
       assert((carry >> SHIFT) == 0);
     }
@@ -545,8 +537,7 @@ inline big_integer x_mul(big_integer lhs, big_integer rhs) {
         assert(carry <= MASK);
       }
 
-      if (carry)
-        *pz += (digit)(carry & MASK);
+      if (carry) *pz += (digit)(carry & MASK);
 
       assert((carry >> SHIFT) == 0);
     }
@@ -606,7 +597,7 @@ inline big_integer k_lopsided_mul(big_integer *a, big_integer *b) {
   // Successive slices of b are copied into bslice
   big_integer bslice = make_big_integer_and_set_size(sizea);
 
-  s64 nbdone = 0; // # of b digits already multiplied
+  s64 nbdone = 0;  // # of b digits already multiplied
   while (sizeb > 0) {
     s64 nbtouse = min(sizeb, sizea);
 
@@ -666,8 +657,7 @@ inline big_integer k_mul(big_integer *a, big_integer *b) {
   // b as a string of "big digits", each of width a->Size.  That
   // leads to a sequence of balanced calls to k_mul.
 
-  if (2 * sizea <= sizeb)
-    return k_lopsided_mul(a, b);
+  if (2 * sizea <= sizeb) return k_lopsided_mul(a, b);
 
   big_integer ah_, al_;
 
@@ -675,7 +665,7 @@ inline big_integer k_mul(big_integer *a, big_integer *b) {
   s64 shift = sizeb >> 1;
   kmul_split(*a, shift, &ah_, &al_);
 
-  assert(ah_.Size > 0); // The split isn't degenerate
+  assert(ah_.Size > 0);  // The split isn't degenerate
 
   big_integer bh_, bl_;
 
@@ -731,13 +721,12 @@ inline big_integer k_mul(big_integer *a, big_integer *b) {
   memcpy(get_digits(result), get_digits(t2), t2.Size * sizeof(digit));
 
   // Zero out remaining digits
-  i = 2 * shift - t2.Size; // number of uninitialized digits
-  if (i)
-    memset0(get_digits(result) + t2.Size, i * sizeof(digit));
+  i = 2 * shift - t2.Size;  // number of uninitialized digits
+  if (i) memset0(get_digits(result) + t2.Size, i * sizeof(digit));
 
   // 4 & 5. Subtract ah*bh (t1) and al*bl (t2).
   // We do al*bl first because it's fresher in cache.
-  i = result.Size - shift; // # digits after shift
+  i = result.Size - shift;  // # digits after shift
   v_isub(get_digits(result) + shift, i, get_digits(t2), t2.Size);
 
   v_isub(get_digits(result) + shift, i, get_digits(t1), t1.Size);
@@ -833,8 +822,7 @@ struct div1_result {
 // Divide an integer by a digit, returning both the quotient
 // and the remainder. The sign of _a_ is ignored.
 inline div1_result divrem1(big_integer a, digit n) {
-  if (n == 0)
-    panic("Division by zero");
+  if (n == 0) panic("Division by zero");
 
   assert(n > 0 && n <= MASK);
 
@@ -859,11 +847,10 @@ inline div_result x_divrem(big_integer a, big_integer b) {
   //
 
   s64 sizea = abs(a.Size), sizeb = abs(b.Size);
-  if (!sizeb)
-    panic("Division by zero");
+  if (!sizeb) panic("Division by zero");
 
-  big_integer na, nb; // Normalized form of _a_ and _b_; _na_ also stores the
-                      // normalized remainder in the end.
+  big_integer na, nb;  // Normalized form of _a_ and _b_; _na_ also stores the
+                       // normalized remainder in the end.
 
   // Normalize by shifting _b_ left just enough so that its high-order
   // bit is on, and shift _a_ left the same amount. We may have to append a
@@ -888,7 +875,7 @@ inline div_result x_divrem(big_integer a, big_integer b) {
 
   s64 j = sizea - sizeb;
 
-  big_integer q = make_big_integer_and_set_size(j); // _q_ holds the quotient
+  big_integer q = make_big_integer_and_set_size(j);  // _q_ holds the quotient
 
   while (j--) {
     digit atop = get_digit(na, j + sizeb);
@@ -905,8 +892,7 @@ inline div_result x_divrem(big_integer a, big_integer b) {
            (((double_digit)rhat << SHIFT) | get_digit(na, j + sizeb - 2))) {
       --qhat;
       rhat += get_digit(nb, sizeb - 1);
-      if (rhat >= BASE)
-        break;
+      if (rhat >= BASE) break;
     }
     assert(qhat <= BASE);
 
@@ -1084,14 +1070,12 @@ inline big_integer operator^(big_integer lhs, big_integer rhs) {
 }
 
 inline big_integer add_one(big_integer b) {
-  if (!b.Size)
-    return make_big(1);
+  if (!b.Size) return make_big(1);
 
   s64 size = abs(b.Size);
 
   digit carry = (get_digit(b, size) + 1) >> SHIFT;
-  if (carry)
-    ++size;
+  if (carry) ++size;
 
   big_integer result = make_big_integer_and_set_size(size);
   memcpy(get_digits(result), get_digits(b), abs(b.Size) * sizeof(digit));
@@ -1113,10 +1097,8 @@ inline big_integer invert(big_integer b) {
 }
 
 inline big_integer lshift(big_integer lhs, s64 n) {
-  if (n == 0)
-    return lhs;
-  if (!lhs.Size)
-    return make_big(0);
+  if (n == 0) return lhs;
+  if (!lhs.Size) return make_big(0);
 
   s64 wordshift = n / SHIFT;
   u32 remshift = n % SHIFT;
@@ -1126,8 +1108,7 @@ inline big_integer lshift(big_integer lhs, s64 n) {
   s64 oldSize = abs(lhs.Size);
   s64 newSize = oldSize + wordshift;
 
-  if (remshift)
-    ++newSize;
+  if (remshift) ++newSize;
 
   big_integer result = make_big_integer(newSize);
   if (lhs.Size < 0) {
@@ -1158,10 +1139,8 @@ inline big_integer lshift(big_integer lhs, s64 n) {
 }
 
 inline big_integer rshift(big_integer lhs, s64 n) {
-  if (n == 0)
-    return lhs;
-  if (!lhs.Size)
-    return make_big(0);
+  if (n == 0) return lhs;
+  if (!lhs.Size) return make_big(0);
 
   s64 wordshift = n / SHIFT;
   u32 remshift = n % SHIFT;
@@ -1171,8 +1150,7 @@ inline big_integer rshift(big_integer lhs, s64 n) {
     return invert(rshift(invert(lhs), n));
   } else {
     s64 newSize = lhs.Size - wordshift;
-    if (newSize <= 0)
-      return make_big(0);
+    if (newSize <= 0) return make_big(0);
 
     s64 hishift = SHIFT - remshift;
     digit lomask = (1ul << hishift) - 1;
@@ -1195,8 +1173,7 @@ inline big_integer rshift(big_integer lhs, s64 n) {
 }
 
 inline div_result divrem(big_integer lhs, big_integer rhs) {
-  if (!rhs.Size)
-    panic("Division by zero");
+  if (!rhs.Size) panic("Division by zero");
 
   s64 sizea = abs(lhs.Size), sizeb = abs(rhs.Size);
 
@@ -1252,15 +1229,13 @@ inline s32 compare(big_integer a, big_integer b_) {
 
   s32 sign = (s32)(a.Size - b.Size);
   if (sign == 0) {
-    if (!a.Size)
-      return 0; // Two zeroes
+    if (!a.Size) return 0;  // Two zeroes
 
     s64 i = abs(a.Size);
     sdigit diff = 0;
     while (--i >= 0) {
       diff = (sdigit)get_digit(a, i) - (sdigit)get_digit(b, i);
-      if (diff)
-        break;
+      if (diff) break;
     }
     sign = a.Size < 0 ? -1 : 1;
   }

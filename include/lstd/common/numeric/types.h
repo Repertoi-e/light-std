@@ -29,10 +29,11 @@ using u16 = unsigned short;
 using u32 = unsigned;
 using u64 = unsigned long long;
 
-using wchar = wchar_t; // Only useful for Windows calls. Please don't use utf-16
-                       // in your programs...
+using wchar = wchar_t;  // Only useful for Windows calls. Please don't use
+                        // utf-16 in your programs...
 
-using code_point = char32_t; // Holds the integer value of a Unicode code point.
+using code_point =
+    char32_t;  // Holds the integer value of a Unicode code point.
 
 using byte = unsigned char;
 
@@ -50,7 +51,8 @@ using usize = size_t;
 //
 // Vector types (aligned on 16 byte boundaries for SIMDs)
 //
-template <typename T, s64 Count> union alignas(16) base_vector_type {
+template <typename T, s64 Count>
+union alignas(16) base_vector_type {
   T Values[Count];
 };
 

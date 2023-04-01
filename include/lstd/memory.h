@@ -15,8 +15,7 @@ extern "C" {
 inline void *memmove(void *dstpp, const void *srcpp, size_t len) {
   auto *dst = (byte *)dstpp;
   auto *src = (byte *)srcpp;
-  if (len == 0)
-    return dstpp;
+  if (len == 0) return dstpp;
   For(LSTD_NAMESPACE::range(len - 1, -1, -1)) dst[it] = src[it];
   return dst;
 }
@@ -38,8 +37,7 @@ inline void *memcpy(void *dstpp, const void *srcpp, size_t len) {
   } else {
     auto *dst = (byte *)dstpp;
     auto *src = (byte *)srcpp;
-    while (len--)
-      *dst++ = *src++;
+    while (len--) *dst++ = *src++;
   }
   return dstpp;
 }
@@ -106,15 +104,14 @@ inline int memcmp(const void *s1, const void *s2, size_t n) {
   auto *p1 = (byte *)s1;
   auto *p2 = (byte *)s2;
   For(LSTD_NAMESPACE::range(n)) {
-    if (p1[it] != p2[it])
-      return p1[it] - p2[it];
+    if (p1[it] != p2[it]) return p1[it] - p2[it];
   }
   return 0;
 }
 }
 
 // Maximum size of an allocation we will attemp to request
-#define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0 // Around 16384 PiB
+#define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0  // Around 16384 PiB
 
 // In debug by default we do some extra checks to catch memory-related bugs.
 // See "memory.h" for details (or search for DEBUG_MEMORY) and see
@@ -130,7 +127,7 @@ inline int memcmp(const void *s1, const void *s2, size_t n) {
 
 #if COMPILER == MSVC
 #pragma warning(push)
-#pragma warning(disable : 4273) // Different linkage
+#pragma warning(disable : 4273)  // Different linkage
 #endif
 
 //
@@ -478,13 +475,13 @@ T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options,
                       source_location loc);
 
 template <non_void T>
-  requires(!is_const<T>)
-T *lstd_reallocate_impl(T *block, s64 newCount, u64 options,
-                        source_location loc);
+requires(!is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount,
+                                               u64 options,
+                                               source_location loc);
 
 template <non_void T>
-  requires(!is_const<T>)
-void lstd_free_impl(T *block, u64 options, source_location loc);
+requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
+                                           source_location loc);
 
 //
 // Here we define malloc/calloc/realloc/free.
@@ -551,9 +548,9 @@ T *realloc(T *block, reallocate_options options,
 //
 // However we only have one type of free here.
 template <non_void T>
-  requires(!is_const<T>)
-void free(T *block, u64 options = 0,
-          source_location loc = source_location::current()) {
+requires(!is_const<T>) void free(
+    T *block, u64 options = 0,
+    source_location loc = source_location::current()) {
   lstd_free_impl(block, options, loc);
 }
 
@@ -576,7 +573,8 @@ void free(T *block, u64 options = 0,
 //
 
 struct tlsf_allocator_data {
-  tlsf_t State = null; // We use a vendor library that implements the algorithm.
+  tlsf_t State =
+      null;  // We use a vendor library that implements the algorithm.
 };
 
 //
@@ -596,24 +594,25 @@ inline void *tlsf_allocator(allocator_mode mode, void *context, s64 size,
   auto *data = (tlsf_allocator_data *)context;
 
   if (!data->State) {
-    assert(false && "No pools have been added yet! Add the first one with "
-                    "tlsf_allocator_add_pool().");
+    assert(false &&
+           "No pools have been added yet! Add the first one with "
+           "tlsf_allocator_add_pool().");
     return null;
   }
 
   switch (mode) {
-  case allocator_mode::ALLOCATE:
-    return tlsf_malloc(data->State, size);
-  case allocator_mode::RESIZE:
-    return tlsf_resize(data->State, oldMemory, size);
-  case allocator_mode::FREE: {
-    tlsf_free(data->State, oldMemory);
-    return null;
-  }
-  case allocator_mode::FREE_ALL: {
-    assert(false); // Some allocators can't support this by design
-    return null;
-  }
+    case allocator_mode::ALLOCATE:
+      return tlsf_malloc(data->State, size);
+    case allocator_mode::RESIZE:
+      return tlsf_resize(data->State, oldMemory, size);
+    case allocator_mode::FREE: {
+      tlsf_free(data->State, oldMemory);
+      return null;
+    }
+    case allocator_mode::FREE_ALL: {
+      assert(false);  // Some allocators can't support this by design
+      return null;
+    }
   }
   return null;
 }
@@ -633,7 +632,7 @@ inline void tlsf_allocator_remove_pool(tlsf_allocator_data *data, void *block) {
 }
 
 struct arena_allocator_data {
-  void *Block = null; // This should be supplied before using the allocator
+  void *Block = null;  // This should be supplied before using the allocator
   s64 Size = 0;
 
   s64 Used = 0;
@@ -657,31 +656,30 @@ inline void *arena_allocator(allocator_mode mode, void *context, s64 size,
   auto *data = (arena_allocator_data *)context;
 
   switch (mode) {
-  case allocator_mode::ALLOCATE: {
-    if (data->Used + size >= data->Size)
-      return null; // Not enough space
+    case allocator_mode::ALLOCATE: {
+      if (data->Used + size >= data->Size) return null;  // Not enough space
 
-    void *result = (byte *)data->Block + data->Used;
-    data->Used += size;
-    return result;
-  }
-  case allocator_mode::RESIZE: {
-    void *p = (byte *)data->Block + data->Used - oldSize;
-    if (oldMemory == p) {
-      // We can resize only if it's the last allocation
-      data->Used += size - oldSize;
-      return oldMemory;
+      void *result = (byte *)data->Block + data->Used;
+      data->Used += size;
+      return result;
     }
-    return null;
-  }
-  case allocator_mode::FREE: {
-    // We don't free individual allocations in the arena allocator
-    return null;
-  }
-  case allocator_mode::FREE_ALL: {
-    data->Used = 0;
-    return null;
-  }
+    case allocator_mode::RESIZE: {
+      void *p = (byte *)data->Block + data->Used - oldSize;
+      if (oldMemory == p) {
+        // We can resize only if it's the last allocation
+        data->Used += size - oldSize;
+        return oldMemory;
+      }
+      return null;
+    }
+    case allocator_mode::FREE: {
+      // We don't free individual allocations in the arena allocator
+      return null;
+    }
+    case allocator_mode::FREE_ALL: {
+      data->Used = 0;
+      return null;
+    }
   }
   return null;
 }
@@ -702,7 +700,7 @@ struct pool_allocator_dont_init_t {};
 // This allocator is useful for managing a bunch of objects of the same type.
 //
 struct pool_allocator_data {
-  s64 ElementSize; // You must set this before using the allocator
+  s64 ElementSize;  // You must set this before using the allocator
 
   struct block {
     block *Next;
@@ -764,36 +762,36 @@ inline void *pool_allocator(allocator_mode mode, void *context, s64 size,
   auto *data = (pool_allocator_data *)context;
 
   switch (mode) {
-  case allocator_mode::ALLOCATE: {
-    assert(size == data->ElementSize);
+    case allocator_mode::ALLOCATE: {
+      assert(size == data->ElementSize);
 
-    if (data->FreeList) {
-      auto *block = data->FreeList;
-      data->FreeList = block->Next;
-      return block;
+      if (data->FreeList) {
+        auto *block = data->FreeList;
+        data->FreeList = block->Next;
+        return block;
+      }
+      return null;
     }
-    return null;
-  }
-  case allocator_mode::RESIZE: {
-    assert(false && "Can't do that");
-    return null;
-  }
-  case allocator_mode::FREE: {
-    auto *c = (pool_allocator_data::chunk *)oldMemory;
-    c->Next = data->FreeList;
-    data->FreeList = c;
-    return null;
-  }
-  case allocator_mode::FREE_ALL: {
-    data->FreeList = null;
+    case allocator_mode::RESIZE: {
+      assert(false && "Can't do that");
+      return null;
+    }
+    case allocator_mode::FREE: {
+      auto *c = (pool_allocator_data::chunk *)oldMemory;
+      c->Next = data->FreeList;
+      data->FreeList = c;
+      return null;
+    }
+    case allocator_mode::FREE_ALL: {
+      data->FreeList = null;
 
-    auto *b = data->Base;
-    while (b) {
-      pool_allocator_add_free_chunks(data, b + 1, b->Size);
-      b = b->Next;
+      auto *b = data->Base;
+      while (b) {
+        pool_allocator_add_free_chunks(data, b + 1, b->Size);
+        b = b->Next;
+      }
+      return null;
     }
-    return null;
-  }
   }
   return null;
 }
@@ -918,9 +916,9 @@ struct allocation_header {
   //      ^ The pointer returned by the allocator implementation       ^ The
   //      resulting pointer (aligned)
   //
-  u16 Alignment;        // We allow a maximum of 65535 byte alignment
-  u16 AlignmentPadding; // Offset from the block that needs to be there in
-                        // order for the result to be aligned
+  u16 Alignment;         // We allow a maximum of 65535 byte alignment
+  u16 AlignmentPadding;  // Offset from the block that needs to be there in
+                         // order for the result to be aligned
 
 #if defined DEBUG_MEMORY
   // This is used to detect buffer underruns.
@@ -1090,11 +1088,10 @@ void debug_memory_maybe_verify_heap();
 #endif
 
 template <non_void T>
-  requires(!is_const<T>)
-T *lstd_reallocate_impl(T *block, s64 newCount, u64 options,
-                        source_location loc) {
-  if (!block)
-    return null;
+requires(!is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount,
+                                               u64 options,
+                                               source_location loc) {
+  if (!block) return null;
 
   // I think the standard implementation frees in this case but we need to
   // decide what _options_ should go there (no options or the ones passed to
@@ -1150,10 +1147,9 @@ T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options,
 }
 
 template <non_void T>
-  requires(!is_const<T>)
-void lstd_free_impl(T *block, u64 options, source_location loc) {
-  if (!block)
-    return;
+requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
+                                           source_location loc) {
+  if (!block) return;
 
   auto *header = (allocation_header *)block - 1;
   s64 count = header->Size / sizeof(T);

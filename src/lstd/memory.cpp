@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lstd/memory.h"
+
 #include "lstd/atomic.h"
 #include "lstd/fmt.h"
 #include "lstd/os.h"
@@ -92,8 +93,7 @@ void debug_memory_uninit() {
 
 static auto *list_search(allocation_header *header) {
   debug_memory_node *t = DebugMemoryHead;
-  while (t != DebugMemoryTail && t->Header < header)
-    t = t->Next;
+  while (t != DebugMemoryTail && t->Header < header) t = t->Next;
   return t;
 }
 
@@ -113,8 +113,7 @@ static debug_memory_node *list_add(allocation_header *header) {
 
 static debug_memory_node *list_remove(allocation_header *header) {
   auto *n = list_search(header);
-  if (n->Header != header)
-    return null;
+  if (n->Header != header) return null;
 
   n->Prev->Next = n->Next;
   n->Next->Prev = n->Prev;
@@ -134,8 +133,7 @@ void debug_memory_report_leaks() {
   // @Cleanup: Factor this into a macro
   auto *it = DebugMemoryHead->Next;
   while (it != DebugMemoryTail) {
-    if (!it->Freed && !it->MarkedAsLeak)
-      ++leaksCount;
+    if (!it->Freed && !it->MarkedAsLeak) ++leaksCount;
     it = it->Next;
   }
 
@@ -151,15 +149,15 @@ void debug_memory_report_leaks() {
 
   it = DebugMemoryHead->Next;
   while (it != DebugMemoryTail) {
-    if (!it->Freed && !it->MarkedAsLeak)
-      *p++ = it;
+    if (!it->Freed && !it->MarkedAsLeak) *p++ = it;
     it = it->Next;
   }
 
   if (leaksCount) {
-    print(">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still "
-          "had {!YELLOW}{}{!} allocations which were unfreed. Here they are:\n",
-          os_get_current_module(), leaksCount);
+    print(
+        ">>> Warning: The module {!YELLOW}\"{}\"{!} terminated but it still "
+        "had {!YELLOW}{}{!} allocations which were unfreed. Here they are:\n",
+        os_get_current_module(), leaksCount);
   }
 
   For_as(i, range(leaksCount)) {
@@ -244,8 +242,7 @@ void debug_memory_verify_heap() {
 }
 
 void debug_memory_maybe_verify_heap() {
-  if (AllocationCount % Context.DebugMemoryHeapVerifyFrequency)
-    return;
+  if (AllocationCount % Context.DebugMemoryHeapVerifyFrequency) return;
   debug_memory_verify_heap();
 }
 
@@ -257,12 +254,10 @@ void check_for_overlapping_blocks(debug_memory_node *node) {
   // the same pool.
 
   auto *left = node->Prev;
-  while (left->Freed)
-    left = left->Prev;
+  while (left->Freed) left = left->Prev;
 
   auto *right = node->Next;
-  while (right->Freed)
-    right = right->Next;
+  while (right->Freed) right = right->Next;
 
   if (left != DebugMemoryHead) {
     // Check below
@@ -297,8 +292,8 @@ void check_for_overlapping_blocks(debug_memory_node *node) {
 }
 #endif
 
-static void *encode_header(void *p, s64 userSize, u32 align,
-                               allocator alloc, u64 flags) {
+static void *encode_header(void *p, s64 userSize, u32 align, allocator alloc,
+                           u64 flags) {
   u32 padding = calculate_padding_for_pointer_with_header(
       p, align, sizeof(allocation_header));
   u32 alignmentPadding = padding - sizeof(allocation_header);
@@ -372,10 +367,10 @@ static void log_file_and_line(source_location loc) {
 
 void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
                        u64 options, source_location loc) {
-  if (!alloc)
-    alloc = Context.Alloc;
-  assert(alloc && "Context allocator was null. The programmer should set it "
-                  "before calling allocate functions.");
+  if (!alloc) alloc = Context.Alloc;
+  assert(alloc &&
+         "Context allocator was null. The programmer should set it "
+         "before calling allocate functions.");
 
   options |= Context.AllocOptions;
 
@@ -411,8 +406,8 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
   s64 required = userSize + alignment + sizeof(allocation_header) +
                  sizeof(allocation_header) % alignment;
 #if defined DEBUG_MEMORY
-  required += NO_MANS_LAND_SIZE; // This is for the safety bytes after the
-                                 // requested block
+  required += NO_MANS_LAND_SIZE;  // This is for the safety bytes after the
+                                  // requested block
 #endif
 
   void *block = alloc.Function(allocator_mode::ALLOCATE, alloc.Context,
@@ -431,8 +426,9 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
     if (!node->Freed) {
       // Maybe this is a bug in the allocator implementation,
       // or maybe two different allocators use the same pool.
-      assert(false && "Allocator implementation returning a pointer which is "
-                      "still live and wasn't freed yet");
+      assert(false &&
+             "Allocator implementation returning a pointer which is "
+             "still live and wasn't freed yet");
       return null;
     }
 
@@ -475,10 +471,11 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
   auto *node = list_search(header);
   if (node->Header != header) {
     // @TODO: Callstack
-    panic(tprint("{!RED}Attempting to reallocate a memory block which was not "
-                 "allocated in the heap.{!} This happened at {!YELLOW}{}:{}{!} "
-                 "(in function: {!YELLOW}{}{!}).",
-                 loc.File, loc.Line, loc.Function));
+    panic(
+        tprint("{!RED}Attempting to reallocate a memory block which was not "
+               "allocated in the heap.{!} This happened at {!YELLOW}{}:{}{!} "
+               "(in function: {!YELLOW}{}{!}).",
+               loc.File, loc.Line, loc.Function));
     return null;
   }
 
@@ -571,7 +568,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
     // The block was resized sucessfully and it doesn't need moving
     //
 
-    assert(block == newBlock); // Sanity
+    assert(block == newBlock);  // Sanity
 
     header->Size = newUserSize;
   }
@@ -597,8 +594,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
 }
 
 void general_free(void *ptr, u64 options, source_location loc) {
-  if (!ptr)
-    return;
+  if (!ptr) return;
 
   options |= Context.AllocOptions;
 
@@ -610,8 +606,9 @@ void general_free(void *ptr, u64 options, source_location loc) {
   auto *node = list_search(header);
   if (node->Header != header) {
     // @TODO: Callstack
-    panic(tprint("Attempting to free a memory block which was not heap "
-                 "allocated (in this thread)."));
+    panic(
+        tprint("Attempting to free a memory block which was not heap "
+               "allocated (in this thread)."));
 
     // Note: We don't support cross-thread freeing yet.
 
@@ -619,11 +616,11 @@ void general_free(void *ptr, u64 options, source_location loc) {
   }
 
   if (node->Freed) {
-    panic(tprint("{!RED}Attempting to free a memory block which was already "
-                 "freed.{!} The previous free happened at {!YELLOW}{}:{}{!} "
-                 "(in function: {!YELLOW}{}{!})",
-                 node->FreedAt.File, node->FreedAt.Line,
-                 node->FreedAt.Function));
+    panic(
+        tprint("{!RED}Attempting to free a memory block which was already "
+               "freed.{!} The previous free happened at {!YELLOW}{}:{}{!} "
+               "(in function: {!YELLOW}{}{!})",
+               node->FreedAt.File, node->FreedAt.Line, node->FreedAt.Function));
     return;
   }
 #endif

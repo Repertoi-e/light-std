@@ -23,7 +23,7 @@ LSTD_BEGIN_NAMESPACE
 // You can change the names of the internal
 // variables by using _For_enumerate_as_.
 //
-#define For_enumerate_as(it_index, it, in)                                     \
+#define For_enumerate_as(it_index, it, in) \
   for (auto [it_index, it] : LSTD_NAMESPACE::enumerate_impl(in))
 #define For_enumerate(in) For_enumerate_as(it_index, it, in)
 
@@ -52,7 +52,7 @@ auto enumerate_impl(const T &in) {
     auto end() { return iterator{0, Iterable.end()}; }
   };
 
-  return iterable_wrapper{(T &&)in};
+  return iterable_wrapper{(T &&) in};
 }
 
 LSTD_END_NAMESPACE

@@ -36,7 +36,7 @@
  *
  *
  */
-
+
 /*							cosh.c */
 
 /*
@@ -55,26 +55,24 @@ int isnan(), isfinite();
 #endif
 extern double MAXLOG, INFINITY, LOGE2;
 
-
-double cosh(x) double x; {
-    double y;
+double cosh(x) double x;
+{
+  double y;
 
 #ifdef NANS
-    if (isnan(x))
-        return x;
+  if (isnan(x)) return x;
 #endif
-    if (x < 0)
-        x = -x;
-    if (x > MAXLOG + LOGE2) {
-        mtherr("cosh", OVERFLOW);
-        return INFINITY;
-    }
-    if (x >= MAXLOG - LOGE2) {
-        y = exp(0.5 * x);
-        y = 0.5 * y * y;
-        return y;
-    }
-    y = exp(x);
-    y = 0.5 * (y + 1.0 / y);
+  if (x < 0) x = -x;
+  if (x > MAXLOG + LOGE2) {
+    mtherr("cosh", OVERFLOW);
+    return INFINITY;
+  }
+  if (x >= MAXLOG - LOGE2) {
+    y = exp(0.5 * x);
+    y = 0.5 * y * y;
     return y;
+  }
+  y = exp(x);
+  y = 0.5 * (y + 1.0 / y);
+  return y;
 }

@@ -28,15 +28,15 @@ LSTD_BEGIN_NAMESPACE
 // The index always starts at the LSB.
 //   e.g msb(12) (binary - 1100) -> returns 3
 // If x is 0, returned value is -1 (no set bits).
-template <typename T> inline s32 msb(T x) {
+template <typename T>
+inline s32 msb(T x) {
   // We can't use a concept here because we need the msb forward declaration in
   // u128.h, but that file can't include "type_info.h". C++ is bullshit.
   static_assert(is_unsigned_integral<T>);
 
   if constexpr (sizeof(T) == 16) {
     // 128 bit integers
-    if (x.hi != 0)
-      return 64 + msb(x.hi);
+    if (x.hi != 0) return 64 + msb(x.hi);
     return msb(x.lo);
   } else {
 #if COMPILER == MSVC
@@ -64,8 +64,7 @@ template <typename T> inline s32 msb(T x) {
 inline s32 lsb(is_unsigned_integral auto x) {
   if constexpr (sizeof(x) == 16) {
     // 128 bit integers
-    if (x.lo == 0)
-      return 64 + lsb(x.hi);
+    if (x.lo == 0) return 64 + lsb(x.hi);
     return lsb(x.lo);
   } else {
 #if COMPILER == MSVC
@@ -121,19 +120,21 @@ inline void byte_swap_8(void *ptr) {
   *(u64 *)ptr = (x << 32) | (x >> 32);
 }
 
-template <typename T> void swap(T &a, T &b) {
+template <typename T>
+void swap(T &a, T &b) {
   T c = a;
   a = b;
   b = c;
 }
 
-template <typename T, s64 N> void swap(T (&a)[N], T (&b)[N]) {
+template <typename T, s64 N>
+void swap(T (&a)[N], T (&b)[N]) {
   For(range(N)) swap(a[it], b[it]);
 }
 
-#define POWERS_OF_10(factor)                                                   \
-  factor * 10, factor * 100, factor * 1000, factor * 10000, factor * 100000,   \
-      factor * 1000000, factor * 10000000, factor * 100000000,                 \
+#define POWERS_OF_10(factor)                                                 \
+  factor * 10, factor * 100, factor * 1000, factor * 10000, factor * 100000, \
+      factor * 1000000, factor * 10000000, factor * 100000000,               \
       factor * 1000000000
 
 // These are just look up tables for powers of ten.
@@ -147,20 +148,21 @@ inline const u64 POWERS_OF_10_64[] = {
 // except for n == 0 in which case count_digits returns 1.
 inline u32 count_digits(is_unsigned_integral auto n) {
   s32 integerLog2 =
-      msb(n | 1); // log_2(n) == msb(n) (@Speed Not the fastest way)
+      msb(n | 1);  // log_2(n) == msb(n) (@Speed Not the fastest way)
   // We also | 1 (if n is 0, we treat is as 1)
 
   // Divide by log_2(10), which is approx. 1233 / 4096
   u32 t = ((u32)integerLog2 + 1) * 1233 >>
-          12; // We add 1 to integerLog2 because it rounds down.
+          12;  // We add 1 to integerLog2 because it rounds down.
 
   u32 integerLog10 =
-      t - (n < POWERS_OF_10_64[t]); // t may be off by 1, correct it.
+      t - (n < POWERS_OF_10_64[t]);  // t may be off by 1, correct it.
 
-  return integerLog10 + 1; // Number of digits in 'n' is [log_10(n)] + 1
+  return integerLog10 + 1;  // Number of digits in 'n' is [log_10(n)] + 1
 }
 
-template <u32 Bits> inline u32 count_digits(is_integral auto value) {
+template <u32 Bits>
+inline u32 count_digits(is_integral auto value) {
   decltype(value) n = value;
 
   u32 numDigits = 0;

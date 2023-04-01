@@ -6,7 +6,7 @@
 #include "lstd/common.h"
 #include "lstd/context.h"
 #include "lstd/os.h"
-#include "lstd/os/windows/api.h" // For definitions
+#include "lstd/os/windows/api.h"  // For definitions
 
 #if OS != WINDOWS
 #error LSTD_NO_CRT is Windows-only
@@ -14,21 +14,21 @@
 
 // Define these as nullptr
 extern "C" _CRTALLOC(".CRT$XIA") _PIFV __xi_a[] = {
-    nullptr}; // C initializers (first)
+    nullptr};  // C initializers (first)
 extern "C" _CRTALLOC(".CRT$XIZ") _PIFV __xi_z[] = {
-    nullptr}; // C initializers (last)
+    nullptr};  // C initializers (last)
 extern "C" _CRTALLOC(".CRT$XCA") _PVFV __xc_a[] = {
-    nullptr}; // C++ initializers (first)
+    nullptr};  // C++ initializers (first)
 extern "C" _CRTALLOC(".CRT$XCZ") _PVFV __xc_z[] = {
-    nullptr}; // C++ initializers (last)
+    nullptr};  // C++ initializers (last)
 extern "C" _CRTALLOC(".CRT$XPA") _PVFV __xp_a[] = {
-    nullptr}; // C pre-terminators (first)
+    nullptr};  // C pre-terminators (first)
 extern "C" _CRTALLOC(".CRT$XPZ") _PVFV __xp_z[] = {
-    nullptr}; // C pre-terminators (last)
+    nullptr};  // C pre-terminators (last)
 extern "C" _CRTALLOC(".CRT$XTA") _PVFV __xt_a[] = {
-    nullptr}; // C terminators (first)
+    nullptr};  // C terminators (first)
 extern "C" _CRTALLOC(".CRT$XTZ") _PVFV __xt_z[] = {
-    nullptr}; // C terminators (last)
+    nullptr};  // C terminators (last)
 
 // Commented out the stuff we don't care about.
 // Turns out we commented the entire function.
@@ -37,7 +37,7 @@ static int __cdecl pre_c_initialization() {
 #if BITS == 32
   // Clear the x87 exception flags.  Any other floating point initialization
   // should already have taken place before this function is called.
-  _asm { fnclex }
+  _asm { fnclex}
   _initialize_default_precision();
 #endif
   return 0;
@@ -251,10 +251,10 @@ static BOOL WINAPI dllmain_crt_dispatch(HINSTANCE const instance,
                                         DWORD const reason,
                                         LPVOID const reserved) {
   switch (reason) {
-  case DLL_PROCESS_ATTACH:
-    return dllmain_crt_process_attach(instance, reserved);
-  case DLL_PROCESS_DETACH:
-    return dllmain_crt_process_detach(reserved != nullptr);
+    case DLL_PROCESS_ATTACH:
+      return dllmain_crt_process_attach(instance, reserved);
+    case DLL_PROCESS_DETACH:
+      return dllmain_crt_process_detach(reserved != nullptr);
   }
 
   return 1;
@@ -268,8 +268,7 @@ extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE const instance, DWORD const reason,
 
 static BOOL WINAPI dllmain_raw(HINSTANCE const instance, DWORD const reason,
                                LPVOID const reserved) {
-  if (!_pRawDllMain)
-    return 1;
+  if (!_pRawDllMain) return 1;
 
   return _pRawDllMain(instance, reason, reserved);
 }
@@ -288,12 +287,10 @@ static BOOL __cdecl dllmain_dispatch(HINSTANCE const instance,
 
   if (reason == DLL_PROCESS_ATTACH || reason == DLL_THREAD_ATTACH) {
     result = dllmain_raw(instance, reason, reserved);
-    if (!result)
-      return 0;
+    if (!result) return 0;
 
     result = dllmain_crt_dispatch(instance, reason, reserved);
-    if (!result)
-      return 0;
+    if (!result) return 0;
   }
 
   result = DllMain(instance, reason, reserved);
@@ -307,12 +304,10 @@ static BOOL __cdecl dllmain_dispatch(HINSTANCE const instance,
 
   if (reason == DLL_PROCESS_DETACH || reason == DLL_THREAD_DETACH) {
     result = dllmain_crt_dispatch(instance, reason, reserved);
-    if (!result)
-      return 0;
+    if (!result) return 0;
 
     result = dllmain_raw(instance, reason, reserved);
-    if (!result)
-      return 0;
+    if (!result) return 0;
   }
   return result;
 }

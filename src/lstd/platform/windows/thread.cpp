@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lstd/os.h"             // Declarations of Win32 functions
-#include "lstd/os/windows/api.h" // Declarations of Win32 functions
+#include "lstd/os.h"              // Declarations of Win32 functions
+#include "lstd/os/windows/api.h"  // Declarations of Win32 functions
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 

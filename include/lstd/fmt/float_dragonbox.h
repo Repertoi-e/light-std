@@ -740,7 +740,8 @@ always_inline bool divisible_by_power_of_2(u64 x, s32 exp) {
 }
 
 // Table entry type for divisibility test used internally
-template <typename T> struct divtest_table_entry {
+template <typename T>
+struct divtest_table_entry {
   T ModInv;
   T MaxQuot;
 };
@@ -799,7 +800,8 @@ always_inline bool divisible_by_power_of_5(u64 x, s32 exp) {
 // f64:
 // Replaces n by floor(n / pow(5, 2)) returning true iff n is divisible by
 // pow(5, 2). Precondition: n <= 2 * pow(5, 3).
-template <bool IS_F32> bool check_divisibility_and_divide_by_pow5(u32 *n) {
+template <bool IS_F32>
+bool check_divisibility_and_divide_by_pow5(u32 *n) {
   const u32 magic_number = IS_F32 ? 0xcccd : 0xa429;
   const s32 bits_for_comparison = IS_F32 ? 16 : 8;
   const u32 threshold = IS_F32 ? 0x3333 : 0x0a;
@@ -819,7 +821,8 @@ template <bool IS_F32> bool check_divisibility_and_divide_by_pow5(u32 *n) {
 // f64:
 // Computes floor(n / pow(10, 2)) for small n.
 // Precondition: n <= pow(10, 3).
-template <bool IS_F32> u32 small_division_by_pow10(u32 n) {
+template <bool IS_F32>
+u32 small_division_by_pow10(u32 n) {
   const u32 magic_number = IS_F32 ? 0xcccd : 0xa3d8;
   const s32 shift_amount = IS_F32 ? 19 : 22;
   const u32 divisor_times_10 = IS_F32 ? 100 : 1000;
@@ -871,16 +874,14 @@ inline bool cache_compute_mul_parity(u32 two_f, u64 cache, s32 beta_minus_1) {
   return ((umul96_lower64(two_f, cache) >> (64 - beta_minus_1)) & 1) != 0;
 }
 
-inline u32
-cache_compute_left_endpoint_for_shorter_interval_case(u64 cache,
-                                                      s32 beta_minus_1) {
+inline u32 cache_compute_left_endpoint_for_shorter_interval_case(
+    u64 cache, s32 beta_minus_1) {
   return (u32)((cache - (cache >> (numeric<f32>::bits_mantissa + 2))) >>
                (64 - numeric<f32>::bits_mantissa - 1 - beta_minus_1));
 }
 
-inline u32
-cache_compute_right_endpoint_for_shorter_interval_case(u64 cache,
-                                                       s32 beta_minus_1) {
+inline u32 cache_compute_right_endpoint_for_shorter_interval_case(
+    u64 cache, s32 beta_minus_1) {
   return (u32)((cache + (cache >> (numeric<f32>::bits_mantissa + 1))) >>
                (64 - numeric<f32>::bits_mantissa - 1 - beta_minus_1));
 }
@@ -908,16 +909,14 @@ inline bool cache_compute_mul_parity(u64 two_f, u128 cache, s32 beta_minus_1) {
   return ((umul192_middle64(two_f, cache) >> (64 - beta_minus_1)) & 1) != 0;
 }
 
-inline u64
-cache_compute_left_endpoint_for_shorter_interval_case(u128 cache,
-                                                      s32 beta_minus_1) {
+inline u64 cache_compute_left_endpoint_for_shorter_interval_case(
+    u128 cache, s32 beta_minus_1) {
   return (cache.hi - (cache.hi >> (numeric<f64>::bits_mantissa + 2))) >>
          (64 - numeric<f64>::bits_mantissa - 1 - beta_minus_1);
 }
 
-inline u64
-cache_compute_right_endpoint_for_shorter_interval_case(u128 cache,
-                                                       s32 beta_minus_1) {
+inline u64 cache_compute_right_endpoint_for_shorter_interval_case(
+    u128 cache, s32 beta_minus_1) {
   return (cache.hi + (cache.hi >> (numeric<f64>::bits_mantissa + 1))) >>
          (64 - numeric<f64>::bits_mantissa - 1 - beta_minus_1);
 }
@@ -934,8 +933,7 @@ always_inline s32 remove_trailing_zeros(u32 *n) {
   const s32 F32_MAX_TRAILING_ZEROS = 7;
 
   s32 t = lsb(*n);
-  if (t > F32_MAX_TRAILING_ZEROS)
-    t = F32_MAX_TRAILING_ZEROS;
+  if (t > F32_MAX_TRAILING_ZEROS) t = F32_MAX_TRAILING_ZEROS;
 
   const u32 mod_inv1 = 0xcccccccd;
   const u32 max_quotient1 = 0x33333333;
@@ -944,8 +942,7 @@ always_inline s32 remove_trailing_zeros(u32 *n) {
 
   s32 s = 0;
   for (; s < t - 1; s += 2) {
-    if (*n * mod_inv2 > max_quotient2)
-      break;
+    if (*n * mod_inv2 > max_quotient2) break;
     *n *= mod_inv2;
   }
   if (s < t && *n * mod_inv1 <= max_quotient1) {
@@ -961,8 +958,7 @@ always_inline s32 remove_trailing_zeros(u64 *n) {
   const s32 F64_MAX_TRAILING_ZEROS = 16;
 
   s32 t = lsb(*n);
-  if (t > F64_MAX_TRAILING_ZEROS)
-    t = F64_MAX_TRAILING_ZEROS;
+  if (t > F64_MAX_TRAILING_ZEROS) t = F64_MAX_TRAILING_ZEROS;
 
   // Divide by 10^8 and reduce to 32-bits
   // Since result.Significand <= (2^64 - 1) / 1000 < 10^17,
@@ -982,8 +978,7 @@ always_inline s32 remove_trailing_zeros(u64 *n) {
 
       s32 s = 8;
       for (; s < t; ++s) {
-        if (quotient * mod_inv1 > max_quotient1)
-          break;
+        if (quotient * mod_inv1 > max_quotient1) break;
         quotient *= mod_inv1;
       }
       quotient >>= (s - 8);
@@ -996,8 +991,7 @@ always_inline s32 remove_trailing_zeros(u64 *n) {
   auto quotient = (u32)(*n / 100000000);
   auto remainder = (u32)(*n - 100000000 * quotient);
 
-  if (t == 0 || remainder * mod_inv1 > max_quotient1)
-    return 0;
+  if (t == 0 || remainder * mod_inv1 > max_quotient1) return 0;
   remainder *= mod_inv1;
 
   if (t == 1 || remainder * mod_inv1 > max_quotient1) {
@@ -1050,15 +1044,12 @@ inline bool is_endpoint_integer(auto two_f, s32 exponent, s32 minus_k) {
   const s32 case_fc_pm_half_upper_threshold = IS_F32 ? 6 : 9;
   const s32 divisibility_check_by_5_threshold = IS_F32 ? 39 : 86;
 
-  if (exponent < case_fc_pm_half_lower_threshold)
-    return false;
+  if (exponent < case_fc_pm_half_lower_threshold) return false;
 
   // For k >= 0.
-  if (exponent <= case_fc_pm_half_upper_threshold)
-    return true;
+  if (exponent <= case_fc_pm_half_upper_threshold) return true;
   // For k < 0.
-  if (exponent > divisibility_check_by_5_threshold)
-    return false;
+  if (exponent > divisibility_check_by_5_threshold) return false;
 
   return divisible_by_power_of_5(two_f, minus_k);
 }
@@ -1071,21 +1062,20 @@ bool is_center_integer(auto two_f, s32 exponent, s32 minus_k) {
   const s32 case_fc_upper_threshold = IS_F32 ? 6 : 9;
 
   // Exponent for 5 is negative.
-  if (exponent > divisibility_check_by_5_threshold)
-    return false;
+  if (exponent > divisibility_check_by_5_threshold) return false;
 
   if (exponent > case_fc_upper_threshold)
     return divisible_by_power_of_5(two_f, minus_k);
 
   // Both exponents are nonnegative.
-  if (exponent >= case_fc_lower_threshold)
-    return true;
+  if (exponent >= case_fc_lower_threshold) return true;
   // Exponent for 2 is negative.
   return divisible_by_power_of_2(two_f, minus_k - exponent + 1);
 }
 
 // The main algorithm for shorter interval case
-template <bool IS_F32> always_inline auto shorter_interval_case(s32 exponent) {
+template <bool IS_F32>
+always_inline auto shorter_interval_case(s32 exponent) {
   using uint_t = type_select_t<IS_F32, u32, u64>;
   using cache_t = type_select_t<IS_F32, u64, u128>;
 
@@ -1110,8 +1100,7 @@ template <bool IS_F32> always_inline auto shorter_interval_case(s32 exponent) {
       cache, beta_minus_1);
 
   // If the left endpoint is not an integer, increase it
-  if (!is_left_endpoint_integer_shorter_interval(exponent))
-    ++xi;
+  if (!is_left_endpoint_integer_shorter_interval(exponent)) ++xi;
 
   // Try bigger divisor
   result.Significand = (uint_t)(zi / 10);
@@ -1168,8 +1157,7 @@ auto dragonbox_format_float(is_floating_point auto x) {
     exponent += -float_info::exponent_bias - float_info::bits_mantissa;
 
     // Shorter interval case; proceed like Schubfach
-    if (significand == 0)
-      return shorter_interval_case<IS_F32>(exponent);
+    if (significand == 0) return shorter_interval_case<IS_F32>(exponent);
 
     significand |= uint_t(1) << float_info::bits_mantissa;
   } else {

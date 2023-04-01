@@ -4,7 +4,6 @@
 #include "float_dragon4.h"
 #include "float_specs.h"
 
-
 //
 // Use Grisu + Dragon4 when formatting a float with a given precision:
 // https://www.cs.tufts.edu/~nr/cs257/archive/florian-loitsch/printf.pdf.//
@@ -79,9 +78,9 @@ inline fp get_cached_power(s32 minExponent, s32 *pow10) {
 }
 
 enum class gen_digits_result {
-  MORE, // Generate more digits.
-  DONE, // Done generating digits.
-  ERROR // Digit generation cancelled due to an error.
+  MORE,  // Generate more digits.
+  DONE,  // Done generating digits.
+  ERROR  // Digit generation cancelled due to an error.
 };
 
 struct gen_digits_state {
@@ -102,9 +101,9 @@ enum class round_direction { UNKNOWN, UP, DOWN };
 // _error_ should be less than divisor / 2.
 always_inline round_direction get_round_direction(u64 divisor, u64 remainder,
                                                   u64 error) {
-  assert(remainder < divisor);     // divisor - remainder won't overflow.
-  assert(error < divisor);         // divisor - error won't overflow.
-  assert(error < divisor - error); // error * 2 won't overflow.
+  assert(remainder < divisor);      // divisor - remainder won't overflow.
+  assert(error < divisor);          // divisor - error won't overflow.
+  assert(error < divisor - error);  // error * 2 won't overflow.
 
   // Round down if (remainder + error) * 2 <= divisor.
   if (remainder <= divisor - remainder && error * 2 <= divisor - remainder * 2)
@@ -122,22 +121,18 @@ inline gen_digits_result gen_digits_on_start(gen_digits_state &state,
                                              u64 divisor, u64 remainder,
                                              u64 error, s32 exp) {
   // Non-fixed formats require at least one digit and no precision adjustment.
-  if (!state.Fixed)
-    return gen_digits_result::MORE;
+  if (!state.Fixed) return gen_digits_result::MORE;
 
   // Adjust fixed precision by exponent because it is relative to decimal point.
   state.Precision += exp + state.Exp10;
 
   // Check if precision is satisfied just by leading zeros, e.g.
   // "{:.2f}", 0.001 gives "0.00" without generating any digits.
-  if (state.Precision > 0)
-    return gen_digits_result::MORE;
-  if (state.Precision < 0)
-    return gen_digits_result::DONE;
+  if (state.Precision > 0) return gen_digits_result::MORE;
+  if (state.Precision < 0) return gen_digits_result::DONE;
 
   auto dir = get_round_direction(divisor, remainder, error);
-  if (dir == round_direction::UNKNOWN)
-    return gen_digits_result::ERROR;
+  if (dir == round_direction::UNKNOWN) return gen_digits_result::ERROR;
 
   state.Buffer[state.Size++] = dir == round_direction::UP ? '1' : '0';
   return gen_digits_result::DONE;
@@ -150,10 +145,8 @@ inline gen_digits_result on_digit(gen_digits_state &state, char digit,
 
   state.Buffer[state.Size++] = digit;
 
-  if (!integral && error >= remainder)
-    return gen_digits_result::ERROR;
-  if (state.Size < state.Precision)
-    return gen_digits_result::MORE;
+  if (!integral && error >= remainder) return gen_digits_result::ERROR;
+  if (state.Size < state.Precision) return gen_digits_result::MORE;
 
   if (!integral) {
     // Check if error * 2 < divisor with overflow prevention.
@@ -209,14 +202,13 @@ inline gen_digits_result gen_digits(gen_digits_state &state, fp value,
   // The fractional part of scaled value (p2 in Grisu) c = value % one.
   u64 fractional = value.Significand & (one.Significand - 1);
 
-  *exp = count_digits(integral); // kappa in Grisu.
+  *exp = count_digits(integral);  // kappa in Grisu.
 
   // Divide by 10 to prevent overflow.
   auto result =
       gen_digits_on_start(state, POWERS_OF_10_64[*exp - 1] << -one.Exponent,
                           value.Significand / 10, error * 10, *exp);
-  if (result != gen_digits_result::MORE)
-    return result;
+  if (result != gen_digits_result::MORE) return result;
 
   // Generate digits for the integral part. This can produce up to 10 digits.
   do {
@@ -230,39 +222,39 @@ inline gen_digits_result gen_digits(gen_digits_state &state, fp value,
     // This optimization by Milo Yip reduces the number of integer divisions by
     // one per iteration.
     switch (*exp) {
-    case 10:
-      divmod_integral(1000000000);
-      break;
-    case 9:
-      divmod_integral(100000000);
-      break;
-    case 8:
-      divmod_integral(10000000);
-      break;
-    case 7:
-      divmod_integral(1000000);
-      break;
-    case 6:
-      divmod_integral(100000);
-      break;
-    case 5:
-      divmod_integral(10000);
-      break;
-    case 4:
-      divmod_integral(1000);
-      break;
-    case 3:
-      divmod_integral(100);
-      break;
-    case 2:
-      divmod_integral(10);
-      break;
-    case 1:
-      digit = integral;
-      integral = 0;
-      break;
-    default:
-      assert(false && "Invalid number of digits");
+      case 10:
+        divmod_integral(1000000000);
+        break;
+      case 9:
+        divmod_integral(100000000);
+        break;
+      case 8:
+        divmod_integral(10000000);
+        break;
+      case 7:
+        divmod_integral(1000000);
+        break;
+      case 6:
+        divmod_integral(100000);
+        break;
+      case 5:
+        divmod_integral(10000);
+        break;
+      case 4:
+        divmod_integral(1000);
+        break;
+      case 3:
+        divmod_integral(100);
+        break;
+      case 2:
+        divmod_integral(10);
+        break;
+      case 1:
+        digit = integral;
+        integral = 0;
+        break;
+      default:
+        assert(false && "Invalid number of digits");
     }
 
     --*exp;
@@ -272,8 +264,7 @@ inline gen_digits_result gen_digits(gen_digits_state &state, fp value,
     result = on_digit(state, (char)('0' + digit),
                       POWERS_OF_10_64[*exp] << -one.Exponent, remainder, error,
                       true);
-    if (result != gen_digits_result::MORE)
-      return result;
+    if (result != gen_digits_result::MORE) return result;
   } while (*exp > 0);
 
   // Generate digits for the fractional part.
@@ -286,8 +277,7 @@ inline gen_digits_result gen_digits(gen_digits_state &state, fp value,
     --*exp;
 
     result = on_digit(state, digit, one.Significand, fractional, error, false);
-    if (result != gen_digits_result::MORE)
-      return result;
+    if (result != gen_digits_result::MORE) return result;
   }
 }
 
@@ -297,13 +287,13 @@ inline gen_digits_result gen_digits(gen_digits_state &state, fp value,
 inline s32 grisu_format_float(string_builder *floatBuffer,
                               is_floating_point auto v, s32 precision,
                               const fmt_float_specs &specs) {
-  const s32 MIN_EXP = -60; // alpha in Grisu.
+  const s32 MIN_EXP = -60;  // alpha in Grisu.
 
   fp normalized;
   fp_assign_new(normalized, v);
   normalized = fp_normalize<0>(normalized);
 
-  s32 cachedExp10 = 0; // K in Grisu.
+  s32 cachedExp10 = 0;  // K in Grisu.
 
   fp cachedPow = get_cached_power(
       MIN_EXP - (normalized.Exponent + (sizeof(u64) * 8)), &cachedExp10);
@@ -312,8 +302,7 @@ inline s32 grisu_format_float(string_builder *floatBuffer,
   // Limit precision to the maximum possible number of significant digits in an
   // IEEE754 double because we don't need to generate zeros.
   const s32 MAX_DOUBLE_DIGITS = 767;
-  if (precision > MAX_DOUBLE_DIGITS)
-    precision = MAX_DOUBLE_DIGITS;
+  if (precision > MAX_DOUBLE_DIGITS) precision = MAX_DOUBLE_DIGITS;
 
   bool fixed = specs.Format == fmt_float_specs::FIXED;
 

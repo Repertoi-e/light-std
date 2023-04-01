@@ -21,7 +21,7 @@
  * If z = x + iy, r = sqrt( x**2 + y**2 ),
  * then
  *       w = log(r) + i arctan(y/x).
- * 
+ *
  * The arctangent ranges from -PI to +PI.
  *
  *
@@ -36,7 +36,7 @@
  * In IEEE arithmetic the peak absolute error is 5.2e-16, rms
  * absolute error 1.0e-16.
  */
-
+
 /*
 Cephes Math Library Release 2.8:  June, 2000
 Copyright 1984, 1995, 2000 by Stephen L. Moshier
@@ -80,27 +80,25 @@ void cadd(), cmul(), csqrt();
 void clog(), casin(), cacos(), catan();
 #endif
 
-
 extern double MAXNUM, MACHEP, PI, PIO2;
 
-void clog(z, w)
-register cmplx *z, *w; {
-    double p, rr;
+void clog(z, w) register cmplx *z, *w;
+{
+  double p, rr;
 
-    /*rr = sqrt( z->r * z->r  +  z->i * z->i );*/
-    rr = cabs(z);
-    p  = log(rr);
+  /*rr = sqrt( z->r * z->r  +  z->i * z->i );*/
+  rr = cabs(z);
+  p = log(rr);
 #if ANSIC
-rr = atan2( z->i, z->r );
+  rr = atan2(z->i, z->r);
 #else
-    rr = atan2(z->r, z->i);
-    if (rr > PI)
-        rr -= PI + PI;
+  rr = atan2(z->r, z->i);
+  if (rr > PI) rr -= PI + PI;
 #endif
-    w->i = rr;
-    w->r = p;
+  w->i = rr;
+  w->r = p;
 }
- /*							cexp()
+/*							cexp()
  *
  *	Complex exponential function
  *
@@ -137,16 +135,16 @@ rr = atan2( z->i, z->r );
  *    IEEE      -10,+10     30000       3.0e-16     8.7e-17
  *
  */
-
-void cexp(z, w)
-register cmplx *z, *w; {
-    double r;
 
-    r    = exp(z->r);
-    w->r = r * cos(z->i);
-    w->i = r * sin(z->i);
+void cexp(z, w) register cmplx *z, *w;
+{
+  double r;
+
+  r = exp(z->r);
+  w->r = r * cos(z->i);
+  w->i = r * sin(z->i);
 }
- /*							csin()
+/*							csin()
  *
  *	Complex circular sine
  *
@@ -181,36 +179,35 @@ register cmplx *z, *w; {
  * Also tested by csin(casin(z)) = z.
  *
  */
-
-void csin(z, w)
-register cmplx *z, *w; {
-    double ch, sh;
 
-    cchsh(z->i, &ch, &sh);
-    w->r = sin(z->r) * ch;
-    w->i = cos(z->r) * sh;
+void csin(z, w) register cmplx *z, *w;
+{
+  double ch, sh;
+
+  cchsh(z->i, &ch, &sh);
+  w->r = sin(z->r) * ch;
+  w->i = cos(z->r) * sh;
 }
-
 
 /* calculate cosh and sinh */
 
-static void cchsh(x, c, s)
-double x, *c, *s; {
-    double e, ei;
+static void cchsh(x, c, s) double x, *c, *s;
+{
+  double e, ei;
 
-    if (fabs(x) <= 0.5) {
-        *c = cosh(x);
-        *s = sinh(x);
-    } else {
-        e  = exp(x);
-        ei = 0.5 / e;
-        e  = 0.5 * e;
-        *s = e - ei;
-        *c = e + ei;
-    }
+  if (fabs(x) <= 0.5) {
+    *c = cosh(x);
+    *s = sinh(x);
+  } else {
+    e = exp(x);
+    ei = 0.5 / e;
+    e = 0.5 * e;
+    *s = e - ei;
+    *c = e + ei;
+  }
 }
 
- /*							ccos()
+/*							ccos()
  *
  *	Complex circular cosine
  *
@@ -243,16 +240,16 @@ double x, *c, *s; {
  *    DEC       -10,+10      8400       4.5e-17     1.3e-17
  *    IEEE      -10,+10     30000       3.8e-16     1.0e-16
  */
-
-void ccos(z, w)
-register cmplx *z, *w; {
-    double ch, sh;
 
-    cchsh(z->i, &ch, &sh);
-    w->r = cos(z->r) * ch;
-    w->i = -sin(z->r) * sh;
+void ccos(z, w) register cmplx *z, *w;
+{
+  double ch, sh;
+
+  cchsh(z->i, &ch, &sh);
+  w->r = cos(z->r) * ch;
+  w->i = -sin(z->r) * sh;
 }
- /*							ctan()
+/*							ctan()
  *
  *	Complex circular tangent
  *
@@ -291,27 +288,26 @@ register cmplx *z, *w; {
  *    IEEE      -10,+10     30000       7.2e-16     1.2e-16
  * Also tested by ctan * ccot = 1 and catan(ctan(z))  =  z.
  */
-
-void ctan(z, w)
-register cmplx *z, *w; {
-    double d;
 
-    d = cos(2.0 * z->r) + cosh(2.0 * z->i);
+void ctan(z, w) register cmplx *z, *w;
+{
+  double d;
 
-    if (fabs(d) < 0.25)
-        d = ctans(z);
+  d = cos(2.0 * z->r) + cosh(2.0 * z->i);
 
-    if (d == 0.0) {
-        mtherr("ctan", OVERFLOW);
-        w->r = MAXNUM;
-        w->i = MAXNUM;
-        return;
-    }
+  if (fabs(d) < 0.25) d = ctans(z);
 
-    w->r = sin(2.0 * z->r) / d;
-    w->i = sinh(2.0 * z->i) / d;
+  if (d == 0.0) {
+    mtherr("ctan", OVERFLOW);
+    w->r = MAXNUM;
+    w->i = MAXNUM;
+    return;
+  }
+
+  w->r = sin(2.0 * z->r) / d;
+  w->i = sinh(2.0 * z->i) / d;
 }
- /*							ccot()
+/*							ccot()
  *
  *	Complex circular cotangent
  *
@@ -350,27 +346,26 @@ register cmplx *z, *w; {
  *    IEEE      -10,+10     30000       9.2e-16     1.2e-16
  * Also tested by ctan * ccot = 1 + i0.
  */
-
-void ccot(z, w)
-register cmplx *z, *w; {
-    double d;
 
-    d = cosh(2.0 * z->i) - cos(2.0 * z->r);
+void ccot(z, w) register cmplx *z, *w;
+{
+  double d;
 
-    if (fabs(d) < 0.25)
-        d = ctans(z);
+  d = cosh(2.0 * z->i) - cos(2.0 * z->r);
 
-    if (d == 0.0) {
-        mtherr("ccot", OVERFLOW);
-        w->r = MAXNUM;
-        w->i = MAXNUM;
-        return;
-    }
+  if (fabs(d) < 0.25) d = ctans(z);
 
-    w->r = sin(2.0 * z->r) / d;
-    w->i = -sinh(2.0 * z->i) / d;
+  if (d == 0.0) {
+    mtherr("ccot", OVERFLOW);
+    w->r = MAXNUM;
+    w->i = MAXNUM;
+    return;
+  }
+
+  w->r = sin(2.0 * z->r) / d;
+  w->i = -sinh(2.0 * z->i) / d;
 }
-
+
 /* Program to subtract nearest integer multiple of PI */
 /* extended precision value of PI: */
 #ifdef UNK
@@ -380,9 +375,24 @@ static double DP3 = 1.14423774522196636802E-17;
 #endif
 
 #ifdef DEC
-static unsigned short P1[] = {0040511,0007732,0120000,0000000,};
-static unsigned short P2[] = {0031010,0055060,0100000,0000000,};
-static unsigned short P3[] = {0022123,0011431,0105056,0001560,};
+static unsigned short P1[] = {
+    0040511,
+    0007732,
+    0120000,
+    0000000,
+};
+static unsigned short P2[] = {
+    0031010,
+    0055060,
+    0100000,
+    0000000,
+};
+static unsigned short P3[] = {
+    0022123,
+    0011431,
+    0105056,
+    0001560,
+};
 #define DP1 *(double *)P1
 #define DP2 *(double *)P2
 #define DP3 *(double *)P3
@@ -398,80 +408,74 @@ static unsigned short P3[] = {0xc06e, 0x3145, 0x6263, 0x3c6a};
 #endif
 
 #ifdef MIEEE
-static unsigned short P1[] = {
-0x4009,0x21fb,0x5400,0x0000
-};
-static unsigned short P2[] = {
-0x3e21,0x0b46,0x1000,0x0000
-};
-static unsigned short P3[] = {
-0x3c6a,0x6263,0x3145,0xc06e
-};
+static unsigned short P1[] = {0x4009, 0x21fb, 0x5400, 0x0000};
+static unsigned short P2[] = {0x3e21, 0x0b46, 0x1000, 0x0000};
+static unsigned short P3[] = {0x3c6a, 0x6263, 0x3145, 0xc06e};
 #define DP1 *(double *)P1
 #define DP2 *(double *)P2
 #define DP3 *(double *)P3
 #endif
 
-static double redupi(x)
-double x; {
-    double t;
-    long i;
+static double redupi(x) double x;
+{
+  double t;
+  long i;
 
-    t = x / PI;
-    if (t >= 0.0)
-        t += 0.5;
-    else
-        t -= 0.5;
+  t = x / PI;
+  if (t >= 0.0)
+    t += 0.5;
+  else
+    t -= 0.5;
 
-    i = t; /* the multiple */
-    t = i;
-    t = x - t * DP1 - t * DP2 - t * DP3;
-    return t;
+  i = t; /* the multiple */
+  t = i;
+  t = x - t * DP1 - t * DP2 - t * DP3;
+  return t;
 }
-
+
 /*  Taylor series expansion for cosh(2y) - cos(2x)	*/
 
-static double ctans(z)
-cmplx *z; {
-    double f, x, x2, y, y2, rn, t;
-    double d;
+static double ctans(z) cmplx *z;
+{
+  double f, x, x2, y, y2, rn, t;
+  double d;
 
-    x = fabs(2.0 * z->r);
-    y = fabs(2.0 * z->i);
+  x = fabs(2.0 * z->r);
+  y = fabs(2.0 * z->i);
 
-    x = redupi(x);
+  x = redupi(x);
 
-    x  = x * x;
-    y  = y * y;
-    x2 = 1.0;
-    y2 = 1.0;
-    f  = 1.0;
-    rn = 0.0;
-    d  = 0.0;
-    do {
-        rn += 1.0;
-        f *= rn;
-        rn += 1.0;
-        f *= rn;
-        x2 *= x;
-        y2 *= y;
-        t = y2 + x2;
-        t /= f;
-        d += t;
+  x = x * x;
+  y = y * y;
+  x2 = 1.0;
+  y2 = 1.0;
+  f = 1.0;
+  rn = 0.0;
+  d = 0.0;
+  do {
+    rn += 1.0;
+    f *= rn;
+    rn += 1.0;
+    f *= rn;
+    x2 *= x;
+    y2 *= y;
+    t = y2 + x2;
+    t /= f;
+    d += t;
 
-        rn += 1.0;
-        f *= rn;
-        rn += 1.0;
-        f *= rn;
-        x2 *= x;
-        y2 *= y;
-        t = y2 - x2;
-        t /= f;
-        d += t;
-    } while (fabs(t / d) > MACHEP);
-    return d;
+    rn += 1.0;
+    f *= rn;
+    rn += 1.0;
+    f *= rn;
+    x2 *= x;
+    y2 *= y;
+    t = y2 - x2;
+    t /= f;
+    d += t;
+  } while (fabs(t / d) > MACHEP);
+  return d;
 }
- /*							casin()
+/*							casin()
  *
  *	Complex circular arc sine
  *
@@ -503,89 +507,89 @@ cmplx *z; {
  * Larger relative error can be observed for z near zero.
  * Also tested by csin(casin(z)) = z.
  */
-
-void casin(z, w)
-cmplx *z, *w; {
-    static cmplx ca, ct, zz, z2;
-    double x, y;
 
-    x = z->r;
-    y = z->i;
+void casin(z, w) cmplx *z, *w;
+{
+  static cmplx ca, ct, zz, z2;
+  double x, y;
 
-    if (y == 0.0) {
-        if (fabs(x) > 1.0) {
-            w->r = PIO2;
-            w->i = 0.0;
-            mtherr("casin", DOMAIN);
-        } else {
-            w->r = asin(x);
-            w->i = 0.0;
-        }
-        return;
+  x = z->r;
+  y = z->i;
+
+  if (y == 0.0) {
+    if (fabs(x) > 1.0) {
+      w->r = PIO2;
+      w->i = 0.0;
+      mtherr("casin", DOMAIN);
+    } else {
+      w->r = asin(x);
+      w->i = 0.0;
     }
-
-    /* Power series expansion */
-    /*
-    b = cabs(z);
-    if( b < 0.125 )
-    {
-    z2.r = (x - y) * (x + y);
-    z2.i = 2.0 * x * y;
-    
-    cn = 1.0;
-    n = 1.0;
-    ca.r = x;
-    ca.i = y;
-    sum.r = x;
-    sum.i = y;
-    do
-        {
-        ct.r = z2.r * ca.r  -  z2.i * ca.i;
-        ct.i = z2.r * ca.i  +  z2.i * ca.r;
-        ca.r = ct.r;
-        ca.i = ct.i;
-    
-        cn *= n;
-        n += 1.0;
-        cn /= n;
-        n += 1.0;
-        b = cn/n;
-    
-        ct.r *= b;
-        ct.i *= b;
-        sum.r += ct.r;
-        sum.i += ct.i;
-        b = fabs(ct.r) + fabs(ct.i);
-        }
-    while( b > MACHEP );
-    w->r = sum.r;
-    w->i = sum.i;
     return;
-    }
-    */
+  }
 
-    ca.r = x;
-    ca.i = y;
+  /* Power series expansion */
+  /*
+  b = cabs(z);
+  if( b < 0.125 )
+  {
+  z2.r = (x - y) * (x + y);
+  z2.i = 2.0 * x * y;
 
-    ct.r = -ca.i; /* iz */
-    ct.i = ca.r;
+  cn = 1.0;
+  n = 1.0;
+  ca.r = x;
+  ca.i = y;
+  sum.r = x;
+  sum.i = y;
+  do
+      {
+      ct.r = z2.r * ca.r  -  z2.i * ca.i;
+      ct.i = z2.r * ca.i  +  z2.i * ca.r;
+      ca.r = ct.r;
+      ca.i = ct.i;
 
-    /* sqrt( 1 - z*z) */
-    /* cmul( &ca, &ca, &zz ) */
-    zz.r = (ca.r - ca.i) * (ca.r + ca.i); /*x * x  -  y * y */
-    zz.i = 2.0 * ca.r * ca.i;
+      cn *= n;
+      n += 1.0;
+      cn /= n;
+      n += 1.0;
+      b = cn/n;
 
-    zz.r = 1.0 - zz.r;
-    zz.i = -zz.i;
-    csqrt(&zz, &z2);
+      ct.r *= b;
+      ct.i *= b;
+      sum.r += ct.r;
+      sum.i += ct.i;
+      b = fabs(ct.r) + fabs(ct.i);
+      }
+  while( b > MACHEP );
+  w->r = sum.r;
+  w->i = sum.i;
+  return;
+  }
+  */
 
-    cadd(&z2, &ct, &zz);
-    clog(&zz, &zz);
-    w->r = zz.i; /* mult by 1/i = -i */
-    w->i = -zz.r;
-    return;
+  ca.r = x;
+  ca.i = y;
+
+  ct.r = -ca.i; /* iz */
+  ct.i = ca.r;
+
+  /* sqrt( 1 - z*z) */
+  /* cmul( &ca, &ca, &zz ) */
+  zz.r = (ca.r - ca.i) * (ca.r + ca.i); /*x * x  -  y * y */
+  zz.i = 2.0 * ca.r * ca.i;
+
+  zz.r = 1.0 - zz.r;
+  zz.i = -zz.i;
+  csqrt(&zz, &z2);
+
+  cadd(&z2, &ct, &zz);
+  clog(&zz, &zz);
+  w->r = zz.i; /* mult by 1/i = -i */
+  w->i = -zz.r;
+  return;
 }
- /*							cacos()
+/*							cacos()
  *
  *	Complex circular arc cosine
  *
@@ -615,15 +619,14 @@ cmplx *z, *w; {
  *    DEC       -10,+10      5200      1.6e-15      2.8e-16
  *    IEEE      -10,+10     30000      1.8e-14      2.2e-15
  */
-
-void cacos(z, w)
-cmplx *z, *w; {
 
-    casin(z, w);
-    w->r = PIO2 - w->r;
-    w->i = -w->i;
+void cacos(z, w) cmplx *z, *w;
+{
+  casin(z, w);
+  w->r = PIO2 - w->r;
+  w->i = -w->i;
 }
- /*							catan()
+/*							catan()
  *
  *	Complex circular arc tangent
  *
@@ -669,45 +672,41 @@ cmplx *z, *w; {
  * had peak relative error 1.5e-16, rms relative error
  * 2.9e-17.  See also clog().
  */
-
-void catan(z, w)
-cmplx *z, *w; {
-    double a, t, x, x2, y;
 
-    x = z->r;
-    y = z->i;
+void catan(z, w) cmplx *z, *w;
+{
+  double a, t, x, x2, y;
 
-    if (x == 0.0 && y > 1.0)
-        goto ovrf;
+  x = z->r;
+  y = z->i;
 
-    x2 = x * x;
-    a  = 1.0 - x2 - y * y;
-    if (a == 0.0)
-        goto ovrf;
+  if (x == 0.0 && y > 1.0) goto ovrf;
+
+  x2 = x * x;
+  a = 1.0 - x2 - y * y;
+  if (a == 0.0) goto ovrf;
 
 #if ANSIC
-t = atan2( 2.0 * x, a )/2.0;
+  t = atan2(2.0 * x, a) / 2.0;
 #else
-    t = atan2(a, 2.0 * x) / 2.0;
+  t = atan2(a, 2.0 * x) / 2.0;
 #endif
-    w->r = redupi(t);
+  w->r = redupi(t);
 
-    t = y - 1.0;
-    a = x2 + t * t;
-    if (a == 0.0)
-        goto ovrf;
+  t = y - 1.0;
+  a = x2 + t * t;
+  if (a == 0.0) goto ovrf;
 
-    t    = y + 1.0;
-    a    = (x2 + t * t) / a;
-    w->i = log(a) / 4.0;
-    return;
+  t = y + 1.0;
+  a = (x2 + t * t) / a;
+  w->i = log(a) / 4.0;
+  return;
 
 ovrf:
-    mtherr("catan", OVERFLOW);
-    w->r = MAXNUM;
-    w->i = MAXNUM;
+  mtherr("catan", OVERFLOW);
+  w->r = MAXNUM;
+  w->i = MAXNUM;
 }
-
 
 /*							csinh
  *
@@ -736,17 +735,15 @@ ovrf:
  *
  */
 
-void
-csinh(z, w)
-cmplx *z, *w; {
-    double x, y;
+void csinh(z, w) cmplx *z, *w;
+{
+  double x, y;
 
-    x    = z->r;
-    y    = z->i;
-    w->r = sinh(x) * cos(y);
-    w->i = cosh(x) * sin(y);
+  x = z->r;
+  y = z->i;
+  w->r = sinh(x) * cos(y);
+  w->i = cosh(x) * sin(y);
 }
-
 
 /*							casinh
  *
@@ -775,18 +772,17 @@ cmplx *z, *w; {
  *
  */
 
-void
-casinh(z, w)
-cmplx *z, *w; {
-    cmplx u;
+void casinh(z, w) cmplx *z, *w;
+{
+  cmplx u;
 
-    u.r = 0.0;
-    u.i = 1.0;
-    cmul(z, &u, &u);
-    casin(&u, w);
-    u.r = 0.0;
-    u.i = -1.0;
-    cmul(&u, w, w);
+  u.r = 0.0;
+  u.i = 1.0;
+  cmul(z, &u, &u);
+  casin(&u, w);
+  u.r = 0.0;
+  u.i = -1.0;
+  cmul(&u, w, w);
 }
 
 /*							ccosh
@@ -816,17 +812,15 @@ cmplx *z, *w; {
  *
  */
 
-void
-ccosh(z, w)
-cmplx *z, *w; {
-    double x, y;
+void ccosh(z, w) cmplx *z, *w;
+{
+  double x, y;
 
-    x    = z->r;
-    y    = z->i;
-    w->r = cosh(x) * cos(y);
-    w->i = sinh(x) * sin(y);
+  x = z->r;
+  y = z->i;
+  w->r = cosh(x) * cos(y);
+  w->i = sinh(x) * sin(y);
 }
-
 
 /*							cacosh
  *
@@ -855,17 +849,15 @@ cmplx *z, *w; {
  *
  */
 
-void
-cacosh(z, w)
-cmplx *z, *w; {
-    cmplx u;
+void cacosh(z, w) cmplx *z, *w;
+{
+  cmplx u;
 
-    cacos(z, w);
-    u.r = 0.0;
-    u.i = 1.0;
-    cmul(&u, w, w);
+  cacos(z, w);
+  u.r = 0.0;
+  u.i = 1.0;
+  cmul(&u, w, w);
 }
-
 
 /*							ctanh
  *
@@ -896,19 +888,17 @@ cmplx *z, *w; {
 
 /* 5.253E-02,1.550E+00 1.643E+01,6.553E+00 1.729E-14  21355  */
 
-void
-ctanh(z, w)
-cmplx *z, *w; {
-    double x, y, d;
+void ctanh(z, w) cmplx *z, *w;
+{
+  double x, y, d;
 
-    x    = z->r;
-    y    = z->i;
-    d    = cosh(2.0 * x) + cos(2.0 * y);
-    w->r = sinh(2.0 * x) / d;
-    w->i = sin(2.0 * y) / d;
-    return;
+  x = z->r;
+  y = z->i;
+  d = cosh(2.0 * x) + cos(2.0 * y);
+  w->r = sinh(2.0 * x) / d;
+  w->i = sin(2.0 * y) / d;
+  return;
 }
-
 
 /*							catanh
  *
@@ -937,21 +927,19 @@ cmplx *z, *w; {
  *
  */
 
-void
-catanh(z, w)
-cmplx *z, *w; {
-    cmplx u;
+void catanh(z, w) cmplx *z, *w;
+{
+  cmplx u;
 
-    u.r = 0.0;
-    u.i = 1.0;
-    cmul(z, &u, &u); /* i z */
-    catan(&u, w);
-    u.r = 0.0;
-    u.i = -1.0;
-    cmul(&u, w, w); /* -i catan iz */
-    return;
+  u.r = 0.0;
+  u.i = 1.0;
+  cmul(z, &u, &u); /* i z */
+  catan(&u, w);
+  u.r = 0.0;
+  u.i = -1.0;
+  cmul(&u, w, w); /* -i catan iz */
+  return;
 }
-
 
 /*							cpow
  *
@@ -982,28 +970,26 @@ cmplx *z, *w; {
  *
  */
 
+void cpow(a, z, w) cmplx *a, *z, *w;
+{
+  double x, y, r, theta, absa, arga;
 
-void
-cpow(a, z, w)
-cmplx *a, *z, *w; {
-    double x, y, r, theta, absa, arga;
-
-    x    = z->r;
-    y    = z->i;
-    absa = cabs(a);
-    if (absa == 0.0) {
-        w->r = 0.0;
-        w->i = 0.0;
-        return;
-    }
-    arga  = atan2(a->i, a->r);
-    r     = pow(absa, x);
-    theta = x * arga;
-    if (y != 0.0) {
-        r     = r * exp(-y * arga);
-        theta = theta + y * log(absa);
-    }
-    w->r = r * cos(theta);
-    w->i = r * sin(theta);
+  x = z->r;
+  y = z->i;
+  absa = cabs(a);
+  if (absa == 0.0) {
+    w->r = 0.0;
+    w->i = 0.0;
     return;
+  }
+  arga = atan2(a->i, a->r);
+  r = pow(absa, x);
+  theta = x * arga;
+  if (y != 0.0) {
+    r = r * exp(-y * arga);
+    theta = theta + y * log(absa);
+  }
+  w->r = r * cos(theta);
+  w->i = r * sin(theta);
+  return;
 }

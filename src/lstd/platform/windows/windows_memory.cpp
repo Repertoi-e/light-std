@@ -3,16 +3,15 @@
 #if OS == WINDOWS
 
 #include "lstd/lstd.h"
+#include "lstd/os/windows/api.h"     // Declarations of Win32 functions
 #include "lstd/os/windows/common.h"  // Declarations of Win32 functions
-#include "lstd/os/windows/api.h"  // Declarations of Win32 functions
 
 LSTD_BEGIN_NAMESPACE
 
 #define S ((win32_memory_state *)&Win32MemoryState[0])
 
-void *win32_persistent_alloc(allocator_mode mode, void *context,
-                                    s64 size, void *oldMemory, s64 oldSize,
-                                    u64 options) {
+void *win32_persistent_alloc(allocator_mode mode, void *context, s64 size,
+                             void *oldMemory, s64 oldSize, u64 options) {
   auto *data = (tlsf_allocator_data *)context;
 
   lock(&S->PersistentAllocMutex);

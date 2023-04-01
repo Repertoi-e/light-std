@@ -5,7 +5,8 @@
 #if defined LSTD_NO_CRT
 
 namespace std {
-template <typename T> struct initializer_list {
+template <typename T>
+struct initializer_list {
   using value_type = T;
   using reference = const T &;
   using const_reference = const T &;
@@ -25,15 +26,16 @@ template <typename T> struct initializer_list {
   size_t size() const noexcept { return static_cast<size_t>(Last - First); }
 
   // private in order to be compatible with std::
-private:
+ private:
   const T *First = nullptr;
   const T *Last = nullptr;
 };
-} // namespace std
+}  // namespace std
 #else
 #include <initializer_list>
 #endif
 
 LSTD_BEGIN_NAMESPACE
-template <typename T> using initializer_list = std::initializer_list<T>;
+template <typename T>
+using initializer_list = std::initializer_list<T>;
 LSTD_END_NAMESPACE

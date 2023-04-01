@@ -98,8 +98,7 @@ void WINAPI __dyn_tls_dtor(void *, unsigned long dwReason, void *) {
   TlsDtorNode *pnext = nullptr;
   for (TlsDtorNode *pnode = dtor_list; pnode != nullptr; pnode = pnext) {
     for (int i = pnode->count - 1; i >= 0; --i) {
-      if (pnode->funcs[i])
-        pnode->funcs[i]();
+      if (pnode->funcs[i]) pnode->funcs[i]();
     }
     /*
      * Free every TlsDtorNode except the original one, which is statically

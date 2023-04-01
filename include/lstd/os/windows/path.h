@@ -2,8 +2,7 @@
 
 #include "../../fmt.h"
 #include "../path_common.h"
-
-#include "api.h" // Declarations of Win32 functions
+#include "api.h"  // Declarations of Win32 functions
 #include "memory.h"
 
 //
@@ -124,7 +123,7 @@ path_split_extension_result path_split_extension(string path);
 // The following routines query the OS:
 //
 
-bool path_exists(string path); // == is_file() || is_directory()
+bool path_exists(string path);  // == is_file() || is_directory()
 bool path_is_file(string path);
 bool path_is_directory(string path);
 
@@ -183,14 +182,14 @@ bool path_create_symbolic_link(string path, string dest);
 // _Path_ needs to be a valid path before using it.
 //
 struct path_walker {
-  string Path; // Doesn't get cloned, valid as long as the string passed in the
-               // constructor is valid
+  string Path;  // Doesn't get cloned, valid as long as the string passed in the
+                // constructor is valid
 
-  string CurrentFileName; // Gets allocated by this object, call free after use
-                          // to prevent leak
+  string CurrentFileName;  // Gets allocated by this object, call free after use
+                           // to prevent leak
 
-  void *Handle = null; // null in the beginning, null after calling
-                       // _path_read_next_entry_ and
+  void *Handle = null;  // null in the beginning, null after calling
+                        // _path_read_next_entry_ and
   // there were no more files. Check this for when to stop calling
   // _path_read_next_entry_.
 
@@ -199,7 +198,7 @@ struct path_walker {
   path_walker() {}
   path_walker(string path) : Path(path) {}
 
-private:
+ private:
   wchar *Path16 = null;
 
   char PlatformFileInfo[sizeof(WIN32_FIND_DATAW)]{};
@@ -224,13 +223,13 @@ void path_read_next_entry(path_walker ref walker);
 // function further down the file).
 mark_as_leak array<string> path_walk(string path, bool recursively = false);
 
-#define GET_READONLY_EXISTING_HANDLE(x, fail)                                  \
-  CREATE_FILE_HANDLE_CHECKED(                                                  \
-      x,                                                                       \
-      CreateFileW(platform_utf8_to_utf16(path), GENERIC_READ,                  \
-                  FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING,     \
-                  FILE_ATTRIBUTE_NORMAL, NULL),                                \
-      fail);                                                                   \
+#define GET_READONLY_EXISTING_HANDLE(x, fail)                              \
+  CREATE_FILE_HANDLE_CHECKED(                                              \
+      x,                                                                   \
+      CreateFileW(platform_utf8_to_utf16(path), GENERIC_READ,              \
+                  FILE_SHARE_READ | FILE_SHARE_WRITE, null, OPEN_EXISTING, \
+                  FILE_ATTRIBUTE_NORMAL, NULL),                            \
+      fail);                                                               \
   defer(CloseHandle(x));
 
 inline string get_path_from_here_to(string here, string there) {
@@ -258,15 +257,13 @@ inline path_split_drive_result path_split_drive(string path) {
       auto matchSeps = [](code_point cp) { return has("\\/", cp); };
 
       s64 index = search(path, &matchSeps, search_options{.Start = 2});
-      if (index == -1)
-        return {"", path};
+      if (index == -1) return {"", path};
 
       s64 index2 = search(path, &matchSeps, search_options{.Start = index + 1});
 
       // A UNC path can't have two slashes in a row
       // (after the initial two)
-      if (index2 == index + 1)
-        return {"", path};
+      if (index2 == index + 1) return {"", path};
       if (index2 == -1) {
         index2 = length(path);
       }
@@ -299,7 +296,7 @@ inline mark_as_leak string path_join(array<string> paths) {
     if (p_path.Count && path_is_sep(p_path[0])) {
       // Second path is absolute
       if (p_drive.Count || !result_drive.Count) {
-        result_drive = p_drive; // These are just substrings so it's fine
+        result_drive = p_drive;  // These are just substrings so it's fine
       }
 
       free(result);
@@ -364,8 +361,7 @@ inline mark_as_leak string path_normalize(string path) {
   // Collapse leading slashes
   if (path_is_sep(rest[0])) {
     result += '\\';
-    while (path_is_sep(rest[0]))
-      advance_cp(&rest, 1);
+    while (path_is_sep(rest[0])) advance_cp(&rest, 1);
   }
 
   auto components = path_split_into_components(rest);
@@ -426,8 +422,7 @@ inline path_split_result path_split(string path) {
                          search(head, matchNotSeps,
                                 search_options{.Start = -1, .Reversed = true}) +
                              1);
-  if (trimmed.Count)
-    head = trimmed;
+  if (trimmed.Count) head = trimmed;
 
   head = slice(path, 0, length(head) + length(DriveOrUNC));
 
@@ -453,8 +448,7 @@ inline bool path_exists(string path) {
   HANDLE file =
       CreateFileW(platform_utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ,
                   null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
-  if (file == INVALID_HANDLE_VALUE)
-    return false;
+  if (file == INVALID_HANDLE_VALUE) return false;
   CloseHandle(file);
   return true;
 }
@@ -462,13 +456,11 @@ inline bool path_exists(string path) {
 inline bool path_is_file(string path) {
   HANDLE file = CreateFileW(platform_utf8_to_utf16(path), 0, 0, null,
                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
-  if (file == INVALID_HANDLE_VALUE)
-    return false;
+  if (file == INVALID_HANDLE_VALUE) return false;
   defer(CloseHandle(file));
 
   BY_HANDLE_FILE_INFORMATION info;
-  if (!GetFileInformationByHandle(file, &info))
-    return false;
+  if (!GetFileInformationByHandle(file, &info)) return false;
   return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
@@ -476,13 +468,11 @@ inline bool path_is_directory(string path) {
   HANDLE file =
       CreateFileW(platform_utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ,
                   null, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, null);
-  if (file == INVALID_HANDLE_VALUE)
-    return false;
+  if (file == INVALID_HANDLE_VALUE) return false;
   defer(CloseHandle(file));
 
   BY_HANDLE_FILE_INFORMATION info;
-  if (!GetFileInformationByHandle(file, &info))
-    return false;
+  if (!GetFileInformationByHandle(file, &info)) return false;
   return (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
@@ -495,8 +485,7 @@ inline bool path_is_symbolic_link(string path) {
 }
 
 inline s64 path_file_size(string path) {
-  if (path_is_directory(path))
-    return 0;
+  if (path_is_directory(path)) return 0;
 
   CREATE_FILE_HANDLE_CHECKED(
       file,
@@ -513,49 +502,42 @@ inline s64 path_file_size(string path) {
 inline time_t path_creation_time(string path) {
   GET_READONLY_EXISTING_HANDLE(handle, 0);
   FILETIME time;
-  if (!GetFileTime(handle, &time, null, null))
-    return 0;
+  if (!GetFileTime(handle, &time, null, null)) return 0;
   return ((time_t)time.dwHighDateTime) << 32 | time.dwLowDateTime;
 }
 
 inline time_t path_last_access_time(string path) {
   GET_READONLY_EXISTING_HANDLE(handle, 0);
   FILETIME time;
-  if (!GetFileTime(handle, null, &time, null))
-    return 0;
+  if (!GetFileTime(handle, null, &time, null)) return 0;
   return ((time_t)time.dwHighDateTime) << 32 | time.dwLowDateTime;
 }
 
 inline time_t path_last_modification_time(string path) {
   GET_READONLY_EXISTING_HANDLE(handle, 0);
   FILETIME time;
-  if (!GetFileTime(handle, null, null, &time))
-    return 0;
+  if (!GetFileTime(handle, null, null, &time)) return 0;
   return ((time_t)time.dwHighDateTime) << 32 | time.dwLowDateTime;
 }
 
 inline bool path_create_directory(string path) {
-  if (path_exists(path))
-    return false;
+  if (path_exists(path)) return false;
   return CreateDirectoryW(platform_utf8_to_utf16(path), null);
 }
 
 inline bool path_delete_file(string path) {
-  if (!path_is_file(path))
-    return false;
+  if (!path_is_file(path)) return false;
   return DeleteFileW(platform_utf8_to_utf16(path));
 }
 
 inline bool path_delete_directory(string path) {
-  if (!path_is_directory(path))
-    return false;
+  if (!path_is_directory(path)) return false;
   return RemoveDirectoryW(platform_utf8_to_utf16(path));
 }
 
 // @Robustness: Handle directories?
 inline bool path_copy(string path, string dest, bool overwrite) {
-  if (!path_is_file(path))
-    return false;
+  if (!path_is_file(path)) return false;
 
   auto *u16 = platform_utf8_to_utf16(path);
 
@@ -570,8 +552,7 @@ inline bool path_copy(string path, string dest, bool overwrite) {
 
 // @Robustness: Handle directories?
 inline bool path_move(string path, string dest, bool overwrite) {
-  if (!path_is_file(path))
-    return false;
+  if (!path_is_file(path)) return false;
 
   if (path_is_directory(dest)) {
     auto p = path_join(dest, path_base_name(path));
@@ -587,8 +568,7 @@ inline bool path_move(string path, string dest, bool overwrite) {
 }
 
 inline bool path_rename(string path, string newName) {
-  if (!path_exists(path))
-    return false;
+  if (!path_exists(path)) return false;
 
   auto p = path_join(path_directory(path), newName);
   defer(free(p));
@@ -597,19 +577,15 @@ inline bool path_rename(string path, string newName) {
 }
 
 inline bool path_create_hard_link(string path, string dest) {
-  if (!path_is_directory(path))
-    return false;
-  if (!path_is_directory(dest))
-    return false;
+  if (!path_is_directory(path)) return false;
+  if (!path_is_directory(dest)) return false;
   return CreateHardLinkW(platform_utf8_to_utf16(dest),
                          platform_utf8_to_utf16(path), null);
 }
 
 inline bool path_create_symbolic_link(string path, string dest) {
-  if (!path_exists(path))
-    return false;
-  if (!path_exists(dest))
-    return false;
+  if (!path_exists(path)) return false;
+  if (!path_exists(dest)) return false;
 
   u32 flag = path_is_directory(dest) ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
   return CreateSymbolicLinkW(platform_utf8_to_utf16(dest),
@@ -656,9 +632,9 @@ inline void path_read_next_entry(path_walker ref walker) {
     free(walker.CurrentFileName);
 
     auto *fileName = ((WIN32_FIND_DATAW *)walker.PlatformFileInfo)->cFileName;
-    reserve(walker.CurrentFileName, c_string_length(fileName) * 4); // @Cleanup
+    reserve(walker.CurrentFileName, c_string_length(fileName) * 4);  // @Cleanup
     utf16_to_utf8(fileName, (char *)walker.CurrentFileName.Data,
-                  &walker.CurrentFileName.Count); // @Constcast
+                  &walker.CurrentFileName.Count);  // @Constcast
 
   } while (strings_match(walker.CurrentFileName, "..") ||
            strings_match(walker.CurrentFileName, "."));
@@ -677,8 +653,7 @@ inline void path_walk_recursively_impl(string path, string first,
 
   while (true) {
     path_read_next_entry(walker);
-    if (!walker.Handle)
-      break;
+    if (!walker.Handle) break;
 
     string p =
         path_join(get_path_from_here_to(first, path), walker.CurrentFileName);
@@ -701,8 +676,7 @@ inline mark_as_leak array<string> path_walk(string path, bool recursively) {
 
     while (true) {
       path_read_next_entry(walker);
-      if (!walker.Handle)
-        break;
+      if (!walker.Handle) break;
 
       string file = path_join(path, walker.CurrentFileName);
       result += {file};

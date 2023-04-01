@@ -48,7 +48,8 @@ using quick_sort_comparison_func = delegate<s32(const T *, const T *)>;
 void quick_sort(void *array, s64 length, s64 size,
                 quick_sort_comparison_func<void> compare);
 
-template <typename T> s32 default_comparison(const T *lhs, const T *rhs) {
+template <typename T>
+s32 default_comparison(const T *lhs, const T *rhs) {
   return (*lhs == *rhs) ? 0 : ((*lhs < *rhs) ? -1 : 1);
 }
 
@@ -72,31 +73,31 @@ void quick_sort(T *first, T *last,
 //
 // The length of the swap is determined by the value of "SIZE".  While both
 // arrays can't overlap, the case in which both pointers are the same works.
-#define SWAP(A, B, SIZE)                                                       \
-  {                                                                            \
-    char *a_byte = A;                                                          \
-    char *b_byte = B;                                                          \
-    const char *a_end = a_byte + SIZE;                                         \
-                                                                               \
-    while (a_byte < a_end) {                                                   \
-      const char swap_byte = *b_byte;                                          \
-      *b_byte++ = *a_byte;                                                     \
-      *a_byte++ = swap_byte;                                                   \
-    }                                                                          \
+#define SWAP(A, B, SIZE)               \
+  {                                    \
+    char *a_byte = A;                  \
+    char *b_byte = B;                  \
+    const char *a_end = a_byte + SIZE; \
+                                       \
+    while (a_byte < a_end) {           \
+      const char swap_byte = *b_byte;  \
+      *b_byte++ = *a_byte;             \
+      *a_byte++ = swap_byte;           \
+    }                                  \
   }
 
 // Swaps the elements of an array with its next value.
 //
 // The length of the swap is determined by the value of "SIZE".  This macro
 // must be used at the beginning of a scope and "A" shouldn't be an expression.
-#define SWAP_NEXT(A, SIZE)                                                     \
-  char *a_byte = A;                                                            \
-  const char *a_end = A + SIZE;                                                \
-                                                                               \
-  while (a_byte < a_end) {                                                     \
-    const char swap_byte = *(a_byte + SIZE);                                   \
-    *(a_byte + SIZE) = *a_byte;                                                \
-    *a_byte++ = swap_byte;                                                     \
+#define SWAP_NEXT(A, SIZE)                   \
+  char *a_byte = A;                          \
+  const char *a_end = A + SIZE;              \
+                                             \
+  while (a_byte < a_end) {                   \
+    const char swap_byte = *(a_byte + SIZE); \
+    *(a_byte + SIZE) = *a_byte;              \
+    *a_byte++ = swap_byte;                   \
   }
 
 inline void quick_sort(void *array, s64 length, s64 size,
@@ -140,46 +141,46 @@ inline void quick_sort(void *array, s64 length, s64 size,
     // Move the pivot to its final place
     SWAP(right, store, size)
 
-#define RECURSE_LEFT                                                           \
-  if (left < store - size) {                                                   \
-    (++recursion)->Left = left;                                                \
-    recursion->Right = store - size;                                           \
+#define RECURSE_LEFT                 \
+  if (left < store - size) {         \
+    (++recursion)->Left = left;      \
+    recursion->Right = store - size; \
   }
-#define RECURSE_RIGHT                                                          \
-  if (store + size < right) {                                                  \
-    (++recursion)->Left = store + size;                                        \
-    recursion->Right = right;                                                  \
-  }
-
-#define INSERTION_SORT_LOOP(LEFT)                                              \
-  {                                                                            \
-    char *trail = index - size;                                                \
-    while (trail >= LEFT && compare(trail, trail + size) > 0) {                \
-      SWAP_NEXT(trail, size)                                                   \
-      trail -= size;                                                           \
-    }                                                                          \
+#define RECURSE_RIGHT                   \
+  if (store + size < right) {           \
+    (++recursion)->Left = store + size; \
+    recursion->Right = right;           \
   }
 
-#define INSERTION_SORT_LEFT                                                    \
-  for (index = left + size; index < store; index += size)                      \
+#define INSERTION_SORT_LOOP(LEFT)                               \
+  {                                                             \
+    char *trail = index - size;                                 \
+    while (trail >= LEFT && compare(trail, trail + size) > 0) { \
+      SWAP_NEXT(trail, size)                                    \
+      trail -= size;                                            \
+    }                                                           \
+  }
+
+#define INSERTION_SORT_LEFT                               \
+  for (index = left + size; index < store; index += size) \
   INSERTION_SORT_LOOP(left)
 
-#define INSERTION_SORT_RIGHT                                                   \
-  for (index = store + (size << 1); index <= right; index += size)             \
+#define INSERTION_SORT_RIGHT                                       \
+  for (index = store + (size << 1); index <= right; index += size) \
   INSERTION_SORT_LOOP(store + size)
 
-#define SORT_LEFT                                                              \
-  if (store - left <= threshold) {                                             \
-    INSERTION_SORT_LEFT                                                        \
-  } else {                                                                     \
-    RECURSE_LEFT                                                               \
+#define SORT_LEFT                  \
+  if (store - left <= threshold) { \
+    INSERTION_SORT_LEFT            \
+  } else {                         \
+    RECURSE_LEFT                   \
   }
 
-#define SORT_RIGHT                                                             \
-  if (right - store <= threshold) {                                            \
-    INSERTION_SORT_RIGHT                                                       \
-  } else {                                                                     \
-    RECURSE_RIGHT                                                              \
+#define SORT_RIGHT                  \
+  if (right - store <= threshold) { \
+    INSERTION_SORT_RIGHT            \
+  } else {                          \
+    RECURSE_RIGHT                   \
   }
 
     // Recurse into the smaller partition first

@@ -8,7 +8,6 @@
 #include "interp.h"
 #include "specs.h"
 
-
 LSTD_BEGIN_NAMESPACE
 
 // This writer contains a pointer to another writer.
@@ -22,11 +21,11 @@ LSTD_BEGIN_NAMESPACE
 // We also store a parse context (if a format string was passed), otherwise it
 // remains unused.
 struct fmt_context : writer {
-  writer *Out; // The real output
+  writer *Out;  // The real output
 
   fmt_interp
-      Parse; // Holds the format string (and how much we've parsed) and some
-             // state about the argument ids (when using automatic indexing).
+      Parse;  // Holds the format string (and how much we've parsed) and some
+              // state about the argument ids (when using automatic indexing).
 
   array<fmt_arg> Args;
 
@@ -148,8 +147,7 @@ void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs);
 inline void write(fmt_context *f, is_integral auto value) {
   u64 absValue = (u64)value;
   bool negative = sign_bit(value);
-  if (negative)
-    absValue = 0 - absValue;
+  if (negative) absValue = 0 - absValue;
 
   if (f->Specs) {
     write_u64(f, absValue, negative, *f->Specs);
@@ -169,8 +167,7 @@ inline void write(fmt_context *f, is_floating_point auto value) {
 inline void write_no_specs(fmt_context *f, is_integral auto value) {
   u64 absValue = (u64)value;
   bool negative = sign_bit(value);
-  if (negative)
-    absValue = 0 - absValue;
+  if (negative) absValue = 0 - absValue;
   write_u64(f, absValue, negative, {});
 }
 
@@ -189,11 +186,12 @@ inline void write_no_specs(fmt_context *f, const void *value) {
   f->Specs = old;
 }
 
-inline char FORMAT_UINT_DIGITS[] = "0001020304050607080910111213141516171819"
-                                   "2021222324252627282930313233343536373839"
-                                   "4041424344454647484950515253545556575859"
-                                   "6061626364656667686970717273747576777879"
-                                   "8081828384858687888990919293949596979899";
+inline char FORMAT_UINT_DIGITS[] =
+    "0001020304050607080910111213141516171819"
+    "2021222324252627282930313233343536373839"
+    "4041424344454647484950515253545556575859"
+    "6061626364656667686970717273747576777879"
+    "8081828384858687888990919293949596979899";
 
 template <typename UInt>
 char *format_uint_decimal(char *buffer, UInt value, s64 formattedSize,
@@ -336,16 +334,14 @@ inline void write(fmt_context *f, const void *value) {
   }
 
   fmt_specs specs = *f->Specs;
-  if (specs.Align == fmt_alignment::NONE)
-    specs.Align = fmt_alignment::RIGHT;
+  if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
   write_padded_helper(f, specs, func, numDigits + 2);
 }
 
 inline void write_u64(fmt_context *f, u64 value, bool negative,
                       fmt_specs specs) {
   char type = specs.Type;
-  if (!type)
-    type = 'd';
+  if (!type) type = 'd';
 
   s64 numDigits;
   if (type == 'd' || type == 'n') {
@@ -417,8 +413,7 @@ inline void write_u64(fmt_context *f, u64 value, bool negative,
     padding = (u32)specs.Precision - numDigits;
     specs.Fill = '0';
   }
-  if (specs.Align == fmt_alignment::NONE)
-    specs.Align = fmt_alignment::RIGHT;
+  if (specs.Align == fmt_alignment::NONE) specs.Align = fmt_alignment::RIGHT;
 
   char U64_FORMAT_BUFFER[numeric<u64>::digits + 1]{};
 
@@ -430,8 +425,7 @@ inline void write_u64(fmt_context *f, u64 value, bool negative,
   write_padded_helper(
       f, specs,
       [&]() {
-        if (prefix.Count)
-          write_no_specs(f, prefix);
+        if (prefix.Count) write_no_specs(f, prefix);
         For(range(padding)) write_no_specs(f, specs.Fill);
 
         char *p = null;
@@ -445,11 +439,11 @@ inline void write_u64(fmt_context *f, u64 value, bool negative,
           p = format_uint_base<4>(U64_FORMAT_BUFFER, value, numDigits,
                                   is_upper(specs.Type));
         } else if (type == 'n') {
-          numDigits = formattedSize; // To include extra chars (like commas)
+          numDigits = formattedSize;  // To include extra chars (like commas)
           p = format_uint_decimal(U64_FORMAT_BUFFER, value, formattedSize,
                                   "," /*@Locale*/);
         } else {
-          assert(false && "Invalid type"); // sanity
+          assert(false && "Invalid type");  // sanity
         }
 
         write_no_specs(f, p, U64_FORMAT_BUFFER + numDigits - p);
@@ -470,8 +464,7 @@ inline void write_exponent(fmt_context *f, s64 exp) {
 
   if (exp >= 100) {
     auto *top = &FORMAT_UINT_DIGITS[exp / 100 * 2];
-    if (exp >= 1000)
-      write_no_specs(f, (code_point)(top[0]));
+    if (exp >= 1000) write_no_specs(f, (code_point)(top[0]));
     write_no_specs(f, (code_point)(top[1]));
     exp %= 100;
   }
@@ -493,7 +486,7 @@ inline void write_exponent(fmt_context *f, s64 exp) {
 inline void write_significand(fmt_context *f, string significand,
                               s64 integralSize, code_point decimalPoint = 0) {
   if (!significand.Count)
-    return; // The significand is actually empty if the value formatted is 0
+    return;  // The significand is actually empty if the value formatted is 0
 
   write_no_specs(f, slice(significand, 0, integralSize));
   if (decimalPoint) {
@@ -507,17 +500,16 @@ inline void write_float_exp(fmt_context *f, string significand, s32 exp,
                             code_point sign, fmt_specs no_copy specs,
                             fmt_float_specs no_copy floatSpecs) {
   s64 outputSize = (sign ? 1 : 0) +
-                   significand.Count; // Further we add the number of zeros/the
-                                      // size of the exponent to this tally
+                   significand.Count;  // Further we add the number of zeros/the
+                                       // size of the exponent to this tally
 
   code_point decimalPoint =
-      '.'; // @Locale... Also if we decide to add a thousands separator?
+      '.';  // @Locale... Also if we decide to add a thousands separator?
 
   s64 numZeros = 0;
   if (floatSpecs.ShowPoint) {
     numZeros = specs.Precision - significand.Count;
-    if (numZeros < 0)
-      numZeros = 0;
+    if (numZeros < 0) numZeros = 0;
     outputSize += numZeros;
   } else if (significand.Count == 1) {
     decimalPoint = 0;
@@ -531,19 +523,17 @@ inline void write_float_exp(fmt_context *f, string significand, s32 exp,
   s64 absExp = abs(exp);
 
   s32 expDigits = 2;
-  if (absExp >= 100)
-    expDigits = absExp >= 1000 ? 4 : 3;
+  if (absExp >= 100) expDigits = absExp >= 1000 ? 4 : 3;
 
   outputSize +=
-      (decimalPoint ? 1 : 0) + 2 + expDigits; // +2 bytes for "[+-][eE]"
+      (decimalPoint ? 1 : 0) + 2 + expDigits;  // +2 bytes for "[+-][eE]"
 
   code_point expChar = floatSpecs.Upper ? 'E' : 'e';
 
   write_padded_helper(
       f, specs,
       [&]() {
-        if (sign)
-          write_no_specs(f, sign);
+        if (sign) write_no_specs(f, sign);
 
         // Write significand, then the zeroes (if required by the precision),
         // then the exp char and then the exponent itself e.g. 1.23400e+5
@@ -561,12 +551,13 @@ inline void write_float_fixed(fmt_context *f, string significand, s32 exp,
                               code_point sign, const fmt_specs &specs,
                               const fmt_float_specs &floatSpecs,
                               bool percentage) {
-  s64 outputSize = (sign ? 1 : 0) + (percentage ? 1 : 0) +
-                   significand.Count; // Further down we add the number of extra
-                                      // zeros needed and the decimal point
+  s64 outputSize =
+      (sign ? 1 : 0) + (percentage ? 1 : 0) +
+      significand.Count;  // Further down we add the number of extra
+                          // zeros needed and the decimal point
 
   code_point decimalPoint =
-      '.'; // @Locale... Also if we decide to add a thousands separator?
+      '.';  // @Locale... Also if we decide to add a thousands separator?
 
   if (exp >= 0) {
     // Case: 1234e5 -> 123400000[.0+]
@@ -591,30 +582,27 @@ inline void write_float_fixed(fmt_context *f, string significand, s32 exp,
 
       if (numZeros <= 0 && floatSpecs.Format != fmt_float_specs::FIXED)
         numZeros = 1;
-      if (numZeros > 0)
-        outputSize += numZeros + 1; // +1 for the dot
+      if (numZeros > 0) outputSize += numZeros + 1;  // +1 for the dot
     }
 
     write_padded_helper(
         f, specs,
         [&]() {
-          if (sign)
-            write_no_specs(f, sign);
+          if (sign) write_no_specs(f, sign);
 
           write_significand(
               f, significand,
-              significand.Count); // Write the whole significand, without
-                                  // putting the dot anywhere
+              significand.Count);  // Write the whole significand, without
+                                   // putting the dot anywhere
           For(range(exp)) write_no_specs(
-              f, U'0'); // Add any needed zeroes to match the magnitude
+              f, U'0');  // Add any needed zeroes to match the magnitude
 
           // Add the decimal point if needed
           if (floatSpecs.ShowPoint) {
             write_no_specs(f, decimalPoint);
             For(range(numZeros)) write_no_specs(f, U'0');
           }
-          if (percentage)
-            write_no_specs(f, U'%');
+          if (percentage) write_no_specs(f, U'%');
         },
         outputSize);
   } else if (exp < 0) {
@@ -629,8 +617,7 @@ inline void write_float_fixed(fmt_context *f, string significand, s32 exp,
       write_padded_helper(
           f, specs,
           [&]() {
-            if (sign)
-              write_no_specs(f, sign);
+            if (sign) write_no_specs(f, sign);
 
             // The decimal point is positioned at _absExp_ symbols before the
             // end of the significand
@@ -640,8 +627,7 @@ inline void write_float_fixed(fmt_context *f, string significand, s32 exp,
             // precision)
             write_significand(f, significand, decimalPointPos, decimalPoint);
             For(range(numZeros)) write_no_specs(f, U'0');
-            if (percentage)
-              write_no_specs(f, U'%');
+            if (percentage) write_no_specs(f, U'%');
           },
           outputSize);
     } else {
@@ -662,8 +648,7 @@ inline void write_float_fixed(fmt_context *f, string significand, s32 exp,
       write_padded_helper(
           f, specs,
           [&]() {
-            if (sign)
-              write_no_specs(f, sign);
+            if (sign) write_no_specs(f, sign);
 
             write_no_specs(f, U'0');
 
@@ -674,8 +659,7 @@ inline void write_float_fixed(fmt_context *f, string significand, s32 exp,
 
               write_significand(f, significand, significand.Count);
             }
-            if (percentage)
-              write_no_specs(f, U'%');
+            if (percentage) write_no_specs(f, U'%');
           },
           outputSize);
     }
@@ -721,13 +705,11 @@ inline void write_float(fmt_context *f, is_floating_point auto value,
     write_padded_helper(
         f, specs,
         [&]() {
-          if (sign)
-            write_no_specs(f, sign);
+          if (sign) write_no_specs(f, sign);
           write_no_specs(f, is_nan(value)
                                 ? (is_upper(specs.Type) ? "NAN" : "nan")
                                 : (is_upper(specs.Type) ? "INF" : "inf"));
-          if (percentage)
-            write_no_specs(f, U'%');
+          if (percentage) write_no_specs(f, U'%');
         },
         3 + (sign ? 1 : 0) + (percentage ? 1 : 0));
     return;
@@ -739,8 +721,7 @@ inline void write_float(fmt_context *f, is_floating_point auto value,
   }
 
   // Default precision we do for floats is 6 (except if the spec type is none)
-  if (specs.Precision < 0 && specs.Type)
-    specs.Precision = 6;
+  if (specs.Precision < 0 && specs.Type) specs.Precision = 6;
 
   if (floatSpecs.Format == fmt_float_specs::EXP && specs.Precision != 0) {
     if (specs.Precision == numeric<s32>::max()) {
@@ -757,8 +738,7 @@ inline void write_float(fmt_context *f, is_floating_point auto value,
     if (sign) {
       write_no_specs(f, sign);
       sign = 0;
-      if (specs.Width)
-        --specs.Width;
+      if (specs.Width) --specs.Width;
     }
     specs.Align = fmt_alignment::RIGHT;
   } else if (specs.Align == fmt_alignment::NONE) {

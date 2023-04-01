@@ -50,8 +50,7 @@ struct hasher {
 
   // @Speed: SIMD
   bool add(const char *data, s64 size) {
-    if (!data)
-      return false;
+    if (!data) return false;
 
     Count += size;
 
@@ -163,7 +162,7 @@ struct hasher {
 // @TODO: Hash for array_like
 
 // Hashes for integer types
-#define TRIVIAL_HASH(T)                                                        \
+#define TRIVIAL_HASH(T) \
   inline u64 get_hash(T value) { return (u64)value; }
 
 TRIVIAL_HASH(s8);

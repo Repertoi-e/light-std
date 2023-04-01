@@ -34,8 +34,8 @@ inline bool fmt_is_type_arithmetic(fmt_type type) {
 template <typename T>
 struct fmt_type_constant : integral_constant<fmt_type, fmt_type::CUSTOM> {};
 
-#define TYPE_CONSTANT(Type, constant)                                          \
-  template <>                                                                  \
+#define TYPE_CONSTANT(Type, constant) \
+  template <>                         \
   struct fmt_type_constant<Type> : integral_constant<fmt_type, constant> {}
 
 TYPE_CONSTANT(char, fmt_type::S64);

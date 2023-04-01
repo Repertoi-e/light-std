@@ -35,7 +35,8 @@ LSTD_BEGIN_NAMESPACE
 //
 // :CodeReusability: This is considered array_like (take a look at
 // "array_like.h")
-template <typename T, s64 N> struct stack_array {
+template <typename T, s64 N>
+struct stack_array {
   T Data[N ? N : 1]{};
   static const s64 Count = N;
 
@@ -52,9 +53,9 @@ template <typename T, s64 N> struct stack_array {
 };
 
 template <typename D = void, typename... Types>
-stack_array<common_type_t<Types...>, sizeof...(Types)>
-make_stack_array(Types &&...t) {
-  return {(Types &&)t...};
+stack_array<common_type_t<Types...>, sizeof...(Types)> make_stack_array(
+    Types &&...t) {
+  return {(Types &&) t...};
 }
 
 LSTD_END_NAMESPACE

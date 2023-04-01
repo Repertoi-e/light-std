@@ -14,13 +14,13 @@ enum class color : u32 {
 
 inline string color_to_string(color c) {
   switch (c) {
-#define COLOR_DEF(x, y)                                                        \
-  case color::x:                                                               \
+#define COLOR_DEF(x, y) \
+  case color::x:        \
     return string(#x);
 #include "colors.inl"
 #undef COLOR_DEF
-  default:
-    return "UNKNOWN";
+    default:
+      return "UNKNOWN";
   }
 }
 
@@ -28,9 +28,8 @@ inline string color_to_string(color c) {
 //   e.g. cornflower_blue doesn't return color::CORNFLOWER_BLUE
 // Returns color::NONE (with value of black) if not found.
 inline color string_to_color(string str) {
-#define COLOR_DEF(x, y)                                                        \
-  if (strings_match(str, string(#x)))                                          \
-    return color::x;
+#define COLOR_DEF(x, y) \
+  if (strings_match(str, string(#x))) return color::x;
 #include "colors.inl"
 #undef COLOR_DEF
   return color::NONE;
@@ -47,13 +46,13 @@ enum class terminal_color : u32 {
 
 inline string terminal_color_to_string(terminal_color c) {
   switch (c) {
-#define COLOR_DEF(x, y)                                                        \
-  case terminal_color::x:                                                      \
+#define COLOR_DEF(x, y)   \
+  case terminal_color::x: \
     return string(#x);
 #include "terminal_colors.inl"
 #undef COLOR_DEF
-  default:
-    return "NONE";
+    default:
+      return "NONE";
   }
 }
 
@@ -61,9 +60,8 @@ inline string terminal_color_to_string(terminal_color c) {
 //   e.g. bright_black doesn't return color::BRIGHT_BLACK
 // Returns terminal_color::NONE (invalid) if not found.
 inline terminal_color string_to_terminal_color(string str) {
-#define COLOR_DEF(x, y)                                                        \
-  if (strings_match(str, string(#x)))                                          \
-    return terminal_color::x;
+#define COLOR_DEF(x, y) \
+  if (strings_match(str, string(#x))) return terminal_color::x;
 #include "terminal_colors.inl"
 #undef COLOR_DEF
   return terminal_color::NONE;
@@ -134,19 +132,14 @@ inline char *color_to_ansi(char *buffer, fmt_text_style style) {
 
 inline char *emphasis_to_ansi(char *buffer, u8 emphasis) {
   u8 codes[4] = {};
-  if (emphasis & BOLD)
-    codes[0] = 1;
-  if (emphasis & ITALIC)
-    codes[1] = 3;
-  if (emphasis & UNDERLINE)
-    codes[2] = 4;
-  if (emphasis & STRIKETHROUGH)
-    codes[3] = 9;
+  if (emphasis & BOLD) codes[0] = 1;
+  if (emphasis & ITALIC) codes[1] = 3;
+  if (emphasis & UNDERLINE) codes[2] = 4;
+  if (emphasis & STRIKETHROUGH) codes[3] = 9;
 
   char *p = buffer;
   For(range(4)) {
-    if (!codes[it])
-      continue;
+    if (!codes[it]) continue;
 
     *p++ = '\x1b';
     *p++ = '[';

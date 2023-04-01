@@ -11,7 +11,8 @@ LSTD_BEGIN_NAMESPACE
  * @tparam T The type of the integral constant.
  * @tparam Value The value of the integral constant.
  */
-template <typename T, T Value> struct integral_constant {
+template <typename T, T Value>
+struct integral_constant {
   static const T value = Value;
 
   using value_t = T;
@@ -27,44 +28,61 @@ using true_t = integral_constant<bool, true>;
 using false_t = integral_constant<bool, false>;
 
 namespace internal {
-template <typename T> struct is_const_helper_1 : false_t {};
-template <typename T> struct is_const_helper_1<volatile T *> : true_t {};
-template <typename T> struct is_const_helper_1<const volatile T *> : true_t {};
-template <typename T> struct is_const_helper_2 : is_const_helper_1<T *> {};
+template <typename T>
+struct is_const_helper_1 : false_t {};
+template <typename T>
+struct is_const_helper_1<volatile T *> : true_t {};
+template <typename T>
+struct is_const_helper_1<const volatile T *> : true_t {};
+template <typename T>
+struct is_const_helper_2 : is_const_helper_1<T *> {};
 template <typename T>
 struct is_const_helper_2<T &> : false_t {
-}; // Note here that Tis const, not the reference to T. So is_const is false.
+};  // Note here that Tis const, not the reference to T. So is_const is false.
 
-template <typename, typename> bool is_same_template_helper = false;
+template <typename, typename>
+bool is_same_template_helper = false;
 template <template <typename...> typename T, typename... A, typename... B>
 bool is_same_template_helper<T<A...>, T<B...>> = true;
 
-template <typename T, typename U> struct same_helper : false_t {};
-template <typename T> struct same_helper<T, T> : true_t {};
+template <typename T, typename U>
+struct same_helper : false_t {};
+template <typename T>
+struct same_helper<T, T> : true_t {};
 
-template <typename T> struct type_identity {
+template <typename T>
+struct type_identity {
   using type = T;
 };
 
-template <typename T> auto try_add_lvalue_reference(int) -> type_identity<T &>;
-template <typename T> auto try_add_lvalue_reference(...) -> type_identity<T>;
+template <typename T>
+auto try_add_lvalue_reference(int) -> type_identity<T &>;
+template <typename T>
+auto try_add_lvalue_reference(...) -> type_identity<T>;
 
-template <typename> struct is_function_helper : false_t {};
+template <typename>
+struct is_function_helper : false_t {};
 template <typename R, typename... Args>
 struct is_function_helper<R(Args...)> : true_t {};
 template <typename R, typename... Args>
 struct is_function_helper<R(Args..., ...)> : true_t {};
-template <typename T> struct is_pointer_helper : false_t {};
-template <typename T> struct is_pointer_helper<T *> : true_t {};
+template <typename T>
+struct is_pointer_helper : false_t {};
+template <typename T>
+struct is_pointer_helper<T *> : true_t {};
 
-template <typename T> struct is_member_pointer_helper : false_t {};
+template <typename T>
+struct is_member_pointer_helper : false_t {};
 template <typename T, typename U>
 struct is_member_pointer_helper<T U::*> : true_t {};
 
-template <typename T> struct is_array_helper : false_t {};
-template <typename T> struct is_array_helper<T[]> : true_t {};
-template <typename T, int N> struct is_array_helper<T[N]> : true_t {};
-} // namespace internal
+template <typename T>
+struct is_array_helper : false_t {};
+template <typename T>
+struct is_array_helper<T[]> : true_t {};
+template <typename T, int N>
+struct is_array_helper<T[N]> : true_t {};
+}  // namespace internal
 
 /**
  * @brief A struct used to denote a special template argument that means it's an
@@ -165,47 +183,61 @@ concept is_same_template = internal::is_same_template_helper<T, U>;
 template <typename T>
 concept is_const = internal::is_const_helper_2<T>::value;
 
-template <typename T> struct remove_cv {
+template <typename T>
+struct remove_cv {
   using type = T;
 };
-template <typename T> struct remove_cv<const T> {
+template <typename T>
+struct remove_cv<const T> {
   using type = T;
 };
-template <typename T> struct remove_cv<const T[]> {
+template <typename T>
+struct remove_cv<const T[]> {
   using type = T[];
 };
-template <typename T, s64 N> struct remove_cv<const T[N]> {
+template <typename T, s64 N>
+struct remove_cv<const T[N]> {
   using type = T[N];
 };
-template <typename T> struct remove_cv<volatile T> {
+template <typename T>
+struct remove_cv<volatile T> {
   using type = T;
 };
-template <typename T> struct remove_cv<volatile T[]> {
+template <typename T>
+struct remove_cv<volatile T[]> {
   using type = T[];
 };
-template <typename T, s64 N> struct remove_cv<volatile T[N]> {
+template <typename T, s64 N>
+struct remove_cv<volatile T[N]> {
   using type = T[N];
 };
-template <typename T> struct remove_cv<const volatile T> {
+template <typename T>
+struct remove_cv<const volatile T> {
   using type = T;
 };
-template <typename T> struct remove_cv<const volatile T[]> {
+template <typename T>
+struct remove_cv<const volatile T[]> {
   using type = T[];
 };
-template <typename T, s64 N> struct remove_cv<const volatile T[N]> {
+template <typename T, s64 N>
+struct remove_cv<const volatile T[N]> {
   using type = T[N];
 };
 
 /// @brief Type alias to remove top-level const/volatile qualification from T.
-template <typename T> using remove_cv_t = typename remove_cv<T>::type;
+template <typename T>
+using remove_cv_t = typename remove_cv<T>::type;
 
-template <typename T> struct remove_ref {
+template <typename T>
+struct remove_ref {
   using type = T;
 };
-template <typename T> struct remove_ref<T &> {
+template <typename T>
+struct remove_ref<T &> {
   using type = T;
 };
-template <typename T> struct remove_ref<T &&> {
+template <typename T>
+struct remove_ref<T &&> {
   using type = T;
 };
 
@@ -215,7 +247,8 @@ template <typename T> struct remove_ref<T &&> {
  *
  * For a given type T, remove_reference_t<T&> is equivalent to T.
  */
-template <typename T> using remove_ref_t = typename remove_ref<T>::type;
+template <typename T>
+using remove_ref_t = typename remove_ref<T>::type;
 
 template <typename T>
 struct add_lvalue_reference
@@ -235,22 +268,28 @@ struct add_lvalue_reference
 template <typename T>
 using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
 
-template <typename T> struct add_rvalue_reference {
+template <typename T>
+struct add_rvalue_reference {
   using type = T &&;
 };
-template <typename T> struct add_rvalue_reference<T &> {
+template <typename T>
+struct add_rvalue_reference<T &> {
   using type = T &;
 };
-template <> struct add_rvalue_reference<void> {
+template <>
+struct add_rvalue_reference<void> {
   using type = void;
 };
-template <> struct add_rvalue_reference<const void> {
+template <>
+struct add_rvalue_reference<const void> {
   using type = const void;
 };
-template <> struct add_rvalue_reference<volatile void> {
+template <>
+struct add_rvalue_reference<volatile void> {
   using type = volatile void;
 };
-template <> struct add_rvalue_reference<const volatile void> {
+template <>
+struct add_rvalue_reference<const volatile void> {
   using type = const volatile void;
 };
 
@@ -280,7 +319,7 @@ using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
  */
 template <typename T>
 typename add_rvalue_reference<T>::type
-declval() noexcept; // It works with compiler magic I guess.
+declval() noexcept;  // It works with compiler magic I guess.
 
 /// @brief Concept to check if T is an integral type.
 template <typename T>
@@ -288,7 +327,8 @@ concept is_integral = numeric<T>::is_integral;
 
 /// @brief Concept to check if T is a signed integral type.
 template <typename T>
-concept is_signed_integral = is_integral<T> && T(-1) < T(0);
+concept is_signed_integral = is_integral<T> && T(-1)
+< T(0);
 
 /// @brief Concept to check if T is an unsigned integral type.
 template <typename T>
@@ -330,9 +370,9 @@ concept is_member_pointer =
  * a member function pointer, or a null pointer type.
  */
 template <typename T>
-concept is_scalar =
-    is_arithmetic<T> || is_enum<T> || is_pointer<T> || is_member_pointer<T> ||
-    is_same<remove_cv_t<T>, decltype(nullptr)>;
+concept is_scalar = is_arithmetic<T> || is_enum<T> || is_pointer<T> ||
+                    is_member_pointer<T> || is_same < remove_cv_t<T>,
+decltype(nullptr) > ;
 
 /**
  * @brief Concept to check if a type is convertible to another type.
@@ -361,7 +401,8 @@ concept is_convertible = __is_convertible_to(From, To);
 template <typename T, typename... Args>
 concept is_constructible = __is_constructible(T, Args...);
 
-template <typename T> struct underlying_type {
+template <typename T>
+struct underlying_type {
   using type = __underlying_type(T);
 };
 
@@ -369,7 +410,8 @@ template <typename T> struct underlying_type {
 template <typename T>
 using underlying_type_t = typename underlying_type<T>::type;
 
-template <typename T> struct remove_cvref {
+template <typename T>
+struct remove_cvref {
   using type = remove_cv_t<remove_ref_t<T>>;
 };
 
@@ -377,7 +419,8 @@ template <typename T> struct remove_cvref {
  * @brief Alias template for the type obtained by removing top-level const
  * and/or volatile qualification and reference from the given type.
  */
-template <typename T> using remove_cvref_t = typename remove_cvref<T>::type;
+template <typename T>
+using remove_cvref_t = typename remove_cvref<T>::type;
 
 /// @brief Concept to check if the decayed versions of "T" and "U" are the same
 /// template type.
@@ -385,42 +428,53 @@ template <typename T, typename U>
 concept is_same_template_decayed =
     is_same_template<remove_cvref_t<T>, remove_cvref_t<U>>;
 
-template <typename T> struct remove_pointer {
+template <typename T>
+struct remove_pointer {
   using type = T;
 };
-template <typename T> struct remove_pointer<T *> {
+template <typename T>
+struct remove_pointer<T *> {
   using type = T;
 };
-template <typename T> struct remove_pointer<T *const> {
+template <typename T>
+struct remove_pointer<T *const> {
   using type = T;
 };
-template <typename T> struct remove_pointer<T *volatile> {
+template <typename T>
+struct remove_pointer<T *volatile> {
   using type = T;
 };
-template <typename T> struct remove_pointer<T *const volatile> {
+template <typename T>
+struct remove_pointer<T *const volatile> {
   using type = T;
 };
 
 /// @brief Removes the first level of pointers from T.
-template <typename T> using remove_pointer_t = typename remove_pointer<T>::type;
+template <typename T>
+using remove_pointer_t = typename remove_pointer<T>::type;
 
-template <typename T> struct add_pointer {
+template <typename T>
+struct add_pointer {
   using type = remove_ref_t<T> *;
 };
 
 // Adds a level of pointers to T
-template <typename T> using add_pointer_t = typename add_pointer<T>::type;
+template <typename T>
+using add_pointer_t = typename add_pointer<T>::type;
 
 template <typename T>
 concept is_array = internal::is_array_helper<T>::value;
 
-template <typename T> struct remove_extent {
+template <typename T>
+struct remove_extent {
   using type = T;
 };
-template <typename T> struct remove_extent<T[]> {
+template <typename T>
+struct remove_extent<T[]> {
   using type = T;
 };
-template <typename T, s64 N> struct remove_extent<T[N]> {
+template <typename T, s64 N>
+struct remove_extent<T[N]> {
   using type = T;
 };
 
@@ -438,9 +492,11 @@ template <typename T, s64 N> struct remove_extent<T[N]> {
  * For example, given a multi-dimensional array type T[M][N],
  * remove_extent<T[M][N]>::type is equivalent to T[N].
  */
-template <typename T> using remove_extent_t = typename remove_extent<T>::type;
+template <typename T>
+using remove_extent_t = typename remove_extent<T>::type;
 
-template <typename T> struct decay {
+template <typename T>
+struct decay {
   using U = remove_ref_t<T>;
 
   using type = type_select_t<
@@ -459,14 +515,18 @@ template <typename T> struct decay {
  * The resulting type is the type conversion that's actually silently applied
  * by the compiler to all function arguments when passed by value.
  */
-template <typename T> using decay_t = typename decay<T>::type;
+template <typename T>
+using decay_t = typename decay<T>::type;
 
-template <typename... T> struct common_type;
-template <typename T> struct common_type<T> {
+template <typename... T>
+struct common_type;
+template <typename T>
+struct common_type<T> {
   using type = decay_t<T>;
 };
 
-template <typename T, typename U> struct common_type<T, U> {
+template <typename T, typename U>
+struct common_type<T, U> {
   using type = decay_t<decltype(true ? declval<T>() : declval<U>())>;
 };
 

@@ -1,11 +1,10 @@
 #pragma once
 
-#include "api.h" // Declarations of Win32 functions
-
 #include "../../atomic.h"
 #include "../../context.h"
 #include "../../delegate.h"
 #include "../../memory.h"
+#include "api.h"  // Declarations of Win32 functions
 
 LSTD_BEGIN_NAMESPACE
 
@@ -80,8 +79,7 @@ inline bool try_lock(fast_mutex *m) {
 // Block the calling thread until a lock on the mutex can
 // be obtained. The mutex remains locked until unlock() is called.
 inline void lock(fast_mutex *m) {
-  while (!try_lock(m))
-    sleep(0);
+  while (!try_lock(m)) sleep(0);
 }
 
 // Unlock the mutex.
@@ -103,7 +101,8 @@ void free_condition_variable(condition_variable *c);
 // Wait for the condition.
 // The function will block the calling thread until the condition variable
 // is woken by notify_one(), notify_all() or a spurious wake up.
-template <typename MutexT> void wait(condition_variable *c, MutexT *m) {
+template <typename MutexT>
+void wait(condition_variable *c, MutexT *m) {
 #if OS == WINDOWS
   pre_wait(c);
 #endif
@@ -154,8 +153,7 @@ inline mutex create_mutex() {
 
 inline void free_mutex(mutex *m) {
   auto *p = (CRITICAL_SECTION *)m->PlatformData.Win32.Handle;
-  if (p)
-    DeleteCriticalSection(p);
+  if (p) DeleteCriticalSection(p);
 }
 
 inline void lock(mutex *m) {
@@ -230,8 +228,7 @@ inline void do_wait(condition_variable *c) {
   LeaveCriticalSection(&data->WaitersCountLock);
 
   // If we are the last waiter to be notified to stop waiting, reset the event
-  if (lastWaiter)
-    ResetEvent(data->Events[_CONDITION_EVENT_ALL]);
+  if (lastWaiter) ResetEvent(data->Events[_CONDITION_EVENT_ALL]);
 }
 
 inline void notify_one(condition_variable *c) {
@@ -243,8 +240,7 @@ inline void notify_one(condition_variable *c) {
   LeaveCriticalSection(&data->WaitersCountLock);
 
   // If we have any waiting threads, send them a signal
-  if (haveWaiters)
-    SetEvent(data->Events[_CONDITION_EVENT_ONE]);
+  if (haveWaiters) SetEvent(data->Events[_CONDITION_EVENT_ONE]);
 }
 
 inline void notify_all(condition_variable *c) {
@@ -256,8 +252,7 @@ inline void notify_all(condition_variable *c) {
   LeaveCriticalSection(&data->WaitersCountLock);
 
   // If we have any waiting threads, send them a signal
-  if (haveWaiters)
-    SetEvent(data->Events[_CONDITION_EVENT_ALL]);
+  if (haveWaiters) SetEvent(data->Events[_CONDITION_EVENT_ALL]);
 }
 
 // Information to pass to the new thread (what to run).
@@ -304,7 +299,7 @@ inline u32 __stdcall thread_wrapper_function(void *data) {
 
   lstd_init_thread();
 
-  ti->Function(ti->UserData); // <--- Call the user function with the user data
+  ti->Function(ti->UserData);  // <--- Call the user function with the user data
 
 #if defined DEBUG_MEMORY
   debug_memory_uninit();
@@ -313,14 +308,13 @@ inline u32 __stdcall thread_wrapper_function(void *data) {
   // free(ti); // Cross-thread free! @Leak
 
   ExitThread(0);
-  if (ti->Module)
-    FreeLibrary(ti->Module);
+  if (ti->Module) FreeLibrary(ti->Module);
 
   return 0;
 }
 
 inline void wait(thread t) {
-  assert(t.ThreadID != Context.ThreadID); // A thread cannot wait for itself!
+  assert(t.ThreadID != Context.ThreadID);  // A thread cannot wait for itself!
   WaitForSingleObject(t.Handle, INFINITE);
 }
 

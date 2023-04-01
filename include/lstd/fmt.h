@@ -7,7 +7,6 @@
 #include "fmt/pretty.h"
 #include "fmt/text_style.h"
 
-
 LSTD_BEGIN_NAMESPACE
 
 //
@@ -341,7 +340,8 @@ alternate = f->Specs && f->Specs->Hash; if (alternate) { write(f, "[");
 struct fmt_width_checker {
   fmt_context *F;
 
-  template <typename T> u32 operator()(T value) {
+  template <typename T>
+  u32 operator()(T value) {
     if constexpr (is_integral<T>) {
       if (sign_bit(value)) {
         on_error(F, "Negative width");
@@ -361,7 +361,8 @@ struct fmt_width_checker {
 struct fmt_precision_checker {
   fmt_context *F;
 
-  template <typename T> s32 operator()(T value) {
+  template <typename T>
+  s32 operator()(T value) {
     if constexpr (is_integral<T>) {
       if (sign_bit(value)) {
         on_error(F, "Negative precision");
@@ -393,16 +394,14 @@ inline bool fmt_handle_dynamic_specs(fmt_context *f) {
     auto width = fmt_get_arg_from_index(f, f->Specs->WidthIndex);
     if (width.Type != fmt_type::NONE) {
       f->Specs->Width = fmt_visit_arg(fmt_width_checker{f}, width);
-      if (f->Specs->Width == (u32)-1)
-        return false;
+      if (f->Specs->Width == (u32)-1) return false;
     }
   }
   if (f->Specs->PrecisionIndex != -1) {
     auto precision = fmt_get_arg_from_index(f, f->Specs->PrecisionIndex);
     if (precision.Type != fmt_type::NONE) {
       f->Specs->Precision = fmt_visit_arg(fmt_precision_checker{f}, precision);
-      if (f->Specs->Precision == numeric<s32>::min())
-        return false;
+      if (f->Specs->Precision == numeric<s32>::min()) return false;
     }
   }
 
@@ -413,8 +412,7 @@ inline void fmt_parse_and_format(fmt_context *f) {
   fmt_interp *p = &f->Parse;
 
   auto write_until = [&](const char *end) {
-    if (!p->It.Count)
-      return;
+    if (!p->It.Count) return;
     while (true) {
       auto searchString = string(p->It.Data, end - p->It.Data);
 
@@ -466,18 +464,17 @@ inline void fmt_parse_and_format(fmt_context *f) {
       // Implicit {} means "get the next argument"
       currentArg = fmt_get_arg_from_index(f, p->next_arg_id());
       if (currentArg.Type == fmt_type::NONE)
-        return; // The error was reported in _f->get_arg_from_ref_
+        return;  // The error was reported in _f->get_arg_from_ref_
 
       fmt_visit_arg(fmt_context_visitor(f), currentArg);
     } else if (p->It[0] == '{') {
       // {{ means we escaped a {.
       write_until(p->It.Data + 1);
     } else if (p->It[0] == '!') {
-      ++p->It.Data, --p->It.Count; // Skip the !
+      ++p->It.Data, --p->It.Count;  // Skip the !
 
       auto [success, style] = fmt_parse_text_style(p);
-      if (!success)
-        return;
+      if (!success) return;
       if (!p->It.Count || p->It[0] != '}') {
         on_error(f, "\"}\" expected");
         return;
@@ -498,23 +495,21 @@ inline void fmt_parse_and_format(fmt_context *f) {
     } else {
       // Parse integer specified or a named argument
       s64 argId = fmt_parse_arg_id(p);
-      if (argId == -1)
-        return;
+      if (argId == -1) return;
 
       currentArg = fmt_get_arg_from_index(f, argId);
       if (currentArg.Type == fmt_type::NONE)
-        return; // The error was reported in _f->get_arg_from_ref_
+        return;  // The error was reported in _f->get_arg_from_ref_
 
       code_point c = p->It.Count ? p->It[0] : 0;
       if (c == '}') {
         fmt_visit_arg(fmt_context_visitor(f), currentArg);
       } else if (c == ':') {
-        ++p->It.Data, --p->It.Count; // Skip the :
+        ++p->It.Data, --p->It.Count;  // Skip the :
 
         fmt_dynamic_specs specs = {};
         bool success = fmt_parse_specs(p, currentArg.Type, &specs);
-        if (!success)
-          return;
+        if (!success) return;
         if (!p->It.Count || p->It[0] != '}') {
           on_error(f, "\"}\" expected");
           return;
@@ -522,8 +517,7 @@ inline void fmt_parse_and_format(fmt_context *f) {
 
         f->Specs = &specs;
         success = fmt_handle_dynamic_specs(f);
-        if (!success)
-          return;
+        if (!success) return;
 
         fmt_visit_arg(fmt_context_visitor(f), currentArg);
 
@@ -533,7 +527,7 @@ inline void fmt_parse_and_format(fmt_context *f) {
         return;
       }
     }
-    ++p->It.Data, --p->It.Count; // Go to the next byte
+    ++p->It.Data, --p->It.Count;  // Go to the next byte
   }
 }
 
@@ -591,7 +585,8 @@ void print(string fmtString, Args no_copy... arguments) {
 //
 // Specialize this function for formatting your custom type.
 //
-template <typename T> void write_custom(fmt_context *f, const T *t) {
+template <typename T>
+void write_custom(fmt_context *f, const T *t) {
   // XXXX TODO: Move this inside if constexpr before calling write_custom!
   // static_assert(false, "Argument doesn't have a way to be formatted.");
   assert(false);

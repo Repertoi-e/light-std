@@ -10,7 +10,7 @@
 #include "lstd/os.h"
 #include "lstd/os/windows/api.h"
 
-static DWORD const xp_timeout = 100; // ms
+static DWORD const xp_timeout = 100;  // ms
 static int const uninitialized = 0;
 static int const being_initialized = -1;
 static int const epoch_start = LSTD_NAMESPACE::numeric<s32>::min();
@@ -34,9 +34,9 @@ __declspec(thread) int _Init_thread_epoch = epoch_start;
 // is not available via APISets until Windows 8.  Thus, for Windows OS
 // components, we use the "ancient" code path and first try the APISet and then
 // fall back to kernel32.dll.
-#if defined _SCRT_ENCLAVE_BUILD || defined _CRT_APP ||                         \
-    defined _CRT_WINDOWS_USE_VISTA_TSS ||                                      \
-    (!defined _CRT_WINDOWS &&                                                  \
+#if defined _SCRT_ENCLAVE_BUILD || defined _CRT_APP || \
+    defined _CRT_WINDOWS_USE_VISTA_TSS ||              \
+    (!defined _CRT_WINDOWS &&                          \
      (defined _ONECORE || defined _M_ARM || defined _M_ARM64))
 #define _USE_VISTA_THREAD_SAFE_STATICS 1
 #else
@@ -47,8 +47,8 @@ static CONDITION_VARIABLE g_tss_cv;
 
 #if _USE_VISTA_THREAD_SAFE_STATICS
 static SRWLOCK g_tss_srw;
-#else // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
-      // !_USE_VISTA_THREAD_SAFE_STATICS vvv //
+#else  // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
+       // !_USE_VISTA_THREAD_SAFE_STATICS vvv //
 static HANDLE g_tss_event;
 static CRITICAL_SECTION g_tss_mutex;
 static decltype(SleepConditionVariableCS) *g_sleep_condition_variable_cs;
@@ -69,7 +69,7 @@ static void __cdecl __scrt_initialize_thread_safe_statics_platform_specific() no
     LSTD_NAMESPACE::exit(-1);
   }
 
-#define GET_PROC_ADDRESS(m, f)                                                 \
+#define GET_PROC_ADDRESS(m, f) \
   reinterpret_cast<decltype(f) *>(GetProcAddress(m, _CRT_STRINGIZE(f)))
 
   auto const sleep_condition_variable_cs =
@@ -114,7 +114,7 @@ static int __cdecl __scrt_initialize_thread_safe_statics() noexcept {
 
 _CRTALLOC(".CRT$XIC")
 static _PIFV __scrt_initialize_tss_var = __scrt_initialize_thread_safe_statics;
-#endif // _USE_VISTA_THREAD_SAFE_STATICS
+#endif  // _USE_VISTA_THREAD_SAFE_STATICS
 
 // Helper functions for accessing the mutex and condition variable.  Can be
 // replaced with more suitable data structures provided by the CRT, preferably
@@ -123,19 +123,19 @@ static _PIFV __scrt_initialize_tss_var = __scrt_initialize_thread_safe_statics;
 extern "C" void __cdecl _Init_thread_lock() {
 #if _USE_VISTA_THREAD_SAFE_STATICS
   AcquireSRWLockExclusive(&g_tss_srw);
-#else  // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
-       // !_USE_VISTA_THREAD_SAFE_STATICS vvv
+#else   // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
+        // !_USE_VISTA_THREAD_SAFE_STATICS vvv
   EnterCriticalSection(&g_tss_mutex);
-#endif // _USE_VISTA_THREAD_SAFE_STATICS
+#endif  // _USE_VISTA_THREAD_SAFE_STATICS
 }
 
 extern "C" void __cdecl _Init_thread_unlock() {
 #if _USE_VISTA_THREAD_SAFE_STATICS
   ReleaseSRWLockExclusive(&g_tss_srw);
-#else  // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
-       // !_USE_VISTA_THREAD_SAFE_STATICS vvv
+#else   // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
+        // !_USE_VISTA_THREAD_SAFE_STATICS vvv
   LeaveCriticalSection(&g_tss_mutex);
-#endif // _USE_VISTA_THREAD_SAFE_STATICS
+#endif  // _USE_VISTA_THREAD_SAFE_STATICS
 }
 
 // Wait on the condition variable.  In the XP implementation using only a
@@ -149,8 +149,8 @@ extern "C" void __cdecl _Init_thread_unlock() {
 extern "C" void __cdecl _Init_thread_wait(DWORD const timeout) {
 #if _USE_VISTA_THREAD_SAFE_STATICS
   SleepConditionVariableSRW(&g_tss_cv, &g_tss_srw, timeout, 0);
-#else  // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
-       // !_USE_VISTA_THREAD_SAFE_STATICS vvv //
+#else   // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
+        // !_USE_VISTA_THREAD_SAFE_STATICS vvv //
   if (g_sleep_condition_variable_cs) {
     // Vista+ code is first because it's most likely
     g_sleep_condition_variable_cs(&g_tss_cv, &g_tss_mutex, timeout);
@@ -161,14 +161,14 @@ extern "C" void __cdecl _Init_thread_wait(DWORD const timeout) {
   _Init_thread_unlock();
   WaitForSingleObjectEx(g_tss_event, timeout, 0);
   _Init_thread_lock();
-#endif // _USE_VISTA_THREAD_SAFE_STATICS
+#endif  // _USE_VISTA_THREAD_SAFE_STATICS
 }
 
 extern "C" void __cdecl _Init_thread_notify() {
 #if _USE_VISTA_THREAD_SAFE_STATICS
   WakeAllConditionVariable(&g_tss_cv);
-#else  // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
-       // !_USE_VISTA_THREAD_SAFE_STATICS vvv
+#else   // ^^^ _USE_VISTA_THREAD_SAFE_STATICS ^^^ // vvv
+        // !_USE_VISTA_THREAD_SAFE_STATICS vvv
   if (g_wake_all_condition_variable) {
     // Vista+ code is first because it's most likely
     g_wake_all_condition_variable(&g_tss_cv);
@@ -177,7 +177,7 @@ extern "C" void __cdecl _Init_thread_notify() {
 
   SetEvent(g_tss_event);
   ResetEvent(g_tss_event);
-#endif // _USE_VISTA_THREAD_SAFE_STATICS
+#endif  // _USE_VISTA_THREAD_SAFE_STATICS
 }
 
 // Control access to the initialization expression.  Only one thread may leave

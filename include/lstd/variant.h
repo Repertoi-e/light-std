@@ -80,10 +80,12 @@ namespace internal {
 //	const_if<U, T>				=> T
 //	const_if<U const*, T>		=> const T
 //
-template <class U, class T> struct const_if_impl {
+template <class U, class T>
+struct const_if_impl {
   using type = T;
 };
-template <class U, class T> struct const_if_impl<U const *, T> {
+template <class U, class T>
+struct const_if_impl<U const *, T> {
   using type = const T;
 };
 
@@ -91,7 +93,8 @@ template <class U, class T>
 using const_if_t = typename const_if_impl<U, T>::type;
 
 //
-template <u64 I, class U, class... TS> constexpr auto index_of_impl = I;
+template <u64 I, class U, class... TS>
+constexpr auto index_of_impl = I;
 
 template <u64 I, class U, class T, class... TS>
 constexpr auto index_of_impl<I, U, T, TS...> = index_of_impl<I + 1, U, TS...>;
@@ -99,7 +102,8 @@ constexpr auto index_of_impl<I, U, T, TS...> = index_of_impl<I + 1, U, TS...>;
 template <u64 I, class U, class... TS>
 constexpr auto index_of_impl<I, U, U, TS...> = I;
 
-template <u64 I, class... TS> constexpr auto check() {
+template <u64 I, class... TS>
+constexpr auto check() {
   static_assert(I < sizeof...(TS), "Not one of the specified types");
   return I;
 };
@@ -109,40 +113,48 @@ constexpr auto checked = check<index_of_impl<0, U, TS...>, TS...>();
 
 template <class U, class... TS>
 constexpr auto index_of = checked<decay_t<U>, decay_t<TS>...>;
-} // namespace internal
+}  // namespace internal
 
-template <typename... MEMBERS> struct aligned_union {
+template <typename... MEMBERS>
+struct aligned_union {
   static constexpr auto ALIGNMENT = max(alignof(decay_t<MEMBERS>)...);
   static constexpr auto SIZE = max(sizeof(decay_t<MEMBERS>)...);
 
   alignas(ALIGNMENT) char Data[SIZE];
 
   template <typename T>
-    requires(!__is_base_of(decay_t<T>, decay_t<aligned_union>))
-  aligned_union(T &&x) {
+  requires(!__is_base_of(decay_t<T>, decay_t<aligned_union>))
+      aligned_union(T &&x) {
     construct<T>(FORWARD(x));
   }
   aligned_union() : Data{} {}
 
-  template <class T, class... TS> void construct(TS &&...xs) {
+  template <class T, class... TS>
+  void construct(TS &&...xs) {
     using type = decay_t<T>;
     new (Data) type(FORWARD(xs)...);
   }
 
-  template <class T> void destruct() { Data.~T(); }
+  template <class T>
+  void destruct() {
+    Data.~T();
+  }
 
-  template <class T> auto ref as() {
+  template <class T>
+  auto ref as() {
     using type = internal::const_if_t<decltype(this), decay_t<T>>;
     return *reinterpret_cast<type *>(Data);
   }
 
-  template <class T> auto no_copy as() const {
+  template <class T>
+  auto no_copy as() const {
     using type = internal::const_if_t<decltype(this), decay_t<T>>;
     return *reinterpret_cast<type *>(Data);
   }
 };
 
-template <class... MEMBERS> struct variant {
+template <class... MEMBERS>
+struct variant {
   struct nil {};
 
   u64 ti;
@@ -152,44 +164,44 @@ template <class... MEMBERS> struct variant {
   static constexpr auto get_index_of_t = internal::index_of<T, nil, MEMBERS...>;
 
   template <class T>
-    requires(!__is_base_of(decay_t<T>, decay_t<variant>))
-  variant(T &&x) : ti{get_index_of_t<T>}, au{FORWARD(x)} {}
+  requires(!__is_base_of(decay_t<T>, decay_t<variant>)) variant(T &&x)
+      : ti{get_index_of_t<T>}, au{FORWARD(x)} {}
   variant() : variant(nil{}) {}
   variant(variant no_copy x) { x.visit_with_nil<copy_constructor>({*this}); }
   variant(variant &&x) { x.visit_with_nil<move_constructor>({*this}); }
   ~variant() { destruct(); }
 
-  template <class T, class... TS> void emplace(TS &&...xs) {
+  template <class T, class... TS>
+  void emplace(TS &&...xs) {
     destruct();
     construct<T>(FORWARD(xs)...);
   }
 
-  template <class T> auto is() const { return (get_index_of_t<T> == ti); }
+  template <class T>
+  auto is() const {
+    return (get_index_of_t<T> == ti);
+  }
 
   explicit operator bool() const { return !is<nil>(); }
 
-  template <class F> decltype(auto) visit(F no_copy f = {}) {
+  template <class F>
+  decltype(auto) visit(F no_copy f = {}) {
     if (!ti)
       return visit_with_nil<F>(f);
     else
       return visit<F, MEMBERS...>(f, ti - 1);
   }
 
-  template <class F> decltype(auto) visit(F no_copy f = {}) const {
+  template <class F>
+  decltype(auto) visit(F no_copy f = {}) const {
     if (!ti)
       return visit_with_nil<F>(f);
     else
       return visit<F, MEMBERS...>(f, ti - 1);
   }
 
-  template <class T> auto ref strict_get() {
-    if (is<T>())
-      return as<T>();
-    else
-      panic();
-  }
-
-  template <class T> auto ref strict_get() const {
+  template <class T>
+  auto ref strict_get() {
     if (is<T>())
       return as<T>();
     else
@@ -197,8 +209,16 @@ template <class... MEMBERS> struct variant {
   }
 
   template <class T>
-    requires(!__is_base_of(decay_t<T>, decay_t<variant>))
-  auto ref operator=(T &&x) {
+  auto ref strict_get() const {
+    if (is<T>())
+      return as<T>();
+    else
+      panic();
+  }
+
+  template <class T>
+  requires(!__is_base_of(decay_t<T>, decay_t<variant>)) auto ref operator=(
+      T &&x) {
     if (is<T>())
       as<T>() = FORWARD(x);
     else
@@ -212,52 +232,64 @@ template <class... MEMBERS> struct variant {
     return *this;
   }
 
-private:
+ private:
   void panic() {
     // Bad, how did we get here?
     int *d = 0;
     *d = 42;
   }
 
-  template <class T> auto ref as() { return au.template as<T>(); }
-  template <class T> auto no_copy as() const { return au.template as<T>(); }
+  template <class T>
+  auto ref as() {
+    return au.template as<T>();
+  }
+  template <class T>
+  auto no_copy as() const {
+    return au.template as<T>();
+  }
 
-  template <class F, class T> decltype(auto) visit(F no_copy f, u64) {
+  template <class F, class T>
+  decltype(auto) visit(F no_copy f, u64) {
     return f(as<T>());
   }
 
-  template <class F, class T> decltype(auto) visit(F no_copy f, u64) const {
+  template <class F, class T>
+  decltype(auto) visit(F no_copy f, u64) const {
     return f(as<T>());
   }
 
   template <class F, class U, class T, class... TS>
   decltype(auto) visit(F no_copy f, u64 i) {
-    if (i)
-      return visit<F, T, TS...>(f, i - 1);
+    if (i) return visit<F, T, TS...>(f, i - 1);
     return f(as<U>());
   }
 
   template <class F, class U, class T, class... TS>
   decltype(auto) visit(F no_copy f, u64 i) const {
-    if (i)
-      return visit<F, T, TS...>(f, i - 1);
+    if (i) return visit<F, T, TS...>(f, i - 1);
     return f(as<U>());
   }
 
-  template <class F> decltype(auto) visit_with_nil(F no_copy f = {}) {
+  template <class F>
+  decltype(auto) visit_with_nil(F no_copy f = {}) {
     return visit<F, nil, MEMBERS...>(f, ti);
   }
 
-  template <class F> decltype(auto) visit_with_nil(F no_copy f = {}) const {
+  template <class F>
+  decltype(auto) visit_with_nil(F no_copy f = {}) const {
     return visit<F, nil, MEMBERS...>(f, ti);
   }
 
   struct destructor {
-    template <class T> void operator()(T ref x) const { x.~T(); }
+    template <class T>
+    void operator()(T ref x) const {
+      x.~T();
+    }
   };
   void destruct() { visit_with_nil<destructor>(); }
 
-  template <class T, class... TS> void construct(TS &&...xs) {
+  template <class T, class... TS>
+  void construct(TS &&...xs) {
     au.template construct<T>(FORWARD(xs)...);
     ti = get_index_of_t<T>;
   }
@@ -266,7 +298,8 @@ private:
     variant ref self;
     move_constructor(variant ref self) : self{self} {}
 
-    template <class T> void operator()(T &x) const {
+    template <class T>
+    void operator()(T &x) const {
       self.construct<T>(MOVE(x));
     }
   };
@@ -275,18 +308,22 @@ private:
     variant ref self;
     copy_constructor(variant ref self) : self{self} {}
 
-    template <class T> void operator()(T no_copy x) const {
+    template <class T>
+    void operator()(T no_copy x) const {
       self.construct<T>(x);
     }
   };
 };
 
-template <typename T> using optional = variant<T>;
+template <typename T>
+using optional = variant<T>;
 
-template <typename... Ts> struct match : Ts... {
+template <typename... Ts>
+struct match : Ts... {
   using Ts::operator()...;
 };
-template <typename... Ts> match(Ts...) -> match<Ts...>;
+template <typename... Ts>
+match(Ts...) -> match<Ts...>;
 
 #undef FORWARD
 #undef MOVE

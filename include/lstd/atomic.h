@@ -14,8 +14,9 @@
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
-const bool is_appropriate_size_for_atomic_v =
-    (sizeof(T) == 2) || (sizeof(T) == 4) || (sizeof(T) == 8);
+const bool is_appropriate_size_for_atomic_v = (sizeof(T) == 2) ||
+                                              (sizeof(T) == 4) ||
+                                              (sizeof(T) == 8);
 
 template <typename T>
 concept appropriate_for_atomic =
@@ -24,7 +25,8 @@ concept appropriate_for_atomic =
 
 #if COMPILER == MSVC
 // Returns the initial value in _ptr_
-template <appropriate_for_atomic T> T atomic_inc(T *ptr) {
+template <appropriate_for_atomic T>
+T atomic_inc(T *ptr) {
   if constexpr (sizeof(T) == 2)
     return (T)_InterlockedIncrement16((volatile short *)ptr);
   if constexpr (sizeof(T) == 4)
@@ -34,7 +36,8 @@ template <appropriate_for_atomic T> T atomic_inc(T *ptr) {
 }
 
 // Returns the initial value in _ptr_
-template <appropriate_for_atomic T> T atomic_add(T *ptr, T value) {
+template <appropriate_for_atomic T>
+T atomic_add(T *ptr, T value) {
   if constexpr (sizeof(T) == 2)
     return (T)_InterlockedExchangeAdd16((volatile short *)ptr, (short)value);
   if constexpr (sizeof(T) == 4)
@@ -45,7 +48,8 @@ template <appropriate_for_atomic T> T atomic_add(T *ptr, T value) {
 }
 
 // Returns the old value in _ptr_
-template <appropriate_for_atomic T> T atomic_swap(T *ptr, T value) {
+template <appropriate_for_atomic T>
+T atomic_swap(T *ptr, T value) {
   if constexpr (sizeof(T) == 2)
     return (T)_InterlockedExchange16((volatile short *)ptr, (short)value);
   if constexpr (sizeof(T) == 4)
@@ -77,17 +81,20 @@ T atomic_compare_and_swap(T *ptr, T oldValue, T newValue) {
 }
 #else
 // Returns the initial value in _ptr_
-template <appropriate_for_atomic T> T atomic_inc(T *ptr) {
+template <appropriate_for_atomic T>
+T atomic_inc(T *ptr) {
   return __sync_add_and_fetch(ptr, 1);
 }
 
 // Returns the initial value in _ptr_
-template <appropriate_for_atomic T> T atomic_add(T *ptr, T value) {
+template <appropriate_for_atomic T>
+T atomic_add(T *ptr, T value) {
   return __sync_add_and_fetch(ptr, value);
 }
 
 // Returns the old value in _ptr_
-template <appropriate_for_atomic T> T atomic_swap(T *ptr, T value) {
+template <appropriate_for_atomic T>
+T atomic_swap(T *ptr, T value) {
   return __sync_lock_test_and_set(ptr, value);
 }
 

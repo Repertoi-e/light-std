@@ -17,7 +17,8 @@ LSTD_BEGIN_NAMESPACE
 // Loop that gets unrolled at compile-time, this avoids copy-pasta
 // or using macros in order to be sure the code gets unrolled properly.
 //
-template <s64 First, s64 Last, typename Lambda> void static_for(Lambda f) {
+template <s64 First, s64 Last, typename Lambda>
+void static_for(Lambda f) {
   if constexpr (First < Last) {
     f(integral_constant<s64, First>{});
     static_for<First + 1, Last>(f);

@@ -4,7 +4,7 @@
 #include "types.h"
 
 #if COMPILER == MSVC
-#include <intrin.h> // for _BitScanReverse64 on MSVC @Platform
+#include <intrin.h>  // for _BitScanReverse64 on MSVC @Platform
 #endif
 
 #ifndef U64_MAX
@@ -262,11 +262,11 @@ constexpr u128::u128(s128 v) : hi{(u64)(v.hi)}, lo{v.lo} {}
 
 extern "C" {
 #if !defined LSTD_NO_CRT && COMPILER == MSVC
-__declspec(dllimport) double ldexp(double, s32); // Sigh...
+__declspec(dllimport) double ldexp(double, s32);  // Sigh...
 #else
 double ldexp(double, s32);
 #endif
-} // TODO: Constexpr
+}  // TODO: Constexpr
 
 inline u128::operator float() const {
   return (float)lo + (float)ldexp((double)hi, 64);
@@ -319,8 +319,7 @@ constexpr bool operator>=(s128 lhs, s128 rhs) { return !(lhs < rhs); }
 constexpr u128 operator-(u128 val) {
   u64 hi = ~val.hi;
   u64 lo = ~val.lo;
-  if (lo == 0)
-    ++hi; // carry
+  if (lo == 0) ++hi;  // carry
   return u128(hi, lo);
 }
 
@@ -380,15 +379,13 @@ constexpr u128 operator>>(u128 lhs, s32 amount) {
 
 constexpr u128 operator+(u128 lhs, u128 rhs) {
   u128 result = u128(lhs.hi + rhs.hi, lhs.lo + rhs.lo);
-  if (result.lo < lhs.lo)
-    return u128(result.hi + 1, result.lo);
+  if (result.lo < lhs.lo) return u128(result.hi + 1, result.lo);
   return result;
 }
 
 constexpr u128 operator-(u128 lhs, u128 rhs) {
   u128 result = u128(lhs.hi - rhs.hi, lhs.lo - rhs.lo);
-  if (lhs.lo < rhs.lo)
-    return u128(result.hi - 1, result.lo);
+  if (lhs.lo < rhs.lo) return u128(result.hi - 1, result.lo);
   return result;
 }
 
@@ -443,8 +440,7 @@ constexpr u128 &u128::operator--() {
 constexpr s128 operator-(s128 v) {
   s64 hi = ~v.hi;
   u64 lo = ~v.lo + 1;
-  if (lo == 0)
-    ++hi; // carry
+  if (lo == 0) ++hi;  // carry
   return s128(hi, lo);
 }
 
@@ -454,7 +450,7 @@ constexpr s128 operator~(s128 val) { return s128(~val.hi, ~val.lo); }
 
 constexpr s128 operator+(s128 lhs, s128 rhs) {
   s128 result = s128(lhs.hi + rhs.hi, lhs.lo + rhs.lo);
-  if (result.lo < lhs.lo) { // check for carry
+  if (result.lo < lhs.lo) {  // check for carry
     return s128(result.hi + 1, result.lo);
   }
   return result;
@@ -462,7 +458,7 @@ constexpr s128 operator+(s128 lhs, s128 rhs) {
 
 constexpr s128 operator-(s128 lhs, s128 rhs) {
   s128 result = s128(lhs.hi - rhs.hi, lhs.lo - rhs.lo);
-  if (lhs.lo < rhs.lo) { // check for carry
+  if (lhs.lo < rhs.lo) {  // check for carry
     return s128(result.hi - 1, result.lo);
   }
   return result;
@@ -475,8 +471,8 @@ constexpr s128 operator*(s128 lhs, s128 rhs) {
 
 constexpr u128 unsigned_absolute_value(s128 v) {
   return v.hi < 0 ? -u128(v)
-                  : u128(v); // Cast to uint128 before possibly negating
-                             // because -Int128Min() is undefined.
+                  : u128(v);  // Cast to uint128 before possibly negating
+                              // because -Int128Min() is undefined.
 }
 
 constexpr s128 operator/(s128 lhs, s128 rhs) {
@@ -485,8 +481,7 @@ constexpr s128 operator/(s128 lhs, s128 rhs) {
   u128 quotient = 0, remainder = 0;
   div_mod(unsigned_absolute_value(lhs), unsigned_absolute_value(rhs), &quotient,
           &remainder);
-  if ((lhs.hi < 0) != (rhs.hi < 0))
-    quotient = -quotient;
+  if ((lhs.hi < 0) != (rhs.hi < 0)) quotient = -quotient;
   return s128(s64_bit_cast_to_u64(quotient.hi), quotient.lo);
 }
 
@@ -496,8 +491,7 @@ constexpr s128 operator%(s128 lhs, s128 rhs) {
   u128 quotient = 0, remainder = 0;
   div_mod(unsigned_absolute_value(lhs), unsigned_absolute_value(rhs), &quotient,
           &remainder);
-  if (lhs.hi < 0)
-    remainder = -remainder;
+  if (lhs.hi < 0) remainder = -remainder;
   return s128(s64_bit_cast_to_u64(remainder.hi), remainder.lo);
 }
 
@@ -616,23 +610,21 @@ namespace internal {
 
 inline s32 msb(u64 x) {
   unsigned long r = 0;
-  return _BitScanReverse64(&r, x) ? ((s32)r) : -1; // @Platform
+  return _BitScanReverse64(&r, x) ? ((s32)r) : -1;  // @Platform
 }
 
 inline s32 msb(u128 x) {
-  if (x.hi != 0)
-    return 64 + msb(x.hi);
+  if (x.hi != 0) return 64 + msb(x.hi);
   return msb(x.lo);
 }
-} // namespace internal
+}  // namespace internal
 
 // Long division/modulo for u128 implemented using the
 // shiftsubtractdivisionalgorithmadaptedfrom:
 // https://stackoverflow.com/questions/5386377/division-without-using
 constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret,
                        u128 *remainder_ret) {
-  if (divisor == 0)
-    return;
+  if (divisor == 0) return;
 
   if (divisor > dividend) {
     *quotient_ret = 0;

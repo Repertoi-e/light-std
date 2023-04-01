@@ -28,8 +28,8 @@ struct string_builder {
 
   buffer BaseBuffer;
   buffer *CurrentBuffer =
-      null; // null means BaseBuffer. We don't point to BaseBuffer because
-            // pointers to other members are dangerous when copying.
+      null;  // null means BaseBuffer. We don't point to BaseBuffer because
+             // pointers to other members are dangerous when copying.
 
   // Counts how many buffers have been dynamically allocated.
   s64 IndirectionCount = 0;
@@ -71,7 +71,7 @@ inline void append(string_builder *builder, string str) {
 mark_as_leak string builder_to_string(string_builder *builder);
 
 inline void reset(string_builder *builder) {
-  builder->CurrentBuffer = null; // null means BaseBuffer
+  builder->CurrentBuffer = null;  // null means BaseBuffer
 
   auto *b = &builder->BaseBuffer;
   while (b) {
@@ -94,8 +94,7 @@ inline void append(string_builder *builder, const char *data, s64 size) {
 
     // If the entire string doesn't fit inside the available space,
     // allocate the next buffer and continue appending.
-    if (!builder->Alloc)
-      builder->Alloc = Context.Alloc;
+    if (!builder->Alloc) builder->Alloc = Context.Alloc;
     auto *b = malloc<string_builder::buffer>({.Alloc = builder->Alloc});
 
     currentBuffer->Next = b;
@@ -120,8 +119,7 @@ inline mark_as_leak string builder_to_string(string_builder *builder) {
 }
 
 inline string_builder::buffer *get_current_buffer(string_builder *builder) {
-  if (builder->CurrentBuffer == null)
-    return &builder->BaseBuffer;
+  if (builder->CurrentBuffer == null) return &builder->BaseBuffer;
   return builder->CurrentBuffer;
 }
 
@@ -135,7 +133,7 @@ inline void free_buffers(string_builder *builder) {
     free(old);
   }
 
-  builder->CurrentBuffer = null; // null means BaseBuffer
+  builder->CurrentBuffer = null;  // null means BaseBuffer
   builder->BaseBuffer.Occupied = 0;
 }
 

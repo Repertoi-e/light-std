@@ -52,22 +52,25 @@
 
 LSTD_BEGIN_NAMESPACE
 
-template <typename T> struct delegate;
+template <typename T>
+struct delegate;
 
-template <typename R, typename... A> struct delegate<R(A...)> {
+template <typename R, typename... A>
+struct delegate<R(A...)> {
   using stub_t = R (*)(void *, A no_copy...);
   using return_t = R;
 
-  template <typename Type, typename Signature> struct target {
+  template <typename Type, typename Signature>
+  struct target {
     Type *InstancePtr;
     Signature FunctionPtr;
   };
 
-  struct default_type_; // Unknown default type (undefined)
+  struct default_type_;  // Unknown default type (undefined)
   using default_function =
-      void (default_type_::*)(void); // Unknown default function (undefined)
+      void (default_type_::*)(void);  // Unknown default function (undefined)
   using default_type =
-      target<default_type_, default_function>; // Default target type
+      target<default_type_, default_function>;  // Default target type
 
   static const s64 Count = sizeof(default_type);
 
@@ -119,7 +122,8 @@ template <typename R, typename... A> struct delegate<R(A...)> {
   }
 
   // Construct delegate with function object (functor) / lambda
-  template <typename Type> delegate(Type *functor) {
+  template <typename Type>
+  delegate(Type *functor) {
     auto storage = (target<Type, null_t> *)&Data[0];
     storage->InstancePtr = functor;
     storage->FunctionPtr = null;

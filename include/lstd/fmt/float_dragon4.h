@@ -4,7 +4,6 @@
 #include "../string_builder.h"
 #include "float_specs.h"
 
-
 //
 // This is an implementation the Dragon4 algorithm to convert a binary number in
 // floating point format to a decimal number in string format.
@@ -83,13 +82,11 @@ LSTD_BEGIN_NAMESPACE
 // Assigns pow(10, exp) to a big int
 inline big_integer bigint_pow10(s32 exp) {
   assert(exp >= 0);
-  if (exp == 0)
-    return make_big(1);
+  if (exp == 0) return make_big(1);
 
   // Find the top bit
   s32 bitmask = 1;
-  while (exp >= bitmask)
-    bitmask <<= 1;
+  while (exp >= bitmask) bitmask <<= 1;
   bitmask >>= 1;
 
   // pow(10, exp) = pow(5, exp) * pow(2, exp).
@@ -98,24 +95,21 @@ inline big_integer bigint_pow10(s32 exp) {
   bitmask >>= 1;
   while (bitmask != 0) {
     b = b * b;
-    if ((exp & bitmask) != 0)
-      b = b * make_big(5);
+    if ((exp & bitmask) != 0) b = b * make_big(5);
     bitmask >>= 1;
   }
-  b = b << exp; // Multiply by pow(2, exp) by shifting.
+  b = b << exp;  // Multiply by pow(2, exp) by shifting.
 
   return b;
 }
 
 inline bool is_digit_in_valid_range(big_integer b) {
-  if (!b.Size)
-    return true;
+  if (!b.Size) return true;
   return b.Size == 1 && get_digit(b, 0) < 10;
 }
 
 inline u32 get_digit_or_zero(big_integer b) {
-  if (b.Size)
-    return get_digit(b, 0);
+  if (b.Size) return get_digit(b, 0);
   return 0;
 }
 
@@ -183,11 +177,11 @@ void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outExp,
 
   // Lower and upper are differences between value and corresponding boundaries.
   big_integer numerator, denominator, lower, upperStore;
-  big_integer *upper = null; // Optional, may point to upperStore.
+  big_integer *upper = null;  // Optional, may point to upperStore.
 
   fp value;
   bool isPredecessorCloser =
-      fp_assign_new(value, v); // Called "hasUnequalMargins" in the original
+      fp_assign_new(value, v);  // Called "hasUnequalMargins" in the original
 
   s32 shift = isPredecessorCloser ? 2 : 1;
 
@@ -240,8 +234,7 @@ void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outExp,
   // Invariant: value == (numerator / denominator) * pow(10, outExp).
   if (precision < 0) {
     // Generate the shortest unique representation
-    if (!upper)
-      upper = &lower;
+    if (!upper) upper = &lower;
     bool even = (value.Significand & 1) == 0;
 
     precision = 0;
@@ -279,8 +272,7 @@ void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outExp,
 
       numerator = numerator * make_big(10);
       lower = lower * make_big(10);
-      if (upper != &lower)
-        *upper = *upper * make_big(10);
+      if (upper != &lower) *upper = *upper * make_big(10);
     }
   }
 
