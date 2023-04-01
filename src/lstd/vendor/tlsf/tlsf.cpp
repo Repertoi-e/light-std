@@ -78,10 +78,12 @@ tlsf_decl int tlsf_fls(unsigned int word) {
     (defined(_M_IX86) || defined(_M_X64))
 /* Microsoft Visual C++ support on x86/X64 architectures. */
 
-#include <intrin.h>
-
 #pragma intrinsic(_BitScanReverse)
 #pragma intrinsic(_BitScanForward)
+extern "C" unsigned char __cdecl _BitScanForward(unsigned long* _Index,
+                                                 unsigned long _Mask);
+extern "C" unsigned char __cdecl _BitScanReverse(unsigned long* _Index,
+                                                 unsigned long _Mask);
 
 tlsf_decl int tlsf_fls(unsigned int word) {
   unsigned long index;

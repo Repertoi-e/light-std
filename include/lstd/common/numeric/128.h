@@ -3,10 +3,6 @@
 #include "../namespace.h"
 #include "types.h"
 
-#if COMPILER == MSVC
-#include <intrin.h>  // for _BitScanReverse64 on MSVC @Platform
-#endif
-
 #ifndef U64_MAX
 #define U64_MAX 18446744073709551615ULL
 #endif
@@ -606,9 +602,13 @@ constexpr s128 &s128::operator>>=(s32 amount) {
 namespace internal {
 #if COMPILER == MSVC
 #pragma intrinsic(_BitScanReverse64)
+
+extern "C" unsigned char __cdecl _BitScanReverse64(unsigned long *_Index,
+                                                   unsigned __int64 _Mask);
 #endif
 
 inline s32 msb(u64 x) {
+  // @Platform
   unsigned long r = 0;
   return _BitScanReverse64(&r, x) ? ((s32)r) : -1;  // @Platform
 }

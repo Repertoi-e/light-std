@@ -19,11 +19,12 @@ workspace "light-std"
 LSTD_INCLUDE_EXTRAS = { "guid", "signal" }
 
 OUT_DIR = "build/bin/%{cfg.buildcfg}/%{prj.name}"
-INT_DIR = "build/bin-Int/%{cfg.buildcfg}/%{prj.name}"
+INT_DIR = "build/bin-int/%{cfg.buildcfg}/%{prj.name}"
 
--- By default  LSTD_NAMESPACE = "lstd"  
--- Set to "" to build without namespace.
-LSTD_NAMESPACE = ""
+-- By default we build without namespace, so everything is global.
+-- Set for the name of the namespace (for example  LSTD_NAMESPACE = "lstd")
+-- to encapsulate the whole library.  
+-- LSTD_NAMESPACE = "lstd"
 
 -- These options are optional and control how much memory the platform allocators
 -- reserve upfront. Increase this if you get platform warnings with the message 
@@ -42,10 +43,10 @@ LSTD_NAMESPACE = ""
 -- LSTD_PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE = "1_MiB"
 
 group "lstd"
-    include "premake5_lstd"
+    include "premake5-lstd"
 group ""
 
-group "test_suite"
-    -- include "test_suite"
+group "test-suite"
+    include "test-suite"
     include "example"
 group ""

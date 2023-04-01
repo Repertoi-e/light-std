@@ -1,114 +1,12 @@
 #pragma once
 
 #include "common.h"
+#include "type_info.h"
 #include "vendor/tlsf/tlsf.h"
 
-// @Cleanup These implementations are not ideal
-extern "C" {
-
-#if COMPILER == MSVC and (defined DEBUG_OPTIMIZED or defined RELEASE)
-#pragma function(memset)
-#pragma function(memcpy)
-#pragma function(memmove)
-#endif
-
-inline void *memmove(void *dstpp, const void *srcpp, size_t len) {
-  auto *dst = (byte *)dstpp;
-  auto *src = (byte *)srcpp;
-  if (len == 0) return dstpp;
-  For(LSTD_NAMESPACE::range(len - 1, -1, -1)) dst[it] = src[it];
-  return dst;
-}
-
-inline void *memcpy(void *dstpp, const void *srcpp, size_t len) {
-  if ((u64)dstpp > (u64)srcpp &&
-      (s64)((byte *)dstpp - (byte *)srcpp) < (s64)len) {
-    //
-    // Careful. Buffers overlap. You should use memmove in this case.
-    //
-    // If this bug isn't caught until Release, then bad shit happens.
-    // So in order to make it work nevertheless we do memmove.
-    // I wish the C standard didn't make a distinction between the
-    // two functions, but we're stuck with that.
-    //
-    // This makes calling memmove superfluous, and personally,
-    // I'm ok with that.
-    return memmove(dstpp, srcpp, len);
-  } else {
-    auto *dst = (byte *)dstpp;
-    auto *src = (byte *)srcpp;
-    while (len--) *dst++ = *src++;
-  }
-  return dstpp;
-}
-
-inline void *memset(void *dstpp, int c, size_t len) {
-  u64 dstp = (u64)dstpp;
-
-  if (len >= 8) {
-    size_t xlen;
-    u64 cccc;
-
-    cccc = (byte)c;
-    cccc |= cccc << 8;
-    cccc |= cccc << 16;
-    cccc |= (cccc << 16) << 16;
-
-    /* There are at least some bytes to set.
-No need to test for LEN == 0 in this alignment loop.  */
-    while (dstp % 8 != 0) {
-      ((byte *)dstp)[0] = c;
-      dstp += 1;
-      len -= 1;
-    }
-
-    /* Write 8 `op_t' per iteration until less than 8 `op_t' remain.  */
-    xlen = len / (8 * 8);
-    while (xlen > 0) {
-      ((u64 *)dstp)[0] = cccc;
-      ((u64 *)dstp)[1] = cccc;
-      ((u64 *)dstp)[2] = cccc;
-      ((u64 *)dstp)[3] = cccc;
-      ((u64 *)dstp)[4] = cccc;
-      ((u64 *)dstp)[5] = cccc;
-      ((u64 *)dstp)[6] = cccc;
-      ((u64 *)dstp)[7] = cccc;
-      dstp += 8 * 8;
-      xlen -= 1;
-    }
-    len %= 8 * 8;
-
-    xlen = len / 8;
-    while (xlen > 0) {
-      ((u64 *)dstp)[0] = cccc;
-      dstp += 8;
-      xlen -= 1;
-    }
-    len %= 8;
-  }
-
-  while (len > 0) {
-    ((byte *)dstp)[0] = c;
-    dstp += 1;
-    len -= 1;
-  }
-
-  return dstpp;
-}
-
-inline void *memset0(void *dst, size_t numInBytes) {
-  return memset((char *)dst, (char)0, numInBytes);
-}
-
-inline int memcmp(const void *s1, const void *s2, size_t n) {
-  auto *p1 = (byte *)s1;
-  auto *p2 = (byte *)s2;
-  For(LSTD_NAMESPACE::range(n)) {
-    if (p1[it] != p2[it]) return p1[it] - p2[it];
-  }
-  return 0;
-}
-}
+///
+/// Defines the structure of allocators in this library.
+///
 
 // Maximum size of an allocation we will attemp to request
 #define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0  // Around 16384 PiB
@@ -124,98 +22,6 @@ inline int memcmp(const void *s1, const void *s2, size_t n) {
 #else
 // Don't enable extra info when in Release configuration unless predefined
 #endif
-
-#if COMPILER == MSVC
-#pragma warning(push)
-#pragma warning(disable : 4273)  // Different linkage
-#endif
-
-//
-// The date is 4th of September 2021 and for the first time we were able to
-// launch an almost non-trivial application that does rendering, UI, graphing
-// math functions, hot-loading dlls... without linking with the C/C++ runtime
-// library. That means that it's entirely free of dependencies that may change
-// with the compiler version.
-//
-// In order to get FreeType and imgui to work, I needed to provide definitions
-// for some standard library functions (sscanf, strtod, strlen, ... memcmp, ...
-// strncpy, ..., etc.. They are provided in a file called
-// "platform/windows_no_crt/common_functions.h".
-//
-// Reading files with fread, fopen is out of the question.
-// I modified the code to use the lstd.path module.
-//
-// Memory functions (malloc, calloc, realloc, free) are provided by default.
-// We do this in order to not add YET another way to allocate a block (currently
-// you can do that with malloc/free or new/delete, imagine if we added our own
-// allocation function). Keeping it malloc is less confusing and error-prone and
-// ... also it's nostalgic.
-//
-#ifndef LSTD_NO_CRT
-#include <new>
-#else
-#if COMPILER == MSVC
-// Note: If you get many compile errors (but you have defined LSTD_NO_CRT).
-// You probably need to define it globally, because not all headers from this
-// library might see the macro.
-inline void *__cdecl operator new(size_t, void *p) noexcept { return p; }
-inline void *__cdecl operator new[](size_t, void *p) noexcept { return p; }
-#else
-inline void *operator new(size_t, void *p) noexcept { return p; }
-inline void *operator new[](size_t, void *p) noexcept { return p; }
-#endif
-#endif
-
-//
-// Here we define the memory functions usually provided by the standard library.
-// The templated ones are in the lstd namespace in order to not conflict too
-// much. They are named the same way for simplicity sake (imagine if we added
-// our own allocation function). Keeping it malloc is less confusing and ...
-// also it's nostalgic.
-//
-
-extern "C" {
-// @TODO: LSTD_NO_CRT
-#if COMPILER == MSVC
-// Allocates a block of a given size
-restrict void *malloc(size_t size);
-
-// Calls malloc with _num_ * _size_ and fills the block with 0s
-restrict void *calloc(size_t num, size_t size);
-
-// Attemps to expand _ptr_ to _new_size_.
-// If it's not possible, calls malloc with _new_size_ and copies the old
-// contents.
-restrict void *realloc(void *ptr, size_t newSize);
-
-// Frees a block allocated by malloc.
-void free(void *ptr);
-#endif
-}
-
-#if COMPILER == MSVC
-#pragma warning(pop)
-#endif
-
-using align_val_t = size_t;
-
-#if defined LSTD_NO_CRT
-[[nodiscard]] void *operator new(size_t size);
-[[nodiscard]] void *operator new[](size_t size);
-
-[[nodiscard]] void *operator new(size_t size, align_val_t alignment);
-[[nodiscard]] void *operator new[](size_t size, align_val_t alignment);
-#endif
-
-void operator delete(void *ptr) noexcept;
-void operator delete[](void *ptr) noexcept;
-
-void operator delete(void *ptr, align_val_t alignment) noexcept;
-void operator delete[](void *ptr, align_val_t alignment) noexcept;
-
-///
-/// Defines the structure of allocators in this library.
-///
 
 LSTD_BEGIN_NAMESPACE
 
@@ -464,7 +270,6 @@ struct allocator {
   explicit operator bool() const { return Function; }
 };
 
-// Note: Not all allocators must support this.
 void free_all(allocator alloc, u64 options = 0);
 
 template <typename T>
@@ -482,6 +287,22 @@ requires(!is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount,
 template <non_void T>
 requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
                                            source_location loc);
+
+// These handle alignment, populating the allocation header and debug memory
+// stuff.
+void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
+                        u64 options,
+                        source_location loc = source_location::current());
+
+// If DEBUG_MEMORY is defined, calling reallocate on a block that is already
+// freed panics the program and gives information about the site.
+void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
+                          source_location loc = source_location::current());
+
+// Calling free on a null pointer doesn't do anything.
+// If DEBUG_MEMORY is defined, calling free on a block that is already freed
+// panics the program and gives information about the site.
+void general_free(void *ptr, u64 options, source_location loc);
 
 //
 // Here we define malloc/calloc/realloc/free.
@@ -795,21 +616,6 @@ inline void *pool_allocator(allocator_mode mode, void *context, s64 size,
   }
   return null;
 }
-
-// These handle alignment, populating the allocation header and debug memory
-// stuff.
-void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
-                       u64 options, source_location loc);
-
-// If DEBUG_MEMORY is defined, calling reallocate on a block that is already
-// freed panics the program and gives information about the site.
-void *general_reallocate(void *ptr, s64 newSize, u64 options,
-                         source_location loc);
-
-// Calling free on a null pointer doesn't do anything.
-// If DEBUG_MEMORY is defined, calling free on a block that is already freed
-// panics the program and gives information about the site.
-void general_free(void *ptr, u64 options, source_location loc);
 
 // Calculates the required padding in bytes which needs to be added to _ptr_
 // in order to be aligned
@@ -1166,3 +972,106 @@ requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
 }
 
 LSTD_END_NAMESPACE
+
+#if COMPILER == MSVC and (defined DEBUG_OPTIMIZED or defined RELEASE)
+#pragma function(memset)
+#pragma function(memcpy)
+#pragma function(memmove)
+#endif
+
+int __cdecl memcmp(void const *_Buf1, void const *_Buf2, size_t _Size);
+void *__cdecl memcpy(void *_Dst, void const *_Src, size_t _Size);
+void *__cdecl memmove(void *_Dst, void const *_Src, size_t _Size);
+void *__cdecl memset(void *_Dst, int _Val, size_t _Size);
+
+// This is non-standard extension, basically memset with 0
+void *__cdecl memset0(void *_Dst, size_t _Size);
+
+#if COMPILER == MSVC
+#pragma warning(push)
+#pragma warning(disable : 4273)  // Different linkage
+#endif
+
+//
+// The date is 4th of September 2021 and for the first time we were able to
+// launch an almost non-trivial application that does rendering, UI, graphing
+// math functions, hot-loading dlls... without linking with the C/C++ runtime
+// library. That means that it's entirely free of dependencies that may change
+// with the compiler version.
+//
+// In order to get FreeType and imgui to work, I needed to provide definitions
+// for some standard library functions (sscanf, strtod, strlen, ... memcmp, ...
+// strncpy, ..., etc.. They are provided in a file called
+// "platform/windows_no_crt/common_functions.h".
+//
+// Reading files with fread, fopen is out of the question.
+// I modified the code to use the lstd.path module.
+//
+// Memory functions (malloc, calloc, realloc, free) are provided by default.
+// We do this in order to not add YET another way to allocate a block (currently
+// you can do that with malloc/free or new/delete, imagine if we added our own
+// allocation function). Keeping it malloc is less confusing and error-prone and
+// ... also it's nostalgic.
+//
+#ifndef LSTD_NO_CRT
+#include <new>
+#else
+#if COMPILER == MSVC
+// Note: If you get many compile errors (but you have defined LSTD_NO_CRT).
+// You probably need to define it globally, because not all headers from this
+// library might see the macro.
+inline void *__cdecl operator new(size_t, void *p) noexcept { return p; }
+inline void *__cdecl operator new[](size_t, void *p) noexcept { return p; }
+#else
+inline void *operator new(size_t, void *p) noexcept { return p; }
+inline void *operator new[](size_t, void *p) noexcept { return p; }
+#endif
+#endif
+
+//
+// Here we define the memory functions usually provided by the standard library.
+// The templated ones are in the lstd namespace in order to not conflict too
+// much. They are named the same way for simplicity sake (imagine if we added
+// our own allocation function). Keeping it malloc is less confusing and ...
+// also it's nostalgic.
+//
+
+extern "C" {
+// @TODO: LSTD_NO_CRT
+#if COMPILER == MSVC
+// Allocates a block of a given size
+restrict void *malloc(size_t size);
+
+// Calls malloc with _num_ * _size_ and fills the block with 0s
+restrict void *calloc(size_t num, size_t size);
+
+// Attemps to expand _ptr_ to _new_size_.
+// If it's not possible, calls malloc with _new_size_ and copies the old
+// contents.
+restrict void *realloc(void *ptr, size_t newSize);
+
+// Frees a block allocated by malloc.
+void free(void *ptr);
+#endif
+}
+
+#if COMPILER == MSVC
+#pragma warning(pop)
+#endif
+
+using align_val_t = size_t;
+
+#if defined LSTD_NO_CRT
+[[nodiscard]] void *operator new(size_t size);
+[[nodiscard]] void *operator new[](size_t size);
+
+[[nodiscard]] void *operator new(size_t size, align_val_t alignment);
+[[nodiscard]] void *operator new[](size_t size, align_val_t alignment);
+#endif
+
+void operator delete(void *ptr) noexcept;
+void operator delete[](void *ptr) noexcept;
+
+void operator delete(void *ptr, align_val_t alignment) noexcept;
+void operator delete[](void *ptr, align_val_t alignment) noexcept;
+

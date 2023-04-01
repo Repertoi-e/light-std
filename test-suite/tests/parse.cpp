@@ -1,7 +1,6 @@
 #include "../test.h"
 
-import lstd.guid;
-static_assert(any_array_like<guid>);
+#include "lstd-extra/guid/guid.h"
 
 #define test_parse_int(IntT, options, base, buffer, expectedValue, expectedStatus, expectedRest) \
     {                                                                                            \

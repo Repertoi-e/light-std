@@ -1,7 +1,5 @@
 #include "../test.h"
 
-import lstd.path;
-
 TEST(path_manipulation) {
     {
         string a = path_normalize("/home/data.txt");

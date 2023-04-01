@@ -1,4 +1,4 @@
-project "test_suite"
+project "test-suite"
     kind "ConsoleApp"
     architecture "x64"
 

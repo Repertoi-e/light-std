@@ -3,13 +3,24 @@
 #include "common.h"
 
 #if COMPILER == MSVC
-#include <intrin.h>
 
-#pragma intrinsic(_BitScanReverse)
-#pragma intrinsic(_BitScanReverse64)
-
-#pragma intrinsic(_BitScanForward)
+#if BITS == 64
 #pragma intrinsic(_BitScanForward64)
+extern "C" unsigned char __cdecl _BitScanForward64(unsigned long *_Index,
+                                                   unsigned __int64 _Mask);
+#endif
+#pragma intrinsic(_BitScanForward)
+extern "C" unsigned char __cdecl _BitScanForward(unsigned long *_Index,
+                                                 unsigned long _Mask);
+
+#if BITS == 64
+#pragma intrinsic(_BitScanReverse64)
+extern "C" unsigned char __cdecl _BitScanReverse64(unsigned long *_Index,
+                                                   unsigned __int64 _Mask);
+#endif
+#pragma intrinsic(_BitScanReverse)
+extern "C" unsigned char __cdecl _BitScanReverse(unsigned long *_Index,
+                                                 unsigned long _Mask);
 #endif
 
 //
@@ -23,6 +34,10 @@
 //
 
 LSTD_BEGIN_NAMESPACE
+
+#if COMPILER == MSVC
+
+#endif
 
 // Returns the index of the most significant set bit.
 // The index always starts at the LSB.
@@ -41,8 +56,15 @@ inline s32 msb(T x) {
   } else {
 #if COMPILER == MSVC
     if constexpr (sizeof(T) == 8) {
+#if BITS == 64
       unsigned long r = 0;
       return _BitScanReverse64(&r, x) ? ((s32)r) : -1;
+#else
+      assert(false &&
+             "Trying to call msb with "
+             "64 bit integer on 32 bit "
+             "platform.");
+#endif
     } else {
       unsigned long r = 0;
       return _BitScanReverse(&r, x) ? ((s32)r) : -1;
@@ -69,8 +91,15 @@ inline s32 lsb(is_unsigned_integral auto x) {
   } else {
 #if COMPILER == MSVC
     if constexpr (sizeof(x) == 8) {
+#if BITS == 64
       unsigned long r = 0;
       return _BitScanForward64(&r, x) ? ((s32)r) : -1;
+#else
+      assert(false &&
+             "Trying to call lsb with "
+             "64 bit integer on 32 bit "
+             "platform.");
+#endif
     } else {
       unsigned long r = 0;
       return _BitScanForward(&r, x) ? ((s32)r) : -1;

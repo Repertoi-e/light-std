@@ -1,7 +1,5 @@
 #include "../test.h"
 
-import lstd.bits;
-
 TEST(msb) {
     assert_eq(msb(0b11101010100000000100000010001011ul), 31);
     assert_eq(msb(0b01101010100000000100000010001011ul), 30);

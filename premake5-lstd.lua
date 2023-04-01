@@ -49,8 +49,15 @@ function link_lstd()
     links { "lstd" }
 
     if LSTD_NAMESPACE then
-        defines { "LSTD_NAMESPACE=" .. LSTD_NAMESPACE }
-    elseif LSTD_NAMESPACE == "" then
+        print("Building library with namespace: \"" .. LSTD_NAMESPACE .. "\"")
+
+        if LSTD_NAMESPACE ~= "" then
+            defines { "LSTD_NAMESPACE=" .. LSTD_NAMESPACE }
+        else
+            defines { "LSTD_NO_NAMESPACE" }
+        end
+    else
+        print("Building library with no namespace")
         defines { "LSTD_NO_NAMESPACE" }
     end
 

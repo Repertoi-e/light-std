@@ -42,8 +42,14 @@ using f64 = double;
 
 #if BITS == 32
 using size_t = u32;
+using ptrdiff_t = s32;
+using intptr_t = s32;
+using time_t = s32;
 #else
 using size_t = u64;
+using ptrdiff_t = s64;
+using intptr_t = s64;
+using time_t = s64;
 #endif
 
 using usize = size_t;

@@ -1,1 +1,0 @@
-These get added by the premake file that handles `lstd/`, i.e. they should be part of the library and not a separate compilation.

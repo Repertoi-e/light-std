@@ -1,5 +1,7 @@
 #pragma once
 
+#include "namespace.h"
+
 LSTD_BEGIN_NAMESPACE
 
 //

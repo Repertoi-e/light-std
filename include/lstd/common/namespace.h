@@ -9,15 +9,7 @@
 // LSTD_NO_NAMESPACE in build/premake5.lua
 //
 
-#if !defined LSTD_NAMESPACE and !defined LSTD_NO_NAMESPACE
-#define LSTD_NAMESPACE lstd
-#endif
-
-#if defined LSTD_NO_NAMESPACE
-#undef LSTD_NAMESPACE
-#endif
-
-#if defined LSTD_NAMESPACE
+#if not defined LSTD_NO_SPACE && defined LSTD_NAMESPACE
 #define LSTD_BEGIN_NAMESPACE namespace LSTD_NAMESPACE {
 #define LSTD_END_NAMESPACE }
 #define LSTD_USING_NAMESPACE using namespace LSTD_NAMESPACE
@@ -25,5 +17,5 @@
 #define LSTD_NAMESPACE
 #define LSTD_BEGIN_NAMESPACE
 #define LSTD_END_NAMESPACE
-#define LSTD_USING_NAMESPACE (void)0
+#define LSTD_USING_NAMESPACE 
 #endif

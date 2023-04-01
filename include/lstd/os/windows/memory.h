@@ -67,7 +67,7 @@ struct win32_memory_state {
 };
 
 // :GlobalStateNoConstructors:
-static byte Win32MemoryState[sizeof(win32_memory_state)];
+inline byte Win32MemoryState[sizeof(win32_memory_state)];
 
 // Short-hand macro for sanity
 #define S ((win32_memory_state *)&Win32MemoryState[0])

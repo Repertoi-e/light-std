@@ -7,6 +7,105 @@
 #include "lstd/os.h"
 #include "lstd/path.h"
 
+LSTD_USING_NAMESPACE;
+
+int __cdecl memcmp(void const *_Buf1, void const *_Buf2, size_t _Size) {
+  auto *p1 = (byte *)_Buf1;
+  auto *p2 = (byte *)_Buf2;
+  For(range(_Size)) {
+    if (p1[it] != p2[it]) return p1[it] - p2[it];
+  }
+  return 0;
+}
+
+void *__cdecl memcpy(void *_Dst, void const *_Src, size_t _Size) {
+  if ((u64)_Dst > (u64)_Src && (s64)((byte *)_Dst - (byte *)_Src) < (s64)_Size)
+      [[unlikely]] {
+    //
+    // Careful. Buffers overlap. You should use memmove in this case.
+    //
+    // If this bug isn't caught until Release, then bad stuff happens.
+    // So in order to make it work nevertheless we do memmove.
+    // I wish the C standard didn't make a distinction between the
+    // two functions, but we're stuck with that.
+    //
+    // This makes calling memmove superfluous, and personally,
+    // I'm ok with that.
+    return memmove(_Dst, _Src, _Size);
+  } else {
+    auto *dst = (byte *)_Dst;
+    auto *src = (byte *)_Src;
+    while (_Size--) *dst++ = *src++;
+  }
+  return _Dst;
+}
+
+void *__cdecl memmove(void *_Dst, void const *_Src, size_t _Size) {
+  auto *dst = (byte *)_Dst;
+  auto *src = (byte *)_Src;
+  if (_Size == 0) return _Dst;
+  For(range(_Size - 1, -1, -1)) dst[it] = src[it];
+  return dst;
+}
+
+void *__cdecl memset(void *_Dst, int _Val, size_t _Size) {
+  u64 dstp = (u64)_Dst;
+
+  if (_Size >= 8) {
+    size_t xlen;
+    u64 cccc;
+
+    cccc = _Val;
+    cccc |= cccc << 8;
+    cccc |= cccc << 16;
+    cccc |= (cccc << 16) << 16;
+
+    // There are at least some bytes to set.
+    // No need to test for LEN == 0 in this alignment loop.
+    while (dstp % 8 != 0) {
+      ((byte *)dstp)[0] = _Val;
+      dstp += 1;
+      _Size -= 1;
+    }
+
+    // Write 8 `op_t' per iteration until less than 8 `op_t' remain.
+    xlen = _Size / (8 * 8);
+    while (xlen > 0) {
+      ((u64 *)dstp)[0] = cccc;
+      ((u64 *)dstp)[1] = cccc;
+      ((u64 *)dstp)[2] = cccc;
+      ((u64 *)dstp)[3] = cccc;
+      ((u64 *)dstp)[4] = cccc;
+      ((u64 *)dstp)[5] = cccc;
+      ((u64 *)dstp)[6] = cccc;
+      ((u64 *)dstp)[7] = cccc;
+      dstp += 8 * 8;
+      xlen -= 1;
+    }
+    _Size %= 8 * 8;
+
+    xlen = _Size / 8;
+    while (xlen > 0) {
+      ((u64 *)dstp)[0] = cccc;
+      dstp += 8;
+      xlen -= 1;
+    }
+    _Size %= 8;
+  }
+
+  while (_Size > 0) {
+    ((byte *)dstp)[0] = (byte)_Val;
+    dstp += 1;
+    _Size -= 1;
+  }
+
+  return _Dst;
+}
+
+void *__cdecl memset0(void *_Dst, size_t _Size) {
+  return memset((char *)_Dst, 0, _Size);
+}
+
 LSTD_BEGIN_NAMESPACE
 
 // Copied from test.h
@@ -366,7 +465,7 @@ static void log_file_and_line(source_location loc) {
 }
 
 void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
-                       u64 options, source_location loc) {
+                        u64 options, source_location loc) {
   if (!alloc) alloc = Context.Alloc;
   assert(alloc &&
          "Context allocator was null. The programmer should set it "
@@ -460,7 +559,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
 }
 
 void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
-                         source_location loc) {
+                          source_location loc) {
   options |= Context.AllocOptions;
 
   auto *header = (allocation_header *)ptr - 1;
@@ -674,8 +773,6 @@ void free_all(allocator alloc, u64 options) {
 
 LSTD_END_NAMESPACE
 
-LSTD_USING_NAMESPACE;
-
 extern "C" {
 void *malloc(size_t size) { return (void *)malloc<byte>({.Count = (s64)size}); }
 
@@ -698,26 +795,28 @@ void free(void *block) { free((byte *)block); }
 }
 
 [[nodiscard]] void *operator new(size_t size) {
-  return general_allocate(Context.Alloc, size, 0, 0,
-                          source_location::current());
+  return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, 0, 0,
+                           source_location::current());
 }
 [[nodiscard]] void *operator new[](size_t size) {
-  return general_allocate(Context.Alloc, size, 0, 0,
-                          source_location::current());
+  return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, 0, 0,
+                           source_location::current());
 }
 
 [[nodiscard]] void *operator new(size_t size, align_val_t alignment) {
-  return general_allocate(Context.Alloc, size, (u32)alignment, 0,
-                          source_location::current());
+  return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, (u32)alignment,
+                                           0,
+                           source_location::current());
 }
 [[nodiscard]] void *operator new[](size_t size, align_val_t alignment) {
-  return general_allocate(Context.Alloc, size, (u32)alignment, 0,
-                          source_location::current());
+  return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, (u32)alignment,
+                                           0,
+                           source_location::current());
 }
 
 void operator delete(void *ptr, align_val_t alignment) noexcept {
-  general_free(ptr, 0, source_location::current());
+  LSTD_NAMESPACE::general_free(ptr, 0, source_location::current());
 }
 void operator delete[](void *ptr, align_val_t alignment) noexcept {
-  general_free(ptr, 0, source_location::current());
+  LSTD_NAMESPACE::general_free(ptr, 0, source_location::current());
 }

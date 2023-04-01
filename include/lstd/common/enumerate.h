@@ -1,5 +1,9 @@
 #pragma once
 
+#include "namespace.h"
+#include "semantic.h"
+#include "numeric/numeric.h"
+
 LSTD_BEGIN_NAMESPACE
 
 //
@@ -29,12 +33,12 @@ LSTD_BEGIN_NAMESPACE
 
 template <typename T, typename TIter = decltype(T().begin()),
           typename = decltype(T().end())>
-auto enumerate_impl(const T &in) {
+auto enumerate_impl(T no_copy in) {
   struct iterator {
     s64 I;
     TIter Iter;
 
-    bool operator!=(const iterator &other) const { return Iter != other.Iter; }
+    bool operator!=(iterator no_copy other) const { return Iter != other.Iter; }
     void operator++() { ++I, ++Iter; }
 
     struct dereference_result {
@@ -52,7 +56,7 @@ auto enumerate_impl(const T &in) {
     auto end() { return iterator{0, Iterable.end()}; }
   };
 
-  return iterable_wrapper{(T &&) in};
+  return iterable_wrapper{in};
 }
 
 LSTD_END_NAMESPACE

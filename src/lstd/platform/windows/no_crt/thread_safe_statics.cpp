@@ -69,6 +69,9 @@ static void __cdecl __scrt_initialize_thread_safe_statics_platform_specific() no
     LSTD_NAMESPACE::exit(-1);
   }
 
+#define _CRT_STRINGIZE_(x) #x
+#define _CRT_STRINGIZE(x) _CRT_STRINGIZE_(x)
+
 #define GET_PROC_ADDRESS(m, f) \
   reinterpret_cast<decltype(f) *>(GetProcAddress(m, _CRT_STRINGIZE(f)))
 

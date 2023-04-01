@@ -6,7 +6,7 @@
 #if defined LSTD_NO_CRT
 
 // @Platform Compiles on MSVC only. @Robustness Not fully compatible with
-// std::source_location
+// std::source_location (missing column info).
 struct source_location {
   const char *File = "Unknown";
   const char *Function = "Unknown";

@@ -1,7 +1,5 @@
 #include "test.h"
 
-import lstd.os;
-
 void run_tests() {
 	reserve(asserts::GlobalFailed);
 

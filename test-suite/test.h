@@ -1,8 +1,6 @@
 #pragma once
 
-import lstd;
-import lstd.fmt;
-import lstd.path;
+#include "lstd/lstd.h"
 
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.

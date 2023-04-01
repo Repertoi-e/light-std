@@ -1,3 +1,3 @@
 #include "lstd/lstd.h"
 
-int main() {}
+int main() { print("Hello, world!\n"); }
