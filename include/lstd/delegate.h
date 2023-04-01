@@ -50,6 +50,8 @@
 // SOFTWARE.
 //
 
+extern "C" void *memset0(void *, size_t);  // Avoid including memory.h
+
 LSTD_BEGIN_NAMESPACE
 
 template <typename T>
@@ -146,7 +148,6 @@ struct delegate<R(A...)> {
 
   // Assign null pointer
   delegate &operator=(null_t) {
-    void *__cdecl memset0(void *, size_t);
     memset0(Data, Count);
     Invoker = null;
     return *this;

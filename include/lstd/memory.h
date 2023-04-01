@@ -291,13 +291,13 @@ requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
 // These handle alignment, populating the allocation header and debug memory
 // stuff.
 void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
-                        u64 options,
-                        source_location loc = source_location::current());
+                       u64 options,
+                       source_location loc = source_location::current());
 
 // If DEBUG_MEMORY is defined, calling reallocate on a block that is already
 // freed panics the program and gives information about the site.
 void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
-                          source_location loc = source_location::current());
+                         source_location loc = source_location::current());
 
 // Calling free on a null pointer doesn't do anything.
 // If DEBUG_MEMORY is defined, calling free on a block that is already freed
@@ -973,19 +973,22 @@ requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
 
 LSTD_END_NAMESPACE
 
+extern "C" {
+void *memcpy(void *_Dst, void const *_Src, size_t _Size);
+void *memmove(void *_Dst, void const *_Src, size_t _Size);
+void *memset(void *_Dst, int _Val, size_t _Size);
+int memcmp(void const *_Buf1, void const *_Buf2, size_t _Size);
+
 #if COMPILER == MSVC and (defined DEBUG_OPTIMIZED or defined RELEASE)
 #pragma function(memset)
 #pragma function(memcpy)
 #pragma function(memmove)
+#pragma function(memcmp)
 #endif
 
-int __cdecl memcmp(void const *_Buf1, void const *_Buf2, size_t _Size);
-void *__cdecl memcpy(void *_Dst, void const *_Src, size_t _Size);
-void *__cdecl memmove(void *_Dst, void const *_Src, size_t _Size);
-void *__cdecl memset(void *_Dst, int _Val, size_t _Size);
-
 // This is non-standard extension, basically memset with 0
-void *__cdecl memset0(void *_Dst, size_t _Size);
+void *memset0(void *_Dst, size_t _Size);
+}
 
 #if COMPILER == MSVC
 #pragma warning(push)
@@ -1074,4 +1077,3 @@ void operator delete[](void *ptr) noexcept;
 
 void operator delete(void *ptr, align_val_t alignment) noexcept;
 void operator delete[](void *ptr, align_val_t alignment) noexcept;
-

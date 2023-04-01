@@ -9,7 +9,8 @@
 
 LSTD_USING_NAMESPACE;
 
-int __cdecl memcmp(void const *_Buf1, void const *_Buf2, size_t _Size) {
+extern "C" {
+int memcmp(void const *_Buf1, void const *_Buf2, size_t _Size) {
   auto *p1 = (byte *)_Buf1;
   auto *p2 = (byte *)_Buf2;
   For(range(_Size)) {
@@ -40,7 +41,7 @@ void *__cdecl memcpy(void *_Dst, void const *_Src, size_t _Size) {
   return _Dst;
 }
 
-void *__cdecl memmove(void *_Dst, void const *_Src, size_t _Size) {
+void *memmove(void *_Dst, void const *_Src, size_t _Size) {
   auto *dst = (byte *)_Dst;
   auto *src = (byte *)_Src;
   if (_Size == 0) return _Dst;
@@ -48,7 +49,7 @@ void *__cdecl memmove(void *_Dst, void const *_Src, size_t _Size) {
   return dst;
 }
 
-void *__cdecl memset(void *_Dst, int _Val, size_t _Size) {
+void *memset(void *_Dst, int _Val, size_t _Size) {
   u64 dstp = (u64)_Dst;
 
   if (_Size >= 8) {
@@ -102,8 +103,9 @@ void *__cdecl memset(void *_Dst, int _Val, size_t _Size) {
   return _Dst;
 }
 
-void *__cdecl memset0(void *_Dst, size_t _Size) {
+void *memset0(void *_Dst, size_t _Size) {
   return memset((char *)_Dst, 0, _Size);
+}
 }
 
 LSTD_BEGIN_NAMESPACE
@@ -465,7 +467,7 @@ static void log_file_and_line(source_location loc) {
 }
 
 void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
-                        u64 options, source_location loc) {
+                       u64 options, source_location loc) {
   if (!alloc) alloc = Context.Alloc;
   assert(alloc &&
          "Context allocator was null. The programmer should set it "
@@ -559,7 +561,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
 }
 
 void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
-                          source_location loc) {
+                         source_location loc) {
   options |= Context.AllocOptions;
 
   auto *header = (allocation_header *)ptr - 1;
@@ -796,22 +798,20 @@ void free(void *block) { free((byte *)block); }
 
 [[nodiscard]] void *operator new(size_t size) {
   return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, 0, 0,
-                           source_location::current());
+                                          source_location::current());
 }
 [[nodiscard]] void *operator new[](size_t size) {
   return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, 0, 0,
-                           source_location::current());
+                                          source_location::current());
 }
 
 [[nodiscard]] void *operator new(size_t size, align_val_t alignment) {
   return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, (u32)alignment,
-                                           0,
-                           source_location::current());
+                                          0, source_location::current());
 }
 [[nodiscard]] void *operator new[](size_t size, align_val_t alignment) {
   return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, (u32)alignment,
-                                           0,
-                           source_location::current());
+                                          0, source_location::current());
 }
 
 void operator delete(void *ptr, align_val_t alignment) noexcept {

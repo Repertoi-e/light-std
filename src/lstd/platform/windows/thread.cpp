@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lstd/memory.h"
 #include "lstd/os.h"              // Declarations of Win32 functions
 #include "lstd/os/windows/api.h"  // Declarations of Win32 functions
 

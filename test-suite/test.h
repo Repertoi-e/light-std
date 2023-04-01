@@ -10,35 +10,37 @@
 //      /home/.../lstd-tests/string.cpp           ---> string.cpp
 //
 inline string get_short_file_path(string str) {
-	char srcData[] = { 's', 'r', 'c', OS_PATH_SEPARATOR, '\0' };
-	string src = srcData;
+  char srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
+  string src = srcData;
 
-	s64 findResult = search(str, src, search_options{ .Start = -1, .Reversed = true });
-	if (findResult == -1) {
-		findResult = search(str, OS_PATH_SEPARATOR, search_options{ .Start = -1, .Reversed = true });
-		assert(findResult != length(str) - 1);
-		// Skip the slash
-		findResult++;
-	}
-	else {
-		// Skip the src directory
-		findResult += length(src);
-	}
+  s64 findResult =
+      search(str, src, search_options{.Start = -1, .Reversed = true});
+  if (findResult == -1) {
+    findResult = search(str, OS_PATH_SEPARATOR,
+                        search_options{.Start = -1, .Reversed = true});
+    assert(findResult != length(str) - 1);
+    // Skip the slash
+    findResult++;
+  } else {
+    // Skip the src directory
+    findResult += length(src);
+  }
 
-	string result = str;
-	return slice(result, findResult, length(result));
+  string result = str;
+  return slice(result, findResult, length(result));
 }
 
 struct asserts {
-	inline static s64 GlobalCalledCount;
-	inline static array<string> GlobalFailed;
+  inline static s64 GlobalCalledCount;
+  inline static array<string> GlobalFailed;
 };
 
 //
 // Define assert macros
 //
 
-// We redefine the default _assert_ macro that panics the program if the condition is false.
+// We redefine the default _assert_ macro that panics the program if the
+// condition is false.
 #undef assert
 #define assert(x) assert_helper(x, true, (!!(LINE_NAME(a))), "==")
 #define assert_true(x) assert(x)
@@ -51,28 +53,24 @@ struct asserts {
 #define assert_gt(x, y) assert_helper(x, y, LINE_NAME(a) > LINE_NAME(b), ">")
 #define assert_ge(x, y) assert_helper(x, y, LINE_NAME(a) >= LINE_NAME(b), ">=")
 
-#define assert_eq_str(x, y) assert_helper(x, y, strings_match(LINE_NAME(a), LINE_NAME(b)), "==")
+#define assert_eq_str(x, y) \
+  assert_helper(x, y, strings_match(LINE_NAME(a), LINE_NAME(b)), "==")
 
-#define assert_helper(x, y, condition, op)                        \
-    {                                                             \
-        ++asserts::GlobalCalledCount;                             \
-        auto LINE_NAME(a) = x;                                    \
-        auto LINE_NAME(b) = y;                                    \
-        if (!(condition)) {                                       \
-            string message = sprint(                              \
-                "{}:{} {!YELLOW}{} {} {}{!GRAY},\n"               \
-                "                LHS : {!YELLOW}\"{}\"{!GRAY},\n" \
-                "                RHS: {!YELLOW}\"{}\"{!}",        \
-                get_short_file_path(__FILE__),                    \
-                __LINE__,                                         \
-                u8## #x,                                          \
-                op,                                               \
-                u8## #y,                                          \
-                LINE_NAME(a),                                     \
-                LINE_NAME(b));                                    \
-            add(asserts::GlobalFailed, message);                  \
-        }                                                         \
-    }
+#define assert_helper(x, y, condition, op)                               \
+  {                                                                      \
+    ++asserts::GlobalCalledCount;                                        \
+    auto LINE_NAME(a) = x;                                               \
+    auto LINE_NAME(b) = y;                                               \
+    if (!(condition)) {                                                  \
+      string message = sprint(                                           \
+          "{}:{} {!YELLOW}{} {} {}{!GRAY},\n"                            \
+          "                LHS : {!YELLOW}\"{}\"{!GRAY},\n"              \
+          "                RHS: {!YELLOW}\"{}\"{!}",                     \
+          get_short_file_path(__FILE__), __LINE__, u8## #x, op, u8## #y, \
+          LINE_NAME(a), LINE_NAME(b));                                   \
+      add(asserts::GlobalFailed, message);                               \
+    }                                                                    \
+  }
 
 //
 // Define test stuff:
@@ -81,12 +79,12 @@ struct asserts {
 using test_func = void (*)();
 
 struct test {
-	string Name;
-	test_func Function = null;
+  string Name;
+  test_func Function = null;
 };
 
 inline bool strings_match_for_table(string no_copy a, string no_copy b) {
-	return strings_match(a, b);
+  return strings_match(a, b);
 }
 
 // Gets filled out by a function "build_test_table"

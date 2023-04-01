@@ -1,8 +1,8 @@
 #pragma once
 
 #include "namespace.h"
-#include "semantic.h"
 #include "numeric/numeric.h"
+#include "semantic.h"
 
 LSTD_BEGIN_NAMESPACE
 
