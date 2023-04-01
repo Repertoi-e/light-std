@@ -748,8 +748,8 @@ string slice(string s, s64 begin, s64 end);
 
 //
 // Utilities to convert to c-style strings.
-// Functions for conversion between utf-8, utf-16 and utf-32 are provided in
-// lstd.c_string_utf8
+// Functions for conversion between utf-8, utf-16 
+// and utf-32 are provided in "string.h"
 //
 
 // Allocates a buffer, copies the string's contents and also appends a zero

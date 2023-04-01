@@ -7,6 +7,8 @@ workspace "light-std"
         toolset "clang"
     filter {}
 
+    startproject "test-suite"
+
     -- Set this explicitly so LSTD knows which 
     -- OS to do. Otherwise we try to guess the platform
     -- based on compiler macros, which might not be 

@@ -30,7 +30,7 @@ void windows_report_hresult_error(u32 hresult, const char *apiFunction,
   print(
       "        ... was called at {!YELLOW}{}:{}{!} (in function: "
       "{!YELLOW}{}{!}) and returned error code {!GRAY}{:#x}\n",
-      loc.File, loc.Line, loc.Function, hresult);
+      loc.file_name(), loc.line(), loc.function_name(), hresult);
   print("        Error: {!RED}{}\n", get_error_string(hresult));
   print("               ");
   print("{!}\n\n");

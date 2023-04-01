@@ -76,13 +76,13 @@ inline byte Win32MemoryState[sizeof(win32_memory_state)];
 inline void platform_report_warning(
     string message, source_location loc = source_location::current()) {
   print(">>> {!YELLOW}Platform warning{!} {}:{} (in function: {}): {}.\n",
-        loc.File, loc.Line, loc.Function, message);
+        loc.file_name(), loc.line(), loc.function_name(), message);
 }
 
 inline void platform_report_error(
     string message, source_location loc = source_location::current()) {
-  print(">>> {!RED}Platform error{!} {}:{} (in function: {}): {}.\n", loc.File,
-        loc.Line, loc.Function, message);
+  print(">>> {!RED}Platform error{!} {}:{} (in function: {}): {}.\n", loc.file_name(),
+        loc.line(), loc.function_name(), message);
 }
 
 inline void create_new_temp_storage_block(s64 size) {

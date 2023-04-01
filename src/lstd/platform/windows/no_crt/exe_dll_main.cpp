@@ -54,24 +54,9 @@ extern "C" int main();
 // * be initialized at process startup for the primary thread.
 extern "C" const PIMAGE_TLS_CALLBACK __dyn_tls_init_callback;
 
-LSTD_BEGIN_NAMESPACE
-void win32_crash_handler_init();
-LSTD_END_NAMESPACE
-
 // Defined in tls.cpp.
 extern "C" bool __cdecl __scrt_is_nonwritable_in_current_image(
     void const *target);
-
-// :PlatformStateInit
-void platform_state_init() {
-  // This prepares the global thread-local immutable Context variable (see
-  // lstd.context)
-  LSTD_NAMESPACE::platform_init_context();
-
-  // Rest of stuff we need
-  LSTD_NAMESPACE::platform_init_global_state();
-  LSTD_NAMESPACE::win32_crash_handler_init();
-}
 
 extern "C" {
 void *MainContext;
@@ -243,7 +228,6 @@ static BOOL __cdecl dllmain_crt_process_detach(bool const is_terminating) {
 
   // :PlatformExitTermination
   LSTD_NAMESPACE::exit_call_scheduled_functions();
-  LSTD_NAMESPACE::platform_uninit_state();
   return 1;
 }
 

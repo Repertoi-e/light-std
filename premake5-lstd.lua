@@ -6,6 +6,9 @@ newoption {
         By default, we don't and we try our hardest to provide 
         functionality to external libraries that may require it.
 
+        If a library doesn't find a function you can just define it 
+        in the static lstd library and it'll find it.
+
         On Linux we can't not-link with glibc, because it's 
         coupled with the POSIX operating system calls library,
         although they really should be separate. 
@@ -30,7 +33,7 @@ function setup_configurations()
 		optimize "On"
         symbols "On"
 
-    filter { "configurations:DebugOptimized", "not lstd-windows-link-runtime-library" }
+    filter { "configurations:DebugOptimized", "options:not lstd-windows-link-runtime-library" }
 		-- Otherwise MSVC generates internal undocumented intrinsics which we can't provide .. shame
 		floatingpoint "Strict"
     
@@ -38,15 +41,19 @@ function setup_configurations()
         defines { "RELEASE", "NDEBUG" } 
 
         optimize "Full"
-		floatingpoint "Strict"
-
 		symbols "Off"
+
+    filter { "configurations:Release", "options:not lstd-windows-link-runtime-library" }
+		-- Otherwise MSVC generates internal undocumented intrinsics which we can't provide .. shame
+		floatingpoint "Strict"
 		
 	filter {}
 end
 
 function link_lstd()
-    links { "lstd" }
+    filter {"kind:not StaticLib"} 
+        links { "lstd" }
+    filter {}
 
     if LSTD_NAMESPACE then
         print("Building library with namespace: \"" .. LSTD_NAMESPACE .. "\"")
@@ -66,9 +73,11 @@ function link_lstd()
         buildoptions { "/utf-8" }
 
         -- We need _CRT_SUPPRESS_RESTRICT for some reason
-        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SUPPRESS_RESTRICT" } 
+        defines { "NOMINMAX", "WIN32_LEAN_AND_MEAN", "_CRT_SUPPRESS_RESTRICT" }
+        
+        links { "dbghelp" }
     
-    filter { "system:windows", "not lstd-windows-link-runtime-library" }
+    filter { "system:windows", "options:not lstd-windows-link-runtime-library" }
         rtti "Off"
         justmycode "Off"
         editandcontinue "Off"
@@ -86,14 +95,14 @@ function link_lstd()
 		flags { "OmitDefaultLibrary", "NoRuntimeChecks", "NoBufferSecurityCheck", "NoIncrementalLink" }
 		buildoptions { "/Gs9999999" }   
 
-    filter { "system:windows", "kind:ConsoleApp or SharedLib", "not lstd-windows-link-runtime-library" }
+    filter { "system:windows", "kind:ConsoleApp or SharedLib", "options:not lstd-windows-link-runtime-library" }
 		linkoptions { "/nodefaultlib", "/subsystem:windows", "/stack:\"0x100000\",\"0x100000\"" }
-        links { "kernel32", "shell32", "winmm", "ole32", "dwmapi", "dbghelp" }
+        links { "kernel32", "shell32" }
         
     -- Setup entry point
-    filter { "system:windows", "kind:SharedLib", "not lstd-windows-link-runtime-library" }
+    filter { "system:windows", "kind:SharedLib", "options:not lstd-windows-link-runtime-library" }
 	    entrypoint "main_no_crt_dll"
-    filter { "system:windows", "kind:ConsoleApp or WindowedApp", "not lstd-windows-link-runtime-library" }
+    filter { "system:windows", "kind:ConsoleApp or WindowedApp", "options:not lstd-windows-link-runtime-library" }
 	    entrypoint "main_no_crt"
     filter {}
 
@@ -141,23 +150,25 @@ project "lstd"
     includedirs { "include/", "include/lstd/vendor/cephes/cmath/" }
     add_files("lstd")
 
-    filter { "system:windows", "not lstd-windows-link-runtime-library"}
+    filter { "system:linux" }
+        removefiles { "src/lstd/platform/windows/**" }
+        removefiles { "src/lstd/vendor/cephes/**" }
+    
+    filter { "system:windows"}
         removefiles { "src/lstd/platform/posix/**" }
 
+    filter { "system:windows", "options:not lstd-windows-link-runtime-library"}
         -- These are x86-64 assembly and obj files since we don't support 
         -- other architectures at the moment.
         files {
             "src/lstd/platform/windows/no_crt/longjmp_setjmp.asm",
             "src/lstd/platform/windows/no_crt/chkstk.asm"
         }
-    filter { "system:linux" }
-        removefiles { "src/lstd/platform/windows/**" }
-    filter {}
 
-    filter { "system:linux" }
+    filter { "system:windows", "options:lstd-windows-link-runtime-library"}
+        removefiles { "src/lstd/platform/windows/no_crt/**" }
         removefiles { "src/lstd/vendor/cephes/**" }
-    filter { "lstd-windows-link-runtime-library" }
-        removefiles { "src/lstd/vendor/cephes/**" }
+    filter {}
 
     if LSTD_INCLUDE_EXTRAS then
         for _, extra in ipairs(LSTD_INCLUDE_EXTRAS) do

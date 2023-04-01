@@ -15,14 +15,8 @@
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 #define MODULE_HANDLE ((HMODULE)&__ImageBase)
 
-LSTD_BEGIN_NAMESPACE
-
-//
-// @Platform @Cleanup @TODO: These declarations shouldn't be specific to win32.
-// Perhaps put them in a general module?
-// This also applies to the _path_ and _thread_ modules.
-//
-
+#if defined LSTD_NO_CRT
+extern "C" {
 // Exits the application with the given exit code.
 // Also runs all callbacks registered with exit_schedule().
 void exit(s32 exitCode = 0);
@@ -41,15 +35,19 @@ void abort();
 // a utility that might be useful to ensure e.g. files are flushed or handles
 // closed. (Don't use this for freeing memory, the OS claims it back
 // anyway!!).
-void exit_schedule(const delegate<void()> &function);
+void atexit(void (*func)(void));
+}
+#else
+#include <stdlib.h>
+#endif
 
-// Runs all scheduled exit functions.
-// This is exported if you want to do something very weird and hacky.
-void exit_call_scheduled_functions();
+LSTD_BEGIN_NAMESPACE
 
-// Returns a pointer so you can modify the array of scheduled functions.
-// This is exported if you want to do something very weird and hacky.
-array<delegate<void()>> *exit_get_scheduled_functions();
+//
+// @Platform @Cleanup @TODO: These declarations shouldn't be specific to win32.
+// Perhaps put them in a general module?
+// This also applies to the _path_ and _thread_ modules.
+//
 
 struct os_read_file_result {
   string Content;
@@ -159,10 +157,12 @@ struct win32_common_state {
   HANDLE CinHandle, CoutHandle, CerrHandle;
   mutex CoutMutex, CinMutex;
 
+#if defined LSTD_NO_CRT
   array<delegate<void()>>
       ExitFunctions;  // Stores any functions to be called before the program
                       // terminates (naturally or by exit(exitCode))
   mutex ExitScheduleMutex;  // Used when modifying the ExitFunctions array
+#endif
 
   LARGE_INTEGER PerformanceFrequency;  // Used to time stuff
 
@@ -242,167 +242,6 @@ inline void setup_console() {
 }
 
 inline const u32 ERROR_INSUFFICIENT_BUFFER = 122;
-
-inline void get_module_name() {
-  // Get the module name
-  wchar *buffer = malloc<wchar>({.Count = MAX_PATH, .Alloc = PERSISTENT});
-  defer(free(buffer));
-
-  s64 reserved = MAX_PATH;
-
-  while (true) {
-    s64 written = GetModuleFileNameW(MODULE_HANDLE, buffer, (DWORD)reserved);
-    if (written == reserved) {
-      if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-        reserved *= 2;
-        free(buffer);
-        buffer = malloc<wchar>({.Count = reserved, .Alloc = PERSISTENT});
-        continue;
-      }
-    }
-    break;
-  }
-
-  string moduleName = utf16_to_utf8(buffer);
-  PUSH_ALLOC(PERSISTENT) { S->ModuleName = path_normalize(moduleName); }
-}
-
-inline void parse_arguments() {
-  wchar **argv;
-  s32 argc;
-
-  // @Cleanup @DependencyCleanup: Parse arguments ourselves? We depend on this
-  // function which is in a library we reference ONLY because of this one
-  // function.
-  argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-  if (argv == null) {
-    report_warning_no_allocations(
-        "Couldn't parse command line arguments, "
-        "os_get_command_line_arguments() will return "
-        "an empty array in all cases");
-    return;
-  }
-
-  defer(LocalFree(argv));
-
-  PUSH_ALLOC(PERSISTENT) {
-    s32 n = argc - 1;
-    if (n > 0) {
-      reserve(S->Argv, n);
-    }
-  }
-
-  // Loop over all arguments and add them, skip the .exe name
-  For(range(1, argc)) add(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
-}
-
-// This needs to be called when our program runs, but also when a new thread
-// starts! See windows_common.cpp for implementation details. Note: You
-// shouldn't ever call this.
-inline void platform_init_context() {
-  auto newContext = context(context::dont_init_t{});
-  newContext.ThreadID = GetCurrentThreadId();
-  newContext.Alloc = {};
-  newContext.AllocAlignment = POINTER_SIZE;
-  newContext.AllocOptions = 0;
-  newContext.LogAllAllocations = false;
-  newContext.PanicHandler = default_panic_handler;
-  newContext.Log = &cout;
-  newContext.FmtDisableAnsiCodes = false;
-#if defined DEBUG_MEMORY
-  newContext.DebugMemoryHeapVerifyFrequency = 255;
-  newContext
-      .DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination =
-      false;
-#endif
-  newContext.FmtParseErrorHandler = fmt_default_parse_error_handler;
-  newContext._HandlingPanic = false;
-  newContext._LoggingAnAllocation = false;
-  OVERRIDE_CONTEXT(newContext);
-
-  *const_cast<allocator *>(&TemporaryAllocator) = {
-      arena_allocator, (void *)&TemporaryAllocatorData};
-}
-
-//
-// Initializes the state we need to function.
-//
-inline void platform_init_global_state() {
-  memset0(S, sizeof(win32_common_state));
-
-  S->CinMutex = create_mutex();
-  S->CoutMutex = create_mutex();
-  S->ExitScheduleMutex = create_mutex();
-  S->WorkingDirMutex = create_mutex();
-
-  platform_init_allocators();
-
-#if defined DEBUG_MEMORY
-  debug_memory_init();
-#endif
-
-  setup_console();
-
-  get_module_name();
-
-  parse_arguments();
-
-  QueryPerformanceFrequency(&S->PerformanceFrequency);
-}
-
-//
-// Reports leaks, uninitializes mutexes.
-//
-inline void platform_uninit_state() {
-  // Uninit mutexes
-  free_mutex(&S->CinMutex);
-  free_mutex(&S->CoutMutex);
-  free_mutex(&S->ExitScheduleMutex);
-  free_mutex(&S->WorkingDirMutex);
-
-  platform_uninit_allocators();
-}
-
-inline void exit(s32 exitCode) {
-  // :PlatformExitTermination
-
-  // We can't call this from a DLL because of ExitProcess.
-  // Search for :PlatformExitTermination to see the other place we call this set
-  // of functions.
-  exit_call_scheduled_functions();
-  platform_uninit_state();
-
-  ExitProcess(exitCode);
-}
-
-inline void abort() {
-  // Don't do any cleanup, just exit
-  ExitProcess(3);
-}
-
-inline void exit_schedule(const delegate<void()> &function) {
-  lock(&S->ExitScheduleMutex);
-
-  // @Cleanup Lock-free list
-  PUSH_ALLOC(PERSISTENT) {
-    reserve(S->ExitFunctions);
-    add(S->ExitFunctions, function);
-  }
-
-  unlock(&S->ExitScheduleMutex);
-}
-
-inline void exit_call_scheduled_functions() {
-  lock(&S->ExitScheduleMutex);
-
-  For(S->ExitFunctions) it();
-
-  unlock(&S->ExitScheduleMutex);
-}
-
-inline array<delegate<void()>> *exit_get_scheduled_functions() {
-  return &S->ExitFunctions;
-}
 
 inline time_t os_get_time() {
   LARGE_INTEGER count;
@@ -664,10 +503,194 @@ inline void console::flush() {
   if (LockMutex) unlock(&S->CoutMutex);
 }
 
+inline void get_module_name() {
+  // Get the module name
+  wchar *buffer = malloc<wchar>({.Count = MAX_PATH, .Alloc = PERSISTENT});
+  defer(free(buffer));
+
+  s64 reserved = MAX_PATH;
+
+  while (true) {
+    s64 written = GetModuleFileNameW(MODULE_HANDLE, buffer, (DWORD)reserved);
+    if (written == reserved) {
+      if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+        reserved *= 2;
+        free(buffer);
+        buffer = malloc<wchar>({.Count = reserved, .Alloc = PERSISTENT});
+        continue;
+      }
+    }
+    break;
+  }
+
+  string moduleName = utf16_to_utf8(buffer);
+  PUSH_ALLOC(PERSISTENT) { S->ModuleName = path_normalize(moduleName); }
+}
+
+inline void parse_arguments() {
+  wchar **argv;
+  s32 argc;
+
+  // @Cleanup @DependencyCleanup: Parse arguments ourselves? We depend on this
+  // function which is in a library we reference ONLY because of this one
+  // function.
+  argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  if (argv == null) {
+    report_warning_no_allocations(
+        "Couldn't parse command line arguments, "
+        "os_get_command_line_arguments() will return "
+        "an empty array in all cases");
+    return;
+  }
+
+  defer(LocalFree(argv));
+
+  PUSH_ALLOC(PERSISTENT) {
+    s32 n = argc - 1;
+    if (n > 0) {
+      reserve(S->Argv, n);
+    }
+  }
+
+  // Loop over all arguments and add them, skip the .exe name
+  For(range(1, argc)) add(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
+}
+
+// This needs to be called when our program runs, but also when a new thread
+// starts! See windows_common.cpp for implementation details. Note: You
+// shouldn't ever call this.
+inline void platform_init_context() {
+  auto newContext = context(context::dont_init_t{});
+  newContext.ThreadID = GetCurrentThreadId();
+  newContext.Alloc = {};
+  newContext.AllocAlignment = POINTER_SIZE;
+  newContext.AllocOptions = 0;
+  newContext.LogAllAllocations = false;
+  newContext.PanicHandler = default_panic_handler;
+  newContext.Log = &cout;
+  newContext.FmtDisableAnsiCodes = false;
+#if defined DEBUG_MEMORY
+  newContext.DebugMemoryHeapVerifyFrequency = 255;
+  newContext
+      .DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination =
+      false;
+#endif
+  newContext.FmtParseErrorHandler = fmt_default_parse_error_handler;
+  newContext._HandlingPanic = false;
+  newContext._LoggingAnAllocation = false;
+  OVERRIDE_CONTEXT(newContext);
+
+  *const_cast<allocator *>(&TemporaryAllocator) = {
+      arena_allocator, (void *)&TemporaryAllocatorData};
+}
+
+//
+// Initializes the state we need to function.
+//
+inline void platform_init_common_state() {
+  memset0(S, sizeof(win32_common_state));
+
+  S->CinMutex = create_mutex();
+  S->CoutMutex = create_mutex();
+#if defined LSTD_NO_CRT
+  S->ExitScheduleMutex = create_mutex();
+#endif
+  S->WorkingDirMutex = create_mutex();
+
+  platform_init_allocators();
+
+#if defined DEBUG_MEMORY
+  debug_memory_init();
+#endif
+
+  setup_console();
+
+  get_module_name();
+
+  parse_arguments();
+
+  QueryPerformanceFrequency(&S->PerformanceFrequency);
+}
+
+//
+// Reports leaks, uninitializes mutexes.
+//
+inline void platform_uninit_state() {
+#if defined DEBUG_MEMORY
+  debug_memory_uninit();
+#endif
+
+  // Uninit mutexes
+  free_mutex(&S->CinMutex);
+  free_mutex(&S->CoutMutex);
+#if LSTD_NO_CRT
+  free_mutex(&S->ExitScheduleMutex);
+#endif
+  free_mutex(&S->WorkingDirMutex);
+
+  platform_uninit_allocators();
+}
+
+//
+// This must be called first thing in the
+// program (or one of the first to ensure
+// proper initialization) before using the library.
+//
+// When we compile on Windows or on Linux with or without CRT, we
+// ensure this gets called before all global constructors.
+// This means you can safely use the library in global
+// state initialization, if you wish to.
+//
+inline void platform_state_init() {
+  // This prepares the global thread-local
+  // immutable Context variable (see context.h)
+  LSTD_NAMESPACE::platform_init_context();
+
+  platform_init_common_state();
+
+  void win32_crash_handler_init();
+  win32_crash_handler_init();
+
+  atexit(platform_uninit_state);
+}
+LSTD_END_NAMESPACE
+
+#if defined LSTD_NO_CRT
+extern "C" {
+inline void exit(s32 exitCode) {
+  // :PlatformExitTermination
+
+  // We can't call this from a DLL because of ExitProcess.
+  // Search for :PlatformExitTermination to see the other place we call this set
+  // of functions.
+  lock(&S->ExitScheduleMutex);
+  For(S->ExitFunctions) it();
+  unlock(&S->ExitScheduleMutex);
+
+  ExitProcess(exitCode);
+}
+
+inline void abort() {
+  // Don't do any cleanup, just exit
+  ExitProcess(3);
+}
+
+inline void atexit(void (*function)(void)) {
+  lock(&S->ExitScheduleMutex);
+
+  // @Cleanup Lock-free list
+  PUSH_ALLOC(PERSISTENT) {
+    reserve(S->ExitFunctions);
+    add(S->ExitFunctions, function);
+  }
+
+  unlock(&S->ExitScheduleMutex);
+}
+}
+#endif
+
 #undef MODULE_HANDLE
 #undef S
 #undef PERSISTENT
 #undef TEMP
 #undef CREATE_MAPPING_CHECKED
-
-LSTD_END_NAMESPACE

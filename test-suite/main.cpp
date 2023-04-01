@@ -1,5 +1,15 @@
 #include "test.h"
 
+struct ttt {
+  ttt() {
+    int a = 42;
+    platform_state_init();
+    // hello?
+  }
+};
+
+ttt t;
+
 void run_tests() {
   reserve(asserts::GlobalFailed);
 

@@ -1,4 +1,6 @@
-#pragma once
+#include "lstd/common.h"
+
+#if OS == WINDOWS
 
 #include "lstd/memory.h"
 #include "lstd/os.h"              // Declarations of Win32 functions
@@ -39,3 +41,5 @@ thread create_and_launch_thread(delegate<void(void *)> function,
 }
 
 LSTD_END_NAMESPACE
+
+#endif  // OS == WINDOWS

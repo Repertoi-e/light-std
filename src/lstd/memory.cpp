@@ -10,6 +10,7 @@
 LSTD_USING_NAMESPACE;
 
 extern "C" {
+#if defined LSTD_NO_CRT
 int memcmp(void const *_Buf1, void const *_Buf2, size_t _Size) {
   auto *p1 = (byte *)_Buf1;
   auto *p2 = (byte *)_Buf2;
@@ -102,6 +103,7 @@ void *memset(void *_Dst, int _Val, size_t _Size) {
 
   return _Dst;
 }
+#endif
 
 void *memset0(void *_Dst, size_t _Size) {
   return memset((char *)_Dst, 0, _Size);
@@ -269,12 +271,12 @@ void debug_memory_report_leaks() {
     //
     // @Cleanup D I R T Y @Cleanup @Cleanup @Cleanup
     //
-    if (compare_string(it->AllocatedAt.File, "") != -1) {
-      file = get_short_file_name(it->AllocatedAt.File);
+    if (compare_string(it->AllocatedAt.file_name(), "") != -1) {
+      file = get_short_file_name(it->AllocatedAt.file_name());
     }
 
     print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n",
-          file, it->AllocatedAt.Line, it->Header->Size, it->ID, it->RID);
+          file, it->AllocatedAt.line(), it->Header->Size, it->ID, it->RID);
   }
 }
 
@@ -445,14 +447,14 @@ static void *encode_header(void *p, s64 userSize, u32 align, allocator alloc,
   return p;
 }
 
-// Without using the lstd.fmt module, i.e. without allocations.
+// Without using the fmt.h module, i.e. without allocations.
 static void log_file_and_line(source_location loc) {
-  write(Context.Log, loc.File);
+  write(Context.Log, loc.file_name());
   write(Context.Log, ":");
 
   char number[20];
 
-  auto line = loc.Line;
+  auto line = loc.line();
 
   auto *numberP = number + 19;
   s64 numberSize = 0;
@@ -576,7 +578,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
         tprint("{!RED}Attempting to reallocate a memory block which was not "
                "allocated in the heap.{!} This happened at {!YELLOW}{}:{}{!} "
                "(in function: {!YELLOW}{}{!}).",
-               loc.File, loc.Line, loc.Function));
+               loc.file_name(), loc.line(), loc.function_name()));
     return null;
   }
 
@@ -585,7 +587,8 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
     panic(tprint(
         "{!RED}Attempting to reallocate a memory block which was freed.{!} The "
         "free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!}).",
-        node->FreedAt.File, node->FreedAt.Line, node->FreedAt.Function));
+        node->FreedAt.file_name(), node->FreedAt.line(),
+        node->FreedAt.function_name()));
     return null;
   }
 #endif
@@ -721,7 +724,8 @@ void general_free(void *ptr, u64 options, source_location loc) {
         tprint("{!RED}Attempting to free a memory block which was already "
                "freed.{!} The previous free happened at {!YELLOW}{}:{}{!} "
                "(in function: {!YELLOW}{}{!})",
-               node->FreedAt.File, node->FreedAt.Line, node->FreedAt.Function));
+               node->FreedAt.file_name(), node->FreedAt.line(),
+               node->FreedAt.function_name()));
     return;
   }
 #endif

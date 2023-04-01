@@ -979,7 +979,7 @@ void *memmove(void *_Dst, void const *_Src, size_t _Size);
 void *memset(void *_Dst, int _Val, size_t _Size);
 int memcmp(void const *_Buf1, void const *_Buf2, size_t _Size);
 
-#if COMPILER == MSVC and (defined DEBUG_OPTIMIZED or defined RELEASE)
+#if COMPILER == MSVC and (defined DEBUG_OPTIMIZED or defined RELEASE) and (defined LSTD_NO_CRT)
 #pragma function(memset)
 #pragma function(memcpy)
 #pragma function(memmove)
@@ -1008,7 +1008,7 @@ void *memset0(void *_Dst, size_t _Size);
 // "platform/windows_no_crt/common_functions.h".
 //
 // Reading files with fread, fopen is out of the question.
-// I modified the code to use the lstd.path module.
+// I modified the code to use "path.h".
 //
 // Memory functions (malloc, calloc, realloc, free) are provided by default.
 // We do this in order to not add YET another way to allocate a block (currently

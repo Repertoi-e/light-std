@@ -98,7 +98,7 @@ void fmt_default_parse_error_handler(string message, string formatString,
   print("{}", info);
 
 #if defined NDEBUG
-  panic("Error in the lstd.fmt module");
+  panic("Error in fmt.h");
 #else
   // More info has been printed to the console but here's the error message:
   auto errorMessage = message;

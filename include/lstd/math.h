@@ -45,7 +45,11 @@
 Cephes Math Library Release 2.8:  June, 2000
 Copyright 1984, 1995, 2000 by Stephen L. Moshier
 */
+#if defined LSTD_NO_CRT
 #include "vendor/cephes/maths_cephes.h"
+#else
+#include <math.h>
+#endif
 
 LSTD_BEGIN_NAMESPACE
 
