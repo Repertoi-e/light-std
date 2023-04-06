@@ -40,4 +40,6 @@ Deferrer<F> operator*(Defer_Dummy, F func) {
 #define defer(x) \
   auto LINE_NAME(LSTD_defer) = LSTD_NAMESPACE::Defer_Dummy{} * [&]() { x; }
 
+#define defer_to_exit(x) atexit([]() { x; })
+
 LSTD_END_NAMESPACE
