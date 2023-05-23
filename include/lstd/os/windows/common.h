@@ -7,6 +7,7 @@
 //
 
 #include "../../fmt.h"
+#include "../../variant.h"
 #include "../../memory.h"
 #include "../../path.h"
 #include "../../writer.h"
@@ -49,11 +50,6 @@ LSTD_BEGIN_NAMESPACE
 // This also applies to the _path_ and _thread_ modules.
 //
 
-struct os_read_file_result {
-  string Content;
-  bool Success;
-};
-
 enum class file_write_mode {
   Append = 0,
 
@@ -65,7 +61,7 @@ enum class file_write_mode {
 };
 
 // Reads entire file into memory (no async variant available at the moment).
-mark_as_leak os_read_file_result os_read_entire_file(string path);
+mark_as_leak optional<string> os_read_entire_file(string path);
 
 // Write _contents_ to a file.
 // _mode_ determines if the content should be appended or overwritten. See
@@ -419,13 +415,12 @@ inline string os_read_from_console() {
     return;                                                                   \
   }
 
-inline mark_as_leak os_read_file_result os_read_entire_file(string path) {
-  os_read_file_result fail = {string(), false};
+inline mark_as_leak optional<string> os_read_entire_file(string path) {
   CREATE_FILE_HANDLE_CHECKED(
       file,
       CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null,
                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null),
-      fail);
+      {});
   defer(CloseHandle(file));
 
   LARGE_INTEGER size = {0};
@@ -435,11 +430,11 @@ inline mark_as_leak os_read_file_result os_read_entire_file(string path) {
   reserve(result, size.QuadPart);
   DWORD bytesRead;
   if (!ReadFile(file, result.Data, (u32)size.QuadPart, &bytesRead, null))
-    return {{}, false};
+    return {};
   assert(size.QuadPart == bytesRead);
 
   result.Count = bytesRead;
-  return {result, true};
+  return result;
 }
 
 inline bool os_write_to_file(string path, string contents,

@@ -779,6 +779,7 @@ void free_all(allocator alloc, u64 options) {
 
 LSTD_END_NAMESPACE
 
+#if LSTD_NO_CRT
 extern "C" {
 void *malloc(size_t size) { return (void *)malloc<byte>({.Count = (s64)size}); }
 
@@ -799,6 +800,7 @@ void *realloc(void *block, size_t newSize) {
 // namespace
 void free(void *block) { free((byte *)block); }
 }
+#endif
 
 [[nodiscard]] void *operator new(size_t size) {
   return LSTD_NAMESPACE::general_allocate(Context.Alloc, size, 0, 0,

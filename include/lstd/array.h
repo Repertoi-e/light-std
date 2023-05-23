@@ -44,7 +44,10 @@ struct array {
   //
   // Instead of calling   make_array(...)   with pointer and size to stack
   // elements.
-  array(initializer_list<T> items) { add(*this, items); }
+  array(initializer_list<T> items) {
+    reserve(*this);
+    add(*this, items);
+  }
 
   auto operator[](s64 index) {
     return Data[translate_negative_index(index, Count)];
