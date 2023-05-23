@@ -48,7 +48,7 @@ group "lstd"
     include "premake5-lstd"
 group ""
 
-group "test-suite"
+group "core"
     include "test-suite"
     include "example"
 group ""
