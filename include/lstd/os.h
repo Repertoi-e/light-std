@@ -30,7 +30,7 @@
 #include "os/windows/dynamic_library.h"
 #include "os/windows/memory.h"
 #include "os/windows/thread.h"
-#else if OS == NO_OS
+#elif OS == NO_OS
 // No OS (e.g. programming on baremetal).
 // Let the user define interfacing with hardware.
 #endif

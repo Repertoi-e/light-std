@@ -1,5 +1,4 @@
 newoption {
-    -- TODO:
     trigger = "lstd-windows-link-runtime-library",
     description = [[ 
         Force linking with the C/C++ runtime library on Windows.
@@ -10,7 +9,7 @@ newoption {
         in the static lstd library and it'll find it.
 
         On Linux we can't not-link with glibc, because it's 
-        coupled with the POSIX operating system calls library,
+        coupled with the POSIX operating system calls,
         although they really should be separate. 
                   ]]
 }
@@ -33,7 +32,7 @@ function setup_configurations()
 		optimize "On"
         symbols "On"
 
-    filter { "configurations:DebugOptimized", "options:not lstd-windows-link-runtime-library" }
+    filter { "system:windows", "configurations:DebugOptimized", "options:not lstd-windows-link-runtime-library" }
 		-- Otherwise MSVC generates internal undocumented intrinsics which we can't provide .. shame
 		floatingpoint "Strict"
     
@@ -43,7 +42,7 @@ function setup_configurations()
         optimize "Full"
 		symbols "Off"
 
-    filter { "configurations:Release", "options:not lstd-windows-link-runtime-library" }
+    filter { "system:windows", "configurations:Release", "options:not lstd-windows-link-runtime-library" }
 		-- Otherwise MSVC generates internal undocumented intrinsics which we can't provide .. shame
 		floatingpoint "Strict"
 		
@@ -151,6 +150,11 @@ project "lstd"
     add_files("lstd")
 
     filter { "system:linux" }
+        removefiles { "src/lstd/platform/windows/**" }
+        removefiles { "src/lstd/vendor/cephes/**" }
+
+    filter { "system:macosx" }
+        removefiles { "src/lstd/platform/windows/no_crt/**" }
         removefiles { "src/lstd/platform/windows/**" }
         removefiles { "src/lstd/vendor/cephes/**" }
     

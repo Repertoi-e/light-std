@@ -105,8 +105,10 @@
 #define POINTER_SIZE (BITS / 8)
 
 // Detect endianness
+#ifndef LITTLE_ENDIAN
 #define LITTLE_ENDIAN 1234
 #define BIG_ENDIAN 4321
+#endif
 
 #if OS == LINUX
 #include <endian.h>
@@ -137,6 +139,24 @@
 // Windows is always little-endian.
 #if !defined ENDIAN
 #if OS == WINDOWS
+#define ENDIAN LITTLE_ENDIAN
+#endif
+#endif  
+
+#if !defined ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
+    defined(__BIG_ENDIAN__) || \
+    defined(__ARMEB__) || \
+    defined(__THUMBEB__) || \
+    defined(__AARCH64EB__) || \
+    defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
+#define ENDIAN BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || \
+    defined(__LITTLE_ENDIAN__) || \
+    defined(__ARMEL__) || \
+    defined(__THUMBEL__) || \
+    defined(__AARCH64EL__) || \
+    defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__)
 #define ENDIAN LITTLE_ENDIAN
 #endif
 #endif

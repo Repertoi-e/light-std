@@ -9,7 +9,7 @@
 #include "delegate.h"
 #include "fmt.h"
 #include "hash_table.h"
-#include "math.h"
+#include "lstd/math.h"
 #include "memory.h"
 #include "os.h"
 #include "parse.h"

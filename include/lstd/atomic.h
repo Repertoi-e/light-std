@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math.h"
+#include "lstd/math.h"
 
 //
 // Atomic operations: atomic_inc, atomic_add, atomic_swap,

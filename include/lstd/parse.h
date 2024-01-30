@@ -285,7 +285,7 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
 template <parse_int_options Options>
 parse_result<big_integer> parse_int_big_integer(string p, u32 base) {
   assert(false);  // @TODO
-  return {0, PARSE_SUCCESS, p};
+  return {make_big_integer(0), PARSE_SUCCESS, p};
 }
 
 // Attemps to parse an integer of a type T

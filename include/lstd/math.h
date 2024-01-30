@@ -1,7 +1,5 @@
 #pragma once
 
-#include "namespace.h"
-
 //
 // This file defines some common math functions:
 //    min, max, clamp,
@@ -70,7 +68,7 @@ inline s32 sign(is_scalar auto x) {
 
 template <is_floating_point T>
 inline T copy_sign(T x, T y) {
-  if constexpr (sizeof x == sizeof f32) {
+  if constexpr (sizeof(x) == sizeof(f32)) {
     ieee754_f32 formatx = {x}, formaty = {y};
     formatx.ieee.S = formaty.ieee.S;
     return formatx.F;
@@ -82,7 +80,7 @@ inline T copy_sign(T x, T y) {
 }
 
 inline bool is_nan(is_floating_point auto x) {
-  if constexpr (sizeof x == sizeof f32) {
+  if constexpr (sizeof(x) == sizeof(f32)) {
     ieee754_f32 format = {x};
     return format.ieee.E == 0xFF && format.ieee.M != 0;
   } else {
@@ -93,14 +91,14 @@ inline bool is_nan(is_floating_point auto x) {
 }
 
 inline bool is_signaling_nan(is_floating_point auto x) {
-  if constexpr (sizeof x == sizeof f32)
+  if constexpr (sizeof(x) == sizeof(f32))
     return is_nan(x) && ieee754_f32{x}.ieee_nan.N == 0;
   else
     return is_nan(x) && ieee754_f64{x}.ieee_nan.N == 0;
 }
 
 inline bool is_infinite(is_floating_point auto x) {
-  if constexpr (sizeof x == sizeof f32) {
+  if constexpr (sizeof(x) == sizeof(f32)) {
     ieee754_f32 format = {x};
     return format.ieee.E == 0xFF && format.ieee.M == 0;
   } else {
@@ -110,7 +108,7 @@ inline bool is_infinite(is_floating_point auto x) {
 }
 
 inline bool is_finite(is_floating_point auto x) {
-  if constexpr (sizeof x == sizeof f32)
+  if constexpr (sizeof(x) == sizeof(f32))
     return ieee754_f32{x}.ieee.E != 0xFF;
   else
     return ieee754_f64{x}.ieee.E != 0x7FF;
@@ -221,7 +219,7 @@ inline T const_exp10(s32 exp) {
 
 inline auto abs(is_scalar auto x) {
   if constexpr (is_floating_point<decltype(x)>) {
-    if constexpr (sizeof x == sizeof f32) {
+    if constexpr (sizeof(x) == sizeof(f32)) {
       ieee754_f32 u = {x};
       u.ieee.S = 0;
       return u.F;

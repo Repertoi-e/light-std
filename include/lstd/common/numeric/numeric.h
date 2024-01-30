@@ -133,26 +133,6 @@ struct numeric<u32> : public internal::numeric_integer_base {
 };
 
 template <>
-struct numeric<long> : public internal::numeric_integer_base {
-  static_assert(sizeof s32 == sizeof(long));
-  static constexpr long min() { return (-2147483647 - 1); }
-  static constexpr long max() { return (2147483647); }
-
-  static constexpr s32 digits = 31;
-  static constexpr s32 digits10 = 9;
-};
-
-template <>
-struct numeric<unsigned long> : public internal::numeric_integer_base {
-  static_assert(sizeof u32 == sizeof(unsigned long));
-  static constexpr unsigned long min() { return 0; }
-  static constexpr unsigned long max() { return (4294967295U); }
-
-  static constexpr s32 digits = 32;
-  static constexpr s32 digits10 = 9;
-};
-
-template <>
 struct numeric<char32_t> : public internal::numeric_integer_base {
  public:
   static constexpr char32_t min() { return 0; }

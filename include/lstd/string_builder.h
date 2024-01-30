@@ -106,7 +106,7 @@ inline void append(string_builder *builder, const char *data, s64 size) {
   }
 }
 
-inline mark_as_leak string builder_to_string(string_builder *builder) {
+mark_as_leak inline string builder_to_string(string_builder *builder) {
   string result;
   reserve(result, (builder->IndirectionCount + 1) * builder->BUFFER_SIZE);
 
