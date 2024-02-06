@@ -36,7 +36,7 @@ void fmt_default_parse_error_handler(string message, string formatString,
 
 // See note below at the variable declaration... :Context:
 struct context {
-  u32 ThreadID;  // The current thread's ID
+  u64 ThreadID;  // The current thread's ID
 
   ///////////////////////////////////////////////////////////////////////////////////////
   //

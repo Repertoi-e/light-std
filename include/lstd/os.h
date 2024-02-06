@@ -7,12 +7,10 @@
 // We export platforms-specific modules depending on the platform we are
 // compiling on.
 //
-// Note: To work with files and paths, take a look at path.h
-//
 
 //
 // At the moment, we do not have a common interface for calling functions across
-// all operating systems, as different OSs may have varying levels of
+// all operating systems, as different OS-s may have varying levels of
 // functionality. Instead, each OS header exports its own set of functions, some
 // of which may have the same name across platforms (such as
 // 'os_allocate_block()' or 'os_dynamic_library_load()' for Windows, Linux,
@@ -25,12 +23,9 @@
 // yet sure what it will look like."
 //
 
-#if OS == WINDOWS
-#include "os/windows/common.h"
-#include "os/windows/dynamic_library.h"
-#include "os/windows/memory.h"
-#include "os/windows/thread.h"
-#elif OS == NO_OS
-// No OS (e.g. programming on baremetal).
-// Let the user define interfacing with hardware.
-#endif
+#include "os/common.h"
+#include "os/dynamic_library.h"
+#include "os/memory.h"
+#include "os/thread.h"
+#include "os/path.h"
+

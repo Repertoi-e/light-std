@@ -2,16 +2,10 @@
 
 #include "api.h"  // Declarations of Win32 functions
 
-//
-// Simple wrapper around dynamic libraries and getting addresses of procedures.
-//
-
 #include "../../string.h"
 #include "memory.h"
 
 LSTD_BEGIN_NAMESPACE
-
-using dynamic_library = void *;
 
 // @Robustness @TODO Check _path_ to be valid
 inline dynamic_library os_dynamic_library_load(string path) {

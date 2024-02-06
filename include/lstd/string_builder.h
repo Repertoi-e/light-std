@@ -50,18 +50,18 @@ void free_buffers(string_builder *builder);
 string_builder::buffer *get_current_buffer(string_builder *builder);
 
 // Append _size_ bytes from _data_ to the builder
-void append(string_builder *builder, const char *data, s64 size);
+void add(string_builder *builder, const char *data, s64 size);
 
 // Append a code point to the builder
-inline void append(string_builder *builder, code_point cp) {
+inline void add(string_builder *builder, code_point cp) {
   char encodedCp[4];
   utf8_encode_cp(encodedCp, cp);
-  append(builder, encodedCp, utf8_get_size_of_cp(encodedCp));
+  add(builder, encodedCp, utf8_get_size_of_cp(encodedCp));
 }
 
 // Append a string to the builder
-inline void append(string_builder *builder, string str) {
-  append(builder, str.Data, str.Count);
+inline void add(string_builder *builder, string str) {
+  add(builder, str.Data, str.Count);
 }
 
 // Merges all buffers in one string.
@@ -81,7 +81,7 @@ inline void reset(string_builder *builder) {
   }
 }
 
-inline void append(string_builder *builder, const char *data, s64 size) {
+inline void add(string_builder *builder, const char *data, s64 size) {
   auto *currentBuffer = get_current_buffer(builder);
 
   s64 availableSpace = builder->BUFFER_SIZE - currentBuffer->Occupied;
@@ -102,7 +102,7 @@ inline void append(string_builder *builder, const char *data, s64 size) {
 
     builder->IndirectionCount++;
 
-    append(builder, data + availableSpace, size - availableSpace);
+    add(builder, data + availableSpace, size - availableSpace);
   }
 }
 
@@ -144,7 +144,7 @@ struct string_builder_writer : writer {
   string_builder *Builder;
 
   void write(const char *data, s64 count) override {
-    append(Builder, data, count);
+    add(Builder, data, count);
   }
   void flush() override {}
 };

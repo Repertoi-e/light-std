@@ -9,10 +9,10 @@ LSTD_BEGIN_NAMESPACE
 // I hate C++. We can't just define this inside hash_table and use them in
 // function signatures...
 template <typename HashTableT>
-using key_t = HashTableT::K;
+using table_key_t = HashTableT::K;
 
 template <typename HashTableT>
-using value_t = HashTableT::V;
+using table_value_t = HashTableT::V;
 
 //
 // This hash table stores all entries in a contiguous array, for good
@@ -92,8 +92,8 @@ concept any_hash_table = is_hash_table<T>;
 
 template <any_hash_table T>
 struct key_value_pair {
-  key_t<T> *Key;
-  value_t<T> *Value;
+  table_key_t<T> *Key;
+  table_value_t<T> *Value;
 };
 
 // Reserves space equal to the next power of two bigger than _size_, starting at
@@ -163,11 +163,11 @@ bool compare_equals(T no_copy a, T no_copy b) {
 // Looks for key in the hash table using the given hash
 template <any_hash_table T>
 key_value_pair<T> search_prehashed(T ref table, u64 hash,
-                                   key_t<T> no_copy key) {
+                                   table_key_t<T> no_copy key) {
   if (!table.Count) return {null, null};
 
   s64 index = hash & table.Allocated - 1;
-  For(range(table.Allocated)) {
+  For_as(_, range(table.Allocated)) {
     auto it = table.Entries.Data + index;
     if (it->Hash == hash && compare_equals(it->Key, key))
       return {&it->Key, &it->Value};
@@ -179,21 +179,19 @@ key_value_pair<T> search_prehashed(T ref table, u64 hash,
 }
 
 template <any_hash_table T>
-auto search(T ref table, key_t<T> no_copy key) {
+auto search(T ref table, table_key_t<T> no_copy key) {
   return search_prehashed(table, get_hash(key), key);
 }
 
 // Returns pointers to the added key and value.
 template <any_hash_table T>
-key_value_pair<T> add_prehashed(T ref table, u64 hash, key_t<T> no_copy key,
-                                value_t<T> no_copy value) {
-  static_assert(table.LOAD_FACTOR_PERCENT <
-                100);  // 100 percent will cause infinite loop
+key_value_pair<T> add_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key, table_value_t<T> no_copy value) {
+  static_assert(T::LOAD_FACTOR_PERCENT < 100);  // 100 percent will cause infinite loop
 
   // The + 1 here handles the case when the hash table size is 1 and you add the
   // first item.
   if ((table.SlotsFilled + 1) * 100 >=
-      table.Allocated * table.LOAD_FACTOR_PERCENT)
+      table.Allocated * T::LOAD_FACTOR_PERCENT)
     resize(table, table.SlotsFilled * 2);  // Double size
 
   assert(table.SlotsFilled < table.Allocated);
@@ -215,14 +213,14 @@ key_value_pair<T> add_prehashed(T ref table, u64 hash, key_t<T> no_copy key,
 }
 
 template <any_hash_table T>
-key_value_pair<T> add(T ref table, key_t<T> no_copy key,
-                      value_t<T> no_copy value) {
+key_value_pair<T> add(T ref table, table_key_t<T> no_copy key,
+                      table_value_t<T> no_copy value) {
   return add_prehashed(table, get_hash(key), key, value);
 }
 
 template <any_hash_table T>
-key_value_pair<T> set_prehashed(T ref table, u64 hash, key_t<T> no_copy key,
-                                value_t<T> no_copy value) {
+key_value_pair<T> set_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key,
+                                table_value_t<T> no_copy value) {
   auto [kp, vp] = search_prehashed(table, hash, key);
   if (vp) {
     *vp = value;
@@ -232,14 +230,14 @@ key_value_pair<T> set_prehashed(T ref table, u64 hash, key_t<T> no_copy key,
 }
 
 template <any_hash_table T>
-key_value_pair<T> set(T ref table, key_t<T> no_copy key,
-                      value_t<T> no_copy value) {
+key_value_pair<T> set(T ref table, table_key_t<T> no_copy key,
+                      table_value_t<T> no_copy value) {
   return set_prehashed(table, get_hash(key), key, value);
 }
 
 // Returns true if the key was found and removed.
 template <any_hash_table T>
-bool remove_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
+bool remove_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key) {
   auto [kp, vp] = search_prehashed(table, hash, key);
   if (vp) {
     s64 index = vp - table.Values;
@@ -251,19 +249,19 @@ bool remove_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
 
 // Returns true if the key was found and removed.
 template <any_hash_table T>
-bool remove(T ref table, key_t<T> no_copy key) {
+bool remove(T ref table, table_key_t<T> no_copy key) {
   return remove_prehashed(table, get_hash(key), key);
 }
 
 // Returns true if the hash table has the given key.
 template <any_hash_table T>
-bool has(T ref table, key_t<T> no_copy key) {
+bool has(T ref table, table_key_t<T> no_copy key) {
   return search(table, key).Key != null;
 }
 
 // Returns true if the hash table has the given key.
 template <any_hash_table T>
-bool has_prehashed(T ref table, u64 hash, key_t<T> no_copy key) {
+bool has_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key) {
   return search_prehashed(table, hash, key) != null;
 }
 

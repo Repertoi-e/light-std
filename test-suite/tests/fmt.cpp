@@ -106,7 +106,7 @@ void check_unknown_types(T value, string types, string expectedMessage) {
   string special = ".0123456789}";
 
   For(range(1, numeric<s8>::max())) {
-    if (string_has(special, it) || string_has(types, it)) continue;
+    if (has(special, it) || has(types, it)) continue;
 
     string fmtString = sprint("{{0:10{:c}}}", it);
     EXPECT_ERROR(expectedMessage, fmtString, value);

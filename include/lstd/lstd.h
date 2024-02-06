@@ -13,7 +13,6 @@
 #include "memory.h"
 #include "os.h"
 #include "parse.h"
-#include "path.h"
 #include "qsort.h"
 #include "stack_array.h"
 #include "string.h"

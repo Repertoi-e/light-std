@@ -101,7 +101,7 @@ void build_test_table();
 //         _MACRO_CONCAT(test_, __LINE__)                                  \
 //         ##_##name() {                                                   \
 //             string shortFile = get_short_file_path(__FILE__);           \
-//             array_append(*g_TestTable[shortFile], {#name, &run});       \
+//             add(*g_TestTable[shortFile], {#name, &run});       \
 //         }                                                               \
 //         static void run();                                              \
 //     };                                                                  \

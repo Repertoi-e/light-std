@@ -179,8 +179,8 @@ void build_test_table() {
     add(*array, test{"set", test_set});
     extern void test_iterator();
     add(*array, test{"iterator", test_iterator});
-    extern void test_append();
-    add(*array, test{"append", test_append});
+    extern void test_add();
+    add(*array, test{"add", test_add});
     extern void test_builder();
     add(*array, test{"builder", test_builder});
     extern void test_remove_all();

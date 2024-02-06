@@ -11,6 +11,9 @@ struct ttt {
 ttt t;
 
 void run_tests() {
+constexpr size_t a = sizeof(pthread_mutex_t);
+constexpr size_t b =  sizeof(pthread_cond_t);
+
   reserve(asserts::GlobalFailed);
 
   print("\n");

@@ -97,6 +97,15 @@ struct numeric<u16> : public internal::numeric_integer_base {
 #endif
 
 template <>
+struct numeric<unsigned short> : public internal::numeric_integer_base {
+  static constexpr u16 min() { return 0; }
+  static constexpr u16 max() { return (65535); }
+
+  static constexpr s32 digits = 16;
+  static constexpr s32 digits10 = 4;
+};
+
+template <>
 struct numeric<char8_t> : public internal::numeric_integer_base {
   static constexpr char8_t min() { return 0; }
   static constexpr char8_t max() { return (255); }
@@ -152,7 +161,26 @@ struct numeric<s64> : public internal::numeric_integer_base {
 };
 
 template <>
+struct numeric<long> : public internal::numeric_integer_base {
+  static constexpr s64 min() { return (-9223372036854775807L - 1); }
+  static constexpr s64 max() { return (9223372036854775807L); }
+
+  static constexpr s32 digits = 63;
+  static constexpr s32 digits10 = 18;
+};
+
+template <>
 struct numeric<u64> : public internal::numeric_integer_base {
+ public:
+  static constexpr u64 min() { return 0; }
+  static constexpr u64 max() { return (18446744073709551615ULL); }
+
+  static constexpr s32 digits = 64;
+  static constexpr s32 digits10 = 19;
+};
+
+template <>
+struct numeric<unsigned long> : public internal::numeric_integer_base {
  public:
   static constexpr u64 min() { return 0; }
   static constexpr u64 max() { return (18446744073709551615ULL); }

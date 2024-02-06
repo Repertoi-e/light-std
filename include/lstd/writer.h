@@ -46,8 +46,6 @@ struct counting_writer : writer {
 // Output to the console (this might be OS-specific)
 //
 
-// @TODO Linux atleast
-#if OS == WINDOWS
 struct console : writer {
   // By default, we are thread-safe.
   // If you don't use seperate threads and aim for maximum console output
@@ -57,20 +55,17 @@ struct console : writer {
   enum output_type { COUT, CERR };
   output_type OutputType;
 
-  // Used to keep track where in the buffer we are, see e.g.
-  // os.win32.common.cppm
+  // Used to keep track where in the buffer we are
   char *Buffer = null, *Current = null;
   s64 Available = 0, BufferSize = 0;
 
   console(output_type type) : OutputType(type) {}
 
-  // Defined in os.*platform*.common.cppm
   void write(const char *data, s64 size) override;
   void flush() override;
 };
 
 inline auto cout = console(console::COUT);
 inline auto cerr = console(console::CERR);
-#endif
 
 LSTD_END_NAMESPACE

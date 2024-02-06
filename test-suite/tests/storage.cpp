@@ -92,7 +92,7 @@ TEST(hash_table) {
 
   hash_table<string, s32> empty;
   for (auto [key, value] : empty) {
-    (void)key, value;  // Unused variable
+    (void)key, (void)value;  // Unused variable
     assert(false);
   }
 }

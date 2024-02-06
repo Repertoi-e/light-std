@@ -24,7 +24,6 @@
 #define WINDOWS 1
 #define MACOS 2
 #define LINUX 3
-#define ANDROID 4
 #define NO_OS 5
 
 #if defined LSTD_NO_OS
@@ -42,9 +41,6 @@
 #elif defined macintosh || defined __APPLE__ || defined __APPLE_CC__
 #define OS MACOS
 #define OS_STRING "MacOS"
-#elif defined __ANDROID__
-#define OS ANDROID
-#define OS_STRING "Android"
 #else
 #define OS NO_OS
 #endif
@@ -191,7 +187,7 @@
 #define no_alias __declspec(noalias)
 #define restrict __declspec(restrict)
 #else
-#define always_inline __attribute__((always_inline))
+#define always_inline inline
 #define never_inline __attribute__((noinline))
 #define no_vtable __attribute__((__type__(no_table)))
 #define no_alias __restrict

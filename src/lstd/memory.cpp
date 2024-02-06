@@ -1,11 +1,8 @@
-#pragma once
-
 #include "lstd/memory.h"
 
 #include "lstd/atomic.h"
 #include "lstd/fmt.h"
 #include "lstd/os.h"
-#include "lstd/path.h"
 
 LSTD_USING_NAMESPACE;
 
