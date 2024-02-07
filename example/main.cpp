@@ -1,3 +1,7 @@
 #include "lstd/lstd.h"
 
-int main() { print("Hello, world!\n"); }
+int main() { 
+    platform_state_init();
+    int a = sizeof(pthread_mutex_t);
+    print("Hello, world!\n"); 
+}

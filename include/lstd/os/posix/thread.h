@@ -26,8 +26,7 @@ inline void lock(mutex *m) {
 }
 
 inline bool try_lock(mutex *m) {
-  return pthread_mutex_trylock(
-      (pthread_mutex_t *)m->Handle);
+  return pthread_mutex_trylock((pthread_mutex_t *)m->Handle);
 }
 
 inline void unlock(mutex *m) {
