@@ -76,7 +76,7 @@ inline void pre_wait(condition_variable *c) {
   LeaveCriticalSection(&data->WaitersCountLock);
 }
 
-inline void do_wait(condition_variable *c) {
+inline void do_wait(condition_variable *c, mutex *m) {
   auto *data = (CV_Data *)c->Handle;
 
   // Wait for either event to become signaled due to notify_one() or

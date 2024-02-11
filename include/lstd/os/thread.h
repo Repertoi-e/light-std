@@ -13,13 +13,15 @@ LSTD_BEGIN_NAMESPACE
 // @TODO: Rename back to sleep when not clashing with DARWIN api on Mac.
 void thread_sleep(u32 ms);
 
+//
 // For synchronizing access to shared memory between several threads.
 // The mutex can be recursive i.e. a program doesn't deadlock if the thread
 // that owns a mutex object calls lock() again.
 //
 // For recursive mutexes, see _recursive_mutex_.
 //
-// Scoped lock can be done with a defer statement.
+// Scoped lock can be simulated with a defer statement: defer(unlock(...));
+//
 struct mutex {
     #if OS == WINDOWS || OS == MACOS || OS == LINUX 
     char Handle[64]{};
@@ -48,6 +50,7 @@ bool try_lock(mutex *m);
 // (recursive mutex).
 void unlock(mutex *m);
 
+//
 // Mutex, but instead of using system level functions it is implemented
 // as an atomic spin lock with very low CPU overhead.
 //
@@ -57,6 +60,7 @@ void unlock(mutex *m);
 //
 // Because of the limitations of this object, it should only be used in
 // situations where the mutex needs to be locked/unlocked very frequently.
+//
 struct fast_mutex {
   s32 Lock = 0;
 };
@@ -99,21 +103,24 @@ void free_condition_variable(condition_variable *c);
 
 namespace internal {
 void pre_wait(condition_variable *c);
-void do_wait(condition_variable *c);
+void do_wait(condition_variable *c, mutex *m);
 }
 
 // Wait for the condition.
 // The function will block the calling thread until the condition variable
 // is woken by notify_one(), notify_all() or a spurious wake up.
-template <typename MutexT>
-void wait(condition_variable *c, MutexT *m) {
+inline void wait(condition_variable *c, mutex *m) {
+#if OS == WINDOWS
   internal::pre_wait(c);
 
   // Release the mutex while waiting for the condition (will decrease
   // the number of waiters when done)...
   unlock(m);
-  internal::do_wait(c);
+  internal::do_wait(c, m);
   lock(m);
+#else
+  internal::do_wait(c, m);
+#endif
 }
 
 // Notify one thread that is waiting for the condition.
@@ -148,8 +155,7 @@ struct thread_start_info {
 
 #if OS == WINDOWS
   // We have to make sure the module the thread is executing in
-  // doesn't get unloaded while the thread is still doing work,
-  // windows only.
+  // doesn't get unloaded while the thread is still doing work.
   void *Module = null;
 #endif
 

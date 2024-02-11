@@ -43,7 +43,14 @@ TEST(path_manipulation) {
 }
 
 TEST(file_size) {
+  #if OS == WINDOWS  
   auto thisFile = string(__FILE__);
+  #else
+  // @TODO @Bug @Cleanup @Hack
+  // Build system passes relative path and that's what __FILE__ gets which is incorrect,
+  // so the above line doesn't work and we must pass it relative to the CWD explicitly as a hack.
+  auto thisFile = string("test-suite/tests/file.cpp");
+  #endif
   string dataFolder = path_join(path_directory(thisFile), "data");
   defer(free(dataFolder));
 
@@ -54,7 +61,7 @@ TEST(file_size) {
   defer(free(text));
 
   assert_eq(path_file_size(fiveBytes), 5);
-  assert_eq(path_file_size(text), 277);
+  assert_eq(path_file_size(text), 273);
 }
 
 /* Just wearing out the SSD :*

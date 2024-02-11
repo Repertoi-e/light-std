@@ -305,7 +305,7 @@ mark_as_leak inline string path_join(array<string> paths) {
 
     // Second path is relative to the first
     if (result.Count && !path_is_sep(result[-1])) {
-      result += '\\';
+      result += '/';
     }
     result += p_path;
   }
@@ -379,7 +379,7 @@ mark_as_leak inline string path_normalize(string path) {
 
   For(components) {
     result += it;
-    result += '\\';
+    result += '/';
   }
   // Remove the trailing slash we added in the final iteration of the loop
   remove_at_index(result, -1);

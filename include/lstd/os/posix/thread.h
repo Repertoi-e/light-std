@@ -12,7 +12,12 @@ LSTD_BEGIN_NAMESPACE
 
 inline mutex create_mutex() {
   mutex m;
-  pthread_mutex_init((pthread_mutex_t *)m.Handle, null);
+
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+  pthread_mutex_init((pthread_mutex_t *)m.Handle, &attr);
   return m;
 }
 
@@ -35,19 +40,13 @@ inline void unlock(mutex *m) {
 
 struct CV_Data {
   pthread_cond_t Cond;
-  pthread_mutex_t WaitersCountLock;
-  u32 WaitersCount;
 };
 
 inline condition_variable create_condition_variable() {
   condition_variable c;
 
   auto *data = (CV_Data *)c.Handle;
-
-    pthread_cond_init(&data->Cond, NULL);
-    pthread_mutex_init(&data->WaitersCountLock, NULL);
-    data->WaitersCount = 0;
-
+  pthread_cond_init(&data->Cond, null);
   return c;
 }
 
@@ -55,7 +54,6 @@ inline void free_condition_variable(condition_variable *c) {
   auto *data = (CV_Data *)c->Handle;
   if (data) {
     pthread_cond_destroy(&data->Cond);
-    pthread_mutex_destroy(&data->WaitersCountLock);
   }
 }
 
@@ -63,49 +61,26 @@ void report_warning_no_allocations(string message);
 
 namespace internal {
 inline void pre_wait(condition_variable *c) {
-  auto *data = (CV_Data *)c->Handle;
-
-  // Increment number of waiters
-  pthread_mutex_lock(&data->WaitersCountLock);
-  data->WaitersCount++;
-  pthread_mutex_unlock(&data->WaitersCountLock);
 }
 
-inline void do_wait(condition_variable *c) {
+inline void do_wait(condition_variable *c, mutex *m) {
   auto *data = (CV_Data *)c->Handle;
 
-  // Wait for either event to become signaled due to notify_one() or
-  // notify_all() being called
-  pthread_mutex_lock(&data->WaitersCountLock);
-  while (data->WaitersCount > 0) {
-        int result = pthread_cond_wait(&data->Cond, &data->WaitersCountLock);
-        if (result != 0) {
-            report_warning_no_allocations("Error in pthread_cond_wait");
-        }
-    }
-  --data->WaitersCount;
-  pthread_mutex_unlock(&data->WaitersCountLock);
+  int result = pthread_cond_wait(&data->Cond, (pthread_mutex_t *)m->Handle);
+  if (result != 0) {
+    report_warning_no_allocations("Error in pthread_cond_wait");
+  }
 }
 }
 
 inline void notify_one(condition_variable *c) {
   auto *data = (CV_Data *)c->Handle;
-
-    pthread_mutex_lock(&data->WaitersCountLock);
-    if (data->WaitersCount > 0) {
-        pthread_cond_signal(&data->Cond);
-    }
-    pthread_mutex_unlock(&data->WaitersCountLock);
+  pthread_cond_signal(&data->Cond);
 }
 
 inline void notify_all(condition_variable *c) {
   auto *data = (CV_Data *)c->Handle;
-
-    pthread_mutex_lock(&data->WaitersCountLock);
-    if (data->WaitersCount > 0) {
-        pthread_cond_broadcast(&data->Cond);
-    }
-    pthread_mutex_unlock(&data->WaitersCountLock);
+  pthread_cond_broadcast(&data->Cond);
 }
 
 inline void *thread_wrapper_function(void *data) {
@@ -131,8 +106,6 @@ inline void *thread_wrapper_function(void *data) {
 #endif
 
   // free(ti); // Cross-thread free! @Leak
-
-  pthread_exit(0);
 
   return data;
 }

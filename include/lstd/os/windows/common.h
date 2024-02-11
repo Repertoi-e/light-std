@@ -138,17 +138,23 @@ inline string os_get_working_dir() {
   DWORD required = GetCurrentDirectoryW(0, null);
 
   auto *dir16 = malloc<wchar>({.Count = required + 1, .Alloc = TEMP});
+  defer(free(dir16));
   if (!GetCurrentDirectoryW(required + 1, dir16)) {
     windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
                                  "GetCurrentDirectory");
     return "";
   }
 
+  string workingDir = utf16_to_utf8(dir16);
+  defer(free(workingDir));
+
   lock(&S->WorkingDirMutex);
   defer(unlock(&S->WorkingDirMutex));
 
-  string workingDir = utf16_to_utf8(dir16);
-  PUSH_ALLOC(PERSISTENT) { S->WorkingDir = path_normalize(workingDir); }
+  PUSH_ALLOC(PERSISTENT) { 
+    free(S->WorkingDir);
+    S->WorkingDir = path_normalize(workingDir); 
+  }
   return S->WorkingDir;
 }
 

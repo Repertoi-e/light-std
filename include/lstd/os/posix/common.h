@@ -79,8 +79,11 @@ inline string os_get_working_dir()
         lock(&S->WorkingDirMutex);
         defer(unlock(&S->WorkingDirMutex));
 
-        PUSH_ALLOC(PERSISTENT) { S->WorkingDir = path_normalize(dir); }
-        return dir;
+        PUSH_ALLOC(PERSISTENT) { 
+            free(S->WorkingDir);
+            S->WorkingDir = path_normalize(dir); 
+        }
+        return S->WorkingDir;
     }
     else
     {

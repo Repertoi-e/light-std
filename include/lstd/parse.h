@@ -225,6 +225,8 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
 
   bool firstDigit = true;
 
+  constexpr cp_to_digit_t codePointToDigit = Options.CodePointToDigit;
+
   // Now start doing the real work
   T value = 0;
   while (true) {
@@ -234,7 +236,7 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
     }
 
     s32 digit =
-        p.Count ? Options.CodePointToDigit(p[0], firstDigit) : CP_INVALID;
+        p.Count ? codePointToDigit(p[0], firstDigit) : CP_INVALID;
     advance_cp(&p, 1);
 
     if (digit == CP_IGNORE_THIS) continue;

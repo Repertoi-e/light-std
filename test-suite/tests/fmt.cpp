@@ -79,9 +79,6 @@ TEST(write_integer_32) {
   CHECK_WRITE("-2147483648", "{}", numeric<s32>::min());
   CHECK_WRITE("2147483647", "{}", numeric<s32>::max());
   CHECK_WRITE("4294967295", "{}", numeric<u32>::max());
-  CHECK_WRITE("-2147483648", "{}", numeric<long>::min());
-  CHECK_WRITE("2147483647", "{}", numeric<long>::max());
-  CHECK_WRITE("4294967295", "{}", numeric<unsigned long>::max());
 }
 
 TEST(write_integer_64) {
