@@ -13,9 +13,8 @@ thread create_and_launch_thread(delegate<void(void *)> function,
 
   // Passed to the thread wrapper, which will eventually free it
   // @TODO @Speed @Memory Fragmentation! We should have a dedicated pool
-  // allocator for thread_start_info because threads could be created/destroyed
-  // very often.
-  auto *ti = malloc<thread_start_info>({.Alloc = platform_get_persistent_allocator()});
+  // allocator for thread_start_info when threads could be created/destroyed very often.
+  auto *ti = malloc<thread_start_info>({.Alloc = platform_get_persistent_allocator(), .Options = LEAK /*TEMP*/});
   ti->Function = function;
   ti->UserData = userData;
   ti->ContextPtr = &Context;

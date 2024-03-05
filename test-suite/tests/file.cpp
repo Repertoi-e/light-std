@@ -64,32 +64,43 @@ TEST(file_size) {
   assert_eq(path_file_size(text), 273);
 }
 
-/* Just wearing out the SSD :*
 TEST(writing_hello_250_times) {
+    #if OS == WINDOWS
     auto thisFile = string(__FILE__);
+    #else
+    auto thisFile = "test-suite/tests/file.cpp";
+    #endif
 
     string filePath = path_join(path_directory(thisFile), "data/write_test");
     defer(free(filePath));
 
-    auto file = file::handle(filePath);
-    assert(!file.exists());
+    assert(!path_exists(filePath));
 
-    auto contents = string("Hello ");
-    repeat(contents, 250);
-
+    string contents;
+    reserve(contents, 250 * 6);
     defer(free(contents));
+    
+    For(range(250)) add(contents, "Hello ");
 
-    assert(file.write_to_file(contents));
-    assert_eq(250 * 6, file.file_size());
+    assert(os_write_to_file(filePath, contents, file_write_mode::Overwrite_Entire));
+    assert_eq(250 * 6, path_file_size(filePath));
 
-    auto [read, success] = file.read_entire_file();
+    auto read = os_read_entire_file(filePath);
+    assert(read);
 
-    assert(success);
-    assert_eq(contents, read);
+    if (read)
+    {
+        auto readContents = read.strict_get<string>();
+        defer(free(readContents));
 
-    assert(file.delete_file());
+        assert(strings_match(contents, readContents));
+
+        assert(path_exists(filePath));
+    }
+
+    path_delete_file(filePath);
+    assert(!path_exists(filePath));
 }
- */
 
 #define DO_READ_EVERY_FILE 0
 

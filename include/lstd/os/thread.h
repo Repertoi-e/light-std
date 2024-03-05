@@ -24,7 +24,7 @@ void thread_sleep(u32 ms);
 //
 struct mutex {
     #if OS == WINDOWS || OS == MACOS || OS == LINUX 
-    char Handle[64]{};
+    alignas(64) char Handle[64]{};
     #endif
 };
 
@@ -91,9 +91,9 @@ inline void unlock(fast_mutex *m) { atomic_swap(&m->Lock, 0); }
 //
 struct condition_variable {
     #if OS == WINDOWS
-    char Handle[64]{};
+    alignas(64) char Handle[64]{};
     #elif OS == MACOS || OS == LINUX 
-    char Handle[120]{};
+    alignas(64) char Handle[48]{};
     #endif
 };
 

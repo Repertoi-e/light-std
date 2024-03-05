@@ -38,22 +38,15 @@ inline void unlock(mutex *m) {
   pthread_mutex_unlock((pthread_mutex_t *)m->Handle);
 }
 
-struct CV_Data {
-  pthread_cond_t Cond;
-};
-
 inline condition_variable create_condition_variable() {
   condition_variable c;
-
-  auto *data = (CV_Data *)c.Handle;
-  pthread_cond_init(&data->Cond, null);
+  pthread_cond_init((pthread_cond_t *)c.Handle, null);
   return c;
 }
 
 inline void free_condition_variable(condition_variable *c) {
-  auto *data = (CV_Data *)c->Handle;
-  if (data) {
-    pthread_cond_destroy(&data->Cond);
+  if (c) {
+    pthread_cond_destroy((pthread_cond_t *)c->Handle);
   }
 }
 
@@ -64,9 +57,7 @@ inline void pre_wait(condition_variable *c) {
 }
 
 inline void do_wait(condition_variable *c, mutex *m) {
-  auto *data = (CV_Data *)c->Handle;
-
-  int result = pthread_cond_wait(&data->Cond, (pthread_mutex_t *)m->Handle);
+  int result = pthread_cond_wait((pthread_cond_t *)c->Handle, (pthread_mutex_t *)m->Handle);
   if (result != 0) {
     report_warning_no_allocations("Error in pthread_cond_wait");
   }
@@ -74,13 +65,11 @@ inline void do_wait(condition_variable *c, mutex *m) {
 }
 
 inline void notify_one(condition_variable *c) {
-  auto *data = (CV_Data *)c->Handle;
-  pthread_cond_signal(&data->Cond);
+  pthread_cond_signal((pthread_cond_t *)c->Handle);
 }
 
 inline void notify_all(condition_variable *c) {
-  auto *data = (CV_Data *)c->Handle;
-  pthread_cond_broadcast(&data->Cond);
+  pthread_cond_broadcast((pthread_cond_t *)c->Handle);
 }
 
 inline void *thread_wrapper_function(void *data) {

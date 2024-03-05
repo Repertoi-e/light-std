@@ -813,8 +813,8 @@ s32 compare_lexicographically(string a, string b);
 //   1 if _b_ is before _a_
 s32 compare_lexicographically_ignore_case(string a, string b);
 
-inline s32 strings_match(string a, string b) { return compare(a, b) == -1; }
-inline s32 strings_match_ignore_case(string a, string b) {
+inline bool strings_match(string a, string b) { return compare(a, b) == -1; }
+inline bool strings_match_ignore_case(string a, string b) {
   return compare_ignore_case(a, b) == -1;
 }
 

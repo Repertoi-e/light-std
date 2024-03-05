@@ -1,19 +1,8 @@
 #include "test.h"
 
-struct ttt {
-  ttt() {
-    int a = 42;
-    platform_state_init();
-    // hello?
-  }
-};
-
-ttt t;
+#include "lstd/lstd_init_workaround_for_posix_needs_to_be_in_only_one_cpp.h"
 
 void run_tests() {
-constexpr size_t a = sizeof(pthread_mutex_t);
-constexpr size_t b =  sizeof(pthread_cond_t);
-
   reserve(asserts::GlobalFailed);
 
   print("\n");
@@ -100,7 +89,7 @@ s32 main() {
   newContext.Alloc = TemporaryAllocator;
   newContext.AllocAlignment = 16;
 #if defined DEBUG_MEMORY
-  // newContext.DebugMemoryHeapVerifyFrequency = 1;
+  newContext.DebugMemoryHeapVerifyFrequency = 1;
 #endif
 
   if (LOG_TO_FILE) {

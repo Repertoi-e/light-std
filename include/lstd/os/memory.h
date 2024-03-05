@@ -48,7 +48,7 @@ struct platform_memory_state {
 };
 
 // :GlobalStateNoConstructors:
-inline byte PlatformMemoryState[sizeof(platform_memory_state)];
+alignas(64) inline byte PlatformMemoryState[sizeof(platform_memory_state)];
 
 // Short-hand macro for sanity
 #define S ((platform_memory_state *)&PlatformMemoryState[0])

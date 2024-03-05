@@ -240,6 +240,7 @@ mark_as_leak inline optional<string> os_read_entire_file(string path)
         free(result);
         return {};
     }
+    result.Count = bytesRead;
 
     return result;
 }
@@ -337,6 +338,7 @@ inline void get_module_name()
         buffer[0] = 0;
     }
 
+    free(S->ModuleName);
     PUSH_ALLOC(PERSISTENT) { S->ModuleName = path_normalize(string(buffer)); }
 }
 

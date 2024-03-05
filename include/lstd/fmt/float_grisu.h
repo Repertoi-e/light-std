@@ -344,7 +344,10 @@ inline s32 grisu_format_float(string_builder *floatBuffer,
     s32 availableSize =
         (s32)(string_builder::BUFFER_SIZE - floatBuffer->BaseBuffer.Occupied);
 
-    PUSH_ALLOC(stackAlloc) {
+    auto stackAllocContext = Context;
+    stackAllocContext.Alloc = stackAlloc;
+    stackAllocContext.AllocOptions |= LEAK;
+    PUSH_CONTEXT(stackAllocContext) {
       dragon4_format_float(buf, availableSize, &written, &exp, state.Precision,
                            v);
     }

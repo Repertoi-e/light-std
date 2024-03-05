@@ -484,7 +484,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
   debug_memory_maybe_verify_heap();
   s64 id = AllocationCount;
 
-  if (id == 723) {
+  if (id == 9) {
     s32 k = 42;
   }
 #endif
