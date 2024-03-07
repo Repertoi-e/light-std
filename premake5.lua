@@ -17,7 +17,6 @@ workspace "light-std"
     --
     -- defines { "LSTD_NO_OS" }
 
--- These are to be tested
 LSTD_INCLUDE_EXTRAS = { "guid", "signal" }
 
 OUT_DIR = "build/bin/%{cfg.buildcfg}/%{prj.name}"
@@ -30,7 +29,7 @@ INT_DIR = "build/bin-int/%{cfg.buildcfg}/%{prj.name}"
 
 -- These options are optional and control how much memory the platform allocators
 -- reserve upfront. Increase this if you get platform warnings with the message 
--- "Not enough memory  in the temporary/persistent allocator; expanding the pool".
+-- "Not enough memory in the temporary/persistent allocator; expanding the pool".
 -- Decrease this if you want to tweak the memory footprint of your application.
 --
 -- Note: Feel free to modify the library source code however you like. We just try 
@@ -38,7 +37,7 @@ INT_DIR = "build/bin-int/%{cfg.buildcfg}/%{prj.name}"
 --
 -- (KiB and MiB are literal operators that are defined in the library, 1_KiB = 1024, 1_MiB = 1024 * 1024)
 --
--- @TODO: Have a clearer picture on memory usage. Persisent storage size can be calculated. 
+-- @TODO: To have a clearer picture on memory usage. Persisent storage size can be calculated. 
 --        Allow turning off certain options in order to make the persistent block smaller,
 --        thus reducing the memory footprint of the library.
 -- LSTD_PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE = "16_KiB"
@@ -48,7 +47,7 @@ group "lstd"
     include "premake5-lstd"
 group ""
 
-group "test-suite"
+group "core"
     include "test-suite"
     include "example"
 group ""

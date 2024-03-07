@@ -4,11 +4,12 @@
 
 LSTD_BEGIN_NAMESPACE
 
+// @TODO: Rename back to signal once we get rid of C naming conflicts
 template <typename Signature>
-struct signal;
+struct delegate_signal;
 
 template <typename R, typename... Args>
-struct signal<R(Args...)> {
+struct delegate_signal<R(Args...)> {
   using result_t = R;
   using callback_t = delegate<R(Args...)>;
 
@@ -22,7 +23,7 @@ struct signal<R(Args...)> {
 // Add a new callback, returns a handler ID which you can use to remove the
 // callback later
 template <typename F>
-s64 connect(signal<F> ref s, delegate<F> cb) {
+s64 connect(delegate_signal<F> ref s, delegate<F> cb) {
   reserve(s.Callbacks);
   if (cb) add(s.Callbacks, cb);
   return s.Callbacks.Count - 1;
@@ -30,7 +31,7 @@ s64 connect(signal<F> ref s, delegate<F> cb) {
 
 // Remove a callback via connection id. Returns true on success.
 template <typename F>
-bool disconnect(signal<F> ref s, s64 index) {
+bool disconnect(delegate_signal<F> ref s, s64 index) {
   if (!s.CurrentlyEmitting) {
     assert(index <= s.Callbacks.Count);
     if (s.Callbacks[index]) {
@@ -44,7 +45,7 @@ bool disconnect(signal<F> ref s, s64 index) {
 }
 
 template <typename T>
-void handle_to_remove_after_emit_end(signal<T> ref s) {
+void handle_to_remove_after_emit_end(delegate_signal<T> ref s) {
   For(s.ToRemove) {
     assert(it <= s.Callbacks.Count);
     if (s.Callbacks[it]) s.Callbacks[it] = null;
@@ -54,7 +55,7 @@ void handle_to_remove_after_emit_end(signal<T> ref s) {
 
 // Emits to all callbacks
 template <typename R, typename... Args>
-void emit(signal<R(Args...)> ref s, Args no_copy... args) {
+void emit(delegate_signal<R(Args...)> ref s, Args no_copy... args) {
   s.CurrentlyEmitting = true;
   For(s.Callbacks) if (it) it((Args no_copy)args...);
   s.CurrentlyEmitting = false;
@@ -65,7 +66,7 @@ void emit(signal<R(Args...)> ref s, Args no_copy... args) {
 // Used for e.g. window events - when the user clicks on the UI the event should
 // not be propagated to the world.
 template <typename R, typename... Args>
-void emit_while_false(signal<R(Args...)> ref s, Args... args) {
+void emit_while_false(delegate_signal<R(Args...)> ref s, Args... args) {
   static_assert(is_convertible<R, bool>);
 
   s.CurrentlyEmitting = true;
@@ -76,7 +77,7 @@ void emit_while_false(signal<R(Args...)> ref s, Args... args) {
 
 // Calls registered callbacks until one returns false
 template <typename R, typename... Args>
-void emit_while_true(signal<R(Args...)> ref s, Args... args) {
+void emit_while_true(delegate_signal<R(Args...)> ref s, Args... args) {
   static_assert(is_convertible<R, bool>);
 
   s.CurrentlyEmitting = true;
@@ -86,7 +87,7 @@ void emit_while_true(signal<R(Args...)> ref s, Args... args) {
 }
 
 template <typename T>
-void free(signal<T> ref s) {
+void free(delegate_signal<T> ref s) {
   // @Cleanup Make it a stack array
   free(s.Callbacks);
   free(s.ToRemove);

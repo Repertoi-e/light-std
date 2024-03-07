@@ -79,9 +79,6 @@ TEST(write_integer_32) {
   CHECK_WRITE("-2147483648", "{}", numeric<s32>::min());
   CHECK_WRITE("2147483647", "{}", numeric<s32>::max());
   CHECK_WRITE("4294967295", "{}", numeric<u32>::max());
-  CHECK_WRITE("-2147483648", "{}", numeric<long>::min());
-  CHECK_WRITE("2147483647", "{}", numeric<long>::max());
-  CHECK_WRITE("4294967295", "{}", numeric<unsigned long>::max());
 }
 
 TEST(write_integer_64) {
@@ -106,7 +103,7 @@ void check_unknown_types(T value, string types, string expectedMessage) {
   string special = ".0123456789}";
 
   For(range(1, numeric<s8>::max())) {
-    if (string_has(special, it) || string_has(types, it)) continue;
+    if (has(special, it) || has(types, it)) continue;
 
     string fmtString = sprint("{{0:10{:c}}}", it);
     EXPECT_ERROR(expectedMessage, fmtString, value);

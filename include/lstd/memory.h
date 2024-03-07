@@ -968,7 +968,7 @@ requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
     }
   }
 
-  general_free(block, options, loc);
+  general_free((void *) block, options, loc);
 }
 
 LSTD_END_NAMESPACE

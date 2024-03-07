@@ -101,7 +101,7 @@ By default, arrays are views. To make them dynamic, call `reserve(arr)` or `make
 > // Alternatively: string path = "./data/"; reserve(path);
 >
 > defer(free(path));
-> string_append(path, "output.txt");
+> add(path, "output.txt");
 > string pathWithoutDot = slice(path, 2, -1); // No allocations
 > ```
 

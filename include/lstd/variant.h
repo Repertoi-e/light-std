@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "math.h"
 
 //
 // variant<> is a type-safe union.
@@ -24,8 +25,8 @@
 //
 // auto result = flip_a_coin();
 // if (result) {
-//     int a = result.strict_get<int>();   // This crashes if there's no _int_
-//     in result. print("Number is {}\n", a);
+//     int a = result.strict_get<int>();   // This crashes if there's no _int_ in result. 
+//     print("Number is {}\n", a);
 // }
 // else {
 //     print("No number\n");
@@ -200,6 +201,9 @@ struct variant {
       return visit<F, MEMBERS...>(f, ti - 1);
   }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type"
+
   template <class T>
   auto ref strict_get() {
     if (is<T>())
@@ -215,6 +219,8 @@ struct variant {
     else
       panic();
   }
+
+#pragma clang diagnostic pop
 
   template <class T>
   requires(!__is_base_of(decay_t<T>, decay_t<variant>)) auto ref operator=(
@@ -234,7 +240,8 @@ struct variant {
 
  private:
   void panic() {
-    // Bad, how did we get here?
+    // Bad, probably got here by reading an incorrect type from the variant/optional or 
+    // by trying to read a value from an empty variant/optional.
     int *d = 0;
     *d = 42;
   }

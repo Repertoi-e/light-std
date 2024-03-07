@@ -508,7 +508,7 @@ bool remove_ordered(Arr ref arr, array_data_t<Arr> no_copy element) {
 }
 
 template <any_dynamic_array_like Arr>
-void remove_unordered(Arr ref arr, array_data_t<Arr> no_copy element) {
+bool remove_unordered(Arr ref arr, array_data_t<Arr> no_copy element) {
   s64 index = search(arr, element);
   if (index == -1) return false;
 

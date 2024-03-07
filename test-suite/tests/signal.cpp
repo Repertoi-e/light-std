@@ -17,7 +17,7 @@ struct Member_Test {
 };
 
 TEST(member_function) {
-  signal<void(s32)> s{};
+  delegate_signal<void(s32)> s{};
 
   Member_Test myStruct;
   connect(s, {&myStruct, &Member_Test::member_callback});

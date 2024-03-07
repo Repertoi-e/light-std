@@ -2,11 +2,8 @@
 
 #include "api.h"  // Declarations of Win32 functions
 
-//
-// Simple wrapper around dynamic libraries and getting addresses of procedures.
-//
-
 #include "../../fmt.h"
+#include "../../variant.h"
 #include "../../memory.h"
 #include "../../path.h"
 #include "../../writer.h"
@@ -43,172 +40,56 @@ void atexit(void (*func)(void));
 
 LSTD_BEGIN_NAMESPACE
 
+inline LARGE_INTEGER Win32PerformanceFrequency;  // Used to time stuff
+
+// Windows uses wchar.. Sigh...
 //
-// @Platform @Cleanup @TODO: These declarations shouldn't be specific to win32.
-// Perhaps put them in a general module?
-// This also applies to the _path_ and _thread_ modules.
-//
+// This function uses the platform temporary allocator if no explicit allocator
+// was specified.
+inline wchar *platform_utf8_to_utf16(string str, allocator alloc = {}) {
+  if (!str.Count) return null;
 
-struct os_read_file_result {
-  string Content;
-  bool Success;
-};
+  if (!alloc) alloc = S->TempAlloc;
 
-enum class file_write_mode {
-  Append = 0,
+  wchar *result;
+  PUSH_ALLOC(alloc) {
+    // src.Length * 2 because one unicode character might take 2 wide chars.
+    // This is just an approximation, not all space will be used!
+    result = malloc<wchar>({.Count = length(str) * 2 + 1});
+  }
 
-  // If the file is 50 bytes and you write 20,
-  // "Overwrite" keeps those 30 bytes at the end
-  // while "Overwrite_Entire" deletes them.
-  Overwrite,
-  Overwrite_Entire,
-};
-
-// Reads entire file into memory (no async variant available at the moment).
-mark_as_leak os_read_file_result os_read_entire_file(string path);
-
-// Write _contents_ to a file.
-// _mode_ determines if the content should be appended or overwritten. See
-// _file_write_mode_ above.
-//
-// Returns true on success.
-bool os_write_to_file(string path, string contents, file_write_mode mode);
-
-// Returns a time stamp that can be used for time-interval measurements
-time_t os_get_time();
-
-// Converts a time stamp acquired by os_get_time() to seconds
-f64 os_time_to_seconds(time_t time);
-
-//
-// Note: The functions above don't have the "os_" prefix because they are not
-// really doing stuff with the OS. The functions below have the "os_" prefix
-// and can be easily queried with autocomplete.
-//
-
-// Returns the path of the current module (executable or dynamic library).
-// Full dir + name.
-//
-// Note: Don't free the result of this function.
-string os_get_current_module();
-
-// Returns the current directory of the current process.
-// [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory
-//           are not thread-safe but we use a lock so ours are.
-// Note: Don't free the result of this function.
-string os_get_working_dir();
-
-// Sets the current directory of the current process.
-// [Windows] The docs say that SetCurrentDirectory/GetCurrentDirectory
-//           are not thread-safe but we use a lock so ours are.
-void os_set_working_dir(string dir);
-
-// Get a list of parsed command line arguments excluding the first one -
-// normally the first one is the exe name - but you can get that with
-// os_get_current_module(). Note: Don't free the result of this function.
-array<string> os_get_command_line_arguments();
-
-// The number of threads which can execute concurrently on the current
-// hardware (may be different from the number of cores because of
-// hyperthreads).
-u32 os_get_hardware_concurrency();
-
-// Returns an ID which uniquely identifies the current process on the system
-u32 os_get_pid();
-
-// Reads input from the console (at most 1 KiB).
-// Subsequent calls overwrite an internal buffer, so you need to save the
-// information before that. Note: Don't free the result of this function.
-string os_read_from_console();
-
-struct os_get_env_result {
-  string Value;
-  bool Success;
-};
-
-// Get the value of an environment variable, returns true if found.
-// If not found and silent is false, logs warning.
-// The caller is responsible for freeing the returned string.
-// @TODO: Cache this, then we would return a string that needn't be freed and
-// avoid allocations when calling this function multiple times.
-mark_as_leak os_get_env_result os_get_env(string name, bool silent = false);
-
-// Sets a variable (creates if it doesn't exist yet) in the current process'
-// environment
-void os_set_env(string name, string value);
-
-// Remove a variable from the current process' environment
-void os_remove_env(string name);
-
-// Returns the content stored in the clipboard as a utf8 string.
-// The caller is responsible for freeing.
-mark_as_leak string os_get_clipboard_content();
-
-// Sets the clipboard content (expects a utf8 string).
-void os_set_clipboard_content(string content);
-
-struct win32_common_state {
-  static const s64 CONSOLE_BUFFER_SIZE = 1_KiB;
-
-  char CinBuffer[CONSOLE_BUFFER_SIZE];
-  char CoutBuffer[CONSOLE_BUFFER_SIZE];
-  char CerrBuffer[CONSOLE_BUFFER_SIZE];
-
-  HANDLE CinHandle, CoutHandle, CerrHandle;
-  mutex CoutMutex, CinMutex;
-
-#if defined LSTD_NO_CRT
-  array<delegate<void()>>
-      ExitFunctions;  // Stores any functions to be called before the program
-                      // terminates (naturally or by exit(exitCode))
-  mutex ExitScheduleMutex;  // Used when modifying the ExitFunctions array
-#endif
-
-  LARGE_INTEGER PerformanceFrequency;  // Used to time stuff
-
-  string ModuleName;  // Caches the module name (retrieve this with
-                      // os_get_current_module())
-
-  string WorkingDir;  // Caches the working dir (query/modify this with
-                      // os_get_working_dir(), os_set_working_dir())
-  mutex WorkingDirMutex;
-
-  array<string> Argv;
-};
-
-// :GlobalStateNoConstructors:
-// We create a byte array which is large enough to hold all global variables
-// because that avoids the C++ default constructor erasing the state of the
-// struct. We initialize it before we call any C++ constructors in the linker
-// table (see some stuff we do in exe_main.cpp in lstd/platform/windows_no_crt).
-inline byte Win32CommonState[sizeof(win32_common_state)];
-
-// Short-hand macro for sanity
-#define S ((win32_common_state *)&Win32CommonState[0])
-
-#define PERSISTENT platform_get_persistent_allocator()
-#define TEMP platform_get_temporary_allocator()
-
-inline wchar *utf8_to_utf16(string str, allocator alloc = {}) {
-  return platform_utf8_to_utf16(str, alloc);
+  utf8_to_utf16(str.Data, length(str), result);
+  return result;
 }
 
-inline string utf16_to_utf8(const wchar *str, allocator alloc = {}) {
-  return platform_utf16_to_utf8(str, alloc);
+// This function uses the platform temporary allocator if no explicit allocator
+// was specified.
+inline string platform_utf16_to_utf8(const wchar *str, allocator alloc = {}) {
+  string result;
+
+  if (!alloc) alloc = S->TempAlloc;
+
+  PUSH_ALLOC(alloc) {
+    // String length * 4 because one unicode character might take 4 bytes in
+    // utf8. This is just an approximation, not all space will be used!
+    reserve(result, c_string_length(str) * 4);
+  }
+
+  utf16_to_utf8(str, (char *)result.Data, &result.Count);
+
+  return result;
 }
 
 inline void report_warning_no_allocations(string message) {
   DWORD ignored;
 
   string preMessage = ">>> Warning (in windows_common.cpp): ";
-  WriteFile(S->CerrHandle, preMessage.Data, (DWORD)preMessage.Count, &ignored,
-            null);
+  WriteFile(S->CerrHandle, preMessage.Data, (DWORD)preMessage.Count, &ignored, null);
 
   WriteFile(S->CerrHandle, message.Data, (DWORD)message.Count, &ignored, null);
 
   string postMessage = ".\n";
-  WriteFile(S->CerrHandle, postMessage.Data, (DWORD)postMessage.Count, &ignored,
-            null);
+  WriteFile(S->CerrHandle, postMessage.Data, (DWORD)postMessage.Count, &ignored, null);
 }
 
 inline void setup_console() {
@@ -250,26 +131,30 @@ inline time_t os_get_time() {
 }
 
 inline f64 os_time_to_seconds(time_t time) {
-  return (f64)time / S->PerformanceFrequency.QuadPart;
+  return (f64)time / Win32PerformanceFrequency.QuadPart;
 }
-
-inline string os_get_current_module() { return S->ModuleName; }
 
 inline string os_get_working_dir() {
   DWORD required = GetCurrentDirectoryW(0, null);
 
   auto *dir16 = malloc<wchar>({.Count = required + 1, .Alloc = TEMP});
+  defer(free(dir16));
   if (!GetCurrentDirectoryW(required + 1, dir16)) {
     windows_report_hresult_error(HRESULT_FROM_WIN32(GetLastError()),
                                  "GetCurrentDirectory");
     return "";
   }
 
+  string workingDir = utf16_to_utf8(dir16);
+  defer(free(workingDir));
+
   lock(&S->WorkingDirMutex);
   defer(unlock(&S->WorkingDirMutex));
 
-  string workingDir = utf16_to_utf8(dir16);
-  PUSH_ALLOC(PERSISTENT) { S->WorkingDir = path_normalize(workingDir); }
+  PUSH_ALLOC(PERSISTENT) { 
+    free(S->WorkingDir);
+    S->WorkingDir = path_normalize(workingDir); 
+  }
   return S->WorkingDir;
 }
 
@@ -388,8 +273,6 @@ inline void os_set_clipboard_content(string content) {
   CloseClipboard();
 }
 
-inline array<string> os_get_command_line_arguments() { return S->Argv; }
-
 inline u32 os_get_hardware_concurrency() {
   SYSTEM_INFO si;
   GetSystemInfo(&si);
@@ -398,7 +281,9 @@ inline u32 os_get_hardware_concurrency() {
 
 inline u32 os_get_pid() { return (u32)GetCurrentProcessId(); }
 
-inline string os_read_from_console() {
+inline u64 os_get_current_thread_id() { return GetCurrentThreadId(); }
+
+inline string os_read_from_console_overwrite_previous_call() {
   DWORD read;
   ReadFile(S->CinHandle, S->CinBuffer, (DWORD)S->CONSOLE_BUFFER_SIZE, &read,
            null);
@@ -419,13 +304,12 @@ inline string os_read_from_console() {
     return;                                                                   \
   }
 
-inline mark_as_leak os_read_file_result os_read_entire_file(string path) {
-  os_read_file_result fail = {string(), false};
+inline mark_as_leak optional<string> os_read_entire_file(string path) {
   CREATE_FILE_HANDLE_CHECKED(
       file,
       CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null,
                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null),
-      fail);
+      {});
   defer(CloseHandle(file));
 
   LARGE_INTEGER size = {0};
@@ -435,11 +319,14 @@ inline mark_as_leak os_read_file_result os_read_entire_file(string path) {
   reserve(result, size.QuadPart);
   DWORD bytesRead;
   if (!ReadFile(file, result.Data, (u32)size.QuadPart, &bytesRead, null))
-    return {{}, false};
+  {
+    free(result);
+    return {};
+  }
   assert(size.QuadPart == bytesRead);
 
   result.Count = bytesRead;
-  return {result, true};
+  return result;
 }
 
 inline bool os_write_to_file(string path, string contents,
@@ -584,75 +471,17 @@ inline void platform_init_context() {
       arena_allocator, (void *)&TemporaryAllocatorData};
 }
 
-//
-// Initializes the state we need to function.
-//
-inline void platform_init_common_state() {
-  memset0(S, sizeof(win32_common_state));
+inline void platform_specific_init_common_state()
+{
+  QueryPerformanceFrequency(&Win32PerformanceFrequency);
 
-  S->CinMutex = create_mutex();
-  S->CoutMutex = create_mutex();
-#if defined LSTD_NO_CRT
-  S->ExitScheduleMutex = create_mutex();
-#endif
-  S->WorkingDirMutex = create_mutex();
-
-  platform_init_allocators();
-
-#if defined DEBUG_MEMORY
-  debug_memory_init();
-#endif
-
-  setup_console();
+  setup_console()
 
   get_module_name();
 
   parse_arguments();
-
-  QueryPerformanceFrequency(&S->PerformanceFrequency);
 }
 
-//
-// Reports leaks, uninitializes mutexes.
-//
-inline void platform_uninit_state() {
-#if defined DEBUG_MEMORY
-  debug_memory_uninit();
-#endif
-
-  // Uninit mutexes
-  free_mutex(&S->CinMutex);
-  free_mutex(&S->CoutMutex);
-#if LSTD_NO_CRT
-  free_mutex(&S->ExitScheduleMutex);
-#endif
-  free_mutex(&S->WorkingDirMutex);
-
-  platform_uninit_allocators();
-}
-
-//
-// This must be called first thing in the
-// program (or one of the first to ensure
-// proper initialization) before using the library.
-//
-// When we compile on Windows or on Linux with or without CRT, we
-// ensure this gets called before all global constructors.
-// This means you can safely use the library in global
-// state initialization, if you wish to.
-//
-inline void platform_state_init() {
-  // This prepares the global thread-local
-  // immutable Context variable (see context.h)
-  LSTD_NAMESPACE::platform_init_context();
-
-  platform_init_common_state();
-
-  void win32_crash_handler_init();
-  win32_crash_handler_init();
-
-  atexit(platform_uninit_state);
-}
 LSTD_END_NAMESPACE
 
 #if defined LSTD_NO_CRT
@@ -687,10 +516,8 @@ inline void atexit(void (*function)(void)) {
   unlock(&S->ExitScheduleMutex);
 }
 }
+
 #endif
 
 #undef MODULE_HANDLE
-#undef S
-#undef PERSISTENT
-#undef TEMP
 #undef CREATE_MAPPING_CHECKED

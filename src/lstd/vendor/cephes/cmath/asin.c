@@ -218,7 +218,7 @@ double asin();
 #endif
 extern double PIO2, PIO4, NAN;
 
-double asin(x) double x;
+double asin(double x)
 {
   double a, p, z, zz;
   short sign;
@@ -257,7 +257,7 @@ double asin(x) double x;
   return z;
 }
 
-double acos(x) double x;
+double acos(double x)
 {
   double z;
 

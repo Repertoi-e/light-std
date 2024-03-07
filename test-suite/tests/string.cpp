@@ -185,7 +185,7 @@ TEST(iterator) {
   // actually an array of utf32
 }
 
-TEST(append) {
+TEST(add) {
   {
     string result = make_string("Hello");
 
@@ -237,10 +237,10 @@ TEST(append) {
 
 TEST(builder) {
   string_builder builder;
-  append(&builder, "Hello");
-  append(&builder, ",THIS IS GARBAGE", 1);
-  append(&builder, string(" world"));
-  append(&builder, '!');
+  add(&builder, "Hello");
+  add(&builder, ",THIS IS GARBAGE", 1);
+  add(&builder, string(" world"));
+  add(&builder, '!');
   defer(free_buffers(&builder));
 
   string result = builder_to_string(&builder);

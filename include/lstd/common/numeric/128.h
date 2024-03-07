@@ -607,11 +607,22 @@ extern "C" unsigned char __cdecl _BitScanReverse64(unsigned long *_Index,
                                                    unsigned __int64 _Mask);
 #endif
 
+#if OS == WINDOWS
 inline s32 msb(u64 x) {
-  // @Platform
   unsigned long r = 0;
-  return _BitScanReverse64(&r, x) ? ((s32)r) : -1;  // @Platform
+  return _BitScanReverse64(&r, x) ? ((s32)r) : -1;
 }
+#elif OS == LINUX || OS == MACOS
+inline s32 msb(u64 x) {
+  if (x == 0) {
+    return -1;
+  }
+  // __builtin_clzll counts the leading zeros in the 64-bit integer x
+  // Since we want the index of the most significant bit, we subtract the
+  // count of leading zeros from 63 (the index of the highest bit in a 64-bit value)
+  return 63 - __builtin_clzll(x);
+}
+#endif
 
 inline s32 msb(u128 x) {
   if (x.hi != 0) return 64 + msb(x.hi);

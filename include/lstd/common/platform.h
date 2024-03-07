@@ -24,7 +24,6 @@
 #define WINDOWS 1
 #define MACOS 2
 #define LINUX 3
-#define ANDROID 4
 #define NO_OS 5
 
 #if defined LSTD_NO_OS
@@ -42,9 +41,6 @@
 #elif defined macintosh || defined __APPLE__ || defined __APPLE_CC__
 #define OS MACOS
 #define OS_STRING "MacOS"
-#elif defined __ANDROID__
-#define OS ANDROID
-#define OS_STRING "Android"
 #else
 #define OS NO_OS
 #endif
@@ -105,8 +101,10 @@
 #define POINTER_SIZE (BITS / 8)
 
 // Detect endianness
+#ifndef LITTLE_ENDIAN
 #define LITTLE_ENDIAN 1234
 #define BIG_ENDIAN 4321
+#endif
 
 #if OS == LINUX
 #include <endian.h>
@@ -137,6 +135,24 @@
 // Windows is always little-endian.
 #if !defined ENDIAN
 #if OS == WINDOWS
+#define ENDIAN LITTLE_ENDIAN
+#endif
+#endif  
+
+#if !defined ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
+    defined(__BIG_ENDIAN__) || \
+    defined(__ARMEB__) || \
+    defined(__THUMBEB__) || \
+    defined(__AARCH64EB__) || \
+    defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
+#define ENDIAN BIG_ENDIAN
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || \
+    defined(__LITTLE_ENDIAN__) || \
+    defined(__ARMEL__) || \
+    defined(__THUMBEL__) || \
+    defined(__AARCH64EL__) || \
+    defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__)
 #define ENDIAN LITTLE_ENDIAN
 #endif
 #endif
@@ -171,7 +187,7 @@
 #define no_alias __declspec(noalias)
 #define restrict __declspec(restrict)
 #else
-#define always_inline __attribute__((always_inline))
+#define always_inline inline
 #define never_inline __attribute__((noinline))
 #define no_vtable __attribute__((__type__(no_table)))
 #define no_alias __restrict

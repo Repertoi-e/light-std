@@ -1,5 +1,3 @@
-#pragma once
-
 #include "lstd/context.h"
 
 #include "lstd/fmt.h"

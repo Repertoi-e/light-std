@@ -813,8 +813,8 @@ s32 compare_lexicographically(string a, string b);
 //   1 if _b_ is before _a_
 s32 compare_lexicographically_ignore_case(string a, string b);
 
-inline s32 strings_match(string a, string b) { return compare(a, b) == -1; }
-inline s32 strings_match_ignore_case(string a, string b) {
+inline bool strings_match(string a, string b) { return compare(a, b) == -1; }
+inline bool strings_match_ignore_case(string a, string b) {
   return compare_ignore_case(a, b) == -1;
 }
 
@@ -936,7 +936,7 @@ void replace_all(string ref s, string search, code_point replace);
 void replace_all(string ref s, string search, string replace);
 
 // Returns a deep copy of _str_ and _count_
-inline mark_as_leak string make_string(const char *str, s64 count) {
+mark_as_leak inline string make_string(const char *str, s64 count) {
   string result;
   reserve(result, count);
   add(result, str, count);
@@ -944,12 +944,12 @@ inline mark_as_leak string make_string(const char *str, s64 count) {
 }
 
 // Returns a deep copy of _str_
-inline mark_as_leak string make_string(const char *str) {
+mark_as_leak inline string make_string(const char *str) {
   return make_string(str, c_string_length(str));
 }
 
 // Returns a deep copy of _src_
-inline mark_as_leak string clone(string no_copy src) {
+mark_as_leak inline string clone(string no_copy src) {
   return make_string(src.Data, src.Count);
 }
 
@@ -1196,7 +1196,7 @@ inline void set(string ref str, s64 index, code_point cp) {
   replace_range(str, begin, end, replace);
 }
 
-inline mark_as_leak char *to_c_string(string s, allocator alloc) {
+mark_as_leak inline char *to_c_string(string s, allocator alloc) {
   char *result = malloc<char>({.Count = s.Count + 1, .Alloc = alloc});
   memcpy(result, s.Data, s.Count);
   result[s.Count] = '\0';

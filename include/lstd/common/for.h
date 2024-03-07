@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math.h"
+#include "lstd/math.h"
 
 LSTD_BEGIN_NAMESPACE
 

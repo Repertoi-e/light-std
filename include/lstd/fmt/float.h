@@ -6,7 +6,7 @@
 
 LSTD_BEGIN_NAMESPACE
 
-inline void append_u64(string_builder *builder, u64 value) {
+inline void add_u64(string_builder *builder, u64 value) {
   const s32 BUFFER_SIZE = numeric<u64>::digits10;
   char buffer[BUFFER_SIZE];
 
@@ -23,7 +23,7 @@ inline void append_u64(string_builder *builder, u64 value) {
   }
 
   ++p;  // Roll back
-  append(builder, p, buffer + BUFFER_SIZE - p);
+  add(builder, p, buffer + BUFFER_SIZE - p);
 }
 
 // The returned exponent is the exponent base 10 of the LAST written digit in
@@ -37,12 +37,12 @@ s32 fmt_format_non_negative_float(string_builder *floatBuffer,
   bool fixed = specs.Format == fmt_float_specs::FIXED;
   if (value == 0) {
     if (precision <= 0 || !fixed) {
-      append(floatBuffer, U'0');
+      add(floatBuffer, U'0');
       return 0;
     }
 
     // @Speed
-    For(range(precision)) { append(floatBuffer, U'0'); }
+    For(range(precision)) { add(floatBuffer, U'0'); }
     return -precision;
   }
 
@@ -53,7 +53,7 @@ s32 fmt_format_non_negative_float(string_builder *floatBuffer,
   // (GENERAL, EXP, FIXED, etc.)
   if (precision < 0) {
     auto dec = dragonbox_format_float(value);
-    append_u64(floatBuffer, dec.Significand);
+    add_u64(floatBuffer, dec.Significand);
     return dec.Exponent;
   }
 

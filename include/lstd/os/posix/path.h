@@ -1,112 +1,201 @@
 #pragma once
 
-#include "../path_common.h"
+#include "../../string.h"
 
-//
-// This module provides facilities to work with paths and files, POSIX version.
-// Also provides facilities to query the OS and move/copy/read/write, etc.
-// All functions are prefixed with "path_" so you can find them easily with
-// autocomplete.
-//
-// We import this module when compiling for POSIX platforms.
-// If you want to explicitly work with POSIX paths, import this module directly.
-//
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <dirent.h>
 
 LSTD_BEGIN_NAMESPACE
 
-inline const char OS_PATH_SEPARATOR = '/';
-
-always_inline bool path_is_sep(code_point ch) { return ch == '/'; }
-
-// Returns whether a path is absolute.
-// Trivial in POSIX (starts with '/'), harder on Windows.
-//
-// e.g.
-//    /home/user/me       -> true
-//    ./data/myData       -> false
-//    ../data/myData      -> false
-//    data/myData         -> false
-inline bool path_is_absolute(string path) { return path_is_sep(path[0]); }
-
-// Joins two or more paths.
-// Ignore the previous parts if a part is absolute.
-// This is the de facto way to build paths. Takes care of slashes automatically.
-inline mark_as_leak string path_join(array<string> paths) {
-  assert(false && "Not implemented");
-  return "";
+// == is_file() || is_directory()
+inline bool path_exists(string path) {
+    struct stat buffer;
+    return stat(to_c_string_temp(path), &buffer) == 0;
 }
 
-mark_as_leak always_inline string path_join(string one, string other) {
-  auto arr = make_stack_array(one, other);
-  return path_join(arr);
+inline bool path_is_file(string path) {
+    struct stat buffer;
+    if (stat(to_c_string_temp(path), &buffer) != 0)
+        return false;
+    return S_ISREG(buffer.st_mode);
 }
 
-// Normalize a pathname by collapsing redundant separators and up-level
-// references so that A//B, A/B/, A/./B and A/foo/../B all become A/B. This
-// string manipulation may change the meaning of a path that contains symbolic
-// links.
-inline string path_normalize(string path) {
-  assert(false && "Not implemented");
-  return "";
+inline bool path_is_directory(string path) {
+    struct stat buffer;
+    if (stat(to_c_string_temp(path), &buffer) != 0)
+        return false;
+    return S_ISDIR(buffer.st_mode);
 }
 
-// Splits path into two components: head (everything up to the last '/') and
-// tail (the rest). The resulting head won't end in '/' unless it is the root.
-//
-// Note: The returned strings are substrings so they shouldn't be freed.
-inline path_split_result path_split(string path) {
-  s64 i = search(path, '/', search_options{.Start = -1, .Reversed = true}) + 1;
-
-  string head = slice(path, 0, i);
-  string tail = slice(path, i, length(path));
-
-  // If head exists and doesn not consist only of slashes
-  auto notSlash = [](code_point cp) { return cp != '/'; };
-  if (head.Data && search(head, &notSlash) != -1) {
-    head = slice(
-        head, 0,
-        search(head, &notSlash, search_options{.Start = -1, .Reversed = true}) +
-            1);
-  }
-
-  return {head, tail};
+inline bool path_is_symbolic_link(string path) {
+    struct stat buffer;
+    if (lstat(to_c_string_temp(path), &buffer) != 0)
+        return false;
+    return S_ISLNK(buffer.st_mode);
 }
 
-// Returns the final component of the path
-// e.g.
-//    /home/user/me/     ->
-//    /home/user/me.txt  -> me.txt
-//    /home/user/dir     -> dir
-//
-// Note: The result is a substring and shouldn't be freed.
-always_inline string path_base_name(string path) {
-  auto [_, tail] = path_split(path);
-  return tail;
+inline s64 path_file_size(string path) {
+    struct stat buffer;
+    if (stat(to_c_string_temp(path), &buffer) != 0 || S_ISDIR(buffer.st_mode))
+        return 0;
+    return buffer.st_size;
 }
 
-// Returns everything before the final component of the path
-// e.g.
-//    /home/user/me/     -> /home/user/me
-//    /home/user/me.txt  -> /home/user
-//    /home/user/dir     -> /home/user
-//
-// Note: The result is a substring and shouldn't be freed.
-always_inline string path_directory(string path) {
-  auto [head, _] = path_split(path);
-  return head;
+inline time_t path_creation_time(string path) {
+    struct stat buffer;
+    if (stat(to_c_string_temp(path), &buffer) != 0)
+        return 0;
+    return buffer.st_ctime;
 }
 
-// Split a path in root and extension.
-// The extension is everything starting at the last dot in the last pathname
-// component; the root is everything before that.
-//
-//    /home/user/me.txt       -> { "/home/user/me,       ".txt" }
-//    /home/user/me.data.txt  -> { "/home/user/me.data", "/txt" }
-//    /home/user/me           -> { "/home/user/me",      "" }
-//
-// Note: The returned strings are substrings so they shouldn't be freed.
-always_inline path_split_extension_result path_split_extension(string path) {
-  return path_split_extension_general(path, '/', 0, '.');
+inline time_t path_last_access_time(string path) {
+    struct stat buffer;
+    if (stat(to_c_string_temp(path), &buffer) != 0)
+        return 0;
+    return buffer.st_atime;
+}
+
+inline time_t path_last_modification_time(string path) {
+    struct stat buffer;
+    if (stat(to_c_string_temp(path), &buffer) != 0)
+        return 0;
+    return buffer.st_mtime;
+}
+
+inline bool path_create_directory(string path) {
+    return mkdir(to_c_string_temp(path), 0777) == 0;
+}
+
+inline bool path_delete_file(string path) {
+    return unlink(to_c_string_temp(path)) == 0;
+}
+
+inline bool path_delete_directory(string path) {
+    return rmdir(to_c_string_temp(path)) == 0;
+}
+
+inline bool copy_file(const char *source, const char *destination, bool overwrite) {
+    int source_fd, dest_fd;
+    ssize_t bytes_read;
+    char buffer[4096];
+
+    // Open source file for reading
+    source_fd = open(source, O_RDONLY);
+    if (source_fd == -1) {
+        perror("Error opening source file");
+        return false;
+    }
+
+    // Open destination file for writing
+    dest_fd = open(destination, O_WRONLY | O_CREAT | (overwrite ? O_TRUNC : O_EXCL), 0666);
+    if (dest_fd == -1) {
+        perror("Error opening destination file");
+        close(source_fd);
+        return false;
+    }
+
+    // Copy data from source to destination
+    while ((bytes_read = read(source_fd, buffer, sizeof(buffer))) > 0) {
+        if (write(dest_fd, buffer, bytes_read) != bytes_read) {
+            perror("Error writing to destination file");
+            close(source_fd);
+            close(dest_fd);
+            return false;
+        }
+    }
+
+    // Check for read error
+    if (bytes_read == -1) {
+        perror("Error reading from source file");
+        close(source_fd);
+        close(dest_fd);
+        return false;
+    }
+
+    // Close file descriptors
+    close(source_fd);
+    close(dest_fd);
+
+    return true;
+}
+
+// Implementing path_copy function
+inline bool path_copy(string path, string dest, bool overwrite) {
+    // Check if the source file exists
+    if (!path_exists(path)) {
+        fprintf(stderr, "Source file does not exist\n");
+        return false;
+    }
+
+    // Check if destination file already exists and overwrite is not allowed
+    if (path_exists(dest) && !overwrite) {
+        fprintf(stderr, "Destination file already exists and overwrite is disabled\n");
+        return false;
+    }
+
+    const char *path_c_string = to_c_string(path);
+    defer(free(path_c_string));
+
+    return copy_file(path_c_string, to_c_string_temp(dest), overwrite);
+}
+
+// Implementing path_move function
+inline bool path_move(string path, string dest, bool overwrite) {
+    // Check if the source file exists
+    if (!path_exists(path)) {
+        fprintf(stderr, "Source file does not exist\n");
+        return false;
+    }
+
+    // Check if destination file already exists and overwrite is not allowed
+    if (path_exists(dest) && !overwrite) {
+        fprintf(stderr, "Destination file already exists and overwrite is disabled\n");
+        return false;
+    }
+
+    const char *path_c_string = to_c_string(path);
+    defer(free(path_c_string));
+    
+    if (path_copy(path_c_string, to_c_string_temp(dest), overwrite)) {
+        if (unlink(to_c_string_temp(path)) == -1) {
+            perror("Error deleting source file after move");
+            return false;
+        }
+        return true;
+    } else {
+        fprintf(stderr, "Error moving file\n");
+        return false;
+    }
+}
+
+inline bool path_rename(string path, string newName) {
+    const char *path_c_string = to_c_string(path);
+    defer(free(path_c_string));
+
+    return rename(path_c_string, to_c_string_temp(newName)) == 0;
+}
+
+inline bool path_create_hard_link(string path, string dest) {
+   const char *path_c_string = to_c_string(path);
+    defer(free(path_c_string));
+
+    return link(path_c_string, to_c_string_temp(dest)) == 0;
+}
+
+inline bool path_create_symbolic_link(string path, string dest) {
+   const char *path_c_string = to_c_string(path);
+    defer(free(path_c_string));
+
+    return symlink(path_c_string, to_c_string_temp(dest)) == 0;
 }
 
 LSTD_END_NAMESPACE
