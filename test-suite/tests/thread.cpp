@@ -13,12 +13,13 @@ TEST(ids) {
   print("\n\t\tMain thread's id is {}.\n", Context.ThreadID);
 
   thread t1 = create_and_launch_thread(thread_ids);
-  wait(t1);
 
   thread t2 = create_and_launch_thread(thread_ids);
-  wait(t2);
 
   thread t3 = create_and_launch_thread(thread_ids);
+
+  wait(t2);
+  wait(t1);
   wait(t3);
 
   For(range(45)) print(" ");
