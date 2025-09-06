@@ -1,7 +1,5 @@
 #include "test.h"
 
-#include "lstd/lstd_init_workaround_for_posix_needs_to_be_in_only_one_cpp.h"
-
 #include "build_test_table.cpp"
 
 void run_tests() {
@@ -82,6 +80,7 @@ void write_output_to_file() {
 }
 
 s32 main() {
+  platform_state_init();
   time_t start = os_get_time();
 
   TemporaryAllocatorData.Block = os_allocate_block(1_MiB);
