@@ -1,12 +1,45 @@
+// Test runner using static registry populated via TEST macro
 #include "test.h"
 
-#include "build_test_table.cpp"
+// Define the global registry declared in test.h
+test_entry g_AllTests[LSTD_MAX_TESTS];
+u32 g_AllTestsCount = 0;
+
+// Unity includes of test sources (manual)
+#include "tests/bits.cpp"
+#include "tests/file.cpp"
+#include "tests/fmt.cpp"
+#include "tests/parse.cpp"
+#include "tests/range.cpp"
+#include "tests/signal.cpp"
+#include "tests/storage.cpp"
+#include "tests/string.cpp"
+#include "tests/thread.cpp"
 
 void run_tests() {
   reserve(asserts::GlobalFailed);
 
   print("\n");
-  for (auto [fileName, tests] : g_TestTable) {
+
+  // Group tests by file for pretty printing
+  hash_table<string, array<test>> table;  // key: short file name
+  resize(table, 32);
+  for (u32 i = 0; i < g_AllTestsCount; ++i) {
+    string fileStr = g_AllTests[i].File;
+    string shortFile = get_short_file_path(fileStr);
+    auto kv = search(table, shortFile);
+    array<test>* arr;
+    if (kv.Value) {
+      arr = kv.Value;
+    } else {
+      array<test> empty = {};
+      reserve(empty);
+      arr = add(table, shortFile, empty).Value;
+    }
+    add(*arr, test{g_AllTests[i].Name, g_AllTests[i].Function});
+  }
+
+  for (auto [fileName, tests] : table) {
     print("{}:\n", *fileName);
 
     u32 sucessfulProcs = 0;
@@ -16,7 +49,6 @@ void run_tests() {
 
       auto failedAssertsStart = asserts::GlobalFailed.Count;
 
-      // Run the test
       if (it.Function) {
         it.Function();
       } else {
@@ -24,13 +56,11 @@ void run_tests() {
         continue;
       }
 
-      // Check if test has failed asserts
       if (failedAssertsStart == asserts::GlobalFailed.Count) {
         print("{!GREEN}OK{!}\n");
         sucessfulProcs++;
       } else {
         print("{!RED}FAILED{!}\n");
-
         For(range(failedAssertsStart, asserts::GlobalFailed.Count)) {
           print("          {!GRAY}>>> {}{!}\n", asserts::GlobalFailed[it]);
         }
@@ -38,7 +68,7 @@ void run_tests() {
       }
     }
 
-    f32 successRate = (f32)sucessfulProcs / (f32)tests->Count;
+    f32 successRate = tests->Count ? (f32)sucessfulProcs / (f32)tests->Count : 0.0f;
     print("{!GRAY}{:.2%} success ({} out of {} procs)\n{!}\n", successRate,
           sucessfulProcs, tests->Count);
   }
@@ -54,14 +84,11 @@ void run_tests() {
 
   if (failedCount) {
     print("[Test Suite] Failed asserts:\n");
-    For(asserts::GlobalFailed) {
-      print("    >>> {!RED}FAILED:{!GRAY} {}{!}\n", it);
-    }
+    For(asserts::GlobalFailed) { print("    >>> {!RED}FAILED:{!GRAY} {}{!}\n", it); }
   }
   print("\n{!}");
 
-  // These need to be reset in case we rerun the tests (we may spin this
-  // function up in a while loop a bunch of times when looking for rare bugs).
+  // Reset between runs (useful if looping)
   asserts::GlobalCalledCount = 0;
   free(asserts::GlobalFailed);
 }
@@ -96,21 +123,17 @@ s32 main() {
   if (LOG_TO_FILE) {
     newContext.LogAllAllocations = true;
     newContext.Log = &g_Logger;
-
     newContext.FmtDisableAnsiCodes = true;
   }
 
   OVERRIDE_CONTEXT(newContext);
 
-  build_test_table();
   run_tests();
 
   print("\nFinished tests, time taken: {:f} seconds, bytes used: {}\n\n",
         os_time_to_seconds(os_get_time() - start), TemporaryAllocatorData.Used);
 
-  if (LOG_TO_FILE) {
-    write_output_to_file();
-  }
+  if (LOG_TO_FILE) { write_output_to_file(); }
 
 #if defined DEBUG_MEMORY
   // debug_memory_report_leaks();
