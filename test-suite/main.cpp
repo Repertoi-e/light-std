@@ -2,6 +2,8 @@
 
 #include "lstd/lstd_init_workaround_for_posix_needs_to_be_in_only_one_cpp.h"
 
+#include "build_test_table.cpp"
+
 void run_tests() {
   reserve(asserts::GlobalFailed);
 
