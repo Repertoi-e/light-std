@@ -31,9 +31,7 @@ struct format_struct {
                  // individual arguments
 
   format_struct(fmt_context *f, string name, bool noSpecs = false)
-      : F(f), Name(name), NoSpecs(noSpecs) {
-    reserve(Fields);
-  }
+      : F(f), Name(name), NoSpecs(noSpecs) {}
 
   // I know we are against hidden freeing but having this destructor is fine
   // because it helps with code conciseness.
@@ -58,9 +56,7 @@ struct format_tuple {
                  // individual arguments
 
   format_tuple(fmt_context *f, string name, bool noSpecs = false)
-      : F(f), Name(name), NoSpecs(noSpecs) {
-    reserve(Fields);
-  }
+      : F(f), Name(name), NoSpecs(noSpecs) {}
 
   // I know we are against hidden freeing but having this destructor is fine
   // because it helps with code conciseness.
@@ -83,9 +79,7 @@ struct format_list {
   bool NoSpecs;  // Write the result without taking into account specs for
                  // individual arguments
 
-  format_list(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {
-    reserve(Fields);
-  }
+  format_list(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
 
   // I know we are against hidden freeing but having this destructor is fine
   // because it helps with code conciseness.

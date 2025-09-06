@@ -23,7 +23,6 @@ TEST(stack_array) {
 
 TEST(array) {
   array<s64> a;
-  reserve(a);
   defer(free(a.Data));
 
   For(range(10)) { a += {it}; }

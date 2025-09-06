@@ -509,7 +509,6 @@ inline void atexit(void (*function)(void)) {
 
   // @Cleanup Lock-free list
   PUSH_ALLOC(PERSISTENT) {
-    reserve(S->ExitFunctions);
     add(S->ExitFunctions, function);
   }
 

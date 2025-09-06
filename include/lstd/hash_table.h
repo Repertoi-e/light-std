@@ -138,7 +138,7 @@ void resize(any_hash_table auto ref table, s64 slotsToAllocate,
 
 // Free any memory allocated by this object and reset count
 void free(any_hash_table auto ref table) {
-  if (table.Allocated) free(table.Entries);
+  free(table.Entries);
   table.Allocated = 0;
   table.Count = 0;
   table.SlotsFilled = 0;

@@ -93,12 +93,12 @@ using array_data_t = remove_pointer_t<decltype(T::Data)>;
 //
 // This function checks if the index is in range if LSTD_ARRAY_BOUNDS_CHECK is
 // defined.
-//    In that case if _toleratePastLast_ is true, index == length is also
+//    In that case if _tolerateOnePastLast_ is true, index == length is also
 //    accepted. This is useful when you are calculating the end index of an
 //    exclusive range and you don't want to trip an out of bounds assert.
 //
 always_inline s64 translate_negative_index(s64 index, s64 length,
-                                           bool toleratePastLast = false);
+                                           bool tolerateOnePastLast = false);
 
 struct search_options {
   s64 Start = 0;  // At which index to begin searching
@@ -171,8 +171,7 @@ auto slice(any_array_like auto ref arr, s64 begin, s64 end) {
 // value for the initial _n_ can significantly improve performance.
 //
 // In the end, _arr_ is a newly allocated/reallocated array.
-void reserve(any_dynamic_array_like auto ref arr, s64 n = -1,
-             allocator alloc = {});
+void reserve(any_dynamic_array_like auto ref arr, s64 n = -1, allocator alloc = {});
 
 // Checks _arr_ if there is space for at least _fit_ new elements.
 // Reserves space in the array if there is not enough. The new size is equal
@@ -297,17 +296,17 @@ void check_debug_memory(any_dynamic_array_like auto no_copy arr);
 //
 
 always_inline s64 translate_negative_index(s64 index, s64 length,
-                                           bool toleratePastLast) {
+                                           bool tolerateOnePastLast) {
   if (index < 0) {
     s64 r = length + index;
 #if defined LSTD_ARRAY_BOUNDS_CHECK
     assert(r >= 0 && "Out of bounds");
-    assert(r < (toleratePastLast ? length + 1 : length) && "Out of bounds");
+    assert(r < (tolerateOnePastLast ? length + 1 : length) && "Out of bounds");
 #endif
     return r;
   } else {
 #if LSTD_ARRAY_BOUNDS_CHECK
-    assert(index < (toleratePastLast ? length + 1 : length) && "Out of bounds");
+    assert(index < (tolerateOnePastLast ? length + 1 : length) && "Out of bounds");
 #endif
     return index;
   }
@@ -391,19 +390,19 @@ void check_debug_memory(any_dynamic_array_like auto no_copy arr) {
   //
   // If you assert here, there are two possible reasons:
   //
-  // 1. Attempting to modify a array which is a view
-  // and _Data_ wasn't dynamically allocated.
+  // Array had memory outside of our debug memory list, i.e
+  // not with our malloc/free/realloc functions, which 
+  // do book-keeping of allocations.
   //
-  // Make sure you call  reserve()  beforehand
-  // to copy the contents and make a array which owns
-  // memory.
+  // Or: attempting to modify an array from another thread,
+  // which has it's own memory book-keeping list.
   //
-  // 2. Attempting to modify an array from another thread...
   // Caution! This container is not thread-safe!
   //
-  assert(arr.Allocated);
 #if defined DEBUG_MEMORY
-  assert(debug_memory_list_contains((allocation_header *)arr.Data - 1));
+  if (arr.Allocated) {
+    assert(debug_memory_list_contains((allocation_header *)arr.Data - 1));
+  }
 #endif
 }
 
@@ -444,8 +443,7 @@ void maybe_grow(any_dynamic_array_like auto ref arr, s64 fit) {
 }
 
 template <any_dynamic_array_like Arr>
-auto *insert_at_index(Arr ref arr, s64 index,
-                      array_data_t<Arr> no_copy element) {
+auto *insert_at_index(Arr ref arr, s64 index, array_data_t<Arr> no_copy element) {
   maybe_grow(arr, 1);
 
   s64 offset = translate_negative_index(index, arr.Count, true);
@@ -459,8 +457,7 @@ auto *insert_at_index(Arr ref arr, s64 index,
 }
 
 template <any_dynamic_array_like Arr>
-auto *insert_at_index(Arr ref arr, s64 index, const array_data_t<Arr> *ptr,
-                      s64 size) {
+auto *insert_at_index(Arr ref arr, s64 index, const array_data_t<Arr> *ptr, s64 size) {
   maybe_grow(arr, size);
 
   s64 offset = translate_negative_index(index, arr.Count, true);
@@ -474,8 +471,6 @@ auto *insert_at_index(Arr ref arr, s64 index, const array_data_t<Arr> *ptr,
 }
 
 void remove_ordered_at_index(any_dynamic_array_like auto ref arr, s64 index) {
-  check_debug_memory(arr);
-
   s64 offset = translate_negative_index(index, arr.Count);
 
   auto *where = arr.Data + offset;
@@ -532,8 +527,8 @@ void remove_range(any_dynamic_array_like auto ref arr, s64 begin, s64 end) {
 }
 
 template <any_dynamic_array_like Arr, any_array_like Arr2>
-requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>) void replace_range(
-    Arr ref arr, s64 begin, s64 end, Arr2 no_copy replace) {
+  requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>) 
+void replace_range(Arr ref arr, s64 begin, s64 end, Arr2 no_copy replace) {
   check_debug_memory(arr);
 
   s64 targetBegin = translate_negative_index(begin, arr.Count);
@@ -560,12 +555,8 @@ requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>) void replace_range(
 }
 
 template <any_dynamic_array_like Arr, any_array_like Arr2, any_array_like Arr3>
-requires(is_same<array_data_t<Arr>, array_data_t<Arr2>> &&is_same<
-         array_data_t<Arr>,
-         array_data_t<Arr3>>) void replace_all(Arr ref arr, Arr2 no_copy search,
-                                               Arr3 no_copy replace) {
-  check_debug_memory(arr);
-
+  requires(is_same<array_data_t<Arr>, array_data_t<Arr2>> && is_same<array_data_t<Arr>,array_data_t<Arr3>>) 
+void replace_all(Arr ref arr, Arr2 no_copy search, Arr3 no_copy replace) {
   if (!arr.Data || !arr.Count) return;
 
   assert(search.Data && search.Count);

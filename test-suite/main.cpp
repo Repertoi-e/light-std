@@ -17,8 +17,6 @@ u32 g_AllTestsCount = 0;
 #include "tests/thread.cpp"
 
 void run_tests() {
-  reserve(asserts::GlobalFailed);
-
   print("\n");
 
   // Group tests by file for pretty printing
@@ -33,7 +31,6 @@ void run_tests() {
       arr = kv.Value;
     } else {
       array<test> empty = {};
-      reserve(empty);
       arr = add(table, shortFile, empty).Value;
     }
     add(*arr, test{g_AllTests[i].Name, g_AllTests[i].Function});

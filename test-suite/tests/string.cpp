@@ -201,7 +201,6 @@ TEST(add) {
     string c = " world!";
 
     string result;
-    reserve(result);
     result += a;
     result += b;
     result += c;
@@ -212,7 +211,6 @@ TEST(add) {
 
   {
     string result;
-    reserve(result);
 
     For(range(10)) {
       add(result, 'i');
@@ -224,7 +222,6 @@ TEST(add) {
 
   {
     string result;
-    reserve(result);
 
     For(range(10)) {
       add(result, u8"Д");
@@ -265,7 +262,6 @@ TEST(remove_all) {
 
   b = clone(a);
 
-  reserve(a);
   remove_all(a, "x");
   assert_eq_str(b, a);
   free(b);

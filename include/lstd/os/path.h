@@ -427,7 +427,6 @@ inline string path_directory(string path) {
 
 mark_as_leak inline array<string> path_split_into_components(string path, string seps) {
   array<string> result;
-  reserve(result);
 
   auto matchSep = [=](code_point cp) { return has(seps, cp); };
 

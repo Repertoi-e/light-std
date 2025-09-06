@@ -45,8 +45,9 @@
  * Example:
  * Arrays are basic wrappers around contiguous memory with three fields (`Data`,
  * `Count`, and `Allocated`). By default, arrays are views. To make them
- * dynamic, call `reserve(arr)` or `make_array(...)`. To allocate and free
- * memory, call `reserve(arr)` and `free(arr)` or use `defer(free(arr))`.
+ * dynamic, call `reserve(arr)` or `make_array(...)`, or any function which
+ * appends or removes elements from them (which calls reserve internally). 
+ * To free an array, call `free(arr)` or use `defer(free(arr))`.
  *
  * `string`s behave like arrays but have different types to avoid conflicts.
  * They take indices to code points (as they are UTF-8 by default) and are not

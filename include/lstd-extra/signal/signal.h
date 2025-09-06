@@ -24,7 +24,6 @@ struct delegate_signal<R(Args...)> {
 // callback later
 template <typename F>
 s64 connect(delegate_signal<F> ref s, delegate<F> cb) {
-  reserve(s.Callbacks);
   if (cb) add(s.Callbacks, cb);
   return s.Callbacks.Count - 1;
 }

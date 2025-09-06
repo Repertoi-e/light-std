@@ -711,29 +711,33 @@ inline void reserve(string ref s, s64 n = -1, allocator alloc = {}) {
 }
 
 inline void check_debug_memory(string no_copy s) {
-  assert(s.Allocated);
 #if defined DEBUG_MEMORY
   //
   // If you assert here, there are two possible reasons:
   //
-  // 1. Attempting to modify a string which is a view
-  // and _Data_ wasn't dynamically allocated. This may
-  // also happen if an string points to a string from
-  // the text table of the executable.
+  // 1. You created a string from a literal or from memory that wasn't
+  // allocated with lstd's allocators, but then you called a function that
+  // modifies the string (like set() or operator[] to change a code point or
+  // reserve()).
   //
-  // Make sure you call  reserve()  beforehand
-  // to copy the contents and make a string which owns
-  // memory.
+  // Our memory layer keeps track of all allocations, so if you try to
+  // modify a string that wasn't allocated with it, it will assert here.
   //
   // 2. Attempting to modify an string from another thread...
   // Caution! This container is not thread-safe!
   //
-  assert(debug_memory_list_contains((allocation_header *)s.Data - 1));
+  // Each thread has it's own memory list and we add this check
+  // to make sure that you don't try to modify a string from a different
+  // thread than the one that created it.
+  //
+  if (s.Allocated) {
+    assert(debug_memory_list_contains((allocation_header *)s.Data - 1));
+  }
 #endif
 }
 
 inline void free(string ref s) {
-  free(s.Data);
+  if (s.Allocated && s.Data) free(s.Data);
   s.Count = s.Allocated = 0;
 }
 

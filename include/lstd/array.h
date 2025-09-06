@@ -19,8 +19,7 @@ LSTD_BEGIN_NAMESPACE
 //
 // This object being just three 64 bit integers can be cheaply and safely passed
 // to functions by value without performance concerns and indirection.
-// (Remember that the array doesn't "own" it's buffer, it's up to the
-// programmer!)
+// (Remember that the array doesn't "own" it's buffer)
 //
 // Functionality for dynamic arrays and array views is implemented in
 // array_like.h
@@ -36,7 +35,7 @@ struct array {
   // This constructs a view (use make_array to copy)
   array(T *data, s64 count) : Data(data), Count(count) {}
 
-  // .. while here we dynamically allocated because of different behavior in
+  // .. while here we dynamically allocate it because of different behavior in
   // Debug, Release. (initializer lists get optimized). Essentially this
   // provides support for short-hand for doing this:
   //
@@ -45,7 +44,6 @@ struct array {
   // Instead of calling   make_array(...)   with pointer and size to stack
   // elements.
   array(initializer_list<T> items) {
-    reserve(*this);
     add(*this, items);
   }
 
@@ -60,7 +58,6 @@ struct array {
 template <typename T>
 mark_as_leak array<T> make_array(T *data, s64 count) {
   array<T> result;
-  reserve(result, count);
   add(result, data, count);
   return result;
 }
@@ -78,7 +75,7 @@ mark_as_leak array<T> clone(array<T> no_copy src) {
 
 template <typename T>
 void free(array<T> ref arr) {
-  free(arr.Data);
+  if (arr.Allocated && arr.Data) free(arr.Data);
   arr.Count = arr.Allocated = 0;
 }
 
