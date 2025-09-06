@@ -245,16 +245,14 @@ typedef struct Nob_Glob_Opts
     bool recursive;
     bool include_hidden;
     bool include_dirs;
-    bool include_files;
+    bool dont_include_files;
 } Nob_Glob_Opts;
 
 NOBDEF void nob_glob_recursive_opt(Nob_File_Paths *files, const char *dir_path, Nob_Glob_Opts opts);
 NOBDEF Nob_File_Paths nob_glob_opt(const char *dir_path, Nob_Glob_Opts opts);
 
-#define nob_default_glob_opts .extensions = {0}, .recursive = false, .include_hidden = false, .include_dirs = false, .include_files = true
-
-#define nob_glob(dir_path, ...) nob_glob_opt(dir_path, (Nob_Glob_Opts){nob_default_glob_opts, __VA_ARGS__})
-#define nob_glob_append(file_paths, dir_path, ...) nob_glob_recursive_opt(file_paths, dir_path, (Nob_Glob_Opts){nob_default_glob_opts, __VA_ARGS__})
+#define nob_glob(dir_path, ...) nob_glob_opt(dir_path, (Nob_Glob_Opts){__VA_ARGS__})
+#define nob_glob_append(file_paths, dir_path, ...) nob_glob_recursive_opt(file_paths, dir_path, (Nob_Glob_Opts){__VA_ARGS__})
 
 NOBDEF bool nob_needs_rebuild_dirs(const char *output_path, Nob_File_Paths dirs, Nob_Strings extensions);
 NOBDEF bool nob_needs_rebuild_cpp_sources(const char *output_path, Nob_File_Paths source_dirs);
@@ -653,6 +651,58 @@ NOBDEF bool nob_set_current_dir(const char *path);
 #    define nob_debug_info(cmd, enabled) do { if (enabled) nob_cmd_append(cmd, "-g"); } while(0)
 #  endif
 #endif // nob_debug_info
+
+typedef enum Nob_Optimization_Level {
+    NOB_OPTIMIZATION_O0,
+    NOB_OPTIMIZATION_O2,
+    NOB_OPTIMIZATION_O3
+} Nob_Optimization_Level;
+
+#ifndef nob_optimize_level
+#if defined (__WIN32)
+#  define nob_optimize_level(cmd, level) do { \
+        if (level == NOB_OPTIMIZATION_O0) { \
+            cmd_append(cmd, "/Od"); \
+        } else if (level == NOB_OPTIMIZATION_O2) { \
+            cmd_append(cmd, "/O2"); \
+        } else if (level == NOB_OPTIMIZATION_O3) { \
+            cmd_append(cmd, "/Ox"); \
+        } \
+    } while(0)
+#else
+#  define nob_optimize_level(cmd, level) do { \
+        if (level == NOB_OPTIMIZATION_O0) { \
+            cmd_append(cmd, "-O0"); \
+        } else if (level == NOB_OPTIMIZATION_O2) { \
+            cmd_append(cmd, "-O2"); \
+        } else if (level == NOB_OPTIMIZATION_O3) { \
+            cmd_append(cmd, "-O3"); \
+        } \
+    } while(0)
+#endif 
+#endif // nob_optimize_level
+
+#ifndef nob_language_c
+#if defined(_WIN32)
+#  define nob_language_c(cmd) cmd_append(cmd, "/TC")
+#else
+#  define nob_language_c(cmd) cmd_append(cmd, "-x", "c")
+#endif
+#endif // nob_language_c
+
+#ifndef nob_language_cpp
+#if defined(_WIN32)
+#  define nob_language_cpp(cmd, standard) do { \
+        cmd_append(cmd, "/TP"); \
+        cmd_append(cmd, temp_sprintf("/std:%s", standard)); \
+    } while(0)
+#else
+#  define nob_language_cpp(cmd, standard) do { \
+        cmd_append(cmd, "-x", "c++"); \
+        cmd_append(cmd, temp_sprintf("-std=%s", standard)); \
+    } while(0)
+#endif
+#endif // nob_language_cpp
 
 #ifndef nob_entry_point
 #  if defined(_WIN32)
@@ -1762,7 +1812,7 @@ NOBDEF bool nob_delete_file(const char *path)
 NOBDEF bool nob_needs_rebuild_dirs(const char *output_path, Nob_File_Paths dirs, Nob_Strings extensions) {
     Nob_File_Paths all_files = {0};
     nob_da_foreach(const char *, it, &dirs) {
-        nob_glob_append(&all_files, *it, .extensions = extensions, .recursive = true, .include_files = true, .include_dirs = false);
+        nob_glob_append(&all_files, *it, .extensions = extensions, .recursive = true, .dont_include_files = false, .include_dirs = false);
     }
     bool rebuild_needed = false;
     if (all_files.count > 0) {
@@ -1806,7 +1856,7 @@ NOBDEF void nob_glob_recursive_opt(Nob_File_Paths *files, const char *dir_path, 
                 if (opts.include_dirs) {
                     nob_da_append(files, strdup(full_path));
                 }
-            } else if (opts.include_files) {
+            } else if (!opts.dont_include_files) {
                 if (opts.extensions.count) {
                     if (nob_file_has_extension(entry, opts.extensions)) {
                         nob_da_append(files, strdup(full_path));

@@ -36,55 +36,6 @@ void print_usage(const char *program_name) {
     nob_log(INFO, "  release    - Release build (default)\n");
 }
 
-typedef enum OptimizationLevel {
-    OPTIMIZATION_O0,
-    OPTIMIZATION_O1,
-    OPTIMIZATION_O2,
-    OPTIMIZATION_O3
-} OptimizationLevel;
-
-void nob_optimize_level(Cmd *cmd, OptimizationLevel level) {
-#ifdef _WIN32
-    if (level == OPTIMIZATION_O0) {
-        cmd_append(cmd, "/Od");
-    } else if (level == OPTIMIZATION_O1) {
-        cmd_append(cmd, "/O1");
-    } else if (level == OPTIMIZATION_O2) {
-        cmd_append(cmd, "/O2");
-    } else if (level == OPTIMIZATION_O3) {
-        cmd_append(cmd, "/Ox");
-    }
-#else
-    if (level == OPTIMIZATION_O0) {
-        cmd_append(cmd, "-O0");
-    } else if (level == OPTIMIZATION_O1) {
-        cmd_append(cmd, "-O1");
-    } else if (level == OPTIMIZATION_O2) {
-        cmd_append(cmd, "-O2");
-    } else if (level == OPTIMIZATION_O3) {
-        cmd_append(cmd, "-O3");
-    }
-#endif
-}
-
-void nob_language_c(Cmd *cmd) {
-#ifdef _WIN32
-    cmd_append(cmd, "/TC");
-#else
-    cmd_append(cmd, "-x", "c");
-#endif
-}
-
-void nob_language_cpp(Cmd *cmd, const char *standard) {
-#ifdef _WIN32
-    cmd_append(cmd, "/TP");
-    cmd_append(cmd, temp_sprintf("/std:%s", standard));
-#else
-    cmd_append(cmd, "-x", "c++");
-    cmd_append(cmd, temp_sprintf("-std=%s", standard));
-#endif
-}
-
 void add_common_flags(Cmd *cmd, Config config) {
     // Language and standard
     nob_cc_flags(cmd);
@@ -93,19 +44,19 @@ void add_common_flags(Cmd *cmd, Config config) {
         // Configuration-specific flags  
     switch (config) {
         case CONFIG_DEBUG:
-            nob_optimize_level(cmd, OPTIMIZATION_O0);
+            nob_optimize_level(cmd, NOB_OPTIMIZATION_O0);
             cmd_append(cmd, "-DDEBUG");
             cmd_append(cmd, "-DLSTD_ARRAY_BOUNDS_CHECK", "-DLSTD_NUMERIC_CAST_CHECK");
             nob_debug_info(cmd, true);
             break;
         case CONFIG_DEBUG_OPTIMIZED:
-            nob_optimize_level(cmd, OPTIMIZATION_O2);
+            nob_optimize_level(cmd, NOB_OPTIMIZATION_O2);
             cmd_append(cmd, "-DDEBUG", "-DDEBUG_OPTIMIZED");
             cmd_append(cmd, "-DLSTD_ARRAY_BOUNDS_CHECK", "-DLSTD_NUMERIC_CAST_CHECK");
             nob_debug_info(cmd, true);
             break;
         case CONFIG_RELEASE:
-            nob_optimize_level(cmd, OPTIMIZATION_O3);
+            nob_optimize_level(cmd, NOB_OPTIMIZATION_O3);
             cmd_append(cmd, "-DNDEBUG", "-DRELEASE");
             nob_debug_info(cmd, false);
             break;
@@ -185,8 +136,6 @@ bool build_lstd_library(Config config) {
         cmd_append(&cmd, obj_file);
         if (!cmd_run_sync(cmd)) return false;
     }
-    
-    nob_log(INFO, "lstd library built successfully: %s\n", lib_path);
     return true;
 }
 
@@ -223,7 +172,6 @@ bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp,
         // Platform-specific libraries and linking
 #if defined(__linux__) || defined(__APPLE__)
         cmd_append(&cmd, "-lpthread", "-ldl");
-        cmd_append(&cmd, "-lpthread", "-ldl");
 #elif defined(_WIN32)
         nob_no_default_libs(cmd);
         nob_subsystem(cmd, "WINDOWS");
@@ -235,8 +183,6 @@ bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp,
 #endif
         if (!cmd_run_sync(cmd)) return false;
     }
-    
-    nob_log(INFO, "%s built successfully: %s\n", name, exe_path);
     return true;
 }
 
@@ -280,7 +226,5 @@ int main(int argc, char **argv)
         nob_log(ERROR, "Failed to build example\n");
         return 1;
     }
-
-    nob_log(INFO, "Build completed successfully!\n");
     return 0;
 }
