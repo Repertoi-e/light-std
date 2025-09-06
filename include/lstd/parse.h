@@ -211,7 +211,7 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
       maxValue = (numeric<T>::max)();
       cutOff = maxValue / base;
     } else {
-      maxValue = parsedNegative ? -numeric<T>::min() : numeric<T>::max();
+      maxValue = parsedNegative ? (T)(-(s64)numeric<T>::min()) : numeric<T>::max();
       cutOff = maxValue / base;
       cutOff = abs(cutOff);
     }
@@ -268,7 +268,7 @@ parse_result<T> parse_int_small_integer(string p, u32 base,
     if constexpr (Options.BailOnTooManyDigits) {
       // If we have parsed a number that is too big to store in our integer type
       // we bail
-      if (value > cutOff || value == cutOff && digit > cutLim) {
+      if (value > cutOff || (value == cutOff && digit > cutLim)) {
         if constexpr (Options.ReturnLimitOnTooManyDigits) value = maxValue;
         return {handle_negative(value, parsedNegative), PARSE_TOO_MANY_DIGITS,
                 p};

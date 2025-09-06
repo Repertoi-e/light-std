@@ -990,7 +990,7 @@ inline big_integer bitwise(big_integer lhs, byte op, big_integer rhs) {
   }
 
   s64 sizez;
-  bool negZ;
+  bool negZ = false;
 
   // JRH: The original logic here was to allocate the result value (z)
   // as the longer of the two operands. However, there are some cases

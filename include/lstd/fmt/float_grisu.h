@@ -74,7 +74,7 @@ inline fp get_cached_power(s32 minExponent, s32 *pow10) {
   // Difference between 2 consecutive decimal exponents in cached powers of 10.
   index = (index - FIRST_DEC_EXP - 1) / DEC_EXP_STEP + 1;
   *pow10 = FIRST_DEC_EXP + index * DEC_EXP_STEP;
-  return {POW10_SIGNIFICANDS[index], POW10_EXPONENTS[index]};
+  return {POW10_SIGNIFICANDS[index], POW10_EXPONENTS[index], 0};
 }
 
 enum class gen_digits_result {
@@ -190,7 +190,7 @@ inline gen_digits_result on_digit(gen_digits_state &state, char digit,
 // definitely do not round to value (Delta in Grisu3).
 inline gen_digits_result gen_digits(gen_digits_state &state, fp value,
                                     u64 error, s32 *exp) {
-  fp one = {1ull << -value.Exponent, value.Exponent};
+  fp one = {1ull << -value.Exponent, value.Exponent, 0};
 
   // The integral part of scaled value (p1 in Grisu) = value / one.
   // It cannot be zero because it contains a product of two 64-bit numbers with

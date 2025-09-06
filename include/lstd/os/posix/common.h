@@ -139,10 +139,10 @@ inline void os_set_env(string name, string value)
     // Can't use two to_c_string_temp calls because the second one might invalidate the first
     PUSH_ALLOC(PERSISTENT)
     {
-        const char *name = to_c_string(name);
-        defer(free(name));
+        const char *cname = to_c_string(name);
+        defer(free(cname));
 
-        int ret = setenv(name, to_c_string_temp(value), 1);
+        int ret = setenv(cname, to_c_string_temp(value), 1);
         if (ret != 0)
         {
             platform_report_error("Failed to set env variable");

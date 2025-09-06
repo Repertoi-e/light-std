@@ -133,13 +133,13 @@ inline u64 rotate_right_64(u64 x, u32 bits) {
 // #if ENDIAN = LITTLE_ENDIAN, etc.
 inline void byte_swap_2(void *ptr) {
   u16 x = *(u16 *)ptr;
-  *(u16 *)ptr = x << 8 & 0xFF00 | x >> 8 & 0x00FF;
+  *(u16 *)ptr = (x << 8 & 0xFF00) | (x >> 8 & 0x00FF);
 }
 
 inline void byte_swap_4(void *ptr) {
   u32 x = *(u32 *)ptr;
-  *(u32 *)ptr = x << 24 & 0xFF000000 | x << 8 & 0x00FF0000 |
-                x >> 8 & 0x0000FF00 | x >> 24 & 0x000000FF;
+  *(u32 *)ptr = (x << 24 & 0xFF000000) | (x << 8 & 0x00FF0000) |
+                (x >> 8 & 0x0000FF00) | (x >> 24 & 0x000000FF);
 }
 
 inline void byte_swap_8(void *ptr) {
