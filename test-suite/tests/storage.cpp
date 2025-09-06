@@ -13,9 +13,9 @@ TEST(stack_array) {
   assert_false(has(a, 10));
   assert_false(has(a, 20));
 
-  assert_eq(search(a, 3, search_options{.Start = -1, .Reversed = true}), 3);
-  assert_eq(search(a, 4, search_options{.Start = -1, .Reversed = true}), 4);
-  assert_eq(search(a, 0, search_options{.Start = -1, .Reversed = true}), 0);
+  assert_eq(search(a, 3, .Start = -1, .Reversed = true), 3);
+  assert_eq(search(a, 4, .Start = -1, .Reversed = true), 4);
+  assert_eq(search(a, 0, .Start = -1, .Reversed = true), 0);
   assert_eq(search(a, 3), 3);
   assert_eq(search(a, 4), 4);
   assert_eq(search(a, 0), 0);

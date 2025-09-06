@@ -57,7 +57,7 @@ void fmt_default_parse_error_handler(string message, string formatString,
   s64 start = 0;
   s64 countExtraSlashesToBeAddedBeforePositionToAccountWhenPrinting = 0;
   while (start <= position &&
-         (start = search(str, &p, search_options{.Start = start + 1})) != -1) {
+         (start = search(str, &p, .Start = start + 1)) != -1) {
     countExtraSlashesToBeAddedBeforePositionToAccountWhenPrinting += 1;
   }
 

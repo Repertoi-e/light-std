@@ -768,14 +768,13 @@ mark_as_leak char *to_c_string(string s, allocator alloc = {});
 char *to_c_string_temp(string s);
 
 // Returns the code point index (or -1) if not found.
-s64 search(string str, delegate<bool(code_point)> predicate,
-           search_options options = {});
+s64 search_opt(string str, delegate<bool(code_point)> predicate, search_options options = {});
 
 // Returns the code point index (or -1) if not found.
-s64 search(string str, code_point search, search_options options = {});
+s64 search_opt(string str, code_point search, search_options options = {});
 
 // Returns the code point index (or -1) if not found.
-s64 search(string str, string search, search_options options = {});
+s64 search_opt(string str, string search, search_options options = {});
 
 bool has(string str, code_point cp);
 bool has(string str, string s);
@@ -1033,7 +1032,7 @@ inline string slice(string str, s64 begin, s64 end) {
   return string((char *)beginPtr, (s64)(endPtr - beginPtr));
 }
 
-inline s64 search(string str, delegate<bool(code_point)> predicate,
+inline s64 search_opt(string str, delegate<bool(code_point)> predicate,
                   search_options options) {
   if (!str.Data || str.Count == 0) return -1;
   s64 len = length(str);
@@ -1043,7 +1042,7 @@ inline s64 search(string str, delegate<bool(code_point)> predicate,
   return -1;
 }
 
-inline s64 search(string str, code_point search, search_options options) {
+inline s64 search_opt(string str, code_point search, search_options options) {
   if (!str.Data || str.Count == 0) return -1;
   s64 len = length(str);
   options.Start = translate_negative_index(options.Start, len, true);
@@ -1052,7 +1051,7 @@ inline s64 search(string str, code_point search, search_options options) {
   return -1;
 }
 
-inline s64 search(string str, string search, search_options options) {
+inline s64 search_opt(string str, string search, search_options options) {
   if (!str.Data || str.Count == 0) return -1;
   if (!search.Data || search.Count == 0) return -1;
 
@@ -1312,7 +1311,7 @@ inline void replace_all(string ref s, string what, string replace) {
 
     s64 i = 0;
     while (i < s.Count &&
-           (i = search(s, what, search_options{.Start = i})) != -1) {
+           (i = search(s, what, .Start = i)) != -1) {
       replace_range(s, i, i + what.Count,
                     replace);  // @Speed Slow and dumb version for now
       i += replace.Count;

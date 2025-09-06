@@ -1,6 +1,7 @@
 #include "../test.h"
 
-TEST(code_point_size) {
+TEST(code_point_size)
+{
   string ascii = "abc";
   assert_eq(ascii.Count, 3);
   assert_eq(length(ascii), 3);
@@ -30,7 +31,8 @@ TEST(code_point_size) {
   assert_eq(length(mixed), 3 + 3 + 3 + 3);
 }
 
-TEST(substring) {
+TEST(substring)
+{
   string a = "Hello, world!";
   assert_eq_str(slice(a, 2, 5), "llo");
   assert_eq_str(slice(a, 7, length(a)), "world!");
@@ -38,7 +40,8 @@ TEST(substring) {
   assert_eq_str(slice(a, -6, -1), "world");
 }
 
-TEST(substring_mixed_sizes) {
+TEST(substring_mixed_sizes)
+{
   string a = u8"Хеllo, уоrлd!";
   assert_eq_str(slice(a, 2, 5), "llo");
   assert_eq_str(slice(a, 7, length(a)), u8"уоrлd!");
@@ -46,7 +49,8 @@ TEST(substring_mixed_sizes) {
   assert_eq_str(slice(a, -6, -1), u8"уоrлd");
 }
 
-TEST(index) {
+TEST(index)
+{
   string a = make_string("Hello");
   defer(free(a));
 
@@ -60,7 +64,8 @@ TEST(index) {
   assert_eq(a[0], 'X');
 }
 
-TEST(insert) {
+TEST(insert)
+{
   string a = make_string("e");
   defer(free(a));
 
@@ -78,7 +83,8 @@ TEST(insert) {
   assert_eq_str(a, "Hello world Hello");
 }
 
-TEST(remove) {
+TEST(remove)
+{
   string a = make_string("Hello world Hello");
 
   remove_range(a, -6, length(a));
@@ -102,28 +108,32 @@ TEST(remove) {
   free(a);
 }
 
-TEST(trim) {
+TEST(trim)
+{
   string a = "\t\t    Hello, everyone!   \t\t   \n";
   assert_eq_str(trim_start(a), "Hello, everyone!   \t\t   \n");
   assert_eq_str(trim_end(a), "\t\t    Hello, everyone!");
   assert_eq_str(trim(a), "Hello, everyone!");
 }
 
-TEST(match_beginning) {
+TEST(match_beginning)
+{
   string a = "Hello, world!";
   assert_true(match_beginning(a, "Hello"));
   assert_false(match_beginning(a, "Xello"));
   assert_false(match_beginning(a, "Hellol"));
 }
 
-TEST(match_end) {
+TEST(match_end)
+{
   string a = "Hello, world!";
   assert_true(match_end(a, "world!"));
   assert_false(match_end(a, "!world!"));
   assert_false(match_end(a, "world!!"));
 }
 
-TEST(set) {
+TEST(set)
+{
   string a = make_string("aDc");
 
   set(a, 1, 'b');
@@ -156,11 +166,13 @@ TEST(set) {
   free(a);
 }
 
-TEST(iterator) {
+TEST(iterator)
+{
   string a = make_string("Hello");
 
   string result = make_string("");
-  for (auto ch : a) {
+  for (auto ch : a)
+  {
     add(result, ch);
   }
   assert_eq_str(result, a);
@@ -171,11 +183,13 @@ TEST(iterator) {
   // This will be same as writing "for (string::code_point_ref ch : b)", since b
   // is non-const. Note that when b is const, the type of ch is just utf32 (you
   // can't take a code point reference)
-  for (auto ch : b) {
+  for (auto ch : b)
+  {
     ch = to_lower(ch);
   }
   assert_eq_str(b, "hello");
-  for (auto ch : b) {
+  for (auto ch : b)
+  {
     ch = U'Д';
   }
   assert_eq_str(b, u8"ДДДДД");
@@ -185,7 +199,8 @@ TEST(iterator) {
   // actually an array of utf32
 }
 
-TEST(add) {
+TEST(add)
+{
   {
     string result = make_string("Hello");
 
@@ -212,7 +227,8 @@ TEST(add) {
   {
     string result;
 
-    For(range(10)) {
+    For(range(10))
+    {
       add(result, 'i');
       assert_eq(result.Count, it + 1);
       assert_eq(length(result), it + 1);
@@ -223,7 +239,8 @@ TEST(add) {
   {
     string result;
 
-    For(range(10)) {
+    For(range(10))
+    {
       add(result, u8"Д");
       assert_eq(result.Count, 2 * (it + 1));
       assert_eq(length(result), it + 1);
@@ -232,7 +249,8 @@ TEST(add) {
   }
 }
 
-TEST(builder) {
+TEST(builder)
+{
   string_builder builder;
   add(&builder, "Hello");
   add(&builder, ",THIS IS GARBAGE", 1);
@@ -245,7 +263,8 @@ TEST(builder) {
   assert_eq_str(result, "Hello, world!");
 }
 
-TEST(remove_all) {
+TEST(remove_all)
+{
   string a = "Hello world!";
 
   string b = clone(a);
@@ -280,7 +299,8 @@ TEST(remove_all) {
   free(b);
 }
 
-TEST(replace_all) {
+TEST(replace_all)
+{
   string a = "Hello world!";
 
   string b = clone(a);
@@ -332,75 +352,82 @@ TEST(replace_all) {
   free(b);
 }
 
-TEST(find) {
+TEST(find)
+{
   string a = "This is a string";
   assert_eq(2, search(a, string("is")));
-  assert_eq(5, search(a, string("is"), search_options{.Start = 5}));
+  assert_eq(5, search(a, string("is"), .Start = 5));
 
   assert_eq(0, search(a, string("This")));
   assert_eq(0, search(a, string("This"),
-                      search_options{.Start = -1, .Reversed = true}));
+                      .Start = -1, .Reversed = true));
   assert_eq(10, search(a, string("string")));
   assert_eq(10, search(a, string("string"),
-                       search_options{.Start = -1, .Reversed = true}));
+                       .Start = -1, .Reversed = true));
 
   assert_eq(
-      5, search(a, string("is"), search_options{.Start = 6, .Reversed = true}));
+      5, search(a, string("is"), .Start = 6, .Reversed = true));
   assert_eq(
-      5, search(a, string("is"), search_options{.Start = 5, .Reversed = true}));
+      5, search(a, string("is"), .Start = 5, .Reversed = true));
   assert_eq(
-      2, search(a, string("is"), search_options{.Start = 3, .Reversed = true}));
+      2, search(a, string("is"), .Start = 3, .Reversed = true));
   assert_eq(
-      2, search(a, string("is"), search_options{.Start = 2, .Reversed = true}));
+      2, search(a, string("is"), .Start = 2, .Reversed = true));
   assert_eq(-1, search(a, string("is"),
-                       search_options{.Start = 1, .Reversed = true}));
+                       .Start = 1, .Reversed = true));
 
   assert_eq(1, search(a, 'h'));
-  assert_eq(1, search(a, 'h', search_options{.Start = 1}));
-  assert_eq(1, search(a, string("h"), search_options{.Start = 1}));
+  assert_eq(1, search(a, 'h', .Start = 1));
+  assert_eq(1, search(a, string("h"), .Start = 1));
 
   assert_eq(0, search(a, 'T'));
-  assert_eq(0, search(a, 'T', search_options{.Start = -1, .Reversed = true}));
+  assert_eq(0, search(a, 'T', .Start = -1, .Reversed = true));
 
-  assert_eq(13, search(a, 'i', search_options{.Start = -1, .Reversed = true}));
-  assert_eq(13, search(a, 'i', search_options{.Start = 13, .Reversed = true}));
-  assert_eq(5, search(a, 'i', search_options{.Start = 12, .Reversed = true}));
-  assert_eq(5, search(a, 'i', search_options{.Start = 5, .Reversed = true}));
-  assert_eq(2, search(a, 'i', search_options{.Start = 4, .Reversed = true}));
+  assert_eq(13, search(a, 'i', .Start = -1, .Reversed = true));
+  assert_eq(13, search(a, 'i', .Start = 13, .Reversed = true));
+  assert_eq(5, search(a, 'i', .Start = 12, .Reversed = true));
+  assert_eq(5, search(a, 'i', .Start = 5, .Reversed = true));
+  assert_eq(2, search(a, 'i', .Start = 4, .Reversed = true));
 
   assert_eq(length(a) - 1, search(a, 'g'));
   assert_eq(length(a) - 1,
-            search(a, 'g', search_options{.Start = -1, .Reversed = true}));
+            search(a, 'g', .Start = -1, .Reversed = true));
 
-  auto matchNotT = [](code_point cp) { return cp != 'T'; };
-  auto matchNotQ = [](code_point cp) { return cp != 'Q'; };
-  auto matchNotg = [](code_point cp) { return cp != 'g'; };
+  auto matchNotT = [](code_point cp)
+  { return cp != 'T'; };
+  auto matchNotQ = [](code_point cp)
+  { return cp != 'Q'; };
+  auto matchNotg = [](code_point cp)
+  { return cp != 'g'; };
   assert_eq(1, search(a, &matchNotT));
   assert_eq(0, search(a, &matchNotQ));
   assert_eq(
       length(a) - 1,
-      search(a, &matchNotQ, search_options{.Start = -1, .Reversed = true}));
+      search(a, &matchNotQ, .Start = -1, .Reversed = true));
   assert_eq(
       length(a) - 2,
-      search(a, &matchNotg, search_options{.Start = -1, .Reversed = true}));
+      search(a, &matchNotg, .Start = -1, .Reversed = true));
 
   assert_eq(-1, search(a, 'Q'));
 
   a = u8"Това е низ от букви";
   assert_eq(8, search(a, string(u8"и")));
-  assert_eq(8, search(a, string(u8"и"), search_options{.Start = 8}));
+  assert_eq(8, search(a, string(u8"и"), .Start = 8));
 
   assert_eq(8, search(a, U'и'));
-  assert_eq(8, search(a, U'и', search_options{.Start = 8}));
+  assert_eq(8, search(a, U'и', .Start = 8));
 
   assert_eq(14, search(a, U'б'));
-  assert_eq(14, search(a, U'б', search_options{.Start = -1, .Reversed = true}));
+  assert_eq(14, search(a, U'б', .Start = -1, .Reversed = true));
 
   assert_eq(-1, search(a, U'я'));
 
-  auto matchAnyOf1 = [](code_point cp) { return has("DCb", cp); };
-  auto matchAnyOf2 = [](code_point cp) { return has("CbD", cp); };
-  auto matchAnyOf3 = [](code_point cp) { return has("PQa", cp); };
+  auto matchAnyOf1 = [](code_point cp)
+  { return has("DCb", cp); };
+  auto matchAnyOf2 = [](code_point cp)
+  { return has("CbD", cp); };
+  auto matchAnyOf3 = [](code_point cp)
+  { return has("PQa", cp); };
 
   a = "aaabbbcccddd";
   assert_eq(3, search(a, &matchAnyOf1));
@@ -408,39 +435,45 @@ TEST(find) {
   assert_eq(0, search(a, &matchAnyOf3));
 
   assert_eq(2, search(a, &matchAnyOf3,
-                      search_options{.Start = -1, .Reversed = true}));
+                      .Start = -1, .Reversed = true));
   assert_eq(
-      2, search(a, &matchAnyOf3, search_options{.Start = 2, .Reversed = true}));
+      2, search(a, &matchAnyOf3, .Start = 2, .Reversed = true));
   assert_eq(
-      1, search(a, &matchAnyOf3, search_options{.Start = 1, .Reversed = true}));
+      1, search(a, &matchAnyOf3, .Start = 1, .Reversed = true));
   assert_eq(
-      0, search(a, &matchAnyOf3, search_options{.Start = 0, .Reversed = true}));
+      0, search(a, &matchAnyOf3, .Start = 0, .Reversed = true));
 
-  auto matchNoneOf1 = [](code_point cp) { return !has("abc", cp); };
-  auto matchNoneOf2 = [](code_point cp) { return !has("bcd", cp); };
-  auto matchNoneOf3 = [](code_point cp) { return !has("ac", cp); };
-  auto matchNoneOf4 = [](code_point cp) { return !has("bc", cp); };
+  auto matchNoneOf1 = [](code_point cp)
+  { return !has("abc", cp); };
+  auto matchNoneOf2 = [](code_point cp)
+  { return !has("bcd", cp); };
+  auto matchNoneOf3 = [](code_point cp)
+  { return !has("ac", cp); };
+  auto matchNoneOf4 = [](code_point cp)
+  { return !has("bc", cp); };
 
   assert_eq(search(a, 'd'), search(a, &matchNoneOf1));
   assert_eq(0, search(a, &matchNoneOf2));
   assert_eq(search(a, 'b'), search(a, &matchNoneOf3));
 
   assert_eq(2, search(a, &matchNoneOf2,
-                      search_options{.Start = -1, .Reversed = true}));
-  assert_eq(9, search(a, &matchNoneOf4, search_options{.Start = 3}));
+                      .Start = -1, .Reversed = true));
+  assert_eq(9, search(a, &matchNoneOf4, .Start = 3));
   assert_eq(2, search(a, &matchNoneOf4,
-                      search_options{.Start = 4, .Reversed = true}));
+                      .Start = 4, .Reversed = true));
   assert_eq(1, search(a, &matchNoneOf2,
-                      search_options{.Start = 1, .Reversed = true}));
+                      .Start = 1, .Reversed = true));
   assert_eq(0, search(a, &matchNoneOf2,
-                      search_options{.Start = 0, .Reversed = true}));
+                      .Start = 0, .Reversed = true));
 
-  auto matchAnyOf4 = [](code_point cp) { return has("CdB", cp); };
-  auto matchAnyOf5 = [](code_point cp) { return has("QRT", cp); };
+  auto matchAnyOf4 = [](code_point cp)
+  { return has("CdB", cp); };
+  auto matchAnyOf5 = [](code_point cp)
+  { return has("QRT", cp); };
 
   assert_eq(
       length(a) - 1,
-      search(a, &matchAnyOf4, search_options{.Start = -1, .Reversed = true}));
+      search(a, &matchAnyOf4, .Start = -1, .Reversed = true));
 
   assert_eq(-1, search(a, &matchAnyOf5));
 }

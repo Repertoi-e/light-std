@@ -113,17 +113,19 @@ struct search_options {
 // Predicate must take a single argument (the current element) and return if
 // it matches.
 template <any_array_like Arr>
-s64 search(Arr no_copy arr, delegate<bool(array_data_t<Arr> no_copy)> predicate,
+s64 search_opt(Arr no_copy arr, delegate<bool(array_data_t<Arr> no_copy)> predicate,
            search_options options = {});
 
 // Find the first occurrence of an element which matches.
 template <any_array_like Arr>
-s64 search(Arr no_copy arr, array_data_t<Arr> no_copy search,
+s64 search_opt(Arr no_copy arr, array_data_t<Arr> no_copy search,
            search_options options = {});
 
 // Find the first occurrence of a subarray, compares elements using ==
-s64 search(any_array_like auto no_copy arr, any_array_like auto no_copy search,
+s64 search_opt(any_array_like auto no_copy arr, any_array_like auto no_copy search,
            search_options options = {});
+
+#define search(arr, ps, ...) search_opt(arr, ps, {__VA_ARGS__})
 
 bool has(any_array_like auto no_copy arr, auto no_copy item) {
   return search(arr, item) != -1;
@@ -313,7 +315,7 @@ always_inline s64 translate_negative_index(s64 index, s64 length,
 }
 
 template <any_array_like Arr>
-s64 search(Arr no_copy arr, delegate<bool(array_data_t<Arr> no_copy)> predicate,
+s64 search_opt(Arr no_copy arr, delegate<bool(array_data_t<Arr> no_copy)> predicate,
            search_options options) {
   if (!arr.Data || arr.Count == 0) return -1;
   options.Start = translate_negative_index(options.Start, arr.Count);
@@ -323,7 +325,7 @@ s64 search(Arr no_copy arr, delegate<bool(array_data_t<Arr> no_copy)> predicate,
 }
 
 template <any_array_like Arr>
-s64 search(Arr no_copy arr, array_data_t<Arr> no_copy search,
+s64 search_opt(Arr no_copy arr, array_data_t<Arr> no_copy search,
            search_options options) {
   auto predicate = [&](array_data_t<Arr> no_copy element) {
     return search == element;
@@ -331,7 +333,7 @@ s64 search(Arr no_copy arr, array_data_t<Arr> no_copy search,
   return ::search(arr, &predicate, options);
 }
 
-s64 search(any_array_like auto no_copy arr, any_array_like auto no_copy search,
+s64 search_opt(any_array_like auto no_copy arr, any_array_like auto no_copy search,
            search_options options) {
   if (!arr.Data || arr.Count == 0) return -1;
   if (!search.Data || search.Count == 0) return -1;

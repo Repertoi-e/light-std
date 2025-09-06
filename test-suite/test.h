@@ -14,10 +14,10 @@ inline string get_short_file_path(string str) {
   string src = srcData;
 
   s64 findResult =
-      search(str, src, search_options{.Start = -1, .Reversed = true});
+      search(str, src, .Start = -1, .Reversed = true);
   if (findResult == -1) {
     findResult = search(str, OS_PATH_SEPARATOR,
-                        search_options{.Start = -1, .Reversed = true});
+                        .Start = -1, .Reversed = true);
     assert(findResult != length(str) - 1);
     // Skip the slash
     findResult++;

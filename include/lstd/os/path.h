@@ -31,11 +31,13 @@ bool path_is_absolute(string path);
 
 inline const char OS_PATH_SEPARATOR = '\\';
 
-always_inline bool path_is_sep(code_point ch) {
+always_inline bool path_is_sep(code_point ch)
+{
   return ch == '\\' || ch == '/';
 }
 
-struct path_split_drive_result {
+struct path_split_drive_result
+{
   string DriveOrUNC, Path;
 };
 
@@ -78,7 +80,8 @@ mark_as_leak string path_join(string one, string other);
 // directories or files (by querying the OS).
 mark_as_leak string path_normalize(string path);
 
-struct path_split_result {
+struct path_split_result
+{
   string Head, Tail;
 };
 
@@ -112,7 +115,8 @@ string path_base_name(string path);
 // Note: The result is a substring and shouldn't be freed.
 string path_directory(string path);
 
-struct path_split_extension_result {
+struct path_split_extension_result
+{
   string Root, Extension;
 };
 
@@ -131,7 +135,7 @@ path_split_extension_result path_split_extension(string path);
 // The following routines query the OS:
 //
 
-bool path_exists(string path);  // == is_file() || is_directory()
+bool path_exists(string path); // == is_file() || is_directory()
 bool path_is_file(string path);
 bool path_is_directory(string path);
 
@@ -189,18 +193,19 @@ bool path_create_symbolic_link(string path, string dest);
 //
 // _Path_ needs to be a valid path before using it.
 //
-struct path_walker {
+struct path_walker
+{
   // null in the beginning, null after calling
   // _path_read_next_entry_ and
   // there were no more files. Check this for when to stop calling
   // _path_read_next_entry_.
-  void *Handle = null;  
+  void *Handle = null;
 
-  string Path;  // Doesn't get cloned, valid as long as the string passed in the
-                // constructor is valid
+  string Path; // Doesn't get cloned, valid as long as the string passed in the
+               // constructor is valid
 
-  string CurrentFileName;  // Gets allocated by this object, call free after use
-                           // to prevent leak
+  string CurrentFileName; // Gets allocated by this object, call free after use
+                          // to prevent leak
 
   s64 Index = 0;
 
@@ -218,45 +223,60 @@ void path_read_next_entry(path_walker ref walker);
 
 inline void free_path_walker(path_walker ref walker) { free(walker.CurrentFileName); }
 
-inline string get_path_from_here_to(string here, string there) {
-  if (search(here, there) == -1) {
+inline string get_path_from_here_to(string here, string there)
+{
+  if (search(here, there) == -1)
+  {
     return there;
-  } else {
-    if (here.Count == there.Count) {
+  }
+  else
+  {
+    if (here.Count == there.Count)
+    {
       return here;
-    } else {
+    }
+    else
+    {
       string difference = slice(there, length(here), length(there));
       return difference;
     }
   }
 }
 
-inline path_split_drive_result path_split_drive(string path) {
-  if (length(path) >= 2) {
-    if (strings_match(slice(path, 0, 2), "\\\\") && path[2] != '\\') {
+inline path_split_drive_result path_split_drive(string path)
+{
+  if (length(path) >= 2)
+  {
+    if (strings_match(slice(path, 0, 2), "\\\\") && path[2] != '\\')
+    {
       // It is an UNC path
 
       //  vvvvvvvvvvvvvvvvvvvv drive letter or UNC path
       //  \\machine\mountpoint\directory\etc\...
       //             directory ^^^^^^^^^^^^^^^
 
-      auto matchSeps = [](code_point cp) { return has("\\/", cp); };
+      auto matchSeps = [](code_point cp)
+      { return has("\\/", cp); };
 
-      s64 index = search(path, &matchSeps, search_options{.Start = 2});
-      if (index == -1) return {"", path};
+      s64 index = search(path, &matchSeps, .Start = 2);
+      if (index == -1)
+        return {"", path};
 
-      s64 index2 = search(path, &matchSeps, search_options{.Start = index + 1});
+      s64 index2 = search(path, &matchSeps, .Start = index + 1);
 
       // A UNC path can't have two slashes in a row
       // (after the initial two)
-      if (index2 == index + 1) return {"", path};
-      if (index2 == -1) {
+      if (index2 == index + 1)
+        return {"", path};
+      if (index2 == -1)
+      {
         index2 = length(path);
       }
       return {slice(path, 0, index2), slice(path, index2, length(path))};
     }
 
-    if (path[1] == ':') {
+    if (path[1] == ':')
+    {
       return {slice(path, 0, 2), slice(path, 2, length(path))};
     }
   }
@@ -264,33 +284,41 @@ inline path_split_drive_result path_split_drive(string path) {
   return {"", path};
 }
 
-inline bool path_is_absolute(string path) {
+inline bool path_is_absolute(string path)
+{
   auto [_, rest] = path_split_drive(path);
   return rest.Count && path_is_sep(rest[0]);
 }
 
-mark_as_leak inline string path_join(array<string> paths) {
+mark_as_leak inline string path_join(array<string> paths)
+{
   assert(paths.Count >= 2);
 
   auto [result_drive, result_path] = path_split_drive(paths[0]);
 
   string result = clone(result_path);
 
-  For(range(1, paths.Count)) {
+  For(range(1, paths.Count))
+  {
     auto p = paths[it];
     auto [p_drive, p_path] = path_split_drive(p);
-    if (p_path.Count && path_is_sep(p_path[0])) {
+    if (p_path.Count && path_is_sep(p_path[0]))
+    {
       // Second path is absolute
-      if (p_drive.Count || !result_drive.Count) {
-        result_drive = p_drive;  // These are just substrings so it's fine
+      if (p_drive.Count || !result_drive.Count)
+      {
+        result_drive = p_drive; // These are just substrings so it's fine
       }
 
       free(result);
       result = clone(p_path);
 
       continue;
-    } else if (p_drive.Count && !strings_match(p_drive, result_drive)) {
-      if (!strings_match_ignore_case(p_drive, result_drive)) {
+    }
+    else if (p_drive.Count && !strings_match(p_drive, result_drive))
+    {
+      if (!strings_match_ignore_case(p_drive, result_drive))
+      {
         // Different drives => ignore the first path entirely
         result_drive = p_drive;
 
@@ -304,7 +332,8 @@ mark_as_leak inline string path_join(array<string> paths) {
     }
 
     // Second path is relative to the first
-    if (result.Count && !path_is_sep(result[-1])) {
+    if (result.Count && !path_is_sep(result[-1]))
+    {
       result += '/';
     }
     result += p_path;
@@ -312,24 +341,30 @@ mark_as_leak inline string path_join(array<string> paths) {
 
   // Add separator between UNC and non-absolute path if needed
   if (result.Count && !path_is_sep(result[0]) && result_drive.Count &&
-      result_drive[-1] != ':') {
+      result_drive[-1] != ':')
+  {
     insert_at_index(result, 0, '\\');
-  } else {
+  }
+  else
+  {
     insert_at_index(result, 0, result_drive);
   }
   return result;
 }
 
-mark_as_leak inline string path_join(string one, string other) {
+mark_as_leak inline string path_join(string one, string other)
+{
   auto arr = make_stack_array(one, other);
   return path_join(arr);
 }
 
-mark_as_leak inline string path_normalize(string path) {
+mark_as_leak inline string path_normalize(string path)
+{
   string result;
   reserve(result, path.Count);
 
-  if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\")) {
+  if (match_beginning(path, "\\\\.\\") || match_beginning(path, "\\\\?\\"))
+  {
     // In the case of paths with these prefixes:
     // \\.\ -> device names
     // \\?\ -> literal paths
@@ -340,44 +375,60 @@ mark_as_leak inline string path_normalize(string path) {
   }
 
   auto [DriveOrUNC, rest] = path_split_drive(path);
-  if (DriveOrUNC.Count) {
+  if (DriveOrUNC.Count)
+  {
     result += DriveOrUNC;
   }
 
   // Collapse leading slashes
-  if (path_is_sep(rest[0])) {
+  if (path_is_sep(rest[0]))
+  {
     result += '\\';
-    while (path_is_sep(rest[0])) advance_cp(&rest, 1);
+    while (path_is_sep(rest[0]))
+      advance_cp(&rest, 1);
   }
 
   auto components = path_split_into_components(rest);
   defer(free(components));
 
   s64 i = 0;
-  while (i < components.Count) {
+  while (i < components.Count)
+  {
     auto it = components[i];
-    if (!it.Count || strings_match(it, ".")) {
+    if (!it.Count || strings_match(it, "."))
+    {
       remove_ordered_at_index(components, i);
-    } else if (strings_match(it, "..")) {
-      if (i > 0 && !strings_match(components[i - 1], "..")) {
+    }
+    else if (strings_match(it, ".."))
+    {
+      if (i > 0 && !strings_match(components[i - 1], ".."))
+      {
         remove_range(components, i - 1, i + 1);
         --i;
-      } else if (i == 0 && result.Count && path_is_sep(result[-1])) {
+      }
+      else if (i == 0 && result.Count && path_is_sep(result[-1]))
+      {
         remove_ordered_at_index(components, i);
-      } else {
+      }
+      else
+      {
         ++i;
       }
-    } else {
+    }
+    else
+    {
       ++i;
     }
   }
 
   // If the path is now empty, substitute "."
-  if (!result.Count && !components.Count) {
+  if (!result.Count && !components.Count)
+  {
     return ".";
   }
 
-  For(components) {
+  For(components)
+  {
     result += it;
     result += '/';
   }
@@ -387,18 +438,21 @@ mark_as_leak inline string path_normalize(string path) {
   return result;
 }
 
-inline path_split_result path_split(string path) {
+inline path_split_result path_split(string path)
+{
   auto [DriveOrUNC, rest] = path_split_drive(path);
 
   // Set i to index beyond path's last slash
 
   auto matchSeps =
-      delegate<bool(code_point)>([](code_point cp) { return has("\\/", cp); });
+      delegate<bool(code_point)>([](code_point cp)
+                                 { return has("\\/", cp); });
   auto matchNotSeps =
-      delegate<bool(code_point)>([](code_point cp) { return !has("\\/", cp); });
+      delegate<bool(code_point)>([](code_point cp)
+                                 { return !has("\\/", cp); });
 
   s64 i =
-      search(rest, matchSeps, search_options{.Start = -1, .Reversed = true}) +
+      search(rest, matchSeps, .Start = -1, .Reversed = true) +
       1;
 
   string head = slice(rest, 0, i);
@@ -406,33 +460,39 @@ inline path_split_result path_split(string path) {
 
   string trimmed = slice(head, 0,
                          search(head, matchNotSeps,
-                                search_options{.Start = -1, .Reversed = true}) +
+                                .Start = -1, .Reversed = true) +
                              1);
-  if (trimmed.Count) head = trimmed;
+  if (trimmed.Count)
+    head = trimmed;
 
   head = slice(path, 0, length(head) + length(DriveOrUNC));
 
   return {head, tail};
 }
 
-inline string path_base_name(string path) {
+inline string path_base_name(string path)
+{
   auto [_, tail] = path_split(path);
   return tail;
 }
 
-inline string path_directory(string path) {
+inline string path_directory(string path)
+{
   auto [head, _] = path_split(path);
   return head;
 }
 
-mark_as_leak inline array<string> path_split_into_components(string path, string seps) {
+mark_as_leak inline array<string> path_split_into_components(string path, string seps)
+{
   array<string> result;
 
-  auto matchSep = [=](code_point cp) { return has(seps, cp); };
+  auto matchSep = [=](code_point cp)
+  { return has(seps, cp); };
 
   s64 start = 0, prev = 0;
   while ((start = search(path, &matchSep,
-                         search_options{.Start = start + 1})) != -1) {
+                         .Start = start + 1)) != -1)
+  {
     result += {slice(path, prev, start)};
     prev = start + 1;
   }
@@ -444,7 +504,8 @@ mark_as_leak inline array<string> path_split_into_components(string path, string
   // Note that both /home/user/dir and /home/user/dir/ mean the same thing.
   // You can use other functions to check if the former is really a directory or
   // a file (querying the OS).
-  if (prev < length(path)) {
+  if (prev < length(path))
+  {
     // Add the last component - from prev to path.Length
     result += {slice(path, prev, length(path))};
   }
@@ -452,25 +513,31 @@ mark_as_leak inline array<string> path_split_into_components(string path, string
 }
 
 inline path_split_extension_result path_split_extension_general(
-    string path, code_point sep, code_point altSep, code_point extensionSep) {
+    string path, code_point sep, code_point altSep, code_point extensionSep)
+{
   s64 sepIndex =
-      search(path, sep, search_options{.Start = -1, .Reversed = true});
-  if (altSep) {
+      search(path, sep, .Start = -1, .Reversed = true);
+  if (altSep)
+  {
     s64 altSepIndex =
-        search(path, altSep, search_options{.Start = -1, .Reversed = true});
-    if (altSepIndex > sepIndex) sepIndex = altSepIndex;
+        search(path, altSep, .Start = -1, .Reversed = true);
+    if (altSepIndex > sepIndex)
+      sepIndex = altSepIndex;
   }
 
   // Most OSes use a dot to separate extensions but we support other characters
   // as well
   s64 dotIndex =
-      search(path, extensionSep, search_options{.Start = -1, .Reversed = true});
+      search(path, extensionSep, .Start = -1, .Reversed = true);
 
-  if (dotIndex > sepIndex) {
+  if (dotIndex > sepIndex)
+  {
     // Skip leading dots
     s64 filenameIndex = sepIndex + 1;
-    while (filenameIndex < dotIndex) {
-      if (path[filenameIndex] != extensionSep) {
+    while (filenameIndex < dotIndex)
+    {
+      if (path[filenameIndex] != extensionSep)
+      {
         return {slice(path, 0, dotIndex), slice(path, dotIndex, length(path))};
       }
       ++filenameIndex;
@@ -479,7 +546,8 @@ inline path_split_extension_result path_split_extension_general(
   return {path, ""};
 }
 
-inline path_split_extension_result path_split_extension(string path) {
+inline path_split_extension_result path_split_extension(string path)
+{
   return path_split_extension_general(path, '/', '\\', '.');
 }
 
@@ -487,7 +555,7 @@ LSTD_END_NAMESPACE
 
 #if OS == WINDOWS
 #include "windows/path.h"
-#elif OS == MACOS || OS == LINUX 
+#elif OS == MACOS || OS == LINUX
 #include "posix/path.h"
 #elif OS == NO_OS
 // No OS (e.g. programming on baremetal).

@@ -178,8 +178,10 @@ key_value_pair<T> search_prehashed(T ref table, u64 hash,
   return {null, null};
 }
 
+struct table_search_options {};
+
 template <any_hash_table T>
-auto search(T ref table, table_key_t<T> no_copy key) {
+auto search_opt(T ref table, table_key_t<T> no_copy key, table_search_options options = {}) {
   return search_prehashed(table, get_hash(key), key);
 }
 
