@@ -214,11 +214,14 @@ NOBDEF void nob_log(Nob_Log_Level level, const char *fmt, ...) NOB_PRINTF_FORMAT
 // remove it. This alias does not hurt anybody.
 #define nob_shift_args(argc, argv) nob_shift(*argv, *argc)
 
-typedef struct {
-    const char **items;
-    size_t count;
-    size_t capacity;
-} Nob_File_Paths;
+#define Nob_Array(T) struct { \
+    T *items; \
+    size_t count; \
+    size_t capacity; \
+}
+
+typedef Nob_Array(const char*) Nob_Strings;
+typedef Nob_Strings Nob_File_Paths;
 
 typedef enum {
     NOB_FILE_REGULAR = 0,
@@ -230,10 +233,31 @@ typedef enum {
 NOBDEF bool nob_mkdir_if_not_exists(const char *path);
 NOBDEF bool nob_copy_file(const char *src_path, const char *dst_path);
 NOBDEF bool nob_copy_directory_recursively(const char *src_path, const char *dst_path);
+NOBDEF bool nob_is_directory(const char *path);
 NOBDEF bool nob_read_entire_dir(const char *parent, Nob_File_Paths *children);
 NOBDEF bool nob_write_entire_file(const char *path, const void *data, size_t size);
 NOBDEF Nob_File_Type nob_get_file_type(const char *path);
 NOBDEF bool nob_delete_file(const char *path);
+
+typedef struct Nob_Glob_Opts 
+{
+    Nob_Strings extensions;
+    bool recursive;
+    bool include_hidden;
+    bool include_dirs;
+    bool include_files;
+} Nob_Glob_Opts;
+
+NOBDEF void nob_glob_recursive_opt(Nob_File_Paths *files, const char *dir_path, Nob_Glob_Opts opts);
+NOBDEF Nob_File_Paths nob_glob_opt(const char *dir_path, Nob_Glob_Opts opts);
+
+#define nob_default_glob_opts .extensions = {0}, .recursive = false, .include_hidden = false, .include_dirs = false, .include_files = true
+
+#define nob_glob(dir_path, ...) nob_glob_opt(dir_path, (Nob_Glob_Opts){nob_default_glob_opts, __VA_ARGS__})
+#define nob_glob_append(file_paths, dir_path, ...) nob_glob_recursive_opt(file_paths, dir_path, (Nob_Glob_Opts){nob_default_glob_opts, __VA_ARGS__})
+
+NOBDEF bool nob_needs_rebuild_dirs(const char *output_path, Nob_File_Paths dirs, Nob_Strings extensions);
+NOBDEF bool nob_needs_rebuild_cpp_sources(const char *output_path, Nob_File_Paths source_dirs);
 
 #define nob_return_defer(value) do { result = (value); goto defer; } while(0)
 
@@ -263,11 +287,20 @@ NOBDEF bool nob_delete_file(const char *path);
     } while (0)
 
 // Append an item to a dynamic array
-#define nob_da_append(da, item)                \
+#define nob_da_append_item(da, item)                \
     do {                                       \
         nob_da_reserve((da), (da)->count + 1); \
         (da)->items[(da)->count++] = (item);   \
     } while (0)
+
+#define nob_da_append(da, ...) \
+    do { \
+        typeof(*(da)->items) temp_items[] = {__VA_ARGS__}; \
+        size_t temp_count = sizeof(temp_items) / sizeof(temp_items[0]); \
+        for (size_t i = 0; i < temp_count; ++i) { \
+            nob_da_append_item(da, temp_items[i]); \
+        } \
+    } while(0)
 
 #define nob_da_free(da) NOB_FREE((da).items)
 
@@ -386,11 +419,7 @@ NOB_DEPRECATED("Use `nob_cmd_run(&cmd, .async = &procs, .max_procs = <integer>)`
 NOBDEF bool nob_procs_append_with_flush(Nob_Procs *procs, Nob_Proc proc, size_t max_procs_count);
 
 // A command - the main workhorse of Nob. Nob is all about building commands and running them
-typedef struct {
-    const char **items;
-    size_t count;
-    size_t capacity;
-} Nob_Cmd;
+typedef Nob_Strings Nob_Cmd;
 
 // Options for nob_cmd_run_opt() function.
 typedef struct {
@@ -557,6 +586,7 @@ NOBDEF bool nob_rename(const char *old_path, const char *new_path);
 NOBDEF int nob_needs_rebuild(const char *output_path, const char **input_paths, size_t input_paths_count);
 NOBDEF int nob_needs_rebuild1(const char *output_path, const char *input_path);
 NOBDEF int nob_file_exists(const char *file_path);
+NOBDEF bool nob_file_has_extension(const char *file_path, Nob_Strings extensions);
 NOBDEF const char *nob_get_current_dir_temp(void);
 NOBDEF bool nob_set_current_dir(const char *path);
 
@@ -599,6 +629,68 @@ NOBDEF bool nob_set_current_dir(const char *path);
 #ifndef nob_cc_inputs
 #  define nob_cc_inputs(cmd, ...) nob_cmd_append(cmd, __VA_ARGS__)
 #endif // nob_cc_inputs
+
+#ifndef nob_rtti
+#  if defined(_WIN32)
+#    define nob_rtti(cmd, enabled) nob_cmd_append(cmd, (enabled) ? "/GR" : "/GR-")
+#  else
+#    define nob_rtti(cmd, enabled) nob_cmd_append(cmd, (enabled) ? "-frtti" : "-fno-rtti")
+#  endif
+#endif // nob_rtti
+
+#ifndef nob_exceptions
+#  if defined(_WIN32)
+#    define nob_exceptions(cmd, enabled) nob_cmd_append(cmd, (enabled) ? "/EHsc" : "/EHs-c-")
+#  else
+#    define nob_exceptions(cmd, enabled) nob_cmd_append(cmd, (enabled) ? "-fexceptions" : "-fno-exceptions")
+#  endif
+#endif // nob_exceptions
+
+#ifndef nob_debug_info
+#  if defined(_WIN32)
+#    define nob_debug_info(cmd, enabled) do { if (enabled) nob_cmd_append(cmd, "/Zi"); } while(0)
+#  else
+#    define nob_debug_info(cmd, enabled) do { if (enabled) nob_cmd_append(cmd, "-g"); } while(0)
+#  endif
+#endif // nob_debug_info
+
+#ifndef nob_entry_point
+#  if defined(_WIN32)
+#    define nob_entry_point(cmd, entry_name) nob_cmd_append(cmd, nob_temp_sprintf("/ENTRY:%s", (entry_name)))
+#  else
+#    define nob_entry_point(cmd, entry_name) nob_cmd_append(cmd, nob_temp_sprintf("-Wl,-e,%s", (entry_name)))
+#  endif
+#endif // nob_entry_point
+
+#ifndef nob_stack_size
+#  if defined(_WIN32)
+#    define nob_stack_size(cmd, reserve, commit) nob_cmd_append(cmd, nob_temp_sprintf("/STACK:%s,%s", (reserve), (commit)))
+#  else
+#    define nob_stack_size(cmd, reserve, commit) nob_cmd_append(cmd, nob_temp_sprintf("-Wl,-z,stack-size=%s", (reserve)))
+#  endif
+#endif // nob_stack_size
+
+#ifndef nob_no_default_libs
+#  if defined(_WIN32)
+#    define nob_no_default_libs(cmd) nob_cmd_append(cmd, "/NODEFAULTLIB")
+#  else
+#    define nob_no_default_libs(cmd) nob_cmd_append(cmd, "-nostdlib")
+#  endif
+#endif // nob_no_default_libs
+
+#ifndef nob_floating_point_model
+#  if defined(_WIN32)
+#    define nob_floating_point_model(cmd, model) nob_cmd_append(cmd, nob_temp_sprintf("/fp:%s", (model)))
+#  else
+#    define nob_floating_point_model(cmd, model) do { \
+        if (strcmp((model), "strict") == 0) { \
+            nob_cmd_append(cmd, "-ffp-contract=off"); \
+        } else if (strcmp((model), "fast") == 0) { \
+            nob_cmd_append(cmd, "-ffast-math"); \
+        } \
+    } while(0)
+#  endif
+#endif // nob_floating_point_model
 
 // TODO: add MinGW support for Go Rebuild Urself™ Technology and all the nob_cc_* macros above
 //   Musializer contributors came up with a pretty interesting idea of an optional prefix macro which could be useful for
@@ -1532,6 +1624,27 @@ NOBDEF void nob_log(Nob_Log_Level level, const char *fmt, ...)
     fprintf(stderr, "\n");
 }
 
+NOBDEF bool nob_is_directory(const char *path)
+{
+#ifdef _WIN32
+    DWORD attr = GetFileAttributesA(path);
+    if (attr == INVALID_FILE_ATTRIBUTES) {
+        nob_log(NOB_ERROR, "Could not get file attributes of %s: %s
+", path, nob_win32_error_message(GetLastError()));
+        return false;
+    }
+
+    return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
+#else // _WIN32
+    struct stat statbuf;
+    if (lstat(path, &statbuf) < 0) {
+        nob_log(NOB_ERROR, "Could not get stat of %s: %s", path, strerror(errno));
+        return false;
+    }
+    return S_ISDIR(statbuf.st_mode);
+#endif // _WIN32
+}
+
 NOBDEF bool nob_read_entire_dir(const char *parent, Nob_File_Paths *children)
 {
     bool result = true;
@@ -1644,6 +1757,73 @@ NOBDEF bool nob_delete_file(const char *path)
     }
     return true;
 #endif // _WIN32
+}
+
+NOBDEF bool nob_needs_rebuild_dirs(const char *output_path, Nob_File_Paths dirs, Nob_Strings extensions) {
+    Nob_File_Paths all_files = {0};
+    nob_da_foreach(const char *, it, &dirs) {
+        nob_glob_append(&all_files, *it, .extensions = extensions, .recursive = true, .include_files = true, .include_dirs = false);
+    }
+    bool rebuild_needed = false;
+    if (all_files.count > 0) {
+        int result = nob_needs_rebuild(output_path, all_files.items, all_files.count);
+        rebuild_needed = (result > 0);
+    }
+    nob_da_free(all_files);
+    return rebuild_needed;
+}
+
+NOBDEF bool nob_needs_rebuild_cpp_sources(const char *output_path, Nob_File_Paths source_dirs) {
+    Nob_Strings extensions = {0};
+    nob_da_append(&extensions, ".cpp", ".c", ".cc", ".cxx", ".h", ".hpp", ".hh", ".hxx", ".inl");
+
+    bool needs_rebuild = nob_needs_rebuild_dirs(output_path, source_dirs, extensions);
+    nob_da_free(extensions);
+
+    return needs_rebuild;
+}
+
+NOBDEF void nob_glob_recursive_opt(Nob_File_Paths *files, const char *dir_path, Nob_Glob_Opts opts) {
+    Nob_File_Paths entries = {0};
+    if (!nob_read_entire_dir(dir_path, &entries)) {
+        return;
+    }
+    
+    for (size_t i = 0; i < entries.count; ++i) {
+        const char *entry = entries.items[i];
+        
+        // Skip hidden files and directories
+        if (!opts.include_hidden && entry[0] == '.') {
+            continue;
+        }
+        
+        char full_path[1024];
+        snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, entry);
+        
+        if (nob_file_exists(full_path)) {
+            if (nob_is_directory(full_path)) {
+                if (opts.recursive) nob_glob_recursive_opt(files, full_path, opts);
+                if (opts.include_dirs) {
+                    nob_da_append(files, strdup(full_path));
+                }
+            } else if (opts.include_files) {
+                if (opts.extensions.count) {
+                    if (nob_file_has_extension(entry, opts.extensions)) {
+                        nob_da_append(files, strdup(full_path));
+                    }
+                } else {
+                    nob_da_append(files, strdup(full_path));
+                }
+            }
+        }
+    }
+    nob_da_free(entries);
+}
+
+NOBDEF Nob_File_Paths nob_glob_opt(const char *dir_path, Nob_Glob_Opts opts) {
+    Nob_File_Paths files = {0};
+    nob_glob_recursive_opt(&files, dir_path, opts);
+    return files;
 }
 
 NOBDEF bool nob_copy_directory_recursively(const char *src_path, const char *dst_path)
@@ -2088,6 +2268,20 @@ NOBDEF int nob_file_exists(const char *file_path)
 #endif
 }
 
+NOBDEF bool nob_file_has_extension(const char *file_path, Nob_Strings extensions) {
+    if (!file_path || !extensions.count) return false;
+    
+    const char *dot = strrchr(file_path, '.');
+    if (!dot) return false;
+    
+    nob_da_foreach(const char *, it, &extensions) {
+        if (strcmp(dot, *it) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 NOBDEF const char *nob_get_current_dir_temp(void)
 {
 #ifdef _WIN32
@@ -2259,6 +2453,7 @@ NOBDEF int closedir(DIR *dirp)
         #define write_entire_file nob_write_entire_file
         #define get_file_type nob_get_file_type
         #define delete_file nob_delete_file
+        #define needs_rebuild_cpp_sources nob_needs_rebuild_cpp_sources
         #define return_defer nob_return_defer
         #define da_append nob_da_append
         #define da_free nob_da_free
@@ -2288,6 +2483,7 @@ NOBDEF int closedir(DIR *dirp)
         #define procs_wait_and_reset nob_procs_wait_and_reset
         #define procs_append_with_flush nob_procs_append_with_flush
         #define procs_flush nob_procs_flush
+        #define String_List Nob_String_List
         #define Cmd Nob_Cmd
         #define Cmd_Redirect Nob_Cmd_Redirect
         #define Cmd_Opt Nob_Cmd_Opt
