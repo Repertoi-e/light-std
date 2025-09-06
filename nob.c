@@ -16,7 +16,8 @@
 #define TEST_SUITE_FOLDER "test-suite/"
 #define EXAMPLE_FOLDER "example/"
 
-typedef enum {
+typedef enum
+{
     CONFIG_DEBUG,
     CONFIG_DEBUG_OPTIMIZED,
     CONFIG_RELEASE
@@ -24,11 +25,27 @@ typedef enum {
 
 const char *config_names[] = {
     [CONFIG_DEBUG] = "Debug",
-    [CONFIG_DEBUG_OPTIMIZED] = "DebugOptimized", 
-    [CONFIG_RELEASE] = "Release"
-};
+    [CONFIG_DEBUG_OPTIMIZED] = "DebugOptimized",
+    [CONFIG_RELEASE] = "Release"};
 
-void print_usage(const char *program_name) {
+// Helper function to get config-specific build folder
+const char *get_build_folder(Config config)
+{
+    switch (config)
+    {
+    case CONFIG_DEBUG:
+        return BUILD_FOLDER "debug/";
+    case CONFIG_DEBUG_OPTIMIZED:
+        return BUILD_FOLDER "optimized/";
+    case CONFIG_RELEASE:
+        return BUILD_FOLDER "release/";
+    default:
+        return BUILD_FOLDER "release/";
+    }
+}
+
+void print_usage(const char *program_name)
+{
     nob_log(INFO, "Usage: %s [config]\n", program_name);
     nob_log(INFO, "\nConfigurations:\n");
     nob_log(INFO, "  debug      - Debug build with bounds checking\n");
@@ -36,32 +53,36 @@ void print_usage(const char *program_name) {
     nob_log(INFO, "  release    - Release build (default)\n");
 }
 
-void add_common_flags(Cmd *cmd, Config config) {
+void add_common_flags(Cmd *cmd, Config config)
+{
     // Language and standard
     nob_cc_flags(cmd);
     nob_language_cpp(cmd, "c++20");
+
+    // cmd_append(cmd, "-Xclang", "-H", "-ftime-report");
     
-        // Configuration-specific flags  
-    switch (config) {
-        case CONFIG_DEBUG:
-            nob_optimize_level(cmd, NOB_OPTIMIZATION_O0);
-            cmd_append(cmd, "-DDEBUG");
-            cmd_append(cmd, "-DLSTD_ARRAY_BOUNDS_CHECK", "-DLSTD_NUMERIC_CAST_CHECK");
-            nob_debug_info(cmd, true);
-            break;
-        case CONFIG_DEBUG_OPTIMIZED:
-            nob_optimize_level(cmd, NOB_OPTIMIZATION_O2);
-            cmd_append(cmd, "-DDEBUG", "-DDEBUG_OPTIMIZED");
-            cmd_append(cmd, "-DLSTD_ARRAY_BOUNDS_CHECK", "-DLSTD_NUMERIC_CAST_CHECK");
-            nob_debug_info(cmd, true);
-            break;
-        case CONFIG_RELEASE:
-            nob_optimize_level(cmd, NOB_OPTIMIZATION_O3);
-            cmd_append(cmd, "-DNDEBUG", "-DRELEASE");
-            nob_debug_info(cmd, false);
-            break;
+    // Configuration-specific flags
+    switch (config)
+    {
+    case CONFIG_DEBUG:
+        nob_optimize_level(cmd, NOB_OPTIMIZATION_O0);
+        cmd_append(cmd, "-DDEBUG");
+        cmd_append(cmd, "-DLSTD_ARRAY_BOUNDS_CHECK", "-DLSTD_NUMERIC_CAST_CHECK");
+        nob_debug_info(cmd, true);
+        break;
+    case CONFIG_DEBUG_OPTIMIZED:
+        nob_optimize_level(cmd, NOB_OPTIMIZATION_O2);
+        cmd_append(cmd, "-DDEBUG", "-DDEBUG_OPTIMIZED");
+        cmd_append(cmd, "-DLSTD_ARRAY_BOUNDS_CHECK", "-DLSTD_NUMERIC_CAST_CHECK");
+        nob_debug_info(cmd, true);
+        break;
+    case CONFIG_RELEASE:
+        nob_optimize_level(cmd, NOB_OPTIMIZATION_O3);
+        cmd_append(cmd, "-DNDEBUG", "-DRELEASE");
+        nob_debug_info(cmd, false);
+        break;
     }
-    
+
     nob_rtti(cmd, false);
     nob_exceptions(cmd, false);
 
@@ -86,89 +107,108 @@ void add_common_flags(Cmd *cmd, Config config) {
     cmd_append(cmd, "/GS-");
     cmd_append(cmd, temp_sprintf("/Gs%s", 9999999));
 #endif
-    
+
     // Library-specific defines
     cmd_append(cmd, "-DLSTD_NO_NAMESPACE");
     cmd_append(cmd, "-DPLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB");
     cmd_append(cmd, "-DPLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB");
-    
+
     // Include directories
     cmd_append(cmd, "-I" INCLUDE_FOLDER);
 }
 
-bool build_lstd_library(Config config) {
+bool build_lstd_library(Config config)
+{
     nob_log(INFO, "Building lstd library (%s)\n", config_names[config]);
+
+    const char *build_folder = get_build_folder(config);
     
-    if (!mkdir_if_not_exists(BUILD_FOLDER)) return false;
-    if (!mkdir_if_not_exists(BUILD_FOLDER "obj/")) return false;
-    if (!mkdir_if_not_exists(BUILD_FOLDER "lib/")) return false;
+    if (!mkdir_if_not_exists(BUILD_FOLDER))
+        return false;
+    if (!mkdir_if_not_exists(build_folder))
+        return false;
+    if (!mkdir_if_not_exists(temp_sprintf("%sobj/", build_folder)))
+        return false;
+    if (!mkdir_if_not_exists(temp_sprintf("%slib/", build_folder)))
+        return false;
 
     const char *input = SRC_FOLDER "lstd/lib.cpp";
-    
-    // Generate object file path  
-    const char *obj_file = temp_sprintf("%sobj/lstd_lib.o", BUILD_FOLDER);
-    
+
+    // Generate object file path
+    const char *obj_file = temp_sprintf("%sobj/lstd_lib.o", build_folder);
+
     Nob_File_Paths source_dirs = {0};
     da_append(&source_dirs, SRC_FOLDER "lstd", INCLUDE_FOLDER "lstd");
 
-    if (needs_rebuild_cpp_sources(obj_file, source_dirs)) {
+    if (needs_rebuild_cpp_sources(obj_file, source_dirs))
+    {
         Cmd cmd = {0};
         cmd_append(&cmd, "c++");
-        
+
         add_common_flags(&cmd, config);
         cmd_append(&cmd, "-fPIC");
         cmd_append(&cmd, "-c"); // Compile to object file only
-        
+
         // Additional include for cephes math
         cmd_append(&cmd, "-I" INCLUDE_FOLDER "lstd/vendor/cephes/cmath/");
-        
+
         // Input and output
         nob_cc_inputs(&cmd, input);
         nob_cc_output(&cmd, obj_file);
-        
-        if (!cmd_run_sync(cmd)) return false;
+
+        if (!cmd_run_sync(cmd))
+            return false;
     }
-    
-    const char *lib_path = BUILD_FOLDER "lib/liblstd.a";
-    if (needs_rebuild1(lib_path, obj_file)) {
+
+    const char *lib_path = temp_sprintf("%slib/liblstd.a", build_folder);
+    if (needs_rebuild1(lib_path, obj_file))
+    {
         Cmd cmd = {0};
         cmd_append(&cmd, "ar", "rcs", lib_path);
         cmd_append(&cmd, obj_file);
-        if (!cmd_run_sync(cmd)) return false;
+        if (!cmd_run_sync(cmd))
+            return false;
     }
     return true;
 }
 
-bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp, Config config) {
+bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp, Config config)
+{
     nob_log(INFO, "Building %s (%s)\n", name, config_names[config]);
+
+    const char *build_folder = get_build_folder(config);
     
-    if (!mkdir_if_not_exists(BUILD_FOLDER "bin/")) return false;
-    
-    const char *exe_path = temp_sprintf("%sbin/%s", BUILD_FOLDER, name);
-    
+    if (!mkdir_if_not_exists(temp_sprintf("%sbin/", build_folder)))
+        return false;
+
+    const char *exe_path = temp_sprintf("%sbin/%s", build_folder, name);
+
     // Check if rebuild is needed against library and source files
-    bool needs_rebuild_exe = needs_rebuild1(exe_path, BUILD_FOLDER "lib/liblstd.a");
-    if (!needs_rebuild_exe) {
+    bool needs_rebuild_exe = needs_rebuild1(exe_path, temp_sprintf("%slib/liblstd.a", build_folder));
+    if (!needs_rebuild_exe)
+    {
         needs_rebuild_exe = needs_rebuild1(exe_path, unity_cpp);
     }
-    if (!needs_rebuild_exe) {
+    if (!needs_rebuild_exe)
+    {
         needs_rebuild_exe = needs_rebuild_cpp_sources(exe_path, source_dirs);
     }
-    
-    if (needs_rebuild_exe) {
+
+    if (needs_rebuild_exe)
+    {
         Cmd cmd = {0};
         cmd_append(&cmd, "c++");
-        
+
         add_common_flags(&cmd, config);
-        
+
         // Source files
         nob_cc_inputs(&cmd, unity_cpp);
         nob_cc_output(&cmd, exe_path);
-        
+
         // Link with lstd library
-        cmd_append(&cmd, "-L" BUILD_FOLDER "lib");
+        cmd_append(&cmd, temp_sprintf("-L%slib", build_folder));
         cmd_append(&cmd, "-llstd");
-        
+
         // Platform-specific libraries and linking
 #if defined(__linux__) || defined(__APPLE__)
         cmd_append(&cmd, "-lpthread", "-ldl");
@@ -181,7 +221,8 @@ bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp,
 
         cmd_append(&cmd, "-ldbghelp");
 #endif
-        if (!cmd_run_sync(cmd)) return false;
+        if (!cmd_run_sync(cmd))
+            return false;
     }
     return true;
 }
@@ -190,39 +231,52 @@ int main(int argc, char **argv)
 {
     NOB_GO_REBUILD_URSELF(argc, argv);
     Config config = CONFIG_RELEASE;
-    
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "help") == 0 || strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+
+    for (int i = 1; i < argc; ++i)
+    {
+        if (strcmp(argv[i], "help") == 0 || strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
+        {
             print_usage(argv[0]);
             return 0;
-        } else if (strcmp(argv[i], "debug") == 0) {
+        }
+        else if (strcmp(argv[i], "debug") == 0)
+        {
             config = CONFIG_DEBUG;
-        } else if (strcmp(argv[i], "optimized") == 0) {
+        }
+        else if (strcmp(argv[i], "optimized") == 0)
+        {
             config = CONFIG_DEBUG_OPTIMIZED;
-        } else if (strcmp(argv[i], "release") == 0) {
+        }
+        else if (strcmp(argv[i], "release") == 0)
+        {
             config = CONFIG_RELEASE;
-        } else {
+        }
+        else
+        {
             nob_log(ERROR, "Unknown argument: %s\n", argv[i]);
             print_usage(argv[0]);
             return 1;
         }
     }
-    
-    if (!build_lstd_library(config)) {
+
+    if (!build_lstd_library(config))
+    {
         nob_log(ERROR, "Failed to build lstd library\n");
         return 1;
     }
 
     File_Paths test_dirs = {0};
     da_append(&test_dirs, TEST_SUITE_FOLDER);
-    if (!build_executable("test-suite", test_dirs, TEST_SUITE_FOLDER "main.cpp", config)) {
+    if (!build_executable("test-suite", test_dirs, TEST_SUITE_FOLDER "main.cpp", config))
+    {
         nob_log(ERROR, "Failed to build test-suite\n");
         return 1;
     }
 
     File_Paths example_dirs = {0};
     da_append(&example_dirs, EXAMPLE_FOLDER);
-    if (!build_executable("example", example_dirs, EXAMPLE_FOLDER "main.cpp", config)) {
+    if (!build_executable("example", example_dirs, EXAMPLE_FOLDER "main.cpp", config))
+    {
         nob_log(ERROR, "Failed to build example\n");
         return 1;
     }
