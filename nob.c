@@ -3,6 +3,7 @@
 // time you run the `nob` executable if it detects that you modifed nob.c it will rebuild
 // itself automatically thanks to NOB_GO_REBUILD_URSELF (see below)
 
+#define NOB_EXPERIMENTAL_DELETE_OLD
 #define NOB_IMPLEMENTATION
 #define NOB_STRIP_PREFIX
 #include "nob.h"

@@ -5,8 +5,8 @@
 // Define LSTD_NAMESPACE as a preprocessor definition to the value you want the
 // namespace to be called. (By default the libary has the namespace "lstd").
 //
-// * If you want to build this library without a namespace, define
-// LSTD_NO_NAMESPACE in build/premake5.lua
+// * If you want to build this library without a namespace, define 
+// LSTD_NO_NAMESPACE when building
 //
 
 #if not defined LSTD_NO_SPACE && defined LSTD_NAMESPACE

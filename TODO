@@ -14,7 +14,7 @@
 - As per Rayn Fleury's method of programming, which I like, implement the notion of arenas throughout the library. Everything should be an arena. Dynamic arrays should be lists (like linked lists).
 - Extension on the above: If you want a contigous dynamic array, just VirtualAlloc 64 GB of data as an arena and push to commit to that. Once we do the memory visualization tool it'd be nice to see visually what the program is doing.
 	  
-- More robust memory model for stuff the library allocates (see note in premake5.lua). It would be nice to visualize all the memory that is commited by the library and the user. 
+- More robust memory model for stuff the library allocates. It would be nice to visualize all the memory that is commited by the library and the user. 
 - Extension on the above: Make an awesome memory viewer.
 - Extension on the extension: ? Also profiler in the future	
 
