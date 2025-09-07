@@ -1,10 +1,14 @@
 #pragma once
 
 #include "common.h"
+#include "string_builder.h"
+#include "array_like.h"
+#include "variant.h"
+#include "type_info.h"
 #include "fmt/arg.h"
 #include "fmt/context.h"
 #include "fmt/interp.h"
-#include "fmt/pretty.h"
+#include "fmt/struct_tuple_list.h"
 #include "fmt/text_style.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -176,6 +180,113 @@ LSTD_BEGIN_NAMESPACE
 // That is useful when logging to a file and not a console. The ansi escape
 // codes look like garbage in files.
 //
+//
+// CUSTOM TYPE FORMATTING:
+//
+// There is a way to add formatting support for custom types:
+//
+// Formatter specialization (trait-like approach):
+//    
+//    template <>
+//    struct formatter<my_type> {
+//        void format(const my_type &value, fmt_context *f) {
+//            // Your formatting logic here
+//            fmt_to_writer(f, "my_type(x: {}, y: {})", value.x, value.y);
+//        }
+//    };
+//
+// Your formatter can also check format specifiers:
+//    template <>
+//    struct formatter<my_type> {
+//        void format(const my_type &value, fmt_context *f) {
+//            bool use_debug = f->Specs && f->Specs->Hash;
+//            if (use_debug) {
+//                fmt_to_writer(f, "my_type {{ x: {}, y: {} }}", value.x, value.y);
+//            } else {
+//                fmt_to_writer(f, "({}, {})", value.x, value.y);
+//            }
+//        }
+//    };
+//
+// More example formatters for custom types:
+//
+/*
+      // Example: Custom vector formatter
+      // Formats vector in the following way: [1, 2, ...]
+      template <typename T, s32 Dim, bool Packed>
+      struct formatter<vec<T, Dim, Packed>> {
+          void format(const vec<T, Dim, Packed> &src, fmt_context *f) {
+              format_list(f).entries(src.Data, src.DIM)->finish();
+          }
+      };
+
+      // Example: Custom matrix formatter with spec support
+      // Formats in the following way: [ 1, 2, 3; 4, 5, 6; 7, 8, 9]
+      // Alternate (using # specifier): 
+      // [  1,   2,   3
+      //    3,  41,   5
+      //  157,   8,   9]
+      template <typename T, s64 R, s64 C, bool Packed>
+      struct formatter<mat<T, R, C, Packed>> {
+          void format(const mat<T, R, C, Packed> &src, fmt_context *f) {
+              write_no_specs(f, "[");
+              
+              bool alternate = f->Specs && f->Specs->Hash;
+              s64 max = 0;
+              
+              // Calculate max width for alignment if using alternate format
+              if (alternate) {
+                  for (s32 i = 0; i < src.Height; ++i) {
+                      for (s32 j = 0; j < src.Width; ++j) {
+                          s64 length = fmt_calculate_length("{}", src(i, j));
+                          if (length > max) max = length;
+                      }
+                  }
+              }
+              
+              // Format matrix elements
+              for (s32 i = 0; i < src.Height; ++i) {
+                  for (s32 j = 0; j < src.Width; ++j) {
+                      if (alternate) {
+                          fmt_to_writer(f, "{:<{}}", src(i, j), max);
+                      } else {
+                          fmt_to_writer(f, "{}", src(i, j));
+                      }
+                      if (j != src.Width - 1) write_no_specs(f, ", ");
+                  }
+                  if (i < src.Height - 1) {
+                      write_no_specs(f, alternate ? "\n " : "; ");
+                  }
+              }
+              
+              write_no_specs(f, "]");
+          }
+      };
+
+      // Example: Custom quaternion formatter
+      // Formats in the following way: quat(1, 0, 0, 0)
+      // Alternate (using # specifier): [ 60 deg @ [0, 1, 0] ] (rotation in degrees around axis)
+      template <typename T, bool Packed>
+      struct formatter<tquat<T, Packed>> {
+          void format(const tquat<T, Packed> &src, fmt_context *f) {
+              bool alternate = f->Specs && f->Specs->Hash;
+              if (alternate) {
+                  write_no_specs(f, "[ ");
+                  fmt_to_writer(f, "{:.1f}", src.angle() / TAU * 360);
+                  write_no_specs(f, " deg @ ");
+                  fmt_to_writer(f, "{}", src.axis());
+                  write_no_specs(f, " ]");
+              } else {
+                  format_tuple(f, "quat")
+                      .field(src.s)
+                      ->field(src.i)
+                      ->field(src.j)
+                      ->field(src.k)
+                      ->finish();
+              }
+          }
+      };
+*/
 
 struct fmt_context;
 
@@ -212,130 +323,10 @@ char *mprint(string fmtString, Args no_copy... arguments);
 template <typename... Args>
 void print(string fmtString, Args no_copy... arguments);
 
-// Same as print, but the format string is expected to contain standard printf
-// syntax. Type-safety, custom-formatters, etc. work here. You don't get all
-// features, but this is designed as a drop-in replacement for printf.
-template <typename... Args>
-void printf(string fmtString, Args no_copy... arguments) {
-  // @TODO
-  assert(false);
-}
-
 // Expects a valid fmt_context (take a look in the implementation of
 // fmt_to_writer). Does all the magic of parsing the format string and
 // formatting the arguments.
 void fmt_parse_and_format(fmt_context *f);
-
-inline void write_custom(fmt_context *f, const string_builder *b) {
-  auto *buffer = &b->BaseBuffer;
-  while (buffer) {
-    write_no_specs(f, buffer->Data, buffer->Occupied);
-    buffer = buffer->Next;
-  }
-}
-
-// Format arrays in the following way: [1, 2, ...]
-
-inline void write_custom(fmt_context *f, any_array_like auto no_copy a) {
-  format_list(f).entries(a.Data, a.Count)->finish();
-}
-
-// @TODO: Formatter for hash table
-
-//
-// Formatters for math types:
-//
-/*
-// Formats vector in the following way: [1, 2, ...]
-template <typename T, s32 Dim, bool Packed>
-struct formatter<vec<T, Dim, Packed>> {
-    void format(const vec<T, Dim, Packed> &src, fmt_context *f) {
-        format_list(f).entries(src.Data, src.DIM)->finish();
-    }
-};
-
-// Formats in the following way: [ 1, 2, 3; 4, 5, 6; 7, 8, 9]
-// Alternate (using # specifier):
-// [  1,   2,   3
-//    3,  41,   5
-//  157,   8,   9]
-template <typename T, s64 R, s64 C, bool Packed>
-struct formatter<mat<T, R, C, Packed>> {
-    void format(const mat<T, R, C, Packed> &src, fmt_context *f) {
-        write(f, "[");
-
-        bool alternate = f->Specs && f->Specs->Hash;
-        s64 max        = 0;
-        if (alternate) {
-            for (s32 i = 0; i < src.Height; ++i) {
-                for (s32 j = 0; j < src.Width; ++j) {
-                    s64 s;
-                    if constexpr (is_floating_point<T>) {
-                        s = fmt_calculate_length("{:f}", src(i, j));
-                    } else {
-                        s = fmt_calculate_length("{}", src(i, j));
-                    }
-                    if (s > max) max = s;
-                }
-            }
-        }
-
-        auto *old = f->Specs;
-        f->Specs  = null;
-        for (s32 i = 0; i < src.Height; ++i) {
-            for (s32 j = 0; j < src.Width; ++j) {
-                if (alternate) {
-                    if constexpr (is_floating_point<T>) {
-                        fmt_to_writer(f, "{0:<{1}f}", src(i, j), max);
-                    } else {
-                        fmt_to_writer(f, "{0:<{1}}", src(i, j), max);
-                    }
-                } else {
-                    if constexpr (is_floating_point<T>) {
-                        fmt_to_writer(f, "{0:f}", src(i, j));
-                    } else {
-                        fmt_to_writer(f, "{0:}", src(i, j));
-                    }
-                }
-                if (j != src.Width - 1) write(f, ", ");
-            }
-            if (i < src.R - 1) write(f, alternate ? "\n " : "; ");
-        }
-        f->Specs = old;
-        write(f, "]");
-    }
-};
-
-// (This is for mat views)
-// Formats in the following way: [ 1, 2, 3; 4, 5, 6; 7, 8, 9]
-// Alternate (using # specifier):
-// [  1,   2,   3
-//    3,  41,   5
-//  157,   8,   9]
-template <typename T, s64 R, s64 C, bool Packed, s64 SR, s64 SC>
-struct formatter<mat_view<mat<T, R, C, Packed>, SR, SC>> {
-    void format(const mat_view<mat<T, R, C, Packed>, SR, SC> &src, fmt_context
-*f) { mat<T, SR, SC, Packed> v = src; fmt_to_writer(f, "{}", v);  // yES. We are
-lazy.
-    }
-};
-
-// Formats in the following way: quat(1, 0, 0, 0)
-// Alternate (using # specifier): [ 60 deg @ [0, 1, 0] ] (rotation in degrees
-around axis) template <typename T, bool Packed> struct formatter<tquat<T,
-Packed>> { void format(const tquat<T, Packed> &src, fmt_context *f) { bool
-alternate = f->Specs && f->Specs->Hash; if (alternate) { write(f, "[");
-            fmt_to_writer(f, "{.f}", src.angle() / TAU * 360);
-            write(f, " deg @ ");
-            fmt_to_writer(f, "{}", src.axis());
-            write(f, "]");
-        } else {
-            format_tuple(f,
-"quat").field(src.s)->field(src.i)->field(src.j)->field(src.k)->finish();
-        }
-    }
-};
-*/
 
 struct fmt_width_checker {
   fmt_context *F;
@@ -583,22 +574,88 @@ void print(string fmtString, Args no_copy... arguments) {
 }
 
 //
-// Specialize this function for formatting your custom type.
+// Primary formatter template - specialize this for custom types
+// This follows a trait-like pattern similar to Rust's formatting traits
 //
 template <typename T>
-void write_custom(fmt_context *f, const T *t) {
-  // XXXX TODO: Move this inside if constexpr before calling write_custom!
-  // static_assert(false, "Argument doesn't have a way to be formatted.");
-  assert(false);
+struct formatter {
+  // The format() method should be specialized for each type
+  // void format(const T &value, fmt_context *f) { ... }
+};
 
-  // e.g.
-  // void write_custom(fmt_context *f, const my_vector *value) {
-  //     fmt_to_writer(f, "x: {}, y: {}", value->x, value->y);
-  //     // ...
-  // }
+// Helper to detect if a formatter<T> specialization exists and has a format method
+template <typename T>
+concept has_formatter = requires(const T &value, fmt_context *f) {
+  formatter<remove_cvref_t<T>>{}.format(value, f);
+};
 
-  // If you already specialized but still get an error,
-  // check if your implementation is in the library namespace.
+template <typename T>
+void format_value(const T &value, fmt_context *f) {
+  if constexpr (has_formatter<T>) {
+    formatter<remove_cvref_t<T>>{}.format(value, f);
+  } else {
+    // Fall back to standard formatting for built-in types
+    fmt_arg arg = fmt_make_arg(value);
+    fmt_visit_arg(fmt_context_visitor(f), arg);
+  }
 }
+
+//
+// Formatter specializations for built-in types:
+//
+
+// Formatter for string_builder
+template <>
+struct formatter<string_builder> {
+  void format(const string_builder &b, fmt_context *f) {
+    auto *buffer = &b.BaseBuffer;
+    while (buffer) {
+      write_no_specs(f, buffer->Data, buffer->Occupied);
+      buffer = buffer->Next;
+    }
+  }
+};
+
+// Formatter for array-like types (using template specialization with concepts)
+template <any_array_like T>
+struct formatter<T> {
+  void format(const T &a, fmt_context *f) {
+    format_list(f).entries(a.Data, a.Count)->finish();
+  }
+};
+
+// Formatter for variant<MEMBERS...>
+template <typename... MEMBERS>
+struct formatter<variant<MEMBERS...>> {
+  void format(const variant<MEMBERS...> &v, fmt_context *f) {
+    if (!v) {
+      // Empty variant (contains nil)
+      write_no_specs(f, "nullvar");
+    } else {
+      // Visit the variant and format the contained value directly
+      v.visit([f](const auto &value) {
+        using ValueType = decay_t<decltype(value)>;
+        if constexpr (!is_same<ValueType, typename variant<MEMBERS...>::nil>) {
+          format_value(value, f);
+        }
+      });
+    }
+  }
+};
+
+// Formatter for optional<T> (which is just variant<T>)
+template <typename T>
+struct formatter<optional<T>> {
+  void format(const optional<T> &opt, fmt_context *f) {
+    if (opt) {
+      format_value(opt.template strict_get<T>(), f);
+    } else {
+      // Optional is empty
+      write_no_specs(f, "nullopt");
+    }
+  }
+};
+
+// @TODO: Formatter for hash table
 
 LSTD_END_NAMESPACE

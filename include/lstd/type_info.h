@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include <typeinfo>
 
 LSTD_BEGIN_NAMESPACE
 
@@ -585,6 +586,29 @@ template <typename DestType, typename SourceType>
 DestType bit_cast(SourceType const &sourceValue) {
   static_assert(sizeof(DestType) == sizeof(SourceType));
   return __builtin_bit_cast(DestType, sourceValue);
+}
+
+//
+// Type name extraction using typeid
+//
+
+/**
+ * @brief Get the name of a type as a string.
+ * 
+ * This function uses typeid to get the type name. On some compilers
+ * this will be mangled, but it's still useful for debugging.
+ * 
+ * @tparam T The type whose name to extract.
+ * @return A string containing the type name (may be mangled).
+ * 
+ * Example usage:
+ * @code
+ *   const char* name = type_name<int>();  // Returns type name
+ * @endcode
+ */
+template <typename T>
+const char* type_name() {
+    return typeid(T).name();
 }
 
 LSTD_END_NAMESPACE

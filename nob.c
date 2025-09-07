@@ -83,7 +83,7 @@ void add_common_flags(Cmd *cmd, Config config)
         break;
     }
 
-    nob_rtti(cmd, false);
+    nob_rtti(cmd, true);
     nob_exceptions(cmd, false);
 
 #if defined(__APPLE__) || defined(__MACH__) || defined(__linux__)

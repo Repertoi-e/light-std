@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "math.h"
+#include "type_info.h"
 
 //
 // variant<> is a type-safe union.

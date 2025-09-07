@@ -228,7 +228,10 @@ TEST(format_inf) {
 
 struct Answer {};
 
-void write_custom(fmt_context *f, const Answer *) { write(f, 42); }
+template<>
+struct formatter<Answer> {
+  void format(const Answer &a, fmt_context *f) { write(f, 42); }
+};
 
 TEST(format_custom) {
   Answer a;
@@ -828,3 +831,94 @@ TEST(colors_and_emphasis) {
   CHECK_WRITE("\x1b[92m", "{!tBRIGHT_GREEN}");
   CHECK_WRITE("\x1b[105m", "{!tBRIGHT_MAGENTA;BG}");
 }
+
+//
+// Test for the new formatter<> system
+//
+
+struct test_point {
+  s32 x, y;
+};
+
+// Test formatter specialization
+template <>
+struct formatter<test_point> {
+  void format(const test_point &p, fmt_context *f) {
+    bool use_debug = f->Specs && f->Specs->Hash;
+    if (use_debug) {
+      fmt_to_writer(f, "test_point {{ x: {}, y: {} }}", p.x, p.y);
+    } else {
+      fmt_to_writer(f, "({}, {})", p.x, p.y);
+    }
+  }
+};
+
+struct test_vector {
+  f32 x, y, z;
+};
+
+// Test another formatter specialization
+template <>
+struct formatter<test_vector> {
+  void format(const test_vector &v, fmt_context *f) {
+    format_tuple(f, "vec3")
+      .field(v.x)
+      ->field(v.y)
+      ->field(v.z)
+      ->finish();
+  }
+};
+
+TEST(custom_types) {
+  test_point p = {10, 20};
+  
+  // Test normal formatting
+  CHECK_WRITE("(10, 20)", "{}", p);
+  
+  // Test debug formatting with # specifier
+  CHECK_WRITE("test_point { x: 10, y: 20 }", "{:#}", p);
+  
+  test_vector v = {1.0f, 2.5f, -3.0f};
+  CHECK_WRITE("vec3(1, 2.5, -3)", "{}", v);
+}
+
+TEST(variant_and_optional) {
+  // Test optional<int> formatting
+  optional<int> empty_opt;
+  optional<int> filled_opt = 42;
+  
+  CHECK_WRITE("nullopt", "{}", empty_opt);
+  CHECK_WRITE("42", "{}", filled_opt);
+  
+  // Test variant<int, float, string> formatting
+  variant<int, float, string> int_var = 123;
+  variant<int, float, string> float_var = 3.14f;
+  variant<int, float, string> string_var = string("hello");
+  
+  CHECK_WRITE("123", "{}", int_var);
+  CHECK_WRITE("3.14", "{}", float_var);
+  CHECK_WRITE("hello", "{}", string_var);
+  
+  // Test empty variant
+  variant<int, float, string> empty_var;
+  CHECK_WRITE("nullvar", "{}", empty_var);
+  
+  // Test variant with custom types
+  variant<test_point, test_vector> point_var = test_point{5, 10};
+  variant<test_point, test_vector> vector_var = test_vector{1.0f, 2.0f, 3.0f};
+  
+  CHECK_WRITE("(5, 10)", "{}", point_var);
+  CHECK_WRITE("vec3(1, 2, 3)", "{}", vector_var);
+  
+  // Test debug formatting for variants
+  CHECK_WRITE("test_point { x: 5, y: 10 }", "{:#}", point_var);
+  
+  // Test optional with custom types
+  optional<test_point> empty_point_opt;
+  optional<test_point> filled_point_opt = test_point{7, 14};
+  
+  CHECK_WRITE("nullopt", "{}", empty_point_opt);
+  CHECK_WRITE("(7, 14)", "{}", filled_point_opt);
+  CHECK_WRITE("test_point { x: 7, y: 14 }", "{:#}", filled_point_opt);
+}
+
