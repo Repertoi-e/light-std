@@ -159,7 +159,11 @@ struct hasher {
   }
 };
 
-// @TODO: Hash for array_like
+inline u64 get_hash(any_array_like auto ref array) {
+  hasher h(0);
+  For(array) h.add((const char *)&it, sizeof(it));
+  return h.hash();
+}
 
 // Hashes for integer types
 #define TRIVIAL_HASH(T) \

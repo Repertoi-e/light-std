@@ -330,4 +330,13 @@ auto end(any_hash_table auto ref table) {
   return hash_table_iterator(table, table.Allocated);
 }
 
+inline u64 get_hash(any_hash_table auto value) {
+  hasher h(0);
+  For(value) {
+    h.add((const char *)it.Key, sizeof(it.Key));
+    h.add((const char *)it.Value, sizeof(it.Value));
+  }
+  return h.hash();
+}
+
 LSTD_END_NAMESPACE

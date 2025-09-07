@@ -38,7 +38,7 @@ LSTD_BEGIN_NAMESPACE
 template <typename T, s64 N>
 struct stack_array {
   T Data[N ? N : 1]{};
-  static const s64 Count = N;
+  static constexpr s64 Count = N;
 
   stack_array() {}
   stack_array(initializer_list<T> list) {

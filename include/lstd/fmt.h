@@ -617,11 +617,44 @@ struct formatter<string_builder> {
   }
 };
 
-// Formatter for array-like types (using template specialization with concepts)
-template <any_array_like T>
+// Formatter for static array-like types (stack_array, etc.)
+template <typename T>
+requires any_array_like<T> && (!any_dynamic_array_like<T>)
 struct formatter<T> {
   void format(const T &a, fmt_context *f) {
-    format_list(f).entries(a.Data, a.Count)->finish();
+    bool use_debug = f->Specs && f->Specs->Hash;
+    if (use_debug) {
+      write_no_specs(f, "<array_like> { count: ");
+      format_value(a.Count, f);
+      write_no_specs(f, ", data: ");
+      format_list(f).entries(a.Data, a.Count)->finish();
+      write_no_specs(f, " }");
+    } else {
+      format_list(f).entries(a.Data, a.Count)->finish();
+    }
+  }
+};
+
+// Formatter for dynamic array-like types (array, etc.)
+template <typename T>
+requires any_dynamic_array_like<T>
+struct formatter<T> {
+  void format(const T &a, fmt_context *f) {
+    bool use_debug = f->Specs && f->Specs->Hash;
+    
+    if (use_debug) {
+      // Debug format: array { count: X, capacity: Y, allocated: Z, data: [...] }
+      write_no_specs(f, "<dynamic_array_like> { count: ");
+      format_value(a.Count, f);
+      write_no_specs(f, ", allocated: ");
+      format_value(a.Allocated, f);
+      write_no_specs(f, ", data: ");
+      format_list(f).entries(a.Data, a.Count)->finish();
+      write_no_specs(f, " }");
+    } else {
+      // Normal format: [...]
+      format_list(f).entries(a.Data, a.Count)->finish();
+    }
   }
 };
 

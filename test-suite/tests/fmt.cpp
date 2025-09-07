@@ -961,3 +961,261 @@ TEST(hash_table_formatting) {
   assert(search(debug_result, string("cherry")) != -1);
 }
 
+TEST(array_formatting) {
+  // Test basic array formatting
+  array<s32> numbers;
+  defer(free(numbers));
+  
+  // Test empty array
+  CHECK_WRITE("[]", "{}", numbers);
+  CHECK_WRITE("<dynamic_array_like> { count: 0, allocated: 0, data: [] }", "{:#}", numbers);
+  
+  // Add some numbers
+  add(numbers, 1);
+  add(numbers, 2);
+  add(numbers, 3);
+  
+  CHECK_WRITE("[1, 2, 3]", "{}", numbers);
+  
+  string debug_result = sprint("{:#}", numbers);
+  defer(free(debug_result.Data));
+
+  assert(match_beginning(debug_result, "<dynamic_array_like> { count: 3, allocated: "));
+  assert(match_end(debug_result, ", data: [1, 2, 3] }"));
+}
+
+TEST(nested_hash_tables) {
+  hash_table<string, hash_table<string, s32>> nested_table;
+  defer(free(nested_table));
+  
+  // Create inner tables
+  hash_table<string, s32> fruits;
+  defer(free(fruits));
+  set(fruits, "apple", 5);
+  set(fruits, "banana", 3);
+  
+  hash_table<string, s32> vegetables;
+  defer(free(vegetables));
+  set(vegetables, "carrot", 10);
+  set(vegetables, "broccoli", 7);
+  
+  // Add to outer table
+  set(nested_table, "fruits", fruits);
+  set(nested_table, "vegetables", vegetables);
+  
+  // Test formatting
+  string result = sprint("{}", nested_table);
+  defer(free(result.Data));
+  
+  // Check structure - should have nested braces
+  assert(result[0] == '{');
+  assert(result[result.Count - 1] == '}');
+  assert(search(result, string("fruits")) != -1);
+  assert(search(result, string("vegetables")) != -1);
+  assert(search(result, string("apple")) != -1);
+  assert(search(result, string("carrot")) != -1);
+  
+  // Count the number of opening braces to verify nesting
+  s32 brace_count = 0;
+  For(range(result.Count)) {
+    if (result[it] == '{') brace_count++;
+  }
+  assert(brace_count >= 3); // At least outer + 2 inner tables
+  
+  // Test debug formatting
+  string debug_result = sprint("{:#}", nested_table);
+  defer(free(debug_result.Data));
+  
+  assert(match_beginning(debug_result, "hash_table { count: 2, entries: {"));
+  assert(search(debug_result, string("hash_table")) != -1); // Should contain nested hash_table debug info
+}
+
+TEST(hash_table_with_arrays) {
+  hash_table<string, array<s32>> table_with_arrays;
+  defer(free(table_with_arrays));
+  
+  // Create arrays
+  array<s32> even_numbers;
+  defer(free(even_numbers));
+  add(even_numbers, 2);
+  add(even_numbers, 4);
+  add(even_numbers, 6);
+  
+  array<s32> odd_numbers;
+  defer(free(odd_numbers));
+  add(odd_numbers, 1);
+  add(odd_numbers, 3);
+  add(odd_numbers, 5);
+  
+  // Add arrays to table
+  set(table_with_arrays, "even", even_numbers);
+  set(table_with_arrays, "odd", odd_numbers);
+  
+  // Test formatting
+  string result = sprint("{}", table_with_arrays);
+  defer(free(result.Data));
+  
+  assert(result[0] == '{');
+  assert(result[result.Count - 1] == '}');
+  assert(search(result, string("even")) != -1);
+  assert(search(result, string("odd")) != -1);
+  assert(search(result, string("[2, 4, 6]")) != -1);
+  assert(search(result, string("[1, 3, 5]")) != -1);
+  
+  // Test debug formatting
+  string debug_result = sprint("{:#}", table_with_arrays);
+  defer(free(debug_result.Data));
+  
+  assert(match_beginning(debug_result, "hash_table { count: 2, entries: {"));
+  assert(search(debug_result, string("<dynamic_array_like> {")) != -1); // Should contain array debug info
+}
+
+TEST(array_of_hash_tables) {
+  array<hash_table<string, s32>> array_of_tables;
+  defer(free(array_of_tables));
+  
+  // Create individual tables
+  hash_table<string, s32> table1;
+  defer(free(table1));
+  set(table1, "a", 1);
+  set(table1, "b", 2);
+  
+  hash_table<string, s32> table2;
+  defer(free(table2));
+  set(table2, "x", 24);
+  set(table2, "y", 25);
+  
+  // Add tables to array
+  add(array_of_tables, table1);
+  add(array_of_tables, table2);
+  
+  // Test formatting
+  string result = sprint("{}", array_of_tables);
+  defer(free(result.Data));
+  
+  assert(result[0] == '[');
+  assert(result[result.Count - 1] == ']');
+  assert(search(result, string("a")) != -1);
+  assert(search(result, string("b")) != -1);
+  assert(search(result, string("x")) != -1);
+  assert(search(result, string("y")) != -1);
+  
+  // Count braces to verify structure
+  s32 brace_count = 0;
+  For(range(result.Count)) {
+    if (result[it] == '{') brace_count++;
+  }
+  assert(brace_count >= 2); // At least 2 hash tables
+  
+  // Test debug formatting
+  string debug_result = sprint("{:#}", array_of_tables);
+  defer(free(debug_result.Data));
+
+  assert(match_beginning(debug_result, "<dynamic_array_like> { count: 2, allocated: "));
+  assert(search(debug_result, string("hash_table {")) != -1); // Should contain hash_table debug info
+}
+
+TEST(complex_nested_structures) {
+  // Create a hash table containing both arrays and nested hash tables
+  hash_table<string, variant<array<s32>, hash_table<string, s32>>> complex_table;
+  defer(free(complex_table));
+  
+  // Create an array
+  array<s32> numbers;
+  defer(free(numbers));
+  add(numbers, 10);
+  add(numbers, 20);
+  add(numbers, 30);
+  
+  // Create a nested hash table
+  hash_table<string, s32> nested;
+  defer(free(nested));
+  set(nested, "foo", 100);
+  set(nested, "bar", 200);
+  
+  // Add both to the complex table using variants
+  set(complex_table, "numbers", variant<array<s32>, hash_table<string, s32>>(numbers));
+  set(complex_table, "mapping", variant<array<s32>, hash_table<string, s32>>(nested));
+  
+  // Test formatting
+  string result = sprint("{}", complex_table);
+  defer(free(result.Data));
+  
+  assert(result[0] == '{');
+  assert(result[result.Count - 1] == '}');
+  assert(search(result, string("numbers")) != -1);
+  assert(search(result, string("mapping")) != -1);
+  assert(search(result, string("[10, 20, 30]")) != -1);
+  assert(search(result, string("foo")) != -1);
+  assert(search(result, string("bar")) != -1);
+  
+  // Test that we have both array brackets and hash table braces
+  bool has_brackets = search(result, string("[")) != -1 && search(result, string("]")) != -1;
+  bool has_braces = search(result, string("{")) != -1 && search(result, string("}")) != -1;
+  assert(has_brackets && has_braces);
+}
+
+TEST(deeply_nested_structures) {
+  // Test 3-level nesting: hash_table<string, hash_table<string, array<s32>>>
+  hash_table<string, hash_table<string, array<s32>>> deep_table;
+  defer(free(deep_table));
+  
+  // Create inner arrays
+  array<s32> array1;
+  defer(free(array1));
+  add(array1, 1);
+  add(array1, 2);
+  
+  array<s32> array2;
+  defer(free(array2));
+  add(array2, 3);
+  add(array2, 4);
+  
+  // Create middle table
+  hash_table<string, array<s32>> middle_table;
+  defer(free(middle_table));
+  set(middle_table, "first", array1);
+  set(middle_table, "second", array2);
+  
+  // Add to outer table
+  set(deep_table, "data", middle_table);
+  
+  // Test formatting
+  string result = sprint("{}", deep_table);
+  defer(free(result.Data));
+  
+  assert(result[0] == '{');
+  assert(result[result.Count - 1] == '}');
+  assert(search(result, string("data")) != -1);
+  assert(search(result, string("first")) != -1);
+  assert(search(result, string("second")) != -1);
+  assert(search(result, string("[1, 2]")) != -1);
+  assert(search(result, string("[3, 4]")) != -1);
+  
+  // Test debug formatting provides proper nesting info
+  string debug_result = sprint("{:#}", deep_table);
+  defer(free(debug_result.Data));
+  
+  assert(match_beginning(debug_result, "hash_table { count: 1, entries: {"));
+  // Should contain multiple levels of debug info
+  s32 hash_table_count = 0;
+  s32 array_count = 0;
+  
+  // Count debug structure indicators
+  string search_str = debug_result;
+  s32 pos = 0;
+  while ((pos = search(search_str, string("hash_table"), pos)) != -1) {
+    hash_table_count++;
+    pos += 10; // Length of "hash_table"
+  }
+  
+  pos = 0;
+  while ((pos = search(search_str, string("array"), pos)) != -1) {
+    array_count++;
+    pos += 5; // Length of "array"
+  }
+  
+  assert(hash_table_count >= 2); // Outer + middle table
+  assert(array_count >= 2); // The two inner arrays
+}
+
