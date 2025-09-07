@@ -114,6 +114,37 @@ struct format_list
   void finish();
 };
 
+// Outputs in the following format: { key1: value1, key2: value2, ... }
+// e.g.     { "name": "John", "age": 30, "city": "New York" }
+struct format_dict
+{
+  struct key_value_entry
+  {
+    fmt_arg Key;
+    fmt_arg Value;
+  };
+
+  fmt_context *F;
+  array<key_value_entry> Fields;
+  bool NoSpecs; // Write the result without taking into account specs for
+                // individual arguments
+
+  format_dict(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
+
+  // I know we are against hidden freeing but having this destructor is fine
+  // because it helps with code conciseness.
+  ~format_dict() { free(Fields); }
+
+  template <typename K, typename V>
+  format_dict *entry(const K &key, const V &value)
+  {
+    add(Fields, {fmt_make_arg(key), fmt_make_arg(value)});
+    return this;
+  }
+
+  void finish();
+};
+
 inline void format_struct::finish()
 {
   auto write_field = [&](field_entry *entry)
@@ -185,6 +216,33 @@ inline void format_list::finish()
     }
   }
   write_no_specs(F, "]");
+}
+
+inline void format_dict::finish()
+{
+  write_no_specs(F, "{");
+
+  auto *p = Fields.Data;
+  auto *end = Fields.Data + Fields.Count;
+
+  if (p != end)
+  {
+    write_no_specs(F, " ");
+    fmt_visit_arg(fmt_context_visitor(F, NoSpecs), p->Key);
+    write_no_specs(F, ": ");
+    fmt_visit_arg(fmt_context_visitor(F, NoSpecs), p->Value);
+    ++p;
+    while (p != end)
+    {
+      write_no_specs(F, ", ");
+      fmt_visit_arg(fmt_context_visitor(F, NoSpecs), p->Key);
+      write_no_specs(F, ": ");
+      fmt_visit_arg(fmt_context_visitor(F, NoSpecs), p->Value);
+      ++p;
+    }
+    write_no_specs(F, " ");
+  }
+  write_no_specs(F, "}");
 }
 
 LSTD_END_NAMESPACE

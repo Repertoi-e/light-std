@@ -922,3 +922,42 @@ TEST(variant_and_optional) {
   CHECK_WRITE("test_point { x: 7, y: 14 }", "{:#}", filled_point_opt);
 }
 
+TEST(hash_table_formatting) {
+  hash_table<string, s32> table;
+  defer(free(table));
+  
+  // Test empty hash table
+  CHECK_WRITE("{}", "{}", table);
+  CHECK_WRITE("hash_table { count: 0, entries: {} }", "{:#}", table);
+  
+  // Add some entries
+  set(table, "apple", 1);
+  set(table, "banana", 2);
+  set(table, "cherry", 3);
+  
+  // Test non-empty hash table
+  string result = sprint("{}", table);
+  defer(free(result.Data));
+  
+  // The exact order might vary due to hashing, but it should contain all entries
+  // Let's just check that it has the basic structure and contains our data
+  assert(result[0] == '{');
+  assert(result[result.Count - 1] == '}');
+  assert(search(result, string("apple")) != -1);
+  assert(search(result, string("banana")) != -1);
+  assert(search(result, string("cherry")) != -1);
+  assert(search(result, string(": 1")) != -1);
+  assert(search(result, string(": 2")) != -1);
+  assert(search(result, string(": 3")) != -1);
+  
+  // Test debug format
+  string debug_result = sprint("{:#}", table);
+  defer(free(debug_result.Data));
+  
+  assert(match_beginning(debug_result, "hash_table { count: 3, entries: {"));
+  assert(match_end(debug_result, "} }"));
+  assert(search(debug_result, string("apple")) != -1);
+  assert(search(debug_result, string("banana")) != -1);
+  assert(search(debug_result, string("cherry")) != -1);
+}
+

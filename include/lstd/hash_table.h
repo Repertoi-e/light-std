@@ -67,8 +67,7 @@ struct hash_table {
   array<entry> Entries;
 
   s64 Count = 0;  // Number of slots in use
-  s64 SlotsFilled =
-      0;  // Number of slots that can't be used (valid + removed items)
+  s64 SlotsFilled = 0;  // Number of slots that can't be used (valid + removed items)
   s64 Allocated = 0;  // Number of slots allocated in total, @Cleanup
 
   // You can iterate over the table like this:

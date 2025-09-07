@@ -4,6 +4,7 @@
 #include "string_builder.h"
 #include "array_like.h"
 #include "variant.h"
+#include "hash_table.h"
 #include "type_info.h"
 #include "fmt/arg.h"
 #include "fmt/context.h"
@@ -656,6 +657,40 @@ struct formatter<optional<T>> {
   }
 };
 
-// @TODO: Formatter for hash table
+// Formatter for hash table
+template <typename K, typename V>
+struct formatter<hash_table<K, V>> {
+  void format(const hash_table<K, V> &table, fmt_context *f) {
+    bool use_debug = f->Specs && f->Specs->Hash;
+    
+    if (use_debug) {
+      // Alternate format: displays as a more detailed view
+      // e.g. hash_table<string, int> { count: 3, entries: { "key1": 1, "key2": 2, "key3": 3 } }
+      write_no_specs(f, "hash_table { count: ");
+      format_value(table.Count, f);
+      write_no_specs(f, ", entries: ");
+      
+      format_dict dict(f);
+      // Need to cast away const to iterate since hash table iterators expect non-const
+      auto &mutable_table = const_cast<hash_table<K, V> &>(table);
+      for (auto [key, value] : mutable_table) {
+        dict.entry(*key, *value);
+      }
+      dict.finish();
+      
+      write_no_specs(f, " }");
+    } else {
+      // Default format: displays as a simple dictionary
+      // e.g. { "key1": 1, "key2": 2, "key3": 3 }
+      format_dict dict(f);
+      // Need to cast away const to iterate since hash table iterators expect non-const
+      auto &mutable_table = const_cast<hash_table<K, V> &>(table);
+      for (auto [key, value] : mutable_table) {
+        dict.entry(*key, *value);
+      }
+      dict.finish();
+    }
+  }
+};
 
 LSTD_END_NAMESPACE
