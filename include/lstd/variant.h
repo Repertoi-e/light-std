@@ -216,8 +216,10 @@ struct variant {
   auto ref strict_get() const {
     if (is<T>())
       return as<T>();
-    else
-      panic();
+    else {
+      // Calls panic which crashes
+      const_cast<variant *>(this)->strict_get<T>();
+    }
   }
 
 #pragma clang diagnostic pop

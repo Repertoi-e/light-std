@@ -10,3 +10,6 @@
 #endif
 
 #include "vendor/tlsf/tlsf.cpp"
+
+// Unicode and string helpers implementation
+#include "string.cpp"

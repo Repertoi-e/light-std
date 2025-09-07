@@ -268,7 +268,7 @@ void debug_memory_report_leaks() {
     //
     // @Cleanup D I R T Y @Cleanup @Cleanup @Cleanup
     //
-    if (compare_string(it->AllocatedAt.file_name(), "") != -1) {
+    if (c_string_find_first_diff(it->AllocatedAt.file_name(), "") != -1) {
       file = get_short_file_name(it->AllocatedAt.file_name());
     }
 

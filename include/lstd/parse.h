@@ -377,7 +377,7 @@ bool expect_cp(string *p, code_point value) {
   if (!p->Count) return false;
 
   code_point ch = (*p)[0];
-  if constexpr (IgnoreCase) ch = to_lower(ch);
+  if constexpr (IgnoreCase) ch = unicode_to_lower(ch);
 
   if (ch == value) {
     advance_cp(p, 1);

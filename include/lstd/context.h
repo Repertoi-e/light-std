@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "string.h"
+#include "unicode.h"
 #include "writer.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -178,6 +179,9 @@ struct context {
                               // looping when handling panics. Don't touch!
   bool _LoggingAnAllocation;  // = false;   // Don't set. Used to avoid infinite
                               // looping when logging allocations. Don't touch!
+
+  // Text locale for Unicode casing tailorings (e.g., Turkic dotted/dotless I).
+  text_locale Locale; // = Default
 
   // Hack, the default constructor would otherwise zero init the context's
   // members, which might have been set by other global constructors.

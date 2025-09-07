@@ -76,7 +76,7 @@ void write_no_specs(fmt_context *f, const void *value);
 
 inline void write_no_specs(fmt_context *f, string str) { write(f->Out, str); }
 inline void write_no_specs(fmt_context *f, const char *str) {
-  write(f->Out, str, c_string_length(str));
+  write(f->Out, str, c_string_byte_count(str));
 }
 inline void write_no_specs(fmt_context *f, const char *str, s64 size) {
   write(f->Out, str, size);
@@ -346,11 +346,11 @@ inline void write_u64(fmt_context *f, u64 value, bool negative,
   s64 numDigits;
   if (type == 'd' || type == 'n') {
     numDigits = count_digits(value);
-  } else if (to_lower(type) == 'b') {
+  } else if (ascii_to_lower(type) == 'b') {
     numDigits = count_digits<1>(value);
   } else if (type == 'o') {
     numDigits = count_digits<3>(value);
-  } else if (to_lower(type) == 'x') {
+  } else if (ascii_to_lower(type) == 'x') {
     numDigits = count_digits<4>(value);
   } else if (type == 'c') {
     if (specs.Align == fmt_alignment::NUMERIC || specs.Sign != fmt_sign::NONE ||
@@ -386,7 +386,7 @@ inline void write_u64(fmt_context *f, u64 value, bool negative,
     *prefixPointer++ = ' ';
   }
 
-  if ((to_lower(type) == 'x' || to_lower(type) == 'b') && specs.Hash) {
+  if ((ascii_to_lower(type) == 'x' || ascii_to_lower(type) == 'b') && specs.Hash) {
     *prefixPointer++ = '0';
     *prefixPointer++ = type;
   }
@@ -421,7 +421,7 @@ inline void write_u64(fmt_context *f, u64 value, bool negative,
     formattedSize += ((numDigits - 1) / 3);
   }
 
-  type = (char)to_lower(type);
+  type = ascii_to_lower(type);
   write_padded_helper(
       f, specs,
       [&]() {
@@ -437,7 +437,7 @@ inline void write_u64(fmt_context *f, u64 value, bool negative,
           p = format_uint_base<3>(U64_FORMAT_BUFFER, value, numDigits);
         } else if (type == 'x') {
           p = format_uint_base<4>(U64_FORMAT_BUFFER, value, numDigits,
-                                  is_upper(specs.Type));
+                                  ascii_is_upper(specs.Type));
         } else if (type == 'n') {
           numDigits = formattedSize;  // To include extra chars (like commas)
           p = format_uint_decimal(U64_FORMAT_BUFFER, value, formattedSize,
@@ -667,8 +667,7 @@ inline void write_float_fixed(fmt_context *f, string significand, s32 exp,
 }
 
 // Writes a float with given formatting specs
-inline void write_float(fmt_context *f, is_floating_point auto value,
-                        fmt_specs specs) {
+inline void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs) {
   fmt_float_specs floatSpecs = fmt_parse_float_specs(&f->Parse, specs);
 
   //
@@ -707,8 +706,8 @@ inline void write_float(fmt_context *f, is_floating_point auto value,
         [&]() {
           if (sign) write_no_specs(f, sign);
           write_no_specs(f, is_nan(value)
-                                ? (is_upper(specs.Type) ? "NAN" : "nan")
-                                : (is_upper(specs.Type) ? "INF" : "inf"));
+                                ? (ascii_is_upper(specs.Type) ? "NAN" : "nan")
+                                : (ascii_is_upper(specs.Type) ? "INF" : "inf"));
           if (percentage) write_no_specs(f, U'%');
         },
         3 + (sign ? 1 : 0) + (percentage ? 1 : 0));

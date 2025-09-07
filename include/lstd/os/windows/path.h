@@ -213,7 +213,7 @@ inline void path_read_next_entry(path_walker ref walker) {
     free(walker.CurrentFileName);
 
     auto *fileName = ((WIN32_FIND_DATAW *)walker.PlatformFileInfo)->cFileName;
-    reserve(walker.CurrentFileName, c_string_length(fileName) * 4);  // @Cleanup
+    reserve(walker.CurrentFileName, c_string_byte_count(fileName) * 4);  // @Cleanup
     utf16_to_utf8(fileName, (char *)walker.CurrentFileName.Data,
                   &walker.CurrentFileName.Count);  // @Constcast
 

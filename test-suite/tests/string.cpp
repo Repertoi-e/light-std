@@ -31,6 +31,142 @@ TEST(code_point_size)
   assert_eq(length(mixed), 3 + 3 + 3 + 3);
 }
 
+TEST(empty_and_views)
+{
+  string e;
+  assert_eq(length(e), 0);
+  assert_eq(e.Count, 0);
+
+  // slice on empty
+  assert_eq_str(slice(e, 0, 0), "");
+  assert_eq_str(slice(e, 0, -1), "");
+
+  // insert/remove on empty
+  insert_at_index(e, 0, "");
+  assert_eq_str(e, "");
+  remove_range(e, 0, 0);
+  assert_eq_str(e, "");
+
+  // trim/search on empty
+  assert_eq_str(trim(e), "");
+  assert_eq(search(e, 'a'), -1);
+  assert_eq(search(e, string("a")), -1);
+}
+
+TEST(unicode_boundaries)
+{
+  // 1-byte, 2-byte, 4-byte code points
+  string s = u8"A\u00C4\U0001D11E"; // A, Ä, 𝄞
+  reserve(s);
+  defer(free(s));
+  assert_eq(length(s), 3);
+
+  // set at first/last
+  set(s, 0, U'Z');
+  set(s, -1, U'X');
+  assert_eq(length(s), 3);
+  assert_eq(get(s, 0), U'Z');
+  assert_eq(get(s, -1), U'X');
+
+  // insert at boundaries
+  insert_at_index(s, 0, U'!');
+  insert_at_index(s, length(s), U'?');
+  assert_eq(get(s, 0), U'!');
+  assert_eq(get(s, -1), U'?');
+
+  // remove middle code point
+  remove_range(s, 2, 3);
+  assert_eq(length(s), 4);
+}
+
+TEST(bounds_and_indices)
+{
+  string s = u8"абв";
+  assert_eq(length(s), 3);
+
+  // begin==end
+  assert_eq_str(slice(s, 1, 1), "");
+  // begin>end returns empty
+  assert_eq_str(slice(s, 2, 1), "");
+
+  // negative indexing boundaries
+  assert_eq(get(s, -1), U'в');
+  assert_eq(get(s, -length(s)), U'а');
+
+  // set using -length
+  set(s, -length(s), U'X');
+  assert_eq(get(s, 0), U'X');
+}
+
+TEST(search_corner_cases)
+{
+  {
+    string s = "banana";
+    // start beyond length
+    assert_eq(search(s, string("na"), .Start = 10), -1);
+    // reversed search from end
+    assert_eq(search(s, string("na"), .Start = -1, .Reversed = true), 4);
+    // reversed search from 0 should only find at 0 if match
+    assert_eq(search(s, string("ba"), .Start = 0, .Reversed = true), 0);
+  }
+  {
+    string s = u8"абаб";
+    assert_eq(search(s, string(u8"аб")), 0);
+    assert_eq(search(s, string(u8"аб"), .Start = -1, .Reversed = true), 2);
+  }
+  {
+    // overlapping replace/remove
+    string s = "aaaa";
+    replace_all(s, string("aa"), string("a"));
+    assert_eq_str(s, "aa");
+
+    replace_all(s, string("aa"), string("aaa"));
+    assert_eq_str(s, "aaa"); 
+
+    remove_all(s, string("aa"));
+    assert_eq_str(s, "a");
+  }
+}
+
+TEST(trim_whitespace_cases)
+{
+  string only_ws = "\t \r\n\t";
+  assert_eq_str(trim(only_ws), "");
+
+  string mixed = "\t\n a \r\n";
+  assert_eq_str(trim_start(mixed), "a \r\n");
+  assert_eq_str(trim_end(mixed), "\t\n a");
+  assert_eq_str(trim(mixed), "a");
+}
+
+TEST(builder_edges)
+{
+  string_builder b;
+
+  // empty builder
+  {
+    string res = builder_to_string(&b);
+    defer(free(res));
+    assert_eq_str(res, "");
+  }
+
+  // large append over multiple buffers
+  For(range(3000)) add(&b, 'x');
+  string res = builder_to_string(&b);
+  defer(free(res));
+  assert_eq(res.Count, 3000);
+  assert_eq(length(res), 3000);
+
+  // reuse/reset
+  reset(&b);
+  add(&b, "ok");
+  string res2 = builder_to_string(&b);
+  defer(free(res2));
+  assert_eq_str(res2, "ok");
+
+  free_buffers(&b);
+}
+
 TEST(substring)
 {
   string a = "Hello, world!";
@@ -185,7 +321,7 @@ TEST(iterator)
   // can't take a code point reference)
   for (auto ch : b)
   {
-    ch = to_lower(ch);
+    ch = unicode_to_lower(ch);
   }
   assert_eq_str(b, "hello");
   for (auto ch : b)
@@ -197,6 +333,31 @@ TEST(iterator)
   // for (utf32 &ch : b) { .. }
   // doesn't work since string isn't
   // actually an array of utf32
+}
+
+TEST(lower_upper) 
+{
+  string a = "aBcДЕЖ";
+  defer(free(a));
+
+  string lower = clone(a);
+  defer(free(lower));
+
+  for (auto ch : lower)
+  {
+    ch = unicode_to_lower(ch);
+  }
+  assert_eq_str(lower, u8"abcдеж");
+
+  string upper = clone(a);
+  defer(free(upper));
+
+  for (auto ch : upper)
+  {
+    ch = unicode_to_upper(ch);
+  }
+  // Latin 'c' should uppercase to 'C'; Cyrillic letters remain as provided.
+  assert_eq_str(upper, u8"ABCДЕЖ");
 }
 
 TEST(add)
@@ -476,4 +637,191 @@ TEST(find)
       search(a, &matchAnyOf4, .Start = -1, .Reversed = true));
 
   assert_eq(-1, search(a, &matchAnyOf5));
+}
+
+
+TEST(utf8_validate_cases)
+{
+  // Valid ASCII
+  {
+    string s = "Hello";
+    assert_true(utf8_validate(s.Data, s.Count));
+  }
+
+  // Valid multi-byte sequences
+  {
+    string s = u8"абв"; // 2-byte sequences
+    assert_true(utf8_validate(s.Data, s.Count));
+
+    string s2 = u8"𝄞"; // U+1D11E (4-byte)
+    assert_true(utf8_validate(s2.Data, s2.Count));
+  }
+
+  // Invalid: overlong/illegal starts
+  {
+    const char overlong1[] = "\xC0\x80"; // overlong U+0000
+    string s = make_string(overlong1, 2);
+    defer(free(s));
+    assert_false(utf8_validate(s.Data, s.Count));
+
+    const char overlong2[] = "\xC1\x81"; // illegal 0xC1 start
+    s = make_string(overlong2, 2);
+    assert_false(utf8_validate(s.Data, s.Count));
+    free(s);
+  }
+
+  // Invalid: stray continuation byte
+  {
+    const char stray[] = "\x80";
+    string s = make_string(stray, 1);
+    defer(free(s));
+    assert_false(utf8_validate(s.Data, s.Count));
+  }
+
+  // Invalid: surrogate encoded in UTF-8 (disallowed)
+  {
+    const char surrogate[] = "\xED\xA0\x80"; // U+D800
+    string s = make_string(surrogate, 3);
+    defer(free(s));
+    assert_false(utf8_validate(s.Data, s.Count));
+  }
+
+  // Invalid: truncated sequence
+  {
+    const char trunc2[] = "\xC2"; // missing continuation
+    string s = make_string(trunc2, 1);
+    defer(free(s));
+    assert_false(utf8_validate(s.Data, s.Count));
+
+    const char trunc3[] = "\xE2\x82"; // incomplete 3-byte
+    string s2 = make_string(trunc3, 2);
+    defer(free(s2));
+    assert_false(utf8_validate(s2.Data, s2.Count));
+  }
+}
+
+TEST(unicode_normalize_nfc)
+{
+  // NFC should compose A + COMBINING ACUTE to precomposed Á
+  {
+    string s = u8"A\u0301";
+    string n = make_string_normalized(s);
+    defer(free(n));
+    assert_eq_str(n, u8"\u00C1");
+  }
+
+  // Idempotence: already NFC remains unchanged
+  {
+    string s = u8"\u00C1";
+    string n = make_string_normalized(s);
+    defer(free(n));
+    assert_eq_str(n, s);
+  }
+
+  // Ensure canonical reordering by CCC (dot below before acute)
+  {
+    string s = u8"a\u0301\u0323"; // a + acute (230) + dot-below (220)
+    string n = make_string_normalized(s);
+    defer(free(n));
+
+    // Verify CCC sequence after first code point is non-decreasing
+    // (NFC guarantees canonical order)
+    u8 last = 0; bool first = true; bool ok = true;
+    for (auto cp : n) {
+      u8 cc = unicode_combining_class(cp);
+      if (first) { first = false; last = 0; continue; }
+      if (cc < last) { ok = false; break; }
+      last = cc;
+    }
+    assert_true(ok);
+  }
+
+  // Composition exclusions/compatibility: U+2126 (OHM SIGN) stays as-is in NFC
+  {
+    string s = u8"\u2126";
+    string n = make_string_normalized(s);
+    defer(free(n));
+    assert_eq_str(n, s);
+  }
+
+  // Normalization does not increase byte length for NFC
+  {
+    string s = u8"A\u0301"; // 3 bytes -> 2 bytes
+    string n = make_string_normalized(s);
+    defer(free(n));
+    assert_true(n.Count <= s.Count);
+  }
+
+  // Invalid input returns original clone
+  {
+    const char bad[] = "\xC0\x80";
+    string s = make_string(bad, 2);
+    defer(free(s));
+    string n = make_string_normalized(s);
+    defer(free(n));
+    assert_eq_str(n, s);
+  }
+}
+
+TEST(unicode_casing_full)
+{
+    // 1. Default locale (Context.Locale)
+    {
+        // ASCII
+        assert_eq(unicode_to_lower('A'), 'a');
+        assert_eq(unicode_to_upper('a'), 'A');
+        assert_eq(unicode_to_lower('Z'), 'z');
+        assert_eq(unicode_to_upper('z'), 'Z');
+
+        // Non-ASCII BMP letters
+        assert_eq(unicode_to_lower(0x0130), 0x0069); // İ -> i (non-Turkic uses default simple folding)
+        assert_eq(unicode_to_upper(0x00E5), 0x00C5); // å -> Å
+
+        // Characters already lowercase/uppercase
+        assert_eq(unicode_to_lower('a'), 'a');
+        assert_eq(unicode_to_upper('A'), 'A');
+    }
+
+    // 2. Turkic locale
+    {
+        auto newCtx = Context;
+        newCtx.Locale = text_locale::Turkic;
+        PUSH_CONTEXT(newCtx)
+        {
+            // Special Turkish casing
+            assert_eq(unicode_to_lower('I'), (code_point)0x0131); // I -> ı
+            assert_eq(unicode_to_upper('i'), (code_point)0x0130); // i -> İ
+
+            // Other letters unchanged
+            assert_eq(unicode_to_lower('A'), 'a');
+            assert_eq(unicode_to_upper('Z'), 'Z');
+        }
+    }
+
+#ifdef LSTD_UNICODE_FULL_RANGE
+    // 3. Supplementary-plane letters (outside BMP)
+    {
+        code_point smp_upper = 0x10400; // DESERET CAPITAL LETTER LONG I
+        code_point smp_lower = 0x10428; // DESERET SMALL LETTER LONG I
+        assert_eq(unicode_to_lower(smp_upper), smp_lower);
+        assert_eq(unicode_to_upper(smp_lower), smp_upper);
+    }
+#endif
+
+    // 4. Non-letter / digits / symbols remain unchanged
+    {
+        assert_eq(unicode_to_lower('1'), '1');
+        assert_eq(unicode_to_upper('#'), '#');
+        assert_eq(unicode_to_lower(0x2603), 0x2603); // SNOWMAN
+    }
+
+    // 5. Round-trip check
+    {
+        for (code_point cp : make_stack_array('A', 'a', 'Z', 'z', 0x0130, 0x0131, 0x10400, 0x10428)) {
+            auto upper = unicode_to_upper(cp);
+            auto lower = unicode_to_lower(upper);
+            if (cp != 0x0130 && cp != 0x0131) // Turkish exceptions
+                assert_eq(lower, unicode_to_lower(cp));
+        }
+    }
 }

@@ -156,7 +156,9 @@ auto slice(any_array_like auto ref arr, s64 begin, s64 end) {
   s64 beginIndex = translate_negative_index(begin, arr.Count, true);
   s64 endIndex = translate_negative_index(end, arr.Count, true);
 
-  decltype(arr) result;
+  using T = remove_cvref_t<decltype(arr)>;
+
+  auto result = T();
   result.Data = arr.Data + beginIndex;
   result.Count = arr.Data + endIndex - result.Data;
   return result;
@@ -344,7 +346,7 @@ s64 search_opt(any_array_like auto no_copy arr, any_array_like auto no_copy sear
   For(range(options.Start, options.Reversed ? -1 : arr.Count,
             options.Reversed ? -1 : 1)) {
     auto progress = search.Data;
-    for (auto s = arr.Data + it; progress != searchEnd; ++s, ++progress) {
+    for (auto s = arr.Data + it; progress != searchEnd && s < arr.Data + arr.Count; ++s, ++progress) {
       if (!(*s == *progress)) break;
     }
     if (progress == searchEnd) return it;

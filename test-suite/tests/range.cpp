@@ -1,8 +1,7 @@
 #include "../test.h"
 
 template <typename U, s64 N>
-void test_expected(stack_array<U, N> expected, s64 start, s64 stop,
-                   s64 step = 1) {
+void test_expected(stack_array<U, N> expected, s64 start, s64 stop, s64 step = 1) {
   array<U> result;
 
   For(range(start, stop, step)) result += {(U)it};

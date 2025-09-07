@@ -72,7 +72,7 @@ inline string platform_utf16_to_utf8(const wchar *str, allocator alloc = {}) {
   PUSH_ALLOC(alloc) {
     // String length * 4 because one unicode character might take 4 bytes in
     // utf8. This is just an approximation, not all space will be used!
-    reserve(result, c_string_length(str) * 4);
+    reserve(result, c_string_byte_count(str) * 4);
   }
 
   utf16_to_utf8(str, (char *)result.Data, &result.Count);

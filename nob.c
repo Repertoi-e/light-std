@@ -134,13 +134,30 @@ bool build_lstd_library(Config config)
 
     const char *input = SRC_FOLDER "lstd/lib.cpp";
 
+    // Ensure generated Unicode tables exist and are up to date w.r.t. the generator script
+    const char *unicode_inc = SRC_FOLDER "lstd/unicode_tables.inc";
+    const char *unicode_gen = "tools/gen_unicode.py";
+    int inc_exists = nob_file_exists(unicode_inc);
+    int regen_needed = !inc_exists || nob_needs_rebuild1(unicode_inc, unicode_gen);
+    if (regen_needed) {
+        nob_log(INFO, "Generating Unicode tables (%s)\n", unicode_inc);
+        Cmd gen = {0};
+        cmd_append(&gen, "python3", unicode_gen);
+        if (!cmd_run_sync(gen)) return false;
+    }
+
     // Generate object file path
     const char *obj_file = temp_sprintf("%sobj/lstd_lib.o", build_folder);
 
     Nob_File_Paths source_dirs = {0};
     da_append(&source_dirs, SRC_FOLDER "lstd", INCLUDE_FOLDER "lstd");
 
-    if (needs_rebuild_cpp_sources(obj_file, source_dirs))
+    bool needs_rebuild_obj = needs_rebuild_cpp_sources(obj_file, source_dirs);
+    // Also trigger rebuild if the generated unicode tables changed
+    if (!needs_rebuild_obj) {
+        needs_rebuild_obj = nob_needs_rebuild1(obj_file, unicode_inc);
+    }
+    if (needs_rebuild_obj)
     {
         Cmd cmd = {0};
         cmd_append(&cmd, "c++");

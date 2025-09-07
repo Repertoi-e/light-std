@@ -49,8 +49,8 @@ void write_custom(fmt_context* f, const guid* g) {
     type = f->Specs->Type;
   }
 
-  bool upper = is_upper(type);
-  type = (char)to_lower(type);
+  bool upper = ascii_is_upper(type);
+  type = ascii_to_lower(type);
 
   if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
     on_error(f, "Invalid type specifier for a guid",

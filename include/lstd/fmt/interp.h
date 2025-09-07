@@ -138,7 +138,7 @@ inline s64 fmt_parse_arg_id(fmt_interp *p) {
     return p->next_arg_id();
   }
 
-  if (is_digit(ch)) {
+  if (ascii_is_digit(ch)) {
     auto [value, status, rest] =
         parse_int<u32, parse_int_options{.ParseSign = false}>(p->It, 10);
     p->It = string(rest);
@@ -217,7 +217,7 @@ inline bool parse_fill_and_align(fmt_interp *p, fmt_type argType,
 }
 
 inline bool parse_width(fmt_interp *p, fmt_dynamic_specs *specs) {
-  if (is_digit(p->It[0])) {
+  if (ascii_is_digit(p->It[0])) {
     auto [value, status, rest] =
         parse_int<u32, parse_int_options{.ParseSign = false}>(p->It, 10);
     p->It = string(rest);
@@ -261,7 +261,7 @@ inline bool parse_precision(fmt_interp *p, fmt_type argType,
     return false;
   }
 
-  if (is_digit(p->It[0])) {
+  if (ascii_is_digit(p->It[0])) {
     auto [value, status, rest] =
         parse_int<u32, parse_int_options{.ParseSign = false}>(p->It, 10);
     p->It = string(rest);
@@ -382,7 +382,7 @@ inline bool fmt_parse_specs(fmt_interp *p, fmt_type argType,
 inline bool handle_emphasis(fmt_interp *p, fmt_text_style *textStyle) {
   // We get here either by failing to match a color name or by parsing a color
   // first and then reaching another ';'
-  while (p->It.Count && is_alpha(p->It[0])) {
+  while (p->It.Count && ascii_is_alpha(p->It[0])) {
     switch (p->It[0]) {
       case 'B':
         textStyle->Emphasis |= BOLD;
@@ -433,7 +433,7 @@ inline u32 parse_rgb_channel(fmt_interp *p, bool last) {
       on_error(p, "\";\" expected followed by the next channel value");
       return (u32)-1;
     }
-    if (p->It[0] == '}' || p->It.Count < 2 || !is_digit(*(p->It.Data + 1))) {
+    if (p->It[0] == '}' || p->It.Count < 2 || !ascii_is_digit(*(p->It.Data + 1))) {
       on_error(p,
                "Expected an integer specifying a channel value (3 channels "
                "required)",
@@ -452,7 +452,7 @@ inline u32 parse_rgb_channel(fmt_interp *p, bool last) {
 inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
   fmt_text_style textStyle = {};
 
-  if (is_alpha(p->It[0])) {
+  if (ascii_is_alpha(p->It[0])) {
     bool terminal = false;
     if (p->It[0] == 't') {
       terminal = true;
@@ -463,7 +463,7 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
     s64 n = p->It.Count;
     do {
       ++it, --n;
-    } while (n && is_identifier_start(*it));
+    } while (n && ascii_is_identifier_start(*it));
 
     if (!n) return {true, textStyle};  // The caller should check for closing }
 
@@ -501,7 +501,7 @@ inline fmt_parse_text_style_result fmt_parse_text_style(fmt_interp *p) {
       textStyle.ColorKind = fmt_text_style::color_kind::RGB;
       textStyle.Color.RGB = (u32)c;
     }
-  } else if (is_digit(p->It[0])) {
+  } else if (ascii_is_digit(p->It[0])) {
     // Parse an RGB true color
     u32 r = parse_rgb_channel(p, false);
     if (r == (u32)-1) return {false, {}};

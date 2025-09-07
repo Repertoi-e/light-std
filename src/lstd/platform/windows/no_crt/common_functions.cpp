@@ -248,7 +248,7 @@ long strtol(const char *nptr, char **endptr, int base) {
   if (base < 0 || base > 36) return (0);
   neg = 0;
   result = 0;
-  while (is_space(*nptr)) nptr++;
+  while (ascii_is_space(*nptr)) nptr++;
   if (*nptr == '-' || *nptr == '+')
     if (*nptr++ == '-') neg = 1;
   base = getbase(&nptr, base);
@@ -304,11 +304,11 @@ double strtod(const char *s, char **endptr) {
   double a = 0.0;
   int e = 0;
   int c;
-  while ((c = *s++) != '\0' && is_digit(c)) {
+  while ((c = *s++) != '\0' && ascii_is_digit(c)) {
     a = a * 10.0 + (c - '0');
   }
   if (c == '.') {
-    while ((c = *s++) != '\0' && is_digit(c)) {
+    while ((c = *s++) != '\0' && ascii_is_digit(c)) {
       a = a * 10.0 + (c - '0');
       e = e - 1;
     }
@@ -323,7 +323,7 @@ double strtod(const char *s, char **endptr) {
       c = *s++;
       sign = -1;
     }
-    while (is_digit(c)) {
+    while (ascii_is_digit(c)) {
       i = i * 10 + (c - '0');
       c = *s++;
     }
@@ -417,14 +417,14 @@ unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base) {
     if (*cp == '0') {
       base = 8;
       cp++;
-      if ((*cp == 'x') && is_hex_digit(cp[1])) {
+      if ((*cp == 'x') && ascii_is_hex_digit(cp[1])) {
         cp++;
         base = 16;
       }
     }
   }
-  while (is_hex_digit(*cp) &&
-         (value = is_digit(*cp) ? *cp - '0' : to_upper(*cp) - 'A' + 10) <
+  while (ascii_is_hex_digit(*cp) &&
+         (value = ascii_is_digit(*cp) ? *cp - '0' : to_upper(*cp) - 'A' + 10) <
              base) {
     result = result * base + value;
     cp++;
@@ -459,14 +459,14 @@ unsigned long long simple_strtoull(const char *cp, char **endp,
     if (*cp == '0') {
       base = 8;
       cp++;
-      if ((*cp == 'x') && is_hex_digit(cp[1])) {
+      if ((*cp == 'x') && ascii_is_hex_digit(cp[1])) {
         cp++;
         base = 16;
       }
     }
   }
-  while (is_hex_digit(*cp) &&
-         (value = is_digit(*cp) ? *cp - '0'
+  while (ascii_is_hex_digit(*cp) &&
+         (value = ascii_is_digit(*cp) ? *cp - '0'
                                 : (is_lower(*cp) ? to_upper(*cp) : *cp) - 'A' +
                                       10) < base) {
     result = result * base + value;
@@ -490,7 +490,7 @@ long long simple_strtoll(const char *cp, char **endp, unsigned int base) {
 static int skip_atoi(const char **s) {
   int i = 0;
 
-  while (is_digit(**s)) i = i * 10 + *((*s)++) - '0';
+  while (ascii_is_digit(**s)) i = i * 10 + *((*s)++) - '0';
   return i;
 }
 
@@ -523,9 +523,9 @@ int vsscanf(const char *buf, const char *fmt, va_list args) {
     /* white space in format matchs any amount of
      * white space, including none, in the input.
      */
-    if (is_space(*fmt)) {
-      while (is_space(*fmt)) ++fmt;
-      while (is_space(*str)) ++str;
+    if (ascii_is_space(*fmt)) {
+      while (ascii_is_space(*fmt)) ++fmt;
+      while (ascii_is_space(*str)) ++str;
     }
 
     /* anything that is not a conversion must match exactly */
@@ -541,14 +541,14 @@ int vsscanf(const char *buf, const char *fmt, va_list args) {
      * advance both strings to next white space
      */
     if (*fmt == '*') {
-      while (!is_space(*fmt) && *fmt) fmt++;
-      while (!is_space(*str) && *str) str++;
+      while (!ascii_is_space(*fmt) && *fmt) fmt++;
+      while (!ascii_is_space(*str) && *str) str++;
       continue;
     }
 
     /* get field width */
     field_width = -1;
-    if (is_digit(*fmt)) field_width = skip_atoi(&fmt);
+    if (ascii_is_digit(*fmt)) field_width = skip_atoi(&fmt);
 
     /* get conversion qualifier */
     qualifier = -1;
@@ -584,10 +584,10 @@ int vsscanf(const char *buf, const char *fmt, va_list args) {
         char *s = (char *)va_arg(args, char *);
         if (field_width == -1) field_width = numeric<s32>::max();
         /* first, skip leading white space in buffer */
-        while (is_space(*str)) str++;
+        while (ascii_is_space(*str)) str++;
 
         /* now copy until next white space */
-        while (*str && !is_space(*str) && field_width--) {
+        while (*str && !ascii_is_space(*str) && field_width--) {
           *s++ = *str++;
         }
         *s = '\0';
@@ -626,15 +626,15 @@ int vsscanf(const char *buf, const char *fmt, va_list args) {
     /* have some sort of integer conversion.
      * first, skip white space in buffer.
      */
-    while (is_space(*str)) str++;
+    while (ascii_is_space(*str)) str++;
 
     digit = *str;
     if (is_sign && digit == '-') digit = *(str + 1);
 
-    if (!digit || (base == 16 && !is_hex_digit(digit)) ||
-        (base == 10 && !is_digit(digit)) ||
-        (base == 8 && (!is_digit(digit) || digit > '7')) ||
-        (base == 0 && !is_digit(digit)))
+    if (!digit || (base == 16 && !ascii_is_hex_digit(digit)) ||
+        (base == 10 && !ascii_is_digit(digit)) ||
+        (base == 8 && (!ascii_is_digit(digit) || digit > '7')) ||
+        (base == 0 && !ascii_is_digit(digit)))
       break;
 
     switch (qualifier) {
