@@ -247,7 +247,7 @@ bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp,
 int main(int argc, char **argv)
 {
     NOB_GO_REBUILD_URSELF(argc, argv);
-    Config config = CONFIG_RELEASE;
+    Config config = CONFIG_DEBUG;
 
     for (int i = 1; i < argc; ++i)
     {

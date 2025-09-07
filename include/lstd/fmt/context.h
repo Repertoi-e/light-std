@@ -271,9 +271,63 @@ inline void write_helper(fmt_context *f, const char *data, s64 size) {
     return;
   }
 
+  // Helper to compute truncation and ellipsis application for UTF-8 strings
+  struct _string_truncation_result {
+    s64 length;       // visible code points (excluding ellipsis)
+    s64 sizeBytes;    // byte count to output from data
+    bool addEllipsis; // whether to append "..."
+  };
+  auto _compute_truncation = [&](const char* s, s64 n, s64 precision) -> _string_truncation_result {
+    _string_truncation_result r{};
+    r.length = utf8_length(s, n);
+    r.sizeBytes = n;
+    r.addEllipsis = false;
+    if (precision != -1 && precision < r.length) {
+      s64 target = precision;
+      if (target >= 4) {
+        target -= 3;
+        r.addEllipsis = true;
+      } else if (target <= 0) {
+        r.length = 0;
+        r.sizeBytes = 0;
+        r.addEllipsis = false;
+        return r;
+      }
+      r.length = target;
+      r.sizeBytes = utf8_get_pointer_to_cp_at_translated_index(s, n, target) - s;
+    }
+    return r;
+  };
+
   if (f->Specs->Type) {
     if (f->Specs->Type == 'p') {
       write(f, (const void *)data);
+      return;
+    }
+    if (f->Specs->Type == 'q') {
+      // Quoted string format with precision applied to the inner content.
+      auto tr = _compute_truncation(data, size, f->Specs->Precision);
+      // Approx visible width: quotes + inner content + optional ellipsis
+      s64 approx_visible = 2 + tr.length + (tr.addEllipsis ? 3 : 0);
+      write_padded_helper(
+          f, *f->Specs,
+          [&]() {
+            write_no_specs(f, "\"");
+            for (s64 i = 0; i < tr.sizeBytes; ++i) {
+              char c = data[i];
+              switch (c) {
+                case '"': write_no_specs(f, "\\\""); break;
+                case '\\': write_no_specs(f, "\\\\"); break;
+                case '\n': write_no_specs(f, "\\n"); break;
+                case '\r': write_no_specs(f, "\\r"); break;
+                case '\t': write_no_specs(f, "\\t"); break;
+                default: write_no_specs(f, &c, 1); break;
+              }
+            }
+            if (tr.addEllipsis) write_no_specs(f, "...");
+            write_no_specs(f, "\"");
+          },
+          approx_visible);
       return;
     }
     if (f->Specs->Type != 's') {
@@ -284,17 +338,14 @@ inline void write_helper(fmt_context *f, const char *data, s64 size) {
   }
 
   // 'p' wasn't specified, not treating as formatting a pointer
-  s64 length = utf8_length(data, size);
-
-  // Adjust size for specified precision
-  if (f->Specs->Precision != -1) {
-    assert(f->Specs->Precision >= 0);
-    length = f->Specs->Precision;
-    size =
-        utf8_get_pointer_to_cp_at_translated_index(data, size, length) - data;
-  }
+  auto tr = _compute_truncation(data, size, f->Specs->Precision);
   write_padded_helper(
-      f, *f->Specs, [&]() { write_no_specs(f, data, size); }, length);
+      f, *f->Specs, 
+      [&]() { 
+        write_no_specs(f, data, tr.sizeBytes);
+        if (tr.addEllipsis) write_no_specs(f, "...");
+      }, 
+      tr.length + (tr.addEllipsis ? 3 : 0));
 }
 
 inline void fmt_context::write(const char *data, s64 count) {

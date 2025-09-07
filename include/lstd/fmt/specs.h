@@ -52,6 +52,10 @@ struct fmt_specs {
   s32 Precision = -1;
 
   char Type = 0;
+  
+  // User data for custom formatting context
+  // Example for tables: stores the current indentation level for pretty-printing
+  s32 UserData = 0;
 };
 
 // Dynamic means that the width/precision was specified in a separate argument

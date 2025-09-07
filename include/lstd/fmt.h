@@ -187,7 +187,7 @@ LSTD_BEGIN_NAMESPACE
 // There is a way to add formatting support for custom types:
 //
 // Formatter specialization (trait-like approach):
-//    
+//
 //    template <>
 //    struct formatter<my_type> {
 //        void format(const my_type &value, fmt_context *f) {
@@ -223,7 +223,7 @@ LSTD_BEGIN_NAMESPACE
 
       // Example: Custom matrix formatter with spec support
       // Formats in the following way: [ 1, 2, 3; 4, 5, 6; 7, 8, 9]
-      // Alternate (using # specifier): 
+      // Alternate (using # specifier):
       // [  1,   2,   3
       //    3,  41,   5
       //  157,   8,   9]
@@ -231,10 +231,10 @@ LSTD_BEGIN_NAMESPACE
       struct formatter<mat<T, R, C, Packed>> {
           void format(const mat<T, R, C, Packed> &src, fmt_context *f) {
               write_no_specs(f, "[");
-              
+
               bool alternate = f->Specs && f->Specs->Hash;
               s64 max = 0;
-              
+
               // Calculate max width for alignment if using alternate format
               if (alternate) {
                   for (s32 i = 0; i < src.Height; ++i) {
@@ -244,7 +244,7 @@ LSTD_BEGIN_NAMESPACE
                       }
                   }
               }
-              
+
               // Format matrix elements
               for (s32 i = 0; i < src.Height; ++i) {
                   for (s32 j = 0; j < src.Width; ++j) {
@@ -259,7 +259,7 @@ LSTD_BEGIN_NAMESPACE
                       write_no_specs(f, alternate ? "\n " : "; ");
                   }
               }
-              
+
               write_no_specs(f, "]");
           }
       };
@@ -329,94 +329,125 @@ void print(string fmtString, Args no_copy... arguments);
 // formatting the arguments.
 void fmt_parse_and_format(fmt_context *f);
 
-struct fmt_width_checker {
+struct fmt_width_checker
+{
   fmt_context *F;
 
   template <typename T>
-  u32 operator()(T value) {
-    if constexpr (is_integral<T>) {
-      if (sign_bit(value)) {
+  u32 operator()(T value)
+  {
+    if constexpr (is_integral<T>)
+    {
+      if (sign_bit(value))
+      {
         on_error(F, "Negative width");
         return (u32)-1;
-      } else if ((u64)value > numeric<s32>::max()) {
+      }
+      else if ((u64)value > numeric<s32>::max())
+      {
         on_error(F, "Width value is too big");
         return (u32)-1;
       }
       return (u32)value;
-    } else {
+    }
+    else
+    {
       on_error(F, "Width was not an integer");
       return (u32)-1;
     }
   }
 };
 
-struct fmt_precision_checker {
+struct fmt_precision_checker
+{
   fmt_context *F;
 
   template <typename T>
-  s32 operator()(T value) {
-    if constexpr (is_integral<T>) {
-      if (sign_bit(value)) {
+  s32 operator()(T value)
+  {
+    if constexpr (is_integral<T>)
+    {
+      if (sign_bit(value))
+      {
         on_error(F, "Negative precision");
         return -1;
-      } else if ((u64)value > numeric<s32>::max()) {
+      }
+      else if ((u64)value > numeric<s32>::max())
+      {
         on_error(F, "Precision value is too big");
         return -1;
       }
       return (s32)value;
-    } else {
+    }
+    else
+    {
       on_error(F, "Precision was not an integer");
       return -1;
     }
   }
 };
 
-inline fmt_arg fmt_get_arg_from_index(fmt_context *f, s64 index) {
-  if (index >= f->Args.Count) {
+inline fmt_arg fmt_get_arg_from_index(fmt_context *f, s64 index)
+{
+  if (index >= f->Args.Count)
+  {
     on_error(f, "Argument index out of range");
     return {};
   }
   return f->Args[index];
 }
 
-inline bool fmt_handle_dynamic_specs(fmt_context *f) {
+inline bool fmt_handle_dynamic_specs(fmt_context *f)
+{
   assert(f->Specs);
 
-  if (f->Specs->WidthIndex != -1) {
+  if (f->Specs->WidthIndex != -1)
+  {
     auto width = fmt_get_arg_from_index(f, f->Specs->WidthIndex);
-    if (width.Type != fmt_type::NONE) {
+    if (width.Type != fmt_type::NONE)
+    {
       f->Specs->Width = fmt_visit_arg(fmt_width_checker{f}, width);
-      if (f->Specs->Width == (u32)-1) return false;
+      if (f->Specs->Width == (u32)-1)
+        return false;
     }
   }
-  if (f->Specs->PrecisionIndex != -1) {
+  if (f->Specs->PrecisionIndex != -1)
+  {
     auto precision = fmt_get_arg_from_index(f, f->Specs->PrecisionIndex);
-    if (precision.Type != fmt_type::NONE) {
+    if (precision.Type != fmt_type::NONE)
+    {
       f->Specs->Precision = fmt_visit_arg(fmt_precision_checker{f}, precision);
-      if (f->Specs->Precision == numeric<s32>::min()) return false;
+      if (f->Specs->Precision == numeric<s32>::min())
+        return false;
     }
   }
 
   return true;
 }
 
-inline void fmt_parse_and_format(fmt_context *f) {
+inline void fmt_parse_and_format(fmt_context *f)
+{
   fmt_interp *p = &f->Parse;
 
-  auto write_until = [&](const char *end) {
-    if (!p->It.Count) return;
-    while (true) {
+  auto write_until = [&](const char *end)
+  {
+    if (!p->It.Count)
+      return;
+    while (true)
+    {
       auto searchString = string(p->It.Data, end - p->It.Data);
 
       s64 bracket = search(searchString, '}');
-      if (bracket == -1) {
+      if (bracket == -1)
+      {
         write_no_specs(f, p->It.Data, end - p->It.Data);
         return;
       }
 
       auto *pbracket = utf8_get_pointer_to_cp_at_translated_index(
           searchString.Data, searchString.Count, bracket);
-      if (*(pbracket + 1) != '}') {
+      if (*(pbracket + 1) != '}')
+      {
         on_error(f,
                  "Unmatched \"}\" in format string - if you want to print it "
                  "use \"}}\" to escape",
@@ -434,9 +465,11 @@ inline void fmt_parse_and_format(fmt_context *f) {
 
   fmt_arg currentArg;
 
-  while (p->It.Count) {
+  while (p->It.Count)
+  {
     s64 bracket = search(p->It, '{');
-    if (bracket == -1) {
+    if (bracket == -1)
+    {
       write_until(p->It.Data + p->It.Count);
       return;
     }
@@ -448,83 +481,105 @@ inline void fmt_parse_and_format(fmt_context *f) {
     s64 advance = pbracket + 1 - p->It.Data;
     p->It.Data += advance, p->It.Count -= advance;
 
-    if (!p->It.Count) {
+    if (!p->It.Count)
+    {
       on_error(f, "Invalid format string");
       return;
     }
-    if (p->It[0] == '}') {
+    if (p->It[0] == '}')
+    {
       // Implicit {} means "get the next argument"
       currentArg = fmt_get_arg_from_index(f, p->next_arg_id());
       if (currentArg.Type == fmt_type::NONE)
-        return;  // The error was reported in _f->get_arg_from_ref_
+        return; // The error was reported in _f->get_arg_from_ref_
 
       fmt_visit_arg(fmt_context_visitor(f), currentArg);
-    } else if (p->It[0] == '{') {
+    }
+    else if (p->It[0] == '{')
+    {
       // {{ means we escaped a {.
       write_until(p->It.Data + 1);
-    } else if (p->It[0] == '!') {
-      ++p->It.Data, --p->It.Count;  // Skip the !
+    }
+    else if (p->It[0] == '!')
+    {
+      ++p->It.Data, --p->It.Count; // Skip the !
 
       auto [success, style] = fmt_parse_text_style(p);
-      if (!success) return;
-      if (!p->It.Count || p->It[0] != '}') {
+      if (!success)
+        return;
+      if (!p->It.Count || p->It[0] != '}')
+      {
         on_error(f, "\"}\" expected");
         return;
       }
 
-      if (!Context.FmtDisableAnsiCodes) {
+      if (!Context.FmtDisableAnsiCodes)
+      {
         char ansiBuffer[7 + 3 * 4 + 1];
         auto *ansiEnd = color_to_ansi(ansiBuffer, style);
         write_no_specs(f, ansiBuffer, ansiEnd - ansiBuffer);
 
         u8 emphasis = (u8)style.Emphasis;
-        if (emphasis) {
+        if (emphasis)
+        {
           assert(!style.Background);
           ansiEnd = emphasis_to_ansi(ansiBuffer, emphasis);
           write_no_specs(f, ansiBuffer, ansiEnd - ansiBuffer);
         }
       }
-    } else {
+    }
+    else
+    {
       // Parse integer specified or a named argument
       s64 argId = fmt_parse_arg_id(p);
-      if (argId == -1) return;
+      if (argId == -1)
+        return;
 
       currentArg = fmt_get_arg_from_index(f, argId);
       if (currentArg.Type == fmt_type::NONE)
-        return;  // The error was reported in _f->get_arg_from_ref_
+        return; // The error was reported in _f->get_arg_from_ref_
 
       code_point c = p->It.Count ? p->It[0] : 0;
-      if (c == '}') {
+      if (c == '}')
+      {
         fmt_visit_arg(fmt_context_visitor(f), currentArg);
-      } else if (c == ':') {
-        ++p->It.Data, --p->It.Count;  // Skip the :
+      }
+      else if (c == ':')
+      {
+        ++p->It.Data, --p->It.Count; // Skip the :
 
         fmt_dynamic_specs specs = {};
         bool success = fmt_parse_specs(p, currentArg.Type, &specs);
-        if (!success) return;
-        if (!p->It.Count || p->It[0] != '}') {
+        if (!success)
+          return;
+        if (!p->It.Count || p->It[0] != '}')
+        {
           on_error(f, "\"}\" expected");
           return;
         }
 
         f->Specs = &specs;
         success = fmt_handle_dynamic_specs(f);
-        if (!success) return;
+        if (!success)
+          return;
 
         fmt_visit_arg(fmt_context_visitor(f), currentArg);
 
         f->Specs = null;
-      } else {
+      }
+      else
+      {
         on_error(f, "\"}\" expected");
         return;
       }
     }
-    ++p->It.Data, --p->It.Count;  // Go to the next byte
+    ++p->It.Data, --p->It.Count; // Go to the next byte
   }
 }
 
 template <typename... Args>
-void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments) {
+void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments)
+{
   static const s64 NUM_ARGS = sizeof...(Args);
   stack_array<fmt_arg, NUM_ARGS> args;
 
@@ -536,14 +591,16 @@ void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments) {
 }
 
 template <typename... Args>
-s64 fmt_calculate_length(string fmtString, Args no_copy... arguments) {
+s64 fmt_calculate_length(string fmtString, Args no_copy... arguments)
+{
   counting_writer writer;
   fmt_to_writer(&writer, fmtString, arguments...);
   return writer.Count;
 }
 
 template <typename... Args>
-mark_as_leak string sprint(string fmtString, Args no_copy... arguments) {
+mark_as_leak string sprint(string fmtString, Args no_copy... arguments)
+{
   string_builder b;
 
   string_builder_writer writer;
@@ -557,19 +614,23 @@ mark_as_leak string sprint(string fmtString, Args no_copy... arguments) {
 }
 
 template <typename... Args>
-string tprint(string fmtString, Args no_copy... arguments) {
+string tprint(string fmtString, Args no_copy... arguments)
+{
   PUSH_ALLOC(TemporaryAllocator) { return sprint(fmtString, arguments...); }
 }
 
 template <typename... Args>
-char *mprint(string fmtString, Args no_copy... arguments) {
-  PUSH_ALLOC(TemporaryAllocator) {
+char *mprint(string fmtString, Args no_copy... arguments)
+{
+  PUSH_ALLOC(TemporaryAllocator)
+  {
     return to_c_string(sprint(fmtString, arguments...));
   }
 }
 
 template <typename... Args>
-void print(string fmtString, Args no_copy... arguments) {
+void print(string fmtString, Args no_copy... arguments)
+{
   assert(Context.Log && "Context log was null. By default it points to cout.");
   fmt_to_writer(Context.Log, fmtString, arguments...);
 }
@@ -579,7 +640,8 @@ void print(string fmtString, Args no_copy... arguments) {
 // This follows a trait-like pattern similar to Rust's formatting traits
 //
 template <typename T>
-struct formatter {
+struct formatter
+{
   // The format() method should be specialized for each type
   // void format(const T &value, fmt_context *f) { ... }
 };
@@ -591,10 +653,14 @@ concept has_formatter = requires(const T &value, fmt_context *f) {
 };
 
 template <typename T>
-void format_value(const T &value, fmt_context *f) {
-  if constexpr (has_formatter<T>) {
+void format_value(const T &value, fmt_context *f)
+{
+  if constexpr (has_formatter<T>)
+  {
     formatter<remove_cvref_t<T>>{}.format(value, f);
-  } else {
+  }
+  else
+  {
     // Fall back to standard formatting for built-in types
     fmt_arg arg = fmt_make_arg(value);
     fmt_visit_arg(fmt_context_visitor(f), arg);
@@ -607,10 +673,13 @@ void format_value(const T &value, fmt_context *f) {
 
 // Formatter for string_builder
 template <>
-struct formatter<string_builder> {
-  void format(const string_builder &b, fmt_context *f) {
+struct formatter<string_builder>
+{
+  void format(const string_builder &b, fmt_context *f)
+  {
     auto *buffer = &b.BaseBuffer;
-    while (buffer) {
+    while (buffer)
+    {
       write_no_specs(f, buffer->Data, buffer->Occupied);
       buffer = buffer->Next;
     }
@@ -619,17 +688,29 @@ struct formatter<string_builder> {
 
 // Formatter for static array-like types (stack_array, etc.)
 template <typename T>
-requires any_array_like<T> && (!any_dynamic_array_like<T>)
-struct formatter<T> {
-  void format(const T &a, fmt_context *f) {
+  requires any_array_like<T> && (!any_dynamic_array_like<T>)
+struct formatter<T>
+{
+  void format(const T &a, fmt_context *f)
+  {
     bool use_debug = f->Specs && f->Specs->Hash;
-    if (use_debug) {
-      write_no_specs(f, "<array_like> { count: ");
-      format_value(a.Count, f);
-      write_no_specs(f, ", data: ");
-      format_list(f).entries(a.Data, a.Count)->finish();
-      write_no_specs(f, " }");
-    } else {
+    if (use_debug)
+    {
+  // Avoid forwarding type-specific specs to metadata fields (like count)
+  auto *original_specs = f->Specs;
+  write_no_specs(f, "<array_like> { count: ");
+  f->Specs = nullptr;
+  format_value(a.Count, f);
+  write_no_specs(f, ", data: ");
+  // Restore specs for list entries so element-level forwarding works
+  f->Specs = original_specs;
+  format_list(f).entries(a.Data, a.Count)->finish();
+  // Restore (not strictly necessary here) and close
+  f->Specs = original_specs;
+  write_no_specs(f, " }");
+    }
+    else
+    {
       format_list(f).entries(a.Data, a.Count)->finish();
     }
   }
@@ -637,21 +718,33 @@ struct formatter<T> {
 
 // Formatter for dynamic array-like types (array, etc.)
 template <typename T>
-requires any_dynamic_array_like<T>
-struct formatter<T> {
-  void format(const T &a, fmt_context *f) {
+  requires any_dynamic_array_like<T>
+struct formatter<T>
+{
+  void format(const T &a, fmt_context *f)
+  {
     bool use_debug = f->Specs && f->Specs->Hash;
-    
-    if (use_debug) {
+
+    if (use_debug)
+    {
       // Debug format: array { count: X, capacity: Y, allocated: Z, data: [...] }
-      write_no_specs(f, "<dynamic_array_like> { count: ");
-      format_value(a.Count, f);
-      write_no_specs(f, ", allocated: ");
-      format_value(a.Allocated, f);
-      write_no_specs(f, ", data: ");
-      format_list(f).entries(a.Data, a.Count)->finish();
-      write_no_specs(f, " }");
-    } else {
+  auto *original_specs = f->Specs;
+  write_no_specs(f, "<dynamic_array_like> { count: ");
+  // Do not apply value specs to metadata fields
+  f->Specs = nullptr;
+  format_value(a.Count, f);
+  write_no_specs(f, ", allocated: ");
+  format_value(a.Allocated, f);
+  write_no_specs(f, ", data: ");
+  // Restore specs so element list receives forwarded specs
+  f->Specs = original_specs;
+  format_list(f).entries(a.Data, a.Count)->finish();
+  // Restore and close
+  f->Specs = original_specs;
+  write_no_specs(f, " }");
+    }
+    else
+    {
       // Normal format: [...]
       format_list(f).entries(a.Data, a.Count)->finish();
     }
@@ -660,30 +753,52 @@ struct formatter<T> {
 
 // Formatter for variant<MEMBERS...>
 template <typename... MEMBERS>
-struct formatter<variant<MEMBERS...>> {
-  void format(const variant<MEMBERS...> &v, fmt_context *f) {
-    if (!v) {
-      // Empty variant (contains nil)
+struct formatter<variant<MEMBERS...>>
+{
+  void format(const variant<MEMBERS...> &v, fmt_context *f)
+  {
+    if (!v)
+    {
       write_no_specs(f, "nullvar");
-    } else {
-      // Visit the variant and format the contained value directly
-      v.visit([f](const auto &value) {
+    }
+    else
+    {
+      // Store original specs for restoration
+      fmt_dynamic_specs *original_specs = f->Specs;
+
+      // Visit the variant and format the contained value with appropriate specs
+      v.visit([f, original_specs](const auto &value)
+              {
         using ValueType = decay_t<decltype(value)>;
         if constexpr (!is_same<ValueType, typename variant<MEMBERS...>::nil>) {
-          format_value(value, f);
-        }
-      });
+          if (original_specs) {
+            auto forwarded_specs = create_forwarded_specs(*original_specs, value);
+            f->Specs = &forwarded_specs;
+            format_value(value, f);
+          } else {
+            f->Specs = nullptr;
+            format_value(value, f);
+          }
+          
+          // Restore original specs
+          f->Specs = original_specs;
+        } });
     }
   }
 };
 
 // Formatter for optional<T> (which is just variant<T>)
 template <typename T>
-struct formatter<optional<T>> {
-  void format(const optional<T> &opt, fmt_context *f) {
-    if (opt) {
+struct formatter<optional<T>>
+{
+  void format(const optional<T> &opt, fmt_context *f)
+  {
+    if (opt)
+    {
       format_value(opt.template strict_get<T>(), f);
-    } else {
+    }
+    else
+    {
       // Optional is empty
       write_no_specs(f, "nullopt");
     }
@@ -692,35 +807,55 @@ struct formatter<optional<T>> {
 
 // Formatter for hash table
 template <typename K, typename V>
-struct formatter<hash_table<K, V>> {
-  void format(const hash_table<K, V> &table, fmt_context *f) {
+struct formatter<hash_table<K, V>>
+{
+  void format(const hash_table<K, V> &table, fmt_context *f)
+  {
     bool use_debug = f->Specs && f->Specs->Hash;
-    
-    if (use_debug) {
+    // Pretty-printing is specifically space fill character + width > 0
+    bool use_pretty = f->Specs && f->Specs->Fill == ' ' && f->Specs->Width > 0;
+    s32 indent_size = use_pretty ? f->Specs->Width : 0;
+    s32 current_level = f->Specs ? f->Specs->UserData : 0;
+
+    if (use_debug)
+    {
       // Alternate format: displays as a more detailed view
       // e.g. hash_table<string, int> { count: 3, entries: { "key1": 1, "key2": 2, "key3": 3 } }
-      write_no_specs(f, "hash_table { count: ");
-      format_value(table.Count, f);
-      write_no_specs(f, ", entries: ");
-      
+  auto *original_specs = f->Specs;
+  write_no_specs(f, "hash_table { count: ");
+  // Do not forward specs to metadata count
+  f->Specs = nullptr;
+  format_value(table.Count, f);
+  write_no_specs(f, ", entries: ");
+
       format_dict dict(f);
       // Need to cast away const to iterate since hash table iterators expect non-const
       auto &mutable_table = const_cast<hash_table<K, V> &>(table);
-      for (auto [key, value] : mutable_table) {
+      for (auto [key, value] : mutable_table)
+      {
         dict.entry(*key, *value);
       }
+  // Restore specs so dict entries get forwarded specs (including pretty)
+  f->Specs = original_specs;
+  if (use_pretty)
+        dict.pretty(indent_size, current_level);
       dict.finish();
-      
+
       write_no_specs(f, " }");
-    } else {
+    }
+    else
+    {
       // Default format: displays as a simple dictionary
       // e.g. { "key1": 1, "key2": 2, "key3": 3 }
       format_dict dict(f);
       // Need to cast away const to iterate since hash table iterators expect non-const
       auto &mutable_table = const_cast<hash_table<K, V> &>(table);
-      for (auto [key, value] : mutable_table) {
+      for (auto [key, value] : mutable_table)
+      {
         dict.entry(*key, *value);
       }
+      if (use_pretty)
+        dict.pretty(indent_size, current_level);
       dict.finish();
     }
   }

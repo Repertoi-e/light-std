@@ -49,6 +49,15 @@ using table_value_t = HashTableT::V;
 // arrays that store data in the form hash-hash-hash, key-key-key leads to way
 // more constant number of cache misses.
 //
+// Simple pair struct for initializer lists
+template <typename K, typename V>
+struct pair {
+  K first;
+  V second;
+  
+  pair(const K& k, const V& v) : first(k), second(v) {}
+};
+
 template <typename K_, typename V_>
 struct hash_table {
   static const s64 FIRST_VALID_HASH = 2;
@@ -69,6 +78,16 @@ struct hash_table {
   s64 Count = 0;  // Number of slots in use
   s64 SlotsFilled = 0;  // Number of slots that can't be used (valid + removed items)
   s64 Allocated = 0;  // Number of slots allocated in total, @Cleanup
+
+  // Default constructor
+  hash_table() = default;
+  
+  // Initializer list constructor
+  hash_table(initializer_list<pair<K, V>> init) {
+    for (const auto& p : init) {
+      add(*this, p.first, p.second);
+    }
+  }
 
   // You can iterate over the table like this:
   //
@@ -328,6 +347,12 @@ struct hash_table_iterator {
 auto begin(any_hash_table auto ref table) { return hash_table_iterator(table); }
 auto end(any_hash_table auto ref table) {
   return hash_table_iterator(table, table.Allocated);
+}
+
+// Helper function to create hash tables from initializer lists
+template <typename K, typename V>
+hash_table<K, V> make_hash_table(initializer_list<pair<K, V>> init) {
+  return hash_table<K, V>(init);
 }
 
 inline u64 get_hash(any_hash_table auto value) {

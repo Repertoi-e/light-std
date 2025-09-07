@@ -1219,3 +1219,254 @@ TEST(deeply_nested_structures) {
   assert(array_count >= 2); // The two inner arrays
 }
 
+TEST(list_forwarding_on_arrays) {
+  // Dynamic array of mixed types via variant
+  array<variant<f64, string>> arr;
+  defer(free(arr));
+  add(arr, variant<f64, string>(3.14159265));
+  add(arr, variant<f64, string>(string("Hello, World!")));
+
+  // Baseline
+  CHECK_WRITE("[3.14159265, Hello, World!]", "{}", arr);
+
+  // Float-only precision
+  CHECK_WRITE("[3.142, Hello, World!]", "{:.3f}", arr);
+
+  // String-only quoting+precision
+  string q = sprint("{:.5q}", arr);
+  defer(free(q.Data));
+  // Expect: first element unchanged float, second element quoted and truncated
+  assert(match_beginning(q, "["));
+  assert(search(q, string("3.14159265")) != -1);
+  assert(search(q, string("\"He...\"")) != -1);
+}
+
+TEST(list_forwarding_on_arrays_debug) {
+  array<variant<f64, string>> arr;
+  defer(free(arr));
+  add(arr, variant<f64, string>(3.14159265));
+  add(arr, variant<f64, string>(string("Hello, World!")));
+
+  // Debug + float precision should apply to elements inside data: [...]
+  string d1 = sprint("{:#.3f}", arr);
+  defer(free(d1.Data));
+  assert(match_beginning(d1, "<dynamic_array_like> { count: 2, allocated: "));
+  assert(search(d1, string("data: [")) != -1);
+  assert(search(d1, string("3.142")) != -1);
+  assert(search(d1, string("Hello, World!")) != -1);
+
+  // Debug + string quoting with precision applies inside data list
+  string d2 = sprint("{:#.5q}", arr);
+  defer(free(d2.Data));
+  assert(match_beginning(d2, "<dynamic_array_like> { count: 2, allocated: "));
+  assert(search(d2, string("data: [")) != -1);
+  assert(search(d2, string("3.14159265")) != -1);
+  assert(search(d2, string("\"He...\"")) != -1);
+}
+
+TEST(tuple_forwarding_on_custom_formatter) {
+  // test_vector formatter uses format_tuple("vec3") with three floats
+  test_vector v = {1.0f, 2.5f, -3.0f};
+
+  // Baseline
+  CHECK_WRITE("vec3(1, 2.5, -3)", "{}", v);
+
+  // Float precision applied to each element
+  CHECK_WRITE("vec3(1.0, 2.5, -3.0)", "{:.1f}", v);
+
+  // String-only type selector shouldn't affect floats
+  CHECK_WRITE("vec3(1, 2.5, -3)", "{:.5q}", v);
+}
+
+TEST(hash_table_debug_uses_dict_printers) {
+  // Ensure debug-mode hash_table formatting still renders entries via dict printer
+  hash_table<string, f64> ht;
+  defer(free(ht));
+  set(ht, "pi", 3.14159265);
+  set(ht, "e", 2.71828);
+
+  // Debug without precision
+  string dbg = sprint("{:#}", ht);
+  defer(free(dbg.Data));
+  assert(match_beginning(dbg, "hash_table { count: 2, entries: {"));
+  assert(match_end(dbg, " }"));
+  assert(search(dbg, string("pi")) != -1);
+  assert(search(dbg, string("e")) != -1);
+
+  // Debug with float precision should affect values inside dict via forwarded specs
+  string dbg_prec = sprint("{:#.3f}", ht);
+  defer(free(dbg_prec.Data));
+  assert(match_beginning(dbg_prec, "hash_table { count: 2, entries: {"));
+  assert(search(dbg_prec, string("3.142")) != -1);
+
+  // Debug with string quoting on a string table checks dict printer path too
+  hash_table<string, string> hs;
+  defer(free(hs));
+  set(hs, "quote", "He said \"Hello\"");
+  string dbg_q = sprint("{:#q}", hs);
+  defer(free(dbg_q.Data));
+  // Keys and values quoted in dict
+  assert(search(dbg_q, string("\"quote\"")) != -1);
+  assert(search(dbg_q, string("\"He said \\\"Hello\\\"\"")) != -1);
+}
+// New tests covering pretty dict printing, string precision/quoting,
+// and context-aware spec forwarding across mixed types.
+
+TEST(nested_hash_tables_pretty) {
+  hash_table<string, hash_table<string, s32>> nested;
+  defer(free(nested));
+
+  hash_table<string, s32> inner1; defer(free(inner1));
+  set(inner1, "apple", 5);
+  set(inner1, "banana", 3);
+
+  hash_table<string, s32> inner2; defer(free(inner2));
+  set(inner2, "carrot", 10);
+  set(inner2, "broccoli", 7);
+
+  set(nested, "fruits", inner1);
+  set(nested, "vegetables", inner2);
+
+  // Normal (single line)
+  string normal = sprint("{}", nested);
+  defer(free(normal.Data));
+  assert(normal[0] == '{' && normal[normal.Count - 1] == '}');
+  assert(search(normal, string("fruits")) != -1);
+  assert(search(normal, string("vegetables")) != -1);
+
+  // Pretty with 2 spaces – expect multiple lines and indentation
+  string pretty2 = sprint("{: 2}", nested);
+  defer(free(pretty2.Data));
+  assert(search(pretty2, string("\n")) != -1); // multiline
+  assert(search(pretty2, string("  ")) != -1); // indentation
+  assert(search(pretty2, string("banana")) != -1);
+  assert(search(pretty2, string("carrot")) != -1);
+
+  // Pretty with 4 spaces – deeper indentation should appear
+  string pretty4 = sprint("{: 4}", nested);
+  defer(free(pretty4.Data));
+  assert(search(pretty4, string("\n")) != -1);
+  assert(search(pretty4, string("    ")) != -1); // 4 spaces somewhere
+
+  // Debug formatting should include structural metadata
+  string debug_fmt = sprint("{:#}", nested);
+  defer(free(debug_fmt.Data));
+  assert(match_beginning(debug_fmt, "hash_table { count:"));
+  assert(search(debug_fmt, string("hash_table { count:")) != -1); // nested debug info
+}
+
+TEST(array_of_hash_tables_pretty_smoke) {
+  array<hash_table<string, s64>> testFmt;
+  defer(free(testFmt));
+  add(testFmt, {{"test_format", 1}});
+  add(testFmt, {{"test_parse", 2}});
+
+  // Should format without crashing; pretty spec on arrays is a no-op for now.
+  string s1 = sprint("{}", testFmt); defer(free(s1.Data));
+  assert(s1.Count && s1[0] == '[');
+
+  string s2 = sprint("{:2}", testFmt); defer(free(s2.Data));
+  assert(s2.Count && s2[0] == '[');
+
+  string s3 = sprint("{:#2}", testFmt); defer(free(s3.Data));
+  assert(match_beginning(s3, "<dynamic_array_like> { count:"));
+}
+
+TEST(string_precision_and_quoting) {
+  // Direct string precision with truncation and ellipsis rules
+  string s = "Hello, World!";
+  CHECK_WRITE("Hello, World!", "{}", s);
+  CHECK_WRITE("He...", "{:.5}", s);
+  CHECK_WRITE("Hello, ...", "{:.10}", s);
+  CHECK_WRITE("H", "{:.1}", s);
+  CHECK_WRITE("He", "{:.2}", s);
+  CHECK_WRITE("Hel", "{:.3}", s);
+  CHECK_WRITE("H...", "{:.4}", s);
+  CHECK_WRITE("", "{:.0}", s);
+  CHECK_WRITE("Hello, World!", "{:.20}", s);
+
+  // Quoted strings inside a dict
+  hash_table<string, string> strings;
+  defer(free(strings));
+  set(strings, "quote", "He said \"Hello\"");
+  set(strings, "newline", "Line 1\nLine 2");
+  set(strings, "tab", "Col1\tCol2");
+
+  string normal = sprint("{}", strings);
+  defer(free(normal.Data));
+  assert(search(normal, string("He said \"Hello\"")) != -1);
+  assert(search(normal, string("Line 1\nLine 2")) != -1);
+  assert(search(normal, string("Col1\tCol2")) != -1);
+
+  string quoted = sprint("{:q}", strings);
+  defer(free(quoted.Data));
+  // Keys quoted
+  assert(search(quoted, string("\"quote\"")) != -1);
+  // Values escaped
+  assert(search(quoted, string("\"He said \\\"Hello\\\"\"")) != -1);
+  assert(search(quoted, string("\\n")) != -1);
+  assert(search(quoted, string("\\t")) != -1);
+}
+
+TEST(context_aware_precision_forwarding_and_pretty) {
+  // Floating point dict formatting and pretty
+  hash_table<string, f64> floating;
+  defer(free(floating));
+  set(floating, "pi", 3.14159265);
+  set(floating, "e", 2.71828);
+
+  string f_normal = sprint("{}", floating);
+  defer(free(f_normal.Data));
+  assert(search(f_normal, string("pi")) != -1);
+  assert(search(f_normal, string("e")) != -1);
+  assert(search(f_normal, string("3.14159265")) != -1);
+  assert(search(f_normal, string("2.71828")) != -1);
+
+  string f_pretty2 = sprint("{: 2}", floating);
+  defer(free(f_pretty2.Data));
+  assert(search(f_pretty2, string("\n")) != -1);
+
+  // Direct float precision sanity check
+  CHECK_WRITE("3.142", "{:.3f}", 3.14159265);
+
+  // Mixed types with context-aware forwarding
+  hash_table<string, variant<f64, string>> mixed;
+  defer(free(mixed));
+  set(mixed, "float_val", variant<f64, string>(3.14159265));
+  set(mixed, "string_val", variant<f64, string>(string("Hello, World!")));
+
+  string m_normal = sprint("{}", mixed);
+  defer(free(m_normal.Data));
+  assert(search(m_normal, string("float_val")) != -1);
+  assert(search(m_normal, string("string_val")) != -1);
+  assert(search(m_normal, string("3.14159265")) != -1);
+  assert(search(m_normal, string("Hello, World!")) != -1);
+
+  // Default precision applies per-type (string truncates, float prettifies)
+  string m_dot3 = sprint("{:.3}", mixed);
+  defer(free(m_dot3.Data));
+  assert(search(m_dot3, string("3.14")) != -1);
+  assert(search(m_dot3, string("Hel")) != -1);
+
+  // Type-specific forwarding: only float gets precision
+  string m_dot3f = sprint("{:.3f}", mixed);
+  defer(free(m_dot3f.Data));
+  assert(search(m_dot3f, string("3.142")) != -1);
+  assert(search(m_dot3f, string("Hello, World!")) != -1);
+
+  // Quoted string precision: only strings (keys and values) should be quoted and truncated
+  string m_dot5q = sprint("{:.5q}", mixed);
+  defer(free(m_dot5q.Data));
+  assert(search(m_dot5q, string("\"He...\"")) != -1);
+  // Keys are strings too; expect truncated and quoted keys present (order agnostic)
+  assert(search(m_dot5q, string("\"fl...\"")) != -1 || search(m_dot5q, string("\"st...\"")) != -1);
+
+  // Pretty + default precision
+  string m_pretty = sprint("{: 2.2}", mixed);
+  defer(free(m_pretty.Data));
+  assert(search(m_pretty, string("\n")) != -1);
+  assert(search(m_pretty, string("  ")) != -1);
+  assert(search(m_pretty, string("3.1")) != -1);
+  assert(search(m_pretty, string("He")) != -1);
+}
+
