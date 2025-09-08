@@ -351,19 +351,46 @@ inline bool os_write_to_file(string path, string contents,
   return true;
 }
 
-inline void console::write(const char *data, s64 size) {
-  if (LockMutex) lock(&S->CoutMutex);
+// @CutNPaste from posix/common.h
+inline void console::write(const char *data, s64 size)
+{
+    if (LockMutex)
+        lock(&S->CoutMutex);
 
-  if (size > Available) {
-    flush();
-  }
+    s64 remaining = size;
+    const char *current_data = data;
 
-  memcpy(Current, data, size);
+    while (remaining > 0)
+    {
+        if (remaining > Available)
+        {
+            // Fill current buffer completely
+            if (Available > 0)
+            {
+                memcpy(Current, current_data, Available);
+                current_data += Available;
+                remaining -= Available;
+                Current += Available;
+                Available = 0;
+            }
+            
+            // Flush and reset buffer
+            if (LockMutex) unlock(&S->CoutMutex);
+            flush();
+            if (LockMutex) lock(&S->CoutMutex);
+        }
+        else
+        {
+            // Remaining data fits in current buffer
+            memcpy(Current, current_data, remaining);
+            Current += remaining;
+            Available -= remaining;
+            remaining = 0;
+        }
+    }
 
-  Current += size;
-  Available -= size;
-
-  if (LockMutex) unlock(&S->CoutMutex);
+    if (LockMutex)
+        unlock(&S->CoutMutex);
 }
 
 inline void console::flush() {
@@ -439,8 +466,7 @@ inline void parse_arguments() {
     }
   }
 
-  // Loop over all arguments and add them, skip the .exe name
-  For(range(1, argc)) add(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
+  For(range(argc)) add(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
 }
 
 // This needs to be called when our program runs, but also when a new thread

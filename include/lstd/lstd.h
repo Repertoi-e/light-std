@@ -4,6 +4,7 @@
 #include "atomic.h"
 #include "big_integer.h"
 #include "bits.h"
+#include "clap.h"
 #include "common.h"
 #include "context.h"
 #include "delegate.h"

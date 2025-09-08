@@ -60,8 +60,8 @@ string os_get_working_dir();
 //               are not thread-safe but we use a lock so ours are. Probably applies to other platforms as well.
 void os_set_working_dir(string dir);
 
-// Get a list of parsed command line arguments excluding the first one -
-// normally the first one is the exe name - but you can get that with
+// Get a list of parsed command line arguments including the first one -
+// normally the first one is the exe name - but you can also get that with
 // os_get_current_module(). Note: Don't free the result of this function, not a leak.
 array<string> os_get_command_line_arguments();
 

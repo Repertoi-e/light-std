@@ -850,11 +850,6 @@ char *mprint(string fmtString, Args no_copy... arguments);
 template <typename... Args>
 void print(string fmtString, Args no_copy... arguments);
 
-// Expects a valid fmt_context (take a look in the implementation of
-// fmt_to_writer). Does all the magic of parsing the format string and
-// formatting the arguments.
-void fmt_parse_and_format(fmt_context *f);
-
 struct fmt_width_checker
 {
   fmt_context *F;
@@ -912,6 +907,10 @@ struct fmt_precision_checker
     }
   }
 };
+
+// Expects a valid fmt_context (take a look in the implementation of
+// fmt_to_writer). Main function that does the parsing and formatting.
+void fmt_parse_and_format(fmt_context *f);
 
 template <typename... Args>
 void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments)
@@ -1097,8 +1096,7 @@ struct formatter<variant<MEMBERS...>>
       fmt_dynamic_specs *original_specs = f->Specs;
 
       // Visit the variant and format the contained value with appropriate specs
-      v.visit([f, original_specs](const auto &value)
-              {
+      v.visit([f, original_specs](const auto &value) {
         using ValueType = decay_t<decltype(value)>;
         if constexpr (!is_same<ValueType, typename variant<MEMBERS...>::nil>) {
           if (original_specs) {

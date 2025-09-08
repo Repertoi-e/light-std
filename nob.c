@@ -14,7 +14,7 @@
 #define SRC_FOLDER "src/"
 #define INCLUDE_FOLDER "include/"
 #define TEST_SUITE_FOLDER "test-suite/"
-#define EXAMPLE_FOLDER "example/"
+#define LANG_FOLDER "lang/"
 
 typedef enum
 {
@@ -290,11 +290,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    File_Paths example_dirs = {0};
-    da_append(&example_dirs, EXAMPLE_FOLDER);
-    if (!build_executable("example", example_dirs, EXAMPLE_FOLDER "main.cpp", config))
+    File_Paths lang_dirs = {0};
+    da_append(&lang_dirs, LANG_FOLDER);
+    if (!build_executable("lang", lang_dirs, LANG_FOLDER "main.cpp", config))
     {
-        nob_log(ERROR, "Failed to build example\n");
+        nob_log(ERROR, "Failed to build language\n");
         return 1;
     }
     return 0;

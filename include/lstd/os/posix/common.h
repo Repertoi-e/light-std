@@ -278,22 +278,43 @@ inline bool os_write_to_file(string path, string contents,
     return true;
 }
 
+// @CutNPaste from windows/common.h
 inline void console::write(const char *data, s64 size)
 {
     if (LockMutex)
         lock(&S->CoutMutex);
 
-    if (size > Available)
+    s64 remaining = size;
+    const char *current_data = data;
+
+    while (remaining > 0)
     {
-        if (LockMutex) unlock(&S->CoutMutex);
-        flush();
-        if (LockMutex) lock(&S->CoutMutex);
+        if (remaining > Available)
+        {
+            // Fill current buffer completely
+            if (Available > 0)
+            {
+                memcpy(Current, current_data, Available);
+                current_data += Available;
+                remaining -= Available;
+                Current += Available;
+                Available = 0;
+            }
+            
+            // Flush and reset buffer
+            if (LockMutex) unlock(&S->CoutMutex);
+            flush();
+            if (LockMutex) lock(&S->CoutMutex);
+        }
+        else
+        {
+            // Remaining data fits in current buffer
+            memcpy(Current, current_data, remaining);
+            Current += remaining;
+            Available -= remaining;
+            remaining = 0;
+        }
     }
-
-    memcpy(Current, data, size);
-
-    Current += size;
-    Available -= size;
 
     if (LockMutex)
         unlock(&S->CoutMutex);
@@ -342,43 +363,17 @@ inline void get_module_name()
     PUSH_ALLOC(PERSISTENT) { S->ModuleName = path_normalize(string(buffer)); }
 }
 
-inline void parse_arguments()
+inline array<string> os_parse_arguments(int argc, char **argv)
 {
-    return;
-
-    char *command_line = strdup(getenv("CMDLINE"));
-    if (command_line == NULL)
-    {
-        report_warning_no_allocations("Couldn't parse command line arguments");
-        return;
-    }
-
-    char *token;
-    char *saveptr;
-    s32 argc = 0;
-
-    char **argv = (char **)malloc(sizeof(char *)); // Allocate memory for an array of pointers
-    defer(free(argv));
-
-    for (token = strtok_r(command_line, " ", &saveptr); token != NULL; token = strtok_r(NULL, " ", &saveptr))
-    {
-        argv[argc] = strdup(token);
-        argc++;
-        argv = (char **)realloc(argv, (argc + 1) * sizeof(char *)); // Resize the array of pointers
-    }
-
-    argv[argc] = NULL; // Null-terminate the array
-
-    // Store the arguments
     PUSH_ALLOC(PERSISTENT)
     {
         reserve(S->Argv, argc);
-        // Loop over all arguments and add them, skip the .exe name
-        for (int i = 1; i < argc; ++i)
+        for (int i = 0; i < argc; ++i)
         {
             add(S->Argv, argv[i]);
         }
     }
+    return S->Argv;
 }
 
 inline void platform_specific_init_common_state()
@@ -386,8 +381,6 @@ inline void platform_specific_init_common_state()
     setup_console();
 
     get_module_name();
-
-    parse_arguments();
 }
 
 LSTD_END_NAMESPACE

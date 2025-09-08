@@ -53,6 +53,19 @@ struct array {
   auto operator[](s64 index) const {
     return Data[translate_negative_index(index, Count)];
   }
+
+  auto begin() {
+    return Data;
+  }
+  auto begin() const {
+    return Data;
+  }
+  auto end() {
+    return Data + Count;
+  }
+  auto end() const {
+    return Data + Count;
+  }
 };
 
 template <typename T>

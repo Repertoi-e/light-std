@@ -458,6 +458,8 @@ struct arena_allocator_data {
   s64 Used = 0;
 };
 
+arena_allocator_data make_arena_with_os_allocate_block(s64 size);
+
 //
 // Arena allocator.
 //

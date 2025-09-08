@@ -13,6 +13,7 @@
 
 // Unicode and string helpers implementation
 #include "string.cpp"
+#include "clap.cpp"
 
 #include "fmt/fmt.cpp"
 #include "fmt/write.cpp"

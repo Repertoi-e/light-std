@@ -774,6 +774,13 @@ void free_all(allocator alloc, u64 options) {
   alloc.Function(allocator_mode::FREE_ALL, alloc.Context, 0, 0, 0, options);
 }
 
+arena_allocator_data make_arena_with_os_allocate_block(s64 size) {
+    arena_allocator_data arena;
+    arena.Block = os_allocate_block(size);
+    arena.Size = size;
+    return arena;
+}
+
 LSTD_END_NAMESPACE
 
 #if LSTD_NO_CRT
