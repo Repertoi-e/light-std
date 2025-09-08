@@ -56,7 +56,7 @@ struct formatter<guid> {
     type = ascii_to_lower(type);
 
     if (type != 'n' && type != 'd' && type != 'b' && type != 'p' && type != 'x') {
-      on_error(f, "Invalid type specifier for a guid",
+      f->on_error( "Invalid type specifier for a guid",
                f->Parse.It.Data - f->Parse.FormatString.Data - 1);
       return;
     }

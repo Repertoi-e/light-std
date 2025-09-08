@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "type_info.h"
 #include "vendor/tlsf/tlsf.h"
 
 ///

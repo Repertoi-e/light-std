@@ -6,12 +6,6 @@
 #include "variant.h"
 #include "hash_table.h"
 #include "linked_list_like.h"
-#include "type_info.h"
-#include "fmt/arg.h"
-#include "fmt/context.h"
-#include "fmt/interp.h"
-#include "fmt/storage_types.h"
-#include "fmt/text_style.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -218,7 +212,7 @@ LSTD_BEGIN_NAMESPACE
       template <typename T, s32 Dim, bool Packed>
       struct formatter<vec<T, Dim, Packed>> {
           void format(const vec<T, Dim, Packed> &src, fmt_context *f) {
-              format_list(f).entries(src.Data, src.DIM)->finish();
+              write_list(f, src.Data, src.DIM);
           }
       };
 
@@ -279,18 +273,549 @@ LSTD_BEGIN_NAMESPACE
                   fmt_to_writer(f, "{}", src.axis());
                   write_no_specs(f, " ]");
               } else {
-                  format_tuple(f, "quat")
-                      .field(src.s)
-                      ->field(src.i)
-                      ->field(src.j)
-                      ->field(src.k)
-                      ->finish();
+                  {
+                    array<fmt_arg> _fields;
+                    add(_fields, fmt_arg_make(src.s));
+                    add(_fields, fmt_arg_make(src.i));
+                    add(_fields, fmt_arg_make(src.j));
+                    add(_fields, fmt_arg_make(src.k));
+                    write_tuple(f, "quat", _fields);
+                    free(_fields);
+                  }
               }
           }
       };
 */
 
+enum class fmt_type
+{
+  NONE = 0,
+  S64,
+  U64,
+  BOOL,
+  F32,
+  F64,
+  STRING,
+  POINTER,
+  CUSTOM
+};
+
+inline bool fmt_type_is_integral(fmt_type type)
+{
+  return type == fmt_type::S64 || type == fmt_type::U64 || type == fmt_type::BOOL;
+}
+
+inline bool fmt_type_is_arithmetic(fmt_type type)
+{
+  return fmt_type_is_integral(type) || type == fmt_type::F32 || type == fmt_type::F64;
+}
+
 struct fmt_context;
+
+template <typename T>
+struct formatter;
+
+template <typename T>
+concept has_formatter = requires(const T &value, fmt_context *f) {
+  formatter<remove_cvref_t<T>>{}.format(value, f);
+};
+
+// Type-erased value storage used by fmt_arg
+struct fmt_value
+{
+  struct custom_value
+  {
+    const void *Data;
+    void (*FormatFunc)(fmt_context *formatContext, const void *arg);
+  };
+
+  union
+  {
+    s64 S64;
+    u64 U64;
+    f32 F32;
+    f64 F64;
+
+    void *Pointer;
+    string String;
+
+    custom_value Custom;
+  };
+
+  fmt_value(s64 v = 0) : S64(v) {}
+  fmt_value(bool v) : S64(v) {} // Store bools in S64
+  fmt_value(u64 v) : U64(v) {}
+  fmt_value(f32 v) : F32(v) {}
+  fmt_value(f64 v) : F64(v) {}
+  fmt_value(void *v) : Pointer(v) {}
+  fmt_value(string v) : String(v) {}
+
+  // Attempt to call a custom formatter.
+  // Compile-time asserts if there was no overload.
+  template <typename T>
+  fmt_value(T *v)
+  {
+    Custom.Data = (const void *)v;
+    Custom.FormatFunc = call_write_on_custom_arg<T>;
+  }
+
+  template <typename T>
+  static void call_write_on_custom_arg(fmt_context *formatContext, const void *arg)
+  {
+    static_assert(has_formatter<T>, "No formatter found for custom type T");
+
+    auto f = formatter<remove_cvref_t<T>>{};
+    f.format(*static_cast<const T *>(arg), formatContext);
+  }
+};
+
+//
+// If the value is not arithmetic (custom or string type)
+// then the life time of the parameter isn't extended
+// (we just hold a pointer)! That means that the parameters
+// need to outlive the parse and format function itself.
+//
+struct fmt_arg
+{
+  fmt_type Type = fmt_type::NONE;
+  fmt_value Value;
+};
+
+// Maps formatting arguments to types that can be used to construct a fmt_value.
+//
+// The order in which we look:
+//   * is string constructible from T? then we map to string(T)
+//   * is the type a code_point_ref? maps to u64 (we want the value in that
+//   case)
+//   * is the type an (unsigned) integral? maps to (u64) s64
+//   * is the type an enum? calls map_arg again with the underlying type
+//   * is the type a floating point? maps to f64
+//   * is the type a pointer? if it's non-void we throw an error, otherwise we
+//   map to (void *) v
+//   * is the type a bool? maps to bool
+//   * otherwise maps to &v (value then setups a function call to a custom
+//   formatter)
+auto fmt_map_arg(auto no_copy v)
+{
+  using T = remove_cvref_t<decltype(v)>;
+
+  if constexpr (is_same<string, T> || is_constructible<string, T>)
+  {
+    return string(v);
+  }
+  else if constexpr (is_same<T, string::code_point_ref>)
+  {
+    return (u64)v;
+  }
+  else if constexpr (is_same<bool, T>)
+  {
+    return v;
+  }
+  else if constexpr (is_unsigned_integral<T>)
+  {
+    return (u64)v;
+  }
+  else if constexpr (is_signed_integral<T>)
+  {
+    return (s64)v;
+  }
+  else if constexpr (is_enum<T>)
+  {
+    return fmt_map_arg((underlying_type_t<T>)v);
+  }
+  else if constexpr (is_floating_point<T>)
+  {
+    return v;
+  }
+  else if constexpr (is_pointer<T>)
+  {
+    if constexpr (is_same<T, void *>)
+    {
+      return v;
+    }
+    else
+    {
+      return &v; // Require a custom formatter for non-void pointers
+    }
+  }
+  else
+  {
+    return &v;
+  }
+}
+
+// Map the result type of fmt_map_arg to a fmt_type at compile time
+template <typename M>
+constexpr fmt_type fmt_type_of_mapped()
+{
+  using T = remove_cvref_t<M>;
+  if constexpr (is_same<T, string>)
+    return fmt_type::STRING;
+  else if constexpr (is_same<T, bool>)
+    return fmt_type::BOOL;
+  else if constexpr (is_same<T, s64>)
+    return fmt_type::S64;
+  else if constexpr (is_same<T, u64>)
+    return fmt_type::U64;
+  else if constexpr (is_same<T, f32>)
+    return fmt_type::F32;
+  else if constexpr (is_same<T, f64>)
+    return fmt_type::F64;
+  else if constexpr (is_same<T, void *>)
+    return fmt_type::POINTER;
+  else if constexpr (is_pointer<T>)
+    return fmt_type::CUSTOM; // non-void pointer => custom
+  else
+    return fmt_type::CUSTOM;
+}
+
+fmt_arg fmt_arg_make(auto no_copy v)
+{
+  auto mapped = fmt_map_arg(v);
+  return {fmt_type_of_mapped<decltype(mapped)>(), fmt_value(mapped)};
+}
+
+// Visits an argument dispatching with the right value based on the argument
+// type
+template <typename Visitor>
+auto fmt_arg_visit(Visitor visitor, fmt_arg ar) -> decltype(visitor(0))
+{
+  switch (ar.Type)
+  {
+  case fmt_type::NONE:
+    break;
+  case fmt_type::S64:
+    return visitor(ar.Value.S64);
+  case fmt_type::U64:
+    return visitor(ar.Value.U64);
+  case fmt_type::BOOL:
+    return visitor(ar.Value.S64 != 0); // We store bools in S64
+  case fmt_type::F32:
+    return visitor(ar.Value.F32);
+  case fmt_type::F64:
+    return visitor(ar.Value.F64);
+  case fmt_type::STRING:
+    return visitor(ar.Value.String);
+  case fmt_type::POINTER:
+    return visitor(ar.Value.Pointer);
+  case fmt_type::CUSTOM:
+    return visitor(ar.Value.Custom);
+  }
+  return visitor(unused{});
+}
+
+// @Locale
+struct fmt_float_specs
+{
+  enum format
+  {
+    GENERAL, // General: chooses exponent notation or fixed point based on
+             // magnitude.
+    EXP,     // Exponent notation with the default precision of 6, e.g. 1.2e-3.
+    FIXED,   // Fixed point with the default precision of 6, e.g. 0.0012.
+    HEX
+  };
+
+  bool ShowPoint; // Whether to add a decimal point (even if no digits follow it)
+
+  format Format;
+  bool Upper;
+};
+
+// The optional align is one of the following:
+//   '<' - Forces the field to be left-aligned within the available space
+//   (default)
+//   '>' - Forces the field to be right-aligned within the available space.
+//   '=' - Forces the padding to be placed after the sign (if any)
+//         but before the digits.  This is used for printing fields
+//         in the form '+000000120'. This alignment option is only
+//         valid for numeric types.
+//   '^' - Forces the field to be centered within the available space
+enum class fmt_alignment
+{
+  NONE = 0,
+  LEFT,    // <
+  RIGHT,   // >
+  NUMERIC, // =
+  CENTER   // ^
+};
+
+inline fmt_alignment get_alignment_from_char(code_point ch)
+{
+  if (ch == '<')
+    return fmt_alignment::LEFT;
+  if (ch == '>')
+    return fmt_alignment::RIGHT;
+  if (ch == '=')
+    return fmt_alignment::NUMERIC;
+  if (ch == '^')
+    return fmt_alignment::CENTER;
+  return fmt_alignment::NONE;
+}
+
+// The 'sign' option is only valid for numeric types, and can be one of the
+// following:
+//   '+'  - Indicates that a sign should be used for both positive as well as
+//   negative numbers
+//   '-'  - Indicates that a sign should be used only for negative numbers
+//   (default) ' '  - Indicates that a leading space should be used on positive
+//   numbers
+enum class fmt_sign
+{
+  NONE = 0,
+  PLUS,
+
+  // MINUS has the same behaviour as NONE on our types,
+  // but the user might want to have different formating
+  // on their custom types when minus is specified,
+  // so we record it when parsing anyway.
+  MINUS,
+  SPACE,
+};
+
+struct fmt_specs
+{
+  code_point Fill = ' ';
+  fmt_alignment Align = fmt_alignment::NONE;
+
+  fmt_sign Sign = fmt_sign::NONE;
+  bool Hash = false;
+
+  u32 Width = 0;
+  s32 Precision = -1;
+
+  char Type = 0;
+
+  // User data for custom formatting context
+  // Example for tables: stores the current indentation level for pretty-printing
+  s32 UserData = 0;
+};
+
+// Dynamic means that the width/precision was specified in a separate argument
+// and not as a constant in the format string
+struct fmt_dynamic_specs : fmt_specs
+{
+  s64 WidthIndex = -1;
+  s64 PrecisionIndex = -1;
+};
+
+struct fmt_parse_context
+{
+  string FormatString;
+  string It; // How much left we have to parse from the format string
+
+  s32 NextArgID = 0;
+
+  fmt_parse_context(string formatString = "") : FormatString(formatString), It(formatString) {}
+
+  // The position tells where to point the caret in the format string, so it is
+  // clear where exactly the error happened. If left as -1 we calculate using
+  // the current It.
+  //
+  // (We may want to pass a different position if we are in the middle of
+  // parsing and the It is not pointing at the right place).
+  //
+  // This is only used to provide useful error messages.
+  void on_error(string message, s64 position = -1);
+
+  bool check_arg_id(u32);
+  u32 next_arg_id();
+
+  // Some specifiers require numeric arguments and we do error checking,
+  // CUSTOM arguments don't get checked
+  void require_arithmetic_arg(fmt_type argType, s64 errorPosition = -1);
+
+  // Some specifiers require signed numeric arguments and we do error
+  // checking, CUSTOM arguments don't get checked
+  void require_signed_arithmetic_arg(fmt_type argType, s64 errorPosition = -1);
+
+  // Integer values and pointers aren't allowed to get precision. CUSTOM
+  // argument is again, not checked.
+  void check_precision_for_arg(fmt_type argType, s64 errorPosition = -1);
+};
+
+// Note: When parsing, if we reach the end before } or : or whatever we don't
+// report an error. The caller of this should handle that. Returns -1 if an
+// error occured (the error is reported).
+s64 fmt_parse_arg_id(fmt_parse_context *p);
+
+// _argType_ is the type of the argument for which we are parsing the specs.
+// It is used for error checking, e.g, to check if it's numeric when we
+// encounter numeric-only specs.
+//
+// Note: When parsing, if we reach the end before } we don't report an error.
+// The caller of this should handle that.
+bool fmt_parse_specs(fmt_parse_context *p, fmt_type argType, fmt_dynamic_specs *specs);
+
+// This writer contains a pointer to another writer.
+// We output formatted stuff to the other writer.
+//
+// We implement write() to take format specs into account (width, padding, fill,
+// specs for numeric arguments, etc.) but we provide write_no_specs(...) which
+// outputs values directly to the writer. This means that you can use this to
+// convert floats, integers, to strings by calling just write_no_specs().
+//
+// We also store a parse context (if a format string was passed), otherwise it
+// remains unused.
+struct fmt_context : writer
+{
+  writer *Out; // The real output
+
+  // Holds the format string (and how much we've parsed)
+  // and some state about the argument ids (when using automatic indexing).
+  fmt_parse_context Parse;
+
+  array<fmt_arg> Args;
+
+  // null if no specs were parsed.
+  // When writing a custom formatter use this for checking specifiers.
+  // e.g.
+  //     if (f->Specs && f->Specs->Hash) { ... }
+  //
+  // These are "dynamic" format specs because width or precision might have
+  // been specified by another argument (instead of being a literal in the
+  // format string).
+  fmt_dynamic_specs *Specs = null;
+
+  fmt_context(writer *out, string fmtString, array<fmt_arg> args)
+      : Out(out), Parse(fmtString), Args(args) {}
+
+  void write(const char *data, s64 count) override;
+  void flush() override { Out->flush(); }
+
+  // The position tells where to point the caret in the format string, so it is
+  // clear where exactly the error happened. If left as -1 we calculate using the
+  // current Parse.It.
+  //
+  // The only reason we may want to pass an explicit position is if we are in the
+  // middle of parsing and parse.It is not pointing at the right place.
+  //
+  // This routine is used to provide useful error messages.
+  void on_error(string message, s64 position = -1)
+  {
+    Parse.on_error(message, position);
+  }
+};
+
+inline void write(fmt_context *f, string s) { f->write(s.Data, s.Count); }
+
+// General formatting routines which take specifiers into account:
+void write(fmt_context *f, is_integral auto value);
+void write(fmt_context *f, is_floating_point auto value);
+void write(fmt_context *f, bool value);
+void write(fmt_context *f, const void *value);
+
+// These routines write the value directly, without looking at formatting specs.
+// Useful when writing a custom formatter and there were specifiers but they
+// shouldn't propagate downwards when printing simpler types.
+void write_no_specs(fmt_context *f, is_integral auto value);
+void write_no_specs(fmt_context *f, is_floating_point auto value);
+void write_no_specs(fmt_context *f, bool value);
+void write_no_specs(fmt_context *f, const void *value);
+
+inline void write_no_specs(fmt_context *f, string str) { write(f->Out, str); }
+inline void write_no_specs(fmt_context *f, const char *str)
+{
+  write(f->Out, str, c_string_byte_count(str));
+}
+
+inline void write_no_specs(fmt_context *f, const char *str, s64 size)
+{
+  write(f->Out, str, size);
+}
+
+inline void write_no_specs(fmt_context *f, code_point cp) { write(f->Out, cp); }
+
+fmt_dynamic_specs fmt_forwarded_specs_for_arg(fmt_dynamic_specs original, fmt_arg ar);
+
+// Write with spec forwarding (implemented in .cpp)
+void write_with_forwarding(fmt_context *F, fmt_arg ar, bool noSpecs);
+void write_with_forwarding_pretty(fmt_context *F, fmt_arg ar, bool noSpecs, s32 indentSize, s32 nextLevel);
+
+// POD field structs for struct/table formatting
+struct fmt_struct_field
+{
+  string Name;
+  fmt_arg Arg;
+};
+
+struct fmt_kv_entry
+{
+  fmt_arg Key;
+  fmt_arg Value;
+};
+
+// Free-format functions (implemented in .cpp)
+void write_struct(fmt_context *F, string name, array<fmt_struct_field> fields, bool noSpecs = false);
+void write_tuple(fmt_context *F, string name, array<fmt_arg> fields, bool noSpecs = false);
+void write_list(fmt_context *F, const array<fmt_arg> &items, bool noSpecs = false);
+void write_table(fmt_context *F, array<fmt_kv_entry> entries, bool noSpecs = false, bool pretty = false, s32 indentSize = 0, s32 currentLevel = 0);
+
+void write_list(fmt_context *F, any_array_like auto items, bool noSpecs = false)
+{
+  array<fmt_arg> args;
+  defer(free(args));
+  For(items) add(args, fmt_arg_make(it));
+  write_list(F, args, noSpecs);
+}
+
+// Used to dispatch values to write/write_no_specs functions. Used in
+// conjunction with fmt_arg_visit.
+struct fmt_context_visitor
+{
+  fmt_context *F;
+  bool NoSpecs;
+
+  fmt_context_visitor(fmt_context *f, bool noSpecs = false)
+      : F(f), NoSpecs(noSpecs) {}
+
+  void operator()(s32 value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(u32 value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(s64 value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(u64 value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(bool value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(f32 value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(f64 value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(string value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(const void *value)
+  {
+    NoSpecs ? write_no_specs(F, value) : write(F, value);
+  }
+  void operator()(fmt_value::custom_value custom)
+  {
+    custom.FormatFunc(F, custom.Data);
+  }
+
+  void operator()(unused)
+  {
+    F->on_error("Internal error while formatting");
+    assert(false);
+  }
+};
 
 //
 // These are the most common functions.
@@ -341,19 +866,19 @@ struct fmt_width_checker
     {
       if (sign_bit(value))
       {
-        on_error(F, "Negative width");
+        F->on_error("Negative width");
         return (u32)-1;
       }
       else if ((u64)value > numeric<s32>::max())
       {
-        on_error(F, "Width value is too big");
+        F->on_error("Width value is too big");
         return (u32)-1;
       }
       return (u32)value;
     }
     else
     {
-      on_error(F, "Width was not an integer");
+      F->on_error("Width was not an integer");
       return (u32)-1;
     }
   }
@@ -370,213 +895,23 @@ struct fmt_precision_checker
     {
       if (sign_bit(value))
       {
-        on_error(F, "Negative precision");
+        F->on_error("Negative precision");
         return -1;
       }
       else if ((u64)value > numeric<s32>::max())
       {
-        on_error(F, "Precision value is too big");
+        F->on_error("Precision value is too big");
         return -1;
       }
       return (s32)value;
     }
     else
     {
-      on_error(F, "Precision was not an integer");
+      F->on_error("Precision was not an integer");
       return -1;
     }
   }
 };
-
-inline fmt_arg fmt_get_arg_from_index(fmt_context *f, s64 index)
-{
-  if (index >= f->Args.Count)
-  {
-    on_error(f, "Argument index out of range");
-    return {};
-  }
-  return f->Args[index];
-}
-
-inline bool fmt_handle_dynamic_specs(fmt_context *f)
-{
-  assert(f->Specs);
-
-  if (f->Specs->WidthIndex != -1)
-  {
-    auto width = fmt_get_arg_from_index(f, f->Specs->WidthIndex);
-    if (width.Type != fmt_type::NONE)
-    {
-      f->Specs->Width = fmt_visit_arg(fmt_width_checker{f}, width);
-      if (f->Specs->Width == (u32)-1)
-        return false;
-    }
-  }
-  if (f->Specs->PrecisionIndex != -1)
-  {
-    auto precision = fmt_get_arg_from_index(f, f->Specs->PrecisionIndex);
-    if (precision.Type != fmt_type::NONE)
-    {
-      f->Specs->Precision = fmt_visit_arg(fmt_precision_checker{f}, precision);
-      if (f->Specs->Precision == numeric<s32>::min())
-        return false;
-    }
-  }
-
-  return true;
-}
-
-inline void fmt_parse_and_format(fmt_context *f)
-{
-  fmt_interp *p = &f->Parse;
-
-  auto write_until = [&](const char *end)
-  {
-    if (!p->It.Count)
-      return;
-    while (true)
-    {
-      auto searchString = string(p->It.Data, end - p->It.Data);
-
-      s64 bracket = search(searchString, '}');
-      if (bracket == -1)
-      {
-        write_no_specs(f, p->It.Data, end - p->It.Data);
-        return;
-      }
-
-      auto *pbracket = utf8_get_pointer_to_cp_at_translated_index(
-          searchString.Data, searchString.Count, bracket);
-      if (*(pbracket + 1) != '}')
-      {
-        on_error(f,
-                 "Unmatched \"}\" in format string - if you want to print it "
-                 "use \"}}\" to escape",
-                 pbracket - f->Parse.FormatString.Data);
-        return;
-      }
-
-      write_no_specs(f, p->It.Data, pbracket - p->It.Data);
-      write_no_specs(f, "}");
-
-      s64 advance = pbracket + 2 - p->It.Data;
-      p->It.Data += advance, p->It.Count -= advance;
-    }
-  };
-
-  fmt_arg currentArg;
-
-  while (p->It.Count)
-  {
-    s64 bracket = search(p->It, '{');
-    if (bracket == -1)
-    {
-      write_until(p->It.Data + p->It.Count);
-      return;
-    }
-
-    auto *pbracket = utf8_get_pointer_to_cp_at_translated_index(
-        p->It.Data, p->It.Count, bracket);
-    write_until(pbracket);
-
-    s64 advance = pbracket + 1 - p->It.Data;
-    p->It.Data += advance, p->It.Count -= advance;
-
-    if (!p->It.Count)
-    {
-      on_error(f, "Invalid format string");
-      return;
-    }
-    if (p->It[0] == '}')
-    {
-      // Implicit {} means "get the next argument"
-      currentArg = fmt_get_arg_from_index(f, p->next_arg_id());
-      if (currentArg.Type == fmt_type::NONE)
-        return; // The error was reported in _f->get_arg_from_ref_
-
-      fmt_visit_arg(fmt_context_visitor(f), currentArg);
-    }
-    else if (p->It[0] == '{')
-    {
-      // {{ means we escaped a {.
-      write_until(p->It.Data + 1);
-    }
-    else if (p->It[0] == '!')
-    {
-      ++p->It.Data, --p->It.Count; // Skip the !
-
-      auto [success, style] = fmt_parse_text_style(p);
-      if (!success)
-        return;
-      if (!p->It.Count || p->It[0] != '}')
-      {
-        on_error(f, "\"}\" expected");
-        return;
-      }
-
-      if (!Context.FmtDisableAnsiCodes)
-      {
-        char ansiBuffer[7 + 3 * 4 + 1];
-        auto *ansiEnd = color_to_ansi(ansiBuffer, style);
-        write_no_specs(f, ansiBuffer, ansiEnd - ansiBuffer);
-
-        u8 emphasis = (u8)style.Emphasis;
-        if (emphasis)
-        {
-          assert(!style.Background);
-          ansiEnd = emphasis_to_ansi(ansiBuffer, emphasis);
-          write_no_specs(f, ansiBuffer, ansiEnd - ansiBuffer);
-        }
-      }
-    }
-    else
-    {
-      // Parse integer specified or a named argument
-      s64 argId = fmt_parse_arg_id(p);
-      if (argId == -1)
-        return;
-
-      currentArg = fmt_get_arg_from_index(f, argId);
-      if (currentArg.Type == fmt_type::NONE)
-        return; // The error was reported in _f->get_arg_from_ref_
-
-      code_point c = p->It.Count ? p->It[0] : 0;
-      if (c == '}')
-      {
-        fmt_visit_arg(fmt_context_visitor(f), currentArg);
-      }
-      else if (c == ':')
-      {
-        ++p->It.Data, --p->It.Count; // Skip the :
-
-        fmt_dynamic_specs specs = {};
-        bool success = fmt_parse_specs(p, currentArg.Type, &specs);
-        if (!success)
-          return;
-        if (!p->It.Count || p->It[0] != '}')
-        {
-          on_error(f, "\"}\" expected");
-          return;
-        }
-
-        f->Specs = &specs;
-        success = fmt_handle_dynamic_specs(f);
-        if (!success)
-          return;
-
-        fmt_visit_arg(fmt_context_visitor(f), currentArg);
-
-        f->Specs = null;
-      }
-      else
-      {
-        on_error(f, "\"}\" expected");
-        return;
-      }
-    }
-    ++p->It.Data, --p->It.Count; // Go to the next byte
-  }
-}
 
 template <typename... Args>
 void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments)
@@ -584,7 +919,7 @@ void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments)
   static const s64 NUM_ARGS = sizeof...(Args);
   stack_array<fmt_arg, NUM_ARGS> args;
 
-  args = {fmt_make_arg(arguments)...};
+  args = {fmt_arg_make(arguments)...};
   auto f = fmt_context(out, fmtString, args);
 
   fmt_parse_and_format(&f);
@@ -657,8 +992,8 @@ void format_value(const T &value, fmt_context *f)
   else
   {
     // Fall back to standard formatting for built-in types
-    fmt_arg arg = fmt_make_arg(value);
-    fmt_visit_arg(fmt_context_visitor(f), arg);
+    fmt_arg arg = fmt_arg_make(value);
+    fmt_arg_visit(fmt_context_visitor(f), arg);
   }
 }
 
@@ -699,14 +1034,14 @@ struct formatter<T>
       write_no_specs(f, ", data: ");
       // Restore specs for list entries so element-level forwarding works
       f->Specs = original_specs;
-      format_list(f).entries(a.Data, a.Count)->finish();
+      write_list(f, a);
       // Restore (not strictly necessary here) and close
       f->Specs = original_specs;
       write_no_specs(f, " }");
     }
     else
     {
-      format_list(f).entries(a.Data, a.Count)->finish();
+      write_list(f, a);
     }
   }
 };
@@ -733,7 +1068,7 @@ struct formatter<T>
       write_no_specs(f, ", data: ");
       // Restore specs so element list receives forwarded specs
       f->Specs = original_specs;
-      format_list(f).entries(a.Data, a.Count)->finish();
+      write_list(f, a);
       // Restore and close
       f->Specs = original_specs;
       write_no_specs(f, " }");
@@ -741,7 +1076,7 @@ struct formatter<T>
     else
     {
       // Normal format: [...]
-      format_list(f).entries(a.Data, a.Count)->finish();
+      write_list(f, a);
     }
   }
 };
@@ -767,7 +1102,7 @@ struct formatter<variant<MEMBERS...>>
         using ValueType = decay_t<decltype(value)>;
         if constexpr (!is_same<ValueType, typename variant<MEMBERS...>::nil>) {
           if (original_specs) {
-            auto forwarded_specs = create_forwarded_specs(*original_specs, value);
+            auto forwarded_specs = fmt_forwarded_specs_for_arg(*original_specs, fmt_arg_make(value));
             f->Specs = &forwarded_specs;
             format_value(value, f);
           } else {
@@ -823,51 +1158,48 @@ struct formatter<hash_table<K, V>>
       format_value(table.Count, f);
       write_no_specs(f, ", entries: ");
 
-      format_dict dict(f);
+      array<fmt_kv_entry> entries;
       // Need to cast away const to iterate since hash table iterators expect non-const
       auto &mutable_table = const_cast<hash_table<K, V> &>(table);
       for (auto [key, value] : mutable_table)
-      {
-        dict.entry(*key, *value);
-      }
-      // Restore specs so dict entries get forwarded specs (including pretty)
+        add(entries, fmt_kv_entry{fmt_arg_make(*key), fmt_arg_make(*value)});
+      // Restore specs so table entries get forwarded specs (including pretty)
       f->Specs = original_specs;
-      if (use_pretty)
-        dict.pretty(indent_size, current_level);
-      dict.finish();
+      write_table(f, entries, /*noSpecs=*/false, use_pretty, indent_size, current_level);
+      free(entries);
 
       write_no_specs(f, " }");
     }
     else
     {
-      // Default format: displays as a simple dictionary
+      // Default format: displays as a simple table
       // e.g. { "key1": 1, "key2": 2, "key3": 3 }
-      format_dict dict(f);
-      // Need to cast away const to iterate since hash table iterators expect non-const
+      array<fmt_kv_entry> entries;
       auto &mutable_table = const_cast<hash_table<K, V> &>(table);
       for (auto [key, value] : mutable_table)
-      {
-        dict.entry(*key, *value);
-      }
-      if (use_pretty)
-        dict.pretty(indent_size, current_level);
-      dict.finish();
+        add(entries, fmt_kv_entry{fmt_arg_make(*key), fmt_arg_make(*value)});
+      write_table(f, entries, /*noSpecs=*/false, use_pretty, indent_size, current_level);
+      free(entries);
     }
   }
 };
 
 // Formatters for linked list views
 template <typename Node>
-  requires (singly_linked_node_like<Node> && !doubly_linked_node_like<Node>)
-struct formatter<Node*> {
-  void format(Node* no_copy v, fmt_context *f) {
+  requires(singly_linked_node_like<Node> && !doubly_linked_node_like<Node>)
+struct formatter<Node *>
+{
+  void format(Node *no_copy v, fmt_context *f)
+  {
     bool use_debug = f->Specs && f->Specs->Hash;
 
     // Collect node values into fmt_args so we can reuse format_list
     array<fmt_arg> items;
-    for (auto p = v; p; p = p->Next) add(items, fmt_make_arg(*p));
+    for (auto p = v; p; p = p->Next)
+      add(items, fmt_arg_make(*p));
 
-    if (use_debug) {
+    if (use_debug)
+    {
       auto *orig = f->Specs;
       f->Specs = nullptr;
 
@@ -878,29 +1210,35 @@ struct formatter<Node*> {
       // Restore specs for elements
       // When only precision is specified with no type, prefer fixed-point for floats inside lists
       fmt_dynamic_specs coerced;
-      if (orig && orig->Type == 0 && orig->Precision >= 0) {
+      if (orig && orig->Type == 0 && orig->Precision >= 0)
+      {
         coerced = *orig;
         coerced.Type = 'f';
         f->Specs = &coerced;
-      } else {
+      }
+      else
+      {
         f->Specs = orig;
       }
 
-      format_list(f).entries_args(items)->finish();
+      write_list(f, items);
 
       // Restore and close
       f->Specs = orig;
       write_no_specs(f, " }");
-    } else {
+    }
+    else
+    {
       auto *orig = f->Specs;
       // Coerce precision-only to fixed for floats inside lists
       fmt_dynamic_specs coerced;
-      if (orig && orig->Type == 0 && orig->Precision >= 0) {
+      if (orig && orig->Type == 0 && orig->Precision >= 0)
+      {
         coerced = *orig;
         coerced.Type = 'f';
         f->Specs = &coerced;
       }
-      format_list(f).entries_args(items)->finish();
+      write_list(f, items);
       f->Specs = orig;
     }
 
@@ -909,16 +1247,20 @@ struct formatter<Node*> {
 };
 
 template <typename Node>
-  requires (doubly_linked_node_like<Node>)
-struct formatter<Node*> {
-  void format(const Node* no_copy v, fmt_context *f) {
+  requires(doubly_linked_node_like<Node>)
+struct formatter<Node *>
+{
+  void format(const Node *no_copy v, fmt_context *f)
+  {
     bool use_debug = f->Specs && f->Specs->Hash;
 
     // Collect node values into fmt_args so we can reuse format_list
     array<fmt_arg> items;
-    for (auto p = v; p; p = p->Next) add(items, fmt_make_arg(*p));
+    for (auto p = v; p; p = p->Next)
+      add(items, fmt_arg_make(*p));
 
-    if (use_debug) {
+    if (use_debug)
+    {
       auto *orig = f->Specs;
       write_no_specs(f, "<doubly_linked_list_like> { count: ");
       f->Specs = nullptr;
@@ -927,29 +1269,35 @@ struct formatter<Node*> {
       // Restore specs for elements
       // When only precision is specified with no type, prefer fixed-point for floats inside lists
       fmt_dynamic_specs coerced;
-      if (orig && orig->Type == 0 && orig->Precision >= 0) {
+      if (orig && orig->Type == 0 && orig->Precision >= 0)
+      {
         coerced = *orig;
         coerced.Type = 'f';
         f->Specs = &coerced;
-      } else {
+      }
+      else
+      {
         f->Specs = orig;
       }
 
-      format_list(f).entries_args(items)->finish();
+      write_list(f, items);
 
       // Restore and close
       f->Specs = orig;
       write_no_specs(f, " }");
-    } else {
+    }
+    else
+    {
       auto *orig = f->Specs;
       // Coerce precision-only to fixed for floats inside lists
       fmt_dynamic_specs coerced;
-      if (orig && orig->Type == 0 && orig->Precision >= 0) {
+      if (orig && orig->Type == 0 && orig->Precision >= 0)
+      {
         coerced = *orig;
         coerced.Type = 'f';
         f->Specs = &coerced;
       }
-      format_list(f).entries_args(items)->finish();
+      write_list(f, items);
       f->Specs = orig;
     }
 

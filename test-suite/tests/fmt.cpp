@@ -34,7 +34,7 @@ void format_test_error(string fmtString, Args &&...arguments) {
     static const s64 NUM_ARGS = sizeof...(Args);
     stack_array<fmt_arg, NUM_ARGS> args;
 
-    args = {fmt_make_arg(arguments)...};
+    args = {fmt_arg_make(arguments)...};
 
     counting_writer dummy;
     auto f = fmt_context(&dummy, fmtString, args);
@@ -854,11 +854,12 @@ struct test_vector {
 template <>
 struct formatter<test_vector> {
   void format(const test_vector &v, fmt_context *f) {
-    format_tuple(f, "vec3")
-      .field(v.x)
-      ->field(v.y)
-      ->field(v.z)
-      ->finish();
+  array<fmt_arg> _fields;
+  add(_fields, fmt_arg_make(v.x));
+  add(_fields, fmt_arg_make(v.y));
+  add(_fields, fmt_arg_make(v.z));
+  write_tuple(f, "vec3", _fields);
+  free(_fields);
   }
 };
 
@@ -1271,8 +1272,8 @@ TEST(tuple_forwarding_on_custom_formatter) {
   CHECK_WRITE("vec3(1, 2.5, -3)", "{:.5q}", v);
 }
 
-TEST(hash_table_debug_uses_dict_printers) {
-  // Ensure debug-mode hash_table formatting still renders entries via dict printer
+TEST(hash_table_debug_uses_table_printers) {
+  // Ensure debug-mode hash_table formatting still renders entries via table printer
   hash_table<string, f64> ht;
   defer(free(ht));
   set(ht, "pi", 3.14159265);
@@ -1286,23 +1287,23 @@ TEST(hash_table_debug_uses_dict_printers) {
   assert(search(dbg, string("pi")) != -1);
   assert(search(dbg, string("e")) != -1);
 
-  // Debug with float precision should affect values inside dict via forwarded specs
+  // Debug with float precision should affect values inside table via forwarded specs
   string dbg_prec = sprint("{:#.3f}", ht);
   defer(free(dbg_prec.Data));
   assert(match_beginning(dbg_prec, "hash_table { count: 2, entries: {"));
   assert(search(dbg_prec, string("3.142")) != -1);
 
-  // Debug with string quoting on a string table checks dict printer path too
+  // Debug with string quoting on a string table checks table printer path too
   hash_table<string, string> hs;
   defer(free(hs));
   set(hs, "quote", "He said \"Hello\"");
   string dbg_q = sprint("{:#q}", hs);
   defer(free(dbg_q.Data));
-  // Keys and values quoted in dict
+  // Keys and values quoted in table
   assert(search(dbg_q, string("\"quote\"")) != -1);
   assert(search(dbg_q, string("\"He said \\\"Hello\\\"\"")) != -1);
 }
-// New tests covering pretty dict printing, string precision/quoting,
+// New tests covering pretty table printing, string precision/quoting,
 // and context-aware spec forwarding across mixed types.
 
 TEST(nested_hash_tables_pretty) {
@@ -1378,7 +1379,7 @@ TEST(string_precision_and_quoting) {
   CHECK_WRITE("", "{:.0}", s);
   CHECK_WRITE("Hello, World!", "{:.20}", s);
 
-  // Quoted strings inside a dict
+  // Quoted strings inside a table
   hash_table<string, string> strings;
   defer(free(strings));
   set(strings, "quote", "He said \"Hello\"");
@@ -1402,7 +1403,7 @@ TEST(string_precision_and_quoting) {
 }
 
 TEST(context_aware_precision_forwarding_and_pretty) {
-  // Floating point dict formatting and pretty
+  // Floating point table formatting and pretty
   hash_table<string, f64> floating;
   defer(free(floating));
   set(floating, "pi", 3.14159265);

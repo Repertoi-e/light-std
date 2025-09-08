@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../bits.h"
-#include "float_dragon4.h"
-#include "float_specs.h"
+#include "lstd/bits.h"
+#include "float_dragon4.cpp"
 
 //
 // Use Grisu + Dragon4 when formatting a float with a given precision:

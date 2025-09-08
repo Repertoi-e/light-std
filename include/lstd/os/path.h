@@ -3,6 +3,7 @@
 #include "../array.h"
 #include "../common.h"
 #include "../string.h"
+#include "../parse.h"
 
 //
 // This module provides facilities to work with paths and files.

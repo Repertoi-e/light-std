@@ -4,7 +4,6 @@
 #include "delegate.h"
 #include "memory.h"
 #include "qsort.h"
-#include "type_info.h"
 
 //
 // :CodeReusability: This file implements:

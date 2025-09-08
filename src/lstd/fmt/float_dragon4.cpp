@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../big_integer.h"
-#include "../string_builder.h"
-#include "float_specs.h"
+#include "lstd/big_integer.h"
+#include "lstd/string_builder.h"
 
 //
 // This is an implementation the Dragon4 algorithm to convert a binary number in
@@ -186,6 +185,7 @@ void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outExp,
   s32 shift = isPredecessorCloser ? 2 : 1;
 
   s32 exponent = value.Exponent;
+
   u64 significand = value.Significand << shift;
 
   if (exponent >= 0) {

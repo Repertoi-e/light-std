@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "math.h"
-#include "type_info.h"
 
 //
 // variant<> is a type-safe union.
@@ -62,8 +61,6 @@
 // });
 //
 //
-
-#include "type_info.h"
 
 //
 // The base code here is a modified version of cjxgm's:

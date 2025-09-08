@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../bits.h"
-#include "float_specs.h"
+#include "lstd/bits.h"
 
 //
 // In this file we implement the Dragonbox algorithm:
@@ -1286,6 +1285,35 @@ small_divisor_case_label:
     result.Significand += small_division_by_pow10<IS_F32>(dist);
   }
   return result;
+}
+
+
+static inline void add_u64(string_builder *builder, u64 value) {
+  const s32 BUFFER_SIZE = numeric<u64>::digits10;
+  char buffer[BUFFER_SIZE];
+  auto *p = buffer + BUFFER_SIZE - 1;
+  if (!value) { *p-- = '0'; }
+  while (value) { auto d = value % 10; *p-- = (char)('0' + d); value /= 10; }
+  ++p; add(builder, p, buffer + BUFFER_SIZE - p);
+}
+
+s32 fmt_format_non_negative_float(string_builder *floatBuffer,
+                                  is_floating_point auto value,
+                                  s32 precision,
+                                  fmt_float_specs no_copy specs) {
+  assert(value >= 0);
+  bool fixed = specs.Format == fmt_float_specs::FIXED;
+  if (value == 0) {
+    if (precision <= 0 || !fixed) { add(floatBuffer, U'0'); return 0; }
+    For(range(precision)) { add(floatBuffer, U'0'); }
+    return -precision;
+  }
+  if (precision < 0) {
+    auto dec = dragonbox_format_float(value);
+    add_u64(floatBuffer, dec.Significand);
+    return dec.Exponent;
+  }
+  return grisu_format_float(floatBuffer, value, precision, specs);
 }
 
 LSTD_END_NAMESPACE

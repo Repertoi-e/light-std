@@ -17,7 +17,6 @@
 #include "stack_array.h"
 #include "string.h"
 #include "string_builder.h"
-#include "type_info.h"
 #include "variant.h"
 #include "writer.h"
 
