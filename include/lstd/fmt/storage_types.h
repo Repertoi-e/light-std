@@ -31,7 +31,7 @@ bool should_forward_specs_to_type(const fmt_dynamic_specs &specs, const T &value
     // String types: only forward string-specific specifiers
     return specs.Type == 's' || specs.Type == 'q' || specs.Type == 'p';
   } else if constexpr (is_pointer<remove_cvref_t<T>>) {
-    // Pointer types: only forward pointer specifiers
+    // Pointer types: only 'p' is valid
     return specs.Type == 'p';
   }
   
@@ -263,6 +263,15 @@ struct format_list
   format_list *entries(array<T> values)
   {
     For(values) add(Fields, fmt_make_arg(it));
+    return this;
+  }
+
+  // Accept a pre-collected list of formatting arguments directly.
+  // Useful when elements are not stored contiguously (e.g., linked lists)
+  // and we want to avoid copying or changing element types.
+  inline format_list *entries_args(const array<fmt_arg> &args)
+  {
+    For(args) add(Fields, it);
     return this;
   }
 

@@ -11,8 +11,6 @@
 #include "thread.h"
 #include "path.h"
 
-#include "../common/numeric/types.h"
-
 #if not defined LSTD_NO_CRT
 #include <stdlib.h>
 #endif

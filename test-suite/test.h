@@ -72,6 +72,13 @@ struct asserts {
     }                                                                    \
   }
 
+#define CHECK_WRITE(expected, fmtString, ...)    \
+  {                                              \
+    string t = sprint(fmtString, ##__VA_ARGS__); \
+    assert_eq_str(t, expected);                  \
+    free(t);                                     \
+  }
+
 //
 // Define test stuff:
 //

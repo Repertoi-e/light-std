@@ -9,7 +9,12 @@ LSTD_BEGIN_NAMESPACE
 struct fmt_context;
 
 template <typename T>
-void format_value(const T &value, fmt_context *f);
+struct formatter;
+
+template <typename T>
+concept has_formatter = requires(const T &value, fmt_context *f) {
+  formatter<remove_cvref_t<T>>{}.format(value, f);
+};
 
 struct fmt_custom_value {
   void *Data;
@@ -48,7 +53,10 @@ struct fmt_value {
 
   template <typename T>
   static void call_write_on_custom_arg(void *formatContext, void *arg) {
-    format_value<T>(*static_cast<const T *>(arg), static_cast<fmt_context *>(formatContext));
+    static_assert(has_formatter<T>, "No formatter found for custom type T");
+
+    auto f = formatter<remove_cvref_t<T>>{};
+    f.format(*static_cast<const T *>(arg), static_cast<fmt_context *>(formatContext));
   }
 };
 
@@ -93,8 +101,11 @@ auto fmt_map_arg(auto no_copy v) {
   } else if constexpr (is_floating_point<T>) {
     return v;
   } else if constexpr (is_pointer<T>) {
-    static_assert(is_same<T, void *>, "Formatting of non-void pointers is disallowed");
-    return v;
+    if constexpr(is_same<T, void *>) {
+      return v;
+    } else {
+      return &v; // Require a custom formatter for non-void pointers
+    }
   } else {
     return &v;
   }

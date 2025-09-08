@@ -16,6 +16,7 @@ u32 g_AllTestsCount = 0;
 #include "tests/string.cpp"
 #include "tests/thread.cpp"
 #include "tests/variant.cpp"
+#include "tests/list_like.cpp"
 
 void run_tests() {
   print("\n");

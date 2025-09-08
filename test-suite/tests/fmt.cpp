@@ -1,12 +1,5 @@
 #include "../test.h"
 
-#define CHECK_WRITE(expected, fmtString, ...)    \
-  {                                              \
-    string t = sprint(fmtString, ##__VA_ARGS__); \
-    assert_eq_str(t, expected);                  \
-    free(t);                                     \
-  }
-
 static string LAST_ERROR;
 
 static void test_parse_error_handler(string message, string formatString,

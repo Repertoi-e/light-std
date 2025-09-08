@@ -5,11 +5,12 @@
 #include "array_like.h"
 #include "variant.h"
 #include "hash_table.h"
+#include "linked_list_like.h"
 #include "type_info.h"
 #include "fmt/arg.h"
 #include "fmt/context.h"
 #include "fmt/interp.h"
-#include "fmt/struct_tuple_list.h"
+#include "fmt/storage_types.h"
 #include "fmt/text_style.h"
 
 LSTD_BEGIN_NAMESPACE
@@ -646,12 +647,6 @@ struct formatter
   // void format(const T &value, fmt_context *f) { ... }
 };
 
-// Helper to detect if a formatter<T> specialization exists and has a format method
-template <typename T>
-concept has_formatter = requires(const T &value, fmt_context *f) {
-  formatter<remove_cvref_t<T>>{}.format(value, f);
-};
-
 template <typename T>
 void format_value(const T &value, fmt_context *f)
 {
@@ -696,18 +691,18 @@ struct formatter<T>
     bool use_debug = f->Specs && f->Specs->Hash;
     if (use_debug)
     {
-  // Avoid forwarding type-specific specs to metadata fields (like count)
-  auto *original_specs = f->Specs;
-  write_no_specs(f, "<array_like> { count: ");
-  f->Specs = nullptr;
-  format_value(a.Count, f);
-  write_no_specs(f, ", data: ");
-  // Restore specs for list entries so element-level forwarding works
-  f->Specs = original_specs;
-  format_list(f).entries(a.Data, a.Count)->finish();
-  // Restore (not strictly necessary here) and close
-  f->Specs = original_specs;
-  write_no_specs(f, " }");
+      // Avoid forwarding type-specific specs to metadata fields (like count)
+      auto *original_specs = f->Specs;
+      write_no_specs(f, "<array_like> { count: ");
+      f->Specs = nullptr;
+      format_value(a.Count, f);
+      write_no_specs(f, ", data: ");
+      // Restore specs for list entries so element-level forwarding works
+      f->Specs = original_specs;
+      format_list(f).entries(a.Data, a.Count)->finish();
+      // Restore (not strictly necessary here) and close
+      f->Specs = original_specs;
+      write_no_specs(f, " }");
     }
     else
     {
@@ -728,20 +723,20 @@ struct formatter<T>
     if (use_debug)
     {
       // Debug format: array { count: X, capacity: Y, allocated: Z, data: [...] }
-  auto *original_specs = f->Specs;
-  write_no_specs(f, "<dynamic_array_like> { count: ");
-  // Do not apply value specs to metadata fields
-  f->Specs = nullptr;
-  format_value(a.Count, f);
-  write_no_specs(f, ", allocated: ");
-  format_value(a.Allocated, f);
-  write_no_specs(f, ", data: ");
-  // Restore specs so element list receives forwarded specs
-  f->Specs = original_specs;
-  format_list(f).entries(a.Data, a.Count)->finish();
-  // Restore and close
-  f->Specs = original_specs;
-  write_no_specs(f, " }");
+      auto *original_specs = f->Specs;
+      write_no_specs(f, "<dynamic_array_like> { count: ");
+      // Do not apply value specs to metadata fields
+      f->Specs = nullptr;
+      format_value(a.Count, f);
+      write_no_specs(f, ", allocated: ");
+      format_value(a.Allocated, f);
+      write_no_specs(f, ", data: ");
+      // Restore specs so element list receives forwarded specs
+      f->Specs = original_specs;
+      format_list(f).entries(a.Data, a.Count)->finish();
+      // Restore and close
+      f->Specs = original_specs;
+      write_no_specs(f, " }");
     }
     else
     {
@@ -821,12 +816,12 @@ struct formatter<hash_table<K, V>>
     {
       // Alternate format: displays as a more detailed view
       // e.g. hash_table<string, int> { count: 3, entries: { "key1": 1, "key2": 2, "key3": 3 } }
-  auto *original_specs = f->Specs;
-  write_no_specs(f, "hash_table { count: ");
-  // Do not forward specs to metadata count
-  f->Specs = nullptr;
-  format_value(table.Count, f);
-  write_no_specs(f, ", entries: ");
+      auto *original_specs = f->Specs;
+      write_no_specs(f, "hash_table { count: ");
+      // Do not forward specs to metadata count
+      f->Specs = nullptr;
+      format_value(table.Count, f);
+      write_no_specs(f, ", entries: ");
 
       format_dict dict(f);
       // Need to cast away const to iterate since hash table iterators expect non-const
@@ -835,9 +830,9 @@ struct formatter<hash_table<K, V>>
       {
         dict.entry(*key, *value);
       }
-  // Restore specs so dict entries get forwarded specs (including pretty)
-  f->Specs = original_specs;
-  if (use_pretty)
+      // Restore specs so dict entries get forwarded specs (including pretty)
+      f->Specs = original_specs;
+      if (use_pretty)
         dict.pretty(indent_size, current_level);
       dict.finish();
 
@@ -858,6 +853,107 @@ struct formatter<hash_table<K, V>>
         dict.pretty(indent_size, current_level);
       dict.finish();
     }
+  }
+};
+
+// Formatters for linked list views
+template <typename Node>
+  requires (singly_linked_node_like<Node> && !doubly_linked_node_like<Node>)
+struct formatter<Node*> {
+  void format(Node* no_copy v, fmt_context *f) {
+    bool use_debug = f->Specs && f->Specs->Hash;
+
+    // Collect node values into fmt_args so we can reuse format_list
+    array<fmt_arg> items;
+    for (auto p = v; p; p = p->Next) add(items, fmt_make_arg(*p));
+
+    if (use_debug) {
+      auto *orig = f->Specs;
+      f->Specs = nullptr;
+
+      write_no_specs(f, "<singly_linked_list_like> { count: ");
+      format_value(items.Count, f);
+      write_no_specs(f, ", data: ");
+
+      // Restore specs for elements
+      // When only precision is specified with no type, prefer fixed-point for floats inside lists
+      fmt_dynamic_specs coerced;
+      if (orig && orig->Type == 0 && orig->Precision >= 0) {
+        coerced = *orig;
+        coerced.Type = 'f';
+        f->Specs = &coerced;
+      } else {
+        f->Specs = orig;
+      }
+
+      format_list(f).entries_args(items)->finish();
+
+      // Restore and close
+      f->Specs = orig;
+      write_no_specs(f, " }");
+    } else {
+      auto *orig = f->Specs;
+      // Coerce precision-only to fixed for floats inside lists
+      fmt_dynamic_specs coerced;
+      if (orig && orig->Type == 0 && orig->Precision >= 0) {
+        coerced = *orig;
+        coerced.Type = 'f';
+        f->Specs = &coerced;
+      }
+      format_list(f).entries_args(items)->finish();
+      f->Specs = orig;
+    }
+
+    free(items);
+  }
+};
+
+template <typename Node>
+  requires (doubly_linked_node_like<Node>)
+struct formatter<Node*> {
+  void format(const Node* no_copy v, fmt_context *f) {
+    bool use_debug = f->Specs && f->Specs->Hash;
+
+    // Collect node values into fmt_args so we can reuse format_list
+    array<fmt_arg> items;
+    for (auto p = v; p; p = p->Next) add(items, fmt_make_arg(*p));
+
+    if (use_debug) {
+      auto *orig = f->Specs;
+      write_no_specs(f, "<doubly_linked_list_like> { count: ");
+      f->Specs = nullptr;
+      format_value(items.Count, f);
+      write_no_specs(f, ", data: ");
+      // Restore specs for elements
+      // When only precision is specified with no type, prefer fixed-point for floats inside lists
+      fmt_dynamic_specs coerced;
+      if (orig && orig->Type == 0 && orig->Precision >= 0) {
+        coerced = *orig;
+        coerced.Type = 'f';
+        f->Specs = &coerced;
+      } else {
+        f->Specs = orig;
+      }
+
+      format_list(f).entries_args(items)->finish();
+
+      // Restore and close
+      f->Specs = orig;
+      write_no_specs(f, " }");
+    } else {
+      auto *orig = f->Specs;
+      // Coerce precision-only to fixed for floats inside lists
+      fmt_dynamic_specs coerced;
+      if (orig && orig->Type == 0 && orig->Precision >= 0) {
+        coerced = *orig;
+        coerced.Type = 'f';
+        f->Specs = &coerced;
+      }
+      format_list(f).entries_args(items)->finish();
+      f->Specs = orig;
+    }
+
+    free(items);
   }
 };
 
