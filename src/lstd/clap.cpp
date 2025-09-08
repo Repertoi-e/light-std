@@ -1,47 +1,49 @@
 #include "lstd/clap.h"
 #include "lstd/fmt.h"
+#include <stdlib.h>
 
 LSTD_BEGIN_NAMESPACE
 
-clap_arg clap_arg_positional(string name, string value_name) {
+// Options-struct builders (POD DSL)
+clap_arg clap_arg_option_opt(string name, clap_option_desc opts) {
     clap_arg arg = {};
     arg.name = name;
-    arg.value_name = value_name.Count ? value_name : name;
-    arg.arg_type = CLAP_ARG_STRING;
+    arg.value_name = opts.value_name.Count ? opts.value_name : name;
+    arg.help_text = opts.help_text;
+    arg.short_name = opts.short_name;
+    arg.long_name = opts.long_name;
+    arg.default_val = opts.default_val;
+    arg.arg_type = opts.arg_type;
+    arg.action = opts.action;
+    arg.is_required = opts.is_required;
+    arg.is_positional = false;
+    return arg;
+}
+
+clap_arg clap_arg_positional_opt(string name, clap_positional_desc opts) {
+    clap_arg arg = {};
+    arg.name = name;
+    arg.value_name = opts.value_name.Count ? opts.value_name : name;
+    arg.help_text = opts.help_text;
+    arg.arg_type = opts.arg_type;
     arg.action = CLAP_ACTION_STORE;
-    arg.is_required = false;
+    arg.is_required = opts.is_required;
     arg.is_positional = true;
     return arg;
 }
 
-clap_arg clap_arg_option(string name, string short_opt, string long_opt) {
+clap_arg clap_arg_flag_opt(string name, clap_flag_desc opts) {
     clap_arg arg = {};
     arg.name = name;
     arg.value_name = name;
-    arg.short_name = short_opt;
-    arg.long_name = long_opt;
-    arg.arg_type = CLAP_ARG_STRING;
-    arg.action = CLAP_ACTION_STORE;
-    arg.is_required = false;
-    arg.is_positional = false;
-    return arg;
-}
-
-clap_arg clap_arg_flag(string name, string short_opt, string long_opt) {
-    clap_arg arg = {};
-    arg.name = name;
-    arg.value_name = name;
-    arg.short_name = short_opt;
-    arg.long_name = long_opt;
+    arg.help_text = opts.help_text;
+    arg.short_name = opts.short_name;
+    arg.long_name = opts.long_name;
     arg.arg_type = CLAP_ARG_BOOL;
-    arg.action = CLAP_ACTION_SET_TRUE;
+    arg.action = opts.action;
     arg.is_required = false;
     arg.is_positional = false;
     return arg;
-}
-
-void clap_add_arg(clap_parser ref parser, clap_arg arg) {
-    add(parser.arguments, arg);
 }
 
 clap_arg *clap_find_arg_by_short(clap_parser ref parser, string short_name) {
@@ -219,13 +221,45 @@ clap_parse_result clap_parse_args(clap_parser ref parser, array<string> args) {
             return result;
         }
         
-        // Check for version
-        if (parser.auto_version && (strings_match(arg, "--version") || strings_match(arg, "-v"))) {
+    // Check for version (-v short)
+    if (parser.auto_version && (strings_match(arg, "--version") || strings_match(arg, "-v"))) {
             clap_print_version(parser);
             result.success = false;
             return result;
         }
         
+        if (strings_match(arg, "--")) {
+            // End of options, rest are positional
+            for (s64 j = i + 1; j < args.Count; ++j) {
+                string pos = args[j];
+                clap_arg *positional_arg = null;
+                s64 pos_count = 0;
+                For(parser.arguments) {
+                    if (it.is_positional) {
+                        if (pos_count == positional_index) {
+                            positional_arg = &it;
+                            break;
+                        }
+                        pos_count++;
+                    }
+                }
+                if (!positional_arg) {
+                    result.success = false;
+                    result.error = tprint("Unexpected positional argument: {}", pos);
+                    return result;
+                }
+                clap_argument_value arg_value = {};
+                if (!clap_parse_value(pos, positional_arg->arg_type, &arg_value)) {
+                    result.success = false;
+                    result.error = tprint("Invalid value '{}' for argument {}", pos, positional_arg->name);
+                    return result;
+                }
+                set(result.values, positional_arg->name, arg_value);
+                positional_index++;
+            }
+            break;
+        }
+
         if (arg[0] == '-') {
             // This is an option
             clap_arg *found_arg = null;
@@ -233,13 +267,32 @@ clap_parse_result clap_parse_args(clap_parser ref parser, array<string> args) {
             
             if (arg.Count > 1 && arg[1] == '-') {
                 // Long option (--option)
-                string opt_name = slice(arg, 2, -1);
+                string opt_name = slice(arg, 2, length(arg));
                 
                 // Check for --option=value format
-                s64 equals_pos = search(opt_name, '=');
+                s64 equals_pos = -1;
+                {
+                    s64 len = length(opt_name);
+                    For_as(k, range(len)) {
+                        if (opt_name[k] == '=') { equals_pos = k; break; }
+                    }
+                }
                 if (equals_pos != -1) {
-                    value_str = slice(opt_name, equals_pos + 1, -1);
+                    value_str = slice(opt_name, equals_pos + 1, length(opt_name));
                     opt_name = slice(opt_name, 0, equals_pos);
+                }
+                
+                // Support --no-<flag> to explicitly set false
+                if (length(opt_name) > 3 && strings_match(slice(opt_name, 0, 3), "no-")) {
+                    string base_name = slice(opt_name, 3, length(opt_name));
+                    found_arg = clap_find_arg_by_long(parser, base_name);
+                    if (found_arg) {
+                        clap_argument_value arg_value = {};
+                        arg_value.type = CLAP_ARG_BOOL;
+                        arg_value.value = false;
+                        set(result.values, found_arg->name, arg_value);
+                        continue; // Done with this argument
+                    }
                 }
                 
                 found_arg = clap_find_arg_by_long(parser, opt_name);
@@ -250,17 +303,84 @@ clap_parse_result clap_parse_args(clap_parser ref parser, array<string> args) {
                     return result;
                 }
 
-                // Short option (-o)
-                string opt_name = slice(arg, 1, 2);  // Just one character
-                found_arg = clap_find_arg_by_short(parser, opt_name);
-                
-                // Check if value is attached (-ovalue)
-                if (arg.Count > 2 && found_arg && found_arg->arg_type != CLAP_ARG_BOOL) {
-                    value_str = slice(arg, 2, -1);
+                // Short option(s): support clusters like -abc, and -ovalue
+                string shorts = slice(arg, 1, length(arg));
+                s64 shorts_len = length(shorts);
+                bool consumed_cluster = false;
+                for (s64 j = 0; j < shorts_len; ++j) {
+                    string opt_name = slice(shorts, j, j + 1);
+                    found_arg = clap_find_arg_by_short(parser, opt_name);
+                    if (!found_arg) {
+                        result.success = false;
+                        result.error = tprint("Unknown option: -{}", opt_name);
+                        return result;
+                    }
+
+                    clap_argument_value arg_value = {};
+
+                    if (found_arg->action == CLAP_ACTION_SET_TRUE) {
+                        arg_value.type = CLAP_ARG_BOOL;
+                        arg_value.value = true;
+                        set(result.values, found_arg->name, arg_value);
+                        // keep scanning next in cluster
+                        continue;
+                    } else if (found_arg->action == CLAP_ACTION_SET_FALSE) {
+                        arg_value.type = CLAP_ARG_BOOL;
+                        arg_value.value = false;
+                        set(result.values, found_arg->name, arg_value);
+                        continue;
+                    } else if (found_arg->action == CLAP_ACTION_COUNT) {
+                        // Increment a counter
+                        s64 new_val = 1;
+                        auto [kp, vp] = search(result.values, found_arg->name);
+                        if (vp && vp->type == CLAP_ARG_INT) {
+                            // extract existing
+                            s64 existing = 0;
+                            vp->value.visit(match {
+                                [&existing](s64 v) { existing = v; },
+                                [](auto) {}
+                            });
+                            new_val = existing + 1;
+                        }
+                        arg_value.type = CLAP_ARG_INT;
+                        arg_value.value = new_val;
+                        set(result.values, found_arg->name, arg_value);
+                        continue;
+                    }
+
+                    // Needs a value (store)
+                    if (j + 1 < shorts_len) {
+                        // Rest of the cluster is the value, e.g., -oVALUE
+                        value_str = slice(shorts, j + 1, length(shorts));
+                        consumed_cluster = true;
+                    } else {
+                        // Next argv is the value
+                        if (i + 1 < args.Count) {
+                            value_str = args[++i];
+                        } else {
+                            result.success = false;
+                            result.error = tprint("Option -{} requires a value", opt_name);
+                            return result;
+                        }
+                    }
+                    if (!clap_parse_value(value_str, found_arg->arg_type, &arg_value)) {
+                        result.success = false;
+                        result.error = tprint("Invalid value '{}' for option -{}", value_str, opt_name);
+                        return result;
+                    }
+                    set(result.values, found_arg->name, arg_value);
+                    // We've consumed the rest of the cluster as value; stop processing this token
+                    consumed_cluster = true;
+                    break;
                 }
+                // Cluster handled (only flags or consumed a value); proceed to next argv
+                continue;
             }
             
             if (!found_arg) {
+                // If we reached here, it means we had a single short option token (like "-x")
+                // and it did not match any known option, or a long option not found.
+                // For long forms, preserve their exact spelling (arg); for short, we handled in cluster.
                 result.success = false;
                 result.error = tprint("Unknown option: {}", arg);
                 return result;
@@ -270,7 +390,15 @@ clap_parse_result clap_parse_args(clap_parser ref parser, array<string> args) {
             
             if (found_arg->action == CLAP_ACTION_SET_TRUE) {
                 arg_value.type = CLAP_ARG_BOOL;
-                arg_value.value = true;
+                if (value_str.Count) {
+                    if (!clap_parse_value(value_str, CLAP_ARG_BOOL, &arg_value)) {
+                        result.success = false;
+                        result.error = tprint("Invalid boolean value '{}' for option {}", value_str, arg);
+                        return result;
+                    }
+                } else {
+                    arg_value.value = true;
+                }
             } else if (found_arg->action == CLAP_ACTION_SET_FALSE) {
                 arg_value.type = CLAP_ARG_BOOL;
                 arg_value.value = false;

@@ -28,27 +28,21 @@ int main(int argc, char **argv)
 
     auto newContext = Context;
     newContext.Alloc = ARENA_GLOBAL;
-    PUSH_CONTEXT(newContext) {
-        clap_parser parser = {};
-        parser.program_name = "lang";
-        parser.about_text = "A language processor";
-        parser.version_text = VERSION;
-        parser.auto_help = true;
-        parser.auto_version = true;
+    PUSH_CONTEXT(newContext)
+    {
+        clap_parser parser = {
+            .program_name = "lang",
+            .about_text = "A language processor",
+            .version_text = VERSION,
+            .auto_help = true,
+            .auto_version = true
+        };
 
-        clap_arg file_arg = clap_arg_positional("file", "FILE");
-        file_arg.help_text = "Input file to process";
-        file_arg.is_required = false; // Optional since we can run without a file
-        clap_add_arg(parser, file_arg);
+        add(parser.arguments, clap_arg_positional("file", .value_name = "FILE", .help_text = "Input file to process", .is_required = false));
+        add(parser.arguments, clap_arg_option("output", .short_name = "o", .long_name = "output", .help_text = "Output file", .default_val = "out.txt"));
+        add(parser.arguments, clap_arg_flag("verbose", .short_name = "V", .long_name = "verbose", .help_text = "Enable verbose output"));
 
-        clap_arg output_arg = clap_arg_option("output", "o", "output");
-        output_arg.help_text = "Output file";
-        output_arg.default_val = "out.txt";
-        clap_add_arg(parser, output_arg);
-
-        // Parse arguments
         clap_parse_result result = clap_parse(parser, argc, argv);
-
         if (!result.success)
         {
             if (result.error.Count > 0)
@@ -56,15 +50,10 @@ int main(int argc, char **argv)
                 error("{}", result.error);
                 return 1;
             }
-            // Help or version was shown
             return 0;
         }
 
-        // Get parsed values
         string output = clap_get_string(result, "output");
-        s64 count = clap_get_int(result, "count");
-
-        // Process file if provided
         if (clap_has_arg(result, "file"))
         {
             string file_path = clap_get_string(result, "file");
@@ -84,8 +73,6 @@ int main(int argc, char **argv)
         {
             error("No input\n");
         }
-print("awfawfwa")    ;
-platform_uninit_state();
         return 0;
     }
 }
