@@ -34,27 +34,25 @@ inline void add(any_string_builder auto ref builder, const char *data, s64 size,
   s64 i = 0;
   const usize base_size = 1u << builder.BASE_SHIFT;
   while (i < size) {
-    // Determine current chunk index based on current size
     usize chunk_idx = 0;
-    if (builder.Count > 0) {
-      usize adjusted_size = (builder.Count - 1) >> builder.BASE_SHIFT;
-      if (adjusted_size > 0) chunk_idx = msb(adjusted_size) + 1;
+    if (builder.Count < base_size) {
+      chunk_idx = 0;
+    } else if (builder.Count < (base_size << 1)) {
+      chunk_idx = 1;
+    } else {
+      // For i >= 2, start(i) = base * 2^(i-1); choose i so that start(i) <= Count < start(i)+size(i)
+      usize units = builder.Count >> builder.BASE_SHIFT; // Count in base units
+      chunk_idx = (usize)msb(units) + 1; // moves to next chunk at exact boundaries
     }
 
-    // Sizes: [base, base, 2*base, 4*base, ...]
-    const usize chunk_size = (chunk_idx == 0 || chunk_idx == 1)
-                   ? base_size
-                   : (1u << (builder.BASE_SHIFT + chunk_idx - 1));
-    // Starts: [0, base, 2*base, 4*base, 8*base, ...]
-    const usize chunk_start = (chunk_idx == 0) ? 0
-                  : (chunk_idx == 1) ? base_size
-                  : (base_size * (2u << (chunk_idx - 2)));
+    const usize chunk_size = (chunk_idx <= 1) ? base_size : (base_size << (chunk_idx - 1));
+    const usize chunk_start = (chunk_idx == 0) ? 0 : (chunk_idx == 1) ? base_size : (base_size << (chunk_idx - 1));
 
-    // Offset within current chunk
     usize offset_in_chunk = builder.Count - chunk_start;
 
     // How many bytes we can copy into this chunk
     usize space_left = chunk_size - offset_in_chunk;
+    assert(space_left > 0);
     usize to_copy = min(space_left, (usize)(size - i));
 
     char *dst = builder.get_chunk_ptr(chunk_idx) + offset_in_chunk;
