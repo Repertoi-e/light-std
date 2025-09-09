@@ -1,20 +1,11 @@
 #include "lstd/lstd.h"
 
+#include "token.h"
+#include "src/token/token.cpp"
+
 #include <stdarg.h>
 
 #define VERSION "0.0.1"
-
-template <typename... Args>
-void error(string message, Args no_copy... arguments)
-{
-    print("{!RED}error:{!} {}\n", tprint(message, arguments...));
-}
-
-template <typename... Args>
-void warn(string message, Args no_copy... arguments)
-{
-    print("{!YELLOW}warning:{!} {}\n", tprint(message, arguments...));
-}
 
 arena_allocator_data ARENA_GLOBAL_DATA;
 #define ARENA_GLOBAL (allocator{arena_allocator, &ARENA_GLOBAL_DATA})
@@ -71,12 +62,15 @@ int main(int argc, char **argv)
                         return;
                     }
 
-                    string normalized = make_string_normalized_nfc(contents);
+                    string normalized = contents; // make_string_normalized_nfc(contents);
                     if (!normalized.Data) {
                         error("Failed to normalize UTF-8 string");
                         return;
                     }
                     print("Normalized size: {} bytes\n", normalized.Count);
+
+                    token_array tokens = tokenizer_tokenize(normalized);
+                    print("Tokenized into {} tokens\n", tokens.Count);
                 },
                 [file_path](auto)
                 {
