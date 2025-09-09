@@ -23,9 +23,6 @@ int main(int argc, char **argv)
 {
     platform_state_init();
 
-    TemporaryAllocatorData = make_arena_with_os_allocate_block(1_GiB);
-    ARENA_GLOBAL_DATA = make_arena_with_os_allocate_block(1_GiB);
-
     auto newContext = Context;
     newContext.Alloc = ARENA_GLOBAL;
     PUSH_CONTEXT(newContext)
@@ -37,7 +34,6 @@ int main(int argc, char **argv)
             .auto_help = true,
             .auto_version = true
         };
-
         add(parser.arguments, clap_arg_positional("file", .value_name = "FILE", .help_text = "Input file to process", .is_required = false));
         add(parser.arguments, clap_arg_option("output", .short_name = "o", .long_name = "output", .help_text = "Output file", .default_val = "out.txt"));
         add(parser.arguments, clap_arg_flag("verbose", .short_name = "V", .long_name = "verbose", .help_text = "Enable verbose output"));
@@ -59,10 +55,28 @@ int main(int argc, char **argv)
             string file_path = clap_get_string(result, "file");
             optional<string> fileContent = os_read_entire_file(file_path);
             fileContent.visit(match{
-                [](string contents)
+                [&](string contents)
                 {
-                    print("Processing file content ({} bytes):\n", contents.Count);
-                    write(&cout, sprint("File content:\n{}\n", contents));
+                    print("... {} ({} bytes).\n", file_path, contents.Count);
+                    s64 invalid = utf8_find_invalid(contents.Data, contents.Count);
+                    if (invalid >= 0)
+                    {
+                        error("Invalid UTF-8 sequence at byte offset {}:", invalid);
+
+                        s64 start = max(0, invalid - 10);
+                        s64 end = min(contents.Count, invalid + 10);
+                        print("{}\n", string(contents.Data + start, end - start));
+                        print("{:>{}}\n", "^", invalid - start + 1);
+
+                        return;
+                    }
+
+                    string normalized = make_string_normalized_nfc(contents);
+                    if (!normalized.Data) {
+                        error("Failed to normalize UTF-8 string");
+                        return;
+                    }
+                    print("Normalized size: {} bytes\n", normalized.Count);
                 },
                 [file_path](auto)
                 {

@@ -1288,7 +1288,7 @@ small_divisor_case_label:
 }
 
 
-static inline void add_u64(string_builder *builder, u64 value) {
+static inline void add_u64(string_builder ref builder, u64 value) {
   const s32 BUFFER_SIZE = numeric<u64>::digits10;
   char buffer[BUFFER_SIZE];
   auto *p = buffer + BUFFER_SIZE - 1;
@@ -1297,7 +1297,7 @@ static inline void add_u64(string_builder *builder, u64 value) {
   ++p; add(builder, p, buffer + BUFFER_SIZE - p);
 }
 
-s32 fmt_format_non_negative_float(string_builder *floatBuffer,
+s32 fmt_format_non_negative_float(string_builder ref floatBuffer,
                                   is_floating_point auto value,
                                   s32 precision,
                                   fmt_float_specs no_copy specs) {

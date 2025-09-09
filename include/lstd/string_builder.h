@@ -1,7 +1,6 @@
 #pragma once
 
-#include "context.h"
-#include "memory.h"
+#include "xar.h"
 #include "string.h"
 #include "writer.h"
 
@@ -9,132 +8,202 @@ LSTD_BEGIN_NAMESPACE
 
 //
 // String builder is good for building large strings without having to
-// constantly reallocate. Starts with a 1_KiB buffer on the stack, if that fills
-// up, allocates on the heap using _Alloc_. It maintains a linked list of 1_KiB
-// buckets, which get allocated on the go as needed.
+// constantly reallocate. Starts with a base-sized stack chunk. When that fills
+// up it exponentially allocates buffers, each twice the size.
 //
-// We provide an explicit allocator so you can set it in the beginning, before
-// it ever allocates. If it's still null when we require a new buffer we use the
-// Context's one.
+// This is using exponential array internally, so look at "xar.h"
 //
-struct string_builder {
-  static const s64 BUFFER_SIZE = 1_KiB;
+using string_builder = exponential_array<char, 25, 10, true>; // base chunk 1 << 10 (1 KiB) on stack; 25 chunks total
 
-  struct buffer {
-    char Data[BUFFER_SIZE]{};
-    s64 Occupied = 0;
-    buffer *Next = null;
-  };
+template <typename>
+const bool is_string_builder = false;
+template <usize N, usize BASE_SHIFT>
+const bool is_string_builder<exponential_array<char, N, BASE_SHIFT>> = true;
+template <usize N, usize BASE_SHIFT, bool STACK_FIRST>
+const bool is_string_builder<exponential_array<char, N, BASE_SHIFT, STACK_FIRST>> = true;
 
-  buffer BaseBuffer;
-  buffer *CurrentBuffer =
-      null;  // null means BaseBuffer. We don't point to BaseBuffer because
-             // pointers to other members are dangerous when copying.
+template <typename T>
+concept any_string_builder = is_string_builder<T>;
 
-  // Counts how many buffers have been dynamically allocated.
-  s64 IndirectionCount = 0;
+inline void add(any_string_builder auto ref builder, const char *data, s64 size, allocator alloc = {}) {
+  if (size <= 0) return;
 
-  // The allocator used for allocating new buffers past the first one (which is
-  // stack allocated). This value is null until this object allocates memory (in
-  // which case it sets it to the Context's allocator) or the user sets it
-  // manually.
-  allocator Alloc;
-};
+  // Ensure capacity for the entire append in one go. No-ops for already allocated chunks.
+  reserve(builder, builder.Count + (usize)size, alloc);
 
-// Don't free the buffers, just reset cursor
-void reset(string_builder *builder);
+  s64 i = 0;
+  const usize base_size = 1u << builder.BASE_SHIFT;
+  while (i < size) {
+    // Determine current chunk index based on current size
+    usize chunk_idx = 0;
+    if (builder.Count > 0) {
+      usize adjusted_size = (builder.Count - 1) >> builder.BASE_SHIFT;
+      if (adjusted_size > 0) chunk_idx = msb(adjusted_size) + 1;
+    }
 
-// Free any memory allocated by this object and reset cursor
-void free_buffers(string_builder *builder);
+    // Sizes: [base, base, 2*base, 4*base, ...]
+    const usize chunk_size = (chunk_idx == 0 || chunk_idx == 1)
+                   ? base_size
+                   : (1u << (builder.BASE_SHIFT + chunk_idx - 1));
+    // Starts: [0, base, 2*base, 4*base, 8*base, ...]
+    const usize chunk_start = (chunk_idx == 0) ? 0
+                  : (chunk_idx == 1) ? base_size
+                  : (base_size * (2u << (chunk_idx - 2)));
 
-string_builder::buffer *get_current_buffer(string_builder *builder);
+    // Offset within current chunk
+    usize offset_in_chunk = builder.Count - chunk_start;
 
-// Append _size_ bytes from _data_ to the builder
-void add(string_builder *builder, const char *data, s64 size);
+    // How many bytes we can copy into this chunk
+    usize space_left = chunk_size - offset_in_chunk;
+    usize to_copy = min(space_left, (usize)(size - i));
 
-// Append a code point to the builder
-inline void add(string_builder *builder, code_point cp) {
+    char *dst = builder.get_chunk_ptr(chunk_idx) + offset_in_chunk;
+    memcpy(dst, data + i, to_copy);
+    builder.Count += to_copy;
+    i += to_copy;
+  }
+}
+
+
+inline void add(any_string_builder auto ref builder, code_point cp) {
   char encodedCp[4];
   utf8_encode_cp(encodedCp, cp);
   add(builder, encodedCp, utf8_get_size_of_cp(encodedCp));
 }
 
-// Append a string to the builder
-inline void add(string_builder *builder, string str) {
-  add(builder, str.Data, str.Count);
+inline void add(any_string_builder auto ref builder, string str) {
+    add(builder, str.Data, str.Count);
 }
 
-// Merges all buffers in one string.
-// Maybe release the buffers as well?
-// The most common use case is builder_to_string() and then free_buffers() --
-// the builder is not needed anymore.
-mark_as_leak string builder_to_string(string_builder *builder);
+inline string builder_to_string(any_string_builder auto ref builder, allocator alloc = {}) {
+    string result;
+  reserve(result, builder.Count, alloc);
 
-inline void reset(string_builder *builder) {
-  builder->CurrentBuffer = null;  // null means BaseBuffer
+    usize copied = 0;
+  exponential_array_visit_chunks(builder, [&](const char *chunk_data, usize chunk_size, usize /*chunk_index*/) {
+    memcpy(result.Data + copied, chunk_data, chunk_size);
+    copied += chunk_size;
+    return true; // Continue iteration
+  });
+    result.Count = copied;
+    return result;
+}
 
-  auto *b = &builder->BaseBuffer;
-  while (b) {
-    b->Occupied = 0;
+inline string builder_to_string_and_clear(any_string_builder auto ref builder, allocator alloc = {}) {
+    string result = builder_to_string(builder, alloc);
+  builder.Count = 0;
+    return result;
+}
 
-    b = b->Next;
+inline string builder_to_string_and_free(any_string_builder auto ref builder, allocator alloc = {}) {
+    string result = builder_to_string(builder, alloc);
+    free(builder);
+    return result;
+}
+
+inline bool utf8_normalize_nfc_to_string_builder(const char *str, s64 byteLength, any_string_builder auto ref builder)
+{
+  if (!str || byteLength < 0)
+    return false;
+
+  const char *p = str;
+  const char *end = str + byteLength;
+  stack_array<code_point, 1024> segBuf;
+
+  while (p < end)
+  {
+    s64 segN = 0;
+    if (!utf8_segment_nfd(p, end, segBuf, segN))
+      return false;
+
+    // Canonical composition
+    stack_array<code_point, 1024> compBuf;
+    s64 compN = 0;
+    if (segN > 0)
+    {
+      compBuf.Data[compN++] = segBuf.Data[0];
+      s64 starterPos = 0;
+      u8 lastCC = 0;
+      for (s64 i = 1; i < segN; ++i)
+      {
+        code_point c = segBuf.Data[i];
+        u8 cc = unicode_combining_class(c);
+        code_point starter = compBuf.Data[starterPos];
+        code_point m = unicode_compose_pair(starter, c);
+        if (m && (lastCC < cc))
+        {
+          compBuf.Data[starterPos] = m;
+        }
+        else
+        {
+          compBuf.Data[compN++] = c;
+          if (cc == 0)
+          {
+            starterPos = compN - 1;
+            lastCC = 0;
+          }
+          else
+          {
+            lastCC = cc;
+          }
+        }
+      }
+    }
+
+    // Emit composed segment into string_builder
+    for (s64 i = 0; i < compN; ++i)
+    {
+      add(builder, compBuf.Data[i]);
+    }
   }
+
+  return true;
 }
 
-inline void add(string_builder *builder, const char *data, s64 size) {
-  auto *currentBuffer = get_current_buffer(builder);
+inline bool utf8_normalize_nfd_to_string_builder(const char *str, s64 byteLength, any_string_builder auto ref builder)
+{
+  if (!str || byteLength < 0)
+    return false;
 
-  s64 availableSpace = builder->BUFFER_SIZE - currentBuffer->Occupied;
-  if (availableSpace >= size) {
-    memcpy(currentBuffer->Data + currentBuffer->Occupied, data, size);
-    currentBuffer->Occupied += size;
-  } else {
-    memcpy(currentBuffer->Data + currentBuffer->Occupied, data, availableSpace);
-    currentBuffer->Occupied += availableSpace;
+  const char *p = str;
+  const char *end = str + byteLength;
+  stack_array<code_point, 1024> segBuf;
 
-    // If the entire string doesn't fit inside the available space,
-    // allocate the next buffer and continue appending.
-    if (!builder->Alloc) builder->Alloc = Context.Alloc;
-    auto *b = malloc<string_builder::buffer>({.Alloc = builder->Alloc});
+  while (p < end)
+  {
+    s64 segN = 0;
+    if (!utf8_segment_nfd(p, end, segBuf, segN))
+      return false;
 
-    currentBuffer->Next = b;
-    builder->CurrentBuffer = b;
-
-    builder->IndirectionCount++;
-
-    add(builder, data + availableSpace, size - availableSpace);
-  }
-}
-
-mark_as_leak inline string builder_to_string(string_builder *builder) {
-  string result;
-  reserve(result, (builder->IndirectionCount + 1) * builder->BUFFER_SIZE);
-
-  auto *b = &builder->BaseBuffer;
-  while (b) {
-    add(result, b->Data, b->Occupied);
-    b = b->Next;
-  }
-  return result;
-}
-
-inline string_builder::buffer *get_current_buffer(string_builder *builder) {
-  if (builder->CurrentBuffer == null) return &builder->BaseBuffer;
-  return builder->CurrentBuffer;
-}
-
-inline void free_buffers(string_builder *builder) {
-  // We don't need to free the base buffer, it is allocated on the stack
-  auto *b = builder->BaseBuffer.Next;
-  while (b) {
-    auto *old = b;
-
-    b = b->Next;
-    free(old);
+    // Emit NFD directly into string_builder
+    for (s64 i = 0; i < segN; ++i)
+    {
+      add(builder, segBuf.Data[i]);
+    }
   }
 
-  builder->CurrentBuffer = null;  // null means BaseBuffer
-  builder->BaseBuffer.Occupied = 0;
+  return true;
+}
+
+// Makes a normalized copy (NFC) of a string. Returns a new owning string.
+// If input is invalid UTF-8, returns a clone of the original.
+mark_as_leak inline string make_string_normalized_nfc(string s)
+{
+  if (!s.Data || s.Count == 0)
+    return {};
+
+  string_builder out;
+  defer(free(out));
+
+  // Reserve buckets at least for the original size, 
+  // this should be enough space with at most 1 more 
+  // allocation since next bucket is double the previous.
+  reserve(out, s.Count); 
+
+  bool ok = utf8_normalize_nfc_to_string_builder(s.Data, s.Count, out);
+  if (!ok) return {};
+
+  return builder_to_string(out);
 }
 
 //
@@ -144,7 +213,7 @@ struct string_builder_writer : writer {
   string_builder *Builder;
 
   void write(const char *data, s64 count) override {
-    add(Builder, data, count);
+    add(*Builder, data, count);
   }
   void flush() override {}
 };

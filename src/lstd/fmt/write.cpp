@@ -853,7 +853,7 @@ always_inline fp operator*(fp x, fp y) {
 }
 
 // Returns exponent base 10 of the last digit written; writes digits without a decimal point.
-s32 fmt_format_non_negative_float(string_builder *floatBuffer,
+s32 fmt_format_non_negative_float(string_builder ref floatBuffer,
                                   is_floating_point auto value,
                                   s32 precision,
                                   fmt_float_specs no_copy specs);
@@ -962,7 +962,7 @@ inline void write_float(fmt_context *f, is_floating_point auto value, fmt_specs 
     // exponent is the exponent base 10 of the LAST written digit in
     // _floatBuffer_.
     string_builder floatBuffer;
-    s32 exp = fmt_format_non_negative_float(&floatBuffer, value, specs.Precision, floatSpecs);
+    s32 exp = fmt_format_non_negative_float(floatBuffer, value, specs.Precision, floatSpecs);
 
     //
     // Assert we haven't allocated, which would be bad, because our formatting
@@ -978,10 +978,9 @@ inline void write_float(fmt_context *f, is_floating_point auto value, fmt_specs 
     // @TODO: Make string_builder not add additional buffers with an option (maybe
     // a template?).
     //
-    assert(!floatBuffer.IndirectionCount);
+    assert(!floatBuffer.Chunks[1] && "Float formatting allocated memory");
 
-    string significand = string((char *)floatBuffer.BaseBuffer.Data,
-                                floatBuffer.BaseBuffer.Occupied);
+    string significand = string((char *)floatBuffer.FirstChunk.Data, floatBuffer.Count);
 
     s64 outputExp = exp + significand.Count - 1;
 

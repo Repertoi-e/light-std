@@ -101,16 +101,12 @@ void write_output_to_file() {
   newContext.Log = &cout;
   OVERRIDE_CONTEXT(newContext);
 
-  os_write_to_file("output.txt", builder_to_string(g_Logger.Builder),
-                   file_write_mode::Overwrite_Entire);  // @Leak
+  os_write_to_file("output.txt", builder_to_string(*g_Logger.Builder), file_write_mode::Overwrite_Entire);  // @Leak
 }
 
 s32 main() {
   platform_state_init();
   time_t start = os_get_time();
-
-  TemporaryAllocatorData.Block = os_allocate_block(1_MiB);
-  TemporaryAllocatorData.Size = 1_MiB;
 
   auto newContext = Context;
   newContext.Alloc = TemporaryAllocator;

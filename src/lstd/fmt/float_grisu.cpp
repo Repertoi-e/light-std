@@ -283,7 +283,7 @@ inline gen_digits_result gen_digits(gen_digits_state &state, fp value,
 // The returned exponent is the exponent base 10 of the LAST written digit in
 // _floatBuffer_. In the end, _floatBuffer_ contains the digits of the final
 // number to be written out, without the dot.
-inline s32 grisu_format_float(string_builder *floatBuffer,
+inline s32 grisu_format_float(string_builder ref floatBuffer,
                               is_floating_point auto v, s32 precision,
                               const fmt_float_specs &specs) {
   const s32 MIN_EXP = -60;  // alpha in Grisu.
@@ -306,8 +306,7 @@ inline s32 grisu_format_float(string_builder *floatBuffer,
   bool fixed = specs.Format == fmt_float_specs::FIXED;
 
   gen_digits_state state;
-  state.Buffer =
-      floatBuffer->BaseBuffer.Data + floatBuffer->BaseBuffer.Occupied;
+  state.Buffer = floatBuffer.FirstChunk.Data + floatBuffer.Count;
   state.Size = 0;
   state.Fixed = fixed;
   state.Exp10 = -cachedExp10;
@@ -318,7 +317,7 @@ inline s32 grisu_format_float(string_builder *floatBuffer,
     // On error we fallback to the dragon4 algorithm...
     exp += state.Size - cachedExp10 - 1;
 
-    char *buf = floatBuffer->BaseBuffer.Data + floatBuffer->BaseBuffer.Occupied;
+    char *buf = floatBuffer.FirstChunk.Data + floatBuffer.Count;
     s64 written;
 
     // Here we pass handler.Precision, and not the raw precision we
@@ -340,8 +339,7 @@ inline s32 grisu_format_float(string_builder *floatBuffer,
     stackAllocData.Block = buffer;
     stackAllocData.Size = BUFFER_SIZE;
 
-    s32 availableSize =
-        (s32)(string_builder::BUFFER_SIZE - floatBuffer->BaseBuffer.Occupied);
+    s32 availableSize = (s32)(sizeof(floatBuffer.FirstChunk) - floatBuffer.Count);
 
     auto stackAllocContext = Context;
     stackAllocContext.Alloc = stackAlloc;
@@ -359,22 +357,22 @@ inline s32 grisu_format_float(string_builder *floatBuffer,
 
     // No need to free, alloc is on the stack
 
-    floatBuffer->BaseBuffer.Occupied += written;
+    floatBuffer.Count += written;
   } else {
     // Success!
     exp += state.Exp10;
-    floatBuffer->BaseBuffer.Occupied += state.Size;
+    floatBuffer.Count += state.Size;
   }
 
   // Remove trailing zeros after decimal point
   if (!fixed && !specs.ShowPoint) {
-    s64 size = floatBuffer->BaseBuffer.Occupied;
+    s64 size = floatBuffer.Count;
 
-    while (size > 0 && floatBuffer->BaseBuffer.Data[size - 1] == '0') {
+    while (size > 0 && floatBuffer.FirstChunk.Data[size - 1] == '0') {
       --size;
       ++exp;
     }
-    floatBuffer->BaseBuffer.Occupied = size;
+    floatBuffer.Count = size;
   }
   return exp;
 }

@@ -28,10 +28,10 @@ LSTD_BEGIN_NAMESPACE
 //
 //
 // Working with unicode code points, with fast O(1) look-up tables, generated from tools/gen_unicode.py
-// * unicode_to_upper            
-// * unicode_to_lower            
-// * unicode_is_upper            
-// * unicode_is_lower         
+// * unicode_to_upper
+// * unicode_to_lower
+// * unicode_is_upper
+// * unicode_is_lower
 //
 // Versions that work only for ascii:
 // * ascii_to_upper             - toupper
@@ -552,166 +552,84 @@ inline void utf32_to_utf8(const code_point *str, char *out,
 }
 
 // Validates that the given UTF-8 buffer contains only well-formed sequences.
-// Does not modify input; runs in O(n). Returns true if valid.
-inline bool utf8_validate(const char *str, s64 byteLength)
+// Does not modify input; runs in O(n). Returns the index of the first
+// invalid byte, if found, -1 otherwise.
+inline s64 utf8_find_invalid(const char *str, s64 byteLength)
 {
-  if (!str || byteLength < 0) return false;
-  const u8 *p = (const u8 *)str;
-  const u8 *end = p + byteLength;
+  assert(byteLength >= 0);
+  if (!str || byteLength == 0)
+    return -1;
+
+  const char *p = (const char *)str;
+  const char *end = p + byteLength;
   while (p < end)
   {
     // Size based on first byte; 0 means continuation byte at head -> invalid
-    s64 cpSize = utf8_get_size_of_cp((const char *)p);
-    if (cpSize <= 0) return false;
-    if ((end - p) < cpSize) return false; // truncated sequence
-    if (!utf8_is_valid_cp((const char *)p)) return false;
+    s64 cpSize = utf8_get_size_of_cp(p);
+    if (cpSize <= 0)
+      return p - str;
+    if ((end - p) < cpSize)
+      return p - str; // truncated sequence
+    if (!utf8_is_valid_cp(p))
+      return p - str;
     p += cpSize;
   }
-  return true;
+  return -1;
 }
 
-// NFC normalization: canonical decomposition + reorder by CCC + canonical composition.
-// Writes UTF-8 bytes to 'out' and sets outByteLength. Assumes 'out' has enough space
-// (at most input byteLength). Returns false on invalid UTF-8; true on success.
-inline bool utf8_normalize(const char *str, s64 byteLength, char *out, s64 *outByteLength)
+// Decompose + canonical reorder = NFD
+// Returns number of code points in segBuf
+inline bool utf8_segment_nfd(const char *&p, const char *end, stack_array<code_point, 1024> &segBuf, s64 &segN)
 {
-  if (!str || byteLength < 0 || !out || !outByteLength) return false;
-
-  const char *p = str;
-  const char *end = str + byteLength;
-  s64 written = 0;
-
-  // Fixed-size working buffers on stack
-  constexpr s64 MAX_SEG = 1024;      // max NFD-expanded code points per segment
-  constexpr s64 MAX_TMP_DECOMP = 8;  // max direct canonical decomp length
-  constexpr s64 MAX_STACK = 64;      // stack depth for recursive decomp
-
-  auto emit_cp = [&](code_point cp) {
-    utf8_encode_cp(out, cp);
-    s64 sz = utf8_get_size_of_cp(cp);
-    out += sz;
-    written += sz;
-  };
-
+  segN = 0;
+  if (p >= end)
+    return false; // Decode first code point (starter)
+  s64 sz = utf8_get_size_of_cp(p);
+  if (sz <= 0 || p + sz > end)
+    return false;
+  if (!utf8_is_valid_cp(p))
+    return false;
+  code_point first = utf8_decode_cp(p);
+  p += sz; // Full canonical decomposition
+  auto decompose_full_into_seg = [&](code_point cp0)
+  { constexpr s64 MAX_STACK = 64; constexpr s64 MAX_TMP_DECOMP = 8; stack_array<code_point, MAX_STACK> stk; s64 sp = 0; stk.Data[sp++] = cp0; while (sp > 0) { code_point x = stk.Data[--sp]; code_point tmp[MAX_TMP_DECOMP]; s32 n = unicode_canonical_decompose(x, tmp, MAX_TMP_DECOMP); if (n > 1) { for (s32 i = n - 1; i >= 0; --i) { if (sp < MAX_STACK) stk.Data[sp++] = tmp[i]; } } else { if (segN < 1024) segBuf.Data[segN++] = x; } } };
+  decompose_full_into_seg(first); // Append following non-starters
   while (p < end)
   {
-    // Validate boundary safety before per-CP validation
-    s64 leadSize = utf8_get_size_of_cp(p);
-    if (leadSize <= 0) return false;
-    if (p + leadSize > end) return false;
-    if (!utf8_is_valid_cp(p)) return false;
-
-    // Segment buffers
-    stack_array<code_point, MAX_SEG> segBuf;
-    s64 segN = 0;
-
-    // Helper: append full canonical decomposition of cp into segBuf
-    auto decompose_full_into_seg = [&](code_point cp0) {
-      stack_array<code_point, MAX_STACK> stk;
-      s64 sp = 0;
-      stk.Data[sp++] = cp0;
-      while (sp > 0)
+    s64 sz2 = utf8_get_size_of_cp(p);
+    if (sz2 <= 0 || p + sz2 > end)
+      return false;
+    if (!utf8_is_valid_cp(p))
+      return false;
+    code_point c = utf8_decode_cp(p);
+    u8 cc = unicode_combining_class(c);
+    if (cc == 0)
+      break; // next segment starts
+    decompose_full_into_seg(c);
+    p += sz2;
+    if (segN >= 1024)
+      break;
+  } // Canonical reorder (stable sort by CCC, indices >= 1)
+  if (segN > 1)
+  {
+    for (s64 i = 2; i < segN; ++i)
+    {
+      code_point key = segBuf.Data[i];
+      u8 key_cc = unicode_combining_class(key);
+      s64 j = i - 1;
+      while (j >= 1 && unicode_combining_class(segBuf.Data[j]) > key_cc)
       {
-        code_point x = stk.Data[--sp];
-        code_point tmp[MAX_TMP_DECOMP];
-        s32 n = unicode_canonical_decompose(x, tmp, MAX_TMP_DECOMP);
-        if (n > 1)
-        {
-          for (s32 i = n - 1; i >= 0; --i)
-          {
-            if (sp < MAX_STACK) stk.Data[sp++] = tmp[i];
-          }
-        }
-        else
-        {
-          if (segN < MAX_SEG) segBuf.Data[segN++] = x;
-        }
+        segBuf.Data[j + 1] = segBuf.Data[j];
+        --j;
       }
-    };
-
-    // Decode first cp of segment
-    code_point first = utf8_decode_cp(p);
-    p += leadSize;
-    decompose_full_into_seg(first);
-
-    // Add following chars until next starter or end
-    while (p < end)
-    {
-      s64 sz = utf8_get_size_of_cp(p);
-      if (sz <= 0 || p + sz > end) return false;
-      if (!utf8_is_valid_cp(p)) return false;
-      code_point c = utf8_decode_cp(p);
-      u8 cc = unicode_combining_class(c);
-      if (cc == 0) break; // next segment starts here
-      decompose_full_into_seg(c);
-      p += sz;
-      if (segN >= MAX_SEG) break; // extremely degenerate; cap segment
-    }
-
-    // Canonical reorder (stable sort by CCC for indices >= 1)
-    if (segN > 1)
-    {
-      for (s64 i = 2; i < segN; ++i)
-      {
-        code_point key = segBuf.Data[i];
-        u8 key_cc = unicode_combining_class(key);
-        s64 j = i - 1;
-        while (j >= 1 && unicode_combining_class(segBuf.Data[j]) > key_cc)
-        {
-          segBuf.Data[j + 1] = segBuf.Data[j];
-          --j;
-        }
-        segBuf.Data[j + 1] = key;
-      }
-    }
-
-    // Canonical composition to NFC
-    stack_array<code_point, MAX_SEG> compBuf;
-    s64 compN = 0;
-    if (segN > 0)
-    {
-      compBuf.Data[compN++] = segBuf.Data[0];
-      s64 starterPos = 0;
-      u8 lastCC = 0;
-      for (s64 i = 1; i < segN; ++i)
-      {
-        code_point c = segBuf.Data[i];
-        u8 cc = unicode_combining_class(c);
-        code_point starter = compBuf.Data[starterPos];
-        code_point m = unicode_compose_pair(starter, c);
-        if (m && (lastCC < cc))
-        {
-          compBuf.Data[starterPos] = m;
-          // starter may have changed; keep lastCC as is
-        }
-        else
-        {
-          compBuf.Data[compN++] = c;
-          if (cc == 0)
-          {
-            starterPos = compN - 1;
-            lastCC = 0;
-          }
-          else
-          {
-            lastCC = cc;
-          }
-        }
-      }
-    }
-
-    // Emit composed segment
-    for (s64 i = 0; i < compN; ++i)
-    {
-      emit_cp(compBuf.Data[i]);
+      segBuf.Data[j + 1] = key;
     }
   }
-
-  *outByteLength = written;
   return true;
 }
 
-// (moved) make_string_normalized defined after string helpers
+// Functions which normalize utf-8 strings to string builder are defined in "string_builder.h",
+// because C++ templates are fun like that.
 
 //
 // This is a string object with text operations on it (assuming valid encoded
@@ -841,7 +759,7 @@ inline void reserve(string ref s, s64 n = -1, allocator alloc = {})
     // in place, that is).
     s.Data = malloc<T>(
         {.Count = n,
-         .Alloc = alloc}); // If alloc is null we use theContext's allocator
+         .Alloc = alloc}); // If alloc is null we use the Context's allocator
     if (oldData)
       memcpy(s.Data, oldData, s.Count * sizeof(T));
   }
@@ -1135,25 +1053,6 @@ mark_as_leak inline string make_string(const char *str)
 mark_as_leak inline string clone(string no_copy src)
 {
   return make_string(src.Data, src.Count);
-}
-
-// Makes a normalized copy (NFC) of a string. Returns a new owning string.
-// If input is invalid UTF-8, returns a clone of the original.
-mark_as_leak inline string make_string_normalized(string s)
-{
-  if (!s.Data || s.Count == 0) return make_string("");
-  // Reserve at most the original byte length; NFC won't exceed it.
-  string outStr;
-  reserve(outStr, s.Count);
-  s64 outLen = 0;
-  bool ok = utf8_normalize(s.Data, s.Count, outStr.Data, &outLen);
-  if (!ok)
-  {
-    free(outStr);
-    return clone(s);
-  }
-  outStr.Count = outLen;
-  return outStr;
 }
 
 // This iterator is to make range based for loops work.

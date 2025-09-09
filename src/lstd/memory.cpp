@@ -161,8 +161,7 @@ void debug_memory_init() {
 
   DebugMemoryNodesPool.ElementSize = sizeof(debug_memory_node);
 
-  s64 startingPoolSize =
-      5000 * sizeof(debug_memory_node) + sizeof(pool_allocator_data::block);
+  s64 startingPoolSize = 5000 * sizeof(debug_memory_node) + sizeof(pool_allocator_data::block);
 
   void *pool = os_allocate_block(startingPoolSize);
   pool_allocator_provide_block(&DebugMemoryNodesPool, pool, startingPoolSize);
@@ -178,8 +177,7 @@ void debug_memory_init() {
 }
 
 void debug_memory_uninit() {
-  if (Context
-          .DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination) {
+  if (Context.DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination) {
     debug_memory_report_leaks();
   }
 
@@ -772,13 +770,6 @@ void free_all(allocator alloc, u64 options) {
 
   options |= Context.AllocOptions;
   alloc.Function(allocator_mode::FREE_ALL, alloc.Context, 0, 0, 0, options);
-}
-
-arena_allocator_data make_arena_with_os_allocate_block(s64 size) {
-    arena_allocator_data arena;
-    arena.Block = os_allocate_block(size);
-    arena.Size = size;
-    return arena;
 }
 
 LSTD_END_NAMESPACE

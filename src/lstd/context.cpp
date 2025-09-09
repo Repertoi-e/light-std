@@ -73,7 +73,7 @@ void fmt_default_parse_error_handler(string message, string formatString,
   replace_all(str, '\v', "\\v");
 
   string_builder b;
-  defer(free_buffers(&b));
+  defer(free(b));
 
   string_builder_writer output;
   output.Builder = &b;
@@ -90,7 +90,7 @@ void fmt_default_parse_error_handler(string message, string formatString,
                1;
   fmt_to_writer(&output, "        {: >{}} {!} \n\n", "^", spaces);
 
-  string info = builder_to_string(&b);
+  string info = builder_to_string(b);
   defer(free(info));
 
   print("{}", info);

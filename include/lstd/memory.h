@@ -320,10 +320,8 @@ struct allocate_options {
 // T is used to initialize the resulting memory (uses placement new to call
 // the constructor).
 template <non_void T>
-T *malloc(allocate_options options = {},
-          source_location loc = source_location::current()) {
-  return lstd_allocate_impl<T>(options.Count, options.Alloc, options.Alignment,
-                               options.Options, loc);
+T *malloc(allocate_options options = {}, source_location loc = source_location::current()) {
+  return lstd_allocate_impl<T>(options.Count, options.Alloc, options.Alignment, options.Options, loc);
 }
 
 struct reallocate_options {
@@ -452,13 +450,11 @@ inline void tlsf_allocator_remove_pool(tlsf_allocator_data *data, void *block) {
 }
 
 struct arena_allocator_data {
-  void *Block = null;  // This should be supplied before using the allocator
+  void *Block = null; 
   s64 Size = 0;
 
   s64 Used = 0;
 };
-
-arena_allocator_data make_arena_with_os_allocate_block(s64 size);
 
 //
 // Arena allocator.
@@ -473,9 +469,18 @@ arena_allocator_data make_arena_with_os_allocate_block(s64 size);
 // enough space for an allocation). When out of memory, you should resize or
 // provide another block.
 //
-inline void *arena_allocator(allocator_mode mode, void *context, s64 size,
-                             void *oldMemory, s64 oldSize, u64 options) {
+// 0-initialized arena is valid, since in that case we just virtual alloc a 
+// block on the first allocation request.
+//
+inline void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
   auto *data = (arena_allocator_data *)context;
+  if (!data->Block) {
+    void *os_allocate_block(s64);
+
+    data->Block = os_allocate_block(8_GiB);
+    data->Size = 8_GiB;
+    data->Used = 0;
+  }
 
   switch (mode) {
     case allocator_mode::ALLOCATE: {
@@ -545,8 +550,7 @@ inline thread_local pool_allocator_data DebugMemoryNodesPool =
     pool_allocator_data(pool_allocator_dont_init_t{});
 #endif
 
-inline void pool_allocator_add_free_chunks(pool_allocator_data *data,
-                                           void *block, s64 size) {
+inline void pool_allocator_add_free_chunks(pool_allocator_data *data, void *block, s64 size) {
   auto *c = (pool_allocator_data::chunk *)block;
 
   auto *oldFreeList = data->FreeList;
@@ -564,8 +568,7 @@ inline void pool_allocator_add_free_chunks(pool_allocator_data *data,
 // block. Size needs to be multiple of _ElementSize_ +
 // sizeof(allocator_pool_data::block). We avoid allocating a seperate linked
 // list but use the first few bytes of _block_ as a header.
-inline void pool_allocator_provide_block(pool_allocator_data *data, void *block,
-                                         s64 size) {
+inline void pool_allocator_provide_block(pool_allocator_data *data, void *block, s64 size) {
   assert(size >= (s64)sizeof(pool_allocator_data::block) + data->ElementSize);
   assert(data->ElementSize > 0);
 

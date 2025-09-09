@@ -942,8 +942,7 @@ mark_as_leak string sprint(string fmtString, Args no_copy... arguments)
   writer.Builder = &b;
   fmt_to_writer(&writer, fmtString, arguments...);
 
-  string combined = builder_to_string(&b);
-  free_buffers(&b);
+  string combined = builder_to_string_and_free(b);
 
   return combined;
 }
@@ -1001,17 +1000,16 @@ void format_value(const T &value, fmt_context *f)
 //
 
 // Formatter for string_builder
-template <>
-struct formatter<string_builder>
+template <typename T>
+  requires any_string_builder<T>
+struct formatter<T>
 {
-  void format(const string_builder &b, fmt_context *f)
+  void format(T no_copy b, fmt_context *f)
   {
-    auto *buffer = &b.BaseBuffer;
-    while (buffer)
-    {
-      write_no_specs(f, buffer->Data, buffer->Occupied);
-      buffer = buffer->Next;
-    }
+    exponential_array_visit_chunks(b, [f](const char *chunk_data, usize chunk_size, usize chunk_index) {
+      write_no_specs(f, chunk_data, chunk_size);
+      return true; // Continue iteration
+    });
   }
 };
 

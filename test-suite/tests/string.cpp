@@ -142,29 +142,28 @@ TEST(trim_whitespace_cases)
 TEST(builder_edges)
 {
   string_builder b;
+  defer(free(b));
 
   // empty builder
   {
-    string res = builder_to_string(&b);
+    string res = builder_to_string(b);
     defer(free(res));
     assert_eq_str(res, "");
   }
 
   // large append over multiple buffers
-  For(range(3000)) add(&b, 'x');
-  string res = builder_to_string(&b);
+  For(range(3000)) add(b, 'x');
+  string res = builder_to_string(b);
   defer(free(res));
   assert_eq(res.Count, 3000);
   assert_eq(length(res), 3000);
 
   // reuse/reset
-  reset(&b);
-  add(&b, "ok");
-  string res2 = builder_to_string(&b);
+  b.Count = 0;
+  add(b, "ok");
+  string res2 = builder_to_string(b);
   defer(free(res2));
   assert_eq_str(res2, "ok");
-
-  free_buffers(&b);
 }
 
 TEST(substring)
@@ -413,13 +412,13 @@ TEST(add)
 TEST(builder)
 {
   string_builder builder;
-  add(&builder, "Hello");
-  add(&builder, ",THIS IS GARBAGE", 1);
-  add(&builder, string(" world"));
-  add(&builder, '!');
-  defer(free_buffers(&builder));
+  add(builder, "Hello");
+  add(builder, ",THIS IS GARBAGE", 1);
+  add(builder, string(" world"));
+  add(builder, '!');
+  defer(free(builder));
 
-  string result = builder_to_string(&builder);
+  string result = builder_to_string(builder);
   defer(free(result));
   assert_eq_str(result, "Hello, world!");
 }
@@ -640,21 +639,21 @@ TEST(find)
 }
 
 
-TEST(utf8_validate_cases)
+TEST(utf8_find_invalid_cases)
 {
   // Valid ASCII
   {
     string s = "Hello";
-    assert_true(utf8_validate(s.Data, s.Count));
+    assert_eq(-1, utf8_find_invalid(s.Data, s.Count));
   }
 
   // Valid multi-byte sequences
   {
     string s = u8"абв"; // 2-byte sequences
-    assert_true(utf8_validate(s.Data, s.Count));
+    assert_eq(-1, utf8_find_invalid(s.Data, s.Count));
 
     string s2 = u8"𝄞"; // U+1D11E (4-byte)
-    assert_true(utf8_validate(s2.Data, s2.Count));
+    assert_eq(-1, utf8_find_invalid(s2.Data, s2.Count));
   }
 
   // Invalid: overlong/illegal starts
@@ -662,11 +661,11 @@ TEST(utf8_validate_cases)
     const char overlong1[] = "\xC0\x80"; // overlong U+0000
     string s = make_string(overlong1, 2);
     defer(free(s));
-    assert_false(utf8_validate(s.Data, s.Count));
+    assert_eq(0, utf8_find_invalid(s.Data, s.Count));
 
     const char overlong2[] = "\xC1\x81"; // illegal 0xC1 start
     s = make_string(overlong2, 2);
-    assert_false(utf8_validate(s.Data, s.Count));
+    assert_eq(0, utf8_find_invalid(s.Data, s.Count));
     free(s);
   }
 
@@ -675,7 +674,7 @@ TEST(utf8_validate_cases)
     const char stray[] = "\x80";
     string s = make_string(stray, 1);
     defer(free(s));
-    assert_false(utf8_validate(s.Data, s.Count));
+    assert_eq(0, utf8_find_invalid(s.Data, s.Count));
   }
 
   // Invalid: surrogate encoded in UTF-8 (disallowed)
@@ -683,7 +682,7 @@ TEST(utf8_validate_cases)
     const char surrogate[] = "\xED\xA0\x80"; // U+D800
     string s = make_string(surrogate, 3);
     defer(free(s));
-    assert_false(utf8_validate(s.Data, s.Count));
+    assert_eq(0, utf8_find_invalid(s.Data, s.Count));
   }
 
   // Invalid: truncated sequence
@@ -691,12 +690,12 @@ TEST(utf8_validate_cases)
     const char trunc2[] = "\xC2"; // missing continuation
     string s = make_string(trunc2, 1);
     defer(free(s));
-    assert_false(utf8_validate(s.Data, s.Count));
+    assert_eq(0, utf8_find_invalid(s.Data, s.Count));
 
     const char trunc3[] = "\xE2\x82"; // incomplete 3-byte
     string s2 = make_string(trunc3, 2);
     defer(free(s2));
-    assert_false(utf8_validate(s2.Data, s2.Count));
+    assert_eq(0, utf8_find_invalid(s2.Data, s2.Count));
   }
 }
 
@@ -705,7 +704,7 @@ TEST(unicode_normalize_nfc)
   // NFC should compose A + COMBINING ACUTE to precomposed Á
   {
     string s = u8"A\u0301";
-    string n = make_string_normalized(s);
+    string n = make_string_normalized_nfc(s);
     defer(free(n));
     assert_eq_str(n, u8"\u00C1");
   }
@@ -713,7 +712,7 @@ TEST(unicode_normalize_nfc)
   // Idempotence: already NFC remains unchanged
   {
     string s = u8"\u00C1";
-    string n = make_string_normalized(s);
+    string n = make_string_normalized_nfc(s);
     defer(free(n));
     assert_eq_str(n, s);
   }
@@ -721,7 +720,7 @@ TEST(unicode_normalize_nfc)
   // Ensure canonical reordering by CCC (dot below before acute)
   {
     string s = u8"a\u0301\u0323"; // a + acute (230) + dot-below (220)
-    string n = make_string_normalized(s);
+    string n = make_string_normalized_nfc(s);
     defer(free(n));
 
     // Verify CCC sequence after first code point is non-decreasing
@@ -739,7 +738,7 @@ TEST(unicode_normalize_nfc)
   // Composition exclusions/compatibility: U+2126 (OHM SIGN) stays as-is in NFC
   {
     string s = u8"\u2126";
-    string n = make_string_normalized(s);
+    string n = make_string_normalized_nfc(s);
     defer(free(n));
     assert_eq_str(n, s);
   }
@@ -747,19 +746,20 @@ TEST(unicode_normalize_nfc)
   // Normalization does not increase byte length for NFC
   {
     string s = u8"A\u0301"; // 3 bytes -> 2 bytes
-    string n = make_string_normalized(s);
+    string n = make_string_normalized_nfc(s);
     defer(free(n));
     assert_true(n.Count <= s.Count);
   }
 
-  // Invalid input returns original clone
+  // Invalid input returns null string {}
   {
     const char bad[] = "\xC0\x80";
     string s = make_string(bad, 2);
     defer(free(s));
-    string n = make_string_normalized(s);
+    string n = make_string_normalized_nfc(s);
     defer(free(n));
-    assert_eq_str(n, s);
+    assert_eq((void *) n.Data, (void *) 0);
+    assert_eq(n.Count, 0);
   }
 }
 
