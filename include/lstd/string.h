@@ -173,6 +173,7 @@ inline bool ascii_is_alpha(char x)
 inline bool ascii_is_alphanumeric(char x) { return ascii_is_alpha(x) || ascii_is_digit(x); }
 
 inline bool ascii_is_identifier_start(char x) { return ascii_is_alpha(x) || x == '_'; }
+inline bool ascii_is_identifier_cont(char x) { return ascii_is_alphanumeric(x) || x == '_'; }
 
 inline bool ascii_is_print(char x) { return x > 31 && x != 127; }
 

@@ -1,0 +1,11 @@
+[package]
+name = "snipffi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+annotate-snippets = { path = "annotate-snippets-rs" }
+
+[lib]
+name = "snipffi"
+crate-type = ["staticlib", "cdylib"]

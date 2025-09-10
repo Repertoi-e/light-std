@@ -70,3 +70,6 @@ limbo
 
 nob
 nob.old
+
+rust/target/
+rust/Cargo.lock

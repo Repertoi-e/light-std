@@ -99,59 +99,59 @@ enum token_type
   TOKEN_INCREMENT = TKN2('+', '+'),
   TOKEN_DECREMENT = TKN2('-', '-'),
 
-  TOKEN_KW_auto = 0x10000000,
-  TOKEN_KW_break,
-  TOKEN_KW_case,
-  TOKEN_KW_char,
-  TOKEN_KW_const,
-  TOKEN_KW_continue,
-  TOKEN_KW_default,
-  TOKEN_KW_do,
-  TOKEN_KW_double,
-  TOKEN_KW_else,
-  TOKEN_KW_enum,
-  TOKEN_KW_extern,
-  TOKEN_KW_float,
-  TOKEN_KW_for,
-  TOKEN_KW_goto,
-  TOKEN_KW_if,
-  TOKEN_KW_inline,
-  TOKEN_KW_int,
-  TOKEN_KW_long,
-  TOKEN_KW_register,
-  TOKEN_KW_restrict,
-  TOKEN_KW_return,
-  TOKEN_KW_short,
-  TOKEN_KW_signed,
-  TOKEN_KW_sizeof,
-  TOKEN_KW_static,
-  TOKEN_KW_struct,
-  TOKEN_KW_switch,
-  TOKEN_KW_typedef,
-  TOKEN_KW_union,
-  TOKEN_KW_unsigned,
-  TOKEN_KW_void,
-  TOKEN_KW_volatile,
-  TOKEN_KW_while,
-  TOKEN_KW_Alignas,
-  TOKEN_KW_Alignof,
-  TOKEN_KW_Atomic,
-  TOKEN_KW_Bool,
-  TOKEN_KW_Complex,
-  TOKEN_KW_Embed,
-  TOKEN_KW_Generic,
-  TOKEN_KW_Imaginary,
-  TOKEN_KW_Pragma,
-  TOKEN_KW_Noreturn,
-  TOKEN_KW_Static_assert,
-  TOKEN_KW_Thread_local,
-  TOKEN_KW_Typeof,
-  TOKEN_KW_Vector,
-  TOKEN_KW_asm,
-  TOKEN_KW_attribute,
-  TOKEN_KW_cdecl,
-  TOKEN_KW_stdcall,
-  TOKEN_KW_declspec,
+  TOKEN_KW_auto = 0x10000000, // auto
+  TOKEN_KW_break, // break
+  TOKEN_KW_case, // case
+  TOKEN_KW_char, // char
+  TOKEN_KW_const, // const
+  TOKEN_KW_continue, // continue
+  TOKEN_KW_default, // default
+  TOKEN_KW_do, // do
+  TOKEN_KW_double, // double
+  TOKEN_KW_else, // else
+  TOKEN_KW_enum, // enum
+  TOKEN_KW_extern, // extern
+  TOKEN_KW_float, // float
+  TOKEN_KW_for, // for
+  TOKEN_KW_goto, // goto
+  TOKEN_KW_if, // if
+  TOKEN_KW_inline, // inline
+  TOKEN_KW_int, // int
+  TOKEN_KW_long, // long
+  TOKEN_KW_register, // register
+  TOKEN_KW_restrict, // restrict
+  TOKEN_KW_return, // return
+  TOKEN_KW_short, // short
+  TOKEN_KW_signed, // signed
+  TOKEN_KW_sizeof, // sizeof
+  TOKEN_KW_static, // static
+  TOKEN_KW_struct, // struct
+  TOKEN_KW_switch, // switch
+  TOKEN_KW_typedef, // typedef
+  TOKEN_KW_union, // union
+  TOKEN_KW_unsigned, // unsigned
+  TOKEN_KW_void, // void
+  TOKEN_KW_volatile, // volatile
+  TOKEN_KW_while, // while
+  TOKEN_KW_Alignas, // _Alignas
+  TOKEN_KW_Alignof, // _Alignof
+  TOKEN_KW_Atomic, // _Atomic
+  TOKEN_KW_Bool, // _Bool
+  TOKEN_KW_Complex, // _Complex
+  TOKEN_KW_Embed, // _Embed
+  TOKEN_KW_Generic, // _Generic
+  TOKEN_KW_Imaginary, // _Imaginary
+  TOKEN_KW_Pragma, // _Pragma
+  TOKEN_KW_Noreturn, // _Noreturn
+  TOKEN_KW_Static_assert, // _Static_assert
+  TOKEN_KW_Thread_local, // _Thread_local
+  TOKEN_KW_Typeof, // _Typeof
+  TOKEN_KW_Vector, // _Vector
+  TOKEN_KW_asm, // asm
+  TOKEN_KW_attribute, // attribute
+  TOKEN_KW_cdecl, // cdecl
+  TOKEN_KW_stdcall, // stdcall
+  TOKEN_KW_declspec, // declspec
 
   TOKEN_COUNT
 };

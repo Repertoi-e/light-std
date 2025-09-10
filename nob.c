@@ -189,16 +189,33 @@ bool build_lstd_library(Config config)
     return true;
 }
 
-bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp, Config config)
+bool build_snipffi()
 {
-    nob_log(INFO, "Building %s (%s)\n", name, config_names[config]);
+    nob_log(INFO, "Building Rust FFI library\n");
+
+    Cmd cmd = {0};
+    
+    cmd_append(&cmd, "cargo", "build", "--release", "--manifest-path", "./rust/Cargo.toml");
+    if (!cmd_run_sync(cmd)) {
+        return false;
+    }
+    return true;
+}
+
+bool build_lang(Config config)
+{
+    nob_log(INFO, "Building language executable (%s)\n", config_names[config]);
 
     const char *build_folder = get_build_folder(config);
     
     if (!mkdir_if_not_exists(temp_sprintf("%sbin/", build_folder)))
         return false;
 
-    const char *exe_path = temp_sprintf("%sbin/%s", build_folder, name);
+    File_Paths lang_dirs = {0};
+    da_append(&lang_dirs, LANG_FOLDER);
+
+    const char *unity_cpp = LANG_FOLDER "main.cpp";
+    const char *exe_path = temp_sprintf("%sbin/%s", build_folder, "lang");
 
     // Check if rebuild is needed against library and source files
     bool needs_rebuild_exe = needs_rebuild1(exe_path, temp_sprintf("%slib/liblstd.a", build_folder));
@@ -208,7 +225,7 @@ bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp,
     }
     if (!needs_rebuild_exe)
     {
-        needs_rebuild_exe = needs_rebuild_cpp_sources(exe_path, source_dirs);
+        needs_rebuild_exe = needs_rebuild_cpp_sources(exe_path, lang_dirs);
     }
 
     if (needs_rebuild_exe)
@@ -225,6 +242,9 @@ bool build_executable(const char *name, File_Paths source_dirs, char *unity_cpp,
         // Link with lstd library
         cmd_append(&cmd, temp_sprintf("-L%slib", build_folder));
         cmd_append(&cmd, "-llstd");
+
+        cmd_append(&cmd, "-L./rust/target/release");
+        cmd_append(&cmd, "-lsnipffi");
 
         // Platform-specific libraries and linking
 #if defined(__linux__) || defined(__APPLE__)
@@ -282,17 +302,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    File_Paths test_dirs = {0};
-    da_append(&test_dirs, TEST_SUITE_FOLDER);
-    if (!build_executable("test-suite", test_dirs, TEST_SUITE_FOLDER "main.cpp", config))
+    if (!build_snipffi())
     {
-        nob_log(ERROR, "Failed to build test-suite\n");
+        nob_log(ERROR, "Failed to build Rust FFI library\n");
         return 1;
     }
 
-    File_Paths lang_dirs = {0};
-    da_append(&lang_dirs, LANG_FOLDER);
-    if (!build_executable("lang", lang_dirs, LANG_FOLDER "main.cpp", config))
+    if (!build_lang(config))
     {
         nob_log(ERROR, "Failed to build language\n");
         return 1;
