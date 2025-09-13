@@ -2,7 +2,7 @@
 
 #include "lang.h"
 #include "snipffi.h"
-#include "src/token/token.cpp"
+#include "src/token.cpp"
 
 #include <stdarg.h>
 

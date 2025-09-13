@@ -22,7 +22,7 @@ inline arena_allocator_data ARENA_ATOMS_DATA;
 // instead of string contents.
 //
 // To handle Unicode correctly, we expect the input strings
-// to be in normalized form D (NFD). We do this at the beginning
+// to be in normalized form C (NFC). We do this at the beginning
 // before even tokenizing (look at tokenizer_prepare_source).
 //
 // You can create a string view into the atom's data using string(a.Data, a.Count) from an atom*.
@@ -163,6 +163,8 @@ enum token_type
   TOKEN_INVALID = 0,
   TOKEN_POISONED = 1,
 
+  TOKEN_UNICODE_PUNCTUATION = 2, // Any math or symbol single character punctuation that doesn't yet have a specific token type
+
   TOKEN_NEWLINE = '\n',
 
   TOKEN_DOT = '.',
@@ -267,6 +269,7 @@ struct token
   union {
     s128 IntValue = 0; // TOKEN_INTEGER
     f64 FloatValue; // TOKEN_FLOAT
+    code_point CpValue; // TOKEN_UNICODE_PUNCTUATION
   };
 
   token() {}
@@ -279,7 +282,7 @@ using token_array = exponential_array<token, 23, 8>;
 // Note: Thoughout the tokenizer, we expect the source code to be null-terminated with '\0'.
 // This simplifies a lot of checks.
 //
-// We also run UTF-8 NFD normalization on all source code strings
+// We also run UTF-8 NFC normalization on all source code strings
 // to support Unicode correctly on identifier names which can contain
 // combining characters, etc.
 //
@@ -296,7 +299,7 @@ struct tokenizer
   const char* CurrentLineStart = null; 
 
   // Optional sink to capture diagnostics, if not set diagnostics go to stderr
-  array<string>* DiagnosticsSink = null; 
+  array<string>* DiagnosticsSink = null;
 };
 
 inline u64 get_hash(tokenizer no_copy tz)
@@ -306,20 +309,20 @@ inline u64 get_hash(tokenizer no_copy tz)
 
 //
 // Prepares the source code for tokenization.
-// This normalizes it to UTF-8 NFD, and adds
+// This normalizes it to UTF-8 NFC, and adds
 // '\0' termination at the end.
 //
 inline const char *tokenizer_prepare_source(string sourceCode)
 {
-  if(sourceCode.Count < 0xFFFFFFFF) {
+  if(sourceCode.Count >= 0xFFFFFFFF) {
     ERR(mprint("Source code too large ({:n} bytes)", sourceCode.Count));
     return null;
   }
 
   string_builder sb;
-  if (!utf8_normalize_nfd_to_string_builder(sourceCode.Data, sourceCode.Count, sb))
+  if (!utf8_normalize_nfc_to_string_builder(sourceCode.Data, sourceCode.Count, sb))
   {
-    ERR("Failed to normalize source code to a UTF-8 NFD string");
+    ERR("Failed to normalize source code to a UTF-8 NFC string");
     return null;
   }
   add(sb, '\0');
@@ -383,7 +386,8 @@ inline token_array tokenizer_tokenize(const char* sourceCode, const char* FileNa
       if (tz.Current && t.Type == TOKEN_INVALID)
       {
         t.Type = TOKEN_POISONED;
-        WARN_ANNOTATED("Invalid token", start, tz.Current, "Remove this");
+        code_point cp = utf8_decode_cp(start);
+        WARN_ANNOTATED("Invalid token", start, tz.Current, mprint("Remove this: {:c} U+{:X}", cp, cp));
         continue;
       }
       add(tokens, t);
@@ -444,6 +448,10 @@ inline string token_to_string(token t)
     assert(t.Atom);
     return sprint("\"{}\"", string(t.Atom->Data, t.Atom->Count));
   }
+  case TOKEN_UNICODE_PUNCTUATION:
+    return sprint("{:c} U+{:X}", t.CpValue, t.CpValue);
+  case TOKEN_POISONED:
+    return "TOKEN_POISONED";
   break;
   default:
   {
@@ -452,3 +460,8 @@ inline string token_to_string(token t)
   }
   }
 }
+
+//
+// Parsing:
+//
+

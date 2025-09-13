@@ -14,6 +14,8 @@ extern const u64 g_unicode_comp_keys[];
 extern const u32 g_unicode_comp_values[];
 extern const u32 g_unicode_decomp_array_size;
 extern const u32 g_unicode_comp_count;
+extern const u64 g_unicode_prop_mask[];
+extern const char* const g_unicode_prop_names[];
 
 static inline u32 clamp_cp(code_point cp)
 {
@@ -67,12 +69,14 @@ unicode_script unicode_get_script(code_point cp)
     return (unicode_script)g_unicode_script[c];
 }
 
-bool unicode_has_core_prop(code_point cp, u32 mask)
+bool unicode_has_property(code_point cp, unicode_property prop)
 {
     u32 c = clamp_cp(cp);
-    if (c >= UNICODE_TABLE_SIZE)
-        return false;
-    return (g_unicode_core_props[c] & mask) != 0;
+    if (c >= UNICODE_TABLE_SIZE) return false;
+    u32 pid = (u32)prop;
+    if (pid >= (u32)unicode_property::Count) return false;
+    u64 mask = g_unicode_prop_mask[c];
+    return (mask >> pid) & 1ull;
 }
 
 const char* unicode_script_name(unicode_script id)

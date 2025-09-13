@@ -781,17 +781,17 @@ TEST(colors_and_emphasis) {
   EXPECT_ERROR(
       "Invalid emphasis character - "
       "valid ones are: B (bold), I (italic), U (underline) and S "
-      "(strikethrough)",
+      "(strikethrough). If you meant to use a terminal color, prefix it with 't', because it's different than a color name, which uses RGB escape codes.",
       "{!L}");
   EXPECT_ERROR(
       "Invalid emphasis character - "
       "valid ones are: B (bold), I (italic), U (underline) and S "
-      "(strikethrough)",
+      "(strikethrough). If you meant to use a terminal color, prefix it with 't', because it's different than a color name, which uses RGB escape codes.",
       "{!BLUE;BL}");
   EXPECT_ERROR(
       "Invalid emphasis character - "
       "valid ones are: B (bold), I (italic), U (underline) and S "
-      "(strikethrough)",
+      "(strikethrough). If you meant to use a terminal color, prefix it with 't', because it's different than a color name, which uses RGB escape codes.",
       "{!BG}");
 
   EXPECT_ERROR("Channel value too big - it must be in the range [0-255]",

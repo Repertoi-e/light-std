@@ -1,7 +1,7 @@
 // Test file with various tokenizer errors
 
 // Unterminated string literal
-char* str = "hello world
+char* str = "hello world"
 
 // Unterminated character literal  
 char c = 'x

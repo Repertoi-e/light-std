@@ -52,16 +52,68 @@ enum class unicode_general_category
     Count
 };
 
-// Core property bit flags from DerivedCoreProperties.txt (subset).
-enum unicode_core_property : u32
+// Range-based Unicode properties (union of DerivedCoreProperties + PropList)
+// Order must match generator CORE_PROPS list in tools/gen_unicode.py.
+enum class unicode_property : u16
 {
-    UCP_Alphabetic = 1u << 0,
-    UCP_White_Space = 1u << 1,
-    UCP_Uppercase = 1u << 2,
-    UCP_Lowercase = 1u << 3,
-    UCP_Cased = 1u << 4,
-    UCP_Case_Ignorable = 1u << 5,
-    UCP_Default_Ignorable_Code_Point = 1u << 6,
+    Alphabetic,
+    Case_Ignorable,
+    Cased,
+    Changes_When_Casefolded,
+    Changes_When_Casemapped,
+    Changes_When_Lowercased,
+    Changes_When_Titlecased,
+    Changes_When_Uppercased,
+    Default_Ignorable_Code_Point,
+    Grapheme_Base,
+    Grapheme_Extend,
+    Grapheme_Link,
+    ID_Continue,
+    ID_Start,
+    Lowercase,
+    Math,
+    Uppercase,
+    XID_Continue,
+    XID_Start,
+    ASCII_Hex_Digit,
+    Bidi_Control,
+    Dash,
+    Deprecated,
+    Diacritic,
+    Extender,
+    Hex_Digit,
+    Hyphen,
+    IDS_Binary_Operator,
+    IDS_Trinary_Operator,
+    IDS_Unary_Operator,
+    ID_Compat_Math_Continue,
+    ID_Compat_Math_Start,
+    Ideographic,
+    Join_Control,
+    Logical_Order_Exception,
+    Modifier_Combining_Mark,
+    Noncharacter_Code_Point,
+    Other_Alphabetic,
+    Other_Default_Ignorable_Code_Point,
+    Other_Grapheme_Extend,
+    Other_ID_Continue,
+    Other_ID_Start,
+    Other_Lowercase,
+    Other_Math,
+    Other_Uppercase,
+    Pattern_Syntax,
+    Pattern_White_Space,
+    Prepended_Concatenation_Mark,
+    Quotation_Mark,
+    Radical,
+    Regional_Indicator,
+    Sentence_Terminal,
+    Soft_Dotted,
+    Terminal_Punctuation,
+    Unified_Ideograph,
+    Variation_Selector,
+    White_Space,
+    Count
 };
 
 enum class unicode_script
@@ -251,7 +303,8 @@ enum class text_locale
 unicode_general_category unicode_get_general_category(code_point cp);        
 unicode_script unicode_get_script(code_point cp);  
 const char* unicode_script_to_string(unicode_script id);
-bool unicode_has_core_prop(code_point cp, u32 mask);  // any of mask set?
+
+bool unicode_has_property(code_point cp, unicode_property prop);
 
 // Canonical combining class (CCC) and normalization helpers
 u8 unicode_combining_class(code_point cp);
@@ -266,10 +319,10 @@ code_point unicode_to_upper(code_point cp, text_locale loc = text_locale::Unspec
 // If locale is Unspecified, it gets the locale from the Context.
 code_point unicode_to_lower(code_point cp, text_locale loc = text_locale::Unspecified);
 
-inline bool unicode_is_upper(code_point cp) { return unicode_has_core_prop(cp, UCP_Uppercase); }
-inline bool unicode_is_lower(code_point cp) { return unicode_has_core_prop(cp, UCP_Lowercase); }
-inline bool unicode_is_alpha(code_point cp) { return unicode_has_core_prop(cp, UCP_Alphabetic); }
-inline bool unicode_is_whitespace(code_point cp) { return unicode_has_core_prop(cp, UCP_White_Space); }
+inline bool unicode_is_upper(code_point cp) { return unicode_has_property(cp, unicode_property::Uppercase); }
+inline bool unicode_is_lower(code_point cp) { return unicode_has_property(cp, unicode_property::Lowercase); }
+inline bool unicode_is_alpha(code_point cp) { return unicode_has_property(cp, unicode_property::Alphabetic); }
+inline bool unicode_is_whitespace(code_point cp) { return unicode_has_property(cp, unicode_property::White_Space); }
 
 inline bool unicode_is_letter(unicode_general_category gc)
 {

@@ -15,6 +15,7 @@ u32 g_AllTestsCount = 0;
 #include "tests/storage.cpp"
 #include "tests/string.cpp"
 #include "tests/thread.cpp"
+#include "tests/unicode_props.cpp"
 #include "tests/variant.cpp"
 #include "tests/list_like.cpp"
 

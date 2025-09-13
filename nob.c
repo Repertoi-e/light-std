@@ -59,6 +59,7 @@ void add_common_flags(Cmd *cmd, Config config)
     nob_cc_flags(cmd);
     nob_language_cpp(cmd, "c++20");
 
+    // To see compile time breakdown:
     // cmd_append(cmd, "-Xclang", "-H", "-ftime-report");
     
     // Configuration-specific flags
@@ -110,6 +111,7 @@ void add_common_flags(Cmd *cmd, Config config)
 
     // Library-specific defines
     cmd_append(cmd, "-DLSTD_NO_NAMESPACE");
+    // cmd_append(cmd, "-DLSTD_UNICODE_FULL_RANGE"); This adds around 25 MB to the binary size
     cmd_append(cmd, "-DPLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB");
     cmd_append(cmd, "-DPLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB");
 
@@ -198,6 +200,67 @@ bool build_snipffi()
     cmd_append(&cmd, "cargo", "build", "--release", "--manifest-path", "./rust/Cargo.toml");
     if (!cmd_run_sync(cmd)) {
         return false;
+    }
+    return true;
+}
+
+bool build_test_suite(Config config)
+{
+    nob_log(INFO, "Building test-suite (%s)\n", config_names[config]);
+
+    const char *build_folder = get_build_folder(config);
+    if (!mkdir_if_not_exists(temp_sprintf("%sbin/", build_folder)))
+        return false;
+
+    File_Paths test_dirs = {0};
+    da_append(&test_dirs, TEST_SUITE_FOLDER);
+
+    const char *unity_cpp = TEST_SUITE_FOLDER "main.cpp";
+    const char *exe_path = temp_sprintf("%sbin/%s", build_folder, "test-suite");
+
+    // Check if rebuild is needed against library and source files
+    bool needs_rebuild_exe = needs_rebuild1(exe_path, temp_sprintf("%slib/liblstd.a", build_folder));
+    if (!needs_rebuild_exe)
+    {
+        needs_rebuild_exe = needs_rebuild1(exe_path, unity_cpp);
+    }
+    if (!needs_rebuild_exe)
+    {
+        needs_rebuild_exe = needs_rebuild_cpp_sources(exe_path, test_dirs);
+    }
+
+    if (needs_rebuild_exe)
+    {
+        Cmd cmd = {0};
+        cmd_append(&cmd, "c++");
+
+        add_common_flags(&cmd, config);
+
+        // Source files
+        nob_cc_inputs(&cmd, unity_cpp);
+        nob_cc_output(&cmd, exe_path);
+
+        // Link with lstd library
+        cmd_append(&cmd, temp_sprintf("-L%slib", build_folder));
+        cmd_append(&cmd, "-llstd");
+
+        cmd_append(&cmd, "-L./rust/target/release");
+        cmd_append(&cmd, "-lsnipffi");
+
+        // Platform-specific libraries and linking
+#if defined(__linux__) || defined(__APPLE__)
+        cmd_append(&cmd, "-lpthread", "-ldl");
+#elif defined(_WIN32)
+        nob_no_default_libs(cmd);
+        nob_subsystem(cmd, "WINDOWS");
+        nob_stack_size(cmd, "0x100000", "0x100000");
+        cmd_append(cmd, "-lkernel32", "-lshell32");
+        nob_entry_point(cmd, "main_no_crt");
+
+        cmd_append(&cmd, "-ldbghelp");
+#endif
+        if (!cmd_run_sync(cmd))
+            return false;
     }
     return true;
 }
@@ -305,6 +368,12 @@ int main(int argc, char **argv)
     if (!build_snipffi())
     {
         nob_log(ERROR, "Failed to build Rust FFI library\n");
+        return 1;
+    }
+
+    if (!build_test_suite(config))
+    {
+        nob_log(ERROR, "Failed to build test-suite\n");
         return 1;
     }
 
