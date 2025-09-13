@@ -69,6 +69,7 @@ inline void diag_error(const char* title) {
         diag__print(out);
     } else {
         SnippetHandle sn = snippet_new(g_source ? g_source : "", 1);
+        if (g_active_tokenizer && g_diag_get_filename) { const char* fn = g_diag_get_filename(g_active_tokenizer); if (fn) snippet_set_path(sn, fn); }
         GroupHandle g = diag__make_group(FFI_LEVEL_ERROR, FFI_TITLE_PRIMARY, title);
         group_add_snippet(g, sn);
         char *out = diag__render_single_group(g);
@@ -84,6 +85,7 @@ inline void diag_warning(const char* title) {
         diag__print(out);
     } else {
         SnippetHandle sn = snippet_new(g_source ? g_source : "", 1);
+        if (g_active_tokenizer && g_diag_get_filename) { const char* fn = g_diag_get_filename(g_active_tokenizer); if (fn) snippet_set_path(sn, fn); }
         GroupHandle g = diag__make_group(FFI_LEVEL_WARNING, FFI_TITLE_PRIMARY, title);
         group_add_snippet(g, sn);
         char* out = diag__render_single_group(g);
