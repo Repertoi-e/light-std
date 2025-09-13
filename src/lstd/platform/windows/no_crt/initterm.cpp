@@ -17,7 +17,7 @@
 // * function pointers.  Each function is called, in order.
 extern "C" void __cdecl lstd_initterm(_PVFV *const first, _PVFV *const last) {
   for (_PVFV *it = first; it != last; ++it) {
-    if (*it == nullptr) continue;
+    if (*it == null) continue;
     (**it)();
   }
 }
@@ -34,7 +34,7 @@ extern "C" void __cdecl lstd_initterm(_PVFV *const first, _PVFV *const last) {
 // * values (_RT_{NAME}, defined in the internal header files).
 extern "C" int __cdecl lstd_initterm_e(_PIFV *const first, _PIFV *const last) {
   for (_PIFV *it = first; it != last; ++it) {
-    if (*it == nullptr) continue;
+    if (*it == null) continue;
 
     int const result = (**it)();
     if (result != 0) return result;

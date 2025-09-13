@@ -12,23 +12,23 @@
 #error LSTD_NO_CRT is Windows-only
 #endif
 
-// Define these as nullptr
+// Define these as null
 extern "C" _CRTALLOC(".CRT$XIA") _PIFV __xi_a[] = {
-    nullptr};  // C initializers (first)
+    null};  // C initializers (first)
 extern "C" _CRTALLOC(".CRT$XIZ") _PIFV __xi_z[] = {
-    nullptr};  // C initializers (last)
+    null};  // C initializers (last)
 extern "C" _CRTALLOC(".CRT$XCA") _PVFV __xc_a[] = {
-    nullptr};  // C++ initializers (first)
+    null};  // C++ initializers (first)
 extern "C" _CRTALLOC(".CRT$XCZ") _PVFV __xc_z[] = {
-    nullptr};  // C++ initializers (last)
+    null};  // C++ initializers (last)
 extern "C" _CRTALLOC(".CRT$XPA") _PVFV __xp_a[] = {
-    nullptr};  // C pre-terminators (first)
+    null};  // C pre-terminators (first)
 extern "C" _CRTALLOC(".CRT$XPZ") _PVFV __xp_z[] = {
-    nullptr};  // C pre-terminators (last)
+    null};  // C pre-terminators (last)
 extern "C" _CRTALLOC(".CRT$XTA") _PVFV __xt_a[] = {
-    nullptr};  // C terminators (first)
+    null};  // C terminators (first)
 extern "C" _CRTALLOC(".CRT$XTZ") _PVFV __xt_z[] = {
-    nullptr};  // C terminators (last)
+    null};  // C terminators (last)
 
 // Commented out the stuff we don't care about.
 // Turns out we commented the entire function.
@@ -98,9 +98,9 @@ extern "C" void main_no_crt() {
   // local) variables,
   // * then we invoke their initialization for the primary thread used to start
   // the process:
-  if (*__dyn_tls_init_callback != nullptr &&
+  if (*__dyn_tls_init_callback != null &&
       __scrt_is_nonwritable_in_current_image(__dyn_tls_init_callback)) {
-    (*__dyn_tls_init_callback)(nullptr, DLL_THREAD_ATTACH, nullptr);
+    (*__dyn_tls_init_callback)(null, DLL_THREAD_ATTACH, null);
   }
 
   int mainResult = main();
@@ -141,7 +141,7 @@ static BOOL __cdecl dllmain_crt_process_attach(HMODULE const instance,
   // loaded.  We cannot rely on the OS performing the initialization with the
   // DLL_PROCESS_ATTACH notification because, on Windows Server 2003 and below,
   // that call happens before the CRT is initialized.
-  if (*__dyn_tls_init_callback != nullptr &&
+  if (*__dyn_tls_init_callback != null &&
       __scrt_is_nonwritable_in_current_image(__dyn_tls_init_callback)) {
     (*__dyn_tls_init_callback)(instance, DLL_THREAD_ATTACH, reserved);
   }
@@ -238,7 +238,7 @@ static BOOL WINAPI dllmain_crt_dispatch(HINSTANCE const instance,
     case DLL_PROCESS_ATTACH:
       return dllmain_crt_process_attach(instance, reserved);
     case DLL_PROCESS_DETACH:
-      return dllmain_crt_process_detach(reserved != nullptr);
+      return dllmain_crt_process_detach(reserved != null);
   }
 
   return 1;

@@ -1029,7 +1029,7 @@ struct formatter<T>
       // Avoid forwarding type-specific specs to metadata fields (like count)
       auto *original_specs = f->Specs;
       write_no_specs(f, "<array_like> { count: ");
-      f->Specs = nullptr;
+      f->Specs = null;
       format_value(a.Count, f);
       write_no_specs(f, ", data: ");
       // Restore specs for list entries so element-level forwarding works
@@ -1061,7 +1061,7 @@ struct formatter<T>
       auto *original_specs = f->Specs;
       write_no_specs(f, "<dynamic_array_like> { count: ");
       // Do not apply value specs to metadata fields
-      f->Specs = nullptr;
+      f->Specs = null;
       format_value(a.Count, f);
       write_no_specs(f, ", allocated: ");
       format_value(a.Allocated, f);
@@ -1105,7 +1105,7 @@ struct formatter<variant<MEMBERS...>>
             f->Specs = &forwarded_specs;
             format_value(value, f);
           } else {
-            f->Specs = nullptr;
+            f->Specs = null;
             format_value(value, f);
           }
           
@@ -1153,7 +1153,7 @@ struct formatter<hash_table<K, V>>
       auto *original_specs = f->Specs;
       write_no_specs(f, "hash_table { count: ");
       // Do not forward specs to metadata count
-      f->Specs = nullptr;
+      f->Specs = null;
       format_value(table.Count, f);
       write_no_specs(f, ", entries: ");
 
@@ -1200,7 +1200,7 @@ struct formatter<Node *>
     if (use_debug)
     {
       auto *orig = f->Specs;
-      f->Specs = nullptr;
+      f->Specs = null;
 
       write_no_specs(f, "<singly_linked_list_like> { count: ");
       format_value(items.Count, f);
@@ -1262,7 +1262,7 @@ struct formatter<Node *>
     {
       auto *orig = f->Specs;
       write_no_specs(f, "<doubly_linked_list_like> { count: ");
-      f->Specs = nullptr;
+      f->Specs = null;
       format_value(items.Count, f);
       write_no_specs(f, ", data: ");
       // Restore specs for elements

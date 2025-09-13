@@ -62,7 +62,7 @@ inline const u32 ERROR_INSUFFICIENT_BUFFER = 122;
 inline time_t os_get_time()
 {
     struct timeval tv;
-    gettimeofday(&tv, nullptr);
+    gettimeofday(&tv, null);
     return tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
@@ -74,7 +74,7 @@ inline f64 os_time_to_seconds(time_t time)
 inline string os_get_working_dir()
 {
     char dir[PATH_MAX];
-    if (getcwd(dir, sizeof(dir)) != nullptr)
+    if (getcwd(dir, sizeof(dir)) != null)
     {
         lock(&S->WorkingDirMutex);
         defer(unlock(&S->WorkingDirMutex));
@@ -119,7 +119,7 @@ inline const u32 ERROR_ENVVAR_NOT_FOUND = 203;
 mark_as_leak inline os_get_env_result os_get_env(string name, bool silent)
 {
     const char *value = getenv(to_c_string_temp(name));
-    if (value == nullptr)
+    if (value == null)
     {
         if (!silent)
         {

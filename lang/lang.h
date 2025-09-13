@@ -6,10 +6,7 @@
 #include "lstd/hash_table.h"
 
 #include "snipffi.h"
-#include "diagnostics.h"  // New high-level diagnostic API
-
-// Previous macro-based error system replaced by inline functions in diagnostics.h
-// Use ERR / WARN / ERR_ANNOTATED / ERR_ANNOTATED_CONTEXT etc. as function calls now.
+#include "diagnostics.h"  
 
 //
 // Atoms:
@@ -173,20 +170,21 @@ enum token_type
 
   TOKEN_PLUS = '+',
   TOKEN_MINUS = '-',
-  TOKEN_TIMES = '*',
+  TOKEN_ASTERISK = '*',
   TOKEN_SLASH = '/',
   TOKEN_PERCENT = '%',
-  TOKEN_ASSIGN = '=',
+  TOKEN_EQUAL = '=',
 
   TOKEN_AND = '&',
-  TOKEN_XOR = '^',
-  TOKEN_OR = '|',
+  TOKEN_HAT = '^',
+  TOKEN_BAR = '|',
 
   TOKEN_HASH = '#',
   TOKEN_AT = '@',
 
   TOKEN_TILDE = '~',
   TOKEN_EXCLAMATION = '!',
+  TOKEN_QUESTION = '?',
   TOKEN_COLON = ':',
   TOKEN_SEMICOLON = ';',
 
@@ -202,33 +200,30 @@ enum token_type
   TOKEN_BRACE_OPEN = '{',
   TOKEN_BRACE_CLOSE = '}',
 
-  TOKEN_CHAR = '\'',
   TOKEN_STRING = '\"',
-  TOKEN_WCHAR = '\'' | TOKEN_FLAG_WIDE,
-  TOKEN_WSTRING = '\"' | TOKEN_FLAG_WIDE,
 
   TOKEN_IDENTIFIER = 256,
   TOKEN_INTEGER,
   TOKEN_FLOAT,
 
   TOKEN_TRIPLE_DOT = TKN3('.', '.', '.'),
+  TOKEN_DOUBLE_DOT = TKN2('.', '.'),
 
-  TOKEN_ARROW = TKN2('-', '>'),
-  TOKEN_DOUBLE_HASH = TKN2('#', '#'),
+  TOKEN_ARROW = TKN2('=', '>'),
 
   TOKEN_DOUBLE_AND = TKN2('&', '&'),
-  TOKEN_DOUBLE_OR = TKN2('|', '|'),
+  TOKEN_DOUBLE_BAR = TKN2('|', '|'),
 
   TOKEN_PLUS_EQUAL = TKN2('+', '='),
   TOKEN_MINUS_EQUAL = TKN2('-', '='),
-  TOKEN_TIMES_EQUAL = TKN2('*', '='),
+  TOKEN_ASTERISK_EQUAL = TKN2('*', '='),
   TOKEN_SLASH_EQUAL = TKN2('/', '='),
   TOKEN_PERCENT_EQUAL = TKN2('%', '='),
-  TOKEN_OR_EQUAL = TKN2('|', '='),
+  TOKEN_BAR_EQUAL = TKN2('|', '='),
   TOKEN_AND_EQUAL = TKN2('&', '='),
-  TOKEN_XOR_EQUAL = TKN2('^', '='),
+  TOKEN_HAT_EQUAL = TKN2('^', '='),
   TOKEN_NOT_EQUAL = TKN2('!', '='),
-  TOKEN_EQUALITY = TKN2('=', '='),
+  TOKEN_EQUAL_EQUAL = TKN2('=', '='),
   TOKEN_GREATER_EQUAL = TKN2('>', '='),
   TOKEN_LESS_EQUAL = TKN2('<', '='),
   TOKEN_LEFT_SHIFT = TKN2('<', '<'),
@@ -239,59 +234,18 @@ enum token_type
   TOKEN_INCREMENT = TKN2('+', '+'),
   TOKEN_DECREMENT = TKN2('-', '-'),
 
-  TOKEN_KW_auto = 0x10000000, // auto
-  TOKEN_KW_break,             // break
-  TOKEN_KW_case,              // case
-  TOKEN_KW_char,              // char
-  TOKEN_KW_const,             // const
-  TOKEN_KW_continue,          // continue
-  TOKEN_KW_default,           // default
-  TOKEN_KW_do,                // do
-  TOKEN_KW_double,            // double
-  TOKEN_KW_else,              // else
-  TOKEN_KW_enum,              // enum
-  TOKEN_KW_extern,            // extern
-  TOKEN_KW_float,             // float
-  TOKEN_KW_for,               // for
-  TOKEN_KW_goto,              // goto
-  TOKEN_KW_if,                // if
-  TOKEN_KW_inline,            // inline
-  TOKEN_KW_int,               // int
-  TOKEN_KW_long,              // long
-  TOKEN_KW_register,          // register
-  TOKEN_KW_restrict,          // restrict
-  TOKEN_KW_return,            // return
-  TOKEN_KW_short,             // short
-  TOKEN_KW_signed,            // signed
-  TOKEN_KW_sizeof,            // sizeof
-  TOKEN_KW_static,            // static
-  TOKEN_KW_struct,            // struct
-  TOKEN_KW_switch,            // switch
-  TOKEN_KW_typedef,           // typedef
-  TOKEN_KW_union,             // union
-  TOKEN_KW_unsigned,          // unsigned
-  TOKEN_KW_void,              // void
-  TOKEN_KW_volatile,          // volatile
-  TOKEN_KW_while,             // while
-  TOKEN_KW_Alignas,           // _Alignas
-  TOKEN_KW_Alignof,           // _Alignof
-  TOKEN_KW_Atomic,            // _Atomic
-  TOKEN_KW_Bool,              // _Bool
-  TOKEN_KW_Complex,           // _Complex
-  TOKEN_KW_Embed,             // _Embed
-  TOKEN_KW_Generic,           // _Generic
-  TOKEN_KW_Imaginary,         // _Imaginary
-  TOKEN_KW_Pragma,            // _Pragma
-  TOKEN_KW_Noreturn,          // _Noreturn
-  TOKEN_KW_Static_assert,     // _Static_assert
-  TOKEN_KW_Thread_local,      // _Thread_local
-  TOKEN_KW_Typeof,            // _Typeof
-  TOKEN_KW_Vector,            // _Vector
-  TOKEN_KW_asm,               // asm
-  TOKEN_KW_attribute,         // attribute
-  TOKEN_KW_cdecl,             // cdecl
-  TOKEN_KW_stdcall,           // stdcall
-  TOKEN_KW_declspec,          // declspec
+  TOKEN_KW_break = 0x10000000, // break
+  TOKEN_KW_char,               // char
+  TOKEN_KW_continue,           // continue
+  TOKEN_KW_pass,               // pass
+  TOKEN_KW_do,                 // do
+  TOKEN_KW_if,                 // if
+  TOKEN_KW_else,               // else
+  TOKEN_KW_for,                // for
+  TOKEN_KW_return,             // return
+  TOKEN_KW_struct,             // struct
+  TOKEN_KW_void,               // void
+  TOKEN_KW_while,              // while
 
   TOKEN_COUNT
 };
@@ -301,7 +255,7 @@ enum token_type
 
 inline bool token_is_keyword(token_type type)
 {
-  return type >= TOKEN_KW_auto && type < TOKEN_COUNT;
+  return type >= TOKEN_KW_break && type < TOKEN_COUNT;
 }
 
 struct token
@@ -309,13 +263,14 @@ struct token
   token_type Type = TOKEN_INVALID;
   s64 Location = 0; // Offset in the source code string where the token starts
 
-  atom *Atom = null; // The de-duplicated string representation for identifiers, number literals, string literals, char literals
+  atom *Atom = null; // The de-duplicated string representation for identifiers, number literals, string literals
   union {
     s128 IntValue = 0; // TOKEN_INTEGER
     f64 FloatValue; // TOKEN_FLOAT
-    char CharValue; // TOKEN_CHAR
-    wchar WCharValue; // TOKEN_WCHAR
   };
+
+  token() {}
+  token(token_type type, s64 location, atom *atom = null) : Type(type), Location(location), Atom(atom), IntValue(0) {}
 };
 
 using token_array = exponential_array<token, 23, 8>;
@@ -332,18 +287,19 @@ struct tokenizer
 {
   const char *Start; // Points to the beginning of the source code
   const char *Current;
-  const char *FileName = nullptr;      // Optional file name for diagnostics
+  const char *FileName = null;      // Optional file name for diagnostics
 
   // 1-based current line number (tracks newline traversals)
   s64 CurrentLine = 1;                 
 
   // Points to the start of the current line, to see if Start == CurrentLineStart, i.e. we are at column 0
-  const char* CurrentLineStart = nullptr; 
+  const char* CurrentLineStart = null; 
 
-  exponential_array<string>* DiagnosticsSink = nullptr; // Optional sink to capture diagnostics
+  // Optional sink to capture diagnostics, if not set diagnostics go to stderr
+  array<string>* DiagnosticsSink = null; 
 };
 
-u64 get_hash(tokenizer no_copy tz)
+inline u64 get_hash(tokenizer no_copy tz)
 {
   return get_hash((void *)tz.Start) ^ get_hash((void *)tz.Current);
 }
@@ -353,17 +309,17 @@ u64 get_hash(tokenizer no_copy tz)
 // This normalizes it to UTF-8 NFD, and adds
 // '\0' termination at the end.
 //
-const char *tokenizer_prepare_source(string sourceCode)
+inline const char *tokenizer_prepare_source(string sourceCode)
 {
-  if(sourceCode.Count >= 0xFFFFFFFF) {
-    ERR("", mprint("Source code too large ({:n} bytes)", sourceCode.Count));
+  if(sourceCode.Count < 0xFFFFFFFF) {
+    ERR(mprint("Source code too large ({:n} bytes)", sourceCode.Count));
     return null;
   }
 
   string_builder sb;
   if (!utf8_normalize_nfd_to_string_builder(sourceCode.Data, sourceCode.Count, sb))
   {
-    ERR("", "Failed to normalize UTF-8 string");
+    ERR("Failed to normalize source code to a UTF-8 NFD string");
     return null;
   }
   add(sb, '\0');
@@ -382,36 +338,41 @@ token tokenizer_next_token(tokenizer ref tz);
 // If invalid number, returns TOKEN_INVALID.
 token tokenizer_next_number_literal(tokenizer ref tz);
 
-// Parses a char or string literal (wide or not).
+// Parses a string literal.
 // Handles escape sequences, including Unicode escapes.
 // Returns a token with the string atom as payload.
 // If invalid string (e.g. missing ending quote), returns TOKEN_INVALID
-token tokenizer_next_char_or_string_literal(tokenizer ref tz);
+token tokenizer_next_string_literal(tokenizer ref tz);
 
 // Iteratively skip ASCII/Unicode whitespace and C/C++ style comments.
 // Doesn't skip newlines, those are significant, e.g. for the preprocessor.
 void tokenizer_skip_trivia(tokenizer ref tz);
 
-struct tokenizer_options {
-  const char* FileName = nullptr;
-  exponential_array<string>* DiagnosticsSink = nullptr; // if set diagnostics captured
-};
-
-inline void tokenizer__install_context(const tokenizer* tz) {
+// Hooks into the global diagnostic context,
+// so that diagnostics can report line numbers and file names,
+// without having to pass the tokenizer/source code around everywhere to report errors.
+inline void diagnostics_set_active_tokenizer(const tokenizer* tz) {
   auto get_line = [](const void* p)->s64 { return p ? ((const tokenizer*)p)->CurrentLine : 1; };
-  auto get_filename = [](const void* p)->const char* { return p ? ((const tokenizer*)p)->FileName : nullptr; };
+  auto get_filename = [](const void* p)->const char* { return p ? ((const tokenizer*)p)->FileName : null; };
   diag_set_active_tokenizer(tz, get_line, get_filename);
-  if (tz && tz->DiagnosticsSink) diag_set_sink(tz->DiagnosticsSink); else diag_set_sink(nullptr);
+  diag_set_source(tz ? tz->Start : null);
+  if (tz && tz->DiagnosticsSink) diag_set_sink(tz->DiagnosticsSink); else diag_set_sink(null);
 }
 
-token_array tokenizer_tokenize_with_opts(const char* sourceCode, tokenizer_options opts = {})
+inline void diagnostics_clear_active_tokenizer() {
+  diag_set_active_tokenizer(null, null, null); 
+  diag_set_sink(null);
+  diag_set_source(null);
+}
+
+inline token_array tokenizer_tokenize(const char* sourceCode, const char* FileName = null, array<string>* DiagnosticsSink = null)
 {
   PUSH_ALLOC(ARENA_TOKEN)
   {
-    tokenizer tz = {sourceCode, sourceCode, opts.FileName, 1, sourceCode, opts.DiagnosticsSink};
+    tokenizer tz = {sourceCode, sourceCode, FileName, 1, sourceCode, DiagnosticsSink};
 
     token_array tokens;
-    tokenizer__install_context(&tz);
+    diagnostics_set_active_tokenizer(&tz);
 
     while (*tz.Current != '\0')
     {
@@ -421,27 +382,25 @@ token_array tokenizer_tokenize_with_opts(const char* sourceCode, tokenizer_optio
 
       if (tz.Current && t.Type == TOKEN_INVALID)
       {
-        WARN_ANNOTATED(sourceCode, "Invalid token", start, tz.Current, "unrecognized token");
+        t.Type = TOKEN_POISONED;
+        WARN_ANNOTATED("Invalid token", start, tz.Current, "Remove this");
         continue;
       }
       add(tokens, t);
     }
-    // Reset global diagnostic context after run
-    diag_set_active_tokenizer(nullptr, nullptr, nullptr); 
-    diag_set_sink(nullptr);
+
+    diagnostics_clear_active_tokenizer();
     return tokens;
   }
 }
 
-token_array tokenizer_tokenize(const char* sourceCode) { return tokenizer_tokenize_with_opts(sourceCode, {}); }
-
-token_array tokenizer_tokenize(string sourceCode, tokenizer_options opts = {})
+inline token_array tokenizer_tokenize(string sourceCode, const char* FileName = null, array<string>* DiagnosticsSink = null)
 {
   PUSH_ALLOC(ARENA_TOKEN)
   {
     const char* sc = tokenizer_prepare_source(sourceCode);
     if (!sc) return {};
-    return tokenizer_tokenize_with_opts(sc, opts);
+    return tokenizer_tokenize(sc, FileName, DiagnosticsSink);
   }
 }
 
@@ -461,7 +420,7 @@ const char *token_type_to_string(token_type t);
 // and we call the tokenizer to re-tokenize and get
 // the actual text.
 //
-string token_to_string(token t)
+inline string token_to_string(token t)
 {
   switch (t.Type)
   {
@@ -476,13 +435,14 @@ string token_to_string(token t)
     return sprint("{} (value: {})", string(t.Atom->Data, t.Atom->Count), t.IntValue);
   }
   case TOKEN_IDENTIFIER:
-  case TOKEN_STRING:
-  case TOKEN_CHAR:
-  case TOKEN_WSTRING:
-  case TOKEN_WCHAR:
   {
     assert(t.Atom);
     return string(t.Atom->Data, t.Atom->Count);
+  }
+  case TOKEN_STRING:
+  {
+    assert(t.Atom);
+    return sprint("\"{}\"", string(t.Atom->Data, t.Atom->Count));
   }
   break;
   default:

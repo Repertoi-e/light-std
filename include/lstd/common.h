@@ -391,6 +391,17 @@ __inline__ static void debug_break(void)
 #define assert(condition) ((void)0)
 #endif
 
+//
+// Some personal preferences:
+//
+// I prefer to type null over null but they are exactly the same
+using null_t = decltype(nullptr);
+inline const null_t null = nullptr;
+
+#ifndef NULL
+#define NULL 0
+#endif
+
 #ifndef U64_MAX
 #define U64_MAX 18446744073709551615ULL
 #endif
@@ -1644,7 +1655,7 @@ LSTD_END_NAMESPACE
 #if defined LSTD_NO_CRT
 namespace std
 {
-    using literal_zero = decltype(nullptr);
+    using literal_zero = decltype(null);
 
     // These "pretty" enumerator names are safe since they reuse names of
     // user-facing entities.
@@ -1977,8 +1988,8 @@ namespace std
 
         // private in order to be compatible with std::
     private:
-        const T *First = nullptr;
-        const T *Last = nullptr;
+        const T *First = null;
+        const T *Last = null;
     };
 } // namespace std
 #else
@@ -2074,17 +2085,6 @@ Deferrer<F> operator*(Defer_Dummy, F func)
 #define defer_to_exit(x) atexit([]() { x; })
 
 LSTD_END_NAMESPACE
-
-//
-// Some personal preferences:
-//
-// I prefer to type null over nullptr but they are exactly the same
-using null_t = decltype(nullptr);
-inline const null_t null = nullptr;
-
-#ifndef NULL
-#define NULL 0
-#endif
 
 // Semantics to avoid the use of & when the symbol is not used as a unary or
 // binary operator.
@@ -2621,7 +2621,7 @@ concept is_member_pointer =
  */
 template <typename T>
 concept is_scalar = is_arithmetic<T> || is_enum<T> || is_pointer<T> ||
-                    is_member_pointer<T> || is_same<remove_cv_t<T>, decltype(nullptr)>;
+                    is_member_pointer<T> || is_same<remove_cv_t<T>, decltype(null)>;
 
 /**
  * @brief Concept to check if a type is convertible to another type.

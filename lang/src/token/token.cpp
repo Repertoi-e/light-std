@@ -8,7 +8,13 @@
 #include <cstdio>
 
 inline bool ascii_is_identifier_start(char x) { return ascii_is_alpha(x) || x == '_'; }
-inline bool ascii_is_identifier_cont(char x) { return ascii_is_alphanumeric(x) || x == '_'; }
+inline bool ascii_is_identifier_cont(char x) { return ascii_is_alphanumeric(x) || x == '_' || x == '-'; }
+
+inline bool is_ident_start_cp(code_point cp) { return cp == '_' || unicode_is_letter(cp); }
+inline bool is_ident_continue_cp(code_point cp) { 
+    unicode_general_category cat = unicode_get_general_category(cp);
+    return unicode_is_letter(cat) || unicode_is_number(cat) || unicode_is_mark(cat) || cp == '_' || cp == '-'; 
+}
 
 #include "token_generated.inc"
 
@@ -30,7 +36,8 @@ inline s32 ascii_digit_value(char c)
     return -1;
 }
 
-inline char ascii_parse_escape(char c) {
+inline code_point unicode_parse_escape(const char **s) {
+    char c = **s;
     switch (c) {
         case 'n': return '\n';
         case 'a': return '\a';
@@ -44,19 +51,13 @@ inline char ascii_parse_escape(char c) {
         case '\'': return '\'';
         case '"': return '"';
         case '?': return '?';
-        default: return c;
     }
-}
 
-inline code_point unicode_parse_escape(const char **s) {
-    char c = **s;
-    char ac = ascii_parse_escape(c);
-    if (ac != c) {
-        (*s)++;
-        return ac;
-    } else if (c == 'x' || c == 'u' || c == 'U' || ascii_is_digit_based(c, 8))
+    if (c == 'x' || c == 'u' || c == 'U' || ascii_is_digit_based(c, 8))
     {
         s32 base = ascii_is_digit_based(c, 8) ? 8 : 16;
+
+        // Determine the number of digits to expect based on the escape sequence
         s32 digits = (base == 8) ? 3 : (c == 'x' ? 2 : (c == 'u' ? 4 : 8));
         code_point cp = 0;
 
@@ -69,200 +70,71 @@ inline code_point unicode_parse_escape(const char **s) {
         *s = p;
         return cp;
     }
-    // Fallback: not an escape sequence we handle specially, consume one char and return it
+
+    // Fallback: not an escape sequence we handle specially, treat literally
     (*s)++;
-    return (unsigned char)c;
+    WARN_ANNOTATED("Unknown escape sequence", *s - 1, *s, "Unknown escape sequence, treating literally");
+    return c;
 }
 
-static inline token parse_char_literal(tokenizer ref tz) {
-    const char *s = tz.Current;
-
-    // Helper for consistent error reporting
-    auto char_lit_error = [&](const char *at, const char *title, const char *context) -> token {
-        ERR_ANNOTATED_CONTEXT(
-            tz.Start,
-            title,
-            tz.Start + (tz.Current - tz.Start), // primary span start
-            tz.Start + (at - tz.Start),         // primary span end
-            "character literal started here",
-            at,
-            at + 1, // context span one char (or adjusted by caller)
-            context
-        );
-        return (token){TOKEN_INVALID, tz.Current - tz.Start, null};
-    };
-
-    if (*s != '\'' && *s != 'L') {
-        return (token){TOKEN_INVALID, s - tz.Start, null};
-    }
-
-    bool is_wide = *s == 'L';
-    s += is_wide ? 2 : 1;
-
-    if (*s == '\'') {
-        return char_lit_error(s, "empty character literal", "character literals must contain exactly one code point");
-    }
-
-    if (*s == '\n' || *s == '\r') {
-        return char_lit_error(s, "unterminated character literal", "newline encountered before closing quote");
-    }
-
-    atom *a = atom_new();
-
-    token t;
-
-    // Handle escape sequence
-    if (*s == '\\') {
-        s++;
-        if (is_wide) {
-            code_point cp = unicode_parse_escape(&s);
-
-            if (cp > 0xFFFF) {
-                ERR_ANNOTATED(
-                    tz.Start,
-                    "character literal out of range",
-                    tz.Start + (tz.Current - tz.Start),
-                    s,
-                    "wide character literals have 2 bytes of space to store only the range U+0000 to U+FFFF"
-                );
-                cp = 0xFFFD;
-            }
-            wchar wc = (wchar)cp;
-            char buf[4];
-            utf8_encode_cp(buf, cp);
-            a = atom_push(a, string(buf, utf8_get_size_of_cp(buf)));
-            t.WCharValue = wc;
-        } else {
-            char c = ascii_parse_escape(*s);
-            s++;
-            a = atom_push(a, string(&c, 1));
-            t.CharValue = c;
-        }
-    } else {
-        // Non-escape single character
-        if (is_wide) {
-            wchar wc = (wchar)*s;
-            char buf[4];
-            utf8_encode_cp(buf, wc);
-            a = atom_push(a, string(buf, utf8_get_size_of_cp(buf)));
-            t.WCharValue = wc;
-        } else {
-            a = atom_push(a, string(s, 1));
-            t.CharValue = *s;
-        }
-        s++;
-    }
-
-    if (*s != '\'') {
-        return char_lit_error(s, "unterminated character literal", "missing closing quote");
-    }
-
-    s++; // skip closing quote
-    tz.Current = s;
-
-    t.Type = is_wide ? TOKEN_WCHAR : TOKEN_CHAR;
-    t.Location = tz.Current - tz.Start;
-    t.Atom = a;
-    return t;
-}
-
-token tokenizer_next_char_or_string_literal(tokenizer ref tz) {
+token tokenizer_next_string_literal(tokenizer ref tz) {
     const char *start_offset = tz.Current;
 
     if (*start_offset == '\0') {
-        return (token){TOKEN_INVALID, 0, null};
-    }
-
-    // Delegate to parse_char_literal if this is a char literal
-    if (*start_offset == '\'' || (*start_offset == 'L' && start_offset[1] == '\'')) {
-        return parse_char_literal(tz);
+        return (token){TOKEN_INVALID, 0};
     }
 
     atom *a = atom_new();
     const char *s = tz.Current;
-    bool first_is_wide = false;
-    bool first_iteration = true;
 
-    do {
-        // Optional L prefix for wide strings
-        bool is_wide = false;
-        if (*s == 'L' && s[1] == '"') {
-            is_wide = true;
+    if (*s != '"' || *s != '\'') return (token){TOKEN_INVALID, 0};
+    char quote = *s;
+
+    s++; // skip opening quote
+    const char *chunk_start = s;
+
+    while (*s) {
+        if (*s == quote) {
+            if (s > chunk_start)
+                a = atom_push(a, string(chunk_start, s - chunk_start));
+            s++; // skip closing quote
+            break;
+        }
+
+        if (*s == '\n' || *s == '\r') {
+            ERR_ANNOTATED_CONTEXT(
+                "Unterminated string",
+                start_offset,
+                tz.Start + (s - tz.Start),
+                "The literal started here",
+                s,
+                s + 1,
+                "Newline encountered before closing quote"
+            );
+            tz.Current = s;
+            return (token){TOKEN_POISONED, start_offset - tz.Start};
+        }
+
+        if (*s == '\\') {
+            if (s > chunk_start)
+                a = atom_push(a, string(chunk_start, s - chunk_start));
+            const char *start_escape = s;
+            s++; // skip backslash
+            if (!*s) break;
+
+            code_point cp = unicode_parse_escape(&s);
+            char buf[4];
+            utf8_encode_cp(buf, cp);
+            a = atom_push(a, string(buf, utf8_get_size_of_cp(buf)));
+            chunk_start = s;
+        } else {
             s++;
         }
-
-        if (!first_iteration && is_wide != first_is_wide) {
-                ERR_ANNOTATED_CONTEXT(
-                    tz.Start,
-                    "mismatched string literal prefixes",
-                    start_offset,
-                    tz.Start + (s - tz.Start),
-                    is_wide ? "this part is wide" : "this part is narrow",
-                    s,
-                    s + 1,
-                    "all parts of a concatenated string literal must have the same prefix"
-                );
-            return (token){TOKEN_INVALID, start_offset - tz.Start, null};
-        }
-
-        first_is_wide |= is_wide;
-        first_iteration = false;
-
-        if (*s != '"') break; // not a string literal
-
-        s++; // skip opening quote
-        const char *chunk_start = s;
-
-        while (*s) {
-            if (*s == '"') {
-                if (s > chunk_start)
-                    a = atom_push(a, string(chunk_start, s - chunk_start));
-                s++; // skip closing quote
-                break;
-            }
-
-            if (*s == '\n' || *s == '\r') {
-                ERR_ANNOTATED_CONTEXT(
-                    tz.Start,
-                    "unterminated string literal",
-                    start_offset,
-                    tz.Start + (s - tz.Start),
-                    "string literal started here",
-                    s,
-                    s + 1,
-                    "newline encountered before closing quote"
-                );
-                tz.Current = s;
-                return (token){TOKEN_POISONED, start_offset - tz.Start, null};
-            }
-
-            if (*s == '\\') {
-                if (s > chunk_start)
-                    a = atom_push(a, string(chunk_start, s - chunk_start));
-                const char *start_escape = s;
-                s++; // skip backslash
-                if (!*s) break;
-
-                code_point cp = unicode_parse_escape(&s);
-                char buf[4];
-                utf8_encode_cp(buf, cp);
-                a = atom_push(a, string(buf, utf8_get_size_of_cp(buf)));
-                chunk_start = s;
-            } else {
-                s++;
-            }
-        }
-        tokenizer_skip_trivia(tz);
-    } while (*s == '"' || (*s == 'L' && s[1] == '"'));
+    }
 
     tz.Current = s;
     atom *final_atom = atom_put(a);
-
-    return (token){
-        first_is_wide ? TOKEN_WSTRING : TOKEN_STRING,
-        start_offset - tz.Start,
-        final_atom
-    };
+    return (token){TOKEN_STRING, start_offset - tz.Start, final_atom };
 }
 
 void tokenizer_skip_trivia(tokenizer ref tz) {
@@ -308,14 +180,13 @@ void tokenizer_skip_trivia(tokenizer ref tz) {
                 }
                 if (!found_end) {
                     ERR_ANNOTATED_CONTEXT(
-                        tz.Start,
-                        "unterminated block comment",
+                        "Unterminated block comment",
                         comment_start, 
-                        s,             
-                        "block comment started here",
+                        comment_start+1,             
+                        "Block comment started here",
+                        comment_start,
                         s,
-                        0,
-                        "end of input reached before closing comment"
+                        "End of input reached before closing comment"
                     );
                 }
                 continue;
@@ -323,7 +194,7 @@ void tokenizer_skip_trivia(tokenizer ref tz) {
         }
 
         // Unicode whitespace
-        if ((unsigned char)c >= 0x80) {
+        if (c >= 0x80) {
             code_point cp = utf8_decode_cp(s);
             s64 sz = utf8_get_size_of_cp(s);
             if (unicode_is_whitespace(cp)) {
@@ -365,16 +236,6 @@ void tokenizer_skip_trivia(tokenizer ref tz) {
     tz.Current = s;
 }
 
-bool is_ident_start_cp(code_point cp)
-{
-    return cp == '_' || unicode_is_letter(cp);
-}
-
-bool is_ident_continue_cp(code_point cp)
-{
-    return unicode_is_letter(cp) || unicode_is_number(cp) || unicode_is_mark(cp) || cp == '_';
-}
-
 token tokenizer_next_token_unicode(tokenizer ref tz)
 {
     const char *start = tz.Current;
@@ -414,8 +275,8 @@ token tokenizer_next_token(tokenizer ref tz)
         return tokenizer_next_token_unicode(mut tz);
     }
 
-    if ((*start == 'L' && (start[1] == '"' || start[1] == '\'')) || *start == '"' || *start == '\'') {
-        return tokenizer_next_char_or_string_literal(mut tz);
+    if (*start == '"' || *start == '\'') {
+        return tokenizer_next_string_literal(mut tz);
     }
 
     token t = token_switch(tz);
@@ -578,7 +439,7 @@ token tokenizer_next_number_literal(tokenizer ref tz)
     const char *s = tz.Current;
     const char *start = s;
 
-    token res = {.Type = TOKEN_INVALID, .Location = start - tz.Start };
+    token res = {TOKEN_INVALID, start - tz.Start };
 
     // Optional sign (only if followed by digit or 0x/0b style prefix)
     if ((*s == '+' || *s == '-') && (ascii_is_digit(s[1]) || (s[1] == '0' && (s[2] == 'x' || s[2] == 'X' || s[2] == 'b' || s[2] == 'B')))) {
@@ -611,9 +472,9 @@ token tokenizer_next_number_literal(tokenizer ref tz)
         s++;
     size_t int_len = s - int_start;
 
-    if (base == 16 || base == 2 && int_len == 0)
+    if ((base == 16 || base == 2) && int_len == 0)
     {
-        ERR_ANNOTATED(tz.Start, "Invalid integer", start, s, mprint("No digits after base {} prefix", base));
+        ERR_ANNOTATED("Invalid integer", start, s, mprint("No digits after base {} prefix", base));
         tz.Current = s;
         res.Type = TOKEN_POISONED;
         return res;
@@ -642,7 +503,7 @@ token tokenizer_next_number_literal(tokenizer ref tz)
                 s++;
             if (s == exp_start)
             {
-                ERR_ANNOTATED(tz.Start, "Invalid float in scientific notation", start, s, mprint("Missing digits after '{:c}'", exp));
+                ERR_ANNOTATED("Invalid real number in scientific notation", start, s, mprint("Missing digits after '{:c}'", exp));
                 tz.Current = s;
                 res.Type = TOKEN_POISONED;
                 return res;
@@ -650,7 +511,7 @@ token tokenizer_next_number_literal(tokenizer ref tz)
         }
         // Detect second '.' -> error (e.g., 12.34.56)
         if (*s == '.') {
-            ERR_ANNOTATED(tz.Start, "Invalid float", start, s + 1, "Multiple '.'");
+            ERR_ANNOTATED("Invalid real number", start, s + 1, "Multiple '.'");
             // Consume the extra '.' and associated digits to avoid cascade
             s++;
             while (ascii_is_digit(*s)) s++;

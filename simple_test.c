@@ -10,10 +10,46 @@
 
 awf-awf-awf-awf
 awf_континю_ин_бългериън_waf;
-#line 19 "gen/simple_test.c"
+// #line 19 "gen/simple_test.c"
 // char x = 0x10; L"awfawf" +"wafawfawfaw
-
+/**/
 // авфав_a\u0301\u0323A\u0301;
 
 
 
+
+/* awf awf
+awf
+
+awf
+
+awf
+
+
+
+awf
+
+
+awf
+
+
+awf
+
+
+awf
+
+
+
+awf
+
+
+
+awf
+
+
+awf
+
+
+
+aw
+u

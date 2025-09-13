@@ -18,7 +18,7 @@ mark_as_leak inline void *os_allocate_block(s64 size) {
   assert(size < MAX_ALLOCATION_REQUEST);
 
   void *ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-  return ptr != MAP_FAILED ? ptr : nullptr;
+  return ptr != MAP_FAILED ? ptr : null;
 }
 
 inline void os_free_block(void *ptr) {

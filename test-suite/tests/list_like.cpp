@@ -24,11 +24,11 @@ struct formatter<DNode> {
 };
 
 TEST(slist_basic_ops) {
-  SNode n1{1, nullptr};
-  SNode n2{2, nullptr};
-  SNode n3{3, nullptr};
+  SNode n1{1, null};
+  SNode n2{2, null};
+  SNode n3{3, null};
 
-  SNode *head = nullptr;
+  SNode *head = null;
   push_front(head, &n2); // [2]
   push_front(head, &n1); // [1,2]
   insert_after(&n2, &n3); // [1,2,3]
@@ -46,11 +46,11 @@ TEST(slist_basic_ops) {
 }
 
 TEST(dlist_basic_ops) {
-  DNode n1{1, nullptr, nullptr};
-  DNode n2{2, nullptr, nullptr};
-  DNode n3{3, nullptr, nullptr};
+  DNode n1{1, null, null};
+  DNode n2{2, null, null};
+  DNode n3{3, null, null};
 
-  DNode *head = nullptr; DNode *tail = nullptr;
+  DNode *head = null; DNode *tail = null;
   push_back(head, tail, &n1); // [1]
   push_back(head, tail, &n2); // [1,2]
   insert_after(tail, &n1, &n3); // [1,3,2]
@@ -71,8 +71,8 @@ template<> struct formatter<FNode> { void format(const FNode &n, fmt_context *f)
 TEST(list_forwarding_specs_on_nodes) {
     CHECK_WRITE("2.14", "{:2}", 2.14);
 
-  FNode a{3.14159265, nullptr};
-  FNode b{2.71828, nullptr};
+  FNode a{3.14159265, null};
+  FNode b{2.71828, null};
   a.Next = &b;
   CHECK_WRITE("[3.14159265, 2.71828]", "{}", (&a));
   CHECK_WRITE("[3.14, 2.72]", "{:.2}", (&a)); 

@@ -66,7 +66,7 @@ static PIMAGE_SECTION_HEADER __cdecl find_pe_section(
     }
   }
 
-  return nullptr;
+  return null;
 }
 
 extern "C" {
@@ -145,8 +145,8 @@ bool __cdecl __scrt_is_nonwritable_in_current_image(void const *const target) {
  * to force inclusion of this support object.
  */
 
-static _CRTALLOC(".CRT$XDA") _PVFV __xd_a = nullptr;
-static _CRTALLOC(".CRT$XDZ") _PVFV __xd_z = nullptr;
+static _CRTALLOC(".CRT$XDA") _PVFV __xd_a = null;
+static _CRTALLOC(".CRT$XDZ") _PVFV __xd_z = null;
 
 // TRANSITION, toolset update
 #pragma warning(push)
@@ -260,7 +260,7 @@ static _CRTALLOC(".CRT$XLC") PIMAGE_TLS_CALLBACK __xl_c = __dyn_tls_init;
  * loaded after the thread(s) have started.
  */
 void __cdecl __dyn_tls_on_demand_init() noexcept {
-  __dyn_tls_init(nullptr, DLL_THREAD_ATTACH, nullptr);
+  __dyn_tls_init(null, DLL_THREAD_ATTACH, null);
 }
 
 }  // extern "C"

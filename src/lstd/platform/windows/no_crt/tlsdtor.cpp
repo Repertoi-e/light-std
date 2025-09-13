@@ -48,13 +48,13 @@ static __declspec(thread) TlsDtorNode dtor_list_head;
  */
 
 int __cdecl __tlregdtor(_PVFV func) {
-  if (dtor_list == nullptr) {
+  if (dtor_list == null) {
     dtor_list = &dtor_list_head;
     dtor_list_head.count = 0;
   } else if (dtor_list->count == FUNCS_PER_NODE) {
     auto *pnode = (TlsDtorNode *)HeapAlloc(GetProcessHeap(), HEAP_memset0,
                                            sizeof(TlsDtorNode) * 1);
-    if (pnode == nullptr) {
+    if (pnode == null) {
       return -1;
     }
     pnode->count = 0;
@@ -95,8 +95,8 @@ void WINAPI __dyn_tls_dtor(void *, unsigned long dwReason, void *) {
     return;
   }
 
-  TlsDtorNode *pnext = nullptr;
-  for (TlsDtorNode *pnode = dtor_list; pnode != nullptr; pnode = pnext) {
+  TlsDtorNode *pnext = null;
+  for (TlsDtorNode *pnode = dtor_list; pnode != null; pnode = pnext) {
     for (int i = pnode->count - 1; i >= 0; --i) {
       if (pnode->funcs[i]) pnode->funcs[i]();
     }

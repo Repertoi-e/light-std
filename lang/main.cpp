@@ -34,7 +34,7 @@ int main(int argc, char **argv)
         {
             if (result.error.Count > 0)
             {
-                ERR("", to_c_string_temp(result.error));
+                ERR(to_c_string_temp(result.error));
                 return 1;
             }
             return 0;
@@ -44,6 +44,11 @@ int main(int argc, char **argv)
         if (clap_has_arg(result, "file"))
         {
             string file_path = clap_get_string(result, "file");
+            
+            // Dummy tokenizer so we can report file_name in case processing the file failed
+            tokenizer tz = {null, null, to_c_string_temp(file_path), 1, null, null};
+            diagnostics_set_active_tokenizer(&tz);
+
             optional<string> fileContent = os_read_entire_file(file_path);
             fileContent.visit(match{
                 [&](string fileContents)
@@ -51,8 +56,7 @@ int main(int argc, char **argv)
                     s64 invalid = utf8_find_invalid(fileContents.Data, fileContents.Count);
                     if (invalid >= 0)
                     {
-                        // Provide pointer span: start = fileContents.Data + invalid, end = start + 1
-                        ERR_ANNOTATED(fileContents.Data, "invalid UTF-8 sequence", fileContents.Data + invalid, fileContents.Data + invalid + 1, "invalid UTF-8 sequence");
+                        ERR_ANNOTATED("Invalid UTF-8 sequence", fileContents.Data + invalid, fileContents.Data + invalid + 1, "Invalid UTF-8 sequence");
 
                         s64 start = max(0, invalid - 10);
                         s64 end = min(fileContents.Count, invalid + 10);
@@ -64,7 +68,7 @@ int main(int argc, char **argv)
 
                     string_builder sb;
                     if (!utf8_normalize_nfd_to_string_builder(fileContents.Data, fileContents.Count, sb)) {
-                        ERR("", "Failed to normalize UTF-8 string");
+                        ERR("Failed to normalize UTF-8 string");
                         return;
                     }
                     
@@ -77,8 +81,8 @@ int main(int argc, char **argv)
                     fileContents = builder_to_string_and_free_builder(sb);
 
                     if (clap_has_arg(result, "tokenSink")) {
-                        token_array tokens = tokenizer_tokenize(fileContents, {.FileName = to_c_string_temp(file_path)});
-                        print("Tokenized into {} tokens\n", tokens.Count);
+                        token_array tokens = tokenizer_tokenize(fileContents, to_c_string_temp(file_path));
+                        print("{} tokens\n", tokens.Count);
                         for (s64 i = 0; i < tokens.Count; i++) {
                             print("{}: {} {}\n", tokens[i].Location, token_type_to_string(tokens[i].Type), token_to_string(tokens[i]));
                         }
@@ -86,12 +90,12 @@ int main(int argc, char **argv)
                 },
                 [file_path](auto)
                 {
-                    ERR("", mprint("Could not read file '{}'", file_path));
+                    ERR(mprint("Could not read file '{}'", file_path));
                 }});
         }
         else
         {
-            ERR("", "No input\n");
+            ERR("No input\n");
         }
         return 0;
     }

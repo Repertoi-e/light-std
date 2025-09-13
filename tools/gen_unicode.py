@@ -281,7 +281,7 @@ def emit_inc(path, script_names, to_upper, to_lower, general_category, script, c
           f.write("const char* const g_unicode_script_names[] = {\n")
           for name in script_names:
                f.write('  "%s",\n' % name)
-          f.write("  nullptr\n};\n")
+          f.write("  null\n};\n")
 
 
 def main():

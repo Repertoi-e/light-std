@@ -33,7 +33,7 @@ typedef BOOL(WINAPI *__scrt_dllmain_type)(HINSTANCE, DWORD, LPVOID);
 // notifications before any other function is called, and gets called for detach
 // notifications after any other function is called.  If no _pRawDllMain is
 // defined, it is aliased to the no-op _pDefaultRawDllMain.
-extern "C" extern __scrt_dllmain_type const _pDefaultRawDllMain = nullptr;
+extern "C" extern __scrt_dllmain_type const _pDefaultRawDllMain = null;
 DECLARE_ALTERNATE_NAME_DATA(_pRawDllMain, _pDefaultRawDllMain)
 
 extern "C" int __cdecl _purecall() {

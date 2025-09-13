@@ -60,11 +60,11 @@ static void __cdecl __scrt_initialize_thread_safe_statics_platform_specific() no
 
   // CONDITION_VARIABLE is available via this APISet starting on Windows 8.
   HMODULE kernel_dll = GetModuleHandleW(L"api-ms-win-core-synch-l1-2-0.dll");
-  if (kernel_dll == nullptr) {
+  if (kernel_dll == null) {
     kernel_dll = GetModuleHandleW(L"kernel32.dll");
   }
 
-  if (kernel_dll == nullptr) {
+  if (kernel_dll == null) {
     // __scrt_fastfail(FAST_FAIL_FATAL_APP_EXIT);
     LSTD_NAMESPACE::exit(-1);
   }
@@ -87,7 +87,7 @@ static void __cdecl __scrt_initialize_thread_safe_statics_platform_specific() no
     g_wake_all_condition_variable = wake_all_condition_variable;
   } else {
     g_tss_event = CreateEventW(NULL, 1, 0, NULL);
-    if (g_tss_event == nullptr) {
+    if (g_tss_event == null) {
       // __scrt_fastfail(FAST_FAIL_FATAL_APP_EXIT);
       LSTD_NAMESPACE::exit(-1);
     }
@@ -97,7 +97,7 @@ static void __cdecl __scrt_initialize_thread_safe_statics_platform_specific() no
 // Terminator for synchronization data structures.
 static void __cdecl __scrt_uninitialize_thread_safe_statics() noexcept {
   DeleteCriticalSection(&g_tss_mutex);
-  if (g_tss_event != nullptr) {
+  if (g_tss_event != null) {
     CloseHandle(g_tss_event);
   }
 }

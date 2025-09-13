@@ -33,7 +33,7 @@ always_inline void insert_after(T *pos, T *node) {
 template <singly_linked_node_like T>
 always_inline void push_back(T *&head, T *node) {
   if (!node) return;
-  node->Next = nullptr;
+  node->Next = null;
   if (!head) { head = node; return; }
   T *p = head; while (p->Next) p = p->Next; p->Next = node;
 }
@@ -42,24 +42,24 @@ always_inline void push_back(T *&head, T *node) {
 template <singly_linked_node_like T>
 always_inline void push_back(T *&head, T *&tail, T *node) {
   if (!node) return;
-  node->Next = nullptr;
+  node->Next = null;
   if (!head) { head = tail = node; return; }
   tail->Next = node; tail = node;
 }
 
 template <singly_linked_node_like T>
 always_inline T *pop_front(T *&head) {
-  if (!head) return nullptr;
-  T *n = head; head = head->Next; n->Next = nullptr; return n;
+  if (!head) return null;
+  T *n = head; head = head->Next; n->Next = null; return n;
 }
 
 template <singly_linked_node_like T>
 always_inline void remove(T *&head, T *node) {
   if (!head || !node) return;
-  if (head == node) { head = head->Next; node->Next = nullptr; return; }
+  if (head == node) { head = head->Next; node->Next = null; return; }
   T *prev = head;
   while (prev && prev->Next != node) prev = prev->Next;
-  if (prev && prev->Next == node) { prev->Next = node->Next; node->Next = nullptr; }
+  if (prev && prev->Next == node) { prev->Next = node->Next; node->Next = null; }
 }
 
 template <singly_linked_node_like T>
@@ -71,7 +71,7 @@ always_inline s64 length(T *head) {
 template <doubly_linked_node_like T>
 always_inline void push_front(T *&head, T *&tail, T *node) {
   if (!node) return;
-  node->Prev = nullptr; node->Next = head;
+  node->Prev = null; node->Next = head;
   if (head) head->Prev = node; else tail = node;
   head = node;
 }
@@ -79,7 +79,7 @@ always_inline void push_front(T *&head, T *&tail, T *node) {
 template <doubly_linked_node_like T>
 always_inline void push_back(T *&head, T *&tail, T *node) {
   if (!node) return;
-  node->Next = nullptr; node->Prev = tail;
+  node->Next = null; node->Prev = tail;
   if (tail) tail->Next = node; else head = node;
   tail = node;
 }
@@ -105,7 +105,7 @@ always_inline void remove(T *&head, T *&tail, T *node) {
   if (!node) return;
   if (node->Prev) node->Prev->Next = node->Next; else head = node->Next;
   if (node->Next) node->Next->Prev = node->Prev; else tail = node->Prev;
-  node->Next = node->Prev = nullptr;
+  node->Next = node->Prev = null;
 }
 
 template <doubly_linked_node_like T>

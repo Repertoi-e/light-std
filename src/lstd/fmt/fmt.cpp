@@ -202,7 +202,7 @@ bool handle_emphasis(fmt_parse_context *p, fmt_text_style *textStyle)
       textStyle->Emphasis |= STRIKETHROUGH;
       break;
     default:
-      p->on_error("Invalid emphasis character - valid ones are: B (bold), I (italic), U (underline) and S (strikethrough)");
+      p->on_error("Invalid emphasis character - valid ones are: B (bold), I (italic), U (underline) and S (strikethrough). If you meant to use a terminal color, prefix it with 't', because it's different than a color name, which uses RGB escape codes.");
       return false;
     }
     ++p->It.Data, --p->It.Count;
@@ -631,7 +631,7 @@ void write_arg_with_forwarding(fmt_context *F, fmt_arg ar, bool noSpecs)
   }
   else
   {
-    F->Specs = nullptr;
+    F->Specs = null;
     fmt_arg_visit(fmt_context_visitor(F, noSpecs), ar);
   }
   F->Specs = original;
@@ -656,7 +656,7 @@ void write_arg_with_forwarding_pretty(fmt_context *F, fmt_arg ar, bool noSpecs, 
   }
   else
   {
-    F->Specs = nullptr;
+    F->Specs = null;
     fmt_arg_visit(fmt_context_visitor(F, noSpecs), ar);
   }
   F->Specs = original;
