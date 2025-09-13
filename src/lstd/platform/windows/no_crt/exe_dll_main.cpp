@@ -79,7 +79,7 @@ extern "C" void main_no_crt() {
   // programmer code is run.
   //
   // When we link with the CRT (and don't compile all this stub code) we put
-  // these in the in linker tables. See e.g. windows_common.cpp
+  // these in the in linker tables. See e.g. windows/common.h
 
   platform_state_init();
 

@@ -2,183 +2,367 @@
 #include "../../snipffi.h"
 
 #include "lstd/fmt.h"
-#include "token_generated.inc"
+#include "lstd/parse.h"
+#include "lstd/string.h"
 
 #include <cstdio>
 
-// Error reporting with single annotation
-static void tokenizer_error(tokenizer no_copy tz, const char* title, usize error_pos, s64 error_len, const char* annotation_message) {
-    SnippetHandle snippet = snippet_new(to_c_string_temp(tz.Source), 1);
-    AnnotationHandle annotation = annotation_new_primary((int)error_pos, (int)(error_pos + error_len), annotation_message);
-    snippet_add_annotation(snippet, annotation);
-    char* error_output = render_error(title, snippet);
-    print("{}\n", error_output);
-}
+inline bool ascii_is_identifier_start(char x) { return ascii_is_alpha(x) || x == '_'; }
+inline bool ascii_is_identifier_cont(char x) { return ascii_is_alphanumeric(x) || x == '_'; }
 
-// Error reporting with two annotations (primary + context)
-static void tokenizer_error_2(tokenizer no_copy tz, const char* title, 
-                              usize error_pos, s64 error_len, const char* primary_msg,
-                              usize context_pos, s64 context_len, const char* context_msg) {
-    SnippetHandle snippet = snippet_new(to_c_string_temp(tz.Source), 1);
-    AnnotationHandle primary = annotation_new_primary((int)error_pos, (int)(error_pos + error_len), primary_msg);
-    AnnotationHandle context = annotation_new_context((int)context_pos, (int)(context_pos + context_len), context_msg);
-    snippet_add_annotation(snippet, primary);
-    snippet_add_annotation(snippet, context);
-    char* error_output = render_error(title, snippet);
-    print("{}\n", error_output);
-}
+#include "token_generated.inc"
 
-// Error reporting with no annotations (just title)
-static void tokenizer_error_simple(tokenizer no_copy tz, const char* title) {
-    SnippetHandle snippet = snippet_new(to_c_string_temp(tz.Source), 1);
-    char* error_output = render_error(title, snippet);
-    print("{}\n", error_output);
-}
-
-// String literal parsing result
-struct string_literal_result {
-    token_type type;
-    bool is_wide;    // L prefix
-    bool is_char;    // single quotes vs double quotes
-    s64 consumed;
-};
-
-// Parse string and character literals with proper C99/C11 handling
-static string_literal_result parse_string_literal(const tokenizer& tz, usize start_pos, const char* s, s64 length) {
-    if (length <= 0) return {TOKEN_INVALID, false, false, 0};
-    
-    s64 pos = 0;
-    bool is_wide = false;
-    
-    // Check for L prefix
-    if (s[pos] == 'L' && pos + 1 < length) {
-        is_wide = true;
-        pos++;
-    }
-    
-    if (pos >= length) return {TOKEN_INVALID, false, false, 0};
-    
-    char quote = s[pos];
-    if (quote != '"' && quote != '\'') {
-        return {TOKEN_INVALID, false, false, 0};
-    }
-    
-    bool is_char = (quote == '\'');
-    s64 quote_start = pos;
-    pos++; // Skip opening quote
-    
-    // Scan until closing quote, handling escapes
-    bool found_closing = false;
-    while (pos < length) {
-        char c = s[pos];
-        if (c == '\n' || c == '\r') {
-            // Unterminated string/character literal - consume up to this point
-            const char* title = is_char ? "unterminated character literal" : "unterminated string literal";
-            const char* annotation = is_char ? "character literal started here" : "string literal started here";
-            tokenizer_error(tz, title, start_pos + quote_start, 1, annotation);
-            return {TOKEN_INVALID, false, false, pos};
-        }
-        if (c == quote) {
-            pos++; // Include closing quote
-            found_closing = true;
-            break;
-        }
-        if (c == '\\' && pos + 1 < length) {
-            pos += 2; // Skip escape sequence
-        } else {
-            pos++;
-        }
-    }
-    
-    // Check if we reached end without finding closing quote
-    if (!found_closing) {
-        const char* title = is_char ? "unterminated character literal" : "unterminated string literal";
-        const char* annotation = is_char ? "character literal started here" : "string literal started here";
-        tokenizer_error(tz, title, start_pos + quote_start, 1, annotation);
-        return {TOKEN_INVALID, false, false, pos};
-    }
-    
-    // Determine token type
-    token_type type;
-    if (is_wide) {
-        type = is_char ? TOKEN_STRING_WIDE_SINGLE_QUOTE : TOKEN_STRING_WIDE_DOUBLE_QUOTE;
-    } else {
-        type = is_char ? TOKEN_STRING_SINGLE_QUOTE : TOKEN_STRING_DOUBLE_QUOTE;
-    }
-    
-    return {type, is_wide, is_char, pos};
-}
-
-void tokenizer_skip_trivia(tokenizer ref tz)
+inline bool ascii_is_digit_based(char c, int base)
 {
-    for (;;)
+    if (base <= 10)
+        return c >= '0' && c < '0' + base;
+    return (c >= '0' && c <= '9') || (c >= 'a' && c < 'a' + base - 10) || (c >= 'A' && c < 'A' + base - 10);
+}
+
+inline s32 ascii_digit_value(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return -1;
+}
+
+inline char ascii_parse_escape(char c) {
+    switch (c) {
+        case 'n': return '\n';
+        case 'a': return '\a';
+        case 'e': return '\e';
+        case 'r': return '\r';
+        case 't': return '\t';
+        case 'b': return '\b';
+        case 'f': return '\f';
+        case 'v': return '\v';
+        case '\\': return '\\';
+        case '\'': return '\'';
+        case '"': return '"';
+        case '?': return '?';
+        default: return c;
+    }
+}
+
+inline code_point unicode_parse_escape(const char **s) {
+    char c = **s;
+    char ac = ascii_parse_escape(c);
+    if (ac != c) {
+        (*s)++;
+        return ac;
+    } else if (c == 'x' || c == 'u' || c == 'U' || ascii_is_digit_based(c, 8))
     {
-        if (tokenizer_at_end(tz))
-            return;
-        byte c = tokenizer_peek_ascii(tz);
-        // ASCII whitespace
-        if (c < 0x80 && ascii_is_space((char)c))
+        s32 base = ascii_is_digit_based(c, 8) ? 8 : 16;
+        s32 digits = (base == 8) ? 3 : (c == 'x' ? 2 : (c == 'u' ? 4 : 8));
+        code_point cp = 0;
+
+        const char *p = *s;
+        while ((p - *s) < digits && ascii_is_digit_based(*p, base))
         {
-            tokenizer_advance(tz, 1);
-            continue;
+            cp = cp * base + ascii_digit_value(*p);
+            p++;
         }
-        // Comments
-        if (c == '/')
-        {
-            if (tz.Position + 1 < tz.Source.Count)
-            {
-                char n = tz.Source.Data[tz.Position + 1];
-                if (n == '/')
-                { // line comment
-                    tz.Position += 2;
-                    while (!tokenizer_at_end(tz))
-                    {
-                        char cc = tokenizer_peek_ascii(tz);
-                        if (cc == '\n' || cc == '\r')
-                        {
-                            tokenizer_advance(tz, 1);
-                            break;
-                        }
-                        tokenizer_advance(tz, 1);
-                    }
-                    continue;
-                }
-                else if (n == '*')
-                { // block comment
-                    usize comment_start = tz.Position;
-                    tz.Position += 2;
-                    bool found_end = false;
-                    while (!tokenizer_at_end(tz))
-                    {
-                        if (tz.Source.Data[tz.Position] == '*' && tz.Position + 1 < tz.Source.Count && tz.Source.Data[tz.Position + 1] == '/')
-                        {
-                            tz.Position += 2;
-                            found_end = true;
-                            break;
-                        }
-                        tokenizer_advance(tz, 1);
-                    }
-                    if (!found_end) {
-                        tokenizer_error(tz, "unterminated block comment", comment_start, 2, "block comment started here");
-                    }
-                    continue;
-                }
+        *s = p;
+        return cp;
+    }
+    // Fallback: not an escape sequence we handle specially, consume one char and return it
+    (*s)++;
+    return (unsigned char)c;
+}
+
+static inline token parse_char_literal(tokenizer ref tz) {
+    const char *s = tz.Current;
+
+    // Helper for consistent error reporting
+    auto char_lit_error = [&](const char *at, const char *title, const char *context) -> token {
+        ERR_ANNOTATED_CONTEXT(
+            tz.Start,
+            title,
+            tz.Start + (tz.Current - tz.Start), // primary span start
+            tz.Start + (at - tz.Start),         // primary span end
+            "character literal started here",
+            at,
+            at + 1, // context span one char (or adjusted by caller)
+            context
+        );
+        return (token){TOKEN_INVALID, tz.Current - tz.Start, null};
+    };
+
+    if (*s != '\'' && *s != 'L') {
+        return (token){TOKEN_INVALID, s - tz.Start, null};
+    }
+
+    bool is_wide = *s == 'L';
+    s += is_wide ? 2 : 1;
+
+    if (*s == '\'') {
+        return char_lit_error(s, "empty character literal", "character literals must contain exactly one code point");
+    }
+
+    if (*s == '\n' || *s == '\r') {
+        return char_lit_error(s, "unterminated character literal", "newline encountered before closing quote");
+    }
+
+    atom *a = atom_new();
+
+    token t;
+
+    // Handle escape sequence
+    if (*s == '\\') {
+        s++;
+        if (is_wide) {
+            code_point cp = unicode_parse_escape(&s);
+
+            if (cp > 0xFFFF) {
+                ERR_ANNOTATED(
+                    tz.Start,
+                    "character literal out of range",
+                    tz.Start + (tz.Current - tz.Start),
+                    s,
+                    "wide character literals have 2 bytes of space to store only the range U+0000 to U+FFFF"
+                );
+                cp = 0xFFFD;
+            }
+            wchar wc = (wchar)cp;
+            char buf[4];
+            utf8_encode_cp(buf, cp);
+            a = atom_push(a, string(buf, utf8_get_size_of_cp(buf)));
+            t.WCharValue = wc;
+        } else {
+            char c = ascii_parse_escape(*s);
+            s++;
+            a = atom_push(a, string(&c, 1));
+            t.CharValue = c;
+        }
+    } else {
+        // Non-escape single character
+        if (is_wide) {
+            wchar wc = (wchar)*s;
+            char buf[4];
+            utf8_encode_cp(buf, wc);
+            a = atom_push(a, string(buf, utf8_get_size_of_cp(buf)));
+            t.WCharValue = wc;
+        } else {
+            a = atom_push(a, string(s, 1));
+            t.CharValue = *s;
+        }
+        s++;
+    }
+
+    if (*s != '\'') {
+        return char_lit_error(s, "unterminated character literal", "missing closing quote");
+    }
+
+    s++; // skip closing quote
+    tz.Current = s;
+
+    t.Type = is_wide ? TOKEN_WCHAR : TOKEN_CHAR;
+    t.Location = tz.Current - tz.Start;
+    t.Atom = a;
+    return t;
+}
+
+token tokenizer_next_char_or_string_literal(tokenizer ref tz) {
+    const char *start_offset = tz.Current;
+
+    if (*start_offset == '\0') {
+        return (token){TOKEN_INVALID, 0, null};
+    }
+
+    // Delegate to parse_char_literal if this is a char literal
+    if (*start_offset == '\'' || (*start_offset == 'L' && start_offset[1] == '\'')) {
+        return parse_char_literal(tz);
+    }
+
+    atom *a = atom_new();
+    const char *s = tz.Current;
+    bool first_is_wide = false;
+    bool first_iteration = true;
+
+    do {
+        // Optional L prefix for wide strings
+        bool is_wide = false;
+        if (*s == 'L' && s[1] == '"') {
+            is_wide = true;
+            s++;
+        }
+
+        if (!first_iteration && is_wide != first_is_wide) {
+                ERR_ANNOTATED_CONTEXT(
+                    tz.Start,
+                    "mismatched string literal prefixes",
+                    start_offset,
+                    tz.Start + (s - tz.Start),
+                    is_wide ? "this part is wide" : "this part is narrow",
+                    s,
+                    s + 1,
+                    "all parts of a concatenated string literal must have the same prefix"
+                );
+            return (token){TOKEN_INVALID, start_offset - tz.Start, null};
+        }
+
+        first_is_wide |= is_wide;
+        first_iteration = false;
+
+        if (*s != '"') break; // not a string literal
+
+        s++; // skip opening quote
+        const char *chunk_start = s;
+
+        while (*s) {
+            if (*s == '"') {
+                if (s > chunk_start)
+                    a = atom_push(a, string(chunk_start, s - chunk_start));
+                s++; // skip closing quote
+                break;
+            }
+
+            if (*s == '\n' || *s == '\r') {
+                ERR_ANNOTATED_CONTEXT(
+                    tz.Start,
+                    "unterminated string literal",
+                    start_offset,
+                    tz.Start + (s - tz.Start),
+                    "string literal started here",
+                    s,
+                    s + 1,
+                    "newline encountered before closing quote"
+                );
+                tz.Current = s;
+                return (token){TOKEN_POISONED, start_offset - tz.Start, null};
+            }
+
+            if (*s == '\\') {
+                if (s > chunk_start)
+                    a = atom_push(a, string(chunk_start, s - chunk_start));
+                const char *start_escape = s;
+                s++; // skip backslash
+                if (!*s) break;
+
+                code_point cp = unicode_parse_escape(&s);
+                char buf[4];
+                utf8_encode_cp(buf, cp);
+                a = atom_push(a, string(buf, utf8_get_size_of_cp(buf)));
+                chunk_start = s;
+            } else {
+                s++;
             }
         }
-        // Unicode whitespace: decode cp and skip
-        if ((unsigned char)c >= 0x80)
-        {
-            const char *p = tz.Source.Data + tz.Position;
-            s64 sz = utf8_get_size_of_cp(p);
-            code_point cp = utf8_decode_cp(p);
-            if (unicode_is_whitespace(cp))
-            {
-                tz.Position += (usize)sz;
+        tokenizer_skip_trivia(tz);
+    } while (*s == '"' || (*s == 'L' && s[1] == '"'));
+
+    tz.Current = s;
+    atom *final_atom = atom_put(a);
+
+    return (token){
+        first_is_wide ? TOKEN_WSTRING : TOKEN_STRING,
+        start_offset - tz.Start,
+        final_atom
+    };
+}
+
+void tokenizer_skip_trivia(tokenizer ref tz) {
+    const char *s = tz.Current;
+
+    while (*s) {
+        byte c = (byte)*s;
+
+        // Track newlines for line counting
+        if (c == '\n') {
+            s++;
+            tz.CurrentLine++;
+            tz.CurrentLineStart = s;
+            continue;
+        }
+
+        // ASCII whitespace
+        if (c < 0x80 && ascii_is_space((char)c)) {
+            s++;
+            continue;
+        }
+
+        // Comments
+        if (c == '/' && s[1]) {
+            if (s[1] == '/') {
+                // Line comment
+                s += 2;
+                while (*s && *s != '\n' && *s != '\r') s++;
+                continue;
+            }
+            if (s[1] == '*') {
+                // Block comment
+                const char *comment_start = s;
+                s += 2;
+                bool found_end = false;
+                while (*s) {
+                    if (*s == '*' && s[1] && s[1] == '/') {
+                        s += 2;
+                        found_end = true;
+                        break;
+                    }
+                    s++;
+                }
+                if (!found_end) {
+                    ERR_ANNOTATED_CONTEXT(
+                        tz.Start,
+                        "unterminated block comment",
+                        comment_start, 
+                        s,             
+                        "block comment started here",
+                        s,
+                        0,
+                        "end of input reached before closing comment"
+                    );
+                }
                 continue;
             }
         }
-        return;
+
+        // Unicode whitespace
+        if ((unsigned char)c >= 0x80) {
+            code_point cp = utf8_decode_cp(s);
+            s64 sz = utf8_get_size_of_cp(s);
+            if (unicode_is_whitespace(cp)) {
+                s += (usize)sz;
+                continue;
+            }
+        }
+
+        if (c == '#' && s == tz.CurrentLineStart) {
+            // Attempt to parse: #line <number> "optional-file"
+            const char* p = s + 1;
+            while (*p == ' ' || *p == '\t') ++p;
+            if (memcmp(p, "line", 4) == 0) {
+                p += 4;
+                while (*p == ' ' || *p == '\t') ++p;
+                s64 num = 0;
+                while (*p >= '0' && *p <= '9') { num = num * 10 + (*p - '0'); ++p; }
+                if (num > 0) tz.CurrentLine = num; // set next line number
+                while (*p == ' ' || *p == '\t') ++p;
+                if (*p == '"') {
+                    ++p; const char* fname_begin = p; while (*p && *p != '"') ++p; const char* fname_end = p;
+                    if (*p == '"') {
+                        string fn = make_string(fname_begin, fname_end - fname_begin);
+                        tz.FileName = to_c_string(fn); // lives in arena (ARENA_TOKEN)
+                        ++p;
+                    }
+                }
+                // Skip rest of line
+                while (*p && *p != '\n') ++p;
+                if (*p == '\n') { tz.CurrentLine++; p++; }
+                s = p; // continue scanning
+                continue;
+            }
+        }
+
+        // No trivia left
+        break;
     }
+    tz.Current = s;
 }
 
 bool is_ident_start_cp(code_point cp)
@@ -191,167 +375,309 @@ bool is_ident_continue_cp(code_point cp)
     return unicode_is_letter(cp) || unicode_is_number(cp) || unicode_is_mark(cp) || cp == '_';
 }
 
-token tokenizer_next_token_unicode(tokenizer ref tokenizer)
+token tokenizer_next_token_unicode(tokenizer ref tz)
 {
-    usize start = tokenizer.Position;
-    const char *p = tokenizer.Source.Data + tokenizer.Position;
-    const char *end = tokenizer.Source.Data + tokenizer.Source.Count;
-    if (p >= end)
-        return {TOKEN_INVALID, start};
+    const char *start = tz.Current;
+    const char *s = tz.Current;
 
-    s64 sz = utf8_get_size_of_cp(p); // We have already validated utf-8, so we don't worry.
-    code_point cp = utf8_decode_cp(p);
+    s64 sz = utf8_get_size_of_cp(s); // We have already validated utf-8, so we don't worry.
+    code_point cp = utf8_decode_cp(s);
+    s += sz;
 
     // Consume Unicode identifier, only possible scenario here
     if (is_ident_start_cp(cp))
     {
-        tokenizer_advance(tokenizer, (usize)sz);
-        const char *q = tokenizer.Source.Data + tokenizer.Position;
-        while (q < end)
+        while (*s)
         {
-            s64 s2 = utf8_get_size_of_cp(q);
-            if (s2 <= 0 || q + s2 > end || !utf8_is_valid_cp(q))
-                break;
-            code_point c2 = utf8_decode_cp(q);
+            code_point c2 = utf8_decode_cp(s);
             if (!is_ident_continue_cp(c2))
                 break;
-            tokenizer_advance(tokenizer, (usize)s2);
-            q += s2;
+            s += utf8_get_size_of_cp(s);
         }
-        return {TOKEN_IDENTIFIER, start};
+        tz.Current = s;
+        return {TOKEN_IDENTIFIER, start - tz.Start};
     }
-    // Fallback: treat this cp as a single unknown token; advance one cp
-    tokenizer_advance(tokenizer, (usize)sz);
-    return {TOKEN_INVALID, start};
+    // Fallback: Treat this cp as a single unknown token; advance one cp
+    tz.Current = s;
+    return {TOKEN_INVALID, start - tz.Start};
 }
 
-token tokenizer_next_token(tokenizer ref tokenizer)
+token tokenizer_next_token(tokenizer ref tz)
 {
-    tokenizer_skip_trivia(tokenizer);
-    usize start = tokenizer.Position;
-    if (tokenizer_at_end(tokenizer))
-        return {TOKEN_INVALID, start};
+    tokenizer_skip_trivia(tz);
+    const char* start = tz.Current;
+    if (!*start) {
+        return {TOKEN_INVALID, start - tz.Start};
+    }
 
-    char c = tokenizer_peek_ascii(tokenizer);
-    if ((unsigned char)c >= 0x80)
-        return tokenizer_next_token_unicode(mut tokenizer);
+    if ((byte) *start >= 0x80) {
+        return tokenizer_next_token_unicode(mut tz);
+    }
 
-    // Try the generated token switch function first
-    const char *s = tokenizer.Source.Data + tokenizer.Position;
-    s64 remaining = (s64)tokenizer.Source.Count - (s64)tokenizer.Position;
-    s64 consumed = 0;
-    token_type tt = token_switch(s, remaining, &consumed);
-    if (tt != TOKEN_INVALID)
-    {
-        if (tt != TOKEN_IDENTIFIER) {
-            tokenizer_advance(tokenizer, consumed);
-            return {tt, start};
-        }
+    if ((*start == 'L' && (start[1] == '"' || start[1] == '\'')) || *start == '"' || *start == '\'') {
+        return tokenizer_next_char_or_string_literal(mut tz);
+    }
 
-        // Generated function found ASCII identifier, but we need to check for Unicode continuation
-        tokenizer_advance(tokenizer, consumed);
-        while (!tokenizer_at_end(tokenizer))
-        {
-            char ch = tokenizer_peek_ascii(tokenizer);
-            if ((unsigned char)ch >= 0x80)
+    token t = token_switch(tz);
+    if (t.Type != TOKEN_INVALID) {
+        if (t.Type != TOKEN_IDENTIFIER) return t;
+
+        // Check if the identifier contains any non-ASCII characters, then push atom and return
+        const char *s = tz.Current;
+        if ((byte)*s > 0x80) {
+            while (*s)
             {
-                // Unicode character - need to decode and check
-                const char *p = tokenizer.Source.Data + tokenizer.Position;
-                s64 sz = utf8_get_size_of_cp(p);
-                if (sz <= 0) break;
-                code_point cp = utf8_decode_cp(p);
+                s64 sz = utf8_get_size_of_cp(s);
+                if (sz <= 0)
+                    break;
+                code_point cp = utf8_decode_cp(s);
                 if (!is_ident_continue_cp(cp))
                     break;
-                tokenizer_advance(tokenizer, sz);
-            } 
-            else {
-                break;
+                s += sz;
             }
         }
-        return {TOKEN_IDENTIFIER, start};
-    }
-
-    if (ascii_is_digit(c))
-    {
-        bool is_float = false;
-        tokenizer_advance(tokenizer, 1);
-        while (!tokenizer_at_end(tokenizer))
-        {
-            char d = tokenizer_peek_ascii(tokenizer);
-            if (ascii_is_digit(d))
-            {
-                tokenizer_advance(tokenizer, 1);
-                continue;
-            }
-            if (d == '.')
-            {
-                if (is_float)
-                {
-                    // Multiple decimal points in number
-                    tokenizer_error(tokenizer, "invalid number literal", tokenizer.Position, 1, "second decimal point found here");
-                    tokenizer_advance(tokenizer, 1); // Skip the invalid dot
-                    continue;
-                }
-                is_float = true;
-                tokenizer_advance(tokenizer, 1);
-                continue;
-            }
-            break;
-        }
-        return {is_float ? TOKEN_FLOAT : TOKEN_INTEGER, start};
-    }
-
-    // String / char literals with optional L prefix
-    if (c == 'L' || c == '"' || c == '\'')
-    {
-        const char *s = tokenizer.Source.Data + tokenizer.Position;
-        s64 remaining = (s64)tokenizer.Source.Count - (s64)tokenizer.Position;
-        auto result = parse_string_literal(tokenizer, start, s, remaining);
-        if (result.type != TOKEN_INVALID)
-        {
-            tokenizer_advance(tokenizer, result.consumed);
-            
-            // Only concatenate string literals (not character literals)
-            if (result.type == TOKEN_STRING_DOUBLE_QUOTE || result.type == TOKEN_STRING_WIDE_DOUBLE_QUOTE) {
-                while (!tokenizer_at_end(tokenizer)) {
-                    tokenizer_skip_trivia(mut tokenizer);
-                    if (tokenizer_at_end(tokenizer))
-                        break;
-                        
-                    byte next_c = tokenizer_peek_ascii(tokenizer);
-                    if (next_c == 'L' || next_c == '"') {
-                        const char *next_s = tokenizer.Source.Data + tokenizer.Position;
-                        s64 next_remaining = (s64)tokenizer.Source.Count - (s64)tokenizer.Position;
-                        auto next_result = parse_string_literal(tokenizer, tokenizer.Position, next_s, next_remaining);
-                        
-                        // Only concatenate compatible string literals (same wideness, both strings not chars)
-                        if ((next_result.type == TOKEN_STRING_DOUBLE_QUOTE && result.type == TOKEN_STRING_DOUBLE_QUOTE) ||
-                            (next_result.type == TOKEN_STRING_WIDE_DOUBLE_QUOTE && result.type == TOKEN_STRING_WIDE_DOUBLE_QUOTE)) {
-                            tokenizer_advance(tokenizer, next_result.consumed);
-                            continue;
-                        } else if (next_result.type != TOKEN_INVALID) {
-                            // Found a string-like token but not compatible for concatenation
-                            if (next_result.is_char) {
-                                tokenizer_error(tokenizer, "cannot concatenate string and character literals", tokenizer.Position, 1, "character literal cannot be concatenated with string literal");
-                            } else if (next_result.is_wide != result.is_wide) {
-                                tokenizer_error(tokenizer, "cannot concatenate wide and narrow string literals", tokenizer.Position, 1, "incompatible string literal type");
-                            }
-                            break;
-                        } else {
-                            // Not compatible for concatenation, stop
-                            break;
-                        }
-                    } else {
-                        // No more string literals to concatenate
-                        break;
-                    }
-                }
-            }
-            return {result.type, start};
-        }
+        tz.Current = s;
+        t.Atom = atom_put(string(start, tz.Current - start));
+        return t;
     }
 
     // Unknown: consume one and return invalid to avoid stalling
-    tokenizer_advance(tokenizer, 1);
-    return {TOKEN_INVALID, start};
+    tz.Current++;
+    return {TOKEN_INVALID, start - tz.Start};
+}
+
+static s128 parse_int128(const char *s, size_t len, s32 base)
+{
+    s128 result = 0;
+    int negative = 0;
+    size_t i = 0;
+
+    if (s[i] == '+' || s[i] == '-')
+    {
+        negative = s[i] == '-';
+        i++;
+    }
+
+    for (; i < len; i++)
+    {
+        char c = s[i];
+        int digit = -1;
+        if (c >= '0' && c <= '9')
+            digit = c - '0';
+        else if (c >= 'a' && c <= 'f')
+            digit = c - 'a' + 10;
+        else if (c >= 'A' && c <= 'F')
+            digit = c - 'A' + 10;
+        else
+        {
+            break;
+        }
+
+        if (digit >= base)
+        {
+            break;
+        }
+
+        result = result * base + digit;
+    }
+    if (negative)
+        result.lo = -result.lo;
+    return result;
+}
+
+/*
+ * strtod implementation from minlibc.
+ * https://github.com/GaloisInc/minlibc Here is a copy of the license:
+ *
+ * Copyright (c) 2014 Galois Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *
+ *   * Neither the name of Galois, Inc. nor the names of its contributors
+ *     may be used to endorse or promote products derived from this
+ *     software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+f64 parse_double(const char *s)
+{
+    // This function stolen from either Rolf Neugebauer or Andrew Tolmach.
+    // Probably Rolf.
+    const char *begin = s;
+
+    f64 a = 0.0;
+    int e = 0;
+    int c;
+    while ((c = *s++) != '\0' && ascii_is_digit(c))
+    {
+        a = a * 10.0 + (c - '0');
+    }
+    if (c == '.')
+    {
+        while ((c = *s++) != '\0' && ascii_is_digit(c))
+        {
+            a = a * 10.0 + (c - '0');
+            e = e - 1;
+        }
+    }
+    if (c == 'e' || c == 'E')
+    {
+        int sign = 1;
+        int i = 0;
+        c = *s++;
+        if (c == '+')
+            c = *s++;
+        else if (c == '-')
+        {
+            c = *s++;
+            sign = -1;
+        }
+        while (ascii_is_digit(c))
+        {
+            i = i * 10 + (c - '0');
+            c = *s++;
+        }
+        e += i * sign;
+    }
+    while (e > 0)
+    {
+        a *= 10.0;
+        e--;
+    }
+    while (e < 0)
+    {
+        a *= 0.1;
+        e++;
+    }
+    return a;
+}
+
+token tokenizer_next_number_literal(tokenizer ref tz)
+{
+    const char *s = tz.Current;
+    const char *start = s;
+
+    token res = {.Type = TOKEN_INVALID, .Location = start - tz.Start };
+
+    // Optional sign (only if followed by digit or 0x/0b style prefix)
+    if ((*s == '+' || *s == '-') && (ascii_is_digit(s[1]) || (s[1] == '0' && (s[2] == 'x' || s[2] == 'X' || s[2] == 'b' || s[2] == 'B')))) {
+        s++;
+    }
+
+    // Base detection
+    int base = 10;
+    if (*s == '0')
+    {
+        if (s[1] == 'x' || s[1] == 'X')
+        {
+            base = 16;
+            s += 2;
+        }
+        else if (s[1] == 'b' || s[1] == 'B')
+        {
+            base = 2;
+            s += 2;
+        }
+        else
+        {
+            base = 8;
+            s += 1;
+        }
+    }
+
+    const char *int_start = s;
+    while (ascii_is_digit_based(*s, base))
+        s++;
+    size_t int_len = s - int_start;
+
+    if (base == 16 || base == 2 && int_len == 0)
+    {
+        ERR_ANNOTATED(tz.Start, "Invalid integer", start, s, mprint("No digits after base {} prefix", base));
+        tz.Current = s;
+        res.Type = TOKEN_POISONED;
+        return res;
+    }
+
+    bool is_float = false;
+
+    // Check for fractional / exponent part (only for base 10)
+    if (base == 10 && (*s == '.' || *s == 'e' || *s == 'E'))
+    {
+        is_float = true;
+        bool seen_dot = false;
+        if (*s == '.') {
+            seen_dot = true;
+            s++;
+            while (ascii_is_digit(*s)) s++;
+        }
+        if (*s == 'e' || *s == 'E')
+        {
+            char exp = *s;
+            s++;
+            if (*s == '+' || *s == '-')
+                s++;
+            const char *exp_start = s;
+            while (ascii_is_digit(*s))
+                s++;
+            if (s == exp_start)
+            {
+                ERR_ANNOTATED(tz.Start, "Invalid float in scientific notation", start, s, mprint("Missing digits after '{:c}'", exp));
+                tz.Current = s;
+                res.Type = TOKEN_POISONED;
+                return res;
+            }
+        }
+        // Detect second '.' -> error (e.g., 12.34.56)
+        if (*s == '.') {
+            ERR_ANNOTATED(tz.Start, "Invalid float", start, s + 1, "Multiple '.'");
+            // Consume the extra '.' and associated digits to avoid cascade
+            s++;
+            while (ascii_is_digit(*s)) s++;
+
+            tz.Current = s;
+            res.Type = TOKEN_POISONED;
+            return res;
+        }
+    }
+
+    // No digits parsed, somehow
+    assert(s != start);
+
+    size_t len = s - start;
+    res.Atom = atom_put(string(start, len));
+
+    if (is_float)
+    {
+        res.FloatValue = parse_double(start); // parse from beginning of literal
+        res.Type = TOKEN_FLOAT;
+    }
+    else
+    {
+        res.IntValue = parse_int128(start, len, base);
+        res.Type = TOKEN_INTEGER;
+    }
+
+    tz.Current = s;
+    return res;
 }

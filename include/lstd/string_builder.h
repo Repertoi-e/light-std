@@ -87,13 +87,13 @@ inline string builder_to_string(any_string_builder auto ref builder, allocator a
     return result;
 }
 
-inline string builder_to_string_and_clear(any_string_builder auto ref builder, allocator alloc = {}) {
+inline string builder_to_string_and_clear_builder(any_string_builder auto ref builder, allocator alloc = {}) {
     string result = builder_to_string(builder, alloc);
   builder.Count = 0;
     return result;
 }
 
-inline string builder_to_string_and_free(any_string_builder auto ref builder, allocator alloc = {}) {
+inline string builder_to_string_and_free_builder(any_string_builder auto ref builder, allocator alloc = {}) {
     string result = builder_to_string(builder, alloc);
     free(builder);
     return result;

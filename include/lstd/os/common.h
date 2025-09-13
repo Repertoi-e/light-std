@@ -156,7 +156,7 @@ inline string os_get_current_module() { return S->ModuleName; }
 inline array<string> os_get_command_line_arguments() { return S->Argv; }
 
 // This needs to be called when our program runs, but also when a new thread
-// starts! See windows_common.cpp for implementation details. Note: You
+// starts! See windows/common.h for implementation details. Note: You
 // shouldn't ever call this.
 //
 // TODO: Move this from os to init module or sth. doesn't seem like its place is here.

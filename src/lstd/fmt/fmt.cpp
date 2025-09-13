@@ -302,6 +302,8 @@ struct fmt_parse_text_style_result
   fmt_text_style TextStyle;
 };
 
+inline bool ascii_is_identifier_start(char x) { return ascii_is_alpha(x) || x == '_'; }
+
 fmt_parse_text_style_result fmt_parse_text_style(fmt_parse_context *p)
 {
   fmt_text_style textStyle = {};

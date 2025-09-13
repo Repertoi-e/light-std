@@ -18,151 +18,126 @@
 
 LSTD_BEGIN_NAMESPACE
 
-//
-// Hasher based on Yann Collet's descriptions, see
-// http://cyan4973.github.io/xxHash/ The output depends on the endianness of
-// the machine.
-//
-// Example use:
-//    hasher h(..seed..);
-//    h.add(&value);
-//    ...
-//    u64 result = h.get_hash();
-//
-struct hasher {
-  // Temporarily store up to 31 bytes between multiple add() calls
-  static const s64 MAX_BUFFER_SIZE = 31 + 1;
+// xxhash64 without UB unaligned accesses:
+// https://github.com/demetri/scribbles/blob/master/hashing/ub_aware_hash_functions.c
+inline u64 get_hash_xxhash64(const byte *key, s64 len, u64 hash_so_far = 0)
+{
+  if (!key || len <= 0)
+    return 0;
 
-  char Buffer[MAX_BUFFER_SIZE]{};
-  char *BufferPtr = Buffer;
-  char *BufferEnd = Buffer + MAX_BUFFER_SIZE;
+  // primes used in mul-rot updates
+  u64 p1 = 0x9e3779b185ebca87, p2 = 0xc2b2ae3d27d4eb4f,
+      p3 = 0x165667b19e3779f9, p4 = 0x85ebca77c2b2ae63, p5 = 0x27d4eb2f165667c5;
 
-  u64 Count = 0;
+  // inital 32-byte (4x8) wide hash state
+  const u64 h = hash_so_far;
+  u64 s[4] = {h + p1 + p2, h + p2, h, h - p1};
 
-  u64 State[4]{};
+  // bulk work: process all 32 byte blocks
+  for (int i = 0; i < (len / 32); i++)
+  {
+    u64 b[4];
+    memcpy(b, key + 4 * i, sizeof(b));
 
-  hasher(u64 seed) {
-    State[0] = seed + 11400714785074694791ULL + 14029467366897019727ULL;
-    State[1] = seed + 14029467366897019727ULL;
-    State[2] = seed;
-    State[3] = seed - 11400714785074694791ULL;
+    for (int j = 0; j < 4; j++)
+      b[j] = b[j] * p2 + s[j];
+    for (int j = 0; j < 4; j++)
+      s[j] = ((b[j] << 31) | (b[j] >> 33)) * p1;
   }
 
-  // @Speed: SIMD
-  bool add(const char *data, s64 size) {
-    if (!data) return false;
-
-    Count += size;
-
-    if (BufferPtr + size < BufferEnd) {
-      memcpy(BufferPtr, data, size);
-      BufferPtr += size;
-      return true;
+  // mix 32-byte state down to 8-byte state, initalize to value for short keys
+  u64 s64 = (s[2] + p5);
+  if (len >= 32)
+  {
+    s64 = ((s[0] << 1) | (s[0] >> 63)) + ((s[1] << 7) | (s[1] >> 57)) +
+          ((s[2] << 12) | (s[2] >> 52)) + ((s[3] << 18) | (s[3] >> 46));
+    for (int i = 0; i < 4; i++)
+    {
+      u64 ps = (((s[i] * p2) << 31) | ((s[i] * p2) >> 33)) * p1;
+      s64 = (s64 ^ ps) * p1 + p4;
     }
+  }
+  s64 += len;
 
-    if (BufferPtr != Buffer) {
-      s64 available = BufferEnd - BufferPtr;
-      memcpy(BufferPtr, data, available);
-      data += available;
+  // up to 31 bytes remain, process 0-3 8 byte blocks
+  byte *tail = (byte *)(key + (len / 32) * 32);
+  for (int i = 0; i < (len & 31) / 8; i++, tail += 8)
+  {
+    u64 b;
+    memcpy(&b, tail, sizeof(u64));
 
-      process(Buffer);
-    }
-
-    const char *stop = data + size - MAX_BUFFER_SIZE;
-    while (data <= stop) {
-      process(data);
-      data += 32;
-    }
-
-    memcpy(Buffer, data, size);
-    BufferPtr = Buffer + size;
-    return true;
+    b *= p2;
+    b = (((b << 31) | (b >> 33)) * p1) ^ s64;
+    s64 = ((b << 27) | (b >> 37)) * p1 + p4;
   }
 
-  u64 hash() {
-    u64 result = 0;
-    if (Count >= MAX_BUFFER_SIZE) {
-      result += rotate_left_64(State[0], 1);
-      result += rotate_left_64(State[1], 7);
-      result += rotate_left_64(State[2], 12);
-      result += rotate_left_64(State[3], 18);
+  // up to 7 bytes remain, process 0-1 4 byte block
+  for (int i = 0; i < (len & 7) / 4; i++, tail += 4)
+  {
+    u64 b;
+    memcpy(&b, tail, sizeof(b));
 
-      result ^= rotate_left_64(State[0] * 14029467366897019727ULL, 31) *
-                11400714785074694791ULL;
-      result *= 11400714785074694791ULL;
-      result += 9650029242287828579ULL;
-
-      result ^= rotate_left_64(State[1] * 14029467366897019727ULL, 31) *
-                11400714785074694791ULL;
-      result *= 11400714785074694791ULL;
-      result += 9650029242287828579ULL;
-
-      result ^= rotate_left_64(State[2] * 14029467366897019727ULL, 31) *
-                11400714785074694791ULL;
-      result *= 11400714785074694791ULL;
-      result += 9650029242287828579ULL;
-
-      result ^= rotate_left_64(State[3] * 14029467366897019727ULL, 31) *
-                11400714785074694791ULL;
-      result *= 11400714785074694791ULL;
-      result += 9650029242287828579ULL;
-    } else {
-      result = State[2] + 2870177450012600261ULL;
-    }
-
-    result += Count;
-
-    auto *p = Buffer;
-    while (p + 8 < BufferPtr) {
-      result = rotate_left_64(
-          result ^ rotate_left_64(*(u64 *)p * 14029467366897019727ULL, 31), 27);
-      result *= 11400714785074694791ULL;
-      result += 9650029242287828579ULL;
-
-      p += 8;
-    }
-
-    if (p + 4 <= BufferPtr) {
-      result = rotate_left_64(result ^ *(u32 *)p * 11400714785074694791ULL, 23);
-      result *= 14029467366897019727ULL;
-      result += 1609587929392839161ULL;
-      p += 4;
-    }
-
-    while (p != BufferPtr) {
-      result = rotate_left_64(result ^ *p++ * 2870177450012600261ULL, 11) *
-               11400714785074694791ULL;
-    }
-
-    result ^= result >> 33;
-    result *= 14029467366897019727ULL;
-    result ^= result >> 29;
-    result *= 1609587929392839161ULL;
-    result ^= result >> 32;
-    return result;
+    b = (s64 ^ b) * p1;
+    s64 = ((b << 23) | (b >> 41)) * p2 + p3;
   }
 
-  void process(const void *data) {
-    auto *block = (const u64 *)data;
-    State[0] =
-        rotate_left_64(State[0] + block[0] * 14029467366897019727ULL, 31) *
-        11400714785074694791ULL;
-    State[1] =
-        rotate_left_64(State[1] + block[1] * 14029467366897019727ULL, 31) *
-        11400714785074694791ULL;
-    State[2] =
-        rotate_left_64(State[2] + block[2] * 14029467366897019727ULL, 31) *
-        11400714785074694791ULL;
-    State[3] =
-        rotate_left_64(State[3] + block[3] * 14029467366897019727ULL, 31) *
-        11400714785074694791ULL;
+  // up to 3 bytes remain, process 0-3 1 byte blocks
+  for (int i = 0; i < (len & 3); i++, tail++)
+  {
+    u64 b = s64 ^ (*tail) * p5;
+    s64 = ((b << 11) | (b >> 53)) * p1;
   }
-};
 
-inline u64 get_hash(any_array_like auto ref array) {
-  hasher h(0);
-  For(array) h.add((const char *)&it, sizeof(it));
-  return h.hash();
+  // finalization mix
+  s64 = (s64 ^ (s64 >> 33)) * p2;
+  s64 = (s64 ^ (s64 >> 29)) * p3;
+  return (s64 ^ (s64 >> 32));
+}
+
+// murmur3 32-bit without UB unaligned accesses
+// https://github.com/demetri/scribbles/blob/master/hashing/ub_aware_hash_functions.c
+inline u32 get_hash_murmur_32(const byte *key, s64 len, u32 hash_so_far = 0)
+{
+  u32 h = hash_so_far;
+
+  // main body, work on 32-bit blocks at a time
+  for (int i = 0; i < len / 4; i++)
+  {
+    u32 k;
+    memcpy(&k, &key[i * 4], sizeof(k));
+
+    k *= 0xcc9e2d51;
+    k = ((k << 15) | (k >> 17)) * 0x1b873593;
+    h = (((h ^ k) << 13) | ((h ^ k) >> 19)) * 5 + 0xe6546b64;
+  }
+
+  // load/mix up to 3 remaining tail bytes into a tail block
+  u32 t = 0;
+  byte *tail = ((byte *)key) + 4 * (len / 4);
+  switch (len & 3)
+  {
+  case 3:
+    t ^= tail[2] << 16;
+  case 2:
+    t ^= tail[1] << 8;
+  case 1:
+  {
+    t ^= tail[0] << 0;
+    h ^= ((0xcc9e2d51 * t << 15) | (0xcc9e2d51 * t >> 17)) * 0x1b873593;
+  }
+  }
+
+  // finalization mix, including key length
+  h = ((h ^ len) ^ ((h ^ len) >> 16)) * 0x85ebca6b;
+  h = (h ^ (h >> 13)) * 0xc2b2ae35;
+  return h ^ (h >> 16);
+}
+
+// Good enough hash for arrays of any type
+// Note: If u have short low-entropy arrays, murmur might be better
+inline u64 get_hash(any_array_like auto ref array)
+{
+  return get_hash_xxhash64(array.Data, array.Count * sizeof(array[0]));
 }
 
 // Hashes for integer types
@@ -183,11 +158,11 @@ TRIVIAL_HASH(u64);
 
 TRIVIAL_HASH(bool);
 
-// Hashing strings...
-inline u64 get_hash(string value) {
-  u64 hash = 5381;
-  For(value) hash = ((hash << 5) + hash) + it;
-  return hash;
+// Hashing strings, based on murmur
+// For larger strings, xxhash64 might be better
+inline u64 get_hash(string value)
+{
+  return get_hash_murmur_32((const byte *) value.Data, value.Count, 0);
 }
 
 // Partial specialization for pointers

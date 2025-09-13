@@ -87,12 +87,15 @@ LSTD_BEGIN_NAMESPACE
 //      Integers:
 //       'b' - Binary integer. Outputs the number in base 2.
 //       'c' - Code point. Converts the integer to the corresponding unicode
-//       code point before printing. 'd' - Decimal integer. Outputs the number
-//       in base 10. 'o' - Octal format. Outputs the number in base 8. 'x' - Hex
-//       format. Outputs the number in base 16, using lower-case letters for the
-//       digits above 9. 'X' - Hex format. Outputs the number in base 16, using
-//       upper-case letters for the digits above 9. 'n' - Number. This is the
-//       same as 'd', except that it inserts thousands separator
+//       code point before printing. 
+//       'd' - Decimal integer. Outputs the number
+//       in base 10. 
+//       'o' - Octal format. Outputs the number in base 8. 
+//       'x' - Hex format. Outputs the number in base 16, using lower-case letters for the
+//       digits above 9. 
+//       'X' - Hex format. Outputs the number in base 16, using
+//       upper-case letters for the digits above 9. 
+//       'n' - Number. This is the same as 'd', except that it inserts thousands separator
 //             (currently a dot that doesn't get determined by the locale)
 //       '' (NONE) - the same as 'd'
 //
@@ -942,7 +945,7 @@ mark_as_leak string sprint(string fmtString, Args no_copy... arguments)
   writer.Builder = &b;
   fmt_to_writer(&writer, fmtString, arguments...);
 
-  string combined = builder_to_string_and_free(b);
+  string combined = builder_to_string_and_free_builder(b);
 
   return combined;
 }

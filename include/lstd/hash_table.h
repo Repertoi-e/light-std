@@ -125,8 +125,7 @@ struct key_value_pair {
 // _MINIMUM_SIZE_ and no specified alignment. You can call this before using the
 // hash table to initialize the arrays with a custom alignment (if that's
 // required).
-void resize(any_hash_table auto ref table, s64 slotsToAllocate,
-            u32 alignment = 0) {
+void resize(any_hash_table auto ref table, s64 slotsToAllocate, u32 alignment = 0) {
   if (slotsToAllocate < table.Allocated) return;
 
   s64 target = max<s64>(ceil_pow_of_2(slotsToAllocate), table.MINIMUM_SIZE);
@@ -356,12 +355,7 @@ hash_table<K, V> make_hash_table(initializer_list<pair<K, V>> init) {
 }
 
 inline u64 get_hash(any_hash_table auto value) {
-  hasher h(0);
-  For(value) {
-    h.add((const char *)it.Key, sizeof(it.Key));
-    h.add((const char *)it.Value, sizeof(it.Value));
-  }
-  return h.hash();
+  return get_hash(value.Entries);
 }
 
 LSTD_END_NAMESPACE

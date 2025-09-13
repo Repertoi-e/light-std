@@ -23,7 +23,7 @@ void platform_report_error(string message, source_location loc = source_location
 
 inline void report_warning_no_allocations(string message)
 {
-    string preMessage = ">>> Warning (in windows_common.cpp): ";
+    string preMessage = ">>> Warning (in posix/common.h): ";
     write(STDERR_FILENO, preMessage.Data, preMessage.Count);
 
     write(STDERR_FILENO, message.Data, message.Count);

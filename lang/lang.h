@@ -1,30 +1,172 @@
 #pragma once
 
 #include "lstd/xar.h"
-#include "lstd/string.h"
+#include "lstd/fmt.h"
 #include "lstd/context.h"
+#include "lstd/hash_table.h"
 
-template <typename... Args>
-void error(string message, Args no_copy... arguments)
-{
-    print("{!RED}error:{!} {}\n", tprint(message, arguments...));
+#include "snipffi.h"
+#include "diagnostics.h"  // New high-level diagnostic API
+
+// Previous macro-based error system replaced by inline functions in diagnostics.h
+// Use ERR / WARN / ERR_ANNOTATED / ERR_ANNOTATED_CONTEXT etc. as function calls now.
+
+//
+// Atoms:
+//
+inline arena_allocator_data ARENA_ATOMS_DATA;
+#define ARENA_ATOMS (allocator{arena_allocator, &ARENA_ATOMS_DATA})
+
+//
+// Atoms are de-duplicated strings that live for the entire compilation.
+// They are used for identifiers, keywords, number and string literals, etc.
+//
+// The idea is to allow for fast comparisons by comparing atom* 
+// instead of string contents.
+//
+// To handle Unicode correctly, we expect the input strings
+// to be in normalized form D (NFD). We do this at the beginning
+// before even tokenizing (look at tokenizer_prepare_source).
+//
+// You can create a string view into the atom's data using string(a.Data, a.Count) from an atom*.
+//
+// The reason we don't use a string directly is because essentially an atom
+// acts like an inline string Count + Data one after the other.
+// We can do this because we are guaranteed that the atom lives in our atom arena and
+// was allocated there. The same flexibility is not available for normal strings, because
+// they keep a pointer to data that can be anywhere in (read-only) memory.
+//
+struct atom {
+  s64 Count = 0;
+  char Data[1];
+}; 
+
+using atoms_table = hash_table<atom*, atom*>;
+inline atoms_table ATOMS_TABLE; 
+
+//
+// Find an atom in the table by its string contents and hash.
+// Returns null if not found.
+//
+inline atom* atoms_table_probe(string s, u64 hash) {
+  if (!ATOMS_TABLE.Count) return null;
+
+  s64 index = hash & ATOMS_TABLE.Allocated - 1;
+  For_as(_, range(ATOMS_TABLE.Allocated)) {
+    auto it = ATOMS_TABLE.Entries.Data + index;
+
+    if (it->Hash == hash && it->Key->Count == s.Count && memcmp(it->Key->Data, s.Data, s.Count) == 0)
+      return it->Key;
+
+    ++index;
+    if (index >= ATOMS_TABLE.Allocated) index = 0;
+  }
+  return null;
 }
 
-template <typename... Args>
-void warn(string message, Args no_copy... arguments)
-{
-    print("{!YELLOW}warning:{!} {}\n", tprint(message, arguments...));
+//
+// Creates an empty atom, with Count = 0 and Data[0] = '\0'.
+// Used for building an atom when identifier has Unicode escapes,
+// or when string literals have escapes,
+// or when doing concatenation of string literals.
+//
+// Most of the time you want to use atom_put(string) instead,
+// see note about atom_put below.
+//
+inline atom* atom_new() {
+  // Already has space for null terminator from atom Data[1]
+  atom* a = (atom*)malloc<byte>({.Alloc = ARENA_ATOMS, .Count = (s64) sizeof(atom)}); 
+  a->Count = 0;
+  a->Data[0] = '\0';
+  return a;
 }
 
-arena_allocator_data ARENA_TOKEN_DATA;
+//
+// Call this after atom_new to append more data to the atom.
+// This may reallocate the atom, but since we are using an arena allocator
+// this actually just means allocating a new atom and copying the data over.
+// In-case the atom is reallocated, the returned pointer will be different
+// from the input one.
+//
+// To ensure the atom doesn't move around in memory, you can make sure
+// you finish building an atom before allocating any other atoms.
+//
+inline atom* atom_push(atom* a, string s) {
+  if (!s.Data || !s.Count) return a;
+
+  atom* new_a = (atom *) realloc<byte>((byte *) a, {.NewCount = a->Count + s.Count + (s64) sizeof(atom)});
+  if (a != new_a) {
+    memcpy(new_a->Data, a->Data, a->Count);
+  }
+  memcpy(new_a->Data + a->Count, s.Data, s.Count);
+  new_a->Count = a->Count + s.Count;
+  new_a->Data[new_a->Count] = '\0';
+  return new_a;
+}
+
+//
+// When the atom is finished being built (atom_new + atom_push calls),
+// put it in the table of atoms for de-duplication.
+// This may return a different atom* if an identical atom already exists,
+// in this case the old one is freed, but that only
+// works if the atom was allocated in the ARENA_ATOMS arena,
+// and no other atoms were allocated in between.
+//
+inline atom* atom_put(atom *a) {
+  u64 hash = get_hash(a);
+  atom* found_a = atoms_table_probe(string(a->Data, a->Count), hash);
+  if (found_a) {
+    // Free the newly built atom, since an identical one already exists, 
+    // only works if it was at the top of ARENA_ATOMS.
+    // Otherwise we leak.
+    free(a); 
+    return found_a;
+  }
+
+  add_prehashed(ATOMS_TABLE, hash, a, a);
+  return a;
+}
+
+//
+// Skip the building process and directly put a string in the atoms table.
+// This is the most common way to create atoms, for identifiers and keywords.
+// It is also used for string literals that don't have escapes.
+//
+inline atom* atom_put(string s)
+{
+  if (!s.Data || !s.Count) return null;
+
+  u64 hash = get_hash(s);
+  atom* a = atoms_table_probe(s, hash);
+  if (a) return a;
+
+  a = (atom*)malloc<char>({.Alloc = ARENA_ATOMS, .Count = s.Count + (s64) sizeof(atom)}); 
+  a->Count = s.Count;
+  memcpy(a->Data, s.Data, s.Count);
+  a->Data[s.Count] = '\0';
+
+  add_prehashed(ATOMS_TABLE, hash, a, a);
+  return a;
+}
+
+//
+// Tokens and tokenizer:
+//
+
+inline arena_allocator_data ARENA_TOKEN_DATA;
 #define ARENA_TOKEN (allocator{arena_allocator, &ARENA_TOKEN_DATA})
 
 #define TKN2(x, y) (((y) << 8) | (x))
 #define TKN3(x, y, z) (((z) << 16) | ((y) << 8) | (x))
 
+#define TOKEN_FLAG_WIDE   0x0100
+
 enum token_type
 {
   TOKEN_INVALID = 0,
+  TOKEN_POISONED = 1,
+
+  TOKEN_NEWLINE = '\n',
 
   TOKEN_DOT = '.',
   TOKEN_COMMA = ',',
@@ -60,12 +202,10 @@ enum token_type
   TOKEN_BRACE_OPEN = '{',
   TOKEN_BRACE_CLOSE = '}',
 
-  TOKEN_STRING_SINGLE_QUOTE = '\'',
-  TOKEN_STRING_DOUBLE_QUOTE = '\"',
-
-  // L"hello"
-  TOKEN_STRING_WIDE_SINGLE_QUOTE = '\'' + 256,
-  TOKEN_STRING_WIDE_DOUBLE_QUOTE = '\"' + 256,
+  TOKEN_CHAR = '\'',
+  TOKEN_STRING = '\"',
+  TOKEN_WCHAR = '\'' | TOKEN_FLAG_WIDE,
+  TOKEN_WSTRING = '\"' | TOKEN_FLAG_WIDE,
 
   TOKEN_IDENTIFIER = 256,
   TOKEN_INTEGER,
@@ -100,128 +240,255 @@ enum token_type
   TOKEN_DECREMENT = TKN2('-', '-'),
 
   TOKEN_KW_auto = 0x10000000, // auto
-  TOKEN_KW_break, // break
-  TOKEN_KW_case, // case
-  TOKEN_KW_char, // char
-  TOKEN_KW_const, // const
-  TOKEN_KW_continue, // continue
-  TOKEN_KW_default, // default
-  TOKEN_KW_do, // do
-  TOKEN_KW_double, // double
-  TOKEN_KW_else, // else
-  TOKEN_KW_enum, // enum
-  TOKEN_KW_extern, // extern
-  TOKEN_KW_float, // float
-  TOKEN_KW_for, // for
-  TOKEN_KW_goto, // goto
-  TOKEN_KW_if, // if
-  TOKEN_KW_inline, // inline
-  TOKEN_KW_int, // int
-  TOKEN_KW_long, // long
-  TOKEN_KW_register, // register
-  TOKEN_KW_restrict, // restrict
-  TOKEN_KW_return, // return
-  TOKEN_KW_short, // short
-  TOKEN_KW_signed, // signed
-  TOKEN_KW_sizeof, // sizeof
-  TOKEN_KW_static, // static
-  TOKEN_KW_struct, // struct
-  TOKEN_KW_switch, // switch
-  TOKEN_KW_typedef, // typedef
-  TOKEN_KW_union, // union
-  TOKEN_KW_unsigned, // unsigned
-  TOKEN_KW_void, // void
-  TOKEN_KW_volatile, // volatile
-  TOKEN_KW_while, // while
-  TOKEN_KW_Alignas, // _Alignas
-  TOKEN_KW_Alignof, // _Alignof
-  TOKEN_KW_Atomic, // _Atomic
-  TOKEN_KW_Bool, // _Bool
-  TOKEN_KW_Complex, // _Complex
-  TOKEN_KW_Embed, // _Embed
-  TOKEN_KW_Generic, // _Generic
-  TOKEN_KW_Imaginary, // _Imaginary
-  TOKEN_KW_Pragma, // _Pragma
-  TOKEN_KW_Noreturn, // _Noreturn
-  TOKEN_KW_Static_assert, // _Static_assert
-  TOKEN_KW_Thread_local, // _Thread_local
-  TOKEN_KW_Typeof, // _Typeof
-  TOKEN_KW_Vector, // _Vector
-  TOKEN_KW_asm, // asm
-  TOKEN_KW_attribute, // attribute
-  TOKEN_KW_cdecl, // cdecl
-  TOKEN_KW_stdcall, // stdcall
-  TOKEN_KW_declspec, // declspec
+  TOKEN_KW_break,             // break
+  TOKEN_KW_case,              // case
+  TOKEN_KW_char,              // char
+  TOKEN_KW_const,             // const
+  TOKEN_KW_continue,          // continue
+  TOKEN_KW_default,           // default
+  TOKEN_KW_do,                // do
+  TOKEN_KW_double,            // double
+  TOKEN_KW_else,              // else
+  TOKEN_KW_enum,              // enum
+  TOKEN_KW_extern,            // extern
+  TOKEN_KW_float,             // float
+  TOKEN_KW_for,               // for
+  TOKEN_KW_goto,              // goto
+  TOKEN_KW_if,                // if
+  TOKEN_KW_inline,            // inline
+  TOKEN_KW_int,               // int
+  TOKEN_KW_long,              // long
+  TOKEN_KW_register,          // register
+  TOKEN_KW_restrict,          // restrict
+  TOKEN_KW_return,            // return
+  TOKEN_KW_short,             // short
+  TOKEN_KW_signed,            // signed
+  TOKEN_KW_sizeof,            // sizeof
+  TOKEN_KW_static,            // static
+  TOKEN_KW_struct,            // struct
+  TOKEN_KW_switch,            // switch
+  TOKEN_KW_typedef,           // typedef
+  TOKEN_KW_union,             // union
+  TOKEN_KW_unsigned,          // unsigned
+  TOKEN_KW_void,              // void
+  TOKEN_KW_volatile,          // volatile
+  TOKEN_KW_while,             // while
+  TOKEN_KW_Alignas,           // _Alignas
+  TOKEN_KW_Alignof,           // _Alignof
+  TOKEN_KW_Atomic,            // _Atomic
+  TOKEN_KW_Bool,              // _Bool
+  TOKEN_KW_Complex,           // _Complex
+  TOKEN_KW_Embed,             // _Embed
+  TOKEN_KW_Generic,           // _Generic
+  TOKEN_KW_Imaginary,         // _Imaginary
+  TOKEN_KW_Pragma,            // _Pragma
+  TOKEN_KW_Noreturn,          // _Noreturn
+  TOKEN_KW_Static_assert,     // _Static_assert
+  TOKEN_KW_Thread_local,      // _Thread_local
+  TOKEN_KW_Typeof,            // _Typeof
+  TOKEN_KW_Vector,            // _Vector
+  TOKEN_KW_asm,               // asm
+  TOKEN_KW_attribute,         // attribute
+  TOKEN_KW_cdecl,             // cdecl
+  TOKEN_KW_stdcall,           // stdcall
+  TOKEN_KW_declspec,          // declspec
 
   TOKEN_COUNT
 };
 
-const char *token_to_string(token_type t);
+#undef TKN2
+#undef TKN3
 
 inline bool token_is_keyword(token_type type)
 {
   return type >= TOKEN_KW_auto && type < TOKEN_COUNT;
 }
 
-#undef TKN2
-#undef TKN3
-
 struct token
 {
   token_type Type = TOKEN_INVALID;
-  usize Location = 0;
+  s64 Location = 0; // Offset in the source code string where the token starts
+
+  atom *Atom = null; // The de-duplicated string representation for identifiers, number literals, string literals, char literals
+  union {
+    s128 IntValue = 0; // TOKEN_INTEGER
+    f64 FloatValue; // TOKEN_FLOAT
+    char CharValue; // TOKEN_CHAR
+    wchar WCharValue; // TOKEN_WCHAR
+  };
 };
 
 using token_array = exponential_array<token, 23, 8>;
 
+//
+// Note: Thoughout the tokenizer, we expect the source code to be null-terminated with '\0'.
+// This simplifies a lot of checks.
+//
+// We also run UTF-8 NFD normalization on all source code strings
+// to support Unicode correctly on identifier names which can contain
+// combining characters, etc.
+//
 struct tokenizer
 {
-  string Source;
-  s64 Position = 0; // Byte position in the source
+  const char *Start; // Points to the beginning of the source code
+  const char *Current;
+  const char *FileName = nullptr;      // Optional file name for diagnostics
+
+  // 1-based current line number (tracks newline traversals)
+  s64 CurrentLine = 1;                 
+
+  // Points to the start of the current line, to see if Start == CurrentLineStart, i.e. we are at column 0
+  const char* CurrentLineStart = nullptr; 
+
+  exponential_array<string>* DiagnosticsSink = nullptr; // Optional sink to capture diagnostics
 };
 
-inline bool tokenizer_at_end(tokenizer ref tokenizer)
+u64 get_hash(tokenizer no_copy tz)
 {
-  return tokenizer.Position >= tokenizer.Source.Count;
+  return get_hash((void *)tz.Start) ^ get_hash((void *)tz.Current);
 }
 
-inline byte tokenizer_peek_ascii(tokenizer ref tokenizer)
+//
+// Prepares the source code for tokenization.
+// This normalizes it to UTF-8 NFD, and adds
+// '\0' termination at the end.
+//
+const char *tokenizer_prepare_source(string sourceCode)
 {
-  assert(!tokenizer_at_end(tokenizer) && "Peeking past the end of the tokenizer source");
-  return tokenizer.Source.Data[tokenizer.Position];
-}
+  if(sourceCode.Count >= 0xFFFFFFFF) {
+    ERR("", mprint("Source code too large ({:n} bytes)", sourceCode.Count));
+    return null;
+  }
 
-inline void tokenizer_advance(tokenizer ref tokenizer, s64 n = 1)
-{
-  tokenizer.Position += n;
+  string_builder sb;
+  if (!utf8_normalize_nfd_to_string_builder(sourceCode.Data, sourceCode.Count, sb))
+  {
+    ERR("", "Failed to normalize UTF-8 string");
+    return null;
+  }
+  add(sb, '\0');
+  return builder_to_string_and_free_builder(sb).Data;
 }
 
 // Gets the next token from the tokenizer,
 // increments the position. You can cheaply call this
 // to reparse the same token multiple times, if
 // you reset the position.
-token tokenizer_next_token(tokenizer ref tokenizer);
+token tokenizer_next_token(tokenizer ref tz);
+
+// Parses a number (integer or float) from the given string position.
+// Handles various bases (hex 0x, octal 0, binary 0b) and float formats.
+// Returns a token with the number atom as payload.
+// If invalid number, returns TOKEN_INVALID.
+token tokenizer_next_number_literal(tokenizer ref tz);
+
+// Parses a char or string literal (wide or not).
+// Handles escape sequences, including Unicode escapes.
+// Returns a token with the string atom as payload.
+// If invalid string (e.g. missing ending quote), returns TOKEN_INVALID
+token tokenizer_next_char_or_string_literal(tokenizer ref tz);
 
 // Iteratively skip ASCII/Unicode whitespace and C/C++ style comments.
+// Doesn't skip newlines, those are significant, e.g. for the preprocessor.
 void tokenizer_skip_trivia(tokenizer ref tz);
 
-token_array tokenizer_tokenize(string source)
+struct tokenizer_options {
+  const char* FileName = nullptr;
+  exponential_array<string>* DiagnosticsSink = nullptr; // if set diagnostics captured
+};
+
+inline void tokenizer__install_context(const tokenizer* tz) {
+  auto get_line = [](const void* p)->s64 { return p ? ((const tokenizer*)p)->CurrentLine : 1; };
+  auto get_filename = [](const void* p)->const char* { return p ? ((const tokenizer*)p)->FileName : nullptr; };
+  diag_set_active_tokenizer(tz, get_line, get_filename);
+  if (tz && tz->DiagnosticsSink) diag_set_sink(tz->DiagnosticsSink); else diag_set_sink(nullptr);
+}
+
+token_array tokenizer_tokenize_with_opts(const char* sourceCode, tokenizer_options opts = {})
 {
   PUSH_ALLOC(ARENA_TOKEN)
   {
-    tokenizer tz = {.Source = source};
+    tokenizer tz = {sourceCode, sourceCode, opts.FileName, 1, sourceCode, opts.DiagnosticsSink};
 
     token_array tokens;
-    while (!tokenizer_at_end(tz))
+    tokenizer__install_context(&tz);
+
+    while (*tz.Current != '\0')
     {
+      const char* start = tz.Current;
       token t = tokenizer_next_token(tz);
-      if (t.Type == TOKEN_INVALID)
+      tokenizer_skip_trivia(tz);
+
+      if (tz.Current && t.Type == TOKEN_INVALID)
       {
-        warn("Invalid token at byte offset {}", t.Location);
+        WARN_ANNOTATED(sourceCode, "Invalid token", start, tz.Current, "unrecognized token");
         continue;
       }
       add(tokens, t);
     }
+    // Reset global diagnostic context after run
+    diag_set_active_tokenizer(nullptr, nullptr, nullptr); 
+    diag_set_sink(nullptr);
     return tokens;
+  }
+}
+
+token_array tokenizer_tokenize(const char* sourceCode) { return tokenizer_tokenize_with_opts(sourceCode, {}); }
+
+token_array tokenizer_tokenize(string sourceCode, tokenizer_options opts = {})
+{
+  PUSH_ALLOC(ARENA_TOKEN)
+  {
+    const char* sc = tokenizer_prepare_source(sourceCode);
+    if (!sc) return {};
+    return tokenizer_tokenize_with_opts(sc, opts);
+  }
+}
+
+// Converts a token type to its literal enum name, e.g. TOKEN_PLUS
+const char *token_type_to_string(token_type t);
+
+//
+// Converts a token to its string representation.
+// For identifiers, integers, floats and strings
+// we return the actual text from the source code.
+// Note: We don't store lengths or strings in the token,
+// as this is mostly used for error messages, and
+// unnecessarily bloats the token structure, leading to
+// more cache misses and memory usage.
+//
+// So this function needs the source code as well,
+// and we call the tokenizer to re-tokenize and get
+// the actual text.
+//
+string token_to_string(token t)
+{
+  switch (t.Type)
+  {
+  case TOKEN_FLOAT:
+  {
+    assert(t.Atom);
+    return sprint("{} (value: {})", string(t.Atom->Data, t.Atom->Count), t.FloatValue);
+  }
+  case TOKEN_INTEGER:
+  {
+    assert(t.Atom);
+    return sprint("{} (value: {})", string(t.Atom->Data, t.Atom->Count), t.IntValue);
+  }
+  case TOKEN_IDENTIFIER:
+  case TOKEN_STRING:
+  case TOKEN_CHAR:
+  case TOKEN_WSTRING:
+  case TOKEN_WCHAR:
+  {
+    assert(t.Atom);
+    return string(t.Atom->Data, t.Atom->Count);
+  }
+  break;
+  default:
+  {
+    const char* token_to_string_gen(token_type t);
+    return token_to_string_gen(t.Type);
+  }
   }
 }

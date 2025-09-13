@@ -83,7 +83,7 @@ inline string platform_utf16_to_utf8(const wchar *str, allocator alloc = {}) {
 inline void report_warning_no_allocations(string message) {
   DWORD ignored;
 
-  string preMessage = ">>> Warning (in windows_common.cpp): ";
+  string preMessage = ">>> Warning (in windows/common.h): ";
   WriteFile(S->CerrHandle, preMessage.Data, (DWORD)preMessage.Count, &ignored, null);
 
   WriteFile(S->CerrHandle, message.Data, (DWORD)message.Count, &ignored, null);
@@ -470,7 +470,7 @@ inline void parse_arguments() {
 }
 
 // This needs to be called when our program runs, but also when a new thread
-// starts! See windows_common.cpp for implementation details. Note: You
+// starts! See windows/common.h for implementation details. Note: You
 // shouldn't ever call this.
 inline void platform_init_context() {
   auto newContext = context(context::dont_init_t{});
