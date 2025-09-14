@@ -113,21 +113,22 @@ Exit codes:
   2   Invalid command line usage / missing input
   4   Invalid UTF-8 or UTF-8 normalization failure
 )";
-        clap_parser parser = {
+        clap_parser cl = {
             .program_name = "lang",
             .about_text = about_text,
             .version_text = VERSION,
             .auto_help = true,
             .auto_version = true
         };
-        add(parser.arguments, clap_arg_positional("file", .value_name = "FILE", .help_text = "Input file to process", .is_required = false));
-        add(parser.arguments, clap_arg_flag("tokenSink", .short_name = "t", .long_name="token-sink", .help_text = "Print all tokens to stdout"));
+        add(cl.arguments, clap_arg_positional("file", .value_name = "FILE", .help_text = "Input file to process", .is_required = false));
+        add(cl.arguments, clap_arg_flag("tokenSink", .short_name = "t", .long_name="token-sink", .help_text = "Just tokenize and print to stdout"));
+        add(cl.arguments, clap_arg_flag("parserSink", .short_name = "p", .long_name="parser-sink", .help_text = "Just parse and print node graph to stdout"));
 
-        add(parser.arguments, clap_arg_flag("page1", .long_name="last-compiler", .short_name="l", .help_text = "Print page 1 of the manifesto and exit"));
-        add(parser.arguments, clap_arg_flag("page2", .long_name="memory-management", .short_name="m", .help_text = "Print page 2 of the manifesto and exit"));
-        add(parser.arguments, clap_arg_flag("page3", .long_name="c--", .short_name="c", .help_text = "Print page 3 of the manifesto and exit"));
+        add(cl.arguments, clap_arg_flag("page1", .long_name="last-compiler", .short_name="l", .help_text = "Print page 1 of the manifesto and exit"));
+        add(cl.arguments, clap_arg_flag("page2", .long_name="memory-management", .short_name="m", .help_text = "Print page 2 of the manifesto and exit"));
+        add(cl.arguments, clap_arg_flag("page3", .long_name="c--", .short_name="c", .help_text = "Print page 3 of the manifesto and exit"));
 
-        clap_parse_result result = clap_parse(parser, argc, argv);
+        clap_parse_result result = clap_parse(cl, argc, argv);
         if (!result.success)
         {
             if (result.error.Count > 0)
@@ -187,10 +188,21 @@ Exit codes:
                     }
 
                     if (clap_has_arg(result, "tokenSink")) {
-                        token_array tokens = tokenizer_tokenize(sourceCode, to_c_string_temp(file_path));
+                        token_array tokens = tokenizer_tokenize(sourceCode, to_c_string(file_path));
                         print("{} tokens\n", tokens.Count);
                         for (s64 i = 0; i < tokens.Count; i++) {
                             print("{}: {} {}\n", tokens[i].Location, token_type_to_string(tokens[i].Type), token_to_string(tokens[i]));
+                        }
+                    }
+
+                    if (clap_has_arg(result, "parserSink")) {
+                        tokenizer tz = {sourceCode, sourceCode, to_c_string(file_path), 1, sourceCode};
+                        diagnostics_set_active_tokenizer(&tz);
+
+                        parser ps = {tz};
+                        node* ast = parse_expression(ps);
+                        if (ast) {
+                            print_node(ast, 0);
                         }
                     }
                 },

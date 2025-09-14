@@ -9,7 +9,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LANG_H = os.path.join(SCRIPT_DIR, 'lang.h')
-OUT_TOKEN_GEN = os.path.join(SCRIPT_DIR, 'src', 'token', 'token_gen.inc')
+OUT_TOKEN_GEN = os.path.join(SCRIPT_DIR, 'src', 'token_gen.inc')
 
 
 def parse_token_enum(path):

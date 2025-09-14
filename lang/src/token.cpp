@@ -222,14 +222,14 @@ void tokenizer_skip_trivia(tokenizer ref tz)
                 }
                 if (!found_end)
                 {
-                    ERR_ANNOTATED_CONTEXT(
-                        "Block comment wasn't closed",
+                    WARN_ANNOTATED_CONTEXT(
+                        "Block comment reached end of code before being closed",
                         comment_start,
                         comment_start + 2,
                         "Comment started here",
                         comment_start,
                         s,
-                        "End of input reached before closing comment");
+                        "... commenting out the rest of the code");
                 }
                 continue;
             }
