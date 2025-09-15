@@ -1679,8 +1679,7 @@ NOBDEF bool nob_is_directory(const char *path)
 #ifdef _WIN32
     DWORD attr = GetFileAttributesA(path);
     if (attr == INVALID_FILE_ATTRIBUTES) {
-        nob_log(NOB_ERROR, "Could not get file attributes of %s: %s
-", path, nob_win32_error_message(GetLastError()));
+        nob_log(NOB_ERROR, "Could not get file attributes of %s: %s", path, nob_win32_error_message(GetLastError()));
         return false;
     }
 
