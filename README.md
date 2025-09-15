@@ -104,7 +104,7 @@ The library now works on macOS with the nob build system. Use the same build ins
 >```
 - Never throw exceptions. Instead, return multiple values using structured bindings (C++17).
   They make code complicated. When you can't handle an error and need to exit from a function, return multiple values.
->          auto [content, success] = path_read_entire_file("data/hello.txt");
+>          auto [content, success] = os_read_entire_file("data/hello.txt");
 - In general, error conditions (which require returning a status) should be rare. The code should just do the correct stuff. I find that using exceptions leads to this mentality of "giving up and passing the responsibility to handle error cases to the caller". Howoever, that quickly becomes complicated and confidence is lost on what could happen and where. Code in general likes to grow in complexity combinatorially as more functionality is added, if we also give up the linear structure of code by using exceptions then that's a disaster waiting to happen.
 
 #### Example
@@ -500,20 +500,22 @@ The context is initialized when the program runs and when creating a thread with
 >     print("\nFinished tests, time taken: {:f} seconds, bytes used: {}\n\n", os_time_to_seconds(os_get_time() - start), TemporaryAllocatorData.Used);
 > ```
 
-> ex.4 Example taken from a physics engine simulation with `light-std-graphics`. This demonstates how to allocate global state + a pool and initialize a common general purpose allocator at the beginning of your program.
+> ex.4 Example taken from a physics engine simulation with `light-std-graphics`. This demonstrates how to allocate global state + a pool and initialize a common general purpose allocator at the beginning of your program.
 > ```cpp
->     // We allocate all the state we need next to each other in order to reduce fragmentation.
->     auto [data, m, g, pool] = os_allocate_packed<tlsf_allocator_data, memory, graphics>(MemoryInBytes);
+>     // We allocate a large block for our memory needs.
+>     void *memory_pool = os_allocate_block(MemoryInBytes);
+>     
+>     // Set up the TLSF allocator data at the start of our memory pool
+>     auto *data = (tlsf_allocator_data*)memory_pool;
+>     auto *pool = (byte*)memory_pool + sizeof(tlsf_allocator_data);
+>     s64 pool_size = MemoryInBytes - sizeof(tlsf_allocator_data);
 >
 >     // TLSF (Two-Level Segregate Fit) is a fast general purpose dynamic memory allocator for real-time systems.
 >     // We provide an implementation directly in the library.
 >     PersistentAlloc = {tlsf_allocator, data};
->     allocator_add_pool(PersistentAlloc, pool, MemoryInBytes);
-> 
->     Memory = m;
->     Graphics = g;
-> 
->     auto newContext = Context;
+>     allocator_add_pool(PersistentAlloc, pool, pool_size);
+
+     auto newContext = Context;
 >     newContext.Log = &cout;
 >     newContext.Alloc = PersistentAlloc;
 >
