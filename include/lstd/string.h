@@ -818,7 +818,7 @@ string slice(string s, s64 begin, s64 end);
 // Allocates a buffer, copies the string's contents and also appends a zero
 // terminator. Uses the Context's current allocator. The caller is responsible
 // for freeing.
-mark_as_leak char *to_c_string(string s, allocator alloc = {});
+mark_as_leak char *to_c_string(string s, u64 alloc_options = 0, allocator alloc = {});
 
 // Allocates a buffer, copies the string's contents and also appends a zero
 // terminator. Uses the temporary allocator.
@@ -1379,9 +1379,9 @@ inline void set(string ref str, s64 index, code_point cp)
   replace_range_bytes(str, byte_begin, byte_end, replace);
 }
 
-mark_as_leak inline char *to_c_string(string s, allocator alloc)
+mark_as_leak inline char *to_c_string(string s, u64 alloc_options, allocator alloc)
 {
-  char *result = malloc<char>({.Count = s.Count + 1, .Alloc = alloc});
+  char *result = malloc<char>({.Count = s.Count + 1, .Alloc = alloc, .Options = alloc_options});
   memcpy(result, s.Data, s.Count);
   result[s.Count] = '\0';
   return result;

@@ -37,7 +37,7 @@ LSTD_BEGIN_NAMESPACE
 // "array_like.h")
 template <typename T, s64 N>
 struct stack_array {
-  T Data[N ? N : 1]{};
+  T Data[N]{};
   static constexpr s64 Count = N;
 
   stack_array() {}

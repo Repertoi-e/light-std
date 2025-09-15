@@ -272,6 +272,18 @@ struct allocator {
 void free_all(allocator alloc, u64 options = 0);
 
 template <typename T>
+struct allocator_with_context {
+  allocator_func_t Function;
+  T Context;
+
+  allocator_with_context() : Function(null), Context() {}
+  allocator_with_context(allocator_dont_init_t) {}
+  allocator_with_context(allocator_func_t function, T no_copy context) : Function(function), Context(context) {}
+
+  operator allocator() const { return allocator(Function, (void *)&Context); }
+};
+
+template <typename T>
 concept non_void = !is_same<T, void>;
 
 template <non_void T>

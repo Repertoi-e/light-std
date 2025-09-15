@@ -115,6 +115,26 @@ void add(exponential_array<T, N, B, S> ref arr, T no_copy element) {
     arr[arr.Count++] = element;
 }
 
+void remove_ordered_at_index(any_xar auto ref arr, s64 index) {
+    index = translate_negative_index(index, arr.Count);
+#if defined LSTD_ARRAY_BOUNDS_CHECK
+    assert(index >= 0 && index < arr.Count && "Index out of bounds");
+#endif
+    for (s64 i = index; i < arr.Count - 1; ++i) {
+        arr[i] = arr[i + 1];
+    }
+    arr.Count--;
+}
+
+void remove_unordered_at_index(any_xar auto ref arr, s64 index) {
+    index = translate_negative_index(index, arr.Count);
+#if defined LSTD_ARRAY_BOUNDS_CHECK
+    assert(index >= 0 && index < arr.Count && "Index out of bounds");
+#endif
+    arr[index] = arr[arr.Count - 1];
+    arr.Count--;
+}
+
 void free(any_xar auto ref arr) {
     For(range(arr.N)) {
         if (arr.Chunks[it] != null) {

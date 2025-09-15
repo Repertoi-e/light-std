@@ -253,7 +253,7 @@ inline const thread_local allocator TemporaryAllocator =
 // Allocates a buffer, copies the string's contents and also appends a zero
 // terminator. Uses the temporary allocator.
 inline char *to_c_string_temp(string s) {
-  return to_c_string(s, TemporaryAllocator);
+  return to_c_string(s, 0, TemporaryAllocator);
 }
 
 LSTD_END_NAMESPACE
