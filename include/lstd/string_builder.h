@@ -101,60 +101,65 @@ inline string builder_to_string_and_free_builder(any_string_builder auto ref bui
 
 inline bool utf8_normalize_nfc_to_string_builder(const char *str, s64 byteLength, any_string_builder auto ref builder)
 {
-  if (!str || byteLength < 0)
-    return false;
+  if (!str || byteLength < 0) return false;
 
   const char *p = str;
   const char *end = str + byteLength;
-  stack_array<code_point, 1024> segBuf;
 
-  while (p < end)
-  {
+  // Fast path: scan consecutive ASCII bytes (U+0000..U+007F) and append them in bulk.
+  // Most source files are overwhelmingly ASCII; we avoid per-code-point logic for those.
+  while (p < end) {
+    const char *ascii_start = p;
+    while (p < end && (unsigned char)(*p) < 0x80) ++p;
+    if (p != ascii_start) {
+      add(builder, ascii_start, (s64)(p - ascii_start));
+      if (p >= end) break; // Finished on ASCII boundary
+    }
+    if (p >= end) break;
+
+    // From here we know *p is non-ASCII. Decode & process an NFD segment.
+    stack_array<code_point, 1024> segBuf; // Holds NFD segment (already canonically ordered by utf8_segment_nfd)
     s64 segN = 0;
-    if (!utf8_segment_nfd(p, end, segBuf, segN))
-      return false;
+    if (!utf8_segment_nfd(p, end, segBuf, segN)) return false;
 
-    // Canonical composition
-    stack_array<code_point, 1024> compBuf;
+    // If the segment is a single code point, it's already in NFC.
+    if (segN == 1) {
+      add(builder, segBuf.Data[0]);
+      continue;
+    }
+
+    // Canonical composition (UAX #15) reusing a single comp buffer.
+    stack_array<code_point, 1024> compBuf; // (starter + remaining composed sequence)
     s64 compN = 0;
-    if (segN > 0)
-    {
-      compBuf.Data[compN++] = segBuf.Data[0];
-      s64 starterPos = 0;
-      u8 lastCC = 0;
-      for (s64 i = 1; i < segN; ++i)
-      {
-        code_point c = segBuf.Data[i];
-        u8 cc = unicode_combining_class(c);
-        code_point starter = compBuf.Data[starterPos];
-        code_point m = unicode_compose_pair(starter, c);
-        if (m && (lastCC < cc))
-        {
-          compBuf.Data[starterPos] = m;
-        }
-        else
-        {
-          compBuf.Data[compN++] = c;
-          if (cc == 0)
-          {
-            starterPos = compN - 1;
-            lastCC = 0;
-          }
-          else
-          {
-            lastCC = cc;
-          }
+    compBuf.Data[compN++] = segBuf.Data[0];
+    s64 starterPos = 0;
+    u8 lastCC = 0; // last non-zero combining class in current starter sequence
+
+    for (s64 i = 1; i < segN; ++i) {
+      code_point c = segBuf.Data[i];
+      u8 cc = unicode_combining_class(c);
+      code_point starter = compBuf.Data[starterPos];
+      code_point composed = 0;
+      if (cc != 0 || lastCC == 0) { // Only attempt composition when not blocked
+        composed = unicode_compose_pair(starter, c);
+      }
+      if (composed && (lastCC < cc)) {
+        // Replace starter with composed; starter position unchanged
+        compBuf.Data[starterPos] = composed;
+      } else {
+        compBuf.Data[compN++] = c;
+        if (cc == 0) { // New starter begins
+          starterPos = compN - 1;
+          lastCC = 0;
+        } else {
+          lastCC = cc;
         }
       }
     }
 
-    // Emit composed segment into string_builder
-    for (s64 i = 0; i < compN; ++i)
-    {
-      add(builder, compBuf.Data[i]);
-    }
+    // Emit composed segment into builder
+    for (s64 i = 0; i < compN; ++i) add(builder, compBuf.Data[i]);
   }
-
   return true;
 }
 

@@ -183,9 +183,14 @@ key_value_pair<T> search_prehashed(T ref table, u64 hash,
                                    table_key_t<T> no_copy key) {
   if (!table.Count) return {null, null};
 
-  s64 index = hash & table.Allocated - 1;
+  s64 index = hash & (table.Allocated - 1);
   For_as(_, range(table.Allocated)) {
     auto it = table.Entries.Data + index;
+    
+    // Empty slot - not found
+    if (it->Hash == 0)
+      return {null, null};
+    
     if (it->Hash == hash && compare_equals(it->Key, key))
       return {&it->Key, &it->Value};
 
@@ -217,7 +222,7 @@ key_value_pair<T> add_prehashed(T ref table, u64 hash, table_key_t<T> no_copy ke
 
   if (hash < table.FIRST_VALID_HASH) hash += table.FIRST_VALID_HASH;
 
-  s64 index = hash & table.Allocated - 1;
+  s64 index = hash & (table.Allocated - 1);
   while ((table.Entries.Data + index)->Hash) {
     ++index;
     if (index >= table.Allocated) index = 0;

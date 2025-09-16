@@ -14,7 +14,7 @@
 // See "memory.h" for details (or search for DEBUG_MEMORY) and see
 // what extra stuff we do.
 
-#if defined DEBUG || defined DEBUG_OPTIMIZED
+#if defined DEBUG && !defined DEBUG_OPTIMIZED
 #if !defined DEBUG_MEMORY && !defined FORCE_NO_DEBUG_MEMORY
 #define DEBUG_MEMORY
 #endif
