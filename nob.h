@@ -231,6 +231,7 @@ typedef enum {
 } Nob_File_Type;
 
 NOBDEF bool nob_mkdir_if_not_exists(const char *path);
+NOBDEF bool nob_mkdir_if_not_exists_recursively(const char *path);
 NOBDEF bool nob_copy_file(const char *src_path, const char *dst_path);
 NOBDEF bool nob_copy_directory_recursively(const char *src_path, const char *dst_path);
 NOBDEF bool nob_is_directory(const char *path);
@@ -1014,6 +1015,26 @@ NOBDEF void nob__go_rebuild_urself(int argc, char **argv, const char *source_pat
 static size_t nob_temp_size = 0;
 static char nob_temp[NOB_TEMP_CAPACITY] = {0};
 
+NOBDEF bool nob_mkdir_if_not_exists_recursively(const char *path) 
+{
+    for (const char *p = path; *p; p++) {
+        if (*p == '/' || *p == '\\') {
+            size_t len = p - path;
+            char dir[1024];
+            if (len >= sizeof(dir)) {
+                nob_log(NOB_ERROR, "Path too long: %s", path);
+                return false;
+            }
+            memcpy(dir, path, len);
+            dir[len] = '\0';
+            if (!nob_mkdir_if_not_exists(dir)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 NOBDEF bool nob_mkdir_if_not_exists(const char *path)
 {
 #ifdef _WIN32
@@ -1023,7 +1044,7 @@ NOBDEF bool nob_mkdir_if_not_exists(const char *path)
 #endif
     if (result < 0) {
         if (errno == EEXIST) {
-            nob_log(NOB_INFO, "directory `%s` already exists", path);
+            // nob_log(NOB_INFO, "directory `%s` already exists", path);
             return true;
         }
         nob_log(NOB_ERROR, "could not create directory `%s`: %s", path, strerror(errno));
@@ -2497,6 +2518,7 @@ NOBDEF int closedir(DIR *dirp)
         #define FILE_OTHER NOB_FILE_OTHER
         #define File_Type Nob_File_Type
         #define mkdir_if_not_exists nob_mkdir_if_not_exists
+        #define mkdir_if_not_exists_recursively nob_mkdir_if_not_exists_recursively
         #define copy_file nob_copy_file
         #define copy_directory_recursively nob_copy_directory_recursively
         #define read_entire_dir nob_read_entire_dir

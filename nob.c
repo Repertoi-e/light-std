@@ -50,12 +50,25 @@ void print_usage(const char *program_name)
     nob_log(INFO, "  debug      - Debug build with bounds checking\n");
     nob_log(INFO, "  optimized  - Debug build with optimizations\n");
     nob_log(INFO, "  release    - Release build (default)\n");
+    nob_log(INFO, "\nOther commands:\n");
+    nob_log(INFO, "  flags [config] - Print compiler flags for the (optionally specified) configuration and exit.\n");
+}
+
+void add_specific_flags(Cmd *cmd, Config config)
+{
+    nob_cc_flags(cmd);
+ #if defined(__APPLE__) || defined(__MACH__) || defined(__linux__)
+    cmd_append(cmd, "-Wno-unused-but-set-variable");
+    cmd_append(cmd, "-Wno-unused-variable");
+    cmd_append(cmd, "-Wno-unused-parameter");
+    cmd_append(cmd, "-Wno-unused-function");
+    cmd_append(cmd, "-Wno-sign-compare");
+#endif
 }
 
 void add_common_flags(Cmd *cmd, Config config)
 {
     // Language and standard
-    nob_cc_flags(cmd);
     nob_language_cpp(cmd, "c++20");
 
     // To see compile time breakdown:
@@ -88,12 +101,6 @@ void add_common_flags(Cmd *cmd, Config config)
 
 #if defined(__APPLE__) || defined(__MACH__) || defined(__linux__)
     cmd_append(cmd, "-pthread");
-
-    cmd_append(cmd, "-Wno-unused-but-set-variable");
-    cmd_append(cmd, "-Wno-unused-variable");
-    cmd_append(cmd, "-Wno-unused-parameter");
-    cmd_append(cmd, "-Wno-unused-function");
-    cmd_append(cmd, "-Wno-sign-compare");
 #elif defined(_WIN32)
     cmd_append(cmd, "-DNOMINMAX", "-DWIN32_LEAN_AND_MEAN", "-D_CRT_SUPPRESS_RESTRICT");
     cmd_append(cmd, "-DLSTD_NO_CRT");
@@ -113,9 +120,6 @@ void add_common_flags(Cmd *cmd, Config config)
     // cmd_append(cmd, "-DLSTD_UNICODE_FULL_RANGE"); This adds around 25 MB to the binary size
     cmd_append(cmd, "-DPLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB");
     cmd_append(cmd, "-DPLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB");
-
-    // Include directories
-    cmd_append(cmd, "-I" INCLUDE_FOLDER);
 }
 
 bool build_lstd_library(Config config)
@@ -163,13 +167,14 @@ bool build_lstd_library(Config config)
         Cmd cmd = {0};
         cmd_append(&cmd, "c++");
 
+        add_specific_flags(&cmd, config);
         add_common_flags(&cmd, config);
         cmd_append(&cmd, "-fPIC");
         cmd_append(&cmd, "-c"); // Compile to object file only
 
-        // Additional include for cephes math
+        cmd_append(&cmd, "-I" INCLUDE_FOLDER);
         cmd_append(&cmd, "-I" INCLUDE_FOLDER "lstd/vendor/cephes/cmath/");
-
+    
         // Input and output
         nob_cc_inputs(&cmd, input);
         nob_cc_output(&cmd, obj_file);
@@ -227,6 +232,7 @@ bool build_test_suite(Config config)
         nob_cc_output(&cmd, exe_path);
 
         // Link with lstd library
+        cmd_append(&cmd, "-I" INCLUDE_FOLDER);
         cmd_append(&cmd, temp_sprintf("-L%slib", build_folder));
         cmd_append(&cmd, "-llstd");
 

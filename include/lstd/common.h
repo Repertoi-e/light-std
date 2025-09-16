@@ -913,8 +913,7 @@ constexpr u128 operator*(u128 lhs, u128 rhs)
     return result;
 }
 
-constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret,
-                       u128 *remainder_ret);
+constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret, u128 *remainder_ret);
 
 constexpr u128 operator/(u128 lhs, u128 rhs)
 {
@@ -1007,8 +1006,7 @@ constexpr s128 operator/(s128 lhs, s128 rhs)
     // assert(lhs != Int128Min() || rhs != -1);  // UB on two's complement.
 
     u128 quotient = 0, remainder = 0;
-    div_mod(unsigned_absolute_value(lhs), unsigned_absolute_value(rhs), &quotient,
-            &remainder);
+    div_mod(unsigned_absolute_value(lhs), unsigned_absolute_value(rhs), &quotient, &remainder);
     if ((lhs.hi < 0) != (rhs.hi < 0))
         quotient = -quotient;
     return s128(s64_bit_cast_to_u64(quotient.hi), quotient.lo);
@@ -1200,10 +1198,9 @@ namespace internal
 } // namespace internal
 
 // Long division/modulo for u128 implemented using the
-// shiftsubtractdivisionalgorithmadaptedfrom:
+// shift subtract division algorithm adapted from:
 // https://stackoverflow.com/questions/5386377/division-without-using
-constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret,
-                       u128 *remainder_ret)
+constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret, u128 *remainder_ret)
 {
     if (divisor == 0)
         return;
