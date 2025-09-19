@@ -131,23 +131,15 @@ inline u64 rotate_right_64(u64 x, u32 bits) {
 
 // Functions for swapping endianness. You can check for the endianness by using
 // #if ENDIAN = LITTLE_ENDIAN, etc.
-inline void byte_swap_2(void *ptr) {
-  u16 x = *(u16 *)ptr;
-  *(u16 *)ptr = (x << 8 & 0xFF00) | (x >> 8 & 0x00FF);
-}
-
-inline void byte_swap_4(void *ptr) {
-  u32 x = *(u32 *)ptr;
-  *(u32 *)ptr = (x << 24 & 0xFF000000) | (x << 8 & 0x00FF0000) |
-                (x >> 8 & 0x0000FF00) | (x >> 24 & 0x000000FF);
-}
-
-inline void byte_swap_8(void *ptr) {
-  u64 x = *(u64 *)ptr;
-  x = ((x << 8) & 0xFF00FF00FF00FF00ULL) | ((x >> 8) & 0x00FF00FF00FF00FFULL);
-  x = ((x << 16) & 0xFFFF0000FFFF0000ULL) | ((x >> 16) & 0x0000FFFF0000FFFFULL);
-  *(u64 *)ptr = (x << 32) | (x >> 32);
-}
+#if COMPILER == MSVC
+static inline u16 byte_swap_16(u16 x) { return _byteswap_ushort(x); }
+static inline u32 byte_swap_32(u32 x) { return _byteswap_ulong(x); }
+static inline u64 byte_swap_64(u64 x) { return _byteswap_uint64(x); }
+#elif COMPILER == GCC || COMPILER == CLANG
+static inline u16 byte_swap_16(u16 x) { return __builtin_bswap16(x); }
+static inline u32 byte_swap_32(u32 x) { return __builtin_bswap32(x); }
+static inline u64 byte_swap_64(u64 x) { return __builtin_bswap64(x); }
+#endif
 
 template <typename T>
 void swap(T &a, T &b) {

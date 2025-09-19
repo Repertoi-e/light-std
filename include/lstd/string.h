@@ -607,15 +607,18 @@ inline bool utf8_segment_nfd(const char *&p, const char *end, stack_array<code_p
     p += sz2;
     if (segN >= 1024)
       break;
-  } // Canonical reorder (stable sort by CCC, indices >= 1)
+  }
+  // Canonical reorder (stable sort by CCC). Normally we sort indices >= 1,
+  // but if the segment begins with a non-starter (rare edge), sort from 0.
   if (segN > 1)
   {
-    for (s64 i = 2; i < segN; ++i)
+    s64 start_idx = (unicode_combining_class(segBuf.Data[0]) == 0) ? 1 : 0;
+    for (s64 i = start_idx + 1; i < segN; ++i)
     {
       code_point key = segBuf.Data[i];
       u8 key_cc = unicode_combining_class(key);
       s64 j = i - 1;
-      while (j >= 1 && unicode_combining_class(segBuf.Data[j]) > key_cc)
+      while (j >= start_idx && unicode_combining_class(segBuf.Data[j]) > key_cc)
       {
         segBuf.Data[j + 1] = segBuf.Data[j];
         --j;

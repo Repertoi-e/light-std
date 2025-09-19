@@ -37,7 +37,7 @@ inline const u64 POW10_SIGNIFICANDS_64[] = {
     0x9a130b963a6c115c, 0xc097ce7bc90715b3, 0xf0bdc21abb48db20,
     0x96769950b50d88f4, 0xbc143fa4e250eb31, 0xeb194f8e1ae525fd,
     0x92efd1b8d0cf37be, 0xb7abc627050305ad, 0xe596b7b0c643c719,
-    0x8f7e32ce7bea5c6f, 0xb35dbf821ae4f38b, 0xe0352f62a19e306e};
+    0x8f7e32ce7bea5c6f, 0xb35dbf821ae4f38b, 0xe0352f62a19e306e };
 
 inline const u128 POW10_SIGNIFICANDS_128[] = {
     {0xff77b1fcbebcdc4f, 0x25e8e89c13bb0f7b},
@@ -658,7 +658,7 @@ inline const u128 POW10_SIGNIFICANDS_128[] = {
     {0xfcf62c1dee382c42, 0x46729e03dd9ed7b5},
     {0x9e19db92b4e31ba9, 0x6c07a2c26a8346d1},
     {0xc5a05277621be293, 0xc7098b7305241885},
-    {0xf70867153aa2db38, 0xb8cbee4fc66d1ea7}};
+    {0xf70867153aa2db38, 0xb8cbee4fc66d1ea7} };
 
 inline const u64 LOG10_2_SIGNIFICAND = 0x4d104d427de7fbcc;
 
@@ -672,7 +672,7 @@ always_inline u64 umul128_upper64(u64 x, u64 y) { return umul128(x, y).hi; }
 // 128-bit unsigned integer.
 always_inline u64 umul192_upper64(u64 x, u128 y) {
   u128 g0 = umul128(x, y.hi);
-  g0 += umul128_upper64(x, y.lo);
+  g0 = g0 + (u128) umul128_upper64(x, y.lo);
   return g0.hi;
 }
 
@@ -711,8 +711,8 @@ always_inline s32 floor_log2_pow10(s32 e) {
   const u64 log2_10_fractional_digits = 0x5269e12f346e2bf9;
   const s32 shift_amount = 19;
   return (e * (s32)((log2_10_integer_part << shift_amount) |
-                    (log2_10_fractional_digits >> (64 - shift_amount)))) >>
-         shift_amount;
+    (log2_10_fractional_digits >> (64 - shift_amount)))) >>
+    shift_amount;
 }
 
 always_inline s32 floor_log10_pow2_minus_log10_4_over_3(s32 e) {
@@ -721,8 +721,8 @@ always_inline s32 floor_log10_pow2_minus_log10_4_over_3(s32 e) {
   const u64 log10_4_over_3_fractional_digits = 0x1ffbfc2bbc780375;
   const s32 shift_amount = 22;
   return (e * (s32)(LOG10_2_SIGNIFICAND >> (64 - shift_amount)) -
-          (s32)(log10_4_over_3_fractional_digits >> (64 - shift_amount))) >>
-         shift_amount;
+    (s32)(log10_4_over_3_fractional_digits >> (64 - shift_amount))) >>
+    shift_amount;
 }
 
 // Returns true iff x is divisible by pow(2, exp).
@@ -751,7 +751,7 @@ inline const divtest_table_entry<u32> DIVTEST_TABLE_FOR_POW5_32[] = {
     {0x3afb7e91, 0x0068db8b}, {0x0bcbe61d, 0x0014f8b5},
     {0x68c26139, 0x000431bd}, {0xae8d46a5, 0x0000d6bf},
     {0x22e90e21, 0x00002af3}, {0x3a2e9c6d, 0x00000897},
-    {0x3ed61f49, 0x000001b7}};
+    {0x3ed61f49, 0x000001b7} };
 
 inline const divtest_table_entry<u64> DIVTEST_TABLE_FOR_POW5_64[] = {
     {0x0000000000000001, 0xffffffffffffffff},
@@ -777,19 +777,19 @@ inline const divtest_table_entry<u64> DIVTEST_TABLE_FOR_POW5_64[] = {
     {0xd489e3a9addec2d1, 0x000000000002f394},
     {0x90e860bb892c8d5d, 0x000000000000971d},
     {0x502e79bf1b6f4f79, 0x0000000000001e39},
-    {0xdcd618596be30fe5, 0x000000000000060b}};
+    {0xdcd618596be30fe5, 0x000000000000060b} };
 
 // Returns true iff x is divisible by pow(5, exp).
 always_inline bool divisible_by_power_of_5(u32 x, s32 exp) {
   assert(exp <= 10 && "Exponent too big");
   return x * DIVTEST_TABLE_FOR_POW5_32[exp].ModInv <=
-         DIVTEST_TABLE_FOR_POW5_32[exp].MaxQuot;
+    DIVTEST_TABLE_FOR_POW5_32[exp].MaxQuot;
 }
 
 always_inline bool divisible_by_power_of_5(u64 x, s32 exp) {
   assert(exp <= 23 && "Exponent too big");
   return x * DIVTEST_TABLE_FOR_POW5_64[exp].ModInv <=
-         DIVTEST_TABLE_FOR_POW5_64[exp].MaxQuot;
+    DIVTEST_TABLE_FOR_POW5_64[exp].MaxQuot;
 }
 
 // f32:
@@ -800,7 +800,7 @@ always_inline bool divisible_by_power_of_5(u64 x, s32 exp) {
 // Replaces n by floor(n / pow(5, 2)) returning true iff n is divisible by
 // pow(5, 2). Precondition: n <= 2 * pow(5, 3).
 template <bool IS_F32>
-bool check_divisibility_and_divide_by_pow5(u32 *n) {
+bool check_divisibility_and_divide_by_pow5(u32* n) {
   const u32 magic_number = IS_F32 ? 0xcccd : 0xa429;
   const s32 bits_for_comparison = IS_F32 ? 16 : 8;
   const u32 threshold = IS_F32 ? 0x3333 : 0x0a;
@@ -874,23 +874,23 @@ inline bool cache_compute_mul_parity(u32 two_f, u64 cache, s32 beta_minus_1) {
 }
 
 inline u32 cache_compute_left_endpoint_for_shorter_interval_case(
-    u64 cache, s32 beta_minus_1) {
+  u64 cache, s32 beta_minus_1) {
   return (u32)((cache - (cache >> (numeric<f32>::bits_mantissa + 2))) >>
-               (64 - numeric<f32>::bits_mantissa - 1 - beta_minus_1));
+    (64 - numeric<f32>::bits_mantissa - 1 - beta_minus_1));
 }
 
 inline u32 cache_compute_right_endpoint_for_shorter_interval_case(
-    u64 cache, s32 beta_minus_1) {
+  u64 cache, s32 beta_minus_1) {
   return (u32)((cache + (cache >> (numeric<f32>::bits_mantissa + 1))) >>
-               (64 - numeric<f32>::bits_mantissa - 1 - beta_minus_1));
+    (64 - numeric<f32>::bits_mantissa - 1 - beta_minus_1));
 }
 
 inline u32 cache_compute_round_up_for_shorter_interval_case(u64 cache,
-                                                            s32 beta_minus_1) {
+  s32 beta_minus_1) {
   return ((u32)(cache >>
-                (64 - numeric<f32>::bits_mantissa - 2 - beta_minus_1)) +
-          1) /
-         2;
+    (64 - numeric<f32>::bits_mantissa - 2 - beta_minus_1)) +
+    1) /
+    2;
 }
 
 inline u64 cache_compute_mul(u64 u, u128 cache) {
@@ -909,26 +909,26 @@ inline bool cache_compute_mul_parity(u64 two_f, u128 cache, s32 beta_minus_1) {
 }
 
 inline u64 cache_compute_left_endpoint_for_shorter_interval_case(
-    u128 cache, s32 beta_minus_1) {
+  u128 cache, s32 beta_minus_1) {
   return (cache.hi - (cache.hi >> (numeric<f64>::bits_mantissa + 2))) >>
-         (64 - numeric<f64>::bits_mantissa - 1 - beta_minus_1);
+    (64 - numeric<f64>::bits_mantissa - 1 - beta_minus_1);
 }
 
 inline u64 cache_compute_right_endpoint_for_shorter_interval_case(
-    u128 cache, s32 beta_minus_1) {
+  u128 cache, s32 beta_minus_1) {
   return (cache.hi + (cache.hi >> (numeric<f64>::bits_mantissa + 1))) >>
-         (64 - numeric<f64>::bits_mantissa - 1 - beta_minus_1);
+    (64 - numeric<f64>::bits_mantissa - 1 - beta_minus_1);
 }
 
 inline u64 cache_compute_round_up_for_shorter_interval_case(u128 cache,
-                                                            s32 beta_minus_1) {
+  s32 beta_minus_1) {
   return ((cache.hi >> (64 - numeric<f64>::bits_mantissa - 2 - beta_minus_1)) +
-          1) /
-         2;
+    1) /
+    2;
 }
 
 // Remove trailing zeros from n and return the number of zeros removed
-always_inline s32 remove_trailing_zeros(u32 *n) {
+always_inline s32 remove_trailing_zeros(u32* n) {
   const s32 F32_MAX_TRAILING_ZEROS = 7;
 
   s32 t = lsb(*n);
@@ -953,7 +953,7 @@ always_inline s32 remove_trailing_zeros(u32 *n) {
 }
 
 // Removes trailing zeros and returns the number of zeros removed (double)
-always_inline s32 remove_trailing_zeros(u64 *n) {
+always_inline s32 remove_trailing_zeros(u64* n) {
   const s32 F64_MAX_TRAILING_ZEROS = 16;
 
   s32 t = lsb(*n);
@@ -1089,14 +1089,15 @@ always_inline auto shorter_interval_case(s32 exponent) {
   cache_t cache;
   if constexpr (IS_F32) {
     cache = get_cached_power_f32(-minus_k);
-  } else {
+  }
+  else {
     cache = get_cached_power_f64(-minus_k);
   }
 
   auto xi = cache_compute_left_endpoint_for_shorter_interval_case(cache,
-                                                                  beta_minus_1);
+    beta_minus_1);
   auto zi = cache_compute_right_endpoint_for_shorter_interval_case(
-      cache, beta_minus_1);
+    cache, beta_minus_1);
 
   // If the left endpoint is not an integer, increase it
   if (!is_left_endpoint_integer_shorter_interval(exponent)) ++xi;
@@ -1113,7 +1114,7 @@ always_inline auto shorter_interval_case(s32 exponent) {
 
   // Otherwise, compute the round-up of y
   result.Significand = (uint_t)cache_compute_round_up_for_shorter_interval_case(
-      cache, beta_minus_1);
+    cache, beta_minus_1);
   result.Exponent = minus_k;
 
   const s32 SHORTER_INTERVAL_TIE_THRESHOLD = IS_F32 ? -35 : -77;
@@ -1121,8 +1122,9 @@ always_inline auto shorter_interval_case(s32 exponent) {
   // When tie occurs, choose one of them according to the rule
   if (exponent == SHORTER_INTERVAL_TIE_THRESHOLD) {
     result.Significand = result.Significand % 2 == 0 ? result.Significand
-                                                     : result.Significand - 1;
-  } else if (result.Significand < xi) {
+      : result.Significand - 1;
+  }
+  else if (result.Significand < xi) {
     ++result.Significand;
   }
   return result;
@@ -1148,7 +1150,7 @@ auto dragonbox_format_float(is_floating_point auto x) {
   uint_t significand = (br & significandMask);
 
   uint_t exponentMask = ((uint_t(1) << float_info::bits_exponent) - 1)
-                        << float_info::bits_mantissa;
+    << float_info::bits_mantissa;
   s32 exponent = (s32)((br & exponentMask) >> float_info::bits_mantissa);
 
   // Check if normal
@@ -1159,7 +1161,8 @@ auto dragonbox_format_float(is_floating_point auto x) {
     if (significand == 0) return shorter_interval_case<IS_F32>(exponent);
 
     significand |= uint_t(1) << float_info::bits_mantissa;
-  } else {
+  }
+  else {
     // Subnormal case; the interval is always regular
     if (significand == 0) {
       decimal_fp<type_select_t<IS_F32, f32, f64>> result;
@@ -1179,7 +1182,8 @@ auto dragonbox_format_float(is_floating_point auto x) {
   cache_t cache;
   if constexpr (IS_F32) {
     cache = get_cached_power_f32(-minus_k);
-  } else {
+  }
+  else {
     cache = get_cached_power_f64(-minus_k);
   }
 
@@ -1208,22 +1212,24 @@ auto dragonbox_format_float(is_floating_point auto x) {
 
   if (r > deltai) {
     goto small_divisor_case_label;
-  } else if (r < deltai) {
+  }
+  else if (r < deltai) {
     // Exclude the right endpoint if necessary
     if (r == 0 && !include_right_endpoint &&
-        is_endpoint_integer<IS_F32>(two_fr, exponent, minus_k)) {
+      is_endpoint_integer<IS_F32>(two_fr, exponent, minus_k)) {
       --result.Significand;
       r = BIG_DIVISOR;
       goto small_divisor_case_label;
     }
-  } else {
+  }
+  else {
     // r == deltai; compare fractional parts
     // Check conditions in the order different from the paper
     // to take advantage of short-circuiting
     uint_t two_fl = two_fc - 1;
     if ((!include_left_endpoint ||
-         !is_endpoint_integer<IS_F32>(two_fl, exponent, minus_k)) &&
-        !cache_compute_mul_parity(two_fl, cache, beta_minus_1)) {
+      !is_endpoint_integer<IS_F32>(two_fl, exponent, minus_k)) &&
+      !cache_compute_mul_parity(two_fl, cache, beta_minus_1)) {
       goto small_divisor_case_label;
     }
   }
@@ -1261,15 +1267,16 @@ small_divisor_case_label:
       // parity. Also, zi and r should have the same parity since the divisor
       // is an even number
       if (cache_compute_mul_parity(two_fc, cache, beta_minus_1) !=
-          approx_y_parity) {
+        approx_y_parity) {
         --result.Significand;
-      } else {
+      }
+      else {
         // If z^(f) >= epsilon^(f), we might have a tie
         // when z^(f) == epsilon^(f), or equivalently, when y is an integer
         if (is_center_integer<IS_F32>(two_fc, exponent, minus_k)) {
           result.Significand = result.Significand % 2 == 0
-                                   ? result.Significand
-                                   : result.Significand - 1;
+            ? result.Significand
+            : result.Significand - 1;
         }
       }
     }
@@ -1291,16 +1298,16 @@ small_divisor_case_label:
 static inline void add_u64(string_builder ref builder, u64 value) {
   const s32 BUFFER_SIZE = numeric<u64>::digits10;
   char buffer[BUFFER_SIZE];
-  auto *p = buffer + BUFFER_SIZE - 1;
+  auto* p = buffer + BUFFER_SIZE - 1;
   if (!value) { *p-- = '0'; }
   while (value) { auto d = value % 10; *p-- = (char)('0' + d); value /= 10; }
   ++p; add(builder, p, buffer + BUFFER_SIZE - p);
 }
 
 s32 fmt_format_non_negative_float(string_builder ref floatBuffer,
-                                  is_floating_point auto value,
-                                  s32 precision,
-                                  fmt_float_specs no_copy specs) {
+  is_floating_point auto value,
+  s32 precision,
+  fmt_float_specs no_copy specs) {
   assert(value >= 0);
   bool fixed = specs.Format == fmt_float_specs::FIXED;
   if (value == 0) {

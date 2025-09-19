@@ -108,11 +108,40 @@ inline bool utf8_normalize_nfc_to_string_builder(const char *str, s64 byteLength
 
   // Fast path: scan consecutive ASCII bytes (U+0000..U+007F) and append them in bulk.
   // Most source files are overwhelmingly ASCII; we avoid per-code-point logic for those.
+  // IMPORTANT: If the ASCII run is immediately followed by a combining mark,
+  // we must "carry" the last ASCII code point into the next segment so that
+  // it can compose (e.g., "A" + U+0301 -> U+00C1).
   while (p < end) {
     const char *ascii_start = p;
     while (p < end && (unsigned char)(*p) < 0x80) ++p;
     if (p != ascii_start) {
-      add(builder, ascii_start, (s64)(p - ascii_start));
+      if (p < end) {
+        // Peek next code point; if it's a combining mark, hold back one ASCII
+        // starter to allow composition with the following marks.
+        s64 sz = utf8_get_size_of_cp(p);
+        if (sz > 0 && p + sz <= end && utf8_is_valid_cp(p)) {
+          code_point next_cp = utf8_decode_cp(p);
+          u8 next_cc = unicode_combining_class(next_cp);
+          if (next_cc != 0) {
+            // Append all but the last ASCII byte (which is a 1-byte starter)
+            if (p - ascii_start > 1) {
+              add(builder, ascii_start, (s64)(p - ascii_start - 1));
+            }
+            // Move p back to include the last ASCII starter in the next segment
+            --p;
+          } else {
+            // Safe to flush full ASCII run
+            add(builder, ascii_start, (s64)(p - ascii_start));
+          }
+        } else {
+          // Invalid/truncated next sequence; flush ASCII and let validator handle later
+          add(builder, ascii_start, (s64)(p - ascii_start));
+        }
+      } else {
+        // End of input; flush ASCII
+        add(builder, ascii_start, (s64)(p - ascii_start));
+        break;
+      }
       if (p >= end) break; // Finished on ASCII boundary
     }
     if (p >= end) break;

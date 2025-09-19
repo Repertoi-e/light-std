@@ -304,7 +304,7 @@ inline bool assign(big_integer ref b, is_integral auto v) {
     auto *p = get_digits(b);
 
     do {
-      if constexpr (sizeof(v) == sizeof(u128)) {
+      if constexpr (sizeof(v) == sizeof(s128)) {
         // Handle 128 bit integers
         *p++ = v.lo & MASK;
         ++size;

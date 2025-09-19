@@ -843,7 +843,7 @@ fp fp_normalize(fp value) {
 always_inline fp operator*(fp x, fp y) {
   // Computes x.Significand * y.Significand / pow(2, 64) rounded to nearest with
   // half-up tie breaking.
-  u128 product = u128(x.Significand) * y.Significand;
+  u128 product = u128(x.Significand) * (u128) y.Significand;
 
   u64 f = (u64)(product >> 64);
   x.Significand = ((u64)product & (1ull << 63)) != 0 ? f + 1 : f;

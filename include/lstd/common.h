@@ -40,7 +40,7 @@
  * @endcode
  */
 
-// OS constants
+ // OS constants
 #define WINDOWS 1
 #define MACOS 2
 #define LINUX 3
@@ -267,82 +267,82 @@ extern "C"
     }
 #elif defined(__thumb__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-/* FIXME: handle __THUMB_INTERWORK__ */
-__inline__ static void trap_instruction(void)
-{
-    /* See 'arm-linux-tdep.c' in GDB source.
-     * Both instruction sequences below work. */
+    /* FIXME: handle __THUMB_INTERWORK__ */
+    __inline__ static void trap_instruction(void)
+    {
+        /* See 'arm-linux-tdep.c' in GDB source.
+         * Both instruction sequences below work. */
 #if 1
-    /* 'eabi_linux_thumb_le_breakpoint' */
-    __asm__ volatile(".inst 0xde01");
+         /* 'eabi_linux_thumb_le_breakpoint' */
+        __asm__ volatile(".inst 0xde01");
 #else
-    /* 'eabi_linux_thumb2_le_breakpoint' */
-    __asm__ volatile(".inst.w 0xf7f0a000");
+         /* 'eabi_linux_thumb2_le_breakpoint' */
+        __asm__ volatile(".inst.w 0xf7f0a000");
 #endif
 
-    /* Known problem:
-     * After a breakpoint hit, can't 'stepi', 'step', or 'continue' in GDB.
-     * 'step' would keep getting stuck on the same instruction.
-     *
-     * Workaround: use the new GDB commands 'debugbreak-step' and
-     * 'debugbreak-continue' that become available
-     * after you source the script from GDB:
-     *
-     * $ gdb -x debugbreak-gdb.py <... USUAL ARGUMENTS ...>
-     *
-     * 'debugbreak-step' would jump over the breakpoint instruction with
-     * roughly equivalent of:
-     * (gdb) set $instruction_len = 2
-     * (gdb) tbreak *($pc + $instruction_len)
-     * (gdb) jump   *($pc + $instruction_len)
-     */
-}
+        /* Known problem:
+         * After a breakpoint hit, can't 'stepi', 'step', or 'continue' in GDB.
+         * 'step' would keep getting stuck on the same instruction.
+         *
+         * Workaround: use the new GDB commands 'debugbreak-step' and
+         * 'debugbreak-continue' that become available
+         * after you source the script from GDB:
+         *
+         * $ gdb -x debugbreak-gdb.py <... USUAL ARGUMENTS ...>
+         *
+         * 'debugbreak-step' would jump over the breakpoint instruction with
+         * roughly equivalent of:
+         * (gdb) set $instruction_len = 2
+         * (gdb) tbreak *($pc + $instruction_len)
+         * (gdb) jump   *($pc + $instruction_len)
+         */
+    }
 #elif defined(__arm__) && !defined(__thumb__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-__inline__ static void trap_instruction(void)
-{
-    /* See 'arm-linux-tdep.c' in GDB source,
-     * 'eabi_linux_arm_le_breakpoint' */
-    __asm__ volatile(".inst 0xe7f001f0");
-    /* Known problem:
-     * Same problem and workaround as Thumb mode */
-}
+    __inline__ static void trap_instruction(void)
+    {
+        /* See 'arm-linux-tdep.c' in GDB source,
+         * 'eabi_linux_arm_le_breakpoint' */
+        __asm__ volatile(".inst 0xe7f001f0");
+        /* Known problem:
+         * Same problem and workaround as Thumb mode */
+    }
 #elif defined(__aarch64__) && defined(__APPLE__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BULTIN_DEBUGTRAP
 #elif defined(__aarch64__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-__inline__ static void trap_instruction(void)
-{
-    /* See 'aarch64-tdep.c' in GDB source,
-     * 'aarch64_default_breakpoint' */
-    __asm__ volatile(".inst 0xd4200000");
-}
+    __inline__ static void trap_instruction(void)
+    {
+        /* See 'aarch64-tdep.c' in GDB source,
+         * 'aarch64_default_breakpoint' */
+        __asm__ volatile(".inst 0xd4200000");
+    }
 #elif defined(__powerpc__)
-/* PPC 32 or 64-bit, big or little endian */
+    /* PPC 32 or 64-bit, big or little endian */
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-__inline__ static void trap_instruction(void)
-{
-    /* See 'rs6000-tdep.c' in GDB source,
-     * 'rs6000_breakpoint' */
-    __asm__ volatile(".4byte 0x7d821008");
+    __inline__ static void trap_instruction(void)
+    {
+        /* See 'rs6000-tdep.c' in GDB source,
+         * 'rs6000_breakpoint' */
+        __asm__ volatile(".4byte 0x7d821008");
 
-    /* Known problem:
-     * After a breakpoint hit, can't 'stepi', 'step', or 'continue' in GDB.
-     * 'step' stuck on the same instruction ("twge r2,r2").
-     *
-     * The workaround is the same as ARM Thumb mode: use debugbreak-gdb.py
-     * or manually jump over the instruction. */
-}
+        /* Known problem:
+         * After a breakpoint hit, can't 'stepi', 'step', or 'continue' in GDB.
+         * 'step' stuck on the same instruction ("twge r2,r2").
+         *
+         * The workaround is the same as ARM Thumb mode: use debugbreak-gdb.py
+         * or manually jump over the instruction. */
+    }
 #elif defined(__riscv)
-/* RISC-V 32 or 64-bit, whether the "C" extension
- * for compressed, 16-bit instructions are supported or not */
+    /* RISC-V 32 or 64-bit, whether the "C" extension
+     * for compressed, 16-bit instructions are supported or not */
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-__inline__ static void trap_instruction(void)
-{
-    /* See 'riscv-tdep.c' in GDB source,
-     * 'riscv_sw_breakpoint_from_kind' */
-    __asm__ volatile(".4byte 0x00100073");
-}
+    __inline__ static void trap_instruction(void)
+    {
+        /* See 'riscv-tdep.c' in GDB source,
+         * 'riscv_sw_breakpoint_from_kind' */
+        __asm__ volatile(".4byte 0x00100073");
+    }
 #else
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
 #endif
@@ -350,26 +350,26 @@ __inline__ static void trap_instruction(void)
 #ifndef DEBUG_BREAK_IMPL
 #error "debugbreak.h is not supported on this target"
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_TRAP_INSTRUCTION
-__inline__ static void debug_break(void)
-{
-    trap_instruction();
-}
+    __inline__ static void debug_break(void)
+    {
+        trap_instruction();
+    }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_BULTIN_DEBUGTRAP
-__inline__ static void debug_break(void)
-{
-    __builtin_debugtrap();
-}
+    __inline__ static void debug_break(void)
+    {
+        __builtin_debugtrap();
+    }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_BULTIN_TRAP
-__inline__ static void debug_break(void)
-{
-    __builtin_trap();
-}
+    __inline__ static void debug_break(void)
+    {
+        __builtin_trap();
+    }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_SIGTRAP
 #include <signal.h>
-__inline__ static void debug_break(void)
-{
-    raise(SIGTRAP);
-}
+    __inline__ static void debug_break(void)
+    {
+        raise(SIGTRAP);
+    }
 #else
 #error "invalid DEBUG_BREAK_IMPL value"
 #endif
@@ -409,7 +409,7 @@ inline const null_t null = nullptr;
 //
 // The following integral types are defined here:
 //      s8, s16, s32, s64, s128,
-//      ... and corresponding unsigned types: u8, u16, u32, u64, u128,
+//      ... and corresponding unsigned types: u8, u16, u32, u64,
 //      vector types (aligned on 16 byte boundaries for SIMDs):
 //          u8v16, u16v8, u32v4, u64v2, s8v16, s16v8, s32v4, s64v2, f32v4, f64v2
 //		f32 (float), f64 (double), wchar (for Windows),
@@ -434,10 +434,10 @@ using u32 = unsigned;
 using u64 = unsigned long long;
 
 using wchar = wchar_t; // Only useful for Windows calls. Please don't use
-                       // utf-16 in your programs...
+// utf-16 in your programs...
 
 using code_point =
-    char32_t; // Holds the integer value of a Unicode code point.
+char32_t; // Holds the integer value of a Unicode code point.
 
 using byte = unsigned char;
 
@@ -496,668 +496,1060 @@ constexpr u64 operator"" _million(u64 i) { return i * 1000000; }
 constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
 
 //
-// Intrinsic-like s128 and u128 types:
+// Intrinsic-like s128 type:
 //
 
 struct s128;
 
-//
-// u128
-//
-// An unsigned 128-bit integer type. The API is meant to mimic an intrinsic
-// type as closely as is practical, including exhibiting undefined behavior in
-// analogous cases (e.g. division by zero). This type is intended to be a
-// drop-in replacement once C++ supports an intrinsic `uint128_t` type; when
-// that occurs, existing well-behaved uses of `u128` will continue to work
-// using that new type.
-//
-// However, a `u128` differs from intrinsic integral types in the following
-// ways:
-//
-//   * Errors on implicit conversions that do not preserve value (such as
-//     loss of precision when converting to float values).
-//   * Requires explicit construction from and conversion to floating point
-//     types.
-//   * Conversion to integral types requires an explicit static_cast() to
-//     mimic use of the `-Wnarrowing` compiler flag.
-//   * The alignment requirement of `u128` may differ from that of an
-//     intrinsic 128-bit integer type depending on platform and build
-//     configuration.
-//
-// Example:
-//
-//     f32 y = u128(17);  // Error. u128 cannot be implicitly
-//                        // converted to float.
-//
-//     u128 v;
-//     u64 i = v;        // Error
-//     u64 i = (u64) v;  // OK
-//
-struct alignas(16) u128
+struct s128
 {
-#if ENDIAN == LITTLE_ENDIAN
-    u64 lo;
-    u64 hi;
-#elif ENDIAN == BIG_ENDIAN
-    u64 hi;
-    u64 lo;
-#else
-#error "Unsupported byte order: must be little or big endian."
+    union {
+        u64 n[2];
+        u8 b[16];
+#if defined(__SIZEOF_INT128__)
+        __uint128_t m;
 #endif
-    constexpr u128() {}
-
-    //
-    // Constructors from arithmetic types
-    //
-#if ENDIAN == LITTLE_ENDIAN
-    constexpr u128(u64 high, u64 low) : lo{low}, hi{high} {}
-    constexpr u128(s32 v) : lo{(u64)(v)}, hi{v < 0 ? U64_MAX : 0} {}
-    constexpr u128(s64 v) : lo{(u64)(v)}, hi{v < 0 ? U64_MAX : 0} {}
-    constexpr u128(u32 v) : lo{v}, hi{0} {}
-    constexpr u128(u64 v) : lo{v}, hi{0} {}
-#elif ENDIAN == BIG_ENDIAN
-    constexpr u128(u64 high, u64 low) : hi{high}, lo{low} {}
-    constexpr u128(s32 v) : hi{v < 0 ? U64_MAX : 0}, lo{(u64)(v)} {}
-    constexpr u128(s64 v) : hi{v < 0 ? U64_MAX : 0}, lo{(u64)(v)} {}
-    constexpr u128(u32 v) : hi{0}, lo{v} {}
-    constexpr u128(u64 v) : hi{0}, lo{v} {}
-#else
-#error "Unsupported byte order: must be little or big endian."
+        struct {
+#if BYTE_ORDER == LITTLE_ENDIAN
+            u64 lo;
+            s64 hi;
 #endif
-    constexpr u128(s128 v);
-    constexpr explicit u128(float v);
-    constexpr explicit u128(double v);
+#if BYTE_ORDER == BIG_ENDIAN
+            s64 hi;
+            u64 lo;
+#endif
+        };
+    };
 
-    //
-    // Assignment operators from arithmetic types
-    //
-    constexpr u128 &operator=(s32 v) { return *this = u128(v); }
-    constexpr u128 &operator=(u32 v) { return *this = u128(v); }
-    constexpr u128 &operator=(s64 v) { return *this = u128(v); }
-    constexpr u128 &operator=(u64 v) { return *this = u128(v); }
-    constexpr u128 &operator=(s128 v);
+    s128() : n{ 0, 0 } {};
+    s128(s64 hi, u64 lo) : lo(lo), hi(hi) {};
+    s128(s64 v);
+#if defined(__SIZEOF_INT128__)
+    explicit s128(__uint128_t m) : m(m) {};
+#endif
+    explicit s128(u64 v);
 
-    //
-    // Conversion operators to other arithmetic types
-    //
-    constexpr explicit operator bool() const { return lo || hi; }
-    constexpr explicit operator s8() const { return (s8)lo; }
-    constexpr explicit operator u8() const { return (u8)lo; }
-    constexpr explicit operator code_point() const { return (code_point)lo; }
-    constexpr explicit operator wchar() const { return (wchar)lo; }
-    constexpr explicit operator s16() const { return (s16)lo; }
-    constexpr explicit operator u16() const { return (u16)lo; }
-    constexpr explicit operator s32() const { return (s32)lo; }
-    constexpr explicit operator u32() const { return (u32)lo; }
-    constexpr explicit operator s64() const { return (s64)lo; }
-    constexpr explicit operator u64() const { return (u64)lo; }
-    explicit operator float() const;
-    explicit operator double() const;
+    operator s64() const;
+    operator u64() const;
 
-    //
-    // Arithmetic operators
-    //
-    constexpr u128 &operator+=(u128 other);
-    constexpr u128 &operator-=(u128 other);
-    constexpr u128 &operator*=(u128 other);
-    constexpr u128 &operator/=(u128 other);
-    constexpr u128 &operator%=(u128 other);
-    constexpr u128 operator++(s32);
-    constexpr u128 operator--(s32);
-    constexpr u128 &operator<<=(s32);
-    constexpr u128 &operator>>=(s32);
-    constexpr u128 &operator&=(u128 other);
-    constexpr u128 &operator|=(u128 other);
-    constexpr u128 &operator^=(u128 other);
-    constexpr u128 &operator++();
-    constexpr u128 &operator--();
+    operator bool() const;
+    bool operator==(s128 v) const;
+    bool operator!=(s128 v) const;
+    bool operator<(s128 v) const;
+    bool operator<=(s128 v) const;
+    bool operator>(s128 v) const;
+    bool operator>=(s128 v) const;
+    s128 operator-() const;
+    s128 operator~() const;
+    s128 operator<<(s32 shamt) const;
+    s128 operator>>(s32 shamt) const;
+    s128 operator+(s128 v) const;
+    s128 operator-(s128 v) const;
+    s128 operator*(s128 v) const;
+    s128 operator/(s128 v) const;
+    s128 operator%(s128 v) const;
+    s128 operator&(s128 v) const;
+    s128 operator|(s128 v) const;
+    s128 operator^(s128 v) const;
 };
 
-// Casts from unsigned to signed while preserving the underlying binary
-// representation.
-inline constexpr s64 s64_bit_cast_to_u64(u64 v)
+static inline s128 i128_from_s64(s64 n);
+static inline s128 i128_from_u64(u64 n);
+static inline s128 i128_from_uv64(u64* v);
+static inline s64 s64_from_i128(s128 n);
+static inline u64 u64_from_i128(s128 n);
+static inline u64* uv64_from_i128(s128* v);
+
+static inline s128 i128_not(s128 u);
+static inline s128 i128_and(s128 u, s128 v);
+static inline s128 i128_or(s128 u, s128 v);
+static inline s128 i128_xor(s128 u, s128 v);
+static inline s128 i128_sll(s128 u, u32 shamt);
+static inline s128 i128_srl(s128 u, u32 shamt);
+static inline s128 i128_sra(s128 u, u32 shamt);
+
+static inline s128 i128_neg(s128 u);
+static inline s128 i128_add(s128 u, s128 v);
+static inline s128 i128_sub(s128 u, s128 v);
+static inline s128 i128_mul(s128 u, s128 v);
+static inline s128 i128_mulu(s128 u, s128 v);
+
+static inline s128 i128_div(s128 u, s128 v);
+static inline s128 i128_divu(s128 u, s128 v);
+static inline s128 i128_rem(s128 u, s128 v);
+static inline s128 i128_remu(s128 u, s128 v);
+
+static inline s128 i128_divmod(s128 u, s128 v, s128* r);
+static inline s128 i128_divmodu(s128 u, s128 v, s128* r);
+
+static inline int i128_cmp_eq(s128 u, s128 v);
+static inline int i128_cmp_lt(s128 u, s128 v);
+static inline int i128_cmp_gt(s128 u, s128 v);
+static inline int i128_cmp_ltu(s128 u, s128 v);
+static inline int i128_cmp_gtu(s128 u, s128 v);
+static inline int i128_cmp_t(s128 u, s128 v);
+static inline int i128_cmp_tu(s128 u, s128 v);
+
+static inline u32 i128_ctz(s128 u);
+static inline u32 i128_clz(s128 u);
+static inline u32 i128_popcnt(s128 u);
+static inline s128 i128_bswap(s128 u);
+static inline s128 i128_brev(s128 u);
+
+inline s128::s128(s64 v) { *this = i128_from_s64(v); }
+inline s128::s128(u64 v) { *this = i128_from_u64(v); }
+
+inline s128::operator s64() const { return s64_from_i128(*this); }
+inline s128::operator u64() const { return u64_from_i128(*this); }
+
+inline s128::operator bool() const { return hi != 0 || lo != 0; }
+inline bool s128::operator==(s128 v) const { return i128_cmp_eq(*this, v); }
+inline bool s128::operator!=(s128 v) const { return !i128_cmp_eq(*this, v); }
+inline bool s128::operator<(s128 v) const { return i128_cmp_lt(*this, v); }
+inline bool s128::operator<=(s128 v) const { return !i128_cmp_gt(*this, v); }
+inline bool s128::operator>(s128 v) const { return i128_cmp_gt(*this, v); }
+inline bool s128::operator>=(s128 v) const { return !i128_cmp_lt(*this, v); }
+inline s128 s128::operator-() const { return i128_neg(*this); }
+inline s128 s128::operator~() const { return i128_not(*this); }
+inline s128 s128::operator<<(s32 shamt) const { return i128_sll(*this, (s32) shamt); }
+inline s128 s128::operator>>(s32 shamt) const { return i128_sra(*this, (s32) shamt); }
+inline s128 s128::operator+(s128 v) const { return i128_add(*this, v); }
+inline s128 s128::operator-(s128 v) const { return i128_sub(*this, v); }
+inline s128 s128::operator*(s128 v) const { return i128_mul(*this, v); }
+inline s128 s128::operator/(s128 v) const { return i128_div(*this, v); }
+inline s128 s128::operator%(s128 v) const { return i128_rem(*this, v); }
+inline s128 s128::operator&(s128 v) const { return i128_and(*this, v); }
+inline s128 s128::operator|(s128 v) const { return i128_or(*this, v); }
+inline s128 s128::operator^(s128 v) const { return i128_xor(*this, v); }
+
+//
+// Intrinsic-like u128 type (unsigned counterpart)
+//
+
+struct u128;
+
+struct u128
 {
-    // Casting an unsigned integer to a signed integer of the same
-    // width is implementation defined behavior if the source value would not fit
-    // in the destination type. We step around it with a roundtrip bitwise not
-    // operation to make sure this function remains constexpr. Clang, GCC, and
-    // MSVC optimize this to a no-op on x86-64.
-    return v & (u64{1} << 63) ? ~((s64)(~v)) : ((s64)(v));
-}
-
-//
-// s128
-//
-// A signed 128-bit integer type. See docs for u128.
-//
-// The design goal for `s128` is that it will be compatible with a future
-// `int128_t`, if that type becomes a part of the standard.
-//
-// However, an `s128` differs from intrinsic integral types in the following
-// ways:
-//
-//   * It is not implicitly convertible to other integral types.
-//   * Requires explicit construction from and conversion to floating point
-//     types.
-//
-// Example:
-//
-//     float y = s128(17);  // Error. s128 cannot be implicitly
-//                          // converted to float.
-//
-//     s128 v;
-//     s64 i = v;        // Error
-//     s64 i = (s64) v;  // OK
-//
-struct alignas(16) s128
-{
-#if ENDIAN == LITTLE_ENDIAN
-    u64 lo;
-    s64 hi;
-#elif ENDIAN == BIG_ENDIAN
-    s64 hi;
-    u64 lo;
-#else
-#error "Unsupported byte order: must be little or big endian."
+    union {
+        u64 n[2];
+        u8 b[16];
+#if defined(__SIZEOF_INT128__)
+        __uint128_t m;
 #endif
-    constexpr s128() {}
-
-    //
-    // Constructors from arithmetic types
-    //
-
-#if ENDIAN == LITTLE_ENDIAN
-    constexpr s128(s64 high, u64 low) : lo(low), hi(high) {}
-    constexpr s128(s32 v) : lo{(u64)v}, hi{v < 0 ? ~s64{0} : 0} {}
-    constexpr s128(s64 v) : lo{(u64)v}, hi{v < 0 ? ~s64{0} : 0} {}
-    constexpr s128(u32 v) : lo{v}, hi{0} {}
-    constexpr s128(u64 v) : lo{v}, hi{0} {}
-    explicit constexpr s128(u128 v) : lo{v.lo}, hi{(s64)v.hi} {}
-#elif ENDIAN == BIG_ENDIAN
-    constexpr s128(s64 high, u64 low) : hi{high}, lo{low} {}
-    constexpr s128(s32 v) : hi{v < 0 ? ~s64{0} : 0}, lo{(u64)v} {}
-    constexpr s128(s64 v) : hi{v < 0 ? ~s64{0} : 0}, lo{(u64)v} {}
-    constexpr s128(u32 v) : hi{0}, lo{v} {}
-    constexpr s128(u64 v) : hi{0}, lo{v} {}
-    explicit constexpr s128(u128 v) : hi{(s64)v.hi}, lo{v.lo} {}
-#else
-#error "Unsupported byte order: must be little or big endian."
+        struct {
+#if BYTE_ORDER == LITTLE_ENDIAN
+            u64 lo;
+            u64 hi;
 #endif
-    explicit s128(float v);
-    explicit s128(double v);
+#if BYTE_ORDER == BIG_ENDIAN
+            u64 hi;
+            u64 lo;
+#endif
+        };
+    };
 
-    //
-    // Assignment operators from arithmetic types
-    //
-    constexpr s128 &operator=(s32 v) { return *this = s128(v); }
-    constexpr s128 &operator=(u32 v) { return *this = s128(v); }
-    constexpr s128 &operator=(s64 v) { return *this = s128(v); }
-    constexpr s128 &operator=(u64 v) { return *this = s128(v); }
+    u128() : n{ 0, 0 } {};
+    u128(u64 hi, u64 lo) : lo(lo), hi(hi) {};
+#if defined(__SIZEOF_INT128__)
+    explicit u128(__uint128_t m) : m(m) {};
+#endif
+    u128(u64 v);
 
-    //
-    // Conversion operators to other arithmetic types
-    //
-    constexpr explicit operator bool() const { return lo || hi; }
-    constexpr explicit operator s8() const { return (s8)(s64)(*this); }
-    constexpr explicit operator u8() const { return (u8)lo; }
-    constexpr explicit operator wchar() const { return (wchar)(s64)(*this); }
-    constexpr explicit operator code_point() const { return (code_point)lo; }
-    constexpr explicit operator s16() const { return (s16)(s64)(*this); }
-    constexpr explicit operator u16() const { return (u16)lo; }
-    constexpr explicit operator s32() const { return (s32)(s64)(*this); }
-    constexpr explicit operator u32() const { return (u32)lo; }
+    operator u64() const;
+    explicit operator bool() const;
 
-    constexpr explicit operator s64() const
-    {
-        // We don't bother checking the value of hi. If *this < 0, lo's high bit
-        // must be set in order for the value to fit into a s64. Conversely, if
-        // lo's high bit is set, *this must be < 0 for the value to fit.
-        return s64_bit_cast_to_u64(lo);
-    }
+    bool operator==(u128 v) const;
+    bool operator!=(u128 v) const;
+    bool operator<(u128 v) const;   // unsigned
+    bool operator<=(u128 v) const;  // unsigned
+    bool operator>(u128 v) const;   // unsigned
+    bool operator>=(u128 v) const;  // unsigned
 
-    constexpr explicit operator u64() const { return lo; }
-    explicit operator float() const;
-    explicit operator double() const;
-
-    //
-    // Arithmetic operators
-    //
-    constexpr s128 &operator+=(s128 other);
-    constexpr s128 &operator-=(s128 other);
-    constexpr s128 &operator*=(s128 other);
-    constexpr s128 &operator/=(s128 other);
-    constexpr s128 &operator%=(s128 other);
-    constexpr s128 operator++(s32);
-    constexpr s128 operator--(s32);
-    constexpr s128 &operator++();
-    constexpr s128 &operator--();
-    constexpr s128 &operator&=(s128 other);
-    constexpr s128 &operator|=(s128 other);
-    constexpr s128 &operator^=(s128 other);
-    constexpr s128 &operator<<=(s32 amount);
-    constexpr s128 &operator>>=(s32 amount);
+    u128 operator~() const;
+    u128 operator<<(s32 shamt) const;
+    u128 operator>>(s32 shamt) const; // logical right shift
+    u128 operator+(u128 v) const;
+    u128 operator-(u128 v) const;
+    u128 operator*(u128 v) const;
+    u128 operator/(u128 v) const;
+    u128 operator%(u128 v) const;
+    u128 operator&(u128 v) const;
+    u128 operator|(u128 v) const;
+    u128 operator^(u128 v) const;
 };
 
-constexpr u128 &u128::operator=(s128 v) { return *this = u128(v); }
+// u128 helpers (unsigned semantics)
+static inline u128 u128_from_u64(u64 n);
+static inline u128 u128_from_uv64(u64* v);
+static inline u64 u64_from_u128(u128 n);
+static inline u64* uv64_from_u128(u128* v);
 
-#if ENDIAN == LITTLE_ENDIAN
-constexpr u128::u128(s128 v) : lo{v.lo}, hi{(u64)(v.hi)} {}
-#elif ENDIAN == BIG_ENDIAN
-constexpr u128::u128(s128 v) : hi{(u64)(v.hi)}, lo{v.lo} {}
-#else
-#error "Unsupported byte order: must be little or big endian."
+static inline u128 u128_not(u128 u);
+static inline u128 u128_and(u128 u, u128 v);
+static inline u128 u128_or(u128 u, u128 v);
+static inline u128 u128_xor(u128 u, u128 v);
+static inline u128 u128_sll(u128 u, u32 shamt);
+static inline u128 u128_srl(u128 u, u32 shamt);
+static inline u128 u128_add(u128 u, u128 v);
+static inline u128 u128_sub(u128 u, u128 v);
+static inline u128 u128_mul(u128 u, u128 v);
+static inline u128 u128_div(u128 u, u128 v);
+static inline u128 u128_rem(u128 u, u128 v);
+static inline u128 u128_divmod(u128 u, u128 v, u128* r);
+
+// Implementations
+#if defined(__SIZEOF_INT128__)
+
+inline u128::u128(u64 v) { m = (__uint128_t)v; }
+inline u128::operator u64() const { return (u64)m; }
+inline u128::operator bool() const { return (bool)((u64)m | (u64)(m >> 64)); }
+
+static inline u128 u128_from_u64(u64 n) { return u128((__uint128_t)n); }
+static inline u128 u128_from_uv64(u64* v)
+{
+    u128 x;
+#if BYTE_ORDER == LITTLE_ENDIAN
+    x.m = (__uint128_t)v[0] | (__uint128_t)v[1] << 64;
+#endif
+#if BYTE_ORDER == BIG_ENDIAN
+    x.m = (__uint128_t)v[1] | (__uint128_t)v[0] << 64;
+#endif
+    return x;
+}
+static inline u64 u64_from_u128(u128 n) { return (u64)n.m; }
+static inline u64* uv64_from_u128(u128* v) { return v->n; }
+
+inline bool u128::operator==(u128 v) const { return m == v.m; }
+inline bool u128::operator!=(u128 v) const { return m != v.m; }
+inline bool u128::operator<(u128 v) const { return m < v.m; }
+inline bool u128::operator<=(u128 v) const { return m <= v.m; }
+inline bool u128::operator>(u128 v) const { return m > v.m; }
+inline bool u128::operator>=(u128 v) const { return m >= v.m; }
+
+static inline u128 u128_not(u128 u) { return u128(~u.m); }
+static inline u128 u128_and(u128 u, u128 v) { return u128(u.m & v.m); }
+static inline u128 u128_or(u128 u, u128 v) { return u128(u.m | v.m); }
+static inline u128 u128_xor(u128 u, u128 v) { return u128(u.m ^ v.m); }
+static inline u128 u128_sll(u128 u, u32 shamt) { return u128(u.m << shamt); }
+static inline u128 u128_srl(u128 u, u32 shamt) { return u128((__uint128_t)u.m >> shamt); }
+static inline u128 u128_add(u128 u, u128 v) { return u128(u.m + v.m); }
+static inline u128 u128_sub(u128 u, u128 v) { return u128(u.m - v.m); }
+static inline u128 u128_mul(u128 u, u128 v) { return u128((__uint128_t)u.m * (__uint128_t)v.m); }
+
+static inline u128 u128_divmod(u128 u, u128 v, u128* r)
+{
+    // Reuse existing unsigned 128 div/mod implementation
+    s128 us, vs;
+    us.lo = u.lo; us.hi = (s64)u.hi;
+    vs.lo = v.lo; vs.hi = (s64)v.hi;
+    s128 rem;
+    s128 quo = i128_divmodu(us, vs, &rem);
+    if (r) { r->lo = rem.lo; r->hi = (u64)rem.hi; }
+    u128 q; q.lo = quo.lo; q.hi = (u64)quo.hi; return q;
+}
+static inline u128 u128_div(u128 u, u128 v) { u128 r; return u128_divmod(u, v, &r); }
+static inline u128 u128_rem(u128 u, u128 v) { u128 r; (void)u128_divmod(u, v, &r); return r; }
+
+#else // 64-bit implementation without native __int128
+
+inline u128::u128(u64 v) { lo = v; hi = 0; }
+inline u128::operator u64() const { return lo; }
+inline u128::operator bool() const { return hi != 0 || lo != 0; }
+
+static inline u128 u128_from_u64(u64 n) { u128 x; x.lo = n; x.hi = 0; return x; }
+static inline u128 u128_from_uv64(u64* v)
+{
+    u128 x;
+#if BYTE_ORDER == LITTLE_ENDIAN
+    x.lo = v[0]; x.hi = v[1];
+#endif
+#if BYTE_ORDER == BIG_ENDIAN
+    x.lo = v[1]; x.hi = v[0];
+#endif
+    return x;
+}
+static inline u64 u64_from_u128(u128 n) { return n.lo; }
+static inline u64* uv64_from_u128(u128* v) { return v->n; }
+
+inline bool u128::operator==(u128 v) const { return hi == v.hi && lo == v.lo; }
+inline bool u128::operator!=(u128 v) const { return !(*this == v); }
+inline bool u128::operator<(u128 v) const { return (hi < v.hi) || (hi == v.hi && lo < v.lo); }
+inline bool u128::operator<=(u128 v) const { return !(*this > v); }
+inline bool u128::operator>(u128 v) const { return (hi > v.hi) || (hi == v.hi && lo > v.lo); }
+inline bool u128::operator>=(u128 v) const { return !(*this < v); }
+
+static inline u128 u128_not(u128 u) { u128 x; x.lo = ~u.lo; x.hi = ~u.hi; return x; }
+static inline u128 u128_and(u128 u, u128 v) { u128 x; x.lo = u.lo & v.lo; x.hi = u.hi & v.hi; return x; }
+static inline u128 u128_or(u128 u, u128 v) { u128 x; x.lo = u.lo | v.lo; x.hi = u.hi | v.hi; return x; }
+static inline u128 u128_xor(u128 u, u128 v) { u128 x; x.lo = u.lo ^ v.lo; x.hi = u.hi ^ v.hi; return x; }
+static inline u128 u128_sll(u128 u, u32 shamt)
+{
+    u128 x;
+    if (shamt == 0) { x = u; }
+    else if (shamt < 64) { x.lo = (u64)(u.lo << shamt); x.hi = (u64)(u.hi << shamt) | (u.lo >> (64 - shamt)); }
+    else { shamt -= 64; x.lo = 0; x.hi = (u64)(u.lo << shamt); }
+    return x;
+}
+static inline u128 u128_srl(u128 u, u32 shamt)
+{
+    u128 x;
+    if (shamt == 0) { x = u; }
+    else if (shamt < 64) { x.lo = (u.lo >> shamt) | (u.hi << (64 - shamt)); x.hi = (u.hi >> shamt); }
+    else { shamt -= 64; x.lo = (u.hi >> shamt); x.hi = 0; }
+    return x;
+}
+static inline u128 u128_add(u128 u, u128 v)
+{
+    u128 x; x.lo = u.lo + v.lo; x.hi = u.hi + v.hi + (x.lo < u.lo); return x;
+}
+static inline u128 u128_sub(u128 u, u128 v)
+{
+    u128 x; x.lo = u.lo - v.lo; x.hi = u.hi - v.hi - (x.lo > u.lo); return x;
+}
+static inline u128 u128_mul(u128 u, u128 v)
+{
+    // same as i128_mulu but with unsigned members
+    u128 x; s128 t = i128_umul_s64_s64(u.lo, v.lo); x.lo = t.lo; x.hi = (u64)t.hi; x.hi += u.lo * v.hi + u.hi * v.lo; return x;
+}
+static inline u128 u128_divmod(u128 u, u128 v, u128* r)
+{
+    // Reuse existing i128 unsigned divmod working on the same bit layout
+    s128 us; us.lo = u.lo; us.hi = (s64)u.hi;
+    s128 vs; vs.lo = v.lo; vs.hi = (s64)v.hi;
+    s128 rem;
+    s128 quo = i128_divmodu(us, vs, &rem);
+    if (r) { r->lo = rem.lo; r->hi = (u64)rem.hi; }
+    u128 q; q.lo = quo.lo; q.hi = (u64)quo.hi; return q;
+}
+static inline u128 u128_div(u128 u, u128 v) { u128 r; return u128_divmod(u, v, &r); }
+static inline u128 u128_rem(u128 u, u128 v) { u128 r; (void)u128_divmod(u, v, &r); return r; }
+
 #endif
 
-extern "C"
+// u128 member operators implemented via helpers
+inline u128 u128::operator&(u128 v) const { return u128_and(*this, v); }
+inline u128 u128::operator|(u128 v) const { return u128_or(*this, v); }
+inline u128 u128::operator^(u128 v) const { return u128_xor(*this, v); }
+inline u128 u128::operator~() const { return u128_not(*this); }
+inline u128 u128::operator<<(s32 shamt) const { return u128_sll(*this, (u32)shamt); }
+inline u128 u128::operator>>(s32 shamt) const { return u128_srl(*this, (u32)shamt); }
+inline u128 u128::operator+(u128 v) const { return u128_add(*this, v); }
+inline u128 u128::operator-(u128 v) const { return u128_sub(*this, v); }
+inline u128 u128::operator*(u128 v) const { return u128_mul(*this, v); }
+inline u128 u128::operator/(u128 v) const { return u128_div(*this, v); }
+inline u128 u128::operator%(u128 v) const { return u128_rem(*this, v); }
+// comparison operators are defined in the implementation branches above
+
+/* 64-bit 128-bit compiler intrinsics */
+
+#if !defined __SIZEOF_INT128__
+
+/* 64-bit 128-bit compiler intrinsics forward decls */
+
+static inline s128 i128_umul_s64_s64(u64 x, u64 y);
+static inline u64 s64_umulh_s64_s64(u64 x, u64 y);
+static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r);
+static inline u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r);
+
+/* i128_umul_s64_s64 */
+
+#if COMPILER == MSVC && ARCH == X86
+static inline s128 i128_umul_s64_s64(u64 x, u64 y)
 {
-#if !defined LSTD_NO_CRT && COMPILER == MSVC
-    __declspec(dllimport) double ldexp(double, s32); // Sigh...
+    s128 r;
+    u64 hi;
+    _umul128(x, y, &hi);
+    r.lo = x * y;
+    r.hi = hi;
+    return r;
+}
 #else
-    double ldexp(double, s32);
+static inline s128 i128_umul_s64_s64(u64 x, u64 y)
+{
+    const u64 mask = 0xffffffffll;
+    u64 x0 = x & mask;
+    u64 x1 = x >> 32 & mask;
+    u64 y0 = y & mask;
+    u64 y1 = y >> 32 & mask;
+    u64 z0 = x0 * y0;
+    u64 z1 = x1 * y0;
+    u64 z2 = x0 * y1;
+    u64 z3 = x1 * y1;
+    u64 z4 = z1 + (z0 >> 32);
+    u64 c1 = z2 + (z4 & mask);
+    u64 hi = z3 + (z4 >> 32) + (c1 >> 32);
+    s128 r;
+    r.lo = x * y;
+    r.hi = hi;
+    return r;
+}
 #endif
-} // TODO: Constexpr
 
-inline u128::operator float() const
-{
-    return (float)lo + (float)ldexp((double)hi, 64);
-}
-inline u128::operator double() const
-{
-    return (double)lo + ldexp((double)hi, 64);
-}
+/* s64_umulh_s64_s64 */
 
-/*
-inline s128::operator float() const {
-    // We must convert the absolute value and then negate as needed, because
-    // floating point types are typically sign-magnitude. Otherwise, the
-    // difference between the high and low 64 bits when interpreted as two's
-    // complement overwhelms the precision of the mantissa.
-    //
-    // Also check to make sure we don't negate Int128Min()
-    return hi < 0 && *this != Int128Min() ? -static_cast<float>(-*this) :
-(float) lo + ldexp((float) hi, 64);
+#if defined(I128_USE_INTRIN) && (COMPILER == MSVC) && defined(_M_X64)
+static inline u64 s64_umulh_s64_s64(u64 x, u64 y)
+{
+    return __umulh(x, y);
 }
-inline s128::operator double() const {  // See comment in s128::operator
-float() above. return hi < 0 && *this != Int128Min() ?
--static_cast<double>(-*this) : (double) lo + ldexp((double) hi, 64);
+#else
+static inline u64 s64_umulh_s64_s64(u64 x, u64 y)
+{
+    const u64 mask = 0xffffffffll;
+    u64 x0 = x & mask;
+    u64 x1 = x >> 32 & mask;
+    u64 y0 = y & mask;
+    u64 y1 = y >> 32 & mask;
+    u64 z0 = x0 * y0;
+    u64 z1 = x1 * y0;
+    u64 z2 = x0 * y1;
+    u64 z3 = x1 * y1;
+    u64 z4 = z1 + (z0 >> 32);
+    u64 c1 = z2 + (z4 & mask);
+    u64 hi = z3 + (z4 >> 32) + (c1 >> 32);
+    return hi;
 }
-*/
+#endif
 
-constexpr bool operator==(u128 lhs, u128 rhs)
-{
-    return lhs.lo == rhs.lo && lhs.hi == rhs.hi;
-}
-constexpr bool operator!=(u128 lhs, u128 rhs) { return !(lhs == rhs); }
-constexpr bool operator<(u128 lhs, u128 rhs)
-{
-    return (lhs.hi == rhs.hi) ? (lhs.lo < rhs.lo) : (lhs.hi < rhs.hi);
-}
-constexpr bool operator>(u128 lhs, u128 rhs) { return rhs < lhs; }
-constexpr bool operator<=(u128 lhs, u128 rhs) { return !(rhs < lhs); }
-constexpr bool operator>=(u128 lhs, u128 rhs) { return !(lhs < rhs); }
+/* s64_udiv_i128_s64 */
 
-constexpr bool operator==(s128 lhs, s128 rhs)
+#if defined(I128_USE_INTRIN) && (COMPILER == MSVC) && defined(_M_X64)
+static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
 {
-    return (lhs.lo == rhs.lo && lhs.hi == rhs.hi);
+    return _udiv128(x.hi, x.lo, y, r);
 }
-constexpr bool operator!=(s128 lhs, s128 rhs) { return !(lhs == rhs); }
-constexpr bool operator<(s128 lhs, s128 rhs)
+#elif defined(I128_USE_INTRIN) && ((COMPILER == GCC) || (COMPILER == CLANG)) && defined(__x86_64__)
+static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
 {
-    return (lhs.hi == rhs.hi) ? (lhs.lo < rhs.lo) : (lhs.hi < rhs.hi);
+    u64 q;
+    __asm__("divq %[v]" : "=a"(q), "=d"(*r) : [v] "r"(y), "a"(x.lo), "d"(x.hi));
+    return q;
 }
-constexpr bool operator>(s128 lhs, s128 rhs)
+#else
+static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
 {
-    return (lhs.hi == rhs.hi) ? (lhs.lo > rhs.lo) : (lhs.hi > rhs.hi);
-}
-constexpr bool operator<=(s128 lhs, s128 rhs) { return !(lhs > rhs); }
-constexpr bool operator>=(s128 lhs, s128 rhs) { return !(lhs < rhs); }
+    // Computes a 128 / 64 -> 64 bit division, with a 64 bit remainder.
+    // zlib License: based on https://github.com/ridiculousfish/libdivide
 
-constexpr u128 operator-(u128 val)
-{
-    u64 hi = ~val.hi;
-    u64 lo = ~val.lo;
-    if (lo == 0)
-        ++hi; // carry
-    return u128(hi, lo);
-}
+    const u64 b = ((u64)1 << 32);
 
-constexpr bool operator!(u128 val) { return !val.hi && !val.lo; }
-constexpr u128 operator~(u128 val) { return u128(~val.hi, ~val.lo); }
-constexpr u128 operator|(u128 lhs, u128 rhs)
-{
-    return u128(lhs.hi | rhs.hi, lhs.lo | rhs.lo);
-}
-constexpr u128 operator&(u128 lhs, u128 rhs)
-{
-    return u128(lhs.hi & rhs.hi, lhs.lo & rhs.lo);
-}
-constexpr u128 operator^(u128 lhs, u128 rhs)
-{
-    return u128(lhs.hi ^ rhs.hi, lhs.lo ^ rhs.lo);
-}
+    u32 q1, q0, den1, den0, num1, num0;
+    u64 rem, qhat, rhat, c1, c2;
+    int sh;
 
-constexpr u128 &u128::operator|=(u128 other)
-{
-    hi |= other.hi;
-    lo |= other.lo;
-    return *this;
-}
-
-constexpr u128 &u128::operator&=(u128 other)
-{
-    hi &= other.hi;
-    lo &= other.lo;
-    return *this;
-}
-
-constexpr u128 &u128::operator^=(u128 other)
-{
-    hi ^= other.hi;
-    lo ^= other.lo;
-    return *this;
-}
-
-constexpr u128 operator<<(u128 lhs, s32 amount)
-{
-    // u64 shifts of >= 64 are undefined, so we will need to check some special
-    // cases
-    if (amount < 64)
-    {
-        if (amount != 0)
-            return u128((lhs.hi << amount) | (lhs.lo >> (64 - amount)),
-                        lhs.lo << amount);
-        return lhs;
+    // Check for overflow and divide by 0.
+    if ((u64)x.hi >= y) {
+        if (r != NULL) *r = ~0ull;
+        return ~0ull;
     }
-    return u128(lhs.lo << (amount - 64), 0);
-}
 
-constexpr u128 operator>>(u128 lhs, s32 amount)
+    // Determine the normalization factor.
+    sh = clz(y);
+    y <<= sh;
+    x = i128_sll(x, sh);
+
+    // Extract the low digits of the numerator and both digits of the denominator.
+    num1 = (u32)(x.lo >> 32);
+    num0 = (u32)(x.lo & 0xFFFFFFFFu);
+    den1 = (u32)(y >> 32);
+    den0 = (u32)(y & 0xFFFFFFFFu);
+
+    // We wish to compute q1 = [n3 n2 n1] / [d1 d0].
+    // Estimate q1 as [n3 n2] / [d1], and then correct it.
+    // Note while qhat may be 2 digits, q1 is always 1 digit.
+    qhat = (u64)x.hi / den1;
+    rhat = (u64)x.hi % den1;
+    c1 = qhat * den0;
+    c2 = rhat * b + num1;
+    if (c1 > c2) qhat -= (c1 - c2 > y) ? 2 : 1;
+    q1 = (u32)qhat;
+
+    // Compute the true (partial) remainder.
+    rem = (u64)x.hi * b + num1 - q1 * y;
+
+    // We wish to compute q0 = [rem1 rem0 n0] / [d1 d0].
+    // Estimate q0 as [rem1 rem0] / [d1] and correct it.
+    qhat = rem / den1;
+    rhat = rem % den1;
+    c1 = qhat * den0;
+    c2 = rhat * b + num0;
+    if (c1 > c2) qhat -= (c1 - c2 > y) ? 2 : 1;
+    q0 = (u32)qhat;
+
+    // Return remainder if requested.
+    if (r != NULL) *r = (rem * b + num0 - q0 * y) >> sh;
+    return ((u64)q1 << 32) | q0;
+}
+#endif
+
+/* s64_udiv_i128_i128 */
+
+static inline u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
 {
-    // u64 shifts of >= 64 are undefined, so we will need to check some special
-    // cases
-    if (amount < 64)
-    {
-        if (amount != 0)
-            return u128(lhs.hi >> amount,
-                        (lhs.lo >> amount) | (lhs.hi << (64 - amount)));
-        return lhs;
+    // Computes a 128 / 128 -> 64 bit division, with a 128 bit remainder.
+    // zlib License: based on https://github.com/ridiculousfish/libdivide
+
+    // Here v >= 2**64
+    // We know that v.hi != 0, so count leading zeros is OK
+    // We have 0 <= n <= 63
+    u32 n = clz(v.hi);
+
+    // Normalize the divisor so its MSB is 1
+    s128 v1t = i128_sll(v, n);
+    u64 v1 = v1t.hi;  // i.e. v1 = v1t >> 64
+
+    // To ensure no overflow
+    s128 u1 = i128_srl(u, 1);
+
+    // Get quotient from divide unsigned insn.
+    u64 ri;
+    u64 q1 = s64_udiv_i128_s64(u1, v1, &ri);
+
+    // Undo normalization and division of u by 2.
+    s128 q0 = i128_from_u64(q1);
+    q0 = i128_sll(q0, n);
+    q0 = i128_srl(q0, 63);
+
+    // Make q0 correct or too small by 1
+    // Equivalent to `if (q0 != 0) q0 = q0 - 1;`
+    if (q0.hi != 0 || q0.lo != 0) {
+        q0.hi -= (q0.lo == 0);  // borrow
+        q0.lo -= 1;
     }
-    return u128(0, lhs.hi >> (amount - 64));
-}
 
-constexpr u128 operator+(u128 lhs, u128 rhs)
-{
-    u128 result = u128(lhs.hi + rhs.hi, lhs.lo + rhs.lo);
-    if (result.lo < lhs.lo)
-        return u128(result.hi + 1, result.lo);
-    return result;
-}
+    // Now q0 is correct.
+    // Compute q0 * v as q0v
+    // = (q0.hi << 64 + q0.lo) * (v.hi << 64 + v.lo)
+    // = (q0.hi * v.hi << 128) + (q0.hi * v.lo << 64) +
+    //   (q0.lo * v.hi <<  64) + q0.lo * v.lo)
+    // Each term is 128 bit
+    // High half of full product (upper 128 bits!) are dropped
+    s128 q0v = i128_from_s64(0);
+    q0v.hi = (u64)q0.hi * v.lo + q0.lo * (u64)v.hi + s64_umulh_s64_s64(q0.lo, v.lo);
+    q0v.lo = q0.lo * v.lo;
 
-constexpr u128 operator-(u128 lhs, u128 rhs)
-{
-    u128 result = u128(lhs.hi - rhs.hi, lhs.lo - rhs.lo);
-    if (lhs.lo < rhs.lo)
-        return u128(result.hi - 1, result.lo);
-    return result;
-}
+    // Compute u - q0v as u_q0v
+    // This is the remainder
+    s128 u_q0v = u;
+    u_q0v.hi -= q0v.hi + (u.lo < q0v.lo);  // second term is borrow
+    u_q0v.lo -= q0v.lo;
 
-constexpr u128 operator*(u128 lhs, u128 rhs)
-{
-    u64 a32 = lhs.lo >> 32;
-    u64 a00 = lhs.lo & 0xffffffff;
-    u64 b32 = rhs.lo >> 32;
-    u64 b00 = rhs.lo & 0xffffffff;
-    u128 result = u128(lhs.hi * rhs.lo + lhs.lo * rhs.hi + a32 * b32, a00 * b00);
-    result += u128(a32 * b00) << 32;
-    result += u128(a00 * b32) << 32;
-    return result;
-}
+    // Check if u_q0v >= v
+    // This checks if our remainder is larger than the divisor
+    if (((u64)u_q0v.hi > (u64)v.hi) || (u_q0v.hi == v.hi && u_q0v.lo >= v.lo)) {
+        // Increment q0
+        q0.lo += 1;
+        q0.hi += (q0.lo == 0);  // carry
 
-constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret, u128 *remainder_ret);
-
-constexpr u128 operator/(u128 lhs, u128 rhs)
-{
-    u128 quotient = 0, remainder = 0;
-    div_mod(lhs, rhs, &quotient, &remainder);
-    return quotient;
-}
-
-constexpr u128 operator%(u128 lhs, u128 rhs)
-{
-    u128 quotient = 0, remainder = 0;
-    div_mod(lhs, rhs, &quotient, &remainder);
-    return remainder;
-}
-
-constexpr u128 u128::operator++(s32)
-{
-    u128 tmp(*this);
-    *this += 1;
-    return tmp;
-}
-
-constexpr u128 u128::operator--(s32)
-{
-    u128 tmp(*this);
-    *this -= 1;
-    return tmp;
-}
-
-constexpr u128 &u128::operator++()
-{
-    *this += 1;
-    return *this;
-}
-
-constexpr u128 &u128::operator--()
-{
-    *this -= 1;
-    return *this;
-}
-
-constexpr s128 operator-(s128 v)
-{
-    s64 hi = ~v.hi;
-    u64 lo = ~v.lo + 1;
-    if (lo == 0)
-        ++hi; // carry
-    return s128(hi, lo);
-}
-
-constexpr bool operator!(s128 v) { return !v.lo && !v.hi; }
-
-constexpr s128 operator~(s128 val) { return s128(~val.hi, ~val.lo); }
-
-constexpr s128 operator+(s128 lhs, s128 rhs)
-{
-    s128 result = s128(lhs.hi + rhs.hi, lhs.lo + rhs.lo);
-    if (result.lo < lhs.lo)
-    { // check for carry
-        return s128(result.hi + 1, result.lo);
+        // Subtract v from remainder
+        u_q0v.hi -= v.hi + (u_q0v.lo < v.lo);
+        u_q0v.lo -= v.lo;
     }
-    return result;
+
+    r->hi = u_q0v.hi;
+    r->lo = u_q0v.lo;
+
+    return q0.lo;
+}
+#endif
+
+#if defined __SIZEOF_INT128__
+
+/* __int128_t implementation */
+
+static inline s128 i128_from_s64(s64 n)
+{
+    s128 x;
+    x.m = n;
+    return x;
 }
 
-constexpr s128 operator-(s128 lhs, s128 rhs)
+static inline s128 i128_from_u64(u64 n)
 {
-    s128 result = s128(lhs.hi - rhs.hi, lhs.lo - rhs.lo);
-    if (lhs.lo < rhs.lo)
-    { // check for carry
-        return s128(result.hi - 1, result.lo);
+    s128 x;
+    x.m = n;
+    return x;
+}
+
+static inline s128 i128_from_uv64(u64* v)
+{
+    s128 x;
+#if BYTE_ORDER == LITTLE_ENDIAN
+    x.m = (__uint128_t)v[0] | (__uint128_t)v[1] << 64;
+#endif
+#if BYTE_ORDER == BIG_ENDIAN
+    x.m = (__uint128_t)v[1] | (__uint128_t)v[0] << 64;
+#endif
+    return x;
+}
+
+static inline s128 i128_not(s128 u)
+{
+    s128 x;
+    x.m = ~u.m;
+    return x;
+}
+
+static inline s128 i128_and(s128 u, s128 v)
+{
+    s128 x;
+    x.m = u.m & v.m;
+    return x;
+}
+
+static inline s128 i128_or(s128 u, s128 v)
+{
+    s128 x;
+    x.m = u.m | v.m;
+    return x;
+}
+
+static inline s128 i128_xor(s128 u, s128 v)
+{
+    s128 x;
+    x.m = u.m ^ v.m;
+    return x;
+}
+
+static inline s128 i128_sll(s128 u, u32 shamt)
+{
+    s128 x;
+    x.m = u.m << shamt;
+    return x;
+}
+
+static inline s128 i128_srl(s128 u, u32 shamt)
+{
+    s128 x;
+    x.m = (__uint128_t)u.m >> shamt;
+    return x;
+}
+
+static inline s128 i128_sra(s128 u, u32 shamt)
+{
+    s128 x;
+    x.m = (__int128_t)u.m >> shamt;
+    return x;
+}
+
+static inline s128 i128_neg(s128 u)
+{
+    s128 x;
+    x.m = -u.m;
+    return x;
+}
+
+static inline s128 i128_add(s128 u, s128 v)
+{
+    s128 x;
+    x.m = u.m + v.m;
+    return x;
+}
+
+static inline s128 i128_sub(s128 u, s128 v)
+{
+    s128 x;
+    x.m = u.m - v.m;
+    return x;
+}
+
+static inline s128 i128_mul(s128 u, s128 v)
+{
+    s128 x;
+    u64 us, vs, rs;
+
+    x = i128_mulu(u, v);
+    us = u.hi & (1LL << 63);
+    vs = v.hi & (1LL << 63);
+    rs = us ^ vs;
+    x.hi = (x.hi & ((1ULL << 63) - 1)) | rs;
+
+    return x;
+}
+
+static inline s128 i128_mulu(s128 u, s128 v)
+{
+    s128 x;
+    x.m = (__uint128_t)u.m * (__uint128_t)v.m;
+    return x;
+}
+
+static inline s128 i128_divmodu(s128 u, s128 v, s128* r)
+{
+    s128 q;
+    q.m = (__uint128_t)u.m / (__uint128_t)v.m;
+    r->m = (__uint128_t)u.m % (__uint128_t)v.m;
+    return q;
+}
+
+static inline int i128_cmp_eq(s128 u, s128 v)
+{
+    return u.m == v.m;
+}
+
+static inline int i128_cmp_lt(s128 u, s128 v)
+{
+    return (__int128_t)u.m < (__int128_t)v.m;
+}
+
+static inline int i128_cmp_gt(s128 u, s128 v)
+{
+    return (__int128_t)u.m > (__int128_t)v.m;
+}
+
+static inline int i128_cmp_ltu(s128 u, s128 v)
+{
+    return (__uint128_t)u.m < (__uint128_t)v.m;
+}
+
+static inline int i128_cmp_gtu(s128 u, s128 v)
+{
+    return (__uint128_t)u.m > (__uint128_t)v.m;
+}
+
+static inline int i128_cmp_t(s128 u, s128 v)
+{
+    __int128_t x = u.m - v.m;
+    return -(x < 0) + (x > 0);
+}
+
+static inline int i128_cmp_tu(s128 u, s128 v)
+{
+    __uint128_t x = u.m - v.m;
+    return -(x > u.m) + (x < u.m);
+}
+
+#else
+
+/* s128 64-bit implementation */
+
+static inline s128 i128_from_s64(s64 n)
+{
+    s128 x;
+    x.lo = n;
+    x.hi = (n >> 63);
+    return x;
+}
+
+static inline s128 i128_from_u64(u64 n)
+{
+    s128 x;
+    x.lo = n;
+    x.hi = 0;
+    return x;
+}
+
+static inline s128 i128_from_uv64(u64* v)
+{
+    s128 x;
+#if BYTE_ORDER == LITTLE_ENDIAN
+    x.lo = v[0];
+    x.hi = v[1];
+#endif
+#if BYTE_ORDER == BIG_ENDIAN
+    x.lo = v[1];
+    x.hi = v[0];
+#endif
+    return x;
+}
+
+static inline s128 i128_not(s128 u)
+{
+    s128 x;
+    x.lo = ~u.lo;
+    x.hi = ~u.hi;
+    return x;
+}
+
+static inline s128 i128_and(s128 u, s128 v)
+{
+    s128 x;
+    x.lo = u.lo & v.lo;
+    x.hi = u.hi & v.hi;
+    return x;
+}
+
+static inline s128 i128_or(s128 u, s128 v)
+{
+    s128 x;
+    x.lo = u.lo | v.lo;
+    x.hi = u.hi | v.hi;
+    return x;
+}
+
+static inline s128 i128_xor(s128 u, s128 v)
+{
+    s128 x;
+    x.lo = u.lo ^ v.lo;
+    x.hi = u.hi ^ v.hi;
+    return x;
+}
+
+static inline s128 i128_sll(s128 u, u32 shamt)
+{
+    s128 x;
+    if (shamt == 0) {
+        x.lo = u.lo;
+        x.hi = u.hi;
     }
-    return result;
-}
-
-constexpr s128 operator*(s128 lhs, s128 rhs)
-{
-    u128 result = u128(lhs) * rhs;
-    return s128(s64_bit_cast_to_u64(result.hi), result.lo);
-}
-
-constexpr u128 unsigned_absolute_value(s128 v)
-{
-    return v.hi < 0 ? -u128(v)
-                    : u128(v); // Cast to uint128 before possibly negating
-                               // because -Int128Min() is undefined.
-}
-
-constexpr s128 operator/(s128 lhs, s128 rhs)
-{
-    // assert(lhs != Int128Min() || rhs != -1);  // UB on two's complement.
-
-    u128 quotient = 0, remainder = 0;
-    div_mod(unsigned_absolute_value(lhs), unsigned_absolute_value(rhs), &quotient, &remainder);
-    if ((lhs.hi < 0) != (rhs.hi < 0))
-        quotient = -quotient;
-    return s128(s64_bit_cast_to_u64(quotient.hi), quotient.lo);
-}
-
-constexpr s128 operator%(s128 lhs, s128 rhs)
-{
-    // assert(lhs != Int128Min() || rhs != -1);  // UB on two's complement.
-
-    u128 quotient = 0, remainder = 0;
-    div_mod(unsigned_absolute_value(lhs), unsigned_absolute_value(rhs), &quotient,
-            &remainder);
-    if (lhs.hi < 0)
-        remainder = -remainder;
-    return s128(s64_bit_cast_to_u64(remainder.hi), remainder.lo);
-}
-
-constexpr s128 s128::operator++(s32)
-{
-    s128 tmp(*this);
-    *this += 1;
-    return tmp;
-}
-
-constexpr s128 s128::operator--(s32)
-{
-    s128 tmp(*this);
-    *this -= 1;
-    return tmp;
-}
-
-constexpr s128 &s128::operator++()
-{
-    *this += 1;
-    return *this;
-}
-
-constexpr s128 &s128::operator--()
-{
-    *this -= 1;
-    return *this;
-}
-
-constexpr s128 operator|(s128 lhs, s128 rhs)
-{
-    return s128(lhs.hi | rhs.hi, lhs.lo | rhs.lo);
-}
-constexpr s128 operator&(s128 lhs, s128 rhs)
-{
-    return s128(lhs.hi & rhs.hi, lhs.lo & rhs.lo);
-}
-constexpr s128 operator^(s128 lhs, s128 rhs)
-{
-    return s128(lhs.hi ^ rhs.hi, lhs.lo ^ rhs.lo);
-}
-
-constexpr s128 operator<<(s128 lhs, s32 amount)
-{
-    // u64 shifts of >= 64 are undefined, so we will need to check some special
-    // cases
-    if (amount < 64)
-    {
-        if (amount != 0)
-            return s128((lhs.hi << amount) | (s64)(lhs.lo >> (64 - amount)),
-                        lhs.lo << amount);
-        return lhs;
+    else if (shamt < 64) {
+        x.lo = (u64)(u.lo << shamt);
+        x.hi = (u64)(u.hi << shamt) | ((u64)u.lo >> (64 - shamt));
     }
-    return s128((s64)(lhs.lo << (amount - 64)), 0);
-}
-
-constexpr s128 operator>>(s128 lhs, s32 amount)
-{
-    // u64 shifts of >= 64 are undefined, so we will need to check some special
-    // cases
-    if (amount < 64)
-    {
-        if (amount != 0)
-            return s128(lhs.hi >> amount,
-                        (lhs.lo >> amount) | ((u64)lhs.hi << (64 - amount)));
-        return lhs;
+    else {
+        shamt -= 64;
+        x.lo = 0;
+        x.hi = (u64)(u.lo << shamt);
     }
-    return s128(0, (u64)(lhs.hi >> (amount - 64)));
+    return x;
 }
 
-constexpr u128 &u128::operator<<=(s32 amount)
+static inline s128 i128_srl(s128 u, u32 shamt)
 {
-    return (*this = *this << amount), *this;
+    s128 x;
+    if (shamt == 0) {
+        x.lo = u.lo;
+        x.hi = u.hi;
+    }
+    else if (shamt < 64) {
+        x.lo = ((u64)u.lo >> shamt) | ((u64)u.hi << (64 - shamt));;
+        x.hi = ((u64)u.hi >> shamt);
+    }
+    else {
+        shamt -= 64;
+        x.lo = ((u64)u.hi >> shamt);
+        x.hi = 0;
+    }
+    return x;
 }
-constexpr u128 &u128::operator>>=(s32 amount)
+
+static inline s128 i128_sra(s128 u, u32 shamt)
 {
-    return (*this = *this >> amount), *this;
+    s128 x;
+    if (shamt == 0) {
+        x.lo = u.lo;
+        x.hi = u.hi;
+    }
+    else if (shamt < 64) {
+        x.lo = ((u64)u.lo >> shamt) | ((u64)u.hi << (64 - shamt));
+        x.hi = ((s64)u.hi >> shamt);
+    }
+    else {
+        shamt -= 64;
+        x.lo = ((s64)u.hi >> shamt);
+        x.hi = ((s64)u.hi >> 63);
+    }
+    return x;
 }
-constexpr u128 &u128::operator+=(u128 other)
+
+static inline s128 i128_neg(s128 u)
 {
-    return (*this = *this + other), *this;
+    s128 x;
+    x.lo = -(s64)u.lo;
+    x.hi = -(s64)u.hi - !!x.lo;
+    return x;
 }
-constexpr u128 &u128::operator-=(u128 other)
+
+static inline s128 i128_add(s128 u, s128 v)
 {
-    return (*this = *this - other), *this;
+    s128 x;
+    x.lo = u.lo + v.lo;
+    x.hi = u.hi + v.hi + (x.lo < u.lo);
+    return x;
 }
-constexpr u128 &u128::operator*=(u128 other)
+
+static inline s128 i128_sub(s128 u, s128 v)
 {
-    return (*this = *this * other), *this;
+    s128 x;
+    x.lo = u.lo - v.lo;
+    x.hi = u.hi - v.hi - (x.lo > u.lo);
+    return x;
 }
-constexpr u128 &u128::operator/=(u128 other)
+
+static inline s128 i128_mul(s128 u, s128 v)
 {
-    return (*this = *this / other), *this;
+    s128 x;
+    u64 us, vs, rs;
+
+    x = i128_mulu(u, v);
+    us = u.hi & (1LL << 63);
+    vs = v.hi & (1LL << 63);
+    rs = us ^ vs;
+    x.hi = (x.hi & ((1ULL << 63) - 1)) | rs;
+
+    return x;
 }
-constexpr u128 &u128::operator%=(u128 other)
+
+static inline s128 i128_mulu(s128 u, s128 v)
 {
-    return (*this = *this % other), *this;
+    s128 x;
+    u64 x0 = u.lo;
+    u64 x1 = u.hi;
+    u64 y0 = v.lo;
+    u64 y1 = v.hi;
+    x = i128_umul_s64_s64(x0, y0);
+    x.hi += x0 * y1 + x1 * y0;
+    return x;
 }
-constexpr s128 &s128::operator+=(s128 other)
+
+static inline int i128_cmp_eq(s128 u, s128 v)
 {
-    return (*this = *this + other), *this;
+    return (u.hi == v.hi && u.lo == v.lo);
 }
-constexpr s128 &s128::operator-=(s128 other)
+
+static inline int i128_cmp_lt(s128 u, s128 v)
 {
-    return (*this = *this - other), *this;
+    return ((s64)u.hi < (s64)v.hi || (u.hi == v.hi && u.lo < v.lo));
 }
-constexpr s128 &s128::operator*=(s128 other)
+
+static inline int i128_cmp_gt(s128 u, s128 v)
 {
-    return (*this = *this * other), *this;
+    return ((s64)u.hi > (s64)v.hi || (u.hi == v.hi && u.lo > v.lo));
 }
-constexpr s128 &s128::operator/=(s128 other)
+
+static inline int i128_cmp_ltu(s128 u, s128 v)
 {
-    return (*this = *this / other), *this;
+    return ((u64)u.hi < (u64)v.hi || (u.hi == v.hi && u.lo < v.lo));
 }
-constexpr s128 &s128::operator%=(s128 other)
+
+static inline int i128_cmp_gtu(s128 u, s128 v)
 {
-    return (*this = *this % other), *this;
+    return ((u64)u.hi > (u64)v.hi || (u.hi == v.hi && u.lo > v.lo));
 }
-constexpr s128 &s128::operator|=(s128 other)
+
+static inline int i128_cmp_t(s128 u, s128 v)
 {
-    return (*this = *this | other), *this;
+    return ((s64)u.hi > (s64)v.hi || (u.hi == v.hi && u.lo > v.lo))
+        - ((s64)u.hi < (s64)v.hi || (u.hi == v.hi && u.lo < v.lo));
 }
-constexpr s128 &s128::operator&=(s128 other)
+
+static inline int i128_cmp_tu(s128 u, s128 v)
 {
-    return (*this = *this & other), *this;
+    return ((u64)u.hi > (u64)v.hi || (u.hi == v.hi && u.lo > v.lo))
+        - ((u64)u.hi < (u64)v.hi || (u.hi == v.hi && u.lo < v.lo));
 }
-constexpr s128 &s128::operator^=(s128 other)
+
+#endif
+
+/* 128-bit signed divmod layered on unsigned divmod */
+
+static inline s128 i128_divmod(s128 u, s128 v, s128* r)
 {
-    return (*this = *this ^ other), *this;
+    s128 q, us, vs, rs;
+
+    us = i128_sra(u, 127);
+    vs = i128_sra(v, 127);
+    rs = i128_xor(us, vs);
+    u = i128_sub(i128_xor(u, us), us);
+    v = i128_sub(i128_xor(v, vs), vs);
+    q = i128_sub(i128_xor(i128_divmodu(u, v, r), rs), rs);
+    *r = i128_sub(i128_xor(*r, us), us);
+
+    return q;
 }
-constexpr s128(&s128::operator<<=(s32 amount))
+
+static inline s128 i128_div(s128 u, s128 v)
 {
-    return (*this = *this << amount), *this;
+    s128 q, r;
+    q = i128_divmod(u, v, &r);
+    return q;
 }
-constexpr s128 &s128::operator>>=(s32 amount)
+
+static inline s128 i128_divu(s128 u, s128 v)
 {
-    return (*this = *this >> amount), *this;
+    s128 q, r;
+    q = i128_divmodu(u, v, &r);
+    return q;
+}
+
+static inline s128 i128_rem(s128 u, s128 v)
+{
+    s128 q, r;
+    q = i128_divmod(u, v, &r);
+    return r;
+}
+
+static inline s128 i128_remu(s128 u, s128 v)
+{
+    s128 q, r;
+    q = i128_divmodu(u, v, &r);
+    return r;
+}
+
+/* 128-bit downcasts */
+
+static inline s64 s64_from_i128(s128 n)
+{
+    return (s64)n.lo;
+}
+
+static inline u64 u64_from_i128(s128 n)
+{
+    return (u64)n.lo;
+}
+
+static inline u64* uv64_from_i128(s128* v)
+{
+    return v->n;
+}
+
+/* 128-bit bitmanip */
+
+#if COMPILER == GCC || COMPILER == CLANG
+#define clz(x) __extension__ ({ u32 n = __builtin_clzll(x); n == 0 ? 64 : n; })
+#define ctz(x) __extension__ ({ u32 n = __builtin_ctzll(x); n == 0 ? 64 : n; })
+#define popcnt(x) __builtin_popcount(x)
+#define bswap64(x) __builtin_bswap64(x)
+#elif COMPILER == MSVC
+#include <intrin.h>
+#define clz(x) _lzcnt_u64(x)
+#define ctz(x) _tzcnt_u64(x)
+#define popcnt(x) __popcnt64(x)
+#define bswap64(x) _byteswap_uint64(x)
+#endif
+
+static inline u32 i128_ctz(s128 u)
+{
+    int n = ctz(u.lo);
+    if (n == 64) n += ctz(u.hi);
+    return n;
+}
+
+static inline u32 i128_clz(s128 u)
+{
+    int n = clz(u.hi);
+    if (n == 64) n += clz(u.lo);
+    return n;
+}
+
+static inline u32 i128_popcnt(s128 u)
+{
+    return popcnt(u.lo) + popcnt(u.hi);
+}
+
+static inline s128 i128_bswap(s128 u)
+{
+    s128 x;
+    x.lo = bswap64(u.hi);
+    x.hi = bswap64(u.lo);
+    return x;
+}
+
+static inline u8 i8_brev(u8 u)
+{
+    // Reverse the bits in a byte with 4 operations (64-bit multiply, no division):
+    // Source: Stanford Bit Twiddling Hacks
+    // https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits
+    return (u8)(((u * 0x80200802ULL) & 0x0884422110ULL) * 0x0101010101ULL >> 32);
+}
+
+static inline s128 i128_brev(s128 u)
+{
+    s128 r = 0;
+    for (unsigned i = 0; i < 16; i++) {
+        r.b[i] = (u8)i8_brev(u.b[15 - i]);
+    }
+    return r;
 }
 
 namespace internal
@@ -1165,8 +1557,8 @@ namespace internal
 #if COMPILER == MSVC
 #pragma intrinsic(_BitScanReverse64)
 
-    extern "C" unsigned char __cdecl _BitScanReverse64(unsigned long *_Index,
-                                                       unsigned __int64 _Mask);
+    extern "C" unsigned char __cdecl _BitScanReverse64(unsigned long* _Index,
+        unsigned __int64 _Mask);
 #endif
 
 #if OS == WINDOWS
@@ -1189,59 +1581,11 @@ namespace internal
     }
 #endif
 
-    inline s32 msb(u128 x)
+    inline s32 msb(s128 x)
     {
-        if (x.hi != 0)
-            return 64 + msb(x.hi);
-        return msb(x.lo);
+        return i128_clz(x);
     }
 } // namespace internal
-
-// Long division/modulo for u128 implemented using the
-// shift subtract division algorithm adapted from:
-// https://stackoverflow.com/questions/5386377/division-without-using
-constexpr void div_mod(u128 dividend, u128 divisor, u128 *quotient_ret, u128 *remainder_ret)
-{
-    if (divisor == 0)
-        return;
-
-    if (divisor > dividend)
-    {
-        *quotient_ret = 0;
-        *remainder_ret = dividend;
-        return;
-    }
-
-    if (divisor == dividend)
-    {
-        *quotient_ret = 1;
-        *remainder_ret = 0;
-        return;
-    }
-
-    u128 denominator = divisor;
-    u128 quotient = 0;
-
-    // Left aligns the MSB of the denominator and the dividend.
-    s32 shift = internal::msb(dividend) - internal::msb(denominator);
-    denominator <<= shift;
-
-    // Uses shift-subtract algorithm to divide dividend by denominator. The
-    // remainder will be left in dividend.
-    for (s32 i = 0; i <= shift; ++i)
-    {
-        quotient <<= 1;
-        if (dividend >= denominator)
-        {
-            dividend -= denominator;
-            quotient |= 1;
-        }
-        denominator >>= 1;
-    }
-
-    *quotient_ret = quotient;
-    *remainder_ret = dividend;
-}
 
 //
 // Defines unions to access different bits of a
@@ -1576,7 +1920,7 @@ public:
     static constexpr s32 min_exponent10 = -37;
     static constexpr s32 bits_mantissa =
         23; // # of bits in mantissa, excluding the hidden bit (which is always
-            // interpreted as 1 for normal numbers)
+    // interpreted as 1 for normal numbers)
     static constexpr s32 bits_exponent = 8;
     static constexpr s32 exponent_bias = 127;
 };
@@ -1606,7 +1950,7 @@ public:
     static constexpr s32 min_exponent10 = -307;
     static constexpr s32 bits_mantissa =
         52; // number of bits in mantissa,excluding the hidden bit (which is
-            // always interpreted as 1 for normalnumbers)
+    // always interpreted as 1 for normalnumbers)
     static constexpr s32 bits_exponent = 11;
     static constexpr s32 exponent_bias = 1023;
 };
@@ -1615,8 +1959,8 @@ template <>
 struct numeric<u128> : public internal::numeric_integer_base
 {
 public:
-    static constexpr u128 min() { return 0; }
-    static constexpr u128 max() { return u128(U64_MAX, U64_MAX); }
+    static u128 min() { return 0; }
+    static u128 max() { return u128(U64_MAX, U64_MAX); }
 
     static constexpr s32 digits = 128;
     static constexpr s32 digits10 = 38;
@@ -1625,8 +1969,8 @@ public:
 template <>
 struct numeric<s128> : public internal::numeric_integer_base
 {
-    static constexpr s128 min() { return s128(numeric<s64>::min(), 0); }
-    static constexpr s128 max() { return s128(numeric<s64>::max(), U64_MAX); }
+    static s128 min() { return s128(numeric<s64>::min(), 0); }
+    static s128 max() { return s128(numeric<s64>::max(), U64_MAX); }
 
     static constexpr s32 digits = 127;
     static constexpr s32 digits10 = 38;
@@ -1677,19 +2021,22 @@ namespace std
         char Value;
 
         explicit partial_ordering(const compare_result_eq value)
-            : Value((char)value) {}
+            : Value((char)value) {
+        }
         explicit partial_ordering(const compare_result_ord value)
-            : Value((char)value) {}
+            : Value((char)value) {
+        }
         explicit partial_ordering(const compare_result_unord value)
-            : Value((char)value) {}
+            : Value((char)value) {
+        }
 
         static const partial_ordering less;
         static const partial_ordering equivalent;
         static const partial_ordering greater;
         static const partial_ordering unordered;
 
-        friend bool operator==(const partial_ordering &,
-                               const partial_ordering &) = default;
+        friend bool operator==(const partial_ordering&,
+            const partial_ordering&) = default;
 
         bool is_ordered() const
         {
@@ -1747,14 +2094,14 @@ namespace std
     }
 
     inline partial_ordering operator<=>(const partial_ordering value,
-                                        literal_zero)
+        literal_zero)
     {
         return value;
     }
     inline partial_ordering operator<=>(literal_zero,
-                                        const partial_ordering value)
+        const partial_ordering value)
     {
-        return partial_ordering{(compare_result_ord)-value.Value};
+        return partial_ordering{ (compare_result_ord)-value.Value };
     }
 
     struct weak_ordering
@@ -1770,11 +2117,11 @@ namespace std
 
         operator partial_ordering() const
         {
-            return partial_ordering{(compare_result_ord)Value};
+            return partial_ordering{ (compare_result_ord)Value };
         }
 
-        friend bool operator==(const weak_ordering &,
-                               const weak_ordering &) = default;
+        friend bool operator==(const weak_ordering&,
+            const weak_ordering&) = default;
     };
 
     inline const weak_ordering weak_ordering::less(compare_result_ord::LESS);
@@ -1828,7 +2175,7 @@ namespace std
     }
     inline weak_ordering operator<=>(literal_zero, const weak_ordering value)
     {
-        return weak_ordering{(compare_result_ord)-value.Value};
+        return weak_ordering{ (compare_result_ord)-value.Value };
     }
 
     struct strong_ordering
@@ -1836,9 +2183,11 @@ namespace std
         char Value;
 
         explicit strong_ordering(const compare_result_eq value)
-            : Value((char)value) {}
+            : Value((char)value) {
+        }
         explicit strong_ordering(const compare_result_ord value)
-            : Value((char)value) {}
+            : Value((char)value) {
+        }
 
         static const strong_ordering less;
         static const strong_ordering equal;
@@ -1847,15 +2196,15 @@ namespace std
 
         operator weak_ordering() const
         {
-            return weak_ordering{(compare_result_ord)Value};
+            return weak_ordering{ (compare_result_ord)Value };
         }
         operator partial_ordering() const
         {
-            return partial_ordering{(compare_result_ord)Value};
+            return partial_ordering{ (compare_result_ord)Value };
         }
 
-        friend bool operator==(const strong_ordering &,
-                               const strong_ordering &) = default;
+        friend bool operator==(const strong_ordering&,
+            const strong_ordering&) = default;
     };
 
     inline const strong_ordering strong_ordering::less(compare_result_ord::LESS);
@@ -1912,7 +2261,7 @@ namespace std
     }
     inline strong_ordering operator<=>(literal_zero, const strong_ordering value)
     {
-        return strong_ordering{(compare_result_ord)(-value.Value)};
+        return strong_ordering{ (compare_result_ord)(-value.Value) };
     }
 } // namespace std
 #else
@@ -1943,15 +2292,15 @@ inline unsigned char comparison_category_of = COMPARISON_CATEGORY_NONE;
 
 template <>
 inline unsigned char comparison_category_of<partial_ordering> =
-    COMPARISON_CATEGORY_PARTIAL;
+COMPARISON_CATEGORY_PARTIAL;
 
 template <>
 inline unsigned char comparison_category_of<weak_ordering> =
-    COMPARISON_CATEGORY_WEAK;
+COMPARISON_CATEGORY_WEAK;
 
 template <>
 inline unsigned char comparison_category_of<strong_ordering> =
-    COMPARISON_CATEGORY_STRONG;
+COMPARISON_CATEGORY_STRONG;
 
 LSTD_END_NAMESPACE
 
@@ -1966,27 +2315,28 @@ namespace std
     struct initializer_list
     {
         using value_type = T;
-        using reference = const T &;
-        using const_reference = const T &;
+        using reference = const T&;
+        using const_reference = const T&;
         using size_type = size_t;
 
         initializer_list() noexcept {}
 
-        initializer_list(const T *first, const T *last) noexcept
-            : First(first), Last(last) {}
+        initializer_list(const T* first, const T* last) noexcept
+            : First(first), Last(last) {
+        }
 
-        using iterator = const T *;
-        using const_iterator = const T *;
+        using iterator = const T*;
+        using const_iterator = const T*;
 
-        const T *begin() const noexcept { return First; }
-        const T *end() const noexcept { return Last; }
+        const T* begin() const noexcept { return First; }
+        const T* end() const noexcept { return Last; }
 
         size_t size() const noexcept { return static_cast<size_t>(Last - First); }
 
         // private in order to be compatible with std::
     private:
-        const T *First = null;
-        const T *Last = null;
+        const T* First = null;
+        const T* Last = null;
     };
 } // namespace std
 #else
@@ -2010,16 +2360,16 @@ LSTD_END_NAMESPACE
 // std::source_location (missing column info).
 struct source_location
 {
-    const char *File = "Unknown";
-    const char *Function = "Unknown";
+    const char* File = "Unknown";
+    const char* Function = "Unknown";
     int Line = 0;
 
     constexpr source_location() {}
 
     // Uses built-in compiler functions.
     static consteval source_location current(
-        const char *file = __builtin_FILE(),
-        const char *func = __builtin_FUNCTION(), int line = __builtin_LINE())
+        const char* file = __builtin_FILE(),
+        const char* func = __builtin_FUNCTION(), int line = __builtin_LINE())
     {
         source_location loc;
         loc.File = file;
@@ -2073,7 +2423,7 @@ struct Deferrer
 template <typename F>
 Deferrer<F> operator*(Defer_Dummy, F func)
 {
-    return {func};
+    return { func };
 }
 
 #define defer(x) \
@@ -2155,7 +2505,7 @@ LSTD_BEGIN_NAMESPACE
 #define For_enumerate(in) For_enumerate_as(it_index, it, in)
 
 template <typename T, typename TIter = decltype(T().begin()),
-          typename = decltype(T().end())>
+    typename = decltype(T().end())>
 auto enumerate_impl(T no_copy in)
 {
     struct iterator
@@ -2172,18 +2522,18 @@ auto enumerate_impl(T no_copy in)
             decltype(*(TIter())) Value;
         };
 
-        auto operator*() const { return dereference_result{I, *Iter}; }
+        auto operator*() const { return dereference_result{ I, *Iter }; }
     };
 
     struct iterable_wrapper
     {
         T Iterable;
 
-        auto begin() { return iterator{0, Iterable.begin()}; }
-        auto end() { return iterator{0, Iterable.end()}; }
+        auto begin() { return iterator{ 0, Iterable.begin() }; }
+        auto end() { return iterator{ 0, Iterable.end() }; }
     };
 
-    return iterable_wrapper{in};
+    return iterable_wrapper{ in };
 }
 
 LSTD_END_NAMESPACE
@@ -2197,7 +2547,7 @@ LSTD_BEGIN_NAMESPACE
  * @tparam T The type of the integral constant.
  * @tparam Value The value of the integral constant.
  */
-template <typename T, T Value>
+    template <typename T, T Value>
 struct integral_constant
 {
     static const T value = Value;
@@ -2221,19 +2571,19 @@ namespace internal
     {
     };
     template <typename T>
-    struct is_const_helper_1<volatile T *> : true_t
+    struct is_const_helper_1<volatile T*> : true_t
     {
     };
     template <typename T>
-    struct is_const_helper_1<const volatile T *> : true_t
+    struct is_const_helper_1<const volatile T*> : true_t
     {
     };
     template <typename T>
-    struct is_const_helper_2 : is_const_helper_1<T *>
+    struct is_const_helper_2 : is_const_helper_1<T*>
     {
     };
     template <typename T>
-    struct is_const_helper_2<T &> : false_t
+    struct is_const_helper_2<T&> : false_t
     {
     }; // Note here that Tis const, not the reference to T. So is_const is false.
 
@@ -2258,7 +2608,7 @@ namespace internal
     };
 
     template <typename T>
-    auto try_add_lvalue_reference(int) -> type_identity<T &>;
+    auto try_add_lvalue_reference(int) -> type_identity<T&>;
     template <typename T>
     auto try_add_lvalue_reference(...) -> type_identity<T>;
 
@@ -2279,7 +2629,7 @@ namespace internal
     {
     };
     template <typename T>
-    struct is_pointer_helper<T *> : true_t
+    struct is_pointer_helper<T*> : true_t
     {
     };
 
@@ -2315,7 +2665,7 @@ struct unused
 };
 
 template <bool Condition, typename ConditionIsTrueType,
-          typename ConditionIsFalseType>
+    typename ConditionIsFalseType>
 struct type_select
 {
     using type = ConditionIsTrueType;
@@ -2344,9 +2694,9 @@ struct type_select<false, ConditionIsTrueType, ConditionIsFalseType>
  * @tparam ConditionIsFalseType The type to select if `Condition` is false.
  */
 template <bool Condition, typename ConditionIsTrueType,
-          typename ConditionIsFalseType>
+    typename ConditionIsFalseType>
 using type_select_t = typename type_select<Condition, ConditionIsTrueType,
-                                           ConditionIsFalseType>::type;
+    ConditionIsFalseType>::type;
 
 template <typename T, typename = unused, typename = unused>
 struct first_type_select
@@ -2471,12 +2821,12 @@ struct remove_ref
     using type = T;
 };
 template <typename T>
-struct remove_ref<T &>
+struct remove_ref<T&>
 {
     using type = T;
 };
 template <typename T>
-struct remove_ref<T &&>
+struct remove_ref<T&&>
 {
     using type = T;
 };
@@ -2513,12 +2863,12 @@ using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
 template <typename T>
 struct add_rvalue_reference
 {
-    using type = T &&;
+    using type = T&&;
 };
 template <typename T>
-struct add_rvalue_reference<T &>
+struct add_rvalue_reference<T&>
 {
-    using type = T &;
+    using type = T&;
 };
 template <>
 struct add_rvalue_reference<void>
@@ -2608,7 +2958,7 @@ concept is_pointer = internal::is_pointer_helper<remove_cv_t<T>>::value;
 /// function.
 template <typename T>
 concept is_member_pointer =
-    internal::is_member_pointer_helper<remove_cv_t<T>>::value;
+internal::is_member_pointer_helper<remove_cv_t<T>>::value;
 
 /**
  * @brief Concept to check if T is a scalar type.
@@ -2618,7 +2968,7 @@ concept is_member_pointer =
  */
 template <typename T>
 concept is_scalar = is_arithmetic<T> || is_enum<T> || is_pointer<T> ||
-                    is_member_pointer<T> || is_same<remove_cv_t<T>, decltype(null)>;
+is_member_pointer<T> || is_same<remove_cv_t<T>, decltype(null)>;
 
 /**
  * @brief Concept to check if a type is convertible to another type.
@@ -2674,7 +3024,7 @@ using remove_cvref_t = typename remove_cvref<T>::type;
 /// template type.
 template <typename T, typename U>
 concept is_same_template_decayed =
-    is_same_template<remove_cvref_t<T>, remove_cvref_t<U>>;
+is_same_template<remove_cvref_t<T>, remove_cvref_t<U>>;
 
 template <typename T>
 struct remove_pointer
@@ -2682,22 +3032,22 @@ struct remove_pointer
     using type = T;
 };
 template <typename T>
-struct remove_pointer<T *>
+struct remove_pointer<T*>
 {
     using type = T;
 };
 template <typename T>
-struct remove_pointer<T *const>
+struct remove_pointer<T* const>
 {
     using type = T;
 };
 template <typename T>
-struct remove_pointer<T *volatile>
+struct remove_pointer<T* volatile>
 {
     using type = T;
 };
 template <typename T>
-struct remove_pointer<T *const volatile>
+struct remove_pointer<T* const volatile>
 {
     using type = T;
 };
@@ -2709,7 +3059,7 @@ using remove_pointer_t = typename remove_pointer<T>::type;
 template <typename T>
 struct add_pointer
 {
-    using type = remove_ref_t<T> *;
+    using type = remove_ref_t<T>*;
 };
 
 // Adds a level of pointers to T
@@ -2758,7 +3108,7 @@ struct decay
     using U = remove_ref_t<T>;
 
     using type = type_select_t<
-        is_array<U>, remove_extent_t<U> *,
+        is_array<U>, remove_extent_t<U>*,
         type_select_t<is_function<U>, add_pointer_t<U>, remove_cv_t<U>>>;
 };
 
@@ -2843,7 +3193,7 @@ concept is_same_decayed = internal::same_helper<decay_t<T>, decay_t<U>>::value;
  * @endcode
  */
 template <typename DestType, typename SourceType>
-DestType bit_cast(SourceType const &sourceValue)
+DestType bit_cast(SourceType const& sourceValue)
 {
     static_assert(sizeof(DestType) == sizeof(SourceType));
     return __builtin_bit_cast(DestType, sourceValue);
@@ -2868,7 +3218,7 @@ DestType bit_cast(SourceType const &sourceValue)
  * @endcode
  */
 template <typename T>
-const char *type_name()
+const char* type_name()
 {
     return typeid(T).name();
 }
@@ -2966,7 +3316,7 @@ struct range
     bool has(s64 value) const
     {
         if (Begin.Step > 0 ? (value >= Begin.I && value < End.I)
-                           : (value > End.I && value <= Begin.I))
+            : (value > End.I && value <= Begin.I))
         {
             s64 diff = value - Begin.I;
             if (diff % Begin.Step == 0)
@@ -3048,8 +3398,8 @@ LSTD_BEGIN_NAMESPACE
 inline bool sign_bit(is_signed_integral auto x) { return x < 0; }
 inline bool sign_bit(is_unsigned_integral auto) { return false; }
 
-inline bool sign_bit(f32 x) { return ieee754_f32{x}.ieee.S; }
-inline bool sign_bit(f64 x) { return ieee754_f64{x}.ieee.S; }
+inline bool sign_bit(f32 x) { return ieee754_f32{ x }.ieee.S; }
+inline bool sign_bit(f64 x) { return ieee754_f64{ x }.ieee.S; }
 
 // Returns -1 if x is negative, 1 otherwise
 inline s32 sign_no_zero(is_scalar auto x) { return sign_bit(x) ? -1 : 1; }
@@ -3067,13 +3417,13 @@ inline T copy_sign(T x, T y)
 {
     if constexpr (sizeof(x) == sizeof(f32))
     {
-        ieee754_f32 formatx = {x}, formaty = {y};
+        ieee754_f32 formatx = { x }, formaty = { y };
         formatx.ieee.S = formaty.ieee.S;
         return formatx.F;
     }
     else
     {
-        ieee754_f64 formatx = {x}, formaty = {y};
+        ieee754_f64 formatx = { x }, formaty = { y };
         formatx.ieee.S = formaty.ieee.S;
         return formatx.F;
     }
@@ -3083,35 +3433,35 @@ inline bool is_nan(is_floating_point auto x)
 {
     if constexpr (sizeof(x) == sizeof(f32))
     {
-        ieee754_f32 format = {x};
+        ieee754_f32 format = { x };
         return format.ieee.E == 0xFF && format.ieee.M != 0;
     }
     else
     {
-        ieee754_f64 format = {x};
+        ieee754_f64 format = { x };
         return format.ieee.E == 0x7FF &&
-               (format.ieee.M0 != 0 || format.ieee.M1 != 0);
+            (format.ieee.M0 != 0 || format.ieee.M1 != 0);
     }
 }
 
 inline bool is_signaling_nan(is_floating_point auto x)
 {
     if constexpr (sizeof(x) == sizeof(f32))
-        return is_nan(x) && ieee754_f32{x}.ieee_nan.N == 0;
+        return is_nan(x) && ieee754_f32 { x }.ieee_nan.N == 0;
     else
-        return is_nan(x) && ieee754_f64{x}.ieee_nan.N == 0;
+        return is_nan(x) && ieee754_f64 { x }.ieee_nan.N == 0;
 }
 
 inline bool is_infinite(is_floating_point auto x)
 {
     if constexpr (sizeof(x) == sizeof(f32))
     {
-        ieee754_f32 format = {x};
+        ieee754_f32 format = { x };
         return format.ieee.E == 0xFF && format.ieee.M == 0;
     }
     else
     {
-        ieee754_f64 format = {x};
+        ieee754_f64 format = { x };
         return format.ieee.E == 0x7FF && format.ieee.M0 == 0 && format.ieee.M1 == 0;
     }
 }
@@ -3119,9 +3469,9 @@ inline bool is_infinite(is_floating_point auto x)
 inline bool is_finite(is_floating_point auto x)
 {
     if constexpr (sizeof(x) == sizeof(f32))
-        return ieee754_f32{x}.ieee.E != 0xFF;
+        return ieee754_f32{ x }.ieee.E != 0xFF;
     else
-        return ieee754_f64{x}.ieee.E != 0x7FF;
+        return ieee754_f64{ x }.ieee.E != 0x7FF;
 }
 
 /**
@@ -3141,7 +3491,7 @@ inline bool is_finite(is_floating_point auto x)
  */
 template <typename T, typename U>
 inline constexpr auto cast_numeric(U y)
-    requires(is_scalar<T> && is_scalar<U>)
+    requires(is_scalar<T>&& is_scalar<U>)
 {
 #if defined(LSTD_NUMERIC_CAST_CHECK)
     if constexpr (is_integral<T> && is_integral<U>)
@@ -3156,7 +3506,7 @@ inline constexpr auto cast_numeric(U y)
         }
         else if constexpr (is_unsigned_integral<T> && is_signed_integral<U>)
         {
-            if (y < 0 || static_cast<u128>(y) > numeric<T>::max())
+            if (y > static_cast<U>(numeric<T>::max()) || y < 0)
             {
                 // Report error and assert
                 assert(false && "Overflow: signed to unsigned integer cast.");
@@ -3261,13 +3611,13 @@ inline auto abs(is_scalar auto x)
     {
         if constexpr (sizeof(x) == sizeof(f32))
         {
-            ieee754_f32 u = {x};
+            ieee754_f32 u = { x };
             u.ieee.S = 0;
             return u.F;
         }
         else
         {
-            ieee754_f64 u = {x};
+            ieee754_f64 u = { x };
             u.ieee.S = 0;
             return u.F;
         }
