@@ -1,10 +1,8 @@
 
 # light-std
-A C++20 data-oriented library created for personal use that aims to replace the standard C/C++ library.
+A C++20 data-oriented library replaces the standard C++ library.
 
-This is a personal data-oriented library written in C++20, with the goal of providing a comprehensive alternative to the standard C/C++ library. The library is designed to be self-contained, meaning it does not rely on any headers from the default standard library, and does not link with the runtime library. It has been built and tested on Windows using the MSVC compiler. However, on Linux, we have no choice but to utilize glibc, as it includes the necessary system calls, so we bite the bullet.
-
-> Please note that I often use the term 'we' when referring to this library, although I am currently its sole developer. While it may appear as if I am talking to myself, I assure you that this is intentional and I don't mind it.
+With the goal of providing a stripped-down alternative to the standard C/C++ library. The library is designed to be self-contained, meaning it does not rely on any headers from the default standard library, and does not link with the runtime library.
 
 ## Why
 
@@ -14,19 +12,21 @@ TLDR; the philosophy of this library follows a data-oriented approach.
 
 Modern CPUs rely heavily on efficient memory layout, making it crucial for programmers to consider this aspect when writing code. High-level languages, including "Modern C++," often abstract memory management, which results in slower software. Hardware has gotten blazingly fast, but software has deteriorated drastically. Just following principles of "clean code" can [erase 4-14 years of hardware evolution](https://www.computerenhance.com/p/clean-code-horrible-performance?utm_source=post-email-title&publication_id=865289&post_id=102168145)!
 
-It's crucial to understand that writing readable, well-documented, and performant code is possible without resorting to low-level instructions or assembly. The modern emphasis on clean code can sometimes miss the mark, as it often focuses on aesthetics and abstractions rather than addressing the core issues at hand. Object-oriented programming and extensive abstraction layers might appear elegant, but as I see nobody measures the extent of coupling and productivity improvements they provide (I'd argue not much). In contrast, the performance cost of such an approach is quantifiable and can be significant. Thus, it's essential to get strike a balance between code elegance and performance. The latter almost always seems to be ignored.
+Writing readable, well-documented, and performant code is possible without resorting to low-level instructions or assembly. The modern emphasis on clean code can sometimes miss the mark, as it often focuses on aesthetics and abstractions rather than addressing the core issues at hand. Object-oriented programming and extensive abstraction layers might appear elegant, but as I don't see anybody measuring the claims that are so vigorously defended, in contrast: performance cost of such an approach is quantifiable and can be significant.
 
-Despite CPUs being capable of performing billions of calculations per second, reading a single byte from RAM can take hundreds of clock cycles if the memory isn't in the cache. This highlights the importance of thinking about cache usage. When programmers adopt a data-oriented mindset, they prioritize structuring programs based on how computers process data. This means keeping data that is processed together in close proximity within memory. While creating abstractions can be beneficial and time-saving, excessive abstraction can lead to inefficient software that wastes CPU time (and speeds up global warming).
+Despite modern CPUs being capable of performing billions of calculations per second, reading a single byte from RAM can take hundreds of clock cycles if the memory isn't in the cache. This highlights the importance of thinking about cache usage. When programmers adopt a data-oriented mindset, they prioritize structuring programs based on how computers process data. This means keeping data that is processed together in close proximity within memory.
 
 ## This library currently provides:
 
-- A memory model inspired by Jonathan Blow's Jai - simple overridable allocators with an implicit context system, including a robust debug memory switch that has checks for double frees, cross-thread frees, block overlaps from allocations and etc.
-- Arrays centered around memory arenas, inspired by Ryan Fleury, which hope to eliminate the majority of memory bugs, by keeping everything self-contained.
-- Data structures - utf-8 non-null-terminated string, lists, hash table, etc.
+- A memory model inspired by Jonathan Blow's Jai - simple overridable allocators with an implicit global thread-local context variable, including a debug memory switch that has checks for double frees, cross-thread frees, block overlaps from allocations and etc.
+- Support for memory arenas, inspired by [Ryan Fleury](https://www.rfleury.com/p/untangling-lifetimes-the-arena-allocator).
+- Utf-8 non-null-terminated string with unicode support.
+- Linked-list "hygienic macros" using C++'s concepts to access a structure's "Next" and "Prev" fields.
+- Simple, fast and hackable dynamic array, [exponential array (xar)](https://azmr.uk/dyn/), hash table etc.
 - `os` module - common operations that require querying the OS.
-- `path` module - procedures that work with file paths. 
-- `fmt` module - a formatting library inspired by Python's formatting syntax (that's even faster than printf).
-- `parse` module - for parsing strings, integers, booleans, GUIDs, etc.
+- `path` module - procedures that work with Windows and Unix file paths. 
+- `fmt` module - a formatting library inspired by Python's formatting syntax, prints faster than printf.
+- `parse` module - for parsing strings, integers, booleans, GUIDs.
 - Threads, mutexes, atomic operations.
 - Console input/output.
 
@@ -34,13 +34,13 @@ Despite CPUs being capable of performing billions of calculations per second, re
 
 You need a compiler which fully supports C++20 concepts. Visual Studio 2019 16.11 works fine. I've also tested Clang 14.
 
-This project uses [nob.c](nob.c) as its build system - a single-file build script that automatically rebuilds itself when modified.
+This project uses Tsoding's [nob.c](https://github.com/tsoding/nob.h) as its build system - a single-file build script that automatically rebuilds itself when modified.
 
 ### All Platforms (Recommended)
 
 1. **Bootstrap the build system** (one time only):
    ```bash
-   cc -o nob nob.c        # On Unix-like systems (Linux, macOS)
+   cc -o nob nob.c        # On Unix-like systems 
    cl nob.c               # On Windows with MSVC
    ```
 
@@ -54,50 +54,36 @@ This project uses [nob.c](nob.c) as its build system - a single-file build scrip
 
 The `nob` executable will automatically rebuild itself if you modify `nob.c`, so you only need to bootstrap it once.
 
-### Legacy Build Methods
-
-For convenience, `build.sh` is provided as a simple example script that bootstraps and runs nob:
-
-```bash
-bash build.sh          # Equivalent to: cc nob.c -o nob && ./nob
-```
-
 ### Platform-Specific Notes
 
 #### Windows
-On Windows we try our hardest to avoid linking with the CRT and provide common functionality to external libraries that may require it (for example functions like `strncpy`, defined in `lstd/platform/windows/no_crt/common_functions.h/.cpp`). If a library requires a function you can add it there.
+On Windows we try our hardest to avoid linking with the CRT and provide common functionality to external libraries that may require it (for example functions like `strncpy`, defined in `lstd/platform/windows/no_crt/common_functions.h/.cpp`).
 
-#### Linux
-On Linux we can't not-link with `glibc`, because it's coupled with the POSIX operating system calls library, although in my opinion they really should be separate. For example, how can we be sure we get the same answer to a math function (e.g. `sin`) since virtually every compiler and platform may define its own version. Insane.
+#### Linux & Mac
+We can't not-link with `glibc`, because it's coupled with the POSIX operating system calls library, although in my opinion they really should be separate. For example, how can we be sure we get the same answer to a math function (e.g. `sin`) since virtually every compiler and platform may define its own version. Insane.
 
-#### macOS
-The library now works on macOS with the nob build system. Use the same build instructions as other Unix-like systems.
+## Zen 
 
-## Principles 
-
-- **Simplicity: Less code is better**
-> Every line of code is a liability and a possible source of bugs and security holes. So we avoid big dependencies.
+- **Less code is better**
+> Every line of code is a liability and a possible source of bugs and security holes. Automatic package managers are a curse.
 
 - **Closer to C than to modern C++**
-> Ditch copy/move constructors, destructors, exceptions. This reduces the amount of abstractions and bloat code and increases our confidence that the code is doing what we expect.
+> Ditch copy/move constructors, destructors, exceptions. This reduces the amount of abstractions and bloat code and increases confidence that the code is doing what is expected.
 
 - **Code reusability**
-> Using C++20 features: terse templates, concepts, we can do conditional procedure compilation and combine functions in ways to reduce code. Examples: `parse.h` and `array_like.h`. Conditional procedure compilation also leads to performance improvement (even in Debug), and in C++20 it doesn't require ugly macro magic which makes code difficult to reason about (most of the time it's as simple as `if constexpr`).
-
-- **Clean code**
-> Readibility and reasonability are most important. Comments are a powerful tool to explain WHY (not WHAT is done) and the philosophy behind it.
+> Using C++20 features: terse templates, concepts, we can do conditional procedure compilation and combine functions in ways to reduce code. Examples: `parse.h` and `array_like.h`. Conditional procedure compilation also leads to performance improvement (even in Debug), and in C++20 it doesn't require ugly macro magic which makes code difficult to reason about.
 
 ## Documentation
 
 ### Type policy
 
 #### Ideal
-- Keep it simple and data-oriented. Design data to simplify solutions and minimize abstraction layers.
+- Keep it simple and POD (plain old data). Every structure should work when memcpy-ed 
 - Use `struct` instead of `class`, and keep everything public.
 - Provide a default constructor that does minimal work.
-- Don't use copy/move constructors, avoid destructors. To implement "destructor functionality" (uninitializing the type, freeing members, etc.), provide a function, such as:
+- Don't use copy/move constructors, no destructors. To implement "destructor functionality" (uninitializing the type, freeing members, etc.), provide a function, such as:
 >```cpp
->    free_string(string& s) {
+>    free(string ref s) {
 >        free(s.Data);   // Free buffer as normal
 >        atomic_add(&GlobalStringCount, -1);
 >    }
@@ -105,33 +91,39 @@ The library now works on macOS with the nob build system. Use the same build ins
 - Never throw exceptions. Instead, return multiple values using structured bindings (C++17).
   They make code complicated. When you can't handle an error and need to exit from a function, return multiple values.
 >          auto [content, success] = os_read_entire_file("data/hello.txt");
-- In general, error conditions (which require returning a status) should be rare. The code should just do the correct stuff. I find that using exceptions leads to this mentality of "giving up and passing the responsibility to handle error cases to the caller". Howoever, that quickly becomes complicated and confidence is lost on what could happen and where. Code in general likes to grow in complexity combinatorially as more functionality is added, if we also give up the linear structure of code by using exceptions then that's a disaster waiting to happen.
+- In general, error conditions (which require returning a status) should be rare. The code should just do the correct stuff. Using exceptions leads to this mentality of "giving up and passing the responsibility to handle error cases to the caller". However, that quickly becomes complicated and confidence is lost on what could happen and where. Code in general likes to grow in complexity combinatorially as more functionality is added, if we also give up the linear structure of code by using exceptions then that's a disaster waiting to happen.
 
 #### Example
 The array in this library is a basic wrapper around contiguous memory with three fields (Data, Count, and Allocated). It does not have ownership; the programmer determines it explicitly.
 
-By default, arrays are views. To make them dynamic, call `reserve(arr)` or `make_array(...)`. Arrays can be passed around and returned by value, as they have no hidden destructor and are cheap to copy. To free, call `free(arr)` or use `defer(free(arr))`. The latter runs like a destructor, but it's written *explicitly* in code.
+By default, arrays are views. To make them dynamic and owned, call `reserve(arr)` or `make_array(...)`. Arrays can be passed around and returned by value, as they have no hidden destructor and are cheap to copy. To free, call `free(arr)` or use `defer(free(arr))`. The latter runs like a destructor, but it's written *explicitly* in code.
 
 > ```cpp
-> array<string> pathComponents;
-> reserve(pathComponents);
-> defer(free(pathComponents));
+> array<string> path;
+> defer(free(path));
+>
+> add(path, "./");
+> add(path, "build");
+> ...
 > ```
 
+To make a deep copy of an array, use clone(): `newPath = clone(path)`.
+
 > ```cpp
-> string path = make_string("./data/");
-> // Alternatively: string path = "./data/"; reserve(path);
+> string path = make_string("./data/"); 
+> // Equivalent to 
+> //     string path = "./data/"; 
+> //     reserve(path);
 >
 > defer(free(path));
+>
 > add(path, "output.txt");
 > string pathWithoutDot = slice(path, 2, -1); // No allocations
 > ```
 
 strings behave like arrays but have different types to avoid conflicts. They take indices to code points (as they are UTF-8 by default) and are not null-terminated, so substrings don't allocate memory. 
 
-To make a deep copy of an array, use clone(): `newPath = clone(path)`.
-
-### Arrays by example
+### Array Examples
 
 > ex.1
 > ```cpp
@@ -165,14 +157,13 @@ To make a deep copy of an array, use clone(): `newPath = clone(path)`.
 >  
 >      // Here 'sequence' is no longer valid, but 'otherSequence' (which was deep copied) still is.
 >  
->      // Attempting to free a subarray is undefined.
->      // It is guaranteed to trip an assert in our memory layer, before the allocator.
+>      // Attempting to free a subarray is guaranteed to trip an assert and crash
+>      // in our debug memory layer, if the define switch is turned on.
 >      auto subData = array<byte>(otherSequence.Data + 1, 2);
 >      free(subData.Data); 
 > ```
 
-> ex.3 Example how array doesn't know what the current context allocator is (more on that later). 
-> Here `PERSISTENT` is an allocator that the platform layer uses for internal allocations. The example is taken directly from the `os` module.
+> ex.3 Here `PERSISTENT` is an allocator that the platform layer uses for internal allocations. The example is taken directly from the `os` module.
 > ```cpp
 > void parse_arguments() {
 >     wchar **argv;
@@ -193,10 +184,10 @@ To make a deep copy of an array, use clone(): `newPath = clone(path)`.
 >         if (n > 0) {
 >             reserve(S->Argv, n);
 >         }
+>
+>         // Loop over all arguments and add them
+>         For(range(0, argc)) add(S->Argv, utf16_to_utf8(argv[it]));
 >     }
-> 
->     // Loop over all arguments and add them, skip the .exe name
->     For(range(1, argc)) add(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
 > }
 > ```
 
@@ -255,7 +246,7 @@ To make a deep copy of an array, use clone(): `newPath = clone(path)`.
 >      auto data = make_stack_array<s64>(1, 2, 3, 4, 5);
 > ```
 
-> ex.6 Arrays support Python-like negative indexing.
+> ex.6 Arrays and strings support Python-like negative indexing.
 > ```cpp
 >      auto nums = make_stack_array(1, 2, 3, 4, 5); 
 >
@@ -264,19 +255,23 @@ To make a deep copy of an array, use clone(): `newPath = clone(path)`.
 >      print("{}", nums[-1]); // 5
 > ```
 
-### Strings by example
+### Strings Examples
 
-Strings in this library support unicode (UTF-8) and aren't null-terminated.
+Strings in this library support unicode by default (UTF-8) and aren't null-terminated.
 
 `str.Count` tells you the number of bytes stored in the string. To get
-the number of code points call `length(str)`.
-The number of code points is smaller or equal to the number of bytes,
-because a certain code point can be encoded in up to 4 bytes.
+the number of code points call `length(str)`, which has to calculate 
+the UTF-8 length by iterating the string. The number of code points is 
+smaller or equal to the number of bytes, because a certain code point 
+can be encoded in up to 4 bytes.
+
+Strings are compared using `strings_match` and not with `==` since 
+the latter in C/C++ has the convention of comparing the string pointers.
 
 Array examples from the previous section are relevant here.
 
 > ex.1 This string is constructed from a zero-terminated string buffer (which the compiler stores in read-only memory when the program launches). 
-> This doesn't allocate memory, `free(path)` or `free(path.Data` will crash.
+> This doesn't allocate memory, `free(path)` or `free(path.Data)` will crash.
 > ```cpp
 >     string path = "./data/"; 
 > ```
@@ -285,36 +280,12 @@ Array examples from the previous section are relevant here.
 > ```cpp
 >     string path = "./data/output.txt";
 >     
->     // Reverse search to find the last dot, search_options 
->     // is a struct, here we init it with C++20 syntax. 
->     s64 dot = search(path, '.', search_options {.Start = length(path), .Reversed = true});
+>     // Reverse search to find the last dot
+>     s64 dot = search(path, '.', .Start = length(path), .Reversed = true);
 >     string pathExtension = slice(path, dot, -1); // ".txt"    
 > ```
 
-> ex.3 Modifying individual code points.
-> ```cpp
->     string greeting = make_string("ЗДРАСТИ");
->     defer(free(greeting));
-> 
->     For(greeting) {
->         it = to_lower(it);
->         // Here the string is non-const so 'it' is actually a reference 
->         // to the code point in the string, so you can modify it directly.
->         // This also correctly handles replacing a code point with a larger 
->         // or smaller one. 
->         // 
->         // For more, see the implementation of string_iterator.
->         // 
->         // Note from the future (2022, almost 2023), this ought to be
->         // replaced with a map function or equivalent, since having
->         // code point references, which are able to silently modify the
->         // string are dangerous and limited (e.g. other types or arrays
->         // with more complicated substitutions don't get the same treatment);  
->     }
->     greeting; // now contains "здрасти"
-> ```
-
-> ex.4 This example is taken directly from the `path` module.
+> ex.3 This example is taken directly from the `path` module.
 > ```cpp
 > mark_as_leak array<string> path_split_into_components(string path, string seps = "\\/") {
 >     array<string> result;
@@ -323,7 +294,7 @@ Array examples from the previous section are relevant here.
 >     s64 start = 0, prev = 0;
 >
 >     auto matchSep = [=](code_point cp) { return has(seps, cp); };
->     while ((start = search(path, &matchSep, search_options{ .Start = start + 1 })) != -1) {
+>     while ((start = search(path, &matchSep, .Start = start + 1 )) != -1) {
 >       result += { slice(path, prev, start) };
 >       prev = start + 1;
 >     }
@@ -343,7 +314,7 @@ Array examples from the previous section are relevant here.
 > }
 > ```
 
-> ex.5 Also taken from the `path` module.
+> ex.4 Also taken from the `path` module.
 > ```cpp
 > mark_as_leak string path_join(array<string> paths) {
 >     assert(paths.Count >= 2);
@@ -396,19 +367,16 @@ Array examples from the previous section are relevant here.
 > }
 > ```
 
-### Allocating memory by example
+### Memory Examples
 
-We avoid using new and delete for several reasons:
+Avoid using new and delete for several reasons:
 
-1) The syntax is considered less appealing.
+1) The syntax is ugly.
 2) Care must be taken not to mix new with delete[]/new[] with delete.
 3) It's an operator and can be overriden by structs/classes.
 4) Modern C++ programmers also recommend against using new/delete, so ... 
 
 There are two primary ways to allocate memory in C++: malloc and new. To prevent the introduction of a third method, we override malloc.
-
-> When we don't link the CRT `malloc` is undefined, so we need to
-> provide a replacement anyway (TODO: it may actually be possible to do symbol patching for already compiled code).
 
 new and delete have different semantics (new initializes values, delete calls a destructor if defined). Although our type policy discourages destructors, we will call them just in case, as some third-party libraries might rely on them.
 
@@ -426,7 +394,7 @@ So we provide templated versions of malloc/free:
 `free<T>`
 - Calls the destructor, but note that we generally discourage destructors in favor of explicit code.
 
-#### Context and allocators 
+#### Context and Allocators 
 
 The Context is a global, thread-local variable containing options that alter the program's behavior.
 
@@ -446,7 +414,6 @@ struct context {
     writer *Log;
 };
 ```
-Feel free to add more variables to your local copy of the library.
 
 The context is initialized when the program runs and when creating a thread with our API. In the second case, we know the parent thread, so we copy the options from it. If the thread is created in another way, we leave it zero-initialized and let the caller decide what should go inside it. (As far as I know, there's no way to identify the parent thread with other APIs., again in the future we might try to hijack OS API calls with symbol patching, to always ensure a proper context).
 
@@ -477,6 +444,8 @@ The context is initialized when the program runs and when creating a thread with
 >     auto *simdType = malloc<f32v4>({.Alignment = 16});
 > 
 >     void *memory = malloc<byte>({.Count = 200});
+>
+>     // Mark explicitly with LEAK so the debug memory layer excludes this from a leak report.
 >     void *memory = malloc<byte>({.Count = 200, .Alloc = TemporaryAllocator, .Alignment = 64, .Options = LEAK});
 > ```
 
@@ -484,10 +453,14 @@ The context is initialized when the program runs and when creating a thread with
 > ```cpp
 >     time_t start = os_get_time();
 > 
->     // Initialize the temporary allocator by asking the OS for large pool.
+>     // Initialize the temporary allocator by asking the OS for large arena.
 >     s64 TEMP_ALLOC_SIZE = 1_MiB;
->     TemporaryAllocatorData.Block = os_allocate_block(TEMP_ALLOC_SIZE);
+>     TemporaryAllocatorData.Block = os_allocate_block(TEMP_ALLOC_SIZE); // Does VirtualAlloc/mmap
 >     TemporaryAllocatorData.Size  = TEMP_ALLOC_SIZE;
+>
+>     // Arenas can be left 0 initialized and by default, upon first usage, 
+>     // they call os_allocate_block(64_GiB) anyway.
+>     // So here TemporaryAllocatorData could've been left alone.
 >     
 >     auto newContext = Context;
 >     newContext.AllocAlignment = 16;          // For SIMD math types
@@ -514,24 +487,29 @@ The context is initialized when the program runs and when creating a thread with
 >     // We provide an implementation directly in the library.
 >     PersistentAlloc = {tlsf_allocator, data};
 >     allocator_add_pool(PersistentAlloc, pool, pool_size);
-
-     auto newContext = Context;
+>
+>     auto newContext = Context;
 >     newContext.Log = &cout;
 >     newContext.Alloc = PersistentAlloc;
 >
 >     // This macro doesn't change the context in a scope but 
 >     // instead overrides the parameter all-together. 
 >     // Use this only at the beginning of your program!
->     // Be very careful and never use this inside functions
->     // (the caller might get confused)...
+>     // Never use this inside functions since the caller will get confused.
 >     OVERRIDE_CONTEXT(newContext); 
 > ```
 
 > ex.5 How to implement custom allocators. Here is the implementation of the arena allocator.
 > ```cpp
 > void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
->     auto *data = (arena_allocator_data *) context;
->     auto* data = (arena_allocator_data*)context;
+>     auto *data = (arena_allocator_data *)context;
+>     if (!data->Block) {
+>        void *os_allocate_block(s64);
+>
+>        data->Block = os_allocate_block(8_GiB);
+>        data->Size = 8_GiB;
+>        data->Used = 0;
+>     }
 >
 >     switch (mode) {
 >         case allocator_mode::ALLOCATE: {
@@ -565,7 +543,7 @@ The context is initialized when the program runs and when creating a thread with
 
 ### Available types of allocators in the library
 
-> See `"memory.cppm"`.
+> See `"memory.h"`.
 
 #### TLSF
 
@@ -576,7 +554,7 @@ Generally malloc implementations do the following:
 
 Here, we provide a wrapper around the TLSF algorithm. To use it, allocate a large block with the OS allocator (that's usually how everything starts) and call `allocator_add_pool()` on the TLSF (`ex.4` from the previous section).
 
-You can write a general-purpose allocator and do what stb_malloc does for different sized allocations or have several TLSF specialized allocators with different blocks. Both are equivalent. We try to push you to think about how memory in your program should be structured together, and having a general-purpose allocator for EVERY type of allocation is not ideal, as it just sweeps everything under the rug.
+You can write a general-purpose allocator and do what stb_malloc does for different sized allocations or have several TLSF specialized allocators with different blocks. Both are equivalent. We try to push you to think about how memory in your program should be structured together, and having a general-purpose allocator for every type of allocation is not ideal, as it just sweeps everything under the rug.
 
 ```cpp
 // Two-Level Segregated Fit memory allocator implementation. 
@@ -618,7 +596,7 @@ void *pool_allocator(allocator_mode mode, void *context, s64 size, void *oldMemo
 
 ### Credits
 
-The appropriate licenses are listed alongside this list in the file `CREDITS`.
+The appropriate licenses are listed alongside this list in the file `LICENSE.md`.
 
 - [Cephes](https://www.netlib.org/cephes/), Stephen L. Moshier, math functions as a replacement to avoid linking with the CRT.
 - [tlsf](https://github.com/mattconte/tlsf), Matthew Conte (http://tlsf.baisoku.org), Two-Level Segregated Fit memory allocator, version 3.1.
@@ -630,6 +608,6 @@ The appropriate licenses are listed alongside this list in the file `CREDITS`.
 
 ### Projects
 
-- [light-std-graphics](https://github.com/Repertoi-e/light-std-graphics) - high-level windowing API (like GLFW) and a high-level graphics API (currently has only DirectX bindings).
+- [light-std-graphics](https://github.com/Repertoi-e/light-std-graphics) - high-level windowing API (like GLFW) and a high-level graphics API.
 - [Physics engine](https://soti.camp/blog/simulating_rigid_body_physics/) - tutorial about simulating rigid bodies (and using `light-std-graphics` for demos).
 
