@@ -214,8 +214,7 @@ key_value_pair<T> add_prehashed(T ref table, u64 hash, table_key_t<T> no_copy ke
 
   // The + 1 here handles the case when the hash table size is 1 and you add the
   // first item.
-  if ((table.SlotsFilled + 1) * 100 >=
-      table.Allocated * T::LOAD_FACTOR_PERCENT)
+  if ((table.SlotsFilled + 1) * 100 >= table.Allocated * T::LOAD_FACTOR_PERCENT)
     resize(table, table.SlotsFilled * 2);  // Double size
 
   assert(table.SlotsFilled < table.Allocated);
