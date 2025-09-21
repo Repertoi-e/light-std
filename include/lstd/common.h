@@ -521,106 +521,122 @@ struct s128
         };
     };
 
-    s128() : n{ 0, 0 } {};
-    s128(s64 hi, u64 lo) : lo(lo), hi(hi) {};
-    s128(s64 v);
+    constexpr s128() : n{ 0, 0 } {};
+    constexpr s128(s64 hi, u64 lo) : lo(lo), hi(hi) {};
+    constexpr explicit s128(s64 v);
+    constexpr explicit s128(u64 v);
+    constexpr s128(s32 v) { *this = s128((s64)v); }
+    constexpr s128(u32 v) { *this = s128((u64)v); }
+    constexpr explicit s128(u16 v) { *this = s128((u64)v); }
+    constexpr explicit s128(s16 v) { *this = s128((s64)v); }
 #if defined(__SIZEOF_INT128__)
-    explicit s128(__uint128_t m) : m(m) {};
+    constexpr explicit s128(__uint128_t m) : m(m) {};
 #endif
-    explicit s128(u64 v);
 
-    operator s64() const;
-    operator u64() const;
+    constexpr operator s64() const;
+    constexpr operator u64() const;
 
-    operator bool() const;
-    bool operator==(s128 v) const;
-    bool operator!=(s128 v) const;
-    bool operator<(s128 v) const;
-    bool operator<=(s128 v) const;
-    bool operator>(s128 v) const;
-    bool operator>=(s128 v) const;
-    s128 operator-() const;
-    s128 operator~() const;
-    s128 operator<<(s32 shamt) const;
-    s128 operator>>(s32 shamt) const;
-    s128 operator+(s128 v) const;
-    s128 operator-(s128 v) const;
-    s128 operator*(s128 v) const;
-    s128 operator/(s128 v) const;
-    s128 operator%(s128 v) const;
-    s128 operator&(s128 v) const;
-    s128 operator|(s128 v) const;
-    s128 operator^(s128 v) const;
+    constexpr operator bool() const;
+    constexpr bool operator==(s128 v) const;
+    constexpr bool operator!=(s128 v) const;
+    constexpr bool operator<(s128 v) const;
+    constexpr bool operator<=(s128 v) const;
+    constexpr bool operator>(s128 v) const;
+    constexpr bool operator>=(s128 v) const;
+    constexpr s128 operator-() const;
+    constexpr s128 operator~() const;
+    constexpr s128 operator<<(s32 shamt) const;
+    constexpr s128 operator>>(s32 shamt) const;
+    constexpr s128 operator+(s128 v) const;
+    constexpr s128 operator-(s128 v) const;
+    constexpr s128 operator*(s128 v) const;
+    constexpr s128 operator/(s128 v) const;
+    constexpr s128 operator%(s128 v) const;
+    constexpr s128 operator&(s128 v) const;
+    constexpr s128 operator|(s128 v) const;
+    constexpr s128 operator^(s128 v) const;
 };
 
-static inline s128 i128_from_s64(s64 n);
-static inline s128 i128_from_u64(u64 n);
-static inline s128 i128_from_uv64(u64* v);
-static inline s64 s64_from_i128(s128 n);
-static inline u64 u64_from_i128(s128 n);
-static inline u64* uv64_from_i128(s128* v);
+constexpr s128 i128_from_s64(s64 n);
+constexpr s128 i128_from_u64(u64 n);
+constexpr s128 i128_from_uv64(u64* v);
+constexpr s64 s64_from_i128(s128 n);
+constexpr u64 u64_from_i128(s128 n);
+constexpr u64* uv64_from_i128(s128* v);
 
-static inline s128 i128_not(s128 u);
-static inline s128 i128_and(s128 u, s128 v);
-static inline s128 i128_or(s128 u, s128 v);
-static inline s128 i128_xor(s128 u, s128 v);
-static inline s128 i128_sll(s128 u, u32 shamt);
-static inline s128 i128_srl(s128 u, u32 shamt);
-static inline s128 i128_sra(s128 u, u32 shamt);
+constexpr s128 i128_not(s128 u);
+constexpr s128 i128_and(s128 u, s128 v);
+constexpr s128 i128_or(s128 u, s128 v);
+constexpr s128 i128_xor(s128 u, s128 v);
+constexpr s128 i128_sll(s128 u, u32 shamt);
+constexpr s128 i128_srl(s128 u, u32 shamt);
+constexpr s128 i128_sra(s128 u, u32 shamt);
 
-static inline s128 i128_neg(s128 u);
-static inline s128 i128_add(s128 u, s128 v);
-static inline s128 i128_sub(s128 u, s128 v);
-static inline s128 i128_mul(s128 u, s128 v);
-static inline s128 i128_mulu(s128 u, s128 v);
+constexpr s128 i128_neg(s128 u);
+constexpr s128 i128_add(s128 u, s128 v);
+constexpr s128 i128_sub(s128 u, s128 v);
+constexpr s128 i128_mul(s128 u, s128 v);
+constexpr s128 i128_mulu(s128 u, s128 v);
 
-static inline s128 i128_div(s128 u, s128 v);
-static inline s128 i128_divu(s128 u, s128 v);
-static inline s128 i128_rem(s128 u, s128 v);
-static inline s128 i128_remu(s128 u, s128 v);
+constexpr s128 i128_div(s128 u, s128 v);
+constexpr s128 i128_divu(s128 u, s128 v);
+constexpr s128 i128_rem(s128 u, s128 v);
+constexpr s128 i128_remu(s128 u, s128 v);
 
-static inline s128 i128_divmod(s128 u, s128 v, s128* r);
-static inline s128 i128_divmodu(s128 u, s128 v, s128* r);
+constexpr s128 i128_divmod(s128 u, s128 v, s128* r);
+constexpr s128 i128_divmodu(s128 u, s128 v, s128* r);
 
-static inline int i128_cmp_eq(s128 u, s128 v);
-static inline int i128_cmp_lt(s128 u, s128 v);
-static inline int i128_cmp_gt(s128 u, s128 v);
-static inline int i128_cmp_ltu(s128 u, s128 v);
-static inline int i128_cmp_gtu(s128 u, s128 v);
-static inline int i128_cmp_t(s128 u, s128 v);
-static inline int i128_cmp_tu(s128 u, s128 v);
+constexpr int i128_cmp_eq(s128 u, s128 v);
+constexpr int i128_cmp_lt(s128 u, s128 v);
+constexpr int i128_cmp_gt(s128 u, s128 v);
+constexpr int i128_cmp_ltu(s128 u, s128 v);
+constexpr int i128_cmp_gtu(s128 u, s128 v);
+constexpr int i128_cmp_t(s128 u, s128 v);
+constexpr int i128_cmp_tu(s128 u, s128 v);
 
-static inline u32 i128_ctz(s128 u);
-static inline u32 i128_clz(s128 u);
-static inline u32 i128_popcnt(s128 u);
-static inline s128 i128_bswap(s128 u);
-static inline s128 i128_brev(s128 u);
+constexpr u32 i128_ctz(s128 u);
+constexpr u32 i128_clz(s128 u);
+constexpr u32 i128_popcnt(s128 u);
+constexpr s128 i128_bswap(s128 u);
+constexpr s128 i128_brev(s128 u);
 
-inline s128::s128(s64 v) { *this = i128_from_s64(v); }
-inline s128::s128(u64 v) { *this = i128_from_u64(v); }
+constexpr s128::s128(s64 v) { *this = i128_from_s64(v); }
+constexpr s128::s128(u64 v) { *this = i128_from_u64(v); }
 
-inline s128::operator s64() const { return s64_from_i128(*this); }
-inline s128::operator u64() const { return u64_from_i128(*this); }
+constexpr s128::operator s64() const { return s64_from_i128(*this); }
+constexpr s128::operator u64() const { return u64_from_i128(*this); }
 
-inline s128::operator bool() const { return hi != 0 || lo != 0; }
-inline bool s128::operator==(s128 v) const { return i128_cmp_eq(*this, v); }
-inline bool s128::operator!=(s128 v) const { return !i128_cmp_eq(*this, v); }
-inline bool s128::operator<(s128 v) const { return i128_cmp_lt(*this, v); }
-inline bool s128::operator<=(s128 v) const { return !i128_cmp_gt(*this, v); }
-inline bool s128::operator>(s128 v) const { return i128_cmp_gt(*this, v); }
-inline bool s128::operator>=(s128 v) const { return !i128_cmp_lt(*this, v); }
-inline s128 s128::operator-() const { return i128_neg(*this); }
-inline s128 s128::operator~() const { return i128_not(*this); }
-inline s128 s128::operator<<(s32 shamt) const { return i128_sll(*this, (s32) shamt); }
-inline s128 s128::operator>>(s32 shamt) const { return i128_sra(*this, (s32) shamt); }
-inline s128 s128::operator+(s128 v) const { return i128_add(*this, v); }
-inline s128 s128::operator-(s128 v) const { return i128_sub(*this, v); }
-inline s128 s128::operator*(s128 v) const { return i128_mul(*this, v); }
-inline s128 s128::operator/(s128 v) const { return i128_div(*this, v); }
-inline s128 s128::operator%(s128 v) const { return i128_rem(*this, v); }
-inline s128 s128::operator&(s128 v) const { return i128_and(*this, v); }
-inline s128 s128::operator|(s128 v) const { return i128_or(*this, v); }
-inline s128 s128::operator^(s128 v) const { return i128_xor(*this, v); }
+constexpr s128::operator bool() const { return hi != 0 || lo != 0; }
+constexpr bool s128::operator==(s128 v) const { return i128_cmp_eq(*this, v); }
+constexpr bool s128::operator!=(s128 v) const { return !i128_cmp_eq(*this, v); }
+constexpr bool s128::operator<(s128 v) const { return i128_cmp_lt(*this, v); }
+constexpr bool s128::operator<=(s128 v) const { return !i128_cmp_gt(*this, v); }
+constexpr bool s128::operator>(s128 v) const { return i128_cmp_gt(*this, v); }
+constexpr bool s128::operator>=(s128 v) const { return !i128_cmp_lt(*this, v); }
+constexpr s128 s128::operator-() const { return i128_neg(*this); }
+constexpr s128 s128::operator~() const { return i128_not(*this); }
+constexpr s128 s128::operator<<(s32 shamt) const { return i128_sll(*this, (s32) shamt); }
+constexpr s128 s128::operator>>(s32 shamt) const { return i128_sra(*this, (s32) shamt); }
+constexpr s128 s128::operator+(s128 v) const { return i128_add(*this, v); }
+constexpr s128 s128::operator-(s128 v) const { return i128_sub(*this, v); }
+constexpr s128 s128::operator*(s128 v) const { return i128_mul(*this, v); }
+constexpr s128 s128::operator/(s128 v) const { return i128_div(*this, v); }
+constexpr s128 s128::operator%(s128 v) const { return i128_rem(*this, v); }
+constexpr s128 s128::operator&(s128 v) const { return i128_and(*this, v); }
+constexpr s128 s128::operator|(s128 v) const { return i128_or(*this, v); }
+constexpr s128 s128::operator^(s128 v) const { return i128_xor(*this, v); }
+
+
+#if !defined __SIZEOF_INT128__
+
+/* 64-bit 128-bit compiler intrinsics forward decls */
+
+constexpr s128 i128_umul_s64_s64(u64 x, u64 y);
+constexpr u64 s64_umulh_s64_s64(u64 x, u64 y);
+constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r);
+constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r);
+
+#endif 
 
 //
 // Intrinsic-like u128 type (unsigned counterpart)
@@ -648,64 +664,66 @@ struct u128
         };
     };
 
-    u128() : n{ 0, 0 } {};
-    u128(u64 hi, u64 lo) : lo(lo), hi(hi) {};
+    constexpr u128() : n{ 0, 0 } {};
+    constexpr u128(u64 hi, u64 lo) : lo(lo), hi(hi) {};
 #if defined(__SIZEOF_INT128__)
-    explicit u128(__uint128_t m) : m(m) {};
+    constexpr explicit u128(__uint128_t m) : m(m) {};
 #endif
-    u128(u64 v);
+    constexpr explicit u128(u64 v);
+    constexpr u128(u32 v) { *this = u128((u64)v); }
+    constexpr explicit u128(u16 v) { *this = u128((u64)v); }
 
-    operator u64() const;
-    explicit operator bool() const;
+    constexpr operator u64() const;
+    constexpr explicit operator bool() const;
 
-    bool operator==(u128 v) const;
-    bool operator!=(u128 v) const;
-    bool operator<(u128 v) const;   // unsigned
-    bool operator<=(u128 v) const;  // unsigned
-    bool operator>(u128 v) const;   // unsigned
-    bool operator>=(u128 v) const;  // unsigned
+    constexpr bool operator==(u128 v) const;
+    constexpr bool operator!=(u128 v) const;
+    constexpr bool operator<(u128 v) const;   // unsigned
+    constexpr bool operator<=(u128 v) const;  // unsigned
+    constexpr bool operator>(u128 v) const;   // unsigned
+    constexpr bool operator>=(u128 v) const;  // unsigned
 
-    u128 operator~() const;
-    u128 operator<<(s32 shamt) const;
-    u128 operator>>(s32 shamt) const; // logical right shift
-    u128 operator+(u128 v) const;
-    u128 operator-(u128 v) const;
-    u128 operator*(u128 v) const;
-    u128 operator/(u128 v) const;
-    u128 operator%(u128 v) const;
-    u128 operator&(u128 v) const;
-    u128 operator|(u128 v) const;
-    u128 operator^(u128 v) const;
+    constexpr u128 operator~() const;
+    constexpr u128 operator<<(s32 shamt) const;
+    constexpr u128 operator>>(s32 shamt) const; // logical right shift
+    constexpr u128 operator+(u128 v) const;
+    constexpr u128 operator-(u128 v) const;
+    constexpr u128 operator*(u128 v) const;
+    constexpr u128 operator/(u128 v) const;
+    constexpr u128 operator%(u128 v) const;
+    constexpr u128 operator&(u128 v) const;
+    constexpr u128 operator|(u128 v) const;
+    constexpr u128 operator^(u128 v) const;
 };
 
 // u128 helpers (unsigned semantics)
-static inline u128 u128_from_u64(u64 n);
-static inline u128 u128_from_uv64(u64* v);
-static inline u64 u64_from_u128(u128 n);
-static inline u64* uv64_from_u128(u128* v);
+constexpr u128 u128_from_u64(u64 n);
+constexpr u128 u128_from_uv64(u64* v);
+constexpr u64 u64_from_u128(u128 n);
+constexpr u64* uv64_from_u128(u128* v);
 
-static inline u128 u128_not(u128 u);
-static inline u128 u128_and(u128 u, u128 v);
-static inline u128 u128_or(u128 u, u128 v);
-static inline u128 u128_xor(u128 u, u128 v);
-static inline u128 u128_sll(u128 u, u32 shamt);
-static inline u128 u128_srl(u128 u, u32 shamt);
-static inline u128 u128_add(u128 u, u128 v);
-static inline u128 u128_sub(u128 u, u128 v);
-static inline u128 u128_mul(u128 u, u128 v);
-static inline u128 u128_div(u128 u, u128 v);
-static inline u128 u128_rem(u128 u, u128 v);
-static inline u128 u128_divmod(u128 u, u128 v, u128* r);
+constexpr u128 u128_not(u128 u);
+constexpr u128 u128_and(u128 u, u128 v);
+constexpr u128 u128_or(u128 u, u128 v);
+constexpr u128 u128_xor(u128 u, u128 v);
+constexpr u128 u128_sll(u128 u, u32 shamt);
+constexpr u128 u128_srl(u128 u, u32 shamt);
+constexpr u128 u128_add(u128 u, u128 v);
+constexpr u128 u128_sub(u128 u, u128 v);
+constexpr u128 u128_mul(u128 u, u128 v);
+constexpr u128 u128_div(u128 u, u128 v);
+constexpr u128 u128_rem(u128 u, u128 v);
+constexpr u128 u128_divmod(u128 u, u128 v, u128* r);
 
 // Implementations
 #if defined(__SIZEOF_INT128__)
 
-inline u128::u128(u64 v) { m = (__uint128_t)v; }
-inline u128::operator u64() const { return (u64)m; }
-inline u128::operator bool() const { return (bool)((u64)m | (u64)(m >> 64)); }
+constexpr u128::u128(u64 v) { m = (__uint128_t)v; }
+constexpr u128::operator u64() const { return (u64)m; }
+constexpr u128::operator bool() const { return (bool)((u64)m | (u64)(m >> 64)); }
 
-static inline u128 u128_from_u64(u64 n) { return u128((__uint128_t)n); }
-static inline u128 u128_from_uv64(u64* v)
+constexpr u128 u128_from_u64(u64 n) { return u128((__uint128_t)n); }
+constexpr u128 u128_from_uv64(u64* v)
 {
     u128 x;
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -716,27 +734,27 @@ static inline u128 u128_from_uv64(u64* v)
 #endif
     return x;
 }
-static inline u64 u64_from_u128(u128 n) { return (u64)n.m; }
-static inline u64* uv64_from_u128(u128* v) { return v->n; }
+constexpr u64 u64_from_u128(u128 n) { return (u64)n.m; }
+constexpr u64* uv64_from_u128(u128* v) { return v->n; }
 
-inline bool u128::operator==(u128 v) const { return m == v.m; }
-inline bool u128::operator!=(u128 v) const { return m != v.m; }
-inline bool u128::operator<(u128 v) const { return m < v.m; }
-inline bool u128::operator<=(u128 v) const { return m <= v.m; }
-inline bool u128::operator>(u128 v) const { return m > v.m; }
-inline bool u128::operator>=(u128 v) const { return m >= v.m; }
+constexpr bool u128::operator==(u128 v) const { return m == v.m; }
+constexpr bool u128::operator!=(u128 v) const { return m != v.m; }
+constexpr bool u128::operator<(u128 v) const { return m < v.m; }
+constexpr bool u128::operator<=(u128 v) const { return m <= v.m; }
+constexpr bool u128::operator>(u128 v) const { return m > v.m; }
+constexpr bool u128::operator>=(u128 v) const { return m >= v.m; }
 
-static inline u128 u128_not(u128 u) { return u128(~u.m); }
-static inline u128 u128_and(u128 u, u128 v) { return u128(u.m & v.m); }
-static inline u128 u128_or(u128 u, u128 v) { return u128(u.m | v.m); }
-static inline u128 u128_xor(u128 u, u128 v) { return u128(u.m ^ v.m); }
-static inline u128 u128_sll(u128 u, u32 shamt) { return u128(u.m << shamt); }
-static inline u128 u128_srl(u128 u, u32 shamt) { return u128((__uint128_t)u.m >> shamt); }
-static inline u128 u128_add(u128 u, u128 v) { return u128(u.m + v.m); }
-static inline u128 u128_sub(u128 u, u128 v) { return u128(u.m - v.m); }
-static inline u128 u128_mul(u128 u, u128 v) { return u128((__uint128_t)u.m * (__uint128_t)v.m); }
+constexpr u128 u128_not(u128 u) { return u128(~u.m); }
+constexpr u128 u128_and(u128 u, u128 v) { return u128(u.m & v.m); }
+constexpr u128 u128_or(u128 u, u128 v) { return u128(u.m | v.m); }
+constexpr u128 u128_xor(u128 u, u128 v) { return u128(u.m ^ v.m); }
+constexpr u128 u128_sll(u128 u, u32 shamt) { return u128(u.m << shamt); }
+constexpr u128 u128_srl(u128 u, u32 shamt) { return u128((__uint128_t)u.m >> shamt); }
+constexpr u128 u128_add(u128 u, u128 v) { return u128(u.m + v.m); }
+constexpr u128 u128_sub(u128 u, u128 v) { return u128(u.m - v.m); }
+constexpr u128 u128_mul(u128 u, u128 v) { return u128((__uint128_t)u.m * (__uint128_t)v.m); }
 
-static inline u128 u128_divmod(u128 u, u128 v, u128* r)
+constexpr u128 u128_divmod(u128 u, u128 v, u128* r)
 {
     // Reuse existing unsigned 128 div/mod implementation
     s128 us, vs;
@@ -747,17 +765,17 @@ static inline u128 u128_divmod(u128 u, u128 v, u128* r)
     if (r) { r->lo = rem.lo; r->hi = (u64)rem.hi; }
     u128 q; q.lo = quo.lo; q.hi = (u64)quo.hi; return q;
 }
-static inline u128 u128_div(u128 u, u128 v) { u128 r; return u128_divmod(u, v, &r); }
-static inline u128 u128_rem(u128 u, u128 v) { u128 r; (void)u128_divmod(u, v, &r); return r; }
+constexpr u128 u128_div(u128 u, u128 v) { u128 r; return u128_divmod(u, v, &r); }
+constexpr u128 u128_rem(u128 u, u128 v) { u128 r; (void)u128_divmod(u, v, &r); return r; }
 
 #else // 64-bit implementation without native __int128
 
-inline u128::u128(u64 v) { lo = v; hi = 0; }
-inline u128::operator u64() const { return lo; }
-inline u128::operator bool() const { return hi != 0 || lo != 0; }
+constexpr u128::u128(u64 v) { lo = v; hi = 0; }
+constexpr u128::operator u64() const { return lo; }
+constexpr u128::operator bool() const { return hi != 0 || lo != 0; }
 
-static inline u128 u128_from_u64(u64 n) { u128 x; x.lo = n; x.hi = 0; return x; }
-static inline u128 u128_from_uv64(u64* v)
+constexpr u128 u128_from_u64(u64 n) { u128 x; x.lo = n; x.hi = 0; return x; }
+constexpr u128 u128_from_uv64(u64* v)
 {
     u128 x;
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -768,21 +786,21 @@ static inline u128 u128_from_uv64(u64* v)
 #endif
     return x;
 }
-static inline u64 u64_from_u128(u128 n) { return n.lo; }
-static inline u64* uv64_from_u128(u128* v) { return v->n; }
+constexpr u64 u64_from_u128(u128 n) { return n.lo; }
+constexpr u64* uv64_from_u128(u128* v) { return v->n; }
 
-inline bool u128::operator==(u128 v) const { return hi == v.hi && lo == v.lo; }
-inline bool u128::operator!=(u128 v) const { return !(*this == v); }
-inline bool u128::operator<(u128 v) const { return (hi < v.hi) || (hi == v.hi && lo < v.lo); }
-inline bool u128::operator<=(u128 v) const { return !(*this > v); }
-inline bool u128::operator>(u128 v) const { return (hi > v.hi) || (hi == v.hi && lo > v.lo); }
-inline bool u128::operator>=(u128 v) const { return !(*this < v); }
+constexpr bool u128::operator==(u128 v) const { return hi == v.hi && lo == v.lo; }
+constexpr bool u128::operator!=(u128 v) const { return !(*this == v); }
+constexpr bool u128::operator<(u128 v) const { return (hi < v.hi) || (hi == v.hi && lo < v.lo); }
+constexpr bool u128::operator<=(u128 v) const { return !(*this > v); }
+constexpr bool u128::operator>(u128 v) const { return (hi > v.hi) || (hi == v.hi && lo > v.lo); }
+constexpr bool u128::operator>=(u128 v) const { return !(*this < v); }
 
-static inline u128 u128_not(u128 u) { u128 x; x.lo = ~u.lo; x.hi = ~u.hi; return x; }
-static inline u128 u128_and(u128 u, u128 v) { u128 x; x.lo = u.lo & v.lo; x.hi = u.hi & v.hi; return x; }
-static inline u128 u128_or(u128 u, u128 v) { u128 x; x.lo = u.lo | v.lo; x.hi = u.hi | v.hi; return x; }
-static inline u128 u128_xor(u128 u, u128 v) { u128 x; x.lo = u.lo ^ v.lo; x.hi = u.hi ^ v.hi; return x; }
-static inline u128 u128_sll(u128 u, u32 shamt)
+constexpr u128 u128_not(u128 u) { u128 x; x.lo = ~u.lo; x.hi = ~u.hi; return x; }
+constexpr u128 u128_and(u128 u, u128 v) { u128 x; x.lo = u.lo & v.lo; x.hi = u.hi & v.hi; return x; }
+constexpr u128 u128_or(u128 u, u128 v) { u128 x; x.lo = u.lo | v.lo; x.hi = u.hi | v.hi; return x; }
+constexpr u128 u128_xor(u128 u, u128 v) { u128 x; x.lo = u.lo ^ v.lo; x.hi = u.hi ^ v.hi; return x; }
+constexpr u128 u128_sll(u128 u, u32 shamt)
 {
     u128 x;
     if (shamt == 0) { x = u; }
@@ -790,7 +808,7 @@ static inline u128 u128_sll(u128 u, u32 shamt)
     else { shamt -= 64; x.lo = 0; x.hi = (u64)(u.lo << shamt); }
     return x;
 }
-static inline u128 u128_srl(u128 u, u32 shamt)
+constexpr u128 u128_srl(u128 u, u32 shamt)
 {
     u128 x;
     if (shamt == 0) { x = u; }
@@ -798,20 +816,20 @@ static inline u128 u128_srl(u128 u, u32 shamt)
     else { shamt -= 64; x.lo = (u.hi >> shamt); x.hi = 0; }
     return x;
 }
-static inline u128 u128_add(u128 u, u128 v)
+constexpr u128 u128_add(u128 u, u128 v)
 {
     u128 x; x.lo = u.lo + v.lo; x.hi = u.hi + v.hi + (x.lo < u.lo); return x;
 }
-static inline u128 u128_sub(u128 u, u128 v)
+constexpr u128 u128_sub(u128 u, u128 v)
 {
     u128 x; x.lo = u.lo - v.lo; x.hi = u.hi - v.hi - (x.lo > u.lo); return x;
 }
-static inline u128 u128_mul(u128 u, u128 v)
+constexpr u128 u128_mul(u128 u, u128 v)
 {
     // same as i128_mulu but with unsigned members
     u128 x; s128 t = i128_umul_s64_s64(u.lo, v.lo); x.lo = t.lo; x.hi = (u64)t.hi; x.hi += u.lo * v.hi + u.hi * v.lo; return x;
 }
-static inline u128 u128_divmod(u128 u, u128 v, u128* r)
+constexpr u128 u128_divmod(u128 u, u128 v, u128* r)
 {
     // Reuse existing i128 unsigned divmod working on the same bit layout
     s128 us; us.lo = u.lo; us.hi = (s64)u.hi;
@@ -821,24 +839,39 @@ static inline u128 u128_divmod(u128 u, u128 v, u128* r)
     if (r) { r->lo = rem.lo; r->hi = (u64)rem.hi; }
     u128 q; q.lo = quo.lo; q.hi = (u64)quo.hi; return q;
 }
-static inline u128 u128_div(u128 u, u128 v) { u128 r; return u128_divmod(u, v, &r); }
-static inline u128 u128_rem(u128 u, u128 v) { u128 r; (void)u128_divmod(u, v, &r); return r; }
+constexpr u128 u128_div(u128 u, u128 v) { u128 r; return u128_divmod(u, v, &r); }
+constexpr u128 u128_rem(u128 u, u128 v) { u128 r; (void)u128_divmod(u, v, &r); return r; }
 
 #endif
 
 // u128 member operators implemented via helpers
-inline u128 u128::operator&(u128 v) const { return u128_and(*this, v); }
-inline u128 u128::operator|(u128 v) const { return u128_or(*this, v); }
-inline u128 u128::operator^(u128 v) const { return u128_xor(*this, v); }
-inline u128 u128::operator~() const { return u128_not(*this); }
-inline u128 u128::operator<<(s32 shamt) const { return u128_sll(*this, (u32)shamt); }
-inline u128 u128::operator>>(s32 shamt) const { return u128_srl(*this, (u32)shamt); }
-inline u128 u128::operator+(u128 v) const { return u128_add(*this, v); }
-inline u128 u128::operator-(u128 v) const { return u128_sub(*this, v); }
-inline u128 u128::operator*(u128 v) const { return u128_mul(*this, v); }
-inline u128 u128::operator/(u128 v) const { return u128_div(*this, v); }
-inline u128 u128::operator%(u128 v) const { return u128_rem(*this, v); }
-// comparison operators are defined in the implementation branches above
+constexpr u128 u128::operator&(u128 v) const { return u128_and(*this, v); }
+constexpr u128 u128::operator|(u128 v) const { return u128_or(*this, v); }
+constexpr u128 u128::operator^(u128 v) const { return u128_xor(*this, v); }
+constexpr u128 u128::operator~() const { return u128_not(*this); }
+constexpr u128 u128::operator<<(s32 shamt) const { return u128_sll(*this, (u32)shamt); }
+constexpr u128 u128::operator>>(s32 shamt) const { return u128_srl(*this, (u32)shamt); }
+constexpr u128 u128::operator+(u128 v) const { return u128_add(*this, v); }
+constexpr u128 u128::operator-(u128 v) const { return u128_sub(*this, v); }
+constexpr u128 u128::operator*(u128 v) const { return u128_mul(*this, v); }
+constexpr u128 u128::operator/(u128 v) const { return u128_div(*this, v); }
+constexpr u128 u128::operator%(u128 v) const { return u128_rem(*this, v); }
+
+/* 128-bit bitmanip */
+
+#if COMPILER == GCC || COMPILER == CLANG
+#define clz(x) __extension__ ({ u32 n = __builtin_clzll(x); n == 0 ? 64 : n; })
+#define ctz(x) __extension__ ({ u32 n = __builtin_ctzll(x); n == 0 ? 64 : n; })
+#define popcnt(x) __builtin_popcount(x)
+#define bswap64(x) __builtin_bswap64(x)
+#elif COMPILER == MSVC
+#include <intrin.h>
+#define clz(x) _lzcnt_u64(x)
+#define ctz(x) _tzcnt_u64(x)
+#define popcnt(x) __popcnt64(x)
+#define bswap64(x) _byteswap_uint64(x)
+#endif
+
 
 /* 64-bit 128-bit compiler intrinsics */
 
@@ -846,15 +879,15 @@ inline u128 u128::operator%(u128 v) const { return u128_rem(*this, v); }
 
 /* 64-bit 128-bit compiler intrinsics forward decls */
 
-static inline s128 i128_umul_s64_s64(u64 x, u64 y);
-static inline u64 s64_umulh_s64_s64(u64 x, u64 y);
-static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r);
-static inline u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r);
+constexpr s128 i128_umul_s64_s64(u64 x, u64 y);
+constexpr u64 s64_umulh_s64_s64(u64 x, u64 y);
+constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r);
+constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r);
 
 /* i128_umul_s64_s64 */
 
 #if COMPILER == MSVC && ARCH == X86
-static inline s128 i128_umul_s64_s64(u64 x, u64 y)
+constexpr s128 i128_umul_s64_s64(u64 x, u64 y)
 {
     s128 r;
     u64 hi;
@@ -864,7 +897,7 @@ static inline s128 i128_umul_s64_s64(u64 x, u64 y)
     return r;
 }
 #else
-static inline s128 i128_umul_s64_s64(u64 x, u64 y)
+constexpr s128 i128_umul_s64_s64(u64 x, u64 y)
 {
     const u64 mask = 0xffffffffll;
     u64 x0 = x & mask;
@@ -885,15 +918,58 @@ static inline s128 i128_umul_s64_s64(u64 x, u64 y)
 }
 #endif
 
+constexpr s128 i128_divmodu(s128 u, s128 v, s128 *r)
+{
+    s128 q;
+
+    if (v.hi == 0 && v.lo == 0) {
+        q = i128_from_s64(-1);
+        *r = u;
+    }
+    else if (u.hi == 0) {
+        if (v.hi == 0) {
+            q.hi = 0;
+            q.lo = u.lo / v.lo;
+            r->hi = 0;
+            r->lo = u.lo % v.lo;
+        } else {
+            q = i128_from_u64(0);
+            *r = u;
+        }
+    }
+    else if (v.hi == 0) {
+        s128 q;
+        r->hi = 0;
+        if ((u64)u.hi < v.lo) {
+            q.hi = 0;
+            q.lo = s64_udiv_i128_s64(u, v.lo, &r->lo);
+        } else {
+            s128 u2, u3;
+            u2 = i128_from_u64(u.hi);
+            q.hi = s64_udiv_i128_s64(u2, v.lo, (u64*)&u3.hi);
+            u3.lo = u.lo;
+            q.lo = s64_udiv_i128_s64(u3, v.lo, &r->lo);
+        }
+        return q;
+    }
+    else {
+        q.hi = 0;
+        q.lo = s64_udiv_i128_i128(u, v, r);
+    }
+
+    return q;
+}
+#endif
+
 /* s64_umulh_s64_s64 */
 
 #if defined(I128_USE_INTRIN) && (COMPILER == MSVC) && defined(_M_X64)
-static inline u64 s64_umulh_s64_s64(u64 x, u64 y)
+constexpr u64 s64_umulh_s64_s64(u64 x, u64 y)
 {
     return __umulh(x, y);
 }
 #else
-static inline u64 s64_umulh_s64_s64(u64 x, u64 y)
+constexpr u64 s64_umulh_s64_s64(u64 x, u64 y)
 {
     const u64 mask = 0xffffffffll;
     u64 x0 = x & mask;
@@ -914,19 +990,19 @@ static inline u64 s64_umulh_s64_s64(u64 x, u64 y)
 /* s64_udiv_i128_s64 */
 
 #if defined(I128_USE_INTRIN) && (COMPILER == MSVC) && defined(_M_X64)
-static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
+constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
 {
     return _udiv128(x.hi, x.lo, y, r);
 }
 #elif defined(I128_USE_INTRIN) && ((COMPILER == GCC) || (COMPILER == CLANG)) && defined(__x86_64__)
-static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
+constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
 {
     u64 q;
     __asm__("divq %[v]" : "=a"(q), "=d"(*r) : [v] "r"(y), "a"(x.lo), "d"(x.hi));
     return q;
 }
 #else
-static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
+constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
 {
     // Computes a 128 / 64 -> 64 bit division, with a 64 bit remainder.
     // zlib License: based on https://github.com/ridiculousfish/libdivide
@@ -984,7 +1060,7 @@ static inline u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
 
 /* s64_udiv_i128_i128 */
 
-static inline u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
+constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
 {
     // Computes a 128 / 128 -> 64 bit division, with a 128 bit remainder.
     // zlib License: based on https://github.com/ridiculousfish/libdivide
@@ -1051,27 +1127,26 @@ static inline u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
 
     return q0.lo;
 }
-#endif
 
 #if defined __SIZEOF_INT128__
 
 /* __int128_t implementation */
 
-static inline s128 i128_from_s64(s64 n)
+constexpr s128 i128_from_s64(s64 n)
 {
     s128 x;
     x.m = n;
     return x;
 }
 
-static inline s128 i128_from_u64(u64 n)
+constexpr s128 i128_from_u64(u64 n)
 {
     s128 x;
     x.m = n;
     return x;
 }
 
-static inline s128 i128_from_uv64(u64* v)
+constexpr s128 i128_from_uv64(u64* v)
 {
     s128 x;
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -1083,77 +1158,77 @@ static inline s128 i128_from_uv64(u64* v)
     return x;
 }
 
-static inline s128 i128_not(s128 u)
+constexpr s128 i128_not(s128 u)
 {
     s128 x;
     x.m = ~u.m;
     return x;
 }
 
-static inline s128 i128_and(s128 u, s128 v)
+constexpr s128 i128_and(s128 u, s128 v)
 {
     s128 x;
     x.m = u.m & v.m;
     return x;
 }
 
-static inline s128 i128_or(s128 u, s128 v)
+constexpr s128 i128_or(s128 u, s128 v)
 {
     s128 x;
     x.m = u.m | v.m;
     return x;
 }
 
-static inline s128 i128_xor(s128 u, s128 v)
+constexpr s128 i128_xor(s128 u, s128 v)
 {
     s128 x;
     x.m = u.m ^ v.m;
     return x;
 }
 
-static inline s128 i128_sll(s128 u, u32 shamt)
+constexpr s128 i128_sll(s128 u, u32 shamt)
 {
     s128 x;
     x.m = u.m << shamt;
     return x;
 }
 
-static inline s128 i128_srl(s128 u, u32 shamt)
+constexpr s128 i128_srl(s128 u, u32 shamt)
 {
     s128 x;
     x.m = (__uint128_t)u.m >> shamt;
     return x;
 }
 
-static inline s128 i128_sra(s128 u, u32 shamt)
+constexpr s128 i128_sra(s128 u, u32 shamt)
 {
     s128 x;
     x.m = (__int128_t)u.m >> shamt;
     return x;
 }
 
-static inline s128 i128_neg(s128 u)
+constexpr s128 i128_neg(s128 u)
 {
     s128 x;
     x.m = -u.m;
     return x;
 }
 
-static inline s128 i128_add(s128 u, s128 v)
+constexpr s128 i128_add(s128 u, s128 v)
 {
     s128 x;
     x.m = u.m + v.m;
     return x;
 }
 
-static inline s128 i128_sub(s128 u, s128 v)
+constexpr s128 i128_sub(s128 u, s128 v)
 {
     s128 x;
     x.m = u.m - v.m;
     return x;
 }
 
-static inline s128 i128_mul(s128 u, s128 v)
+constexpr s128 i128_mul(s128 u, s128 v)
 {
     s128 x;
     u64 us, vs, rs;
@@ -1167,14 +1242,14 @@ static inline s128 i128_mul(s128 u, s128 v)
     return x;
 }
 
-static inline s128 i128_mulu(s128 u, s128 v)
+constexpr s128 i128_mulu(s128 u, s128 v)
 {
     s128 x;
     x.m = (__uint128_t)u.m * (__uint128_t)v.m;
     return x;
 }
 
-static inline s128 i128_divmodu(s128 u, s128 v, s128* r)
+constexpr s128 i128_divmodu(s128 u, s128 v, s128* r)
 {
     s128 q;
     q.m = (__uint128_t)u.m / (__uint128_t)v.m;
@@ -1182,38 +1257,38 @@ static inline s128 i128_divmodu(s128 u, s128 v, s128* r)
     return q;
 }
 
-static inline int i128_cmp_eq(s128 u, s128 v)
+constexpr int i128_cmp_eq(s128 u, s128 v)
 {
     return u.m == v.m;
 }
 
-static inline int i128_cmp_lt(s128 u, s128 v)
+constexpr int i128_cmp_lt(s128 u, s128 v)
 {
     return (__int128_t)u.m < (__int128_t)v.m;
 }
 
-static inline int i128_cmp_gt(s128 u, s128 v)
+constexpr int i128_cmp_gt(s128 u, s128 v)
 {
     return (__int128_t)u.m > (__int128_t)v.m;
 }
 
-static inline int i128_cmp_ltu(s128 u, s128 v)
+constexpr int i128_cmp_ltu(s128 u, s128 v)
 {
     return (__uint128_t)u.m < (__uint128_t)v.m;
 }
 
-static inline int i128_cmp_gtu(s128 u, s128 v)
+constexpr int i128_cmp_gtu(s128 u, s128 v)
 {
     return (__uint128_t)u.m > (__uint128_t)v.m;
 }
 
-static inline int i128_cmp_t(s128 u, s128 v)
+constexpr int i128_cmp_t(s128 u, s128 v)
 {
     __int128_t x = u.m - v.m;
     return -(x < 0) + (x > 0);
 }
 
-static inline int i128_cmp_tu(s128 u, s128 v)
+constexpr int i128_cmp_tu(s128 u, s128 v)
 {
     __uint128_t x = u.m - v.m;
     return -(x > u.m) + (x < u.m);
@@ -1223,7 +1298,7 @@ static inline int i128_cmp_tu(s128 u, s128 v)
 
 /* s128 64-bit implementation */
 
-static inline s128 i128_from_s64(s64 n)
+constexpr s128 i128_from_s64(s64 n)
 {
     s128 x;
     x.lo = n;
@@ -1231,7 +1306,7 @@ static inline s128 i128_from_s64(s64 n)
     return x;
 }
 
-static inline s128 i128_from_u64(u64 n)
+constexpr s128 i128_from_u64(u64 n)
 {
     s128 x;
     x.lo = n;
@@ -1239,7 +1314,7 @@ static inline s128 i128_from_u64(u64 n)
     return x;
 }
 
-static inline s128 i128_from_uv64(u64* v)
+constexpr s128 i128_from_uv64(u64* v)
 {
     s128 x;
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -1253,7 +1328,7 @@ static inline s128 i128_from_uv64(u64* v)
     return x;
 }
 
-static inline s128 i128_not(s128 u)
+constexpr s128 i128_not(s128 u)
 {
     s128 x;
     x.lo = ~u.lo;
@@ -1261,7 +1336,7 @@ static inline s128 i128_not(s128 u)
     return x;
 }
 
-static inline s128 i128_and(s128 u, s128 v)
+constexpr s128 i128_and(s128 u, s128 v)
 {
     s128 x;
     x.lo = u.lo & v.lo;
@@ -1269,7 +1344,7 @@ static inline s128 i128_and(s128 u, s128 v)
     return x;
 }
 
-static inline s128 i128_or(s128 u, s128 v)
+constexpr s128 i128_or(s128 u, s128 v)
 {
     s128 x;
     x.lo = u.lo | v.lo;
@@ -1277,7 +1352,7 @@ static inline s128 i128_or(s128 u, s128 v)
     return x;
 }
 
-static inline s128 i128_xor(s128 u, s128 v)
+constexpr s128 i128_xor(s128 u, s128 v)
 {
     s128 x;
     x.lo = u.lo ^ v.lo;
@@ -1285,7 +1360,7 @@ static inline s128 i128_xor(s128 u, s128 v)
     return x;
 }
 
-static inline s128 i128_sll(s128 u, u32 shamt)
+constexpr s128 i128_sll(s128 u, u32 shamt)
 {
     s128 x;
     if (shamt == 0) {
@@ -1304,7 +1379,7 @@ static inline s128 i128_sll(s128 u, u32 shamt)
     return x;
 }
 
-static inline s128 i128_srl(s128 u, u32 shamt)
+constexpr s128 i128_srl(s128 u, u32 shamt)
 {
     s128 x;
     if (shamt == 0) {
@@ -1323,7 +1398,7 @@ static inline s128 i128_srl(s128 u, u32 shamt)
     return x;
 }
 
-static inline s128 i128_sra(s128 u, u32 shamt)
+constexpr s128 i128_sra(s128 u, u32 shamt)
 {
     s128 x;
     if (shamt == 0) {
@@ -1342,7 +1417,7 @@ static inline s128 i128_sra(s128 u, u32 shamt)
     return x;
 }
 
-static inline s128 i128_neg(s128 u)
+constexpr s128 i128_neg(s128 u)
 {
     s128 x;
     x.lo = -(s64)u.lo;
@@ -1350,7 +1425,7 @@ static inline s128 i128_neg(s128 u)
     return x;
 }
 
-static inline s128 i128_add(s128 u, s128 v)
+constexpr s128 i128_add(s128 u, s128 v)
 {
     s128 x;
     x.lo = u.lo + v.lo;
@@ -1358,7 +1433,7 @@ static inline s128 i128_add(s128 u, s128 v)
     return x;
 }
 
-static inline s128 i128_sub(s128 u, s128 v)
+constexpr s128 i128_sub(s128 u, s128 v)
 {
     s128 x;
     x.lo = u.lo - v.lo;
@@ -1366,7 +1441,7 @@ static inline s128 i128_sub(s128 u, s128 v)
     return x;
 }
 
-static inline s128 i128_mul(s128 u, s128 v)
+constexpr s128 i128_mul(s128 u, s128 v)
 {
     s128 x;
     u64 us, vs, rs;
@@ -1380,7 +1455,7 @@ static inline s128 i128_mul(s128 u, s128 v)
     return x;
 }
 
-static inline s128 i128_mulu(s128 u, s128 v)
+constexpr s128 i128_mulu(s128 u, s128 v)
 {
     s128 x;
     u64 x0 = u.lo;
@@ -1392,38 +1467,38 @@ static inline s128 i128_mulu(s128 u, s128 v)
     return x;
 }
 
-static inline int i128_cmp_eq(s128 u, s128 v)
+constexpr int i128_cmp_eq(s128 u, s128 v)
 {
     return (u.hi == v.hi && u.lo == v.lo);
 }
 
-static inline int i128_cmp_lt(s128 u, s128 v)
+constexpr int i128_cmp_lt(s128 u, s128 v)
 {
     return ((s64)u.hi < (s64)v.hi || (u.hi == v.hi && u.lo < v.lo));
 }
 
-static inline int i128_cmp_gt(s128 u, s128 v)
+constexpr int i128_cmp_gt(s128 u, s128 v)
 {
     return ((s64)u.hi > (s64)v.hi || (u.hi == v.hi && u.lo > v.lo));
 }
 
-static inline int i128_cmp_ltu(s128 u, s128 v)
+constexpr int i128_cmp_ltu(s128 u, s128 v)
 {
     return ((u64)u.hi < (u64)v.hi || (u.hi == v.hi && u.lo < v.lo));
 }
 
-static inline int i128_cmp_gtu(s128 u, s128 v)
+constexpr int i128_cmp_gtu(s128 u, s128 v)
 {
     return ((u64)u.hi > (u64)v.hi || (u.hi == v.hi && u.lo > v.lo));
 }
 
-static inline int i128_cmp_t(s128 u, s128 v)
+constexpr int i128_cmp_t(s128 u, s128 v)
 {
     return ((s64)u.hi > (s64)v.hi || (u.hi == v.hi && u.lo > v.lo))
         - ((s64)u.hi < (s64)v.hi || (u.hi == v.hi && u.lo < v.lo));
 }
 
-static inline int i128_cmp_tu(s128 u, s128 v)
+constexpr int i128_cmp_tu(s128 u, s128 v)
 {
     return ((u64)u.hi > (u64)v.hi || (u.hi == v.hi && u.lo > v.lo))
         - ((u64)u.hi < (u64)v.hi || (u.hi == v.hi && u.lo < v.lo));
@@ -1433,7 +1508,7 @@ static inline int i128_cmp_tu(s128 u, s128 v)
 
 /* 128-bit signed divmod layered on unsigned divmod */
 
-static inline s128 i128_divmod(s128 u, s128 v, s128* r)
+constexpr s128 i128_divmod(s128 u, s128 v, s128* r)
 {
     s128 q, us, vs, rs;
 
@@ -1448,28 +1523,28 @@ static inline s128 i128_divmod(s128 u, s128 v, s128* r)
     return q;
 }
 
-static inline s128 i128_div(s128 u, s128 v)
+constexpr s128 i128_div(s128 u, s128 v)
 {
     s128 q, r;
     q = i128_divmod(u, v, &r);
     return q;
 }
 
-static inline s128 i128_divu(s128 u, s128 v)
+constexpr s128 i128_divu(s128 u, s128 v)
 {
     s128 q, r;
     q = i128_divmodu(u, v, &r);
     return q;
 }
 
-static inline s128 i128_rem(s128 u, s128 v)
+constexpr s128 i128_rem(s128 u, s128 v)
 {
     s128 q, r;
     q = i128_divmod(u, v, &r);
     return r;
 }
 
-static inline s128 i128_remu(s128 u, s128 v)
+constexpr s128 i128_remu(s128 u, s128 v)
 {
     s128 q, r;
     q = i128_divmodu(u, v, &r);
@@ -1478,56 +1553,41 @@ static inline s128 i128_remu(s128 u, s128 v)
 
 /* 128-bit downcasts */
 
-static inline s64 s64_from_i128(s128 n)
+constexpr s64 s64_from_i128(s128 n)
 {
     return (s64)n.lo;
 }
 
-static inline u64 u64_from_i128(s128 n)
+constexpr u64 u64_from_i128(s128 n)
 {
     return (u64)n.lo;
 }
 
-static inline u64* uv64_from_i128(s128* v)
+constexpr u64* uv64_from_i128(s128* v)
 {
     return v->n;
 }
 
-/* 128-bit bitmanip */
-
-#if COMPILER == GCC || COMPILER == CLANG
-#define clz(x) __extension__ ({ u32 n = __builtin_clzll(x); n == 0 ? 64 : n; })
-#define ctz(x) __extension__ ({ u32 n = __builtin_ctzll(x); n == 0 ? 64 : n; })
-#define popcnt(x) __builtin_popcount(x)
-#define bswap64(x) __builtin_bswap64(x)
-#elif COMPILER == MSVC
-#include <intrin.h>
-#define clz(x) _lzcnt_u64(x)
-#define ctz(x) _tzcnt_u64(x)
-#define popcnt(x) __popcnt64(x)
-#define bswap64(x) _byteswap_uint64(x)
-#endif
-
-static inline u32 i128_ctz(s128 u)
+constexpr u32 i128_ctz(s128 u)
 {
     int n = ctz(u.lo);
     if (n == 64) n += ctz(u.hi);
     return n;
 }
 
-static inline u32 i128_clz(s128 u)
+constexpr u32 i128_clz(s128 u)
 {
     int n = clz(u.hi);
     if (n == 64) n += clz(u.lo);
     return n;
 }
 
-static inline u32 i128_popcnt(s128 u)
+constexpr u32 i128_popcnt(s128 u)
 {
     return popcnt(u.lo) + popcnt(u.hi);
 }
 
-static inline s128 i128_bswap(s128 u)
+constexpr s128 i128_bswap(s128 u)
 {
     s128 x;
     x.lo = bswap64(u.hi);
@@ -1535,7 +1595,7 @@ static inline s128 i128_bswap(s128 u)
     return x;
 }
 
-static inline u8 i8_brev(u8 u)
+constexpr u8 i8_brev(u8 u)
 {
     // Reverse the bits in a byte with 4 operations (64-bit multiply, no division):
     // Source: Stanford Bit Twiddling Hacks
@@ -1543,7 +1603,7 @@ static inline u8 i8_brev(u8 u)
     return (u8)(((u * 0x80200802ULL) & 0x0884422110ULL) * 0x0101010101ULL >> 32);
 }
 
-static inline s128 i128_brev(s128 u)
+constexpr s128 i128_brev(s128 u)
 {
     s128 r = 0;
     for (unsigned i = 0; i < 16; i++) {
@@ -1551,6 +1611,11 @@ static inline s128 i128_brev(s128 u)
     }
     return r;
 }
+
+#define INT128_MAX ((s128{(s64) 0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF}))
+#define INT128_MIN ((s128{0x0000000000000000, 0x8000000000000000}))
+
+#define UINT128_MAX ((s128{0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF}))
 
 namespace internal
 {
