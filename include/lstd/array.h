@@ -47,10 +47,10 @@ struct array {
     add(*this, items);
   }
 
-  auto operator[](s64 index) {
+  auto ref operator[](s64 index) {
     return Data[translate_negative_index(index, Count)];
   }
-  auto operator[](s64 index) const {
+  auto no_copy operator[](s64 index) const {
     return Data[translate_negative_index(index, Count)];
   }
 
