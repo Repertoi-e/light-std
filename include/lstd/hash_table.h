@@ -63,7 +63,7 @@ struct hash_table {
   static const s64 FIRST_VALID_HASH = 2;
 
   static const s64 MINIMUM_SIZE = 32;
-  static const s64 LOAD_FACTOR_PERCENT = 70;
+  static const s64 LOAD_FACTOR_PERCENT = 60;
 
   using K = K_;
   using V = V_;
@@ -132,25 +132,21 @@ void resize(any_hash_table auto ref table, s64 slotsToAllocate, u32 alignment = 
 
   auto oldEntries = table.Entries;
 
-  if (!table.Allocated) {
-    reserve(table.Entries, target);
-  } else {
-    reserve(table.Entries, target);
-    table.Entries.Count = 0;
-  }
+  table.Entries = {};
+  reserve(table.Entries, target);
+  memset0(table.Entries.Data, target * sizeof(table.Entries.Data[0]));
 
-  For(range(target)) { (table.Entries.Data + it)->Hash = 0; }
+  s64 oldAllocated = table.Allocated;
+  table.Allocated = target;
 
   // Add the old items
-  For_as(it_index, range(table.Allocated)) {
+  For_as(it_index, range(oldAllocated)) {
     auto it = oldEntries.Data + it_index;
     if (it->Hash >= table.FIRST_VALID_HASH)
       add_prehashed(table, it->Hash, it->Key, it->Value);
   }
 
-  table.Allocated = target;
-
-  if (oldEntries.Count) free(oldEntries);
+  if (oldAllocated) free(oldEntries);
 }
 
 // Free any memory allocated by this object and reset count
