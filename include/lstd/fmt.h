@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "context.h"
 #include "string_builder.h"
 #include "array_like.h"
 #include "variant.h"

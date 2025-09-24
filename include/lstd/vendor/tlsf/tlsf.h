@@ -48,7 +48,7 @@
 //       See comments in tlsf.cpp
 //
 
-#include "lstd/common.h"
+#include "../../common.h"
 
 #if defined(__cplusplus)
 extern "C" {
