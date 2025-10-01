@@ -158,6 +158,16 @@ TRIVIAL_HASH(u64);
 
 TRIVIAL_HASH(bool);
 
+inline u64 get_hash(f32 value)
+{
+  return *(u32 *)&value;
+}
+
+inline u64 get_hash(f64 value)
+{
+    return *(u64 *)&value;
+}
+
 // Hashing strings, based on murmur
 // For larger strings, xxhash64 might be better
 inline u64 get_hash(string value)

@@ -141,7 +141,7 @@ TEST(hash_table_alignment) {
   // crash. It tests if the block allocation in the table handles alignment of
   // key and value arrays.
 
-  hash_table<v2, v3> simdTable;
+  hash_table<v2, v3, [](v2 no_copy a, v2 no_copy b) { return a.x == b.x && a.y == b.y; }> simdTable;
   resize(simdTable, 0, 16);
 
   add(simdTable, {1, 2}, {1, 2, 3});

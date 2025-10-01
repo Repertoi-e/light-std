@@ -58,7 +58,19 @@ struct pair {
   pair(const K& k, const V& v) : first(k), second(v) {}
 };
 
-template <typename K_, typename V_>
+template <typename T>
+bool compare_equals_default(T no_copy a, T no_copy b) { 
+    if constexpr (is_same<T, string>) {
+        return strings_match(a, b);
+    } else {
+        return a == b; 
+    }
+}
+
+template <typename T>
+using equal_to = bool (*)(T no_copy a, T no_copy b);
+
+template <typename K_, typename V_, equal_to<K_> Equal = compare_equals_default<K_>>
 struct hash_table {
   static const s64 FIRST_VALID_HASH = 2;
 
@@ -67,6 +79,8 @@ struct hash_table {
 
   using K = K_;
   using V = V_;
+
+  static constexpr equal_to<K> KeysEqual = Equal;
 
   struct entry {
     u64 Hash;
@@ -102,8 +116,8 @@ struct hash_table {
 template <typename>
 const bool is_hash_table = false;
 
-template <typename K, typename V>
-const bool is_hash_table<hash_table<K, V>> = true;
+template <typename K, typename V, equal_to<K> Equal>
+const bool is_hash_table<hash_table<K, V, Equal>> = true;
 
 template <typename T>
 concept any_hash_table = is_hash_table<T>;
@@ -164,19 +178,9 @@ void reset(any_hash_table auto ref table) {
   table.SlotsFilled = 0;
 }
 
-template <typename T>
-bool compare_equals(T no_copy a, T no_copy b) {
-  if constexpr (is_same<T, string>) {
-    return strings_match(a, b);
-  } else {
-    return a == b;
-  }
-}
-
 // Looks for key in the hash table using the given hash
 template <any_hash_table T>
-key_value_pair<T> search_prehashed(T ref table, u64 hash,
-                                   table_key_t<T> no_copy key) {
+key_value_pair<T> search_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key) {
   if (!table.Count) return {null, null};
 
   s64 index = hash & (table.Allocated - 1);
@@ -187,7 +191,7 @@ key_value_pair<T> search_prehashed(T ref table, u64 hash,
     if (it->Hash == 0)
       return {null, null};
     
-    if (it->Hash == hash && compare_equals(it->Key, key))
+    if (it->Hash == hash && table.KeysEqual(it->Key, key))
       return {&it->Key, &it->Value};
 
     ++index;
@@ -232,14 +236,12 @@ key_value_pair<T> add_prehashed(T ref table, u64 hash, table_key_t<T> no_copy ke
 }
 
 template <any_hash_table T>
-key_value_pair<T> add(T ref table, table_key_t<T> no_copy key,
-                      table_value_t<T> no_copy value) {
+key_value_pair<T> add(T ref table, table_key_t<T> no_copy key, table_value_t<T> no_copy value) {
   return add_prehashed(table, get_hash(key), key, value);
 }
 
 template <any_hash_table T>
-key_value_pair<T> set_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key,
-                                table_value_t<T> no_copy value) {
+key_value_pair<T> set_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key, table_value_t<T> no_copy value) {
   auto [kp, vp] = search_prehashed(table, hash, key);
   if (vp) {
     *vp = value;
@@ -249,8 +251,7 @@ key_value_pair<T> set_prehashed(T ref table, u64 hash, table_key_t<T> no_copy ke
 }
 
 template <any_hash_table T>
-key_value_pair<T> set(T ref table, table_key_t<T> no_copy key,
-                      table_value_t<T> no_copy value) {
+key_value_pair<T> set(T ref table, table_key_t<T> no_copy key, table_value_t<T> no_copy value) {
   return set_prehashed(table, get_hash(key), key, value);
 }
 
