@@ -166,9 +166,9 @@ struct variant {
   requires(!__is_base_of(decay_t<T>, decay_t<variant>)) variant(T &&x)
       : ti{get_index_of_t<T>}, au{FORWARD(x)} {}
   variant() : variant(nil{}) {}
-  variant(variant no_copy x) { x.visit_with_nil<copy_constructor>({*this}); }
-  variant(variant &&x) { x.visit_with_nil<move_constructor>({*this}); }
-  ~variant() { destruct(); }
+  // variant(variant no_copy x) { x.visit_with_nil<copy_constructor>({*this}); }
+  // variant(variant &&x) { x.visit_with_nil<move_constructor>({*this}); }
+  // ~variant() { destruct(); }
 
   template <class T, class... TS>
   void emplace(TS &&...xs) {
@@ -222,7 +222,7 @@ struct variant {
 
 #pragma clang diagnostic pop
 
-  template <class T>
+  /*template <class T>
   requires(!__is_base_of(decay_t<T>, decay_t<variant>)) auto ref operator=(
       T &&x) {
     if (is<T>())
@@ -236,7 +236,7 @@ struct variant {
     destruct();
     x.visit<move_constructor>({*this});
     return *this;
-  }
+  }*/
 
  private:
   void panic() {
