@@ -118,8 +118,10 @@ inline u32 get_hash_murmur_32(const byte *key, s64 len, u32 hash_so_far = 0)
   {
   case 3:
     t ^= tail[2] << 16;
+    [[fallthrough]];
   case 2:
     t ^= tail[1] << 8;
+    [[fallthrough]];
   case 1:
   {
     t ^= tail[0] << 0;
