@@ -363,12 +363,13 @@ void check_for_overlapping_blocks(debug_memory_node *node) {
 #if defined DEBUG_MEMORY
     size += NO_MANS_LAND_SIZE;
 #endif
-    if (((byte *)left->Header + size) >
-        ((byte *)node->Header - node->Header->AlignmentPadding)) {
+    if (!node->MarkedAsAllowOverlapping && !left->MarkedAsAllowOverlapping && ((byte *)left->Header + size) > ((byte *)node->Header - node->Header->AlignmentPadding)) {
       assert(false &&
              "Allocator implementation returned a pointer which overlaps with "
              "another allocated block (below). This can be due to a bug in the "
-             "allocator code or because two allocators use the same pool.");
+             "allocator code or because two allocators use the same pool. "
+             "Or one allocator's pool was allocated with another allocator, "
+             "which caused us to detect this overlap error.");
     }
   }
 
@@ -501,15 +502,13 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
   alignment = alignment < POINTER_SIZE ? POINTER_SIZE : alignment;
   assert(is_pow_of_2(alignment));
 
-  s64 required = userSize + alignment + sizeof(allocation_header) +
-                 sizeof(allocation_header) % alignment;
+  s64 required = userSize + alignment + sizeof(allocation_header) + sizeof(allocation_header) % alignment;
 #if defined DEBUG_MEMORY
   required += NO_MANS_LAND_SIZE;  // This is for the safety bytes after the
                                   // requested block
 #endif
 
-  void *block = alloc.Function(allocator_mode::ALLOCATE, alloc.Context,
-                               required, null, 0, options);
+  void *block = alloc.Function(allocator_mode::ALLOCATE, alloc.Context, required, null, 0, options);
   assert(block);
 
   auto *result = encode_header(block, userSize, alignment, alloc, options);
@@ -548,6 +547,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
 
   nodeToEncode->RID = 0;
   nodeToEncode->MarkedAsLeak = options & LEAK;
+  nodeToEncode->MarkedAsAllowOverlapping = options & ALLOCATOR_ALLOW_OVERLAPPING;
 
   nodeToEncode->Freed = false;
 
@@ -605,8 +605,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
 
   // The header stores just the size of the requested allocation
   // (so the user code can look at the header and not be confused with garbage)
-  s64 extra = sizeof(allocation_header) + header->Alignment +
-              sizeof(allocation_header) % header->Alignment;
+  s64 extra = sizeof(allocation_header) + header->Alignment + sizeof(allocation_header) % header->Alignment;
 #if defined DEBUG_MEMORY
   extra += NO_MANS_LAND_SIZE;
 #endif
@@ -623,16 +622,13 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
 
   // Try to resize the block, this returns null if the block can't be resized
   // and we need to move it.
-  void *newBlock = alloc.Function(allocator_mode::RESIZE, alloc.Context,
-                                  newSize, block, oldSize, options);
+  void *newBlock = alloc.Function(allocator_mode::RESIZE, alloc.Context, newSize, block, oldSize, options);
   if (!newBlock) {
     // Memory needs to be moved
-    void *newBlock = alloc.Function(allocator_mode::ALLOCATE, alloc.Context,
-                                    newSize, null, 0, options);
+    void *newBlock = alloc.Function(allocator_mode::ALLOCATE, alloc.Context, newSize, null, 0, options);
     assert(newBlock);
 
-    result =
-        encode_header(newBlock, newUserSize, header->Alignment, alloc, options);
+    result = encode_header(newBlock, newUserSize, header->Alignment, alloc, options);
 
     // We can't just override the header cause we need to keep the list sorted
     // by the header address
@@ -647,6 +643,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
     auto id = node->ID;
     auto rid = node->RID;
     bool wasMarkedAsLeak = node->MarkedAsLeak;
+    bool wasAllowOverlapping = node->MarkedAsAllowOverlapping;
 
     node = list_add(header);
 #endif
@@ -656,12 +653,12 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
     node->ID = id;
     node->RID = rid;
     node->MarkedAsLeak = wasMarkedAsLeak;
+    node->MarkedAsAllowOverlapping = wasAllowOverlapping;
 #endif
 
     // Copy old stuff and free
     memcpy((char *)result, (char *)ptr, oldUserSize);
-    alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, oldSize,
-                   options);
+    alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, oldSize, options);
   } else {
     //
     // The block was resized sucessfully and it doesn't need moving

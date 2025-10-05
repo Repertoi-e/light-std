@@ -198,6 +198,12 @@ enum class allocator_mode { ALLOCATE, RESIZE, FREE, FREE_ALL };
 // allocator implementations needn't pay attention to it.
 inline const u64 LEAK = 1ull << 63;
 
+// Allocations marked with this flag are allowed to overlap with other
+// allocations. This is useful when implementing custom allocators that use
+// memory pools allocated with another allocator. In that case you want to
+// disable overlapping detection.
+inline const u64 ALLOCATOR_ALLOW_OVERLAPPING = 1ull << 62;
+
 //
 // This specifies what the signature of each allocation function should look
 // like.
@@ -466,6 +472,8 @@ struct arena_allocator_data {
   s64 Size = 0;
 
   s64 Used = 0;
+
+  s64 AutomaticBlockSize = 8_GiB;  // You can change this before using the allocator
 };
 
 //
@@ -489,8 +497,10 @@ inline void *arena_allocator(allocator_mode mode, void *context, s64 size, void 
   if (!data->Block) {
     void *os_allocate_block(s64);
 
-    data->Block = os_allocate_block(8_GiB);
-    data->Size = 8_GiB;
+    assert(data->AutomaticBlockSize > 0);
+    
+    data->Block = os_allocate_block(data->AutomaticBlockSize);
+    data->Size = data->AutomaticBlockSize;
     data->Used = 0;
   }
 
@@ -523,11 +533,6 @@ inline void *arena_allocator(allocator_mode mode, void *context, s64 size, void 
   return null;
 }
 
-// Hack, the default constructor would otherwise zero init the debug memory
-// pool's members, which is set before global constructors run. Similar thing
-// happens with context.
-struct pool_allocator_dont_init_t {};
-
 //
 // Pool allocator.
 //
@@ -539,27 +544,23 @@ struct pool_allocator_dont_init_t {};
 // This allocator is useful for managing a bunch of objects of the same type.
 //
 struct pool_allocator_data {
-  s64 ElementSize;  // You must set this before using the allocator
+  s64 ElementSize = 0;  // You must set this before using the allocator
 
   struct block {
     block *Next;
     s64 Size;
   };
 
-  block *Base;
+  block *Base = null;
 
   struct chunk {
     chunk *Next;
   };
-  chunk *FreeList;
-
-  pool_allocator_data() : ElementSize(0), Base(null), FreeList(null) {}
-  pool_allocator_data(pool_allocator_dont_init_t) {}
+  chunk *FreeList = null;
 };
 
 #if defined DEBUG_MEMORY
-inline thread_local pool_allocator_data DebugMemoryNodesPool =
-    pool_allocator_data(pool_allocator_dont_init_t{});
+inline thread_local pool_allocator_data DebugMemoryNodesPool;
 #endif
 
 inline void pool_allocator_add_free_chunks(pool_allocator_data *data, void *block, s64 size) {
@@ -594,8 +595,7 @@ inline void pool_allocator_provide_block(pool_allocator_data *data, void *block,
   pool_allocator_add_free_chunks(data, b + 1, b->Size);
 }
 
-inline void *pool_allocator(allocator_mode mode, void *context, s64 size,
-                            void *oldMemory, s64 oldSize, u64 options) {
+inline void *pool_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
   auto *data = (pool_allocator_data *)context;
 
   switch (mode) {
@@ -861,6 +861,12 @@ struct debug_memory_node {
   // leak).
   //
   bool MarkedAsLeak;
+
+  // Sometimes you want to allocate memory with one allocator
+  // and use it as pool for another allocator. This is common when
+  // implementing custom allocators. In that case you may want to
+  // disable cross-allocation overlapping detection. See :AllocationFlags:
+  bool MarkedAsAllowOverlapping;
 };
 
 // We store a per-thread list of allocations made, in order to look for leaks
