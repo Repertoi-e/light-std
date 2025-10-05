@@ -486,14 +486,14 @@ using f64v2 = base_vector_type<f64, 2>;
 //
 //
 // _B is for completeness, really useless though
-constexpr u64 operator"" _B(u64 i) { return i; }
-constexpr u64 operator"" _KiB(u64 i) { return i << 10; }
-constexpr u64 operator"" _MiB(u64 i) { return i << 20; }
-constexpr u64 operator"" _GiB(u64 i) { return i << 30; }
+constexpr u64 operator""_B(u64 i) { return i; }
+constexpr u64 operator""_KiB(u64 i) { return i << 10; }
+constexpr u64 operator""_MiB(u64 i) { return i << 20; }
+constexpr u64 operator""_GiB(u64 i) { return i << 30; }
 
-constexpr u64 operator"" _thousand(u64 i) { return i * 1000; }
-constexpr u64 operator"" _million(u64 i) { return i * 1000000; }
-constexpr u64 operator"" _billion(u64 i) { return i * 1000000000; }
+constexpr u64 operator""_thousand(u64 i) { return i * 1000; }
+constexpr u64 operator""_million(u64 i) { return i * 1000000; }
+constexpr u64 operator""_billion(u64 i) { return i * 1000000000; }
 
 //
 // Intrinsic-like s128 type:
