@@ -744,6 +744,7 @@ inline void reserve(string ref s, s64 n = -1, allocator alloc = {})
     n = max(s.Count, 8);
   }
   assert(n >= 1);
+  if (n <= s.Allocated) return;
 
   using T = remove_pointer_t<decltype(s.Data)>;
 

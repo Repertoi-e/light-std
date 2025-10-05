@@ -64,6 +64,7 @@ template <typename T>
 concept any_xar = is_xar<T>;
 
 void reserve(any_xar auto ref arr, usize newSize, allocator alloc = {}) {
+    if (newSize == 0) newSize = 1;
     if (newSize <= arr.Count) return;
     
     using ArrT = remove_cvref_t<decltype(arr)>;

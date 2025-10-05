@@ -414,6 +414,7 @@ void reserve(any_dynamic_array_like auto ref arr, s64 n, allocator alloc) {
     n = max(arr.Count, 8);
   }
   assert(n >= 1);
+  if (n <= arr.Allocated) return;
 
   using T = remove_pointer_t<decltype(arr.Data)>;
 
