@@ -165,7 +165,7 @@ bool build_lstd_library(Config config)
     if (needs_rebuild_obj)
     {
         Cmd cmd = {0};
-        cmd_append(&cmd, "c++");
+        cmd_append(&cmd, "clang++");
 
         add_specific_flags(&cmd, config);
         add_common_flags(&cmd, config);
@@ -223,7 +223,7 @@ bool build_test_suite(Config config)
     if (needs_rebuild_exe)
     {
         Cmd cmd = {0};
-        cmd_append(&cmd, "c++");
+        cmd_append(&cmd, "clang++");
 
         add_common_flags(&cmd, config);
 
