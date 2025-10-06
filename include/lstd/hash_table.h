@@ -152,6 +152,8 @@ void resize(any_hash_table auto ref table, s64 slotsToAllocate, u32 alignment = 
 
   s64 oldAllocated = table.Allocated;
   table.Allocated = target;
+  table.Count = 0;
+  table.SlotsFilled = 0;
 
   // Add the old items
   For_as(it_index, range(oldAllocated)) {
@@ -178,10 +180,9 @@ void reset(any_hash_table auto ref table) {
   table.SlotsFilled = 0;
 }
 
-// Looks for key in the hash table using the given hash
 template <any_hash_table T>
-key_value_pair<T> search_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key) {
-  if (!table.Count) return {null, null};
+s64 search_prehashed_index(T ref table, u64 hash, table_key_t<T> no_copy key) {
+  if (!table.Count) return -1;
 
   s64 index = hash & (table.Allocated - 1);
   For_as(_, range(table.Allocated)) {
@@ -189,15 +190,30 @@ key_value_pair<T> search_prehashed(T ref table, u64 hash, table_key_t<T> no_copy
     
     // Empty slot - not found
     if (it->Hash == 0)
-      return {null, null};
+      return -1;
+    
+    if (it->Hash == 1) {
+        ++index;
+        continue;
+    }
     
     if (it->Hash == hash && table.KeysEqual(it->Key, key))
-      return {&it->Key, &it->Value};
+      return index;
 
     ++index;
     if (index >= table.Allocated) index = 0;
   }
-  return {null, null};
+  return -1;
+}
+
+// Looks for key in the hash table using the given hash
+template <any_hash_table T>
+key_value_pair<T> search_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key) {
+  s64 index = search_prehashed_index(table, hash, key);
+  if (index < 0) return {null, null};
+
+  auto *entry = table.Entries.Data + index;
+  return {&entry->Key, &entry->Value};
 }
 
 struct table_search_options {};
@@ -258,13 +274,15 @@ key_value_pair<T> set(T ref table, table_key_t<T> no_copy key, table_value_t<T> 
 // Returns true if the key was found and removed.
 template <any_hash_table T>
 bool remove_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key) {
-  auto [kp, vp] = search_prehashed(table, hash, key);
-  if (vp) {
-    s64 index = vp - table.Values;
-    table.Hashes[index] = 1;
-    return true;
-  }
-  return false;
+  s64 index = search_prehashed_index(table, hash, key);
+  if (index < 0) return false;
+
+  auto *entry = table.Entries.Data + index;
+  entry->Hash = 1;  // tomb-stone
+  entry->Key = {};
+  entry->Value = {};
+  --table.Count;
+  return true;
 }
 
 // Returns true if the key was found and removed.
