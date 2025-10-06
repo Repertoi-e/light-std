@@ -545,8 +545,8 @@ struct s128
     constexpr bool operator>=(s128 v) const;
     constexpr s128 operator-() const;
     constexpr s128 operator~() const;
-    constexpr s128 operator<<(s32 shamt) const;
-    constexpr s128 operator>>(s32 shamt) const;
+    constexpr s128 operator<<(u32 shamt) const;
+    constexpr s128 operator>>(u32 shamt) const;
     constexpr s128 operator+(s128 v) const;
     constexpr s128 operator-(s128 v) const;
     constexpr s128 operator*(s128 v) const;
@@ -615,8 +615,8 @@ constexpr bool s128::operator>(s128 v) const { return i128_cmp_gt(*this, v); }
 constexpr bool s128::operator>=(s128 v) const { return !i128_cmp_lt(*this, v); }
 constexpr s128 s128::operator-() const { return i128_neg(*this); }
 constexpr s128 s128::operator~() const { return i128_not(*this); }
-constexpr s128 s128::operator<<(s32 shamt) const { return i128_sll(*this, (s32) shamt); }
-constexpr s128 s128::operator>>(s32 shamt) const { return i128_sra(*this, (s32) shamt); }
+constexpr s128 s128::operator<<(u32 shamt) const { return i128_sll(*this, shamt); }
+constexpr s128 s128::operator>>(u32 shamt) const { return i128_sra(*this, shamt); }
 constexpr s128 s128::operator+(s128 v) const { return i128_add(*this, v); }
 constexpr s128 s128::operator-(s128 v) const { return i128_sub(*this, v); }
 constexpr s128 s128::operator*(s128 v) const { return i128_mul(*this, v); }
@@ -684,8 +684,8 @@ struct u128
     constexpr bool operator>=(u128 v) const;  // unsigned
 
     constexpr u128 operator~() const;
-    constexpr u128 operator<<(s32 shamt) const;
-    constexpr u128 operator>>(s32 shamt) const; // logical right shift
+    constexpr u128 operator<<(u32 shamt) const;
+    constexpr u128 operator>>(u32 shamt) const; // logical right shift
     constexpr u128 operator+(u128 v) const;
     constexpr u128 operator-(u128 v) const;
     constexpr u128 operator*(u128 v) const;
@@ -849,8 +849,8 @@ constexpr u128 u128::operator&(u128 v) const { return u128_and(*this, v); }
 constexpr u128 u128::operator|(u128 v) const { return u128_or(*this, v); }
 constexpr u128 u128::operator^(u128 v) const { return u128_xor(*this, v); }
 constexpr u128 u128::operator~() const { return u128_not(*this); }
-constexpr u128 u128::operator<<(s32 shamt) const { return u128_sll(*this, (u32)shamt); }
-constexpr u128 u128::operator>>(s32 shamt) const { return u128_srl(*this, (u32)shamt); }
+constexpr u128 u128::operator<<(u32 shamt) const { return u128_sll(*this, shamt); }
+constexpr u128 u128::operator>>(u32 shamt) const { return u128_srl(*this, shamt); }
 constexpr u128 u128::operator+(u128 v) const { return u128_add(*this, v); }
 constexpr u128 u128::operator-(u128 v) const { return u128_sub(*this, v); }
 constexpr u128 u128::operator*(u128 v) const { return u128_mul(*this, v); }
