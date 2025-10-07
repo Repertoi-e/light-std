@@ -163,6 +163,12 @@ auto slice(any_array_like auto ref arr, s64 begin, s64 end) {
   return result;
 }
 
+template <typename Arr>
+concept has_custom_reserve = requires {
+  {Arr::CUSTOM_RESERVE};
+};
+
+
 // Sets the length of allocated storage to at least n.
 // It will not change the length of the array.
 //
@@ -174,14 +180,18 @@ auto slice(any_array_like auto ref arr, s64 begin, s64 end) {
 // value for the initial _n_ can significantly improve performance.
 //
 // In the end, _arr_ is a newly allocated/reallocated array.
-void reserve(any_dynamic_array_like auto ref arr, s64 n = -1, allocator alloc = {});
+template <any_dynamic_array_like Arr>
+requires (!has_custom_reserve<Arr>)
+void reserve(Arr ref arr, s64 n = -1, allocator alloc = {});
 
 // Checks _arr_ if there is space for at least _fit_ new elements.
 // Reserves space in the array if there is not enough. The new size is equal
 // to the next power of two bigger than (arr.Count + fit), minimum 1.
 //
 // In the end, _arr_ is a newly allocated/reallocated array.
-void maybe_grow(any_dynamic_array_like auto ref arr, s64 fit);
+template <any_dynamic_array_like Arr>
+requires (!has_custom_reserve<Arr>)
+void maybe_grow(Arr ref arr, s64 fit);
 
 template <any_dynamic_array_like Arr>
 auto *insert_at_index(
@@ -409,7 +419,9 @@ void check_debug_memory(any_dynamic_array_like auto no_copy arr) {
 #endif
 }
 
-void reserve(any_dynamic_array_like auto ref arr, s64 n, allocator alloc) {
+template <any_dynamic_array_like Arr>
+requires (!has_custom_reserve<Arr>)
+void reserve(Arr ref arr, s64 n, allocator alloc) {
   if (n <= 0) {
     n = max(arr.Count, 8);
   }
@@ -435,7 +447,9 @@ void reserve(any_dynamic_array_like auto ref arr, s64 n, allocator alloc) {
   arr.Allocated = n;
 }
 
-void maybe_grow(any_dynamic_array_like auto ref arr, s64 fit) {
+template <any_dynamic_array_like Arr>
+requires (!has_custom_reserve<Arr>)
+void maybe_grow(Arr ref arr, s64 fit) {
   check_debug_memory(arr);
 
   s64 space = arr.Allocated;

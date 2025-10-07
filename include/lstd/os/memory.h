@@ -117,8 +117,7 @@ inline void *platform_temp_alloc(allocator_mode mode, void *context, s64 size,
       os_free_block(S->TempAllocData.Block);
       create_new_temp_storage_block(size * 2);
 
-      result = arena_allocator(allocator_mode::ALLOCATE, context, size, null, 0,
-                               options);
+      result = arena_allocator(allocator_mode::ALLOCATE, context, size, null, 0, options);
     }
   }
 
