@@ -146,7 +146,11 @@ void resize(any_hash_table auto ref table, s64 slotsToAllocate, u32 alignment = 
 
   auto oldEntries = table.Entries;
 
-  table.Entries = {};
+  table.Entries = oldEntries;
+  table.Entries.Data = null;
+  table.Entries.Count = 0;
+  table.Entries.Allocated = 0;
+
   reserve(table.Entries, target);
   memset0(table.Entries.Data, target * sizeof(table.Entries.Data[0]));
 
@@ -192,13 +196,10 @@ s64 search_prehashed_index(T ref table, u64 hash, table_key_t<T> no_copy key) {
     if (it->Hash == 0)
       return -1;
     
-    if (it->Hash == 1) {
-        ++index;
-        continue;
+    if (it->Hash != 1) {
+        if (it->Hash == hash && table.KeysEqual(it->Key, key))
+        return index;
     }
-    
-    if (it->Hash == hash && table.KeysEqual(it->Key, key))
-      return index;
 
     ++index;
     if (index >= table.Allocated) index = 0;
