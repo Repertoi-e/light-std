@@ -295,6 +295,12 @@ static void verify_node_integrity(debug_memory_node *node) {
     auto *user = (char *)header + sizeof(allocation_header);
     if (memcmp((byte *)user - NO_MANS_LAND_SIZE, noMansLand, NO_MANS_LAND_SIZE) != 0) {
         PRINT_LOC;
+        print("No man land was modified before the allocated block (ID: {}).\n", id);
+        For(range(NO_MANS_LAND_SIZE)) {
+            print("{:02X} ", ((byte *)user - NO_MANS_LAND_SIZE)[it]);
+        }
+        print("(Should be filled with: 0x{:02X})\n", NO_MANS_LAND_FILL);
+
         panic("No man's land was modified. This means that you wrote before the allocated block.");
     }
 
@@ -471,7 +477,9 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     debug_memory_maybe_verify_heap();
     s64 id = AllocationCount;
 
-    if (id == 9) { s32 k = 42; }
+    if (id == 2713) { 
+        s32 k = 42; 
+    }
 #endif
 
     if (Context.LogAllAllocations && !Context._LoggingAnAllocation) {

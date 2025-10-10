@@ -167,8 +167,10 @@ LSTD_END_NAMESPACE
 
 #if OS == WINDOWS
 #include "windows/memory.h"
-#elif OS == MACOS || OS == LINUX || OS == WASM
+#elif OS == MACOS || OS == LINUX
 #include "posix/memory.h"
+#elif OS == WASM
+#include "wasm/memory.h"
 #elif OS == NO_OS
 // No OS (e.g. programming on baremetal).
 // Let the user define interfacing with hardware.

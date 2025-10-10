@@ -251,6 +251,10 @@ bool build_test_suite(Config config)
         Cmd cmd = {0};
         if (IS_WASM) {
             cmd_append(&cmd, "em++");
+            cmd_append(&cmd, "-sALLOW_MEMORY_GROWTH=1");
+            cmd_append(&cmd, "-sEXIT_RUNTIME=1");
+            cmd_append(&cmd, "-sASSERTIONS=2");
+            cmd_append(&cmd, "-sMALLOC=mimalloc"); // Multi-threaded
         } else {
             cmd_append(&cmd, "clang++");
         }

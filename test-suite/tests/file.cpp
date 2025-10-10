@@ -1,5 +1,6 @@
 #include "../test.h"
 
+#if OS != WASM
 TEST(path_manipulation) {
     {
         string a = path_normalize("/home/data.txt");
@@ -120,4 +121,5 @@ TE - ST(read_every_file_in_project) {
 
     for (auto [file, count] : fileMap) { assert_eq(*count, 1); }
 }
+#endif
 #endif

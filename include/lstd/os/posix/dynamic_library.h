@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../string.h"
-#include "memory.h"
+#include "../../memory.h"
 
 #include <dlfcn.h>
 
