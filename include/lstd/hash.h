@@ -142,9 +142,18 @@ inline u64 get_hash(any_array_like auto ref array)
   return get_hash_xxhash64(array.Data, array.Count * sizeof(array[0]));
 }
 
+inline u64 mix64(u64 x) {
+    x ^= x >> 30;
+    x *= 0xbf58476d1ce4e5b9ULL;
+    x ^= x >> 27;
+    x *= 0x94d049bb133111ebULL;
+    x ^= x >> 31;
+    return x;
+}
+
 // Hashes for integer types
 #define TRIVIAL_HASH(T) \
-  inline u64 get_hash(T value) { return (u64)value; }
+  inline u64 get_hash(T value) { return mix64((u64)value); }
 
 TRIVIAL_HASH(s8);
 TRIVIAL_HASH(u8);
