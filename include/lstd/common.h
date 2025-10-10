@@ -3209,11 +3209,18 @@ using time_t    = s64;
 #endif
 #endif
 
-#define _TIME_T
 #if BITS == 32
+#if OS == WASM
+using time_t = s64;
+#else
 using time_t = s32;
+#endif
+#else
+#if OS == MACOS
+using time_t = long;
 #else
 using time_t = s64;
+#endif
 #endif
 
 using usize = size_t;
