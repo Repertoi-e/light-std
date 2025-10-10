@@ -60,11 +60,11 @@ inline const s16 POW10_EXPONENTS[] = {
 inline fp get_cached_power(s32 minExponent, s32 *pow10) {
   const s32 SHIFT = 32;
   const s64 SIGNIFICAND = (s64)0x4d104d427de7fbcc;
+  const s32 SIGNIFICAND_BITS = 64;
 
-  s32 index =
-      (s32)(((minExponent + (sizeof(u64) * 8) - 1) * (SIGNIFICAND >> SHIFT) +
-             ((1ll << SHIFT) - 1)) >>
-            32);
+  s64 numerator = (s64)minExponent + SIGNIFICAND_BITS - 1;
+  s64 scaled = numerator * (SIGNIFICAND >> SHIFT) + ((1ll << SHIFT) - 1);
+  s32 index = (s32)(scaled >> SHIFT);
 
   // Decimal exponent of the first (smallest) cached power of 10.
   const s32 FIRST_DEC_EXP = -348;
@@ -73,6 +73,10 @@ inline fp get_cached_power(s32 minExponent, s32 *pow10) {
   // Difference between 2 consecutive decimal exponents in cached powers of 10.
   index = (index - FIRST_DEC_EXP - 1) / DEC_EXP_STEP + 1;
   *pow10 = FIRST_DEC_EXP + index * DEC_EXP_STEP;
+
+  const s32 POW10_COUNT = (s32)(sizeof(POW10_SIGNIFICANDS) / sizeof(POW10_SIGNIFICANDS[0]));
+  assert(index >= 0 && index < POW10_COUNT);
+
   return {POW10_SIGNIFICANDS[index], POW10_EXPONENTS[index], 0};
 }
 
