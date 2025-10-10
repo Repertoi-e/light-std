@@ -482,7 +482,13 @@ inline void *arena_allocator(allocator_mode mode, void *context, s64 size, void 
     if (!data->Block) {
         void *os_allocate_block(s64);
 
-        if (data->AutomaticBlockSize == 0) data->AutomaticBlockSize = 8_GiB;
+        if (data->AutomaticBlockSize == 0) {
+#if OS == WASM
+            data->AutomaticBlockSize = 2_MiB;
+#else
+            data->AutomaticBlockSize = 8_GiB;
+#endif
+        }
 
         data->Block = os_allocate_block(data->AutomaticBlockSize);
         data->Size  = data->AutomaticBlockSize;
