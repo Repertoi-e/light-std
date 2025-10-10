@@ -701,21 +701,41 @@ struct fmt_context : writer
   }
 };
 
-inline void write(fmt_context *f, string s) { f->write(s.Data, s.Count); }
+void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs);
 
-// General formatting routines which take specifiers into account:
-void write(fmt_context *f, is_integral auto value);
-void write(fmt_context *f, is_floating_point auto value);
-void write(fmt_context *f, bool value);
-void write(fmt_context *f, const void *value);
+inline void write_no_specs(fmt_context *f, is_integral auto value)
+{
+    u64 absValue = (u64)value;
+    bool negative = sign_bit(value);
+    if (negative)
+        absValue = 0 - absValue;
+    write_u64(f, absValue, negative, {});
+}
+
+void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs);
+
+inline void write_no_specs(fmt_context *f, is_floating_point auto value)
+{
+    write_float(f, (f64)value, {});
+}
 
 // These routines write the value directly, without looking at formatting specs.
 // Useful when writing a custom formatter and there were specifiers but they
 // shouldn't propagate downwards when printing simpler types.
-void write_no_specs(fmt_context *f, is_integral auto value);
-void write_no_specs(fmt_context *f, is_floating_point auto value);
-void write_no_specs(fmt_context *f, bool value);
-void write_no_specs(fmt_context *f, const void *value);
+inline void write_no_specs(fmt_context *f, bool value)
+{
+    write_no_specs(f, (s64) (value ? 1 : 0));
+}
+
+inline void write_no_specs(fmt_context *f, const void *value)
+{
+    auto *old = f->Specs;
+    f->Specs = null;
+
+    void write(fmt_context *f, const void *value);
+    write(f, value);
+    f->Specs = old;
+}
 
 inline void write_no_specs(fmt_context *f, string str) { write(f->Out, str); }
 inline void write_no_specs(fmt_context *f, const char *str)
@@ -729,6 +749,233 @@ inline void write_no_specs(fmt_context *f, const char *str, s64 size)
 }
 
 inline void write_no_specs(fmt_context *f, code_point cp) { write(f->Out, cp); }
+
+
+// Writes pad code points and the actual contents with f(),
+// _fSize_ needs to be the size of the output from _f_ in code points (in order
+// to calculate padding properly)
+template <typename F>
+void write_padded_helper(fmt_context *f, const fmt_specs &specs, F &&func, s64 fSize)
+{
+    u32 padding = (u32)(specs.Width > fSize ? specs.Width - fSize : 0);
+    if (specs.Align == fmt_alignment::RIGHT)
+    {
+        For(range(padding)) write_no_specs(f, specs.Fill);
+        func();
+    }
+    else if (specs.Align == fmt_alignment::CENTER)
+    {
+        u32 leftPadding = padding / 2;
+        For(range(leftPadding)) write_no_specs(f, specs.Fill);
+        func();
+        For(range(padding - leftPadding)) write_no_specs(f, specs.Fill);
+    }
+    else
+    {
+        func();
+        For(range(padding)) write_no_specs(f, specs.Fill);
+    }
+}
+
+inline void write(fmt_context *f, string s) { f->write(s.Data, s.Count); }
+
+// Returns exponent base 10 of the last digit written; writes digits without a decimal point.
+s32 fmt_format_non_negative_float(string_builder ref floatBuffer,
+                                  is_floating_point auto value,
+                                  s32 precision,
+                                  fmt_float_specs no_copy specs);
+
+fmt_float_specs fmt_parse_float_specs(fmt_parse_context *p, fmt_specs no_copy specs);
+void write_float_exp(fmt_context *f, string significand, s32 exp, code_point sign, fmt_specs no_copy specs, fmt_float_specs no_copy floatSpecs);
+void write_float_fixed(fmt_context *f, string significand, s32 exp, code_point sign, const fmt_specs &specs, const fmt_float_specs &floatSpecs, bool percentage);
+
+// Writes a float with given formatting specs
+void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs)
+{
+    fmt_float_specs floatSpecs = fmt_parse_float_specs(&f->Parse, specs);
+
+    //
+    // Determine the sign
+    //
+    code_point sign = 0;
+
+    // Check the sign bit instead of just checking "value < 0" since the latter is
+    // always false for NaN
+    if (sign_bit(value))
+    {
+        value = -value;
+        sign = '-';
+    }
+    else
+    {
+        // value is positive
+        if (specs.Sign == fmt_sign::PLUS)
+        {
+            sign = '+';
+        }
+        else if (specs.Sign == fmt_sign::SPACE)
+        {
+            sign = ' ';
+        }
+    }
+
+    // When the spec is '%' we display the number with fixed format and multiply
+    // it by 100. The spec gets handled in fmt_parse_float_specs().
+
+    bool percentage = specs.Type == '%';
+    if (percentage)
+    {
+        value *= 100;
+    }
+
+    //
+    // Handle INF or NAN
+    //
+    if (!is_finite(value))
+    {
+        write_padded_helper(
+            f, specs,
+            [&]()
+            {
+                if (sign) write_no_specs(f, sign);
+                write_no_specs(f, is_nan(value)
+                                      ? (ascii_is_upper(specs.Type) ? "NAN" : "nan")
+                                      : (ascii_is_upper(specs.Type) ? "INF" : "inf"));
+                if (percentage) write_no_specs(f, U'%');
+            },
+            3 + (sign ? 1 : 0) + (percentage ? 1 : 0));
+        return;
+    }
+
+    if (floatSpecs.Format == fmt_float_specs::HEX)
+    {
+        // @TODO Hex floats
+        return;
+    }
+
+    // Default precision we do for floats is 6 (except if the spec type is none)
+    if (specs.Precision < 0 && specs.Type)
+        specs.Precision = 6;
+
+    if (floatSpecs.Format == fmt_float_specs::EXP && specs.Precision != 0)
+    {
+        if (specs.Precision == numeric<s32>::max())
+        {
+            f->on_error( "Number too big");
+            return;
+        }
+        ++specs.Precision;
+    }
+
+    //
+    // Handle alignment NUMERIC or NONE
+    //
+    if (specs.Align == fmt_alignment::NUMERIC)
+    {
+        if (sign)
+        {
+            write_no_specs(f, sign);
+            sign = 0;
+            if (specs.Width)
+                --specs.Width;
+        }
+        specs.Align = fmt_alignment::RIGHT;
+    }
+    else if (specs.Align == fmt_alignment::NONE)
+    {
+        specs.Align = fmt_alignment::RIGHT;
+    }
+
+    // This routine writes the significand in the floatBuffer, then we use the
+    // returned exponent to choose how to format the final string. The returned
+    // exponent is the exponent base 10 of the LAST written digit in
+    // _floatBuffer_.
+    string_builder floatBuffer;
+    s32 exp = fmt_format_non_negative_float(floatBuffer, value, specs.Precision, floatSpecs);
+
+    //
+    // Assert we haven't allocated, which would be bad, because our formatting
+    // library is not supposed to allocate by itself.
+    //
+    // Note that string builder allocates if the default buffer (size 1 KiB) runs
+    // out of space, would anybody even try to format such a big float?
+    //
+    // I'm more into the idea to say "f it" and just don't handle the case when
+    // the formatted float is bigger (truncate), instead of adding to the
+    // documentation "Hey, by the way, formatting floats may allocate memory."
+    //
+    // @TODO: Make string_builder not add additional buffers with an option (maybe
+    // a template?).
+    //
+    assert(!floatBuffer.Chunks[1] && "Float formatting allocated memory");
+
+    string significand = string((char *)floatBuffer.FirstChunk.Data, floatBuffer.Count);
+
+    s64 outputExp = exp + significand.Count - 1;
+
+    bool useExpFormat = false;
+    if (floatSpecs.Format == fmt_float_specs::EXP)
+    {
+        useExpFormat = true;
+    }
+    else if (floatSpecs.Format == fmt_float_specs::GENERAL)
+    {
+        // If we are using the general format, we use the fixed notation (0.0001) if
+        // the exponent is in [EXP_LOWER, EXP_UPPER/precision), instead of the
+        // exponent notation (1e-04) in the other case.
+        const s64 EXP_LOWER = -4;
+        const s64 EXP_UPPER = 16;
+
+        // We also pay attention if the precision has been set.
+        // By the time we get here it can be -1 for the general format (if the user
+        // hasn't specified a precision).
+        useExpFormat =
+            outputExp < EXP_LOWER ||
+            outputExp >= (specs.Precision > 0 ? specs.Precision : EXP_UPPER);
+    }
+
+    if (useExpFormat)
+    {
+        write_float_exp(f, significand, exp, sign, specs, floatSpecs);
+    }
+    else
+    {
+        write_float_fixed(f, significand, exp, sign, specs, floatSpecs, percentage);
+    }
+}
+
+
+inline void write(fmt_context *f, is_integral auto value)
+{
+    u64 absValue = (u64)value;
+    bool negative = sign_bit(value);
+    if (negative)
+        absValue = 0 - absValue;
+
+    if (f->Specs)
+    {
+        write_u64(f, absValue, negative, *f->Specs);
+    }
+    else
+    {
+        write_u64(f, absValue, negative, {});
+    }
+}
+
+inline void write(fmt_context *f, is_floating_point auto value)
+{
+    if (f->Specs)
+    {
+        write_float(f, value, *f->Specs);
+    }
+    else
+    {
+        write_float(f, value, {});
+    }
+}
+
+void write(fmt_context *f, bool value);
+void write(fmt_context *f, const void *value);
 
 fmt_dynamic_specs fmt_forwarded_specs_for_arg(fmt_dynamic_specs original, fmt_arg ar);
 
