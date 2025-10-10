@@ -23,9 +23,7 @@ void thread_sleep(u32 ms);
 // Scoped lock can be simulated with a defer statement: defer(unlock(...));
 //
 struct mutex {
-    #if OS == WINDOWS || OS == MACOS || OS == LINUX 
     alignas(64) char Handle[64]{};
-    #endif
 };
 
 mutex create_mutex();
@@ -92,7 +90,7 @@ inline void unlock(fast_mutex *m) { atomic_swap(&m->Lock, 0); }
 struct condition_variable {
     #if OS == WINDOWS
     alignas(64) char Handle[64]{};
-    #elif OS == MACOS || OS == LINUX 
+    #elif OS == MACOS || OS == LINUX || OS == WASM
     alignas(64) char Handle[48]{};
     #endif
 };
@@ -183,7 +181,7 @@ LSTD_END_NAMESPACE
 
 #if OS == WINDOWS
 #include "windows/thread.h"
-#elif OS == MACOS || OS == LINUX 
+#elif OS == MACOS || OS == LINUX || OS == WASM
 #include "posix/thread.h"
 #elif OS == NO_OS
 // No OS (e.g. programming on baremetal).

@@ -15,6 +15,8 @@
 #define INCLUDE_FOLDER "include/"
 #define TEST_SUITE_FOLDER "test-suite/"
 
+bool IS_WASM = false;
+
 typedef enum
 {
     CONFIG_DEBUG,
@@ -30,16 +32,30 @@ const char *config_names[] = {
 // Helper function to get config-specific build folder
 const char *get_build_folder(Config config)
 {
-    switch (config)
-    {
-    case CONFIG_DEBUG:
-        return BUILD_FOLDER "debug/";
-    case CONFIG_DEBUG_OPTIMIZED:
-        return BUILD_FOLDER "optimized/";
-    case CONFIG_RELEASE:
-        return BUILD_FOLDER "release/";
-    default:
-        return BUILD_FOLDER "release/";
+    if (IS_WASM) {
+        switch (config)
+        {
+        case CONFIG_DEBUG:
+            return BUILD_FOLDER "debug-wasm/";
+        case CONFIG_DEBUG_OPTIMIZED:
+            return BUILD_FOLDER "optimized-wasm/";
+        case CONFIG_RELEASE:
+            return BUILD_FOLDER "release-wasm/";
+        default:
+            return BUILD_FOLDER "release-wasm/";
+        }
+    } else {
+        switch (config)
+        {
+        case CONFIG_DEBUG:
+            return BUILD_FOLDER "debug/";
+        case CONFIG_DEBUG_OPTIMIZED:
+            return BUILD_FOLDER "optimized/";
+        case CONFIG_RELEASE:
+            return BUILD_FOLDER "release/";
+        default:
+            return BUILD_FOLDER "release/";
+        }
     }
 }
 
@@ -50,6 +66,8 @@ void print_usage(const char *program_name)
     nob_log(INFO, "  debug      - Debug build with bounds checking\n");
     nob_log(INFO, "  optimized  - Debug build with optimizations\n");
     nob_log(INFO, "  release    - Release build (default)\n");
+    nob_log(INFO, "\n");
+    nob_log(INFO, "  wasm       - Turn on WebAssembly build with Emscripten, configuration still applies\n");
     nob_log(INFO, "\nOther commands:\n");
     nob_log(INFO, "  flags [config] - Print compiler flags for the (optionally specified) configuration and exit.\n");
 }
@@ -165,7 +183,11 @@ bool build_lstd_library(Config config)
     if (needs_rebuild_obj)
     {
         Cmd cmd = {0};
-        cmd_append(&cmd, "clang++");
+        if (IS_WASM) {
+            cmd_append(&cmd, "em++");
+        } else {
+            cmd_append(&cmd, "clang++");
+        }
 
         add_specific_flags(&cmd, config);
         add_common_flags(&cmd, config);
@@ -187,7 +209,11 @@ bool build_lstd_library(Config config)
     if (needs_rebuild1(lib_path, obj_file))
     {
         Cmd cmd = {0};
-        cmd_append(&cmd, "ar", "rcs", lib_path);
+        if (IS_WASM) {
+            cmd_append(&cmd, "emar", "rcs", lib_path);
+        } else {
+            cmd_append(&cmd, "ar", "rcs", lib_path);
+        }
         cmd_append(&cmd, obj_file);
         if (!cmd_run_sync(cmd))
             return false;
@@ -223,7 +249,11 @@ bool build_test_suite(Config config)
     if (needs_rebuild_exe)
     {
         Cmd cmd = {0};
-        cmd_append(&cmd, "clang++");
+        if (IS_WASM) {
+            cmd_append(&cmd, "em++");
+        } else {
+            cmd_append(&cmd, "clang++");
+        }
 
         add_common_flags(&cmd, config);
 
@@ -277,6 +307,10 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "release") == 0)
         {
             config = CONFIG_RELEASE;
+        }
+        else if (strcmp(argv[i], "wasm") == 0)
+        {
+            IS_WASM = true;
         }
         else
         {

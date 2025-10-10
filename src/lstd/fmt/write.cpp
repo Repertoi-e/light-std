@@ -293,7 +293,11 @@ inline void write(fmt_context *f, const void *value)
         return;
     }
 
-    auto uptr = bit_cast<u64>(value);
+#if BITS == 64
+    u64 uptr = bit_cast<u64>(value);
+#else
+    u32 uptr = bit_cast<u32>(value);
+#endif
     u32 numDigits = count_digits<4>(uptr);
 
     auto func = [&, f]()

@@ -556,7 +556,7 @@ LSTD_END_NAMESPACE
 
 #if OS == WINDOWS
 #include "windows/path.h"
-#elif OS == MACOS || OS == LINUX
+#elif OS == MACOS || OS == LINUX || OS == WASM
 #include "posix/path.h"
 #elif OS == NO_OS
 // No OS (e.g. programming on baremetal).

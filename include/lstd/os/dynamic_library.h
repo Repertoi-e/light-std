@@ -20,7 +20,7 @@ LSTD_END_NAMESPACE
 
 #if OS == WINDOWS
 #include "windows/dynamic_library.h"
-#elif OS == MACOS || OS == LINUX 
+#elif OS == MACOS || OS == LINUX || OS == WASM
 #include "posix/dynamic_library.h"
 #elif OS == NO_OS
 // No OS (e.g. programming on baremetal).

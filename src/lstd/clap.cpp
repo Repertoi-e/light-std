@@ -1,6 +1,6 @@
 #include "lstd/clap.h"
 #include "lstd/fmt.h"
-#include <stdlib.h>
+#include "lstd/os.h"
 
 LSTD_BEGIN_NAMESPACE
 

@@ -759,9 +759,7 @@ inline void reserve(string ref s, s64 n = -1, allocator alloc = {})
     // For subsequent reserves we go through the   realloc   branch above,
     // which properly manages to free the old data (if it couldn't reallocate
     // in place, that is).
-    s.Data = malloc<T>(
-        {.Count = n,
-         .Alloc = alloc}); // If alloc is null we use the Context's allocator
+    s.Data = malloc<T>({.Count = n, .Alloc = alloc}); // If alloc is null we use the Context's allocator
     if (oldData)
       memcpy(s.Data, oldData, s.Count * sizeof(T));
   }

@@ -179,7 +179,7 @@ LSTD_END_NAMESPACE
 
 #if OS == WINDOWS
 #include "windows/memory.h"
-#elif OS == MACOS || OS == LINUX 
+#elif OS == MACOS || OS == LINUX || OS == WASM
 #include "posix/memory.h"
 #elif OS == NO_OS
 // No OS (e.g. programming on baremetal).

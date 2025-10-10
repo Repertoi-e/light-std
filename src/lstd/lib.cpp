@@ -4,8 +4,8 @@
 #include "platform/memory.cpp"
 
 #if OS == WINDOWS
-// ..
-#elif OS == MACOS || OS == LINUX
+#include "platform/windows/thread.cpp"
+#elif OS == MACOS || OS == LINUX || OS == WASM
 #include "platform/posix/thread.cpp"
 #endif
 

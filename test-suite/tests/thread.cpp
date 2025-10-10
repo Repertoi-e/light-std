@@ -13,10 +13,11 @@ TEST(ids) {
   print("\n\t\tMain thread's id is {}.\n", Context.ThreadID);
 
   thread t1 = create_and_launch_thread(thread_ids);
-
   thread t2 = create_and_launch_thread(thread_ids);
-
   thread t3 = create_and_launch_thread(thread_ids);
+
+    print("veryfing haep\n");
+  debug_memory_verify_heap();
 
   wait(t2);
   wait(t1);

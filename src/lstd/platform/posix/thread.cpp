@@ -1,14 +1,13 @@
 #include "lstd/common.h"
 
-#if OS == MACOS || OS == LINUX 
+#if OS == MACOS || OS == LINUX || OS == WASM
 
 #include "lstd/memory.h"
 #include "lstd/os.h"
 
 LSTD_BEGIN_NAMESPACE
 
-thread create_and_launch_thread(delegate<void(void *)> function,
-                                void *userData) {
+thread create_and_launch_thread(delegate<void(void *)> function, void *userData) {
   thread t;
 
   // Passed to the thread wrapper, which will eventually free it
@@ -20,6 +19,7 @@ thread create_and_launch_thread(delegate<void(void *)> function,
   ti->ContextPtr = &Context;
   ti->ParentWasUsingTemporaryAllocator = Context.Alloc == TemporaryAllocator;
 
+  
    // Create the thread
     int result = pthread_create((pthread_t *) &t.Handle, null, thread_wrapper_function, (void *)ti);
     if (result != 0) {

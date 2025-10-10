@@ -179,8 +179,7 @@ void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outExp,
   big_integer *upper = null;  // Optional, may point to upperStore.
 
   fp value;
-  bool isPredecessorCloser =
-      fp_assign_new(value, v);  // Called "hasUnequalMargins" in the original
+  bool isPredecessorCloser = fp_assign_new(value, v);  // Called "hasUnequalMargins" in the original
 
   s32 shift = isPredecessorCloser ? 2 : 1;
 

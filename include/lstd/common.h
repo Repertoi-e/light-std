@@ -44,7 +44,9 @@
 #define WINDOWS 1
 #define MACOS 2
 #define LINUX 3
+#define WASM 4
 #define NO_OS 5
+
 
 #if defined LSTD_NO_OS
 #define OS NO_OS
@@ -61,7 +63,10 @@
 #elif defined macintosh || defined __APPLE__ || defined __APPLE_CC__
 #define OS MACOS
 #define OS_STRING "MacOS"
-#else
+#elif __EMSCRIPTEN__
+#define OS WASM
+#define OS_STRING "WASM"
+#else 
 #define OS NO_OS
 #endif
 #endif
@@ -150,6 +155,10 @@
 #if defined _LITTLE_ENDIAN && (_BYTE_ORDER == _LITTLE_ENDIAN)
 #define ENDIAN LITTLE_ENDIAN
 #endif
+#endif
+
+#if __EMSCRIPTEN__
+#define ENDIAN LITTLE_ENDIAN
 #endif
 
 // Windows is always little-endian.
@@ -510,11 +519,11 @@ struct s128
         __uint128_t m;
 #endif
         struct {
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if ENDIAN == LITTLE_ENDIAN
             u64 lo;
             s64 hi;
 #endif
-#if BYTE_ORDER == BIG_ENDIAN
+#if ENDIAN == BIG_ENDIAN
             s64 hi;
             u64 lo;
 #endif
@@ -653,11 +662,11 @@ struct u128
         __uint128_t m;
 #endif
         struct {
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if ENDIAN == LITTLE_ENDIAN
             u64 lo;
             u64 hi;
 #endif
-#if BYTE_ORDER == BIG_ENDIAN
+#if ENDIAN == BIG_ENDIAN
             u64 hi;
             u64 lo;
 #endif
@@ -726,10 +735,10 @@ constexpr u128 u128_from_u64(u64 n) { return u128((__uint128_t)n); }
 constexpr u128 u128_from_uv64(u64* v)
 {
     u128 x;
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if ENDIAN == LITTLE_ENDIAN
     x.m = (__uint128_t)v[0] | (__uint128_t)v[1] << 64;
 #endif
-#if BYTE_ORDER == BIG_ENDIAN
+#if ENDIAN == BIG_ENDIAN
     x.m = (__uint128_t)v[1] | (__uint128_t)v[0] << 64;
 #endif
     return x;
@@ -778,10 +787,10 @@ constexpr u128 u128_from_u64(u64 n) { u128 x; x.lo = n; x.hi = 0; return x; }
 constexpr u128 u128_from_uv64(u64* v)
 {
     u128 x;
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if ENDIAN == LITTLE_ENDIAN
     x.lo = v[0]; x.hi = v[1];
 #endif
-#if BYTE_ORDER == BIG_ENDIAN
+#if ENDIAN == BIG_ENDIAN
     x.lo = v[1]; x.hi = v[0];
 #endif
     return x;
@@ -1149,10 +1158,10 @@ constexpr s128 i128_from_u64(u64 n)
 constexpr s128 i128_from_uv64(u64* v)
 {
     s128 x;
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if ENDIAN == LITTLE_ENDIAN
     x.m = (__uint128_t)v[0] | (__uint128_t)v[1] << 64;
 #endif
-#if BYTE_ORDER == BIG_ENDIAN
+#if ENDIAN == BIG_ENDIAN
     x.m = (__uint128_t)v[1] | (__uint128_t)v[0] << 64;
 #endif
     return x;
@@ -1317,11 +1326,11 @@ constexpr s128 i128_from_u64(u64 n)
 constexpr s128 i128_from_uv64(u64* v)
 {
     s128 x;
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if ENDIAN == LITTLE_ENDIAN
     x.lo = v[0];
     x.hi = v[1];
 #endif
-#if BYTE_ORDER == BIG_ENDIAN
+#if ENDIAN == BIG_ENDIAN
     x.lo = v[1];
     x.hi = v[0];
 #endif

@@ -270,65 +270,74 @@ void debug_memory_report_leaks() {
       file = get_short_file_name(it->AllocatedAt.file_name());
     }
 
-    print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n",
-          file, it->AllocatedAt.line(), it->Header->Size, it->ID, it->RID);
+    print("    * {}:{} requested {!GRAY}{}{!} bytes, {{ID: {}, RID: {}}}\n", file, it->AllocatedAt.line(), it->Header->Size, it->ID, it->RID);
   }
 }
 
 static void verify_node_integrity(debug_memory_node *node) {
-  auto *header = node->Header;
+    auto *header = node->Header;
 
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // If an assert fires here it means that memory was messed up in some way.
-  //
-  // We check for several problems here:
-  //   * No man's land was modified. This means that you wrote before or after
-  //   the allocated block.
-  //     This catches buffer underflows/overflows errors.
-  //   * Alignment should not be 0, should be more than POINTER_SIZE (8 bytes)
-  //   and should be a power of 2.
-  //     If any of these is not true, then the header was definitely corrupted.
-  //   * We store a pointer to the memory block at the end of the header, any
-  //   valid header will have this
-  //     pointer point after itself. Otherwise the header was definitely
-  //     corrupted.
-  //
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // If an assert fires here it means that memory was messed up in some way.
+    //
+    // We check for several problems here:
+    //   * No man's land was modified. This means that you wrote before or after
+    //   the allocated block.
+    //     This catches buffer underflows/overflows errors.
+    //   * Alignment should not be 0, should be more than POINTER_SIZE (8 bytes)
+    //   and should be a power of 2.
+    //     If any of these is not true, then the header was definitely corrupted.
+    //   * We store a pointer to the memory block at the end of the header, any
+    //   valid header will have this
+    //     pointer point after itself. Otherwise the header was definitely
+    //     corrupted.
+    //
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  if (node->Freed) {
-    // We can't verify the memory was not modified because
-    // it could be given back to the OS and to another program.
+    if (node->Freed) {
+        // We can't verify the memory was not modified because
+        // it could be given back to the OS and to another program.
+        return;
+    }
 
-    return;
-  }
+    // The ID of the allocation to debug.
+    auto id = node->ID;
 
-  // The ID of the allocation to debug.
-  auto id = node->ID;
+    byte noMansLand[NO_MANS_LAND_SIZE];
+    memset(noMansLand, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
 
-  byte noMansLand[NO_MANS_LAND_SIZE];
-  memset(noMansLand, NO_MANS_LAND_FILL, NO_MANS_LAND_SIZE);
+#define PRINT_LOC print("\n\nDebug check failed for memory allocated at {}:{}\n", node->AllocatedAt.file_name(), node->AllocatedAt.line())
 
-  auto *user = (char *)header + sizeof(allocation_header);
-  assert(memcmp((byte *)user - NO_MANS_LAND_SIZE, noMansLand,
-                NO_MANS_LAND_SIZE) == 0 &&
-         "No man's land was modified. This means that you wrote before the "
-         "allocated block.");
+    auto *user = (char *)header + sizeof(allocation_header);
+    if (memcmp((byte *)user - NO_MANS_LAND_SIZE, noMansLand, NO_MANS_LAND_SIZE) != 0) {
+        PRINT_LOC;
+        panic("No man's land was modified. This means that you wrote before the allocated block.");
+    }
 
-  assert(header->DEBUG_Pointer == user &&
-         "Debug pointer doesn't match. They should always match.");
+    if (header->DEBUG_Pointer != user) {
+        PRINT_LOC;
+        panic("Debug pointer doesn't match. They should always match.");
+    }
 
-  assert(memcmp((byte *)header->DEBUG_Pointer + header->Size, noMansLand,
-                NO_MANS_LAND_SIZE) == 0 &&
-         "No man's land was modified. This means that you wrote after the "
-         "allocated block.");
+    if (memcmp((byte *)header->DEBUG_Pointer + header->Size, noMansLand, NO_MANS_LAND_SIZE) != 0) {
+        PRINT_LOC;
+        panic("No man's land was modified. This means that you wrote after the allocated block.");
+    }
 
-  assert(header->Alignment &&
-         "Stored alignment is zero. Definitely corrupted.");
-  assert(header->Alignment >= POINTER_SIZE &&
-         "Stored alignment smaller than pointer size (8 bytes). Definitely "
-         "corrupted.");
-  assert(is_pow_of_2(header->Alignment) &&
-         "Stored alignment not a power of 2. Definitely corrupted.");
+    if (!header->Alignment) {
+        PRINT_LOC;
+        panic("Stored alignment is zero. Definitely corrupted.");
+    }
+
+    if (header->Alignment < POINTER_SIZE) {
+        PRINT_LOC;
+        panic("Stored alignment smaller than pointer size (8 bytes). Definitely corrupted.");
+    }
+
+    if (!is_pow_of_2(header->Alignment)) {
+        PRINT_LOC;
+        panic("Stored alignment not a power of 2. Definitely corrupted.");
+    }
 }
 
 void debug_memory_verify_heap() {
@@ -428,8 +437,7 @@ static void *encode_header(void *p, s64 userSize, u32 align, allocator alloc,
   //                                                                              - 18.05.2020
   //
   p = result + 1;
-  assert((((u64)p & ~((s64)align - 1)) == (u64)p) &&
-         "Pointer wasn't properly aligned.");
+  assert((((u64)p & ~((s64)align - 1)) == (u64)p) && "Pointer wasn't properly aligned.");
 
 #if defined DEBUG_MEMORY
   memset((byte *)p, CLEAN_LAND_FILL, userSize);

@@ -26,14 +26,11 @@ inline os_function_call clone(os_function_call no_copy src) {
   return result;
 }
 
-using panic_handler_t = void (*)(string message,
-                                 array<os_function_call> callStack);
+using panic_handler_t = void (*)(string message, array<os_function_call> callStack);
 void default_panic_handler(string message, array<os_function_call> callStack);
 
-using fmt_parse_error_handler_t = void (*)(string message, string formatString,
-                                           s64 position);
-void fmt_default_parse_error_handler(string message, string formatString,
-                                     s64 position);
+using fmt_parse_error_handler_t = void (*)(string message, string formatString, s64 position);
+void fmt_default_parse_error_handler(string message, string formatString, s64 position);
 
 // See note below at the variable declaration... :Context:
 struct context {

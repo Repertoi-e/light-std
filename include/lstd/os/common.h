@@ -60,6 +60,11 @@ string os_get_working_dir();
 //               are not thread-safe but we use a lock so ours are. Probably applies to other platforms as well.
 void os_set_working_dir(string dir);
 
+// Parses command line arguments in a platform specific way,
+// on windows we can get them via CommandLineToArgvW.
+// On POSIX we supply argc/argv from main().
+array<string> os_parse_arguments(int argc, char **argv);
+
 // Get a list of parsed command line arguments including the first one -
 // normally the first one is the exe name - but you can also get that with
 // os_get_current_module(). Note: Don't free the result of this function, not a leak.
@@ -257,7 +262,7 @@ LSTD_END_NAMESPACE
 
 #if OS == WINDOWS
 #include "windows/common.h"
-#elif OS == MACOS || OS == LINUX 
+#elif OS == MACOS || OS == LINUX || OS == WASM
 #include "posix/common.h"
 #elif OS == NO_OS
 // No OS (e.g. programming on baremetal).
