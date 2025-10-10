@@ -62,12 +62,12 @@ typedef void *pool_t;
 /* Create/destroy a memory pool. */
 tlsf_t tlsf_create(void *mem);
 tlsf_t tlsf_create_with_pool(void *mem, u64 bytes);
-void tlsf_destroy(tlsf_t tlsf);
+void   tlsf_destroy(tlsf_t tlsf);
 pool_t tlsf_get_pool(tlsf_t tlsf);
 
 /* Add/remove memory pools. */
 pool_t tlsf_add_pool(tlsf_t tlsf, void *mem, u64 bytes);
-void tlsf_remove_pool(tlsf_t tlsf, pool_t pool);
+void   tlsf_remove_pool(tlsf_t tlsf, pool_t pool);
 
 /* malloc/memalign/realloc/free replacements. */
 void *tlsf_malloc(tlsf_t tlsf, u64 bytes);
@@ -79,7 +79,7 @@ void *tlsf_malloc(tlsf_t tlsf, u64 bytes);
 void *tlsf_resize(tlsf_t tlsf, void *ptr,
                   u64 size);  // :WEMODIFIED: Renamed this from realloc to
                               // resize. See comments in tlsf.cpp
-void tlsf_free(tlsf_t tlsf, void *ptr);
+void  tlsf_free(tlsf_t tlsf, void *ptr);
 
 /* Returns internal block size, not original request size */
 u64 tlsf_block_size(void *ptr);
@@ -96,8 +96,8 @@ u64 tlsf_alloc_overhead(void);
 typedef void (*tlsf_walker)(void *ptr, u64 size, int used, void *user);
 void tlsf_walk_pool(pool_t pool, tlsf_walker walker, void *user);
 /* Returns nonzero if any internal consistency check fails. */
-int tlsf_check(tlsf_t tlsf);
-int tlsf_check_pool(pool_t pool);
+int  tlsf_check(tlsf_t tlsf);
+int  tlsf_check_pool(pool_t pool);
 
 #if defined(__cplusplus)
 }

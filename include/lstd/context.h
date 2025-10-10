@@ -218,7 +218,7 @@ struct context {
 inline const thread_local context Context = context(context::dont_init_t{});
 
 inline void panic(string message) {
-array<os_function_call> callStack;
+    array<os_function_call> callStack;
 #if OS != WASM
     callStack = os_get_call_stack(1, 32, null);
     defer({

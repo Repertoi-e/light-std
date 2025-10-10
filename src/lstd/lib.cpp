@@ -4,24 +4,24 @@
 #include "platform/memory.cpp"
 
 #if OS == WINDOWS
-#include "platform/windows/thread.cpp"
 #include "platform/windows/callstack.cpp"
-#elif OS == MACOS || OS == LINUX 
-#include "platform/posix/thread.cpp"
+#include "platform/windows/thread.cpp"
+#elif OS == MACOS || OS == LINUX
 #include "platform/posix/callstack.cpp"
+#include "platform/posix/thread.cpp"
 #elif OS == WASM
 #include "platform/posix/thread.cpp"
-#else 
+#else
 #error Implement.
 #endif
 
 #include "vendor/tlsf/tlsf.cpp"
 
 // Unicode and string helpers implementation
-#include "string.cpp"
 #include "clap.cpp"
+#include "string.cpp"
 
+#include "fmt/float_dragonbox.cpp"
+#include "fmt/float_grisu.cpp"
 #include "fmt/fmt.cpp"
 #include "fmt/write.cpp"
-#include "fmt/float_grisu.cpp"
-#include "fmt/float_dragonbox.cpp"

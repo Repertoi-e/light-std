@@ -80,36 +80,36 @@ LSTD_BEGIN_NAMESPACE
 
 // Assigns pow(10, exp) to a big int
 inline big_integer bigint_pow10(s32 exp) {
-  assert(exp >= 0);
-  if (exp == 0) return make_big(1);
+    assert(exp >= 0);
+    if (exp == 0) return make_big(1);
 
-  // Find the top bit
-  s32 bitmask = 1;
-  while (exp >= bitmask) bitmask <<= 1;
-  bitmask >>= 1;
-
-  // pow(10, exp) = pow(5, exp) * pow(2, exp).
-  // First compute pow(5, exp) by repeated squaring and multiplication.
-  big_integer b = make_big(5);
-  bitmask >>= 1;
-  while (bitmask != 0) {
-    b = b * b;
-    if ((exp & bitmask) != 0) b = b * make_big(5);
+    // Find the top bit
+    s32 bitmask = 1;
+    while (exp >= bitmask) bitmask <<= 1;
     bitmask >>= 1;
-  }
-  b = b << exp;  // Multiply by pow(2, exp) by shifting.
 
-  return b;
+    // pow(10, exp) = pow(5, exp) * pow(2, exp).
+    // First compute pow(5, exp) by repeated squaring and multiplication.
+    big_integer b = make_big(5);
+    bitmask >>= 1;
+    while (bitmask != 0) {
+        b = b * b;
+        if ((exp & bitmask) != 0) b = b * make_big(5);
+        bitmask >>= 1;
+    }
+    b = b << exp;  // Multiply by pow(2, exp) by shifting.
+
+    return b;
 }
 
 inline bool is_digit_in_valid_range(big_integer b) {
-  if (!b.Size) return true;
-  return b.Size == 1 && get_digit(b, 0) < 10;
+    if (!b.Size) return true;
+    return b.Size == 1 && get_digit(b, 0) < 10;
 }
 
 inline u32 get_digit_or_zero(big_integer b) {
-  if (b.Size) return get_digit(b, 0);
-  return 0;
+    if (b.Size) return get_digit(b, 0);
+    return 0;
 }
 
 //
@@ -167,186 +167,183 @@ inline u32 get_digit_or_zero(big_integer b) {
 //
 // _v_           - f32 or f64; contains the value of the float to be formatted.
 //
-void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outExp,
-                          s32 precision, is_floating_point auto v) {
-  // floating point value above/below the significand.
+void dragon4_format_float(char *b, s32 bSize, s64 *outWritten, s32 *outExp, s32 precision, is_floating_point auto v) {
+    // floating point value above/below the significand.
 
-  // Cap precision to not overflow _b_
-  precision = min(precision, bSize);
+    // Cap precision to not overflow _b_
+    precision = min(precision, bSize);
 
-  // Lower and upper are differences between value and corresponding boundaries.
-  big_integer numerator, denominator, lower, upperStore;
-  big_integer *upper = null;  // Optional, may point to upperStore.
+    // Lower and upper are differences between value and corresponding boundaries.
+    big_integer  numerator, denominator, lower, upperStore;
+    big_integer *upper = null;  // Optional, may point to upperStore.
 
-  fp value;
-  bool isPredecessorCloser = fp_assign_new(value, v);  // Called "hasUnequalMargins" in the original
+    fp   value;
+    bool isPredecessorCloser = fp_assign_new(value, v);  // Called "hasUnequalMargins" in the original
 
-  s32 shift = isPredecessorCloser ? 2 : 1;
+    s32 shift = isPredecessorCloser ? 2 : 1;
 
-  s32 exponent = value.Exponent;
+    s32 exponent = value.Exponent;
 
-  u64 significand = value.Significand << shift;
+    u64 significand = value.Significand << shift;
 
-  if (exponent >= 0) {
-    // If we have no fractional component
-    //
-    // 1) Expand the input value by multiplying out the significand and
-    //    exponent. This represents the input value in its whole number
-    //    representation.
-    // 2) Apply an additional scale of 2 such that later comparisons
-    //    against the margin values are simplified.
-    // 3) Set the margin value to the lowest significand bit's scale.
+    if (exponent >= 0) {
+        // If we have no fractional component
+        //
+        // 1) Expand the input value by multiplying out the significand and
+        //    exponent. This represents the input value in its whole number
+        //    representation.
+        // 2) Apply an additional scale of 2 such that later comparisons
+        //    against the margin values are simplified.
+        // 3) Set the margin value to the lowest significand bit's scale.
 
-    numerator = make_big(significand);
-    numerator = numerator << exponent;
-    lower = make_big(1);
-    lower = lower << exponent;
-    if (shift != 1) {
-      upperStore = make_big(1);
-      upperStore = upperStore << (exponent + 1);
-      upper = &upperStore;
-    }
-    denominator = bigint_pow10(*outExp);
-    denominator = denominator << shift;
-  } else if (*outExp < 0) {
-    numerator = bigint_pow10(-(*outExp));
-    lower = numerator;
-    if (shift != 1) {
-      upperStore = numerator;
-      upperStore = upperStore << 1;
-      upper = &upperStore;
-    }
-    numerator = numerator * make_big(significand);
-    denominator = make_big(1);
-    denominator = denominator << (shift - exponent);
-  } else {
-    numerator = make_big(significand);
-    denominator = bigint_pow10(*outExp);
-    denominator = denominator << (shift - exponent);
-    lower = make_big(1);
-    if (shift != 1) {
-      upperStore = make_big(2);
-      upper = &upperStore;
-    }
-  }
-
-  // Invariant: value == (numerator / denominator) * pow(10, outExp).
-  if (precision < 0) {
-    // Generate the shortest unique representation
-    if (!upper) upper = &lower;
-    bool even = (value.Significand & 1) == 0;
-
-    precision = 0;
-    while (true) {
-      // Divide out the scale to extract the digit.
-      auto [digit, mod] = divmod(numerator, denominator);
-      numerator = mod;
-
-      assert(is_digit_in_valid_range(digit));
-      u32 outputDigit = get_digit_or_zero(digit);
-
-      bool low = compare(numerator, lower) - even < 0;
-      bool high = compare(numerator + *upper, denominator) + even > 0;
-
-      // Store the output digit.
-      b[precision++] = '0' + outputDigit;
-
-      if (low || high) {
-        if (low) {
-          ++b[precision - 1];
-        } else if (high) {
-          s64 cmp = compare(numerator * make_big(2), denominator);
-
-          // Round half to even.
-          if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {
-            ++b[precision - 1];
-          }
+        numerator = make_big(significand);
+        numerator = numerator << exponent;
+        lower     = make_big(1);
+        lower     = lower << exponent;
+        if (shift != 1) {
+            upperStore = make_big(1);
+            upperStore = upperStore << (exponent + 1);
+            upper      = &upperStore;
         }
-
-        *outWritten = precision;
-        *outExp -= precision - 1;
-
-        return;
-      }
-
-      numerator = numerator * make_big(10);
-      lower = lower * make_big(10);
-      if (upper != &lower) *upper = *upper * make_big(10);
+        denominator = bigint_pow10(*outExp);
+        denominator = denominator << shift;
+    } else if (*outExp < 0) {
+        numerator = bigint_pow10(-(*outExp));
+        lower     = numerator;
+        if (shift != 1) {
+            upperStore = numerator;
+            upperStore = upperStore << 1;
+            upper      = &upperStore;
+        }
+        numerator   = numerator * make_big(significand);
+        denominator = make_big(1);
+        denominator = denominator << (shift - exponent);
+    } else {
+        numerator   = make_big(significand);
+        denominator = bigint_pow10(*outExp);
+        denominator = denominator << (shift - exponent);
+        lower       = make_big(1);
+        if (shift != 1) {
+            upperStore = make_big(2);
+            upper      = &upperStore;
+        }
     }
-  }
 
-  //
-  // If 0 precision, write out a 1 or 0.
-  //
-  // This is not in the original algorithm.
-  // We check for precision 0 here because we need to generate
-  // a lonely 0 (or 1), otherwise our formatting looks incorrect.
-  //
-  // Precisely, the format string "{:#.0f}" should produce "0." when given a
-  // value lower than 0.5. Note that Python would round 0.5 to 0, and not to 1
-  // like we do here. I'm not exactly sure why its interpreter does that,
-  // however I dub our behaviour more correct.
-  //
-  // When fed with e.g. 0.7, we take the outside branch and round up, and
-  // correctly produce "1.".
-  //
-  // Side note about the formatting syntax:
-  // If you are confused about the pointy dot produced in the final output: the
-  // # specifier tells the formatter to output a dot despite the fact that the
-  // specified precision is 0. This is useful when you want to be explicit that
-  // you are printing a floating point number, and not to be confused with an
-  // integer. For e.g. "{:.0f}" (without the hash) with the value 42.2 would
-  // print "42", which is indistinguishable from printing the integer 42.
-  //
-  *outExp -= precision - 1;
-  if (precision == 0) {
-    *outWritten = 1;
-    denominator = denominator * make_big(10);
-    b[0] = compare(numerator * make_big(2), denominator) > 0 ? '1' : '0';
-    return;
-  }
+    // Invariant: value == (numerator / denominator) * pow(10, outExp).
+    if (precision < 0) {
+        // Generate the shortest unique representation
+        if (!upper) upper = &lower;
+        bool even = (value.Significand & 1) == 0;
 
-  // Write out however many digits were requested
-  *outWritten = precision;
-  For(range(precision - 1)) {
+        precision = 0;
+        while (true) {
+            // Divide out the scale to extract the digit.
+            auto [digit, mod] = divmod(numerator, denominator);
+            numerator         = mod;
+
+            assert(is_digit_in_valid_range(digit));
+            u32 outputDigit = get_digit_or_zero(digit);
+
+            bool low  = compare(numerator, lower) - even < 0;
+            bool high = compare(numerator + *upper, denominator) + even > 0;
+
+            // Store the output digit.
+            b[precision++] = '0' + outputDigit;
+
+            if (low || high) {
+                if (low) {
+                    ++b[precision - 1];
+                } else if (high) {
+                    s64 cmp = compare(numerator * make_big(2), denominator);
+
+                    // Round half to even.
+                    if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) { ++b[precision - 1]; }
+                }
+
+                *outWritten = precision;
+                *outExp -= precision - 1;
+
+                return;
+            }
+
+            numerator = numerator * make_big(10);
+            lower     = lower * make_big(10);
+            if (upper != &lower) *upper = *upper * make_big(10);
+        }
+    }
+
+    //
+    // If 0 precision, write out a 1 or 0.
+    //
+    // This is not in the original algorithm.
+    // We check for precision 0 here because we need to generate
+    // a lonely 0 (or 1), otherwise our formatting looks incorrect.
+    //
+    // Precisely, the format string "{:#.0f}" should produce "0." when given a
+    // value lower than 0.5. Note that Python would round 0.5 to 0, and not to 1
+    // like we do here. I'm not exactly sure why its interpreter does that,
+    // however I dub our behaviour more correct.
+    //
+    // When fed with e.g. 0.7, we take the outside branch and round up, and
+    // correctly produce "1.".
+    //
+    // Side note about the formatting syntax:
+    // If you are confused about the pointy dot produced in the final output: the
+    // # specifier tells the formatter to output a dot despite the fact that the
+    // specified precision is 0. This is useful when you want to be explicit that
+    // you are printing a floating point number, and not to be confused with an
+    // integer. For e.g. "{:.0f}" (without the hash) with the value 42.2 would
+    // print "42", which is indistinguishable from printing the integer 42.
+    //
+    *outExp -= precision - 1;
+    if (precision == 0) {
+        *outWritten = 1;
+        denominator = denominator * make_big(10);
+        b[0]        = compare(numerator * make_big(2), denominator) > 0 ? '1' : '0';
+        return;
+    }
+
+    // Write out however many digits were requested
+    *outWritten = precision;
+    For(range(precision - 1)) {
+        auto [digit, mod] = divmod(numerator, denominator);
+        numerator         = mod;
+
+        assert(is_digit_in_valid_range(digit));
+        u32 outputDigit = get_digit_or_zero(digit);
+
+        b[it] = '0' + outputDigit;
+
+        numerator = numerator * make_big(10);
+    }
+
+    // The final one, also handle rounding..
     auto [digit, mod] = divmod(numerator, denominator);
-    numerator = mod;
+    numerator         = mod;
 
     assert(is_digit_in_valid_range(digit));
     u32 outputDigit = get_digit_or_zero(digit);
 
-    b[it] = '0' + outputDigit;
+    s64 cmp = compare(numerator * make_big(2), denominator);
+    if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {
+        if (outputDigit == 9) {
+            char overflow    = '0' + 10;
+            b[precision - 1] = overflow;
 
-    numerator = numerator * make_big(10);
-  }
-
-  // The final one, also handle rounding..
-  auto [digit, mod] = divmod(numerator, denominator);
-  numerator = mod;
-
-  assert(is_digit_in_valid_range(digit));
-  u32 outputDigit = get_digit_or_zero(digit);
-
-  s64 cmp = compare(numerator * make_big(2), denominator);
-  if (cmp > 0 || (cmp == 0 && (outputDigit % 2) != 0)) {
-    if (outputDigit == 9) {
-      char overflow = '0' + 10;
-      b[precision - 1] = overflow;
-
-      // Propagate the carry.
-      for (s32 i = precision - 1; i > 0 && b[i] == overflow; --i) {
-        b[i] = '0';
-        ++b[i - 1];
-      }
-      if (b[0] == overflow) {
-        b[0] = '1';
-        ++*outExp;
-      }
-      return;
+            // Propagate the carry.
+            for (s32 i = precision - 1; i > 0 && b[i] == overflow; --i) {
+                b[i] = '0';
+                ++b[i - 1];
+            }
+            if (b[0] == overflow) {
+                b[0] = '1';
+                ++*outExp;
+            }
+            return;
+        }
+        ++outputDigit;
     }
-    ++outputDigit;
-  }
-  b[precision - 1] = '0' + outputDigit;
+    b[precision - 1] = '0' + outputDigit;
 }
 
 LSTD_END_NAMESPACE

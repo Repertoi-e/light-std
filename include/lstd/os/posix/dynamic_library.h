@@ -3,7 +3,7 @@
 #include "../../string.h"
 #include "memory.h"
 
-#include <dlfcn.h> 
+#include <dlfcn.h>
 
 LSTD_BEGIN_NAMESPACE
 
@@ -29,9 +29,7 @@ inline void *os_dynamic_library_get_symbol(dynamic_library library, const char *
 
 inline void os_dynamic_library_release(dynamic_library library) {
     // Close the dynamic library using dlclose
-    if (library) {
-        dlclose(library);
-    }
+    if (library) { dlclose(library); }
 }
 
 LSTD_END_NAMESPACE

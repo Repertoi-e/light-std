@@ -1,12 +1,12 @@
 #pragma once
 
+#include "array_like.h"
 #include "common.h"
 #include "context.h"
-#include "string_builder.h"
-#include "array_like.h"
-#include "variant.h"
 #include "hash_table.h"
 #include "linked_list_like.h"
+#include "string_builder.h"
+#include "variant.h"
 
 LSTD_BEGIN_NAMESPACE
 
@@ -88,14 +88,14 @@ LSTD_BEGIN_NAMESPACE
 //      Integers:
 //       'b' - Binary integer. Outputs the number in base 2.
 //       'c' - Code point. Converts the integer to the corresponding unicode
-//       code point before printing. 
+//       code point before printing.
 //       'd' - Decimal integer. Outputs the number
-//       in base 10. 
-//       'o' - Octal format. Outputs the number in base 8. 
+//       in base 10.
+//       'o' - Octal format. Outputs the number in base 8.
 //       'x' - Hex format. Outputs the number in base 16, using lower-case letters for the
-//       digits above 9. 
+//       digits above 9.
 //       'X' - Hex format. Outputs the number in base 16, using
-//       upper-case letters for the digits above 9. 
+//       upper-case letters for the digits above 9.
 //       'n' - Number. This is the same as 'd', except that it inserts thousands separator
 //             (currently a dot that doesn't get determined by the locale)
 //       '' (NONE) - the same as 'd'
@@ -291,28 +291,11 @@ LSTD_BEGIN_NAMESPACE
       };
 */
 
-enum class fmt_type
-{
-  NONE = 0,
-  S64,
-  U64,
-  BOOL,
-  F32,
-  F64,
-  STRING,
-  POINTER,
-  CUSTOM
-};
+enum class fmt_type { NONE = 0, S64, U64, BOOL, F32, F64, STRING, POINTER, CUSTOM };
 
-inline bool fmt_type_is_integral(fmt_type type)
-{
-  return type == fmt_type::S64 || type == fmt_type::U64 || type == fmt_type::BOOL;
-}
+inline bool fmt_type_is_integral(fmt_type type) { return type == fmt_type::S64 || type == fmt_type::U64 || type == fmt_type::BOOL; }
 
-inline bool fmt_type_is_arithmetic(fmt_type type)
-{
-  return fmt_type_is_integral(type) || type == fmt_type::F32 || type == fmt_type::F64;
-}
+inline bool fmt_type_is_arithmetic(fmt_type type) { return fmt_type_is_integral(type) || type == fmt_type::F32 || type == fmt_type::F64; }
 
 struct fmt_context;
 
@@ -320,57 +303,56 @@ template <typename T>
 struct formatter;
 
 template <typename T>
-concept has_formatter = requires(const T &value, fmt_context *f) {
-  formatter<remove_cvref_t<T>>{}.format(value, f);
-};
+concept has_formatter = requires(const T &value, fmt_context *f) { formatter<remove_cvref_t<T>>{}.format(value, f); };
 
 // Type-erased value storage used by fmt_arg
-struct fmt_value
-{
-  struct custom_value
-  {
-    const void *Data;
-    void (*FormatFunc)(fmt_context *formatContext, const void *arg);
-  };
+struct fmt_value {
+    struct custom_value {
+        const void *Data;
+        void (*FormatFunc)(fmt_context *formatContext, const void *arg);
+    };
 
-  union
-  {
-    s64 S64;
-    u64 U64;
-    f32 F32;
-    f64 F64;
+    union {
+        s64 S64;
+        u64 U64;
+        f32 F32;
+        f64 F64;
 
-    void *Pointer;
-    string String;
+        void  *Pointer;
+        string String;
 
-    custom_value Custom;
-  };
+        custom_value Custom;
+    };
 
-  fmt_value(s64 v = 0) : S64(v) {}
-  fmt_value(bool v) : S64(v) {} // Store bools in S64
-  fmt_value(u64 v) : U64(v) {}
-  fmt_value(f32 v) : F32(v) {}
-  fmt_value(f64 v) : F64(v) {}
-  fmt_value(void *v) : Pointer(v) {}
-  fmt_value(string v) : String(v) {}
+    fmt_value(s64 v = 0) : S64(v) {}
 
-  // Attempt to call a custom formatter.
-  // Compile-time asserts if there was no overload.
-  template <typename T>
-  fmt_value(T *v)
-  {
-    Custom.Data = (const void *)v;
-    Custom.FormatFunc = call_write_on_custom_arg<T>;
-  }
+    fmt_value(bool v) : S64(v) {}  // Store bools in S64
 
-  template <typename T>
-  static void call_write_on_custom_arg(fmt_context *formatContext, const void *arg)
-  {
-    static_assert(has_formatter<T>, "No formatter found for custom type T");
+    fmt_value(u64 v) : U64(v) {}
 
-    auto f = formatter<remove_cvref_t<T>>{};
-    f.format(*static_cast<const T *>(arg), formatContext);
-  }
+    fmt_value(f32 v) : F32(v) {}
+
+    fmt_value(f64 v) : F64(v) {}
+
+    fmt_value(void *v) : Pointer(v) {}
+
+    fmt_value(string v) : String(v) {}
+
+    // Attempt to call a custom formatter.
+    // Compile-time asserts if there was no overload.
+    template <typename T>
+    fmt_value(T *v) {
+        Custom.Data       = (const void *)v;
+        Custom.FormatFunc = call_write_on_custom_arg<T>;
+    }
+
+    template <typename T>
+    static void call_write_on_custom_arg(fmt_context *formatContext, const void *arg) {
+        static_assert(has_formatter<T>, "No formatter found for custom type T");
+
+        auto f = formatter<remove_cvref_t<T>>{};
+        f.format(*static_cast<const T *>(arg), formatContext);
+    }
 };
 
 //
@@ -379,10 +361,9 @@ struct fmt_value
 // (we just hold a pointer)! That means that the parameters
 // need to outlive the parse and format function itself.
 //
-struct fmt_arg
-{
-  fmt_type Type = fmt_type::NONE;
-  fmt_value Value;
+struct fmt_arg {
+    fmt_type  Type = fmt_type::NONE;
+    fmt_value Value;
 };
 
 // Maps formatting arguments to types that can be used to construct a fmt_value.
@@ -399,131 +380,86 @@ struct fmt_arg
 //   * is the type a bool? maps to bool
 //   * otherwise maps to &v (value then setups a function call to a custom
 //   formatter)
-auto fmt_map_arg(auto no_copy v)
-{
-  using T = remove_cvref_t<decltype(v)>;
+auto fmt_map_arg(auto no_copy v) {
+    using T = remove_cvref_t<decltype(v)>;
 
-  if constexpr (is_same<string, T> || is_constructible<string, T>)
-  {
-    return string(v);
-  }
-  else if constexpr (is_same<T, string::code_point_ref>)
-  {
-    return (u64)v;
-  }
-  else if constexpr (is_same<bool, T>)
-  {
-    return v;
-  }
-  else if constexpr (is_unsigned_integral<T>)
-  {
-    return (u64)v;
-  }
-  else if constexpr (is_signed_integral<T>)
-  {
-    return (s64)v;
-  }
-  else if constexpr (is_enum<T>)
-  {
-    return fmt_map_arg((underlying_type_t<T>)v);
-  }
-  else if constexpr (is_floating_point<T>)
-  {
-    return v;
-  }
-  else if constexpr (is_pointer<T>)
-  {
-    if constexpr (is_same<T, void *>)
-    {
-      return v;
+    if constexpr (is_same<string, T> || is_constructible<string, T>) {
+        return string(v);
+    } else if constexpr (is_same<T, string::code_point_ref>) {
+        return (u64)v;
+    } else if constexpr (is_same<bool, T>) {
+        return v;
+    } else if constexpr (is_unsigned_integral<T>) {
+        return (u64)v;
+    } else if constexpr (is_signed_integral<T>) {
+        return (s64)v;
+    } else if constexpr (is_enum<T>) {
+        return fmt_map_arg((underlying_type_t<T>)v);
+    } else if constexpr (is_floating_point<T>) {
+        return v;
+    } else if constexpr (is_pointer<T>) {
+        if constexpr (is_same<T, void *>) {
+            return v;
+        } else {
+            return &v;  // Require a custom formatter for non-void pointers
+        }
+    } else {
+        return &v;
     }
-    else
-    {
-      return &v; // Require a custom formatter for non-void pointers
-    }
-  }
-  else
-  {
-    return &v;
-  }
 }
 
 // Map the result type of fmt_map_arg to a fmt_type at compile time
 template <typename M>
-constexpr fmt_type fmt_type_of_mapped()
-{
-  using T = remove_cvref_t<M>;
-  if constexpr (is_same<T, string>)
-    return fmt_type::STRING;
-  else if constexpr (is_same<T, bool>)
-    return fmt_type::BOOL;
-  else if constexpr (is_same<T, s64>)
-    return fmt_type::S64;
-  else if constexpr (is_same<T, u64>)
-    return fmt_type::U64;
-  else if constexpr (is_same<T, f32>)
-    return fmt_type::F32;
-  else if constexpr (is_same<T, f64>)
-    return fmt_type::F64;
-  else if constexpr (is_same<T, void *>)
-    return fmt_type::POINTER;
-  else if constexpr (is_pointer<T>)
-    return fmt_type::CUSTOM; // non-void pointer => custom
-  else
-    return fmt_type::CUSTOM;
+constexpr fmt_type fmt_type_of_mapped() {
+    using T = remove_cvref_t<M>;
+    if constexpr (is_same<T, string>) return fmt_type::STRING;
+    else if constexpr (is_same<T, bool>) return fmt_type::BOOL;
+    else if constexpr (is_same<T, s64>) return fmt_type::S64;
+    else if constexpr (is_same<T, u64>) return fmt_type::U64;
+    else if constexpr (is_same<T, f32>) return fmt_type::F32;
+    else if constexpr (is_same<T, f64>) return fmt_type::F64;
+    else if constexpr (is_same<T, void *>) return fmt_type::POINTER;
+    else if constexpr (is_pointer<T>) return fmt_type::CUSTOM;  // non-void pointer => custom
+    else return fmt_type::CUSTOM;
 }
 
-fmt_arg fmt_arg_make(auto no_copy v)
-{
-  auto mapped = fmt_map_arg(v);
-  return {fmt_type_of_mapped<decltype(mapped)>(), fmt_value(mapped)};
+fmt_arg fmt_arg_make(auto no_copy v) {
+    auto mapped = fmt_map_arg(v);
+    return {fmt_type_of_mapped<decltype(mapped)>(), fmt_value(mapped)};
 }
 
 // Visits an argument dispatching with the right value based on the argument
 // type
 template <typename Visitor>
-auto fmt_arg_visit(Visitor visitor, fmt_arg ar) -> decltype(visitor(0))
-{
-  switch (ar.Type)
-  {
-  case fmt_type::NONE:
-    break;
-  case fmt_type::S64:
-    return visitor(ar.Value.S64);
-  case fmt_type::U64:
-    return visitor(ar.Value.U64);
-  case fmt_type::BOOL:
-    return visitor(ar.Value.S64 != 0); // We store bools in S64
-  case fmt_type::F32:
-    return visitor(ar.Value.F32);
-  case fmt_type::F64:
-    return visitor(ar.Value.F64);
-  case fmt_type::STRING:
-    return visitor(ar.Value.String);
-  case fmt_type::POINTER:
-    return visitor(ar.Value.Pointer);
-  case fmt_type::CUSTOM:
-    return visitor(ar.Value.Custom);
-  }
-  return visitor(unused{});
+auto fmt_arg_visit(Visitor visitor, fmt_arg ar) -> decltype(visitor(0)) {
+    switch (ar.Type) {
+        case fmt_type::NONE:    break;
+        case fmt_type::S64:     return visitor(ar.Value.S64);
+        case fmt_type::U64:     return visitor(ar.Value.U64);
+        case fmt_type::BOOL:    return visitor(ar.Value.S64 != 0);  // We store bools in S64
+        case fmt_type::F32:     return visitor(ar.Value.F32);
+        case fmt_type::F64:     return visitor(ar.Value.F64);
+        case fmt_type::STRING:  return visitor(ar.Value.String);
+        case fmt_type::POINTER: return visitor(ar.Value.Pointer);
+        case fmt_type::CUSTOM:  return visitor(ar.Value.Custom);
+    }
+    return visitor(unused{});
 }
 
 // @Locale
-struct fmt_float_specs
-{
-  enum format
-  {
-    GENERAL, // General: chooses exponent notation or fixed point based on
-             // magnitude.
-    EXP,     // Exponent notation with the default precision of 6, e.g. 1.2e-3.
-    FIXED,   // Fixed point with the default precision of 6, e.g. 0.0012.
-    HEX
-  };
+struct fmt_float_specs {
+    enum format {
+        GENERAL,  // General: chooses exponent notation or fixed point based on
+                  // magnitude.
+        EXP,      // Exponent notation with the default precision of 6, e.g. 1.2e-3.
+        FIXED,    // Fixed point with the default precision of 6, e.g. 0.0012.
+        HEX
+    };
 
-  bool ShowPoint; // Whether to add a decimal point (even if no digits follow it)
+    bool ShowPoint;  // Whether to add a decimal point (even if no digits follow it)
 
-  format Format;
-  bool Upper;
+    format Format;
+    bool   Upper;
 };
 
 // The optional align is one of the following:
@@ -535,26 +471,20 @@ struct fmt_float_specs
 //         in the form '+000000120'. This alignment option is only
 //         valid for numeric types.
 //   '^' - Forces the field to be centered within the available space
-enum class fmt_alignment
-{
-  NONE = 0,
-  LEFT,    // <
-  RIGHT,   // >
-  NUMERIC, // =
-  CENTER   // ^
+enum class fmt_alignment {
+    NONE = 0,
+    LEFT,     // <
+    RIGHT,    // >
+    NUMERIC,  // =
+    CENTER    // ^
 };
 
-inline fmt_alignment get_alignment_from_char(code_point ch)
-{
-  if (ch == '<')
-    return fmt_alignment::LEFT;
-  if (ch == '>')
-    return fmt_alignment::RIGHT;
-  if (ch == '=')
-    return fmt_alignment::NUMERIC;
-  if (ch == '^')
-    return fmt_alignment::CENTER;
-  return fmt_alignment::NONE;
+inline fmt_alignment get_alignment_from_char(code_point ch) {
+    if (ch == '<') return fmt_alignment::LEFT;
+    if (ch == '>') return fmt_alignment::RIGHT;
+    if (ch == '=') return fmt_alignment::NUMERIC;
+    if (ch == '^') return fmt_alignment::CENTER;
+    return fmt_alignment::NONE;
 }
 
 // The 'sign' option is only valid for numeric types, and can be one of the
@@ -564,78 +494,74 @@ inline fmt_alignment get_alignment_from_char(code_point ch)
 //   '-'  - Indicates that a sign should be used only for negative numbers
 //   (default) ' '  - Indicates that a leading space should be used on positive
 //   numbers
-enum class fmt_sign
-{
-  NONE = 0,
-  PLUS,
+enum class fmt_sign {
+    NONE = 0,
+    PLUS,
 
-  // MINUS has the same behaviour as NONE on our types,
-  // but the user might want to have different formating
-  // on their custom types when minus is specified,
-  // so we record it when parsing anyway.
-  MINUS,
-  SPACE,
+    // MINUS has the same behaviour as NONE on our types,
+    // but the user might want to have different formating
+    // on their custom types when minus is specified,
+    // so we record it when parsing anyway.
+    MINUS,
+    SPACE,
 };
 
-struct fmt_specs
-{
-  code_point Fill = ' ';
-  fmt_alignment Align = fmt_alignment::NONE;
+struct fmt_specs {
+    code_point    Fill  = ' ';
+    fmt_alignment Align = fmt_alignment::NONE;
 
-  fmt_sign Sign = fmt_sign::NONE;
-  bool Hash = false;
+    fmt_sign Sign = fmt_sign::NONE;
+    bool     Hash = false;
 
-  u32 Width = 0;
-  s32 Precision = -1;
+    u32 Width     = 0;
+    s32 Precision = -1;
 
-  char Type = 0;
+    char Type = 0;
 
-  // User data for custom formatting context
-  // Example for tables: stores the current indentation level for pretty-printing
-  s32 UserData = 0;
+    // User data for custom formatting context
+    // Example for tables: stores the current indentation level for pretty-printing
+    s32 UserData = 0;
 };
 
 // Dynamic means that the width/precision was specified in a separate argument
 // and not as a constant in the format string
-struct fmt_dynamic_specs : fmt_specs
-{
-  s64 WidthIndex = -1;
-  s64 PrecisionIndex = -1;
+struct fmt_dynamic_specs : fmt_specs {
+    s64 WidthIndex     = -1;
+    s64 PrecisionIndex = -1;
 };
 
-struct fmt_parse_context
-{
-  string FormatString;
-  string It; // How much left we have to parse from the format string
+struct fmt_parse_context {
+    string FormatString;
+    string It;  // How much left we have to parse from the format string
 
-  s32 NextArgID = 0;
+    s32 NextArgID = 0;
 
-  fmt_parse_context(string formatString = "") : FormatString(formatString), It(formatString) {}
+    fmt_parse_context(string formatString = "") : FormatString(formatString), It(formatString) {}
 
-  // The position tells where to point the caret in the format string, so it is
-  // clear where exactly the error happened. If left as -1 we calculate using
-  // the current It.
-  //
-  // (We may want to pass a different position if we are in the middle of
-  // parsing and the It is not pointing at the right place).
-  //
-  // This is only used to provide useful error messages.
-  void on_error(string message, s64 position = -1);
+    // The position tells where to point the caret in the format string, so it is
+    // clear where exactly the error happened. If left as -1 we calculate using
+    // the current It.
+    //
+    // (We may want to pass a different position if we are in the middle of
+    // parsing and the It is not pointing at the right place).
+    //
+    // This is only used to provide useful error messages.
+    void on_error(string message, s64 position = -1);
 
-  bool check_arg_id(u32);
-  u32 next_arg_id();
+    bool check_arg_id(u32);
+    u32  next_arg_id();
 
-  // Some specifiers require numeric arguments and we do error checking,
-  // CUSTOM arguments don't get checked
-  void require_arithmetic_arg(fmt_type argType, s64 errorPosition = -1);
+    // Some specifiers require numeric arguments and we do error checking,
+    // CUSTOM arguments don't get checked
+    void require_arithmetic_arg(fmt_type argType, s64 errorPosition = -1);
 
-  // Some specifiers require signed numeric arguments and we do error
-  // checking, CUSTOM arguments don't get checked
-  void require_signed_arithmetic_arg(fmt_type argType, s64 errorPosition = -1);
+    // Some specifiers require signed numeric arguments and we do error
+    // checking, CUSTOM arguments don't get checked
+    void require_signed_arithmetic_arg(fmt_type argType, s64 errorPosition = -1);
 
-  // Integer values and pointers aren't allowed to get precision. CUSTOM
-  // argument is again, not checked.
-  void check_precision_for_arg(fmt_type argType, s64 errorPosition = -1);
+    // Integer values and pointers aren't allowed to get precision. CUSTOM
+    // argument is again, not checked.
+    void check_precision_for_arg(fmt_type argType, s64 errorPosition = -1);
 };
 
 // Note: When parsing, if we reach the end before } or : or whatever we don't
@@ -661,117 +587,92 @@ bool fmt_parse_specs(fmt_parse_context *p, fmt_type argType, fmt_dynamic_specs *
 //
 // We also store a parse context (if a format string was passed), otherwise it
 // remains unused.
-struct fmt_context : writer
-{
-  writer *Out; // The real output
+struct fmt_context : writer {
+    writer *Out;  // The real output
 
-  // Holds the format string (and how much we've parsed)
-  // and some state about the argument ids (when using automatic indexing).
-  fmt_parse_context Parse;
+    // Holds the format string (and how much we've parsed)
+    // and some state about the argument ids (when using automatic indexing).
+    fmt_parse_context Parse;
 
-  array<fmt_arg> Args;
+    array<fmt_arg> Args;
 
-  // null if no specs were parsed.
-  // When writing a custom formatter use this for checking specifiers.
-  // e.g.
-  //     if (f->Specs && f->Specs->Hash) { ... }
-  //
-  // These are "dynamic" format specs because width or precision might have
-  // been specified by another argument (instead of being a literal in the
-  // format string).
-  fmt_dynamic_specs *Specs = null;
+    // null if no specs were parsed.
+    // When writing a custom formatter use this for checking specifiers.
+    // e.g.
+    //     if (f->Specs && f->Specs->Hash) { ... }
+    //
+    // These are "dynamic" format specs because width or precision might have
+    // been specified by another argument (instead of being a literal in the
+    // format string).
+    fmt_dynamic_specs *Specs = null;
 
-  fmt_context(writer *out, string fmtString, array<fmt_arg> args)
-      : Out(out), Parse(fmtString), Args(args) {}
+    fmt_context(writer *out, string fmtString, array<fmt_arg> args) : Out(out), Parse(fmtString), Args(args) {}
 
-  void write(const char *data, s64 count) override;
-  void flush() override { Out->flush(); }
+    void write(const char *data, s64 count) override;
 
-  // The position tells where to point the caret in the format string, so it is
-  // clear where exactly the error happened. If left as -1 we calculate using the
-  // current Parse.It.
-  //
-  // The only reason we may want to pass an explicit position is if we are in the
-  // middle of parsing and parse.It is not pointing at the right place.
-  //
-  // This routine is used to provide useful error messages.
-  void on_error(string message, s64 position = -1)
-  {
-    Parse.on_error(message, position);
-  }
+    void flush() override { Out->flush(); }
+
+    // The position tells where to point the caret in the format string, so it is
+    // clear where exactly the error happened. If left as -1 we calculate using the
+    // current Parse.It.
+    //
+    // The only reason we may want to pass an explicit position is if we are in the
+    // middle of parsing and parse.It is not pointing at the right place.
+    //
+    // This routine is used to provide useful error messages.
+    void on_error(string message, s64 position = -1) { Parse.on_error(message, position); }
 };
 
 void write_u64(fmt_context *f, u64 value, bool negative, fmt_specs specs);
 
-inline void write_no_specs(fmt_context *f, is_integral auto value)
-{
-    u64 absValue = (u64)value;
+inline void write_no_specs(fmt_context *f, is_integral auto value) {
+    u64  absValue = (u64)value;
     bool negative = sign_bit(value);
-    if (negative)
-        absValue = 0 - absValue;
+    if (negative) absValue = 0 - absValue;
     write_u64(f, absValue, negative, {});
 }
 
 void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs);
 
-inline void write_no_specs(fmt_context *f, is_floating_point auto value)
-{
-    write_float(f, (f64)value, {});
-}
+inline void write_no_specs(fmt_context *f, is_floating_point auto value) { write_float(f, (f64)value, {}); }
 
 // These routines write the value directly, without looking at formatting specs.
 // Useful when writing a custom formatter and there were specifiers but they
 // shouldn't propagate downwards when printing simpler types.
-inline void write_no_specs(fmt_context *f, bool value)
-{
-    write_no_specs(f, (s64) (value ? 1 : 0));
-}
+inline void write_no_specs(fmt_context *f, bool value) { write_no_specs(f, (s64)(value ? 1 : 0)); }
 
-inline void write_no_specs(fmt_context *f, const void *value)
-{
+inline void write_no_specs(fmt_context *f, const void *value) {
     auto *old = f->Specs;
-    f->Specs = null;
+    f->Specs  = null;
 
-    void write(fmt_context *f, const void *value);
+    void write(fmt_context * f, const void *value);
     write(f, value);
     f->Specs = old;
 }
 
 inline void write_no_specs(fmt_context *f, string str) { write(f->Out, str); }
-inline void write_no_specs(fmt_context *f, const char *str)
-{
-  write(f->Out, str, c_string_byte_count(str));
-}
 
-inline void write_no_specs(fmt_context *f, const char *str, s64 size)
-{
-  write(f->Out, str, size);
-}
+inline void write_no_specs(fmt_context *f, const char *str) { write(f->Out, str, c_string_byte_count(str)); }
+
+inline void write_no_specs(fmt_context *f, const char *str, s64 size) { write(f->Out, str, size); }
 
 inline void write_no_specs(fmt_context *f, code_point cp) { write(f->Out, cp); }
-
 
 // Writes pad code points and the actual contents with f(),
 // _fSize_ needs to be the size of the output from _f_ in code points (in order
 // to calculate padding properly)
 template <typename F>
-void write_padded_helper(fmt_context *f, const fmt_specs &specs, F &&func, s64 fSize)
-{
+void write_padded_helper(fmt_context *f, const fmt_specs &specs, F &&func, s64 fSize) {
     u32 padding = (u32)(specs.Width > fSize ? specs.Width - fSize : 0);
-    if (specs.Align == fmt_alignment::RIGHT)
-    {
+    if (specs.Align == fmt_alignment::RIGHT) {
         For(range(padding)) write_no_specs(f, specs.Fill);
         func();
-    }
-    else if (specs.Align == fmt_alignment::CENTER)
-    {
+    } else if (specs.Align == fmt_alignment::CENTER) {
         u32 leftPadding = padding / 2;
         For(range(leftPadding)) write_no_specs(f, specs.Fill);
         func();
         For(range(padding - leftPadding)) write_no_specs(f, specs.Fill);
-    }
-    else
-    {
+    } else {
         func();
         For(range(padding)) write_no_specs(f, specs.Fill);
     }
@@ -780,18 +681,14 @@ void write_padded_helper(fmt_context *f, const fmt_specs &specs, F &&func, s64 f
 inline void write(fmt_context *f, string s) { f->write(s.Data, s.Count); }
 
 // Returns exponent base 10 of the last digit written; writes digits without a decimal point.
-s32 fmt_format_non_negative_float(string_builder ref floatBuffer,
-                                  is_floating_point auto value,
-                                  s32 precision,
-                                  fmt_float_specs no_copy specs);
+s32 fmt_format_non_negative_float(string_builder ref floatBuffer, is_floating_point auto value, s32 precision, fmt_float_specs no_copy specs);
 
 fmt_float_specs fmt_parse_float_specs(fmt_parse_context *p, fmt_specs no_copy specs);
-void write_float_exp(fmt_context *f, string significand, s32 exp, code_point sign, fmt_specs no_copy specs, fmt_float_specs no_copy floatSpecs);
-void write_float_fixed(fmt_context *f, string significand, s32 exp, code_point sign, const fmt_specs &specs, const fmt_float_specs &floatSpecs, bool percentage);
+void            write_float_exp(fmt_context *f, string significand, s32 exp, code_point sign, fmt_specs no_copy specs, fmt_float_specs no_copy floatSpecs);
+void            write_float_fixed(fmt_context *f, string significand, s32 exp, code_point sign, const fmt_specs &specs, const fmt_float_specs &floatSpecs, bool percentage);
 
 // Writes a float with given formatting specs
-void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs)
-{
+void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs) {
     fmt_float_specs floatSpecs = fmt_parse_float_specs(&f->Parse, specs);
 
     //
@@ -801,20 +698,14 @@ void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs)
 
     // Check the sign bit instead of just checking "value < 0" since the latter is
     // always false for NaN
-    if (sign_bit(value))
-    {
+    if (sign_bit(value)) {
         value = -value;
-        sign = '-';
-    }
-    else
-    {
+        sign  = '-';
+    } else {
         // value is positive
-        if (specs.Sign == fmt_sign::PLUS)
-        {
+        if (specs.Sign == fmt_sign::PLUS) {
             sign = '+';
-        }
-        else if (specs.Sign == fmt_sign::SPACE)
-        {
+        } else if (specs.Sign == fmt_sign::SPACE) {
             sign = ' ';
         }
     }
@@ -823,45 +714,34 @@ void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs)
     // it by 100. The spec gets handled in fmt_parse_float_specs().
 
     bool percentage = specs.Type == '%';
-    if (percentage)
-    {
-        value *= 100;
-    }
+    if (percentage) { value *= 100; }
 
     //
     // Handle INF or NAN
     //
-    if (!is_finite(value))
-    {
+    if (!is_finite(value)) {
         write_padded_helper(
             f, specs,
-            [&]()
-            {
+            [&]() {
                 if (sign) write_no_specs(f, sign);
-                write_no_specs(f, is_nan(value)
-                                      ? (ascii_is_upper(specs.Type) ? "NAN" : "nan")
-                                      : (ascii_is_upper(specs.Type) ? "INF" : "inf"));
+                write_no_specs(f, is_nan(value) ? (ascii_is_upper(specs.Type) ? "NAN" : "nan") : (ascii_is_upper(specs.Type) ? "INF" : "inf"));
                 if (percentage) write_no_specs(f, U'%');
             },
             3 + (sign ? 1 : 0) + (percentage ? 1 : 0));
         return;
     }
 
-    if (floatSpecs.Format == fmt_float_specs::HEX)
-    {
+    if (floatSpecs.Format == fmt_float_specs::HEX) {
         // @TODO Hex floats
         return;
     }
 
     // Default precision we do for floats is 6 (except if the spec type is none)
-    if (specs.Precision < 0 && specs.Type)
-        specs.Precision = 6;
+    if (specs.Precision < 0 && specs.Type) specs.Precision = 6;
 
-    if (floatSpecs.Format == fmt_float_specs::EXP && specs.Precision != 0)
-    {
-        if (specs.Precision == numeric<s32>::max())
-        {
-            f->on_error( "Number too big");
+    if (floatSpecs.Format == fmt_float_specs::EXP && specs.Precision != 0) {
+        if (specs.Precision == numeric<s32>::max()) {
+            f->on_error("Number too big");
             return;
         }
         ++specs.Precision;
@@ -870,19 +750,14 @@ void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs)
     //
     // Handle alignment NUMERIC or NONE
     //
-    if (specs.Align == fmt_alignment::NUMERIC)
-    {
-        if (sign)
-        {
+    if (specs.Align == fmt_alignment::NUMERIC) {
+        if (sign) {
             write_no_specs(f, sign);
             sign = 0;
-            if (specs.Width)
-                --specs.Width;
+            if (specs.Width) --specs.Width;
         }
         specs.Align = fmt_alignment::RIGHT;
-    }
-    else if (specs.Align == fmt_alignment::NONE)
-    {
+    } else if (specs.Align == fmt_alignment::NONE) {
         specs.Align = fmt_alignment::RIGHT;
     }
 
@@ -891,7 +766,7 @@ void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs)
     // exponent is the exponent base 10 of the LAST written digit in
     // _floatBuffer_.
     string_builder floatBuffer;
-    s32 exp = fmt_format_non_negative_float(floatBuffer, value, specs.Precision, floatSpecs);
+    s32            exp = fmt_format_non_negative_float(floatBuffer, value, specs.Precision, floatSpecs);
 
     //
     // Assert we haven't allocated, which would be bad, because our formatting
@@ -914,12 +789,9 @@ void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs)
     s64 outputExp = exp + significand.Count - 1;
 
     bool useExpFormat = false;
-    if (floatSpecs.Format == fmt_float_specs::EXP)
-    {
+    if (floatSpecs.Format == fmt_float_specs::EXP) {
         useExpFormat = true;
-    }
-    else if (floatSpecs.Format == fmt_float_specs::GENERAL)
-    {
+    } else if (floatSpecs.Format == fmt_float_specs::GENERAL) {
         // If we are using the general format, we use the fixed notation (0.0001) if
         // the exponent is in [EXP_LOWER, EXP_UPPER/precision), instead of the
         // exponent notation (1e-04) in the other case.
@@ -929,47 +801,32 @@ void write_float(fmt_context *f, is_floating_point auto value, fmt_specs specs)
         // We also pay attention if the precision has been set.
         // By the time we get here it can be -1 for the general format (if the user
         // hasn't specified a precision).
-        useExpFormat =
-            outputExp < EXP_LOWER ||
-            outputExp >= (specs.Precision > 0 ? specs.Precision : EXP_UPPER);
+        useExpFormat = outputExp < EXP_LOWER || outputExp >= (specs.Precision > 0 ? specs.Precision : EXP_UPPER);
     }
 
-    if (useExpFormat)
-    {
+    if (useExpFormat) {
         write_float_exp(f, significand, exp, sign, specs, floatSpecs);
-    }
-    else
-    {
+    } else {
         write_float_fixed(f, significand, exp, sign, specs, floatSpecs, percentage);
     }
 }
 
-
-inline void write(fmt_context *f, is_integral auto value)
-{
-    u64 absValue = (u64)value;
+inline void write(fmt_context *f, is_integral auto value) {
+    u64  absValue = (u64)value;
     bool negative = sign_bit(value);
-    if (negative)
-        absValue = 0 - absValue;
+    if (negative) absValue = 0 - absValue;
 
-    if (f->Specs)
-    {
+    if (f->Specs) {
         write_u64(f, absValue, negative, *f->Specs);
-    }
-    else
-    {
+    } else {
         write_u64(f, absValue, negative, {});
     }
 }
 
-inline void write(fmt_context *f, is_floating_point auto value)
-{
-    if (f->Specs)
-    {
+inline void write(fmt_context *f, is_floating_point auto value) {
+    if (f->Specs) {
         write_float(f, value, *f->Specs);
-    }
-    else
-    {
+    } else {
         write_float(f, value, {});
     }
 }
@@ -984,16 +841,14 @@ void write_with_forwarding(fmt_context *F, fmt_arg ar, bool noSpecs);
 void write_with_forwarding_pretty(fmt_context *F, fmt_arg ar, bool noSpecs, s32 indentSize, s32 nextLevel);
 
 // POD field structs for struct/table formatting
-struct fmt_struct_field
-{
-  string Name;
-  fmt_arg Arg;
+struct fmt_struct_field {
+    string  Name;
+    fmt_arg Arg;
 };
 
-struct fmt_kv_entry
-{
-  fmt_arg Key;
-  fmt_arg Value;
+struct fmt_kv_entry {
+    fmt_arg Key;
+    fmt_arg Value;
 };
 
 // Free-format functions (implemented in .cpp)
@@ -1002,70 +857,45 @@ void write_tuple(fmt_context *F, string name, array<fmt_arg> fields, bool noSpec
 void write_list(fmt_context *F, const array<fmt_arg> &items, bool noSpecs = false);
 void write_table(fmt_context *F, array<fmt_kv_entry> entries, bool noSpecs = false, bool pretty = false, s32 indentSize = 0, s32 currentLevel = 0);
 
-void write_list(fmt_context *F, any_array_like auto items, bool noSpecs = false)
-{
-  array<fmt_arg> args;
-  defer(free(args));
-  For(items) add(args, fmt_arg_make(it));
-  write_list(F, args, noSpecs);
+void write_list(fmt_context *F, any_array_like auto items, bool noSpecs = false) {
+    array<fmt_arg> args;
+    defer(free(args));
+    For(items) add(args, fmt_arg_make(it));
+    write_list(F, args, noSpecs);
 }
 
 // Used to dispatch values to write/write_no_specs functions. Used in
 // conjunction with fmt_arg_visit.
-struct fmt_context_visitor
-{
-  fmt_context *F;
-  bool NoSpecs;
+struct fmt_context_visitor {
+    fmt_context *F;
+    bool         NoSpecs;
 
-  fmt_context_visitor(fmt_context *f, bool noSpecs = false)
-      : F(f), NoSpecs(noSpecs) {}
+    fmt_context_visitor(fmt_context *f, bool noSpecs = false) : F(f), NoSpecs(noSpecs) {}
 
-  void operator()(s32 value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(u32 value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(s64 value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(u64 value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(bool value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(f32 value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(f64 value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(string value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(const void *value)
-  {
-    NoSpecs ? write_no_specs(F, value) : write(F, value);
-  }
-  void operator()(fmt_value::custom_value custom)
-  {
-    custom.FormatFunc(F, custom.Data);
-  }
+    void operator()(s32 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
 
-  void operator()(unused)
-  {
-    F->on_error("Internal error while formatting");
-    assert(false);
-  }
+    void operator()(u32 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+
+    void operator()(s64 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+
+    void operator()(u64 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+
+    void operator()(bool value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+
+    void operator()(f32 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+
+    void operator()(f64 value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+
+    void operator()(string value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+
+    void operator()(const void *value) { NoSpecs ? write_no_specs(F, value) : write(F, value); }
+
+    void operator()(fmt_value::custom_value custom) { custom.FormatFunc(F, custom.Data); }
+
+    void operator()(unused) {
+        F->on_error("Internal error while formatting");
+        assert(false);
+    }
 };
 
 //
@@ -1101,62 +931,46 @@ char *mprint(string fmtString, Args no_copy... arguments);
 template <typename... Args>
 void print(string fmtString, Args no_copy... arguments);
 
-struct fmt_width_checker
-{
-  fmt_context *F;
+struct fmt_width_checker {
+    fmt_context *F;
 
-  template <typename T>
-  u32 operator()(T value)
-  {
-    if constexpr (is_integral<T>)
-    {
-      if (sign_bit(value))
-      {
-        F->on_error("Negative width");
-        return (u32)-1;
-      }
-      else if ((u64)value > numeric<s32>::max())
-      {
-        F->on_error("Width value is too big");
-        return (u32)-1;
-      }
-      return (u32)value;
+    template <typename T>
+    u32 operator()(T value) {
+        if constexpr (is_integral<T>) {
+            if (sign_bit(value)) {
+                F->on_error("Negative width");
+                return (u32)-1;
+            } else if ((u64)value > numeric<s32>::max()) {
+                F->on_error("Width value is too big");
+                return (u32)-1;
+            }
+            return (u32)value;
+        } else {
+            F->on_error("Width was not an integer");
+            return (u32)-1;
+        }
     }
-    else
-    {
-      F->on_error("Width was not an integer");
-      return (u32)-1;
-    }
-  }
 };
 
-struct fmt_precision_checker
-{
-  fmt_context *F;
+struct fmt_precision_checker {
+    fmt_context *F;
 
-  template <typename T>
-  s32 operator()(T value)
-  {
-    if constexpr (is_integral<T>)
-    {
-      if (sign_bit(value))
-      {
-        F->on_error("Negative precision");
-        return -1;
-      }
-      else if ((u64)value > numeric<s32>::max())
-      {
-        F->on_error("Precision value is too big");
-        return -1;
-      }
-      return (s32)value;
+    template <typename T>
+    s32 operator()(T value) {
+        if constexpr (is_integral<T>) {
+            if (sign_bit(value)) {
+                F->on_error("Negative precision");
+                return -1;
+            } else if ((u64)value > numeric<s32>::max()) {
+                F->on_error("Precision value is too big");
+                return -1;
+            }
+            return (s32)value;
+        } else {
+            F->on_error("Precision was not an integer");
+            return -1;
+        }
     }
-    else
-    {
-      F->on_error("Precision was not an integer");
-      return -1;
-    }
-  }
 };
 
 // Expects a valid fmt_context (take a look in the implementation of
@@ -1164,60 +978,51 @@ struct fmt_precision_checker
 void fmt_parse_and_format(fmt_context *f);
 
 template <typename... Args>
-void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments)
-{
-  static const s64 NUM_ARGS = sizeof...(Args);
-  stack_array<fmt_arg, NUM_ARGS> args;
+void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments) {
+    static const s64               NUM_ARGS = sizeof...(Args);
+    stack_array<fmt_arg, NUM_ARGS> args;
 
-  args = {fmt_arg_make(arguments)...};
-  auto f = fmt_context(out, fmtString, args);
+    args   = {fmt_arg_make(arguments)...};
+    auto f = fmt_context(out, fmtString, args);
 
-  fmt_parse_and_format(&f);
-  f.flush();
+    fmt_parse_and_format(&f);
+    f.flush();
 }
 
 template <typename... Args>
-s64 fmt_calculate_length(string fmtString, Args no_copy... arguments)
-{
-  counting_writer writer;
-  fmt_to_writer(&writer, fmtString, arguments...);
-  return writer.Count;
+s64 fmt_calculate_length(string fmtString, Args no_copy... arguments) {
+    counting_writer writer;
+    fmt_to_writer(&writer, fmtString, arguments...);
+    return writer.Count;
 }
 
 template <typename... Args>
-mark_as_leak string sprint(string fmtString, Args no_copy... arguments)
-{
-  string_builder b;
+mark_as_leak string sprint(string fmtString, Args no_copy... arguments) {
+    string_builder b;
 
-  string_builder_writer writer;
-  writer.Builder = &b;
-  fmt_to_writer(&writer, fmtString, arguments...);
+    string_builder_writer writer;
+    writer.Builder = &b;
+    fmt_to_writer(&writer, fmtString, arguments...);
 
-  string combined = builder_to_string_and_free_builder(b);
+    string combined = builder_to_string_and_free_builder(b);
 
-  return combined;
+    return combined;
 }
 
 template <typename... Args>
-string tprint(string fmtString, Args no_copy... arguments)
-{
-  PUSH_ALLOC(TemporaryAllocator) { return sprint(fmtString, arguments...); }
+string tprint(string fmtString, Args no_copy... arguments) {
+    PUSH_ALLOC(TemporaryAllocator) { return sprint(fmtString, arguments...); }
 }
 
 template <typename... Args>
-char *mprint(string fmtString, Args no_copy... arguments)
-{
-  PUSH_ALLOC(TemporaryAllocator)
-  {
-    return to_c_string(sprint(fmtString, arguments...));
-  }
+char *mprint(string fmtString, Args no_copy... arguments) {
+    PUSH_ALLOC(TemporaryAllocator) { return to_c_string(sprint(fmtString, arguments...)); }
 }
 
 template <typename... Args>
-void print(string fmtString, Args no_copy... arguments)
-{
-  assert(Context.Log && "Context log was null. By default it points to cout.");
-  fmt_to_writer(Context.Log, fmtString, arguments...);
+void print(string fmtString, Args no_copy... arguments) {
+    assert(Context.Log && "Context log was null. By default it points to cout.");
+    fmt_to_writer(Context.Log, fmtString, arguments...);
 }
 
 //
@@ -1225,25 +1030,20 @@ void print(string fmtString, Args no_copy... arguments)
 // This follows a trait-like pattern similar to Rust's formatting traits
 //
 template <typename T>
-struct formatter
-{
-  // The format() method should be specialized for each type
-  // void format(const T &value, fmt_context *f) { ... }
+struct formatter {
+    // The format() method should be specialized for each type
+    // void format(const T &value, fmt_context *f) { ... }
 };
 
 template <typename T>
-void format_value(const T &value, fmt_context *f)
-{
-  if constexpr (has_formatter<T>)
-  {
-    formatter<remove_cvref_t<T>>{}.format(value, f);
-  }
-  else
-  {
-    // Fall back to standard formatting for built-in types
-    fmt_arg arg = fmt_arg_make(value);
-    fmt_arg_visit(fmt_context_visitor(f), arg);
-  }
+void format_value(const T &value, fmt_context *f) {
+    if constexpr (has_formatter<T>) {
+        formatter<remove_cvref_t<T>>{}.format(value, f);
+    } else {
+        // Fall back to standard formatting for built-in types
+        fmt_arg arg = fmt_arg_make(value);
+        fmt_arg_visit(fmt_context_visitor(f), arg);
+    }
 }
 
 //
@@ -1252,304 +1052,256 @@ void format_value(const T &value, fmt_context *f)
 
 // Formatter for string_builder
 template <typename T>
-  requires any_string_builder<T>
-struct formatter<T>
-{
-  void format(T no_copy b, fmt_context *f)
-  {
-    exponential_array_visit_chunks(b, [f](const char *chunk_data, usize chunk_size, usize chunk_index) {
-      write_no_specs(f, chunk_data, chunk_size);
-      return true; // Continue iteration
-    });
-  }
+    requires any_string_builder<T>
+struct formatter<T> {
+    void format(T no_copy b, fmt_context *f) {
+        exponential_array_visit_chunks(b, [f](const char *chunk_data, usize chunk_size, usize chunk_index) {
+            write_no_specs(f, chunk_data, chunk_size);
+            return true;  // Continue iteration
+        });
+    }
 };
 
 // Formatter for static array-like types (stack_array, etc.)
 template <typename T>
-  requires any_array_like<T> && (!any_dynamic_array_like<T>)
-struct formatter<T>
-{
-  void format(const T &a, fmt_context *f)
-  {
-    bool use_debug = f->Specs && f->Specs->Hash;
-    if (use_debug)
-    {
-      // Avoid forwarding type-specific specs to metadata fields (like count)
-      auto *original_specs = f->Specs;
-      write_no_specs(f, "<array_like> { count: ");
-      f->Specs = null;
-      format_value(a.Count, f);
-      write_no_specs(f, ", data: ");
-      // Restore specs for list entries so element-level forwarding works
-      f->Specs = original_specs;
-      write_list(f, a);
-      // Restore (not strictly necessary here) and close
-      f->Specs = original_specs;
-      write_no_specs(f, " }");
+    requires any_array_like<T> && (!any_dynamic_array_like<T>)
+struct formatter<T> {
+    void format(const T &a, fmt_context *f) {
+        bool use_debug = f->Specs && f->Specs->Hash;
+        if (use_debug) {
+            // Avoid forwarding type-specific specs to metadata fields (like count)
+            auto *original_specs = f->Specs;
+            write_no_specs(f, "<array_like> { count: ");
+            f->Specs = null;
+            format_value(a.Count, f);
+            write_no_specs(f, ", data: ");
+            // Restore specs for list entries so element-level forwarding works
+            f->Specs = original_specs;
+            write_list(f, a);
+            // Restore (not strictly necessary here) and close
+            f->Specs = original_specs;
+            write_no_specs(f, " }");
+        } else {
+            write_list(f, a);
+        }
     }
-    else
-    {
-      write_list(f, a);
-    }
-  }
 };
 
 // Formatter for dynamic array-like types (array, etc.)
 template <typename T>
-  requires any_dynamic_array_like<T>
-struct formatter<T>
-{
-  void format(const T &a, fmt_context *f)
-  {
-    bool use_debug = f->Specs && f->Specs->Hash;
+    requires any_dynamic_array_like<T>
+struct formatter<T> {
+    void format(const T &a, fmt_context *f) {
+        bool use_debug = f->Specs && f->Specs->Hash;
 
-    if (use_debug)
-    {
-      // Debug format: array { count: X, capacity: Y, allocated: Z, data: [...] }
-      auto *original_specs = f->Specs;
-      write_no_specs(f, "<dynamic_array_like> { count: ");
-      // Do not apply value specs to metadata fields
-      f->Specs = null;
-      format_value(a.Count, f);
-      write_no_specs(f, ", allocated: ");
-      format_value(a.Allocated, f);
-      write_no_specs(f, ", data: ");
-      // Restore specs so element list receives forwarded specs
-      f->Specs = original_specs;
-      write_list(f, a);
-      // Restore and close
-      f->Specs = original_specs;
-      write_no_specs(f, " }");
+        if (use_debug) {
+            // Debug format: array { count: X, capacity: Y, allocated: Z, data: [...] }
+            auto *original_specs = f->Specs;
+            write_no_specs(f, "<dynamic_array_like> { count: ");
+            // Do not apply value specs to metadata fields
+            f->Specs = null;
+            format_value(a.Count, f);
+            write_no_specs(f, ", allocated: ");
+            format_value(a.Allocated, f);
+            write_no_specs(f, ", data: ");
+            // Restore specs so element list receives forwarded specs
+            f->Specs = original_specs;
+            write_list(f, a);
+            // Restore and close
+            f->Specs = original_specs;
+            write_no_specs(f, " }");
+        } else {
+            // Normal format: [...]
+            write_list(f, a);
+        }
     }
-    else
-    {
-      // Normal format: [...]
-      write_list(f, a);
-    }
-  }
 };
 
 // Formatter for variant<MEMBERS...>
 template <typename... MEMBERS>
-struct formatter<variant<MEMBERS...>>
-{
-  void format(const variant<MEMBERS...> &v, fmt_context *f)
-  {
-    if (!v)
-    {
-      write_no_specs(f, "nullvar");
-    }
-    else
-    {
-      // Store original specs for restoration
-      fmt_dynamic_specs *original_specs = f->Specs;
+struct formatter<variant<MEMBERS...>> {
+    void format(const variant<MEMBERS...> &v, fmt_context *f) {
+        if (!v) {
+            write_no_specs(f, "nullvar");
+        } else {
+            // Store original specs for restoration
+            fmt_dynamic_specs *original_specs = f->Specs;
 
-      // Visit the variant and format the contained value with appropriate specs
-      v.visit([f, original_specs](const auto &value) {
-        using ValueType = decay_t<decltype(value)>;
-        if constexpr (!is_same<ValueType, typename variant<MEMBERS...>::nil>) {
-          if (original_specs) {
-            auto forwarded_specs = fmt_forwarded_specs_for_arg(*original_specs, fmt_arg_make(value));
-            f->Specs = &forwarded_specs;
-            format_value(value, f);
-          } else {
-            f->Specs = null;
-            format_value(value, f);
-          }
-          
-          // Restore original specs
-          f->Specs = original_specs;
-        } });
+            // Visit the variant and format the contained value with appropriate specs
+            v.visit([f, original_specs](const auto &value) {
+                using ValueType = decay_t<decltype(value)>;
+                if constexpr (!is_same<ValueType, typename variant<MEMBERS...>::nil>) {
+                    if (original_specs) {
+                        auto forwarded_specs = fmt_forwarded_specs_for_arg(*original_specs, fmt_arg_make(value));
+                        f->Specs             = &forwarded_specs;
+                        format_value(value, f);
+                    } else {
+                        f->Specs = null;
+                        format_value(value, f);
+                    }
+
+                    // Restore original specs
+                    f->Specs = original_specs;
+                }
+            });
+        }
     }
-  }
 };
 
 // Formatter for optional<T> (which is just variant<T>)
 template <typename T>
-struct formatter<optional<T>>
-{
-  void format(const optional<T> &opt, fmt_context *f)
-  {
-    if (opt)
-    {
-      format_value(opt.template strict_get<T>(), f);
+struct formatter<optional<T>> {
+    void format(const optional<T> &opt, fmt_context *f) {
+        if (opt) {
+            format_value(opt.template strict_get<T>(), f);
+        } else {
+            // Optional is empty
+            write_no_specs(f, "nullopt");
+        }
     }
-    else
-    {
-      // Optional is empty
-      write_no_specs(f, "nullopt");
-    }
-  }
 };
 
 // Formatter for hash table
 template <typename K, typename V>
-struct formatter<hash_table<K, V>>
-{
-  void format(const hash_table<K, V> &table, fmt_context *f)
-  {
-    bool use_debug = f->Specs && f->Specs->Hash;
-    // Pretty-printing is specifically space fill character + width > 0
-    bool use_pretty = f->Specs && f->Specs->Fill == ' ' && f->Specs->Width > 0;
-    s32 indent_size = use_pretty ? f->Specs->Width : 0;
-    s32 current_level = f->Specs ? f->Specs->UserData : 0;
+struct formatter<hash_table<K, V>> {
+    void format(const hash_table<K, V> &table, fmt_context *f) {
+        bool use_debug     = f->Specs && f->Specs->Hash;
+        // Pretty-printing is specifically space fill character + width > 0
+        bool use_pretty    = f->Specs && f->Specs->Fill == ' ' && f->Specs->Width > 0;
+        s32  indent_size   = use_pretty ? f->Specs->Width : 0;
+        s32  current_level = f->Specs ? f->Specs->UserData : 0;
 
-    if (use_debug)
-    {
-      // Alternate format: displays as a more detailed view
-      // e.g. hash_table<string, int> { count: 3, entries: { "key1": 1, "key2": 2, "key3": 3 } }
-      auto *original_specs = f->Specs;
-      write_no_specs(f, "hash_table { count: ");
-      // Do not forward specs to metadata count
-      f->Specs = null;
-      format_value(table.Count, f);
-      write_no_specs(f, ", entries: ");
+        if (use_debug) {
+            // Alternate format: displays as a more detailed view
+            // e.g. hash_table<string, int> { count: 3, entries: { "key1": 1, "key2": 2, "key3": 3 } }
+            auto *original_specs = f->Specs;
+            write_no_specs(f, "hash_table { count: ");
+            // Do not forward specs to metadata count
+            f->Specs = null;
+            format_value(table.Count, f);
+            write_no_specs(f, ", entries: ");
 
-      array<fmt_kv_entry> entries;
-      // Need to cast away const to iterate since hash table iterators expect non-const
-      auto &mutable_table = const_cast<hash_table<K, V> &>(table);
-      for (auto [key, value] : mutable_table)
-        add(entries, fmt_kv_entry{fmt_arg_make(*key), fmt_arg_make(*value)});
-      // Restore specs so table entries get forwarded specs (including pretty)
-      f->Specs = original_specs;
-      write_table(f, entries, /*noSpecs=*/false, use_pretty, indent_size, current_level);
-      free(entries);
+            array<fmt_kv_entry> entries;
+            // Need to cast away const to iterate since hash table iterators expect non-const
+            auto               &mutable_table = const_cast<hash_table<K, V> &>(table);
+            for (auto [key, value] : mutable_table) add(entries, fmt_kv_entry{fmt_arg_make(*key), fmt_arg_make(*value)});
+            // Restore specs so table entries get forwarded specs (including pretty)
+            f->Specs = original_specs;
+            write_table(f, entries, /*noSpecs=*/false, use_pretty, indent_size, current_level);
+            free(entries);
 
-      write_no_specs(f, " }");
+            write_no_specs(f, " }");
+        } else {
+            // Default format: displays as a simple table
+            // e.g. { "key1": 1, "key2": 2, "key3": 3 }
+            array<fmt_kv_entry> entries;
+            auto               &mutable_table = const_cast<hash_table<K, V> &>(table);
+            for (auto [key, value] : mutable_table) add(entries, fmt_kv_entry{fmt_arg_make(*key), fmt_arg_make(*value)});
+            write_table(f, entries, /*noSpecs=*/false, use_pretty, indent_size, current_level);
+            free(entries);
+        }
     }
-    else
-    {
-      // Default format: displays as a simple table
-      // e.g. { "key1": 1, "key2": 2, "key3": 3 }
-      array<fmt_kv_entry> entries;
-      auto &mutable_table = const_cast<hash_table<K, V> &>(table);
-      for (auto [key, value] : mutable_table)
-        add(entries, fmt_kv_entry{fmt_arg_make(*key), fmt_arg_make(*value)});
-      write_table(f, entries, /*noSpecs=*/false, use_pretty, indent_size, current_level);
-      free(entries);
-    }
-  }
 };
 
 // Formatters for linked list views
 template <typename Node>
-  requires(singly_linked_node_like<Node> && !doubly_linked_node_like<Node>)
-struct formatter<Node *>
-{
-  void format(Node *no_copy v, fmt_context *f)
-  {
-    bool use_debug = f->Specs && f->Specs->Hash;
+    requires(singly_linked_node_like<Node> && !doubly_linked_node_like<Node>)
+struct formatter<Node *> {
+    void format(Node *no_copy v, fmt_context *f) {
+        bool use_debug = f->Specs && f->Specs->Hash;
 
-    // Collect node values into fmt_args so we can reuse format_list
-    array<fmt_arg> items;
-    for (auto p = v; p; p = p->Next)
-      add(items, fmt_arg_make(*p));
+        // Collect node values into fmt_args so we can reuse format_list
+        array<fmt_arg> items;
+        for (auto p = v; p; p = p->Next) add(items, fmt_arg_make(*p));
 
-    if (use_debug)
-    {
-      auto *orig = f->Specs;
-      f->Specs = null;
+        if (use_debug) {
+            auto *orig = f->Specs;
+            f->Specs   = null;
 
-      write_no_specs(f, "<singly_linked_list_like> { count: ");
-      format_value(items.Count, f);
-      write_no_specs(f, ", data: ");
+            write_no_specs(f, "<singly_linked_list_like> { count: ");
+            format_value(items.Count, f);
+            write_no_specs(f, ", data: ");
 
-      // Restore specs for elements
-      // When only precision is specified with no type, prefer fixed-point for floats inside lists
-      fmt_dynamic_specs coerced;
-      if (orig && orig->Type == 0 && orig->Precision >= 0)
-      {
-        coerced = *orig;
-        coerced.Type = 'f';
-        f->Specs = &coerced;
-      }
-      else
-      {
-        f->Specs = orig;
-      }
+            // Restore specs for elements
+            // When only precision is specified with no type, prefer fixed-point for floats inside lists
+            fmt_dynamic_specs coerced;
+            if (orig && orig->Type == 0 && orig->Precision >= 0) {
+                coerced      = *orig;
+                coerced.Type = 'f';
+                f->Specs     = &coerced;
+            } else {
+                f->Specs = orig;
+            }
 
-      write_list(f, items);
+            write_list(f, items);
 
-      // Restore and close
-      f->Specs = orig;
-      write_no_specs(f, " }");
+            // Restore and close
+            f->Specs = orig;
+            write_no_specs(f, " }");
+        } else {
+            auto             *orig = f->Specs;
+            // Coerce precision-only to fixed for floats inside lists
+            fmt_dynamic_specs coerced;
+            if (orig && orig->Type == 0 && orig->Precision >= 0) {
+                coerced      = *orig;
+                coerced.Type = 'f';
+                f->Specs     = &coerced;
+            }
+            write_list(f, items);
+            f->Specs = orig;
+        }
+
+        free(items);
     }
-    else
-    {
-      auto *orig = f->Specs;
-      // Coerce precision-only to fixed for floats inside lists
-      fmt_dynamic_specs coerced;
-      if (orig && orig->Type == 0 && orig->Precision >= 0)
-      {
-        coerced = *orig;
-        coerced.Type = 'f';
-        f->Specs = &coerced;
-      }
-      write_list(f, items);
-      f->Specs = orig;
-    }
-
-    free(items);
-  }
 };
 
 template <typename Node>
-  requires(doubly_linked_node_like<Node>)
-struct formatter<Node *>
-{
-  void format(const Node *no_copy v, fmt_context *f)
-  {
-    bool use_debug = f->Specs && f->Specs->Hash;
+    requires(doubly_linked_node_like<Node>)
+struct formatter<Node *> {
+    void format(const Node *no_copy v, fmt_context *f) {
+        bool use_debug = f->Specs && f->Specs->Hash;
 
-    // Collect node values into fmt_args so we can reuse format_list
-    array<fmt_arg> items;
-    for (auto p = v; p; p = p->Next)
-      add(items, fmt_arg_make(*p));
+        // Collect node values into fmt_args so we can reuse format_list
+        array<fmt_arg> items;
+        for (auto p = v; p; p = p->Next) add(items, fmt_arg_make(*p));
 
-    if (use_debug)
-    {
-      auto *orig = f->Specs;
-      write_no_specs(f, "<doubly_linked_list_like> { count: ");
-      f->Specs = null;
-      format_value(items.Count, f);
-      write_no_specs(f, ", data: ");
-      // Restore specs for elements
-      // When only precision is specified with no type, prefer fixed-point for floats inside lists
-      fmt_dynamic_specs coerced;
-      if (orig && orig->Type == 0 && orig->Precision >= 0)
-      {
-        coerced = *orig;
-        coerced.Type = 'f';
-        f->Specs = &coerced;
-      }
-      else
-      {
-        f->Specs = orig;
-      }
+        if (use_debug) {
+            auto *orig = f->Specs;
+            write_no_specs(f, "<doubly_linked_list_like> { count: ");
+            f->Specs = null;
+            format_value(items.Count, f);
+            write_no_specs(f, ", data: ");
+            // Restore specs for elements
+            // When only precision is specified with no type, prefer fixed-point for floats inside lists
+            fmt_dynamic_specs coerced;
+            if (orig && orig->Type == 0 && orig->Precision >= 0) {
+                coerced      = *orig;
+                coerced.Type = 'f';
+                f->Specs     = &coerced;
+            } else {
+                f->Specs = orig;
+            }
 
-      write_list(f, items);
+            write_list(f, items);
 
-      // Restore and close
-      f->Specs = orig;
-      write_no_specs(f, " }");
+            // Restore and close
+            f->Specs = orig;
+            write_no_specs(f, " }");
+        } else {
+            auto             *orig = f->Specs;
+            // Coerce precision-only to fixed for floats inside lists
+            fmt_dynamic_specs coerced;
+            if (orig && orig->Type == 0 && orig->Precision >= 0) {
+                coerced      = *orig;
+                coerced.Type = 'f';
+                f->Specs     = &coerced;
+            }
+            write_list(f, items);
+            f->Specs = orig;
+        }
+
+        free(items);
     }
-    else
-    {
-      auto *orig = f->Specs;
-      // Coerce precision-only to fixed for floats inside lists
-      fmt_dynamic_specs coerced;
-      if (orig && orig->Type == 0 && orig->Precision >= 0)
-      {
-        coerced = *orig;
-        coerced.Type = 'f';
-        f->Specs = &coerced;
-      }
-      write_list(f, items);
-      f->Specs = orig;
-    }
-
-    free(items);
-  }
 };
 
 LSTD_END_NAMESPACE

@@ -37,25 +37,21 @@ LSTD_BEGIN_NAMESPACE
 // "array_like.h")
 template <typename T, s64 N>
 struct stack_array {
-  T Data[N]{};
-  static constexpr s64 Count = N;
+    T                    Data[N]{};
+    static constexpr s64 Count = N;
 
-  stack_array() {}
-  stack_array(initializer_list<T> list) {
-    memcpy(Data, list.begin(), (list.end() - list.begin()) * sizeof(T));
-  }
+    stack_array() {}
 
-  T &operator[](s64 index) {
-    return Data[translate_negative_index(index, Count)];
-  }
+    stack_array(initializer_list<T> list) { memcpy(Data, list.begin(), (list.end() - list.begin()) * sizeof(T)); }
 
-  operator array<T>() { return array<T>(Data, Count); }
+    T &operator[](s64 index) { return Data[translate_negative_index(index, Count)]; }
+
+    operator array<T>() { return array<T>(Data, Count); }
 };
 
 template <typename D = void, typename... Types>
-stack_array<common_type_t<Types...>, sizeof...(Types)> make_stack_array(
-    Types &&...t) {
-  return {(Types &&) t...};
+stack_array<common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types &&...t) {
+    return {(Types &&)t...};
 }
 
 LSTD_END_NAMESPACE

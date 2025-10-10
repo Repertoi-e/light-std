@@ -21,13 +21,13 @@ extern "C" {
 #define FUNCS_PER_NODE 30
 
 typedef struct TlsDtorNode {
-  int count;
-  struct TlsDtorNode *next;
-  _PVFV funcs[FUNCS_PER_NODE];
+    int                 count;
+    struct TlsDtorNode *next;
+    _PVFV               funcs[FUNCS_PER_NODE];
 } TlsDtorNode;
 
 static __declspec(thread) TlsDtorNode *dtor_list;
-static __declspec(thread) TlsDtorNode dtor_list_head;
+static __declspec(thread) TlsDtorNode  dtor_list_head;
 
 /*
  * __tlregdtor - register a destructor for a __declspec(thread) variable
@@ -48,23 +48,20 @@ static __declspec(thread) TlsDtorNode dtor_list_head;
  */
 
 int __cdecl __tlregdtor(_PVFV func) {
-  if (dtor_list == null) {
-    dtor_list = &dtor_list_head;
-    dtor_list_head.count = 0;
-  } else if (dtor_list->count == FUNCS_PER_NODE) {
-    auto *pnode = (TlsDtorNode *)HeapAlloc(GetProcessHeap(), HEAP_memset0,
-                                           sizeof(TlsDtorNode) * 1);
-    if (pnode == null) {
-      return -1;
+    if (dtor_list == null) {
+        dtor_list            = &dtor_list_head;
+        dtor_list_head.count = 0;
+    } else if (dtor_list->count == FUNCS_PER_NODE) {
+        auto *pnode = (TlsDtorNode *)HeapAlloc(GetProcessHeap(), HEAP_memset0, sizeof(TlsDtorNode) * 1);
+        if (pnode == null) { return -1; }
+        pnode->count     = 0;
+        pnode->next      = dtor_list;
+        dtor_list        = pnode;
+        /* this helps prefast make sure dtor_list->count is 0 */
+        dtor_list->count = 0;
     }
-    pnode->count = 0;
-    pnode->next = dtor_list;
-    dtor_list = pnode;
-    /* this helps prefast make sure dtor_list->count is 0 */
-    dtor_list->count = 0;
-  }
-  dtor_list->funcs[dtor_list->count++] = func;
-  return 0;
+    dtor_list->funcs[dtor_list->count++] = func;
+    return 0;
 }
 
 /*
@@ -91,33 +88,29 @@ int __cdecl __tlregdtor(_PVFV func) {
  */
 
 void WINAPI __dyn_tls_dtor(void *, unsigned long dwReason, void *) {
-  if (dwReason != DLL_THREAD_DETACH && dwReason != DLL_PROCESS_DETACH) {
-    return;
-  }
+    if (dwReason != DLL_THREAD_DETACH && dwReason != DLL_PROCESS_DETACH) { return; }
 
-  TlsDtorNode *pnext = null;
-  for (TlsDtorNode *pnode = dtor_list; pnode != null; pnode = pnext) {
-    for (int i = pnode->count - 1; i >= 0; --i) {
-      if (pnode->funcs[i]) pnode->funcs[i]();
-    }
-    /*
+    TlsDtorNode *pnext = null;
+    for (TlsDtorNode *pnode = dtor_list; pnode != null; pnode = pnext) {
+        for (int i = pnode->count - 1; i >= 0; --i) {
+            if (pnode->funcs[i]) pnode->funcs[i]();
+        }
+        /*
      * Free every TlsDtorNode except the original one, which is statically
      * allocated.
      */
-    pnext = pnode->next;
-    if (pnext) {
-      HeapFree(GetProcessHeap(), 0, pnode);
-    }
+        pnext = pnode->next;
+        if (pnext) { HeapFree(GetProcessHeap(), 0, pnode); }
 
-    /*
+        /*
      * Update the dtor_list to ensure completed destructors do not remain
      * on the list. If a destructor exits with an exception the process
      * will terminate. Windows will still invoke the TLS callback on
      * process teardown, but we do not want to re-run destructors that have
      * already run.
      */
-    dtor_list = pnext;
-  }
+        dtor_list = pnext;
+    }
 }
 
 /*

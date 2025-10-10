@@ -13,8 +13,8 @@ LSTD_BEGIN_NAMESPACE
 using dynamic_library = void *;
 
 dynamic_library os_dynamic_library_load(string path);
-void *os_dynamic_library_get_symbol(dynamic_library library, const char *name);
-void os_dynamic_library_release(dynamic_library library);
+void           *os_dynamic_library_get_symbol(dynamic_library library, const char *name);
+void            os_dynamic_library_release(dynamic_library library);
 
 LSTD_END_NAMESPACE
 

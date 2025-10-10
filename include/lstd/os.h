@@ -26,6 +26,5 @@
 #include "os/common.h"
 #include "os/dynamic_library.h"
 #include "os/memory.h"
-#include "os/thread.h"
 #include "os/path.h"
-
+#include "os/thread.h"

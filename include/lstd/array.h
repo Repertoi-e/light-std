@@ -26,70 +26,60 @@ LSTD_BEGIN_NAMESPACE
 //
 template <typename T>
 struct array {
-  T *Data = null;
-  s64 Count = 0;
-  s64 Allocated = 0;
+    T  *Data      = null;
+    s64 Count     = 0;
+    s64 Allocated = 0;
 
-  array() {}
+    array() {}
 
-  // This constructs a view (use make_array to copy)
-  array(T *data, s64 count) : Data(data), Count(count) {}
+    // This constructs a view (use make_array to copy)
+    array(T *data, s64 count) : Data(data), Count(count) {}
 
-  // .. while here we dynamically allocate it because of different behavior in
-  // Debug, Release. (initializer lists get optimized). Essentially this
-  // provides support for short-hand for doing this:
-  //
-  //	array<int> a = { 1, 2, 3 };
-  //
-  // Instead of calling   make_array(...)   with pointer and size to stack
-  // elements.
-  array(initializer_list<T> items) {
-    add(*this, items);
-  }
+    // .. while here we dynamically allocate it because of different behavior in
+    // Debug, Release. (initializer lists get optimized). Essentially this
+    // provides support for short-hand for doing this:
+    //
+    //	array<int> a = { 1, 2, 3 };
+    //
+    // Instead of calling   make_array(...)   with pointer and size to stack
+    // elements.
+    array(initializer_list<T> items) { add(*this, items); }
 
-  auto ref operator[](s64 index) {
-    return Data[translate_negative_index(index, Count)];
-  }
-  auto no_copy operator[](s64 index) const {
-    return Data[translate_negative_index(index, Count)];
-  }
+    auto ref operator[](s64 index) { return Data[translate_negative_index(index, Count)]; }
 
-  auto begin() {
-    return Data;
-  }
-  auto begin() const {
-    return Data;
-  }
-  auto end() {
-    return Data + Count;
-  }
-  auto end() const {
-    return Data + Count;
-  }
+    auto no_copy operator[](s64 index) const { return Data[translate_negative_index(index, Count)]; }
+
+    auto begin() { return Data; }
+
+    auto begin() const { return Data; }
+
+    auto end() { return Data + Count; }
+
+    auto end() const { return Data + Count; }
 };
 
 template <typename T>
 mark_as_leak array<T> make_array(T *data, s64 count) {
-  array<T> result;
-  add(result, data, count);
-  return result;
+    array<T> result;
+    add(result, data, count);
+    return result;
 }
 
 template <typename T>
 mark_as_leak array<T> make_array(initializer_list<T> items) {
-  return make_array(items.First, items.Last - items.First);
+    return make_array(items.First, items.Last - items.First);
 }
 
 // Returns a deep copy of _src_
 template <typename T>
 mark_as_leak array<T> clone(array<T> no_copy src) {
-  return make_array(src.Data, src.Count);
+    return make_array(src.Data, src.Count);
 }
 
 template <typename T>
 void free(array<T> ref arr) {
-  if (arr.Allocated && arr.Data) free(arr.Data);
-  arr.Count = arr.Allocated = 0;
+    if (arr.Allocated && arr.Data) free(arr.Data);
+    arr.Count = arr.Allocated = 0;
 }
 
 LSTD_END_NAMESPACE

@@ -27,7 +27,7 @@ struct mutex {
 };
 
 mutex create_mutex();
-void free_mutex(mutex *m);
+void  free_mutex(mutex *m);
 
 // Block the calling thread until a lock on the mutex can
 // be obtained. The mutex remains locked until unlock() is called.
@@ -60,7 +60,7 @@ void unlock(mutex *m);
 // situations where the mutex needs to be locked/unlocked very frequently.
 //
 struct fast_mutex {
-  s32 Lock = 0;
+    s32 Lock = 0;
 };
 
 // Try to lock the mutex. If it fails, the function will
@@ -68,14 +68,14 @@ struct fast_mutex {
 //
 // Returns true if the lock was acquired
 inline bool try_lock(fast_mutex *m) {
-  s32 oldLock = atomic_swap(&m->Lock, 1);
-  return oldLock == 0;
+    s32 oldLock = atomic_swap(&m->Lock, 1);
+    return oldLock == 0;
 }
 
 // Block the calling thread until a lock on the mutex can
 // be obtained. The mutex remains locked until unlock() is called.
 inline void lock(fast_mutex *m) {
-  while (!try_lock(m)) thread_sleep(0);
+    while (!try_lock(m)) thread_sleep(0);
 }
 
 // Unlock the mutex.
@@ -88,36 +88,36 @@ inline void unlock(fast_mutex *m) { atomic_swap(&m->Lock, 0); }
 // @TODO: Example usage
 //
 struct condition_variable {
-    #if OS == WINDOWS
+#if OS == WINDOWS
     alignas(64) char Handle[64]{};
-    #elif OS == MACOS || OS == LINUX || OS == WASM
+#elif OS == MACOS || OS == LINUX || OS == WASM
     alignas(64) char Handle[48]{};
-    #endif
+#endif
 };
 
 // This condition variable won't work until init() is called.
 condition_variable create_condition_variable();
-void free_condition_variable(condition_variable *c);
+void               free_condition_variable(condition_variable *c);
 
 namespace internal {
 void pre_wait(condition_variable *c);
 void do_wait(condition_variable *c, mutex *m);
-}
+}  // namespace internal
 
 // Wait for the condition.
 // The function will block the calling thread until the condition variable
 // is woken by notify_one(), notify_all() or a spurious wake up.
 inline void wait(condition_variable *c, mutex *m) {
 #if OS == WINDOWS
-  internal::pre_wait(c);
+    internal::pre_wait(c);
 
-  // Release the mutex while waiting for the condition (will decrease
-  // the number of waiters when done)...
-  unlock(m);
-  internal::do_wait(c, m);
-  lock(m);
+    // Release the mutex while waiting for the condition (will decrease
+    // the number of waiters when done)...
+    unlock(m);
+    internal::do_wait(c, m);
+    lock(m);
 #else
-  internal::do_wait(c, m);
+    internal::do_wait(c, m);
 #endif
 }
 
@@ -134,8 +134,8 @@ void notify_one(condition_variable *c);
 void notify_all(condition_variable *c);
 
 struct thread {
-  void *Handle = null;
-  u32 ThreadID;
+    void *Handle = null;
+    u32   ThreadID;
 };
 
 thread create_and_launch_thread(delegate<void(void *)> function, void *userData = null);
@@ -148,33 +148,32 @@ void terminate(thread t);
 
 // Information to pass to the new thread (what to run).
 struct thread_start_info {
-  delegate<void(void *)> Function;
-  void *UserData = null;
+    delegate<void(void *)> Function;
+    void                  *UserData = null;
 
 #if OS == WINDOWS
-  // We have to make sure the module the thread is executing in
-  // doesn't get unloaded while the thread is still doing work.
-  void *Module = null;
+    // We have to make sure the module the thread is executing in
+    // doesn't get unloaded while the thread is still doing work.
+    void *Module = null;
 #endif
 
-  // Pointer to the implicit context in the "parent" thread.
-  // We copy its members to the newly created thread.
-  const context *ContextPtr = null;
-  bool ParentWasUsingTemporaryAllocator;
+    // Pointer to the implicit context in the "parent" thread.
+    // We copy its members to the newly created thread.
+    const context *ContextPtr = null;
+    bool           ParentWasUsingTemporaryAllocator;
 };
 
 // Call this to init lstd specific thread-local variables
 inline void lstd_init_thread() {
-  // We are allowed to do this because we are the parents
-  *const_cast<allocator *>(&TemporaryAllocator) = {
-      arena_allocator, (void *)&TemporaryAllocatorData};
+    // We are allowed to do this because we are the parents
+    *const_cast<allocator *>(&TemporaryAllocator) = {arena_allocator, (void *)&TemporaryAllocatorData};
 
 #if defined DEBUG_MEMORY
-  debug_memory_init();
+    debug_memory_init();
 #endif
 
-  u64 os_get_current_thread_id(void);
-  const_cast<context *>(&Context)->ThreadID = os_get_current_thread_id();
+    u64 os_get_current_thread_id(void);
+    const_cast<context *>(&Context)->ThreadID = os_get_current_thread_id();
 }
 
 LSTD_END_NAMESPACE

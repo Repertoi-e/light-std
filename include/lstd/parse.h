@@ -18,30 +18,30 @@
 LSTD_BEGIN_NAMESPACE
 
 enum parse_status : u32 {
-  // We have ran out of buffer.
-  // This is == to returning PARSE_INVALID with an empty _Rest_.
-  // We used to treat it as a seperate status but this just complicates code.
-  // PARSE_EXHAUSTED,
+    // We have ran out of buffer.
+    // This is == to returning PARSE_INVALID with an empty _Rest_.
+    // We used to treat it as a seperate status but this just complicates code.
+    // PARSE_EXHAUSTED,
 
-  // Means the input was malformed/in
-  // the wrong format.
-  PARSE_INVALID = 0,
+    // Means the input was malformed/in
+    // the wrong format.
+    PARSE_INVALID = 0,
 
-  PARSE_SUCCESS = 1,
+    PARSE_SUCCESS = 1,
 
-  // Used in _parse_int_ when the
-  // resulting value overflowed or underflowed.
-  PARSE_TOO_MANY_DIGITS = 2
+    // Used in _parse_int_ when the
+    // resulting value overflowed or underflowed.
+    PARSE_TOO_MANY_DIGITS = 2
 };
 
 // Used in parse functions for some special behaviour/special return values
 inline const code_point CP_INVALID = 0xfffd;
-inline const code_point CP_MAX = 0x7fffffff;
+inline const code_point CP_MAX     = 0x7fffffff;
 
 // End of file and ignore this byte don't exist as real unicode code points.
 // They are just symbolic, so we them a value outside the range of possible code
 // points.
-inline const code_point CP_EOF = CP_MAX + 1;
+inline const code_point CP_EOF         = CP_MAX + 1;
 inline const code_point CP_IGNORE_THIS = CP_MAX + 2;
 
 // This maps a code point to a numerical value for parsing numbers
@@ -51,26 +51,26 @@ using cp_to_digit_t = s32 (*)(code_point, bool);
 // prefixes. This can be used to disallow numbers starting with certain symbols
 // (e.g. a comma ',' which is normally used as a thousand separator)
 inline s32 cp_to_digit_default(code_point cp, bool first = false) {
-  if (cp >= '0' && cp <= '9') return cp - '0';
-  if (cp >= 'a' && cp <= 'z') return cp - 'a' + 10;
-  if (cp >= 'A' && cp <= 'Z') return cp - 'A' + 10;
-  return CP_INVALID;
+    if (cp >= '0' && cp <= '9') return cp - '0';
+    if (cp >= 'a' && cp <= 'z') return cp - 'a' + 10;
+    if (cp >= 'A' && cp <= 'Z') return cp - 'A' + 10;
+    return CP_INVALID;
 }
 
 // Unsafe, doesn't check bounds
 inline void advance_bytes(string *p, s64 count) {
-  p->Data += count;
-  p->Count -= count;
+    p->Data += count;
+    p->Count -= count;
 }
 
 // Unsafe, doesn't check bounds
 inline void advance_cp(string *p, s64 count) {
-  assert(count > 0);
-  while (count--) {
-    s64 c = utf8_get_size_of_cp(p->Data);
-    p->Data += c;
-    p->Count -= c;
-  }
+    assert(count > 0);
+    while (count--) {
+        s64 c = utf8_get_size_of_cp(p->Data);
+        p->Data += c;
+        p->Count -= c;
+    }
 }
 
 // If negative is true:
@@ -78,15 +78,15 @@ inline void advance_cp(string *p, s64 count) {
 //   * returns '-value' when _value_ is a signed integral
 // otherwise returns 'value'.
 auto handle_negative(is_integral auto value, bool negative) {
-  using T = decltype(value);
-  if (negative) {
-    if constexpr (is_unsigned_integral<T>) {
-      return T(0 - value);
-    } else {
-      return T(-value);
+    using T = decltype(value);
+    if (negative) {
+        if constexpr (is_unsigned_integral<T>) {
+            return T(0 - value);
+        } else {
+            return T(-value);
+        }
     }
-  }
-  return T(value);
+    return T(value);
 }
 
 //
@@ -101,193 +101,187 @@ auto handle_negative(is_integral auto value, bool negative) {
 // users don't have to write an optimized version for their own use cases.
 //
 struct parse_int_options {
-  bool ParseSign = true;  // If true, looks for +/- before trying to parse any
-                          // digits. If '-' the result is negated.
-  bool AllowPlusSign = true;  // If true, allows explicit + as a sign, if false,
-                              // results in parse failure.
+    bool ParseSign     = true;  // If true, looks for +/- before trying to parse any
+                                // digits. If '-' the result is negated.
+    bool AllowPlusSign = true;  // If true, allows explicit + as a sign, if false,
+                                // results in parse failure.
 
-  //
-  // We use _CodePointToDigit_ to determine the numerical value symbols (as well
-  // as which symbols to ignore/are invalid). We support all bases up to base 16
-  // (ignoring the case for letters). You can roll your own implementation for
-  // other bases.
-  //
-  // If _CodePointToDigit_ returns a value that's bigger than the _base_ the
-  // caller specified (or was overriden by a base prefix) we break in the parse
-  // loop. So there's no need to pay attention to that in the routine.
-  //
-  // For any code point that doesn't correspond to a digit, return CP_INVALID
-  // and if the parser should ignore the byte but not fail parsing, return
-  // CP_IGNORE_THIS.
-  //
-  // Here are two use cases which illustrate that:
-  //
-  //     // This cp to digit function supports only decimal and allows parsing
-  //     '1_000_000' as 1 million because it tells the parser to ignore '_'.
-  //     // You can also write a function which ignores commas, using this to
-  //     parse numbers with a thousands separator: '1,000,000'.
-  //     // This callback can also be any delegate (including lambdas with
-  //     state) so you could check for example if commas are placed
-  //     // after every third digit. The parameter _first_ tells whether this is
-  //     the first code point (after +/- and base prefix)
-  //     // which is parsed as a digit. Here we ignore underscores but don't
-  //     allow a number to start with a _. u32
-  //     cp_to_digit_dec_and_ignore_underscores(code_point cp, u32 base, bool
-  //     first) {
-  //         assert(base == 10);
-  //         if (cp >= '0' && cp <= '9') return cp - '0';
-  //         if (cp == '_') return first ? CP_INVALID : CP_IGNORE_THIS;
-  //         return CP_INVALID;
-  //     }
-  //
-  //     // Allows parsing a base 64 integer [0-9a-zA-Z#_]* (doesn't support =
-  //     as padding) u32 cp_to_digit_base_64(code_point cp, u32 base, bool
-  //     first) {
-  //         assert(base == 64);
-  //         if (cp >= '0' && cp <= '9') return cp - '0';
-  //         if (cp >= 'a' && cp <= 'z') return cp - 'a' + 10;
-  //         if (cp >= 'A' && cp <= 'Z') return cp - 'A' + 10 + 26;
-  //         if (cp == '#') return 63;
-  //         if (cp == '_') return 64;
-  //         return CP_INVALID;
-  //     }
-  //
-  cp_to_digit_t CodePointToDigit = cp_to_digit_default;
+    //
+    // We use _CodePointToDigit_ to determine the numerical value symbols (as well
+    // as which symbols to ignore/are invalid). We support all bases up to base 16
+    // (ignoring the case for letters). You can roll your own implementation for
+    // other bases.
+    //
+    // If _CodePointToDigit_ returns a value that's bigger than the _base_ the
+    // caller specified (or was overriden by a base prefix) we break in the parse
+    // loop. So there's no need to pay attention to that in the routine.
+    //
+    // For any code point that doesn't correspond to a digit, return CP_INVALID
+    // and if the parser should ignore the byte but not fail parsing, return
+    // CP_IGNORE_THIS.
+    //
+    // Here are two use cases which illustrate that:
+    //
+    //     // This cp to digit function supports only decimal and allows parsing
+    //     '1_000_000' as 1 million because it tells the parser to ignore '_'.
+    //     // You can also write a function which ignores commas, using this to
+    //     parse numbers with a thousands separator: '1,000,000'.
+    //     // This callback can also be any delegate (including lambdas with
+    //     state) so you could check for example if commas are placed
+    //     // after every third digit. The parameter _first_ tells whether this is
+    //     the first code point (after +/- and base prefix)
+    //     // which is parsed as a digit. Here we ignore underscores but don't
+    //     allow a number to start with a _. u32
+    //     cp_to_digit_dec_and_ignore_underscores(code_point cp, u32 base, bool
+    //     first) {
+    //         assert(base == 10);
+    //         if (cp >= '0' && cp <= '9') return cp - '0';
+    //         if (cp == '_') return first ? CP_INVALID : CP_IGNORE_THIS;
+    //         return CP_INVALID;
+    //     }
+    //
+    //     // Allows parsing a base 64 integer [0-9a-zA-Z#_]* (doesn't support =
+    //     as padding) u32 cp_to_digit_base_64(code_point cp, u32 base, bool
+    //     first) {
+    //         assert(base == 64);
+    //         if (cp >= '0' && cp <= '9') return cp - '0';
+    //         if (cp >= 'a' && cp <= 'z') return cp - 'a' + 10;
+    //         if (cp >= 'A' && cp <= 'Z') return cp - 'A' + 10 + 26;
+    //         if (cp == '#') return 63;
+    //         if (cp == '_') return 64;
+    //         return CP_INVALID;
+    //     }
+    //
+    cp_to_digit_t CodePointToDigit = cp_to_digit_default;
 
-  // By default the base is determined by _CodePointToDigit_ (since it returns
-  // CP_INVALID when encountering a banned value). If _LookForBasePrefix_ is
-  // set, we look for 0x and 0 for hex and oct respectively and if found, we
-  // overwrite _CodePointToDigit_.
-  bool LookForBasePrefix = false;
+    // By default the base is determined by _CodePointToDigit_ (since it returns
+    // CP_INVALID when encountering a banned value). If _LookForBasePrefix_ is
+    // set, we look for 0x and 0 for hex and oct respectively and if found, we
+    // overwrite _CodePointToDigit_.
+    bool LookForBasePrefix = false;
 
-  // Set maximum amount of digits which should be parsed. -1 means unspecified
-  // (no limit). Note: The return value is PARSE_SUCCESS and not
-  // PARSE_TOO_MANY_DIGITS if there were more digits left to parse. Note:
-  // CP_IGNORE_THIS from CodePointToDigit is counted towards this. Note: The
-  // base prefix (if parsed) is counted towards this.
-  s64 MaxDigits = -1;
-  // Potentially useful?
-  // bool IgnoreThisCodePointCountedTowardsMaxDigits = false;
-  // bool BasePrefixCountedTowardsMaxDigits = false;
+    // Set maximum amount of digits which should be parsed. -1 means unspecified
+    // (no limit). Note: The return value is PARSE_SUCCESS and not
+    // PARSE_TOO_MANY_DIGITS if there were more digits left to parse. Note:
+    // CP_IGNORE_THIS from CodePointToDigit is counted towards this. Note: The
+    // base prefix (if parsed) is counted towards this.
+    s64 MaxDigits = -1;
+    // Potentially useful?
+    // bool IgnoreThisCodePointCountedTowardsMaxDigits = false;
+    // bool BasePrefixCountedTowardsMaxDigits = false;
 
-  // If we should stop parsing when an overflow happens and bail out of the
-  // function. Otherwise parse as much digits as possible while ignoring the
-  // overflow/underflow.
-  bool BailOnTooManyDigits = true;
+    // If we should stop parsing when an overflow happens and bail out of the
+    // function. Otherwise parse as much digits as possible while ignoring the
+    // overflow/underflow.
+    bool BailOnTooManyDigits = true;
 
-  // By default we return the min/max value of the integer type when we bail
-  // because we parsed too many digits. If false, the returned value is the
-  // value we have parsed so far.
-  bool ReturnLimitOnTooManyDigits = true;
+    // By default we return the min/max value of the integer type when we bail
+    // because we parsed too many digits. If false, the returned value is the
+    // value we have parsed so far.
+    bool ReturnLimitOnTooManyDigits = true;
 };
 
 template <typename IntT>
 struct parse_result {
-  IntT Value;
+    IntT Value;
 
-  parse_status Status;
+    parse_status Status;
 
-  // Returns the rest of the buffer after we ate some bytes.
-  // If _Status_ was PARSE_INVALID:
-  //    - If this is empty, it means that we ran out of bytes to parse;
-  //    - otherwise it contains at least the invalid byte (we don't eat it).
-  string Rest;
+    // Returns the rest of the buffer after we ate some bytes.
+    // If _Status_ was PARSE_INVALID:
+    //    - If this is empty, it means that we ran out of bytes to parse;
+    //    - otherwise it contains at least the invalid byte (we don't eat it).
+    string Rest;
 };
 
-#define FAIL \
-  { 0, PARSE_INVALID, p }
+#define FAIL {0, PARSE_INVALID, p}
 
 // Parses 8, 16, 32, 64 or 128 bit numbers after sign and
 // base prefix has been handled. Called from parse_int.
 template <is_integral T, parse_int_options Options>
-parse_result<T> parse_int_small_integer(string p, u32 base,
-                                        bool parsedNegative) {
-  T maxValue, cutOff;
-  s32 cutLim;
-  if constexpr (Options.BailOnTooManyDigits) {
-    // Determine at what point we stop parsing because the number becomes too
-    // big
-    if constexpr (is_unsigned_integral<T>) {
-      maxValue = (numeric<T>::max)();
-      cutOff = maxValue / base;
-    } else {
-      maxValue = parsedNegative ? (T)(-(s64)numeric<T>::min()) : numeric<T>::max();
-      cutOff = maxValue / base;
-      cutOff = abs(cutOff);
-    }
-    cutLim = maxValue % (T)base;
-  }
-
-  s64 maxDigits = Options.MaxDigits;
-  if constexpr (Options.MaxDigits != -1) {
-    assert(maxDigits > 0);
-  }
-
-  bool firstDigit = true;
-
-  constexpr cp_to_digit_t codePointToDigit = Options.CodePointToDigit;
-
-  // Now start doing the real work
-  T value = 0;
-  while (true) {
-    if constexpr (Options.MaxDigits != -1) {
-      if (!maxDigits) break;
-      --maxDigits;
-    }
-
-    s32 digit =
-        p.Count ? codePointToDigit(p[0], firstDigit) : CP_INVALID;
-    advance_cp(&p, 1);
-
-    if (digit == CP_IGNORE_THIS) continue;
-
-    if (digit < 0 || digit >= (s32)base) {
-      // We have CP_INVALID or a digit that's outside our base, break.
-
-      if (firstDigit) {
-        // We have a special case for when we have parsed a base 8 prefix but
-        // the whole valid integer is just one 0, then we return 0 and don't
-        // treat it as an oct value (because in that case we require more
-        // digits).
-        if (Options.LookForBasePrefix) {
-          advance_bytes(&p, -1);
-          if (base == 8) return {0, PARSE_SUCCESS, p};
-        }
-        return FAIL;
-      }
-
-      // Roll back the invalid byte we consumed.
-      // After the break we return PARSE_SUCCESS.
-      // We only consume the invalid byte if we return PARSE_INVALID.
-      advance_bytes(&p, -1);
-      break;
-    }
-
-    firstDigit = false;  // @Cleanup
-
+parse_result<T> parse_int_small_integer(string p, u32 base, bool parsedNegative) {
+    T   maxValue, cutOff;
+    s32 cutLim;
     if constexpr (Options.BailOnTooManyDigits) {
-      // If we have parsed a number that is too big to store in our integer type
-      // we bail
-      if (value > cutOff || (value == cutOff && digit > cutLim)) {
-        if constexpr (Options.ReturnLimitOnTooManyDigits) value = maxValue;
-        return {handle_negative(value, parsedNegative), PARSE_TOO_MANY_DIGITS,
-                p};
-      }
-
-      // If _BailOnTooManyDigits_ is false then we don't execute the code above
-      // and continue parsing (while overflowing) until all digits have been
-      // read from the buffer.
+        // Determine at what point we stop parsing because the number becomes too
+        // big
+        if constexpr (is_unsigned_integral<T>) {
+            maxValue = (numeric<T>::max)();
+            cutOff   = maxValue / base;
+        } else {
+            maxValue = parsedNegative ? (T)(-(s64)numeric<T>::min()) : numeric<T>::max();
+            cutOff   = maxValue / base;
+            cutOff   = abs(cutOff);
+        }
+        cutLim = maxValue % (T)base;
     }
-    value = value * base + digit;
-  }
 
-  return {handle_negative(value, parsedNegative), PARSE_SUCCESS, p};
+    s64 maxDigits = Options.MaxDigits;
+    if constexpr (Options.MaxDigits != -1) { assert(maxDigits > 0); }
+
+    bool firstDigit = true;
+
+    constexpr cp_to_digit_t codePointToDigit = Options.CodePointToDigit;
+
+    // Now start doing the real work
+    T value = 0;
+    while (true) {
+        if constexpr (Options.MaxDigits != -1) {
+            if (!maxDigits) break;
+            --maxDigits;
+        }
+
+        s32 digit = p.Count ? codePointToDigit(p[0], firstDigit) : CP_INVALID;
+        advance_cp(&p, 1);
+
+        if (digit == CP_IGNORE_THIS) continue;
+
+        if (digit < 0 || digit >= (s32)base) {
+            // We have CP_INVALID or a digit that's outside our base, break.
+
+            if (firstDigit) {
+                // We have a special case for when we have parsed a base 8 prefix but
+                // the whole valid integer is just one 0, then we return 0 and don't
+                // treat it as an oct value (because in that case we require more
+                // digits).
+                if (Options.LookForBasePrefix) {
+                    advance_bytes(&p, -1);
+                    if (base == 8) return {0, PARSE_SUCCESS, p};
+                }
+                return FAIL;
+            }
+
+            // Roll back the invalid byte we consumed.
+            // After the break we return PARSE_SUCCESS.
+            // We only consume the invalid byte if we return PARSE_INVALID.
+            advance_bytes(&p, -1);
+            break;
+        }
+
+        firstDigit = false;  // @Cleanup
+
+        if constexpr (Options.BailOnTooManyDigits) {
+            // If we have parsed a number that is too big to store in our integer type
+            // we bail
+            if (value > cutOff || (value == cutOff && digit > cutLim)) {
+                if constexpr (Options.ReturnLimitOnTooManyDigits) value = maxValue;
+                return {handle_negative(value, parsedNegative), PARSE_TOO_MANY_DIGITS, p};
+            }
+
+            // If _BailOnTooManyDigits_ is false then we don't execute the code above
+            // and continue parsing (while overflowing) until all digits have been
+            // read from the buffer.
+        }
+        value = value * base + digit;
+    }
+
+    return {handle_negative(value, parsedNegative), PARSE_SUCCESS, p};
 }
 
 template <parse_int_options Options>
 parse_result<big_integer> parse_int_big_integer(string p, u32 base) {
-  assert(false);  // @TODO
-  return {make_big_integer(0), PARSE_SUCCESS, p};
+    assert(false);  // @TODO
+    return {make_big_integer(0), PARSE_SUCCESS, p};
 }
 
 // Attemps to parse an integer of a type T
@@ -337,71 +331,71 @@ parse_result<big_integer> parse_int_big_integer(string p, u32 base) {
 //
 template <is_integral T, parse_int_options Options = parse_int_options{}>
 parse_result<T> parse_int(string buffer, u32 base = 10) {
-  string p = buffer;
-  if (!p.Count) return FAIL;
-
-  bool negative = false;
-  if constexpr (Options.ParseSign) {
-    if (p[0] == '+') {
-      advance_bytes(&p, 1);
-      if constexpr (!Options.AllowPlusSign) return FAIL;
-    } else if (p[0] == '-') {
-      negative = true;
-      advance_bytes(&p, 1);
-    }
+    string p = buffer;
     if (!p.Count) return FAIL;
-  }
 
-  if constexpr (Options.LookForBasePrefix) {
-    if (p[0] == '0') {
-      if (p.Count - 1 && (p[1] == 'x' || p[1] == 'X')) {
-        base = 16;
-        advance_bytes(&p, 2);
-      } else {
-        base = 8;
-        advance_bytes(&p, 1);
-      }
+    bool negative = false;
+    if constexpr (Options.ParseSign) {
+        if (p[0] == '+') {
+            advance_bytes(&p, 1);
+            if constexpr (!Options.AllowPlusSign) return FAIL;
+        } else if (p[0] == '-') {
+            negative = true;
+            advance_bytes(&p, 1);
+        }
+        if (!p.Count) return FAIL;
     }
-    if (!p.Count) return FAIL;
-  }
 
-  if constexpr (is_same<T, big_integer>) {
-    return parse_int_big_integer<T, Options>(p, base, negative);
-  } else {
-    return parse_int_small_integer<T, Options>(p, base, negative);
-  }
+    if constexpr (Options.LookForBasePrefix) {
+        if (p[0] == '0') {
+            if (p.Count - 1 && (p[1] == 'x' || p[1] == 'X')) {
+                base = 16;
+                advance_bytes(&p, 2);
+            } else {
+                base = 8;
+                advance_bytes(&p, 1);
+            }
+        }
+        if (!p.Count) return FAIL;
+    }
+
+    if constexpr (is_same<T, big_integer>) {
+        return parse_int_big_integer<T, Options>(p, base, negative);
+    } else {
+        return parse_int_small_integer<T, Options>(p, base, negative);
+    }
 }
 
 template <bool IgnoreCase = false>
 bool expect_cp(string *p, code_point value) {
-  if (!p->Count) return false;
+    if (!p->Count) return false;
 
-  code_point ch = (*p)[0];
-  if constexpr (IgnoreCase) ch = unicode_to_lower(ch);
+    code_point ch = (*p)[0];
+    if constexpr (IgnoreCase) ch = unicode_to_lower(ch);
 
-  if (ch == value) {
-    advance_cp(p, 1);
-    return true;
-  } else {
-    return false;
-  }
+    if (ch == value) {
+        advance_cp(p, 1);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 template <bool IgnoreCase = false>
 bool expect_sequence(string *p, string sequence) {
-  For(sequence) {
-    bool status = expect_cp<IgnoreCase>(p, it);
-    if (!status) return false;
-  }
-  return true;
+    For(sequence) {
+        bool status = expect_cp<IgnoreCase>(p, it);
+        if (!status) return false;
+    }
+    return true;
 }
 
 // Similar to parse_int, these options compile different
 // versions of parse_bool and turn off certain code paths.
 struct parse_bool_options {
-  bool ParseNumbers = true;  // Attemps to parse 0/1.
-  bool ParseWords = true;    // Attemps to parse the words "true" and "false".
-  bool ParseWordsIgnoreCase = true;  // Ignores case when parsing the words.
+    bool ParseNumbers         = true;  // Attemps to parse 0/1.
+    bool ParseWords           = true;  // Attemps to parse the words "true" and "false".
+    bool ParseWordsIgnoreCase = true;  // Ignores case when parsing the words.
 };
 
 //
@@ -426,58 +420,51 @@ struct parse_bool_options {
 //
 template <parse_bool_options Options = parse_bool_options{}>
 parse_result<bool> parse_bool(string buffer) {
-  static_assert(Options.ParseNumbers ||
-                Options.ParseWords);  // Sanity, one of them must be set
+    static_assert(Options.ParseNumbers || Options.ParseWords);  // Sanity, one of them must be set
 
 #define SUCCESS(x) {x, PARSE_SUCCESS, p};
 
-  string p = buffer;
-  if (!p.Count) return FAIL;
+    string p = buffer;
+    if (!p.Count) return FAIL;
 
-  if constexpr (Options.ParseNumbers) {
-    if (p[0] == '0') {
-      advance_cp(&p, 1);
-      return SUCCESS(false);
-    }
-    if (p[0] == '1') {
-      advance_cp(&p, 1);
-      return SUCCESS(true);
-    }
-  }
-
-  if constexpr (Options.ParseWords) {
-    if (p[0] == 't') {
-      bool status =
-          expect_sequence<Options.ParseWordsIgnoreCase>(&p, (string) "true");
-      if (!status) return FAIL;
-      return SUCCESS(true);
+    if constexpr (Options.ParseNumbers) {
+        if (p[0] == '0') {
+            advance_cp(&p, 1);
+            return SUCCESS(false);
+        }
+        if (p[0] == '1') {
+            advance_cp(&p, 1);
+            return SUCCESS(true);
+        }
     }
 
-    if (p[0] == 'f') {
-      bool status =
-          expect_sequence<Options.ParseWordsIgnoreCase>(&p, (string) "false");
-      if (!status) return FAIL;
-      return SUCCESS(false);
+    if constexpr (Options.ParseWords) {
+        if (p[0] == 't') {
+            bool status = expect_sequence<Options.ParseWordsIgnoreCase>(&p, (string) "true");
+            if (!status) return FAIL;
+            return SUCCESS(true);
+        }
+
+        if (p[0] == 'f') {
+            bool status = expect_sequence<Options.ParseWordsIgnoreCase>(&p, (string) "false");
+            if (!status) return FAIL;
+            return SUCCESS(false);
+        }
     }
-  }
-  return FAIL;
+    return FAIL;
 }
 
 struct eat_hex_byte_result {
-  u8 Value;
-  bool Status;
+    u8   Value;
+    bool Status;
 };
 
 // Tries to parse exactly two hex digits as a byte.
 // We don't eat if parsing fails.
 inline eat_hex_byte_result eat_hex_byte(string *p) {
-  auto [value, status, rest] =
-      parse_int<u8, parse_int_options{.ParseSign = false,
-                                      .MaxDigits = 2,
-                                      .ReturnLimitOnTooManyDigits = false}>(*p,
-                                                                            16);
-  *p = rest;
-  return {value, (bool)status};
+    auto [value, status, rest] = parse_int<u8, parse_int_options{.ParseSign = false, .MaxDigits = 2, .ReturnLimitOnTooManyDigits = false}>(*p, 16);
+    *p                         = rest;
+    return {value, (bool)status};
 }
 
 #undef FAIL

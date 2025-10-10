@@ -13,34 +13,26 @@
 #endif
 
 // Define these as null
-extern "C" _CRTALLOC(".CRT$XIA") _PIFV __xi_a[] = {
-    null};  // C initializers (first)
-extern "C" _CRTALLOC(".CRT$XIZ") _PIFV __xi_z[] = {
-    null};  // C initializers (last)
-extern "C" _CRTALLOC(".CRT$XCA") _PVFV __xc_a[] = {
-    null};  // C++ initializers (first)
-extern "C" _CRTALLOC(".CRT$XCZ") _PVFV __xc_z[] = {
-    null};  // C++ initializers (last)
-extern "C" _CRTALLOC(".CRT$XPA") _PVFV __xp_a[] = {
-    null};  // C pre-terminators (first)
-extern "C" _CRTALLOC(".CRT$XPZ") _PVFV __xp_z[] = {
-    null};  // C pre-terminators (last)
-extern "C" _CRTALLOC(".CRT$XTA") _PVFV __xt_a[] = {
-    null};  // C terminators (first)
-extern "C" _CRTALLOC(".CRT$XTZ") _PVFV __xt_z[] = {
-    null};  // C terminators (last)
+extern "C" _CRTALLOC(".CRT$XIA") _PIFV __xi_a[] = {null};  // C initializers (first)
+extern "C" _CRTALLOC(".CRT$XIZ") _PIFV __xi_z[] = {null};  // C initializers (last)
+extern "C" _CRTALLOC(".CRT$XCA") _PVFV __xc_a[] = {null};  // C++ initializers (first)
+extern "C" _CRTALLOC(".CRT$XCZ") _PVFV __xc_z[] = {null};  // C++ initializers (last)
+extern "C" _CRTALLOC(".CRT$XPA") _PVFV __xp_a[] = {null};  // C pre-terminators (first)
+extern "C" _CRTALLOC(".CRT$XPZ") _PVFV __xp_z[] = {null};  // C pre-terminators (last)
+extern "C" _CRTALLOC(".CRT$XTA") _PVFV __xt_a[] = {null};  // C terminators (first)
+extern "C" _CRTALLOC(".CRT$XTZ") _PVFV __xt_z[] = {null};  // C terminators (last)
 
 // Commented out the stuff we don't care about.
 // Turns out we commented the entire function.
 // This literally does nothing right know. Oh well.
 static int __cdecl pre_c_initialization() {
 #if BITS == 32
-  // Clear the x87 exception flags.  Any other floating point initialization
-  // should already have taken place before this function is called.
-  _asm { fnclex}
-  _initialize_default_precision();
+    // Clear the x87 exception flags.  Any other floating point initialization
+    // should already have taken place before this function is called.
+    _asm { fnclex}
+    _initialize_default_precision();
 #endif
-  return 0;
+    return 0;
 }
 
 // int argc, char *argv[] <- we don't pass in these. Use
@@ -55,8 +47,7 @@ extern "C" int main();
 extern "C" const PIMAGE_TLS_CALLBACK __dyn_tls_init_callback;
 
 // Defined in tls.cpp.
-extern "C" bool __cdecl __scrt_is_nonwritable_in_current_image(
-    void const *target);
+extern "C" bool __cdecl __scrt_is_nonwritable_in_current_image(void const *target);
 
 extern "C" {
 void *MainContext;
@@ -71,49 +62,45 @@ void *MainContext;
 //
 // I hope this is legal.
 extern "C" void main_no_crt() {
-  // This initializaton is similar to the CRT initialization that happens before
-  // calling the user main function. Actually these happen before calling any
-  // C/C++ initialization functions/constructors, because the user code might
-  // want to use stuff from the library in e.g. in a constructor of a global
-  // variable. Basically all this stuff needs to work before ANY actual
-  // programmer code is run.
-  //
-  // When we link with the CRT (and don't compile all this stub code) we put
-  // these in the in linker tables. See e.g. windows/common.h
+    // This initializaton is similar to the CRT initialization that happens before
+    // calling the user main function. Actually these happen before calling any
+    // C/C++ initialization functions/constructors, because the user code might
+    // want to use stuff from the library in e.g. in a constructor of a global
+    // variable. Basically all this stuff needs to work before ANY actual
+    // programmer code is run.
+    //
+    // When we link with the CRT (and don't compile all this stub code) we put
+    // these in the in linker tables. See e.g. windows/common.h
 
-  platform_state_init();
+    platform_state_init();
 
-  // These call the tables that the linker has filled with initialization
-  // routines for global variables
-  if (lstd_initterm_e(__xi_a, __xi_z) != 0) {
-    debug_break();
-    return;
-  }
-  lstd_initterm(__xc_a, __xc_z);
+    // These call the tables that the linker has filled with initialization
+    // routines for global variables
+    if (lstd_initterm_e(__xi_a, __xi_z) != 0) {
+        debug_break();
+        return;
+    }
+    lstd_initterm(__xc_a, __xc_z);
 
-  // We do this to avoid reinitializing in __dyn_tls_init (in tlsdyn.cpp)
-  MainContext = (void *)&LSTD_NAMESPACE::Context;
+    // We do this to avoid reinitializing in __dyn_tls_init (in tlsdyn.cpp)
+    MainContext = (void *)&LSTD_NAMESPACE::Context;
 
-  // * If this module has any dynamically initialized __declspec(thread) (thread
-  // local) variables,
-  // * then we invoke their initialization for the primary thread used to start
-  // the process:
-  if (*__dyn_tls_init_callback != null &&
-      __scrt_is_nonwritable_in_current_image(__dyn_tls_init_callback)) {
-    (*__dyn_tls_init_callback)(null, DLL_THREAD_ATTACH, null);
-  }
+    // * If this module has any dynamically initialized __declspec(thread) (thread
+    // local) variables,
+    // * then we invoke their initialization for the primary thread used to start
+    // the process:
+    if (*__dyn_tls_init_callback != null && __scrt_is_nonwritable_in_current_image(__dyn_tls_init_callback)) { (*__dyn_tls_init_callback)(null, DLL_THREAD_ATTACH, null); }
 
-  int mainResult = main();
+    int mainResult = main();
 
-  // exit does any uninitting we need to do.
-  // exit also calls functions scheduled with exit_schedule.
-  LSTD_NAMESPACE::exit(mainResult);
+    // exit does any uninitting we need to do.
+    // exit also calls functions scheduled with exit_schedule.
+    LSTD_NAMESPACE::exit(mainResult);
 }
 
 typedef BOOL(WINAPI *__scrt_dllmain_type)(HINSTANCE, DWORD, LPVOID);
 
-extern "C" BOOL WINAPI DllMain(HINSTANCE const instance, DWORD const reason,
-                               LPVOID const reserved);
+extern "C" BOOL WINAPI DllMain(HINSTANCE const instance, DWORD const reason, LPVOID const reserved);
 
 // The client may define a _pRawDllMain.  This function gets called for attach
 // notifications before any other function is called, and gets called for detach
@@ -126,28 +113,24 @@ extern "C" extern __scrt_dllmain_type const _pRawDllMain;
 // (the detach is always assumed to complete successfully).
 static int __proc_attached = 0;
 
-static BOOL __cdecl dllmain_crt_process_attach(HMODULE const instance,
-                                               LPVOID const reserved) {
-  platform_state_init();
+static BOOL __cdecl dllmain_crt_process_attach(HMODULE const instance, LPVOID const reserved) {
+    platform_state_init();
 
-  if (lstd_initterm_e(__xi_a, __xi_z) != 0) {
-    debug_break();
-    return 0;
-  }
-  lstd_initterm(__xc_a, __xc_z);
+    if (lstd_initterm_e(__xi_a, __xi_z) != 0) {
+        debug_break();
+        return 0;
+    }
+    lstd_initterm(__xc_a, __xc_z);
 
-  // If we have any dynamically initialized __declspec(thread) variables, we
-  // invoke their initialization for the thread on which the DLL is being
-  // loaded.  We cannot rely on the OS performing the initialization with the
-  // DLL_PROCESS_ATTACH notification because, on Windows Server 2003 and below,
-  // that call happens before the CRT is initialized.
-  if (*__dyn_tls_init_callback != null &&
-      __scrt_is_nonwritable_in_current_image(__dyn_tls_init_callback)) {
-    (*__dyn_tls_init_callback)(instance, DLL_THREAD_ATTACH, reserved);
-  }
+    // If we have any dynamically initialized __declspec(thread) variables, we
+    // invoke their initialization for the thread on which the DLL is being
+    // loaded.  We cannot rely on the OS performing the initialization with the
+    // DLL_PROCESS_ATTACH notification because, on Windows Server 2003 and below,
+    // that call happens before the CRT is initialized.
+    if (*__dyn_tls_init_callback != null && __scrt_is_nonwritable_in_current_image(__dyn_tls_init_callback)) { (*__dyn_tls_init_callback)(instance, DLL_THREAD_ATTACH, reserved); }
 
-  ++__proc_attached;
-  return 1;
+    ++__proc_attached;
+    return 1;
 }
 
 //
@@ -218,91 +201,73 @@ static BOOL __cdecl dllmain_crt_process_attach(HMODULE const instance,
 // clang-format on
 
 static BOOL __cdecl dllmain_crt_process_detach(bool const is_terminating) {
-  // If the attach did not complete successfully, or if the detach was already
-  // executed, do not execute the detach:
-  if (__proc_attached <= 0) {
-    return 0;
-  }
+    // If the attach did not complete successfully, or if the detach was already
+    // executed, do not execute the detach:
+    if (__proc_attached <= 0) { return 0; }
 
-  --__proc_attached;
+    --__proc_attached;
 
-  // :PlatformExitTermination
-  LSTD_NAMESPACE::exit_call_scheduled_functions();
-  return 1;
+    // :PlatformExitTermination
+    LSTD_NAMESPACE::exit_call_scheduled_functions();
+    return 1;
 }
 
-static BOOL WINAPI dllmain_crt_dispatch(HINSTANCE const instance,
-                                        DWORD const reason,
-                                        LPVOID const reserved) {
-  switch (reason) {
-    case DLL_PROCESS_ATTACH:
-      return dllmain_crt_process_attach(instance, reserved);
-    case DLL_PROCESS_DETACH:
-      return dllmain_crt_process_detach(reserved != null);
-  }
+static BOOL WINAPI dllmain_crt_dispatch(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) {
+    switch (reason) {
+        case DLL_PROCESS_ATTACH: return dllmain_crt_process_attach(instance, reserved);
+        case DLL_PROCESS_DETACH: return dllmain_crt_process_detach(reserved != null);
+    }
 
-  return 1;
+    return 1;
 }
 
 // Define the _CRT_INIT function for compatibility.
-extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE const instance, DWORD const reason,
-                                 LPVOID const reserved) {
-  return dllmain_crt_dispatch(instance, reason, reserved);
+extern "C" BOOL WINAPI _CRT_INIT(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) { return dllmain_crt_dispatch(instance, reason, reserved); }
+
+static BOOL WINAPI dllmain_raw(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) {
+    if (!_pRawDllMain) return 1;
+
+    return _pRawDllMain(instance, reason, reserved);
 }
 
-static BOOL WINAPI dllmain_raw(HINSTANCE const instance, DWORD const reason,
-                               LPVOID const reserved) {
-  if (!_pRawDllMain) return 1;
+static BOOL __cdecl dllmain_dispatch(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) {
+    // If this is a process detach notification, check that there was a prior
+    // process attach notification that was processed successfully.  This is
+    // to ensure that we don't detach more times than we attach.
+    if (reason == DLL_PROCESS_DETACH && __proc_attached <= 0) { return 0; }
 
-  return _pRawDllMain(instance, reason, reserved);
-}
+    BOOL result = 1;
 
-static BOOL __cdecl dllmain_dispatch(HINSTANCE const instance,
-                                     DWORD const reason,
-                                     LPVOID const reserved) {
-  // If this is a process detach notification, check that there was a prior
-  // process attach notification that was processed successfully.  This is
-  // to ensure that we don't detach more times than we attach.
-  if (reason == DLL_PROCESS_DETACH && __proc_attached <= 0) {
-    return 0;
-  }
+    if (reason == DLL_PROCESS_ATTACH || reason == DLL_THREAD_ATTACH) {
+        result = dllmain_raw(instance, reason, reserved);
+        if (!result) return 0;
 
-  BOOL result = 1;
+        result = dllmain_crt_dispatch(instance, reason, reserved);
+        if (!result) return 0;
+    }
 
-  if (reason == DLL_PROCESS_ATTACH || reason == DLL_THREAD_ATTACH) {
-    result = dllmain_raw(instance, reason, reserved);
-    if (!result) return 0;
+    result = DllMain(instance, reason, reserved);
 
-    result = dllmain_crt_dispatch(instance, reason, reserved);
-    if (!result) return 0;
-  }
+    // If the client DllMain routine failed, unwind the initialization:
+    if (reason == DLL_PROCESS_ATTACH && !result) {
+        DllMain(instance, DLL_PROCESS_DETACH, reserved);
+        dllmain_crt_dispatch(instance, DLL_PROCESS_DETACH, reserved);
+        dllmain_raw(instance, DLL_PROCESS_DETACH, reserved);
+    }
 
-  result = DllMain(instance, reason, reserved);
+    if (reason == DLL_PROCESS_DETACH || reason == DLL_THREAD_DETACH) {
+        result = dllmain_crt_dispatch(instance, reason, reserved);
+        if (!result) return 0;
 
-  // If the client DllMain routine failed, unwind the initialization:
-  if (reason == DLL_PROCESS_ATTACH && !result) {
-    DllMain(instance, DLL_PROCESS_DETACH, reserved);
-    dllmain_crt_dispatch(instance, DLL_PROCESS_DETACH, reserved);
-    dllmain_raw(instance, DLL_PROCESS_DETACH, reserved);
-  }
-
-  if (reason == DLL_PROCESS_DETACH || reason == DLL_THREAD_DETACH) {
-    result = dllmain_crt_dispatch(instance, reason, reserved);
-    if (!result) return 0;
-
-    result = dllmain_raw(instance, reason, reserved);
-    if (!result) return 0;
-  }
-  return result;
+        result = dllmain_raw(instance, reason, reserved);
+        if (!result) return 0;
+    }
+    return result;
 }
 
 //
 // Entry point for executables
 //
-extern "C" BOOL WINAPI main_no_crt_dll(HINSTANCE const instance,
-                                       DWORD const reason,
-                                       LPVOID const reserved) {
-  return dllmain_dispatch(instance, reason, reserved);
-}
+extern "C" BOOL WINAPI main_no_crt_dll(HINSTANCE const instance, DWORD const reason, LPVOID const reserved) { return dllmain_dispatch(instance, reason, reserved); }
 
 #endif

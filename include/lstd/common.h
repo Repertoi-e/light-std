@@ -9,10 +9,8 @@
 //
 
 #if not defined LSTD_NO_NAMESPACE && defined LSTD_NAMESPACE
-#define LSTD_BEGIN_NAMESPACE \
-    namespace LSTD_NAMESPACE \
-    {
-#define LSTD_END_NAMESPACE }
+#define LSTD_BEGIN_NAMESPACE namespace LSTD_NAMESPACE {
+#define LSTD_END_NAMESPACE   }
 #define LSTD_USING_NAMESPACE using namespace LSTD_NAMESPACE
 #else
 #define LSTD_NAMESPACE
@@ -40,33 +38,31 @@
  * @endcode
  */
 
- // OS constants
+// OS constants
 #define WINDOWS 1
-#define MACOS 2
-#define LINUX 3
-#define WASM 4
-#define NO_OS 5
-
+#define MACOS   2
+#define LINUX   3
+#define WASM    4
+#define NO_OS   5
 
 #if defined LSTD_NO_OS
 #define OS NO_OS
 #endif
 
 #ifndef OS
-#if defined linux || defined __linux || defined __linux__ || \
-    defined __GNU__ || defined __GLIBC__
-#define OS LINUX
+#if defined linux || defined __linux || defined __linux__ || defined __GNU__ || defined __GLIBC__
+#define OS        LINUX
 #define OS_STRING "Linux"
 #elif defined _WIN32 || defined __WIN32__ || defined WIN32
-#define OS WINDOWS
+#define OS        WINDOWS
 #define OS_STRING "Windows"
 #elif defined macintosh || defined __APPLE__ || defined __APPLE_CC__
-#define OS MACOS
+#define OS        MACOS
 #define OS_STRING "MacOS"
 #elif __EMSCRIPTEN__
-#define OS WASM
+#define OS        WASM
 #define OS_STRING "WASM"
-#else 
+#else
 #define OS NO_OS
 #endif
 #endif
@@ -78,16 +74,15 @@
 #endif
 
 // Architecture defines
-#define VM 1
-#define X86 2
-#define ARM 3
+#define VM   1
+#define X86  2
+#define ARM  3
 #define MIPS 4
-#define PPC 5
+#define PPC  5
 
 #if defined __pnacl__ || defined __CLR_VER
 #define ARCH VM
-#elif defined _M_X64 || defined __x86_64__ || defined _M_IX86 || \
-    defined __i386__
+#elif defined _M_X64 || defined __x86_64__ || defined _M_IX86 || defined __i386__
 #define ARCH X86
 #elif defined __arm__ || defined _M_ARM || __aarch64__
 #define ARCH ARM
@@ -98,26 +93,25 @@
 #endif
 
 #if ARCH == X86
-#define X86_AES defined __AES__
-#define X86_F16C defined __F16C__
-#define X86_BMI defined __BMI__
-#define X86_BMI2 defined __BMI2__
-#define X86_SSE (defined __SSE__ || (_M_IX86_FP >= 1))
-#define X86_SSE2 (defined __SSE2__ || (_M_IX86_FP >= 2))
-#define X86_SSE3 defined __SSE3__
-#define X86_SSSE3 defined __SSSE3__
+#define X86_AES    defined __AES__
+#define X86_F16C   defined __F16C__
+#define X86_BMI    defined __BMI__
+#define X86_BMI2   defined __BMI2__
+#define X86_SSE    (defined __SSE__ || (_M_IX86_FP >= 1))
+#define X86_SSE2   (defined __SSE2__ || (_M_IX86_FP >= 2))
+#define X86_SSE3   defined __SSE3__
+#define X86_SSSE3  defined __SSSE3__
 #define X86_SSE4_1 defined __SSE4_1__
 #define X86_SSE4_2 defined __SSE4_2__
-#define X86_AVX defined __AVX__
-#define x86_AVX2 defined __AVX2__
+#define X86_AVX    defined __AVX__
+#define x86_AVX2   defined __AVX2__
 #elif ARCH == ARM
 #define ANY_ARM_NEON defined __ARM_NEON__)
 #elif ARCH == MIPS
 #define MIPS_MSA defined __mips_msa)
 #endif
 
-#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ || \
-    defined __mips64 || defined __powerpc64__ || defined __ppc64__
+#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ || defined __mips64 || defined __powerpc64__ || defined __ppc64__
 #define BITS 64
 #else
 #define BITS 32
@@ -128,7 +122,7 @@
 // Detect endianness
 #ifndef LITTLE_ENDIAN
 #define LITTLE_ENDIAN 1234
-#define BIG_ENDIAN 4321
+#define BIG_ENDIAN    4321
 #endif
 
 #if OS == LINUX
@@ -169,18 +163,10 @@
 #endif
 
 #if !defined ENDIAN
-#if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
-    defined(__BIG_ENDIAN__) ||                               \
-    defined(__ARMEB__) ||                                    \
-    defined(__THUMBEB__) ||                                  \
-    defined(__AARCH64EB__) ||                                \
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || defined(__BIG_ENDIAN__) || defined(__ARMEB__) || defined(__THUMBEB__) || defined(__AARCH64EB__) || \
     defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
 #define ENDIAN BIG_ENDIAN
-#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || \
-    defined(__LITTLE_ENDIAN__) ||                                 \
-    defined(__ARMEL__) ||                                         \
-    defined(__THUMBEL__) ||                                       \
-    defined(__AARCH64EL__) ||                                     \
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN || defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || defined(__THUMBEL__) || defined(__AARCH64EL__) || \
     defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__)
 #define ENDIAN LITTLE_ENDIAN
 #endif
@@ -191,18 +177,18 @@
 #endif
 
 // Compiler constants
-#define MSVC 1
+#define MSVC  1
 #define CLANG 2
-#define GCC 3
+#define GCC   3
 
 #if defined __clang__
-#define COMPILER CLANG
+#define COMPILER        CLANG
 #define COMPILER_STRING "Clang/LLVM"
 #elif defined __GNUC__ || defined __GNUG__
-#define COMPILER GCC
+#define COMPILER        GCC
 #define COMPILER_STRING "GCC"
 #elif defined _MSC_VER
-#define COMPILER MSVC
+#define COMPILER        MSVC
 #define COMPILER_STRING "MSVC"
 #else
 #warning Compiler not detected
@@ -211,16 +197,16 @@
 #if COMPILER == MSVC
 // These macros are used to aid the compiler at certain optimizations.
 #define always_inline __forceinline
-#define never_inline __declspec(noinline)
-#define no_vtable __declspec(novtable)
-#define no_alias __declspec(noalias)
-#define restrict __declspec(restrict)
+#define never_inline  __declspec(noinline)
+#define no_vtable     __declspec(novtable)
+#define no_alias      __declspec(noalias)
+#define restrict      __declspec(restrict)
 #else
 #define always_inline inline
-#define never_inline __attribute__((noinline))
-#define no_vtable __attribute__((__type__(no_table)))
-#define no_alias __restrict
-#define restrict __restrict
+#define never_inline  __attribute__((noinline))
+#define no_vtable     __attribute__((__type__(no_table)))
+#define no_alias      __restrict
+#define restrict      __restrict
 #endif
 
 //
@@ -260,36 +246,33 @@
 #else
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #define DEBUG_BREAK_USE_TRAP_INSTRUCTION 1
-#define DEBUG_BREAK_USE_BULTIN_TRAP 2
-#define DEBUG_BREAK_USE_SIGTRAP 3
+#define DEBUG_BREAK_USE_BULTIN_TRAP      2
+#define DEBUG_BREAK_USE_SIGTRAP          3
 
 #if defined(__i386__) || defined(__x86_64__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-    __inline__ static void trap_instruction(void)
-    {
-        __asm__ volatile("int $0x03");
-    }
+
+__inline__ static void trap_instruction(void) { __asm__ volatile("int $0x03"); }
 #elif defined(__thumb__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-    /* FIXME: handle __THUMB_INTERWORK__ */
-    __inline__ static void trap_instruction(void)
-    {
-        /* See 'arm-linux-tdep.c' in GDB source.
+
+/* FIXME: handle __THUMB_INTERWORK__ */
+__inline__ static void trap_instruction(void) {
+    /* See 'arm-linux-tdep.c' in GDB source.
          * Both instruction sequences below work. */
 #if 1
-         /* 'eabi_linux_thumb_le_breakpoint' */
-        __asm__ volatile(".inst 0xde01");
+    /* 'eabi_linux_thumb_le_breakpoint' */
+    __asm__ volatile(".inst 0xde01");
 #else
-         /* 'eabi_linux_thumb2_le_breakpoint' */
-        __asm__ volatile(".inst.w 0xf7f0a000");
+    /* 'eabi_linux_thumb2_le_breakpoint' */
+    __asm__ volatile(".inst.w 0xf7f0a000");
 #endif
 
-        /* Known problem:
+    /* Known problem:
          * After a breakpoint hit, can't 'stepi', 'step', or 'continue' in GDB.
          * 'step' would keep getting stuck on the same instruction.
          *
@@ -305,53 +288,53 @@ extern "C"
          * (gdb) tbreak *($pc + $instruction_len)
          * (gdb) jump   *($pc + $instruction_len)
          */
-    }
+}
 #elif defined(__arm__) && !defined(__thumb__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-    __inline__ static void trap_instruction(void)
-    {
-        /* See 'arm-linux-tdep.c' in GDB source,
+
+__inline__ static void trap_instruction(void) {
+    /* See 'arm-linux-tdep.c' in GDB source,
          * 'eabi_linux_arm_le_breakpoint' */
-        __asm__ volatile(".inst 0xe7f001f0");
-        /* Known problem:
+    __asm__ volatile(".inst 0xe7f001f0");
+    /* Known problem:
          * Same problem and workaround as Thumb mode */
-    }
+}
 #elif defined(__aarch64__) && defined(__APPLE__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_BULTIN_DEBUGTRAP
 #elif defined(__aarch64__)
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-    __inline__ static void trap_instruction(void)
-    {
-        /* See 'aarch64-tdep.c' in GDB source,
-         * 'aarch64_default_breakpoint' */
-        __asm__ volatile(".inst 0xd4200000");
-    }
-#elif defined(__powerpc__)
-    /* PPC 32 or 64-bit, big or little endian */
-#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-    __inline__ static void trap_instruction(void)
-    {
-        /* See 'rs6000-tdep.c' in GDB source,
-         * 'rs6000_breakpoint' */
-        __asm__ volatile(".4byte 0x7d821008");
 
-        /* Known problem:
+__inline__ static void trap_instruction(void) {
+    /* See 'aarch64-tdep.c' in GDB source,
+         * 'aarch64_default_breakpoint' */
+    __asm__ volatile(".inst 0xd4200000");
+}
+#elif defined(__powerpc__)
+/* PPC 32 or 64-bit, big or little endian */
+#define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
+
+__inline__ static void trap_instruction(void) {
+    /* See 'rs6000-tdep.c' in GDB source,
+         * 'rs6000_breakpoint' */
+    __asm__ volatile(".4byte 0x7d821008");
+
+    /* Known problem:
          * After a breakpoint hit, can't 'stepi', 'step', or 'continue' in GDB.
          * 'step' stuck on the same instruction ("twge r2,r2").
          *
          * The workaround is the same as ARM Thumb mode: use debugbreak-gdb.py
          * or manually jump over the instruction. */
-    }
+}
 #elif defined(__riscv)
-    /* RISC-V 32 or 64-bit, whether the "C" extension
+/* RISC-V 32 or 64-bit, whether the "C" extension
      * for compressed, 16-bit instructions are supported or not */
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_TRAP_INSTRUCTION
-    __inline__ static void trap_instruction(void)
-    {
-        /* See 'riscv-tdep.c' in GDB source,
+
+__inline__ static void trap_instruction(void) {
+    /* See 'riscv-tdep.c' in GDB source,
          * 'riscv_sw_breakpoint_from_kind' */
-        __asm__ volatile(".4byte 0x00100073");
-    }
+    __asm__ volatile(".4byte 0x00100073");
+}
 #else
 #define DEBUG_BREAK_IMPL DEBUG_BREAK_USE_SIGTRAP
 #endif
@@ -359,26 +342,15 @@ extern "C"
 #ifndef DEBUG_BREAK_IMPL
 #error "debugbreak.h is not supported on this target"
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_TRAP_INSTRUCTION
-    __inline__ static void debug_break(void)
-    {
-        trap_instruction();
-    }
+__inline__ static void debug_break(void) { trap_instruction(); }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_BULTIN_DEBUGTRAP
-    __inline__ static void debug_break(void)
-    {
-        __builtin_debugtrap();
-    }
+__inline__ static void debug_break(void) { __builtin_debugtrap(); }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_BULTIN_TRAP
-    __inline__ static void debug_break(void)
-    {
-        __builtin_trap();
-    }
+__inline__ static void debug_break(void) { __builtin_trap(); }
 #elif DEBUG_BREAK_IMPL == DEBUG_BREAK_USE_SIGTRAP
 #include <signal.h>
-    __inline__ static void debug_break(void)
-    {
-        raise(SIGTRAP);
-    }
+
+__inline__ static void debug_break(void) { raise(SIGTRAP); }
 #else
 #error "invalid DEBUG_BREAK_IMPL value"
 #endif
@@ -404,7 +376,7 @@ extern "C"
 // Some personal preferences:
 //
 // I prefer to type null over null but they are exactly the same
-using null_t = decltype(nullptr);
+using null_t             = decltype(nullptr);
 inline const null_t null = nullptr;
 
 #ifndef NULL
@@ -432,21 +404,19 @@ inline const null_t null = nullptr;
 //
 // Fundamental types:
 //
-using s8 = char;
+using s8  = char;
 using s16 = short;
 using s32 = int;
 using s64 = long long;
 
-using u8 = unsigned char;
+using u8  = unsigned char;
 using u16 = unsigned short;
 using u32 = unsigned;
 using u64 = unsigned long long;
 
-using wchar = wchar_t; // Only useful for Windows calls. Please don't use
-// utf-16 in your programs...
+using wchar = wchar_t;  // Only useful for Windows calls. Please don't use utf-16 in your programs...
 
-using code_point =
-char32_t; // Holds the integer value of a Unicode code point.
+using code_point = char32_t;  // Holds the integer value of a Unicode code point.
 
 using byte = unsigned char;
 
@@ -457,8 +427,7 @@ using f64 = double;
 // Vector types (aligned on 16 byte boundaries for SIMDs)
 //
 template <typename T, s64 Count>
-union alignas(16) base_vector_type
-{
+union alignas(16) base_vector_type {
     T Values[Count];
 };
 
@@ -496,12 +465,17 @@ using f64v2 = base_vector_type<f64, 2>;
 //
 // _B is for completeness, really useless though
 constexpr u64 operator""_B(u64 i) { return i; }
+
 constexpr u64 operator""_KiB(u64 i) { return i << 10; }
+
 constexpr u64 operator""_MiB(u64 i) { return i << 20; }
+
 constexpr u64 operator""_GiB(u64 i) { return i << 30; }
 
 constexpr u64 operator""_thousand(u64 i) { return i * 1000; }
+
 constexpr u64 operator""_million(u64 i) { return i * 1000000; }
+
 constexpr u64 operator""_billion(u64 i) { return i * 1000000000; }
 
 //
@@ -510,11 +484,10 @@ constexpr u64 operator""_billion(u64 i) { return i * 1000000000; }
 
 struct s128;
 
-struct s128
-{
+struct s128 {
     union {
         u64 n[2];
-        u8 b[16];
+        u8  b[16];
 #if defined(__SIZEOF_INT128__)
         __uint128_t m;
 #endif
@@ -530,13 +503,17 @@ struct s128
         };
     };
 
-    constexpr s128() : n{ 0, 0 } {};
+    constexpr s128() : n{0, 0} {};
     constexpr s128(s64 hi, u64 lo) : lo(lo), hi(hi) {};
     constexpr explicit s128(s64 v);
     constexpr explicit s128(u64 v);
+
     constexpr s128(s32 v) { *this = s128((s64)v); }
+
     constexpr s128(u32 v) { *this = s128((u64)v); }
+
     constexpr explicit s128(u16 v) { *this = s128((u64)v); }
+
     constexpr explicit s128(s16 v) { *this = s128((s64)v); }
 #if defined(__SIZEOF_INT128__)
     constexpr explicit s128(__uint128_t m) : m(m) {};
@@ -545,7 +522,7 @@ struct s128
     constexpr operator s64() const;
     constexpr operator u64() const;
 
-    constexpr operator bool() const;
+    constexpr      operator bool() const;
     constexpr bool operator==(s128 v) const;
     constexpr bool operator!=(s128 v) const;
     constexpr bool operator<(s128 v) const;
@@ -568,10 +545,10 @@ struct s128
 
 constexpr s128 i128_from_s64(s64 n);
 constexpr s128 i128_from_u64(u64 n);
-constexpr s128 i128_from_uv64(u64* v);
-constexpr s64 s64_from_i128(s128 n);
-constexpr u64 u64_from_i128(s128 n);
-constexpr u64* uv64_from_i128(s128* v);
+constexpr s128 i128_from_uv64(u64 *v);
+constexpr s64  s64_from_i128(s128 n);
+constexpr u64  u64_from_i128(s128 n);
+constexpr u64 *uv64_from_i128(s128 *v);
 
 constexpr s128 i128_not(s128 u);
 constexpr s128 i128_and(s128 u, s128 v);
@@ -592,8 +569,8 @@ constexpr s128 i128_divu(s128 u, s128 v);
 constexpr s128 i128_rem(s128 u, s128 v);
 constexpr s128 i128_remu(s128 u, s128 v);
 
-constexpr s128 i128_divmod(s128 u, s128 v, s128* r);
-constexpr s128 i128_divmodu(s128 u, s128 v, s128* r);
+constexpr s128 i128_divmod(s128 u, s128 v, s128 *r);
+constexpr s128 i128_divmodu(s128 u, s128 v, s128 *r);
 
 constexpr int i128_cmp_eq(s128 u, s128 v);
 constexpr int i128_cmp_lt(s128 u, s128 v);
@@ -603,49 +580,68 @@ constexpr int i128_cmp_gtu(s128 u, s128 v);
 constexpr int i128_cmp_t(s128 u, s128 v);
 constexpr int i128_cmp_tu(s128 u, s128 v);
 
-constexpr u32 i128_ctz(s128 u);
-constexpr u32 i128_clz(s128 u);
-constexpr u32 i128_popcnt(s128 u);
+constexpr u32  i128_ctz(s128 u);
+constexpr u32  i128_clz(s128 u);
+constexpr u32  i128_popcnt(s128 u);
 constexpr s128 i128_bswap(s128 u);
 constexpr s128 i128_brev(s128 u);
 
 constexpr s128::s128(s64 v) { *this = i128_from_s64(v); }
+
 constexpr s128::s128(u64 v) { *this = i128_from_u64(v); }
 
 constexpr s128::operator s64() const { return s64_from_i128(*this); }
+
 constexpr s128::operator u64() const { return u64_from_i128(*this); }
 
 constexpr s128::operator bool() const { return hi != 0 || lo != 0; }
-constexpr bool s128::operator==(s128 v) const { return i128_cmp_eq(*this, v); }
-constexpr bool s128::operator!=(s128 v) const { return !i128_cmp_eq(*this, v); }
-constexpr bool s128::operator<(s128 v) const { return i128_cmp_lt(*this, v); }
-constexpr bool s128::operator<=(s128 v) const { return !i128_cmp_gt(*this, v); }
-constexpr bool s128::operator>(s128 v) const { return i128_cmp_gt(*this, v); }
-constexpr bool s128::operator>=(s128 v) const { return !i128_cmp_lt(*this, v); }
-constexpr s128 s128::operator-() const { return i128_neg(*this); }
-constexpr s128 s128::operator~() const { return i128_not(*this); }
-constexpr s128 s128::operator<<(u32 shamt) const { return i128_sll(*this, shamt); }
-constexpr s128 s128::operator>>(u32 shamt) const { return i128_sra(*this, shamt); }
-constexpr s128 s128::operator+(s128 v) const { return i128_add(*this, v); }
-constexpr s128 s128::operator-(s128 v) const { return i128_sub(*this, v); }
-constexpr s128 s128::operator*(s128 v) const { return i128_mul(*this, v); }
-constexpr s128 s128::operator/(s128 v) const { return i128_div(*this, v); }
-constexpr s128 s128::operator%(s128 v) const { return i128_rem(*this, v); }
-constexpr s128 s128::operator&(s128 v) const { return i128_and(*this, v); }
-constexpr s128 s128::operator|(s128 v) const { return i128_or(*this, v); }
-constexpr s128 s128::operator^(s128 v) const { return i128_xor(*this, v); }
 
+constexpr bool s128::operator==(s128 v) const { return i128_cmp_eq(*this, v); }
+
+constexpr bool s128::operator!=(s128 v) const { return !i128_cmp_eq(*this, v); }
+
+constexpr bool s128::operator<(s128 v) const { return i128_cmp_lt(*this, v); }
+
+constexpr bool s128::operator<=(s128 v) const { return !i128_cmp_gt(*this, v); }
+
+constexpr bool s128::operator>(s128 v) const { return i128_cmp_gt(*this, v); }
+
+constexpr bool s128::operator>=(s128 v) const { return !i128_cmp_lt(*this, v); }
+
+constexpr s128 s128::operator-() const { return i128_neg(*this); }
+
+constexpr s128 s128::operator~() const { return i128_not(*this); }
+
+constexpr s128 s128::operator<<(u32 shamt) const { return i128_sll(*this, shamt); }
+
+constexpr s128 s128::operator>>(u32 shamt) const { return i128_sra(*this, shamt); }
+
+constexpr s128 s128::operator+(s128 v) const { return i128_add(*this, v); }
+
+constexpr s128 s128::operator-(s128 v) const { return i128_sub(*this, v); }
+
+constexpr s128 s128::operator*(s128 v) const { return i128_mul(*this, v); }
+
+constexpr s128 s128::operator/(s128 v) const { return i128_div(*this, v); }
+
+constexpr s128 s128::operator%(s128 v) const { return i128_rem(*this, v); }
+
+constexpr s128 s128::operator&(s128 v) const { return i128_and(*this, v); }
+
+constexpr s128 s128::operator|(s128 v) const { return i128_or(*this, v); }
+
+constexpr s128 s128::operator^(s128 v) const { return i128_xor(*this, v); }
 
 #if !defined __SIZEOF_INT128__
 
 /* 64-bit 128-bit compiler intrinsics forward decls */
 
 constexpr s128 i128_umul_s64_s64(u64 x, u64 y);
-constexpr u64 s64_umulh_s64_s64(u64 x, u64 y);
-constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r);
-constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r);
+constexpr u64  s64_umulh_s64_s64(u64 x, u64 y);
+constexpr u64  s64_udiv_i128_s64(s128 x, u64 y, u64 *r);
+constexpr u64  s64_udiv_i128_i128(s128 u, s128 v, s128 *r);
 
-#endif 
+#endif
 
 //
 // Intrinsic-like u128 type (unsigned counterpart)
@@ -653,11 +649,10 @@ constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r);
 
 struct u128;
 
-struct u128
-{
+struct u128 {
     union {
         u64 n[2];
-        u8 b[16];
+        u8  b[16];
 #if defined(__SIZEOF_INT128__)
         __uint128_t m;
 #endif
@@ -673,16 +668,18 @@ struct u128
         };
     };
 
-    constexpr u128() : n{ 0, 0 } {};
+    constexpr u128() : n{0, 0} {};
     constexpr u128(u64 hi, u64 lo) : lo(lo), hi(hi) {};
 #if defined(__SIZEOF_INT128__)
     constexpr explicit u128(__uint128_t m) : m(m) {};
 #endif
     constexpr explicit u128(u64 v);
+
     constexpr u128(u32 v) { *this = u128((u64)v); }
+
     constexpr explicit u128(u16 v) { *this = u128((u64)v); }
 
-    constexpr operator u64() const;
+    constexpr          operator u64() const;
     constexpr explicit operator bool() const;
 
     constexpr bool operator==(u128 v) const;
@@ -694,7 +691,7 @@ struct u128
 
     constexpr u128 operator~() const;
     constexpr u128 operator<<(u32 shamt) const;
-    constexpr u128 operator>>(u32 shamt) const; // logical right shift
+    constexpr u128 operator>>(u32 shamt) const;  // logical right shift
     constexpr u128 operator+(u128 v) const;
     constexpr u128 operator-(u128 v) const;
     constexpr u128 operator*(u128 v) const;
@@ -707,9 +704,9 @@ struct u128
 
 // u128 helpers (unsigned semantics)
 constexpr u128 u128_from_u64(u64 n);
-constexpr u128 u128_from_uv64(u64* v);
-constexpr u64 u64_from_u128(u128 n);
-constexpr u64* uv64_from_u128(u128* v);
+constexpr u128 u128_from_uv64(u64 *v);
+constexpr u64  u64_from_u128(u128 n);
+constexpr u64 *uv64_from_u128(u128 *v);
 
 constexpr u128 u128_not(u128 u);
 constexpr u128 u128_and(u128 u, u128 v);
@@ -722,18 +719,20 @@ constexpr u128 u128_sub(u128 u, u128 v);
 constexpr u128 u128_mul(u128 u, u128 v);
 constexpr u128 u128_div(u128 u, u128 v);
 constexpr u128 u128_rem(u128 u, u128 v);
-constexpr u128 u128_divmod(u128 u, u128 v, u128* r);
+constexpr u128 u128_divmod(u128 u, u128 v, u128 *r);
 
 // Implementations
 #if defined(__SIZEOF_INT128__)
 
 constexpr u128::u128(u64 v) { m = (__uint128_t)v; }
+
 constexpr u128::operator u64() const { return (u64)m; }
+
 constexpr u128::operator bool() const { return (bool)((u64)m | (u64)(m >> 64)); }
 
 constexpr u128 u128_from_u64(u64 n) { return u128((__uint128_t)n); }
-constexpr u128 u128_from_uv64(u64* v)
-{
+
+constexpr u128 u128_from_uv64(u64 *v) {
     u128 x;
 #if ENDIAN == LITTLE_ENDIAN
     x.m = (__uint128_t)v[0] | (__uint128_t)v[1] << 64;
@@ -743,144 +742,278 @@ constexpr u128 u128_from_uv64(u64* v)
 #endif
     return x;
 }
+
 constexpr u64 u64_from_u128(u128 n) { return (u64)n.m; }
-constexpr u64* uv64_from_u128(u128* v) { return v->n; }
+
+constexpr u64 *uv64_from_u128(u128 *v) { return v->n; }
 
 constexpr bool u128::operator==(u128 v) const { return m == v.m; }
+
 constexpr bool u128::operator!=(u128 v) const { return m != v.m; }
+
 constexpr bool u128::operator<(u128 v) const { return m < v.m; }
+
 constexpr bool u128::operator<=(u128 v) const { return m <= v.m; }
+
 constexpr bool u128::operator>(u128 v) const { return m > v.m; }
+
 constexpr bool u128::operator>=(u128 v) const { return m >= v.m; }
 
 constexpr u128 u128_not(u128 u) { return u128(~u.m); }
+
 constexpr u128 u128_and(u128 u, u128 v) { return u128(u.m & v.m); }
+
 constexpr u128 u128_or(u128 u, u128 v) { return u128(u.m | v.m); }
+
 constexpr u128 u128_xor(u128 u, u128 v) { return u128(u.m ^ v.m); }
+
 constexpr u128 u128_sll(u128 u, u32 shamt) { return u128(u.m << shamt); }
+
 constexpr u128 u128_srl(u128 u, u32 shamt) { return u128((__uint128_t)u.m >> shamt); }
+
 constexpr u128 u128_add(u128 u, u128 v) { return u128(u.m + v.m); }
+
 constexpr u128 u128_sub(u128 u, u128 v) { return u128(u.m - v.m); }
+
 constexpr u128 u128_mul(u128 u, u128 v) { return u128((__uint128_t)u.m * (__uint128_t)v.m); }
 
-constexpr u128 u128_divmod(u128 u, u128 v, u128* r)
-{
+constexpr u128 u128_divmod(u128 u, u128 v, u128 *r) {
     // Reuse existing unsigned 128 div/mod implementation
     s128 us, vs;
-    us.lo = u.lo; us.hi = (s64)u.hi;
-    vs.lo = v.lo; vs.hi = (s64)v.hi;
+    us.lo = u.lo;
+    us.hi = (s64)u.hi;
+    vs.lo = v.lo;
+    vs.hi = (s64)v.hi;
     s128 rem;
     s128 quo = i128_divmodu(us, vs, &rem);
-    if (r) { r->lo = rem.lo; r->hi = (u64)rem.hi; }
-    u128 q; q.lo = quo.lo; q.hi = (u64)quo.hi; return q;
+    if (r) {
+        r->lo = rem.lo;
+        r->hi = (u64)rem.hi;
+    }
+    u128 q;
+    q.lo = quo.lo;
+    q.hi = (u64)quo.hi;
+    return q;
 }
-constexpr u128 u128_div(u128 u, u128 v) { u128 r; return u128_divmod(u, v, &r); }
-constexpr u128 u128_rem(u128 u, u128 v) { u128 r; (void)u128_divmod(u, v, &r); return r; }
 
-#else // 64-bit implementation without native __int128
+constexpr u128 u128_div(u128 u, u128 v) {
+    u128 r;
+    return u128_divmod(u, v, &r);
+}
 
-constexpr u128::u128(u64 v) { lo = v; hi = 0; }
+constexpr u128 u128_rem(u128 u, u128 v) {
+    u128 r;
+    (void)u128_divmod(u, v, &r);
+    return r;
+}
+
+#else  // 64-bit implementation without native __int128
+
+constexpr u128::u128(u64 v) {
+    lo = v;
+    hi = 0;
+}
+
 constexpr u128::operator u64() const { return lo; }
+
 constexpr u128::operator bool() const { return hi != 0 || lo != 0; }
 
-constexpr u128 u128_from_u64(u64 n) { u128 x; x.lo = n; x.hi = 0; return x; }
-constexpr u128 u128_from_uv64(u64* v)
-{
+constexpr u128 u128_from_u64(u64 n) {
+    u128 x;
+    x.lo = n;
+    x.hi = 0;
+    return x;
+}
+
+constexpr u128 u128_from_uv64(u64 *v) {
     u128 x;
 #if ENDIAN == LITTLE_ENDIAN
-    x.lo = v[0]; x.hi = v[1];
+    x.lo = v[0];
+    x.hi = v[1];
 #endif
 #if ENDIAN == BIG_ENDIAN
-    x.lo = v[1]; x.hi = v[0];
+    x.lo = v[1];
+    x.hi = v[0];
 #endif
     return x;
 }
+
 constexpr u64 u64_from_u128(u128 n) { return n.lo; }
-constexpr u64* uv64_from_u128(u128* v) { return v->n; }
+
+constexpr u64 *uv64_from_u128(u128 *v) { return v->n; }
 
 constexpr bool u128::operator==(u128 v) const { return hi == v.hi && lo == v.lo; }
+
 constexpr bool u128::operator!=(u128 v) const { return !(*this == v); }
+
 constexpr bool u128::operator<(u128 v) const { return (hi < v.hi) || (hi == v.hi && lo < v.lo); }
+
 constexpr bool u128::operator<=(u128 v) const { return !(*this > v); }
+
 constexpr bool u128::operator>(u128 v) const { return (hi > v.hi) || (hi == v.hi && lo > v.lo); }
+
 constexpr bool u128::operator>=(u128 v) const { return !(*this < v); }
 
-constexpr u128 u128_not(u128 u) { u128 x; x.lo = ~u.lo; x.hi = ~u.hi; return x; }
-constexpr u128 u128_and(u128 u, u128 v) { u128 x; x.lo = u.lo & v.lo; x.hi = u.hi & v.hi; return x; }
-constexpr u128 u128_or(u128 u, u128 v) { u128 x; x.lo = u.lo | v.lo; x.hi = u.hi | v.hi; return x; }
-constexpr u128 u128_xor(u128 u, u128 v) { u128 x; x.lo = u.lo ^ v.lo; x.hi = u.hi ^ v.hi; return x; }
-constexpr u128 u128_sll(u128 u, u32 shamt)
-{
+constexpr u128 u128_not(u128 u) {
     u128 x;
-    if (shamt == 0) { x = u; }
-    else if (shamt < 64) { x.lo = (u64)(u.lo << shamt); x.hi = (u64)(u.hi << shamt) | (u.lo >> (64 - shamt)); }
-    else { shamt -= 64; x.lo = 0; x.hi = (u64)(u.lo << shamt); }
+    x.lo = ~u.lo;
+    x.hi = ~u.hi;
     return x;
 }
-constexpr u128 u128_srl(u128 u, u32 shamt)
-{
+
+constexpr u128 u128_and(u128 u, u128 v) {
     u128 x;
-    if (shamt == 0) { x = u; }
-    else if (shamt < 64) { x.lo = (u.lo >> shamt) | (u.hi << (64 - shamt)); x.hi = (u.hi >> shamt); }
-    else { shamt -= 64; x.lo = (u.hi >> shamt); x.hi = 0; }
+    x.lo = u.lo & v.lo;
+    x.hi = u.hi & v.hi;
     return x;
 }
-constexpr u128 u128_add(u128 u, u128 v)
-{
-    u128 x; x.lo = u.lo + v.lo; x.hi = u.hi + v.hi + (x.lo < u.lo); return x;
+
+constexpr u128 u128_or(u128 u, u128 v) {
+    u128 x;
+    x.lo = u.lo | v.lo;
+    x.hi = u.hi | v.hi;
+    return x;
 }
-constexpr u128 u128_sub(u128 u, u128 v)
-{
-    u128 x; x.lo = u.lo - v.lo; x.hi = u.hi - v.hi - (x.lo > u.lo); return x;
+
+constexpr u128 u128_xor(u128 u, u128 v) {
+    u128 x;
+    x.lo = u.lo ^ v.lo;
+    x.hi = u.hi ^ v.hi;
+    return x;
 }
-constexpr u128 u128_mul(u128 u, u128 v)
-{
+
+constexpr u128 u128_sll(u128 u, u32 shamt) {
+    u128 x;
+    if (shamt == 0) {
+        x = u;
+    } else if (shamt < 64) {
+        x.lo = (u64)(u.lo << shamt);
+        x.hi = (u64)(u.hi << shamt) | (u.lo >> (64 - shamt));
+    } else {
+        shamt -= 64;
+        x.lo = 0;
+        x.hi = (u64)(u.lo << shamt);
+    }
+    return x;
+}
+
+constexpr u128 u128_srl(u128 u, u32 shamt) {
+    u128 x;
+    if (shamt == 0) {
+        x = u;
+    } else if (shamt < 64) {
+        x.lo = (u.lo >> shamt) | (u.hi << (64 - shamt));
+        x.hi = (u.hi >> shamt);
+    } else {
+        shamt -= 64;
+        x.lo = (u.hi >> shamt);
+        x.hi = 0;
+    }
+    return x;
+}
+
+constexpr u128 u128_add(u128 u, u128 v) {
+    u128 x;
+    x.lo = u.lo + v.lo;
+    x.hi = u.hi + v.hi + (x.lo < u.lo);
+    return x;
+}
+
+constexpr u128 u128_sub(u128 u, u128 v) {
+    u128 x;
+    x.lo = u.lo - v.lo;
+    x.hi = u.hi - v.hi - (x.lo > u.lo);
+    return x;
+}
+
+constexpr u128 u128_mul(u128 u, u128 v) {
     // same as i128_mulu but with unsigned members
-    u128 x; s128 t = i128_umul_s64_s64(u.lo, v.lo); x.lo = t.lo; x.hi = (u64)t.hi; x.hi += u.lo * v.hi + u.hi * v.lo; return x;
+    u128 x;
+    s128 t = i128_umul_s64_s64(u.lo, v.lo);
+    x.lo   = t.lo;
+    x.hi   = (u64)t.hi;
+    x.hi += u.lo * v.hi + u.hi * v.lo;
+    return x;
 }
-constexpr u128 u128_divmod(u128 u, u128 v, u128* r)
-{
+
+constexpr u128 u128_divmod(u128 u, u128 v, u128 *r) {
     // Reuse existing i128 unsigned divmod working on the same bit layout
-    s128 us; us.lo = u.lo; us.hi = (s64)u.hi;
-    s128 vs; vs.lo = v.lo; vs.hi = (s64)v.hi;
+    s128 us;
+    us.lo = u.lo;
+    us.hi = (s64)u.hi;
+    s128 vs;
+    vs.lo = v.lo;
+    vs.hi = (s64)v.hi;
     s128 rem;
     s128 quo = i128_divmodu(us, vs, &rem);
-    if (r) { r->lo = rem.lo; r->hi = (u64)rem.hi; }
-    u128 q; q.lo = quo.lo; q.hi = (u64)quo.hi; return q;
+    if (r) {
+        r->lo = rem.lo;
+        r->hi = (u64)rem.hi;
+    }
+    u128 q;
+    q.lo = quo.lo;
+    q.hi = (u64)quo.hi;
+    return q;
 }
-constexpr u128 u128_div(u128 u, u128 v) { u128 r; return u128_divmod(u, v, &r); }
-constexpr u128 u128_rem(u128 u, u128 v) { u128 r; (void)u128_divmod(u, v, &r); return r; }
+
+constexpr u128 u128_div(u128 u, u128 v) {
+    u128 r;
+    return u128_divmod(u, v, &r);
+}
+
+constexpr u128 u128_rem(u128 u, u128 v) {
+    u128 r;
+    (void)u128_divmod(u, v, &r);
+    return r;
+}
 
 #endif
 
 // u128 member operators implemented via helpers
 constexpr u128 u128::operator&(u128 v) const { return u128_and(*this, v); }
+
 constexpr u128 u128::operator|(u128 v) const { return u128_or(*this, v); }
+
 constexpr u128 u128::operator^(u128 v) const { return u128_xor(*this, v); }
+
 constexpr u128 u128::operator~() const { return u128_not(*this); }
+
 constexpr u128 u128::operator<<(u32 shamt) const { return u128_sll(*this, shamt); }
+
 constexpr u128 u128::operator>>(u32 shamt) const { return u128_srl(*this, shamt); }
+
 constexpr u128 u128::operator+(u128 v) const { return u128_add(*this, v); }
+
 constexpr u128 u128::operator-(u128 v) const { return u128_sub(*this, v); }
+
 constexpr u128 u128::operator*(u128 v) const { return u128_mul(*this, v); }
+
 constexpr u128 u128::operator/(u128 v) const { return u128_div(*this, v); }
+
 constexpr u128 u128::operator%(u128 v) const { return u128_rem(*this, v); }
 
 /* 128-bit bitmanip */
 
 #if COMPILER == GCC || COMPILER == CLANG
-#define clz(x) __extension__ ({ u32 n = __builtin_clzll(x); n == 0 ? 64 : n; })
-#define ctz(x) __extension__ ({ u32 n = __builtin_ctzll(x); n == 0 ? 64 : n; })
-#define popcnt(x) __builtin_popcount(x)
+#define clz(x)                      \
+    __extension__({                 \
+        u32 n = __builtin_clzll(x); \
+        n == 0 ? 64 : n;            \
+    })
+#define ctz(x)                      \
+    __extension__({                 \
+        u32 n = __builtin_ctzll(x); \
+        n == 0 ? 64 : n;            \
+    })
+#define popcnt(x)  __builtin_popcount(x)
 #define bswap64(x) __builtin_bswap64(x)
 #elif COMPILER == MSVC
 #include <intrin.h>
-#define clz(x) _lzcnt_u64(x)
-#define ctz(x) _tzcnt_u64(x)
-#define popcnt(x) __popcnt64(x)
+#define clz(x)     _lzcnt_u64(x)
+#define ctz(x)     _tzcnt_u64(x)
+#define popcnt(x)  __popcnt64(x)
 #define bswap64(x) _byteswap_uint64(x)
 #endif
-
 
 /* 64-bit 128-bit compiler intrinsics */
 
@@ -889,64 +1022,59 @@ constexpr u128 u128::operator%(u128 v) const { return u128_rem(*this, v); }
 /* 64-bit 128-bit compiler intrinsics forward decls */
 
 constexpr s128 i128_umul_s64_s64(u64 x, u64 y);
-constexpr u64 s64_umulh_s64_s64(u64 x, u64 y);
-constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r);
-constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r);
+constexpr u64  s64_umulh_s64_s64(u64 x, u64 y);
+constexpr u64  s64_udiv_i128_s64(s128 x, u64 y, u64 *r);
+constexpr u64  s64_udiv_i128_i128(s128 u, s128 v, s128 *r);
 
 /* i128_umul_s64_s64 */
 
 #if COMPILER == MSVC && ARCH == X86
-constexpr s128 i128_umul_s64_s64(u64 x, u64 y)
-{
+constexpr s128 i128_umul_s64_s64(u64 x, u64 y) {
     s128 r;
-    u64 hi;
+    u64  hi;
     _umul128(x, y, &hi);
     r.lo = x * y;
     r.hi = hi;
     return r;
 }
 #else
-constexpr s128 i128_umul_s64_s64(u64 x, u64 y)
-{
+constexpr s128 i128_umul_s64_s64(u64 x, u64 y) {
     const u64 mask = 0xffffffffll;
-    u64 x0 = x & mask;
-    u64 x1 = x >> 32 & mask;
-    u64 y0 = y & mask;
-    u64 y1 = y >> 32 & mask;
-    u64 z0 = x0 * y0;
-    u64 z1 = x1 * y0;
-    u64 z2 = x0 * y1;
-    u64 z3 = x1 * y1;
-    u64 z4 = z1 + (z0 >> 32);
-    u64 c1 = z2 + (z4 & mask);
-    u64 hi = z3 + (z4 >> 32) + (c1 >> 32);
-    s128 r;
+    u64       x0   = x & mask;
+    u64       x1   = x >> 32 & mask;
+    u64       y0   = y & mask;
+    u64       y1   = y >> 32 & mask;
+    u64       z0   = x0 * y0;
+    u64       z1   = x1 * y0;
+    u64       z2   = x0 * y1;
+    u64       z3   = x1 * y1;
+    u64       z4   = z1 + (z0 >> 32);
+    u64       c1   = z2 + (z4 & mask);
+    u64       hi   = z3 + (z4 >> 32) + (c1 >> 32);
+    s128      r;
     r.lo = x * y;
     r.hi = hi;
     return r;
 }
 #endif
 
-constexpr s128 i128_divmodu(s128 u, s128 v, s128 *r)
-{
+constexpr s128 i128_divmodu(s128 u, s128 v, s128 *r) {
     s128 q;
 
     if (v.hi == 0 && v.lo == 0) {
-        q = i128_from_s64(-1);
+        q  = i128_from_s64(-1);
         *r = u;
-    }
-    else if (u.hi == 0) {
+    } else if (u.hi == 0) {
         if (v.hi == 0) {
-            q.hi = 0;
-            q.lo = u.lo / v.lo;
+            q.hi  = 0;
+            q.lo  = u.lo / v.lo;
             r->hi = 0;
             r->lo = u.lo % v.lo;
         } else {
-            q = i128_from_u64(0);
+            q  = i128_from_u64(0);
             *r = u;
         }
-    }
-    else if (v.hi == 0) {
+    } else if (v.hi == 0) {
         s128 q;
         r->hi = 0;
         if ((u64)u.hi < v.lo) {
@@ -954,14 +1082,13 @@ constexpr s128 i128_divmodu(s128 u, s128 v, s128 *r)
             q.lo = s64_udiv_i128_s64(u, v.lo, &r->lo);
         } else {
             s128 u2, u3;
-            u2 = i128_from_u64(u.hi);
-            q.hi = s64_udiv_i128_s64(u2, v.lo, (u64*)&u3.hi);
+            u2    = i128_from_u64(u.hi);
+            q.hi  = s64_udiv_i128_s64(u2, v.lo, (u64 *)&u3.hi);
             u3.lo = u.lo;
-            q.lo = s64_udiv_i128_s64(u3, v.lo, &r->lo);
+            q.lo  = s64_udiv_i128_s64(u3, v.lo, &r->lo);
         }
         return q;
-    }
-    else {
+    } else {
         q.hi = 0;
         q.lo = s64_udiv_i128_i128(u, v, r);
     }
@@ -973,25 +1100,21 @@ constexpr s128 i128_divmodu(s128 u, s128 v, s128 *r)
 /* s64_umulh_s64_s64 */
 
 #if defined(I128_USE_INTRIN) && (COMPILER == MSVC) && defined(_M_X64)
-constexpr u64 s64_umulh_s64_s64(u64 x, u64 y)
-{
-    return __umulh(x, y);
-}
+constexpr u64 s64_umulh_s64_s64(u64 x, u64 y) { return __umulh(x, y); }
 #else
-constexpr u64 s64_umulh_s64_s64(u64 x, u64 y)
-{
+constexpr u64 s64_umulh_s64_s64(u64 x, u64 y) {
     const u64 mask = 0xffffffffll;
-    u64 x0 = x & mask;
-    u64 x1 = x >> 32 & mask;
-    u64 y0 = y & mask;
-    u64 y1 = y >> 32 & mask;
-    u64 z0 = x0 * y0;
-    u64 z1 = x1 * y0;
-    u64 z2 = x0 * y1;
-    u64 z3 = x1 * y1;
-    u64 z4 = z1 + (z0 >> 32);
-    u64 c1 = z2 + (z4 & mask);
-    u64 hi = z3 + (z4 >> 32) + (c1 >> 32);
+    u64       x0   = x & mask;
+    u64       x1   = x >> 32 & mask;
+    u64       y0   = y & mask;
+    u64       y1   = y >> 32 & mask;
+    u64       z0   = x0 * y0;
+    u64       z1   = x1 * y0;
+    u64       z2   = x0 * y1;
+    u64       z3   = x1 * y1;
+    u64       z4   = z1 + (z0 >> 32);
+    u64       c1   = z2 + (z4 & mask);
+    u64       hi   = z3 + (z4 >> 32) + (c1 >> 32);
     return hi;
 }
 #endif
@@ -999,20 +1122,15 @@ constexpr u64 s64_umulh_s64_s64(u64 x, u64 y)
 /* s64_udiv_i128_s64 */
 
 #if defined(I128_USE_INTRIN) && (COMPILER == MSVC) && defined(_M_X64)
-constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
-{
-    return _udiv128(x.hi, x.lo, y, r);
-}
+constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64 *r) { return _udiv128(x.hi, x.lo, y, r); }
 #elif defined(I128_USE_INTRIN) && ((COMPILER == GCC) || (COMPILER == CLANG)) && defined(__x86_64__)
-constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
-{
+constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64 *r) {
     u64 q;
     __asm__("divq %[v]" : "=a"(q), "=d"(*r) : [v] "r"(y), "a"(x.lo), "d"(x.hi));
     return q;
 }
 #else
-constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
-{
+constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64 *r) {
     // Computes a 128 / 64 -> 64 bit division, with a 64 bit remainder.
     // zlib License: based on https://github.com/ridiculousfish/libdivide
 
@@ -1044,8 +1162,8 @@ constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
     // Note while qhat may be 2 digits, q1 is always 1 digit.
     qhat = (u64)x.hi / den1;
     rhat = (u64)x.hi % den1;
-    c1 = qhat * den0;
-    c2 = rhat * b + num1;
+    c1   = qhat * den0;
+    c2   = rhat * b + num1;
     if (c1 > c2) qhat -= (c1 - c2 > y) ? 2 : 1;
     q1 = (u32)qhat;
 
@@ -1056,8 +1174,8 @@ constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
     // Estimate q0 as [rem1 rem0] / [d1] and correct it.
     qhat = rem / den1;
     rhat = rem % den1;
-    c1 = qhat * den0;
-    c2 = rhat * b + num0;
+    c1   = qhat * den0;
+    c2   = rhat * b + num0;
     if (c1 > c2) qhat -= (c1 - c2 > y) ? 2 : 1;
     q0 = (u32)qhat;
 
@@ -1069,8 +1187,7 @@ constexpr u64 s64_udiv_i128_s64(s128 x, u64 y, u64* r)
 
 /* s64_udiv_i128_i128 */
 
-constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
-{
+constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128 *r) {
     // Computes a 128 / 128 -> 64 bit division, with a 128 bit remainder.
     // zlib License: based on https://github.com/ridiculousfish/libdivide
 
@@ -1081,7 +1198,7 @@ constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
 
     // Normalize the divisor so its MSB is 1
     s128 v1t = i128_sll(v, n);
-    u64 v1 = v1t.hi;  // i.e. v1 = v1t >> 64
+    u64  v1  = v1t.hi;  // i.e. v1 = v1t >> 64
 
     // To ensure no overflow
     s128 u1 = i128_srl(u, 1);
@@ -1092,8 +1209,8 @@ constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
 
     // Undo normalization and division of u by 2.
     s128 q0 = i128_from_u64(q1);
-    q0 = i128_sll(q0, n);
-    q0 = i128_srl(q0, 63);
+    q0      = i128_sll(q0, n);
+    q0      = i128_srl(q0, 63);
 
     // Make q0 correct or too small by 1
     // Equivalent to `if (q0 != 0) q0 = q0 - 1;`
@@ -1110,8 +1227,8 @@ constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
     // Each term is 128 bit
     // High half of full product (upper 128 bits!) are dropped
     s128 q0v = i128_from_s64(0);
-    q0v.hi = (u64)q0.hi * v.lo + q0.lo * (u64)v.hi + s64_umulh_s64_s64(q0.lo, v.lo);
-    q0v.lo = q0.lo * v.lo;
+    q0v.hi   = (u64)q0.hi * v.lo + q0.lo * (u64)v.hi + s64_umulh_s64_s64(q0.lo, v.lo);
+    q0v.lo   = q0.lo * v.lo;
 
     // Compute u - q0v as u_q0v
     // This is the remainder
@@ -1141,22 +1258,19 @@ constexpr u64 s64_udiv_i128_i128(s128 u, s128 v, s128* r)
 
 /* __int128_t implementation */
 
-constexpr s128 i128_from_s64(s64 n)
-{
+constexpr s128 i128_from_s64(s64 n) {
     s128 x;
     x.m = n;
     return x;
 }
 
-constexpr s128 i128_from_u64(u64 n)
-{
+constexpr s128 i128_from_u64(u64 n) {
     s128 x;
     x.m = n;
     return x;
 }
 
-constexpr s128 i128_from_uv64(u64* v)
-{
+constexpr s128 i128_from_uv64(u64 *v) {
     s128 x;
 #if ENDIAN == LITTLE_ENDIAN
     x.m = (__uint128_t)v[0] | (__uint128_t)v[1] << 64;
@@ -1167,138 +1281,108 @@ constexpr s128 i128_from_uv64(u64* v)
     return x;
 }
 
-constexpr s128 i128_not(s128 u)
-{
+constexpr s128 i128_not(s128 u) {
     s128 x;
     x.m = ~u.m;
     return x;
 }
 
-constexpr s128 i128_and(s128 u, s128 v)
-{
+constexpr s128 i128_and(s128 u, s128 v) {
     s128 x;
     x.m = u.m & v.m;
     return x;
 }
 
-constexpr s128 i128_or(s128 u, s128 v)
-{
+constexpr s128 i128_or(s128 u, s128 v) {
     s128 x;
     x.m = u.m | v.m;
     return x;
 }
 
-constexpr s128 i128_xor(s128 u, s128 v)
-{
+constexpr s128 i128_xor(s128 u, s128 v) {
     s128 x;
     x.m = u.m ^ v.m;
     return x;
 }
 
-constexpr s128 i128_sll(s128 u, u32 shamt)
-{
+constexpr s128 i128_sll(s128 u, u32 shamt) {
     s128 x;
     x.m = u.m << shamt;
     return x;
 }
 
-constexpr s128 i128_srl(s128 u, u32 shamt)
-{
+constexpr s128 i128_srl(s128 u, u32 shamt) {
     s128 x;
     x.m = (__uint128_t)u.m >> shamt;
     return x;
 }
 
-constexpr s128 i128_sra(s128 u, u32 shamt)
-{
+constexpr s128 i128_sra(s128 u, u32 shamt) {
     s128 x;
     x.m = (__int128_t)u.m >> shamt;
     return x;
 }
 
-constexpr s128 i128_neg(s128 u)
-{
+constexpr s128 i128_neg(s128 u) {
     s128 x;
     x.m = -u.m;
     return x;
 }
 
-constexpr s128 i128_add(s128 u, s128 v)
-{
+constexpr s128 i128_add(s128 u, s128 v) {
     s128 x;
     x.m = u.m + v.m;
     return x;
 }
 
-constexpr s128 i128_sub(s128 u, s128 v)
-{
+constexpr s128 i128_sub(s128 u, s128 v) {
     s128 x;
     x.m = u.m - v.m;
     return x;
 }
 
-constexpr s128 i128_mul(s128 u, s128 v)
-{
+constexpr s128 i128_mul(s128 u, s128 v) {
     s128 x;
-    u64 us, vs, rs;
+    u64  us, vs, rs;
 
-    x = i128_mulu(u, v);
-    us = u.hi & (1LL << 63);
-    vs = v.hi & (1LL << 63);
-    rs = us ^ vs;
+    x    = i128_mulu(u, v);
+    us   = u.hi & (1LL << 63);
+    vs   = v.hi & (1LL << 63);
+    rs   = us ^ vs;
     x.hi = (x.hi & ((1ULL << 63) - 1)) | rs;
 
     return x;
 }
 
-constexpr s128 i128_mulu(s128 u, s128 v)
-{
+constexpr s128 i128_mulu(s128 u, s128 v) {
     s128 x;
     x.m = (__uint128_t)u.m * (__uint128_t)v.m;
     return x;
 }
 
-constexpr s128 i128_divmodu(s128 u, s128 v, s128* r)
-{
+constexpr s128 i128_divmodu(s128 u, s128 v, s128 *r) {
     s128 q;
-    q.m = (__uint128_t)u.m / (__uint128_t)v.m;
+    q.m  = (__uint128_t)u.m / (__uint128_t)v.m;
     r->m = (__uint128_t)u.m % (__uint128_t)v.m;
     return q;
 }
 
-constexpr int i128_cmp_eq(s128 u, s128 v)
-{
-    return u.m == v.m;
-}
+constexpr int i128_cmp_eq(s128 u, s128 v) { return u.m == v.m; }
 
-constexpr int i128_cmp_lt(s128 u, s128 v)
-{
-    return (__int128_t)u.m < (__int128_t)v.m;
-}
+constexpr int i128_cmp_lt(s128 u, s128 v) { return (__int128_t)u.m < (__int128_t)v.m; }
 
-constexpr int i128_cmp_gt(s128 u, s128 v)
-{
-    return (__int128_t)u.m > (__int128_t)v.m;
-}
+constexpr int i128_cmp_gt(s128 u, s128 v) { return (__int128_t)u.m > (__int128_t)v.m; }
 
-constexpr int i128_cmp_ltu(s128 u, s128 v)
-{
-    return (__uint128_t)u.m < (__uint128_t)v.m;
-}
+constexpr int i128_cmp_ltu(s128 u, s128 v) { return (__uint128_t)u.m < (__uint128_t)v.m; }
 
-constexpr int i128_cmp_gtu(s128 u, s128 v)
-{
-    return (__uint128_t)u.m > (__uint128_t)v.m;
-}
+constexpr int i128_cmp_gtu(s128 u, s128 v) { return (__uint128_t)u.m > (__uint128_t)v.m; }
 
-constexpr int i128_cmp_t(s128 u, s128 v)
-{
+constexpr int i128_cmp_t(s128 u, s128 v) {
     __int128_t x = u.m - v.m;
     return -(x < 0) + (x > 0);
 }
 
-constexpr int i128_cmp_tu(s128 u, s128 v)
-{
+constexpr int i128_cmp_tu(s128 u, s128 v) {
     __uint128_t x = u.m - v.m;
     return -(x > u.m) + (x < u.m);
 }
@@ -1307,24 +1391,21 @@ constexpr int i128_cmp_tu(s128 u, s128 v)
 
 /* s128 64-bit implementation */
 
-constexpr s128 i128_from_s64(s64 n)
-{
+constexpr s128 i128_from_s64(s64 n) {
     s128 x;
     x.lo = n;
     x.hi = (n >> 63);
     return x;
 }
 
-constexpr s128 i128_from_u64(u64 n)
-{
+constexpr s128 i128_from_u64(u64 n) {
     s128 x;
     x.lo = n;
     x.hi = 0;
     return x;
 }
 
-constexpr s128 i128_from_uv64(u64* v)
-{
+constexpr s128 i128_from_uv64(u64 *v) {
     s128 x;
 #if ENDIAN == LITTLE_ENDIAN
     x.lo = v[0];
@@ -1337,50 +1418,43 @@ constexpr s128 i128_from_uv64(u64* v)
     return x;
 }
 
-constexpr s128 i128_not(s128 u)
-{
+constexpr s128 i128_not(s128 u) {
     s128 x;
     x.lo = ~u.lo;
     x.hi = ~u.hi;
     return x;
 }
 
-constexpr s128 i128_and(s128 u, s128 v)
-{
+constexpr s128 i128_and(s128 u, s128 v) {
     s128 x;
     x.lo = u.lo & v.lo;
     x.hi = u.hi & v.hi;
     return x;
 }
 
-constexpr s128 i128_or(s128 u, s128 v)
-{
+constexpr s128 i128_or(s128 u, s128 v) {
     s128 x;
     x.lo = u.lo | v.lo;
     x.hi = u.hi | v.hi;
     return x;
 }
 
-constexpr s128 i128_xor(s128 u, s128 v)
-{
+constexpr s128 i128_xor(s128 u, s128 v) {
     s128 x;
     x.lo = u.lo ^ v.lo;
     x.hi = u.hi ^ v.hi;
     return x;
 }
 
-constexpr s128 i128_sll(s128 u, u32 shamt)
-{
+constexpr s128 i128_sll(s128 u, u32 shamt) {
     s128 x;
     if (shamt == 0) {
         x.lo = u.lo;
         x.hi = u.hi;
-    }
-    else if (shamt < 64) {
+    } else if (shamt < 64) {
         x.lo = (u64)(u.lo << shamt);
         x.hi = (u64)(u.hi << shamt) | ((u64)u.lo >> (64 - shamt));
-    }
-    else {
+    } else {
         shamt -= 64;
         x.lo = 0;
         x.hi = (u64)(u.lo << shamt);
@@ -1388,18 +1462,16 @@ constexpr s128 i128_sll(s128 u, u32 shamt)
     return x;
 }
 
-constexpr s128 i128_srl(s128 u, u32 shamt)
-{
+constexpr s128 i128_srl(s128 u, u32 shamt) {
     s128 x;
     if (shamt == 0) {
         x.lo = u.lo;
         x.hi = u.hi;
-    }
-    else if (shamt < 64) {
-        x.lo = ((u64)u.lo >> shamt) | ((u64)u.hi << (64 - shamt));;
+    } else if (shamt < 64) {
+        x.lo = ((u64)u.lo >> shamt) | ((u64)u.hi << (64 - shamt));
+        ;
         x.hi = ((u64)u.hi >> shamt);
-    }
-    else {
+    } else {
         shamt -= 64;
         x.lo = ((u64)u.hi >> shamt);
         x.hi = 0;
@@ -1407,18 +1479,15 @@ constexpr s128 i128_srl(s128 u, u32 shamt)
     return x;
 }
 
-constexpr s128 i128_sra(s128 u, u32 shamt)
-{
+constexpr s128 i128_sra(s128 u, u32 shamt) {
     s128 x;
     if (shamt == 0) {
         x.lo = u.lo;
         x.hi = u.hi;
-    }
-    else if (shamt < 64) {
+    } else if (shamt < 64) {
         x.lo = ((u64)u.lo >> shamt) | ((u64)u.hi << (64 - shamt));
         x.hi = ((s64)u.hi >> shamt);
-    }
-    else {
+    } else {
         shamt -= 64;
         x.lo = ((s64)u.hi >> shamt);
         x.hi = ((s64)u.hi >> 63);
@@ -1426,135 +1495,102 @@ constexpr s128 i128_sra(s128 u, u32 shamt)
     return x;
 }
 
-constexpr s128 i128_neg(s128 u)
-{
+constexpr s128 i128_neg(s128 u) {
     s128 x;
     x.lo = -(s64)u.lo;
     x.hi = -(s64)u.hi - !!x.lo;
     return x;
 }
 
-constexpr s128 i128_add(s128 u, s128 v)
-{
+constexpr s128 i128_add(s128 u, s128 v) {
     s128 x;
     x.lo = u.lo + v.lo;
     x.hi = u.hi + v.hi + (x.lo < u.lo);
     return x;
 }
 
-constexpr s128 i128_sub(s128 u, s128 v)
-{
+constexpr s128 i128_sub(s128 u, s128 v) {
     s128 x;
     x.lo = u.lo - v.lo;
     x.hi = u.hi - v.hi - (x.lo > u.lo);
     return x;
 }
 
-constexpr s128 i128_mul(s128 u, s128 v)
-{
+constexpr s128 i128_mul(s128 u, s128 v) {
     s128 x;
-    u64 us, vs, rs;
+    u64  us, vs, rs;
 
-    x = i128_mulu(u, v);
-    us = u.hi & (1LL << 63);
-    vs = v.hi & (1LL << 63);
-    rs = us ^ vs;
+    x    = i128_mulu(u, v);
+    us   = u.hi & (1LL << 63);
+    vs   = v.hi & (1LL << 63);
+    rs   = us ^ vs;
     x.hi = (x.hi & ((1ULL << 63) - 1)) | rs;
 
     return x;
 }
 
-constexpr s128 i128_mulu(s128 u, s128 v)
-{
+constexpr s128 i128_mulu(s128 u, s128 v) {
     s128 x;
-    u64 x0 = u.lo;
-    u64 x1 = u.hi;
-    u64 y0 = v.lo;
-    u64 y1 = v.hi;
-    x = i128_umul_s64_s64(x0, y0);
+    u64  x0 = u.lo;
+    u64  x1 = u.hi;
+    u64  y0 = v.lo;
+    u64  y1 = v.hi;
+    x       = i128_umul_s64_s64(x0, y0);
     x.hi += x0 * y1 + x1 * y0;
     return x;
 }
 
-constexpr int i128_cmp_eq(s128 u, s128 v)
-{
-    return (u.hi == v.hi && u.lo == v.lo);
-}
+constexpr int i128_cmp_eq(s128 u, s128 v) { return (u.hi == v.hi && u.lo == v.lo); }
 
-constexpr int i128_cmp_lt(s128 u, s128 v)
-{
-    return ((s64)u.hi < (s64)v.hi || (u.hi == v.hi && u.lo < v.lo));
-}
+constexpr int i128_cmp_lt(s128 u, s128 v) { return ((s64)u.hi < (s64)v.hi || (u.hi == v.hi && u.lo < v.lo)); }
 
-constexpr int i128_cmp_gt(s128 u, s128 v)
-{
-    return ((s64)u.hi > (s64)v.hi || (u.hi == v.hi && u.lo > v.lo));
-}
+constexpr int i128_cmp_gt(s128 u, s128 v) { return ((s64)u.hi > (s64)v.hi || (u.hi == v.hi && u.lo > v.lo)); }
 
-constexpr int i128_cmp_ltu(s128 u, s128 v)
-{
-    return ((u64)u.hi < (u64)v.hi || (u.hi == v.hi && u.lo < v.lo));
-}
+constexpr int i128_cmp_ltu(s128 u, s128 v) { return ((u64)u.hi < (u64)v.hi || (u.hi == v.hi && u.lo < v.lo)); }
 
-constexpr int i128_cmp_gtu(s128 u, s128 v)
-{
-    return ((u64)u.hi > (u64)v.hi || (u.hi == v.hi && u.lo > v.lo));
-}
+constexpr int i128_cmp_gtu(s128 u, s128 v) { return ((u64)u.hi > (u64)v.hi || (u.hi == v.hi && u.lo > v.lo)); }
 
-constexpr int i128_cmp_t(s128 u, s128 v)
-{
-    return ((s64)u.hi > (s64)v.hi || (u.hi == v.hi && u.lo > v.lo))
-        - ((s64)u.hi < (s64)v.hi || (u.hi == v.hi && u.lo < v.lo));
-}
+constexpr int i128_cmp_t(s128 u, s128 v) { return ((s64)u.hi > (s64)v.hi || (u.hi == v.hi && u.lo > v.lo)) - ((s64)u.hi < (s64)v.hi || (u.hi == v.hi && u.lo < v.lo)); }
 
-constexpr int i128_cmp_tu(s128 u, s128 v)
-{
-    return ((u64)u.hi > (u64)v.hi || (u.hi == v.hi && u.lo > v.lo))
-        - ((u64)u.hi < (u64)v.hi || (u.hi == v.hi && u.lo < v.lo));
-}
+constexpr int i128_cmp_tu(s128 u, s128 v) { return ((u64)u.hi > (u64)v.hi || (u.hi == v.hi && u.lo > v.lo)) - ((u64)u.hi < (u64)v.hi || (u.hi == v.hi && u.lo < v.lo)); }
 
 #endif
 
 /* 128-bit signed divmod layered on unsigned divmod */
 
-constexpr s128 i128_divmod(s128 u, s128 v, s128* r)
-{
+constexpr s128 i128_divmod(s128 u, s128 v, s128 *r) {
     s128 q, us, vs, rs;
 
     us = i128_sra(u, 127);
     vs = i128_sra(v, 127);
     rs = i128_xor(us, vs);
-    u = i128_sub(i128_xor(u, us), us);
-    v = i128_sub(i128_xor(v, vs), vs);
-    q = i128_sub(i128_xor(i128_divmodu(u, v, r), rs), rs);
+    u  = i128_sub(i128_xor(u, us), us);
+    v  = i128_sub(i128_xor(v, vs), vs);
+    q  = i128_sub(i128_xor(i128_divmodu(u, v, r), rs), rs);
     *r = i128_sub(i128_xor(*r, us), us);
 
     return q;
 }
 
-constexpr s128 i128_div(s128 u, s128 v)
-{
+constexpr s128 i128_div(s128 u, s128 v) {
     s128 q, r;
     q = i128_divmod(u, v, &r);
     return q;
 }
 
-constexpr s128 i128_divu(s128 u, s128 v)
-{
+constexpr s128 i128_divu(s128 u, s128 v) {
     s128 q, r;
     q = i128_divmodu(u, v, &r);
     return q;
 }
 
-constexpr s128 i128_rem(s128 u, s128 v)
-{
+constexpr s128 i128_rem(s128 u, s128 v) {
     s128 q, r;
     q = i128_divmod(u, v, &r);
     return r;
 }
 
-constexpr s128 i128_remu(s128 u, s128 v)
-{
+constexpr s128 i128_remu(s128 u, s128 v) {
     s128 q, r;
     q = i128_divmodu(u, v, &r);
     return r;
@@ -1562,104 +1598,75 @@ constexpr s128 i128_remu(s128 u, s128 v)
 
 /* 128-bit downcasts */
 
-constexpr s64 s64_from_i128(s128 n)
-{
-    return (s64)n.lo;
-}
+constexpr s64 s64_from_i128(s128 n) { return (s64)n.lo; }
 
-constexpr u64 u64_from_i128(s128 n)
-{
-    return (u64)n.lo;
-}
+constexpr u64 u64_from_i128(s128 n) { return (u64)n.lo; }
 
-constexpr u64* uv64_from_i128(s128* v)
-{
-    return v->n;
-}
+constexpr u64 *uv64_from_i128(s128 *v) { return v->n; }
 
-constexpr u32 i128_ctz(s128 u)
-{
+constexpr u32 i128_ctz(s128 u) {
     int n = ctz(u.lo);
     if (n == 64) n += ctz(u.hi);
     return n;
 }
 
-constexpr u32 i128_clz(s128 u)
-{
+constexpr u32 i128_clz(s128 u) {
     int n = clz(u.hi);
     if (n == 64) n += clz(u.lo);
     return n;
 }
 
-constexpr u32 i128_popcnt(s128 u)
-{
-    return popcnt(u.lo) + popcnt(u.hi);
-}
+constexpr u32 i128_popcnt(s128 u) { return popcnt(u.lo) + popcnt(u.hi); }
 
-constexpr s128 i128_bswap(s128 u)
-{
+constexpr s128 i128_bswap(s128 u) {
     s128 x;
     x.lo = bswap64(u.hi);
     x.hi = bswap64(u.lo);
     return x;
 }
 
-constexpr u8 i8_brev(u8 u)
-{
+constexpr u8 i8_brev(u8 u) {
     // Reverse the bits in a byte with 4 operations (64-bit multiply, no division):
     // Source: Stanford Bit Twiddling Hacks
     // https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64Bits
     return (u8)(((u * 0x80200802ULL) & 0x0884422110ULL) * 0x0101010101ULL >> 32);
 }
 
-constexpr s128 i128_brev(s128 u)
-{
+constexpr s128 i128_brev(s128 u) {
     s128 r = 0;
-    for (unsigned i = 0; i < 16; i++) {
-        r.b[i] = (u8)i8_brev(u.b[15 - i]);
-    }
+    for (unsigned i = 0; i < 16; i++) { r.b[i] = (u8)i8_brev(u.b[15 - i]); }
     return r;
 }
 
 #define INT128_MAX ((s128{0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF}))
-#define INT128_MIN (s128{(s64) 0x8000000000000000, 0x0000000000000000})
+#define INT128_MIN (s128{(s64)0x8000000000000000, 0x0000000000000000})
 
 #define UINT128_MAX ((u128{0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF}))
 
-namespace internal
-{
+namespace internal {
 #if COMPILER == MSVC
 #pragma intrinsic(_BitScanReverse64)
 
-    extern "C" unsigned char __cdecl _BitScanReverse64(unsigned long* _Index,
-        unsigned __int64 _Mask);
+extern "C" unsigned char __cdecl _BitScanReverse64(unsigned long *_Index, unsigned __int64 _Mask);
 #endif
 
 #if OS == WINDOWS
-    inline s32 msb(u64 x)
-    {
-        unsigned long r = 0;
-        return _BitScanReverse64(&r, x) ? ((s32)r) : -1;
-    }
+inline s32 msb(u64 x) {
+    unsigned long r = 0;
+    return _BitScanReverse64(&r, x) ? ((s32)r) : -1;
+}
 #elif OS == LINUX || OS == MACOS
-    inline s32 msb(u64 x)
-    {
-        if (x == 0)
-        {
-            return -1;
-        }
-        // __builtin_clzll counts the leading zeros in the 64-bit integer x
-        // Since we want the index of the most significant bit, we subtract the
-        // count of leading zeros from 63 (the index of the highest bit in a 64-bit value)
-        return 63 - __builtin_clzll(x);
-    }
+inline s32 msb(u64 x) {
+    if (x == 0) { return -1; }
+    // __builtin_clzll counts the leading zeros in the 64-bit integer x
+    // Since we want the index of the most significant bit, we subtract the
+    // count of leading zeros from 63 (the index of the highest bit in a 64-bit value)
+    return 63 - __builtin_clzll(x);
+}
 #endif
 
-    inline s32 msb(s128 x)
-    {
-        return i128_clz(x);
-    }
-} // namespace internal
+inline s32 msb(s128 x) { return i128_clz(x); }
+}  // namespace internal
 
 //
 // Defines unions to access different bits of a
@@ -1668,15 +1675,13 @@ namespace internal
 
 LSTD_BEGIN_NAMESPACE
 
-union ieee754_f32
-{
-    f32 F;  // FLOAT
-    u32 W;  // WORD
-    s32 SW; // Signed WORD
+union ieee754_f32 {
+    f32 F;   // FLOAT
+    u32 W;   // WORD
+    s32 SW;  // Signed WORD
 
     // This is the IEEE 754 single-precision format.
-    struct
-    {
+    struct {
 #if ENDIAN == BIG_ENDIAN
         u32 S : 1;
         u32 E : 8;
@@ -1689,8 +1694,7 @@ union ieee754_f32
     } ieee;
 
     // This format makes it easier to see if a NaN is a signalling NaN.
-    struct
-    {
+    struct {
 #if ENDIAN == BIG_ENDIAN
         u32 S : 1;
         u32 E : 8;
@@ -1705,14 +1709,12 @@ union ieee754_f32
     } ieee_nan;
 };
 
-union ieee754_f64
-{
-    f64 F;   // FLOAT
-    u64 DW;  // DWORD
-    s64 SDW; // Signed DWORD
+union ieee754_f64 {
+    f64 F;    // FLOAT
+    u64 DW;   // DWORD
+    s64 SDW;  // Signed DWORD
 
-    struct
-    {
+    struct {
 #if ENDIAN == BIG_ENDIAN
         u32 MSW;
         u32 LSW;
@@ -1723,8 +1725,7 @@ union ieee754_f64
     };
 
     // This is the IEEE 754 single-precision format.
-    struct
-    {
+    struct {
 #if ENDIAN == BIG_ENDIAN
         u32 S : 1;
         u32 E : 11;
@@ -1739,8 +1740,7 @@ union ieee754_f64
     } ieee;
 
     // This format makes it easier to see if a NaN is a signalling NaN.
-    struct
-    {
+    struct {
 #if ENDIAN == BIG_ENDIAN
         u32 S : 1;
         u32 E : 11;
@@ -1768,285 +1768,281 @@ LSTD_END_NAMESPACE
 
 LSTD_BEGIN_NAMESPACE
 
-namespace internal
-{
-    struct numeric_base
-    {
-        static constexpr bool is_integral = false;
-        static constexpr s32 digits = 0;
-        static constexpr s32 digits10 = 0;
-        static constexpr s32 max_digits10 = 0;
-    };
+namespace internal {
+struct numeric_base {
+    static constexpr bool is_integral  = false;
+    static constexpr s32  digits       = 0;
+    static constexpr s32  digits10     = 0;
+    static constexpr s32  max_digits10 = 0;
+};
 
-    struct numeric_integer_base : numeric_base
-    {
-        static constexpr bool is_integral = true;
-    };
-} // namespace internal
+struct numeric_integer_base : numeric_base {
+    static constexpr bool is_integral = true;
+};
+}  // namespace internal
 
 template <typename T>
-struct numeric : public internal::numeric_base
-{
+struct numeric : public internal::numeric_base {
     using value_t = T;
 };
 
 // Const/volatile variations of numeric.
 template <typename T>
-struct numeric<const T> : public numeric<T>
-{
-};
+struct numeric<const T> : public numeric<T> {};
+
 template <typename T>
-struct numeric<volatile T> : public numeric<T>
-{
-};
+struct numeric<volatile T> : public numeric<T> {};
+
 template <typename T>
-struct numeric<const volatile T> : public numeric<T>
-{
-};
+struct numeric<const volatile T> : public numeric<T> {};
 
 template <>
-struct numeric<char> : public internal::numeric_integer_base
-{
+struct numeric<char> : public internal::numeric_integer_base {
     static constexpr char min() { return (-128); }
+
     static constexpr char max() { return (127); }
 
-    static constexpr s32 digits = 8;
+    static constexpr s32 digits   = 8;
     static constexpr s32 digits10 = 2;
 };
 
 template <>
-struct numeric<wchar_t> : public internal::numeric_integer_base
-{
+struct numeric<wchar_t> : public internal::numeric_integer_base {
     static constexpr wchar_t min() { return 0x0000; }
+
     static constexpr wchar_t max() { return 0xffff; }
 
-    static constexpr s32 digits = 16;
+    static constexpr s32 digits   = 16;
     static constexpr s32 digits10 = 4;
 };
 
 template <>
-struct numeric<bool> : public internal::numeric_integer_base
-{
+struct numeric<bool> : public internal::numeric_integer_base {
     // limits for type bool
     static constexpr bool min() { return false; }
+
     static constexpr bool max() { return true; }
 
     static constexpr s32 digits = 1;
 };
 
 template <>
-struct numeric<u8> : public internal::numeric_integer_base
-{
+struct numeric<u8> : public internal::numeric_integer_base {
     static constexpr u8 min() { return 0; }
+
     static constexpr u8 max() { return (255); }
 
-    static constexpr s32 digits = 8;
+    static constexpr s32 digits   = 8;
     static constexpr s32 digits10 = 2;
 };
 
 template <>
-struct numeric<s16> : public internal::numeric_integer_base
-{
+struct numeric<s16> : public internal::numeric_integer_base {
     static constexpr s16 min() { return (-32768); }
+
     static constexpr s16 max() { return (32767); }
 
-    static constexpr s32 digits = 15;
+    static constexpr s32 digits   = 15;
     static constexpr s32 digits10 = 4;
 };
 
 #ifdef _NATIVE_WCHAR_T_DEFINED
 template <>
-struct numeric<u16> : public internal::numeric_integer_base
-{
+struct numeric<u16> : public internal::numeric_integer_base {
     static constexpr u16 min() { return 0; }
+
     static constexpr u16 max() { return (65535); }
 
-    static constexpr s32 digits = 16;
+    static constexpr s32 digits   = 16;
     static constexpr s32 digits10 = 4;
 };
 #endif
 
 template <>
-struct numeric<unsigned short> : public internal::numeric_integer_base
-{
+struct numeric<unsigned short> : public internal::numeric_integer_base {
     static constexpr u16 min() { return 0; }
+
     static constexpr u16 max() { return (65535); }
 
-    static constexpr s32 digits = 16;
+    static constexpr s32 digits   = 16;
     static constexpr s32 digits10 = 4;
 };
 
 template <>
-struct numeric<char8_t> : public internal::numeric_integer_base
-{
+struct numeric<char8_t> : public internal::numeric_integer_base {
     static constexpr char8_t min() { return 0; }
+
     static constexpr char8_t max() { return (255); }
 
-    static constexpr s32 digits = 8;
+    static constexpr s32 digits   = 8;
     static constexpr s32 digits10 = 2;
 };
 
 template <>
-struct numeric<char16_t> : public internal::numeric_integer_base
-{
+struct numeric<char16_t> : public internal::numeric_integer_base {
     static constexpr char16_t min() { return 0; }
+
     static constexpr char16_t max() { return (65535); }
 
-    static constexpr s32 digits = 16;
+    static constexpr s32 digits   = 16;
     static constexpr s32 digits10 = 4;
 };
 
 template <>
-struct numeric<s32> : public internal::numeric_integer_base
-{
+struct numeric<s32> : public internal::numeric_integer_base {
     static constexpr s32 min() { return (-2147483647 - 1); }
+
     static constexpr s32 max() { return (2147483647); }
 
-    static constexpr s32 digits = 31;
+    static constexpr s32 digits   = 31;
     static constexpr s32 digits10 = 9;
 };
 
 template <>
-struct numeric<u32> : public internal::numeric_integer_base
-{
+struct numeric<u32> : public internal::numeric_integer_base {
     static constexpr u32 min() { return 0; }
+
     static constexpr u32 max() { return (4294967295U); }
 
-    static constexpr s32 digits = 32;
+    static constexpr s32 digits   = 32;
     static constexpr s32 digits10 = 9;
 };
 
 template <>
-struct numeric<char32_t> : public internal::numeric_integer_base
-{
-public:
+struct numeric<char32_t> : public internal::numeric_integer_base {
+   public:
     static constexpr char32_t min() { return 0; }
+
     static constexpr char32_t max() { return (4294967295U); }
 
-    static constexpr s32 digits = 32;
+    static constexpr s32 digits   = 32;
     static constexpr s32 digits10 = 9;
 };
 
 template <>
-struct numeric<s64> : public internal::numeric_integer_base
-{
+struct numeric<s64> : public internal::numeric_integer_base {
     static constexpr s64 min() { return (-9223372036854775807L - 1); }
+
     static constexpr s64 max() { return (9223372036854775807L); }
 
-    static constexpr s32 digits = 63;
+    static constexpr s32 digits   = 63;
     static constexpr s32 digits10 = 18;
 };
 
 template <>
-struct numeric<long> : public internal::numeric_integer_base
-{
+struct numeric<long> : public internal::numeric_integer_base {
     static constexpr s64 min() { return (-9223372036854775807L - 1); }
+
     static constexpr s64 max() { return (9223372036854775807L); }
 
-    static constexpr s32 digits = 63;
+    static constexpr s32 digits   = 63;
     static constexpr s32 digits10 = 18;
 };
 
 template <>
-struct numeric<u64> : public internal::numeric_integer_base
-{
-public:
+struct numeric<u64> : public internal::numeric_integer_base {
+   public:
     static constexpr u64 min() { return 0; }
+
     static constexpr u64 max() { return (18446744073709551615ULL); }
 
-    static constexpr s32 digits = 64;
+    static constexpr s32 digits   = 64;
     static constexpr s32 digits10 = 19;
 };
 
 template <>
-struct numeric<unsigned long> : public internal::numeric_integer_base
-{
-public:
+struct numeric<unsigned long> : public internal::numeric_integer_base {
+   public:
     static constexpr u64 min() { return 0; }
+
     static constexpr u64 max() { return (18446744073709551615ULL); }
 
-    static constexpr s32 digits = 64;
+    static constexpr s32 digits   = 64;
     static constexpr s32 digits10 = 19;
 };
 
 template <>
-struct numeric<f32>
-{
-public:
+struct numeric<f32> {
+   public:
     static constexpr f32 min() { return 1.175494351e-38F; }
+
     static constexpr f32 max() { return 3.402823466e+38F; }
-    static constexpr f32 epsilon()
-    {
-        return 1.192092896e-07F;
-    } // smallest suchthat 1.0 + epsilon != 1.0
+
+    static constexpr f32 epsilon() { return 1.192092896e-07F; }  // smallest suchthat 1.0 + epsilon != 1.0
+
     static constexpr f32 round_error() { return 0.5F; }
+
     static constexpr f32 denorm_min() { return 1.401298464e-45F; }
+
     static constexpr f32 infinity() { return __builtin_huge_valf(); }
+
     static constexpr f32 quiet_NaN() { return __builtin_nanf("0"); }
+
     static constexpr f32 signaling_NaN() { return __builtin_nansf("1"); }
 
-    static constexpr s32 digits = 23 + 1;  // including the hidden bit
-    static constexpr s32 digits10 = 6;     // # of decimal digits of precision
-    static constexpr s32 max_digits10 = 9; // # of decimal digits of precision
-    static constexpr s32 max_exponent = 127;
+    static constexpr s32 digits         = 23 + 1;  // including the hidden bit
+    static constexpr s32 digits10       = 6;       // # of decimal digits of precision
+    static constexpr s32 max_digits10   = 9;       // # of decimal digits of precision
+    static constexpr s32 max_exponent   = 127;
     static constexpr s32 max_exponent10 = 38;
-    static constexpr s32 min_exponent = -126;
+    static constexpr s32 min_exponent   = -126;
     static constexpr s32 min_exponent10 = -37;
-    static constexpr s32 bits_mantissa =
-        23; // # of bits in mantissa, excluding the hidden bit (which is always
+    static constexpr s32 bits_mantissa  = 23;  // # of bits in mantissa, excluding the hidden bit (which is always
     // interpreted as 1 for normal numbers)
-    static constexpr s32 bits_exponent = 8;
-    static constexpr s32 exponent_bias = 127;
+    static constexpr s32 bits_exponent  = 8;
+    static constexpr s32 exponent_bias  = 127;
 };
 
 template <>
-struct numeric<f64>
-{
-public:
+struct numeric<f64> {
+   public:
     static constexpr f64 min() { return 2.2250738585072014e-308; }
+
     static constexpr f64 max() { return 1.7976931348623158e+308; }
-    static constexpr f64 epsilon()
-    {
-        return 2.2204460492503131e-016;
-    } // smalles such that 1.0 + epsilon != 1.0
+
+    static constexpr f64 epsilon() { return 2.2204460492503131e-016; }  // smalles such that 1.0 + epsilon != 1.0
+
     static constexpr f64 round_error() { return 0.5; }
+
     static constexpr f64 denorm_min() { return 4.9406564584124654e-324; }
+
     static constexpr f64 infinity() { return __builtin_huge_val(); }
+
     static constexpr f64 quiet_NaN() { return __builtin_nan("0"); }
+
     static constexpr f64 signaling_NaN() { return __builtin_nans("1"); }
 
-    static constexpr s32 digits = 52 + 1;   // including the hidden bit
-    static constexpr s32 digits10 = 15;     // # of decimal digits of precision
-    static constexpr s32 max_digits10 = 17; // # of decimal digits of precision
-    static constexpr s32 max_exponent = 1023;
+    static constexpr s32 digits         = 52 + 1;  // including the hidden bit
+    static constexpr s32 digits10       = 15;      // # of decimal digits of precision
+    static constexpr s32 max_digits10   = 17;      // # of decimal digits of precision
+    static constexpr s32 max_exponent   = 1023;
     static constexpr s32 max_exponent10 = 308;
-    static constexpr s32 min_exponent = -1022;
+    static constexpr s32 min_exponent   = -1022;
     static constexpr s32 min_exponent10 = -307;
-    static constexpr s32 bits_mantissa =
-        52; // number of bits in mantissa,excluding the hidden bit (which is
+    static constexpr s32 bits_mantissa  = 52;  // number of bits in mantissa,excluding the hidden bit (which is
     // always interpreted as 1 for normalnumbers)
-    static constexpr s32 bits_exponent = 11;
-    static constexpr s32 exponent_bias = 1023;
+    static constexpr s32 bits_exponent  = 11;
+    static constexpr s32 exponent_bias  = 1023;
 };
 
 template <>
-struct numeric<u128> : public internal::numeric_integer_base
-{
-public:
+struct numeric<u128> : public internal::numeric_integer_base {
+   public:
     static u128 min() { return 0; }
+
     static u128 max() { return u128(U64_MAX, U64_MAX); }
 
-    static constexpr s32 digits = 128;
+    static constexpr s32 digits   = 128;
     static constexpr s32 digits10 = 38;
 };
 
 template <>
-struct numeric<s128> : public internal::numeric_integer_base
-{
+struct numeric<s128> : public internal::numeric_integer_base {
     static s128 min() { return s128(numeric<s64>::min(), 0); }
+
     static s128 max() { return s128(numeric<s64>::max(), U64_MAX); }
 
-    static constexpr s32 digits = 127;
+    static constexpr s32 digits   = 127;
     static constexpr s32 digits10 = 38;
 };
 
@@ -2056,9 +2052,9 @@ LSTD_END_NAMESPACE
 // Define va_list and related macros if the C runtime is not being used
 //
 #if defined LSTD_NO_CRT
-#define va_start __crt_va_start
-#define va_arg __crt_va_arg
-#define va_end __crt_va_end
+#define va_start                     __crt_va_start
+#define va_arg                       __crt_va_arg
+#define va_end                       __crt_va_end
 #define va_copy(destination, source) ((destination) = (source))
 #endif
 
@@ -2068,276 +2064,151 @@ LSTD_END_NAMESPACE
 //
 
 #if defined LSTD_NO_CRT
-namespace std
-{
-    using literal_zero = decltype(null);
+namespace std {
+using literal_zero = decltype(null);
 
-    // These "pretty" enumerator names are safe since they reuse names of
-    // user-facing entities.
-    enum class compare_result_eq : char
-    {
-        EQUAL = 0
-    }; // -0.0 is equal to +0.0
+// These "pretty" enumerator names are safe since they reuse names of
+// user-facing entities.
+enum class compare_result_eq : char { EQUAL = 0 };  // -0.0 is equal to +0.0
 
-    enum class compare_result_ord : char
-    {
-        LESS = -1,
-        GREATER = 1
-    };
+enum class compare_result_ord : char { LESS = -1, GREATER = 1 };
 
-    enum class compare_result_unord : char
-    {
-        UNORDERED = -127
-    };
+enum class compare_result_unord : char { UNORDERED = -127 };
 
-    struct partial_ordering
-    {
-        char Value;
+struct partial_ordering {
+    char Value;
 
-        explicit partial_ordering(const compare_result_eq value)
-            : Value((char)value) {
-        }
-        explicit partial_ordering(const compare_result_ord value)
-            : Value((char)value) {
-        }
-        explicit partial_ordering(const compare_result_unord value)
-            : Value((char)value) {
-        }
+    explicit partial_ordering(const compare_result_eq value) : Value((char)value) {}
 
-        static const partial_ordering less;
-        static const partial_ordering equivalent;
-        static const partial_ordering greater;
-        static const partial_ordering unordered;
+    explicit partial_ordering(const compare_result_ord value) : Value((char)value) {}
 
-        friend bool operator==(const partial_ordering&,
-            const partial_ordering&) = default;
+    explicit partial_ordering(const compare_result_unord value) : Value((char)value) {}
 
-        bool is_ordered() const
-        {
-            return Value != (char)compare_result_unord::UNORDERED;
-        }
-    };
+    static const partial_ordering less;
+    static const partial_ordering equivalent;
+    static const partial_ordering greater;
+    static const partial_ordering unordered;
 
-    inline const partial_ordering partial_ordering::less(compare_result_ord::LESS);
-    inline const partial_ordering partial_ordering::equivalent(
-        compare_result_eq::EQUAL);
-    inline const partial_ordering partial_ordering::greater(
-        compare_result_ord::GREATER);
-    inline const partial_ordering partial_ordering::unordered(
-        compare_result_unord::UNORDERED);
+    friend bool operator==(const partial_ordering &, const partial_ordering &) = default;
 
-    inline bool operator==(const partial_ordering value, literal_zero)
-    {
-        return value.Value == 0;
-    }
+    bool is_ordered() const { return Value != (char)compare_result_unord::UNORDERED; }
+};
 
-    inline bool operator<(const partial_ordering value, literal_zero)
-    {
-        return value.Value == (char)compare_result_ord::LESS;
-    }
-    inline bool operator<(literal_zero, const partial_ordering value)
-    {
-        return 0 < value.Value;
-    }
+inline const partial_ordering partial_ordering::less(compare_result_ord::LESS);
+inline const partial_ordering partial_ordering::equivalent(compare_result_eq::EQUAL);
+inline const partial_ordering partial_ordering::greater(compare_result_ord::GREATER);
+inline const partial_ordering partial_ordering::unordered(compare_result_unord::UNORDERED);
 
-    inline bool operator>(const partial_ordering value, literal_zero)
-    {
-        return value.Value > 0;
-    }
-    inline bool operator>(literal_zero, const partial_ordering value)
-    {
-        return 0 > value.Value && value.is_ordered();
-    }
+inline bool operator==(const partial_ordering value, literal_zero) { return value.Value == 0; }
 
-    inline bool operator<=(const partial_ordering value, literal_zero)
-    {
-        return value.Value <= 0 && value.is_ordered();
-    }
-    inline bool operator<=(literal_zero, const partial_ordering value)
-    {
-        return 0 <= value.Value;
-    }
+inline bool operator<(const partial_ordering value, literal_zero) { return value.Value == (char)compare_result_ord::LESS; }
 
-    inline bool operator>=(const partial_ordering value, literal_zero)
-    {
-        return value.Value >= 0;
-    }
-    inline bool operator>=(literal_zero, const partial_ordering value)
-    {
-        return 0 >= value.Value && value.is_ordered();
-    }
+inline bool operator<(literal_zero, const partial_ordering value) { return 0 < value.Value; }
 
-    inline partial_ordering operator<=>(const partial_ordering value,
-        literal_zero)
-    {
-        return value;
-    }
-    inline partial_ordering operator<=>(literal_zero,
-        const partial_ordering value)
-    {
-        return partial_ordering{ (compare_result_ord)-value.Value };
-    }
+inline bool operator>(const partial_ordering value, literal_zero) { return value.Value > 0; }
 
-    struct weak_ordering
-    {
-        char Value;
+inline bool operator>(literal_zero, const partial_ordering value) { return 0 > value.Value && value.is_ordered(); }
 
-        explicit weak_ordering(const compare_result_eq value) : Value((char)value) {}
-        explicit weak_ordering(const compare_result_ord value) : Value((char)value) {}
+inline bool operator<=(const partial_ordering value, literal_zero) { return value.Value <= 0 && value.is_ordered(); }
 
-        static const weak_ordering less;
-        static const weak_ordering equivalent;
-        static const weak_ordering greater;
+inline bool operator<=(literal_zero, const partial_ordering value) { return 0 <= value.Value; }
 
-        operator partial_ordering() const
-        {
-            return partial_ordering{ (compare_result_ord)Value };
-        }
+inline bool operator>=(const partial_ordering value, literal_zero) { return value.Value >= 0; }
 
-        friend bool operator==(const weak_ordering&,
-            const weak_ordering&) = default;
-    };
+inline bool operator>=(literal_zero, const partial_ordering value) { return 0 >= value.Value && value.is_ordered(); }
 
-    inline const weak_ordering weak_ordering::less(compare_result_ord::LESS);
-    inline const weak_ordering weak_ordering::equivalent(compare_result_eq::EQUAL);
-    inline const weak_ordering weak_ordering::greater(compare_result_ord::GREATER);
+inline partial_ordering operator<=>(const partial_ordering value, literal_zero) { return value; }
 
-    inline bool operator==(const weak_ordering value, literal_zero)
-    {
-        return value.Value == 0;
-    }
+inline partial_ordering operator<=>(literal_zero, const partial_ordering value) { return partial_ordering{(compare_result_ord)-value.Value}; }
 
-    inline bool operator<(const weak_ordering value, literal_zero)
-    {
-        return value.Value < 0;
-    }
-    inline bool operator<(literal_zero, const weak_ordering value)
-    {
-        return 0 < value.Value;
-    }
+struct weak_ordering {
+    char Value;
 
-    inline bool operator>(const weak_ordering value, literal_zero)
-    {
-        return value.Value > 0;
-    }
-    inline bool operator>(literal_zero, const weak_ordering value)
-    {
-        return 0 > value.Value;
-    }
+    explicit weak_ordering(const compare_result_eq value) : Value((char)value) {}
 
-    inline bool operator<=(const weak_ordering value, literal_zero)
-    {
-        return value.Value <= 0;
-    }
-    inline bool operator<=(literal_zero, const weak_ordering value)
-    {
-        return 0 <= value.Value;
-    }
+    explicit weak_ordering(const compare_result_ord value) : Value((char)value) {}
 
-    inline bool operator>=(const weak_ordering value, literal_zero)
-    {
-        return value.Value >= 0;
-    }
-    inline bool operator>=(literal_zero, const weak_ordering value)
-    {
-        return 0 >= value.Value;
-    }
+    static const weak_ordering less;
+    static const weak_ordering equivalent;
+    static const weak_ordering greater;
 
-    inline weak_ordering operator<=>(const weak_ordering value, literal_zero)
-    {
-        return value;
-    }
-    inline weak_ordering operator<=>(literal_zero, const weak_ordering value)
-    {
-        return weak_ordering{ (compare_result_ord)-value.Value };
-    }
+    operator partial_ordering() const { return partial_ordering{(compare_result_ord)Value}; }
 
-    struct strong_ordering
-    {
-        char Value;
+    friend bool operator==(const weak_ordering &, const weak_ordering &) = default;
+};
 
-        explicit strong_ordering(const compare_result_eq value)
-            : Value((char)value) {
-        }
-        explicit strong_ordering(const compare_result_ord value)
-            : Value((char)value) {
-        }
+inline const weak_ordering weak_ordering::less(compare_result_ord::LESS);
+inline const weak_ordering weak_ordering::equivalent(compare_result_eq::EQUAL);
+inline const weak_ordering weak_ordering::greater(compare_result_ord::GREATER);
 
-        static const strong_ordering less;
-        static const strong_ordering equal;
-        static const strong_ordering equivalent;
-        static const strong_ordering greater;
+inline bool operator==(const weak_ordering value, literal_zero) { return value.Value == 0; }
 
-        operator weak_ordering() const
-        {
-            return weak_ordering{ (compare_result_ord)Value };
-        }
-        operator partial_ordering() const
-        {
-            return partial_ordering{ (compare_result_ord)Value };
-        }
+inline bool operator<(const weak_ordering value, literal_zero) { return value.Value < 0; }
 
-        friend bool operator==(const strong_ordering&,
-            const strong_ordering&) = default;
-    };
+inline bool operator<(literal_zero, const weak_ordering value) { return 0 < value.Value; }
 
-    inline const strong_ordering strong_ordering::less(compare_result_ord::LESS);
-    inline const strong_ordering strong_ordering::equal(compare_result_eq::EQUAL);
-    inline const strong_ordering strong_ordering::equivalent(
-        compare_result_eq::EQUAL);
-    inline const strong_ordering strong_ordering::greater(
-        compare_result_ord::GREATER);
+inline bool operator>(const weak_ordering value, literal_zero) { return value.Value > 0; }
 
-    inline bool operator==(const strong_ordering value, literal_zero)
-    {
-        return value.Value == 0;
-    }
+inline bool operator>(literal_zero, const weak_ordering value) { return 0 > value.Value; }
 
-    inline bool operator<(const strong_ordering value, literal_zero)
-    {
-        return value.Value < 0;
-    }
-    inline bool operator<(literal_zero, const strong_ordering value)
-    {
-        return 0 < value.Value;
-    }
+inline bool operator<=(const weak_ordering value, literal_zero) { return value.Value <= 0; }
 
-    inline bool operator>(const strong_ordering value, literal_zero)
-    {
-        return value.Value > 0;
-    }
-    inline bool operator>(literal_zero, const strong_ordering value)
-    {
-        return 0 > value.Value;
-    }
+inline bool operator<=(literal_zero, const weak_ordering value) { return 0 <= value.Value; }
 
-    inline bool operator<=(const strong_ordering value, literal_zero)
-    {
-        return value.Value <= 0;
-    }
-    inline bool operator<=(literal_zero, const strong_ordering value)
-    {
-        return 0 <= value.Value;
-    }
+inline bool operator>=(const weak_ordering value, literal_zero) { return value.Value >= 0; }
 
-    inline bool operator>=(const strong_ordering value, literal_zero)
-    {
-        return value.Value >= 0;
-    }
-    inline bool operator>=(literal_zero, const strong_ordering value)
-    {
-        return 0 >= value.Value;
-    }
+inline bool operator>=(literal_zero, const weak_ordering value) { return 0 >= value.Value; }
 
-    inline strong_ordering operator<=>(const strong_ordering value, literal_zero)
-    {
-        return value;
-    }
-    inline strong_ordering operator<=>(literal_zero, const strong_ordering value)
-    {
-        return strong_ordering{ (compare_result_ord)(-value.Value) };
-    }
-} // namespace std
+inline weak_ordering operator<=>(const weak_ordering value, literal_zero) { return value; }
+
+inline weak_ordering operator<=>(literal_zero, const weak_ordering value) { return weak_ordering{(compare_result_ord)-value.Value}; }
+
+struct strong_ordering {
+    char Value;
+
+    explicit strong_ordering(const compare_result_eq value) : Value((char)value) {}
+
+    explicit strong_ordering(const compare_result_ord value) : Value((char)value) {}
+
+    static const strong_ordering less;
+    static const strong_ordering equal;
+    static const strong_ordering equivalent;
+    static const strong_ordering greater;
+
+    operator weak_ordering() const { return weak_ordering{(compare_result_ord)Value}; }
+
+    operator partial_ordering() const { return partial_ordering{(compare_result_ord)Value}; }
+
+    friend bool operator==(const strong_ordering &, const strong_ordering &) = default;
+};
+
+inline const strong_ordering strong_ordering::less(compare_result_ord::LESS);
+inline const strong_ordering strong_ordering::equal(compare_result_eq::EQUAL);
+inline const strong_ordering strong_ordering::equivalent(compare_result_eq::EQUAL);
+inline const strong_ordering strong_ordering::greater(compare_result_ord::GREATER);
+
+inline bool operator==(const strong_ordering value, literal_zero) { return value.Value == 0; }
+
+inline bool operator<(const strong_ordering value, literal_zero) { return value.Value < 0; }
+
+inline bool operator<(literal_zero, const strong_ordering value) { return 0 < value.Value; }
+
+inline bool operator>(const strong_ordering value, literal_zero) { return value.Value > 0; }
+
+inline bool operator>(literal_zero, const strong_ordering value) { return 0 > value.Value; }
+
+inline bool operator<=(const strong_ordering value, literal_zero) { return value.Value <= 0; }
+
+inline bool operator<=(literal_zero, const strong_ordering value) { return 0 <= value.Value; }
+
+inline bool operator>=(const strong_ordering value, literal_zero) { return value.Value >= 0; }
+
+inline bool operator>=(literal_zero, const strong_ordering value) { return 0 >= value.Value; }
+
+inline strong_ordering operator<=>(const strong_ordering value, literal_zero) { return value; }
+
+inline strong_ordering operator<=>(literal_zero, const strong_ordering value) { return strong_ordering{(compare_result_ord)(-value.Value)}; }
+}  // namespace std
 #else
 #include <compare>
 #endif
@@ -2345,15 +2216,14 @@ namespace std
 LSTD_BEGIN_NAMESPACE
 
 using partial_ordering = std::partial_ordering;
-using weak_ordering = std::weak_ordering;
-using strong_ordering = std::strong_ordering;
+using weak_ordering    = std::weak_ordering;
+using strong_ordering  = std::strong_ordering;
 
-enum comparison_category : char
-{
-    COMPARISON_CATEGORY_NONE = 1,
+enum comparison_category : char {
+    COMPARISON_CATEGORY_NONE    = 1,
     COMPARISON_CATEGORY_PARTIAL = 2,
-    COMPARISON_CATEGORY_WEAK = 4,
-    COMPARISON_CATEGORY_STRONG = 0,
+    COMPARISON_CATEGORY_WEAK    = 4,
+    COMPARISON_CATEGORY_STRONG  = 0,
 };
 
 // template <typename... Types>
@@ -2365,16 +2235,13 @@ template <typename T>
 inline unsigned char comparison_category_of = COMPARISON_CATEGORY_NONE;
 
 template <>
-inline unsigned char comparison_category_of<partial_ordering> =
-COMPARISON_CATEGORY_PARTIAL;
+inline unsigned char comparison_category_of<partial_ordering> = COMPARISON_CATEGORY_PARTIAL;
 
 template <>
-inline unsigned char comparison_category_of<weak_ordering> =
-COMPARISON_CATEGORY_WEAK;
+inline unsigned char comparison_category_of<weak_ordering> = COMPARISON_CATEGORY_WEAK;
 
 template <>
-inline unsigned char comparison_category_of<strong_ordering> =
-COMPARISON_CATEGORY_STRONG;
+inline unsigned char comparison_category_of<strong_ordering> = COMPARISON_CATEGORY_STRONG;
 
 LSTD_END_NAMESPACE
 
@@ -2383,36 +2250,33 @@ LSTD_END_NAMESPACE
 //
 #if defined LSTD_NO_CRT
 
-namespace std
-{
-    template <typename T>
-    struct initializer_list
-    {
-        using value_type = T;
-        using reference = const T&;
-        using const_reference = const T&;
-        using size_type = size_t;
+namespace std {
+template <typename T>
+struct initializer_list {
+    using value_type      = T;
+    using reference       = const T &;
+    using const_reference = const T &;
+    using size_type       = size_t;
 
-        initializer_list() noexcept {}
+    initializer_list() noexcept {}
 
-        initializer_list(const T* first, const T* last) noexcept
-            : First(first), Last(last) {
-        }
+    initializer_list(const T *first, const T *last) noexcept : First(first), Last(last) {}
 
-        using iterator = const T*;
-        using const_iterator = const T*;
+    using iterator       = const T *;
+    using const_iterator = const T *;
 
-        const T* begin() const noexcept { return First; }
-        const T* end() const noexcept { return Last; }
+    const T *begin() const noexcept { return First; }
 
-        size_t size() const noexcept { return static_cast<size_t>(Last - First); }
+    const T *end() const noexcept { return Last; }
 
-        // private in order to be compatible with std::
-    private:
-        const T* First = null;
-        const T* Last = null;
-    };
-} // namespace std
+    size_t size() const noexcept { return static_cast<size_t>(Last - First); }
+
+    // private in order to be compatible with std::
+   private:
+    const T *First = null;
+    const T *Last  = null;
+};
+}  // namespace std
 #else
 #include <initializer_list>
 #endif
@@ -2432,23 +2296,19 @@ LSTD_END_NAMESPACE
 
 // @Platform Compiles on MSVC only. @Robustness Not fully compatible with
 // std::source_location (missing column info).
-struct source_location
-{
-    const char* File = "Unknown";
-    const char* Function = "Unknown";
-    int Line = 0;
+struct source_location {
+    const char *File     = "Unknown";
+    const char *Function = "Unknown";
+    int         Line     = 0;
 
     constexpr source_location() {}
 
     // Uses built-in compiler functions.
-    static consteval source_location current(
-        const char* file = __builtin_FILE(),
-        const char* func = __builtin_FUNCTION(), int line = __builtin_LINE())
-    {
+    static consteval source_location current(const char *file = __builtin_FILE(), const char *func = __builtin_FUNCTION(), int line = __builtin_LINE()) {
         source_location loc;
-        loc.File = file;
+        loc.File     = file;
         loc.Function = func;
-        loc.Line = line;
+        loc.Line     = line;
         return loc;
     }
 };
@@ -2465,9 +2325,9 @@ LSTD_BEGIN_NAMESPACE
 
 // LINE_NAME appends the line number to x, used in macros to get "unique"
 // variable names.
-#define LINE_NAME(name) _MACRO_CONCAT(name, __LINE__)
+#define LINE_NAME(name)          _MACRO_CONCAT(name, __LINE__)
 #define _MACRO_DO_CONCAT(s1, s2) s1##s2
-#define _MACRO_CONCAT(s1, s2) _MACRO_DO_CONCAT(s1, s2)
+#define _MACRO_CONCAT(s1, s2)    _MACRO_DO_CONCAT(s1, s2)
 
 //
 // Go-style defer statement
@@ -2481,12 +2341,10 @@ LSTD_BEGIN_NAMESPACE
 //
 #undef defer
 
-struct Defer_Dummy
-{
-};
+struct Defer_Dummy {};
+
 template <typename F>
-struct Deferrer
-{
+struct Deferrer {
     F Func;
 
     // We don't call destructors in free() (take a look at context.h), but they
@@ -2494,14 +2352,16 @@ struct Deferrer
     // called on a stack variable anyway.
     ~Deferrer() { Func(); }
 };
+
 template <typename F>
-Deferrer<F> operator*(Defer_Dummy, F func)
-{
-    return { func };
+Deferrer<F> operator*(Defer_Dummy, F func) {
+    return {func};
 }
 
-#define defer(x) \
-    auto LINE_NAME(LSTD_defer) = LSTD_NAMESPACE::Defer_Dummy{} * [&]() { x; }
+#define defer(x)                                                         \
+    auto LINE_NAME(LSTD_defer) = LSTD_NAMESPACE::Defer_Dummy{} * [&]() { \
+        x;                                                               \
+    }
 
 #define defer_to_exit(x) atexit([]() { x; })
 
@@ -2518,7 +2378,7 @@ LSTD_END_NAMESPACE
 //      modify_array(mut a);
 //
 #define no_copy const &
-#define ref &
+#define ref     &
 #define mut
 
 // Used to mark functions for which the caller is supposed to free the result.
@@ -2574,40 +2434,36 @@ LSTD_BEGIN_NAMESPACE
 // You can change the names of the internal
 // variables by using _For_enumerate_as_.
 //
-#define For_enumerate_as(it_index, it, in) \
-    for (auto [it_index, it] : LSTD_NAMESPACE::enumerate_impl(in))
-#define For_enumerate(in) For_enumerate_as(it_index, it, in)
+#define For_enumerate_as(it_index, it, in) for (auto [it_index, it] : LSTD_NAMESPACE::enumerate_impl(in))
+#define For_enumerate(in)                  For_enumerate_as(it_index, it, in)
 
-template <typename T, typename TIter = decltype(T().begin()),
-    typename = decltype(T().end())>
-auto enumerate_impl(T no_copy in)
-{
-    struct iterator
-    {
-        s64 I;
+template <typename T, typename TIter = decltype(T().begin()), typename = decltype(T().end())>
+auto enumerate_impl(T no_copy in) {
+    struct iterator {
+        s64   I;
         TIter Iter;
 
         bool operator!=(iterator no_copy other) const { return Iter != other.Iter; }
+
         void operator++() { ++I, ++Iter; }
 
-        struct dereference_result
-        {
-            s64 Index;
+        struct dereference_result {
+            s64                  Index;
             decltype(*(TIter())) Value;
         };
 
-        auto operator*() const { return dereference_result{ I, *Iter }; }
+        auto operator*() const { return dereference_result{I, *Iter}; }
     };
 
-    struct iterable_wrapper
-    {
+    struct iterable_wrapper {
         T Iterable;
 
-        auto begin() { return iterator{ 0, Iterable.begin() }; }
-        auto end() { return iterator{ 0, Iterable.end() }; }
+        auto begin() { return iterator{0, Iterable.begin()}; }
+
+        auto end() { return iterator{0, Iterable.end()}; }
     };
 
-    return iterable_wrapper{ in };
+    return iterable_wrapper{in};
 }
 
 LSTD_END_NAMESPACE
@@ -2621,133 +2477,104 @@ LSTD_BEGIN_NAMESPACE
  * @tparam T The type of the integral constant.
  * @tparam Value The value of the integral constant.
  */
-    template <typename T, T Value>
-struct integral_constant
-{
+template <typename T, T Value>
+struct integral_constant {
     static const T value = Value;
 
     using value_t = T;
-    using type = integral_constant<T, Value>;
+    using type    = integral_constant<T, Value>;
 
     operator value_t() const { return value; }
+
     value_t operator()() const { return value; }
 };
 
 /// @brief A type alias equivalent to integral_constant<bool, true>
-using true_t = integral_constant<bool, true>;
+using true_t  = integral_constant<bool, true>;
 /// @brief A type alias equivalent to integral_constant<bool, false>
 using false_t = integral_constant<bool, false>;
 
-namespace internal
-{
-    template <typename T>
-    struct is_const_helper_1 : false_t
-    {
-    };
-    template <typename T>
-    struct is_const_helper_1<volatile T*> : true_t
-    {
-    };
-    template <typename T>
-    struct is_const_helper_1<const volatile T*> : true_t
-    {
-    };
-    template <typename T>
-    struct is_const_helper_2 : is_const_helper_1<T*>
-    {
-    };
-    template <typename T>
-    struct is_const_helper_2<T&> : false_t
-    {
-    }; // Note here that Tis const, not the reference to T. So is_const is false.
+namespace internal {
+template <typename T>
+struct is_const_helper_1 : false_t {};
 
-    template <typename, typename>
-    bool is_same_template_helper = false;
-    template <template <typename...> typename T, typename... A, typename... B>
-    bool is_same_template_helper<T<A...>, T<B...>> = true;
+template <typename T>
+struct is_const_helper_1<volatile T *> : true_t {};
 
-    template <typename T, typename U>
-    struct same_helper : false_t
-    {
-    };
-    template <typename T>
-    struct same_helper<T, T> : true_t
-    {
-    };
+template <typename T>
+struct is_const_helper_1<const volatile T *> : true_t {};
 
-    template <typename T>
-    struct type_identity
-    {
-        using type = T;
-    };
+template <typename T>
+struct is_const_helper_2 : is_const_helper_1<T *> {};
 
-    template <typename T>
-    auto try_add_lvalue_reference(int) -> type_identity<T&>;
-    template <typename T>
-    auto try_add_lvalue_reference(...) -> type_identity<T>;
+template <typename T>
+struct is_const_helper_2<T &> : false_t {};  // Note here that Tis const, not the reference to T. So is_const is false.
 
-    template <typename>
-    struct is_function_helper : false_t
-    {
-    };
-    template <typename R, typename... Args>
-    struct is_function_helper<R(Args...)> : true_t
-    {
-    };
-    template <typename R, typename... Args>
-    struct is_function_helper<R(Args..., ...)> : true_t
-    {
-    };
-    template <typename T>
-    struct is_pointer_helper : false_t
-    {
-    };
-    template <typename T>
-    struct is_pointer_helper<T*> : true_t
-    {
-    };
+template <typename, typename>
+bool is_same_template_helper = false;
+template <template <typename...> typename T, typename... A, typename... B>
+bool is_same_template_helper<T<A...>, T<B...>> = true;
 
-    template <typename T>
-    struct is_member_pointer_helper : false_t
-    {
-    };
-    template <typename T, typename U>
-    struct is_member_pointer_helper<T U::*> : true_t
-    {
-    };
+template <typename T, typename U>
+struct same_helper : false_t {};
 
-    template <typename T>
-    struct is_array_helper : false_t
-    {
-    };
-    template <typename T>
-    struct is_array_helper<T[]> : true_t
-    {
-    };
-    template <typename T, int N>
-    struct is_array_helper<T[N]> : true_t
-    {
-    };
-} // namespace internal
+template <typename T>
+struct same_helper<T, T> : true_t {};
+
+template <typename T>
+struct type_identity {
+    using type = T;
+};
+
+template <typename T>
+auto try_add_lvalue_reference(int) -> type_identity<T &>;
+template <typename T>
+auto try_add_lvalue_reference(...) -> type_identity<T>;
+
+template <typename>
+struct is_function_helper : false_t {};
+
+template <typename R, typename... Args>
+struct is_function_helper<R(Args...)> : true_t {};
+
+template <typename R, typename... Args>
+struct is_function_helper<R(Args..., ...)> : true_t {};
+
+template <typename T>
+struct is_pointer_helper : false_t {};
+
+template <typename T>
+struct is_pointer_helper<T *> : true_t {};
+
+template <typename T>
+struct is_member_pointer_helper : false_t {};
+
+template <typename T, typename U>
+struct is_member_pointer_helper<T U::*> : true_t {};
+
+template <typename T>
+struct is_array_helper : false_t {};
+
+template <typename T>
+struct is_array_helper<T[]> : true_t {};
+
+template <typename T, int N>
+struct is_array_helper<T[N]> : true_t {};
+}  // namespace internal
 
 /**
  * @brief A struct used to denote a special template argument that means it's an
  * unused argument.
  */
-struct unused
-{
-};
+struct unused {};
 
-template <bool Condition, typename ConditionIsTrueType,
-    typename ConditionIsFalseType>
-struct type_select
-{
+template <bool Condition, typename ConditionIsTrueType, typename ConditionIsFalseType>
+struct type_select {
     using type = ConditionIsTrueType;
 };
 
 template <typename ConditionIsTrueType, typename ConditionIsFalseType>
-struct type_select<false, ConditionIsTrueType, ConditionIsFalseType>
-{
+struct type_select<false, ConditionIsTrueType, ConditionIsFalseType> {
     using type = ConditionIsFalseType;
 };
 
@@ -2767,14 +2594,11 @@ struct type_select<false, ConditionIsTrueType, ConditionIsFalseType>
  * @tparam ConditionIsTrueType The type to select if `Condition` is true.
  * @tparam ConditionIsFalseType The type to select if `Condition` is false.
  */
-template <bool Condition, typename ConditionIsTrueType,
-    typename ConditionIsFalseType>
-using type_select_t = typename type_select<Condition, ConditionIsTrueType,
-    ConditionIsFalseType>::type;
+template <bool Condition, typename ConditionIsTrueType, typename ConditionIsFalseType>
+using type_select_t = typename type_select<Condition, ConditionIsTrueType, ConditionIsFalseType>::type;
 
 template <typename T, typename = unused, typename = unused>
-struct first_type_select
-{
+struct first_type_select {
     using type = T;
 };
 
@@ -2835,53 +2659,52 @@ template <typename T>
 concept is_const = internal::is_const_helper_2<T>::value;
 
 template <typename T>
-struct remove_cv
-{
+struct remove_cv {
     using type = T;
 };
+
 template <typename T>
-struct remove_cv<const T>
-{
+struct remove_cv<const T> {
     using type = T;
 };
+
 template <typename T>
-struct remove_cv<const T[]>
-{
+struct remove_cv<const T[]> {
     using type = T[];
 };
+
 template <typename T, s64 N>
-struct remove_cv<const T[N]>
-{
+struct remove_cv<const T[N]> {
     using type = T[N];
 };
+
 template <typename T>
-struct remove_cv<volatile T>
-{
+struct remove_cv<volatile T> {
     using type = T;
 };
+
 template <typename T>
-struct remove_cv<volatile T[]>
-{
+struct remove_cv<volatile T[]> {
     using type = T[];
 };
+
 template <typename T, s64 N>
-struct remove_cv<volatile T[N]>
-{
+struct remove_cv<volatile T[N]> {
     using type = T[N];
 };
+
 template <typename T>
-struct remove_cv<const volatile T>
-{
+struct remove_cv<const volatile T> {
     using type = T;
 };
+
 template <typename T>
-struct remove_cv<const volatile T[]>
-{
+struct remove_cv<const volatile T[]> {
     using type = T[];
 };
+
 template <typename T, s64 N>
-struct remove_cv<const volatile T[N]>
-{
+struct remove_cv<const volatile T[N]> {
     using type = T[N];
 };
 
@@ -2890,18 +2713,17 @@ template <typename T>
 using remove_cv_t = typename remove_cv<T>::type;
 
 template <typename T>
-struct remove_ref
-{
+struct remove_ref {
     using type = T;
 };
+
 template <typename T>
-struct remove_ref<T&>
-{
+struct remove_ref<T &> {
     using type = T;
 };
+
 template <typename T>
-struct remove_ref<T&&>
-{
+struct remove_ref<T &&> {
     using type = T;
 };
 
@@ -2915,10 +2737,7 @@ template <typename T>
 using remove_ref_t = typename remove_ref<T>::type;
 
 template <typename T>
-struct add_lvalue_reference
-    : decltype(internal::try_add_lvalue_reference<T>(0))
-{
-};
+struct add_lvalue_reference : decltype(internal::try_add_lvalue_reference<T>(0)) {};
 
 /**
  * @brief Type alias to add an l-value reference to T.
@@ -2935,33 +2754,32 @@ template <typename T>
 using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
 
 template <typename T>
-struct add_rvalue_reference
-{
-    using type = T&&;
+struct add_rvalue_reference {
+    using type = T &&;
 };
+
 template <typename T>
-struct add_rvalue_reference<T&>
-{
-    using type = T&;
+struct add_rvalue_reference<T &> {
+    using type = T &;
 };
+
 template <>
-struct add_rvalue_reference<void>
-{
+struct add_rvalue_reference<void> {
     using type = void;
 };
+
 template <>
-struct add_rvalue_reference<const void>
-{
+struct add_rvalue_reference<const void> {
     using type = const void;
 };
+
 template <>
-struct add_rvalue_reference<volatile void>
-{
+struct add_rvalue_reference<volatile void> {
     using type = volatile void;
 };
+
 template <>
-struct add_rvalue_reference<const volatile void>
-{
+struct add_rvalue_reference<const volatile void> {
     using type = const volatile void;
 };
 
@@ -2990,8 +2808,7 @@ using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
  * @return A reference to T.
  */
 template <typename T>
-typename add_rvalue_reference<T>::type
-declval() noexcept; // It works with compiler magic I guess.
+typename add_rvalue_reference<T>::type declval() noexcept;  // It works with compiler magic I guess.
 
 /// @brief Concept to check if T is an integral type.
 template <typename T>
@@ -3031,8 +2848,7 @@ concept is_pointer = internal::is_pointer_helper<remove_cv_t<T>>::value;
 /// @brief Concept to check if T is a pointer to a member object or a member
 /// function.
 template <typename T>
-concept is_member_pointer =
-internal::is_member_pointer_helper<remove_cv_t<T>>::value;
+concept is_member_pointer = internal::is_member_pointer_helper<remove_cv_t<T>>::value;
 
 /**
  * @brief Concept to check if T is a scalar type.
@@ -3041,8 +2857,7 @@ internal::is_member_pointer_helper<remove_cv_t<T>>::value;
  * a member function pointer, or a null pointer type.
  */
 template <typename T>
-concept is_scalar = is_arithmetic<T> || is_enum<T> || is_pointer<T> ||
-is_member_pointer<T> || is_same<remove_cv_t<T>, decltype(null)>;
+concept is_scalar = is_arithmetic<T> || is_enum<T> || is_pointer<T> || is_member_pointer<T> || is_same<remove_cv_t<T>, decltype(null)>;
 
 /**
  * @brief Concept to check if a type is convertible to another type.
@@ -3072,8 +2887,7 @@ template <typename T, typename... Args>
 concept is_constructible = __is_constructible(T, Args...);
 
 template <typename T>
-struct underlying_type
-{
+struct underlying_type {
     using type = __underlying_type(T);
 };
 
@@ -3082,8 +2896,7 @@ template <typename T>
 using underlying_type_t = typename underlying_type<T>::type;
 
 template <typename T>
-struct remove_cvref
-{
+struct remove_cvref {
     using type = remove_cv_t<remove_ref_t<T>>;
 };
 
@@ -3097,32 +2910,30 @@ using remove_cvref_t = typename remove_cvref<T>::type;
 /// @brief Concept to check if the decayed versions of "T" and "U" are the same
 /// template type.
 template <typename T, typename U>
-concept is_same_template_decayed =
-is_same_template<remove_cvref_t<T>, remove_cvref_t<U>>;
+concept is_same_template_decayed = is_same_template<remove_cvref_t<T>, remove_cvref_t<U>>;
 
 template <typename T>
-struct remove_pointer
-{
+struct remove_pointer {
     using type = T;
 };
+
 template <typename T>
-struct remove_pointer<T*>
-{
+struct remove_pointer<T *> {
     using type = T;
 };
+
 template <typename T>
-struct remove_pointer<T* const>
-{
+struct remove_pointer<T *const> {
     using type = T;
 };
+
 template <typename T>
-struct remove_pointer<T* volatile>
-{
+struct remove_pointer<T *volatile> {
     using type = T;
 };
+
 template <typename T>
-struct remove_pointer<T* const volatile>
-{
+struct remove_pointer<T *const volatile> {
     using type = T;
 };
 
@@ -3131,9 +2942,8 @@ template <typename T>
 using remove_pointer_t = typename remove_pointer<T>::type;
 
 template <typename T>
-struct add_pointer
-{
-    using type = remove_ref_t<T>*;
+struct add_pointer {
+    using type = remove_ref_t<T> *;
 };
 
 // Adds a level of pointers to T
@@ -3144,18 +2954,17 @@ template <typename T>
 concept is_array = internal::is_array_helper<T>::value;
 
 template <typename T>
-struct remove_extent
-{
+struct remove_extent {
     using type = T;
 };
+
 template <typename T>
-struct remove_extent<T[]>
-{
+struct remove_extent<T[]> {
     using type = T;
 };
+
 template <typename T, s64 N>
-struct remove_extent<T[N]>
-{
+struct remove_extent<T[N]> {
     using type = T;
 };
 
@@ -3177,13 +2986,10 @@ template <typename T>
 using remove_extent_t = typename remove_extent<T>::type;
 
 template <typename T>
-struct decay
-{
+struct decay {
     using U = remove_ref_t<T>;
 
-    using type = type_select_t<
-        is_array<U>, remove_extent_t<U>*,
-        type_select_t<is_function<U>, add_pointer_t<U>, remove_cv_t<U>>>;
+    using type = type_select_t<is_array<U>, remove_extent_t<U> *, type_select_t<is_function<U>, add_pointer_t<U>, remove_cv_t<U>>>;
 };
 
 /**
@@ -3202,23 +3008,20 @@ using decay_t = typename decay<T>::type;
 
 template <typename... T>
 struct common_type;
+
 template <typename T>
-struct common_type<T>
-{
+struct common_type<T> {
     using type = decay_t<T>;
 };
 
 template <typename T, typename U>
-struct common_type<T, U>
-{
+struct common_type<T, U> {
     using type = decay_t<decltype(true ? declval<T>() : declval<U>())>;
 };
 
 template <typename T, typename U, typename... V>
-struct common_type<T, U, V...>
-{
-    using type =
-        typename common_type<typename common_type<T, U>::type, V...>::type;
+struct common_type<T, U, V...> {
+    using type = typename common_type<typename common_type<T, U>::type, V...>::type;
 };
 
 /**
@@ -3267,8 +3070,7 @@ concept is_same_decayed = internal::same_helper<decay_t<T>, decay_t<U>>::value;
  * @endcode
  */
 template <typename DestType, typename SourceType>
-DestType bit_cast(SourceType const& sourceValue)
-{
+DestType bit_cast(SourceType const &sourceValue) {
     static_assert(sizeof(DestType) == sizeof(SourceType));
     return __builtin_bit_cast(DestType, sourceValue);
 }
@@ -3292,8 +3094,7 @@ DestType bit_cast(SourceType const& sourceValue)
  * @endcode
  */
 template <typename T>
-const char* type_name()
-{
+const char *type_name() {
     return typeid(T).name();
 }
 
@@ -3306,17 +3107,15 @@ LSTD_END_NAMESPACE
 //  For(array) print(it);
 //
 #define For_as(x, in) for (auto &&x : in)
-#define For(in) For_as(it, in)
+#define For(in)       For_as(it, in)
 
 //
 // Loop that gets unrolled at compile-time, this avoids copy-pasta
 // or using macros in order to be sure the code gets unrolled properly.
 //
 template <s64 First, s64 Last, typename Lambda>
-void static_for(Lambda f)
-{
-    if constexpr (First < Last)
-    {
+void static_for(Lambda f) {
+    if constexpr (First < Last) {
         f(integral_constant<s64, First>{});
         static_for<First + 1, Last>(f);
     }
@@ -3348,75 +3147,73 @@ void static_for(Lambda f)
  *
  * In release, it gets optimized to have no overhead.
  */
-struct range
-{
-    struct iterator
-    {
+struct range {
+    struct iterator {
         s64 I, Step;
 
         iterator(s64 i, s64 step = 1) : I(i), Step(step) {}
 
         operator s32() const { return (s32)I; }
+
         operator s64() const { return I; }
 
         s64 operator*() const { return I; }
+
         iterator operator++() { return I += Step, *this; }
 
-        iterator operator++(s32)
-        {
+        iterator operator++(s32) {
             iterator temp(*this);
             return I += Step, temp;
         }
 
-        bool operator==(iterator other) const
-        {
-            return Step < 0 ? (I <= other.I) : (I >= other.I);
-        }
-        bool operator!=(iterator other) const
-        {
-            return Step < 0 ? (I > other.I) : (I < other.I);
-        }
+        bool operator==(iterator other) const { return Step < 0 ? (I <= other.I) : (I >= other.I); }
+
+        bool operator!=(iterator other) const { return Step < 0 ? (I > other.I) : (I < other.I); }
     };
 
     iterator Begin;
     iterator End;
 
     range(s64 start, s64 stop, s64 step) : Begin(start, step), End(stop) {}
+
     range(s64 start, s64 stop) : range(start, stop, 1) {}
+
     range(u64 stop) : range(0, stop, 1) {}
 
     // Checks if a value is inside the given range.
     // This also accounts for stepping.
-    bool has(s64 value) const
-    {
-        if (Begin.Step > 0 ? (value >= Begin.I && value < End.I)
-            : (value > End.I && value <= Begin.I))
-        {
+    bool has(s64 value) const {
+        if (Begin.Step > 0 ? (value >= Begin.I && value < End.I) : (value > End.I && value <= Begin.I)) {
             s64 diff = value - Begin.I;
-            if (diff % Begin.Step == 0)
-            {
-                return true;
-            }
+            if (diff % Begin.Step == 0) { return true; }
         }
         return false;
     }
 
     iterator begin() const { return Begin; }
+
     iterator end() const { return End; }
 };
 
 #if !defined(_SIZE_T)
 #if BITS == 32
-using size_t = u32;
+using size_t    = u32;
 using ptrdiff_t = s32;
-using intptr_t = s32;
+using intptr_t  = s32;
+using time_t    = s32;
+#else
+using size_t    = u64;
+using ptrdiff_t = s64;
+using intptr_t  = s64;
+using time_t    = s64;
+#endif
+#endif
+
+#define _TIME_T
+#if BITS == 32
 using time_t = s32;
 #else
-using size_t = u64;
-using ptrdiff_t = s64;
-using intptr_t = s64;
 using time_t = s64;
-#endif
 #endif
 
 using usize = size_t;
@@ -3433,7 +3230,7 @@ using usize = size_t;
 
 // https://tauday.com/tau-manifesto
 #define TAU 6.283185307179586476925286766559
-#define PI (TAU / 2)
+#define PI  (TAU / 2)
 
 //
 // If we aren't building with CRT then:
@@ -3470,82 +3267,63 @@ Copyright 1984, 1995, 2000 by Stephen L. Moshier
 LSTD_BEGIN_NAMESPACE
 
 inline bool sign_bit(is_signed_integral auto x) { return x < 0; }
+
 inline bool sign_bit(is_unsigned_integral auto) { return false; }
 
-inline bool sign_bit(f32 x) { return ieee754_f32{ x }.ieee.S; }
-inline bool sign_bit(f64 x) { return ieee754_f64{ x }.ieee.S; }
+inline bool sign_bit(f32 x) { return ieee754_f32{x}.ieee.S; }
+
+inline bool sign_bit(f64 x) { return ieee754_f64{x}.ieee.S; }
 
 // Returns -1 if x is negative, 1 otherwise
 inline s32 sign_no_zero(is_scalar auto x) { return sign_bit(x) ? -1 : 1; }
 
 // Returns -1 if x is negative, 1 if positive, 0 otherwise
-inline s32 sign(is_scalar auto x)
-{
-    if (x == decltype(x)(0))
-        return 0;
+inline s32 sign(is_scalar auto x) {
+    if (x == decltype(x)(0)) return 0;
     return sign_no_zero(x);
 }
 
 template <is_floating_point T>
-inline T copy_sign(T x, T y)
-{
-    if constexpr (sizeof(x) == sizeof(f32))
-    {
-        ieee754_f32 formatx = { x }, formaty = { y };
+inline T copy_sign(T x, T y) {
+    if constexpr (sizeof(x) == sizeof(f32)) {
+        ieee754_f32 formatx = {x}, formaty = {y};
         formatx.ieee.S = formaty.ieee.S;
         return formatx.F;
-    }
-    else
-    {
-        ieee754_f64 formatx = { x }, formaty = { y };
+    } else {
+        ieee754_f64 formatx = {x}, formaty = {y};
         formatx.ieee.S = formaty.ieee.S;
         return formatx.F;
     }
 }
 
-inline bool is_nan(is_floating_point auto x)
-{
-    if constexpr (sizeof(x) == sizeof(f32))
-    {
-        ieee754_f32 format = { x };
+inline bool is_nan(is_floating_point auto x) {
+    if constexpr (sizeof(x) == sizeof(f32)) {
+        ieee754_f32 format = {x};
         return format.ieee.E == 0xFF && format.ieee.M != 0;
-    }
-    else
-    {
-        ieee754_f64 format = { x };
-        return format.ieee.E == 0x7FF &&
-            (format.ieee.M0 != 0 || format.ieee.M1 != 0);
+    } else {
+        ieee754_f64 format = {x};
+        return format.ieee.E == 0x7FF && (format.ieee.M0 != 0 || format.ieee.M1 != 0);
     }
 }
 
-inline bool is_signaling_nan(is_floating_point auto x)
-{
-    if constexpr (sizeof(x) == sizeof(f32))
-        return is_nan(x) && ieee754_f32 { x }.ieee_nan.N == 0;
-    else
-        return is_nan(x) && ieee754_f64 { x }.ieee_nan.N == 0;
+inline bool is_signaling_nan(is_floating_point auto x) {
+    if constexpr (sizeof(x) == sizeof(f32)) return is_nan(x) && ieee754_f32{x}.ieee_nan.N == 0;
+    else return is_nan(x) && ieee754_f64{x}.ieee_nan.N == 0;
 }
 
-inline bool is_infinite(is_floating_point auto x)
-{
-    if constexpr (sizeof(x) == sizeof(f32))
-    {
-        ieee754_f32 format = { x };
+inline bool is_infinite(is_floating_point auto x) {
+    if constexpr (sizeof(x) == sizeof(f32)) {
+        ieee754_f32 format = {x};
         return format.ieee.E == 0xFF && format.ieee.M == 0;
-    }
-    else
-    {
-        ieee754_f64 format = { x };
+    } else {
+        ieee754_f64 format = {x};
         return format.ieee.E == 0x7FF && format.ieee.M0 == 0 && format.ieee.M1 == 0;
     }
 }
 
-inline bool is_finite(is_floating_point auto x)
-{
-    if constexpr (sizeof(x) == sizeof(f32))
-        return ieee754_f32{ x }.ieee.E != 0xFF;
-    else
-        return ieee754_f64{ x }.ieee.E != 0x7FF;
+inline bool is_finite(is_floating_point auto x) {
+    if constexpr (sizeof(x) == sizeof(f32)) return ieee754_f32{x}.ieee.E != 0xFF;
+    else return ieee754_f64{x}.ieee.E != 0x7FF;
 }
 
 /**
@@ -3565,39 +3343,27 @@ inline bool is_finite(is_floating_point auto x)
  */
 template <typename T, typename U>
 inline constexpr auto cast_numeric(U y)
-    requires(is_scalar<T>&& is_scalar<U>)
+    requires(is_scalar<T> && is_scalar<U>)
 {
 #if defined(LSTD_NUMERIC_CAST_CHECK)
-    if constexpr (is_integral<T> && is_integral<U>)
-    {
-        if constexpr (is_signed_integral<T> && is_unsigned_integral<U>)
-        {
-            if (y > static_cast<U>(numeric<T>::max()))
-            {
+    if constexpr (is_integral<T> && is_integral<U>) {
+        if constexpr (is_signed_integral<T> && is_unsigned_integral<U>) {
+            if (y > static_cast<U>(numeric<T>::max())) {
                 // Report error and assert
                 assert(false && "Overflow: unsigned to signed integer cast.");
             }
-        }
-        else if constexpr (is_unsigned_integral<T> && is_signed_integral<U>)
-        {
-            if (y > static_cast<U>(numeric<T>::max()) || y < 0)
-            {
+        } else if constexpr (is_unsigned_integral<T> && is_signed_integral<U>) {
+            if (y > static_cast<U>(numeric<T>::max()) || y < 0) {
                 // Report error and assert
                 assert(false && "Overflow: signed to unsigned integer cast.");
             }
-        }
-        else if constexpr (is_signed_integral<T> && is_signed_integral<U>)
-        {
-            if (y > numeric<T>::max() || y < numeric<T>::min())
-            {
+        } else if constexpr (is_signed_integral<T> && is_signed_integral<U>) {
+            if (y > numeric<T>::max() || y < numeric<T>::min()) {
                 // Report error and assert
                 assert(false && "Overflow: signed integer to signed integer cast.");
             }
-        }
-        else if constexpr (is_unsigned_integral<T> && is_unsigned_integral<U>)
-        {
-            if (y > numeric<T>::max())
-            {
+        } else if constexpr (is_unsigned_integral<T> && is_unsigned_integral<U>) {
+            if (y > numeric<T>::max()) {
                 // Report error and assert
                 assert(false && "Overflow: unsigned integer to unsigned integer cast.");
             }
@@ -3607,103 +3373,77 @@ inline constexpr auto cast_numeric(U y)
     return (T)y;
 }
 
-namespace internal
-{
-    constexpr auto min_(auto x, auto y)
-    {
-        auto y_casted = cast_numeric<decltype(x)>(y);
-        if constexpr (is_floating_point<decltype(x)>)
-        {
-            if (is_nan(x) || is_nan(y_casted))
-                return x + y_casted;
-        }
-        return x < y_casted ? x : y_casted;
+namespace internal {
+constexpr auto min_(auto x, auto y) {
+    auto y_casted = cast_numeric<decltype(x)>(y);
+    if constexpr (is_floating_point<decltype(x)>) {
+        if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
     }
+    return x < y_casted ? x : y_casted;
+}
 
-    constexpr auto max_(auto x, auto y)
-    {
-        auto y_casted = cast_numeric<decltype(x)>(y);
-        if constexpr (is_floating_point<decltype(x)>)
-        {
-            if (is_nan(x) || is_nan(y_casted))
-                return x + y_casted;
-        }
-        return x > y_casted ? x : y_casted;
+constexpr auto max_(auto x, auto y) {
+    auto y_casted = cast_numeric<decltype(x)>(y);
+    if constexpr (is_floating_point<decltype(x)>) {
+        if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
     }
-} // namespace internal
+    return x > y_casted ? x : y_casted;
+}
+}  // namespace internal
 
 template <is_scalar... Args>
-inline constexpr auto min(is_scalar auto x, Args... rest)
-{
+inline constexpr auto min(is_scalar auto x, Args... rest) {
     auto result = x;
     ((void)(result = internal::min_(result, rest)), ...);
     return result;
 }
 
 template <is_scalar... Args>
-inline constexpr auto max(is_scalar auto x, Args... rest)
-{
+inline constexpr auto max(is_scalar auto x, Args... rest) {
     auto result = x;
     ((void)(result = internal::max_(result, rest)), ...);
     return result;
 }
 
 // Returns lower if x < lower, return upper if x > upper, returns x otherwise
-inline auto clamp(auto x, auto lower, auto upper)
-{
-    return max(lower, min(upper, x));
-}
+inline auto clamp(auto x, auto lower, auto upper) { return max(lower, min(upper, x)); }
 
 // Checks if x is a power of 2
 inline bool is_pow_of_2(is_integral auto x) { return (x & x - 1) == 0; }
 
 // Returns the smallest power of 2 bigger or equal to x.
-inline auto ceil_pow_of_2(is_integral auto x)
-{
+inline auto ceil_pow_of_2(is_integral auto x) {
     using T = decltype(x);
 
-    if (x <= 1)
-        return (T)1;
+    if (x <= 1) return (T)1;
 
     T power = 2;
     --x;
-    while (x >>= 1)
-        power <<= 1;
+    while (x >>= 1) power <<= 1;
     return power;
 }
 
 // Returns 10 ** exp at compile-time. Uses recursion.
 template <typename T>
-inline T const_exp10(s32 exp)
-{
+inline T const_exp10(s32 exp) {
     return exp == 0 ? T(1) : T(10) * const_exp10<T>(exp - 1);
 }
 
-inline auto abs(is_scalar auto x)
-{
-    if constexpr (is_floating_point<decltype(x)>)
-    {
-        if constexpr (sizeof(x) == sizeof(f32))
-        {
-            ieee754_f32 u = { x };
-            u.ieee.S = 0;
+inline auto abs(is_scalar auto x) {
+    if constexpr (is_floating_point<decltype(x)>) {
+        if constexpr (sizeof(x) == sizeof(f32)) {
+            ieee754_f32 u = {x};
+            u.ieee.S      = 0;
+            return u.F;
+        } else {
+            ieee754_f64 u = {x};
+            u.ieee.S      = 0;
             return u.F;
         }
-        else
-        {
-            ieee754_f64 u = { x };
-            u.ieee.S = 0;
-            return u.F;
-        }
-    }
-    else
-    {
-        if constexpr (is_unsigned_integral<decltype(x)>)
-        {
-            return x; // Unsigned integrals are always positive
-        }
-        else
-        {
+    } else {
+        if constexpr (is_unsigned_integral<decltype(x)>) {
+            return x;  // Unsigned integrals are always positive
+        } else {
             return x < 0 ? -x : x;
         }
     }

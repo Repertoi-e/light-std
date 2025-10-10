@@ -9,12 +9,12 @@ LSTD_BEGIN_NAMESPACE
 
 // Guaranteed to generate a unique id each time (time-based)
 guid create_guid() {
-  uuid_t uuid;
-  uuid_generate_time(uuid);
+    uuid_t uuid;
+    uuid_generate_time(uuid);
 
-  guid result;
-  memcpy(result.Data, uuid, sizeof(result.Data));
-  return result;
+    guid result;
+    memcpy(result.Data, uuid, sizeof(result.Data));
+    return result;
 }
 
 LSTD_END_NAMESPACE

@@ -248,8 +248,7 @@ inline const u64 ALLOCATOR_ALLOW_OVERLAPPING = 1ull << 62;
 // method by which it gets and returns memory. Other details we try to take
 // care of.
 //
-using allocator_func_t = void *(*)(allocator_mode mode, void *context, s64 size,
-                                   void *oldMemory, s64 oldSize, u64 options);
+using allocator_func_t = void *(*)(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
 
 // This is a hack that's used to get around Context's and TemporaryAllocator's
 // constructors getting fired and overriding its allocator (which may have
@@ -257,64 +256,59 @@ using allocator_func_t = void *(*)(allocator_mode mode, void *context, s64 size,
 struct allocator_dont_init_t {};
 
 struct allocator {
-  allocator_func_t Function;
-  void *Context;
+    allocator_func_t Function;
+    void            *Context;
 
-  allocator() : Function(null), Context(null) {}
-  allocator(allocator_dont_init_t) {}
-  allocator(allocator_func_t function, void *context)
-      : Function(function), Context(context) {}
+    allocator() : Function(null), Context(null) {}
 
-  bool operator==(allocator other) const {
-    return Function == other.Function && Context == other.Context;
-  }
-  bool operator!=(allocator other) const {
-    return Function != other.Function || Context != other.Context;
-  }
+    allocator(allocator_dont_init_t) {}
 
-  explicit operator bool() const { return Function; }
+    allocator(allocator_func_t function, void *context) : Function(function), Context(context) {}
+
+    bool operator==(allocator other) const { return Function == other.Function && Context == other.Context; }
+
+    bool operator!=(allocator other) const { return Function != other.Function || Context != other.Context; }
+
+    explicit operator bool() const { return Function; }
 };
 
 void free_all(allocator alloc, u64 options = 0);
 
 template <typename T>
 struct allocator_with_context {
-  allocator_func_t Function;
-  T Context;
+    allocator_func_t Function;
+    T                Context;
 
-  allocator_with_context() : Function(null), Context() {}
-  allocator_with_context(allocator_dont_init_t) {}
-  allocator_with_context(allocator_func_t function, T no_copy context) : Function(function), Context(context) {}
+    allocator_with_context() : Function(null), Context() {}
 
-  operator allocator() const { return allocator(Function, (void *)&Context); }
+    allocator_with_context(allocator_dont_init_t) {}
+
+    allocator_with_context(allocator_func_t function, T no_copy context) : Function(function), Context(context) {}
+
+    operator allocator() const { return allocator(Function, (void *)&Context); }
 };
 
 template <typename T>
 concept non_void = !is_same<T, void>;
 
 template <non_void T>
-T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options,
-                      source_location loc);
+T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, source_location loc);
 
 template <non_void T>
-requires(!is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount,
-                                               u64 options,
-                                               source_location loc);
+    requires(!is_const<T>)
+T *lstd_reallocate_impl(T *block, s64 newCount, u64 options, source_location loc);
 
 template <non_void T>
-requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
-                                           source_location loc);
+    requires(!is_const<T>)
+void lstd_free_impl(T *block, u64 options, source_location loc);
 
 // These handle alignment, populating the allocation header and debug memory
 // stuff.
-void *general_allocate(allocator alloc, s64 userSize, u32 alignment,
-                       u64 options,
-                       source_location loc = source_location::current());
+void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options, source_location loc = source_location::current());
 
 // If DEBUG_MEMORY is defined, calling reallocate on a block that is already
 // freed panics the program and gives information about the site.
-void *general_reallocate(void *ptr, s64 newUserSize, u64 options,
-                         source_location loc = source_location::current());
+void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_location loc = source_location::current());
 
 // Calling free on a null pointer doesn't do anything.
 // If DEBUG_MEMORY is defined, calling free on a block that is already freed
@@ -326,25 +320,25 @@ void general_free(void *ptr, u64 options, source_location loc);
 //
 
 struct allocate_options {
-  // How many items to allocate, historically we provided a seperate
-  // allocate_array routine, but we merged it.
-  s64 Count = 1;
+    // How many items to allocate, historically we provided a seperate
+    // allocate_array routine, but we merged it.
+    s64 Count = 1;
 
-  allocator Alloc = {};
-  u32 Alignment = 0;
-  u64 Options = 0;
+    allocator Alloc     = {};
+    u32       Alignment = 0;
+    u64       Options   = 0;
 };
 
 // T is used to initialize the resulting memory (uses placement new to call
 // the constructor).
 template <non_void T>
 T *malloc(allocate_options options = {}, source_location loc = source_location::current()) {
-  return lstd_allocate_impl<T>(options.Count, options.Alloc, options.Alignment, options.Options, loc);
+    return lstd_allocate_impl<T>(options.Count, options.Alloc, options.Alignment, options.Options, loc);
 }
 
 struct reallocate_options {
-  s64 NewCount;
-  s64 Options = 0;
+    s64 NewCount;
+    s64 Options = 0;
 };
 
 // We don't provide a templated calloc, because it doesn't make much sense.
@@ -363,9 +357,8 @@ struct reallocate_options {
 // old copy doesn't invalidate the new copy. We don't do destructors in this
 // library but we still call them here, just in case.
 template <non_void T>
-T *realloc(T *block, reallocate_options options,
-           source_location loc = source_location::current()) {
-  return lstd_reallocate_impl<T>(block, options.NewCount, options.Options, loc);
+T *realloc(T *block, reallocate_options options, source_location loc = source_location::current()) {
+    return lstd_reallocate_impl<T>(block, options.NewCount, options.Options, loc);
 }
 
 // If DEBUG_MEMORY is defined, calling free on a block that is already
@@ -384,10 +377,9 @@ T *realloc(T *block, reallocate_options options,
 //
 // However we only have one type of free here.
 template <non_void T>
-requires(!is_const<T>) void free(
-    T *block, u64 options = 0,
-    source_location loc = source_location::current()) {
-  lstd_free_impl(block, options, loc);
+    requires(!is_const<T>)
+void free(T *block, u64 options = 0, source_location loc = source_location::current()) {
+    lstd_free_impl(block, options, loc);
 }
 
 //
@@ -409,8 +401,7 @@ requires(!is_const<T>) void free(
 //
 
 struct tlsf_allocator_data {
-  tlsf_t State =
-      null;  // We use a vendor library that implements the algorithm.
+    tlsf_t State = null;  // We use a vendor library that implements the algorithm.
 };
 
 //
@@ -423,57 +414,51 @@ struct tlsf_allocator_data {
 // * Low overhead per TLSF management of pools (~3kB)
 // * Low fragmentation
 //
-inline void *tlsf_allocator(allocator_mode mode, void *context, s64 size,
-                            void *oldMemory, s64 oldSize, u64 options) {
-  assert(context);
+inline void *tlsf_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
+    assert(context);
 
-  auto *data = (tlsf_allocator_data *)context;
+    auto *data = (tlsf_allocator_data *)context;
 
-  if (!data->State) {
-    assert(false &&
-           "No pools have been added yet! Add the first one with "
-           "tlsf_allocator_add_pool().");
+    if (!data->State) {
+        assert(false &&
+               "No pools have been added yet! Add the first one with "
+               "tlsf_allocator_add_pool().");
+        return null;
+    }
+
+    switch (mode) {
+        case allocator_mode::ALLOCATE: return tlsf_malloc(data->State, size);
+        case allocator_mode::RESIZE:   return tlsf_resize(data->State, oldMemory, size);
+        case allocator_mode::FREE:     {
+            tlsf_free(data->State, oldMemory);
+            return null;
+        }
+        case allocator_mode::FREE_ALL: {
+            assert(false);  // Some allocators can't support this by design
+            return null;
+        }
+    }
     return null;
-  }
-
-  switch (mode) {
-    case allocator_mode::ALLOCATE:
-      return tlsf_malloc(data->State, size);
-    case allocator_mode::RESIZE:
-      return tlsf_resize(data->State, oldMemory, size);
-    case allocator_mode::FREE: {
-      tlsf_free(data->State, oldMemory);
-      return null;
-    }
-    case allocator_mode::FREE_ALL: {
-      assert(false);  // Some allocators can't support this by design
-      return null;
-    }
-  }
-  return null;
 }
 
-inline void tlsf_allocator_add_pool(tlsf_allocator_data *data, void *block,
-                                    s64 size) {
-  if (!data->State) {
-    data->State = tlsf_create_with_pool(block, (u64)size);
-  } else {
-    tlsf_add_pool(data->State, block, (u64)size);
-  }
+inline void tlsf_allocator_add_pool(tlsf_allocator_data *data, void *block, s64 size) {
+    if (!data->State) {
+        data->State = tlsf_create_with_pool(block, (u64)size);
+    } else {
+        tlsf_add_pool(data->State, block, (u64)size);
+    }
 }
 
 // Assumes the block exists
-inline void tlsf_allocator_remove_pool(tlsf_allocator_data *data, void *block) {
-  tlsf_remove_pool(data->State, block);
-}
+inline void tlsf_allocator_remove_pool(tlsf_allocator_data *data, void *block) { tlsf_remove_pool(data->State, block); }
 
 struct arena_allocator_data {
-  void *Block = null; 
-  s64 Size = 0;
+    void *Block = null;
+    s64   Size  = 0;
 
-  s64 Used = 0;
+    s64 Used = 0;
 
-  s64 AutomaticBlockSize = 0;  // You can change this before using the allocator, by default it's 8_GiB
+    s64 AutomaticBlockSize = 0;  // You can change this before using the allocator, by default it's 8_GiB
 };
 
 //
@@ -489,48 +474,48 @@ struct arena_allocator_data {
 // enough space for an allocation). When out of memory, you should resize or
 // provide another block.
 //
-// 0-initialized arena is valid, since in that case we just virtual alloc a 
+// 0-initialized arena is valid, since in that case we just virtual alloc a
 // block on the first allocation request.
 //
 inline void *arena_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
-  auto *data = (arena_allocator_data *)context;
-  if (!data->Block) {
-    void *os_allocate_block(s64);
+    auto *data = (arena_allocator_data *)context;
+    if (!data->Block) {
+        void *os_allocate_block(s64);
 
-    if (data->AutomaticBlockSize == 0) data->AutomaticBlockSize = 8_GiB;
-    
-    data->Block = os_allocate_block(data->AutomaticBlockSize);
-    data->Size = data->AutomaticBlockSize;
-    data->Used = 0;
-  }
+        if (data->AutomaticBlockSize == 0) data->AutomaticBlockSize = 8_GiB;
 
-  switch (mode) {
-    case allocator_mode::ALLOCATE: {
-      if (data->Used + size >= data->Size) return null;  // Not enough space
+        data->Block = os_allocate_block(data->AutomaticBlockSize);
+        data->Size  = data->AutomaticBlockSize;
+        data->Used  = 0;
+    }
 
-      void *result = (byte *)data->Block + data->Used;
-      data->Used += size;
-      return result;
+    switch (mode) {
+        case allocator_mode::ALLOCATE: {
+            if (data->Used + size >= data->Size) return null;  // Not enough space
+
+            void *result = (byte *)data->Block + data->Used;
+            data->Used += size;
+            return result;
+        }
+        case allocator_mode::RESIZE: {
+            void *p = (byte *)data->Block + data->Used - oldSize;
+            if (oldMemory == p) {
+                // We can resize only if it's the last allocation
+                data->Used += size - oldSize;
+                return oldMemory;
+            }
+            return null;
+        }
+        case allocator_mode::FREE: {
+            // We don't free individual allocations in the arena allocator
+            return null;
+        }
+        case allocator_mode::FREE_ALL: {
+            data->Used = 0;
+            return null;
+        }
     }
-    case allocator_mode::RESIZE: {
-      void *p = (byte *)data->Block + data->Used - oldSize;
-      if (oldMemory == p) {
-        // We can resize only if it's the last allocation
-        data->Used += size - oldSize;
-        return oldMemory;
-      }
-      return null;
-    }
-    case allocator_mode::FREE: {
-      // We don't free individual allocations in the arena allocator
-      return null;
-    }
-    case allocator_mode::FREE_ALL: {
-      data->Used = 0;
-      return null;
-    }
-  }
-  return null;
+    return null;
 }
 
 //
@@ -544,19 +529,20 @@ inline void *arena_allocator(allocator_mode mode, void *context, s64 size, void 
 // This allocator is useful for managing a bunch of objects of the same type.
 //
 struct pool_allocator_data {
-  s64 ElementSize = 0;  // You must set this before using the allocator
+    s64 ElementSize = 0;  // You must set this before using the allocator
 
-  struct block {
-    block *Next;
-    s64 Size;
-  };
+    struct block {
+        block *Next;
+        s64    Size;
+    };
 
-  block *Base = null;
+    block *Base = null;
 
-  struct chunk {
-    chunk *Next;
-  };
-  chunk *FreeList = null;
+    struct chunk {
+        chunk *Next;
+    };
+
+    chunk *FreeList = null;
 };
 
 #if defined DEBUG_MEMORY
@@ -564,17 +550,17 @@ inline thread_local pool_allocator_data DebugMemoryNodesPool;
 #endif
 
 inline void pool_allocator_add_free_chunks(pool_allocator_data *data, void *block, s64 size) {
-  auto *c = (pool_allocator_data::chunk *)block;
+    auto *c = (pool_allocator_data::chunk *)block;
 
-  auto *oldFreeList = data->FreeList;
-  data->FreeList = c;
+    auto *oldFreeList = data->FreeList;
+    data->FreeList    = c;
 
-  For(range(size / data->ElementSize - 1)) {
-    c->Next = (pool_allocator_data::chunk *)((byte *)c + data->ElementSize);
-    c = c->Next;
-  }
+    For(range(size / data->ElementSize - 1)) {
+        c->Next = (pool_allocator_data::chunk *)((byte *)c + data->ElementSize);
+        c       = c->Next;
+    }
 
-  c->Next = oldFreeList;
+    c->Next = oldFreeList;
 }
 
 // Use this to provide more space in the pool allocator. Also inits the first
@@ -582,78 +568,77 @@ inline void pool_allocator_add_free_chunks(pool_allocator_data *data, void *bloc
 // sizeof(allocator_pool_data::block). We avoid allocating a seperate linked
 // list but use the first few bytes of _block_ as a header.
 inline void pool_allocator_provide_block(pool_allocator_data *data, void *block, s64 size) {
-  assert(size >= (s64)sizeof(pool_allocator_data::block) + data->ElementSize);
-  assert(data->ElementSize > 0);
+    assert(size >= (s64)sizeof(pool_allocator_data::block) + data->ElementSize);
+    assert(data->ElementSize > 0);
 
-  auto *b = (pool_allocator_data::block *)block;
-  b->Size = size - sizeof(pool_allocator_data::block);
-  assert(b->Size % data->ElementSize == 0);
+    auto *b = (pool_allocator_data::block *)block;
+    b->Size = size - sizeof(pool_allocator_data::block);
+    assert(b->Size % data->ElementSize == 0);
 
-  b->Next = data->Base;
-  data->Base = b;
+    b->Next    = data->Base;
+    data->Base = b;
 
-  pool_allocator_add_free_chunks(data, b + 1, b->Size);
+    pool_allocator_add_free_chunks(data, b + 1, b->Size);
 }
 
 inline void *pool_allocator(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
-  auto *data = (pool_allocator_data *)context;
+    auto *data = (pool_allocator_data *)context;
 
-  switch (mode) {
-    case allocator_mode::ALLOCATE: {
-      assert(size == data->ElementSize);
+    switch (mode) {
+        case allocator_mode::ALLOCATE: {
+            assert(size == data->ElementSize);
 
-      if (data->FreeList) {
-        auto *block = data->FreeList;
-        data->FreeList = block->Next;
-        return block;
-      }
-      return null;
-    }
-    case allocator_mode::RESIZE: {
-      assert(false && "Can't do that");
-      return null;
-    }
-    case allocator_mode::FREE: {
-      auto *c = (pool_allocator_data::chunk *)oldMemory;
-      c->Next = data->FreeList;
-      data->FreeList = c;
-      return null;
-    }
-    case allocator_mode::FREE_ALL: {
-      data->FreeList = null;
+            if (data->FreeList) {
+                auto *block    = data->FreeList;
+                data->FreeList = block->Next;
+                return block;
+            }
+            return null;
+        }
+        case allocator_mode::RESIZE: {
+            assert(false && "Can't do that");
+            return null;
+        }
+        case allocator_mode::FREE: {
+            auto *c        = (pool_allocator_data::chunk *)oldMemory;
+            c->Next        = data->FreeList;
+            data->FreeList = c;
+            return null;
+        }
+        case allocator_mode::FREE_ALL: {
+            data->FreeList = null;
 
-      auto *b = data->Base;
-      while (b) {
-        pool_allocator_add_free_chunks(data, b + 1, b->Size);
-        b = b->Next;
-      }
-      return null;
+            auto *b = data->Base;
+            while (b) {
+                pool_allocator_add_free_chunks(data, b + 1, b->Size);
+                b = b->Next;
+            }
+            return null;
+        }
     }
-  }
-  return null;
+    return null;
 }
 
 // Calculates the required padding in bytes which needs to be added to _ptr_
 // in order to be aligned
 inline u16 calculate_padding_for_pointer(void *ptr, s32 alignment) {
-  assert(alignment > 0 && is_pow_of_2(alignment));
-  return (u16)(((u64)ptr + (alignment - 1) & -alignment) - (u64)ptr);
+    assert(alignment > 0 && is_pow_of_2(alignment));
+    return (u16)(((u64)ptr + (alignment - 1) & -alignment) - (u64)ptr);
 }
 
 // Like calculate_padding_for_pointer but padding must be at least the header
 // size
-inline u16 calculate_padding_for_pointer_with_header(void *ptr, s32 alignment,
-                                                     u32 headerSize) {
-  u16 padding = calculate_padding_for_pointer(ptr, alignment);
-  if (padding < headerSize) {
-    headerSize -= padding;
-    if (headerSize % alignment) {
-      padding += alignment * (1 + headerSize / alignment);
-    } else {
-      padding += alignment * (headerSize / alignment);
+inline u16 calculate_padding_for_pointer_with_header(void *ptr, s32 alignment, u32 headerSize) {
+    u16 padding = calculate_padding_for_pointer(ptr, alignment);
+    if (padding < headerSize) {
+        headerSize -= padding;
+        if (headerSize % alignment) {
+            padding += alignment * (1 + headerSize / alignment);
+        } else {
+            padding += alignment * (headerSize / alignment);
+        }
     }
-  }
-  return padding;
+    return padding;
 }
 
 //
@@ -706,51 +691,51 @@ inline const byte CLEAN_LAND_FILL = 0xCD;
 //        headers (like https://nothings.org/stb/stb_malloc.h).
 //
 struct allocation_header {
-  // The allocator used when allocating the memory. We need this when
-  // resizing/freeing in order to call the right allocator procedure. By
-  // design, we can't get rid of this.
-  allocator Alloc;
+    // The allocator used when allocating the memory. We need this when
+    // resizing/freeing in order to call the right allocator procedure. By
+    // design, we can't get rid of this.
+    allocator Alloc;
 
-  // The size of the allocation (NOT including the size of the header and
-  // padding). By design, we can't get rid of this (but we can make this
-  // smaller for medium sized allocations by packing a different header).
-  s64 Size;
+    // The size of the allocation (NOT including the size of the header and
+    // padding). By design, we can't get rid of this (but we can make this
+    // smaller for medium sized allocations by packing a different header).
+    s64 Size;
 
 #if defined DEBUG_MEMORY
-  // This is another guard to check that the header is valid.
-  // This points to "(allocation_header *) p + 1" (the pointer we return after
-  // the allocation).
-  void *DEBUG_Pointer;
+    // This is another guard to check that the header is valid.
+    // This points to "(allocation_header *) p + 1" (the pointer we return after
+    // the allocation).
+    void *DEBUG_Pointer;
 #endif
 
-  // The padding (in bytes) which was added to the pointer after allocating
-  // to make sure the resulting pointer is aligned. The structure of an
-  // allocation is basically this:
-  //
-  // User requests allocation of _size_. The underlying allocator is called
-  // with
-  //     _size_ + sizeof(allocation_header) + (sizeof(allocation_header) %
-  //     alignment)
-  //
-  // The result:
-  //   ...[..Alignment
-  //   padding..][............Header..................]............
-  //      ^ The pointer returned by the allocator implementation       ^ The
-  //      resulting pointer (aligned)
-  //
-  u16 Alignment;         // We allow a maximum of 65535 byte alignment
-  u16 AlignmentPadding;  // Offset from the block that needs to be there in
-                         // order for the result to be aligned
+    // The padding (in bytes) which was added to the pointer after allocating
+    // to make sure the resulting pointer is aligned. The structure of an
+    // allocation is basically this:
+    //
+    // User requests allocation of _size_. The underlying allocator is called
+    // with
+    //     _size_ + sizeof(allocation_header) + (sizeof(allocation_header) %
+    //     alignment)
+    //
+    // The result:
+    //   ...[..Alignment
+    //   padding..][............Header..................]............
+    //      ^ The pointer returned by the allocator implementation       ^ The
+    //      resulting pointer (aligned)
+    //
+    u16 Alignment;         // We allow a maximum of 65535 byte alignment
+    u16 AlignmentPadding;  // Offset from the block that needs to be there in
+                           // order for the result to be aligned
 
 #if defined DEBUG_MEMORY
-  // This is used to detect buffer underruns.
-  // There may be padding after this member, but we treat this region as
-  // "(allocation_header *) p + 1 - 4 bytes". This doesn't matter since we
-  // just need AT LEAST 4 bytes free.
-  char DEBUG_NoMansLand[NO_MANS_LAND_SIZE];
+    // This is used to detect buffer underruns.
+    // There may be padding after this member, but we treat this region as
+    // "(allocation_header *) p + 1 - 4 bytes". This doesn't matter since we
+    // just need AT LEAST 4 bytes free.
+    char DEBUG_NoMansLand[NO_MANS_LAND_SIZE];
 
-  // After the whole memory block we follow again by NO_MANS_LAND_SIZE bytes
-  // of no man's land again. We use that to detect buffer overruns.
+    // After the whole memory block we follow again by NO_MANS_LAND_SIZE bytes
+    // of no man's land again. We use that to detect buffer overruns.
 #endif
 };
 
@@ -760,113 +745,113 @@ inline thread_local s64 AllocationCount;
 
 // The node of a linked list, see comment below this struct.
 struct debug_memory_node {
-  debug_memory_node *Next;
-  debug_memory_node *Prev;
+    debug_memory_node *Next;
+    debug_memory_node *Prev;
 
-  allocation_header *Header;
+    allocation_header *Header;
 
-  //
-  // The thread which allocated this block. We use this to check if memory
-  // is freed by another thread. By default we treat that as an error.
-  // However sometimes that can be intentional, so we provide a way
-  // to disable this treatment explicitly (with the ALLOW_CROSS_THREAD_FREE
-  // allocation flag). See :AllocationFlags:
-  //
-  u32 TID;
+    //
+    // The thread which allocated this block. We use this to check if memory
+    // is freed by another thread. By default we treat that as an error.
+    // However sometimes that can be intentional, so we provide a way
+    // to disable this treatment explicitly (with the ALLOW_CROSS_THREAD_FREE
+    // allocation flag). See :AllocationFlags:
+    //
+    u32 TID;
 
-  // @TODO: We don't support cross-thread freeing right now because
-  // our debug list of nodes is not thread safe. We can make a thread-safe
-  // queue for handling these cases. bool MarkedAllowCrossThreadFree;
+    // @TODO: We don't support cross-thread freeing right now because
+    // our debug list of nodes is not thread safe. We can make a thread-safe
+    // queue for handling these cases. bool MarkedAllowCrossThreadFree;
 
-  //
-  // This ID is useful for debugging bugs related to allocations.
-  // Every allocation has an unique number == to the ID of the previous
-  // allocation + 1. The allocation count is unique to each thread in order to
-  // ensure reproducibility.
-  //
-  // Each time you run your program with the same set of inputs the
-  // ID of each allocation is the same (assuming no randomness).
-  //
-  // You can set a breakpoint with the ID in general_allocate()
-  // to catch the allocation before it happens.
-  //
-  // Currently, if you set a breakpoint with a specific ID, you may need to
-  // skip a few breaks from other threads, or look at the TID, but TID is
-  // random, so...
-  // @TODO: We shouldn't use the OS thread id but keep our own state with
-  //        sequential IDs to fix this ^.
-  //
-  s64 ID;
+    //
+    // This ID is useful for debugging bugs related to allocations.
+    // Every allocation has an unique number == to the ID of the previous
+    // allocation + 1. The allocation count is unique to each thread in order to
+    // ensure reproducibility.
+    //
+    // Each time you run your program with the same set of inputs the
+    // ID of each allocation is the same (assuming no randomness).
+    //
+    // You can set a breakpoint with the ID in general_allocate()
+    // to catch the allocation before it happens.
+    //
+    // Currently, if you set a breakpoint with a specific ID, you may need to
+    // skip a few breaks from other threads, or look at the TID, but TID is
+    // random, so...
+    // @TODO: We shouldn't use the OS thread id but keep our own state with
+    //        sequential IDs to fix this ^.
+    //
+    s64 ID;
 
-  //
-  // This ID keeps track how many times this block has been reallocated.
-  // When realloc() is called we check if the block can be directly resized in
-  // place (using allocation_mode::RESIZE). If not, we allocate a new block
-  // and copy the information there. In both cases the ID above stays the same
-  // and RID gets incremented. This always starts at 0.
-  //
-  // This helps debug memory allocations that are reallocated often
-  // (strings/arrays, etc.)
-  //
-  s64 RID;
+    //
+    // This ID keeps track how many times this block has been reallocated.
+    // When realloc() is called we check if the block can be directly resized in
+    // place (using allocation_mode::RESIZE). If not, we allocate a new block
+    // and copy the information there. In both cases the ID above stays the same
+    // and RID gets incremented. This always starts at 0.
+    //
+    // This helps debug memory allocations that are reallocated often
+    // (strings/arrays, etc.)
+    //
+    s64 RID;
 
-  //
-  // We mark the source of the (re)allocation if such information was
-  // provided. On subsequent reallocations we overwrite this.
-  //
-  // When allocating with the default malloc/calloc/realloc (the non-templated
-  // extern "C" versions which are replacements for the standard library
-  // functions) we don't get a very useful FileName and FileLine (we get the
-  // ones from the wrapper). This also applies when an allocation is made with
-  // C++ new.
-  //
-  // @TODO Remove this and instead save a call stack (optional!, that's a lot
-  // of info).
-  //
-  // To debug allocations you can try to use the _ID_ and set a breakpoint.
-  // See info above.
-  //
-  source_location AllocatedAt;
+    //
+    // We mark the source of the (re)allocation if such information was
+    // provided. On subsequent reallocations we overwrite this.
+    //
+    // When allocating with the default malloc/calloc/realloc (the non-templated
+    // extern "C" versions which are replacements for the standard library
+    // functions) we don't get a very useful FileName and FileLine (we get the
+    // ones from the wrapper). This also applies when an allocation is made with
+    // C++ new.
+    //
+    // @TODO Remove this and instead save a call stack (optional!, that's a lot
+    // of info).
+    //
+    // To debug allocations you can try to use the _ID_ and set a breakpoint.
+    // See info above.
+    //
+    source_location AllocatedAt;
 
-  //
-  // When calling general_free() we free the block with the allocator
-  // implementation but keep the node live in the list. We do this in order to
-  // detect freeing the same pointer twice. If the program requests a new
-  // block and the allocator implementation returns the same memory address
-  // then we reuse this node and clear the flag.
-  //
-  // Not freeing nodes might accummulate some memory overhead. @TODO Provide a
-  // clear_freed_nodes() routine. Fragmentation is not a problem because we
-  // allocate nodes from a pool allocator.
-  //
-  bool Freed;
+    //
+    // When calling general_free() we free the block with the allocator
+    // implementation but keep the node live in the list. We do this in order to
+    // detect freeing the same pointer twice. If the program requests a new
+    // block and the allocator implementation returns the same memory address
+    // then we reuse this node and clear the flag.
+    //
+    // Not freeing nodes might accummulate some memory overhead. @TODO Provide a
+    // clear_freed_nodes() routine. Fragmentation is not a problem because we
+    // allocate nodes from a pool allocator.
+    //
+    bool Freed;
 
-  // See note above about not getting the right info from the extern "C"
-  // versions and C++ operators new/delete.
-  // @TODO Remove this and instead save a call stack (optional!, that's a lot
-  // of info).
-  source_location FreedAt;
+    // See note above about not getting the right info from the extern "C"
+    // versions and C++ operators new/delete.
+    // @TODO Remove this and instead save a call stack (optional!, that's a lot
+    // of info).
+    source_location FreedAt;
 
-  //
-  // When allocating a block the caller can mark it as a leak (using the LEAK
-  // allocation flag). See :AllocationFlags:
-  //
-  // That means that it doesn't get freed before the end of the program (since
-  // the OS claims back the memory anyway). When
-  // Context->DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination
-  // is set to true we log a list of unfreed allocations but you can also call
-  // debug_memory_report_leaks() at any time.
-  //
-  // Blocks which have this flag don't get reported (they are "meant" to
-  // leak).
-  //
-  bool MarkedAsLeak;
+    //
+    // When allocating a block the caller can mark it as a leak (using the LEAK
+    // allocation flag). See :AllocationFlags:
+    //
+    // That means that it doesn't get freed before the end of the program (since
+    // the OS claims back the memory anyway). When
+    // Context->DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination
+    // is set to true we log a list of unfreed allocations but you can also call
+    // debug_memory_report_leaks() at any time.
+    //
+    // Blocks which have this flag don't get reported (they are "meant" to
+    // leak).
+    //
+    bool MarkedAsLeak;
 
-  // Sometimes you want to allocate memory with one allocator
-  // and use it as pool for another allocator. This is common when
-  // implementing custom allocators. In that case you may want to
-  // disable cross-allocation overlapping detection. See :AllocationFlags:
-  bool MarkedAsAllowOverlapping;
+    // Sometimes you want to allocate memory with one allocator
+    // and use it as pool for another allocator. This is common when
+    // implementing custom allocators. In that case you may want to
+    // disable cross-allocation overlapping detection. See :AllocationFlags:
+    bool MarkedAsAllowOverlapping;
 };
 
 // We store a per-thread list of allocations made, in order to look for leaks
@@ -916,81 +901,79 @@ void debug_memory_maybe_verify_heap();
 #endif
 
 template <non_void T>
-requires(!is_const<T>) T *lstd_reallocate_impl(T *block, s64 newCount,
-                                               u64 options,
-                                               source_location loc) {
-  if (!block) return null;
+    requires(!is_const<T>)
+T *lstd_reallocate_impl(T *block, s64 newCount, u64 options, source_location loc) {
+    if (!block) return null;
 
-  // I think the standard implementation frees in this case but we need to
-  // decide what _options_ should go there (no options or the ones passed to
-  // reallocate?), so we leave that up to the call site.
-  assert(newCount != 0);
+    // I think the standard implementation frees in this case but we need to
+    // decide what _options_ should go there (no options or the ones passed to
+    // reallocate?), so we leave that up to the call site.
+    assert(newCount != 0);
 
-  auto *header = (allocation_header *)block - 1;
-  s64 oldCount = header->Size / sizeof(T);
+    auto *header   = (allocation_header *)block - 1;
+    s64   oldCount = header->Size / sizeof(T);
 
-  if constexpr (!is_scalar<T>) {
-    if (newCount < oldCount) {
-      auto *p = block + newCount;
-      auto *end = block + oldCount;
-      while (p != end) {
-        p->~T();
-        ++p;
-      }
+    if constexpr (!is_scalar<T>) {
+        if (newCount < oldCount) {
+            auto *p   = block + newCount;
+            auto *end = block + oldCount;
+            while (p != end) {
+                p->~T();
+                ++p;
+            }
+        }
     }
-  }
 
-  s64 newSize = newCount * sizeof(T);
-  auto *result = (T *)general_reallocate(block, newSize, options, loc);
+    s64   newSize = newCount * sizeof(T);
+    auto *result  = (T *)general_reallocate(block, newSize, options, loc);
 
-  if constexpr (!is_scalar<T>) {
-    if (oldCount < newCount) {
-      auto *p = result + oldCount;
-      auto *end = result + newCount;
-      while (p != end) {
-        new (p) T;
-        ++p;
-      }
+    if constexpr (!is_scalar<T>) {
+        if (oldCount < newCount) {
+            auto *p   = result + oldCount;
+            auto *end = result + newCount;
+            while (p != end) {
+                new (p) T;
+                ++p;
+            }
+        }
     }
-  }
-  return result;
+    return result;
 }
 
 template <non_void T>
-T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options,
-                      source_location loc) {
-  s64 size = count * sizeof(T);
+T *lstd_allocate_impl(s64 count, allocator alloc, u32 alignment, u64 options, source_location loc) {
+    s64 size = count * sizeof(T);
 
-  auto *result = (T *)general_allocate(alloc, size, alignment, options, loc);
+    auto *result = (T *)general_allocate(alloc, size, alignment, options, loc);
 
-  if constexpr (!is_scalar<T>) {
-    auto *p = result;
-    auto *end = result + count;
-    while (p != end) {
-      new (p) T;
-      ++p;
+    if constexpr (!is_scalar<T>) {
+        auto *p   = result;
+        auto *end = result + count;
+        while (p != end) {
+            new (p) T;
+            ++p;
+        }
     }
-  }
-  return result;
+    return result;
 }
 
 template <non_void T>
-requires(!is_const<T>) void lstd_free_impl(T *block, u64 options,
-                                           source_location loc) {
-  if (!block) return;
+    requires(!is_const<T>)
+void lstd_free_impl(T *block, u64 options, source_location loc) {
+    if (!block) return;
 
-  auto *header = (allocation_header *)block - 1;
-  s64 count = header->Size / sizeof(T);
+    auto *header = (allocation_header *)block - 1;
+    s64   count  = header->Size / sizeof(T);
 
-  if constexpr (!is_scalar<T>) {
-    auto *p = block;
-    while (count--) {
-      p->~T();
-      ++p;
+    if constexpr (!is_scalar<T>) {
+        auto *p = block;
+        while (count--) {
+            p->~T();
+            ++p;
+        }
     }
-  }
 
-  general_free((void *) block, options, loc);
+    general_free((void *)block, options, loc);
 }
 
 LSTD_END_NAMESPACE
@@ -999,7 +982,7 @@ extern "C" {
 void *memcpy(void *_Dst, void const *_Src, size_t _Size);
 void *memmove(void *_Dst, void const *_Src, size_t _Size);
 void *memset(void *_Dst, int _Val, size_t _Size);
-int memcmp(void const *_Buf1, void const *_Buf2, size_t _Size);
+int   memcmp(void const *_Buf1, void const *_Buf2, size_t _Size);
 
 #if COMPILER == MSVC and (defined DEBUG_OPTIMIZED or defined RELEASE) and (defined LSTD_NO_CRT)
 #pragma function(memset)
@@ -1046,9 +1029,11 @@ void *memset0(void *_Dst, size_t _Size);
 // You probably need to define it globally, because not all headers from this
 // library might see the macro.
 inline void *__cdecl operator new(size_t, void *p) noexcept { return p; }
+
 inline void *__cdecl operator new[](size_t, void *p) noexcept { return p; }
 #else
 inline void *operator new(size_t, void *p) noexcept { return p; }
+
 inline void *operator new[](size_t, void *p) noexcept { return p; }
 #endif
 #endif

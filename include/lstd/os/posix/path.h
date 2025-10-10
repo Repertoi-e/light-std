@@ -2,17 +2,16 @@
 
 #include "../../string.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
-#include <dirent.h>
+#include <unistd.h>
 
 LSTD_BEGIN_NAMESPACE
 
@@ -24,69 +23,56 @@ inline bool path_exists(string path) {
 
 inline bool path_is_file(string path) {
     struct stat buffer;
-    if (stat(to_c_string_temp(path), &buffer) != 0)
-        return false;
+    if (stat(to_c_string_temp(path), &buffer) != 0) return false;
     return S_ISREG(buffer.st_mode);
 }
 
 inline bool path_is_directory(string path) {
     struct stat buffer;
-    if (stat(to_c_string_temp(path), &buffer) != 0)
-        return false;
+    if (stat(to_c_string_temp(path), &buffer) != 0) return false;
     return S_ISDIR(buffer.st_mode);
 }
 
 inline bool path_is_symbolic_link(string path) {
     struct stat buffer;
-    if (lstat(to_c_string_temp(path), &buffer) != 0)
-        return false;
+    if (lstat(to_c_string_temp(path), &buffer) != 0) return false;
     return S_ISLNK(buffer.st_mode);
 }
 
 inline s64 path_file_size(string path) {
     struct stat buffer;
-    if (stat(to_c_string_temp(path), &buffer) != 0 || S_ISDIR(buffer.st_mode))
-        return 0;
+    if (stat(to_c_string_temp(path), &buffer) != 0 || S_ISDIR(buffer.st_mode)) return 0;
     return buffer.st_size;
 }
 
 inline time_t path_creation_time(string path) {
     struct stat buffer;
-    if (stat(to_c_string_temp(path), &buffer) != 0)
-        return 0;
+    if (stat(to_c_string_temp(path), &buffer) != 0) return 0;
     return buffer.st_ctime;
 }
 
 inline time_t path_last_access_time(string path) {
     struct stat buffer;
-    if (stat(to_c_string_temp(path), &buffer) != 0)
-        return 0;
+    if (stat(to_c_string_temp(path), &buffer) != 0) return 0;
     return buffer.st_atime;
 }
 
 inline time_t path_last_modification_time(string path) {
     struct stat buffer;
-    if (stat(to_c_string_temp(path), &buffer) != 0)
-        return 0;
+    if (stat(to_c_string_temp(path), &buffer) != 0) return 0;
     return buffer.st_mtime;
 }
 
-inline bool path_create_directory(string path) {
-    return mkdir(to_c_string_temp(path), 0777) == 0;
-}
+inline bool path_create_directory(string path) { return mkdir(to_c_string_temp(path), 0777) == 0; }
 
-inline bool path_delete_file(string path) {
-    return unlink(to_c_string_temp(path)) == 0;
-}
+inline bool path_delete_file(string path) { return unlink(to_c_string_temp(path)) == 0; }
 
-inline bool path_delete_directory(string path) {
-    return rmdir(to_c_string_temp(path)) == 0;
-}
+inline bool path_delete_directory(string path) { return rmdir(to_c_string_temp(path)) == 0; }
 
 inline bool copy_file(const char *source, const char *destination, bool overwrite) {
-    int source_fd, dest_fd;
+    int     source_fd, dest_fd;
     ssize_t bytes_read;
-    char buffer[4096];
+    char    buffer[4096];
 
     // Open source file for reading
     source_fd = open(source, O_RDONLY);
@@ -164,7 +150,7 @@ inline bool path_move(string path, string dest, bool overwrite) {
 
     const char *path_c_string = to_c_string(path);
     defer(free(path_c_string));
-    
+
     if (path_copy(path_c_string, to_c_string_temp(dest), overwrite)) {
         if (unlink(to_c_string_temp(path)) == -1) {
             perror("Error deleting source file after move");
@@ -185,14 +171,14 @@ inline bool path_rename(string path, string newName) {
 }
 
 inline bool path_create_hard_link(string path, string dest) {
-   const char *path_c_string = to_c_string(path);
+    const char *path_c_string = to_c_string(path);
     defer(free(path_c_string));
 
     return link(path_c_string, to_c_string_temp(dest)) == 0;
 }
 
 inline bool path_create_symbolic_link(string path, string dest) {
-   const char *path_c_string = to_c_string(path);
+    const char *path_c_string = to_c_string(path);
     defer(free(path_c_string));
 
     return symlink(path_c_string, to_c_string_temp(dest)) == 0;

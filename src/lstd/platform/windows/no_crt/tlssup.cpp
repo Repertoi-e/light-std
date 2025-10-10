@@ -39,12 +39,12 @@ _CRTALLOC(".CRT$XLZ")
 PIMAGE_TLS_CALLBACK __xl_z = 0;
 
 typedef struct _IMAGE_TLS_DIRECTORY64 {
-  ULONGLONG StartAddressOfRawData;
-  ULONGLONG EndAddressOfRawData;
-  ULONGLONG AddressOfIndex;
-  ULONGLONG AddressOfCallBacks;
-  DWORD SizeOfZeroFill;
-  DWORD Characteristics;
+    ULONGLONG StartAddressOfRawData;
+    ULONGLONG EndAddressOfRawData;
+    ULONGLONG AddressOfIndex;
+    ULONGLONG AddressOfCallBacks;
+    DWORD     SizeOfZeroFill;
+    DWORD     Characteristics;
 } IMAGE_TLS_DIRECTORY64, *PIMAGE_TLS_DIRECTORY64;
 
 _CRTALLOC(".rdata$T")
