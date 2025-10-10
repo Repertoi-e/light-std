@@ -64,7 +64,7 @@ struct asserts {
     if (!(condition)) {                                                  \
       string message = sprint(                                           \
           "{}:{} {!YELLOW}{} {} {}{!GRAY},\n"                            \
-          "                LHS : {!YELLOW}\"{}\"{!GRAY},\n"              \
+          "                LHS: {!YELLOW}\"{}\"{!GRAY},\n"              \
           "                RHS: {!YELLOW}\"{}\"{!}",                     \
           get_short_file_path(__FILE__), __LINE__, u8## #x, op, u8## #y, \
           LINE_NAME(a), LINE_NAME(b));                                   \

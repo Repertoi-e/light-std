@@ -467,7 +467,7 @@ auto *insert_at_index(Arr ref arr, s64 index, array_data_t<Arr> no_copy element)
   s64 offset = translate_negative_index(index, arr.Count, true);
   auto *where = arr.Data + offset;
   if (offset < arr.Count) {
-    memcpy(where + 1, where, (arr.Count - offset) * sizeof(*where));
+    memmove(where + 1, where, (arr.Count - offset) * sizeof(*where));
   }
   *where = element;
   ++arr.Count;
@@ -481,9 +481,9 @@ auto *insert_at_index(Arr ref arr, s64 index, const array_data_t<Arr> *ptr, s64 
   s64 offset = translate_negative_index(index, arr.Count, true);
   auto *where = arr.Data + offset;
   if (offset < arr.Count) {
-    memcpy(where + size, where, (arr.Count - offset) * sizeof(*where));
+    memmove(where + size, where, (arr.Count - offset) * sizeof(*where));
   }
-  memcpy(where, ptr, size * sizeof(*where));
+  memmove(where, ptr, size * sizeof(*where));
   arr.Count += size;
   return where;
 }
@@ -492,7 +492,7 @@ void remove_ordered_at_index(any_dynamic_array_like auto ref arr, s64 index) {
   s64 offset = translate_negative_index(index, arr.Count);
 
   auto *where = arr.Data + offset;
-  memcpy(where, where + 1, (arr.Count - offset - 1) * sizeof(*where));
+  memmove(where, where + 1, (arr.Count - offset - 1) * sizeof(*where));
   --arr.Count;
 }
 
@@ -540,7 +540,7 @@ void remove_range(any_dynamic_array_like auto ref arr, s64 begin, s64 end) {
   auto whereEnd = arr.Data + te;
 
   s64 elementCount = whereEnd - where;
-  memcpy(where, whereEnd, (arr.Count - tp - elementCount) * sizeof(*where));
+  memmove(where, whereEnd, (arr.Count - tp - elementCount) * sizeof(*where));
   arr.Count -= elementCount;
 }
 
@@ -563,11 +563,11 @@ void replace_range(Arr ref arr, s64 begin, s64 end, Arr2 no_copy replace) {
   auto where = arr.Data + targetBegin;
 
   // Make space for the new elements
-  memcpy(where + replace.Count, where + whereSize,
+  memmove(where + replace.Count, where + whereSize,
          (arr.Count - targetBegin - whereSize) * sizeof(*where));
 
   // Copy replace elements
-  memcpy(where, replace.Data, replace.Count * sizeof(*where));
+  memmove(where, replace.Data, replace.Count * sizeof(*where));
 
   arr.Count += diff;
 }
@@ -601,7 +601,7 @@ void replace_all(Arr ref arr, Arr2 no_copy search, Arr3 no_copy replace) {
 
         if (sp == se) {
           // Match found
-          memcpy(p, replace.Data, replace.Count * sizeof(*p));
+          memmove(p, replace.Data, replace.Count * sizeof(*p));
           p += replace.Count;
         } else {
           ++p;

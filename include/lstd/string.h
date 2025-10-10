@@ -959,9 +959,9 @@ inline void insert_at_index(string ref s, s64 index, const char *str,
   auto *where = s.Data + offset;
   if (offset < s.Count)
   {
-    memcpy(where + size, where, (s.Count - offset) * sizeof(*where));
+    memmove(where + size, where, (s.Count - offset) * sizeof(*where));
   }
-  memcpy(where, str, size * sizeof(*where));
+  memmove(where, str, size * sizeof(*where));
   s.Count += size;
 }
 
@@ -1355,11 +1355,11 @@ inline void replace_range_bytes(string ref str, s64 byte_begin, s64 byte_end, st
   auto whereEnd = str.Data + byte_end;
 
   // Make space for the new elements
-  memcpy(where + replace.Count, where + whereSize,
+  memmove(where + replace.Count, where + whereSize,
          (str.Count - byte_end) * sizeof(*where));
 
   // Copy replace elements
-  memcpy(where, replace.Data, replace.Count * sizeof(*where));
+  memmove(where, replace.Data, replace.Count * sizeof(*where));
 
   str.Count += diff;
 }
@@ -1419,7 +1419,7 @@ inline void remove_range_bytes(string ref s, s64 byte_begin, s64 byte_end)
   auto whereEnd = s.Data + byte_end;
 
   s64 elementCount = whereEnd - where;
-  memcpy(where, whereEnd, (s.Count - byte_end) * sizeof(*where));
+  memmove(where, whereEnd, (s.Count - byte_end) * sizeof(*where));
   s.Count -= elementCount;
 }
 
@@ -1483,7 +1483,7 @@ inline void replace_all(string ref s, string what, string replace)
         if (sp == se)
         {
           // Match found
-          memcpy(p, replace.Data, replace.Count * sizeof(*p));
+          memmove(p, replace.Data, replace.Count * sizeof(*p));
           p += replace.Count;
         }
         else
