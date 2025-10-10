@@ -19,7 +19,6 @@ thread create_and_launch_thread(delegate<void(void *)> function, void *userData)
   ti->ContextPtr = &Context;
   ti->ParentWasUsingTemporaryAllocator = Context.Alloc == TemporaryAllocator;
 
-  
    // Create the thread
     int result = pthread_create((pthread_t *) &t.Handle, null, thread_wrapper_function, (void *)ti);
     if (result != 0) {

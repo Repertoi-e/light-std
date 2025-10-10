@@ -81,6 +81,14 @@ u32 os_get_pid();
 // Returns an ID which uniquely identifies the current thread 
 u64 os_get_current_thread_id();
 
+// Captures the current call stack. The returned array holds up to _maxDepth_
+// frames starting after skipping _skipFrames_ additional frames (not counting
+// this function). The caller owns the strings stored inside each
+// os_function_call and must free them individually (e.g. via free(callStack)).
+array<os_function_call> os_get_call_stack(s32 skipFrames = 0,
+                                          s32 maxDepth = 32,
+                                          void *platformContext = null);
+
 // Reads input from the console (at most 1 KiB).
 // Subsequent calls overwrite an internal buffer, so you need to save the
 // information before that. Note: Don't free the result of this function, not a leak.

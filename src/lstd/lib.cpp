@@ -5,8 +5,14 @@
 
 #if OS == WINDOWS
 #include "platform/windows/thread.cpp"
-#elif OS == MACOS || OS == LINUX || OS == WASM
+#include "platform/windows/callstack.cpp"
+#elif OS == MACOS || OS == LINUX 
 #include "platform/posix/thread.cpp"
+#include "platform/posix/callstack.cpp"
+#elif OS == WASM
+#include "platform/posix/thread.cpp"
+#else 
+#error Implement.
 #endif
 
 #include "vendor/tlsf/tlsf.cpp"

@@ -15,68 +15,8 @@ LSTD_BEGIN_NAMESPACE
 
 static LONG exception_filter(LPEXCEPTION_POINTERS e) {
   u32 exceptionCode = e->ExceptionRecord->ExceptionCode;
-
-  HANDLE hProcess = INVALID_HANDLE_VALUE;
-  defer(SymCleanup(hProcess));
-
-  if (!SymInitialize(GetCurrentProcess(), null, true))
-    return EXCEPTION_EXECUTE_HANDLER;
-
-  auto c = e->ContextRecord;
-
-  STACKFRAME64 sf;
-  memset0((byte *)&sf, sizeof(STACKFRAME64));
-
-  sf.AddrPC.Offset = c->Rip;
-  sf.AddrStack.Offset = c->Rsp;
-  sf.AddrFrame.Offset = c->Rbp;
-  sf.AddrPC.Mode = AddrModeFlat;
-  sf.AddrStack.Mode = AddrModeFlat;
-  sf.AddrFrame.Mode = AddrModeFlat;
-
-  array<os_function_call> callStack;
-
-  while (StackWalk64(IMAGE_FILE_MACHINE_AMD64, GetCurrentProcess(),
-                     GetCurrentThread(), &sf, c, 0, SymFunctionTableAccess64,
-                     SymGetModuleBase64, null)) {
-    if (sf.AddrFrame.Offset == 0 || callStack.Count >= CALLSTACK_DEPTH) break;
-
-    const auto s = (sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR) +
-                    sizeof(ULONG64) - 1) /
-                   sizeof(ULONG64);
-    ULONG64 symbolBuffer[s];
-
-    PSYMBOL_INFO symbol = (PSYMBOL_INFO)symbolBuffer;
-    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-    symbol->MaxNameLen = MAX_SYM_NAME;
-
-    os_function_call call;
-
-    DWORD64 symDisplacement = 0;
-    if (SymFromAddr(hProcess, sf.AddrPC.Offset, &symDisplacement, symbol)) {
-      call.Name = string(symbol->Name);
-      if (!call.Name.Count) {
-        free(call);
-        call.Name = "UnknownFunction";
-      }
-    }
-
-    IMAGEHLP_LINEW64 lineInfo = {sizeof(IMAGEHLP_LINEW64)};
-
-    DWORD lineDisplacement = 0;
-    if (SymGetLineFromAddrW64(hProcess, sf.AddrPC.Offset, &lineDisplacement,
-                              &lineInfo)) {
-      call.File = platform_utf16_to_utf8(lineInfo.FileName,
-                                         platform_get_persistent_allocator());
-      if (!call.File.Count) {
-        free(call);
-        call.File = "UnknownFile";
-      }
-      call.LineNumber = lineInfo.LineNumber;
-    }
-
-    add(callStack, call);
-  }
+  array<os_function_call> callStack =
+      os_get_call_stack(0, CALLSTACK_DEPTH, e->ContextRecord);
 
 #define CODE_DESCR(code) \
   if (exceptionCode = code) desc = #code
