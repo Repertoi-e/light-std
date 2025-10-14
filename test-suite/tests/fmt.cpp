@@ -86,6 +86,7 @@ TEST(write_f64) {
     CHECK_WRITE("-4.2", "{}", -4.2);
     CHECK_WRITE("2.2250738585072014e-308", "{}", numeric<f64>::min());
     CHECK_WRITE("1.7976931348623157e+308", "{}", numeric<f64>::max());
+    CHECK_WRITE("14.956963000000005", "{}", 14.956963000000005);
 }
 
 TEST(write_code_point) { CHECK_WRITE("X", "{:c}", 'X'); }
