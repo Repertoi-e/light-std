@@ -84,6 +84,8 @@ void run_tests() {
     }
     print("\n{!}");
 
+    print(sprint("14.956963000000005 = {}", 14.956963000000005));
+
     // Reset between runs (useful if looping)
     asserts::GlobalCalledCount = 0;
     free(asserts::GlobalFailed);
