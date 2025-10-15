@@ -267,17 +267,21 @@ key_value_pair<T> set(T ref table, table_key_t<T> no_copy key, table_value_t<T> 
     return set_prehashed(table, get_hash(key), key, value);
 }
 
-// Returns true if the key was found and removed.
 template <any_hash_table T>
-bool remove_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key) {
-    s64 index = search_prehashed_index(table, hash, key);
-    if (index < 0) return false;
-
+void remove_prehashed_index(T ref table, s64 index) {
     auto *entry  = table.Entries.Data + index;
     entry->Hash  = 1;  // tomb-stone
     entry->Key   = {};
     entry->Value = {};
     --table.Count;
+}
+
+// Returns true if the key was found and removed.
+template <any_hash_table T>
+bool remove_prehashed(T ref table, u64 hash, table_key_t<T> no_copy key) {
+    s64 index = search_prehashed_index(table, hash, key);
+    if (index < 0) return false;
+    remove_prehashed_index(table, index);
     return true;
 }
 
