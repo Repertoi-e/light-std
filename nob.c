@@ -98,13 +98,13 @@ void add_common_flags(Cmd *cmd, Config config)
     case CONFIG_DEBUG:
         nob_optimize_level(cmd, NOB_OPTIMIZATION_O0);
         cmd_append(cmd, "-DDEBUG");
-        cmd_append(cmd, "-DLSTD_ARRAY_BOUNDS_CHECK", "-DLSTD_NUMERIC_CAST_CHECK");
+        cmd_append(cmd, "-DARCHE_ARRAY_BOUNDS_CHECK", "-DARCHE_NUMERIC_CAST_CHECK");
         nob_debug_info(cmd, true);
         break;
     case CONFIG_DEBUG_OPTIMIZED:
         nob_optimize_level(cmd, NOB_OPTIMIZATION_O2);
         cmd_append(cmd, "-DDEBUG", "-DDEBUG_OPTIMIZED");
-        cmd_append(cmd, "-DLSTD_ARRAY_BOUNDS_CHECK", "-DLSTD_NUMERIC_CAST_CHECK");
+        cmd_append(cmd, "-DARCHE_ARRAY_BOUNDS_CHECK", "-DARCHE_NUMERIC_CAST_CHECK");
         nob_debug_info(cmd, true);
         break;
     case CONFIG_RELEASE:
@@ -121,7 +121,7 @@ void add_common_flags(Cmd *cmd, Config config)
     cmd_append(cmd, "-pthread");
 #elif defined(_WIN32)
     cmd_append(cmd, "-DNOMINMAX", "-DWIN32_LEAN_AND_MEAN", "-D_CRT_SUPPRESS_RESTRICT");
-    cmd_append(cmd, "-DLSTD_NO_CRT");
+    cmd_append(cmd, "-DARCHE_NO_CRT");
 
     cmd_append(cmd, "/utf-8");
     cmd_append(cmd, "/DUNICODE", "/D_UNICODE");
@@ -134,15 +134,15 @@ void add_common_flags(Cmd *cmd, Config config)
 #endif
 
     // Library-specific defines
-    cmd_append(cmd, "-DLSTD_NO_NAMESPACE");
-    // cmd_append(cmd, "-DLSTD_UNICODE_FULL_RANGE"); This adds around 25 MB to the binary size
+    cmd_append(cmd, "-DARCHE_NO_NAMESPACE");
+    // cmd_append(cmd, "-DARCHE_UNICODE_FULL_RANGE"); This adds around 25 MB to the binary size
     cmd_append(cmd, "-DPLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB");
     cmd_append(cmd, "-DPLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB");
 }
 
-bool build_lstd_library(Config config)
+bool build_arche_library(Config config)
 {
-    nob_log(INFO, "Building lstd library (%s)\n", config_names[config]);
+    nob_log(INFO, "Building arche library (%s)\n", config_names[config]);
 
     const char *build_folder = get_build_folder(config);
     
@@ -155,10 +155,10 @@ bool build_lstd_library(Config config)
     if (!mkdir_if_not_exists(temp_sprintf("%slib/", build_folder)))
         return false;
 
-    const char *input = SRC_FOLDER "lstd/lib.cpp";
+    const char *input = SRC_FOLDER "arche/lib.cpp";
 
     // Ensure generated Unicode tables exist and are up to date w.r.t. the generator script
-    const char *unicode_inc = SRC_FOLDER "lstd/unicode_tables.inc";
+    const char *unicode_inc = SRC_FOLDER "arche/unicode_tables.inc";
     const char *unicode_gen = "tools/gen_unicode.py";
     int inc_exists = nob_file_exists(unicode_inc);
     int regen_needed = !inc_exists || nob_needs_rebuild1(unicode_inc, unicode_gen);
@@ -170,10 +170,10 @@ bool build_lstd_library(Config config)
     }
 
     // Generate object file path
-    const char *obj_file = temp_sprintf("%sobj/lstd_lib.o", build_folder);
+    const char *obj_file = temp_sprintf("%sobj/arche_lib.o", build_folder);
 
     Nob_File_Paths source_dirs = {0};
-    da_append(&source_dirs, SRC_FOLDER "lstd", INCLUDE_FOLDER "lstd");
+    da_append(&source_dirs, SRC_FOLDER "arche", INCLUDE_FOLDER "arche");
 
     bool needs_rebuild_obj = needs_rebuild_cpp_sources(obj_file, source_dirs);
     // Also trigger rebuild if the generated unicode tables changed
@@ -195,7 +195,7 @@ bool build_lstd_library(Config config)
         cmd_append(&cmd, "-c"); // Compile to object file only
 
         cmd_append(&cmd, "-I" INCLUDE_FOLDER);
-        cmd_append(&cmd, "-I" INCLUDE_FOLDER "lstd/vendor/cephes/cmath/");
+        cmd_append(&cmd, "-I" INCLUDE_FOLDER "arche/vendor/cephes/cmath/");
     
         // Input and output
         nob_cc_inputs(&cmd, input);
@@ -205,7 +205,7 @@ bool build_lstd_library(Config config)
             return false;
     }
 
-    const char *lib_path = temp_sprintf("%slib/liblstd.a", build_folder);
+    const char *lib_path = temp_sprintf("%slib/libarche.a", build_folder);
     if (needs_rebuild1(lib_path, obj_file))
     {
         Cmd cmd = {0};
@@ -236,7 +236,7 @@ bool build_test_suite(Config config)
     const char *exe_path = temp_sprintf("%sbin/%s", build_folder, "test-suite");
 
     // Check if rebuild is needed against library and source files
-    bool needs_rebuild_exe = needs_rebuild1(exe_path, temp_sprintf("%slib/liblstd.a", build_folder));
+    bool needs_rebuild_exe = needs_rebuild1(exe_path, temp_sprintf("%slib/libarche.a", build_folder));
     if (!needs_rebuild_exe)
     {
         needs_rebuild_exe = needs_rebuild1(exe_path, unity_cpp);
@@ -266,10 +266,10 @@ bool build_test_suite(Config config)
         nob_cc_inputs(&cmd, unity_cpp);
         nob_cc_output(&cmd, exe_path);
 
-        // Link with lstd library
+        // Link with arche library
         cmd_append(&cmd, "-I" INCLUDE_FOLDER);
         cmd_append(&cmd, temp_sprintf("-L%slib", build_folder));
-        cmd_append(&cmd, "-llstd");
+        cmd_append(&cmd, "-larche");
 
         // Platform-specific libraries and linking
 #if defined(__linux__) || defined(__APPLE__)
@@ -325,9 +325,9 @@ int main(int argc, char **argv)
         }
     }
 
-    if (!build_lstd_library(config))
+    if (!build_arche_library(config))
     {
-        nob_log(ERROR, "Failed to build lstd library\n");
+        nob_log(ERROR, "Failed to build arche library\n");
         return 1;
     }
 

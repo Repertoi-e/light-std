@@ -1,5 +1,5 @@
 #include "../test.h"
-#include "lstd-extra/guid/guid.h"
+#include "arche-extra/guid/guid.h"
 
 #define test_parse_int(IntT, options, base, buffer, expectedValue, expectedStatus, expectedRest) \
     {                                                                                            \

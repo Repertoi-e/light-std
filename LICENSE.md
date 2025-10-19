@@ -3,7 +3,7 @@
  * MIT license
  * -----------
  * 
- * light-std - Replacing the standard C++ library with a more powerful memory model and a much simpler API.
+ * arche - Replacing the standard C++ library with a more powerful memory model and a much simpler API.
  * 
  * Copyright (c) 2025 Repertoi-e <findsoti@proton.me>
  * 

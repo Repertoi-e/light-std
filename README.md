@@ -1,5 +1,5 @@
 
-# light-std
+# arche
 A C++20 data-oriented library replaces the standard C++ library.
 
 With the goal of providing a stripped-down alternative to the standard C/C++ library. The library is designed to be self-contained, meaning it does not rely on any headers from the default standard library, and does not link with the runtime library.
@@ -57,7 +57,7 @@ The `nob` executable will automatically rebuild itself if you modify `nob.c`, so
 ### Platform-Specific Notes
 
 #### Windows
-On Windows we try our hardest to avoid linking with the CRT and provide common functionality to external libraries that may require it (for example functions like `strncpy`, defined in `lstd/platform/windows/no_crt/common_functions.h/.cpp`).
+On Windows we try our hardest to avoid linking with the CRT and provide common functionality to external libraries that may require it (for example functions like `strncpy`, defined in `arche/platform/windows/no_crt/common_functions.h/.cpp`).
 
 #### Linux & Mac
 We can't not-link with `glibc`, because it's coupled with the POSIX operating system calls library, although in my opinion they really should be separate. For example, how can we be sure we get the same answer to a math function (e.g. `sin`) since virtually every compiler and platform may define its own version. Insane.
@@ -473,7 +473,7 @@ The context is initialized when the program runs and when creating a thread with
 >     print("\nFinished tests, time taken: {:f} seconds, bytes used: {}\n\n", os_time_to_seconds(os_get_time() - start), TemporaryAllocatorData.Used);
 > ```
 
-> ex.4 Example taken from a physics engine simulation with `light-std-graphics`. This demonstrates how to allocate global state + a pool and initialize a common general purpose allocator at the beginning of your program.
+> ex.4 Example taken from a physics engine simulation with `arche-graphics`. This demonstrates how to allocate global state + a pool and initialize a common general purpose allocator at the beginning of your program.
 > ```cpp
 >     // We allocate a large block for our memory needs.
 >     void *memory_pool = os_allocate_block(MemoryInBytes);
@@ -608,6 +608,6 @@ The appropriate licenses are listed alongside this list in the file `LICENSE.md`
 
 ### Projects
 
-- [light-std-graphics](https://github.com/Repertoi-e/light-std-graphics) - high-level windowing API (like GLFW) and a high-level graphics API.
-- [Physics engine](https://soti.camp/blog/simulating_rigid_body_physics/) - tutorial about simulating rigid bodies (and using `light-std-graphics` for demos).
+- arche-graphics (private for now, very old and incomplete) - high-level windowing API (like GLFW) and a high-level graphics API.
+- [Physics engine](https://soti.camp/blog/simulating_rigid_body_physics/) - tutorial about simulating rigid bodies (and using `arche-graphics` for demos).
 

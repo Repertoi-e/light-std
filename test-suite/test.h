@@ -1,13 +1,13 @@
 #pragma once
 
-#include "lstd/lstd.h"
+#include "arche/arche.h"
 
 // This is a helper function to shorten the name of test files.
 // We check if the path contains src/ and use the rest after that.
 // Otherwise we just take the file name. Possible results are:
 //
-//      /home/.../lstd-tests/src/tests/string.cpp ---> tests/string.cpp
-//      /home/.../lstd-tests/string.cpp           ---> string.cpp
+//      /home/.../arche-tests/src/tests/string.cpp ---> tests/string.cpp
+//      /home/.../arche-tests/string.cpp           ---> string.cpp
 //
 inline string get_short_file_path(string str) {
     char   srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
@@ -95,19 +95,19 @@ struct test_entry {
     test_func   Function;  // Function pointer
 };
 
-constexpr u32     LSTD_MAX_TESTS = 4096;
-extern test_entry g_AllTests[LSTD_MAX_TESTS];
+constexpr u32     ARCHE_MAX_TESTS = 4096;
+extern test_entry g_AllTests[ARCHE_MAX_TESTS];
 extern u32        g_AllTestsCount;
 
 // Define TEST to self-register into g_AllTests.
 #define TEST(name)                                                                                                               \
     static void test_##name();                                                                                                   \
-    struct _lstd_test_registrar_##name {                                                                                         \
-        _lstd_test_registrar_##name() {                                                                                          \
-            if (g_AllTestsCount < LSTD_MAX_TESTS) { g_AllTests[g_AllTestsCount++] = test_entry{__FILE__, #name, &test_##name}; } \
+    struct _arche_test_registrar_##name {                                                                                         \
+        _arche_test_registrar_##name() {                                                                                          \
+            if (g_AllTestsCount < ARCHE_MAX_TESTS) { g_AllTests[g_AllTestsCount++] = test_entry{__FILE__, #name, &test_##name}; } \
         }                                                                                                                        \
     };                                                                                                                           \
-    static _lstd_test_registrar_##name _lstd_test_registrar_inst_##name;                                                         \
+    static _arche_test_registrar_##name _arche_test_registrar_inst_##name;                                                         \
     static void                        test_##name()
 
 // #define _TEST(name)                                                     \

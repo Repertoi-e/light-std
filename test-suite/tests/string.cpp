@@ -752,7 +752,7 @@ TEST(unicode_casing_full) {
         }
     }
 
-#ifdef LSTD_UNICODE_FULL_RANGE
+#ifdef ARCHE_UNICODE_FULL_RANGE
     // 3. Supplementary-plane letters (outside BMP)
     {
         code_point smp_upper = 0x10400;  // DESERET CAPITAL LETTER LONG I

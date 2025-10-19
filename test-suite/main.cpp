@@ -2,7 +2,7 @@
 #include "test.h"
 
 // Define the global registry declared in test.h
-test_entry g_AllTests[LSTD_MAX_TESTS];
+test_entry g_AllTests[ARCHE_MAX_TESTS];
 u32        g_AllTestsCount = 0;
 
 // Unity includes of test sources (manual)
@@ -83,7 +83,7 @@ void run_tests() {
         For(asserts::GlobalFailed) { print("    >>> {!RED}FAILED:{!GRAY} {}{!}\n", it); }
     }
     print("\n{!}");
-    
+
     // Reset between runs (useful if looping)
     asserts::GlobalCalledCount = 0;
     free(asserts::GlobalFailed);
@@ -102,6 +102,19 @@ void write_output_to_file() {
 }
 
 s32 main() {
+#if OS != WASM
+    // This works on WASM too but we just want to test not having to rely on any
+    // platform initialization there, because Embind is a use case in which allocations
+    // should be possible without any platform setup (otherwise it gets annoying).
+    //
+    // In general "zero" as valid init state is a good idea.
+    // We shouldn't have to init anything to use basic features of the library.
+    //
+    // @TODO This inits os stuff but also debug memory and other
+    // we should give it a more specific name! 
+    platform_state_init();
+#endif
+
     time_t start = os_get_time();
 
     auto newContext           = Context;

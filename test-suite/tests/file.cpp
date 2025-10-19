@@ -20,21 +20,21 @@ TEST(path_manipulation) {
         assert_eq_str(path_split_extension(a).Extension, "");
         assert_eq_str(path_directory(a), path_normalize("/home/data"));
 
-        auto b = path_join(a, "lstd");
-        assert_eq_str(b, path_normalize("/home/data/bin/lstd"));
+        auto b = path_join(a, "arche");
+        assert_eq_str(b, path_normalize("/home/data/bin/arche"));
 
         b = path_join(a, path_normalize("C:/User"));
         assert_eq_str(b, path_normalize("C:/User"));
     }
 
     {
-        string a = path_normalize("../../data/bin/release-x64/../debug-x64/../debug/lstd.exe");
+        string a = path_normalize("../../data/bin/release-x64/../debug-x64/../debug/arche.exe");
         assert(!path_is_absolute(a));
 
-        assert_eq_str(a, path_normalize("../../data/bin/debug/lstd.exe"));
+        assert_eq_str(a, path_normalize("../../data/bin/debug/arche.exe"));
 
-        assert_eq_str(path_base_name(a), "lstd.exe");
-        assert_eq_str(path_split_extension(a).Root, path_normalize("../../data/bin/debug/lstd"));
+        assert_eq_str(path_base_name(a), "arche.exe");
+        assert_eq_str(path_split_extension(a).Root, path_normalize("../../data/bin/debug/arche"));
         assert_eq_str(path_split_extension(a).Extension, ".exe");
         assert_eq_str(path_directory(a), path_normalize("../../data/bin/debug"));
     }

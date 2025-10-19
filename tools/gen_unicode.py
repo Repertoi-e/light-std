@@ -1,7 +1,7 @@
 """
 Generate dense C tables for Unicode (full range 0..0x10FFFF) and emit
 initializer lists with a BMP prefix plus a conditionally compiled tail.
-At compile time, defining LSTD_UNICODE_FULL_RANGE includes the tail; otherwise
+At compile time, defining ARCHE_UNICODE_FULL_RANGE includes the tail; otherwise
 only the BMP prefix is compiled, so the array length matches UNICODE_TABLE_SIZE.
 
 Additionally emits:
@@ -11,7 +11,7 @@ Additionally emits:
 - g_unicode_comp_keys[]/g_unicode_comp_values[] (composition mapping; binary-search by key)
 - g_unicode_comp_count / g_unicode_decomp_array_size
 
-Outputs: src/lstd/unicode_tables.inc
+Outputs: src/arche/unicode_tables.inc
 """
 
 import sys
@@ -37,7 +37,7 @@ def fetch(url: str) -> str:
 
 """Unicode Data Generator (range-based properties)
 
-Generates: (written to src/lstd/unicode_tables.inc)
+Generates: (written to src/arche/unicode_tables.inc)
   - g_unicode_to_upper[UNICODE_TABLE_SIZE]
   - g_unicode_to_lower[UNICODE_TABLE_SIZE]
   - g_unicode_general_category[UNICODE_TABLE_SIZE]
@@ -226,7 +226,7 @@ def write_split_array(f, ctype, name, values):
      f.write(f"const {ctype} {name}[UNICODE_TABLE_SIZE] = {{\n")
      f.write(','.join(str(x) for x in bmp))
      if ext:
-          f.write("\n#if defined(LSTD_UNICODE_FULL_RANGE)\n,")
+          f.write("\n#if defined(ARCHE_UNICODE_FULL_RANGE)\n,")
           f.write(','.join(str(x) for x in ext))
           f.write("\n#endif\n")
      f.write("};\n\n")
@@ -259,7 +259,7 @@ def emit_inc(path, script_names,to_upper,to_lower,general,script,prop_ranges,ccc
           f.write('const u64 g_unicode_prop_mask[UNICODE_TABLE_SIZE] = {\n')
           f.write(','.join(str(x) for x in bmp))
           if ext:
-               f.write('\n#if defined(LSTD_UNICODE_FULL_RANGE)\n,')
+               f.write('\n#if defined(ARCHE_UNICODE_FULL_RANGE)\n,')
                f.write(','.join(str(x) for x in ext))
                f.write('\n#endif\n')
           f.write('};\n')
@@ -286,7 +286,7 @@ def emit_inc(path, script_names,to_upper,to_lower,general,script,prop_ranges,ccc
           f.write('  null\n};\n')
 
 def main():
-     out_path=os.path.join('src','lstd','unicode_tables.inc')
+     out_path=os.path.join('src','arche','unicode_tables.inc')
      data=build_tables()
      emit_inc(out_path,*data)
      print('Wrote', out_path)

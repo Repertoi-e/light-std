@@ -2,7 +2,7 @@
 # https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 # Author: Kehan Xue, kehan.xue (at) gmail.com
 
-# Further Modified for light-std and lang
+# Further Modified for arche and lang
 # Author: Soti
 
 Language: Cpp

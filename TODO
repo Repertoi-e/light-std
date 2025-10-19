@@ -23,7 +23,7 @@
 - Remove code point ref being able to change string, instead provide map function. 
 
 		   
-- lstd-graphics: Make monitors and cursors handles (like window).
+- arche-graphics: Make monitors and cursors handles (like window).
   Typedef them to void * and move all functions outside? There is really no need for a class. 
   
 parse.h:
@@ -49,7 +49,7 @@ README.md:
 - Credit apex memmove
 - Credit MSVC standard library source code for windows_no_crt
 - Credit glibc for fast memmove, memset, memcmp
-- Credit linalg.h (light-std-graphics)
+- Credit linalg.h (arche-graphics)
 
 
 
@@ -93,7 +93,7 @@ Nice extras:
 				77359
 				62125 <-- interesting this still dropped, because we added a million 
 				          lines in order to get rid of every header dependency (CRT and Windows.h)
-				63004 <-- +1000 lines in windows.h (API used in lstd-graphics)
+				63004 <-- +1000 lines in windows.h (API used in arche-graphics)
 				35362 <-- big win here!
 				24642 <-- removed manual windows error code descriptions
 				24064
