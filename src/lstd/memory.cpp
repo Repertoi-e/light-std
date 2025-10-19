@@ -740,7 +740,7 @@ void general_free(void *ptr, u64 options, source_location loc) {
             // @TODO: Callstack
             panic(
                 tprint("Attempting to free a memory block which was not heap "
-                    "allocated (in this thread)."));
+                       "allocated (in this thread)."));
 
             // Note: We don't support cross-thread freeing yet.
 
@@ -750,9 +750,9 @@ void general_free(void *ptr, u64 options, source_location loc) {
         if (node->Freed) {
             panic(
                 tprint("{!RED}Attempting to free a memory block which was already "
-                    "freed.{!} The previous free happened at {!YELLOW}{}:{}{!} "
-                    "(in function: {!YELLOW}{}{!})",
-                    node->FreedAt.file_name(), node->FreedAt.line(), node->FreedAt.function_name()));
+                       "freed.{!} The previous free happened at {!YELLOW}{}:{}{!} "
+                       "(in function: {!YELLOW}{}{!})",
+                       node->FreedAt.file_name(), node->FreedAt.line(), node->FreedAt.function_name()));
             return;
         }
     }
@@ -780,6 +780,17 @@ void general_free(void *ptr, u64 options, source_location loc) {
         memset((byte *)block, DEAD_LAND_FILL, size);
     }
 #endif
+
+    if (Context.LogAllAllocations && !Context._LoggingAnAllocation) [[unlikely]] {
+        auto newContext                 = Context;
+        newContext._LoggingAnAllocation = true;
+
+        PUSH_CONTEXT(newContext) {
+            write(Context.Log, ">>> Free at: ");
+            log_file_and_line(loc);
+            write(Context.Log, "\n");
+        }
+    }
 
     alloc.Function(allocator_mode::FREE, alloc.Context, 0, block, size, options);
 }
