@@ -32,7 +32,7 @@ void default_panic_handler(string message, array<os_function_call> callStack) {
     }
 
 #if DEBUG
-    assert(false);
+    debug_break();
 #else
     exit(-1);
 #endif

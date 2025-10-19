@@ -472,26 +472,24 @@ static void log_file_and_line(source_location loc) {
     write(Context.Log, numberP + 1, numberSize);
 }
 
-tlsf_allocator_data DefaultAllocator;
+thread_local tlsf_allocator_data DefaultAllocator;
 
 void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options, source_location loc) {
     if (!alloc) alloc = Context.Alloc;
 
     // Provide a default allocator if none was set in the context.
     if (!alloc) {
+        printf("Thread ID: %llu\n", os_get_current_thread_id());
+        printf("DefaultAllocator.State = %p\n", DefaultAllocator.State);
+        printf(">>> Warning: No allocator set in context, using default TLSF allocator.\n");
+
         context newContext = Context;
         newContext.Alloc   = {tlsf_allocator, &DefaultAllocator};
         OVERRIDE_CONTEXT(newContext);
-
-        if (DefaultAllocator.State == null) {
-            s64 defaultPoolSize = 16_MiB;
-
-            void *pool = os_allocate_block(defaultPoolSize);
-            tlsf_allocator_add_pool(&DefaultAllocator, pool, defaultPoolSize);
-        }
         alloc = Context.Alloc;
 
-        write(Context.Log, ">>> No allocator set in context, using default TLSF allocator.\n");
+        write(Context.Log, ">>> .. after set.\n");
+        Context.Log->flush();
     }
 
     options |= Context.AllocOptions;
@@ -532,6 +530,8 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     void *block = alloc.Function(allocator_mode::ALLOCATE, alloc.Context, required, null, 0, options);
 
     if (!block && alloc.Context == &DefaultAllocator) {
+        printf(">>> Default allocator out of memory, trying to grow the pool...\n");
+
         // Try to grow the default allocator pool and try again
         s64 poolSize = max(required, 16_MiB);
 
@@ -601,7 +601,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
         if (node->Header != header) {
             // @TODO: Callstack
             panic(
-                tprint("{!RED}Attempting to reallocate a memory block which was not "
+                mprint("{!RED}Attempting to reallocate a memory block which was not "
                        "allocated in the heap.{!} This happened at {!YELLOW}{}:{}{!} "
                        "(in function: {!YELLOW}{}{!}).",
                        loc.file_name(), loc.line(), loc.function_name()));
@@ -611,7 +611,7 @@ void *general_reallocate(void *ptr, s64 newUserSize, u64 options, source_locatio
         if (node->Freed) {
             // @TODO: Callstack
             panic(
-                tprint("{!RED}Attempting to reallocate a memory block which was freed.{!} The "
+                mprint("{!RED}Attempting to reallocate a memory block which was freed.{!} The "
                        "free happened at {!YELLOW}{}:{}{!} (in function: {!YELLOW}{}{!}).",
                        node->FreedAt.file_name(), node->FreedAt.line(), node->FreedAt.function_name()));
             return null;
@@ -744,7 +744,7 @@ void general_free(void *ptr, u64 options, source_location loc) {
         if (node->Header != header) {
             // @TODO: Callstack
             panic(
-                tprint("Attempting to free a memory block which was not heap "
+                mprint("Attempting to free a memory block which was not heap "
                        "allocated (in this thread)."));
 
             // Note: We don't support cross-thread freeing yet.
@@ -754,7 +754,7 @@ void general_free(void *ptr, u64 options, source_location loc) {
 
         if (node->Freed) {
             panic(
-                tprint("{!RED}Attempting to free a memory block which was already "
+                mprint("{!RED}Attempting to free a memory block which was already "
                        "freed.{!} The previous free happened at {!YELLOW}{}:{}{!} "
                        "(in function: {!YELLOW}{}{!})",
                        node->FreedAt.file_name(), node->FreedAt.line(), node->FreedAt.function_name()));

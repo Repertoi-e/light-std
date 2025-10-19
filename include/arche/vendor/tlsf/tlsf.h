@@ -61,39 +61,37 @@ typedef void *pool_t;
 
 /* Create/destroy a memory pool. */
 tlsf_t tlsf_create(void *mem);
-tlsf_t tlsf_create_with_pool(void *mem, u64 bytes);
+tlsf_t tlsf_create_with_pool(void *mem, size_t bytes);
 void   tlsf_destroy(tlsf_t tlsf);
 pool_t tlsf_get_pool(tlsf_t tlsf);
 
 /* Add/remove memory pools. */
-pool_t tlsf_add_pool(tlsf_t tlsf, void *mem, u64 bytes);
+pool_t tlsf_add_pool(tlsf_t tlsf, void *mem, size_t bytes);
 void   tlsf_remove_pool(tlsf_t tlsf, pool_t pool);
 
 /* malloc/memalign/realloc/free replacements. */
-void *tlsf_malloc(tlsf_t tlsf, u64 bytes);
+void *tlsf_malloc(tlsf_t tlsf, size_t bytes);
 // void* tlsf_memalign(tlsf_t tlsf, u64 align, u64 bytes); // :WEMODIFIED: We
 // handle alignment in our allocate/reallocate. Just a note to not use this if
 // you didn't know that we handled alignment automatically. If you meant to use
 // this function, use this declaration - the implementation is still there in
 // tlsf.cpp
-void *tlsf_resize(tlsf_t tlsf, void *ptr,
-                  u64 size);  // :WEMODIFIED: Renamed this from realloc to
-                              // resize. See comments in tlsf.cpp
+void *tlsf_resize(tlsf_t tlsf, void *ptr, size_t size);  // :WEMODIFIED: Renamed this from realloc to resize. See comments in tlsf.cpp
 void  tlsf_free(tlsf_t tlsf, void *ptr);
 
 /* Returns internal block size, not original request size */
-u64 tlsf_block_size(void *ptr);
+size_t tlsf_block_size(void *ptr);
 
 /* Overheads/limits of internal structures. */
-u64 tlsf_size(void);
-u64 tlsf_align_size(void);
-u64 tlsf_block_size_min(void);
-u64 tlsf_block_size_max(void);
-u64 tlsf_pool_overhead(void);
-u64 tlsf_alloc_overhead(void);
+size_t tlsf_size(void);
+size_t tlsf_align_size(void);
+size_t tlsf_block_size_min(void);
+size_t tlsf_block_size_max(void);
+size_t tlsf_pool_overhead(void);
+size_t tlsf_alloc_overhead(void);
 
 /* Debugging. */
-typedef void (*tlsf_walker)(void *ptr, u64 size, int used, void *user);
+typedef void (*tlsf_walker)(void *ptr, size_t size, int used, void *user);
 void tlsf_walk_pool(pool_t pool, tlsf_walker walker, void *user);
 /* Returns nonzero if any internal consistency check fails. */
 int  tlsf_check(tlsf_t tlsf);

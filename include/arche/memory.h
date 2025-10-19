@@ -420,11 +420,13 @@ inline void *tlsf_allocator(allocator_mode mode, void *context, s64 size, void *
     auto *data = (tlsf_allocator_data *)context;
 
     if (!data->State) {
-        assert(false &&
-               "No pools have been added yet! Add the first one with "
-               "tlsf_allocator_add_pool().");
-        return null;
+        s64 initial_pool_size = 8_MiB;
+
+        void *os_allocate_block(s64);
+        data->State = tlsf_create_with_pool(os_allocate_block(initial_pool_size), initial_pool_size);
     }
+
+    tlsf_check(data->State);
 
     switch (mode) {
         case allocator_mode::ALLOCATE: return tlsf_malloc(data->State, size);
