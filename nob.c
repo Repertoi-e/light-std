@@ -21,41 +21,25 @@ typedef enum
 {
     CONFIG_DEBUG,
     CONFIG_DEBUG_OPTIMIZED,
-    CONFIG_RELEASE
+    CONFIG_RELEASE,
+    CONFIG_RELEASE_SIZE
 } Config;
 
 const char *config_names[] = {
-    [CONFIG_DEBUG] = "Debug",
-    [CONFIG_DEBUG_OPTIMIZED] = "DebugOptimized",
-    [CONFIG_RELEASE] = "Release"};
+    [CONFIG_DEBUG] = "debug",
+    [CONFIG_DEBUG_OPTIMIZED] = "optimized",
+    [CONFIG_RELEASE] = "release",
+    [CONFIG_RELEASE_SIZE] = "release-size"
+};
+
 
 // Helper function to get config-specific build folder
 const char *get_build_folder(Config config)
 {
     if (IS_WASM) {
-        switch (config)
-        {
-        case CONFIG_DEBUG:
-            return BUILD_FOLDER "debug-wasm/";
-        case CONFIG_DEBUG_OPTIMIZED:
-            return BUILD_FOLDER "optimized-wasm/";
-        case CONFIG_RELEASE:
-            return BUILD_FOLDER "release-wasm/";
-        default:
-            return BUILD_FOLDER "release-wasm/";
-        }
+        return temp_sprintf(BUILD_FOLDER "%s-wasm/", config_names[config]);
     } else {
-        switch (config)
-        {
-        case CONFIG_DEBUG:
-            return BUILD_FOLDER "debug/";
-        case CONFIG_DEBUG_OPTIMIZED:
-            return BUILD_FOLDER "optimized/";
-        case CONFIG_RELEASE:
-            return BUILD_FOLDER "release/";
-        default:
-            return BUILD_FOLDER "release/";
-        }
+        return temp_sprintf(BUILD_FOLDER "%s/", config_names[config]);
     }
 }
 
@@ -63,9 +47,10 @@ void print_usage(const char *program_name)
 {
     nob_log(INFO, "Usage: %s [config]\n", program_name);
     nob_log(INFO, "\nConfigurations:\n");
-    nob_log(INFO, "  debug      - Debug build with bounds checking\n");
-    nob_log(INFO, "  optimized  - Debug build with optimizations\n");
-    nob_log(INFO, "  release    - Release build (default)\n");
+    nob_log(INFO, "  debug        - Debug build with bounds checking\n");
+    nob_log(INFO, "  optimized    - Debug build with optimizations\n");
+    nob_log(INFO, "  release      - Release build (default)\n");
+    nob_log(INFO, "  release-size - Release build optimized for size\n");
     nob_log(INFO, "\n");
     nob_log(INFO, "  wasm       - Turn on WebAssembly build with Emscripten, configuration still applies\n");
     nob_log(INFO, "\nOther commands:\n");
@@ -112,6 +97,11 @@ void add_common_flags(Cmd *cmd, Config config)
         cmd_append(cmd, "-DNDEBUG", "-DRELEASE");
         nob_debug_info(cmd, false);
         break;
+    case CONFIG_RELEASE_SIZE:
+        cmd_append(cmd, "-flto=full", "-ffunction-sections", "-fdata-sections", "-fvisibility=hidden", "-fvisibility-inlines-hidden");
+        nob_optimize_level(cmd, NOB_OPTIMIZATION_OS);
+        cmd_append(cmd, "-DNDEBUG", "-DRELEASE");
+        nob_debug_info(cmd, false);
     }
 
     nob_rtti(cmd, true);
@@ -312,6 +302,10 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "release") == 0)
         {
             config = CONFIG_RELEASE;
+        }
+        else if (strcmp(argv[i], "release-size") == 0)
+        {
+            config = CONFIG_RELEASE_SIZE;
         }
         else if (strcmp(argv[i], "wasm") == 0)
         {
