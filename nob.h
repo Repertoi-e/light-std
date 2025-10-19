@@ -665,7 +665,7 @@ NOBDEF bool        nob_set_current_dir(const char *path);
 #endif
 #endif  // nob_debug_info
 
-typedef enum Nob_Optimization_Level { NOB_OPTIMIZATION_O0, NOB_OPTIMIZATION_O2, NOB_OPTIMIZATION_O3 } Nob_Optimization_Level;
+typedef enum Nob_Optimization_Level { NOB_OPTIMIZATION_O0, NOB_OPTIMIZATION_O2, NOB_OPTIMIZATION_O3, NOB_OPTIMIZATION_OS } Nob_Optimization_Level;
 
 #ifndef nob_optimize_level
 #if defined(__WIN32)
@@ -677,6 +677,8 @@ typedef enum Nob_Optimization_Level { NOB_OPTIMIZATION_O0, NOB_OPTIMIZATION_O2, 
             cmd_append(cmd, "/O2");                \
         } else if (level == NOB_OPTIMIZATION_O3) { \
             cmd_append(cmd, "/Ox");                \
+        } else if (level == NOB_OPTIMIZATION_OS) { \
+            cmd_append(cmd, "/Os");                \
         }                                          \
     } while (0)
 #else
@@ -688,6 +690,8 @@ typedef enum Nob_Optimization_Level { NOB_OPTIMIZATION_O0, NOB_OPTIMIZATION_O2, 
             cmd_append(cmd, "-O2");                \
         } else if (level == NOB_OPTIMIZATION_O3) { \
             cmd_append(cmd, "-O3");                \
+        } else if (level == NOB_OPTIMIZATION_OS) { \
+            cmd_append(cmd, "-Os");                \
         }                                          \
     } while (0)
 #endif

@@ -875,7 +875,7 @@ struct debug_memory_node {
 // Overall we have a pretty robust and helpful debug memory model which not a
 // lot of runtimes care to provide, although its almost trivial to do these
 // checks.
-inline thread_local debug_memory_node *DebugMemoryHead, *DebugMemoryTail;
+inline thread_local debug_memory_node *DebugMemoryHead = null, *DebugMemoryTail = null;
 
 // Called when creating a new thread (e.g. in os.win32.common.cppm).
 // Allocates starting sentinel values for the list and the pool for further

@@ -102,11 +102,10 @@ void write_output_to_file() {
 }
 
 s32 main() {
-    platform_state_init();
     time_t start = os_get_time();
 
     auto newContext           = Context;
-    newContext.Alloc          = TemporaryAllocator;
+    // newContext.Alloc          = TemporaryAllocator;
     newContext.AllocAlignment = 16;
 #if defined DEBUG_MEMORY
     newContext.DebugMemoryHeapVerifyFrequency = 1;

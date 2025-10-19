@@ -76,19 +76,7 @@ struct context {
     // that.
     // @TODO Maybe on load we can overwrite the symbols??
     //
-    //
-    // We don't provide a default allocator.
-    // We encourage using a specialized allocator
-    // depending on the memory requirements and
-    // the specific use case.
-    // See :BigPhilosophyTime: in allocator.h for
-    // the reasoning behind this.
-    //
-    // = null by default. The user should manually provide
-    // an allocator at the start of the program.
-    //
-    // @Hack See the note above:    struct allocator_dont_init_t;...
-    allocator Alloc = allocator(allocator_dont_init_t{});
+    allocator Alloc = {};
 
     //
     // Controls how newly allocated memory gets aligned.
@@ -96,7 +84,7 @@ struct context {
     // malloc<>(). This is here so you can change alignment for every allocation
     // in an entire scope (or an entire run of a program).
     //
-    u16 AllocAlignment;  // = POINTER_SIZE (8);     by default
+    u16 AllocAlignment  = POINTER_SIZE; 
 
     //
     // When doing allocations we provide an optional parameter that is meant
@@ -111,19 +99,18 @@ struct context {
     // so you can e.g. mark an entire scope of allocations with LEAK
     // (or your own specific use case with custom allocator).
     //
-    u64 AllocOptions;  // = 0;     by default
+    u64 AllocOptions = 0;
 
     // Used for debugging. Every time an allocation/reallocation
     // is made, logs info about it.
-    bool LogAllAllocations;  // = false;     by default
+    bool LogAllAllocations = false;
 
     //
     // Gets called when the program encounters an unhandled exception.
     // This can be used to view the stack trace before the program terminates.
     // The default handler prints the crash message and stack trace to _Log_.
     //
-    panic_handler_t PanicHandler;  // = default_panic_handler;     by default (see
-                                   // context.cpp for source)
+    panic_handler_t PanicHandler = default_panic_handler;
 
     //
     // Similar to _Alloc_, you can transparently redirect output
@@ -135,7 +122,7 @@ struct context {
     // However you should use this variable
     // if you have your own logging functions
     //
-    writer *Log;  // = &cout;     by default
+    writer *Log = &cout;
 
     //
     // fmt module:
@@ -144,7 +131,10 @@ struct context {
     // if logging has been redicted to files/strings and not the console.
     // The ansi escape codes look like garbage in files/strings.
     //
-    bool FmtDisableAnsiCodes;  // = false;     by default
+    bool FmtDisableAnsiCodes = false;
+
+    // Text locale for Unicode casing tailorings (e.g., Turkic dotted/dotless I).
+    text_locale Locale = text_locale::Default;
 
 #if defined DEBUG_MEMORY
     // After every allocation we check the heap for corruption.
@@ -154,10 +144,10 @@ struct context {
     // operation. By default we check the heap every 255 allocations,
     // but if a problem is found you may want to decrease
     // this to 1 so you catch the corruption at just the right time.
-    u8 DebugMemoryHeapVerifyFrequency;  // = 255;     by default
+    u8 DebugMemoryHeapVerifyFrequency = 255;
 
     // Self-explanatory
-    bool DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination;  // = false;     by default
+    bool DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination = false;
 #endif
 
     //
@@ -166,25 +156,15 @@ struct context {
     // One might want to silence such errors and just continue executing, or
     // redirect the error - like we do in the tests.
     //
-    fmt_parse_error_handler_t FmtParseErrorHandler;  // = fmt_default_parse_error_handler;     by
-                                                     // default
+    fmt_parse_error_handler_t FmtParseErrorHandler = fmt_default_parse_error_handler;
 
     //
     // Internal.
     //
-    bool _HandlingPanic;        // = false;   // Don't set. Used to avoid infinite
-                                // looping when handling panics. Don't touch!
-    bool _LoggingAnAllocation;  // = false;   // Don't set. Used to avoid infinite
-                                // looping when logging allocations. Don't touch!
-
-    // Text locale for Unicode casing tailorings (e.g., Turkic dotted/dotless I).
-    text_locale Locale;  // = Default
-
-    // Hack, the default constructor would otherwise zero init the context's
-    // members, which might have been set by other global constructors.
-    struct dont_init_t {};
-
-    context(dont_init_t) {}
+    bool _HandlingPanic = false; // Don't set. Used to avoid infinite
+                                 // looping when handling panics. Don't touch!
+    bool _LoggingAnAllocation = false; // Don't set. Used to avoid infinite
+                                       // looping when logging allocations. Don't touch!
 };
 
 // :Context:
@@ -206,16 +186,7 @@ struct context {
 // the latter changes the context globally for the entire run of the program.
 // These are defined in common/context.h
 //
-// The reason this is a const variable is that it may prevent unintended bugs.
-// A malicious author of a library can use a const_cast to change a variable
-// and not restore it in the end, but he can also do 1000 other things that
-// completely break your program, so...
-//
-// Gets initialized in _platform_init_context()_ (the first thing that runs
-// in the program) because otherwise the default constructor would override
-// the values (which may have changed from other global constructors).
-//
-inline const thread_local context Context = context(context::dont_init_t{});
+inline const thread_local context Context = {};
 
 inline void panic(string message) {
     array<os_function_call> callStack;
@@ -248,8 +219,10 @@ inline void panic(string message) {
 // e.g.:       TemporaryAllocator.Block = os_allocate_block(poolSize);
 //             TemporaryAllocator.Size = poolSize;
 //
+// Otherwise a default block of memory is allocator on first use.
+//
 inline thread_local arena_allocator_data TemporaryAllocatorData;
-inline const thread_local allocator      TemporaryAllocator = allocator(allocator_dont_init_t{});  // Disable the default constructor,
+inline const thread_local allocator      TemporaryAllocator = {arena_allocator, &TemporaryAllocatorData};
 
 // this gets initialized with the
 // Context. See hack note above.

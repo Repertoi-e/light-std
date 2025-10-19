@@ -1,5 +1,7 @@
 #include "../test.h"
 
+#if OS != WASM
+
 TEST(hardware_concurrency) {
     print("\n\t\tHardware concurrency: {}.\n", os_get_hardware_concurrency());
     For(range(45)) print(" ");
@@ -158,3 +160,5 @@ TEST(context) {
     }
     assert_eq((void *)Context.Alloc.Function, (void *)old);
 }
+
+#endif

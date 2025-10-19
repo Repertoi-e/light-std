@@ -72,8 +72,6 @@ extern "C" void main_no_crt() {
     // When we link with the CRT (and don't compile all this stub code) we put
     // these in the in linker tables. See e.g. windows/common.h
 
-    platform_state_init();
-
     // These call the tables that the linker has filled with initialization
     // routines for global variables
     if (lstd_initterm_e(__xi_a, __xi_z) != 0) {
@@ -81,6 +79,8 @@ extern "C" void main_no_crt() {
         return;
     }
     lstd_initterm(__xc_a, __xc_z);
+
+    platform_state_init();
 
     // We do this to avoid reinitializing in __dyn_tls_init (in tlsdyn.cpp)
     MainContext = (void *)&LSTD_NAMESPACE::Context;
@@ -114,13 +114,13 @@ extern "C" extern __scrt_dllmain_type const _pRawDllMain;
 static int __proc_attached = 0;
 
 static BOOL __cdecl dllmain_crt_process_attach(HMODULE const instance, LPVOID const reserved) {
-    platform_state_init();
-
     if (lstd_initterm_e(__xi_a, __xi_z) != 0) {
         debug_break();
         return 0;
     }
     lstd_initterm(__xc_a, __xc_z);
+
+    platform_state_init();
 
     // If we have any dynamically initialized __declspec(thread) variables, we
     // invoke their initialization for the thread on which the DLL is being

@@ -255,6 +255,7 @@ bool build_test_suite(Config config)
             cmd_append(&cmd, "-sEXIT_RUNTIME=1");
             cmd_append(&cmd, "-sASSERTIONS=2");
             cmd_append(&cmd, "-sMALLOC=mimalloc"); // Multi-threaded
+            cmd_append(&cmd, "-sEXPORT_ES6=1");
         } else {
             cmd_append(&cmd, "clang++");
         }

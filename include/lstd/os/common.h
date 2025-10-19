@@ -166,33 +166,6 @@ inline string os_get_current_module() { return S->ModuleName; }
 
 inline array<string> os_get_command_line_arguments() { return S->Argv; }
 
-// This needs to be called when our program runs, but also when a new thread
-// starts! See windows/common.h for implementation details. Note: You
-// shouldn't ever call this.
-//
-// TODO: Move this from os to init module or sth. doesn't seem like its place is here.
-inline void platform_init_context() {
-    auto newContext                = context(context::dont_init_t{});
-    newContext.ThreadID            = os_get_current_thread_id();
-    newContext.Alloc               = {};
-    newContext.AllocAlignment      = POINTER_SIZE;
-    newContext.AllocOptions        = 0;
-    newContext.LogAllAllocations   = false;
-    newContext.PanicHandler        = default_panic_handler;
-    newContext.Log                 = &cout;
-    newContext.FmtDisableAnsiCodes = false;
-#if defined DEBUG_MEMORY
-    newContext.DebugMemoryHeapVerifyFrequency                                           = 255;
-    newContext.DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination = false;
-#endif
-    newContext.FmtParseErrorHandler = fmt_default_parse_error_handler;
-    newContext._HandlingPanic       = false;
-    newContext._LoggingAnAllocation = false;
-    OVERRIDE_CONTEXT(newContext);
-
-    *const_cast<allocator *>(&TemporaryAllocator) = {arena_allocator, (void *)&TemporaryAllocatorData};
-}
-
 //
 // Initializes the state we need to function.
 //
@@ -248,9 +221,9 @@ inline void platform_uninit_state() {
 // state initialization, if you wish to.
 //
 inline void platform_state_init() {
-    // This prepares the global thread-local
-    // immutable Context variable (see context.h)
-    LSTD_NAMESPACE::platform_init_context();
+    auto newContext                = Context;
+    newContext.ThreadID            = os_get_current_thread_id();
+    OVERRIDE_CONTEXT(newContext);
 
     platform_init_common_state();
 

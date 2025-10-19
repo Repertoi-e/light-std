@@ -190,8 +190,6 @@ void WINAPI __dyn_tls_init(PVOID, DWORD dwReason,
     //
     // We don't guarantee a valid context for threads.
     //
-    // LSTD_NAMESPACE::platform_init_context();
-    //
     // The reason for this decision: we can't know the parent of the thread
     // so we can't know which Context to copy.
     //

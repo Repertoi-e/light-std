@@ -434,31 +434,6 @@ inline void parse_arguments() {
     For(range(argc)) add(S->Argv, utf16_to_utf8(argv[it], PERSISTENT));
 }
 
-// This needs to be called when our program runs, but also when a new thread
-// starts! See windows/common.h for implementation details. Note: You
-// shouldn't ever call this.
-inline void platform_init_context() {
-    auto newContext                = context(context::dont_init_t{});
-    newContext.ThreadID            = GetCurrentThreadId();
-    newContext.Alloc               = {};
-    newContext.AllocAlignment      = POINTER_SIZE;
-    newContext.AllocOptions        = 0;
-    newContext.LogAllAllocations   = false;
-    newContext.PanicHandler        = default_panic_handler;
-    newContext.Log                 = &cout;
-    newContext.FmtDisableAnsiCodes = false;
-#if defined DEBUG_MEMORY
-    newContext.DebugMemoryHeapVerifyFrequency                                           = 255;
-    newContext.DebugMemoryPrintListOfUnfreedAllocationsAtThreadExitOrProgramTermination = false;
-#endif
-    newContext.FmtParseErrorHandler = fmt_default_parse_error_handler;
-    newContext._HandlingPanic       = false;
-    newContext._LoggingAnAllocation = false;
-    OVERRIDE_CONTEXT(newContext);
-
-    *const_cast<allocator *>(&TemporaryAllocator) = {arena_allocator, (void *)&TemporaryAllocatorData};
-}
-
 inline void platform_specific_init_common_state() {
     QueryPerformanceFrequency(&Win32PerformanceFrequency);
 
