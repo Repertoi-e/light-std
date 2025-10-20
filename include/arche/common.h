@@ -366,15 +366,22 @@ __inline__ static void debug_break(void) { raise(SIGTRAP); }
 //
 #undef assert
 
-#if !defined NDEBUG
-#if OS == WASM
 #define _STOP_HAMMER_TIME(x) #x
 #define _STRINGIFICATE(x) _STOP_HAMMER_TIME(x)
 
+#if !defined NDEBUG
+#if OS == WASM
 void panic(const char *message);
 #define assert(condition) (!!(condition)) ? (void)0 : panic("Assertion failed: " #condition " at: " __FILE__ ":" _STRINGIFICATE(__LINE__))
 #else
+
+#if defined ARCHE_THROW_ON_ASSERT_THROW_ON_PANIC
+#include <stdexcept>
+#define assert(condition) (!!(condition)) ? (void)0 : throw std::logic_error("Assertion failed: " #condition " at: " __FILE__ ":" _STRINGIFICATE(__LINE__))
+#else
 #define assert(condition) (!!(condition)) ? (void)0 : debug_break()
+#endif
+
 #endif
 #else
 #define assert(condition) ((void)0)

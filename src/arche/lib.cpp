@@ -1,4 +1,3 @@
-#include "context.cpp"
 #include "memory.cpp"
 
 #include "platform/memory.cpp"
@@ -25,3 +24,7 @@
 #include "fmt/float_grisu.cpp"
 #include "fmt/fmt.cpp"
 #include "fmt/write.cpp"
+
+
+// Last cause we #undef some stuff, @TODO Remove #define search and #define ref cuz wtf
+#include "context.cpp"

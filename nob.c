@@ -105,8 +105,7 @@ void add_common_flags(Cmd *cmd, Config config)
     }
 
     nob_rtti(cmd, true);
-    nob_exceptions(cmd, false);
-
+    
 #if defined(__APPLE__) || defined(__MACH__) || defined(__linux__)
     cmd_append(cmd, "-pthread");
 #elif defined(_WIN32)
@@ -122,6 +121,12 @@ void add_common_flags(Cmd *cmd, Config config)
     cmd_append(cmd, "/GS-");
     cmd_append(cmd, temp_sprintf("/Gs%s", 9999999));
 #endif
+
+    nob_exceptions(cmd, IS_WASM);
+
+    if (IS_WASM) {
+        cmd_append(cmd, "-DARCHE_THROW_ON_ASSERT_THROW_ON_PANIC");
+    }
 
     // Library-specific defines
     cmd_append(cmd, "-DARCHE_NO_NAMESPACE");
@@ -174,7 +179,7 @@ bool build_arche_library(Config config)
     {
         Cmd cmd = {0};
         if (IS_WASM) {
-            cmd_append(&cmd, "em++");
+            cmd_append(&cmd, "ccache", "em++");
         } else {
             cmd_append(&cmd, "clang++");
         }
@@ -240,7 +245,7 @@ bool build_test_suite(Config config)
     {
         Cmd cmd = {0};
         if (IS_WASM) {
-            cmd_append(&cmd, "em++");
+            cmd_append(&cmd, "ccache", "em++");
             cmd_append(&cmd, "-sALLOW_MEMORY_GROWTH=1");
             cmd_append(&cmd, "-sEXIT_RUNTIME=1");
             cmd_append(&cmd, "-sASSERTIONS=2");

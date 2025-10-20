@@ -5,39 +5,6 @@
 
 ARCHE_BEGIN_NAMESPACE
 
-//
-// This file includes the base implementations of panic handlers,
-// see :Context: in context.h to see how to override them.
-//
-
-void default_panic_handler(string message, array<os_function_call> callStack) {
-    if (Context._HandlingPanic) return;
-
-    auto newContext           = Context;
-    newContext._HandlingPanic = true;
-
-    PUSH_CONTEXT(newContext) {
-        print(
-            "\n\n{!}(context.cpp / default_crash_handler): A panic occurred and "
-            "the program must terminate.\n");
-        print("{!GRAY}        Error: {!RED}{}{!}\n\n", message);
-        print("        ... and here is the call stack:\n");
-        if (callStack.Count) { print("\n"); }
-        For(callStack) {
-            print("        {!YELLOW}{}{!}\n", it.Name);
-            print("          in file: {}:{}\n", it.File, it.LineNumber);
-        }
-        if (!callStack.Count) { print("          [No call stack available]\n"); }
-        print("\n\n");
-    }
-
-#if DEBUG
-    debug_break();
-#else
-    exit(-1);
-#endif
-}
-
 void fmt_default_parse_error_handler(string message, string formatString, s64 position) {
     // An error during formatting occured.
     // If you are running a debugger it has now hit a breakpoint.
@@ -90,6 +57,67 @@ void fmt_default_parse_error_handler(string message, string formatString, s64 po
     // More info has been printed to the console but here's the error message:
     auto errorMessage = message;
     assert(false);
+#endif
+}
+
+ARCHE_END_NAMESPACE
+
+#if defined ARCHE_THROW_ON_ASSERT_THROW_ON_PANIC
+#undef search
+#undef ref
+
+#include <string>
+#include <stdexcept>
+#endif
+
+ARCHE_BEGIN_NAMESPACE
+
+//
+// This file includes the base implementations of panic handlers,
+// see :Context: in context.h to see how to override them.
+//
+
+void default_panic_handler(string message, array<os_function_call> callStack) {
+    if (Context._HandlingPanic) return;
+
+    auto newContext           = Context;
+    newContext._HandlingPanic = true;
+
+#if defined ARCHE_THROW_ON_ASSERT_THROW_ON_PANIC
+    newContext.FmtDisableAnsiCodes = true;
+#endif
+
+    string_builder b;
+
+    string_builder_writer writer;
+    writer.Builder = &b;
+
+    PUSH_CONTEXT(newContext) {
+        fmt_to_writer(&writer,
+            "\n\n{!}(context.cpp / default_crash_handler): A panic occurred and "
+            "the program must terminate.\n");
+        fmt_to_writer(&writer, "{!GRAY}        Error: {!RED}{}{!}\n\n", message);
+        fmt_to_writer(&writer, "        ... and here is the call stack:\n");
+        if (callStack.Count) { fmt_to_writer(&writer, "\n"); }
+        For(callStack) {
+            fmt_to_writer(&writer, "        {!YELLOW}{}{!}\n", it.Name);
+            fmt_to_writer(&writer, "          in file: {}:{}\n", it.File, it.LineNumber);
+        }
+        if (!callStack.Count) { fmt_to_writer(&writer, "          [No call stack available]\n"); }
+        fmt_to_writer(&writer, "\n\n");
+    }
+
+    string info = builder_to_string(b);
+
+#if defined ARCHE_THROW_ON_ASSERT_THROW_ON_PANIC
+    throw std::logic_error(std::string(to_c_string(info)));
+#else
+    print("{}", info);
+#if DEBUG
+    debug_break();
+#else
+    exit(-1);
+#endif
 #endif
 }
 
