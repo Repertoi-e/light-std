@@ -122,10 +122,11 @@ void add_common_flags(Cmd *cmd, Config config)
     cmd_append(cmd, temp_sprintf("/Gs%s", 9999999));
 #endif
 
-    nob_exceptions(cmd, IS_WASM);
-
     if (IS_WASM) {
+        cmd_append(cmd, "-fwasm-exceptions");
         cmd_append(cmd, "-DARCHE_THROW_ON_ASSERT_THROW_ON_PANIC");
+    } else {
+        nob_exceptions(cmd, false);
     }
 
     // Library-specific defines

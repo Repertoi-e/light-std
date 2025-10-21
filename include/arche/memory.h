@@ -8,7 +8,11 @@
 ///
 
 // Maximum size of an allocation we will attemp to request
+#if OS == WASM
+#define MAX_ALLOCATION_REQUEST 0x100000000  // 4 GiB
+#else
 #define MAX_ALLOCATION_REQUEST 0xFFFFFFFFFFFFFFE0  // Around 16384 PiB
+#endif
 
 // In debug by default we do some extra checks to catch memory-related bugs.
 // See "memory.h" for details (or search for DEBUG_MEMORY) and see

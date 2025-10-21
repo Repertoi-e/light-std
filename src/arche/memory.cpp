@@ -479,17 +479,16 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
 
     // Provide a default allocator if none was set in the context.
     if (!alloc) {
-        printf("Thread ID: %llu\n", os_get_current_thread_id());
-        printf("DefaultAllocator.State = %p\n", DefaultAllocator.State);
-        printf(">>> Warning: No allocator set in context, using default TLSF allocator.\n");
+        // printf("Thread ID: %llu\n", os_get_current_thread_id());
+        // printf("DefaultAllocator.State = %p\n", DefaultAllocator.State);
+        // printf("Context.Log = %p\n", Context.Log);
+
+        // write(">>> Warning: No allocator set in context, using default TLSF allocator.\n");
 
         context newContext = Context;
         newContext.Alloc   = {tlsf_allocator, &DefaultAllocator};
         OVERRIDE_CONTEXT(newContext);
         alloc = Context.Alloc;
-
-        write(Context.Log, ">>> .. after set.\n");
-        Context.Log->flush();
     }
 
     options |= Context.AllocOptions;
@@ -515,6 +514,7 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
             write(Context.Log, ">>> Starting allocation at: ");
             log_file_and_line(loc);
             write(Context.Log, "\n");
+            Context.Log->flush();
         }
     }
 
@@ -530,10 +530,11 @@ void *general_allocate(allocator alloc, s64 userSize, u32 alignment, u64 options
     void *block = alloc.Function(allocator_mode::ALLOCATE, alloc.Context, required, null, 0, options);
 
     if (!block && alloc.Context == &DefaultAllocator) {
-        printf(">>> Default allocator out of memory, trying to grow the pool...\n");
+        write(Context.Log, ">>> Default allocator out of memory, trying to grow the pool...\n");
+        Context.Log->flush();
 
         // Try to grow the default allocator pool and try again
-        s64 poolSize = max(required, 16_MiB);
+        s64 poolSize = required + 16_MiB;
 
         void *pool = os_allocate_block(poolSize);
         tlsf_allocator_add_pool(&DefaultAllocator, pool, poolSize);
