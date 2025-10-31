@@ -430,8 +430,6 @@ inline void *tlsf_allocator(allocator_mode mode, void *context, s64 size, void *
         data->State = tlsf_create_with_pool(os_allocate_block(initial_pool_size), initial_pool_size);
     }
 
-    tlsf_check(data->State);
-
     switch (mode) {
         case allocator_mode::ALLOCATE: return tlsf_malloc(data->State, size);
         case allocator_mode::RESIZE:   return tlsf_resize(data->State, oldMemory, size);
