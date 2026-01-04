@@ -54,4 +54,10 @@ stack_array<common_type_t<Types...>, sizeof...(Types)> make_stack_array(Types &&
     return {(Types &&)t...};
 }
 
+template <typename T, s64 N>
+auto begin(stack_array<T, N> ref arr) { return arr.Data; }
+
+template <typename T, s64 N>
+auto begin(stack_array<T, N> no_copy arr) { return arr.Data; }
+
 ARCHE_END_NAMESPACE

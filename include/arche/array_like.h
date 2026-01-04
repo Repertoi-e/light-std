@@ -275,9 +275,14 @@ void remove_all(Arr ref arr, Arr2 no_copy search) {
 }
 
 // To make range based for loops work.
-auto begin(any_array_like auto ref arr) { return arr.Data; }
 
-auto begin(any_array_like auto no_copy arr) { return arr.Data; }
+template <any_dynamic_array_like Arr>
+    requires(!has_custom_reserve<Arr>)
+auto begin(Arr ref arr) { return arr.Data; }
+
+template <any_dynamic_array_like Arr>
+    requires(!has_custom_reserve<Arr>)
+auto begin(Arr no_copy arr) { return arr.Data; }
 
 auto end(any_array_like auto ref arr) { return arr.Data + arr.Count; }
 
