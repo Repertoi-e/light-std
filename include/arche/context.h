@@ -188,7 +188,7 @@ struct context {
 //
 inline const thread_local context Context = {};
 
-inline void panic(const char *message) {
+[[noreturn]] inline void panic(const char *message) {
     array<os_function_call> callStack;
 #if OS != WASM
     callStack = os_get_call_stack(1, 32, null);
@@ -198,6 +198,7 @@ inline void panic(const char *message) {
     });
 #endif
     Context.PanicHandler(message, callStack);
+    exit(1);
 }
 
 //

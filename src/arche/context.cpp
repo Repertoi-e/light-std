@@ -115,8 +115,6 @@ void default_panic_handler(string message, array<os_function_call> callStack) {
     print("{}", info);
 #if DEBUG
     debug_break();
-#else
-    exit(-1);
 #endif
 #endif
 }

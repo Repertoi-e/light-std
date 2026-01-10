@@ -165,4 +165,32 @@ void exponential_array_visit_chunks(any_xar auto ref arr, auto visitor) {
     }
 }
 
+// Iterator for exponential_array - uses index-based iteration
+template <typename ArrT>
+struct xar_iterator {
+    ArrT *arr;
+    usize index;
+
+    using T = remove_cvref_t<decltype((*arr)[0])>;
+
+    xar_iterator(ArrT *a, usize i) : arr(a), index(i) {}
+
+    T &operator*() { return (*arr)[index]; }
+    T *operator->() { return &(*arr)[index]; }
+
+    xar_iterator &operator++() {
+        ++index;
+        return *this;
+    }
+
+    bool operator!=(const xar_iterator &other) const { return index != other.index; }
+    bool operator==(const xar_iterator &other) const { return index == other.index; }
+};
+
+template <typename T, usize N, usize B, bool S>
+auto begin(exponential_array<T, N, B, S> &arr) { return xar_iterator<exponential_array<T, N, B, S>>(&arr, 0); }
+
+template <typename T, usize N, usize B, bool S>
+auto end(exponential_array<T, N, B, S> &arr) { return xar_iterator<exponential_array<T, N, B, S>>(&arr, arr.Count); }
+
 ARCHE_END_NAMESPACE
