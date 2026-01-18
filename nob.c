@@ -162,7 +162,9 @@ bool build_arche_library(Config config)
         nob_log(INFO, "Generating Unicode tables (%s)\n", unicode_inc);
         Cmd gen = {0};
         cmd_append(&gen, "python3", unicode_gen);
-        if (!cmd_run_sync(gen)) return false;
+        if (!cmd_run_sync(gen)) {
+            nob_log(ERROR, "Failed to generate Unicode tables, this is OK, we'll use the existing ones\n");
+        }
     }
 
     // Generate object file path
@@ -180,9 +182,9 @@ bool build_arche_library(Config config)
     {
         Cmd cmd = {0};
         if (IS_WASM) {
-            cmd_append(&cmd, "ccache", "em++");
+            cmd_append(&cmd, "em++");
         } else {
-            cmd_append(&cmd, "clang++");
+            nob_cpp(&cmd);
         }
 
         add_specific_flags(&cmd, config);
@@ -253,7 +255,7 @@ bool build_test_suite(Config config)
             cmd_append(&cmd, "-sMALLOC=mimalloc"); // Multi-threaded
             cmd_append(&cmd, "-sEXPORT_ES6=1");
         } else {
-            cmd_append(&cmd, "clang++");
+            nob_cpp(&cmd);
         }
 
         add_common_flags(&cmd, config);
