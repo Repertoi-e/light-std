@@ -83,13 +83,13 @@ void add_common_flags(Cmd *cmd, Config config)
     case CONFIG_DEBUG:
         nob_optimize_level(cmd, NOB_OPTIMIZATION_O0);
         cmd_append(cmd, "-DDEBUG");
-        cmd_append(cmd, "-DARCHE_ARRAY_BOUNDS_CHECK", "-DARCHE_NUMERIC_CAST_CHECK");
+        cmd_append(cmd, "-DARCHE_ARRAY_BOUNDS_CHECK");
         nob_debug_info(cmd, true);
         break;
     case CONFIG_DEBUG_OPTIMIZED:
         nob_optimize_level(cmd, NOB_OPTIMIZATION_O2);
         cmd_append(cmd, "-DDEBUG", "-DDEBUG_OPTIMIZED");
-        cmd_append(cmd, "-DARCHE_ARRAY_BOUNDS_CHECK", "-DARCHE_NUMERIC_CAST_CHECK");
+        cmd_append(cmd, "-DARCHE_ARRAY_BOUNDS_CHECK");
         nob_debug_info(cmd, true);
         break;
     case CONFIG_RELEASE:
@@ -128,12 +128,7 @@ void add_common_flags(Cmd *cmd, Config config)
     } else {
         nob_exceptions(cmd, false);
     }
-
-    // Library-specific defines
-    cmd_append(cmd, "-DARCHE_NO_NAMESPACE");
     // cmd_append(cmd, "-DARCHE_UNICODE_FULL_RANGE"); This adds around 25 MB to the binary size
-    cmd_append(cmd, "-DPLATFORM_TEMPORARY_STORAGE_STARTING_SIZE=16_KiB");
-    cmd_append(cmd, "-DPLATFORM_PERSISTENT_STORAGE_STARTING_SIZE=1_MiB");
 }
 
 bool build_arche_library(Config config)

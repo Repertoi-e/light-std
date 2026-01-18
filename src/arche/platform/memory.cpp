@@ -4,6 +4,13 @@ ARCHE_BEGIN_NAMESPACE
 
 #define S ((platform_memory_state *)&PlatformMemoryState[0])
 
+#ifndef PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE
+#define PLATFORM_TEMPORARY_STORAGE_STARTING_SIZE 16_KiB
+#endif
+#ifndef PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE
+#define PLATFORM_PERSISTENT_STORAGE_STARTING_SIZE 1_MiB
+#endif
+
 void *platform_persistent_alloc(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options) {
     auto *data = (tlsf_allocator_data *)context;
 

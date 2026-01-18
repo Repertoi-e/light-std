@@ -2,13 +2,10 @@
 
 //
 // Define ARCHE_NAMESPACE as a preprocessor definition to the value you want the
-// namespace to be called. (By default the libary has the namespace "arche").
-//
-// * If you want to use this library without a namespace,
-// define ARCHE_NO_NAMESPACE when building
+// namespace to be called. (By default the libary has no namespace).
 //
 
-#if not defined ARCHE_NO_NAMESPACE && defined ARCHE_NAMESPACE
+#if defined ARCHE_NAMESPACE
 #define ARCHE_BEGIN_NAMESPACE namespace ARCHE_NAMESPACE {
 #define ARCHE_END_NAMESPACE   }
 #define ARCHE_USING_NAMESPACE using namespace ARCHE_NAMESPACE
@@ -3234,7 +3231,6 @@ using usize = size_t;
 // Define some common math functions:
 //    min, max, clamp,
 //    abs,
-//    cast_numeric_safe,
 //    is_pow_of_2, ceil_pow_of_2, const_exp10,
 //    is_nan, is_signaling_nan, is_infinite, is_finite,
 //    sign_bit, sign_no_zero, sign, copy_sign
@@ -3338,56 +3334,9 @@ inline bool is_finite(is_floating_point auto x) {
     else return ieee754_f64{x}.ieee.E != 0x7FF;
 }
 
-/**
- * @brief Safely casts a numeric value of type U to a numeric value of type T.
- *
- * When ARCHE_NUMERIC_CAST_CHECK is defined, runtime checks are performed
- * to detect potential overflows when casting between integer types. If an
- * overflow occurs, an error message is reported and an assertion is triggered.
- *
- * @tparam T The target numeric type to cast the value to.
- * @tparam U The source numeric type of the value being cast.
- * @param y The value of type U to be cast to type T.
- * @return The value y cast to type T.
- *
- * @note The template requires both T and U to be scalar types (i.e., integral
- * or floating-point types).
- */
-template <typename T, typename U>
-inline constexpr auto cast_numeric(U y)
-    requires(is_scalar<T> && is_scalar<U>)
-{
-#if defined(ARCHE_NUMERIC_CAST_CHECK)
-    if constexpr (is_integral<T> && is_integral<U>) {
-        if constexpr (is_signed_integral<T> && is_unsigned_integral<U>) {
-            if (y > static_cast<U>(numeric<T>::max())) {
-                // Report error and assert
-                assert(false && "Overflow: unsigned to signed integer cast.");
-            }
-        } else if constexpr (is_unsigned_integral<T> && is_signed_integral<U>) {
-            if (y > static_cast<U>(numeric<T>::max()) || y < 0) {
-                // Report error and assert
-                assert(false && "Overflow: signed to unsigned integer cast.");
-            }
-        } else if constexpr (is_signed_integral<T> && is_signed_integral<U>) {
-            if (y > numeric<T>::max() || y < numeric<T>::min()) {
-                // Report error and assert
-                assert(false && "Overflow: signed integer to signed integer cast.");
-            }
-        } else if constexpr (is_unsigned_integral<T> && is_unsigned_integral<U>) {
-            if (y > numeric<T>::max()) {
-                // Report error and assert
-                assert(false && "Overflow: unsigned integer to unsigned integer cast.");
-            }
-        }
-    }
-#endif
-    return (T)y;
-}
-
 namespace internal {
 constexpr auto min_(auto x, auto y) {
-    auto y_casted = cast_numeric<decltype(x)>(y);
+    auto y_casted = (decltype(x))y;
     if constexpr (is_floating_point<decltype(x)>) {
         if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
     }
@@ -3395,7 +3344,7 @@ constexpr auto min_(auto x, auto y) {
 }
 
 constexpr auto max_(auto x, auto y) {
-    auto y_casted = cast_numeric<decltype(x)>(y);
+    auto y_casted = (decltype(x))y;
     if constexpr (is_floating_point<decltype(x)>) {
         if (is_nan(x) || is_nan(y_casted)) return x + y_casted;
     }
