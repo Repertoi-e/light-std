@@ -59,7 +59,7 @@ struct delegate;
 
 template <typename R, typename... A>
 struct delegate<R(A...)> {
-    using stub_t   = R (*)(void *, A no_copy...);
+    using stub_t   = R (*)(void *, A const&...);
     using return_t = R;
 
     template <typename Type, typename Signature>
@@ -79,7 +79,7 @@ struct delegate<R(A...)> {
 
     // Invoke static method / free function
     template <null_t, typename Signature>
-    static R invoke(void *data, A no_copy... args) {
+    static R invoke(void *data, A const&... args) {
         if constexpr (is_same<return_t, void>) {
             (*((target<null_t, Signature> *)data)->FunctionPtr)(args...);
         } else {
@@ -89,7 +89,7 @@ struct delegate<R(A...)> {
 
     // Invoke method
     template <typename Type, typename Signature>
-    static R invoke(void *data, A no_copy... args) {
+    static R invoke(void *data, A const&... args) {
         if constexpr (is_same<return_t, void>) {
             (((target<Type, Signature> *)data)->InstancePtr->*((target<Type, Signature> *)data)->FunctionPtr)(args...);
         } else {
@@ -99,7 +99,7 @@ struct delegate<R(A...)> {
 
     // Invoke function object (functor)
     template <typename Type, null_t>
-    static R invoke(void *data, A no_copy... args) {
+    static R invoke(void *data, A const&... args) {
         if constexpr (is_same<return_t, void>) {
             (*((target<Type, null_t> *)data)->InstancePtr)(args...);
         } else {

@@ -142,13 +142,13 @@ struct aligned_union {
     }
 
     template <class T>
-    auto ref as() {
+    auto & as() {
         using type = internal::const_if_t<decltype(this), decay_t<T>>;
         return *reinterpret_cast<type *>(Data);
     }
 
     template <class T>
-    auto no_copy as() const {
+    auto const& as() const {
         using type = internal::const_if_t<decltype(this), decay_t<T>>;
         return *reinterpret_cast<type *>(Data);
     }
@@ -170,7 +170,7 @@ struct variant {
 
     variant() : variant(nil{}) {}
 
-    // variant(variant no_copy x) { x.visit_with_nil<copy_constructor>({*this}); }
+    // variant(variant const& x) { x.visit_with_nil<copy_constructor>({*this}); }
     // variant(variant &&x) { x.visit_with_nil<move_constructor>({*this}); }
     // ~variant() { destruct(); }
 
@@ -188,13 +188,13 @@ struct variant {
     explicit operator bool() const { return !is<nil>(); }
 
     template <class F>
-    decltype(auto) visit(F no_copy f = {}) {
+    decltype(auto) visit(F const& f = {}) {
         if (!ti) return visit_with_nil<F>(f);
         else return visit<F, MEMBERS...>(f, ti - 1);
     }
 
     template <class F>
-    decltype(auto) visit(F no_copy f = {}) const {
+    decltype(auto) visit(F const& f = {}) const {
         if (!ti) return visit_with_nil<F>(f);
         else return visit<F, MEMBERS...>(f, ti - 1);
     }
@@ -203,13 +203,13 @@ struct variant {
 #pragma clang diagnostic ignored "-Wreturn-type"
 
     template <class T>
-    auto ref strict_get() {
+    auto & strict_get() {
         if (is<T>()) return as<T>();
         else panic();
     }
 
     template <class T>
-    auto ref strict_get() const {
+    auto & strict_get() const {
         if (is<T>()) return as<T>();
         else {
             // Calls panic which crashes
@@ -220,7 +220,7 @@ struct variant {
 #pragma clang diagnostic pop
 
     /*template <class T>
-  requires(!__is_base_of(decay_t<T>, decay_t<variant>)) auto ref operator=(
+  requires(!__is_base_of(decay_t<T>, decay_t<variant>)) auto & operator=(
       T &&x) {
     if (is<T>())
       as<T>() = FORWARD(x);
@@ -229,7 +229,7 @@ struct variant {
     return *this;
   }
 
-  auto ref operator=(variant x) {
+  auto & operator=(variant x) {
     destruct();
     x.visit<move_constructor>({*this});
     return *this;
@@ -244,50 +244,50 @@ struct variant {
     }
 
     template <class T>
-    auto ref as() {
+    auto & as() {
         return au.template as<T>();
     }
 
     template <class T>
-    auto no_copy as() const {
+    auto const& as() const {
         return au.template as<T>();
     }
 
     template <class F, class T>
-    decltype(auto) visit(F no_copy f, u64) {
+    decltype(auto) visit(F const& f, u64) {
         return f(as<T>());
     }
 
     template <class F, class T>
-    decltype(auto) visit(F no_copy f, u64) const {
+    decltype(auto) visit(F const& f, u64) const {
         return f(as<T>());
     }
 
     template <class F, class U, class T, class... TS>
-    decltype(auto) visit(F no_copy f, u64 i) {
+    decltype(auto) visit(F const& f, u64 i) {
         if (i) return visit<F, T, TS...>(f, i - 1);
         return f(as<U>());
     }
 
     template <class F, class U, class T, class... TS>
-    decltype(auto) visit(F no_copy f, u64 i) const {
+    decltype(auto) visit(F const& f, u64 i) const {
         if (i) return visit<F, T, TS...>(f, i - 1);
         return f(as<U>());
     }
 
     template <class F>
-    decltype(auto) visit_with_nil(F no_copy f = {}) {
+    decltype(auto) visit_with_nil(F const& f = {}) {
         return visit<F, nil, MEMBERS...>(f, ti);
     }
 
     template <class F>
-    decltype(auto) visit_with_nil(F no_copy f = {}) const {
+    decltype(auto) visit_with_nil(F const& f = {}) const {
         return visit<F, nil, MEMBERS...>(f, ti);
     }
 
     struct destructor {
         template <class T>
-        void operator()(T ref x) const {
+        void operator()(T & x) const {
             x.~T();
         }
     };
@@ -301,9 +301,9 @@ struct variant {
     }
 
     struct move_constructor {
-        variant ref self;
+        variant & self;
 
-        move_constructor(variant ref self) : self{self} {}
+        move_constructor(variant & self) : self{self} {}
 
         template <class T>
         void operator()(T &x) const {
@@ -312,12 +312,12 @@ struct variant {
     };
 
     struct copy_constructor {
-        variant ref self;
+        variant & self;
 
-        copy_constructor(variant ref self) : self{self} {}
+        copy_constructor(variant & self) : self{self} {}
 
         template <class T>
-        void operator()(T no_copy x) const {
+        void operator()(T const& x) const {
             self.construct<T>(x);
         }
     };

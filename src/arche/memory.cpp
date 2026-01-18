@@ -119,9 +119,9 @@ string get_short_file_name(string str) {
     char   srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
     string src       = srcData;
 
-    s64 findResult = search(str, src, .Start = -1, .Reversed = true);
+    s64 findResult = search(str, src, {.Start = -1, .Reversed = true});
     if (findResult == -1) {
-        findResult = search(str, OS_PATH_SEPARATOR, .Start = -1, .Reversed = true);
+        findResult = search(str, OS_PATH_SEPARATOR, {.Start = -1, .Reversed = true});
         assert(findResult != length(str) - 1);
         // Skip the slash
         findResult++;

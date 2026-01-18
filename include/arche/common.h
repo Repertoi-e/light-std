@@ -2384,15 +2384,12 @@ ARCHE_END_NAMESPACE
 // binary operator.
 //
 // e.g.
-//      void array_process(array<u8> no_copy bytes) { ... }
-//      void array_modify(array<u8> ref bytes) { ... }
+//      void array_process(array<u8> const& bytes) { ... }
+//      void array_modify(array<u8> & bytes) { ... }
 //
 //      array<s32> a;
 //      modify_array(mut a);
 //
-#define no_copy const &
-#define ref     &
-#define mut
 
 // Used to mark functions for which the caller is supposed to free the result.
 // This at leasts makes the compiler warn the caller if they've decided to
@@ -2402,11 +2399,6 @@ ARCHE_END_NAMESPACE
 //		mark_as_leak string make_string(...) { ... }
 //
 #define mark_as_leak [[nodiscard("Leak")]]
-
-//
-// e.g. cast(int) 5.0
-//
-#define cast(x) (x)
 
 // Helper macro for, e.g flag enums
 //
@@ -2451,12 +2443,12 @@ ARCHE_BEGIN_NAMESPACE
 #define For_enumerate(in)                  For_enumerate_as(it_index, it, in)
 
 template <typename T, typename TIter = decltype(T().begin()), typename = decltype(T().end())>
-auto enumerate_impl(T no_copy in) {
+auto enumerate_impl(T const& in) {
     struct iterator {
         s64   I;
         TIter Iter;
 
-        bool operator!=(iterator no_copy other) const { return Iter != other.Iter; }
+        bool operator!=(iterator const& other) const { return Iter != other.Iter; }
 
         void operator++() { ++I, ++Iter; }
 

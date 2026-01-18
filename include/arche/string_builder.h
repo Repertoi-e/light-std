@@ -25,7 +25,7 @@ const bool is_string_builder<exponential_array<char, N, BASE_SHIFT, STACK_FIRST>
 template <typename T>
 concept any_string_builder = is_string_builder<T>;
 
-inline void add(any_string_builder auto ref builder, const char *data, s64 size, allocator alloc = {}) {
+inline void add(any_string_builder auto & builder, const char *data, s64 size, allocator alloc = {}) {
     if (size <= 0) return;
 
     // Ensure capacity for the entire append in one go. No-ops for already allocated chunks.
@@ -62,15 +62,15 @@ inline void add(any_string_builder auto ref builder, const char *data, s64 size,
     }
 }
 
-inline void add(any_string_builder auto ref builder, code_point cp) {
+inline void add(any_string_builder auto & builder, code_point cp) {
     char encodedCp[4];
     utf8_encode_cp(encodedCp, cp);
     add(builder, encodedCp, utf8_get_size_of_cp(encodedCp));
 }
 
-inline void add(any_string_builder auto ref builder, string str) { add(builder, str.Data, str.Count); }
+inline void add(any_string_builder auto & builder, string str) { add(builder, str.Data, str.Count); }
 
-inline string builder_to_string(any_string_builder auto ref builder, allocator alloc = {}) {
+inline string builder_to_string(any_string_builder auto & builder, allocator alloc = {}) {
     string result;
     reserve(result, builder.Count, alloc);
 
@@ -84,19 +84,19 @@ inline string builder_to_string(any_string_builder auto ref builder, allocator a
     return result;
 }
 
-inline string builder_to_string_and_clear_builder(any_string_builder auto ref builder, allocator alloc = {}) {
+inline string builder_to_string_and_clear_builder(any_string_builder auto & builder, allocator alloc = {}) {
     string result = builder_to_string(builder, alloc);
     builder.Count = 0;
     return result;
 }
 
-inline string builder_to_string_and_free_builder(any_string_builder auto ref builder, allocator alloc = {}) {
+inline string builder_to_string_and_free_builder(any_string_builder auto & builder, allocator alloc = {}) {
     string result = builder_to_string(builder, alloc);
     free(builder);
     return result;
 }
 
-inline bool utf8_normalize_nfc_to_string_builder(const char *str, s64 byteLength, any_string_builder auto ref builder) {
+inline bool utf8_normalize_nfc_to_string_builder(const char *str, s64 byteLength, any_string_builder auto & builder) {
     if (!str || byteLength < 0) return false;
 
     const char *p   = str;
@@ -186,7 +186,7 @@ inline bool utf8_normalize_nfc_to_string_builder(const char *str, s64 byteLength
     return true;
 }
 
-inline bool utf8_normalize_nfd_to_string_builder(const char *str, s64 byteLength, any_string_builder auto ref builder) {
+inline bool utf8_normalize_nfd_to_string_builder(const char *str, s64 byteLength, any_string_builder auto & builder) {
     if (!str || byteLength < 0) return false;
 
     const char                   *p   = str;

@@ -45,9 +45,9 @@ struct array {
     // elements.
     array(initializer_list<T> items) { add(*this, items); }
 
-    auto ref operator[](s64 index) { return Data[translate_negative_index(index, Count)]; }
+    auto & operator[](s64 index) { return Data[translate_negative_index(index, Count)]; }
 
-    auto no_copy operator[](s64 index) const { return Data[translate_negative_index(index, Count)]; }
+    auto const& operator[](s64 index) const { return Data[translate_negative_index(index, Count)]; }
 
     auto begin() { return Data; }
 
@@ -72,12 +72,12 @@ mark_as_leak array<T> make_array(initializer_list<T> items) {
 
 // Returns a deep copy of _src_
 template <typename T>
-mark_as_leak array<T> clone(array<T> no_copy src) {
+mark_as_leak array<T> clone(array<T> const& src) {
     return make_array(src.Data, src.Count);
 }
 
 template <typename T>
-void free(array<T> ref arr) {
+void free(array<T> & arr) {
     if (arr.Allocated && arr.Data) free(arr.Data);
     arr.Count = arr.Allocated = 0;
 }

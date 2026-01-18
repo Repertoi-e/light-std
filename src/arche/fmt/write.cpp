@@ -326,7 +326,7 @@ inline void write_significand(fmt_context *f, string significand, s64 integralSi
 }
 
 // Routine to write a float in EXP format
-void write_float_exp(fmt_context *f, string significand, s32 exp, code_point sign, fmt_specs no_copy specs, fmt_float_specs no_copy floatSpecs) {
+void write_float_exp(fmt_context *f, string significand, s32 exp, code_point sign, fmt_specs const& specs, fmt_float_specs const& floatSpecs) {
     s64 outputSize = (sign ? 1 : 0) + significand.Count;  // Further we add the number of zeros/the
                                                           // size of the exponent to this tally
 
@@ -479,7 +479,7 @@ void write_float_fixed(fmt_context *f, string significand, s32 exp, code_point s
     }
 }
 
-fmt_float_specs fmt_parse_float_specs(fmt_parse_context *p, fmt_specs no_copy specs) {
+fmt_float_specs fmt_parse_float_specs(fmt_parse_context *p, fmt_specs const& specs) {
     fmt_float_specs result;
 
     result.ShowPoint = specs.Hash;

@@ -13,9 +13,9 @@ inline string get_short_file_path(string str) {
     char   srcData[] = {'s', 'r', 'c', OS_PATH_SEPARATOR, '\0'};
     string src       = srcData;
 
-    s64 findResult = search(str, src, .Start = -1, .Reversed = true);
+    s64 findResult = search(str, src, {.Start = -1, .Reversed = true});
     if (findResult == -1) {
-        findResult = search(str, OS_PATH_SEPARATOR, .Start = -1, .Reversed = true);
+        findResult = search(str, OS_PATH_SEPARATOR, {.Start = -1, .Reversed = true});
         assert(findResult != length(str) - 1);
         // Skip the slash
         findResult++;
@@ -86,7 +86,7 @@ struct test {
     test_func Function = null;
 };
 
-inline bool strings_match_for_table(string no_copy a, string no_copy b) { return strings_match(a, b); }
+inline bool strings_match_for_table(string const& a, string const& b) { return strings_match(a, b); }
 
 // New: global static registry populated by TEST macro at static init time.
 struct test_entry {

@@ -380,7 +380,7 @@ struct fmt_arg {
 //   * is the type a bool? maps to bool
 //   * otherwise maps to &v (value then setups a function call to a custom
 //   formatter)
-auto fmt_map_arg(auto no_copy v) {
+auto fmt_map_arg(auto const& v) {
     using T = remove_cvref_t<decltype(v)>;
 
     if constexpr (is_same<string, T> || is_constructible<string, T>) {
@@ -423,7 +423,7 @@ constexpr fmt_type fmt_type_of_mapped() {
     else return fmt_type::CUSTOM;
 }
 
-fmt_arg fmt_arg_make(auto no_copy v) {
+fmt_arg fmt_arg_make(auto const& v) {
     auto mapped = fmt_map_arg(v);
     return {fmt_type_of_mapped<decltype(mapped)>(), fmt_value(mapped)};
 }
@@ -681,10 +681,10 @@ void write_padded_helper(fmt_context *f, const fmt_specs &specs, F &&func, s64 f
 inline void write(fmt_context *f, string s) { f->write(s.Data, s.Count); }
 
 // Returns exponent base 10 of the last digit written; writes digits without a decimal point.
-s32 fmt_format_non_negative_float(string_builder ref floatBuffer, is_floating_point auto value, s32 precision, fmt_float_specs no_copy specs);
+s32 fmt_format_non_negative_float(string_builder & floatBuffer, is_floating_point auto value, s32 precision, fmt_float_specs const& specs);
 
-fmt_float_specs fmt_parse_float_specs(fmt_parse_context *p, fmt_specs no_copy specs);
-void            write_float_exp(fmt_context *f, string significand, s32 exp, code_point sign, fmt_specs no_copy specs, fmt_float_specs no_copy floatSpecs);
+fmt_float_specs fmt_parse_float_specs(fmt_parse_context *p, fmt_specs const& specs);
+void            write_float_exp(fmt_context *f, string significand, s32 exp, code_point sign, fmt_specs const& specs, fmt_float_specs const& floatSpecs);
 void            write_float_fixed(fmt_context *f, string significand, s32 exp, code_point sign, const fmt_specs &specs, const fmt_float_specs &floatSpecs, bool percentage);
 
 // Writes a float with given formatting specs
@@ -906,30 +906,30 @@ struct fmt_context_visitor {
 
 // Formats to a writer.
 template <typename... Args>
-void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments);
+void fmt_to_writer(writer *out, string fmtString, Args const&... arguments);
 
 // Formats to a counting writer and returns the result - how many bytes would be
 // written with the given format string and args.
 template <typename... Args>
-s64 fmt_calculate_length(string fmtString, Args no_copy... arguments);
+s64 fmt_calculate_length(string fmtString, Args const&... arguments);
 
 // Formats to a string. The caller is responsible for freeing.
 template <typename... Args>
-mark_as_leak string sprint(string fmtString, Args no_copy... arguments);
+mark_as_leak string sprint(string fmtString, Args const&... arguments);
 
 // Formats to a string. Uses the temporary allocator.
 template <typename... Args>
-string tprint(string fmtString, Args no_copy... arguments);
+string tprint(string fmtString, Args const&... arguments);
 
 // Formats to a string then converts to null-terminated string. Uses the
 // temporary allocator.
 template <typename... Args>
-char *mprint(string fmtString, Args no_copy... arguments);
+char *mprint(string fmtString, Args const&... arguments);
 
 // Calls fmt_to_writer on Context.Log - which is pointing to the console by
 // default, but that can be changed to redirect the output.
 template <typename... Args>
-void print(string fmtString, Args no_copy... arguments);
+void print(string fmtString, Args const&... arguments);
 
 struct fmt_width_checker {
     fmt_context *F;
@@ -978,7 +978,7 @@ struct fmt_precision_checker {
 void fmt_parse_and_format(fmt_context *f);
 
 template <typename... Args>
-void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments) {
+void fmt_to_writer(writer *out, string fmtString, Args const&... arguments) {
     static const s64               NUM_ARGS = sizeof...(Args);
     stack_array<fmt_arg, NUM_ARGS> args;
 
@@ -990,14 +990,14 @@ void fmt_to_writer(writer *out, string fmtString, Args no_copy... arguments) {
 }
 
 template <typename... Args>
-s64 fmt_calculate_length(string fmtString, Args no_copy... arguments) {
+s64 fmt_calculate_length(string fmtString, Args const&... arguments) {
     counting_writer writer;
     fmt_to_writer(&writer, fmtString, arguments...);
     return writer.Count;
 }
 
 template <typename... Args>
-mark_as_leak string sprint(string fmtString, Args no_copy... arguments) {
+mark_as_leak string sprint(string fmtString, Args const&... arguments) {
     string_builder b;
 
     string_builder_writer writer;
@@ -1010,17 +1010,17 @@ mark_as_leak string sprint(string fmtString, Args no_copy... arguments) {
 }
 
 template <typename... Args>
-string tprint(string fmtString, Args no_copy... arguments) {
+string tprint(string fmtString, Args const&... arguments) {
     PUSH_ALLOC(TemporaryAllocator) { return sprint(fmtString, arguments...); }
 }
 
 template <typename... Args>
-char *mprint(string fmtString, Args no_copy... arguments) {
+char *mprint(string fmtString, Args const&... arguments) {
     PUSH_ALLOC(TemporaryAllocator) { return to_c_string(sprint(fmtString, arguments...)); }
 }
 
 template <typename... Args>
-void print(string fmtString, Args no_copy... arguments) {
+void print(string fmtString, Args const&... arguments) {
     assert(Context.Log && "Context log was null. By default it points to cout.");
     fmt_to_writer(Context.Log, fmtString, arguments...);
 }
@@ -1054,7 +1054,7 @@ void format_value(const T &value, fmt_context *f) {
 template <typename T>
     requires any_string_builder<T>
 struct formatter<T> {
-    void format(T no_copy b, fmt_context *f) {
+    void format(T const& b, fmt_context *f) {
         exponential_array_visit_chunks(b, [f](const char *chunk_data, usize chunk_size, usize chunk_index) {
             write_no_specs(f, chunk_data, chunk_size);
             return true;  // Continue iteration
@@ -1207,7 +1207,7 @@ struct formatter<hash_table<K, V>> {
 template <typename Node>
     requires(singly_linked_node_like<Node> && !doubly_linked_node_like<Node>)
 struct formatter<Node *> {
-    void format(Node *no_copy v, fmt_context *f) {
+    void format(Node *const& v, fmt_context *f) {
         bool use_debug = f->Specs && f->Specs->Hash;
 
         // Collect node values into fmt_args so we can reuse format_list
@@ -1258,7 +1258,7 @@ struct formatter<Node *> {
 template <typename Node>
     requires(doubly_linked_node_like<Node>)
 struct formatter<Node *> {
-    void format(const Node *no_copy v, fmt_context *f) {
+    void format(const Node *const& v, fmt_context *f) {
         bool use_debug = f->Specs && f->Specs->Hash;
 
         // Collect node values into fmt_args so we can reuse format_list

@@ -50,9 +50,9 @@ struct exponential_array {
         return get_chunk_ptr(chunks_i)[chunk_i];
     }
 
-    T ref operator[](s64 index) { return get(index); }
+    T & operator[](s64 index) { return get(index); }
 
-    T no_copy operator[](s64 index) const { return get(index); }
+    T const& operator[](s64 index) const { return get(index); }
 };
 
 template <typename>
@@ -64,7 +64,7 @@ const bool is_xar<exponential_array<T, N, BASE_SHIFT, STACK_FIRST>> = true;
 template <typename T>
 concept any_xar = is_xar<T>;
 
-void reserve(any_xar auto ref arr, usize newSize, allocator alloc = {}) {
+void reserve(any_xar auto & arr, usize newSize, allocator alloc = {}) {
     if (newSize == 0) newSize = 1;
     if (newSize <= arr.Count) return;
 
@@ -118,12 +118,12 @@ void reserve(any_xar auto ref arr, usize newSize, allocator alloc = {}) {
 }
 
 template <typename T, usize N, usize B, bool S>
-void add(exponential_array<T, N, B, S> ref arr, T no_copy element) {
+void add(exponential_array<T, N, B, S> & arr, T const& element) {
     reserve(arr, arr.Count + 1);
     arr[arr.Count++] = element;
 }
 
-void remove_ordered_at_index(any_xar auto ref arr, s64 index) {
+void remove_ordered_at_index(any_xar auto & arr, s64 index) {
     index = translate_negative_index(index, arr.Count);
 #if defined ARCHE_ARRAY_BOUNDS_CHECK
     assert(index >= 0 && index < arr.Count && "Index out of bounds");
@@ -132,7 +132,7 @@ void remove_ordered_at_index(any_xar auto ref arr, s64 index) {
     arr.Count--;
 }
 
-void remove_unordered_at_index(any_xar auto ref arr, s64 index) {
+void remove_unordered_at_index(any_xar auto & arr, s64 index) {
     index = translate_negative_index(index, arr.Count);
 #if defined ARCHE_ARRAY_BOUNDS_CHECK
     assert(index >= 0 && index < arr.Count && "Index out of bounds");
@@ -141,7 +141,7 @@ void remove_unordered_at_index(any_xar auto ref arr, s64 index) {
     arr.Count--;
 }
 
-void free(any_xar auto ref arr) {
+void free(any_xar auto & arr) {
     For(range(arr.N)) {
         if (arr.Chunks[it] != null) {
             free(arr.Chunks[it]);
@@ -153,7 +153,7 @@ void free(any_xar auto ref arr) {
 
 // Visit chunks in the exponential array, calling the visitor with (chunk_data, chunk_size, chunk_index)
 // The visitor should return true to continue, false to stop iteration
-void exponential_array_visit_chunks(any_xar auto ref arr, auto visitor) {
+void exponential_array_visit_chunks(any_xar auto & arr, auto visitor) {
     usize processed = 0;
     for (usize chunk_i = 0; chunk_i < arr.N && processed < arr.Count; ++chunk_i) {
         const usize chunk_size = (chunk_i == 0 || chunk_i == 1) ? (1u << arr.BASE_SHIFT) : (1u << (arr.BASE_SHIFT + chunk_i - 1));

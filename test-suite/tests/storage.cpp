@@ -14,9 +14,9 @@ TEST(stack_array) {
     assert_false(has(a, 10));
     assert_false(has(a, 20));
 
-    assert_eq(search(a, 3, .Start = -1, .Reversed = true), 3);
-    assert_eq(search(a, 4, .Start = -1, .Reversed = true), 4);
-    assert_eq(search(a, 0, .Start = -1, .Reversed = true), 0);
+    assert_eq(search(a, 3, {.Start = -1, .Reversed = true}), 3);
+    assert_eq(search(a, 4, {.Start = -1, .Reversed = true}), 4);
+    assert_eq(search(a, 0, {.Start = -1, .Reversed = true}), 0);
     assert_eq(search(a, 3), 3);
     assert_eq(search(a, 4), 4);
     assert_eq(search(a, 0), 0);
@@ -142,7 +142,7 @@ TEST(hash_table_alignment) {
     // key and value arrays.
 
     hash_table<v2, v3,
-               [](v2 no_copy a, v2 no_copy b) {
+               [](v2 const& a, v2 const& b) {
                    return a.x == b.x && a.y == b.y;
                }>
         simdTable;

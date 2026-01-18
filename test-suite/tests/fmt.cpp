@@ -1133,13 +1133,13 @@ TEST(deeply_nested_structures) {
     // Count debug structure indicators
     string search_str = debug_result;
     s32    pos        = 0;
-    while ((pos = search(search_str, string("hash_table"), pos)) != -1) {
+    while ((pos = search(search_str, string("hash_table"), {.Start = pos})) != -1) {
         hash_table_count++;
         pos += 10;  // Length of "hash_table"
     }
 
     pos = 0;
-    while ((pos = search(search_str, string("array"), pos)) != -1) {
+    while ((pos = search(search_str, string("array"), {.Start = pos})) != -1) {
         array_count++;
         pos += 5;  // Length of "array"
     }

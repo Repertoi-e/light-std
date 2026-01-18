@@ -526,10 +526,10 @@ inline bool utf8_segment_nfd(const char *&p, const char *end, stack_array<code_p
 //
 struct string;
 
-s64        length(string no_copy s);
-void       set(string ref s, s64 index, code_point cp);
+s64        length(string const& s);
+void       set(string & s, s64 index, code_point cp);
 code_point get(string str, s64 index);
-void       check_debug_memory(string no_copy s);
+void       check_debug_memory(string const& s);
 
 struct string {
     char *Data      = null;
@@ -555,10 +555,10 @@ struct string {
     // which allows to see the code point at a specific index, but also update
     // it.
     struct code_point_ref {
-        string ref String;
+        string & String;
         s64        Index;
 
-        code_point_ref(string ref s, s64 index) : String(s) { Index = translate_negative_index(index, length(s)); }
+        code_point_ref(string & s, s64 index) : String(s) { Index = translate_negative_index(index, length(s)); }
 
         code_point_ref &operator=(code_point other) {
             set(String, Index, other);
@@ -591,7 +591,7 @@ struct string {
     code_point operator[](s64 index) const { return utf8_decode_cp(utf8_get_pointer_to_cp_at_translated_index(Data, length(*this), index)); }
 };
 
-inline void reserve(string ref s, s64 n = -1, allocator alloc = {}) {
+inline void reserve(string & s, s64 n = -1, allocator alloc = {}) {
     if (n <= 0) { n = max(s.Count, 8); }
     assert(n >= 1);
     if (n <= s.Allocated) return;
@@ -613,7 +613,7 @@ inline void reserve(string ref s, s64 n = -1, allocator alloc = {}) {
     s.Allocated = n;
 }
 
-inline void check_debug_memory(string no_copy s) {
+inline void check_debug_memory(string const& s) {
 #if defined DEBUG_MEMORY
     //
     // If you assert here, there are two possible reasons:
@@ -637,13 +637,13 @@ inline void check_debug_memory(string no_copy s) {
 #endif
 }
 
-inline void free(string ref s) {
+inline void free(string & s) {
     if (s.Allocated && s.Data) free(s.Data);
     s.Count = s.Allocated = 0;
 }
 
 // This is <= Count
-inline s64 length(string no_copy s) { return utf8_length(s.Data, s.Count); }
+inline s64 length(string const& s) { return utf8_length(s.Data, s.Count); }
 
 // Doesn't allocate memory, strings in this library are not null-terminated.
 // We allow negative reversed indexing which begins at the end of the string,
@@ -669,13 +669,13 @@ mark_as_leak char *to_c_string(string s, u64 alloc_options = 0, allocator alloc 
 char *to_c_string_temp(string s);
 
 // Returns the code point index (or -1) if not found.
-s64 search_opt(string str, delegate<bool(code_point)> predicate, search_options options = {});
+s64 search(string str, delegate<bool(code_point)> predicate, search_options options = {});
 
 // Returns the code point index (or -1) if not found.
-s64 search_opt(string str, code_point search, search_options options = {});
+s64 search(string str, code_point search, search_options options = {});
 
 // Returns the code point index (or -1) if not found.
-s64 search_opt(string str, string search, search_options options = {});
+s64 search(string str, string search, search_options options = {});
 
 bool has(string str, code_point cp);
 bool has(string str, string s);
@@ -717,9 +717,9 @@ s32 compare_lexicographically(string a, string b);
 //   1 if _b_ is before _a_
 s32 compare_lexicographically_ignore_case(string a, string b);
 
-inline bool strings_match(string no_copy a, string no_copy b) { return compare(a, b) == -1; }
+inline bool strings_match(string const& a, string const& b) { return compare(a, b) == -1; }
 
-inline bool strings_match_ignore_case(string no_copy a, string no_copy b) { return compare_ignore_case(a, b) == -1; }
+inline bool strings_match_ignore_case(string const& a, string const& b) { return compare_ignore_case(a, b) == -1; }
 
 // Returns true if _s_ begins with _str_
 inline bool match_beginning(string s, string str) {
@@ -761,9 +761,9 @@ inline string trim(string s) { return trim_end(trim_start(s)); }
 // this may need to reorder stuff and expand the string.
 // So we assert that the string is dynamically allocated.
 // You can use the next method in order to get finer control.
-void set(string ref s, s64 index, code_point cp);
+void set(string & s, s64 index, code_point cp);
 
-inline void maybe_grow(string ref s, s64 fit) {
+inline void maybe_grow(string & s, s64 fit) {
     check_debug_memory(s);
 
     s64 target = max(ceil_pow_of_2(s.Count + fit + 1), 8);
@@ -778,7 +778,7 @@ inline void maybe_grow(string ref s, s64 fit) {
     reserve(s, target);
 }
 
-inline void insert_at_index(string ref s, s64 index, const char *str, s64 size) {
+inline void insert_at_index(string & s, s64 index, const char *str, s64 size) {
     maybe_grow(s, size);
 
     index   = translate_negative_index(index, length(s), true);
@@ -791,60 +791,60 @@ inline void insert_at_index(string ref s, s64 index, const char *str, s64 size) 
     s.Count += size;
 }
 
-inline void insert_at_index(string ref s, s64 index, string str) { insert_at_index(s, index, str.Data, str.Count); }
+inline void insert_at_index(string & s, s64 index, string str) { insert_at_index(s, index, str.Data, str.Count); }
 
-inline void insert_at_index(string ref s, s64 index, code_point cp) {
+inline void insert_at_index(string & s, s64 index, code_point cp) {
     char encodedCp[4];
     utf8_encode_cp(encodedCp, cp);
     insert_at_index(s, index, encodedCp, utf8_get_size_of_cp(cp));
 }
 
-inline void add(string ref s, const char *ptr, s64 size) { insert_at_index(s, length(s), ptr, size); }
+inline void add(string & s, const char *ptr, s64 size) { insert_at_index(s, length(s), ptr, size); }
 
-inline void add(string ref s, string b) { insert_at_index(s, length(s), b.Data, b.Count); }
+inline void add(string & s, string b) { insert_at_index(s, length(s), b.Data, b.Count); }
 
-inline void add(string ref s, code_point cp) { insert_at_index(s, length(s), cp); }
+inline void add(string & s, code_point cp) { insert_at_index(s, length(s), cp); }
 
-inline string ref operator+=(string ref s, code_point cp) {
+inline string & operator+=(string & s, code_point cp) {
     add(s, cp);
     return s;
 }
 
-inline string ref operator+=(string ref s, string str) {
+inline string & operator+=(string & s, string str) {
     add(s, str);
     return s;
 }
 
-inline string ref operator+=(string ref s, const char *str) {
+inline string & operator+=(string & s, const char *str) {
     add(s, string(str));
     return s;
 }
 
 // Remove the first occurrence of a code point.
 // Returns true on success (false if _cp_ was not found in the string).
-bool remove(string ref s, code_point cp);
+bool remove(string & s, code_point cp);
 
 // Remove code point at specified index.
-void remove_at_index(string ref s, s64 index);
+void remove_at_index(string & s, s64 index);
 
 // Remove a range of code points. [begin, end)
-void remove_range(string ref s, s64 begin, s64 end);
+void remove_range(string & s, s64 begin, s64 end);
 
 // Remove a range of bytes. [byte_begin, byte_end) - for internal use
-void remove_range_bytes(string ref s, s64 byte_begin, s64 byte_end);
+void remove_range_bytes(string & s, s64 byte_begin, s64 byte_end);
 
 // Replace a range of code points. [begin, end) with replacement string
-void replace_range(string ref str, s64 begin, s64 end, string replace);
+void replace_range(string & str, s64 begin, s64 end, string replace);
 
 // Replace a range of bytes. [byte_begin, byte_end) with replacement string - for internal use
-void replace_range_bytes(string ref str, s64 byte_begin, s64 byte_end, string replace);
+void replace_range_bytes(string & str, s64 byte_begin, s64 byte_end, string replace);
 
-void remove_all(string ref s, code_point search);
-void remove_all(string ref s, string search);
-void replace_all(string ref s, code_point search, code_point replace);
-void replace_all(string ref s, code_point search, string replace);
-void replace_all(string ref s, string search, code_point replace);
-void replace_all(string ref s, string search, string replace);
+void remove_all(string & s, code_point search);
+void remove_all(string & s, string search);
+void replace_all(string & s, code_point search, code_point replace);
+void replace_all(string & s, code_point search, string replace);
+void replace_all(string & s, string search, code_point replace);
+void replace_all(string & s, string search, string replace);
 
 // Returns a deep copy of _str_ and _count_
 mark_as_leak inline string make_string(const char *str, s64 count) {
@@ -858,17 +858,17 @@ mark_as_leak inline string make_string(const char *str, s64 count) {
 mark_as_leak inline string make_string(const char *str) { return make_string(str, c_string_byte_count(str)); }
 
 // Returns a deep copy of _src_
-mark_as_leak inline string clone(string no_copy src) { return make_string(src.Data, src.Count); }
+mark_as_leak inline string clone(string const& src) { return make_string(src.Data, src.Count); }
 
 // This iterator is to make range based for loops work.
 template <bool Const>
 struct string_iterator {
     using string_t = type_select_t<Const, const string, string>;
 
-    string_t ref String;
+    string_t & String;
     s64          Index;
 
-    string_iterator(string_t ref s, s64 index = 0) : String(s), Index(index) {}
+    string_iterator(string_t & s, s64 index = 0) : String(s), Index(index) {}
 
     string_iterator &operator++() {
         Index += 1;
@@ -888,13 +888,13 @@ struct string_iterator {
     auto operator*() { return String[Index]; }
 };
 
-inline auto begin(string ref str) { return string_iterator<false>(str, 0); }
+inline auto begin(string & str) { return string_iterator<false>(str, 0); }
 
-inline auto begin(string no_copy str) { return string_iterator<true>(str, 0); }
+inline auto begin(string const& str) { return string_iterator<true>(str, 0); }
 
-inline auto end(string ref str) { return string_iterator<false>(str, length(str)); }
+inline auto end(string & str) { return string_iterator<false>(str, length(str)); }
 
-inline auto end(string no_copy str) { return string_iterator<true>(str, length(str)); }
+inline auto end(string const& str) { return string_iterator<true>(str, length(str)); }
 
 inline code_point get(string str, s64 index) {
     if (index < 0) {
@@ -934,7 +934,7 @@ inline string slice(string str, s64 begin, s64 end) {
     return string((char *)beginPtr, (s64)(endPtr - beginPtr));
 }
 
-inline s64 search_opt(string str, delegate<bool(code_point)> predicate, search_options options) {
+inline s64 search(string str, delegate<bool(code_point)> predicate, search_options options) {
     if (!str.Data || str.Count == 0) return -1;
     s64 len = length(str);
 
@@ -946,7 +946,7 @@ inline s64 search_opt(string str, delegate<bool(code_point)> predicate, search_o
     return -1;
 }
 
-inline s64 search_opt(string str, code_point search, search_options options) {
+inline s64 search(string str, code_point search, search_options options) {
     if (!str.Data || str.Count == 0) return -1;
     s64 len = length(str);
 
@@ -958,7 +958,7 @@ inline s64 search_opt(string str, code_point search, search_options options) {
     return -1;
 }
 
-inline s64 search_opt(string str, string search, search_options options) {
+inline s64 search(string str, string search, search_options options) {
     if (!str.Data || str.Count == 0) return -1;
     if (!search.Data || search.Count == 0) return -1;
 
@@ -1065,7 +1065,7 @@ inline s32 compare_lexicographically_ignore_case(string a, string b) {
     return ((s64)unicode_to_lower(utf8_decode_cp(p1)) - (s64)unicode_to_lower(utf8_decode_cp(p2))) < 0 ? -1 : 1;
 }
 
-inline void replace_range(string ref str, s64 begin, s64 end, string replace) {
+inline void replace_range(string & str, s64 begin, s64 end, string replace) {
     s64 len = length(str);
     if (len == 0) return;
 
@@ -1081,7 +1081,7 @@ inline void replace_range(string ref str, s64 begin, s64 end, string replace) {
     replace_range_bytes(str, byteBegin, byteEnd, replace);
 }
 
-inline void replace_range_bytes(string ref str, s64 byte_begin, s64 byte_end, string replace) {
+inline void replace_range_bytes(string & str, s64 byte_begin, s64 byte_end, string replace) {
     s64 whereSize = byte_end - byte_begin;
     s64 diff      = replace.Count - whereSize;
 
@@ -1100,7 +1100,7 @@ inline void replace_range_bytes(string ref str, s64 byte_begin, s64 byte_end, st
     str.Count += diff;
 }
 
-inline void set(string ref str, s64 index, code_point cp) {
+inline void set(string & str, s64 index, code_point cp) {
     check_debug_memory(str);
 
     index = translate_negative_index(index, length(str));
@@ -1123,7 +1123,7 @@ mark_as_leak inline char *to_c_string(string s, u64 alloc_options, allocator all
     return result;
 }
 
-inline bool remove(string ref s, code_point cp) {
+inline bool remove(string & s, code_point cp) {
     char encodedCp[4];
     utf8_encode_cp(encodedCp, cp);
 
@@ -1135,7 +1135,7 @@ inline bool remove(string ref s, code_point cp) {
     return true;
 }
 
-inline void remove_at_index(string ref s, s64 index) {
+inline void remove_at_index(string & s, s64 index) {
     index = translate_negative_index(index, length(s));
 
     auto *t = utf8_get_pointer_to_cp_at_translated_index(s.Data, s.Count, index);
@@ -1144,7 +1144,7 @@ inline void remove_at_index(string ref s, s64 index) {
     remove_range_bytes(s, b, b + utf8_get_size_of_cp(t));
 }
 
-inline void remove_range_bytes(string ref s, s64 byte_begin, s64 byte_end) {
+inline void remove_range_bytes(string & s, s64 byte_begin, s64 byte_end) {
     auto where    = s.Data + byte_begin;
     auto whereEnd = s.Data + byte_end;
 
@@ -1153,7 +1153,7 @@ inline void remove_range_bytes(string ref s, s64 byte_begin, s64 byte_end) {
     s.Count -= elementCount;
 }
 
-inline void remove_range(string ref s, s64 begin, s64 end) {
+inline void remove_range(string & s, s64 begin, s64 end) {
     check_debug_memory(s);
 
     s64 len = length(s);
@@ -1171,7 +1171,7 @@ inline void remove_range(string ref s, s64 begin, s64 end) {
     remove_range_bytes(s, byteBegin, byteEnd);
 }
 
-inline void replace_all(string ref s, string what, string replace) {
+inline void replace_all(string & s, string what, string replace) {
     // @CutAndPaste from array-like's replace_all.
     // @Volatile
     check_debug_memory(s);
@@ -1229,7 +1229,7 @@ inline void replace_all(string ref s, string what, string replace) {
         s64 searchLen  = length(what);
         s64 replaceLen = length(replace);
 
-        while ((i = search(s, what, .Start = i)) != -1) {
+        while ((i = search(s, what, {.Start = i})) != -1) {
             replace_range(s, i, i + searchLen, replace);  // Use code-point-based replace_range
 
             i += replaceLen;
@@ -1237,7 +1237,7 @@ inline void replace_all(string ref s, string what, string replace) {
     }
 }
 
-inline void replace_all(string ref s, code_point what, code_point replace) {
+inline void replace_all(string & s, code_point what, code_point replace) {
     char encodedOld[4];
     utf8_encode_cp(encodedOld, what);
 
@@ -1247,23 +1247,23 @@ inline void replace_all(string ref s, code_point what, code_point replace) {
     replace_all(s, string(encodedOld, utf8_get_size_of_cp(encodedOld)), string(encodedNew, utf8_get_size_of_cp(encodedNew)));
 }
 
-inline void remove_all(string ref s, code_point what) {
+inline void remove_all(string & s, code_point what) {
     char encodedCp[4];
     utf8_encode_cp(encodedCp, what);
 
     replace_all(s, string(encodedCp, utf8_get_size_of_cp(encodedCp)), string(""));
 }
 
-inline void remove_all(string ref s, string what) { replace_all(s, what, string("")); }
+inline void remove_all(string & s, string what) { replace_all(s, what, string("")); }
 
-inline void replace_all(string ref s, code_point what, string replace) {
+inline void replace_all(string & s, code_point what, string replace) {
     char encodedCp[4];
     utf8_encode_cp(encodedCp, what);
 
     replace_all(s, string(encodedCp, utf8_get_size_of_cp(encodedCp)), replace);
 }
 
-inline void replace_all(string ref s, string what, code_point replace) {
+inline void replace_all(string & s, string what, code_point replace) {
     char encodedCp[4];
     utf8_encode_cp(encodedCp, replace);
 

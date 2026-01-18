@@ -289,7 +289,7 @@ always_inline fp operator*(fp x, fp y) {
 // The returned exponent is the exponent base 10 of the LAST written digit in
 // _floatBuffer_. In the end, _floatBuffer_ contains the digits of the final
 // number to be written out, without the dot.
-inline s32 grisu_format_float(string_builder ref floatBuffer, is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
+inline s32 grisu_format_float(string_builder & floatBuffer, is_floating_point auto v, s32 precision, const fmt_float_specs &specs) {
     const s32 MIN_EXP = -60;  // alpha in Grisu.
 
     fp normalized;

@@ -152,7 +152,7 @@ inline bool path_create_symbolic_link(string path, string dest) {
     return CreateSymbolicLinkW(platform_utf8_to_utf16(dest), platform_utf8_to_utf16(path), flag);
 }
 
-inline void path_read_next_entry(path_walker ref walker) {
+inline void path_read_next_entry(path_walker & walker) {
     do {
         if (!walker.Handle) {
             if (!walker.Path16) {
@@ -193,7 +193,7 @@ inline void path_read_next_entry(path_walker ref walker) {
 
 // This version appends paths to the array _result_. Copy this and modify it to
 // suit your use case.
-inline void path_walk_recursively_impl(string path, string first, array<string> ref result) {
+inline void path_walk_recursively_impl(string path, string first, array<string> & result) {
     assert(path_is_directory(path));
 
     auto walker = path_walker(path);

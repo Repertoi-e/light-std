@@ -38,13 +38,7 @@ ARCHE_BEGIN_NAMESPACE
 //
 
 //
-// :BigPhilosophyTime:
-//
-// We don't provide a traditional general purpose "malloc" function.
-// In fact, until you tell us what allocator you want to use, you can't
-// allocate blocks in this library.
-//
-// Why?
+// :Philosophy:
 //
 // I think the programmer should be very aware of the memory the program is
 // using. That's why we require allocators to be initted with an initial (or
@@ -72,46 +66,7 @@ ARCHE_BEGIN_NAMESPACE
 // about the computer's memory. We should write fast software. We can slow down
 // global warming by not wasting CPU clock cycles.
 //
-// Caveat: Of course, writing abstractions is the rational thing to do (most of
-// the time). After all we can do so much more stuff instead of micro-optimizing
-// everything. But being a bit too careless results in the modern mess of
-// software that wastes most of CPU time doing nothing, because people decided
-// to abstract too much stuff.
-//
-// I am writing this in 2021 - in the midst of the COVID-19 crisis. We have been
-// using online video conferencing software for school and work for a year now.
-// The worst example is MS Teams. Clicking a button takes a good second to open
-// a chat. It lags constantly, bugs everywhere. And No. My computer is not slow.
-// It's a super-computer compared to what people had 30-40 years ago.
-//
-// Not only electricity is wasted by being a careless programmer, but also
-// USER'S TIME! If your program is used by millions of PC, 1 second to click a
-// SIMPLE BUTTON quickly becomes hours and then days of wasted human hours.
-//
-// END OF MANIFESTO
 
-//
-// Now some other ranty stuff:
-//
-// We don't use new and delete.
-// 1) The syntax is ugly in my opinion.
-// 2) You have to be careful not to mix "new" with "delete[]"/"new[]" with
-// "delete". 3) It's an operator and can be overriden by structs/classes. 4)
-// Modern C++ people say not to use new/delete as well, so ..
-//
-// Now seriously, there are two ways to allocate memory in C++: malloc and new.
-// For the sake of not introducing a THIRD way, we override malloc.
-//
-// Since we don't link the CRT malloc is undefined, so we need to
-// provide a replacement anyway (or modify code which is annoying and
-// not always possible, e.g. a prebuilt library).
-//
-// *** Caveat: A DLL may already have linked with the CRT, which means that in
-// that case problems occur. There are two options: prebuild your DLLs
-// to not use the standard library (ideally), or we could do some hacks
-// and redirect calls to malloc to our replacement (@TODO It may actually be
-// possible).
-//
 //
 // new and delete actually have some useful semantics (new - initializing the
 // values, delete - calling a destructor if defined). So we provide templated
@@ -230,7 +185,7 @@ inline const u64 ALLOCATOR_ALLOW_OVERLAPPING = 1ull << 62;
 // field anyway.
 //
 //
-// !!! When called with RESIZE, this doesn't mean "reallocate"!
+// When called with RESIZE, this doesn't mean "reallocate"!
 //     Only valid return here is _oldMemory_ (memory was grown/shrank in
 //     place) or null - memory can't be resized and needs to be moved.
 //
@@ -238,7 +193,7 @@ inline const u64 ALLOCATOR_ALLOW_OVERLAPPING = 1ull << 62;
 //     copying the old data there (in general_reallocate) so allocator
 //     implementations don't need to pay attention to this.
 //
-// !!! Alignment is handled internally. Allocator implementations don't need
+// Alignment is handled internally. Allocator implementations don't need
 // to pay attention to it.
 //     When an aligned allocation is being made, we send a request at least
 //     _alignment_ bytes larger, so when the allocator function returns an
@@ -246,11 +201,6 @@ inline const u64 ALLOCATOR_ALLOW_OVERLAPPING = 1ull << 62;
 //     alignment is saved in the header and that's how we know what the
 //     original returned pointer was (so we pass it properly when freeing or
 //     reallocating).
-//
-// We do this in order for custom allocator implementations to be kept as
-// simple as possible. All you need to do is implement in an allocator is the
-// method by which it gets and returns memory. Other details we try to take
-// care of.
 //
 using allocator_func_t = void *(*)(allocator_mode mode, void *context, s64 size, void *oldMemory, s64 oldSize, u64 options);
 
@@ -287,7 +237,7 @@ struct allocator_with_context {
 
     allocator_with_context(allocator_dont_init_t) {}
 
-    allocator_with_context(allocator_func_t function, T no_copy context) : Function(function), Context(context) {}
+    allocator_with_context(allocator_func_t function, T const& context) : Function(function), Context(context) {}
 
     operator allocator() const { return allocator(Function, (void *)&Context); }
 };

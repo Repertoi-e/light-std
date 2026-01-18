@@ -98,16 +98,16 @@ TEST(search_corner_cases) {
     {
         string s = "banana";
         // start beyond length
-        assert_eq(search(s, string("na"), .Start = 10), -1);
+        assert_eq(search(s, string("na"), {.Start = 10}), -1);
         // reversed search from end
-        assert_eq(search(s, string("na"), .Start = -1, .Reversed = true), 4);
+        assert_eq(search(s, string("na"), {.Start = -1, .Reversed = true}), 4);
         // reversed search from 0 should only find at 0 if match
-        assert_eq(search(s, string("ba"), .Start = 0, .Reversed = true), 0);
+        assert_eq(search(s, string("ba"), {.Start = 0, .Reversed = true}), 0);
     }
     {
         string s = u8"абаб";
         assert_eq(search(s, string(u8"аб")), 0);
-        assert_eq(search(s, string(u8"аб"), .Start = -1, .Reversed = true), 2);
+        assert_eq(search(s, string(u8"аб"), {.Start = -1, .Reversed = true}), 2);
     }
     {
         // overlapping replace/remove
@@ -476,34 +476,33 @@ TEST(replace_all) {
 TEST(find) {
     string a = "This is a string";
     assert_eq(2, search(a, string("is")));
-    assert_eq(5, search(a, string("is"), .Start = 5));
+    assert_eq(5, search(a, string("is"), {.Start = 5}));
 
     assert_eq(0, search(a, string("This")));
-    assert_eq(0, search(a, string("This"), .Start = -1, .Reversed = true));
+    assert_eq(0, search(a, string("This"), {.Start = -1, .Reversed = true}));
     assert_eq(10, search(a, string("string")));
-    assert_eq(10, search(a, string("string"), .Start = -1, .Reversed = true));
+    assert_eq(10, search(a, string("string"), {.Start = -1, .Reversed = true}));
 
-    assert_eq(5, search(a, string("is"), .Start = 6, .Reversed = true));
-    assert_eq(5, search(a, string("is"), .Start = 5, .Reversed = true));
-    assert_eq(2, search(a, string("is"), .Start = 3, .Reversed = true));
-    assert_eq(2, search(a, string("is"), .Start = 2, .Reversed = true));
-    assert_eq(-1, search(a, string("is"), .Start = 1, .Reversed = true));
+    assert_eq(5, search(a, string("is"), {.Start = 6, .Reversed = true}));
+    assert_eq(5, search(a, string("is"), {.Start = 5, .Reversed = true}));
+    assert_eq(2, search(a, string("is"), {.Start = 3, .Reversed = true}));
+    assert_eq(2, search(a, string("is"), {.Start = 2, .Reversed = true}));
+    assert_eq(-1, search(a, string("is"), {.Start = 1, .Reversed = true}));
 
     assert_eq(1, search(a, 'h'));
-    assert_eq(1, search(a, 'h', .Start = 1));
-    assert_eq(1, search(a, string("h"), .Start = 1));
+    assert_eq(1, search(a, 'h', {.Start = 1}));
+    assert_eq(1, search(a, string("h"), {.Start = 1}));
 
     assert_eq(0, search(a, 'T'));
-    assert_eq(0, search(a, 'T', .Start = -1, .Reversed = true));
+    assert_eq(0, search(a, 'T', {.Start = -1, .Reversed = true}));
 
-    assert_eq(13, search(a, 'i', .Start = -1, .Reversed = true));
-    assert_eq(13, search(a, 'i', .Start = 13, .Reversed = true));
-    assert_eq(5, search(a, 'i', .Start = 12, .Reversed = true));
-    assert_eq(5, search(a, 'i', .Start = 5, .Reversed = true));
-    assert_eq(2, search(a, 'i', .Start = 4, .Reversed = true));
-
+    assert_eq(13, search(a, 'i', {.Start = -1, .Reversed = true}));
+    assert_eq(13, search(a, 'i', {.Start = 13, .Reversed = true}));
+    assert_eq(5, search(a, 'i', {.Start = 12, .Reversed = true}));
+    assert_eq(5, search(a, 'i', {.Start = 5, .Reversed = true}));
+    assert_eq(2, search(a, 'i', {.Start = 4, .Reversed = true}));
     assert_eq(length(a) - 1, search(a, 'g'));
-    assert_eq(length(a) - 1, search(a, 'g', .Start = -1, .Reversed = true));
+    assert_eq(length(a) - 1, search(a, 'g', {.Start = -1, .Reversed = true}));
 
     auto matchNotT = [](code_point cp) {
         return cp != 'T';
@@ -516,20 +515,20 @@ TEST(find) {
     };
     assert_eq(1, search(a, &matchNotT));
     assert_eq(0, search(a, &matchNotQ));
-    assert_eq(length(a) - 1, search(a, &matchNotQ, .Start = -1, .Reversed = true));
-    assert_eq(length(a) - 2, search(a, &matchNotg, .Start = -1, .Reversed = true));
+    assert_eq(length(a) - 1, search(a, &matchNotQ, {.Start = -1, .Reversed = true}));
+    assert_eq(length(a) - 2, search(a, &matchNotg, {.Start = -1, .Reversed = true}));
 
     assert_eq(-1, search(a, 'Q'));
 
     a = u8"Това е низ от букви";
     assert_eq(8, search(a, string(u8"и")));
-    assert_eq(8, search(a, string(u8"и"), .Start = 8));
+    assert_eq(8, search(a, string(u8"и"), {.Start = 8}));
 
     assert_eq(8, search(a, U'и'));
-    assert_eq(8, search(a, U'и', .Start = 8));
+    assert_eq(8, search(a, U'и', {.Start = 8}));
 
     assert_eq(14, search(a, U'б'));
-    assert_eq(14, search(a, U'б', .Start = -1, .Reversed = true));
+    assert_eq(14, search(a, U'б', {.Start = -1, .Reversed = true}));
 
     assert_eq(-1, search(a, U'я'));
 
@@ -548,10 +547,10 @@ TEST(find) {
     assert_eq(3, search(a, &matchAnyOf2));
     assert_eq(0, search(a, &matchAnyOf3));
 
-    assert_eq(2, search(a, &matchAnyOf3, .Start = -1, .Reversed = true));
-    assert_eq(2, search(a, &matchAnyOf3, .Start = 2, .Reversed = true));
-    assert_eq(1, search(a, &matchAnyOf3, .Start = 1, .Reversed = true));
-    assert_eq(0, search(a, &matchAnyOf3, .Start = 0, .Reversed = true));
+    assert_eq(2, search(a, &matchAnyOf3, {.Start = -1, .Reversed = true}));
+    assert_eq(2, search(a, &matchAnyOf3, {.Start = 2, .Reversed = true}));
+    assert_eq(1, search(a, &matchAnyOf3, {.Start = 1, .Reversed = true}));
+    assert_eq(0, search(a, &matchAnyOf3, {.Start = 0, .Reversed = true}));
 
     auto matchNoneOf1 = [](code_point cp) {
         return !has("abc", cp);
@@ -570,12 +569,11 @@ TEST(find) {
     assert_eq(0, search(a, &matchNoneOf2));
     assert_eq(search(a, 'b'), search(a, &matchNoneOf3));
 
-    assert_eq(2, search(a, &matchNoneOf2, .Start = -1, .Reversed = true));
-    assert_eq(9, search(a, &matchNoneOf4, .Start = 3));
-    assert_eq(2, search(a, &matchNoneOf4, .Start = 4, .Reversed = true));
-    assert_eq(1, search(a, &matchNoneOf2, .Start = 1, .Reversed = true));
-    assert_eq(0, search(a, &matchNoneOf2, .Start = 0, .Reversed = true));
-
+    assert_eq(2, search(a, &matchNoneOf2, {.Start = -1, .Reversed = true}));
+    assert_eq(9, search(a, &matchNoneOf4, {.Start = 3}));
+    assert_eq(2, search(a, &matchNoneOf4, {.Start = 4, .Reversed = true}));
+    assert_eq(1, search(a, &matchNoneOf2, {.Start = 1, .Reversed = true}));
+    assert_eq(0, search(a, &matchNoneOf2, {.Start = 0, .Reversed = true}));
     auto matchAnyOf4 = [](code_point cp) {
         return has("CdB", cp);
     };
@@ -583,7 +581,7 @@ TEST(find) {
         return has("QRT", cp);
     };
 
-    assert_eq(length(a) - 1, search(a, &matchAnyOf4, .Start = -1, .Reversed = true));
+    assert_eq(length(a) - 1, search(a, &matchAnyOf4, {.Start = -1, .Reversed = true}));
 
     assert_eq(-1, search(a, &matchAnyOf5));
 }

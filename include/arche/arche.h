@@ -29,18 +29,11 @@
  * - Use `struct` instead of `class`, and keep everything public.
  * - Provide a default constructor that does minimal work.
  * - Avoid copy/move constructors and destructors.
- * - Never throw exceptions. Instead, return multiple values using structured
- * bindings (C++17). They make code complicated. When you can't handle an error
- * and need to exit from a function, return multiple values.
+ * - Never throw exceptions. They make code complicated. Most errors shouldn't be errors,
+ * so handle them. Also, you can return multiple values using structured
+ * bindings (C++17):
  *     auto [content, success] = path_read_entire_file("data/hello.txt");
- * In general, error conditions (which require returning a status) should be
- * rare. The code should just do the correct stuff. I find that using exceptions
- * leads to this mentality of "giving up and passing the responsibility to
- * handle error cases to the caller". Howoever, that quickly becomes complicated
- * and confidence is lost on what could happen and where. Code in general likes
- * to grow in complexity combinatorially as more functionality is added, if we
- * also give up the linear structure of code by using exceptions then that's a
- * disaster waiting to happen.
+ *
  *
  * Example:
  * Arrays are basic wrappers around contiguous memory with three fields (`Data`,

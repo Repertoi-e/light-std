@@ -16,15 +16,11 @@
 
 #include "vendor/tlsf/tlsf.cpp"
 
-// Unicode and string helpers implementation
-#include "clap.cpp"
 #include "string.cpp"
+#include "context.cpp"
 
 #include "fmt/float_dragonbox.cpp"
 #include "fmt/float_grisu.cpp"
 #include "fmt/fmt.cpp"
 #include "fmt/write.cpp"
 
-
-// Last cause we #undef some stuff, @TODO Remove #define search and #define ref cuz wtf
-#include "context.cpp"

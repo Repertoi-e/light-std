@@ -439,7 +439,7 @@ inline void platform_specific_init_common_state() {
 
     setup_console()
 
-        get_module_name();
+    get_module_name();
 
     parse_arguments();
 }

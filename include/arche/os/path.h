@@ -213,9 +213,9 @@ struct path_walker {
 };
 
 mark_as_leak array<string> path_walk(string path, bool recursively);
-void                       path_read_next_entry(path_walker ref walker);
+void                       path_read_next_entry(path_walker & walker);
 
-inline void free_path_walker(path_walker ref walker) { free(walker.CurrentFileName); }
+inline void free_path_walker(path_walker & walker) { free(walker.CurrentFileName); }
 
 inline string get_path_from_here_to(string here, string there) {
     if (search(here, there) == -1) {
@@ -243,10 +243,10 @@ inline path_split_drive_result path_split_drive(string path) {
                 return has("\\/", cp);
             };
 
-            s64 index = search(path, &matchSeps, .Start = 2);
+            s64 index = search(path, &matchSeps, {.Start = 2});
             if (index == -1) return {"", path};
 
-            s64 index2 = search(path, &matchSeps, .Start = index + 1);
+            s64 index2 = search(path, &matchSeps, {.Start = index + 1});
 
             // A UNC path can't have two slashes in a row
             // (after the initial two)
@@ -385,12 +385,12 @@ inline path_split_result path_split(string path) {
     auto matchSeps    = delegate<bool(code_point)>([](code_point cp) { return has("\\/", cp); });
     auto matchNotSeps = delegate<bool(code_point)>([](code_point cp) { return !has("\\/", cp); });
 
-    s64 i = search(rest, matchSeps, .Start = -1, .Reversed = true) + 1;
+    s64 i = search(rest, matchSeps, {.Start = -1, .Reversed = true}) + 1;
 
     string head = slice(rest, 0, i);
     string tail = slice(rest, i, length(rest));
 
-    string trimmed = slice(head, 0, search(head, matchNotSeps, .Start = -1, .Reversed = true) + 1);
+    string trimmed = slice(head, 0, search(head, matchNotSeps, {.Start = -1, .Reversed = true}) + 1);
     if (trimmed.Count) head = trimmed;
 
     head = slice(path, 0, length(head) + length(DriveOrUNC));
@@ -416,7 +416,7 @@ mark_as_leak inline array<string> path_split_into_components(string path, string
     };
 
     s64 start = 0, prev = 0;
-    while ((start = search(path, &matchSep, .Start = start + 1)) != -1) {
+    while ((start = search(path, &matchSep, {.Start = start + 1})) != -1) {
         result += {slice(path, prev, start)};
         prev = start + 1;
     }
@@ -436,15 +436,15 @@ mark_as_leak inline array<string> path_split_into_components(string path, string
 }
 
 inline path_split_extension_result path_split_extension_general(string path, code_point sep, code_point altSep, code_point extensionSep) {
-    s64 sepIndex = search(path, sep, .Start = -1, .Reversed = true);
+    s64 sepIndex = search(path, sep, {.Start = -1, .Reversed = true});
     if (altSep) {
-        s64 altSepIndex = search(path, altSep, .Start = -1, .Reversed = true);
+        s64 altSepIndex = search(path, altSep, {.Start = -1, .Reversed = true});
         if (altSepIndex > sepIndex) sepIndex = altSepIndex;
     }
 
     // Most OSes use a dot to separate extensions but we support other characters
     // as well
-    s64 dotIndex = search(path, extensionSep, .Start = -1, .Reversed = true);
+    s64 dotIndex = search(path, extensionSep, {.Start = -1, .Reversed = true});
 
     if (dotIndex > sepIndex) {
         // Skip leading dots

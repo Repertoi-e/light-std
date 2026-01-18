@@ -18,10 +18,6 @@ Despite modern CPUs being capable of performing billions of calculations per sec
 
 ## This library currently provides:
 
-- A memory model inspired by Jonathan Blow's Jai - simple overridable allocators with an implicit global thread-local context variable, including a debug memory switch that has checks for double frees, cross-thread frees, block overlaps from allocations and etc.
-- Support for memory arenas, inspired by [Ryan Fleury](https://www.rfleury.com/p/untangling-lifetimes-the-arena-allocator).
-- Utf-8 non-null-terminated string with unicode support.
-- Linked-list "hygienic macros" using C++'s concepts to access a structure's "Next" and "Prev" fields.
 - Simple, fast and hackable dynamic array, [exponential array (xar)](https://azmr.uk/dyn/), hash table etc.
 - `os` module - common operations that require querying the OS.
 - `path` module - procedures that work with Windows and Unix file paths. 
@@ -29,6 +25,10 @@ Despite modern CPUs being capable of performing billions of calculations per sec
 - `parse` module - for parsing strings, integers, booleans, GUIDs.
 - Threads, mutexes, atomic operations.
 - Console input/output.
+- Support for memory arenas, inspired by [Ryan Fleury](https://www.rfleury.com/p/untangling-lifetimes-the-arena-allocator).
+- A memory model inspired by Jonathan Blow's Jai - simple overridable allocators with an implicit global thread-local context variable, including a debug memory switch that has checks for double frees, cross-thread frees, block overlaps from allocations and etc.
+- Utf-8 non-null-terminated string with unicode support.
+- Linked-list "hygienic macros" using C++'s concepts to access a structure's "Next" and "Prev" fields.
 
 ## Build
 
@@ -83,15 +83,14 @@ We can't not-link with `glibc`, because it's coupled with the POSIX operating sy
 - Provide a default constructor that does minimal work.
 - Don't use copy/move constructors, no destructors. To implement "destructor functionality" (uninitializing the type, freeing members, etc.), provide a function, such as:
 >```cpp
->    free(string ref s) {
+>    free(string & s) {
 >        free(s.Data);   // Free buffer as normal
 >        atomic_add(&GlobalStringCount, -1);
 >    }
 >```
-- Never throw exceptions. Instead, return multiple values using structured bindings (C++17).
-  They make code complicated. When you can't handle an error and need to exit from a function, return multiple values.
+- Never throw exceptions. They make code complicated. When you can't handle an error and need to exit from a 
+>          function, return multiple values. You can use structured bindings (C++17):
 >          auto [content, success] = os_read_entire_file("data/hello.txt");
-- In general, error conditions (which require returning a status) should be rare. The code should just do the correct stuff. Using exceptions leads to this mentality of "giving up and passing the responsibility to handle error cases to the caller". However, that quickly becomes complicated and confidence is lost on what could happen and where. Code in general likes to grow in complexity combinatorially as more functionality is added, if we also give up the linear structure of code by using exceptions then that's a disaster waiting to happen.
 
 #### Example
 The array in this library is a basic wrapper around contiguous memory with three fields (Data, Count, and Allocated). It does not have ownership; the programmer determines it explicitly.

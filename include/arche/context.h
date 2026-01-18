@@ -15,12 +15,12 @@ struct os_function_call {
 
 array<os_function_call> os_get_call_stack(s32 skipFrames, s32 maxDepth, void *platformContext);
 
-inline void free(os_function_call ref src) {
+inline void free(os_function_call & src) {
     free(src.Name);
     free(src.File);
 }
 
-inline os_function_call clone(os_function_call no_copy src) {
+inline os_function_call clone(os_function_call const& src) {
     os_function_call result;
     result.Name       = clone(src.Name);
     result.File       = clone(src.File);

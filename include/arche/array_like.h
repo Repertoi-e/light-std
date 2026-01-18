@@ -106,36 +106,34 @@ struct search_options {
 // Predicate must take a single argument (the current element) and return if
 // it matches.
 template <any_array_like Arr>
-s64 search_opt(Arr no_copy arr, delegate<bool(array_data_t<Arr> no_copy)> predicate, search_options options = {});
+s64 search(Arr const& arr, delegate<bool(array_data_t<Arr> const&)> predicate, search_options options = {});
 
 // Find the first occurrence of an element which matches.
 template <any_array_like Arr>
-s64 search_opt(Arr no_copy arr, array_data_t<Arr> no_copy search, search_options options = {});
+s64 search(Arr const& arr, array_data_t<Arr> const& search, search_options options = {});
 
 // Find the first occurrence of a subarray, compares elements using ==
-s64 search_opt(any_array_like auto no_copy arr, any_array_like auto no_copy search, search_options options = {});
+s64 search(any_array_like auto const& arr, any_array_like auto const& search, search_options options = {});
 
-#define search(arr, ps, ...) search_opt(arr, ps, {__VA_ARGS__})
-
-bool has(any_array_like auto no_copy arr, auto no_copy item) { return search(arr, item) != -1; }
+bool has(any_array_like auto const& arr, auto const& item) { return search(arr, item) != -1; }
 
 // Compares this array to _arr_ and returns the index of the first element
 // that is different. If the arrays are equal, the returned value is -1.
-s64 compare(any_array_like auto no_copy a, any_array_like auto no_copy b);
+s64 compare(any_array_like auto const& a, any_array_like auto const& b);
 
 // Compares this array to to _arr_ lexicographically.
 // The result is -1 if this array sorts before the other, 0 if they are equal,
 // and +1 otherwise.
-s32 compare_lexicographically(any_array_like auto no_copy a, any_array_like auto no_copy b);
+s32 compare_lexicographically(any_array_like auto const& a, any_array_like auto const& b);
 
-bool operator==(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare(a, b) == -1; }
+bool operator==(any_array_like auto const& a, any_array_like auto const& b) { return compare(a, b) == -1; }
 
-bool operator!=(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare(a, b) != -1; }
+bool operator!=(any_array_like auto const& a, any_array_like auto const& b) { return compare(a, b) != -1; }
 
-auto operator<=>(any_array_like auto no_copy a, any_array_like auto no_copy b) { return compare_lexicographically(a, b); }
+auto operator<=>(any_array_like auto const& a, any_array_like auto const& b) { return compare_lexicographically(a, b); }
 
 // Doesn't allocate, returns a sub-array of _arr_.
-auto slice(any_array_like auto ref arr, s64 begin, s64 end) {
+auto slice(any_array_like auto & arr, s64 begin, s64 end) {
     s64 beginIndex = translate_negative_index(begin, arr.Count, true);
     s64 endIndex   = translate_negative_index(end, arr.Count, true);
 
@@ -165,7 +163,7 @@ concept has_custom_reserve = requires {
 // In the end, _arr_ is a newly allocated/reallocated array.
 template <any_dynamic_array_like Arr>
     requires(!has_custom_reserve<Arr>)
-void reserve(Arr ref arr, s64 n = -1, allocator alloc = {});
+void reserve(Arr & arr, s64 n = -1, allocator alloc = {});
 
 // Checks _arr_ if there is space for at least _fit_ new elements.
 // Reserves space in the array if there is not enough. The new size is equal
@@ -174,85 +172,85 @@ void reserve(Arr ref arr, s64 n = -1, allocator alloc = {});
 // In the end, _arr_ is a newly allocated/reallocated array.
 template <any_dynamic_array_like Arr>
     requires(!has_custom_reserve<Arr>)
-void maybe_grow(Arr ref arr, s64 fit);
+void maybe_grow(Arr & arr, s64 fit);
 
 template <any_dynamic_array_like Arr>
-auto *insert_at_index(Arr ref arr, s64 index,
-                      array_data_t<Arr> no_copy element);  // Returns pointer in the array to the added element
+auto *insert_at_index(Arr & arr, s64 index,
+                      array_data_t<Arr> const& element);  // Returns pointer in the array to the added element
 
 template <any_dynamic_array_like Arr>
-auto *insert_at_index(Arr ref arr, s64 index, const array_data_t<Arr> *ptr,
+auto *insert_at_index(Arr & arr, s64 index, const array_data_t<Arr> *ptr,
                       s64 size);  // Returns pointer in the array to the
 
 // beginning of added elements
 
 template <any_dynamic_array_like Arr, any_array_like Arr2>
     requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>)
-auto *insert_at_index(Arr ref arr, s64 index, Arr2 no_copy arr2) {
+auto *insert_at_index(Arr & arr, s64 index, Arr2 const& arr2) {
     return insert_at_index(arr, index, arr2.Data, arr2.Count);
 }  // Returns pointer in the array to the beginning of added elements
 
 template <any_dynamic_array_like Arr>
-auto *insert_at_index(any_dynamic_array_like auto ref arr, s64 index, initializer_list<array_data_t<Arr>> list) {
+auto *insert_at_index(any_dynamic_array_like auto & arr, s64 index, initializer_list<array_data_t<Arr>> list) {
     return insert_at_index(arr, index, list.begin(), list.end() - list.begin());
 }  // Returns pointer in the array to the beginning of added elements
 
 template <any_dynamic_array_like Arr>
-auto *add(Arr ref arr, array_data_t<Arr> no_copy element) {
+auto *add(Arr & arr, array_data_t<Arr> const& element) {
     return insert_at_index(arr, arr.Count, element);
 }
 
 template <any_dynamic_array_like Arr, any_array_like Arr2>
     requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>)
-auto *add(Arr ref arr, Arr2 no_copy arr2) {
+auto *add(Arr & arr, Arr2 const& arr2) {
     return insert_at_index(arr, arr.Count, arr2);
 }
 
 template <any_dynamic_array_like Arr>
-auto *add(Arr ref arr, initializer_list<array_data_t<Arr>> list) {
+auto *add(Arr & arr, initializer_list<array_data_t<Arr>> list) {
     return insert_at_index(arr, arr.Count, list.begin(), list.end() - list.begin());
 }
 
 template <any_dynamic_array_like Arr>
-auto *add(Arr ref arr, const array_data_t<Arr> *ptr, s64 size) {
+auto *add(Arr & arr, const array_data_t<Arr> *ptr, s64 size) {
     return insert_at_index(arr, arr.Count, ptr, size);
 }
 
 template <any_dynamic_array_like Arr, any_array_like Arr2>
     requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>)
-auto &operator+=(Arr ref arr, Arr2 no_copy arr2) {
+auto &operator+=(Arr & arr, Arr2 const& arr2) {
     add(arr, arr2);
     return arr;
 }
 
 template <any_dynamic_array_like Arr>
-auto &operator+=(Arr ref arr, initializer_list<array_data_t<Arr>> list) {
+auto &operator+=(Arr & arr, initializer_list<array_data_t<Arr>> list) {
     add(arr, list);
     return arr;
 }
 
 // Removes element at specified index and moves following elements back
-void remove_ordered_at_index(any_dynamic_array_like auto ref arr, s64 index);
+void remove_ordered_at_index(any_dynamic_array_like auto & arr, s64 index);
 
 // Removes element at specified index and moves the last element to the empty
 // slot. This is faster than remove because it doesn't move everything back
 // but this doesn't keep the order of the elements.
-void remove_unordered_at_index(any_dynamic_array_like auto ref arr, s64 index);
+void remove_unordered_at_index(any_dynamic_array_like auto & arr, s64 index);
 
 // Removes first found element and moves following elements back.
 // Returns true on success (false if _element_ was not found in the array).
 template <any_dynamic_array_like Arr>
-bool remove_ordered(Arr ref arr, array_data_t<Arr> no_copy element);
+bool remove_ordered(Arr & arr, array_data_t<Arr> const& element);
 
 // Removes first found element and moves the last element to the empty slot.
 // This is faster than remove because it doesn't move everything back
 // but this doesn't keep the order of the elements.
 // Returns true on success (false if _element_ was not found in the array).
 template <any_dynamic_array_like Arr>
-void remove_unordered(Arr ref arr, array_data_t<Arr> no_copy element);
+void remove_unordered(Arr & arr, array_data_t<Arr> const& element);
 
 // Removes a range [begin, end) and moves following elements back
-void remove_range(any_dynamic_array_like auto ref arr, s64 begin, s64 end);
+void remove_range(any_dynamic_array_like auto & arr, s64 begin, s64 end);
 
 // Removes a range [begin, end) and inserts _replace_.
 // May allocate and change the count:
@@ -260,17 +258,17 @@ void remove_range(any_dynamic_array_like auto ref arr, s64 begin, s64 end);
 // replace.Count.
 template <any_dynamic_array_like Arr, any_array_like Arr2>
     requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>)
-void replace_range(Arr ref arr, s64 begin, s64 end, Arr2 no_copy replace);
+void replace_range(Arr & arr, s64 begin, s64 end, Arr2 const& replace);
 
 // Replace all occurrences of _search_ with _replace_
 template <any_dynamic_array_like Arr, any_array_like Arr2, any_array_like Arr3>
     requires(is_same<array_data_t<Arr>, array_data_t<Arr2>> && is_same<array_data_t<Arr>, array_data_t<Arr3>>)
-void replace_all(Arr ref arr, Arr2 no_copy search, Arr3 no_copy replace);
+void replace_all(Arr & arr, Arr2 const& search, Arr3 const& replace);
 
 // Remove all occurrences of _search_
 template <any_dynamic_array_like Arr, any_array_like Arr2>
     requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>)
-void remove_all(Arr ref arr, Arr2 no_copy search) {
+void remove_all(Arr & arr, Arr2 const& search) {
     replace_all(arr, search, {});
 }
 
@@ -278,17 +276,17 @@ void remove_all(Arr ref arr, Arr2 no_copy search) {
 
 template <any_dynamic_array_like Arr>
     requires(!has_custom_reserve<Arr>)
-auto begin(Arr ref arr) { return arr.Data; }
+auto begin(Arr & arr) { return arr.Data; }
 
 template <any_dynamic_array_like Arr>
     requires(!has_custom_reserve<Arr>)
-auto begin(Arr no_copy arr) { return arr.Data; }
+auto begin(Arr const& arr) { return arr.Data; }
 
-auto end(any_array_like auto ref arr) { return arr.Data + arr.Count; }
+auto end(any_array_like auto & arr) { return arr.Data + arr.Count; }
 
-auto end(any_array_like auto no_copy arr) { return arr.Data + arr.Count; }
+auto end(any_array_like auto const& arr) { return arr.Data + arr.Count; }
 
-void check_debug_memory(any_dynamic_array_like auto no_copy arr);
+void check_debug_memory(any_dynamic_array_like auto const& arr);
 
 //
 // Implementation:
@@ -311,7 +309,7 @@ always_inline s64 translate_negative_index(s64 index, s64 length, bool tolerateO
 }
 
 template <any_array_like Arr>
-s64 search_opt(Arr no_copy arr, delegate<bool(array_data_t<Arr> no_copy)> predicate, search_options options) {
+s64 search(Arr const& arr, delegate<bool(array_data_t<Arr> const&)> predicate, search_options options) {
     if (!arr.Data || arr.Count == 0) return -1;
     options.Start = translate_negative_index(options.Start, arr.Count);
     For(range(options.Start, options.Reversed ? -1 : arr.Count, options.Reversed ? -1 : 1)) if (predicate(arr.Data[it])) return it;
@@ -319,14 +317,14 @@ s64 search_opt(Arr no_copy arr, delegate<bool(array_data_t<Arr> no_copy)> predic
 }
 
 template <any_array_like Arr>
-s64 search_opt(Arr no_copy arr, array_data_t<Arr> no_copy search, search_options options) {
-    auto predicate = [&](array_data_t<Arr> no_copy element) {
+s64 search(Arr const& arr, array_data_t<Arr> const& search, search_options options) {
+    auto predicate = [&](array_data_t<Arr> const& element) {
         return search == element;
     };
     return ::search(arr, &predicate, options);
 }
 
-s64 search_opt(any_array_like auto no_copy arr, any_array_like auto no_copy search, search_options options) {
+s64 search(any_array_like auto const& arr, any_array_like auto const& search, search_options options) {
     if (!arr.Data || arr.Count == 0) return -1;
     if (!search.Data || search.Count == 0) return -1;
     options.Start = translate_negative_index(options.Start, arr.Count);
@@ -343,7 +341,7 @@ s64 search_opt(any_array_like auto no_copy arr, any_array_like auto no_copy sear
     return -1;
 }
 
-s64 compare(any_array_like auto no_copy a, any_array_like auto no_copy b) {
+s64 compare(any_array_like auto const& a, any_array_like auto const& b) {
     if (!a.Count && !b.Count) return -1;
     if (!a.Count || !b.Count) return 0;
 
@@ -360,7 +358,7 @@ s64 compare(any_array_like auto no_copy a, any_array_like auto no_copy b) {
     return p1 - a.Data;
 }
 
-s32 compare_lexicographically(any_array_like auto no_copy a, any_array_like auto no_copy b) {
+s32 compare_lexicographically(any_array_like auto const& a, any_array_like auto const& b) {
     if (!a.Count && !b.Count) return 0;
     if (!a.Count) return -1;
     if (!b.Count) return 1;
@@ -378,7 +376,7 @@ s32 compare_lexicographically(any_array_like auto no_copy a, any_array_like auto
     return *p1 < *p2 ? -1 : 1;
 }
 
-void check_debug_memory(any_dynamic_array_like auto no_copy arr) {
+void check_debug_memory(any_dynamic_array_like auto const& arr) {
     //
     // If you assert here, there are two possible reasons:
     //
@@ -398,7 +396,7 @@ void check_debug_memory(any_dynamic_array_like auto no_copy arr) {
 
 template <any_dynamic_array_like Arr>
     requires(!has_custom_reserve<Arr>)
-void reserve(Arr ref arr, s64 n, allocator alloc) {
+void reserve(Arr & arr, s64 n, allocator alloc) {
     if (n <= 0) { n = max(arr.Count, 8); }
     assert(n >= 1);
     if (n <= arr.Allocated) return;
@@ -422,7 +420,7 @@ void reserve(Arr ref arr, s64 n, allocator alloc) {
 
 template <any_dynamic_array_like Arr>
     requires(!has_custom_reserve<Arr>)
-void maybe_grow(Arr ref arr, s64 fit) {
+void maybe_grow(Arr & arr, s64 fit) {
     check_debug_memory(arr);
 
     s64 space = arr.Allocated;
@@ -434,7 +432,7 @@ void maybe_grow(Arr ref arr, s64 fit) {
 }
 
 template <any_dynamic_array_like Arr>
-auto *insert_at_index(Arr ref arr, s64 index, array_data_t<Arr> no_copy element) {
+auto *insert_at_index(Arr & arr, s64 index, array_data_t<Arr> const& element) {
     maybe_grow(arr, 1);
 
     s64   offset = translate_negative_index(index, arr.Count, true);
@@ -446,7 +444,7 @@ auto *insert_at_index(Arr ref arr, s64 index, array_data_t<Arr> no_copy element)
 }
 
 template <any_dynamic_array_like Arr>
-auto *insert_at_index(Arr ref arr, s64 index, const array_data_t<Arr> *ptr, s64 size) {
+auto *insert_at_index(Arr & arr, s64 index, const array_data_t<Arr> *ptr, s64 size) {
     maybe_grow(arr, size);
 
     s64   offset = translate_negative_index(index, arr.Count, true);
@@ -457,7 +455,7 @@ auto *insert_at_index(Arr ref arr, s64 index, const array_data_t<Arr> *ptr, s64 
     return where;
 }
 
-void remove_ordered_at_index(any_dynamic_array_like auto ref arr, s64 index) {
+void remove_ordered_at_index(any_dynamic_array_like auto & arr, s64 index) {
     s64 offset = translate_negative_index(index, arr.Count);
 
     auto *where = arr.Data + offset;
@@ -465,7 +463,7 @@ void remove_ordered_at_index(any_dynamic_array_like auto ref arr, s64 index) {
     --arr.Count;
 }
 
-void remove_unordered_at_index(any_dynamic_array_like auto ref arr, s64 index) {
+void remove_unordered_at_index(any_dynamic_array_like auto & arr, s64 index) {
     check_debug_memory(arr);
 
     s64 offset = translate_negative_index(index, arr.Count);
@@ -478,7 +476,7 @@ void remove_unordered_at_index(any_dynamic_array_like auto ref arr, s64 index) {
 }
 
 template <any_dynamic_array_like Arr>
-bool remove_ordered(Arr ref arr, array_data_t<Arr> no_copy element) {
+bool remove_ordered(Arr & arr, array_data_t<Arr> const& element) {
     s64 index = search(arr, element);
     if (index == -1) return false;
 
@@ -488,7 +486,7 @@ bool remove_ordered(Arr ref arr, array_data_t<Arr> no_copy element) {
 }
 
 template <any_dynamic_array_like Arr>
-bool remove_unordered(Arr ref arr, array_data_t<Arr> no_copy element) {
+bool remove_unordered(Arr & arr, array_data_t<Arr> const& element) {
     s64 index = search(arr, element);
     if (index == -1) return false;
 
@@ -497,7 +495,7 @@ bool remove_unordered(Arr ref arr, array_data_t<Arr> no_copy element) {
     return true;
 }
 
-void remove_range(any_dynamic_array_like auto ref arr, s64 begin, s64 end) {
+void remove_range(any_dynamic_array_like auto & arr, s64 begin, s64 end) {
     check_debug_memory(arr);
 
     s64 tp = translate_negative_index(begin, arr.Count);
@@ -513,7 +511,7 @@ void remove_range(any_dynamic_array_like auto ref arr, s64 begin, s64 end) {
 
 template <any_dynamic_array_like Arr, any_array_like Arr2>
     requires(is_same<array_data_t<Arr>, array_data_t<Arr2>>)
-void replace_range(Arr ref arr, s64 begin, s64 end, Arr2 no_copy replace) {
+void replace_range(Arr & arr, s64 begin, s64 end, Arr2 const& replace) {
     check_debug_memory(arr);
 
     s64 targetBegin = translate_negative_index(begin, arr.Count);
@@ -538,7 +536,7 @@ void replace_range(Arr ref arr, s64 begin, s64 end, Arr2 no_copy replace) {
 
 template <any_dynamic_array_like Arr, any_array_like Arr2, any_array_like Arr3>
     requires(is_same<array_data_t<Arr>, array_data_t<Arr2>> && is_same<array_data_t<Arr>, array_data_t<Arr3>>)
-void replace_all(Arr ref arr, Arr2 no_copy search, Arr3 no_copy replace) {
+void replace_all(Arr & arr, Arr2 const& search, Arr3 const& replace) {
     if (!arr.Data || !arr.Count) return;
 
     assert(search.Data && search.Count);

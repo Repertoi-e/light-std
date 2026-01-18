@@ -79,7 +79,7 @@ big_integer make_big_integer(s64 initialDigits);
 
 // Assign any integral value (s8, s16, s32, s64, u8, u16, u32, u64, s128, u128,
 // other big integers, etc.) to a big integer.
-bool assign(big_integer ref b, is_integral auto v);
+bool assign(big_integer & b, is_integral auto v);
 
 big_integer make_big(is_integral auto v);
 
@@ -155,7 +155,7 @@ div_result divrem(big_integer lhs, big_integer rhs);
 // Operator % is defined in terms of divmod.
 div_result divmod(big_integer lhs, big_integer rhs);
 
-inline void free(big_integer ref b) {
+inline void free(big_integer & b) {
     if (b.Digits) free(b.Digits);
     b.Size = 0;
 }
@@ -165,25 +165,25 @@ inline void free(big_integer ref b) {
 //
 
 // Ensure there is space for at least _n_ digits in the big integer.
-void ensure_digits(big_integer ref b, s64 n);
+void ensure_digits(big_integer & b, s64 n);
 
 // Ensure there is space for at least _n_ digits in the big integer
 // but reserve more than needed (next power of two).
-void grow(big_integer ref b, s64 n);
+void grow(big_integer & b, s64 n);
 
 // Remove "leading zeros" from a big integer (e.g. 000000000000000000001).
 // Those are actually the trailing zeros in the Digits array since we store
 // chunks in reverse.
-void normalize(big_integer ref b);
+void normalize(big_integer & b);
 
 // For small values (2 digits) we use a small buffer contained in the structure.
 // In that case Digits == null (because members pointing to other members is
 // dangerous).
-inline bool is_small(big_integer ref b) { return !b.Digits; }
+inline bool is_small(big_integer & b) { return !b.Digits; }
 
 // Attempts to convert an integer into a small integer and frees any allocated
 // memory.
-inline void maybe_small(big_integer ref b) {
+inline void maybe_small(big_integer & b) {
     if (is_small(b)) return;
 
     if (abs(b.Size) <= 2) {
@@ -198,14 +198,14 @@ inline void maybe_small(big_integer ref b) {
 
 // For small integers, b.Digits is null and the digits
 // are stored in a small buffer inside the struct.
-inline digit *get_digits(big_integer ref b) {
+inline digit *get_digits(big_integer & b) {
     if (is_small(b)) return b.SmallDigits;
     return b.Digits;
 }
 
 // Supports negative indexing. This is a low level
 // operation and usually used by arithmetic operations.
-inline digit get_digit(big_integer ref b, s64 index) {
+inline digit get_digit(big_integer & b, s64 index) {
     s64 space = is_small(b) ? 2 : b.Allocated;
     index     = translate_negative_index(index, space);
     return get_digits(b)[index];
@@ -213,7 +213,7 @@ inline digit get_digit(big_integer ref b, s64 index) {
 
 // Supports negative indexing. This is a low level
 // operation and usually used by arithmetic operations.
-inline void set_digit(big_integer ref b, s64 index, digit value) {
+inline void set_digit(big_integer & b, s64 index, digit value) {
     s64 space            = is_small(b) ? 2 : b.Allocated;
     index                = translate_negative_index(index, space);
     get_digits(b)[index] = value;
@@ -223,7 +223,7 @@ inline void set_digit(big_integer ref b, s64 index, digit value) {
 // Implementation:
 //
 
-inline void ensure_digits(big_integer ref b, s64 n) {
+inline void ensure_digits(big_integer & b, s64 n) {
     assert(n > 0);
 
     if (is_small(b)) {
@@ -245,7 +245,7 @@ inline void ensure_digits(big_integer ref b, s64 n) {
     }
 }
 
-inline void grow(big_integer ref b, s64 n) {
+inline void grow(big_integer & b, s64 n) {
     s64 target = max(ceil_pow_of_2(n + 1), 8);
     ensure_digits(b, target);
 }
@@ -262,7 +262,7 @@ inline big_integer make_big_integer_and_set_size(s64 initialDigits) {
     return b;
 }
 
-inline void normalize(big_integer ref b) {
+inline void normalize(big_integer & b) {
     s64 j = abs(b.Size);
     s64 i = j;
 
@@ -278,7 +278,7 @@ inline big_integer make_big(is_integral auto v) {
     return b;
 }
 
-inline bool assign(big_integer ref b, is_integral auto v) {
+inline bool assign(big_integer & b, is_integral auto v) {
     if constexpr (is_same<big_integer, decltype(v)>) {
         // Assign from another big integer
         ensure_digits(b, abs(v.Size));

@@ -20,7 +20,7 @@ void fmt_default_parse_error_handler(string message, string formatString, s64 po
 
     s64 start                                                         = 0;
     s64 countExtraSlashesToBeAddedBeforePositionToAccountWhenPrinting = 0;
-    while (start <= position && (start = search(str, &p, .Start = start + 1)) != -1) { countExtraSlashesToBeAddedBeforePositionToAccountWhenPrinting += 1; }
+    while (start <= position && (start = search(str, &p, {.Start = start + 1})) != -1) { countExtraSlashesToBeAddedBeforePositionToAccountWhenPrinting += 1; }
 
     // Make escape characters appear as they would in a string literal
     replace_all(str, '\"', "\\\"");
@@ -64,7 +64,7 @@ ARCHE_END_NAMESPACE
 
 #if defined ARCHE_THROW_ON_ASSERT_THROW_ON_PANIC
 #undef search
-#undef ref
+#undef &
 
 #include <string>
 #include <stdexcept>

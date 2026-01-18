@@ -117,7 +117,7 @@ inline u32 get_hash_murmur_32(const byte *key, s64 len, u32 hash_so_far = 0) {
 
 // Good enough hash for arrays of any type
 // Note: If u have short low-entropy arrays, murmur might be better
-inline u64 get_hash(any_array_like auto ref array) { return get_hash_xxhash64(array.Data, array.Count * sizeof(array[0])); }
+inline u64 get_hash(any_array_like auto & array) { return get_hash_xxhash64(array.Data, array.Count * sizeof(array[0])); }
 
 inline u64 mix64(u64 x) {
     x ^= x >> 30;

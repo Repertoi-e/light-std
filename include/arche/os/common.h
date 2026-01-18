@@ -61,8 +61,8 @@ string os_get_working_dir();
 void os_set_working_dir(string dir);
 
 // Parses command line arguments in a platform specific way,
-// on windows we can get them via CommandLineToArgvW.
-// On POSIX we supply argc/argv from main().
+// on Windows we can get them via CommandLineToArgvW, but
+// on POSIX we must supply argc/argv from main().
 array<string> os_parse_arguments(int argc, char **argv);
 
 // Get a list of parsed command line arguments including the first one -
@@ -215,14 +215,9 @@ inline void platform_uninit_state() {
 // program (or one of the first to ensure
 // proper initialization) before using the library.
 //
-// When we compile on Windows or on Linux with or without CRT, we
-// ensure this gets called before all global constructors.
-// This means you can safely use the library in global
-// state initialization, if you wish to.
-//
 inline void platform_state_init() {
-    auto newContext                = Context;
-    newContext.ThreadID            = os_get_current_thread_id();
+    auto newContext     = Context;
+    newContext.ThreadID = os_get_current_thread_id();
     OVERRIDE_CONTEXT(newContext);
 
     platform_init_common_state();
