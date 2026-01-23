@@ -113,4 +113,10 @@ code_point unicode_compose_pair(code_point a, code_point b) {
     return 0;
 }
 
+int unicode_char_width(code_point cp) {
+    u32 c = clamp_cp(cp);
+    if (c >= UNICODE_TABLE_SIZE) return 1;
+    return g_unicode_char_width[c];
+}
+
 ARCHE_END_NAMESPACE

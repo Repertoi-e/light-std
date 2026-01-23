@@ -347,4 +347,6 @@ inline bool unicode_is_separator(code_point cp) { return unicode_is_separator(un
 
 inline bool unicode_is_other(code_point cp) { return unicode_is_other(unicode_get_general_category(cp)); }
 
+int unicode_char_width(code_point cp);
+
 ARCHE_END_NAMESPACE
