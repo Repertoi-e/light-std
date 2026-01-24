@@ -56,7 +56,7 @@
 #elif defined macintosh || defined __APPLE__ || defined __APPLE_CC__
 #define OS        MACOS
 #define OS_STRING "MacOS"
-#elif __EMSCRIPTEN__
+#elif defined __wasm__ || defined __wasm32__ || defined __wasm64__
 #define OS        WASM
 #define OS_STRING "WASM"
 #else
@@ -74,20 +74,19 @@
 #define VM   1
 #define X86  2
 #define ARM  3
-#define MIPS 4
-#define PPC  5
+// #define WASM 4 // already defined as 4 above with OS
 
-#if defined __pnacl__ || defined __CLR_VER
+#if defined __wasm__ || defined __wasm32__ || defined __wasm64__
+#define ARCH WASM
+#elif defined __pnacl__ || defined __CLR_VER
 #define ARCH VM
 #elif defined _M_X64 || defined __x86_64__ || defined _M_IX86 || defined __i386__
 #define ARCH X86
 #elif defined __arm__ || defined _M_ARM || __aarch64__
 #define ARCH ARM
-#elif defined __mips__ || defined __mips64
-#define ARCH MIPS
-#elif defined __powerpc__
-#define ARCH PPC
 #endif
+
+
 
 #if ARCH == X86
 #define X86_AES    defined __AES__
@@ -104,11 +103,9 @@
 #define x86_AVX2   defined __AVX2__
 #elif ARCH == ARM
 #define ANY_ARM_NEON defined __ARM_NEON__)
-#elif ARCH == MIPS
-#define MIPS_MSA defined __mips_msa)
 #endif
 
-#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ || defined __mips64 || defined __powerpc64__ || defined __ppc64__
+#if defined _M_X64 || defined __x86_64__ || defined __aarch64__ || defined __mips64 || defined __powerpc64__ || defined __ppc64__ || defined __wasm64__
 #define BITS 64
 #else
 #define BITS 32
@@ -177,6 +174,7 @@
 #define MSVC  1
 #define CLANG 2
 #define GCC   3
+#define EMSCRIPTEN 4
 
 #if defined __clang__
 #define COMPILER        CLANG
@@ -187,6 +185,9 @@
 #elif defined _MSC_VER
 #define COMPILER        MSVC
 #define COMPILER_STRING "MSVC"
+#elif defined __EMSCRIPTEN__
+#define COMPILER        EMSCRIPTEN
+#define COMPILER_STRING "Emscripten"
 #else
 #warning Compiler not detected
 #endif
