@@ -412,7 +412,7 @@ struct arena_allocator_data {
 
     s64 Used = 0;
 
-    s64 AutomaticBlockSize = 0;  // You can change this before using the allocator, by default it's 8_GiB
+    s64 AutomaticBlockSize = 0;  // You can change this before using the allocator, by default it's 128_MiB
 };
 
 //
@@ -440,7 +440,7 @@ inline void *arena_allocator(allocator_mode mode, void *context, s64 size, void 
 #if OS == WASM
             data->AutomaticBlockSize = 2_MiB;
 #else
-            data->AutomaticBlockSize = 8_GiB;
+            data->AutomaticBlockSize = 128_MiB;
 #endif
         }
 
