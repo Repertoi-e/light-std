@@ -16,6 +16,7 @@
 #define TEST_SUITE_FOLDER "test-suite/"
 
 bool IS_WASM = false;
+bool NO_TESTS = false;
 
 typedef enum
 {
@@ -314,6 +315,10 @@ int main(int argc, char **argv)
         {
             IS_WASM = true;
         }
+        else if (strcmp(argv[i], "no-tests") == 0)
+        {
+            NO_TESTS = true;
+        }
         else
         {
             nob_log(ERROR, "Unknown argument: %s\n", argv[i]);
@@ -328,7 +333,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (!build_test_suite(config))
+    if (!NO_TESTS && !build_test_suite(config))
     {
         nob_log(ERROR, "Failed to build test-suite\n");
         return 1;

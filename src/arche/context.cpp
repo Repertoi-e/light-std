@@ -63,9 +63,6 @@ void fmt_default_parse_error_handler(string message, string formatString, s64 po
 ARCHE_END_NAMESPACE
 
 #if defined ARCHE_THROW_ON_ASSERT_THROW_ON_PANIC
-#undef search
-#undef &
-
 #include <string>
 #include <stdexcept>
 #endif
