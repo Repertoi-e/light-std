@@ -28,6 +28,7 @@ enum class file_write_mode {
 };
 
 // Reads entire file into memory (no async variant available at the moment).
+// Null-terminated string is returned.
 mark_as_leak optional<string> os_read_entire_file(string path);
 
 // Write _contents_ to a file.

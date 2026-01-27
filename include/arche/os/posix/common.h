@@ -173,6 +173,7 @@ inline string os_read_from_console_overwrite_previous_call() {
     return S->CinBuffer;
 }
 
+// Null-terminated string is returned.
 mark_as_leak inline optional<string> os_read_entire_file(string path) {
     FILE *file = fopen(to_c_string_temp(path), "rb");
     if (!file) {
@@ -187,7 +188,7 @@ mark_as_leak inline optional<string> os_read_entire_file(string path) {
     rewind(file);
 
     string result;
-    reserve(result, size);
+    reserve(result, size + 1);
 
     // Read the file contents into the buffer
     size_t bytesRead = fread(result.Data, 1, size, file);
@@ -196,6 +197,7 @@ mark_as_leak inline optional<string> os_read_entire_file(string path) {
         free(result);
         return {};
     }
+    result.Data[bytesRead] = '\0';
     result.Count = bytesRead;
 
     return result;

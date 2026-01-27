@@ -291,6 +291,7 @@ inline string os_read_from_console_overwrite_previous_call() {
         return;                                                                                                \
     }
 
+// Null-terminated string is returned.
 inline mark_as_leak optional<string> os_read_entire_file(string path) {
     CREATE_FILE_HANDLE_CHECKED(file, CreateFileW(utf8_to_utf16(path), GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null), {});
     defer(CloseHandle(file));
@@ -299,7 +300,7 @@ inline mark_as_leak optional<string> os_read_entire_file(string path) {
     GetFileSizeEx(file, &size);
 
     string result;
-    reserve(result, size.QuadPart);
+    reserve(result, size.QuadPart + 1);
     DWORD bytesRead;
     if (!ReadFile(file, result.Data, (u32)size.QuadPart, &bytesRead, null)) {
         free(result);
@@ -307,6 +308,7 @@ inline mark_as_leak optional<string> os_read_entire_file(string path) {
     }
     assert(size.QuadPart == bytesRead);
 
+    result.Data[bytesRead] = '\0';
     result.Count = bytesRead;
     return result;
 }
