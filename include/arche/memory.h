@@ -1007,8 +1007,6 @@ inline void *operator new[](size_t, void *p) noexcept { return p; }
 //
 
 extern "C" {
-// @TODO: ARCHE_NO_CRT
-#if COMPILER == MSVC
 // Allocates a block of a given size
 restrict void *malloc(size_t size);
 
@@ -1022,7 +1020,6 @@ restrict void *realloc(void *ptr, size_t newSize);
 
 // Frees a block allocated by malloc.
 void free(void *ptr);
-#endif
 }
 
 #if COMPILER == MSVC
