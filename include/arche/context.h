@@ -15,12 +15,12 @@ struct os_function_call {
 
 array<os_function_call> os_get_call_stack(s32 skipFrames, s32 maxDepth, void *platformContext);
 
-inline void free(os_function_call & src) {
+inline void free(os_function_call &src) {
     free(src.Name);
     free(src.File);
 }
 
-inline os_function_call clone(os_function_call const& src) {
+inline os_function_call clone(os_function_call const &src) {
     os_function_call result;
     result.Name       = clone(src.Name);
     result.File       = clone(src.File);
@@ -84,7 +84,7 @@ struct context {
     // malloc<>(). This is here so you can change alignment for every allocation
     // in an entire scope (or an entire run of a program).
     //
-    u16 AllocAlignment  = POINTER_SIZE; 
+    u16 AllocAlignment = POINTER_SIZE;
 
     //
     // When doing allocations we provide an optional parameter that is meant
@@ -161,10 +161,10 @@ struct context {
     //
     // Internal.
     //
-    bool _HandlingPanic = false; // Don't set. Used to avoid infinite
-                                 // looping when handling panics. Don't touch!
-    bool _LoggingAnAllocation = false; // Don't set. Used to avoid infinite
-                                       // looping when logging allocations. Don't touch!
+    bool _HandlingPanic       = false;  // Don't set. Used to avoid infinite
+                                        // looping when handling panics. Don't touch!
+    bool _LoggingAnAllocation = false;  // Don't set. Used to avoid infinite
+                                        // looping when logging allocations. Don't touch!
 };
 
 // :Context:
@@ -252,7 +252,7 @@ ARCHE_END_NAMESPACE
 //
 
 #define PUSH_CONTEXT(newContext)                                               \
-    auto LINE_NAME(oldContext) = ARCHE_NAMESPACE::Context;                      \
+    auto LINE_NAME(oldContext) = ARCHE_NAMESPACE::Context;                     \
     auto LINE_NAME(restored)   = false;                                        \
     defer({                                                                    \
         if (!LINE_NAME(restored)) { OVERRIDE_CONTEXT(LINE_NAME(oldContext)); } \
@@ -269,9 +269,9 @@ ARCHE_END_NAMESPACE
             } else LINE_NAME(body) :
 
 // Shortcut for just modifying the allocator
-#define PUSH_ALLOC(newAlloc)                               \
+#define PUSH_ALLOC(...)                                     \
     auto LINE_NAME(newContext)  = ARCHE_NAMESPACE::Context; \
-    LINE_NAME(newContext).Alloc = newAlloc;                \
+    LINE_NAME(newContext).Alloc = __VA_ARGS__;              \
     PUSH_CONTEXT(LINE_NAME(newContext))
 
 // This is useful for e.g. the beginning of the program to completely override
